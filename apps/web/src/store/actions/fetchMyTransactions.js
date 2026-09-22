@@ -73,7 +73,9 @@ query FetchMyTransactions (
       }
       track {
         id
-        name
+        space {
+          name
+        }
       }
     }
   }

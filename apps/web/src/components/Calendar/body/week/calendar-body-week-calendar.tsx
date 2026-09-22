@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
@@ -10,6 +10,7 @@ import Button from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
+/** Returns the dates in the locale week that contains `date`. */
 const selectedWeekDates = function (date: Date) {
   const luxonDate = DateTimeHelpers.toDateTime(date, { locale: getLocaleFromLocalStorage() })
   // Get the first day of the week
@@ -25,35 +26,22 @@ export default function CalendarBodyWeekCalendar () {
   const { t } = useTranslation()
   const { date, events, setDate } = useCalendarContext()
   const today = new Date()
+  const selected = selectedWeekDates(date)
+  const hideGoToButton = DateTimeHelpers.isSameWeek(date, today)
 
-  const [hideGoToButton, setHideGoToButton] = useState(DateTimeHelpers.isSameWeek(date, today))
-  const [selected, setSelected] = useState<Date[]>(selectedWeekDates(date))
-  const [month, setMonth] = useState(date)
-
-  const handleDayClick = (day: Date) => {
-    setSelected(selectedWeekDates(day))
-    setDate(day)
-  }
-
-  const handleMonthChange = (day : Date) => {
-    setDate(day)
-    setMonth(day)
-    setHideGoToButton(DateTimeHelpers.isSameWeek(day, today))
-  }
-
-  const handleGoToButton = () => {
-    handleMonthChange(today)
-    setSelected(selectedWeekDates(today))
-    setDate(today)
+  // DayPicker only honors the `selected` prop when `onSelect` is set; without it,
+  // selection stays stuck on the initially rendered week (uncontrolled internal state).
+  const handleSelect = (_dates: Date[] | undefined, triggerDate: Date) => {
+    setDate(triggerDate)
   }
 
   return (
     <>
       <Calendar
-        month={month}
+        month={date}
         selected={selected}
-        onDayClick={handleDayClick}
-        onMonthChange={handleMonthChange}
+        onSelect={handleSelect}
+        onMonthChange={setDate}
         mode='multiple'
         classNames={{
           // align formatted days vertically at top of cells, allow to wrap, and reduce lineheight
@@ -61,12 +49,13 @@ export default function CalendarBodyWeekCalendar () {
           day_button: cn(buttonVariants({ variant: 'ghost' }), 'whitespace-pre-wrap leading-3 items-start size-9 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md')
         }}
         formatters={({
-          formatDay: (date, options) => {
+          formatDay: (day, options) => {
             const maxNumEvents = 3
-            const numEvents = events.filter((event) => DateTimeHelpers.rangeIncludesDate(event.start, date, event.end)).length
+            const numEvents = (events ?? []).filter((event) => DateTimeHelpers.rangeIncludesDate(event.start, day, event.end)).length
             const symbols = '•'.repeat(Math.min(numEvents, maxNumEvents))
             const moreSymbol = numEvents > maxNumEvents
-            return `${DateTimeHelpers.toDateTime(date, { locale: options.locale.code }).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
+            const locale = options?.locale?.code
+            return `${DateTimeHelpers.toDateTime(day, { locale }).toFormat('dd', { locale })}\n${symbols}${moreSymbol ? '+' : ''}`
           }
         })}
       />
@@ -74,7 +63,7 @@ export default function CalendarBodyWeekCalendar () {
         <Button
           variant='outline'
           className='h-7'
-          onClick={() => handleGoToButton()}
+          onClick={() => setDate(today)}
         >
           {t('Go to This Week')}
         </Button>}

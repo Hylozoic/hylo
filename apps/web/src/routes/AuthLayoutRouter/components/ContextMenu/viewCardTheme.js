@@ -48,6 +48,15 @@ export const CARD_H = 156
 export const CARD_TITLE_CLASS = 'text-sm font-bold line-clamp-2 m-0 leading-[1.1]'
 
 /**
+ * Icon tile on a card. Below sm the cards themselves are smaller, so the tile
+ * slims down — same glyph, less padding — leaving the title room to breathe.
+ */
+export const CARD_TILE_CLASS = 'w-14 h-14 rounded-[15px] max-sm:w-11 max-sm:h-11 max-sm:rounded-xl'
+
+/** Top edge of a card's label block, flush with the icon tile's bottom edge. */
+export const CARD_LABEL_TOP_CLASS = 'top-[calc(50%+28px)] max-sm:top-[calc(50%+22px)]'
+
+/**
  * Shared card footprint and interaction. Cards are deliberately dark in both
  * themes — each is a mini canvas tinted by its view's brand color, per the
  * one-column dashboard design. Below sm the width is fluid, so the aspect ratio

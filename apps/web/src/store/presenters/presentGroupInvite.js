@@ -4,6 +4,11 @@ export default function presentGroupInvite (invite) {
   return {
     ...invite.ref,
     creator: invite.creator ? invite.creator.ref : null,
-    group: invite.group ? invite.group.ref : null
+    group: invite.group
+      ? {
+          ...invite.group.ref,
+          parentGroup: invite.group.parentGroup?.ref || null
+        }
+      : null
   }
 }

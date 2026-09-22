@@ -53,6 +53,7 @@ export function verifyEmail (email, code, token) {
               name
               settings {
                 alreadySeenTour
+                toursSeen
                 colorScheme
                 dmNotifications
                 commentNotifications
@@ -108,6 +109,7 @@ export function register (name, password) {
               name
               settings {
                 alreadySeenTour
+                toursSeen
                 colorScheme
                 dmNotifications
                 commentNotifications

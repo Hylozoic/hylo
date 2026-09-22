@@ -1,5 +1,5 @@
 import { GraphQLError } from 'graphql'
-import { merge, trim } from 'lodash'
+import { isEmpty, merge, trim } from 'lodash'
 import { includes } from 'lodash/fp'
 
 import underlyingDeleteComment from '../../models/comment/deleteComment'
@@ -120,7 +120,7 @@ export async function validateCommentCreateData (userId, data) {
   const isVisible = await Post.isVisibleToUser(data.postId, userId)
 
   if (isVisible) {
-    if (!data.imageUrl && !trim(data.text)) {
+    if (!data.imageUrl && !trim(data.text) && isEmpty(data.attachments)) {
       throw new GraphQLError("Can't create a blank comment")
     }
     return data
@@ -130,7 +130,7 @@ export async function validateCommentCreateData (userId, data) {
 }
 
 export async function validateCommentUpdateData (userId, data) {
-  if (!data.imageUrl && !trim(data.text)) {
+  if (!data.imageUrl && !trim(data.text) && isEmpty(data.attachments)) {
     throw new GraphQLError("Can't create a blank comment")
   }
   return data

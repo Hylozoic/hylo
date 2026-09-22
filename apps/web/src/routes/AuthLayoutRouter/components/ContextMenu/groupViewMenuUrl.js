@@ -3,25 +3,21 @@ import {
   localSpaceSlug,
   postUrl,
   personUrl,
-  spaceHomeUrl,
   spaceGroupViewUrl,
   spaceUrl,
   viewUrl
 } from '@hylo/navigation'
-import { isDrawerNavLayout } from 'util/mobile'
 import { sanitizeURL } from 'util/url'
 
 /**
  * URL for opening a space from a menu.
- * On a drawer layout (mobile) the space index is the space's own menu (SpaceContent);
- * alongside a visible sidebar, go straight to the home view.
+ * Always the space index. SpaceContent shows the space menu there when no
+ * sidebar is alongside it (one-column / drawer); otherwise it redirects to
+ * the home view so only that view's unread clears.
  */
 export function spaceEntryUrl (parentSlug, spaceGroup) {
   if (!parentSlug || !spaceGroup?.slug) return parentSlug ? groupUrl(parentSlug) : '/'
-  if (isDrawerNavLayout()) {
-    return spaceUrl(parentSlug, localSpaceSlug(parentSlug, spaceGroup.slug))
-  }
-  return spaceHomeUrl(parentSlug, spaceGroup)
+  return spaceUrl(parentSlug, localSpaceSlug(parentSlug, spaceGroup.slug))
 }
 
 /**
@@ -41,6 +37,14 @@ export function contextViewUrl (view) {
     return viewUrl(view.type, { context: view.context })
   }
   return null
+}
+
+/** True when pathname is a view of this group, not a nested space. */
+export function isParentGroupPath (pathname, groupSlug) {
+  if (!pathname || !groupSlug) return false
+  const base = `/groups/${groupSlug}`
+  if (pathname === base || pathname === `${base}/`) return true
+  return pathname.startsWith(`${base}/`) && !pathname.startsWith(`${base}/spaces/`)
 }
 
 /** Maps a GroupView to its URL within a group's route tree. Falls back to the group home. */
@@ -82,6 +86,10 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, `custom/${view.id}`)
     case 'collection':
       return groupUrl(groupSlug, `collection/${view.id}`)
+    case 'space-collection':
+      return groupUrl(groupSlug, `space-collection/${view.id}`)
+    case 'page':
+      return groupUrl(groupSlug, `page/${view.id}`)
     case 'track-actions':
       return groupUrl(groupSlug, 'track-actions')
     case 'funding-round-submissions':

@@ -11,7 +11,8 @@
 import { GraphQLError } from 'graphql'
 import { validateOfferingDurationForAccessGrants } from '../../../lib/offeringAccessGrants'
 import StripeService from '../../services/StripeService'
-import { extractOfferingPresentationFields, getSlidingScaleFromOffering, parseJsonObject } from '../../../lib/stripeOfferingMetadata'
+import { extractOfferingPresentationFields, getSlidingScaleFromOffering, parseJsonObject, plainTextOfferingDescription } from '../../../lib/stripeOfferingMetadata'
+import { grantCheckoutSessionAccess } from '../../../lib/grantCheckoutSessionAccess'
 
 function assertValidOfferingDurationForAccessGrants (accessGrants, duration) {
   const error = validateOfferingDurationForAccessGrants(accessGrants, duration)
@@ -75,6 +76,16 @@ async function getGroupAdminLocale (group) {
   }
 
   return 'en'
+}
+
+/** Preserve existing query params (e.g. spaceSlug) when appending Stripe return fields. */
+function appendCheckoutReturnParams (successUrl, offeringId) {
+  const join = String(successUrl || '').includes('?') ? '&' : '?'
+  return `${successUrl}${join}session_id={CHECKOUT_SESSION_ID}&offering_id=${offeringId}`
+}
+
+function checkoutSessionIsPaid (session) {
+  return session.payment_status === 'paid' || session.payment_status === 'no_payment_required'
 }
 
 module.exports = {
@@ -309,7 +320,7 @@ module.exports = {
       const product = await StripeService.createProduct({
         accountId: externalAccountId,
         name,
-        description,
+        description: plainTextOfferingDescription(description),
         priceInCents,
         currency: currency || 'usd',
         billingInterval,
@@ -422,8 +433,9 @@ module.exports = {
         stripeSyncFields.name = name
       }
       if (description !== undefined) {
-        updateAttrs.description = description
-        stripeSyncFields.description = description
+        const plainDescription = plainTextOfferingDescription(description)
+        updateAttrs.description = plainDescription
+        stripeSyncFields.description = plainDescription
       }
       if (priceInCents !== undefined) {
         updateAttrs.price_in_cents = priceInCents
@@ -688,7 +700,7 @@ module.exports = {
         priceId: effectiveStripePriceId,
         quantity: initialQuantity,
         applicationFeeAmount,
-        successUrl: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&offering_id=${offeringId}`,
+        successUrl: appendCheckoutReturnParams(successUrl, offeringId),
         cancelUrl,
         mode: checkoutMode,
         adjustableQuantity: sanitizedAdjustableQuantity,
@@ -790,6 +802,65 @@ module.exports = {
       }
       console.error('Error in checkStripeStatus:', error)
       throw new GraphQLError(`Failed to check Stripe status: ${error.message}`)
+    }
+  },
+
+  /**
+   * Grants access after the success page returns, if the webhook has not yet.
+   * The redirect is not a signed Stripe callback — we re-fetch the Checkout
+   * Session from Stripe and grant only when payment_status is paid (or $0).
+   * Grant inputs come from session.metadata, not client arguments.
+   */
+  fulfillStripeCheckoutSession: async (userId, { sessionId, offeringId }) => {
+    try {
+      if (!userId) {
+        throw new GraphQLError('You must be logged in to complete a purchase')
+      }
+      if (!sessionId) {
+        throw new GraphQLError('Session ID is required')
+      }
+
+      const lookupOffering = offeringId ? await StripeProduct.where({ id: offeringId }).fetch() : null
+      if (!lookupOffering) {
+        throw new GraphQLError('Offering not found')
+      }
+
+      const group = await Group.find(lookupOffering.get('group_id'))
+      if (!group || !group.get('stripe_account_id')) {
+        throw new GraphQLError('Group does not have a connected Stripe account')
+      }
+
+      const externalAccountId = await getExternalAccountId(group.get('stripe_account_id'))
+      const session = await StripeService.getCheckoutSession(externalAccountId, sessionId)
+
+      if (!session.metadata?.userId || !session.metadata?.offeringId || !session.metadata?.groupId) {
+        throw new GraphQLError('Checkout session is missing grant metadata')
+      }
+
+      if (String(session.metadata.userId) !== String(userId)) {
+        throw new GraphQLError('This checkout session does not belong to you')
+      }
+
+      if (!checkoutSessionIsPaid(session)) {
+        throw new GraphQLError('Payment is not complete yet')
+      }
+
+      const grant = await grantCheckoutSessionAccess(session)
+
+      if (!grant.granted) {
+        throw new GraphQLError(`Could not grant access: ${grant.reason || 'unknown'}`)
+      }
+
+      return {
+        success: true,
+        message: grant.already ? 'Access already granted' : 'Access granted'
+      }
+    } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
+      console.error('Error in fulfillStripeCheckoutSession:', error)
+      throw new GraphQLError(`Failed to complete purchase: ${error.message}`)
     }
   }
 }

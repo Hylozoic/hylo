@@ -3,9 +3,9 @@ import orm from 'store/models'
 import { GROUP_TYPES } from 'store/models/Group'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 
-/** True when a group record represents a Space (sub-group under a parent). */
+/** True when a group record represents a Space (`type = space`) */
 export function isSpaceGroup (group) {
-  return group?.type === GROUP_TYPES.space || Boolean(group?.parentId)
+  return group?.type === GROUP_TYPES.space
 }
 
 /** Sorts groups by nav pin order, then alphabetically by name. */
@@ -14,6 +14,16 @@ function sortGroups (a, b) {
   const bOrder = b.navOrder ?? Infinity
   if (aOrder !== bOrder) return aOrder - bOrder
   return a.name.localeCompare(b.name)
+}
+
+/**
+ * Parent GlobalNav/Drawer badge: the group's own unread, or 1 when any nested
+ * space still has unread (nav only shows a dot).
+ */
+function parentNavNewPostCount (ownCount, spaces) {
+  if ((ownCount || 0) > 0) return ownCount
+  if ((spaces || []).some(space => (space.newPostCount || 0) > 0)) return 1
+  return 0
 }
 
 /** Builds a plain summary object for a nested group or space row. */
@@ -77,7 +87,7 @@ function buildMyGroupsTree (session, memberships) {
     return {
       ...group,
       membershipId: membership.id,
-      newPostCount: membership.newPostCount,
+      newPostCount: parentNavNewPostCount(membership.newPostCount, spaces),
       navOrder: membership.navOrder,
       childGroups,
       spaces
@@ -91,7 +101,7 @@ function buildMyGroupsTree (session, memberships) {
     groups.push({
       ...parentGroup.ref,
       membershipId: null,
-      newPostCount: 0,
+      newPostCount: parentNavNewPostCount(0, spaces),
       navOrder: null,
       childGroups: [],
       spaces,

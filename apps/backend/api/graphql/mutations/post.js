@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql'
+import { PINNABLE_VIEW_TYPES, MAX_PINNED_POSTS_PER_VIEW } from '@hylo/shared'
 import validatePostData from '../../models/post/validatePostData'
 import underlyingCreatePost from '../../models/post/createPost'
 import underlyingUpdatePost from '../../models/post/updatePost'
@@ -168,18 +169,38 @@ export function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
     .then(() => ({ success: true }))
 }
 
-export async function pinPost (userId, postId, groupId) {
-  const group = await Group.find(groupId)
-  return GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_CONTENT)
-    .then(isModerator => {
-      if (!isModerator) throw new GraphQLError("You don't have permission to modify this group")
-      return PostMembership.find(postId, groupId)
-        .then(postMembership => {
-          if (!postMembership) throw new GraphQLError("Couldn't find postMembership")
-          return postMembership.togglePinned()
-        })
-        .then(() => ({ success: true }))
-    })
+export async function pinPost (userId, postId, viewId) {
+  const view = await GroupView.where({ id: viewId }).fetch()
+  if (!view) throw new GraphQLError("Couldn't find view")
+
+  if (!PINNABLE_VIEW_TYPES.includes(view.get('type'))) {
+    throw new GraphQLError('Posts cannot be pinned to this view')
+  }
+
+  const group = await Group.find(view.get('group_id'))
+  const isModerator = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_CONTENT)
+  if (!isModerator) throw new GraphQLError("You don't have permission to modify this group")
+
+  const postMembership = await PostMembership.find(postId, group.id)
+  if (!postMembership) throw new GraphQLError("Couldn't find post in this group")
+
+  const existing = await GroupViewPin.find(viewId, postId)
+  if (existing) {
+    await existing.destroy()
+    return { success: true }
+  }
+
+  const count = await GroupViewPin.countForView(viewId)
+  if (count >= MAX_PINNED_POSTS_PER_VIEW) {
+    throw new GraphQLError('You can pin up to 3 posts in this view')
+  }
+
+  await GroupViewPin.create({
+    view_id: viewId,
+    post_id: postId,
+    pinned_at: new Date()
+  })
+  return { success: true }
 }
 
 // converts input data from the way it's received in GraphQL to the format that
@@ -191,6 +212,7 @@ function convertGraphqlPostData (data) {
     description: data.details,
     link_preview_id: data.linkPreviewId,
     link_preview_featured: data.linkPreviewFeatured,
+    skip_link_preview: data.skipLinkPreview,
     group_ids: data.groupIds,
     parent_post_id: data.parentPostId,
     location_id: data.locationId,

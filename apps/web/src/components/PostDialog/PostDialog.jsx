@@ -1,9 +1,12 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSelector } from 'react-redux'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 
-import { removePostFromUrl } from '@hylo/navigation'
+import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { useRegisterHardwareBackHandler } from 'util/hardwareBackHandler'
+import { canNavigateBack } from 'util/mobileNavBack'
+import { closePostOverlay } from 'util/postDetailCloseNavigation'
 
 import PostDetail from 'routes/PostDetail/PostDetail'
 
@@ -31,18 +34,28 @@ const PostDialog = ({
 }) => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { postId } = useParams()
+  const previousLocation = useSelector(getPreviousLocation)
 
   const postDetailRef = useRef(null)
   const [dialogOpen, setDialogOpen] = useState(true)
 
+  useEffect(() => {
+    setDialogOpen(true)
+  }, [postId])
+
   const portalContainer = useMemo(() => container || document.getElementById('center-column-container'), [container])
 
   const dismiss = useCallback(() => {
-    navigate({
-      pathname: removePostFromUrl(location.pathname) || '/',
-      search: location.search
+    closePostOverlay({
+      navigate,
+      pathname: location.pathname,
+      search: location.search,
+      hash: location.hash,
+      previousLocation,
+      canGoBack: canNavigateBack()
     })
-  }, [navigate, location.pathname, location.search])
+  }, [navigate, location.pathname, location.search, location.hash, previousLocation])
 
   const handleOpenChange = useCallback((open) => {
     if (open) {

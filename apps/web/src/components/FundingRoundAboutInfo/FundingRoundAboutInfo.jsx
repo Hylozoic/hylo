@@ -102,9 +102,7 @@ export default function FundingRoundAboutInfo ({ fundingRoundId, roleGroupId }) 
     : Array.isArray(round.submissions) ? round.submissions.length : 0
 
   return (
-    <div className='flex flex-col gap-4 border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-      <h3 className='text-xl font-bold m-0'>{t('Funding Round')}</h3>
-
+    <div className='flex flex-col gap-4'>
       <RoundPhaseStatus
         round={round}
         currentPhase={currentPhase}
@@ -125,7 +123,8 @@ export default function FundingRoundAboutInfo ({ fundingRoundId, roleGroupId }) 
       )}
 
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-        <Info label={t('Budget Required')} value={round.requireBudget ? t('Yes') : t('No')} />
+        <Info label={t('Show Budget Field')} value={round.requireBudget ? t('Yes') : t('No')} />
+        <Info label={t('Show real-time votes')} value={round.showRealtimeVotes ? t('Yes') : t('No')} />
         <Info label={t('Voting Method')} value={votingMethodLabel} />
         <Info label={t('Token Type')} value={round.tokenType} />
         <Info

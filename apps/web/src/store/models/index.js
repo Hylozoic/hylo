@@ -3,13 +3,11 @@ import './Model.extension'
 import Activity from './Activity'
 import Agreement from './Agreement'
 import Attachment from './Attachment'
-import Collection, { CollectionPost } from './Collection'
 import Comment from './Comment'
 import ContentAccess from './ContentAccess'
-import CustomView from './CustomView'
 import Draft from './Draft'
 import EventInvitation from './EventInvitation'
-import Group, { ChatRoom, GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
+import Group, { GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
 import GroupView from './GroupView'
 import GroupRelationshipInvite, { GroupToGroupJoinRequestQuestionAnswer } from './GroupRelationshipInvite'
 import GroupTopic from './GroupTopic'
@@ -40,12 +38,8 @@ const ORM_MODELS = [
   Activity,
   Agreement,
   Attachment,
-  ChatRoom,
-  Collection,
-  CollectionPost,
   Comment,
   ContentAccess,
-  CustomView,
   Draft,
   EventInvitation,
   FundingRound,

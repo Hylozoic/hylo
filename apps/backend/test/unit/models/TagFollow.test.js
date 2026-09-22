@@ -17,44 +17,21 @@ describe('TagFollow', () => {
     }
   })
 
-  // toggle doesn't seem to exist as a method anymore
-
-  // describe('#toggle', () => {
-  //   it("creates a TagFollow when there isn't one", () => {
-  //     return TagFollow.toggle(tag.id, user.id, group.id)
-  //       .then(() => TagFollow.where(attrs).fetch())
-  //       .then(tagFollow => {
-  //         expect(tagFollow).to.exist
-  //       })
-  //   })
-
-  //   it('deletes a TagFollow when there is one', () => {
-  //     return new TagFollow(attrs).save()
-  //       .then(() => TagFollow.toggle(tag.id, user.id, group.id))
-  //       .then(() => TagFollow.where(attrs).fetch())
-  //       .then(tagFollow => {
-  //         expect(tagFollow).not.to.exist
-  //       })
-  //   })
-  // })
-
   describe('#subscribe', () => {
-    it("creates a TagFollow when there isn't one only if isSubscribing", () => {
+    it('creates a TagFollow when isSubscribing and none exists', () => {
       return TagFollow.subscribe(tag.id, user.id, group.id, false)
         .then(() => TagFollow.where(attrs).fetch())
         .then(tagFollow => {
-          expect(tagFollow).to.exist
-          expect(tagFollow.get('settings')).to.deep.equal({})
+          expect(tagFollow).not.to.exist
         })
         .then(() => TagFollow.subscribe(tag.id, user.id, group.id, true))
         .then(() => TagFollow.where(attrs).fetch())
         .then(tagFollow => {
           expect(tagFollow).to.exist
-          expect(tagFollow.get('settings').notifications).to.equal('all')
         })
     })
 
-    it('deletes a TagFollow when there is one only if not isSubscribing', () => {
+    it('removes a TagFollow when not isSubscribing', () => {
       return new TagFollow(attrs).save()
       .then(() => TagFollow.subscribe(tag.id, user.id, group.id, true))
       .then(() => TagFollow.where(attrs).fetch())
@@ -64,8 +41,7 @@ describe('TagFollow', () => {
       .then(() => TagFollow.subscribe(tag.id, user.id, group.id, false))
       .then(() => TagFollow.where(attrs).fetch())
       .then(tagFollow => {
-        expect(tagFollow).to.exist
-        expect(tagFollow.get('settings').notifications).to.equal(false)
+        expect(tagFollow).not.to.exist
       })
     })
   })
@@ -80,9 +56,7 @@ describe('TagFollow', () => {
       .then(() => TagFollow.findOrCreate({
         tagId: tag.id,
         userId: user.id,
-        groupId: group.id,
-        isSubscribing: true,
-        isChatRoom: true
+        groupId: group.id
       }))
       .then(() => TagFollow.where({
         tag_id: tag.id,
@@ -98,6 +72,29 @@ describe('TagFollow', () => {
       }).fetch())
       .then(groupTag => {
         expect(groupTag.get('num_followers')).to.equal(6)
+      })
+    })
+
+    it('does not increment followers when the TagFollow already exists', () => {
+      return Promise.join(
+        new GroupTag({
+          group_id: group.id,
+          tag_id: tag.id,
+          num_followers: 5
+        }).save(),
+        new TagFollow(attrs).save()
+      )
+      .then(() => TagFollow.findOrCreate({
+        tagId: tag.id,
+        userId: user.id,
+        groupId: group.id
+      }))
+      .then(() => GroupTag.where({
+        group_id: group.id,
+        tag_id: tag.id
+      }).fetch())
+      .then(groupTag => {
+        expect(groupTag.get('num_followers')).to.equal(5)
       })
     })
   })

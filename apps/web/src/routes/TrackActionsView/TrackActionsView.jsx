@@ -3,7 +3,7 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isEmpty } from 'lodash/fp'
 import { Pencil, Plus, Shapes } from 'lucide-react'
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
@@ -13,6 +13,7 @@ import PostDialog from 'components/PostDialog'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { fetchViewPosts, reorderViewPost } from 'store/actions/groupViews'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
@@ -51,16 +52,36 @@ export default function TrackActionsView () {
   const groupViews = useSelector(state => getGroupViews(state, group))
   const view = groupViews.find(v => v.type === 'track-actions')
   const viewId = view?.id
-  const postsLoaded = view?.collectionPosts !== undefined
+  const collectionPosts = view?.collectionPosts
+  const postsMissing = collectionPosts === undefined
   const posts = useMemo(() => {
-    if (isEmpty(view?.collectionPosts)) return []
-    return view.collectionPosts.map(p => presentPost(p))
-  }, [view?.collectionPosts])
-  const currentActionId = posts.find(p => !p.completedAt)?.id
+    if (collectionPosts === undefined) return null
+    if (isEmpty(collectionPosts)) return []
+    return collectionPosts.map(p => presentPost(p))
+  }, [collectionPosts])
+  const cachedPostsRef = useRef([])
+  if (posts !== null) cachedPostsRef.current = posts
+  const displayedPosts = posts !== null ? posts : cachedPostsRef.current
+  const currentActionId = displayedPosts.find(p => !p.completedAt)?.id
+
+  const groupViewsLoaded = group?.groupViews != null
 
   useEffect(() => {
-    if (group?.id && viewId) dispatch(fetchViewPosts(group.id, viewId))
-  }, [group?.id, viewId])
+    if (group?.id && !groupViewsLoaded) {
+      dispatch(fetchGroupViews(group.id))
+    }
+  }, [dispatch, group?.id, groupViewsLoaded])
+
+  // Refresh in place: keep showing the current list while posts fetch.
+  useEffect(() => {
+    if (!group?.id || !viewId) return
+    dispatch(fetchViewPosts(group.id, viewId))
+  }, [dispatch, group?.id, viewId])
+
+  useEffect(() => {
+    if (!group?.id || !viewId || !postsMissing) return
+    dispatch(fetchViewPosts(group.id, viewId))
+  }, [dispatch, group?.id, viewId, postsMissing])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -88,8 +109,7 @@ export default function TrackActionsView () {
     navigate(addQuerystringToPath(location.pathname, { edit: isEditing ? null : 'true' }), { replace: true })
   }
 
-  if (!group || (viewId && !postsLoaded)) return <Loading />
-  if (!trackId) return null
+  if (!group || !groupViewsLoaded || !trackId) return <Loading />
 
   const { accessControlled, canAccess } = currentTrack
   const hasAccess = accessControlled ? canAccess !== false : true
@@ -126,8 +146,8 @@ export default function TrackActionsView () {
                 collisionDetection={closestCorners}
                 modifiers={[restrictToVerticalAxis]}
               >
-                <SortableContext items={posts.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                  {posts.map(post => (
+                <SortableContext items={displayedPosts.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                  {displayedPosts.map(post => (
                     <ActionSummary key={post.id} post={post} trackId={trackId} groupId={group.id} viewId={viewId} />
                   ))}
                 </SortableContext>
@@ -142,9 +162,11 @@ export default function TrackActionsView () {
             </>
             )
           : (
-              posts.map(post => (
-                <PostCard key={post.id} post={post} isCurrentAction={currentActionId === post.id} actionDescriptor={currentTrack.actionDescriptor} />
-              ))
+              postsMissing && displayedPosts.length === 0
+                ? <Loading />
+                : displayedPosts.map(post => (
+                  <PostCard key={post.id} post={post} isCurrentAction={currentActionId === post.id} actionDescriptor={currentTrack.actionDescriptor} />
+                ))
             )}
       </div>
     </div>

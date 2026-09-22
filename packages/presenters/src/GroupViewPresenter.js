@@ -2,7 +2,6 @@ import { POST_TYPES } from './PostPresenter.js'
 
 /** Default icon names for GroupView types (Hylo icon font or Lucide via GroupViewIcon). */
 const VIEW_TYPE_TO_ICON_NAME = {
-  about: 'Info',
   all: 'Stream',
   discussions: 'Message',
   events: 'Calendar',
@@ -11,12 +10,10 @@ const VIEW_TYPE_TO_ICON_NAME = {
   moderation: 'Shield',
   post: 'Posticon',
   proposals: 'Proposal',
-  'related-groups': 'Groups',
   group: 'Groups',
   groups: 'Groups',
   'requests-and-offers': 'Request',
   resources: 'Document',
-  stream: 'Stream',
   'track-actions': 'Shapes',
   tracks: 'Shapes',
   welcome: 'Hand',
@@ -99,12 +96,6 @@ export const COMMON_VIEWS = {
     postTypes: ['resource'],
     defaultSortBy: 'created'
   },
-  stream: {
-    name: 'Stream',
-    iconName: 'Stream',
-    defaultViewMode: 'cards',
-    defaultSortBy: 'created'
-  },
   topics: {
     name: 'All Topics',
     iconName: 'Topics'
@@ -113,9 +104,23 @@ export const COMMON_VIEWS = {
     name: 'Tracks',
     iconName: 'Shapes'
   },
+  'track-actions': {
+    name: 'Actions',
+    iconName: 'Shapes',
+    postTypes: ['action']
+  },
+  'funding-round-submissions': {
+    name: 'Submissions',
+    iconName: 'ClipboardList',
+    postTypes: ['submission']
+  },
   welcome: {
     name: 'Welcome',
     iconName: 'Hand'
+  },
+  page: {
+    name: 'Page',
+    lucideIcon: 'FileText'
   }
 }
 
@@ -124,6 +129,7 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   all: 'Activity',
   chat: 'MessageCircleMore',
   collection: 'Layers',
+  'space-collection': 'Boxes',
   'funding-round-submissions': 'ClipboardList',
   'manage-round': 'Settings',
   link: 'ExternalLink',
@@ -131,9 +137,9 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   member: 'User',
   members: 'Users',
   moderation: 'ShieldCheck',
+  page: 'FileText',
   projects: 'Layers',
   proposals: 'Vote',
-  'related-groups': 'Network',
   resources: 'PackageOpen',
   'requests-and-offers': 'Heart',
   text: 'Type',
@@ -145,11 +151,13 @@ const LUCIDE_ICON_NAMES = new Set([
   'BadgeDollarSign',
   'Bell',
   'Bookmark',
+  'Boxes',
   'ClipboardList',
   'CreditCard',
   'Edit',
   'ExternalLink',
   'FilePenLine',
+  'FileText',
   'Grid3x3',
   'Languages',
   'Layers',
@@ -210,7 +218,7 @@ export function avatarForView (view) {
 /** Resolves the icon for a view — DB override, linked space group icon, then type default. */
 export function iconForView (view) {
   if (view?.icon) {
-    if (LUCIDE_ICON_NAMES.has(view.icon) || view.type === 'custom' || view.type === 'collection' || view.type === 'space' || view.type === 'link' || view.type === 'logout') {
+    if (LUCIDE_ICON_NAMES.has(view.icon) || view.type === 'custom' || view.type === 'collection' || view.type === 'space-collection' || view.type === 'space' || view.type === 'link' || view.type === 'logout' || view.type === 'page') {
       return { iconName: null, lucideIcon: view.icon }
     }
     return { iconName: view.icon, lucideIcon: null }
@@ -238,6 +246,7 @@ export function iconForView (view) {
 /**
  * Human-readable menu label for a GroupView.
  * Optional `spaceGroup` supplies track/funding-round unit terms for nested space views.
+ * Space labels use the view name (kept in sync with the space Group on create/update).
  */
 export function displayNameForView (view, t, { spaceGroup } = {}) {
   if (view?.type === 'post' && view.viewPost?.title) return view.viewPost.title
@@ -247,9 +256,9 @@ export function displayNameForView (view, t, { spaceGroup } = {}) {
     if (view.pageContent) return view.pageContent
     if (view.name) return translateViewName(view.name, t)
   }
-  // Space menu labels always follow the space group name (not a stale view.name snapshot).
   if (view?.type === 'space') {
-    return view.linkedGroup?.name || (view.name ? translateViewName(view.name, t) : undefined)
+    if (view.name) return translateViewName(view.name, t)
+    return view.linkedGroup?.name || spaceGroup?.name
   }
   if (view?.name) return translateViewName(view.name, t)
 
@@ -271,10 +280,10 @@ export function displayNameForView (view, t, { spaceGroup } = {}) {
 
 /** Static menu views for the Public context (The Commons). */
 export const PUBLIC_CONTEXT_VIEWS = [
-  { type: 'stream', context: 'public', icon: 'Stream', name: 'widget-public-stream', id: 'view-public-stream', order: 1 },
-  { type: 'groups', context: 'public', icon: 'Groups', name: 'widget-public-groups', id: 'view-public-groups', order: 2 },
-  { type: 'map', context: 'public', name: 'widget-public-map', id: 'view-public-map', order: 3 },
-  { type: 'events', context: 'public', name: 'widget-public-events', id: 'view-public-events', order: 4 }
+  { type: 'all', context: 'public', icon: 'Stream', name: 'view-public-all', id: 'view-public-all', order: 1 },
+  { type: 'groups', context: 'public', icon: 'Groups', name: 'view-public-groups', id: 'view-public-groups', order: 2 },
+  { type: 'map', context: 'public', name: 'view-public-map', id: 'view-public-map', order: 3 },
+  { type: 'events', context: 'public', name: 'view-public-events', id: 'view-public-events', order: 4 }
 ]
 
 /**
@@ -282,32 +291,30 @@ export const PUBLIC_CONTEXT_VIEWS = [
  * Flat ordered list with text headers as section breaks (same shape as group menus).
  */
 export const MY_CONTEXT_VIEWS = (profileUrl) => [
-  { type: 'text', name: 'widget-my-content', id: 'view-my-content', order: 1 },
-  { type: 'posts', context: 'my', icon: 'Posticon', name: 'widget-my-posts', id: 'view-my-posts', order: 2 },
-  { type: 'drafts', context: 'my', icon: 'FilePenLine', name: 'widget-my-drafts', id: 'view-my-drafts', order: 3 },
-  { type: 'interactions', context: 'my', icon: 'Support', name: 'widget-my-interactions', id: 'view-my-interactions', order: 4 },
-  { type: 'mentions', context: 'my', icon: 'Email', name: 'widget-my-mentions', id: 'view-my-mentions', order: 5 },
-  { type: 'announcements', context: 'my', icon: 'Announcement', name: 'widget-my-announcements', id: 'view-my-announcements', order: 6 },
-  { type: 'saved-posts', context: 'my', icon: 'Bookmark', name: 'widget-my-saved-posts', id: 'view-my-saved-posts', order: 7 },
-  { type: 'tracks', context: 'my', icon: 'Shapes', name: 'widget-my-tracks', id: 'view-my-tracks', order: 8 },
-  { type: 'funding-rounds', context: 'my', icon: 'BadgeDollarSign', name: 'widget-my-funding-rounds', id: 'view-my-funding-rounds', order: 9 },
-  { type: 'text', name: 'widget-my-groups-content', id: 'view-my-groups-content', order: 10 },
-  { type: 'stream', context: 'all', name: 'widget-my-groups-stream', id: 'view-my-groups-stream', order: 11 },
-  { type: 'map', context: 'all', name: 'widget-my-groups-map', id: 'view-my-groups-map', order: 12 },
-  { type: 'events', context: 'all', name: 'widget-my-groups-events', id: 'view-my-groups-events', order: 13 },
-  { type: 'text', name: 'widget-myself', id: 'view-myself', order: 14 },
-  { type: 'link', name: 'widget-my-profile', link: profileUrl, icon: 'User', id: 'view-my-profile', order: 15 },
-  { type: 'edit-profile', context: 'my', icon: 'Edit', name: 'widget-my-edit-profile', id: 'view-my-edit-profile', order: 16 },
-  { type: 'groups', context: 'my', icon: 'Users', name: 'widget-my-groups', id: 'view-my-groups', order: 17 },
-  { type: 'invitations', context: 'my', icon: 'Mail', name: 'widget-my-invites', id: 'view-my-invites', order: 18 },
-  { type: 'transactions', context: 'my', icon: 'CreditCard', name: 'widget-my-transactions', id: 'view-my-transactions', order: 19 },
-  { type: 'notifications', context: 'my', icon: 'Bell', name: 'widget-my-notifications', id: 'view-my-notifications', order: 20 },
-  { type: 'appearance', context: 'my', icon: 'Palette', name: 'widget-my-appearance', id: 'view-my-appearance', order: 21 },
-  { type: 'locale', context: 'my', icon: 'Languages', name: 'widget-my-locale', id: 'view-my-locale', order: 22 },
-  { type: 'blocked-users', context: 'my', icon: 'UserX', name: 'widget-my-blocked-users', id: 'view-my-blocked-users', order: 23 },
-  { type: 'saved-searches', context: 'my', icon: 'Search', name: 'widget-my-saved-searches', id: 'view-my-saved-searches', order: 24 },
-  { type: 'account', context: 'my', icon: 'Shield', name: 'widget-my-account', id: 'view-my-account', order: 25 },
-  { type: 'logout', name: 'widget-my-logout', icon: 'LogOut', id: 'view-my-logout', order: 26 }
+  { type: 'all', context: 'all', name: 'view-my-groups-all', id: 'view-my-groups-all', order: 1 },
+  { type: 'map', context: 'all', name: 'view-my-groups-map', id: 'view-my-groups-map', order: 2 },
+  { type: 'events', context: 'all', name: 'view-my-groups-events', id: 'view-my-groups-events', order: 3 },
+  { type: 'text', name: 'view-my-content', id: 'view-my-content', order: 4 },
+  { type: 'posts', context: 'my', icon: 'Posticon', name: 'view-my-posts', id: 'view-my-posts', order: 5 },
+  { type: 'drafts', context: 'my', icon: 'FilePenLine', name: 'view-my-drafts', id: 'view-my-drafts', order: 6 },
+  { type: 'interactions', context: 'my', icon: 'Support', name: 'view-my-interactions', id: 'view-my-interactions', order: 7 },
+  { type: 'mentions', context: 'my', icon: 'Email', name: 'view-my-mentions', id: 'view-my-mentions', order: 8 },
+  { type: 'saved-posts', context: 'my', icon: 'Bookmark', name: 'view-my-saved-posts', id: 'view-my-saved-posts', order: 9 },
+  { type: 'tracks', context: 'my', icon: 'Shapes', name: 'view-my-tracks', id: 'view-my-tracks', order: 10 },
+  { type: 'funding-rounds', context: 'my', icon: 'BadgeDollarSign', name: 'view-my-funding-rounds', id: 'view-my-funding-rounds', order: 11 },
+  { type: 'text', name: 'view-myself', id: 'view-myself', order: 12 },
+  { type: 'link', name: 'view-my-profile', link: profileUrl, icon: 'User', id: 'view-my-profile', order: 13 },
+  { type: 'edit-profile', context: 'my', icon: 'Edit', name: 'view-my-edit-profile', id: 'view-my-edit-profile', order: 14 },
+  { type: 'groups', context: 'my', icon: 'Users', name: 'view-my-groups', id: 'view-my-groups', order: 15 },
+  { type: 'invitations', context: 'my', icon: 'Mail', name: 'view-my-invites', id: 'view-my-invites', order: 16 },
+  { type: 'transactions', context: 'my', icon: 'CreditCard', name: 'view-my-transactions', id: 'view-my-transactions', order: 17 },
+  { type: 'notifications', context: 'my', icon: 'Bell', name: 'view-my-notifications', id: 'view-my-notifications', order: 18 },
+  { type: 'appearance', context: 'my', icon: 'Palette', name: 'view-my-appearance', id: 'view-my-appearance', order: 19 },
+  { type: 'locale', context: 'my', icon: 'Languages', name: 'view-my-locale', id: 'view-my-locale', order: 20 },
+  { type: 'blocked-users', context: 'my', icon: 'UserX', name: 'view-my-blocked-users', id: 'view-my-blocked-users', order: 21 },
+  { type: 'saved-searches', context: 'my', icon: 'Search', name: 'view-my-saved-searches', id: 'view-my-saved-searches', order: 22 },
+  { type: 'account', context: 'my', icon: 'Shield', name: 'view-my-account', id: 'view-my-account', order: 23 },
+  { type: 'logout', name: 'view-my-logout', icon: 'LogOut', id: 'view-my-logout', order: 24 }
 ]
 
 /** Returns static menu views for My Home or Public contexts. */

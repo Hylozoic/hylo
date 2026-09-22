@@ -170,16 +170,27 @@ export function JoinBarriers ({ group, onBarriersStateChange, joinIntroCopy = fa
   )
 }
 
-export default function JoinSection ({ accessCode, addSkill, currentUser, fullPage, group, groupsWithPendingRequests, invitationRole, invitationToken, joinGroup, requestToJoinGroup, removeSkill, routeParams, t }) {
+export default function JoinSection ({ accessCode, currentUser, fullPage, group, groupsWithPendingRequests, invitationRole, invitationToken, joinGroup, linkedSpaceName, requestToJoinGroup, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
   // User arrived with a join link (accessCode) or email invite link (token) — pre-approved for Closed/Restricted
   const hasJoinOrInviteLink = !!(accessCode || invitationToken)
 
+  const linkedSpaceNotice = linkedSpaceName
+    ? (
+      <div className='bg-selected/10 border border-selected/30 rounded-xl p-4 mb-4 text-center'>
+        <span className='font-medium text-foreground'>
+          {t('You will also be added to space {{name}} on joining', { name: linkedSpaceName })}
+        </span>
+      </div>
+      )
+    : null
+
   // If group has paywall, show paywall offerings with nested barriers
   if (group.paywall) {
     return (
       <div className={cn('JoinSection requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>
+        {linkedSpaceNotice}
         <PaywallOfferingsSection group={group} />
       </div>
     )
@@ -198,6 +209,7 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
           </div>
         </div>
       )}
+      {linkedSpaceNotice}
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
         ? (
           <div className='w-full mb-[100px] border border-dashed p-3 rounded bg-midground'>
@@ -257,12 +269,10 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
           : group.accessibility === GROUP_ACCESSIBILITY.Open
             ? (
               <JoinQuestionsAndButtons
-                addSkill={addSkill}
                 currentUser={currentUser}
                 group={group}
                 joinGroup={joinGroup}
                 joinText={t('Join {{group.name}}', { group })}
-                removeSkill={removeSkill}
                 t={t}
               />
               )
@@ -271,12 +281,10 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
               ? hasJoinOrInviteLink
                 ? (
                   <JoinQuestionsAndButtons
-                    addSkill={addSkill}
                     currentUser={currentUser}
                     group={group}
                     joinGroup={joinGroup}
                     joinText={t('Join {{group.name}}', { group })}
-                    removeSkill={removeSkill}
                     t={t}
                   />
                   )
@@ -290,12 +298,10 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
                       )
                     : (
                       <JoinQuestionsAndButtons
-                        addSkill={addSkill}
                         currentUser={currentUser}
                         group={group}
                         joinGroup={requestToJoinGroup}
                         joinText={t('Request Membership in {{group.name}}', { group })}
-                        removeSkill={removeSkill}
                         t={t}
                       />
                       )
@@ -309,7 +315,7 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
   )
 }
 
-function JoinQuestionsAndButtons ({ addSkill, currentUser, group, joinGroup, joinText, removeSkill, t }) {
+function JoinQuestionsAndButtons ({ currentUser, group, joinGroup, joinText, t }) {
   const agreements = group.agreements || []
   const hasAgreements = agreements.length > 0
   const hasRequiredQuestions = group.settings?.askJoinQuestions && group.joinQuestions?.length > 0
@@ -365,7 +371,7 @@ function JoinQuestionsAndButtons ({ addSkill, currentUser, group, joinGroup, joi
           {hasBarriers &&
             <JoinBarriers group={group} onBarriersStateChange={handleBarriersStateChange} joinIntroCopy />}
           {hasSuggestedSkills &&
-            <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
+            <SuggestedSkills currentUser={currentUser} group={group} />}
         </>
       )}
 

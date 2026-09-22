@@ -43,7 +43,9 @@ export default gql`
       }
       track {
         id
-        name
+        space {
+          name
+        }
       }
       meta {
         reasons

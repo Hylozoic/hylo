@@ -16,6 +16,7 @@ export default function checkLogin () {
             name
             settings {
               alreadySeenTour
+              toursSeen
               colorScheme
               dmNotifications
               commentNotifications

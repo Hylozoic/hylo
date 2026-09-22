@@ -1,5 +1,6 @@
 import { omitBy, isNil } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
+import sentry from '../../lib/sentry'
 
 module.exports = {
   // logic for setting up the session when a user logs in
@@ -13,7 +14,7 @@ module.exports = {
     req.session.userId = user.id
     req.session.userEmail = user.get('email')
 
-    req.rollbar_person = user.pick('id', 'name', 'email')
+    sentry.setUser(user.pick('id', 'name', 'email'))
 
     if (providerKey === 'admin' || providerKey === 'token') return
 

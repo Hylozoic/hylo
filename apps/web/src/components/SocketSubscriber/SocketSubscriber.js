@@ -15,6 +15,7 @@ export default function SocketSubscriber ({ id, type }) {
     }
 
     const socket = getSocket()
+    if (!socket) return undefined
 
     const subscribe = (oldHandler) => {
       if (oldHandler) {

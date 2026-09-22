@@ -7,6 +7,10 @@ import {
   setQuerystringParam,
   removeGroupFromUrl,
   createUrl,
+  createPostUrl,
+  createModalUrl,
+  createGroupModalUrl,
+  createPostModalUrl,
   primaryPostUrl,
   messagePersonUrl,
   isPublicPath,
@@ -14,8 +18,13 @@ import {
   isGroupsView,
   origin,
   homeRoutePathForView,
-  groupViewPath
-} from './navigation'
+  groupViewPath,
+  spaceHomeRoutePath,
+  spaceHomeUrl,
+  localSpaceSlug,
+  storedSpaceSlug,
+  tagSearchUrl
+} from './index'
 
 describe('postUrl', () => {
   it('should default to displaying the all groups context', () => {
@@ -65,6 +74,18 @@ describe('postUrl', () => {
     const actual = postUrl('123', { context: 'all', action: 'action' })
     expect(actual).toEqual(expected)
   })
+
+  it('should open a group post from about/moderation without nesting under about', () => {
+    const expected = '/groups/awesome-team/post/123'
+    const actual = postUrl('123', { context: 'groups', groupSlug: 'awesome-team', view: 'about' })
+    expect(actual).toEqual(expected)
+  })
+
+  it('should open a space post from about/moderation without nesting under about', () => {
+    const expected = '/groups/awesome-team/spaces/circle/post/123'
+    const actual = postUrl('123', { context: 'groups', groupSlug: 'awesome-team', spaceSlug: 'circle', view: 'about' })
+    expect(actual).toEqual(expected)
+  })
 })
 
 describe('removePostFromUrl', () => {
@@ -106,7 +127,7 @@ describe('editPostUrl', () => {
 describe('duplicatePostUrl', () => {
   it('should return create action URL with postId query param fromPostId', () => {
     const result = duplicatePostUrl('1234', { context: 'groups', groupSlug: 'test' })
-    expect(result).toEqual('/groups/test/create/post?fromPostId=1234')
+    expect(result).toEqual('/groups/test?fromPostId=1234&create=post')
   })
 })
 
@@ -158,9 +179,33 @@ describe('origin with windows !== undefined', () => {
 
 describe('createUrl', () => {
   it('returns correct location', () => {
-    const expected = '/my/create?lat=1.23456&lng=6.54321'
+    const expected = '/my?lat=1.23456&lng=6.54321&create=post'
     const actual = createUrl({ context: 'my' }, { lat: '1.23456', lng: '6.54321' })
     expect(actual).toEqual(expected)
+  })
+})
+
+describe('createPostUrl', () => {
+  it('opens the post modal on the current context via query param', () => {
+    expect(createPostUrl({ context: 'groups', groupSlug: 'test' }, { newPostType: 'event' }))
+      .toEqual('/groups/test?newPostType=event&create=post')
+  })
+})
+
+describe('createModalUrl', () => {
+  it('sets create=post on the current location', () => {
+    expect(createPostModalUrl({ pathname: '/groups/test/all', search: '?sortBy=updated' }))
+      .toEqual('/groups/test/all?sortBy=updated&create=post')
+  })
+
+  it('sets create=group on the current location', () => {
+    expect(createGroupModalUrl({ pathname: '/public/all', search: '' }))
+      .toEqual('/public/all?create=group')
+  })
+
+  it('accepts an explicit type', () => {
+    expect(createModalUrl({ pathname: '/all/all', search: '' }, 'post', { newPostType: 'request' }))
+      .toEqual('/all/all?newPostType=request&create=post')
   })
 })
 
@@ -223,9 +268,10 @@ describe('homeRoutePathForView', () => {
   it('returns paths for common home view types', () => {
     expect(homeRoutePathForView({ type: 'all' })).toEqual('/all')
     expect(homeRoutePathForView({ type: 'welcome' })).toEqual('/welcome')
-    expect(homeRoutePathForView({ type: 'stream' })).toEqual('/all')
     expect(homeRoutePathForView({ type: 'custom', id: 12 })).toEqual('/custom/12')
     expect(homeRoutePathForView({ type: 'collection', id: 34 })).toEqual('/collection/34')
+    expect(homeRoutePathForView({ type: 'space-collection', id: 56 })).toEqual('/space-collection/56')
+    expect(homeRoutePathForView({ type: 'page', id: 7 })).toEqual('/page/7')
   })
 
   it('matches groupViewPath for navigable views', () => {
@@ -240,5 +286,71 @@ describe('homeRoutePathForView', () => {
       }
     }
     expect(homeRoutePathForView(view)).toEqual('/welcome')
+  })
+})
+
+describe('spaceHomeRoutePath', () => {
+  it('uses the order-0 view when present', () => {
+    expect(spaceHomeRoutePath({
+      homeRoute: '/all',
+      groupViews: { items: [{ type: 'track-actions', order: 0 }] }
+    })).toEqual('/track-actions')
+  })
+
+  it('uses homeRoute when views are not loaded', () => {
+    expect(spaceHomeRoutePath({ homeRoute: '/track-actions' })).toEqual('/track-actions')
+  })
+
+  it('falls back to track-actions for a track space', () => {
+    expect(spaceHomeRoutePath({ track: { id: '1' } })).toEqual('/track-actions')
+  })
+})
+
+describe('spaceHomeUrl', () => {
+  it('nests the home path under the parent space URL', () => {
+    expect(spaceHomeUrl('parent', { slug: 'parent-track', homeRoute: '/track-actions' }))
+      .toEqual('/groups/parent/spaces/track/track-actions')
+  })
+})
+
+describe('localSpaceSlug', () => {
+  it('strips a matching parent prefix from the stored slug', () => {
+    expect(localSpaceSlug('my-community', 'my-community-general')).toEqual('general')
+  })
+
+  it('returns the slug unchanged when it is not prefixed', () => {
+    expect(localSpaceSlug('my-community', 'general')).toEqual('general')
+  })
+})
+
+describe('storedSpaceSlug', () => {
+  it('prefixes the local slug with the parent slug', () => {
+    expect(storedSpaceSlug('my-community', 'general')).toEqual('my-community-general')
+  })
+
+  it('does not double-prefix an already stored slug', () => {
+    expect(storedSpaceSlug('my-community', 'my-community-general')).toEqual('my-community-general')
+  })
+})
+
+describe('tagSearchUrl', () => {
+  it('searches the current group for a hashtag', () => {
+    expect(tagSearchUrl('climate', { groupSlug: 'awesome-team' }))
+      .toEqual('/search?t=%23climate&groupSlug=awesome-team')
+  })
+
+  it('accepts a tag that already has a leading hash', () => {
+    expect(tagSearchUrl('#climate', { groupSlug: 'awesome-team' }))
+      .toEqual('/search?t=%23climate&groupSlug=awesome-team')
+  })
+
+  it('omits groupSlug for all/public context slugs', () => {
+    expect(tagSearchUrl('climate', { groupSlug: 'all' })).toEqual('/search?t=%23climate')
+    expect(tagSearchUrl('climate', { groupSlug: 'public' })).toEqual('/search?t=%23climate')
+  })
+
+  it('returns /search when the tag is empty', () => {
+    expect(tagSearchUrl('')).toEqual('/search')
+    expect(tagSearchUrl('#')).toEqual('/search')
   })
 })

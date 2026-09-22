@@ -9,9 +9,12 @@ import { ViewHeaderProvider } from 'contexts/ViewHeaderContext/ViewHeaderProvide
 import { DropdownProvider } from 'contexts/DropdownContext'
 import { CookieConsentProvider } from 'contexts/CookieConsentContext'
 import CookiePreferencesPanel from 'components/CookiePreferencesPanel'
-import store, { history } from '../store'
+import store, { history, sandboxBasename } from '../store'
 import RootRouter from 'routes/RootRouter'
 import RehydrationGate from 'components/RehydrationGate/RehydrationGate'
+import SandboxBanner from 'sandbox/SandboxBanner'
+import { Helmet } from 'react-helmet'
+import { cn } from 'util/index'
 
 // same configuration you would create for the Rollbar.js SDK
 // const rollbarConfig = {
@@ -42,12 +45,24 @@ export default function App () {
           <CookieConsentProvider>
             <ViewHeaderProvider>
               <DropdownProvider>
-                <Router history={history}>
-                  <RehydrationGate>
-                    <RootRouter />
-                  </RehydrationGate>
-                  <CookiePreferencesPanel />
-                </Router>
+                <div className={cn(sandboxBasename ? 'flex flex-col h-[100dvh]' : 'h-full')}>
+                  {sandboxBasename && <SandboxBanner />}
+                  {/* Keep a bounded height: h-full to #root, or flex-1 under the sandbox banner. */}
+                  <div className={cn(sandboxBasename ? 'flex-1 min-h-0 overflow-hidden' : 'h-full')}>
+                    <Router history={history} basename={sandboxBasename}>
+                      {sandboxBasename && (
+                        <Helmet>
+                          <title>Hylo Demo</title>
+                          <meta name='robots' content='noindex, nofollow' />
+                        </Helmet>
+                      )}
+                      <RehydrationGate>
+                        <RootRouter />
+                      </RehydrationGate>
+                      <CookiePreferencesPanel />
+                    </Router>
+                  </div>
+                </div>
               </DropdownProvider>
             </ViewHeaderProvider>
           </CookieConsentProvider>

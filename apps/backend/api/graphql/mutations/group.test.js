@@ -30,7 +30,7 @@ describe('mutations/group', () => {
       user = factories.user()
       group = factories.group()
       return Promise.join(group.save(), user.save())
-        .then(() => user.joinGroup(group, { assignCoordinator: true }))
+        .then(() => user.joinGroup(group, { assignAdministrator: true }))
     })
 
     describe('updateGroup', () => {
@@ -52,7 +52,7 @@ describe('mutations/group', () => {
     describe('removeMember', () => {
       it('works', async () => {
         const user2 = await factories.user().save()
-        await user2.joinGroup(group, { assignCoordinator: true })
+        await user2.joinGroup(group, { assignAdministrator: true })
         await removeMember(user.id, user2.id, group.id)
 
         const membership = await GroupMembership.forPair(user2, group,
@@ -80,7 +80,7 @@ describe('mutations/group', () => {
       const inviter = await factories.user().save()
       const user = await factories.user().save()
       const group = await factories.group().save({ accessibility: Group.Accessibility.RESTRICTED })
-      await inviter.joinGroup(group, { assignCoordinator: true })
+      await inviter.joinGroup(group, { assignAdministrator: true })
       await GroupRole.setupSystemRoles(group.id)
       const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
 
@@ -107,6 +107,30 @@ describe('mutations/group', () => {
         Responsibility.constants.RESP_ADD_MEMBERS
       )
       expect(canAddMembers).to.be.true
+    })
+
+    it('adds the user to the space after joining the parent with a space invitation', async () => {
+      const inviter = await factories.user().save()
+      const user = await factories.user().save()
+      const parent = await factories.group().save({ accessibility: Group.Accessibility.RESTRICTED })
+      const space = await factories.group({ type: 'space', parent_id: parent.id }).save()
+      await inviter.joinGroup(parent, { assignAdministrator: true })
+
+      const invitation = await Invitation.create({
+        userId: inviter.id,
+        groupId: space.id,
+        email: user.get('email')
+      })
+
+      await joinGroup(parent.id, user.id, [], null, invitation.get('token'), false, {})
+
+      const parentMembership = await GroupMembership.forPair(user, parent).fetch()
+      const spaceMembership = await GroupMembership.forPair(user, space).fetch()
+      expect(parentMembership).to.exist
+      expect(spaceMembership).to.exist
+
+      await invitation.refresh()
+      expect(invitation.get('used_by_id')).to.equal(user.id)
     })
   })
 
@@ -137,15 +161,8 @@ describe('mutations/group', () => {
       const hasAdministration = await GroupMembership.hasResponsibility(user.id, group, Responsibility.constants.RESP_ADMINISTRATION)
       expect(hasAdministration).to.be.true
 
-      const generalTopic = await group.tags().fetchOne()
-      expect(generalTopic).to.exist
-      expect(generalTopic.get('name')).to.equal('general')
-      expect(generalTopic.pivot.get('is_default')).to.equal(true)
-
-      const user2 = await membership.user().fetch()
-      const generalTagFollow = await user2.tagFollows().fetchOne()
-      expect(generalTagFollow).to.exist
-      expect(generalTagFollow.get('tag_id')).to.equal(generalTopic.id)
+      const chatView = await GroupView.where({ group_id: group.id, type: GroupView.Type.CHAT }).fetch()
+      expect(chatView).to.exist
     })
 
     it('creates inside a parent group if user can moderate the parent or parent is open', () => {
@@ -171,7 +188,7 @@ describe('mutations/group', () => {
       user = factories.user()
       group = factories.group()
       return Promise.join(group.save(), user.save())
-        .then(() => user.joinGroup(group, { assignCoordinator: true }))
+        .then(() => user.joinGroup(group, { assignAdministrator: true }))
     })
 
     it('deletes the topic', async () => {
@@ -192,7 +209,7 @@ describe('mutations/group', () => {
     before(async () => {
       user = await factories.user().save()
       group = await factories.group().save()
-      await user.joinGroup(group, { assignCoordinator: true })
+      await user.joinGroup(group, { assignAdministrator: true })
     })
 
     it('makes the group inactive', async () => {
@@ -218,8 +235,8 @@ describe('mutations/group', () => {
       otherGroup = await factories.group().save()
 
       // Make adminUser an administrator of both fromGroup and toGroup
-      await adminUser.joinGroup(fromGroup, { assignCoordinator: true })
-      await adminUser.joinGroup(toGroup, { assignCoordinator: true })
+      await adminUser.joinGroup(fromGroup, { assignAdministrator: true })
+      await adminUser.joinGroup(toGroup, { assignAdministrator: true })
 
       // Make memberUser a regular member of fromGroup only
       await memberUser.joinGroup(fromGroup, )

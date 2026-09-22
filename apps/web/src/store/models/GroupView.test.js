@@ -1,0 +1,86 @@
+import { canBeHomeView, isMenuViewVisible, singleVisibleMenuView, viewAcceptedByPostTypes } from './GroupView'
+
+describe('viewAcceptedByPostTypes', () => {
+  it('allows every view type when acceptedPostTypes is null', () => {
+    expect(viewAcceptedByPostTypes('discussions', null)).toBe(true)
+    expect(viewAcceptedByPostTypes('events', undefined)).toBe(true)
+  })
+
+  it('always allows views that are not tied to a post type', () => {
+    expect(viewAcceptedByPostTypes('all', [])).toBe(true)
+    expect(viewAcceptedByPostTypes('chat', ['discussion'])).toBe(true)
+    expect(viewAcceptedByPostTypes('members', [])).toBe(true)
+    expect(viewAcceptedByPostTypes('custom', ['event'])).toBe(true)
+  })
+
+  it('hides typed views whose post types are not accepted', () => {
+    expect(viewAcceptedByPostTypes('discussions', ['event'])).toBe(false)
+    expect(viewAcceptedByPostTypes('events', ['discussion'])).toBe(false)
+    expect(viewAcceptedByPostTypes('projects', [])).toBe(false)
+  })
+
+  it('parses JSON-string acceptedPostTypes the same as arrays', () => {
+    expect(viewAcceptedByPostTypes('events', '["event"]')).toBe(true)
+    expect(viewAcceptedByPostTypes('events', '["discussion"]')).toBe(false)
+  })
+
+  it('keeps typed views when any of their post types are accepted', () => {
+    expect(viewAcceptedByPostTypes('discussions', ['discussion', 'event'])).toBe(true)
+    expect(viewAcceptedByPostTypes('requests-and-offers', ['offer'])).toBe(true)
+    expect(viewAcceptedByPostTypes('requests-and-offers', ['request'])).toBe(true)
+  })
+})
+
+describe('isMenuViewVisible', () => {
+  it('hides off-menu views even when the post type is accepted', () => {
+    expect(isMenuViewVisible({ type: 'discussions', order: null }, ['discussion'])).toBe(false)
+  })
+
+  it('hides on-menu typed views that are not accepted', () => {
+    expect(isMenuViewVisible({ type: 'events', order: 2 }, ['discussion'])).toBe(false)
+  })
+
+  it('shows on-menu typed views that are still accepted', () => {
+    expect(isMenuViewVisible({ type: 'events', order: 2 }, ['event'])).toBe(true)
+    expect(isMenuViewVisible({ type: 'all', order: 0 }, [])).toBe(true)
+  })
+})
+
+describe('singleVisibleMenuView', () => {
+  it('returns the view when exactly one is on the menu', () => {
+    expect(singleVisibleMenuView([
+      { type: 'chat', order: 0, newPostCount: 3 },
+      { type: 'discussions', order: null, newPostCount: 1 }
+    ])).toEqual({ type: 'chat', order: 0, newPostCount: 3 })
+  })
+
+  it('returns null when multiple views are on the menu', () => {
+    expect(singleVisibleMenuView([
+      { type: 'chat', order: 0 },
+      { type: 'discussions', order: 1 }
+    ])).toBe(null)
+  })
+
+  it('returns null when the only typed view is disallowed', () => {
+    expect(singleVisibleMenuView(
+      [{ type: 'events', order: 0 }],
+      ['discussion']
+    )).toBe(null)
+  })
+})
+
+describe('canBeHomeView', () => {
+  it('rejects text, separator, link, and space', () => {
+    expect(canBeHomeView({ type: 'text' })).toBe(false)
+    expect(canBeHomeView({ type: 'separator' })).toBe(false)
+    expect(canBeHomeView({ type: 'link' })).toBe(false)
+    expect(canBeHomeView({ type: 'space' })).toBe(false)
+  })
+
+  it('allows navigable menu types', () => {
+    expect(canBeHomeView({ type: 'chat' })).toBe(true)
+    expect(canBeHomeView({ type: 'all' })).toBe(true)
+    expect(canBeHomeView({ type: 'members' })).toBe(true)
+    expect(canBeHomeView({ type: 'page' })).toBe(true)
+  })
+})

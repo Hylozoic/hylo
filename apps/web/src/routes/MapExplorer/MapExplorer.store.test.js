@@ -53,6 +53,32 @@ describe('fetchPostsforMap', () => {
       filter: 'request'
     })).toMatchSnapshot()
   })
+
+  it('stores query results under the same key the map selectors use', () => {
+    const { buildKey } = require('store/reducers/queryResults')
+    const action = fetchPostsForMap({
+      boundingBox: [122.60387590065002, 37.698360551679215, -121.93892409934989, 37.91048712726531],
+      childPostInclusion: 'yes',
+      context: 'public',
+      groupSlugs: undefined,
+      slug: undefined
+    })
+    // Simulate graphql middleware attaching variables onto meta
+    action.meta.graphql = { variables: action.graphql.variables }
+
+    const storedParams = action.meta.extractQueryResults.getRouteParams(action)
+    const selectorParams = {
+      childPostInclusion: 'yes',
+      boundingBox: [1, 2, 3, 4],
+      context: 'public',
+      slug: undefined,
+      groupSlugs: undefined
+    }
+
+    expect(buildKey(action.type, storedParams)).toEqual(buildKey(action.type, selectorParams))
+    // Regression: including `first` in the store key used to make this miss
+    expect(storedParams.first).toBeUndefined()
+  })
 })
 
 describe('fetchPostsforDrawer', () => {
@@ -96,9 +122,7 @@ describe('fetchGroupsForMap', () => {
 })
 
 describe('selectors', () => {
-  let session, state
-
-  session = orm.session(orm.getEmptyState())
+  const session = orm.session(orm.getEmptyState())
   session.Person.create({ id: 1, name: 'Jim', tagline: 'Let us get weird' })
   session.Topic.create({ id: 1, name: 'food' })
   session.Topic.create({ id: 2, name: 'weird' })
@@ -106,7 +130,7 @@ describe('selectors', () => {
   session.Post.create({ id: 2, type: 'request', title: 'Who has turnips!?', details: '', topics: [] })
   session.Group.create({ id: 1, slug: 'bar', name: 'Excellent Group', description: 'We love food' })
 
-  state = {
+  const state = {
     orm: session.state,
     queryResults: {
       '{"type":"MapExplorer/FETCH_POSTS_MAP","params":{"context":"groups","slug":"bar"}}': {

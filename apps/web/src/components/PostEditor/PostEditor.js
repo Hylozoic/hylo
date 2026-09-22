@@ -1,5 +1,7 @@
 /* global DOMParser */
 import { cn } from 'util/index'
+import useTour from 'tours/useTour'
+import { POST_EDITOR_TOUR_ID, postEditorTourSteps } from 'tours/postEditorTour'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
@@ -9,7 +11,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import useAllowedPostTypesForView from 'hooks/useAllowedPostTypesForView'
-import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
@@ -42,6 +44,7 @@ import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
 import fetchAllMyGroupsSpaces from 'store/actions/fetchAllMyGroupsSpaces'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import {
   PROPOSAL_ADVICE,
   PROPOSAL_CONSENSUS,
@@ -57,10 +60,9 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
-import { GROUP_TYPES } from 'store/models/Group'
+import { GROUP_TYPES, normalizeAcceptedPostTypes } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
-import getMyMemberships from 'store/selectors/getMyMemberships'
 import getPost from 'store/selectors/getPost'
 import presentPost from 'store/presenters/presentPost'
 import getFundingRound from 'store/selectors/getFundingRound'
@@ -89,12 +91,14 @@ import {
   pollingFetchLinkPreview,
   removeLinkPreview,
   clearLinkPreview,
-  getLinkPreview
+  getLinkPreview,
+  getPostEditorDestinationGroups
 } from './PostEditor.store'
 import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
-import { sanitizeURL } from 'util/url'
+import { isMeetingUrl, sanitizeURL } from 'util/url'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
@@ -110,15 +114,15 @@ function firstDropdownPostType (allowedPostTypes) {
 /** Returns true when a group/space accepts the given post type (null acceptedPostTypes = all). */
 function groupAcceptsPostType (group, postType) {
   if (!group || !postType) return false
-  const types = group.acceptedPostTypes
+  const types = normalizeAcceptedPostTypes(group.acceptedPostTypes)
   if (types == null) return true
-  if (!Array.isArray(types) || types.length === 0) return false
+  if (types.length === 0) return false
   return types.includes(postType)
 }
 
-/** Returns true when the group is a space (child of a top-level group). */
+/** Returns true when the group is a space (`type = space`). */
 function isSpaceGroup (group) {
-  return !!group && (group.type === GROUP_TYPES.space || !!group.parentId)
+  return !!group && group.type === GROUP_TYPES.space
 }
 
 /** Compares group ids as strings so GraphQL/ORM number vs string ids still match. */
@@ -174,16 +178,31 @@ function PostEditorInner ({
   const navigateToForDraft = `${pathname}${search || ''}`
   const routeParams = useParams()
   const parsedRouteParams = useRouteParams()
-  // When inside a space, this resolves to the space group's slug so chats/posts go to the space
-  const effectiveGroupSlug = useEffectiveGroupSlug()
-  const groupSlug = effectiveGroupSlug || routeParams.groupSlug || parsedRouteParams.groupSlug
+  // When inside a space, groupSlug is the space; parentGroupSlug / spaceSlug come from the URL
+  const { groupSlug: spaceAwareGroupSlug, parentGroupSlug, spaceSlug } = useGroupRouteOpts()
+  const groupSlug = spaceAwareGroupSlug || routeParams.groupSlug || parsedRouteParams.groupSlug
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
-  const myMemberships = useSelector(getMyMemberships)
+
+  // First-time-in-the-editor tour, offered via a floating invitation
+  const editorTourSteps = useMemo(() => postEditorTourSteps(t), [t])
+  const { invitation: editorTourInvitation } = useTour({
+    id: POST_EDITOR_TOUR_ID,
+    steps: editorTourSteps,
+    autoStart: true,
+    inviteMessage: t('Want a quick tour of the post editor?')
+  })
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
+  const routeParentGroup = useSelector(state => getGroupForSlug(state, parentGroupSlug))
+  // Prefer the URL space segment so we still treat this as a space when type/parentId
+  // have not been hydrated on the current group record.
+  const inSpace = Boolean(spaceSlug) || isSpaceGroup(currentGroup)
+  const currentParentGroupId = inSpace
+    ? (routeParentGroup?.id || currentGroup?.parentId)
+    : (currentGroup?.id || routeParentGroup?.id)
   // Track / funding-round spaces carry their config on the group itself.
   const currentTrack = currentGroup?.track || null
   const currentFundingRound = useSelector(state => {
@@ -199,20 +218,28 @@ function PostEditorInner ({
     if (editing) return null
 
     const fromView = allowedPostTypesForView
-    const fromGroup = currentGroup?.acceptedPostTypes
+    const fromGroup = normalizeAcceptedPostTypes(currentGroup?.acceptedPostTypes)
 
     // null/undefined acceptedPostTypes = group accepts all types
     if (fromGroup == null) return fromView
-    if (!Array.isArray(fromGroup)) return fromView
-    if (fromView == null) return fromGroup
-    return fromView.filter(type => fromGroup.includes(type))
+    // Typed views (track-actions, funding-round-submissions) keep their post type even when
+    // the space has empty acceptedPostTypes (track/FR spaces do not use stream post types).
+    if (fromView != null) {
+      if (fromGroup.length === 0) return fromView
+      return fromView.filter(type => fromGroup.includes(type))
+    }
+    return fromGroup
   }, [editing, allowedPostTypesForView, currentGroup?.acceptedPostTypes])
 
   useEffect(() => {
     if (groupSlug && !currentGroup) dispatch(fetchForGroup(groupSlug))
   }, [dispatch, groupSlug, currentGroup])
 
-  const editingPostId = routeParams.postId
+  useEffect(() => {
+    if (inSpace && parentGroupSlug && !routeParentGroup) dispatch(fetchForGroup(parentGroupSlug))
+  }, [dispatch, inSpace, parentGroupSlug, routeParentGroup])
+
+  const editingPostId = routeParams.postId || parsedRouteParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
   const viewId = getQuerystringParam('viewId', urlLocation)
 
@@ -267,6 +294,12 @@ function PostEditorInner ({
   const pendingTypeSwitchRef = useRef(null)
   /** Set to true when the post has been successfully submitted, preventing draft saves during teardown/navigation. */
   const isSubmittedRef = useRef(false)
+  /**
+   * Set once the user has edited the To field (added or removed any destination).
+   * After that, the current path's group/space is only applied when the modal
+   * loads — the user's choice is respected and never re-injected.
+   */
+  const toFieldTouchedRef = useRef(false)
   /** Blocks duplicate create/update dispatches before Redux pending state updates. */
   const isSubmittingRef = useRef(false)
   /**
@@ -275,7 +308,7 @@ function PostEditorInner ({
    */
   const detailsHtmlRef = useRef(null)
 
-  const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
+  const linkPreview = useSelector(state => getLinkPreview(state))
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
   const uploadAttachmentPending = useSelector(getUploadAttachmentPending)
 
@@ -343,8 +376,6 @@ function PostEditorInner ({
       isAnonymousVote: false,
       isPublic: context === 'public',
       isStrictProposal: false,
-      location: '',
-      locationId: null,
       meetingLink: '',
       proposalOptions: [],
       quorum: 0,
@@ -355,10 +386,12 @@ function PostEditorInner ({
       votingMethod: VOTING_METHOD_SINGLE,
       ...(inputPost || {}),
       ...prefilledEventTimes,
+      location: inputPost?.location || selectedLocation || '',
+      locationId: inputPost?.locationId || null,
       startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
       endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
     }
-  }, [inputPost?.id, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, t])
+  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, inputPost?.linkPreview?.id, inputPost?.linkPreviewFeatured, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -374,30 +407,21 @@ function PostEditorInner ({
   const [dateError, setDateError] = useState(false)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
-  // Bumped after membership spaces load so To options recompute with parentId/acceptedPostTypes
-  const [membershipSpacesTick, setMembershipSpacesTick] = useState(0)
-
-  // Use Membership rows (same source as SpaceContent after join), not Me.memberships.
-  // joinSpace extracts a Membership but does not append it to Me.memberships, so the
-  // To field would otherwise stay empty until a later Me refetch.
+  // Memberships plus the current parent group and its spaces (menu + off-menu).
+  // Reads Group inside an ORM selector so parentId hydrates when spaces load.
+  const destinationGroups = useSelector(state => getPostEditorDestinationGroups(state, currentParentGroupId))
   const groupOptions = useMemo(() => {
-    const groups = (myMemberships || [])
-      .map((m) => m.group)
-      .filter((g) => {
-        if (!g) return false
-        // Filter out paywalled groups where user doesn't have access
-        if (g.paywall && g.canAccess === false) {
-          return false
-        }
-        return true
-      })
-
-    if (currentGroup?.id && !groups.some(g => sameGroupId(g.id, currentGroup.id))) {
-      groups.push(currentGroup)
+    const groups = [...destinationGroups]
+    const ensureGroup = (group) => {
+      if (!group?.id || group.status === 'archived') return
+      if (groups.some(g => sameGroupId(g.id, group.id))) return
+      groups.push(group)
     }
-
-    return groups.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-  }, [myMemberships, currentGroup, membershipSpacesTick])
+    ensureGroup(currentGroup)
+    // Always keep the parent group available as a To destination when in a space
+    if (inSpace) ensureGroup(routeParentGroup)
+    return groups
+  }, [destinationGroups, currentGroup, inSpace, routeParentGroup])
   const isAction = currentPost.type === 'action'
   const isSubmission = currentPost.type === 'submission'
 
@@ -428,7 +452,7 @@ function PostEditorInner ({
 
   const applyPostToEditor = useCallback((nextPost) => {
     let post = nextPost
-    if (!editing && currentGroup?.id) {
+    if (!editing && currentGroup?.id && !toFieldTouchedRef.current) {
       const hasCurrentGroup = post.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (!hasCurrentGroup) {
         post = { ...post, groups: [currentGroup, ...(post.groups || [])] }
@@ -494,6 +518,7 @@ function PostEditorInner ({
 
   useEffect(() => {
     if (editing || !currentGroup?.id) return
+    if (toFieldTouchedRef.current) return
     setCurrentPost(prev => {
       const hasCurrentGroup = prev.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (hasCurrentGroup) return prev
@@ -585,59 +610,66 @@ function PostEditorInner ({
     const postTypeForOptions = currentPost.type
     const topLevelGroups = groupOptions.filter(g => g && !isSpaceGroup(g))
     const spaces = groupOptions.filter(g => g && isSpaceGroup(g))
-    const currentTopLevelId = currentGroup?.parentId || currentGroup?.id
+    const currentTopLevelId = currentParentGroupId || routeParentGroup?.id || currentGroup?.parentId || currentGroup?.id
 
-    // Current top-level group first, then alphabetically; only groups that accept this post type
-    const sortedTopLevel = [...topLevelGroups]
-      .filter(g => groupAcceptsPostType(g, postTypeForOptions))
-      .sort((a, b) => {
-        const aIsCurrent = String(a.id) === String(currentTopLevelId)
-        const bIsCurrent = String(b.id) === String(currentTopLevelId)
-        if (aIsCurrent && !bIsCurrent) return -1
-        if (!aIsCurrent && bIsCurrent) return 1
-        return a.name.localeCompare(b.name)
-      })
-
-    return sortedTopLevel.flatMap((parent) => {
-      const options = [{
-        id: parent.id,
-        group: parent,
-        name: parent.name,
-        avatarUrl: parent.avatarUrl,
-        allowInPublic: parent.allowInPublic,
-        isSpace: false
-      }]
-
-      const childSpaces = spaces
-        .filter(space =>
-          String(space.parentId) === String(parent.id) &&
-          groupAcceptsPostType(space, postTypeForOptions)
-        )
-        .sort((a, b) => a.name.localeCompare(b.name))
-
-      childSpaces.forEach(space => {
-        options.push({
-          id: space.id,
-          group: space,
-          parentGroup: parent,
-          name: `${parent.name} / ${space.name}`,
-          avatarUrl: parent.avatarUrl,
-          icon: space.icon,
-          allowInPublic: space.allowInPublic,
-          isSpace: true
-        })
-      })
-
-      return options
+    const parentOption = (parent) => ({
+      id: parent.id,
+      group: parent,
+      name: parent.name,
+      avatarUrl: parent.avatarUrl,
+      allowInPublic: parent.allowInPublic,
+      isSpace: false
     })
-  }, [groupOptions, currentGroup?.id, currentGroup?.parentId, currentPost.type])
+    const spaceOption = (space, parent) => ({
+      id: space.id,
+      group: space,
+      parentGroup: parent,
+      name: parent ? `${parent.name} / ${space.name}` : space.name,
+      avatarUrl: parent?.avatarUrl || space.avatarUrl,
+      icon: space.icon,
+      allowInPublic: space.allowInPublic,
+      isSpace: true
+    })
+    const childSpacesFor = (parent) => spaces
+      .filter(space =>
+        String(space.parentId || space.parentGroup?.id) === String(parent.id) &&
+        groupAcceptsPostType(space, postTypeForOptions)
+      )
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    const optionsForParent = (parent, includeParent) => {
+      const options = []
+      if (includeParent) options.push(parentOption(parent))
+      childSpacesFor(parent).forEach(space => options.push(spaceOption(space, parent)))
+      return options
+    }
+
+    // Current parent group and its spaces first, then everyone else alphabetically.
+    // The parent row is omitted when it does not accept the selected post type.
+    const currentParent = topLevelGroups.find(g => String(g.id) === String(currentTopLevelId)) ||
+      (inSpace && routeParentGroup && !isSpaceGroup(routeParentGroup) ? routeParentGroup : null)
+    const leading = currentParent
+      ? optionsForParent(currentParent, groupAcceptsPostType(currentParent, postTypeForOptions))
+      : []
+
+    const rest = topLevelGroups
+      .filter(g => String(g.id) !== String(currentTopLevelId))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .flatMap(parent => {
+        const includeParent = groupAcceptsPostType(parent, postTypeForOptions)
+        if (!includeParent && childSpacesFor(parent).length === 0) return []
+        return optionsForParent(parent, includeParent)
+      })
+
+    return [...leading, ...rest]
+  }, [groupOptions, currentParentGroupId, currentGroup?.id, currentGroup?.parentId, currentPost.type, inSpace, routeParentGroup])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
       if (!g) return null
 
       if (isSpaceGroup(g)) {
-        const parent = groupOptions.find(p => p && String(p.id) === String(g.parentId))
+        const parent = groupOptions.find(p => p && String(p.id) === String(g.parentId || g.parentGroup?.id))
         return {
           id: g.id,
           group: g,
@@ -681,15 +713,17 @@ function PostEditorInner ({
     }
   }, [])
 
-  // Fetch membership spaces so the To field has destinations from every group
+  // Membership spaces (every group) plus the current parent's space list for siblings
   const hasFetchedToFieldDataRef = useRef(false)
   useEffect(() => {
     if (hasFetchedToFieldDataRef.current) return
     hasFetchedToFieldDataRef.current = true
-    Promise.resolve(dispatch(fetchAllMyGroupsSpaces())).finally(() => {
-      setMembershipSpacesTick(tick => tick + 1)
-    })
+    dispatch(fetchAllMyGroupsSpaces())
   }, [dispatch])
+
+  useEffect(() => {
+    if (currentParentGroupId) dispatch(fetchGroupSpaces(currentParentGroupId))
+  }, [dispatch, currentParentGroupId])
 
   useEffect(() => {
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
@@ -699,8 +733,34 @@ function PostEditorInner ({
     if (initialPost.id) reset()
   }, [initialPost.id])
 
+  // Hydrate a late-arriving post preview (e.g. FETCH_POST completes after first paint)
+  // without overwriting a user-fetched or user-removed preview.
   useEffect(() => {
-    setCurrentPost(prev => (prev.linkPreview === linkPreview ? prev : { ...prev, linkPreview }))
+    if (!initialPost.linkPreview) return
+    setCurrentPost(prev => {
+      if (prev.skipLinkPreview || prev.linkPreview) return prev
+      return {
+        ...prev,
+        linkPreview: initialPost.linkPreview,
+        linkPreviewFeatured: !!initialPost.linkPreviewFeatured
+      }
+    })
+  }, [initialPost.linkPreview, initialPost.linkPreviewFeatured, setCurrentPost])
+
+  useEffect(() => {
+    setCurrentPost(prev => {
+      if (!linkPreview) return prev
+      if (prev.linkPreview === linkPreview) return prev
+      const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
+      return {
+        ...prev,
+        linkPreview,
+        skipLinkPreview: false,
+        linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
+          ? true
+          : prev.linkPreviewFeatured
+      }
+    })
   }, [linkPreview, setCurrentPost])
 
   useEffect(() => {
@@ -739,7 +799,7 @@ function PostEditorInner ({
 
   /**
    * Resets the editor to its initial state
-   * Clears form fields, attachments, and link previews
+   * Clears compose-time attachments and fetched previews, but keeps the post's existing link preview
    */
   const reset = useCallback(() => {
     syncDetailsToCurrentPost.cancel()
@@ -748,7 +808,11 @@ function PostEditorInner ({
     editorRef.current?.setContent(details)
     setHasDescription(details.length > 0)
     dispatch(clearLinkPreview())
-    setCurrentPost(() => ({ ...initialPost, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(() => ({
+      ...initialPost,
+      linkPreview: initialPost.linkPreview || null,
+      linkPreviewFeatured: !!initialPost.linkPreviewFeatured
+    }))
     setEditorInitialContent(details)
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
@@ -947,7 +1011,10 @@ function PostEditorInner ({
 
   const handleAddLinkPreview = useEventCallback((url, force) => {
     debouncedFetchLinkPreview(url, force, currentPost.linkPreview)
-  }, [currentPost.linkPreview, debouncedFetchLinkPreview])
+    if (currentPost.type === 'event' && isMeetingUrl(url)) {
+      setCurrentPost(prev => (prev.meetingLink ? prev : { ...prev, meetingLink: url }))
+    }
+  }, [currentPost.linkPreview, currentPost.type, debouncedFetchLinkPreview, setCurrentPost])
 
   const handleAddTopic = useEventCallback((topic) => {
     setCurrentPost(prev => {
@@ -963,10 +1030,11 @@ function PostEditorInner ({
 
   const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
-    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false, skipLinkPreview: true }))
   }, [dispatch, setCurrentPost])
 
   const handleAddToOption = useCallback((toOptions) => {
+    toFieldTouchedRef.current = true
     const groups = uniqBy('id', toOptions.map(toOption => toOption.group).filter(Boolean))
     setCurrentPost(prev => ({ ...prev, groups }))
   }, [setCurrentPost])
@@ -1003,7 +1071,7 @@ function PostEditorInner ({
    * Checks various conditions based on post type and sets error messages
    */
   const isValid = useMemo(() => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions, budget } = currentPost
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions } = currentPost
 
     const errorMessages = []
 
@@ -1026,11 +1094,6 @@ function PostEditorInner ({
           errorMessages.push(t('At least one proposal option required'))
         }
         break
-      case 'submission':
-        if (currentFundingRound?.requireBudget && !budget) {
-          errorMessages.push(t('Budget is required for this submission'))
-        }
-        break
     }
 
     if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
@@ -1046,7 +1109,7 @@ function PostEditorInner ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
+  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -1079,6 +1142,7 @@ function PostEditorInner ({
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         locationId,
         meetingLink,
         members,
@@ -1107,8 +1171,8 @@ function PostEditorInner ({
         fileAttachments && fileAttachments.map((attachment) => attachment.url)
       const postLocation = currentPost.location || selectedLocation
       const actualLocationId = await ensureLocationIdIfCoordinate({
-        fetchLocation,
-        postLocation,
+        fetchLocation: (data) => dispatch(fetchLocation(data)),
+        location: postLocation,
         locationId
       })
       const meetingLinkValue = meetingLinkInputRef.current?.value ?? meetingLink
@@ -1137,6 +1201,7 @@ function PostEditorInner ({
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         localId: uniqueId('post_'), // For optimistic display of the new post
         location: postLocation,
         locationId: actualLocationId,
@@ -1206,7 +1271,7 @@ function PostEditorInner ({
     }
   }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading, postPending])
 
-  // Allow parents (e.g. CreateModal) to trigger save/reset flows without duplicating editor logic
+  // Allow parents (e.g. CreatePostModal) to trigger save/reset flows without duplicating editor logic
   useImperativeHandle(ref, () => ({
     submit: () => doSave(),
     resetToInitial: () => reset()
@@ -1322,7 +1387,8 @@ function PostEditorInner ({
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
         }}
       />
-      <div className={cn('PostEditorHeader relative')}>
+      {editorTourInvitation}
+      <div className={cn('PostEditorHeader relative')} data-tour='post-type'>
         {isAction
           ? (
             <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
@@ -1370,10 +1436,11 @@ function PostEditorInner ({
       {!isAction && !isSubmission && (
         <div
           className={cn('PostEditorTo flex w-full items-center bg-input rounded p-1 border-2 border-transparent transition-all', { 'border-2 border-focus': toFieldFocused })}
+          data-tour='post-to'
           onClick={handleToFieldContainerClick}
         >
           <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
-          <div className='border-foreground w-full'>
+          <div className='border-foreground w-full min-w-0'>
             <ToField
               options={toOptions}
               selected={selectedToOptions}
@@ -1410,10 +1477,12 @@ function PostEditorInner ({
           <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
         )}
       </div>
-      <div className={cn(
-        'PostEditorContent w-full bg-input rounded p-1',
-        'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
-      )}
+      <div
+        className={cn(
+          'PostEditorContent w-full bg-input rounded p-1',
+          'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
+        )}
+        data-tour='post-body'
       >
         {currentPost.details === null || loading
           ? <div><Loading /></div>
@@ -1481,7 +1550,7 @@ function PostEditorInner ({
         </div>
       </div> */}
       {!isAction && !isSubmission && (
-        <div className='PostEditorPublic flex w-full items-center bg-input rounded p-1'>
+        <div className='PostEditorPublic flex w-full items-center bg-input rounded p-1' data-tour='post-public'>
           <PublicToggle
             togglePublic={togglePublic}
             isPublic={!!currentPost.isPublic}
@@ -1657,9 +1726,9 @@ function PostEditorInner ({
       )} */}
       {canHaveTimes && (
         <>
-          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-            <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-            <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
+          <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0'>
+            <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+            <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
               <DateTimePicker
                 hourCycle={hourCycle}
                 granularity='minute'
@@ -1668,7 +1737,7 @@ function PostEditorInner ({
                 onChange={handleStartTimeChange}
                 onMonthChange={() => {}}
               />
-              <div className='text-xs text-foreground/50'>{t('to')}</div>
+              <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
               <DateTimePicker
                 ref={endTimeRef}
                 hourCycle={hourCycle}
@@ -1680,7 +1749,7 @@ function PostEditorInner ({
               />
             </div>
           </div>
-          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2'>
             <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
             <TimezoneSelect
               className='border-none bg-transparent'
@@ -1802,10 +1871,10 @@ function PostEditorInner ({
           </div>
         </div>
       )}
-      {(currentPost.type === 'project' || currentPost.type === 'submission') && (
+      {(currentPost.type === 'project' || (currentPost.type === 'submission' && currentFundingRound?.requireBudget)) && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50 mr-2 whitespace-nowrap'>
-            {t('Budget Total')}{currentPost.type === 'submission' && currentFundingRound?.requireBudget ? '*' : ''}
+            {t('Budget Total')}
           </div>
           <div className='w-full'>
             <input

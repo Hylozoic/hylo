@@ -17,8 +17,9 @@ export async function createInvitation (userId, groupId, data) {
         sessionUserId: userId,
         groupId,
         emails: data.emails,
-        message: data.message,
-        assignCoordinator: data.assignCoordinator || false,
+        userIds: data.userIds,
+        message: localeStrings.createInvitationMessage(group.get('name')),
+        assignAdministrator: data.assignAdministrator || false,
         groupRoleId: data.groupRoleId ? parseInt(data.groupRoleId, 10) : null,
         subject: localeStrings.createInvitationSubject(group.get('name'))
       })

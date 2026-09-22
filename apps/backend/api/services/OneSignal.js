@@ -1,5 +1,5 @@
 import * as OneSignal from '@onesignal/node-onesignal'
-import rollbar from '../../lib/rollbar'
+import sentry from '../../lib/sentry'
 
 const authConfig = {}
 if (process.env.ONESIGNAL_REST_API_KEY && process.env.ONESIGNAL_APP_ID) {
@@ -58,7 +58,7 @@ module.exports = {
       return await client.createNotification(notification)
     } catch (e) {
       const err = e instanceof Error ? e : new Error(e)
-      rollbar.error(err, null, {
+      sentry.error(err, null, {
         readerId,
         response: err.response
       })

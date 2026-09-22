@@ -1,7 +1,30 @@
 import { CheckCircle2, FileCheck2, Lock, MessageSquare, Vote, ShieldAlert } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
+import { useGroupRouteOpts } from 'contexts/SpaceGroupContext'
+import { spaceUrl } from '@hylo/navigation'
 import { formatUserDatePair } from 'util/dateFormat'
+
+const SUBMISSIONS_LINK_MARKER = '__SUBMISSIONS_LINK__'
+
+/** Renders the voting prompt with the submission descriptor linked to the submissions view. */
+function AllocateVotesPrompt ({ tokenType, submissionDescriptorPlural, submissionsUrl, t }) {
+  const sentence = t('Allocate your {{tokenType}} to the {{submissionDescriptorPlural}} you think deserve support.', {
+    tokenType,
+    submissionDescriptorPlural: SUBMISSIONS_LINK_MARKER
+  })
+  const [before, after] = sentence.split(SUBMISSIONS_LINK_MARKER)
+  const label = (
+    submissionsUrl
+      ? <Link to={submissionsUrl} className='text-accent hover:underline'>{submissionDescriptorPlural}</Link>
+      : submissionDescriptorPlural
+  )
+  if (after === undefined) {
+    return <>{sentence}</>
+  }
+  return <>{before}{label}{after}</>
+}
 
 export default function RoundPhaseStatus ({
   round,
@@ -12,16 +35,21 @@ export default function RoundPhaseStatus ({
   canVote = true
 }) {
   const { t } = useTranslation()
+  const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
   const { submitterRoles, voterRoles } = round || {}
+  const submissionsUrl = parentGroupSlug && spaceSlug
+    ? spaceUrl(parentGroupSlug, spaceSlug, 'funding-round-submissions')
+    : null
 
   const submissionsOpenDate = round.submissionsOpenAt
   const submissionsCloseDate = round.submissionsCloseAt
   const votingOpensDate = round.votingOpensAt
   const votingClosesDate = round.votingClosesAt
 
-  // Check if user joined after voting started
+  // Late joiners cannot vote unless the round decided they can
   const joinedAfterVotingStarted = round.joinedAt && votingOpensDate &&
     new Date(round.joinedAt) > new Date(votingOpensDate)
+  const cannotVoteAsLateJoiner = joinedAfterVotingStarted && !round.allowLateJoiners
 
   if (!round) return null
 
@@ -133,7 +161,7 @@ export default function RoundPhaseStatus ({
               </span>
               {t('Voting in progress')}
             </h2>
-            {canVote && !joinedAfterVotingStarted && currentTokensRemaining != null && (
+            {canVote && !cannotVoteAsLateJoiner && currentTokensRemaining != null && (
               <div className='bg-selected/20 border-2 border-selected rounded-md py-1 px-2 font-bold text-sm'>
                 {t('You have {{tokens}} {{tokenType}} remaining', {
                   tokens: currentTokensRemaining,
@@ -142,7 +170,7 @@ export default function RoundPhaseStatus ({
               </div>
             )}
           </div>
-          {!canVote && voterRoles && voterRoles.length > 0 && !joinedAfterVotingStarted && (
+          {!canVote && voterRoles && voterRoles.length > 0 && !cannotVoteAsLateJoiner && (
             <div className='w-full bg-amber-500/20 border-2 border-amber-500/40 rounded-md p-3 flex items-start gap-2'>
               <ShieldAlert className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5' />
               <div className='flex flex-col gap-1'>
@@ -157,7 +185,7 @@ export default function RoundPhaseStatus ({
               </div>
             </div>
           )}
-          {joinedAfterVotingStarted && (
+          {cannotVoteAsLateJoiner && (
             <div className='w-full bg-amber-500/20 border-2 border-amber-500/40 rounded-md p-3 flex items-start gap-2'>
               <ShieldAlert className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5' />
               <div className='flex flex-col gap-1'>
@@ -172,13 +200,15 @@ export default function RoundPhaseStatus ({
               </div>
             </div>
           )}
-          {canVote && !joinedAfterVotingStarted && (
+          {canVote && !cannotVoteAsLateJoiner && (
             <div>
               <p className='text-sm text-foreground/80 mt-0 mb-0 pt-0 font-normal'>
-                {t('Allocate your {{tokenType}} to the {{submissionDescriptorPlural}} you think deserve support.', {
-                  tokenType: round.tokenType || t('Votes'),
-                  submissionDescriptorPlural: round.submissionDescriptorPlural
-                })}
+                <AllocateVotesPrompt
+                  tokenType={round.tokenType || t('Votes')}
+                  submissionDescriptorPlural={round.submissionDescriptorPlural || t('Submissions')}
+                  submissionsUrl={submissionsUrl}
+                  t={t}
+                />
               </p>
               {votingClosesDate && (
                 <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>
@@ -193,7 +223,7 @@ export default function RoundPhaseStatus ({
               numSubmissions: submissionCount || round.numSubmissions || 0
             })}
           </span>
-          {canVote && !joinedAfterVotingStarted && (
+          {canVote && !cannotVoteAsLateJoiner && (
             <div className='flex flex-row gap-3 opacity-50'>
               {typeof round.minTokenAllocation === 'number' && round.minTokenAllocation > 0 && (
                 <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0 border-r-2 border-foreground/20 pr-2'>

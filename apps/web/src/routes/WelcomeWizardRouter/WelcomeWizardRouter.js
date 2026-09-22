@@ -17,7 +17,7 @@ export default function WelcomeWizardRouter () {
       nodeRef={welcomeWizardRef}
     >
       <div className={classes.modal} ref={welcomeWizardRef}>
-        <div className={cn(classes.background, classes.background)} />
+        <div className='fixed inset-0 w-full h-full bg-darkening/30' />
         <div className={cn(classes.wrapper, classes.wrapper)}>
           <Routes>
             <Route path='upload-photo' element={<UploadPhoto />} />

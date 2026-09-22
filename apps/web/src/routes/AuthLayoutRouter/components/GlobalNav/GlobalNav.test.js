@@ -38,7 +38,7 @@ describe('GlobalNav', () => {
     )
 
     const { container } = render(
-      <GlobalNav routeParams={{ context: 'all', view: 'stream' }} />,
+      <GlobalNav routeParams={{ context: 'all', view: 'all' }} />,
       { wrapper: providersWithMe() }
     )
 

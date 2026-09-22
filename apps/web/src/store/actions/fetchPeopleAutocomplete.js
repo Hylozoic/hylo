@@ -7,12 +7,16 @@ import PeopleAutocompleteQuery from '@graphql/queries/PeopleAutocompleteQuery'
  * Unlike fetchPeople which queries group members, this uses the root-level
  * people query which can search all users.
  */
-export default function fetchPeopleAutocomplete ({ autocomplete, first = 10 }) {
+export default function fetchPeopleAutocomplete ({
+  autocomplete,
+  first = 10,
+  includeMemberships = false
+}) {
   return {
     type: FETCH_PEOPLE_AUTOCOMPLETE,
     graphql: {
       query: PeopleAutocompleteQuery,
-      variables: { autocomplete, first }
+      variables: { autocomplete, first, includeMemberships }
     },
     meta: {
       extractModel: 'Person',

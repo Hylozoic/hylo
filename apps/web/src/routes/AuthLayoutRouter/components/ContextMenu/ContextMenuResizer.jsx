@@ -16,14 +16,14 @@ const readSavedWidth = () => {
 /**
  * Desktop-only drag strip on the seam between the context menu and the view
  * column: an invisible 6px band whose left edge hugs the view column's inner
- * border, from the top of the viewport to the bottom. Hovering surfaces a wash
- * and a 2px dashed line with a grab cursor. Dragging rewrites the
- * --context-menu-width variable the menu's width class reads, clamped to
- * 300–600px, and the choice persists in localStorage.
+ * border, spanning only the menu's own height (not the tab bar in topnav
+ * mode). Hovering surfaces a wash and a 2px dashed line with a grab cursor.
+ * Dragging rewrites the --context-menu-width variable the menu's width class
+ * reads, clamped to 300–600px, and the choice persists in localStorage.
  */
 export default function ContextMenuResizer ({ menuEl }) {
   const { t } = useTranslation()
-  const [left, setLeft] = useState(null)
+  const [seam, setSeam] = useState(null)
   const [width, setWidth] = useState(readSavedWidth)
   const [dragging, setDragging] = useState(false)
   const dragRef = useRef(null)
@@ -35,7 +35,10 @@ export default function ContextMenuResizer ({ menuEl }) {
 
   useEffect(() => {
     if (!menuEl) return
-    const update = () => setLeft(menuEl.getBoundingClientRect().right)
+    const update = () => {
+      const rect = menuEl.getBoundingClientRect()
+      setSeam({ left: rect.right, top: rect.top, height: rect.height })
+    }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(menuEl)
@@ -69,7 +72,7 @@ export default function ContextMenuResizer ({ menuEl }) {
     })
   }, [])
 
-  if (left === null) return null
+  if (!seam) return null
 
   return (
     <div
@@ -77,10 +80,10 @@ export default function ContextMenuResizer ({ menuEl }) {
       aria-orientation='vertical'
       aria-label={t('Adjust menu width')}
       className={cn(
-        'fixed top-0 bottom-0 z-30 w-[6px] hidden sm:block group touch-none select-none',
+        'fixed z-30 w-[6px] hidden sm:block group touch-none select-none',
         dragging ? 'cursor-grabbing' : 'cursor-grab'
       )}
-      style={{ left }}
+      style={{ left: seam.left, top: seam.top, height: seam.height }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

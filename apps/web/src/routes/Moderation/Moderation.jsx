@@ -12,7 +12,7 @@ import PostDialog from 'components/PostDialog'
 import ScrollListener from 'components/ScrollListener'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
-import { fetchModerationActions, clearModerationAction } from 'store/actions/moderationActions'
+import { fetchModerationActions, clearModerationAction, getModerationActionQueryProps } from 'store/actions/moderationActions'
 import { FETCH_MODERATION_ACTIONS } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getHasMoreModerationActions, getModerationActions } from 'store/selectors/getModerationActions'
@@ -31,10 +31,10 @@ export default function Moderation (props) {
   const pendingModerationActions = useSelector(state => state.pending[FETCH_MODERATION_ACTIONS])
 
   const fetchModerationActionParams = useMemo(() => {
-    return {
+    return getModerationActionQueryProps({
       slug: groupSlug,
       sortBy: 'created'
-    }
+    })
   }, [groupSlug])
 
   const moderationActions = useSelector(state => {

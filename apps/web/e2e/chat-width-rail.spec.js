@@ -1,15 +1,19 @@
 import { test, expect } from '@playwright/test'
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 test.use({ storageState: 'e2e/.auth/session.json' })
 
+test.describe.configure({ timeout: 120000 })
+
 test('chat width rail sits wholly right of the stream edge', async ({ page }) => {
+  test.skip(test.info().project.name !== 'chromium', 'desktop chat pane geometry')
   await page.setViewportSize({ width: 1600, height: 900 })
-  await page.goto('/groups/building-hylo/chat/dev')
-  await page.waitForLoadState('domcontentloaded')
-  await page.waitForTimeout(6000)
+  await page.goto('/groups/e2e-public-group/chat')
+  await waitPastRootSessionLoading(page)
+  await expect(page.locator('#chats')).toBeVisible({ timeout: 60000 })
 
   const rail = page.locator('[aria-label="Adjust chat width"]')
-  await expect(rail).toBeVisible()
+  await expect(rail).toBeVisible({ timeout: 30000 })
 
   const geom = await page.evaluate(() => {
     const pane = document.getElementById('chats')

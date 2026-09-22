@@ -2,10 +2,29 @@ import { ReactRenderer } from '@tiptap/react'
 import tippy from 'tippy.js'
 import SuggestionList from './SuggestionList'
 
+/**
+ * TipTap's suggestion plugin sets `items` to `[]` until the async `items()`
+ * call resolves. Our list expects `{ items, hasMore, query, loading, requestId }`.
+ */
+function normalizeItems (props, extras = {}) {
+  const raw = props.items
+  if (raw && !Array.isArray(raw) && Array.isArray(raw.items)) {
+    return { ...raw, query: raw.query ?? props.query ?? '', ...extras }
+  }
+  return {
+    items: [],
+    hasMore: false,
+    query: props.query || '',
+    loading: true,
+    ...extras
+  }
+}
+
 export default {
   render: (suggestionsThemeName = 'suggestions', onLoadMore) => {
     let component
     let popup
+    let exited = false
 
     const createPopup = clientRect => {
       const tippyOptions = {
@@ -49,33 +68,72 @@ export default {
       return tippy('body', tippyOptions)
     }
 
-    return {
-      onStart: props => {
+    const listPropsFor = (props, extras) => ({
+      ...props,
+      items: normalizeItems(props, extras),
+      onLoadMore: onLoadMore
+        ? (offset, query) => onLoadMore(offset, query, props.editor)
+        : undefined
+    })
+
+    /**
+     * Mount the dropdown immediately (before search resolves) so typing `@Name`
+     * quickly still activates, then update it when results arrive.
+     */
+    const mountOrUpdate = (props, extras = {}) => {
+      if (exited) return
+
+      const nextProps = listPropsFor(props, extras)
+
+      if (!component) {
         component = new ReactRenderer(SuggestionList, {
-          props: { ...props, onLoadMore: (offset, query) => onLoadMore(offset, query, props.editor) },
+          props: nextProps,
           editor: props.editor
         })
+      } else {
+        component.updateProps(nextProps)
+      }
 
-        if (!props.clientRect) {
-          return
-        }
+      if (!props.clientRect) return
 
+      if (!popup) {
         popup = createPopup(props.clientRect)
+      }
+    }
+
+    return {
+      onBeforeStart (props) {
+        exited = false
+        mountOrUpdate(props, { loading: true })
+      },
+
+      onStart (props) {
+        if (exited) return
+        mountOrUpdate(props)
       },
 
       onUpdate (props) {
-        if (!props.clientRect || !component) return
+        if (exited) return
 
-        component.updateProps(props)
+        if (!component) {
+          mountOrUpdate(props)
+          return
+        }
 
-        if (!popup) { //  || (popup[0].state.isDestroyed) {
+        component.updateProps(listPropsFor(props))
+
+        if (!props.clientRect) return
+
+        if (!popup) {
           popup = createPopup(props.clientRect)
         } else {
           const matches = props?.query?.match(/([\s]+)/g)
           const spacesCount = matches?.length || 0
-          if (spacesCount > 1 && props.items.length === 0) {
+          const itemCount = Array.isArray(props.items)
+            ? props.items.length
+            : props.items?.items?.length
+          if (spacesCount > 1 && itemCount === 0) {
             this.onExit()
-            // popup?.[0]?.hide() // hide popup if we have more than one spaces but no result items (null in my case).
             return
           }
 
@@ -91,24 +149,26 @@ export default {
 
       onKeyDown (props) {
         if (props.event.key === 'Escape') {
-          // popup[0].hide()
-          // Seems to be better to destroy and re-create in this case
           this.onExit()
 
           return true
         }
 
-        // if (!popup?.[0].state.isShown && !popup?.[0].state.isDestroyed) {
-        //   popup?.[0].show() // display the popup on key down
-        // }
-
         return component?.ref?.onKeyDown(props)
       },
 
       onExit () {
-        popup && popup[0].destroy()
-        // Was causing a crashing bug
-        component && setTimeout(() => component.destroy(), 500)
+        exited = true
+        if (popup) {
+          popup[0].destroy()
+          popup = null
+        }
+        if (component) {
+          const toDestroy = component
+          component = null
+          // Was causing a crashing bug
+          setTimeout(() => toDestroy.destroy(), 500)
+        }
       }
     }
   }

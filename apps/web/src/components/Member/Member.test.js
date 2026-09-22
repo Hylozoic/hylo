@@ -31,8 +31,8 @@ describe('Member Component', () => {
     expect(screen.getByText('Test Member')).toBeInTheDocument()
   })
 
-  it('renders join date and active metadata when provided', () => {
-    render(
+  it('renders the join date, with no dot for a long-inactive member', () => {
+    const { container } = render(
       <Member
         {...minProps}
         member={{
@@ -44,12 +44,11 @@ describe('Member Component', () => {
     )
 
     expect(screen.getByText(/Joined/)).toBeInTheDocument()
-    expect(screen.getByText(/Last Active:/)).toBeInTheDocument()
-    expect(screen.queryByText('Active')).not.toBeInTheDocument()
+    expect(container.querySelector('.bg-green-500')).not.toBeInTheDocument()
   })
 
-  it('shows Active with green dot for recently active members', () => {
-    render(
+  it('wears a green dot on the avatar for recently active members', () => {
+    const { container } = render(
       <Member
         {...minProps}
         member={{
@@ -59,6 +58,6 @@ describe('Member Component', () => {
       />
     )
 
-    expect(screen.getByText('Active')).toBeInTheDocument()
+    expect(container.querySelector('.bg-green-500')).toBeInTheDocument()
   })
 })

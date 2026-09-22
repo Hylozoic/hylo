@@ -16,7 +16,8 @@ const GROUP_SETTINGS_INPUT_FIELDS = [
   'publishMurmurationsProfile',
   'showSuggestedSkills',
   'showWelcomePage',
-  'showPostNoticesInChat'
+  'showPostNoticesInChat',
+  'autoAddMembers'
 ]
 
 export const DELETE_GROUP = `${MODULE_NAME}/DELETE_GROUP`
@@ -80,8 +81,10 @@ export function fetchGroupSettings (slug) {
             showWelcomePage
             showPostNoticesInChat
             layout
+            autoAddMembers
           }
           type
+          parentId
           slug
           visibility
           stripeAccountId
@@ -103,31 +106,6 @@ export function fetchGroupSettings (slug) {
               id
               name
               avatarUrl
-            }
-          }
-          customViews {
-            items {
-              id
-              activePostsOnly
-              collectionId
-              collection {
-                id
-                name
-              }
-              defaultSort
-              defaultViewMode
-              externalLink
-              groupId
-              isActive
-              icon
-              name
-              order
-              postTypes
-              topics {
-                id
-                name
-              }
-              type
             }
           }
           groupRelationshipInvitesFrom {
@@ -226,6 +204,8 @@ export function fetchGroupSettings (slug) {
             items {
               id
               email
+              name
+              userId
               createdAt
               lastSentAt
             }
@@ -294,6 +274,7 @@ export function updateGroupSettings (id, changes) {
             showWelcomePage
             showPostNoticesInChat
             layout
+            autoAddMembers
           }
           agreements {
             items {
@@ -301,30 +282,6 @@ export function updateGroupSettings (id, changes) {
               description
               order
               title
-            }
-          }
-          customViews {
-            items {
-              id
-              activePostsOnly
-              collectionId
-              collection {
-                id
-              }
-              defaultSort
-              defaultViewMode
-              externalLink
-              groupId
-              isActive
-              icon
-              name
-              postTypes
-              order
-              topics {
-                id
-                name
-              }
-              type
             }
           }
           groupToGroupJoinQuestions {

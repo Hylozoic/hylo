@@ -3,6 +3,7 @@ import mixpanel from 'mixpanel-browser'
 import { getAuthenticated } from '../selectors/getSignupState'
 import getMe from '../selectors/getMe'
 import { getCookieConsent } from 'util/cookieConsent'
+import { isSandboxMode } from 'sandbox/isSandbox'
 
 export default function mixpanelMiddleware (store) {
   return next => action => {
@@ -13,6 +14,8 @@ export default function mixpanelMiddleware (store) {
       // with data that will be attached to the event sent to mixpanel (eventName being
       // a required key).
       const state = store.getState()
+
+      if (isSandboxMode()) return next(action)
 
       if (!import.meta.env.VITE_MIXPANEL_TOKEN || !mixpanel) return next(action)
 

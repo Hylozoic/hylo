@@ -41,6 +41,11 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
     [stableMembers, skillGroups, threshold]
   )
 
+  // What the map is actually showing at the current threshold, not the whole
+  // membership — the numbers move with the dropdown.
+  const mappedMemberCount = useMemo(() => nodes.filter(node => node.type === 'person').length, [nodes])
+  const mappedSkillCount = useMemo(() => nodes.filter(node => node.type === 'skill').length, [nodes])
+
   // Latest-callback refs: the parent's handlers change identity with the
   // querystring, which must not tear down and rebuild the canvas graph
   const handlersRef = useRef({})
@@ -98,18 +103,33 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [expanded])
 
+  // The canvas bitmap is sized once from the container rect, and enlarging
+  // swaps to a fullscreen box — raise the spinner in the same commit as the
+  // height change so the stretched old render never shows.
+  const toggleExpanded = () => {
+    setBuilding(true)
+    setExpanded(value => !value)
+  }
+
   if (!loading && !skillGroups.length) return null
 
   const thresholdLabel = (option) =>
     option === 1 ? t('1 person') : t('{{count}}+ people', { count: option })
+  /* Phones have no room for the noun, and "Skills with" already sits beside it. */
+  const thresholdLabelShort = (option) => (option === 1 ? '1' : `${option}+`)
 
   return (
     <div
-      className={cn(expanded ? 'fixed inset-0 z-[100] bg-background flex flex-col p-3' : 'mt-3 mb-2')}
+      className={cn(expanded && 'fixed inset-0 z-[100] bg-background flex flex-col p-3')}
       data-testid='member-skills-graph'
     >
       <div className='flex items-center justify-between bg-card rounded-t-xl border-b border-foreground/10 px-3 py-2'>
-        <h2 className='m-0 text-sm font-semibold text-foreground'>{t('Skill map')}</h2>
+        <div className='min-w-0'>
+          <h2 className='m-0 text-sm font-semibold text-foreground'>{t('Skill map')}</h2>
+          <p className={cn('m-0 text-xs text-foreground/60', loading && 'invisible')}>
+            {t('{{memberCount}} members with {{skillCount}} skills', { memberCount: mappedMemberCount, skillCount: mappedSkillCount })}
+          </p>
+        </div>
         <div className={cn('flex items-center gap-2', loading && 'invisible')}>
           {/* Names the dropdown's meaning — a bare "2+ people" reads as a mystery */}
           <span className='text-xs text-foreground/60 whitespace-nowrap'>{t('Skills with')}</span>
@@ -123,7 +143,8 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
                 className='flex items-center gap-1 border-2 border-foreground/20 rounded-lg p-2 text-sm text-foreground/70 cursor-pointer transition-colors hover:text-foreground hover:border-foreground/40'
               >
                 <Users className='w-4 h-4 opacity-70' />
-                <span className='whitespace-nowrap'>{thresholdLabel(threshold)}</span>
+                <span className='whitespace-nowrap sm:hidden'>{thresholdLabelShort(threshold)}</span>
+                <span className='whitespace-nowrap hidden sm:inline'>{thresholdLabel(threshold)}</span>
                 <Icon name='ArrowDown' className='opacity-60' />
               </span>
           }
@@ -160,7 +181,7 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
         />
         <button
           type='button'
-          onClick={() => setExpanded(!expanded)}
+          onClick={toggleExpanded}
           title={expanded ? t('Close') : t('Enlarge map')}
           aria-label={expanded ? t('Close') : t('Enlarge map')}
           data-testid='skills-enlarge-button'

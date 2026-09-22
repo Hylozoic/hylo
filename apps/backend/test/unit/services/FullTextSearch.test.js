@@ -21,6 +21,7 @@ describe('FullTextSearch', () => {
       expect(query).to.contain('search.sort_ts')
       expect(query).not.to.contain('count(*) over ()')
       expect(query).not.to.contain('left join "comments"')
+      expect(query).not.to.contain('is_public')
       expect(query).to.contain('limit 11')
       expect(query).to.contain('offset 20')
     })
@@ -31,8 +32,25 @@ describe('FullTextSearch', () => {
 
       expect(query).to.contain('"group_id" in (select "groups"."id" from "group_memberships"')
       expect(query).to.contain('where "group_memberships"."user_id" = 42')
+      expect(query).to.contain('is_public')
       expect(query).not.to.contain('count(*) over ()')
       expect(query).to.contain('limit 11')
+    })
+
+    it('strips tsquery operators from the search term', () => {
+      const opts = { limit: 10, offset: 0, term: '#release!', type: 'person' }
+      const query = FullTextSearch.buildSearchInGroupsQuery({ groupIds: [3] }, opts).toString()
+
+      expect(query).to.contain('to_tsquery(\'english\', \'release:*\')')
+      expect(query).not.to.contain('#release')
+    })
+
+    it('matches nothing when the term is only tsquery operators', () => {
+      const opts = { limit: 10, offset: 0, term: '!!!', type: 'person' }
+      const query = FullTextSearch.buildSearchInGroupsQuery({ groupIds: [3] }, opts).toString()
+
+      expect(query).to.contain('where false')
+      expect(query).not.to.contain('to_tsquery')
     })
   })
 })

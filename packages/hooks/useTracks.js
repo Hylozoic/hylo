@@ -20,7 +20,9 @@ export default function useTracks ({ groupId, groupSlug, hideUnpublished = false
 
   const tracks = data?.group?.tracks?.items || []
 
-  const filteredTracks = hideUnpublished ? tracks.filter(track => track.publishedAt) : tracks
+  const filteredTracks = hideUnpublished
+    ? tracks.filter(track => track.space?.status && track.space.status !== 'draft' && track.space.status !== 'archived')
+    : tracks
 
   return [filteredTracks.map(track => TrackPresenter(track)), { fetching, error }, reQuery]
 }

@@ -29,11 +29,12 @@ describe('EventBody', () => {
     render(<EventBody {...props} />)
 
     expect(screen.getByText('Test Event')).toBeInTheDocument()
-    expect(screen.getByText(DateTimeHelpers.formatEventTimeDisplay({
+    const expectedTime = DateTimeHelpers.formatEventTimeDisplay({
       start: startTime,
       end: endTime,
       eventTimezone: timezone
-    }).primary)).toBeInTheDocument()
+    }).primary.replace(/\s/g, ' ')
+    expect(screen.getByText((content) => content.replace(/\s/g, ' ') === expectedTime)).toBeInTheDocument()
     expect(screen.getByText(/Oakland/)).toBeInTheDocument()
   })
 })

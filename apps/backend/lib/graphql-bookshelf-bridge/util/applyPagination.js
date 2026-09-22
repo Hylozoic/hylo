@@ -11,16 +11,22 @@ export default function applyPagination (query, tableName, opts) {
     throw new GraphQLError('Specifying both cursor and sortBy is not supported.')
   }
 
-  // skip special sorts
-  if (!['join', 'reactions', 'votes', 'updated', 'created'].includes(sortBy)) { // Can remove votes once Mobile has been ported over
-    query = query.orderBy(snakeCase(sortBy), order)
+  // skip special sorts — filterAndSortPosts already orders these (and
+  // `order` would be ambiguous after joining collections_posts)
+  if (!['join', 'reactions', 'votes', 'updated', 'created', 'order', 'start_time'].includes(sortBy)) { // Can remove votes once Mobile has been ported over
+    // Qualify id so joins (posts, groups_posts) don't make ORDER BY ambiguous and skip rows.
+    const column = sortBy === 'id' ? `${tableName}.id` : snakeCase(sortBy)
+    query = query.orderBy(column, order)
   }
 
   if (first) {
     query = query.limit(first)
   }
 
-  query = countTotal(query, tableName, PAGINATION_TOTAL_COLUMN_NAME)
+  // Window totals explode memory on heavy filters (e.g. Post.groups + groupFilter).
+  if (!opts.skipTotal) {
+    query = countTotal(query, tableName, PAGINATION_TOTAL_COLUMN_NAME)
+  }
 
   if (cursor) {
     const op = order === 'asc' ? '>' : '<'

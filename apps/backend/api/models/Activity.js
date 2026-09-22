@@ -168,6 +168,7 @@ module.exports = bookshelf.Model.extend({
     Announcement: 'announcement',
     ApprovedJoinRequest: 'approvedJoinRequest',
     JoinRequest: 'joinRequest',
+    GroupInvitation: 'groupInvitation',
     MemberJoinedGroup: 'memberJoinedGroup',
     GroupChildGroupInvite: 'groupChildGroupInvite',
     GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
@@ -301,8 +302,19 @@ module.exports = bookshelf.Model.extend({
 
   generateNotificationMedia: async function (activity) {
     const reasons = activity.get('meta').reasons || []
-    const isJoinRequestRelated = [this.Reason.ApprovedJoinRequest, this.Reason.JoinRequest].includes(reasons[0])
-    if (!isJoinRequestRelated) await activity.load('post.groups')
+    const reason = reasons[0]
+    const skipPostLoad = [
+      this.Reason.ApprovedJoinRequest,
+      this.Reason.JoinRequest,
+      this.Reason.GroupInvitation
+    ].includes(reason)
+    if (!skipPostLoad) await activity.load('post.groups')
+
+    // Invitees are not members yet, so skip membership-based email.
+    // Invitation.send already emails them; in-app (and push) are for existing Hylo users.
+    if (reason === this.Reason.GroupInvitation) {
+      return [Notification.MEDIUM.InApp, Notification.MEDIUM.Push]
+    }
 
     // TODO: rename 'notifications' to 'media'
     const notifications = []

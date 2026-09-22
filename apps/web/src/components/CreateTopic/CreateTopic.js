@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { any, arrayOf, object, string, bool } from 'prop-types'
 import { debounce, has, get, isEmpty, trim } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
@@ -69,6 +69,7 @@ export default function CreateTopic ({
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const location = useLocation()
   const groupTopicExists = useSelector(state => state[MODULE_NAME])
 
   const createTopicBound = useCallback((a, b, c, d) => dispatch(createTopic(a, b, c, d)), [dispatch])
@@ -213,7 +214,7 @@ export default function CreateTopic ({
 
   if (redirectTopic && subscribeAfterCreate) {
     const url = topicUrl(encodeURI(redirectTopic), { groupSlug })
-    if (url !== window.location.pathname) return <Navigate to={url} replace />
+    if (url !== location.pathname) return <Navigate to={url} replace />
   }
 
   return (

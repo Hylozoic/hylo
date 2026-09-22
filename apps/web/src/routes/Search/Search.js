@@ -1,5 +1,5 @@
 import { get, intersection, debounce } from 'lodash/fp'
-import React, { useEffect, useMemo, useState, useCallback } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
@@ -45,10 +45,11 @@ export default function Search (props) {
   const groupSlug = getQuerystringParam('groupSlug', location) || ''
   const group = useSelector(state => groupSlug && getGroupForSlug(state, groupSlug))
   const previousLocation = useSelector(getPreviousLocation)
-  const groupIds = useMemo(() => group ? [group.id] : null, [group.id])
+  const groupIds = useMemo(() => group?.id ? [group.id] : null, [group?.id])
   const [searchForInput, setSearchForInput] = useState(searchFromQueryString)
   const [filter, setFilter] = useState('all')
   const searchTermReady = searchForInput.trim().length >= MIN_SEARCH_TERM_LENGTH
+  const groupScopeReady = !groupSlug || !!groupIds
   const queryResultProps = { search: searchForInput, type: filter, groupIds }
   const searchResults = useSelector(state => getSearchResults(state, queryResultProps))
   const hasFetched = useSelector(state => getHasFetchedSearchResults(state, queryResultProps))
@@ -56,10 +57,11 @@ export default function Search (props) {
   const searchError = useSelector(state => getSearchError(state, queryResultProps))
   const searchErrorMessage = searchError ? formatSearchErrorMessage(searchError, t) : null
   const pending = useSelector(state => !!state.pending[FETCH_SEARCH])
-  const showLoading = searchTermReady && !searchError && (pending || !hasFetched)
-  const showEmptyState = searchTermReady && hasFetched && !pending && !searchError && searchResults.length === 0
-  const showErrorState = searchTermReady && !pending && searchError && searchResults.length === 0
-  const inputRef = React.useRef(null)
+  const showLoading = searchTermReady && !searchError && (!groupScopeReady || pending || !hasFetched)
+  const showEmptyState = searchTermReady && groupScopeReady && hasFetched && !pending && !searchError && searchResults.length === 0
+  const showErrorState = searchTermReady && groupScopeReady && !pending && searchError && searchResults.length === 0
+  const inputRef = useRef(null)
+  const requestedOffsetRef = useRef(null)
 
   const showPerson = useCallback(personId => dispatch(push(personUrl(personId))), [dispatch])
 
@@ -69,27 +71,41 @@ export default function Search (props) {
     }),
     [dispatch, location]
   )
-  // Move this outside the component or use useCallback to preserve it between renders
   const fetchSearchResultsDebounced = useCallback(
     debounce(500, (opts) => {
       return dispatch(fetchSearchResults(opts))
     }),
-    [dispatch] // Only recreate if dispatch changes
+    [dispatch]
   )
 
   const fetchSearchResultsAction = useCallback(() => {
-    if (!searchTermReady) return
+    if (!searchTermReady || !groupScopeReady) return
+    requestedOffsetRef.current = null
     return fetchSearchResultsDebounced({ search: searchForInput, filter, groupIds })
-  }, [fetchSearchResultsDebounced, searchForInput, filter, groupIds, searchTermReady])
+  }, [fetchSearchResultsDebounced, searchForInput, filter, groupIds, searchTermReady, groupScopeReady])
 
   const fetchMoreSearchResults = useCallback(() => {
-    if (!searchTermReady || !hasMore) return () => {}
-    return fetchSearchResultsDebounced({ search: searchForInput, filter, offset: searchResults.length, groupIds })
-  }, [fetchSearchResultsDebounced, hasMore, searchForInput, filter, searchResults.length, groupIds, searchTermReady])
+    if (!searchTermReady || !groupScopeReady || !hasMore || pending) return
+    const offset = searchResults.length
+    if (requestedOffsetRef.current === offset) return
+    requestedOffsetRef.current = offset
+    dispatch(fetchSearchResults({ search: searchForInput, filter, offset, groupIds }))
+  }, [dispatch, searchTermReady, groupScopeReady, hasMore, pending, searchResults.length, searchForInput, filter, groupIds])
 
   useEffect(() => {
     fetchSearchResultsAction()
   }, [fetchSearchResultsAction])
+
+  // Person cards are short, so a people-heavy All page often never overflows.
+  // ScrollListener only fires after a scroll, so keep fetching until the list fills the column.
+  useLayoutEffect(() => {
+    if (!searchTermReady || pending || !hasFetched || !hasMore || searchError) return
+    const el = document.getElementById(CENTER_COLUMN_ID)
+    if (!el) return
+    if (el.scrollHeight <= el.clientHeight + 250) {
+      fetchMoreSearchResults()
+    }
+  }, [searchTermReady, pending, hasFetched, hasMore, searchError, searchResults.length, fetchMoreSearchResults])
 
   const handleClearGroup = useCallback(() => {
     dispatch(changeQuerystringParam(location, 'groupSlug', null, null, false))
@@ -165,12 +181,13 @@ export default function Search (props) {
         )}
         <TabBar setSearchFilter={setFilter} filter={filter} />
         <div className='w-full'>
-          {searchResults.map(sr =>
+          {groupScopeReady && searchResults.map(sr =>
             <SearchResult
               key={sr.id}
               searchResult={sr}
               term={searchForInput}
               showPerson={showPerson}
+              childPost={!groupSlug}
             />)}
           {showErrorState && (
             <SearchStatus
@@ -250,7 +267,8 @@ function SearchStatus ({ imageSrc, message, subtitle, variant = 'empty' }) {
 function SearchResult ({
   searchResult,
   term = '',
-  showPerson
+  showPerson,
+  childPost
 }) {
   const { type, content } = searchResult
   if (!content) {
@@ -280,6 +298,7 @@ function SearchResult ({
           className={classes.postcardExpand}
           post={content}
           highlightProps={highlightProps}
+          childPost={childPost}
         />
       )
       break

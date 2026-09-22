@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase, size, trim } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import convertGraphqlData from './convertGraphqlData'
+import { pushToSockets, userRoom } from '../../services/Websockets'
 
 export {
   createAffiliation,
@@ -11,12 +12,6 @@ export {
   saveDraft,
   deleteDraft
 } from './draft'
-export {
-  createCollection,
-  addPostToCollection,
-  reorderPostInCollection,
-  removePostFromCollection
-} from './collection'
 export {
   grantContentAccess,
   revokeContentAccess,
@@ -31,14 +26,6 @@ export {
   updateComment,
   canUpdateComment
 } from './comment'
-export {
-  createContextWidget,
-  deleteContextWidget,
-  updateContextWidget,
-  removeWidgetFromMenu,
-  reorderContextWidget,
-  setHomeWidget
-} from './context_widgets'
 export {
   createGroupView,
   updateGroupView,
@@ -60,7 +47,8 @@ export {
   archiveSpace,
   deleteSpace,
   joinSpace,
-  leaveSpace
+  convertSpaceToChildGroup,
+  convertGroupToSpace
 } from './spaces'
 export {
   respondToEvent,
@@ -195,7 +183,8 @@ export {
   createStripeOffering,
   updateStripeOffering,
   createStripeCheckoutSession,
-  checkStripeStatus
+  checkStripeStatus,
+  fulfillStripeCheckoutSession
 } from './stripe'
 export {
   membershipChangeCommit
@@ -204,6 +193,14 @@ export {
   addEmailEnabledTester,
   removeEmailEnabledTester
 } from './emailEnabledTesters'
+export {
+  createSiteBanner,
+  updateSiteBanner,
+  publishSiteBanner,
+  unpublishSiteBanner,
+  deleteSiteBanner,
+  dismissSiteBanner
+} from './siteBanners'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
 export { muteMessageThread, unmuteMessageThread } from './messageThread'
 
@@ -238,6 +235,24 @@ export async function leaveGroup (userId, groupId) {
 }
 
 export async function findOrCreateLinkPreviewByUrl ({ url }) {
+  const hyloAttrs = await LinkPreview.attrsForPublicHyloPost(url)
+  if (hyloAttrs) {
+    let preview = await LinkPreview.find(url)
+    if (!preview) {
+      try {
+        preview = await LinkPreview.forge({ url, created_at: new Date() }).save()
+      } catch (err) {
+        if (err.message && err.message.includes('duplicate key value')) {
+          preview = await LinkPreview.find(url)
+        } else {
+          throw err
+        }
+      }
+    }
+    if (!preview) return
+    return preview.save({ ...hyloAttrs, done: true, updated_at: new Date() })
+  }
+
   const preview = await LinkPreview.find(url)
 
   if (!preview) return LinkPreview.queue(url)
@@ -473,6 +488,25 @@ export function reactOn (userId, entityId, data, context) {
         if (parentCommentId) {
           context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
         }
+
+        // Push messageUpdated socket event for real-time DM updates (receivers)
+        if (comment.get('post_id')) {
+          const thread = await Post.find(postId)
+          const followers = await thread.followers().fetch().then(x => x.models)
+          const excludingSender = followers.map(x => x.id).filter(id => id !== userId)
+
+          const response = {
+            id: comment.id,
+            createdAt: (comment.get('created_at') || new Date()).toString(),
+            editedAt: comment.get('edited_at') ? comment.get('edited_at').toString() : undefined,
+            creator: comment.get('user_id'),
+            messageThread: comment.get('post_id'),
+            text: comment.get('text')
+          }
+
+          excludingSender.forEach(participantId =>
+            pushToSockets(userRoom(participantId), 'messageUpdated', response))
+        }
       }
 
       return result
@@ -509,6 +543,25 @@ export function deleteReaction (userId, entityId, data, context) {
         const parentCommentId = comment.get('comment_id')
         if (parentCommentId) {
           context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
+        }
+
+        // Push messageUpdated socket event for real-time DM updates (receivers)
+        if (comment.get('post_id')) {
+          const thread = await Post.find(postId)
+          const followers = await thread.followers().fetch().then(x => x.models)
+          const excludingSender = followers.map(x => x.id).filter(id => id !== userId)
+
+          const response = {
+            id: comment.id,
+            createdAt: (comment.get('created_at') || new Date()).toString(),
+            editedAt: comment.get('edited_at') ? comment.get('edited_at').toString() : undefined,
+            creator: comment.get('user_id'),
+            messageThread: comment.get('post_id'),
+            text: comment.get('text')
+          }
+
+          excludingSender.forEach(participantId =>
+            pushToSockets(userRoom(participantId), 'messageUpdated', response))
         }
       }
 

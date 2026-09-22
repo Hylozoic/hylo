@@ -54,8 +54,7 @@ describe('MembershipSettingsRow', () => {
           group: {
             id: '1',
             name: 'Foomunity',
-            avatarUrl: 'foo.png',
-            chatRooms: { toModelArray: () => [] }
+            avatarUrl: 'foo.png'
           }
         }}
         updateMembershipSettings={() => {}}

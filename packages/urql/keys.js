@@ -4,8 +4,6 @@ export default {
   AgreementQuerySet: () => null,
   CheckInvitationResult: () => null,
   CommentQuerySet: () => null,
-  ContextWidgetQuerySet: () => null,
-  CustomViewQuerySet: () => null,
   EventInvitationQuerySet: () => null,
   FundingRoundAllocation: () => null,
   FundingRoundQuerySet: () => null,

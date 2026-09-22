@@ -21,7 +21,24 @@ it('adds a `then` that rejects when there are errors', async () => {
     caughtError = error
   }
 
-  expect(caughtError).toEqual(action.payload.errors[0])
+  expect(caughtError).toBeInstanceOf(Error)
+  expect(caughtError.message).toEqual('problems')
+})
+
+it('passes through when there are field errors but `data` is present', async () => {
+  const action = {
+    type: 'FOO',
+    graphql: true,
+    payload: {
+      data: { group: { id: '1', name: 'Keep me' } },
+      errors: [{ message: 'widgets failed' }]
+    }
+  }
+  const next = jest.fn(async val => val)
+  const { meta } = await graphqlMiddleware({})(next)(action)
+  const payload = await meta.then(action.payload)
+
+  expect(payload.getData()).toEqual({ id: '1', name: 'Keep me' })
 })
 
 it('adds a `then` that passes through `payload` when there are no errors', async () => {

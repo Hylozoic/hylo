@@ -8,12 +8,20 @@ import { getBootstrapStorageDriver } from './bootstrap/bootstrapStorageDriver'
 import { migrateBootstrapState } from './bootstrap/migrateBootstrapState'
 import { BOOTSTRAP_INIT_COMPLETE } from './constants'
 import { isTest } from 'config/index'
+import { isSandboxMode, SANDBOX_BASENAME } from 'sandbox/isSandbox'
+
+const sandboxBasename = isSandboxMode() ? SANDBOX_BASENAME : undefined
 
 const {
   createReduxHistory,
   routerMiddleware,
   routerReducer
-} = createReduxHistoryContext({ history: createBrowserHistory() })
+} = createReduxHistoryContext({
+  history: createBrowserHistory(),
+  basename: sandboxBasename
+})
+
+export { sandboxBasename }
 
 export function getEmptyState () {
   const combinedReducers = createCombinedReducers(routerReducer)

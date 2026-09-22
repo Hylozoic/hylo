@@ -43,6 +43,9 @@ function currentUserProvider (authStateComplete) {
       memberships: [
         {
           id: '2',
+          person: {
+            id: '1'
+          },
           group: {
             id: '3',
             slug: 'test-group'
@@ -122,6 +125,95 @@ it('shows alert and navigates home when invitation is invalid and user is not si
   })
 
   alertSpy.mockRestore()
+})
+
+it('auto-joins a space and opens it when the user is already a parent member', async () => {
+  mockGraphqlServer.use(
+    graphql.query('CheckInvitation', () => {
+      return HttpResponse.json({
+        data: {
+          checkInvitation: {
+            valid: true,
+            groupId: '99',
+            groupSlug: 'test-group-the-space',
+            isSpace: true,
+            parentGroupSlug: 'test-group'
+          }
+        }
+      })
+    }),
+    graphql.mutation('JoinSpace', () => {
+      return HttpResponse.json({
+        data: {
+          joinSpace: {
+            id: '55',
+            group: {
+              id: '99',
+              slug: 'test-group-the-space',
+              type: 'space',
+              parentId: '3'
+            },
+            person: { id: '1' }
+          }
+        }
+      })
+    })
+  )
+
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'space-access-code' })
+
+  render(
+    <>
+      <Routes>
+        <Route path='/join-group' element={<JoinGroup />} />
+        <Route
+          path='/groups/test-group/spaces/the-space'
+          element={<div>/groups/test-group/spaces/the-space?accessCode=space-access-code</div>}
+        />
+      </Routes>
+    </>,
+    { wrapper: currentUserProvider(true) }
+  )
+
+  await waitFor(() => {
+    expect(screen.getByText('/groups/test-group/spaces/the-space?accessCode=space-access-code')).toBeInTheDocument()
+  })
+})
+
+it('redirects space invites to the parent group about page when the user is not a parent member', async () => {
+  mockGraphqlServer.use(
+    graphql.query('CheckInvitation', () => {
+      return HttpResponse.json({
+        data: {
+          checkInvitation: {
+            valid: true,
+            groupSlug: 'the-space',
+            isSpace: true,
+            parentGroupSlug: 'parent-group'
+          }
+        }
+      })
+    })
+  )
+
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'space-access-code' })
+
+  render(
+    <>
+      <Routes>
+        <Route path='/join-group' element={<JoinGroup />} />
+        <Route
+          path='/groups/parent-group/about'
+          element={<div>/groups/parent-group/about?accessCode=space-access-code</div>}
+        />
+      </Routes>
+    </>,
+    { wrapper: currentUserProvider(true) }
+  )
+
+  await waitFor(() => {
+    expect(screen.getByText('/groups/parent-group/about?accessCode=space-access-code')).toBeInTheDocument()
+  })
 })
 
 it('sets returnToPath and forwards to signup page when invitation is valid and user is not logged-in', async () => {

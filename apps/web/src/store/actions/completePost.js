@@ -1,6 +1,6 @@
 import { COMPLETE_POST } from 'store/constants'
 
-export default function completePost (id, completionResponse, { trackId, trackCompleted, completionRoleId, completionRole, groupId } = {}) {
+export default function completePost (id, completionResponse, { trackId, trackCompleted, completionRoleId, completionRole, groupId, parentGroupId } = {}) {
   return {
     type: COMPLETE_POST,
     graphql: {
@@ -24,7 +24,8 @@ export default function completePost (id, completionResponse, { trackId, trackCo
       trackCompleted,
       completionRoleId,
       completionRole,
-      groupId
+      groupId,
+      parentGroupId
     }
   }
 }

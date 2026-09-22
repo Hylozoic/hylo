@@ -21,6 +21,7 @@ export default function fetchAllMyGroupsSpaces () {
                 name
                 slug
                 type
+                status
                 parentId
                 icon
                 avatarUrl

@@ -20,7 +20,9 @@ describe('ManageInvitesTab', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Invitations to Join New Groups')).toBeInTheDocument()
+      expect(screen.getByText('Invitations to Join Spaces')).toBeInTheDocument()
       expect(screen.getByText('Your Open Requests to Join Groups')).toBeInTheDocument()
+      expect(screen.getByText('Your Open Requests to Join Spaces')).toBeInTheDocument()
       expect(screen.getByText('Declined Invitations & Requests')).toBeInTheDocument()
     })
   })

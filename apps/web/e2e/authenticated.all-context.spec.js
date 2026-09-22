@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
- * Batch B — global **`/all`** context (`Stream`, `MapExplorer`, `AllTopics`, `MemberProfile`).
+ * Batch B — global **`/all`** context (`All Activity`, `MapExplorer`, `AllTopics`, `MemberProfile`).
  * Runs on `chromium` and `mobile-chrome`. Requires E2E seed + `auth.setup.js` session.
  *
  * `E2E_SEEDED_USER_ID`: baseline seed inserts the login user first in an empty `hylo_e2e` DB (id `1`).
@@ -23,10 +23,10 @@ async function expectAllContextShell (page, urlPattern) {
 }
 
 test.describe('Batch B: global context /all', () => {
-  test('GET /all/stream loads All stream', async ({ page }) => {
-    await page.goto('/all/stream')
+  test('GET /all/all loads All Activity', async ({ page }) => {
+    await page.goto('/all/all')
     await waitPastRootSessionLoading(page)
-    await expectAllContextShell(page, /\/all\/stream/)
+    await expectAllContextShell(page, /\/all\/all/)
   })
 
   test('GET /all/map loads All map', async ({ page }) => {

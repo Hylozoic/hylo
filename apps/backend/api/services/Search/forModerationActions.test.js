@@ -1,12 +1,12 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { assignCoordinator } from '../../../test/setup/roleHelpers'
+import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import forModerationActions from './forModerationActions'
 
 describe('forModerationActions', () => {
   let parentGroup, memberSpace, otherSpace
-  let member, coordinator
+  let member, administrator
   let parentAction, memberSpaceAction, otherSpaceAction
 
   before(async function () {
@@ -26,11 +26,11 @@ describe('forModerationActions', () => {
     }).save()
 
     member = await factories.user().save()
-    coordinator = await factories.user().save()
+    administrator = await factories.user().save()
 
     await member.joinGroup(parentGroup)
     await member.joinGroup(memberSpace)
-    await assignCoordinator(coordinator, parentGroup)
+    await assignAdministrator(administrator, parentGroup)
 
     const post = await factories.post().save()
     parentAction = await ModerationAction.forge({
@@ -85,7 +85,7 @@ describe('forModerationActions', () => {
   it('includes all child space actions when the viewer has Manage Content', async () => {
     const results = await forModerationActions({
       slug: parentGroup.get('slug'),
-      currentUserId: coordinator.id,
+      currentUserId: administrator.id,
       limit: 20,
       offset: 0
     }).fetchAll()
@@ -98,7 +98,7 @@ describe('forModerationActions', () => {
   it('includes only that space when viewing a space', async () => {
     const results = await forModerationActions({
       slug: memberSpace.get('slug'),
-      currentUserId: coordinator.id,
+      currentUserId: administrator.id,
       limit: 20,
       offset: 0
     }).fetchAll()

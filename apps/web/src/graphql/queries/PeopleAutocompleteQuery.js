@@ -6,13 +6,17 @@ import gql from 'graphql-tag'
  * this uses the root-level people query which can search all users.
  */
 const PeopleAutocompleteQuery = gql`
-  query PeopleAutocompleteQuery ($autocomplete: String, $first: Int) {
+  query PeopleAutocompleteQuery (
+    $autocomplete: String,
+    $first: Int,
+    $includeMemberships: Boolean = false
+  ) {
     people (autocomplete: $autocomplete, first: $first) {
       items {
         id
         name
         avatarUrl
-        memberships {
+        memberships @include(if: $includeMemberships) {
           id
           group {
             id

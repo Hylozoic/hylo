@@ -13,6 +13,20 @@ module.exports = {
     return emailMatches || isInAdminList
   },
 
+  isSuperAdmin: async function (userId) {
+    if (!userId) return false
+
+    const user = await User.find(userId)
+    if (!user) return false
+
+    const email = user.get('email') || ''
+    const emailMatches = !!(email.match(/@hylo\.com|@terran\.io$/))
+    const adminIds = (process.env.HYLO_ADMINS || '').split(',').map(id => Number(id.trim())).filter(id => !isNaN(id))
+    const isInAdminList = adminIds.includes(Number(userId))
+
+    return emailMatches || isInAdminList
+  },
+
   isTestAdmin: async function (userId) {
     if (!userId) return false
 

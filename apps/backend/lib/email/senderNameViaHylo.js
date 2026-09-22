@@ -31,6 +31,52 @@ function alreadyHasViaHyloSuffix (displayName) {
 }
 
 /**
+ * Label for a group in email From: names and similar. Spaces include the parent: "Parent > Space".
+ *
+ * @param {object} group Bookshelf Group (or mock with `.get`)
+ * @returns {string|null}
+ */
+function groupDisplayNameWithParent (group) {
+  if (!group) return null
+  const name = group.get('name')
+  if (group.get('type') !== 'space') return name
+  const parent = group.relations?.parentGroup ||
+    (typeof group.related === 'function' ? group.related('parentGroup') : null)
+  const parentName = parent && typeof parent.get === 'function' ? parent.get('name') : null
+  if (!parentName) return name
+  return `${parentName} > ${name}`
+}
+
+/**
+ * Loads parentGroup on a space when nested withRelated is empty.
+ *
+ * @param {object} group Bookshelf Group
+ * @returns {Promise<object>}
+ */
+async function ensureGroupParent (group) {
+  if (!group || group.get('type') !== 'space') return group
+  const loaded = group.relations?.parentGroup
+  if (loaded && loaded.get('name')) return group
+  const parentId = group.get('parent_id')
+  if (!parentId) return group
+  const parent = await Group.find(parentId)
+  if (parent) group.relations.parentGroup = parent
+  return group
+}
+
+/**
+ * From-display name when the email is sent on behalf of a group or space.
+ *
+ * @param {object} group Bookshelf Group
+ * @param {string} [recipientLocale]
+ * @returns {Promise<string>}
+ */
+async function senderNameForGroup (group, recipientLocale) {
+  await ensureGroupParent(group)
+  return senderNameViaHylo(groupDisplayNameWithParent(group), recipientLocale)
+}
+
+/**
  * From-display name when Hylo relays a person, group, or entity for this recipient’s locale.
  * Uses `emailSenderViaHyloSuffix` from `lib/i18n`. Idempotent if a Hylo parenthetical is already present.
  *
@@ -53,5 +99,8 @@ function senderNameViaHylo (displayName, recipientLocale) {
 
 module.exports = {
   senderNameViaHylo,
+  senderNameForGroup,
+  groupDisplayNameWithParent,
+  ensureGroupParent,
   recipientLocaleToI18nKey
 }

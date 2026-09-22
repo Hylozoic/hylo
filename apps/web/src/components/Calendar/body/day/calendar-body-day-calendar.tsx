@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
@@ -11,30 +11,15 @@ export default function CalendarBodyDayCalendar () {
   const { t } = useTranslation()
   const today = new Date()
   const { date, events, setDate } = useCalendarContext()
-
-  const [hideGoToButton, setHideGoToButton] = useState(DateTimeHelpers.isSameDay(date, today))
-  const [selected, setSelected] = useState<Date>(date)
-  const [month, setMonth] = useState(date)
-
-  const handleMonthChange = (day : Date) => {
-    setHideGoToButton(DateTimeHelpers.isSameDay(day, today))
-    setMonth(day)
-    setDate(day)
-  }
-
-  const handleGoToButton = () => {
-    handleMonthChange(today)
-    setSelected(today)
-    setDate(today)
-  }
+  const hideGoToButton = DateTimeHelpers.isSameDay(date, today)
 
   return (
     <div className={cn('w-full')}>
       <Calendar
-        month={month}
-        selected={selected}
+        month={date}
+        selected={date}
         onSelect={(day : Date | undefined) => day && setDate(day)}
-        onMonthChange={handleMonthChange}
+        onMonthChange={setDate}
         mode='single'
         classNames={{
           // align formatted days vertically at top of cells, allow to wrap, and reduce lineheight
@@ -42,12 +27,13 @@ export default function CalendarBodyDayCalendar () {
           day_button: cn(buttonVariants({ variant: 'ghost' }), 'whitespace-pre-wrap leading-3 items-start size-9 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md')
         }}
         formatters={({
-          formatDay: (date, options) => {
+          formatDay: (day, options) => {
             const maxNumEvents = 3
-            const numEvents = events.filter((event) => DateTimeHelpers.rangeIncludesDate(event.start, date, event.end)).length
+            const numEvents = (events ?? []).filter((event) => DateTimeHelpers.rangeIncludesDate(event.start, day, event.end)).length
             const symbols = '•'.repeat(Math.min(numEvents, maxNumEvents))
             const moreSymbol = numEvents > maxNumEvents
-            return `${DateTimeHelpers.toDateTime(date, { locale: options.locale.code }).toFormat('dd', { locale: options.locale.code })}\n${symbols}${moreSymbol ? '+' : ''}`
+            const locale = options?.locale?.code
+            return `${DateTimeHelpers.toDateTime(day, { locale }).toFormat('dd', { locale })}\n${symbols}${moreSymbol ? '+' : ''}`
           }
         })}
       />
@@ -55,7 +41,7 @@ export default function CalendarBodyDayCalendar () {
         <Button
           variant='outline'
           className='h-7'
-          onClick={() => handleGoToButton()}
+          onClick={() => setDate(today)}
         >
           {t('Go to Today')}
         </Button>}

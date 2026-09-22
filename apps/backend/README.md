@@ -38,7 +38,8 @@ Create a `.env` file in the root directory by copying .env.example. More info ab
 * `EMAIL_SENDER`: set to your email address
 * `MAPBOX_TOKEN`: get a token from [Mapbox](https://www.mapbox.com/) or email dev@hylo.com for one
 * `OIDC_KEYS`: set to a base64 string of a RSA key, you can generate one with `openssl genrsa 2048 | base64`
-* `ROLLBAR_SERVER_TOKEN`: use the `post_server_item` token in  [Rollbar](https://rollbar.com/hylo_dev/Hylo/settings/access_tokens/)
+* `SENTRY_DSN`: server DSN from the shared Sentry project (Settings → Client Keys). Leave unset locally to disable reporting. See [docs/sentry-setup.md](../../docs/sentry-setup.md).
+* `SENTRY_ENV`: optional environment tag (`production` / `staging` / `reviewApp`); defaults to `NODE_ENV`
 * `SENDWITHUS_KEY`: set up a test key in SendWithUs to send all email only to you (ask someone with admin rights to set this up)
 * `SLACK_APP_CLIENT_ID`: set up an app on Slack and reference its' client id, optional for dev installation
 * `SLACK_APP_CLIENT_SECRET`: reference the client secret from that same app on Slack, optional for dev installation
@@ -221,8 +222,8 @@ DOMAIN=testdomain
 # this prevents jobs that were queued during testing from being run in development
 KUE_NAMESPACE=qtest
 PROTOCOL=http
-# don't log errors to Rollbar
-ROLLBAR_SERVER_TOKEN=
+# leave unset so Sentry stays disabled in tests
+SENTRY_DSN=
 # you can set up a SendWithUs API key to return valid responses but send no email
 SENDWITHUS_KEY=test_...
 INBOUND_EMAIL_SALT=FFFFAAAA123456789

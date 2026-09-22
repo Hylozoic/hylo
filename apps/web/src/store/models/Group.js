@@ -1,5 +1,20 @@
 import { attr, many, Model, fk } from 'redux-orm'
 
+/** Parses a group's acceptedPostTypes attr (array, JSON string, or null = all types). */
+export function normalizeAcceptedPostTypes (value) {
+  if (value == null) return null
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : null
+    } catch (e) {
+      return null
+    }
+  }
+  return null
+}
+
 export const GROUP_ACCESSIBILITY = {
   Closed: 0,
   Restricted: 1,
@@ -100,13 +115,6 @@ export const LOCATION_PRECISION = {
   region: 'Display only nearest city and dont show on the map'
 }
 
-export class ChatRoom extends Model { }
-ChatRoom.modelName = 'ChatRoom'
-ChatRoom.fields = {
-  group: fk('Group', 'chatrooms'),
-  topic: fk('GroupTopic', 'chatrooms')
-}
-
 export class GroupSteward extends Model { }
 GroupSteward.modelName = 'GroupSteward'
 GroupSteward.fields = {
@@ -177,7 +185,6 @@ Group.fields = {
     as: 'announcements',
     relatedName: 'announcementGroups'
   }),
-  chatRooms: many('ChatRoom'),
   childGroups: many({
     to: 'Group',
     relatedName: 'parentGroups',
@@ -185,23 +192,26 @@ Group.fields = {
     throughFields: ['childGroup', 'parentGroup']
   }),
   peerGroups: many('Group'),
-  customViews: many('CustomView'),
   feedOrder: attr(),
   geoShape: attr(),
   groupToGroupJoinQuestions: many('GroupToGroupJoinQuestion'),
+  groupRoles: attr(),
   groupViews: attr(),
   homeRoute: attr(),
+  menuViewCount: attr(),
+  moreSpacesCount: attr(),
   icon: attr(),
   id: attr(),
   joinQuestions: many('GroupJoinQuestion'),
   location: attr(),
-  locationId: fk({
+  locationObject: fk({
     to: 'Location',
     as: 'locationObject'
   }),
   members: many('Person'),
   memberCount: attr(),
   openJoinRequestCount: attr(),
+  openModerationActionCount: attr(),
   stewards: many({
     to: 'Person',
     relatedName: 'stewardedGroups',
@@ -231,6 +241,8 @@ Group.fields = {
   settings: attr(),
   slug: attr(),
   spaces: attr(),
+  status: attr(),
+  active: attr(),
   suggestedSkills: many('Skill'),
   track: attr(),
   tracks: many('Track'),

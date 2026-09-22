@@ -1,4 +1,4 @@
-import { get } from 'lodash/fp'
+import { get, uniqueId, uniq } from 'lodash/fp'
 
 import {
   CLEAR_MODERATION_ACTION,
@@ -6,6 +6,18 @@ import {
   FETCH_MODERATION_ACTIONS,
   RECORD_CLICKTHROUGH
 } from 'store/constants'
+
+/**
+ * Cache key params for FETCH_MODERATION_ACTIONS. Omits page size (`first`)
+ * because it was added to the global queryResults whitelist for member pills
+ * and must not hide moderation results from the selector.
+ */
+export function getModerationActionQueryProps ({ slug, sortBy }) {
+  return {
+    slug,
+    sortBy
+  }
+}
 
 export function clearModerationAction ({ postId, moderationActionId, groupId }) {
   return {
@@ -27,7 +39,7 @@ export function clearModerationAction ({ postId, moderationActionId, groupId }) 
   }
 }
 
-export function createModerationAction (data) {
+export function createModerationAction (data, { slugs } = {}) {
   return {
     type: CREATE_MODERATION_ACTION,
     graphql: {
@@ -50,7 +62,9 @@ export function createModerationAction (data) {
     },
     meta: {
       data,
-      optimistic: true
+      optimistic: true,
+      tempId: uniqueId('moderationAction_'),
+      slugs: uniq((slugs || []).filter(Boolean))
     }
   }
 }
@@ -134,7 +148,8 @@ export function fetchModerationActions ({ slug, offset, sortBy, first = 20 }) {
       slug,
       extractModel: 'ModerationAction',
       extractQueryResults: {
-        getItems: get('payload.data.moderationActions')
+        getItems: get('payload.data.moderationActions'),
+        getRouteParams: action => getModerationActionQueryProps(action.meta.graphql.variables)
       }
     }
   }

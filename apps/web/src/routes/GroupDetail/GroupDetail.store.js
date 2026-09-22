@@ -41,6 +41,7 @@ export function joinGroup (groupId, questionAnswers, accessCode, invitationToken
           person {
             id
           }
+          lastViewedAt
           settings {
             agreementsAcceptedAt
             joinQuestionsAnsweredAt

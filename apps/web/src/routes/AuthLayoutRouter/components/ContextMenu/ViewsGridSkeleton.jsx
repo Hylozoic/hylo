@@ -2,7 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import Skeleton from 'components/Skeleton'
 import { cn } from 'util/index'
-import { CARD_CLASS } from './viewCardTheme'
+import { CARD_CLASS, CARD_TILE_CLASS, CARD_LABEL_TOP_CLASS } from './viewCardTheme'
 
 /**
  * Card-shaped placeholder mirroring GroupViewCard's centered tile and label.
@@ -21,9 +21,9 @@ function ViewCardSkeleton ({ index = 0 }) {
     >
       <div className='relative h-full'>
         <div className='absolute inset-0 grid place-items-center'>
-          <Skeleton className='w-14 h-14 rounded-[15px]' />
+          <Skeleton className={CARD_TILE_CLASS} />
         </div>
-        <div className='absolute left-0 right-0 top-[calc(50%+28px)] bottom-0 flex flex-col items-center gap-1.5 px-4 pt-1.5'>
+        <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center gap-1.5 px-4 pt-1.5')}>
           <Skeleton className='h-[11px] w-[70%]' />
           <Skeleton className='h-[11px] w-[45%]' />
         </div>

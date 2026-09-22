@@ -35,7 +35,9 @@ const UNIFIED_SUBSCRIPTION = gql`
           }
           track {
             id
-            name
+            space {
+              name
+            }
           }
           meta {
             reasons

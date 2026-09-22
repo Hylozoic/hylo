@@ -1,23 +1,26 @@
 import { Users } from 'lucide-react'
-import React, { useCallback } from 'react'
+import React, { useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogTitle } from 'components/ui/dialog'
 import CreateGroupForm from './CreateGroupForm'
-import { CREATE_GROUP_PARAM } from './createGroupUrl'
+import { CREATE_GROUP, CREATE_QUERY_PARAM } from '@hylo/navigation'
 
-// Mounted once by AuthLayoutRouter and opened by the ?createGroup=true param, so
+// Mounted once by AuthLayoutRouter and opened by the ?create=group param, so
 // the page underneath stays rendered and the browser back button closes the modal.
 export default function CreateGroupModal () {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
+  const formRef = useRef()
 
-  const isOpen = new URLSearchParams(location.search).get(CREATE_GROUP_PARAM) === 'true'
+  const searchParams = new URLSearchParams(location.search)
+  const isOpen = searchParams.get(CREATE_QUERY_PARAM) === CREATE_GROUP || searchParams.get('createGroup') === 'true'
 
   const close = useCallback(() => {
     const params = new URLSearchParams(location.search)
-    params.delete(CREATE_GROUP_PARAM)
+    params.delete(CREATE_QUERY_PARAM)
+    params.delete('createGroup')
     params.delete('name')
     params.delete('slug')
     const search = params.toString()
@@ -25,26 +28,35 @@ export default function CreateGroupModal () {
   }, [location.pathname, location.search, navigate])
 
   const handleOpenChange = useCallback(open => {
-    if (!open) close()
-  }, [close])
-
-  // The Filestack picker renders on <body>, so Radix reads clicks inside it as
-  // clicks outside the dialog and would close the form mid-upload.
-  const keepOpenForFilestack = useCallback(event => {
-    const target = event.detail?.originalEvent?.target || event.target
-    if (target?.closest?.('[class^="fsp-"], [class*=" fsp-"]')) event.preventDefault()
+    if (!open) formRef.current?.requestClose()
   }, [])
+
+  // Filestack and Add View / Welcome overlays portal to <body>. A modal dialog
+  // would treat them as outside and steal focus (the Welcome editor cannot type).
+  const keepOpenForExternalOverlays = useCallback(event => {
+    const target = event.detail?.originalEvent?.target || event.target
+    if (target?.closest?.('[class^="fsp-"], [class*=" fsp-"], [data-hylo-nested-dialog]')) {
+      event.preventDefault()
+    }
+  }, [])
+
+  const handleEscapeKeyDown = useCallback(event => {
+    if (formRef.current?.isConfirmOpen()) event.preventDefault()
+    keepOpenForExternalOverlays(event)
+  }, [keepOpenForExternalOverlays])
 
   if (!isOpen) return null
 
   return (
-    <Dialog open onOpenChange={handleOpenChange}>
+    <Dialog modal={false} open onOpenChange={handleOpenChange}>
       <DialogContent
+        overlayAsDiv
         className='w-[calc(100vw-2rem)] max-w-[620px] max-h-[calc(100vh-5rem)] p-0 gap-0 rounded-2xl flex flex-col [&>button:last-child]:top-4 [&>button:last-child]:right-4'
         onOpenAutoFocus={event => event.preventDefault()}
-        onPointerDownOutside={keepOpenForFilestack}
-        onInteractOutside={keepOpenForFilestack}
-        onFocusOutside={keepOpenForFilestack}
+        onPointerDownOutside={keepOpenForExternalOverlays}
+        onInteractOutside={keepOpenForExternalOverlays}
+        onFocusOutside={keepOpenForExternalOverlays}
+        onEscapeKeyDown={handleEscapeKeyDown}
       >
         <div className='flex items-center gap-2 h-12 px-4 border-b border-foreground/10 shrink-0'>
           <Users className='w-5 h-5 text-selected shrink-0' />
@@ -52,6 +64,7 @@ export default function CreateGroupModal () {
         </div>
 
         <CreateGroupForm
+          ref={formRef}
           onClose={close}
           bodyClassName='flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 pt-5 pb-6'
           footerClassName='px-5 py-3.5 border-t border-foreground/10 shrink-0'

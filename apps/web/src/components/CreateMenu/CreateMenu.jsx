@@ -1,19 +1,30 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import Icon from 'components/Icon'
 import { POST_TYPES } from 'store/models/Post'
+import { normalizeAcceptedPostTypes } from 'store/models/Group'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
-import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
+import { createGroupModalUrl, createPostModalUrl } from '@hylo/navigation'
+import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 const postTypes = Object.keys(POST_TYPES).filter(t => !['action', 'chat', 'submission'].includes(t))
 
 export default function CreateMenu ({ coordinates, mapView }) {
   const location = useLocation()
   const dispatch = useDispatch()
-  const querystringParams = new URLSearchParams(location.search)
   const { t } = useTranslation()
+  const routeParams = useRouteParams()
+  const groupSlug = useEffectiveGroupSlug() || routeParams.groupSlug
+  const currentGroup = useSelector(state => groupSlug ? getGroupForSlug(state, groupSlug) : null)
+  const acceptedPostTypes = normalizeAcceptedPostTypes(currentGroup?.acceptedPostTypes)
+  const visiblePostTypes = useMemo(() => {
+    if (acceptedPostTypes == null) return postTypes
+    return postTypes.filter(type => acceptedPostTypes.includes(type))
+  }, [acceptedPostTypes])
 
   // Close the nav menu when a link is clicked
   const handleLinkClick = useCallback(() => {
@@ -24,14 +35,14 @@ export default function CreateMenu ({ coordinates, mapView }) {
     <div>
       <h2 className='text-foreground/80 mb-3 font-bold mt-0 text-selected'>{coordinates ? t('New post at this location:') + ' ' : t('What would you like to create?')}</h2>
       <div className='flex flex-col gap-2'>
-        {postTypes.map(postType => {
-          querystringParams.set('newPostType', postType)
+        {visiblePostTypes.map(postType => {
+          const extra = { newPostType: postType }
           if (coordinates) {
-            querystringParams.set('lat', coordinates.lat)
-            querystringParams.set('lng', coordinates.lng)
+            extra.lat = coordinates.lat
+            extra.lng = coordinates.lng
           }
 
-          const createPostForPostTypePath = `${location.pathname}/create/post?${querystringParams.toString()}`
+          const createPostForPostTypePath = createPostModalUrl(location, extra)
           const postTypeUppercase = postType.charAt(0).toUpperCase() + postType.slice(1)
           const iconName = postType === 'request' ? 'Heart' : postTypeUppercase
 

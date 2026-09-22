@@ -10,6 +10,20 @@ export const MessageThreadMessagesQuery = gql`
           text
           createdAt
           editedAt
+          commentReactions {
+            emojiFull
+            id
+            user {
+              id
+              name
+            }
+          }
+          attachments {
+            id
+            position
+            type
+            url
+          }
           creator {
             id
             name

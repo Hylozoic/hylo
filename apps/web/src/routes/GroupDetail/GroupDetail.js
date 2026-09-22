@@ -19,7 +19,6 @@ import Icon from 'components/Icon'
 import SocketSubscriber from 'components/SocketSubscriber'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
-import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
 import Button from 'components/ui/button'
 import {
   Dialog,
@@ -56,7 +55,8 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
-import { groupUrl, personUrl, removeGroupFromUrl, spaceUrl } from '@hylo/navigation'
+import { groupUrl, localSpaceSlug, personUrl, removeGroupFromUrl, spaceUrl } from '@hylo/navigation'
+import joinSpace from 'store/actions/joinSpace'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
@@ -123,6 +123,11 @@ function GroupDetail ({ forCurrentGroup = false }) {
     : (routeParams.detailGroupSlug || routeParams.groupSlug)
   const groupSelector = useSelector(state => getGroupForSlug(state, slug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
+  const parentGroup = useSelector(state => {
+    if (group?.type !== GROUP_TYPES.space || !routeParams.groupSlug) return null
+    if (routeParams.groupSlug === slug) return null
+    return getGroupForSlug(state, routeParams.groupSlug)
+  })
   const isAboutCurrentGroup = forCurrentGroup || routeParams.groupSlug === routeParams.detailGroupSlug
   const myMemberships = useSelector(state => getMyMemberships(state))
   const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
@@ -140,23 +145,30 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const [invitationEmail, setInvitationEmail] = useState(null)
   const [invitationRole, setInvitationRole] = useState(null)
   const [invitationChecked, setInvitationChecked] = useState(false)
+  const [linkedSpaceName, setLinkedSpaceName] = useState(null)
+  const [linkedSpaceSlug, setLinkedSpaceSlug] = useState(null)
+  const [linkedSpaceId, setLinkedSpaceId] = useState(null)
 
   useEffect(() => {
-    if (invitationToken && currentUser && !invitationChecked) {
-      (async () => {
-        const result = await dispatch(checkInvitation({ invitationToken }))
-        const checkResult = result?.payload?.data?.checkInvitation
-        if (checkResult?.email) {
-          setInvitationEmail(checkResult.email)
-        }
-        // Set invitation role from groupRole on the invite
-        if (checkResult?.groupRole) {
-          setInvitationRole(checkResult.groupRole)
-        }
-        setInvitationChecked(true)
-      })()
-    }
-  }, [invitationToken, currentUser, invitationChecked, dispatch])
+    if (!(invitationToken || accessCode) || invitationChecked) return
+    (async () => {
+      const result = await dispatch(checkInvitation({ invitationToken, accessCode }))
+      const checkResult = result?.payload?.data?.checkInvitation
+      if (checkResult?.email) {
+        setInvitationEmail(checkResult.email)
+      }
+      // Set invitation role from groupRole on the invite
+      if (checkResult?.groupRole) {
+        setInvitationRole(checkResult.groupRole)
+      }
+      if (checkResult?.isSpace && checkResult?.parentGroupSlug === slug) {
+        setLinkedSpaceName(checkResult.groupName)
+        setLinkedSpaceSlug(checkResult.groupSlug)
+        setLinkedSpaceId(checkResult.groupId)
+      }
+      setInvitationChecked(true)
+    })()
+  }, [invitationToken, accessCode, invitationChecked, dispatch, slug])
 
   // For email invites, validate that logged-in user's email matches the invitation email
   const hasEmailInvite = !!(invitationToken && invitationEmail)
@@ -169,7 +181,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
       slug,
       accessCode,
       invitationToken,
-      withContextWidgets: false,
       withWidgets: true,
       withPrerequisites: !!currentUser
     }))
@@ -186,10 +197,15 @@ function GroupDetail ({ forCurrentGroup = false }) {
     ))
     if (isWebView()) {
       sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
+    } else if (linkedSpaceSlug) {
+      if (linkedSpaceId) {
+        await dispatch(joinSpace(linkedSpaceId, accessCode, invitationToken)).catch(() => {})
+      }
+      navigate(spaceUrl(group.slug, localSpaceSlug(group.slug, linkedSpaceSlug)))
     } else {
       navigate(groupUrl(group.slug))
     }
-  }, [dispatch, group, accessCode, invitationToken])
+  }, [dispatch, group, accessCode, invitationToken, linkedSpaceSlug, linkedSpaceId])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
     dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
@@ -236,16 +252,17 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [location.hash, group?.agreements?.length])
 
   useEffect(() => {
+    if (!currentUser?.id) return
     dispatch(fetchJoinRequests())
     dispatch(fetchForCurrentUser())
-  }, [dispatch])
+  }, [dispatch, currentUser?.id])
 
   useEffect(() => {
     fetchGroup()
   }, [fetchGroup])
 
   const closeDetailModal = () => {
-    const newUrl = removeGroupFromUrl(window.location.pathname)
+    const newUrl = removeGroupFromUrl(`${location.pathname}`)
     navigate(newUrl)
   }
 
@@ -455,7 +472,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
               <div>
                 <JoinSection
                   accessCode={accessCode}
-                  addSkill={addSkill}
                   currentUser={currentUser}
                   fullPage={fullPage}
                   group={group}
@@ -463,8 +479,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
                   invitationRole={invitationRole}
                   invitationToken={invitationToken}
                   joinGroup={joinGroupHandler}
+                  linkedSpaceName={linkedSpaceName}
                   requestToJoinGroup={requestToJoinGroup}
-                  removeSkill={removeSkill}
                   routeParams={routeParams}
                   t={t}
                 />
@@ -487,7 +503,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     <div>
                       <JoinSection
                         accessCode={accessCode}
-                        addSkill={addSkill}
                         currentUser={currentUser}
                         fullPage={fullPage}
                         group={group}
@@ -495,8 +510,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
                         invitationRole={invitationRole}
                         invitationToken={invitationToken}
                         joinGroup={joinGroupHandler}
+                        linkedSpaceName={linkedSpaceName}
                         requestToJoinGroup={requestToJoinGroup}
-                        removeSkill={removeSkill}
                         routeParams={routeParams}
                         t={t}
                       />
@@ -504,10 +519,10 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     )
           : ''}
       </div>
-      {showSpaceSettings && (
+      {showSpaceSettings && parentGroup && (
         <SpaceSettingsModal
           space={group}
-          group={group}
+          parentGroup={parentGroup}
           onClose={() => setShowSpaceSettings(false)}
         />
       )}

@@ -5,6 +5,9 @@ import {
   CREATE_SPACE,
   DELETE_GROUP_VIEW,
   DELETE_SPACE,
+  ARCHIVE_SPACE,
+  CONVERT_GROUP_TO_SPACE,
+  CONVERT_SPACE_TO_CHILD_GROUP,
   FETCH_VIEW_POSTS,
   REMOVE_POST_FROM_VIEW,
   REORDER_GROUP_VIEW,
@@ -31,7 +34,7 @@ function toIntRoleIds (ids) {
 function spaceViewMenuData ({ name, description, viewName, icon }) {
   const linkedGroup = omitBy(isUndefined, { name, description, icon })
   return omitBy(isUndefined, {
-    name: viewName,
+    name: viewName !== undefined ? viewName : name,
     linkedGroup: Object.keys(linkedGroup).length ? linkedGroup : undefined
   })
 }
@@ -48,6 +51,7 @@ const groupViewFields = `
   settings
   newPostCount
   lastReadPostId
+  pinnedPostIds
   viewPost {
     id
     title
@@ -64,6 +68,8 @@ const groupViewFields = `
     avatarUrl
     icon
     homeRoute
+    menuViewCount
+    moreSpacesCount
     description
     groupViews {
       items {
@@ -72,7 +78,9 @@ const groupViewFields = `
         name
         order
         icon
+        settings
         newPostCount
+        pinnedPostIds
         viewPost {
           id
           title
@@ -81,6 +89,11 @@ const groupViewFields = `
           id
           name
           avatarUrl
+        }
+        linkedGroup {
+          id
+          name
+          slug
         }
       }
     }
@@ -176,7 +189,7 @@ export function deleteGroupView (id, groupId) {
 }
 
 /** Reorder a view within its group's menu. */
-export function reorderGroupView ({ id, orderInFrontOfViewId, addToEnd, parentGroupId, targetGroupId, reorderedItems }) {
+export function reorderGroupView ({ id, orderInFrontOfViewId, addToEnd, parentGroupId, targetGroupId, reorderedItems, updateHomeRoute }) {
   return {
     type: REORDER_GROUP_VIEW,
     graphql: {
@@ -187,7 +200,7 @@ export function reorderGroupView ({ id, orderInFrontOfViewId, addToEnd, parentGr
       }`,
       variables: { id, orderInFrontOfViewId, addToEnd }
     },
-    meta: { id, parentGroupId, targetGroupId, reorderedItems }
+    meta: { id, parentGroupId, targetGroupId, reorderedItems, updateHomeRoute }
   }
 }
 
@@ -315,11 +328,11 @@ export function fetchViewPosts (groupId, viewId) {
 }
 
 /** Create a child space under a parent group. */
-export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu }) {
+export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }) {
   return {
     type: CREATE_SPACE,
     graphql: {
-      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $addToMenu: Boolean) {
+      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $addToMenu: Boolean, $status: GroupStatus, $autoAddMembers: Boolean) {
         createSpace(
           parentGroupId: $parentGroupId
           name: $name
@@ -338,20 +351,40 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           avatarUrl: $avatarUrl
           paywall: $paywall
           addToMenu: $addToMenu
+          status: $status
+          autoAddMembers: $autoAddMembers
         ) {
           id
           name
           slug
           homeRoute
+          menuViewCount
           description
           bannerUrl
           avatarUrl
           paywall
           visibility
           accessibility
+          status
+          active
+          settings {
+            agreementsLastUpdatedAt
+            allowGroupInvites
+            askGroupToGroupJoinQuestions
+            askJoinQuestions
+            defaultDigestFrequency
+            hideExtensionData
+            locationDisplayPrecision
+            publicMemberDirectory
+            showSuggestedSkills
+            showWelcomePage
+            showPostNoticesInChat
+            layout
+            autoAddMembers
+          }
         }
       }`,
-      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), viewTypes, bannerUrl, avatarUrl, paywall, addToMenu }
+      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }
     },
     meta: {
       parentGroupId,
@@ -363,11 +396,11 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
 }
 
 /** Update a space's settings. */
-export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall }) {
+export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall, status, autoAddMembers }) {
   return {
     type: UPDATE_SPACE,
     graphql: {
-      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean) {
+      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $status: GroupStatus, $autoAddMembers: Boolean) {
         updateSpace(
           id: $id
           name: $name
@@ -384,11 +417,14 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           bannerUrl: $bannerUrl
           avatarUrl: $avatarUrl
           paywall: $paywall
+          status: $status
+          autoAddMembers: $autoAddMembers
         ) {
           id
           name
           slug
           homeRoute
+          menuViewCount
           description
           bannerUrl
           avatarUrl
@@ -397,20 +433,58 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           accessibility
           acceptedPostTypes
           icon
+          status
+          active
+          settings {
+            agreementsLastUpdatedAt
+            allowGroupInvites
+            askGroupToGroupJoinQuestions
+            askJoinQuestions
+            defaultDigestFrequency
+            hideExtensionData
+            locationDisplayPrecision
+            publicMemberDirectory
+            showSuggestedSkills
+            showWelcomePage
+            showPostNoticesInChat
+            layout
+            autoAddMembers
+          }
         }
       }`,
-      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), bannerUrl, avatarUrl, paywall })
+      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), bannerUrl, avatarUrl, paywall, status, autoAddMembers })
     },
     meta: {
       id,
       groupId,
       spaceViewId,
       acceptedPostTypes,
+      status,
       data: spaceViewMenuData({ name, description, viewName, icon }),
       optimistic: true,
       extractModel: [
         { getRoot: get('updateSpace'), modelName: 'Group' }
       ]
+    }
+  }
+}
+
+export function archiveSpace (id) {
+  return {
+    type: ARCHIVE_SPACE,
+    graphql: {
+      query: `mutation ($id: ID!) {
+        archiveSpace(id: $id) {
+          id
+          status
+          active
+        }
+      }`,
+      variables: { id }
+    },
+    meta: {
+      id,
+      extractModel: 'Group'
     }
   }
 }
@@ -427,5 +501,57 @@ export function deleteSpace (id) {
       variables: { id }
     },
     meta: { id }
+  }
+}
+
+/** Convert a regular space into a child group of its parent. */
+export function convertSpaceToChildGroup ({ id }) {
+  return {
+    type: CONVERT_SPACE_TO_CHILD_GROUP,
+    graphql: {
+      query: `mutation ($id: ID!) {
+        convertSpaceToChildGroup(id: $id) {
+          id
+          name
+          slug
+          type
+          parentId
+        }
+      }`,
+      variables: { id }
+    },
+    meta: {
+      id,
+      extractModel: [
+        { getRoot: get('convertSpaceToChildGroup'), modelName: 'Group' }
+      ]
+    }
+  }
+}
+
+/** Convert a child group into a space of its parent. */
+export function convertGroupToSpace ({ id, parentGroupId }) {
+  return {
+    type: CONVERT_GROUP_TO_SPACE,
+    graphql: {
+      query: `mutation ($id: ID!, $parentGroupId: ID!) {
+        convertGroupToSpace(id: $id, parentGroupId: $parentGroupId) {
+          id
+          name
+          slug
+          type
+          parentId
+        }
+      }`,
+      variables: { id, parentGroupId }
+    },
+    meta: {
+      id,
+      parentGroupId,
+      optimistic: true,
+      extractModel: [
+        { getRoot: get('convertGroupToSpace'), modelName: 'Group' }
+      ]
+    }
   }
 }

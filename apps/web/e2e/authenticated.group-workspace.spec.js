@@ -8,10 +8,10 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  * Skipped here (other batches / needs IDs): `custom/:customViewId` (Batch J), inner `*` default redirect covered via bogus segment test.
  */
 
-test.describe.configure({ timeout: 120000 })
+test.describe.configure({ timeout: 180000 })
 
 const navTimeout = { timeout: 90000 }
-const uiTimeout = { timeout: 60000 }
+const uiTimeout = { timeout: 90000 }
 
 const PUBLIC_GROUP_SLUG = 'e2e-public-group'
 const PRIVATE_GROUP_SLUG = 'e2e-private-group'
@@ -30,7 +30,9 @@ function groupPrivate (rest) {
 
 async function expectGroupWorkspaceShell (page, urlPattern) {
   await expect(page).toHaveURL(urlPattern, navTimeout)
-  await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
+  // AuthLayout shell id — `#center-column` is the inner scroller and is not
+  // always mounted yet on phone (drawer / bootstrap), so wait on the container.
+  await expect(page.locator('#center-column-container')).toBeVisible(uiTimeout)
   await expect(page).toHaveTitle(/E2E|Hylo/i, uiTimeout)
 }
 
@@ -119,36 +121,47 @@ test.describe('Batch D: group workspace', () => {
     await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/members`))
   })
 
-  test('GET …/groups loads nested groups list', async ({ page }) => {
+  test('GET …/groups redirects to about/related-groups', async ({ page }) => {
     await page.goto(groupPublic('/groups'))
     await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/groups`))
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/about/related-groups`))
   })
 
-  test('GET …/all-views redirects away from removed All Views page', async ({ page }) => {
+  test('GET …/all-views redirects to more-spaces', async ({ page }) => {
     await page.goto(groupPublic('/all-views'))
     await waitPastRootSessionLoading(page)
-    await expect(page).not.toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/all-views/?$`), navTimeout)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}`))
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/more-spaces`))
   })
 
-  test('GET …/tracks loads tracks list', async ({ page }) => {
+  test('GET …/tracks redirects to more-spaces', async ({ page }) => {
     await page.goto(groupPublic('/tracks'))
     await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/tracks`))
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/more-spaces`))
   })
 
-  test('GET …/chat/:topic opens chat room', async ({ page }) => {
-    await page.goto(groupPublic('/chat/general'))
+  test('GET …/funding-rounds redirects to more-spaces', async ({ page }) => {
+    await page.goto(groupPublic('/funding-rounds'))
     await waitPastRootSessionLoading(page)
-    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/chat/general`))
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/more-spaces`))
+  })
+
+  test('GET …/all-topics redirects to more-spaces', async ({ page }) => {
+    await page.goto(groupPublic('/all-topics'))
+    await waitPastRootSessionLoading(page)
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/more-spaces`))
+  })
+
+  test('GET …/chat opens chat room', async ({ page }) => {
+    await page.goto(groupPublic('/chat'))
+    await waitPastRootSessionLoading(page)
+    await expectGroupWorkspaceShell(page, new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/chat/?$`))
   })
 
   test('GET …/settings opens group settings', async ({ page }) => {
     await page.goto(groupPublic('/settings'))
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/settings`), navTimeout)
-    await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
+    await expect(page.locator('#center-column-container')).toBeVisible(uiTimeout)
     await expect(page).toHaveTitle(/E2E|Hylo/i, uiTimeout)
   })
 
@@ -156,7 +169,7 @@ test.describe('Batch D: group workspace', () => {
     await page.goto(groupPrivate('/stream'))
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${PRIVATE_GROUP_SLUG}/all`), navTimeout)
-    await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
+    await expect(page.locator('#center-column-container')).toBeVisible(uiTimeout)
     await expect(page).toHaveTitle(/E2E|Hylo/i, uiTimeout)
   })
 

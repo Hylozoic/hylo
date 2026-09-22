@@ -15,6 +15,11 @@ function parseNoticeData (value) {
   return value
 }
 
+/** True when value is a nested GraphQL/Location payload with coordinates. */
+function isPlainLocation (value) {
+  return value && typeof value === 'object' && value.center != null
+}
+
 export default function presentPost (post, groupId) {
   if (!post) return null
 
@@ -33,6 +38,7 @@ export default function presentPost (post, groupId) {
       createdTimestamp: createdAtHumanDate,
       createdTimestampShort: createdAtHumanDateShort,
       creator: post.creator, // needed to load the creator object
+      postMemberships: (rawPost ? post.postMemberships?.items || post.postMemberships || [] : (post.postMemberships?.toRefArray?.() || [])),
       commenters: (rawPost ? post.commenters?.items || [] : (post.commenters?.toModelArray?.() || [])),
       completionResponses: (rawPost ? post.completionResponses?.items || [] : post.completionResponses?.toModelArray() || []),
       editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,
@@ -49,8 +55,14 @@ export default function presentPost (post, groupId) {
       fileAttachments: (rawPost ? post.attachments || [] : (post.attachments?.toModelArray?.() || [])).filter(a => a.type === 'file').sort((a, b) => a.position - b.position),
       imageAttachments: (rawPost ? post.attachments || [] : (post.attachments?.toModelArray?.() || [])).filter(a => a.type === 'image').sort((a, b) => a.position - b.position),
       groups: (rawPost ? post.groups || [] : (post.groups?.toModelArray?.() || [])),
-      linkPreview: post.linkPreview, // needed to load the link preview object
+      // Accessing the relation loads it; prefer .ref so url/title are plain fields
+      linkPreview: rawPost ? post.linkPreview : (post.linkPreview?.ref || post.linkPreview),
+      linkPreviewFeatured: !!(rawPost ? post.linkPreviewFeatured : post.ref?.linkPreviewFeatured),
       location: post.location, // needed to load the location object
+      // Prefer the Location relation; ref.locationObject is only the FK id after extraction
+      locationObject: rawPost
+        ? post.locationObject
+        : (post.locationObject?.ref || (isPlainLocation(post.ref?.locationObject) ? post.ref.locationObject : null)),
       members: (rawPost ? post.members?.items || [] : (post.members?.toModelArray?.() || [])).map(person => {
         return {
           ...(rawPost ? person : person.ref),

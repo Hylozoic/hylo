@@ -17,6 +17,7 @@ export default function updateUserSettings (changes) {
             rsvpCalendarUrl
             settings {
               alreadySeenTour
+              toursSeen
               colorScheme
               dmNotifications
               commentNotifications

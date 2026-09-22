@@ -12,8 +12,9 @@ import { cn } from 'util/index'
 const ICON_NAMES = Object.keys(icons).sort()
 const ICONS_BATCH_SIZE = 80
 
-/** Searchable picker for Lucide icon names (PascalCase strings stored on GroupView.icon). */
-export default function LucideIconPicker ({ value, onChange, className }) {
+/** Searchable picker for Lucide icon names (PascalCase strings stored on GroupView.icon).
+ * Pass `trigger` to replace the default value-labelled button with a custom element. */
+export default function LucideIconPicker ({ value, onChange, className, trigger }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -62,17 +63,19 @@ export default function LucideIconPicker ({ value, onChange, className }) {
       }}
     >
       <PopoverTrigger asChild>
-        <Button
-          type='button'
-          variant='outline'
-          className={cn('LucideIconPicker w-full justify-start gap-2 font-normal hover:scale-100', className)}
-        >
-          {value
-            ? <LucideIcon name={value} className='w-4 h-4 shrink-0' />
-            : <span className='w-4 h-4 shrink-0 rounded-sm border border-foreground/20' />}
-          <span className='truncate flex-1 text-left'>{value || t('Select an icon')}</span>
-          <ChevronDown className='w-4 h-4 shrink-0 text-foreground/50' aria-hidden='true' />
-        </Button>
+        {trigger || (
+          <Button
+            type='button'
+            variant='outline'
+            className={cn('LucideIconPicker w-full justify-start gap-2 font-normal hover:scale-100', className)}
+          >
+            {value
+              ? <LucideIcon name={value} className='w-4 h-4 shrink-0' />
+              : <span className='w-4 h-4 shrink-0 rounded-sm border border-foreground/20' />}
+            <span className='truncate flex-1 text-left'>{value || t('Select an icon')}</span>
+            <ChevronDown className='w-4 h-4 shrink-0 text-foreground/50' aria-hidden='true' />
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent className='w-80 p-2 z-[1200]' align='start'>
         <Input

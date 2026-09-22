@@ -126,6 +126,7 @@ Object {
         }
       }
       locationObject {
+        id
         center {
           lat
           lng
@@ -240,12 +241,51 @@ posts: viewPosts(
   editedAt
   endTime
   flaggedGroups
+  moderationActions {
+    id
+    groupId
+    status
+    text
+    anonymous
+    reporter {
+      id
+      name
+    }
+    agreements {
+      id
+      title
+    }
+    platformAgreements {
+      id
+      text
+    }
+  }
   fulfilledAt
   isAnonymousVote
   isPublic
   linkPreviewFeatured
   location
+  meetingLink
+  locationObject {
+    id
+    center {
+      lat
+      lng
+    }
+    fullText
+  }
   myEventResponse
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
   peopleReactedTotal
   projectManagementLink
   proposalOutcome
@@ -280,6 +320,7 @@ posts: viewPosts(
     name
     slug
     type
+    parentId
   }
 
   eventInvitations {
@@ -385,6 +426,7 @@ posts: viewPosts(
     "extractModel": "Group",
     "extractQueryResults": Object {
       "getItems": [Function],
+      "getRouteParams": [Function],
       "replace": undefined,
     },
   },
@@ -452,6 +494,7 @@ Object {
         createdAt
         updatedAt
         locationObject {
+          id
           center {
             lat
             lng
@@ -497,6 +540,7 @@ Object {
     "extractModel": "Group",
     "extractQueryResults": Object {
       "getItems": [Function],
+      "getRouteParams": [Function],
     },
   },
   "type": "MapExplorer/FETCH_POSTS_MAP",
@@ -568,6 +612,7 @@ Object {
         createdAt
         updatedAt
         locationObject {
+          id
           center {
             lat
             lng
@@ -609,6 +654,7 @@ Object {
     "extractModel": "Post",
     "extractQueryResults": Object {
       "getItems": [Function],
+      "getRouteParams": [Function],
     },
   },
   "type": "MapExplorer/FETCH_POSTS_MAP",

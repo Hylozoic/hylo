@@ -15,6 +15,12 @@ export default gql`
           createdAt
           id
           text
+          attachments {
+            id
+            position
+            type
+            url
+          }
           creator {
             id
             name

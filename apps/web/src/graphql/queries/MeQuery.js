@@ -52,6 +52,7 @@ export default gql`
     rsvpCalendarUrl
     settings {
       alreadySeenTour
+      toursSeen
       colorScheme
       dmNotifications
       commentNotifications
@@ -119,6 +120,7 @@ export default gql`
         avatarUrl
         bannerUrl
         homeRoute
+        moreSpacesCount
         icon
         name
         memberCount
@@ -129,6 +131,7 @@ export default gql`
           showSuggestedSkills
           showWelcomePage
           layout
+          autoAddMembers
         }
         slug
         type

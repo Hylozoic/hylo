@@ -138,7 +138,6 @@ export function fetchTrack (trackId) {
             canAccess
             actionDescriptor
             actionDescriptorPlural
-            bannerUrl
             completionMessage
             completionRole {
               id
@@ -153,13 +152,16 @@ export function fetchTrack (trackId) {
                 }
               }
             }
-            description
             didComplete
             space {
               id
               slug
               type
+              status
               homeRoute
+              name
+              bannerUrl
+              description
               parentGroup {
                 id
                 slug
@@ -175,13 +177,10 @@ export function fetchTrack (trackId) {
               }
             }
             isEnrolled
-            name
             numActions
             numPeopleCompleted
             numPeopleEnrolled
-            publishedAt
             userSettings
-            welcomeMessage
           }
         }
       `,
@@ -208,35 +207,31 @@ export function createTrack (data) {
           id
           actionDescriptor
           actionDescriptorPlural
-          bannerUrl
           completionMessage
           completionRole {
             id
             emoji
             name
           }
-          description
           space {
             id
             slug
             type
+            status
             homeRoute
+            name
+            bannerUrl
+            description
             parentGroup {
               id
               slug
             }
           }
-          name
-          publishedAt
-          welcomeMessage
         }
       }
       `,
       variables: {
-        data: {
-          ...data,
-          publishedAt: data.publishedAt ? data.publishedAt.valueOf() : null
-        }
+        data
       }
     },
     meta: {
@@ -252,8 +247,8 @@ export function updateTrack (data) {
 
   // We need completionRole in the data for the optimistic update, but only the id in the mutation
   const dataForUpdate = { ...rest }
-  if (dataForUpdate.completionRole) {
-    dataForUpdate.completionRoleId = rest.completionRole.id
+  if (Object.prototype.hasOwnProperty.call(rest, 'completionRole')) {
+    dataForUpdate.completionRoleId = rest.completionRole?.id ?? null
   }
   delete dataForUpdate.completionRole
 
@@ -336,6 +331,7 @@ export function duplicateTrack (trackId) {
               id
               slug
               type
+              status
               homeRoute
               parentGroup {
                 id

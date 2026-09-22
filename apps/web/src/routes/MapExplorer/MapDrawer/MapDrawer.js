@@ -378,22 +378,22 @@ function MapDrawer ({
         <div className='flex flex-col gap-2.5 p-3 pb-10' id='contentList'>
           {pendingPostsDrawer && showPosts && <Loading size={24} />}
           {showPosts && posts.map(p => (
-            <MapPostRow key={p.id} post={p} routeParams={routeParams} />
+            <MapPostRow key={'post-' + p.id} post={p} routeParams={routeParams} />
           ))}
           {(lens === 'all' || lens === 'spaces') && spaces.map(s => (
             <SpaceMapCard
-              key={s.id}
+              key={'space-' + s.id}
               space={s}
               parentSlug={s.parentGroup?.slug || (s.parentId === group?.id ? group?.slug : null)}
             />
           ))}
           {(lens === 'all' || lens === 'groups') && properGroups.map(g => (
-            <MapGroupCard key={g.id} group={g} routeParams={routeParams} />
+            <MapGroupCard key={'group-' + g.id} group={g} routeParams={routeParams} />
           ))}
           {showPeople && (lens === 'all' || lens === 'people') && members.length > 0 && (
             <div className='flex flex-col rounded-xl bg-card overflow-hidden'>
               {members.map(m => (
-                <Member layout='row' member={m} key={m.id} group={group} context={context} />
+                <Member layout='row' member={m} key={'member-' + m.id} group={group} context={context} />
               ))}
             </div>
           )}

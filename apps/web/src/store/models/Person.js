@@ -11,7 +11,9 @@ PersonSkillsToLearn.fields = {
 export class Reaction extends Model {}
 Reaction.modelName = 'Reaction'
 Reaction.fields = {
-  post: fk('Post', 'reactions')
+  post: fk('Post', 'reactions'),
+  userId: attr(),
+  createdAt: attr()
 }
 
 class Person extends Model {
@@ -36,7 +38,7 @@ Person.fields = {
   linkedinUrl: attr(),
   url: attr(),
   location: attr(),
-  locationId: fk({
+  locationObject: fk({
     to: 'Location',
     as: 'locationObject'
   }),

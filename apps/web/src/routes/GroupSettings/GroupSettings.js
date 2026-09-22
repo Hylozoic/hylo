@@ -3,7 +3,7 @@ import React, { useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useIsPhoneViewport from 'hooks/useIsPhoneViewport'
@@ -27,7 +27,7 @@ import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import { allGroupsUrl, groupUrl } from '@hylo/navigation'
+import { allGroupsUrl, groupUrl, spaceHomeUrl } from '@hylo/navigation'
 import presentGroup from 'store/presenters/presentGroup'
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -118,10 +118,15 @@ export default function GroupSettings () {
 
   if (!group) return <Loading />
 
-  if (!responsibilities.includes(RESP_ADMINISTRATION) && !responsibilities.includes(RESP_ADD_MEMBERS)) push(groupUrl(slug))
-  if (!responsibilities.includes(RESP_ADMINISTRATION) && responsibilities.includes(RESP_ADD_MEMBERS)) push('settings/invite')
-
   const isSpace = group.type === GROUP_TYPES.space || !!group.parentId
+  if (isSpace) {
+    const parentSlug = rawGroup?.parentGroup?.slug || parentGroups[0]?.slug
+    if (!parentSlug) return <Loading />
+    return <Navigate to={spaceHomeUrl(parentSlug, group)} replace />
+  }
+
+  if (!responsibilities.includes(RESP_ADMINISTRATION) && !responsibilities.includes(RESP_ADD_MEMBERS)) push(groupUrl(slug))
+  if (!responsibilities.includes(RESP_ADMINISTRATION) && responsibilities.includes(RESP_ADD_MEMBERS) && !isSpace) push('settings/invite')
 
   const groupDetailsTab = (
     <GroupSettingsTab
@@ -142,7 +147,7 @@ export default function GroupSettings () {
     canAdminister && { name: t('Responsibilities'), path: 'responsibilities' },
     canAdminister && { name: t('Roles & Badges'), path: 'roles' },
     canAdminister && { name: t('Privacy & Access'), path: 'privacy' },
-    canAddMembers && { name: t('Invite'), path: 'invite' },
+    canAddMembers && !isSpace && { name: t('Invite'), path: 'invite' },
     canAddMembers && { name: t('Join Requests'), path: 'requests' },
     canAdminister && { name: t('Related Groups'), path: 'relationships' },
     canAdminister && { name: t('Export Data'), path: 'export' },
@@ -191,22 +196,16 @@ export default function GroupSettings () {
     component: <PrivacySettingsTab group={group} slug={group.slug} updateGroupSettings={updateGroupSettingsAction} parentGroups={parentGroups} fetchPending={fetchPending} />
   }
 
-  // const topicsSettings = {
-  //   name: t('Topics'),
-  //   path: 'topics',
-  //   component: <TopicsSettingsTab group={group} />
-  // }
-
   const inviteSettings = {
     name: t('Invite'),
     path: 'invite',
     component: <InviteSettingsTab group={group} />
   }
 
-  const joinRequestSettings = {
+  const joinRequestsSettings = {
     name: t('Join Requests'),
     path: 'requests',
-    component: <MembershipRequestsTab group={group} currentUser={currentUser} />
+    component: <MembershipRequestsTab group={group} />
   }
 
   const relatedGroupsSettings = {
@@ -255,9 +254,8 @@ export default function GroupSettings () {
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,
-        // canAdminister ? topicsSettings : null, TODO: hide for now, we may want to bring back
-        canAddMembers ? inviteSettings : null,
-        canAddMembers ? joinRequestSettings : null,
+        canAddMembers && !isSpace ? inviteSettings : null,
+        canAddMembers ? joinRequestsSettings : null,
         canAdminister ? relatedGroupsSettings : null,
         canAdminister ? importSettings : null,
         canAdminister ? exportSettings : null,

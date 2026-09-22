@@ -55,6 +55,7 @@ function Comment ({
 
   const currentUser = useSelector(state => getMe(state))
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const groupIds = React.useMemo(() => post?.groups?.map(g => g.id).filter(Boolean), [post?.groups])
   const responsibilities = useSelector(state =>
     getResponsibilitiesForGroup(state, { person: currentUser, groupId: group?.id })
   ).map(r => r.title)
@@ -207,6 +208,7 @@ function Comment ({
           <HyloEditor
             className={styles.editing}
             contentHTML={text}
+            groupIds={groupIds}
             onEscape={handleEditCancel}
             onEnter={handleEditSave}
             blurOnScroll={false}
@@ -247,6 +249,7 @@ export default function CommentWithReplies (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { comment, post, onReplyThread } = props
+  const groupIds = React.useMemo(() => post?.groups?.map(g => g.id).filter(Boolean), [post?.groups])
   const childCommentsTotal = useSelector(state => getTotalChildComments(state, { id: comment.id }))
   const hasMoreChildComments = useSelector(state => getHasMoreChildComments(state, { id: comment.id }))
 
@@ -325,6 +328,8 @@ export default function CommentWithReplies (props) {
             createComment={createCommentHandler}
             placeholder={`${t('Reply to')} ${comment.creator.name}`}
             editorContent={prefillEditor}
+            groupIds={groupIds}
+            postId={post?.id}
             focusOnRender
           />
         </div>

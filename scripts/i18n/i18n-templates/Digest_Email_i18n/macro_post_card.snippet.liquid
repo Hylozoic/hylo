@@ -1,0 +1,67 @@
+{% macro post_card(post, digest, header_text) -%}
+  {% set post_space = post.space_name %}
+  <div class='card post'> 
+    <div class='post-header'> 
+      <a href='{{post.user.profile_url}}'><img class='avatar' style='vertical-align: middle;' src='{{post.user.avatar_url}}' />
+      <span class='post-author'>{{post.user.name}}</span></a>
+      {% if header_text %}<span>{{header_text}}</span>{% endif %}
+      {% if post.space_name %}
+        <span>{% trans %}in {{post_space}}{% endtrans %}</span>
+      {% endif %}
+      <span style='float: right;'>
+        <a class='btn btn-black' href={{post.url}}>
+          {% if post.type == 'event' %}
+            {% trans %}RSVP{% endtrans %}
+          {% elif post.type == 'project' %}
+            {% trans %}Join{% endtrans %}
+          {% elif post.type == 'proposal' %}
+            {% trans %}Vote{% endtrans %}
+          {% elif post.type == 'submission' %}
+            {% trans %}View{% endtrans %}
+          {% else %}
+            {% trans %}Reply{% endtrans %}
+          {% endif %}
+        </a>
+      </span>
+    </div>
+    
+    {% if post.image_url %}
+      <div class='post-image'>
+        <img src='{{post.image_url}}' />
+      </div>
+    {% endif %}
+    
+    <table class='post-title-container'><tbody>
+      <tr> 
+        {% if post.type == 'event' %}
+          <td class='calendar-icon-container'> 
+            <div class='calendar-icon'>
+              <div class='calendar-month'>{{post.month}}</div>
+              <div class='calendar-day'>{{post.day}}</div>
+            </div>
+          </td>
+        {% endif %}
+        <td>
+          {% if post.when %}<div class='post-when'>{{post.when}}</div>{% endif %}
+          <h1 class='post-title'><a href='{{post.url}}'>{{post.title}}</a></h1>
+          {% if post.location %}<div class='post-location'>{{post.location}}</div>{% endif %}
+        </td>
+      </tr>
+    </tbody></table> 
+    
+    <div class='details {% if digest %}truncate{% endif %}'>
+      {{post.details|safe}}
+    </div>
+    
+    {% if post.link_preview %} 
+    <a class="link-preview" data-click-track-id="4762" href="{{post.link_preview.url}}">
+      {% if post.link_preview.image_url %}
+        <img src="{{post.link_preview.image_url}}" />
+      {% endif %}
+      <div class="title">{{post.link_preview.title}}</div>
+      <div class="description">{{post.link_preview.description|truncate(140) if post.link_preview.description}}</div>
+      <div class="clearfix"></div>
+    </a>
+    {% endif %}
+  </div> 
+{%- endmacro %}

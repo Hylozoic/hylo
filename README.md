@@ -43,9 +43,9 @@ Terminal 2:
 yarn web:dev
 ```
 
-8. Mobile app specific setup [here](./apps/mobile-leap/README.md)
+8. Mobile app specific setup [here](./apps/mobile-leap/README.md) (only if you are doing mobile app development)
 
-9. Desktop app specific setup [here](./apps/desktop/README.md)
+9. Desktop app specific setup [here](./apps/desktop/README.md) (only if you are doing desktop app development)
 
 ## Details on the setup of this Monorepo
 

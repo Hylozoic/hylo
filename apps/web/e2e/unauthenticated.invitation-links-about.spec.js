@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
+import { ensureHyloCookieConsent } from './helpers/sessionAuth.js'
 import {
   JOIN_LINK_FIXTURES,
   INVITE_LINK_FIXTURES,
@@ -26,26 +27,13 @@ test.beforeEach(async ({ context, page }) => {
       window.sessionStorage.clear()
     } catch (e) {}
   })
+  await ensureHyloCookieConsent(page)
   page.on('dialog', (dialog) => dialog.accept())
 })
 
 const uiTimeout = { timeout: 60000 }
 const routeTimeout = { timeout: 60000 }
 const gotoOpts = { waitUntil: 'domcontentloaded' }
-
-/**
- * Cookie consent toast can sit above CTAs on mobile.
- * @param {import('@playwright/test').Page} page
- */
-async function dismissCookieConsentBannerIfPresent (page) {
-  const btn = page.getByRole('button', { name: /Reject Non-Essential/i })
-  try {
-    await btn.waitFor({ state: 'visible', timeout: 4000 })
-    await btn.click()
-  } catch {
-    // Banner absent or already dismissed
-  }
-}
 
 test.describe('Batch Q: baseline about visibility (unauthenticated)', () => {
   test('GET /groups/:slug/about shows seeded public group (no login)', async ({ page }) => {
@@ -146,7 +134,6 @@ test.describe('Batch Q: paywall about path (unauthenticated)', () => {
   test('GET /groups/:slug/about shows paywall copy for seeded paywall group', async ({ page }) => {
     await page.goto(`/groups/${PAYWALL_GROUP_SLUG}/about`, gotoOpts)
     await waitPastRootSessionLoading(page)
-    await dismissCookieConsentBannerIfPresent(page)
     await expect(page.getByRole('heading', { name: /This group requires a fee to join/i })).toBeVisible(
       uiTimeout
     )

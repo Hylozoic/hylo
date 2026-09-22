@@ -1,8 +1,7 @@
 import React, { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeftRight, BookOpen, Calendar, FolderKanban, MessageSquareText, Vote } from 'lucide-react'
+import { ArrowLeftRight, BookOpen, Calendar, Check, FolderKanban, MessageSquareText, Vote } from 'lucide-react'
 
-import Checkbox from 'components/ui/checkbox'
 import { CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
 import { cn } from 'util/index'
 
@@ -17,7 +16,7 @@ const POST_TYPE_OPTION_STYLES = {
 }
 
 /** Toggleable pills for selecting which post types apply (custom views, spaces, etc). */
-export default function PostTypePills ({ postTypes, onPostTypesChange, label }) {
+export default function PostTypePills ({ postTypes, onPostTypesChange, label, hideLabel }) {
   const { t } = useTranslation()
 
   const selectedOptionKeys = useMemo(() => {
@@ -37,7 +36,9 @@ export default function PostTypePills ({ postTypes, onPostTypesChange, label }) 
 
   return (
     <div className='flex flex-col gap-2'>
-      <label className='text-sm text-foreground/70'>{label || t('What post types to display?')}</label>
+      {!hideLabel && (
+        <label className='text-sm text-foreground/70'>{label || t('What post types to display?')}</label>
+      )}
       <div className='flex flex-wrap gap-2'>
         {CUSTOM_VIEW_POST_TYPE_OPTIONS.map(option => {
           const isSelected = selectedOptionKeys.includes(option.key)
@@ -48,6 +49,7 @@ export default function PostTypePills ({ postTypes, onPostTypesChange, label }) 
             <button
               key={option.key}
               type='button'
+              aria-pressed={isSelected}
               onClick={() => togglePostTypeOption(option)}
               className={cn(
                 'inline-flex items-center gap-2 rounded-full border-2 px-3 py-1 text-sm font-medium transition-colors',
@@ -56,11 +58,12 @@ export default function PostTypePills ({ postTypes, onPostTypesChange, label }) 
                   : 'border-dashed border-foreground/30 text-foreground/70 hover:border-foreground/50'
               )}
             >
-              <Checkbox
-                checked={isSelected}
-                className='pointer-events-none border-current data-[state=checked]:border-current [&>span]:text-current'
+              <span
+                className='flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-current'
                 aria-hidden
-              />
+              >
+                {isSelected && <Check className='h-4 w-4' strokeWidth={3} />}
+              </span>
               <OptionIcon className='w-4 h-4 shrink-0' />
               <span>{optionLabel}</span>
             </button>

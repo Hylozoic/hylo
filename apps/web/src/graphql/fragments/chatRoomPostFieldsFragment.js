@@ -10,6 +10,25 @@ export default function chatRoomPostFieldsFragment () {
   editedAt
   endTime
   flaggedGroups
+  moderationActions {
+    id
+    groupId
+    status
+    text
+    anonymous
+    reporter {
+      id
+      name
+    }
+    agreements {
+      id
+      title
+    }
+    platformAgreements {
+      id
+      text
+    }
+  }
   linkPreviewFeatured
   savedAt
   startTime
@@ -19,6 +38,7 @@ export default function chatRoomPostFieldsFragment () {
   attachments {
     type
     url
+    thumbnailUrl
     position
     id
   }

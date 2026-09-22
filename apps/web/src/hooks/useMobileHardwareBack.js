@@ -1,16 +1,16 @@
 import { useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import { get } from 'lodash/fp'
 import { WebViewMessageTypes, HYLO_HARDWARE_BACK_EVENT } from '@hylo/shared'
-import { useViewHeader } from 'contexts/ViewHeaderContext'
+import useMobileNavBack from 'hooks/useMobileNavBack'
 import { sendMessageToWebView } from 'util/webView'
 import { runRegisteredHardwareBackHandlers } from 'util/hardwareBackHandler'
-import { performMobileNavBack } from 'util/mobileNavBack'
 import store from 'store'
-import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { toggleDrawer, toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 
+/**
+ * Closes the topmost open dialog via Escape. Returns true when one was found.
+ */
 function tryCloseOpenDialog () {
   const openDialog = document.querySelector('[role="dialog"][data-state="open"]')
   if (!openDialog) return false
@@ -29,12 +29,13 @@ function tryCloseOpenDialog () {
  */
 export default function useMobileHardwareBack () {
   const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const { headerDetails } = useViewHeader()
+  const { performBack, headerDetails } = useMobileNavBack()
+  const performBackRef = useRef(performBack)
   const headerDetailsRef = useRef(headerDetails)
   const navClosedByBackRef = useRef(false)
   const pathnameRef = useRef('')
 
+  performBackRef.current = performBack
   headerDetailsRef.current = headerDetails
 
   useEffect(() => {
@@ -73,12 +74,7 @@ export default function useMobileHardwareBack () {
         return
       }
 
-      const handled = performMobileNavBack({
-        dispatch,
-        navigate,
-        headerDetails: headerDetailsRef.current,
-        previousLocation: getPreviousLocation(reduxState)
-      })
+      const handled = performBackRef.current()
 
       if (handled) {
         navClosedByBackRef.current = false
@@ -91,5 +87,5 @@ export default function useMobileHardwareBack () {
     pathnameRef.current = window.location.pathname
     window.addEventListener(HYLO_HARDWARE_BACK_EVENT, handleHardwareBack)
     return () => window.removeEventListener(HYLO_HARDWARE_BACK_EVENT, handleHardwareBack)
-  }, [dispatch, navigate])
+  }, [dispatch])
 }

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
+import { ensureHyloCookieConsent } from './helpers/sessionAuth.js'
 
 /**
  * Unauthenticated surface (no session). Projects `chromium-unauth` and `mobile-unauth`
@@ -16,6 +17,7 @@ test.beforeEach(async ({ context, page }, testInfo) => {
       window.sessionStorage.clear()
     } catch (e) {}
   })
+  await ensureHyloCookieConsent(page)
   page.on('dialog', (dialog) => dialog.accept())
   if (process.env.E2E_FORWARD_BROWSER_LOGS === '1') {
     const label = `[${testInfo.project.name}] ${testInfo.titlePath.join(' › ')}`
@@ -31,20 +33,6 @@ test.beforeEach(async ({ context, page }, testInfo) => {
 /** After session gate: i18n + layout (cold isolated stack + parallel workers) */
 const uiTimeout = { timeout: 60000 }
 const routeTimeout = { timeout: 60000 }
-
-/**
- * Cookie consent toast can sit above paywall CTAs on mobile and block clicks.
- * @param {import('@playwright/test').Page} page
- */
-async function dismissCookieConsentBannerIfPresent (page) {
-  const btn = page.getByRole('button', { name: /Reject Non-Essential/i })
-  try {
-    await btn.waitFor({ state: 'visible', timeout: 4000 })
-    await btn.click()
-  } catch {
-    // Banner absent or already dismissed
-  }
-}
 
 test.describe('root and auth shell', () => {
   test('GET / redirects to /login', async ({ page }) => {
@@ -197,7 +185,6 @@ test.describe('Batch P2: paywall discovery (unauthenticated)', () => {
   test('GET seeded paywall group shows offering and Sign up to Purchase → login', async ({ page }) => {
     await page.goto(`/groups/${PAYWALL_GROUP_SLUG}`, { waitUntil: 'domcontentloaded' })
     await waitPastRootSessionLoading(page)
-    await dismissCookieConsentBannerIfPresent(page)
 
     await expect(page.getByRole('heading', { name: /This group requires a fee to join/i })).toBeVisible(uiTimeout)
     await expect(page.getByText(PAYWALL_OFFERING_NAME)).toBeVisible(uiTimeout)
@@ -217,7 +204,6 @@ test.describe('Batch P5: public offering details (unauthenticated)', () => {
   test('GET /groups/:slug/offerings/:id loads offering shell and Sign up to Purchase', async ({ page }) => {
     await page.goto(`/groups/${PAYWALL_GROUP_SLUG}`, { waitUntil: 'domcontentloaded' })
     await waitPastRootSessionLoading(page)
-    await dismissCookieConsentBannerIfPresent(page)
 
     const card = page.getByTestId('paywall-offering-card').first()
     await expect(card).toBeVisible(uiTimeout)
@@ -228,7 +214,6 @@ test.describe('Batch P5: public offering details (unauthenticated)', () => {
       waitUntil: 'domcontentloaded'
     })
     await waitPastRootSessionLoading(page)
-    await dismissCookieConsentBannerIfPresent(page)
 
     await expect(
       page.getByRole('heading', { level: 1, name: PAYWALL_OFFERING_NAME })
@@ -252,7 +237,9 @@ test.describe('email password login (cold storage)', () => {
     await expect(page.locator('#email')).toBeVisible(uiTimeout)
     await page.locator('#email').fill('e2e.user@hylo.test')
     await page.locator('#password').fill('e2e-password-123')
-    await page.getByRole('button', { name: /sign\s*in/i }).click()
+    const signIn = page.getByRole('button', { name: /sign\s*in/i })
+    await expect(signIn).toBeEnabled({ timeout: 15000 })
+    await signIn.click()
     await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 120000 })
   })
 

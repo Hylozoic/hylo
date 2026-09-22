@@ -1,5 +1,5 @@
 import semver from 'semver'
-import rollbar from '../../lib/rollbar'
+import sentry from '../../lib/sentry'
 
 module.exports = {
   updateInfo: function (req, res) {
@@ -34,7 +34,7 @@ module.exports = {
       ; // TODO should we do something here?
     }
 
-    rollbar.error(new Error('ReactNativeError'), null, {custom: {errorJSON, extraJSON}})
+    sentry.error(new Error('ReactNativeError'), null, {custom: {errorJSON, extraJSON}})
 
     return res.ok({success: true})
   }

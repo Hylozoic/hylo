@@ -10,7 +10,6 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import presentGroup from 'store/presenters/presentGroup'
 import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
-import { addSkill as addSkillAction, removeSkill as removeSkillAction } from 'components/SkillsSection/SkillsSection.store'
 import { fetchGroupWelcomeData } from './GroupWelcomeModal.store'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import Button from 'components/ui/button'
@@ -32,7 +31,8 @@ export default function GroupWelcomeModal (props) {
   const currentGroup = useSelector(state => getGroupForSlug(state, params.groupSlug))
   const group = presentGroup(currentGroup)
   const currentMembership = useSelector(state => getMyGroupMembership(state, params.groupSlug))
-  const membershipAgreements = currentMembership?.agreements.toModelArray()
+  const membershipAgreements = currentMembership?.agreements?.toModelArray?.() || []
+  const savedJoinAnswers = currentMembership?.joinQuestionAnswers?.toModelArray?.() || []
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt } = currentMembership?.settings || {}
   const [page, setPage] = useState(1)
   const welcomeModalRef = useRef(null)
@@ -42,8 +42,19 @@ export default function GroupWelcomeModal (props) {
   const numCheckedAgreements = currentAgreements.reduce((count, agreement) => count + (agreement ? 1 : 0), 0)
   const checkedAllAgreements = numCheckedAgreements === numAgreements
 
-  const agreementsChanged = numAgreements > 0 &&
-    (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup.settings.agreementsLastUpdatedAt)
+  const agreementsLastUpdatedAt = currentGroup?.settings?.agreementsLastUpdatedAt
+  const agreementsChangedByTimestamp = Boolean(
+    agreementsAcceptedAt &&
+    agreementsLastUpdatedAt &&
+    agreementsAcceptedAt < agreementsLastUpdatedAt
+  )
+  const allAgreementsAlreadyAccepted = numAgreements > 0 &&
+    (group?.agreements || []).every(ga => membershipAgreements?.find(ma => ma.id === ga.id)?.accepted)
+  // Re-show only when agreements actually changed, or they were never accepted
+  const agreementsChanged = numAgreements > 0 && (
+    agreementsChangedByTimestamp ||
+    (!agreementsAcceptedAt && !allAgreementsAlreadyAccepted)
+  )
 
   const [questionAnswers, setQuestionAnswers] = useState(
     () => (group?.joinQuestions || []).map(q => ({ questionId: q.questionId, text: q.text, answer: '' }))
@@ -51,17 +62,26 @@ export default function GroupWelcomeModal (props) {
 
   // Only show first page (agreements) if there are agreements that need to be accepted
   const hasFirstPage = agreementsChanged
+  const questionsHaveSavedAnswers = Boolean(
+    group?.joinQuestions?.length > 0 &&
+    group.joinQuestions.every(q => {
+      const saved = savedJoinAnswers.find(a => String(a.question?.id) === String(q.questionId))
+      return saved && trim(saved.answer).length > 0
+    })
+  )
   // Questions are only required when the group asks them, answers are not yet recorded, and questions are loaded
   const questionsStillRequired = Boolean(
     group?.settings?.askJoinQuestions &&
     !joinQuestionsAnsweredAt &&
+    !questionsHaveSavedAnswers &&
     questionAnswers?.length > 0
   )
   // Skills were already offered on GroupDetail join when joinQuestionsAnsweredAt is set
   const showSuggestedSkills = Boolean(
     group?.settings?.showSuggestedSkills &&
     group?.suggestedSkills?.length > 0 &&
-    !joinQuestionsAnsweredAt
+    !joinQuestionsAnsweredAt &&
+    !questionsHaveSavedAnswers
   )
   const hasSecondPage = questionsStillRequired || showSuggestedSkills
   // Skills are optional; only block Jump In when join questions are shown and unanswered
@@ -84,9 +104,12 @@ export default function GroupWelcomeModal (props) {
 
   useEffect(() => {
     if (group?.joinQuestions?.length > 0) {
-      setQuestionAnswers(group.joinQuestions.map(q => ({ questionId: q.questionId, text: q.text, answer: '' })))
+      setQuestionAnswers(group.joinQuestions.map(q => {
+        const saved = savedJoinAnswers.find(a => String(a.question?.id) === String(q.questionId))
+        return { questionId: q.questionId, text: q.text, answer: saved?.answer || '' }
+      }))
     }
-  }, [group?.joinQuestions?.length])
+  }, [group?.joinQuestions?.length, savedJoinAnswers.length])
 
   // Keep page in sync when agreements-changed state loads after first paint
   useEffect(() => {
@@ -119,8 +142,8 @@ export default function GroupWelcomeModal (props) {
       group.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
       true, // acceptAgreements
-      // If join quesions were previously answered, don't overwrite them with empty answers here
-      questionAnswers && !joinQuestionsAnsweredAt ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : null
+      // If join questions were previously answered, don't overwrite them with empty answers here
+      questionAnswers && !joinQuestionsAnsweredAt && !questionsHaveSavedAnswers ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : null
     ))
     return null
   }
@@ -140,9 +163,6 @@ export default function GroupWelcomeModal (props) {
       return newAnswers
     })
   }
-
-  const addSkill = name => dispatch(addSkillAction(name))
-  const removeSkill = skillId => dispatch(removeSkillAction(skillId))
 
   return (
     <CSSTransition
@@ -231,7 +251,7 @@ export default function GroupWelcomeModal (props) {
                 </div>}
 
               {showSuggestedSkills &&
-                <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
+                <SuggestedSkills currentUser={currentUser} group={group} />}
 
               {questionsStillRequired && <div className={classes.questionsHeader}>{t('Please answer the following questions to enter')}</div>}
               {questionsStillRequired && questionAnswers.map((q, index) => (

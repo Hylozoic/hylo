@@ -1,8 +1,4 @@
-import { findHomeWidget, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/navigation'
-import ContextWidgetPresenter, {
-  MY_CONTEXT_WIDGETS,
-  PUBLIC_CONTEXT_WIDGETS
-} from './ContextWidgetPresenter.js'
+import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/navigation'
 
 export default function GroupPresenter (group) {
   if (!group || group?._presented) return group
@@ -22,9 +18,7 @@ export default function GroupPresenter (group) {
         ? DEFAULT_BANNER
         : group.bannerUrl,
 
-    getContextWidgets: getContextWidgetsResolver(group),
     getShouldWelcome: getShouldWelcomeResolver(group),
-    homeWidget: group?.contextWidgets && findHomeWidget(group),
     isStaticContext: isStaticContext(group),
 
     _presented: true
@@ -54,10 +48,6 @@ const getShouldWelcomeResolver = group => {
     )
   }
 }
-
-const getContextWidgetsResolver = group => currentUser => (
-  (group?.contextWidgets?.items || []).map(ContextWidgetPresenter)
-)
 
 export const GROUP_ACCESSIBILITY = {
   Closed: 0,
@@ -140,16 +130,11 @@ export const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/defaul
 export const isStaticContext = contextOrSlug =>
   [PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(contextOrSlug?.slug || contextOrSlug)
 
-// NOTE: The below "static context" representations of the My and Public areas are
-// used in Mobile. In Web the same things are currently accomplished within the
-// within the related component/s.
-
 export const getMyStaticContext = currentUser => {
   return GroupPresenter({
     id: MY_CONTEXT_SLUG,
     slug: MY_CONTEXT_SLUG,
     name: 'My Home',
-    contextWidgets: { items: MY_CONTEXT_WIDGETS(`all/members/${currentUser?.id}`) },
     avatarUrl: currentUser?.avatarUrl,
     parentGroups: { items: [], hasMore: false, total: 0 },
     childGroups: { items: [], hasMore: false, total: 0 }
@@ -162,7 +147,6 @@ export const getPublicStaticContext = () => {
     slug: PUBLIC_CONTEXT_SLUG,
     name: 'The Commons',
     iconName: 'Globe',
-    contextWidgets: { items: PUBLIC_CONTEXT_WIDGETS },
     parentGroups: { items: [], hasMore: false, total: 0 },
     childGroups: { items: [], hasMore: false, total: 0 }
   })

@@ -108,11 +108,37 @@ function getSlidingScaleFromOffering (product) {
   return null
 }
 
+/**
+ * Stripe product descriptions are plain text. Hylo's offering editor returns HTML
+ * (empty editors are `<p></p>`), which Checkout would show as literal tags.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+function plainTextOfferingDescription (value) {
+  if (value == null) return ''
+  return String(value)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
+}
+
 module.exports = {
   BUY_BUTTON_TEXT_MAX_LENGTH,
   parseJsonObject,
   extractOfferingPresentationFields,
   mergeAccessGrantsForPresentation,
   getBuyButtonTextFromOffering,
-  getSlidingScaleFromOffering
+  getSlidingScaleFromOffering,
+  plainTextOfferingDescription
 }

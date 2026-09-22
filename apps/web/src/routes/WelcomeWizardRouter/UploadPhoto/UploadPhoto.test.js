@@ -20,7 +20,7 @@ describe('UploadPhoto', () => {
     expect(screen.getByText('Upload a profile image')).toBeInTheDocument()
     expect(screen.getByText('Next: Where are you from?')).toBeInTheDocument()
     expect(screen.getByTestId('upload-attachment-button')).toBeInTheDocument()
-    expect(screen.getByTestId('icon-AddImage')).toBeInTheDocument()
+    expect(screen.getByTestId('upload-photo-button')).toBeInTheDocument()
   })
 
   it('displays loading when currentUser is not provided', () => {

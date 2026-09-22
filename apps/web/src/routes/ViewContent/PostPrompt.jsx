@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { SquarePen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { createPostModalUrl } from '@hylo/navigation'
 import { cn } from 'util/index'
 
 /**
@@ -18,13 +19,11 @@ export default function PostPrompt (props) {
   const type = useMemo(() => postTypesAvailable && postTypesAvailable.length === 1 ? postTypesAvailable[0] : 'default', [postTypesAvailable])
   const newPostType = postTypesAvailable?.[0]
   const createPostPath = useMemo(() => {
-    const basePath = location.pathname.replace(/\/create\/.*$/, '')
-    const params = new URLSearchParams()
-    if (newPostType) params.set('newPostType', newPostType)
-    if (eventDate) params.set('eventDate', eventDate)
-    const query = params.toString()
-    return `${basePath}/create/post${query ? `?${query}` : ''}`
-  }, [location.pathname, newPostType, eventDate])
+    const extra = {}
+    if (newPostType) extra.newPostType = newPostType
+    if (eventDate) extra.eventDate = eventDate
+    return createPostModalUrl(location, extra)
+  }, [location, newPostType, eventDate])
 
   const postPromptString = useMemo(() => {
     const postPrompts = {
@@ -44,6 +43,7 @@ export default function PostPrompt (props) {
       to={createPostPath}
       aria-label={postPromptString}
       title={postPromptString}
+      data-tour='new-post'
       className={cn(
         // rounded-md, matching the group context menu's controls.
         // Icon-only on phones; the label costs width the control row lacks there

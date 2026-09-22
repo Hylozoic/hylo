@@ -22,6 +22,16 @@ describe('Group', function () {
     })
   })
 
+  it('parses jsonb array columns that come back as JSON strings', function () {
+    const parsed = Group.prototype.parse({
+      accepted_post_types: '["discussion","event"]',
+      required_roles: '[1,2]',
+      name: 'foo'
+    })
+    expect(parsed.accepted_post_types).to.deep.equal(['discussion', 'event'])
+    expect(parsed.required_roles).to.deep.equal([1, 2])
+  })
+
   it('creates with default banner and avatar', async function () {
     const data = {
       name: 'my group',
@@ -144,17 +154,55 @@ describe('Group', function () {
     })
 
     it('merges new settings to existing memberships and creates new ones', async function () {
-      const results = await group.addMembers([u1.id, u2.id], { assignCoordinator: true, settings: { there: true } })
+      const results = await group.addMembers([u1.id, u2.id], { assignAdministrator: true, settings: { there: true } })
       expect(results.length).to.equal(2)
 
       await gm1.refresh()
-      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true })
+      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true, lastReadAt: null })
       expect(await GroupMembership.hasResponsibility(u1.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
 
       const gm2 = await group.memberships()
         .query(q => q.where('user_id', u2.id)).fetchOne()
       expect(gm2.get('settings')).to.deep.equal({ agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true, there: true })
       expect(await GroupMembership.hasResponsibility(u2.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
+    })
+
+    it('clears lastReadAt so a rejoining member is treated as a first visit', async function () {
+      const viewedAt = new Date().toISOString()
+      await u1.joinGroup(group)
+      let membership = await GroupMembership.forPair(u1, group).fetch()
+      membership.addSetting({ lastReadAt: viewedAt })
+      await membership.save()
+
+      await group.removeMembers([u1.id])
+      await u1.joinGroup(group)
+
+      membership = await GroupMembership.forPair(u1, group).fetch()
+      expect(membership.get('active')).to.be.true
+      expect(membership.getSetting('lastReadAt')).to.be.null
+    })
+
+    it('reactivates inactive membership and increments num_members when ids are numbers', async function () {
+      // Stripe checkout grant uses parseInt; pg returns bigint ids as strings.
+      // Rejoin must not treat that as a new insert (unique constraint) or skip the count.
+      // Use a fresh group/user — beforeEach already creates a membership for u1 without
+      // updating num_members, which would skew the count assertions.
+      const freshGroup = await factories.group({ num_members: 0 }).save()
+      const user = await factories.user().save()
+
+      await freshGroup.addMembers([user.id])
+      await freshGroup.refresh()
+      expect(freshGroup.get('num_members')).to.equal(1)
+
+      await freshGroup.removeMembers([user.id])
+      await freshGroup.refresh()
+      expect(freshGroup.get('num_members')).to.equal(0)
+
+      await GroupMembership.ensureMembership(parseInt(user.id, 10), parseInt(freshGroup.id, 10))
+
+      await freshGroup.refresh()
+      expect(freshGroup.get('num_members')).to.equal(1)
+      expect(await GroupMembership.hasActiveMembership(user.id, freshGroup.id)).to.be.true
     })
   })
 
@@ -218,6 +266,7 @@ describe('Group', function () {
 
       const spaceMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
       expect(spaceMembership.get('active')).to.be.false
+      expect(spaceMembership.getSetting('leftSpace')).to.not.equal(true)
       expect(spaceMembership.getSetting('showJoinForm')).to.equal(true)
       expect(spaceMembership.getSetting('joinQuestionsAnsweredAt')).to.be.null
 
@@ -252,9 +301,139 @@ describe('Group', function () {
 
       const spaceMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
       expect(spaceMembership.get('active')).to.be.false
+      expect(spaceMembership.getSetting('leftSpace')).to.equal(true)
 
       const roles = await MemberGroupRole.where({ user_id: user.id, group_id: group.id }).fetchAll()
       expect(roles.length).to.equal(1)
+    })
+
+    async function addChatView (group, userId, newPostCount) {
+      const view = await GroupView.forge({
+        group_id: group.id,
+        type: GroupView.Type.CHAT,
+        name: 'Chat',
+        order: 0
+      }).save()
+      await GroupViewUser.forge({
+        view_id: view.id,
+        user_id: userId,
+        new_post_count: newPostCount
+      }).save()
+      return view
+    }
+
+    it('deletes per-view unread rows so no stale badge signal survives', async function () {
+      const group = await factories.group().save()
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      const view = await addChatView(group, user.id, 3)
+
+      await group.removeMembers([user.id])
+
+      const rows = await GroupViewUser.where({ view_id: view.id, user_id: user.id }).fetchAll()
+      expect(rows.length).to.equal(0)
+    })
+
+    it('deletes child space view unread rows when removed from the parent group', async function () {
+      const group = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `space-unread-${Date.now()}`
+      }).save()
+      const user = await factories.user().save()
+      const otherUser = await factories.user().save()
+      await group.addMembers([user.id, otherUser.id])
+      await space.addMembers([user.id, otherUser.id])
+      const view = await addChatView(space, user.id, 4)
+      await GroupViewUser.forge({ view_id: view.id, user_id: otherUser.id, new_post_count: 4 }).save()
+
+      await group.removeMembers([user.id])
+
+      const rows = await GroupViewUser.where({ view_id: view.id }).fetchAll()
+      expect(rows.map(r => String(r.get('user_id')))).to.deep.equal([String(otherUser.id)])
+    })
+
+    it('settles track enrollment when leaving a track space', async function () {
+      const group = await factories.group().save()
+      const track = await Track.forge({ group_id: null, name: 'Test Track' }).save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        track_id: track.id,
+        slug: `space-track-${Date.now()}`
+      }).save()
+      await track.save({ group_id: space.id, num_people_enrolled: 2 }, { patch: true })
+
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      await space.addMembers([user.id])
+      const membership = await GroupMembership.forPair(user, space).fetch()
+      membership.addSetting({ completedAt: new Date().toISOString() })
+      await membership.save()
+
+      await space.removeMembers([user.id])
+
+      await track.refresh()
+      expect(track.get('num_people_enrolled')).to.equal(1)
+
+      const inactiveMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
+      expect(inactiveMembership.getSetting('completedAt')).to.be.undefined
+    })
+
+    it('settles funding round participation when the parent group cascade removes the member', async function () {
+      const group = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `space-round-${Date.now()}`
+      }).save()
+      const round = await FundingRound.forge({
+        group_id: space.id,
+        title: 'Test Round',
+        voting_method: 'quadratic',
+        num_participants: 1,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).save()
+      await space.save({ funding_round_id: round.id }, { patch: true })
+
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      await space.addMembers([user.id])
+      const membership = await GroupMembership.forPair(user, space).fetch()
+      membership.addSetting({ tokensRemaining: 7 })
+      await membership.save()
+
+      await group.removeMembers([user.id])
+
+      await round.refresh()
+      expect(round.get('num_participants')).to.equal(0)
+
+      const inactiveMembership = await GroupMembership.forPair(user, space, { includeInactive: true }).fetch()
+      expect(inactiveMembership.getSetting('tokensRemaining')).to.be.undefined
+    })
+
+    it('does not decrement participation for an already inactive member', async function () {
+      const group = await factories.group().save()
+      const track = await Track.forge({ group_id: null, name: 'Test Track' }).save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        track_id: track.id,
+        slug: `space-track-twice-${Date.now()}`
+      }).save()
+      await track.save({ group_id: space.id, num_people_enrolled: 1 }, { patch: true })
+
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      await space.addMembers([user.id])
+
+      await space.removeMembers([user.id])
+      await space.removeMembers([user.id])
+
+      await track.refresh()
+      expect(track.get('num_people_enrolled')).to.equal(0)
     })
   })
 
@@ -315,6 +494,34 @@ describe('Group', function () {
       const ids = await fetchViewPostIds(parent, user.id)
       expect(ids).to.include(parentPost.id)
       expect(ids).to.not.include(spacePost.id)
+    })
+
+    it('excludes posts from peer groups even when the user is a member of both', async function () {
+      const group = await factories.group().save()
+      const peerGroup = await factories.group().save()
+      await GroupRelationship.forge({
+        parent_group_id: group.id,
+        child_group_id: peerGroup.id,
+        relationship_type: Group.RelationshipType.PEER_TO_PEER,
+        active: true
+      }).save()
+
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      await peerGroup.addMembers([user.id])
+
+      const groupPost = await factories.post({ user_id: user.id }).save()
+      await groupPost.groups().attach(group.id)
+      const peerPost = await factories.post({ user_id: user.id }).save()
+      await peerPost.groups().attach(peerGroup.id)
+
+      const idsFromGroup = await fetchViewPostIds(group, user.id)
+      expect(idsFromGroup).to.include(groupPost.id)
+      expect(idsFromGroup).to.not.include(peerPost.id)
+
+      const idsFromPeer = await fetchViewPostIds(peerGroup, user.id)
+      expect(idsFromPeer).to.include(peerPost.id)
+      expect(idsFromPeer).to.not.include(groupPost.id)
     })
 
     it('excludes posts from a child group after the user leaves it', async function () {
@@ -638,6 +845,140 @@ describe('Group', function () {
       expect(ownRows.length).to.equal(0)
       const spaceAgreements = await space.agreements().fetch()
       expect(spaceAgreements.models[0].get('title')).to.equal('Be kind')
+    })
+  })
+
+  describe('addEligibleMembersToSpace', function () {
+    let parent, space, alreadyIn, leaver, neverJoined
+
+    before(async function () {
+      parent = await factories.group().save()
+      space = await factories.group({
+        type: 'space',
+        parent_id: parent.id,
+        slug: `space-auto-add-${Date.now()}`,
+        settings: { auto_add_members: true }
+      }).save()
+      alreadyIn = await factories.user().save()
+      leaver = await factories.user().save()
+      neverJoined = await factories.user().save()
+      await parent.addMembers([alreadyIn.id, leaver.id, neverJoined.id])
+      await space.addMembers([alreadyIn.id, leaver.id])
+      await space.removeMembers([leaver.id])
+    })
+
+    it('adds parent members who have never been in the space and skips people who left', async function () {
+      await Group.addEligibleMembersToSpace({ spaceId: space.id })
+
+      const alreadyMembership = await GroupMembership.forPair(alreadyIn, space).fetch()
+      expect(alreadyMembership.get('active')).to.be.true
+
+      const leaverMembership = await GroupMembership.forPair(leaver, space, { includeInactive: true }).fetch()
+      expect(leaverMembership.get('active')).to.be.false
+
+      const addedMembership = await GroupMembership.forPair(neverJoined, space).fetch()
+      expect(addedMembership.get('active')).to.be.true
+    })
+
+    it('adds a newly joined parent member and still skips people who left', async function () {
+      const newMember = await factories.user().save()
+      await parent.addMembers([newMember.id])
+
+      await Group.afterAddMembers({
+        groupId: parent.id,
+        newUserIds: [newMember.id],
+        reactivatedUserIds: []
+      })
+
+      const newMembership = await GroupMembership.forPair(newMember, space).fetch()
+      expect(newMembership.get('active')).to.be.true
+
+      const leaverMembership = await GroupMembership.forPair(leaver, space, { includeInactive: true }).fetch()
+      expect(leaverMembership.get('active')).to.be.false
+    })
+
+    it('re-adds people who left the parent group and then rejoined', async function () {
+      const parentLeaver = await factories.user().save()
+      await parent.addMembers([parentLeaver.id])
+      await space.addMembers([parentLeaver.id])
+      await parent.removeMembers([parentLeaver.id])
+
+      const afterParentLeave = await GroupMembership.forPair(parentLeaver, space, { includeInactive: true }).fetch()
+      expect(afterParentLeave.get('active')).to.be.false
+      expect(afterParentLeave.getSetting('leftSpace')).to.not.equal(true)
+
+      await parent.addMembers([parentLeaver.id])
+      await Group.afterAddMembers({
+        groupId: parent.id,
+        newUserIds: [],
+        reactivatedUserIds: [parentLeaver.id]
+      })
+
+      const rejoined = await GroupMembership.forPair(parentLeaver, space).fetch()
+      expect(rejoined.get('active')).to.be.true
+      expect(rejoined.getSetting('showJoinForm')).to.equal(false)
+    })
+
+    it('does not re-add people who left the space even if they later leave and rejoin the parent', async function () {
+      const spaceThenParentLeaver = await factories.user().save()
+      await parent.addMembers([spaceThenParentLeaver.id])
+      await space.addMembers([spaceThenParentLeaver.id])
+      await space.removeMembers([spaceThenParentLeaver.id])
+      await parent.removeMembers([spaceThenParentLeaver.id])
+      await parent.addMembers([spaceThenParentLeaver.id])
+      await Group.afterAddMembers({
+        groupId: parent.id,
+        newUserIds: [],
+        reactivatedUserIds: [spaceThenParentLeaver.id]
+      })
+
+      const membership = await GroupMembership.forPair(spaceThenParentLeaver, space, { includeInactive: true }).fetch()
+      expect(membership.get('active')).to.be.false
+      expect(membership.getSetting('leftSpace')).to.equal(true)
+    })
+
+    it('does not send member-joined notifications for auto-add spaces', async function () {
+      spyify(Activity, 'saveForReasons', () => Promise.resolve())
+      try {
+        await Group.afterFinishedJoining({ userId: alreadyIn.id, groupId: space.id })
+        expect(Activity.saveForReasons).to.not.have.been.called
+      } finally {
+        unspyify(Activity, 'saveForReasons')
+      }
+    })
+  })
+
+  describe('show_welcome_page setting', function () {
+    let user, group
+
+    beforeEach(async function () {
+      user = await factories.user().save()
+      group = await factories.group({ active: true }).save()
+      await user.joinGroup(group)
+    })
+
+    it('creates a welcome view in the menu when turning the setting on', async function () {
+      await group.update({ settings: { show_welcome_page: true } }, user.id)
+      const welcome = await GroupView.where({ group_id: group.id, type: 'welcome' }).fetch()
+      expect(welcome).to.exist
+      expect(welcome.get('order')).to.not.equal(null)
+    })
+
+    it('does not hide the welcome view when turning the setting off', async function () {
+      const existing = await GroupView.appendToMenu({ group_id: group.id, type: 'welcome' })
+      const order = existing.get('order')
+      await group.update({ settings: { show_welcome_page: false } }, user.id)
+      const welcome = await GroupView.where({ id: existing.id }).fetch()
+      expect(welcome).to.exist
+      expect(welcome.get('order')).to.equal(order)
+    })
+
+    it('puts an off-menu welcome view back on the menu when turning the setting on', async function () {
+      const existing = await GroupView.createOffMenu({ group_id: group.id, type: 'welcome' })
+      expect(existing.get('order')).to.equal(null)
+      await group.update({ settings: { show_welcome_page: true } }, user.id)
+      const welcome = await GroupView.where({ id: existing.id }).fetch()
+      expect(welcome.get('order')).to.not.equal(null)
     })
   })
 })

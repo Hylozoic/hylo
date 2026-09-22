@@ -16,7 +16,7 @@ import Dropdown from 'components/Dropdown'
 import getMe from 'store/selectors/getMe'
 import updateUserSettings from 'store/actions/updateUserSettings'
 
-export default function LocaleDropdown ({ renderToggleChildren, className }) {
+export default function LocaleDropdown ({ renderToggleChildren, className, id = 'locale-dropdown' }) {
   const dispatch = useDispatch()
   const { i18n, t } = useTranslation()
   const currentUser = useSelector(getMe)
@@ -31,8 +31,8 @@ export default function LocaleDropdown ({ renderToggleChildren, className }) {
 
   return (
     <Dropdown
-      id='locale-dropdown'
-      className='bg-foreground/20 border-foreground rounded-md p-2 text-sm h-9'
+      id={id}
+      className={className || 'bg-foreground/20 border-foreground rounded-md p-2 text-sm h-9'}
       toggleChildren={renderToggleChildren}
       alignRight
       items={[

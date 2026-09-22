@@ -94,12 +94,14 @@ const applyMemberGroupFilter = (subquery, groupAccess) => {
   }
 }
 
-// Restrict FTS candidates to content the user can see: their groups plus public posts.
+// Restrict FTS candidates to content the user can see.
+// Explicit groupIds are a search scope: only that group's posts, members, and comments.
+// Unscoped (member) search also includes public posts and comments on public posts.
 const applyGroupAccessFilter = (qb, groupAccess) => {
-  qb.andWhere(function () {
-    const hasMemberGroups = groupAccess.userId ||
-      (groupAccess.groupIds && groupAccess.groupIds.length > 0)
+  const hasExplicitGroupIds = groupAccess.groupIds && groupAccess.groupIds.length > 0
+  const hasMemberGroups = groupAccess.userId || hasExplicitGroupIds
 
+  qb.andWhere(function () {
     if (hasMemberGroups) {
       this.whereIn('post_id', function () {
         this.select('post_id').from('groups_posts')
@@ -116,28 +118,39 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
           applyMemberGroupFilter(this, groupAccess)
         })
     }
-    this.orWhereIn('post_id', function () {
-      this.select('id').from('posts').where({ is_public: true, active: true })
-    })
-      .orWhereIn('comment_id', function () {
-        this.select('c.id')
-          .from('comments as c')
-          .join('posts as p', 'p.id', 'c.post_id')
-          .where({ 'p.is_public': true, 'c.active': true })
+
+    if (!hasExplicitGroupIds) {
+      this.orWhereIn('post_id', function () {
+        this.select('id').from('posts').where({ is_public: true, active: true })
       })
+        .orWhereIn('comment_id', function () {
+          this.select('c.id')
+            .from('comments as c')
+            .join('posts as p', 'p.id', 'c.post_id')
+            .where({ 'p.is_public': true, 'c.active': true })
+        })
+    }
   })
 }
 
 const recencyRankSql = `(rank * case when sort_ts is null then 1 else exp(-extract(epoch from (now() - sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
 
-const search = (opts) => {
-  const term = compact(opts.term.replace(/'/, '').split(' '))
+// Strip characters that are tsquery operators or punctuation so user input
+// like "#release!" does not produce a syntax error in to_tsquery.
+const sanitizeTsQueryTerm = (rawTerm) => {
+  return compact(String(rawTerm || '').split(/\s+/))
+    .map(w => w.replace(/[,;|:&()!\\#'"<>*]+/g, ''))
+    .filter(Boolean)
     .map(w => w + ':*')
     .join(' & ')
+}
+
+const search = (opts) => {
+  const term = sanitizeTsQueryTerm(opts.term)
 
   const lang = opts.lang || defaultLang
-  const tsquery = `to_tsquery('${lang}', '${term}')`
-  const rank = `ts_rank_cd(${columnName}, ${tsquery})`
+  const tsquery = term ? `to_tsquery('${lang}', '${term}')` : null
+  const rank = tsquery ? `ts_rank_cd(${columnName}, ${tsquery})` : '0'
   let columns
 
   // set opts.subquery if you are using this search method within one of the
@@ -156,7 +169,7 @@ const search = (opts) => {
   let query = bookshelf.knex
     .select(columns)
     .from(tableName)
-    .where(raw(`${columnName} @@ ${tsquery}`))
+    .where(tsquery ? raw(`${columnName} @@ ${tsquery}`) : raw('false'))
     .where(raw({
       person: 'user_id is not null',
       post: 'post_id is not null',

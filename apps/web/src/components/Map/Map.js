@@ -21,8 +21,11 @@ function getMapStyleId (baseLayerStyle, isDarkMode, darkLayerStyle) {
 }
 
 function DeckGLOverlay (props) {
-  const overlay = useControl(() => new MapboxOverlay(props))
-  overlay.setProps(props)
+  const overlay = useControl(() => new MapboxOverlay({ ...props, interleaved: false }))
+  // Overlaid (not interleaved): a deck canvas on top of the map. Interleaved
+  // custom Mapbox layers often keep the first paint after FETCH_*_MAP returns.
+  const layers = (props.layers || []).filter(Boolean)
+  overlay.setProps({ ...props, interleaved: false, layers })
   return null
 }
 
@@ -111,9 +114,7 @@ const Map = forwardRef(({
       />
 
       <DeckGLOverlay
-        initialViewState={viewport}
         layers={hyloLayers}
-        interleaved
         onHover={({ object }) => {
           setIsOverHyloFeature(Boolean(object))
           // if hovering over DeckGL object then turn off hover state of MapGL

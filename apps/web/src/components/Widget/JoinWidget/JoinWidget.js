@@ -7,7 +7,6 @@ import Icon from 'components/Icon'
 import JoinSection from 'routes/GroupDetail/JoinSection'
 
 import { inIframe } from 'util/index'
-import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
 import { useDispatch } from 'react-redux'
 
 import classes from './Join.module.scss'
@@ -20,8 +19,6 @@ export default function JoinWidget ({ group, fullPage = true, routeParams }) {
   const { location } = useLocation()
   const currentUser = useCurrentUser()
   const groupsWithPendingRequests = useKeyJoinRequestsByGroupId()
-  const handleAddSkill = (skillId) => dispatch(addSkill(skillId))
-  const handleRemoveSkill = (skillId) => dispatch(removeSkill(skillId))
   const handleJoinGroup = (groupId) => dispatch(joinGroup(groupId))
   const handleRequestToJoinGroup = (groupId, questionAnswers) => dispatch(createJoinRequest(groupId, questionAnswers))
   const { t } = useTranslation()
@@ -59,14 +56,12 @@ export default function JoinWidget ({ group, fullPage = true, routeParams }) {
               </div>
             </div>
             <JoinSection
-              addSkill={handleAddSkill}
               currentUser={currentUser}
               fullPage={fullPage}
               group={group}
               groupsWithPendingRequests={groupsWithPendingRequests}
               joinGroup={handleJoinGroup}
               requestToJoinGroup={handleRequestToJoinGroup}
-              removeSkill={handleRemoveSkill}
               routeParams={routeParams}
             />
           </div>

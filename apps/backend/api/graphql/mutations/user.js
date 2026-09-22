@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import request from 'request'
 import { Validators } from '@hylo/shared'
 import { decodeHyloJWT } from '../../../lib/HyloJWT'
+import sentry from '../../../lib/sentry'
 
 // Sign-up Related
 
@@ -108,6 +109,7 @@ export const login = (fetchOne) => async (_, { email, password }, context) => {
 }
 
 export const logout = async (root, args, context) => {
+  sentry.setUser(null)
   await context.req.session.destroy()
 
   return { success: true }

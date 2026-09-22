@@ -3,9 +3,16 @@ import { homeRoutePathForView } from '@hylo/navigation'
 /** Merge menu patch fields onto a view row (deep-merge linkedGroup when present). */
 function mergeViewMenuPatch (view, updates) {
   if (!updates) return view
-  const merged = { ...view, ...updates }
-  if (updates.linkedGroup) {
-    merged.linkedGroup = { ...(view.linkedGroup || {}), ...updates.linkedGroup }
+  // Skip undefined so a last-read patch cannot wipe type/order/linkedGroup
+  // (spreading `{ linkedGroup: undefined }` would hide the space from the menu).
+  const definedUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([, value]) => value !== undefined)
+  )
+  const merged = { ...view, ...definedUpdates }
+  if (definedUpdates.linkedGroup) {
+    merged.linkedGroup = { ...(view.linkedGroup || {}), ...definedUpdates.linkedGroup }
+  } else if (view.type === 'space' && view.linkedGroup) {
+    merged.linkedGroup = view.linkedGroup
   }
   return merged
 }
@@ -395,5 +402,58 @@ export function syncFundingRoundEmbeddedData (session, fundingRoundId, patch) {
     if (Object.keys(updates).length > 0) {
       group.update(updates)
     }
+  })
+}
+
+/** Keep loaded view posts when groupViews are refreshed without collectionPosts/pinnedPosts. */
+export function preserveViewLoadedPosts (existingItems, newItems) {
+  if (!existingItems?.length || !newItems?.length) return newItems
+
+  const existingById = new Map(existingItems.map(view => [String(view.id), view]))
+
+  return newItems.map(newView => {
+    const existing = existingById.get(String(newView.id))
+    if (!existing) return newView
+
+    const merged = { ...newView }
+    // A just-advanced last-read can lose to an in-flight fetchGroupViews that still
+    // has the old cursor and unread count — keep the newer local position.
+    const existingLastRead = parseInt(existing.lastReadPostId, 10)
+    const incomingLastRead = parseInt(newView.lastReadPostId, 10)
+    const lastReadAdvanced = Number.isFinite(incomingLastRead) &&
+      (!Number.isFinite(existingLastRead) || incomingLastRead > existingLastRead)
+    if (Number.isFinite(existingLastRead) &&
+        (!Number.isFinite(incomingLastRead) || existingLastRead > incomingLastRead)) {
+      merged.lastReadPostId = existing.lastReadPostId
+      if (existing.newPostCount !== undefined) {
+        merged.newPostCount = existing.newPostCount
+      }
+    } else if (!lastReadAdvanced &&
+        existing.newPostCount !== undefined &&
+        (newView.newPostCount === undefined || newView.newPostCount < existing.newPostCount)) {
+      // Parent/spaces extracts and stale fetches can replace unread with 0
+      // without the user opening the view. Keep the higher local count unless
+      // last-read actually moved forward.
+      merged.newPostCount = existing.newPostCount
+    }
+    if (existing.collectionPosts !== undefined && newView.collectionPosts === undefined) {
+      merged.collectionPosts = existing.collectionPosts
+    }
+    if (existing.pinnedPosts !== undefined && newView.pinnedPosts === undefined) {
+      merged.pinnedPosts = existing.pinnedPosts
+    }
+    if (newView.type === 'space' && (existing.linkedGroup || newView.linkedGroup)) {
+      const existingSpaceItems = existing.linkedGroup?.groupViews?.items
+      const newSpaceItems = newView.linkedGroup?.groupViews?.items
+      merged.linkedGroup = { ...(existing.linkedGroup || {}), ...(newView.linkedGroup || {}) }
+      if (existingSpaceItems?.length && newSpaceItems?.length) {
+        merged.linkedGroup.groupViews = {
+          items: preserveViewLoadedPosts(existingSpaceItems, newSpaceItems)
+        }
+      } else if (existingSpaceItems?.length && !newSpaceItems) {
+        merged.linkedGroup.groupViews = { items: existingSpaceItems }
+      }
+    }
+    return merged
   })
 }

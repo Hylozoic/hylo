@@ -23,8 +23,10 @@ import { useNavigate } from 'react-router-dom'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { addQuerystringToPath, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
-import { canDeleteView, canHardDeleteView, isSoftRemoveView } from 'store/models/GroupView'
-import { setGroupViewHidden } from 'store/actions/groupViews'
+import { canDeleteView, canHardDeleteView, isMenuViewVisible, isSoftRemoveView } from 'store/models/GroupView'
+import { archiveSpace, setGroupViewHidden } from 'store/actions/groupViews'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
+import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { mergeOrderedViewsFromSource, sortViewsByMenuOrder } from 'store/util/groupViewsOrder'
 import { cn } from 'util/index'
 
@@ -137,7 +139,7 @@ function FullWidthRow ({ view, group, spaceGroup, t }) {
  * anywhere on the card starts the drag; the toolbar stops pointerdown so its
  * buttons stay clickable instead of becoming drag handles.
  */
-const SortableViewItem = React.memo(function SortableViewItem ({ view, group, spaceGroup, onOpenSettings, onHide, onDelete, onEditSpaceMenu, t, isFlashing = false }) {
+const SortableViewItem = React.memo(function SortableViewItem ({ view, group, spaceGroup, onOpenSettings, onHide, onArchive, onDelete, onEditSpaceMenu, t, isFlashing = false }) {
   const presented = useMemo(() => GroupViewPresenter(view), [view])
   const isFullWidth = isFullWidthGridView(presented)
   const { attributes, listeners, setNodeRef, isDragging, isSorting } = useSortable({
@@ -146,6 +148,7 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, group, sp
   })
   const canEditSpaceMenu = presented.type === 'space' && presented.linkedGroup?.slug && onEditSpaceMenu
   const canHide = onHide && isSoftRemoveView(view) && canDeleteView(view)
+  const canArchive = onArchive && view.type === 'space' && view.linkedGroup?.status !== 'archived'
 
   return (
     <div
@@ -181,10 +184,12 @@ const SortableViewItem = React.memo(function SortableViewItem ({ view, group, sp
         onOpenSettings={onOpenSettings ? () => onOpenSettings(view) : null}
         onHide={canHide ? () => onHide(view) : null}
         onEditMenu={canEditSpaceMenu ? () => onEditSpaceMenu(view) : null}
+        onArchive={canArchive ? () => onArchive(view) : null}
         onDelete={onDelete && canHardDeleteView(view) ? () => onDelete(view) : null}
         settingsLabel={t('Settings')}
-        hideLabel={t('Remove from main menu')}
+        hideLabel={t('Move to More Spaces')}
         editMenuLabel={t('Edit space menu')}
+        archiveLabel={t('Archive')}
         deleteLabel={t('Delete')}
       />
     </div>
@@ -211,9 +216,9 @@ export default function SortableViewsGrid ({
   const commitOrder = useCommitViewOrder(group)
   const visibleViews = useMemo(
     () => sortViewsByMenuOrder(
-      (views || []).filter(v => v.order != null)
+      (views || []).filter(v => isMenuViewVisible(v, (spaceGroup || group)?.acceptedPostTypes))
     ),
-    [views]
+    [views, spaceGroup?.acceptedPostTypes, group?.acceptedPostTypes]
   )
   const [orderedViews, setOrderedViews] = useState(visibleViews)
 
@@ -244,6 +249,25 @@ export default function SortableViewsGrid ({
       }))
     } catch (error) {
       console.error('Failed to remove view from menu:', error)
+    }
+  }, [dispatch, group?.id, t])
+
+  /** Archive a space: keep membership, drop the menu row, list under Archived. */
+  const handleArchive = useCallback(async (view) => {
+    const space = view?.linkedGroup
+    if (!space?.id || space.status === 'archived' || !group?.id) return
+    const confirmed = window.confirm(
+      t('Are you sure you want to archive {{name}}?', {
+        name: space.name || displayNameForView(view, t)
+      })
+    )
+    if (!confirmed) return
+    try {
+      await dispatch(archiveSpace(space.id))
+      await dispatch(fetchGroupSpaces(group.id))
+      await dispatch(fetchGroupViews(group.id))
+    } catch (error) {
+      console.error('Failed to archive space:', error)
     }
   }, [dispatch, group?.id, t])
 
@@ -363,6 +387,7 @@ export default function SortableViewsGrid ({
               spaceGroup={spaceGroup}
               onOpenSettings={onOpenSettings}
               onHide={handleHide}
+              onArchive={handleArchive}
               onDelete={onDelete}
               onEditSpaceMenu={handleEditSpaceMenu}
               t={t}

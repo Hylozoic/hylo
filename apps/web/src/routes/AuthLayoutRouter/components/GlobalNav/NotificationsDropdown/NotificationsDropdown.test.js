@@ -9,6 +9,7 @@ import {
   ACTION_TAG,
   ACTION_JOIN_REQUEST,
   ACTION_APPROVED_JOIN_REQUEST,
+  ACTION_GROUP_INVITATION,
   ACTION_MENTION,
   ACTION_COMMENT_MENTION,
   ACTION_DONATION_TO,
@@ -65,6 +66,31 @@ const spaceJoinRequestNotification = {
   activity: {
     actor: u2,
     action: ACTION_JOIN_REQUEST,
+    meta: {},
+    group: { name: 'The Space', slug: 'the-space' },
+    otherGroup: { name: 'Foomunity', slug: 'foomunity' },
+    unread: true
+  },
+  createdAt: new Date(Date.UTC(1995, 11, 17, 3, 23, 0))
+}
+
+const groupInvitationNotification = {
+  id: 32,
+  activity: {
+    actor: u2,
+    action: ACTION_GROUP_INVITATION,
+    meta: {},
+    group: { name: 'Foomunity', slug: 'foomunity' },
+    unread: true
+  },
+  createdAt: new Date(Date.UTC(1995, 11, 17, 3, 23, 0))
+}
+
+const spaceInvitationNotification = {
+  id: 33,
+  activity: {
+    actor: u2,
+    action: ACTION_GROUP_INVITATION,
     meta: {},
     group: { name: 'The Space', slug: 'the-space' },
     otherGroup: { name: 'Foomunity', slug: 'foomunity' },
@@ -250,6 +276,20 @@ describe('Notification', () => {
     const { container } = render(<NotificationItem notification={spaceJoinRequestNotification} />)
     await waitFor(() => {
       expectItemText(container, /asked to join/i, /The Space/i, /Foomunity/i)
+    })
+  })
+
+  it('renders a group invitation with the inviting user and group name', async () => {
+    const { container } = render(<NotificationItem notification={groupInvitationNotification} />)
+    await waitFor(() => {
+      expectItemText(container, /Marie Curie/i, /has invited you to join them in/i, /Foomunity/i)
+    })
+  })
+
+  it('renders a space invitation with the space and parent group names', async () => {
+    const { container } = render(<NotificationItem notification={spaceInvitationNotification} />)
+    await waitFor(() => {
+      expectItemText(container, /Marie Curie/i, /has invited you to join them in space/i, /The Space/i, /Foomunity/i)
     })
   })
 

@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
 import { addQuerystringToPath } from '@hylo/navigation'
 import isPendingFor from 'store/selectors/isPendingFor'
@@ -22,6 +23,7 @@ export default function SkillsToLearnSection (props) {
   const { personId } = props
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const location = useLocation()
   const search = useSelector(getSearch)
 
   const person = useSelector(state => getPerson(state, props))
@@ -52,13 +54,13 @@ export default function SkillsToLearnSection (props) {
   }, [dispatch])
 
   const searchForSkill = useCallback((skill) => {
-    const from = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : ''
+    const from = `${location.pathname}${location.search}`
     const path = addQuerystringToPath('/search', {
       t: skill,
       from: from && !from.startsWith('/search') ? from : undefined
     })
     dispatch(push(path))
-  }, [dispatch])
+  }, [dispatch, location.pathname, location.search])
 
   return (
     <SkillsSection

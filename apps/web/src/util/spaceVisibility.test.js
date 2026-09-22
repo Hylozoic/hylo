@@ -45,6 +45,23 @@ describe('spaceVisibility', () => {
     })).toBe(true)
   })
 
+  it('keeps space rows whose linkedGroup has not loaded yet', () => {
+    const views = [
+      { type: 'all' },
+      { type: 'space', name: 'Garden' }
+    ]
+    expect(filterSpaceViewsForMenuVisibility(views, { canManageSpaces: false }).map(v => v.type))
+      .toEqual(['all', 'space'])
+  })
+
+  it('shows in-menu draft spaces to managers', () => {
+    const views = [
+      { type: 'space', linkedGroup: { id: 1, status: 'draft' } }
+    ]
+    expect(filterSpaceViewsForMenuVisibility(views, { canManageSpaces: true })).toHaveLength(1)
+    expect(filterSpaceViewsForMenuVisibility(views, { canManageSpaces: false })).toHaveLength(0)
+  })
+
   it('filters space menu views', () => {
     const views = [
       { type: 'all' },

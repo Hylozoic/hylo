@@ -1,14 +1,12 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
 import isMobile from 'ismobilejs'
-import { cn } from 'util/index'
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import CalendarBodyDayCalendar from './calendar-body-day-calendar'
 import { useCalendarContext } from '../../calendar-context'
 import { includes } from '../../calendar-util'
 import PostListRow from 'components/PostListRow'
-import styles from 'routes/Stream/Stream.module.scss'
 
 export default function CalendarBodyDay () {
   const { date, events, group } = useCalendarContext()
@@ -28,7 +26,6 @@ export default function CalendarBodyDay () {
           const post = event.post
           return (
             <PostListRow
-              className={cn({ [styles.cardItem]: false })}
               routeParams={routeParams}
               post={post}
               group={group}

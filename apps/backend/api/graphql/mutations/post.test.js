@@ -1,12 +1,12 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { assignCoordinator } from '../../../test/setup/roleHelpers'
+import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, deletePost, fulfillPost, unfulfillPost } from './post'
 import { spyify, unspyify } from '../../../test/setup/helpers'
 
 describe('pinPost', () => {
-  var user, group, post
+  var user, group, post, view
 
   before(function () {
     user = factories.user()
@@ -14,36 +14,66 @@ describe('pinPost', () => {
     post = factories.post()
     return Promise.join(group.save(), user.save(), post.save())
       .then(() => group.posts().attach(post))
-      .then(() => user.joinGroup(group, { assignCoordinator: true }))
+      .then(() => user.joinGroup(group, { assignAdministrator: true }))
+      .then(() => GroupView.forge({
+        group_id: group.id,
+        type: GroupView.Type.ALL,
+        order: 0
+      }).save())
+      .then(v => { view = v })
   })
 
-  it('sets pinned_at to current time if not set', () => {
-    return pinPost(user.id, post.id, group.id)
-    .then(() => PostMembership.find(post.id, group.id))
-    .then(postMembership => {
-      expect(postMembership.get('pinned_at').getTime())
-      .to.be.closeTo(new Date().getTime(), 2000)
-    })
+  it('pins a post to the view', () => {
+    return pinPost(user.id, post.id, view.id)
+      .then(() => GroupViewPin.find(view.id, post.id))
+      .then(pin => {
+        expect(pin).to.exist
+        expect(pin.get('pinned_at').getTime()).to.be.closeTo(new Date().getTime(), 2000)
+      })
   })
 
-  it('sets pinned_at to null if set', () => {
-    return pinPost(user.id, post.id, group.id)
-    .then(() => PostMembership.find(post.id, group.id))
-    .then(postMembership => {
-      expect(postMembership.get('pinned_at')).to.equal(null)
-    })
+  it('unpins a post when already pinned', () => {
+    return pinPost(user.id, post.id, view.id)
+      .then(() => GroupViewPin.find(view.id, post.id))
+      .then(pin => {
+        expect(pin).to.equal(null)
+      })
   })
 
   it('rejects if user is not a moderator', () => {
-    return pinPost('777', post.id, group.id)
-    .then(() => expect.fail('should reject'))
-    .catch(e => expect(e.message).to.match(/don't have permission/))
+    return pinPost('777', post.id, view.id)
+      .then(() => expect.fail('should reject'))
+      .catch(e => expect(e.message).to.match(/don't have permission/))
   })
 
-  it("rejects if postMembership doesn't exist", () => {
-    return pinPost(user.id, '919191', group.id)
-    .then(() => expect.fail('should reject'))
-    .catch(e => expect(e.message).to.match(/Couldn't find postMembership/))
+  it("rejects if the post is not in the view's group", () => {
+    return pinPost(user.id, '919191', view.id)
+      .then(() => expect.fail('should reject'))
+      .catch(e => expect(e.message).to.match(/Couldn't find post in this group/))
+  })
+
+  it('rejects a fourth pin', async () => {
+    const capView = await GroupView.forge({
+      group_id: group.id,
+      type: GroupView.Type.DISCUSSIONS,
+      order: 1
+    }).save()
+    const extra = []
+    for (let i = 0; i < 3; i++) {
+      extra.push(await factories.post().save())
+    }
+    await group.posts().attach(extra)
+    for (const p of extra) {
+      await pinPost(user.id, p.id, capView.id)
+    }
+    const fourth = await factories.post().save()
+    await group.posts().attach(fourth)
+    try {
+      await pinPost(user.id, fourth.id, capView.id)
+      expect.fail('should reject')
+    } catch (e) {
+      expect(e.message).to.match(/up to 3 posts/)
+    }
   })
 })
 
@@ -312,14 +342,14 @@ describe('fulfillPost and unfulfillPost', () => {
     expect(Activity.saveForReasons).to.have.been.called
   })
 
-  it('allows a coordinator to fulfill a fulfillable post', async () => {
-    const coordinator = await factories.user().save()
+  it('allows an administrator to fulfill a fulfillable post', async () => {
+    const administrator = await factories.user().save()
     const g = await factories.group().save()
-    await assignCoordinator(coordinator, g)
+    await assignAdministrator(administrator, g)
     const offerPost = await factories.post({ type: 'offer', user_id: author.id }).save()
     await offerPost.groups().attach(g)
 
-    const result = await fulfillPost(coordinator.id, offerPost.id)
+    const result = await fulfillPost(administrator.id, offerPost.id)
     expect(result).to.deep.equal({ success: true })
     await offerPost.refresh()
     expect(offerPost.get('fulfilled_at')).to.exist

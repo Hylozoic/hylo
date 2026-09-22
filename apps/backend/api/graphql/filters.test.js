@@ -1,4 +1,4 @@
-import { makeFilterToggle } from './filters'
+import { isGroupVisibleToViewer, loadGroupVisibilityContext, makeFilterToggle } from './filters'
 import makeModels from './makeModels'
 import { expectEqualQuery } from '../../test/setup/helpers'
 import {
@@ -179,6 +179,137 @@ describe('model filters', () => {
           or "posts"."is_public" = true
         ) group by "comments"."id"`)
     })
+  })
+})
+
+describe('isGroupVisibleToViewer', () => {
+  const HIDDEN = 0
+  const PROTECTED = 1
+  const PUBLIC = 2
+  const fakeGroup = (attrs) => ({
+    id: attrs.id,
+    get: key => attrs[key]
+  })
+  const emptyCtx = {
+    memberIds: new Set(),
+    parentIds: new Set(),
+    childIds: new Set(),
+    peerIds: new Set(),
+    stewardChildIds: new Set(),
+    stewardPeerIds: new Set(),
+    joinManagerIds: new Set()
+  }
+
+  it('shows public groups to anyone', () => {
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '1', visibility: PUBLIC }), null, null)).to.equal(true)
+  })
+
+  it('hides a protected group with no relationship', () => {
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '9', visibility: PROTECTED }), emptyCtx, '42')).to.equal(false)
+  })
+
+  it('shows a protected group the viewer belongs to', () => {
+    const ctx = { ...emptyCtx, memberIds: new Set(['9']) }
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '9', visibility: PROTECTED }), ctx, '42')).to.equal(true)
+  })
+
+  it('shows a protected parent of a group the viewer belongs to', () => {
+    const ctx = { ...emptyCtx, parentIds: new Set(['3']) }
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '3', visibility: PROTECTED }), ctx, '42')).to.equal(true)
+  })
+
+  it('shows a protected child of a group the viewer belongs to', () => {
+    const ctx = { ...emptyCtx, childIds: new Set(['4']) }
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '4', visibility: PROTECTED }), ctx, '42')).to.equal(true)
+  })
+
+  it('hides a hidden child unless the viewer stewards the parent', () => {
+    const child = fakeGroup({ id: '5', visibility: HIDDEN })
+    expect(isGroupVisibleToViewer(child, { ...emptyCtx, childIds: new Set(['5']) }, '42')).to.equal(false)
+    expect(isGroupVisibleToViewer(child, { ...emptyCtx, stewardChildIds: new Set(['5']) }, '42')).to.equal(true)
+  })
+
+  it('shows a protected peer of a group the viewer belongs to', () => {
+    const ctx = { ...emptyCtx, peerIds: new Set(['6']) }
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '6', visibility: PROTECTED }), ctx, '42')).to.equal(true)
+  })
+
+  it('shows a hidden space when the viewer can manage the parent', () => {
+    const space = fakeGroup({ id: '7', visibility: HIDDEN, type: 'space', parent_id: '1' })
+    expect(isGroupVisibleToViewer(space, { ...emptyCtx, memberIds: new Set(['1']) }, '42')).to.equal(false)
+    expect(isGroupVisibleToViewer(space, { ...emptyCtx, joinManagerIds: new Set(['1']) }, '42')).to.equal(true)
+  })
+
+  it('does not treat every non-hidden group as visible when childIds is polluted', () => {
+    const ctx = { ...emptyCtx, childIds: new Set(['99']) }
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '99', visibility: PROTECTED }), ctx, '42')).to.equal(true)
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '88', visibility: PROTECTED }), ctx, '42')).to.equal(false)
+  })
+})
+
+describe('loadGroupVisibilityContext', () => {
+  it('does not include an unrelated protected parent of someone else\'s group', async () => {
+    const viewer = await factories.user().save()
+    const myGroup = await factories.group().save()
+    await viewer.joinGroup(myGroup)
+
+    const stranger = await factories.user().save()
+    const protectedParent = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    const protectedChild = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    await stranger.joinGroup(protectedChild)
+    await protectedParent.addChild(protectedChild)
+
+    const ctx = await loadGroupVisibilityContext(viewer.id)
+    expect(ctx.memberIds.has(String(myGroup.id))).to.equal(true)
+    expect(ctx.parentIds.has(String(protectedParent.id))).to.equal(false)
+    expect(ctx.childIds.has(String(protectedChild.id))).to.equal(false)
+    expect(isGroupVisibleToViewer({
+      id: protectedParent.id,
+      get: key => key === 'visibility' ? Group.Visibility.PROTECTED : null
+    }, ctx, viewer.id)).to.equal(false)
+  })
+
+  it('does not treat an inactive parent membership as related', async () => {
+    const viewer = await factories.user().save()
+    const parent = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    const child = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    await parent.addChild(child)
+    await viewer.joinGroup(parent)
+    await parent.removeMembers([viewer.id])
+
+    const ctx = await loadGroupVisibilityContext(viewer.id)
+    expect(ctx.memberIds.has(String(parent.id))).to.equal(false)
+    expect(ctx.childIds.has(String(child.id))).to.equal(false)
+    expect(ctx.stewardChildIds.has(String(child.id))).to.equal(false)
+    expect(isGroupVisibleToViewer({
+      id: child.id,
+      get: key => key === 'visibility' ? Group.Visibility.PROTECTED : null
+    }, ctx, viewer.id)).to.equal(false)
+  })
+
+  it('does not show a protected space after leaving the parent', async () => {
+    const viewer = await factories.user().save()
+    const parent = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    const space = await factories.group({
+      visibility: Group.Visibility.PROTECTED,
+      type: 'space',
+      parent_id: parent.id
+    }).save()
+    await viewer.joinGroup(parent)
+    await parent.removeMembers([viewer.id])
+
+    const ctx = await loadGroupVisibilityContext(viewer.id)
+    expect(ctx.memberIds.has(String(parent.id))).to.equal(false)
+    expect(ctx.joinManagerIds.has(String(parent.id))).to.equal(false)
+    expect(isGroupVisibleToViewer({
+      id: space.id,
+      get: key => {
+        if (key === 'visibility') return Group.Visibility.PROTECTED
+        if (key === 'type') return 'space'
+        if (key === 'parent_id') return parent.id
+        return null
+      }
+    }, ctx, viewer.id)).to.equal(false)
   })
 })
 

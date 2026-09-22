@@ -101,6 +101,14 @@ msgstr "Esto es lo que ha pasado en los últimos "
 msgid "in "
 msgstr "en "
 
+#, python-format
+msgid "in %(post_space)s"
+msgstr "en %(post_space)s"
+
+#, python-format
+msgid "in %(post_space_name)s"
+msgstr "en %(post_space_name)s"
+
 msgid "Jump to "
 msgstr "Ir a "
 
@@ -114,6 +122,14 @@ msgstr "%(topic_num_new_chats)s nuevos chats en"
 #, python-format
 msgid "%(topic_num_new_chats)s new chat in"
 msgstr "%(topic_num_new_chats)s nuevo chat en"
+
+#, python-format
+msgid "%(room_num_new_chats)s new chats in"
+msgstr "%(room_num_new_chats)s nuevos chats en"
+
+#, python-format
+msgid "%(room_num_new_chats)s new chat in"
+msgstr "%(room_num_new_chats)s nuevo chat en"
 
 #, python-format
 msgid "%(post_comment_count)s new comments in"
@@ -214,6 +230,24 @@ msgstr "Ofertas"
 msgid "Resources"
 msgstr "Recursos"
 
+msgid "Discussions"
+msgstr "Discusiones"
+
+msgid "Events"
+msgstr "Eventos"
+
+msgid "Projects"
+msgstr "Proyectos"
+
+msgid "Proposals"
+msgstr "Propuestas"
+
+msgid "Upcoming Reminders"
+msgstr "Recordatorios próximos"
+
+msgid "Ending Soon"
+msgstr "Termina pronto"
+
 msgid "All Topics"
 msgstr "Todos los temas"
 
@@ -245,6 +279,9 @@ msgstr "Votar"
 
 msgid "Reply"
 msgstr "Responder"
+
+msgid "View"
+msgstr "Ver"
 
 msgid "Jump to section:"
 msgstr "Ir a la sección:"
@@ -730,8 +767,8 @@ msgstr "%(subject_formatted)s"
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr "¡Tu solicitud para unirte a %(group_pill)s fue aprobada por %(approver_pill)s!"
 
-msgid "Now's a great time to introduce yourself in the chat."
-msgstr "Es un buen momento para presentarte en el chat."
+msgid "Introduce yourself to the group"
+msgstr "Preséntate al grupo"
 
 msgid "Jump in"
 msgstr "Únete"
@@ -811,8 +848,8 @@ msgid "Join the conversation or change your notifications"
 msgstr "Únete a la conversación o cambia tus notificaciones"
 
 #, python-format
-msgid "New chats in %(group_name)s #%(chat_topic)s"
-msgstr "Nuevos chats en %(group_name)s #%(chat_topic)s"
+msgid "New chats in %(group_name)s"
+msgstr "Nuevos chats en %(group_name)s"
 
 #, python-format
 msgid "%(count)s new comments on"

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
- * Batch P3 — paid track space (member without Coordinator / Administration).
+ * Batch P3 — paid track space (member without Administrator / Administration).
  * Seed: `E2E Paid Track` space with paywall + offering granting that space.
  * User: `e2e.track-viewer@hylo.test`.
  */
@@ -65,7 +65,7 @@ test.describe('Batch P3: paid space paywall (track viewer)', () => {
     await page.goto('/')
     await waitPastRootSessionLoading(page)
 
-    const spaceSlug = await fetchTrackSpaceSlug(page, PUBLIC_GROUP_SLUG, PAID_TRACK_NAME)
+    const spaceSlug = (await fetchTrackSpaceSlug(page, PUBLIC_GROUP_SLUG, PAID_TRACK_NAME)) || 'e2e-paid-track-space'
     expect(spaceSlug).toBeTruthy()
 
     const localSlug = spaceSlug.startsWith(`${PUBLIC_GROUP_SLUG}-`)

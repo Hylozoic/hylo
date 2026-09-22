@@ -1,19 +1,17 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Eye, EyeOff } from 'lucide-react'
 
 import HyloEditor from 'components/HyloEditor'
 import TagInput from 'components/TagInput'
 import Checkbox from 'components/ui/checkbox'
 import { DateTimePicker } from 'components/ui/datetimepicker'
+import InfoButton from 'components/ui/info'
 import { Label } from 'components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
 import { cn } from 'util/index'
 
 /** Shared funding round settings fields for create and edit space flows. */
 export default function FundingRoundSettingsFields ({
-  publishedAt,
-  setPublishedAt,
   submissionDescriptor,
   setSubmissionDescriptor,
   submissionDescriptorPlural,
@@ -34,8 +32,14 @@ export default function FundingRoundSettingsFields ({
   setTokenType,
   allowSelfVoting,
   setAllowSelfVoting,
+  allowLateJoiners,
+  setAllowLateJoiners,
   hideFinalResults,
   setHideFinalResults,
+  requireBudget,
+  setRequireBudget,
+  showRealtimeVotes,
+  setShowRealtimeVotes,
   submitterRoles,
   setSubmitterRoles,
   voterRoles,
@@ -53,7 +57,7 @@ export default function FundingRoundSettingsFields ({
   const submitterRoleSuggestions = useMemo(() => {
     if (submitterRoleSearch === null) return []
     const unselected = roles.filter(role => !submitterRoles.some(selected => selected.id === role.id))
-    if (!submitterRoleSearch) return unselected.slice(0, 5)
+    if (!submitterRoleSearch) return unselected
     const searchLower = submitterRoleSearch.toLowerCase()
     return unselected.filter(role => role.name.toLowerCase().includes(searchLower))
   }, [submitterRoleSearch, roles, submitterRoles])
@@ -61,7 +65,7 @@ export default function FundingRoundSettingsFields ({
   const voterRoleSuggestions = useMemo(() => {
     if (voterRoleSearch === null) return []
     const unselected = roles.filter(role => !voterRoles.some(selected => selected.id === role.id))
-    if (!voterRoleSearch) return unselected.slice(0, 5)
+    if (!voterRoleSearch) return unselected
     const searchLower = voterRoleSearch.toLowerCase()
     return unselected.filter(role => role.name.toLowerCase().includes(searchLower))
   }, [voterRoleSearch, roles, voterRoles])
@@ -78,26 +82,6 @@ export default function FundingRoundSettingsFields ({
   return (
     <div className='flex flex-col gap-3 border-t-2 border-foreground/10 pt-3 mt-1'>
       <h3 className='text-base font-semibold'>{t('Funding Round Settings')}</h3>
-
-      <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-        <div className='flex items-center gap-2'>
-          <button
-            type='button'
-            className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-foreground/10' : 'bg-accent text-white')}
-            onClick={() => setPublishedAt(null)}
-          >
-            <EyeOff className='w-5 h-5' />
-          </button>
-          <button
-            type='button'
-            className={cn('p-2 rounded-md transition-colors', publishedAt ? 'bg-accent text-white' : 'bg-foreground/10')}
-            onClick={() => setPublishedAt(new Date().toISOString())}
-          >
-            <Eye className='w-5 h-5' />
-          </button>
-          <span>{publishedAt ? t('Published') : t('Unpublished')}</span>
-        </div>
-      </div>
 
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 focus-within:border-focus'>
@@ -122,7 +106,7 @@ export default function FundingRoundSettingsFields ({
         </div>
       </div>
 
-      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3' data-tour='round-schedule'>
         <div>
           <label className='text-sm text-foreground/70'>{t('Submissions open')}</label>
           <DateTimePicker value={submissionsOpenAt} onChange={setSubmissionsOpenAt} />
@@ -141,13 +125,19 @@ export default function FundingRoundSettingsFields ({
         </div>
       </div>
 
-      <div>
+      <div data-tour='round-voting'>
         <label className='text-sm text-foreground/70'>{t('Voting method')}</label>
-        <Select value={votingMethod} onValueChange={setVotingMethod}>
+        <Select
+          value={votingMethod}
+          onValueChange={value => {
+            setVotingMethod(value)
+            if (value !== 'token_allocation_constant') setAllowLateJoiners(false)
+          }}
+        >
           <SelectTrigger className='w-full border-2 bg-input border-foreground/30 rounded-md p-2 text-base mt-1'>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className='z-[1200]'>
             <SelectItem value='token_allocation_constant'>{t('Same number of tokens per voter')}</SelectItem>
             <SelectItem value='token_allocation_divide'>{t('Divide total tokens evenly among voters')}</SelectItem>
           </SelectContent>
@@ -179,6 +169,16 @@ export default function FundingRoundSettingsFields ({
       <div className='flex flex-col gap-2'>
         <div className='flex items-center gap-2'>
           <Checkbox
+            id='fr-require-budget'
+            checked={!!requireBudget}
+            onCheckedChange={checked => setRequireBudget(!!checked)}
+          />
+          <Label htmlFor='fr-require-budget' className='cursor-pointer font-normal'>
+            {t('Show budget field for submissions')}
+          </Label>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Checkbox
             id='fr-allow-self-voting'
             checked={allowSelfVoting}
             onCheckedChange={checked => setAllowSelfVoting(!!checked)}
@@ -186,6 +186,37 @@ export default function FundingRoundSettingsFields ({
           <Label htmlFor='fr-allow-self-voting' className='cursor-pointer font-normal'>
             {t('Allow participants to vote on their own submissions')}
           </Label>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Checkbox
+            id='fr-allow-late-joiners'
+            checked={votingMethod === 'token_allocation_constant' && !!allowLateJoiners}
+            disabled={votingMethod !== 'token_allocation_constant'}
+            onCheckedChange={checked => setAllowLateJoiners(!!checked)}
+          />
+          <Label
+            htmlFor='fr-allow-late-joiners'
+            className={cn(
+              'cursor-pointer font-normal',
+              votingMethod !== 'token_allocation_constant' && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            {t('Allow people who join during voting to receive tokens and vote')}
+          </Label>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Checkbox
+            id='fr-show-realtime-votes'
+            checked={!!showRealtimeVotes}
+            onCheckedChange={checked => setShowRealtimeVotes(!!checked)}
+          />
+          <Label htmlFor='fr-show-realtime-votes' className='cursor-pointer font-normal'>
+            {t('Show real-time votes during voting phase')}
+          </Label>
+          <InfoButton
+            className='text-foreground/50'
+            content={t('By default votes are not visible until after voting ends.')}
+          />
         </div>
         <div className='flex items-center gap-2'>
           <Checkbox
@@ -199,7 +230,7 @@ export default function FundingRoundSettingsFields ({
         </div>
       </div>
 
-      <div>
+      <div data-tour='round-roles'>
         <label className='text-sm text-foreground/70'>{t('Submitter roles')}</label>
         <div className='mt-1 flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input rounded-md'>
           <TagInput

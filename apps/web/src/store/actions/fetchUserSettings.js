@@ -31,24 +31,6 @@ export default function fetchUserSettings () {
               group {
                 id
                 name
-                chatRooms {
-                  items {
-                    id
-                    groupTopic {
-                      id
-                      topic {
-                        id
-                        name
-                      }
-                    }
-                    topicFollow {
-                      id
-                      settings {
-                        notifications
-                      }
-                    }
-                  }
-                }
               }
             }
           }

@@ -1,31 +1,33 @@
 import { trim } from 'lodash/fp'
 import {
-  Activity, ArrowRight, ChevronDown, DoorOpen, EyeOff, Globe, HelpCircle, ImagePlus,
+  Activity, ArrowRight, DoorOpen, EyeOff, Globe, Hand, HelpCircle, ImagePlus,
   LayoutGrid, Lock, Map, MapPin, MessageCircleMore, Network, Plus, ScrollText, Settings, Shield, Users, X
 } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useParams } from 'react-router-dom'
 import { push } from 'redux-first-history'
-import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
-import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
+import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import GroupsSelector from 'components/GroupsSelector'
+import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
+import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
-import SegmentedPicker from 'components/SegmentedPicker/SegmentedPicker'
+import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
+import SwitchStyled from 'components/SwitchStyled'
+import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Button from 'components/ui/button'
+import { INPUT_CLASS } from 'components/ui/form-field'
 import InfoButton from 'components/ui/info'
-import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
-import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
-import { CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
-import { createGroupView } from 'store/actions/groupViews'
+import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
+import { createGroupView, updateGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_AVATAR, GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
-import { POST_TYPE_TO_VIEW_TYPE } from 'store/models/GroupView'
+import { CUSTOM_HOME_VIEW, POST_TYPE_TO_VIEW_TYPE, viewTypesForCreate } from 'store/models/GroupView'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -36,27 +38,18 @@ import { groupUrl } from '@hylo/navigation'
 import { createGroup, fetchGroupExists } from './CreateGroup.store'
 import { nameToSlug, SLUG_MAX_LENGTH, slugValidatorRegex } from './slug'
 
-const STANDARD_VIEW_TYPES = new Set(['all', 'chat', 'map', 'members', ...Object.values(POST_TYPE_TO_VIEW_TYPE)])
-
-/** Seeds the menu in this order, with the chosen home view first so the landing route matches.
- * `orderedStandardTypes` is empty until Menu Items is opened, so we fall back to the derived defaults. */
-function viewTypesForCreate (orderedStandardTypes, defaultTypes, homeType) {
-  const types = orderedStandardTypes.length > 0 ? orderedStandardTypes : defaultTypes
-  if (types.length === 0) return [homeType || 'all']
-  if (homeType && types.includes(homeType) && types[0] !== homeType) {
-    return [homeType, ...types.filter(type => type !== homeType)]
-  }
-  return types
-}
+const STANDARD_VIEW_TYPES = new Set(['all', 'chat', 'map', 'members', 'welcome', ...Object.values(POST_TYPE_TO_VIEW_TYPE)])
 
 const SLUG_CHECK_DEBOUNCE = 300
 
+/** True when rich-text HTML contains visible characters (empty <p></p> does not count). */
+function htmlHasText (html) {
+  if (!html) return false
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0
+}
+
 const NAME_MAX_LENGTH = 60
 const PURPOSE_MAX_LENGTH = 500
-
-// Every text field in this form — including the ones inside the advanced editors —
-// uses this so the whole modal reads as one set of controls.
-const INPUT_CLASS = 'w-full rounded-lg border-2 border-foreground/20 bg-input px-3 py-2.5 text-sm text-foreground placeholder-foreground/40 focus:outline-none focus:border-focus transition-colors'
 
 // The chosen groups are rendered here as pills instead, so TagInput's own tags are
 // hidden and only its field is used. `relative` on that field's row keeps the
@@ -159,22 +152,6 @@ const VISIBILITY_OPTIONS = [
   }
 ]
 
-// Stands in for a home view that isn't one of the three below — the backend takes the
-// landing route from the first seeded view, so any menu item can hold the spot.
-const CUSTOM_HOME_VIEW = 'CUSTOM'
-
-// What each of the other menu items is, for when one of them is the home view.
-const VIEW_TYPE_DESCRIPTIONS = {
-  discussions: 'All your discussions in one place',
-  events: 'Everything your group has coming up',
-  'requests-and-offers': 'What people need, and what they can offer',
-  resources: 'The resources your group has gathered',
-  proposals: 'Decisions your group is making together',
-  projects: 'The work your group has underway',
-  members: 'Everyone who is part of your group',
-  about: 'What your group is and who it is for'
-}
-
 // Home view decides the group's landing route. Each value maps to the view type that
 // has to be seeded for that route to resolve.
 // Icons match what each view carries in the group menu (VIEW_TYPE_TO_LUCIDE_ICON).
@@ -202,43 +179,6 @@ const HOME_VIEW_OPTIONS = [
   }
 ]
 
-// One control: a segmented toggle whose selection swaps the description beneath it,
-// rather than three cards each repeating their own explanation. Promoting any other
-// menu item to the top makes it the home, so it takes the first segment's place —
-// the segments are shortcuts to the top of the menu, not a separate setting.
-function HomeViewPicker ({ value, onChange, customHomeRow }) {
-  const { t } = useTranslation()
-
-  const options = useMemo(() => {
-    if (!customHomeRow) return HOME_VIEW_OPTIONS
-    const presented = GroupViewPresenter({ type: customHomeRow.type, name: customHomeRow.name, pageContent: customHomeRow.pageContent })
-    const name = customHomeRow.name || displayNameForView(presented, t)
-    const description = VIEW_TYPE_DESCRIPTIONS[customHomeRow.type]
-    return [
-      {
-        value: CUSTOM_HOME_VIEW,
-        title: name,
-        translated: true,
-        description: description ? t(description) : t('Members will land on {{name}} when they enter your group.', { name }),
-        renderIcon: className => <GroupViewIcon view={presented} className={className} />
-      },
-      ...HOME_VIEW_OPTIONS.slice(1)
-    ]
-  }, [customHomeRow, t])
-
-  const segments = options.map(option => ({
-    value: option.value,
-    label: option.translated ? option.title : t(option.title),
-    description: option.translated ? option.description : t(option.description),
-    icon: option.icon,
-    renderIcon: option.renderIcon,
-    disabled: option.value === CUSTOM_HOME_VIEW
-  }))
-
-  // Container restyled to read like the Additional settings panels
-  return <SegmentedPicker value={value} onChange={onChange} options={segments} className='rounded-xl border border-foreground/10 bg-foreground/5 p-2' />
-}
-
 const ACCESSIBILITY_OPTIONS = [
   {
     value: GROUP_ACCESSIBILITY.Open,
@@ -259,129 +199,6 @@ const ACCESSIBILITY_OPTIONS = [
     description: 'Nobody can request to join. Members arrive only when a steward invites them directly or shares an invite link.'
   }
 ]
-
-// Returns the nearest open dialog so popovers portal inside it. Radix dialogs are
-// modal, so content portalled to document.body sits behind the scroll lock and
-// stops responding to clicks.
-function popoverSurface (element) {
-  if (!element || typeof element.closest !== 'function') return undefined
-  return element.closest('[role="dialog"][data-state="open"]') || undefined
-}
-
-// A setting rendered as its own heading: the chosen option's title is the label and
-// its explanation sits underneath, so the current choice reads as a sentence rather
-// than as a value inside a form control.
-function SettingSelectRow ({ value, onChange, options, label }) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const anchorRef = useRef()
-  const selected = options.find(o => o.value === value) || options[0]
-  const SelectedIcon = selected.icon
-
-  return (
-    <div className='flex items-start gap-3' ref={anchorRef}>
-      <div className='w-9 h-9 shrink-0 rounded-full bg-selected/20 text-selected flex items-center justify-center'>
-        <SelectedIcon className='w-[18px] h-[18px]' />
-      </div>
-      <div className='flex-1 min-w-0'>
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type='button'
-              aria-label={t(label)}
-              className={cn(
-                '-ml-2 inline-flex items-center gap-2 rounded-md px-2 py-0.5 text-[15px] font-bold text-foreground transition-colors',
-                open ? 'bg-foreground/10' : 'hover:bg-foreground/5'
-              )}
-            >
-              {t(selected.title)}
-              <ChevronDown className={cn('w-3 h-3 opacity-60 transition-transform', open && 'rotate-180')} />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            align='start'
-            arrow={false}
-            container={popoverSurface(anchorRef.current)}
-            className='w-[280px] p-1.5'
-          >
-            {options.map(option => {
-              const OptionIcon = option.icon
-              const isSelected = option.value === value
-              return (
-                <button
-                  key={option.value}
-                  type='button'
-                  onClick={() => { onChange(option.value); setOpen(false) }}
-                  className={cn(
-                    'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors',
-                    isSelected ? 'bg-selected/20 text-selected' : 'text-foreground/80 hover:bg-foreground/5'
-                  )}
-                >
-                  <OptionIcon className='w-4 h-4 shrink-0' />
-                  <span className='text-sm font-semibold'>{t(option.title)}</span>
-                </button>
-              )
-            })}
-          </PopoverContent>
-        </Popover>
-        <p className='text-[13px] leading-snug text-foreground/60 mt-0.5 mb-0'>{t(selected.description)}</p>
-      </div>
-    </div>
-  )
-}
-
-function AdvancedPill ({ isOpen, icon: Icon, label, defaultSummary, onClick }) {
-  const { t } = useTranslation()
-  const pill = (
-    <button
-      type='button'
-      onClick={onClick}
-      aria-pressed={isOpen}
-      className={cn(
-        'inline-flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-[13px] font-semibold transition-all',
-        isOpen
-          ? 'border-selected bg-selected/20 text-selected'
-          : 'border-foreground/20 text-foreground/70 hover:border-foreground/50 hover:text-foreground'
-      )}
-    >
-      <Icon className='w-3 h-3' />
-      {t(label)}
-    </button>
-  )
-
-  if (isOpen || !defaultSummary) return pill
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{pill}</TooltipTrigger>
-      <TooltipContent className='flex flex-col items-start gap-0.5 py-1.5'>
-        <span className='text-[9px] font-bold tracking-widest text-foreground/50'>{t('DEFAULT')}</span>
-        <span className='text-xs font-semibold'>{defaultSummary}</span>
-      </TooltipContent>
-    </Tooltip>
-  )
-}
-
-function AdvancedSection ({ settingKey, icon: Icon, label, onHide, children }) {
-  const { t } = useTranslation()
-  return (
-    <div data-advanced-key={settingKey} className='rounded-xl border border-foreground/10 bg-foreground/5 p-4'>
-      <div className='flex items-center gap-2 mb-1.5'>
-        <Icon className='w-4 h-4 text-selected' />
-        <span className='flex-1 text-sm font-bold text-foreground'>{t(label)}</span>
-        <button
-          type='button'
-          onClick={onHide}
-          aria-label={t('Hide {{label}}', { label: t(label) })}
-          className='text-foreground/50 hover:text-foreground transition-colors'
-        >
-          <X className='w-3.5 h-3.5' />
-        </button>
-      </div>
-      {children}
-    </div>
-  )
-}
 
 function AgreementsEditor ({ agreements, onChange }) {
   const { t } = useTranslation()
@@ -463,7 +280,9 @@ function JoinQuestionsEditor ({ questions, onChange }) {
 
 // The create-group form itself. Rendered identically by the /create-group page and
 // by CreateGroupModal — only the surrounding chrome and the scroll container differ.
-export default function CreateGroupForm ({ onClose, bodyClassName, footerClassName }) {
+// When opened as a modal, requestClose (also exposed on the ref) confirms before
+// discarding any data the user has entered.
+const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClassName, footerClassName }, ref) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const location = useLocation()
@@ -502,6 +321,8 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   const [nameTouched, setNameTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const showConfirmRef = useRef(false)
 
   const [locationObject, setLocationObject] = useState(null)
   const [parentGroups, setParentGroups] = useState(
@@ -509,9 +330,13 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   )
   const [agreements, setAgreements] = useState([])
   const [joinQuestions, setJoinQuestions] = useState([])
-  const [postTypes, setPostTypes] = useState(['discussion', 'event', 'request', 'offer'])
+  const [postTypes, setPostTypes] = useState([...CUSTOM_VIEW_DEFAULT_POST_TYPES])
   const [removedStandardTypes, setRemovedStandardTypes] = useState(new Set())
   const [manualViews, setManualViews] = useState([])
+  const [welcomeExtras, setWelcomeExtras] = useState(null)
+  const [welcomeEnabled, setWelcomeEnabled] = useState(false)
+  const [showWelcomePage, setShowWelcomePage] = useState(true)
+  const welcomeEditorRef = useRef(null)
   const [orderedRows, setOrderedRows] = useState([])
   // Opening create-group from inside a group pre-fills that group as a parent, which
   // isn't a default anyone chose — so show the setting rather than hiding the choice.
@@ -566,8 +391,12 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     const postTypeViews = CUSTOM_VIEW_POST_TYPE_OPTIONS
       .filter(option => option.postTypes.every(type => postTypes.includes(type)))
       .map(option => POST_TYPE_TO_VIEW_TYPE[option.postTypes[0]])
-    return ['all', 'chat', ...postTypeViews, 'map', 'members'].filter(type => !removedStandardTypes.has(type))
-  }, [postTypes, removedStandardTypes])
+    const base = ['all', 'chat', ...postTypeViews, 'map', 'members'].filter(type => !removedStandardTypes.has(type))
+    if (welcomeEnabled && !base.includes('welcome') && !removedStandardTypes.has('welcome')) {
+      return [...base, 'welcome']
+    }
+    return base
+  }, [postTypes, removedStandardTypes, welcomeEnabled])
 
   // Whatever sits at the top of the menu is the home — the backend takes the landing
   // route from the first seeded view. Keyed on the row rather than the array so a
@@ -587,6 +416,15 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
 
   const handleRemoveStandardView = useCallback((type) => {
     setRemovedStandardTypes(prev => new Set(prev).add(type))
+    if (type === 'welcome') {
+      setWelcomeExtras(null)
+      setWelcomeEnabled(false)
+      setOpenAdvanced(prev => {
+        const next = new Set(prev)
+        next.delete('welcome')
+        return next
+      })
+    }
   }, [])
 
   const handleRemoveManualView = useCallback((key) => {
@@ -594,6 +432,19 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   }, [])
 
   const handleAddView = useCallback((viewData) => {
+    if (viewData.type === 'welcome') {
+      setWelcomeExtras({
+        pageContent: viewData.pageContent,
+        showWelcomePage: viewData.showWelcomePage
+      })
+      if (viewData.showWelcomePage !== undefined) setShowWelcomePage(viewData.showWelcomePage)
+      setWelcomeEnabled(true)
+      setJustRevealed('welcome')
+      setOpenAdvanced(prev => {
+        if (prev.has('welcome')) return prev
+        return new Set(prev).add('welcome')
+      })
+    }
     if (STANDARD_VIEW_TYPES.has(viewData.type)) {
       setRemovedStandardTypes(prev => {
         const next = new Set(prev)
@@ -606,17 +457,38 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
   }, [])
 
   const toggleAdvanced = useCallback((key) => {
+    const isOpen = openAdvanced.has(key)
+    if (isOpen && key === 'welcome') {
+      // The editor unmounts with the panel — keep the drafted page in state.
+      setWelcomeExtras(current => ({
+        pageContent: welcomeEditorRef.current?.getHTML?.() ?? current?.pageContent ?? '',
+        showWelcomePage
+      }))
+      setWelcomeEnabled(false)
+      setRemovedStandardTypes(prev => new Set(prev).add('welcome'))
+    }
+    if (!isOpen) {
+      setJustRevealed(key)
+      if (key === 'welcome') {
+        setWelcomeEnabled(true)
+        setRemovedStandardTypes(prev => {
+          if (!prev.has('welcome')) return prev
+          const next = new Set(prev)
+          next.delete('welcome')
+          return next
+        })
+      }
+    }
     setOpenAdvanced(prev => {
       const next = new Set(prev)
       if (next.has(key)) {
         next.delete(key)
       } else {
         next.add(key)
-        setJustRevealed(key)
       }
       return next
     })
-  }, [])
+  }, [openAdvanced, showWelcomePage])
 
   // Revealed editors append below the pills, often past the fold — bring the new one
   // into view so clicking a pill visibly does something.
@@ -665,6 +537,13 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
 
     const newGroup = payload?.data?.createGroup
 
+    const effectiveWelcome = welcomeEnabled
+      ? {
+          pageContent: welcomeEditorRef.current?.getHTML?.() ?? welcomeExtras?.pageContent ?? '',
+          showWelcomePage
+        }
+      : null
+
     if (newGroup?.id && manualRowsInOrder.length > 0) {
       // Fetch the standard views the backend just seeded so manual (custom/link/text) views
       // can be inserted at their correct position rather than always appended at the end.
@@ -699,21 +578,98 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     }
 
     // createGroup ignores agreements and join questions, so they go through
-    // updateGroupSettings once the group exists.
+    // updateGroupSettings once the group exists. Welcome page content lives on
+    // the seeded welcome view; show-to-new-members is a group setting.
     const namedAgreements = agreements.filter(a => trim(a.title))
     const askedQuestions = joinQuestions.filter(q => trim(q.text))
-    if (newGroup?.id && (namedAgreements.length > 0 || askedQuestions.length > 0)) {
-      const changes = {}
-      if (namedAgreements.length > 0) {
-        changes.agreements = namedAgreements.map((a, order) => ({ ...a, order }))
+    const settingsChanges = {}
+    if (namedAgreements.length > 0) {
+      settingsChanges.agreements = namedAgreements.map((a, order) => ({ ...a, order }))
+    }
+    if (askedQuestions.length > 0) settingsChanges.joinQuestions = askedQuestions
+    if (effectiveWelcome?.showWelcomePage !== undefined) {
+      settingsChanges.settings = { showWelcomePage: effectiveWelcome.showWelcomePage }
+    }
+    if (newGroup?.id && Object.keys(settingsChanges).length > 0) {
+      await dispatch(updateGroupSettings(newGroup.id, settingsChanges))
+    }
+
+    if (newGroup?.id && effectiveWelcome) {
+      const viewsResult = await dispatch(fetchGroupViews(newGroup.id))
+      const createdViews = viewsResult?.payload?.data?.group?.groupViews?.items || []
+      const welcomeView = createdViews.find(view => view.type === 'welcome')
+      if (welcomeView?.id && effectiveWelcome.pageContent) {
+        await dispatch(updateGroupView({
+          id: welcomeView.id,
+          groupId: newGroup.id,
+          pageContent: effectiveWelcome.pageContent
+        }))
       }
-      if (askedQuestions.length > 0) changes.joinQuestions = askedQuestions
-      await dispatch(updateGroupSettings(newGroup.id, changes))
     }
 
     if (onClose) onClose()
     dispatch(push(groupUrl(slug)))
   }
+
+  const initialParentIdsRef = useRef(
+    currentGroup && parentGroupOptions.find(p => p.id === currentGroup.id) ? [currentGroup.id] : []
+  )
+
+  /** True when the user has entered anything beyond the form's initial defaults. */
+  const hasEnteredData = useCallback(() => {
+    if (name.trim() || (slugCustomized && slug.trim())) return true
+    if (purpose.trim()) return true
+    if (avatarUrl || bannerUrl) return true
+    if (homeView !== 'STREAM') return true
+    if (visibility !== GROUP_VISIBILITY.Protected) return true
+    if (accessibility !== GROUP_ACCESSIBILITY.Restricted) return true
+    if (locationObject) return true
+    const parentIds = parentGroups.map(group => group.id)
+    const initialParentIds = initialParentIdsRef.current
+    if (parentIds.length !== initialParentIds.length || parentIds.some(id => !initialParentIds.includes(id))) return true
+    if (agreements.length > 0) return true
+    if (joinQuestions.length > 0) return true
+    if (
+      postTypes.length !== CUSTOM_VIEW_DEFAULT_POST_TYPES.length ||
+      postTypes.some(type => !CUSTOM_VIEW_DEFAULT_POST_TYPES.includes(type))
+    ) return true
+    if (welcomeEnabled || removedStandardTypes.size > 0 || manualViews.length > 0) return true
+    if (htmlHasText(welcomeEditorRef.current?.getHTML?.()) || htmlHasText(welcomeExtras?.pageContent)) return true
+    return false
+  }, [
+    name, slug, slugCustomized, purpose, avatarUrl, bannerUrl,
+    homeView, visibility, accessibility, locationObject, parentGroups, agreements,
+    joinQuestions, postTypes, welcomeEnabled, removedStandardTypes, manualViews, welcomeExtras
+  ])
+
+  /** Closes immediately when the form is empty; otherwise asks before discarding. */
+  const requestClose = useCallback(() => {
+    if (!onClose) return
+    if (showConfirmRef.current) return
+    if (hasEnteredData()) {
+      setShowConfirm(true)
+      return
+    }
+    onClose()
+  }, [onClose, hasEnteredData])
+
+  useEffect(() => {
+    showConfirmRef.current = showConfirm
+  }, [showConfirm])
+
+  useImperativeHandle(ref, () => ({
+    requestClose,
+    isConfirmOpen: () => showConfirmRef.current
+  }), [requestClose])
+
+  const handleContinueEditing = useCallback(() => {
+    setShowConfirm(false)
+  }, [])
+
+  const handleDiscardGroup = useCallback(() => {
+    setShowConfirm(false)
+    onClose?.()
+  }, [onClose])
 
   const advancedSettings = useMemo(() => [
     {
@@ -739,6 +695,36 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
       defaultSummary: t('Discussions, events, requests, offers'),
       render: () => (
         <PostTypePills postTypes={postTypes} onPostTypesChange={setPostTypes} label={t('Accepted post types')} />
+      )
+    },
+    {
+      key: 'welcome',
+      icon: Hand,
+      label: 'Welcome',
+      defaultSummary: welcomeEnabled ? null : t('No welcome page'),
+      render: () => (
+        <div className='flex flex-col gap-2'>
+          <div className='flex items-center gap-2'>
+            <SwitchStyled
+              checked={showWelcomePage}
+              onChange={() => setShowWelcomePage(v => !v)}
+              backgroundColor={showWelcomePage ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+            />
+            <span className='text-sm text-foreground/80'>
+              {t('Show this welcome page to new members when they first land in the group.')}
+            </span>
+          </div>
+          <HyloEditor
+            contentHTML={welcomeExtras?.pageContent || ''}
+            className='min-h-[120px] p-2'
+            containerClassName='hyloEditor flex flex-col border border-foreground/20 rounded-lg bg-input'
+            extendedMenu
+            groupIds={[]}
+            ref={welcomeEditorRef}
+            showMenu
+            type='welcomePage'
+          />
+        </div>
       )
     },
     {
@@ -771,7 +757,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
     }
   ].filter(setting => !setting.hidden), [
     t, locationObject, postTypes, parentGroupOptions, parentGroups,
-    agreements, joinQuestions
+    agreements, joinQuestions, welcomeEnabled, showWelcomePage, welcomeExtras?.pageContent
   ])
 
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
@@ -910,16 +896,16 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
           <div className='flex items-end justify-between gap-2 mb-2'>
             <div className='min-w-0'>
               <span className='text-xs font-bold text-foreground/80'>{t("Choose your group's home")}</span>
-              <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your group.')}</p>
+              <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your group. You can change this later by editing the group menu.')}</p>
             </div>
             {!showMenuEditor && (
               <button
                 type='button'
                 onClick={() => setShowMenuEditor(true)}
-                className='shrink-0 flex items-center gap-1.5 text-xs font-semibold text-foreground/70 hover:text-foreground border border-foreground/20 hover:border-foreground/40 rounded-md px-2 py-1 transition-colors'
+                className='shrink-0 flex items-center gap-2 text-sm font-semibold text-foreground/70 hover:text-foreground border border-foreground/20 hover:border-foreground/40 rounded-md px-3 py-1.5 transition-colors'
               >
-                <Settings className='w-3.5 h-3.5' />
-                {t('Edit Menu')}
+                <Settings className='w-4 h-4' />
+                {t('Edit Full Menu')}
               </button>
             )}
           </div>
@@ -945,7 +931,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
                 />
               </AdvancedSection>
               )
-            : <HomeViewPicker value={homeView} onChange={setHomeView} customHomeRow={customHomeRow} />}
+            : <HomeViewPicker value={homeView} onChange={setHomeView} customHomeRow={customHomeRow} options={HOME_VIEW_OPTIONS} />}
         </div>
 
         {visibility === GROUP_VISIBILITY.Public && (
@@ -1004,7 +990,7 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
       <div className={cn('flex items-center justify-end gap-3', footerClassName)}>
         {submitError && <span className='text-error text-sm flex-1'>{submitError}</span>}
         {onClose && (
-          <Button variant='outline' onClick={onClose} disabled={submitting}>
+          <Button variant='outline' onClick={requestClose} disabled={submitting}>
             {t('Cancel')}
           </Button>
         )}
@@ -1017,6 +1003,21 @@ export default function CreateGroupForm ({ onClose, bodyClassName, footerClassNa
           <ArrowRight className='w-4 h-4 ml-2' />
         </Button>
       </div>
+
+      {onClose && (
+        <UnsavedDraftLeaveDialog
+          open={showConfirm}
+          onOpenChange={open => { if (!open) setShowConfirm(false) }}
+          title={t('Discard this group?')}
+          description={t('You have entered information for this group. If you discard it, that information will be lost.')}
+          continueEditingLabel={t('Continue Editing')}
+          discardLabel={t('Discard Group')}
+          onContinueEditing={handleContinueEditing}
+          onDiscard={handleDiscardGroup}
+        />
+      )}
     </>
   )
-}
+})
+
+export default CreateGroupForm

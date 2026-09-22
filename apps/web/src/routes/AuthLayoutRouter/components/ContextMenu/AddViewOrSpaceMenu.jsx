@@ -17,7 +17,7 @@ import { AddCard } from './GroupViewCard'
  * keeps the dashed add affordance that menu already used, now as one control
  * instead of a separate button per kind.
  */
-export const AddViewOrSpaceButton = React.forwardRef(({ className, ...props }, ref) => {
+export const AddViewOrSpaceButton = React.forwardRef(({ className, label, ...props }, ref) => {
   const { t } = useTranslation()
   return (
     <button
@@ -30,7 +30,7 @@ export const AddViewOrSpaceButton = React.forwardRef(({ className, ...props }, r
       {...props}
     >
       <Plus className='w-4 h-4' />
-      <span>{t('Add')}</span>
+      <span>{label || t('Add')}</span>
     </button>
   )
 })
@@ -44,7 +44,7 @@ AddViewOrSpaceButton.displayName = 'AddViewOrSpaceButton'
  * Each option carries a line explaining what it is, because the view/space
  * distinction is the part people get wrong.
  */
-export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAddSpace = true, trigger }) {
+export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAddSpace = true, trigger, label }) {
   const { t } = useTranslation()
 
   const options = [
@@ -67,7 +67,7 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        {trigger || <AddCard label={t('Add')} />}
+        {trigger || <AddCard label={label || t('Add')} />}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         // Above the trigger: the Add control sits at the foot of these menus, so a

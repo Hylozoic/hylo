@@ -9,13 +9,25 @@
   }
 
   /* Placeholder (at the top) */
+  .ProseMirror p.is-editor-empty:first-child {
+    position: relative;
+  }
+
   .ProseMirror p.is-editor-empty:first-child::before {
     // Matches placeholder text in `PostEditor`
     color: hsl(var(--foreground) / .5);
     content: attr(data-placeholder);
-    float: left;
-    height: 0;
     pointer-events: none;
+    // A wrapping placeholder pushes the composer past its one-line resting
+    // height, so keep it to a single ellipsized line. This needs a real box to
+    // clip against, so it is positioned out of flow rather than the old
+    // `float: left; height: 0` — overflow cannot clip a zero-height float
+    // without hiding the text completely.
+    position: absolute;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .ProseMirror p:last-child {

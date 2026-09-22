@@ -1,10 +1,8 @@
 import { GraphQLError } from 'graphql'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
-import { recountPostTypesForView, TYPED_BADGE_VIEW_TYPES, TextHelpers } from '@hylo/shared'
+import { recountPostTypesForView, TextHelpers } from '@hylo/shared'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
-
-const BADGE_VIEW_TYPES = ['chat', ...TYPED_BADGE_VIEW_TYPES]
 
 /** node-pg binds a JS array as a Postgres array type; in jsonb that becomes `{}` for []. */
 function topicsForJsonb (topics) {
@@ -17,69 +15,6 @@ function sanitizedLink (link) {
   if (link == null || link === '') return link
   const trimmed = String(link).trim()
   return TextHelpers.sanitizeURL(trimmed) || trimmed
-}
-
-/**
- * True when the user still has unread chat/typed views in this group, or unread
- * on any child space (membership or nested badge views).
- */
-async function groupHasUnreadBadgeSignals (userId, groupId) {
-  const viewUnread = await bookshelf.knex('group_views_users as gvu')
-    .join('group_views as gv', 'gv.id', 'gvu.view_id')
-    .where('gvu.user_id', userId)
-    .where('gv.group_id', groupId)
-    .where('gvu.new_post_count', '>', 0)
-    .whereIn('gv.type', BADGE_VIEW_TYPES)
-    .first('gvu.id')
-  if (viewUnread) return true
-
-  const spaceIds = await bookshelf.knex('group_views')
-    .where({ group_id: groupId, type: 'space' })
-    .whereNotNull('linked_group_id')
-    .pluck('linked_group_id')
-
-  if (spaceIds.length === 0) return false
-
-  const spaceMembershipUnread = await bookshelf.knex('group_memberships')
-    .where({ user_id: userId, active: true })
-    .whereIn('group_id', spaceIds)
-    .where('new_post_count', '>', 0)
-    .first('id')
-  if (spaceMembershipUnread) return true
-
-  const spaceViewUnread = await bookshelf.knex('group_views_users as gvu')
-    .join('group_views as gv', 'gv.id', 'gvu.view_id')
-    .where('gvu.user_id', userId)
-    .whereIn('gv.group_id', spaceIds)
-    .where('gvu.new_post_count', '>', 0)
-    .whereIn('gv.type', BADGE_VIEW_TYPES)
-    .first('gvu.id')
-  return Boolean(spaceViewUnread)
-}
-
-/**
- * Zero membership.new_post_count when this group (and its spaces) have no remaining
- * menu badges. Also tries parent groups that embed this group as a space.
- */
-async function clearMembershipIfNoUnreadBadges (userId, groupId) {
-  if (!userId || !groupId) return
-
-  const clearOne = async (id) => {
-    if (await groupHasUnreadBadgeSignals(userId, id)) return
-    const membership = await GroupMembership.forPair(userId, id).fetch()
-    if (membership && membership.get('new_post_count') > 0) {
-      await membership.save({ new_post_count: 0 }, { patch: true })
-    }
-  }
-
-  await clearOne(groupId)
-
-  const parentIds = await bookshelf.knex('group_views')
-    .where({ type: 'space', linked_group_id: groupId })
-    .pluck('group_id')
-  for (const parentId of [...new Set(parentIds)]) {
-    await clearOne(parentId)
-  }
 }
 
 async function requireAdmin (userId, groupId, action) {
@@ -149,12 +84,37 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
   if (!view) throw new GraphQLError('View not found')
 
   const groupId = view.get('group_id')
-  await requireAdmin(userId, groupId, 'update views')
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
+  const { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } = Responsibility.constants
+  const isAdmin = responsibilities.includes(RESP_ADMINISTRATION)
+  const incomingSettings = settings
+  const hasOtherViewFields = name !== undefined || icon !== undefined || link !== undefined ||
+    pageContent !== undefined || topics !== undefined || orderInFrontOfViewId || addToEnd
+  const isSpaceCollectionSpaceIdsUpdate = view.get('type') === GroupView.Type.SPACE_COLLECTION &&
+    incomingSettings != null &&
+    Array.isArray(incomingSettings.spaceIds) &&
+    !hasOtherViewFields
+
+  if (!isAdmin) {
+    if (!responsibilities.includes(RESP_MANAGE_CONTENT) || !isSpaceCollectionSpaceIdsUpdate) {
+      throw new GraphQLError("You don't have permission to update views for this group")
+    }
+  }
 
   const changes = {}
   if (name !== undefined) changes.name = name
   if (icon !== undefined) changes.icon = icon
-  if (settings !== undefined) changes.settings = settings
+  if (settings !== undefined) {
+    if (!isAdmin && isSpaceCollectionSpaceIdsUpdate) {
+      const currentSettings = view.get('settings') || {}
+      changes.settings = {
+        ...currentSettings,
+        spaceIds: incomingSettings.spaceIds.map(spaceId => String(spaceId))
+      }
+    } else {
+      changes.settings = settings
+    }
+  }
   if (link !== undefined) changes.link = sanitizedLink(link)
   if (pageContent !== undefined) changes.page_content = pageContent
   if (topics !== undefined) changes.topics = topicsForJsonb(topics)
@@ -196,6 +156,7 @@ export async function deleteGroupView (userId, id, context) {
     await view.destroy({ transacting: trx })
     const remaining = await GroupView.findForGroup(groupId, { transacting: trx })
     await GroupView.applyOrder(remaining.map(v => Number(v.id)), { groupId, trx })
+    await GroupView.syncMenuViewCount(groupId, { transacting: trx })
   }).catch(err => {
     throw new GraphQLError(`Deletion of view failed: ${err.message}`)
   })
@@ -263,6 +224,7 @@ export async function setGroupViewHidden (userId, id, hidden, context) {
       const remaining = await GroupView.findForGroup(groupId, { transacting: trx })
       const ids = remaining.map(v => Number(v.id))
       await GroupView.applyOrder(ids, { groupId, trx })
+      await GroupView.syncMenuViewCount(groupId, { transacting: trx })
     })
   } else {
     if (currentOrder != null) {
@@ -276,6 +238,7 @@ export async function setGroupViewHidden (userId, id, hidden, context) {
       .first()
     const nextOrder = maxOrderRow && maxOrderRow.max_order != null ? Number(maxOrderRow.max_order) + 1 : 0
     await view.save({ order: nextOrder, updated_at: new Date() }, { patch: true })
+    await GroupView.syncMenuViewCount(groupId)
   }
 
   const group = await Group.find(groupId)
@@ -328,32 +291,33 @@ export async function updateGroupViewUser (userId, viewId, { lastReadPostId } = 
   const updates = { updated_at: new Date() }
 
   if (lastReadPostId != null) {
-    updates.last_read_post_id = lastReadPostId
-    const groupId = view.get('group_id')
-    const postTypes = recountPostTypesForView(view.get('type'))
+    // Socket mark-read can race createPost's transaction: the id is on the
+    // client before posts is committed, which trips last_read_post_id_foreign.
+    const postExists = await bookshelf.knex('posts').where('id', lastReadPostId).first('id')
+    if (postExists) {
+      updates.last_read_post_id = lastReadPostId
+      const groupId = view.get('group_id')
+      const postTypes = recountPostTypesForView(view.get('type'))
 
-    if (!postTypes) {
-      updates.new_post_count = 0
-    } else {
-      const newPostCount = await bookshelf.knex('posts')
-        .join('groups_posts', 'posts.id', 'groups_posts.post_id')
-        .where('groups_posts.group_id', groupId)
-        .whereIn('posts.type', postTypes)
-        .where('posts.id', '>', lastReadPostId)
-        .whereNull('posts.deactivated_at')
-        .count('posts.id as count')
-        .then(rows => parseInt(rows[0]?.count || 0))
-      updates.new_post_count = newPostCount
+      if (!postTypes) {
+        updates.new_post_count = 0
+      } else {
+        const newPostCount = await bookshelf.knex('posts')
+          .join('groups_posts', 'posts.id', 'groups_posts.post_id')
+          .where('groups_posts.group_id', groupId)
+          .whereIn('posts.type', postTypes)
+          .where('posts.id', '>', lastReadPostId)
+          .whereNull('posts.deactivated_at')
+          .count('posts.id as count')
+          .then(rows => parseInt(rows[0]?.count || 0))
+        updates.new_post_count = newPostCount
+      }
     }
   }
 
   await viewUser.save(updates, { patch: true })
 
-  // When this view is fully caught up, drop the group/space membership badge if
-  // nothing else in the menu (views or nested spaces) still shows unread.
-  if (lastReadPostId != null && updates.new_post_count === 0) {
-    await clearMembershipIfNoUnreadBadges(userId, view.get('group_id'))
-  }
+  await GroupMembership.syncBadgeCounts(view.get('group_id'), [userId])
 
   // Return the GroupView; its newPostCount/lastReadPostId resolvers re-read the updated row.
   return GroupView.where({ id: viewId }).fetch()
@@ -367,7 +331,7 @@ export async function markViewAsRead (userId, viewId) {
   if (!view) throw new GraphQLError('View not found')
 
   await GroupViewUser.markRead(viewId, userId)
-  await clearMembershipIfNoUnreadBadges(userId, view.get('group_id'))
+  await GroupMembership.syncBadgeCounts(view.get('group_id'), [userId])
   // Return GroupView so the frontend can refresh newPostCount/lastReadPostId in one round-trip.
   return GroupView.where({ id: viewId }).fetch()
 }
@@ -385,12 +349,11 @@ export async function markGroupAsRead (userId, groupId) {
   const membership = await GroupMembership.forPair(userId, groupId).fetch()
   if (!membership) throw new GraphQLError('Not a member of this group')
 
-  await membership.save({ new_post_count: 0 }, { patch: true })
-
   const views = await GroupView.findForGroup(groupId)
   for (const view of views.models) {
     await GroupViewUser.markRead(view.id, userId)
   }
+  await GroupMembership.syncBadgeCounts(groupId, [userId])
 
   return group
 }

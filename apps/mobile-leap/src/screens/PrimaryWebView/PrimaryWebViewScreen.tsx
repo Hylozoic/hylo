@@ -27,11 +27,18 @@ export default function PrimaryWebViewScreen () {
 
   useEffect(() => { hydrate() }, [hydrate])
 
-  // iOS: small manual bottom pad for the home indicator. Android: no bottom inset —
-  // RN 0.85 edge-to-edge reports nav-bar insets; padding here shrinks the WebView and
-  // leaves a dead band (legacy RN 0.77 reported 0 on the same devices). Web content
-  // extends to the screen bottom like the existing mobile app.
-  const bottomInset = isIOS ? Math.max(insets.bottom * 0.5, 8) : 0
+  // Apply the bottom inset as an explicit style, never via SafeAreaView's native
+  // 'bottom' edge. SafeAreaView computes insets per-instance on the native side
+  // (Android: overlap of the view's own getGlobalVisibleRect against root window
+  // insets) rather than reading the SafeAreaProvider context — and that per-instance
+  // measurement is unreliable inside a react-native-screens Native Stack screen
+  // (each screen is hosted in its own Fragment), reporting 0 even though this
+  // screen's own useSafeAreaInsets() (context value, computed at the app-root
+  // SafeAreaProvider) is correct. So: keep 'bottom' out of safeAreaEdges on every
+  // platform and always pad manually from the hook value. iOS keeps a reduced pad
+  // (home indicator affordance is smaller than the reported inset); Android uses
+  // the full inset so the 3-button/gesture nav bar never overlaps WebView content.
+  const bottomInset = isIOS ? Math.max(insets.bottom * 0.5, 8) : insets.bottom
   const safeAreaEdges = ['top', 'left', 'right'] as const
 
   const currentUserResult = useCurrentUser({

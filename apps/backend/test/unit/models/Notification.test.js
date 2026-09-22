@@ -79,6 +79,12 @@ describe('Notification', function () {
             actor_id: actor.id,
             group_id: group.id
           },
+          groupInvitation: {
+            meta: { reasons: ['groupInvitation'] },
+            reader_id: reader.id,
+            actor_id: actor.id,
+            group_id: group.id
+          },
           mention: {
             post_id: post.id,
             meta: { reasons: ['mention'] },
@@ -240,7 +246,42 @@ describe('Notification', function () {
       expect(pns.length).to.equal(1)
       const pn = pns.first()
       expect(pn.get('alert')).to.equal('Joe asked to join The Space in Parent Group')
-      expect(pn.get('path')).to.contain(`/groups/${space.get('slug')}/settings/requests`)
+      expect(pn.get('path')).to.contain(`/groups/${parentGroup.get('slug')}/spaces/${space.get('slug')}/requests`)
+    })
+
+    it('sends a push for a group invitation', () => {
+      return preloadNotification(activities.groupInvitation, Notification.MEDIUM.Push)
+        .then(notification => notification.send())
+        .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
+        .then(pns => {
+          expect(pns.length).to.equal(1)
+          const pn = pns.first()
+          expect(pn.get('alert')).to.equal('Joe has invited you to join them in My Group')
+          expect(pn.get('path')).to.contain('/my/invitations')
+        })
+    })
+
+    it('sends a push for a space invitation naming the space and parent group', async () => {
+      const parentGroup = await factories.group({ name: 'Parent Group', slug: `parent-inv-${Date.now()}` }).save()
+      const space = await factories.group({
+        name: 'The Space',
+        slug: `the-space-inv-${Date.now()}`,
+        type: 'space',
+        parent_id: parentGroup.id
+      }).save()
+      const notification = await preloadNotification({
+        meta: { reasons: ['groupInvitation'] },
+        reader_id: reader.id,
+        actor_id: actor.id,
+        group_id: space.id,
+        other_group_id: parentGroup.id
+      }, Notification.MEDIUM.Push)
+      await notification.send()
+      const pns = await PushNotification.where({ user_id: reader.id }).fetchAll()
+      expect(pns.length).to.equal(1)
+      const pn = pns.first()
+      expect(pn.get('alert')).to.equal('Joe has invited you to join them in space The Space in Parent Group')
+      expect(pn.get('path')).to.contain('/my/invitations')
     })
 
     it('sends a push for an approved join request', () => {
@@ -274,6 +315,56 @@ describe('Notification', function () {
           expect(Email.sendPostMentionNotification).to.have.been.called()
         })
         .then(() => unspyify(Email, 'sendPostMentionNotification'))
+    })
+
+    it('names a member group in a new post email when the post is also in a group the reader is not in', async () => {
+      const otherGroup = await factories.group({ name: 'GroupX', slug: `group-x-${Date.now()}` }).save()
+      const sharedPost = await factories.post({
+        name: 'Shared Post',
+        user_id: actor.id,
+        description: 'Posted to two groups'
+      }).save()
+      // Attach the non-member group first so Activity.groupIds[0] would be GroupX
+      await otherGroup.posts().attach(sharedPost)
+      await group.posts().attach(sharedPost)
+      spyify(Email, 'sendPostNotification', opts => {
+        expect(opts.data.group_name).to.equal('My Group')
+        expect(opts.data.group_name).not.to.equal('GroupX')
+      })
+      const notification = await preloadNotification({
+        post_id: sharedPost.id,
+        meta: { reasons: [`newPost: ${group.id}`] },
+        reader_id: reader.id,
+        actor_id: actor.id,
+        group_id: group.id
+      }, Notification.MEDIUM.Email)
+      await notification.send()
+      expect(Email.sendPostNotification).to.have.been.called()
+      unspyify(Email, 'sendPostNotification')
+    })
+
+    it('does not name a non-member group even when that group is set on the activity', async () => {
+      const otherGroup = await factories.group({ name: 'GroupX', slug: `group-x-act-${Date.now()}` }).save()
+      const sharedPost = await factories.post({
+        name: 'Shared Post',
+        user_id: actor.id,
+        description: 'Posted to two groups'
+      }).save()
+      await otherGroup.posts().attach(sharedPost)
+      await group.posts().attach(sharedPost)
+      spyify(Email, 'sendPostNotification', opts => {
+        expect(opts.data.group_name).to.equal('My Group')
+      })
+      const notification = await preloadNotification({
+        post_id: sharedPost.id,
+        meta: { reasons: [`newPost: ${otherGroup.id}`] },
+        reader_id: reader.id,
+        actor_id: actor.id,
+        group_id: otherGroup.id
+      }, Notification.MEDIUM.Email)
+      await notification.send()
+      expect(Email.sendPostNotification).to.have.been.called()
+      unspyify(Email, 'sendPostNotification')
     })
 
     it('sends no email for a comment', () => {
@@ -332,13 +423,13 @@ describe('Notification', function () {
       }).save()
       spyify(Email, 'sendJoinRequestNotification', opts => {
         expect(opts.sender).to.contain({
-          name: 'The Space in Parent Group (via Hylo)'
+          name: 'Parent Group > The Space (via Hylo)'
         })
         expect(opts.data).to.contain({
           group_name: 'The Space in Parent Group',
           requester_name: 'Joe'
         })
-        expect(opts.data.settings_url).to.contain(`/groups/${space.get('slug')}/settings/requests`)
+        expect(opts.data.settings_url).to.contain(`/groups/${parentGroup.get('slug')}/spaces/${space.get('slug')}/requests`)
       })
       const notification = await preloadNotification({
         meta: { reasons: ['joinRequest'] },
@@ -366,6 +457,7 @@ describe('Notification', function () {
           group_name: 'My Group',
           approver_name: 'Joe'
         })
+        expect(opts.data.group_url).to.match(/\/groups\/my-group\//)
       })
 
       return preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Email)
@@ -424,6 +516,10 @@ describe('Notification', function () {
 
     it('returns the empty string as a fallthrough', () => {
       expect(Notification.priorityReason(['wat', 'lol'])).to.equal('')
+    })
+
+    it('recognizes groupInvitation', () => {
+      expect(Notification.priorityReason(['groupInvitation'])).to.equal('groupInvitation')
     })
   })
 

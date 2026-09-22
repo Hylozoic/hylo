@@ -82,6 +82,13 @@ describe('parseCoordinate', () => {
     const returnedResult = parseCoordinate(invalidInput)
     expect(returnedResult.coordinate).toBeNull()
   })
+
+  it('parses a map-click lat, lng string', () => {
+    const returnedResult = parseCoordinate('37.7749, -122.4194')
+    expect(returnedResult.error).toBeUndefined()
+    expect(returnedResult.coordinate.lat).toBe(37.7749)
+    expect(returnedResult.coordinate.lng).toBe(-122.4194)
+  })
 })
 
 describe('convertCoordinateToLocation', () => {

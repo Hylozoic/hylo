@@ -2,9 +2,9 @@
 
 const SYSTEM_ROLES = [
   {
-    name: 'Coordinator',
+    name: 'Administrator',
     emoji: '🪄',
-    description: 'Coordinators are empowered to do everything related to group administration.',
+    description: 'Administrators are empowered to do all group management and configuration.',
     responsibilities: ['Administration', 'Add Members', 'Remove Members', 'Manage Content']
   },
   {

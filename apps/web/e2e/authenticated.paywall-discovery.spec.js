@@ -4,7 +4,7 @@ import { fetchOfferingIdForGroup } from './helpers/fetchOfferingIdForGroup.js'
 
 /**
  * Batch P2 / P6 — paywall discovery & stream paywall (`e2e-paywall-group`).
- * `e2e.user` is a plain member without paid scope (no Coordinator on that group).
+ * `e2e.user` is a plain member without paid scope (no Administrator on that group).
  * Seeded offering `E2E Paywall Stream Monthly` (`seed-e2e-baseline.js`).
  * Warm `/my/posts` first so `checkLogin` + Redux `Me` are ready before `OfferingDetails` reads `currentUser` (avoids transient "Sign up to Purchase").
  */

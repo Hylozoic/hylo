@@ -1,12 +1,15 @@
 import { cn } from 'util/index'
 import { Check, Pencil, X } from 'lucide-react'
 import PropTypes from 'prop-types'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import TextareaAutosize from 'react-textarea-autosize'
 import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
+import CardFileAttachments from 'components/CardFileAttachments'
+import CardImageAttachments from 'components/CardImageAttachments'
+import EmojiRow from 'components/EmojiRow'
+import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML'
 import ProfileCardDialog from 'components/ProfileCardDialog/ProfileCardDialog'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
@@ -18,58 +21,69 @@ export default function Message ({ message, isHeader }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
+  const editorRef = useRef()
   const [editing, setEditing] = useState(false)
-  const [editText, setEditText] = useState(message.text)
   const [showActions, setShowActions] = useState(false)
 
   const person = message.creator
   const pending = message.id.slice(0, 13) === 'messageThread'
   const isCreator = currentUser && person?.id === currentUser.id
   const canEdit = isCreator && !pending
+  const attachments = message.attachments?.toRefArray
+    ? message.attachments.toRefArray()
+    : (message.attachments || [])
 
   const text = pending
     ? 'sending...'
-    : TextHelpers.markdown(message.text)
+    : message.text ? TextHelpers.markdown(message.text) : ''
 
   const editedTimestamp = message.editedAt
     ? `${t('edited')} ${DateTimeHelpers.humanDate(message.editedAt)}`
     : null
 
+  useEffect(() => {
+    if (!editing) return
+    const id = setTimeout(() => editorRef.current?.focus('end'), 100)
+    return () => clearTimeout(id)
+  }, [editing])
+
   const handleEdit = useCallback(() => {
-    setEditText(message.text)
     setEditing(true)
     setShowActions(false)
+  }, [])
+
+  const discardEdit = useCallback(() => {
+    editorRef.current?.setContent(message.text)
+    setEditing(false)
   }, [message.text])
 
-  const handleCancelEdit = useCallback(() => {
-    if (editText !== message.text && !window.confirm(t('Do you want to discard your edit?'))) {
-      return
-    }
-    setEditText(message.text)
-    setEditing(false)
-  }, [editText, message.text, t])
+  const handleEditCancel = useCallback(() => {
+    discardEdit()
+    return true
+  }, [discardEdit])
 
-  const handleSaveEdit = useCallback(() => {
-    const trimmed = editText.trim()
-    if (!trimmed) return
-    if (trimmed === message.text) {
-      setEditing(false)
-      return
+  const handleEditCancelClick = useCallback((event) => {
+    event.stopPropagation()
+    if (window.confirm(t('Do you want to discard your edit?'))) {
+      discardEdit()
     }
-    dispatch(updateComment(message.id, trimmed))
-    setEditing(false)
-  }, [dispatch, editText, message.id, message.text])
+  }, [discardEdit, t])
 
-  const handleEditKeyDown = useCallback((event) => {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      handleCancelEdit()
+  const handleEditSave = useCallback(contentHTML => {
+    if (editorRef.current?.isEmpty()) {
+      return true
     }
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault()
-      handleSaveEdit()
+    dispatch(updateComment(message.id, contentHTML))
+    setEditing(false)
+    return true
+  }, [dispatch, message.id])
+
+  const handleEditSaveClick = useCallback((event) => {
+    event.stopPropagation()
+    if (editorRef.current) {
+      handleEditSave(editorRef.current.getHTML())
     }
-  }, [handleCancelEdit, handleSaveEdit])
+  }, [handleEditSave])
 
   return (
     <div
@@ -89,7 +103,7 @@ export default function Message ({ message, isHeader }) {
         {isHeader && (
           <div className='flex justify-between items-center gap-2'>
             <ProfileCardDialog personId={person.id}>
-              <div className='text-foreground font-bold -mb-2 truncate hover:underline'>{person.name}</div>
+              <div className='text-foreground font-bold truncate hover:underline'>{person.name}</div>
             </ProfileCardDialog>
             <div className='flex items-center gap-1 flex-shrink-0'>
               {canEdit && !editing && (
@@ -120,56 +134,75 @@ export default function Message ({ message, isHeader }) {
         <div className='text-foreground break-words'>
           {editing
             ? (
-              <div className='flex flex-col gap-2'>
-                <TextareaAutosize
-                  value={editText}
-                  onChange={e => setEditText(e.target.value)}
-                  onKeyDown={handleEditKeyDown}
-                  className='text-foreground bg-background w-full p-2 border border-foreground/20 rounded-lg focus:outline-none focus:border-focus resize-none'
-                  minRows={2}
-                  maxRows={8}
-                  autoFocus
+              <div className='relative'>
+                <HyloEditor
+                  className='py-2.5 pr-[50px] pl-2.5 m-0 overflow-y-auto max-h-[200px] cursor-text border border-foreground/20 rounded-lg'
+                  contentHTML={message.text}
+                  onEscape={handleEditCancel}
+                  onEnter={handleEditSave}
+                  blurOnScroll={false}
+                  ref={editorRef}
                 />
-                <div className='flex gap-2 justify-end'>
+                <div className='absolute top-2.5 right-2.5 flex items-center gap-1.5 z-[1]'>
                   <button
                     type='button'
-                    onClick={handleCancelEdit}
-                    aria-label={t('Cancel')}
-                    className='p-1.5 rounded text-foreground/60 hover:text-foreground hover:bg-foreground/10'
+                    onClick={handleEditSaveClick}
+                    aria-label={t('Save')}
+                    data-testid='Save'
+                    className='p-0.5 rounded text-selected hover:bg-selected/10'
                   >
-                    <X className='w-4 h-4' />
+                    <Check className='w-5 h-5' />
                   </button>
                   <button
                     type='button'
-                    onClick={handleSaveEdit}
-                    aria-label={t('Save')}
-                    disabled={!editText.trim()}
-                    className='p-1.5 rounded text-primary hover:bg-primary/10 disabled:opacity-40'
+                    onClick={handleEditCancelClick}
+                    aria-label={t('Cancel')}
+                    data-testid='Cancel'
+                    className='p-0.5 rounded text-destructive hover:bg-destructive/10'
                   >
-                    <Check className='w-4 h-4' />
+                    <X className='w-5 h-5' />
                   </button>
                 </div>
               </div>
               )
             : (
-              <>
-                {!isHeader && canEdit && (
-                  <button
-                    type='button'
-                    onClick={handleEdit}
-                    aria-label={t('Edit')}
-                    className={cn(
-                      'float-right ml-2 p-1 rounded text-foreground/40 hover:text-foreground transition-opacity',
-                      showActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              <div className='flex flex-col sm:flex-row gap-1'>
+                <div className='flex-1 min-w-0'>
+                  {!isHeader && canEdit && (
+                    <button
+                      type='button'
+                      onClick={handleEdit}
+                      aria-label={t('Edit')}
+                      className={cn(
+                        'float-right ml-2 p-1 rounded text-foreground/40 hover:text-foreground transition-opacity',
+                        showActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      )}
+                    >
+                      <Pencil className='w-3.5 h-3.5' />
+                    </button>
+                  )}
+                  <ClickCatcher>
+                    {attachments.length > 0 && (
+                      <>
+                        <CardImageAttachments attachments={attachments} linked className={cn('mb-2', isHeader && 'mt-2')} />
+                        <CardFileAttachments attachments={attachments} className='mb-2' />
+                      </>
                     )}
-                  >
-                    <Pencil className='w-3.5 h-3.5' />
-                  </button>
-                )}
-                <ClickCatcher>
-                  <HyloHTML element='div' className='break-words max-w-full' html={text} />
-                </ClickCatcher>
-              </>
+                    {text && (
+                      <HyloHTML element='div' className='break-words max-w-full' html={text} />
+                    )}
+                  </ClickCatcher>
+                </div>
+                <div className='flex-shrink-0 self-end sm:self-start pt-0.5'>
+                  <EmojiRow
+                    className='!mr-0'
+                    pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
+                    post={message}
+                    comment={message}
+                    currentUser={currentUser}
+                  />
+                </div>
+              </div>
               )}
         </div>
       </div>
@@ -183,7 +216,8 @@ Message.propTypes = {
     text: PropTypes.string,
     createdAt: PropTypes.string,
     editedAt: PropTypes.string,
-    creator: PropTypes.object
+    creator: PropTypes.object,
+    commentReactions: PropTypes.array
   }).isRequired,
   isHeader: PropTypes.bool
 }

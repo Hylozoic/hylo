@@ -11,12 +11,61 @@ import { createS3StorageStream } from './storage'
 import { validate } from './validation'
 import * as types from './types'
 
+const REMOTE_FETCH_HEADERS = {
+  'User-Agent': 'Hylo/1.0 (https://www.hylo.com; hello@hylo.com) image-rehost'
+}
+
+/** Filestack file handle from a CDN URL (ignores transforms and appended filenames). */
+export function filestackHandle (url) {
+  if (!url || typeof url !== 'string' || !url.includes('cdn.filestackcontent.com/')) return null
+  try {
+    const parsed = new URL(url)
+    const parts = parsed.pathname.split('/').filter(Boolean)
+    const handles = parts.filter(part => /^[A-Za-z0-9]{6,}$/.test(part))
+    return handles.length ? handles[handles.length - 1] : null
+  } catch {
+    return null
+  }
+}
+
+/** Drop Filestack processing segments and appended filenames so we fetch the stored file. */
+export function originalFilestackUrl (url) {
+  const handle = filestackHandle(url)
+  if (!handle) return url
+  return `https://cdn.filestackcontent.com/${handle}`
+}
+
+/** Filestack CDN will not serve raw SVG (400). Ask it for a PNG raster instead. */
+export function filestackPngUrl (url) {
+  const handle = filestackHandle(url)
+  if (!handle) return null
+  return `https://cdn.filestackcontent.com/output=format:png/${handle}`
+}
+
+function isSvgFilename (filename) {
+  return typeof filename === 'string' && /\.svg(\?|$)/i.test(filename)
+}
+
 export function upload (args) {
   let { type, id, userId, url, stream, onProgress, filename } = args
+  if (url) {
+    url = originalFilestackUrl(url)
+    if (isSvgFilename(filename)) {
+      const pngUrl = filestackPngUrl(url)
+      if (pngUrl) {
+        url = pngUrl
+        filename = filename.replace(/\.svg$/i, '.png')
+      }
+    }
+  }
+  if (typeof filename === 'string') filename = filename.replace(/\s+/g, '-')
   return validate(args)
     .then(() => {
       let passthrough, converter, storage, didSetup, sourceHasError
-      const source = url ? request(url) : stream
+      // Wikimedia and similar CDNs 403 the default `request` User-Agent.
+      const source = url
+        ? request({ url: encodeURI(url), headers: REMOTE_FETCH_HEADERS })
+        : stream
       if (!filename) filename = url
       function setupStreams (data, resolve, reject) {
         didSetup = true
@@ -79,6 +128,17 @@ export function upload (args) {
       }
 
       return new Promise((resolve, reject) => {
+        if (url && typeof source.on === 'function') {
+          source.on('response', response => {
+            if (response.statusCode < 200 || response.statusCode >= 300) {
+              sourceHasError = true
+              const err = new Error(`Download failed (${response.statusCode})`)
+              if (typeof source.abort === 'function') source.abort()
+              reject(err)
+            }
+          })
+        }
+
         source.on('data', data => {
           if (sourceHasError) return
 
@@ -98,6 +158,11 @@ export function upload (args) {
         })
 
         source.on('end', () => {
+          if (sourceHasError) return
+          if (!didSetup) {
+            reject(new Error('Download produced no data'))
+            return
+          }
           if (passthrough) passthrough.end()
         })
       })

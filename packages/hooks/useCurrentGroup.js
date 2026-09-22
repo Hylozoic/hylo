@@ -20,8 +20,7 @@ export const getLastViewedGroupSlug = currentUser => flow(
 export default function useCurrentGroup ({
   groupQueryScope = {
     withJoinQuestions: true,
-    withPrerequisiteGroups: true,
-    withContextWidgets: true
+    withPrerequisiteGroups: true
   },
   useQueryArgs = {}
 } = {}) {

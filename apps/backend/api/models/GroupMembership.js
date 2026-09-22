@@ -1,5 +1,6 @@
 import HasSettings from './mixins/HasSettings'
 import { isEmpty } from 'lodash'
+import { TYPED_BADGE_VIEW_TYPES } from '@hylo/shared'
 import {
   whereId
 } from './group/queryUtils'
@@ -77,6 +78,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // Save the membership to persist the agreementsAcceptedAt setting
     await this.save(null, { transacting })
+  },
+
+  /**
+   * Record that the member already completed join barriers (agreements and questions).
+   * Keeps showJoinForm true so the welcome/purpose modal can still appear.
+   */
+  async completeJoinBarriers (transacting) {
+    await this.acceptAgreements(transacting)
+    if (!this.getSetting('joinQuestionsAnsweredAt')) {
+      this.addSetting({ joinQuestionsAnsweredAt: new Date().toISOString() })
+      await this.save(null, { transacting })
+    }
   },
 
   async updateAndSave (attrs, { transacting } = {}) {
@@ -158,44 +171,44 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   /**
-   * Assign the Coordinator system role to a member.
+   * Assign the Administrator system role to a member.
    * No-op for spaces — they inherit roles from the parent group.
    */
-  async assignCoordinatorRole (userId, groupId, { transacting } = {}) {
-    const roleScopeId = await Group.roleScopeId(groupId)
+  async assignAdministratorRole (userId, groupId, { transacting } = {}) {
+    const roleScopeId = await Group.roleScopeId(groupId, { transacting })
     if (String(roleScopeId) !== String(groupId)) return
 
     await GroupRole.setupSystemRoles(groupId, { transacting })
-    const coordinator = await GroupRole.findSystemRole(groupId, 'Coordinator', { transacting })
-    if (!coordinator) return
+    const administrator = await GroupRole.findSystemRole(groupId, 'Administrator', { transacting })
+    if (!administrator) return
 
     const exists = await MemberGroupRole.where({
       user_id: userId,
       group_id: groupId,
-      group_role_id: coordinator.id
+      group_role_id: administrator.id
     }).fetch({ transacting })
 
     if (!exists) {
       await MemberGroupRole.forge({
         user_id: userId,
         group_id: groupId,
-        group_role_id: coordinator.id,
+        group_role_id: administrator.id,
         active: true
       }).save(null, { transacting })
     }
   },
 
   /**
-   * Remove the Coordinator system role from a member.
+   * Remove the Administrator system role from a member.
    */
-  async removeCoordinatorRole (userId, groupId, { transacting } = {}) {
-    const coordinator = await GroupRole.findSystemRole(groupId, 'Coordinator', { transacting })
-    if (!coordinator) return
+  async removeAdministratorRole (userId, groupId, { transacting } = {}) {
+    const administrator = await GroupRole.findSystemRole(groupId, 'Administrator', { transacting })
+    if (!administrator) return
 
     await MemberGroupRole.where({
       user_id: userId,
       group_id: groupId,
-      group_role_id: coordinator.id
+      group_role_id: administrator.id
     }).destroy({ require: false, transacting })
   },
 
@@ -218,10 +231,67 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const membership = await GroupMembership.forPair(userOrId, groupOrId).fetch()
     if (membership) {
       membership.addSetting({ lastReadAt: new Date() })
-      await membership.save({ new_post_count: 0 })
-      return membership
+      await membership.save()
+      try {
+        await GroupMembership.syncBadgeCounts(
+          membership.get('group_id'),
+          [membership.get('user_id')]
+        )
+      } catch (err) {
+        sails.log.error('syncBadgeCounts failed after updateLastViewedAt:', err)
+      }
+      return membership.refresh()
     }
     return false
+  },
+
+  /**
+   * Set membership.new_post_count to the space/group menu badge: unread chats
+   * plus 1 per other on-menu typed view that still has unread.
+   */
+  async syncBadgeCounts (groupId, userIds, { transacting } = {}) {
+    if (!groupId) return
+    const ids = userIds
+      ? userIds.map(id => Number(id)).filter(id => Number.isFinite(id))
+      : null
+    if (ids && ids.length === 0) return
+
+    const typedTypes = TYPED_BADGE_VIEW_TYPES
+    const typedPlaceholders = typedTypes.map(() => '?').join(', ')
+    const sql = `
+      UPDATE group_memberships AS gm
+      SET
+        new_post_count = COALESCE(badge.cnt, 0),
+        updated_at = NOW()
+      FROM (
+        SELECT
+          gm2.id,
+          COALESCE(SUM(
+            CASE WHEN gv.type = 'chat' AND gv."order" IS NOT NULL
+              THEN COALESCE(gvu.new_post_count, 0) ELSE 0 END
+          ), 0)
+          + COUNT(*) FILTER (
+              WHERE gv.type IN (${typedPlaceholders})
+                AND gv."order" IS NOT NULL
+                AND COALESCE(gvu.new_post_count, 0) > 0
+            ) AS cnt
+        FROM group_memberships gm2
+        LEFT JOIN group_views gv ON gv.group_id = gm2.group_id
+        LEFT JOIN group_views_users gvu
+          ON gvu.view_id = gv.id AND gvu.user_id = gm2.user_id
+        WHERE gm2.group_id = ?
+          AND gm2.active = true
+          ${ids ? 'AND gm2.user_id = ANY(?::bigint[])' : ''}
+        GROUP BY gm2.id
+      ) AS badge
+      WHERE gm.id = badge.id
+        AND gm.new_post_count IS DISTINCT FROM COALESCE(badge.cnt, 0)
+    `
+    const bindings = ids
+      ? [...typedTypes, groupId, ids]
+      : [...typedTypes, groupId]
+    const query = bookshelf.knex.raw(sql, bindings)
+    await (transacting ? query.transacting(transacting) : query)
   },
 
   /**
@@ -235,7 +305,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
    * @param {Object} [options.transacting] - Database transaction
    * @returns {Promise<GroupMembership>} The membership record
    */
-  async ensureMembership (userOrId, groupOrId, { assignCoordinator = false, transacting } = {}) {
+  async ensureMembership (userOrId, groupOrId, { assignAdministrator = false, transacting } = {}) {
     const userId = userOrId instanceof User ? userOrId.id : userOrId
     const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
 
@@ -252,13 +322,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       if (!existingMembership.get('active')) {
         const group = groupOrId instanceof Group ? groupOrId : await Group.find(groupId, { transacting })
         const memberships = await group.addMembers([userId], {}, { transacting })
-        if (assignCoordinator) {
-          await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })
+        if (assignAdministrator) {
+          await GroupMembership.assignAdministratorRole(userId, groupId, { transacting })
         }
         return memberships[0]
       }
-      if (assignCoordinator) {
-        await GroupMembership.assignCoordinatorRole(userId, groupId, { transacting })
+      if (assignAdministrator) {
+        await GroupMembership.assignAdministratorRole(userId, groupId, { transacting })
       }
       return existingMembership
     }
@@ -274,7 +344,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
 
     return user.joinGroup(group, {
-      assignCoordinator,
+      assignAdministrator,
       fromInvitation: true, // This will ensure join questions are still shown
       transacting
     })
@@ -327,5 +397,39 @@ module.exports = bookshelf.Model.extend(Object.assign({
     await membership.save({ nav_order: newNavOrder }, { patch: true, transacting })
 
     return membership
+  },
+
+  /**
+   * Unpin a group from every user's global nav and compact remaining pin order.
+   * Spaces do not appear in GlobalNav, so converting a group to a space must drop any pins.
+   *
+   * @param {Group|Number} groupOrId - Group instance or group ID
+   * @param {Object} [options] - Options
+   * @param {Object} [options.transacting] - Database transaction
+   */
+  async unpinGroupFromAllNavs (groupOrId, { transacting } = {}) {
+    const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
+
+    if (!groupId) {
+      throw new Error("Can't call unpinGroupFromAllNavs without a group or group id")
+    }
+
+    const pinnedMemberships = await GroupMembership.query(q => {
+      q.where({ group_id: groupId })
+        .whereNotNull('nav_order')
+    }).fetchAll({ transacting })
+
+    for (const membership of pinnedMemberships.models) {
+      const userId = membership.get('user_id')
+      const currentNavOrder = membership.get('nav_order')
+
+      await bookshelf.knex('group_memberships')
+        .where({ user_id: userId })
+        .where('nav_order', '>', currentNavOrder)
+        .decrement('nav_order', 1)
+        .modify(q => { if (transacting) q.transacting(transacting) })
+
+      await membership.save({ nav_order: null }, { patch: true, transacting })
+    }
   }
 })

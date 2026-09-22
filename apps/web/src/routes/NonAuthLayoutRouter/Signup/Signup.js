@@ -86,7 +86,7 @@ export default function Signup (props) {
       <Helmet>
         <title>{t('Sign up for Hylo')}</title>
       </Helmet>
-      <div className='bg-background/100 rounded-md p-4 w-full max-w-[320px] mx-auto'>
+      <div className='bg-midground shadow-md rounded-md p-4 w-full max-w-[320px] mx-auto'>
         <h1 className='text-2xl font-bold mb-0 text-foreground text-center'>{t('Welcome to Hylo')}</h1>
         <p className='mb-4 text-foreground/80 text-center mt-0'>{t('Enter your email to get started:')}</p>
 
@@ -102,8 +102,8 @@ export default function Signup (props) {
           internalLabel={t('Your email address')}
           onChange={handleEmailChange}
           onEnter={submit}
-          className='bg-input rounded-md mb-3'
-          inputClassName='p-4 text-foreground bg-input w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
+          className='bg-card border-2 border-foreground/20 rounded-md mb-3'
+          inputClassName='p-4 text-foreground bg-card w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
           type='text'
           value={email || ''}
         />

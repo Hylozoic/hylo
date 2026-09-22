@@ -7,10 +7,15 @@ import {
   updateAllMedia,
   updateFollowers
 } from './util'
+import { partitionImageUrls } from '../../../lib/uploader/rehostRemoteMedia'
 
 export default function updatePost (userId, id, params) {
   if (!id) throw new GraphQLError('updatePost called with no ID')
-  return setupPostAttrs(userId, params)
+  const { hosted: hostedImageUrls, remote: remoteImageUrls } = partitionImageUrls(params.imageUrls)
+  const paramsForUpdate = params.imageUrls
+    ? { ...params, imageUrls: hostedImageUrls }
+    : params
+  return setupPostAttrs(userId, paramsForUpdate)
     .then(attrs => bookshelf.transaction(transacting =>
       Post.find(id).then(post => {
         if (!post) throw new GraphQLError('Post not found')
@@ -30,16 +35,27 @@ export default function updatePost (userId, id, params) {
           throw new GraphQLError("This post can't be modified")
         }
 
-        if (!isEqual(post.details(), params.description) || !isEqual(post.title(), params.name)) {
+        if (!isEqual(post.details(), paramsForUpdate.description) || !isEqual(post.title(), paramsForUpdate.name)) {
           attrs.edited_at = new Date()
         }
 
         // important: record relevant event changes before post is saved
-        const eventChanges = post.isEvent() && getEventChanges({ post, params })
+        const eventChanges = post.isEvent() && getEventChanges({ post, params: paramsForUpdate })
 
         return post.save(attrs, { patch: true, transacting })
-          .tap(updatedPost => afterUpdatingPost(updatedPost, { params, userId, eventChanges, transacting }))
+          .tap(updatedPost => afterUpdatingPost(updatedPost, { params: paramsForUpdate, userId, eventChanges, transacting }))
       })))
+    .then(post => {
+      if (remoteImageUrls.length > 0) {
+        Queue.classMethod('Post', 'rehostAndAttachImages', {
+          postId: id,
+          userId,
+          imageUrls: remoteImageUrls,
+          startPosition: (hostedImageUrls || []).length
+        }, 0)
+      }
+      return post
+    })
 }
 
 export function afterUpdatingPost (post, opts) {

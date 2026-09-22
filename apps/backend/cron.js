@@ -1,7 +1,8 @@
 require('@babel/register')
 const skiff = require('./lib/skiff') // this must be required first
 const { DateTime } = require('luxon')
-const rollbar = require('./lib/rollbar')
+const sentry = require('./lib/sentry')
+sentry.setProcess('cron')
 const sails = skiff.sails
 const digest2 = require('./lib/group/digest2')
 const Promise = require('bluebird')
@@ -44,19 +45,17 @@ const daily = now => {
     return count
   }))
 
-  switch (now.day) {
-    case 3:
-      sails.log.debug('Sending weekly digests')
-      tasks.push(sendAndLogDigests('weekly'))
-      tasks.push(sendSavedSearchDigests('weekly'))
-      break
-  }
   return tasks
 }
 
 const hourly = now => {
   const tasks = [
-    GroupViewUser.sendDigests().then(count => sails.log.debug(`Sent ${count} chat digests`))
+    GroupViewUser.sendDigests()
+      .then(count => sails.log.debug(`Sent ${count} chat digests`))
+      .catch(err => {
+        sails.log.error('Chat digest job failed; continuing hourly tasks', err)
+        return 0
+      })
   ]
 
   switch (now.hour) {
@@ -64,6 +63,12 @@ const hourly = now => {
       sails.log.debug('Sending daily digests')
       tasks.push(sendAndLogDigests('daily'))
       tasks.push(sendSavedSearchDigests('daily'))
+      // Luxon weekday: 1 = Monday ... 3 = Wednesday. (now.day is the day of month.)
+      if (now.weekday === 3) {
+        sails.log.debug('Sending weekly digests')
+        tasks.push(sendAndLogDigests('weekly'))
+        tasks.push(sendSavedSearchDigests('weekly'))
+      }
       break
     case 13:
       sails.log.debug('Resending invites')
@@ -104,7 +109,7 @@ skiff.lift({
       .catch(function (err) {
         sails.log.error(red(err.message))
         sails.log.error(err)
-        rollbar.error(err, () => skiff.lower())
+        sentry.error(err, () => skiff.lower())
       })
   }
 })

@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { fireEvent, render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import orm from 'store/models'
 import ChatPost from './index'
 
@@ -19,7 +19,7 @@ describe('ChatPost', () => {
       commenters: [],
       commentsTotal: 0,
       createdAt: '2024-01-01',
-      creator: { id: 1, name: 'John Doe' },
+      creator: { id: '1', name: 'John Doe' },
       editedAt: '2024-02-01',
       details: 'the details',
       groups: [{
@@ -79,5 +79,25 @@ describe('ChatPost', () => {
     renderComponent()
     expect(screen.getByRole('img', { name: 'https://www.hylo.com/awitp.gif' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'http://www.google.com/lalala.png' })).toBeInTheDocument()
+  })
+
+  it('clips details from first paint so Virtuoso can measure a stable height', () => {
+    renderComponent({
+      post: {
+        ...defaultProps.post,
+        details: '<p>a long chat post</p>'.repeat(20)
+      }
+    })
+    const details = screen.getByTestId('chat-post-details')
+    expect(details).toHaveStyle({ maxHeight: '200px', overflow: 'hidden' })
+  })
+
+  it('does not crash when a hover action that expects the click event is used', () => {
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false)
+    renderComponent()
+
+    fireEvent.click(document.querySelector('[data-tooltip-content="Delete post"]'))
+    expect(confirmSpy).toHaveBeenCalled()
+    confirmSpy.mockRestore()
   })
 })

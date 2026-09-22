@@ -704,7 +704,7 @@ module.exports = bookshelf.Model.extend({
 
         // Add track info if applicable
         if (track) {
-          emailData.track_name = track.get('name')
+        emailData.track_name = await track.displayName()
         }
 
         Queue.classMethod('Email', 'sendAccessExpired', {

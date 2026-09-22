@@ -10,7 +10,7 @@ import {
 } from 'store/constants'
 
 // Synced from ReactNative Nov '23
-export function fetchNotifications (first = 20, offset = 0) {
+export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
   return {
     type: FETCH_NOTIFICATIONS,
     graphql: {
@@ -70,11 +70,15 @@ export function fetchNotifications (first = 20, offset = 0) {
               }
               track {
                 id
-                name
+                space {
+                  name
+                }
               }
               fundingRound {
                 id
-                title
+                group {
+                  name
+                }
               }
               meta {
                 reasons
@@ -88,13 +92,17 @@ export function fetchNotifications (first = 20, offset = 0) {
           }
         }
       }`,
-      variables: { first, offset }
+      variables: { first, offset, resetCount }
     },
     meta: {
       extractModel: 'Notification',
-      resetCount: true,
+      resetCount,
       extractQueryResults: {
-        getItems: get('payload.data.notifications')
+        getItems: get('payload.data.notifications'),
+        // Keep the queryResults key free of pagination vars (`first` is
+        // whitelisted) so getHasMoreNotifications, which looks up with no
+        // props, still finds this list after load-more fetches.
+        getRouteParams: () => ({})
       }
     }
   }

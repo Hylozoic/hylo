@@ -6,7 +6,7 @@ export default gql`
     $id: ID,
     $first: Int = 20,
     $offset: Int = 0,
-    $sortBy: String = "published_at",
+    $sortBy: String = "created_at",
     $order: String = "desc",
     $enrolled: Boolean,
     $autocomplete: String

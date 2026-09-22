@@ -55,7 +55,17 @@ export default function Badge ({ emoji, expanded, className, common, border, onC
         data-tooltip-id={tooltipId}
         data-tooltip-position-strategy='fixed'
       >
-        <span className={expanded ? 'text-xs leading-none' : classes.badgeSymbolCollapsed}>{emoji}</span>
+        <span
+          className={cn(
+            // Emoji are fixed-color glyphs, so contrast comes from size and a
+            // silhouette: a notch larger than the label, with a theme-aware
+            // halo so thin glyphs (🪄) read on light and dark chips alike
+            expanded ? 'text-sm leading-none' : classes.badgeSymbolCollapsed,
+            '[filter:drop-shadow(0_0.5px_1px_rgba(0,0,0,0.35))] dark:[filter:drop-shadow(0_0_1.5px_rgba(255,255,255,0.45))]'
+          )}
+        >
+          {emoji}
+        </span>
         {expanded && showName && name && (
           <span className='text-xs leading-none text-foreground/80 whitespace-nowrap'>{name}</span>
         )}

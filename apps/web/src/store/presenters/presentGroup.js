@@ -1,6 +1,3 @@
-import presentCollection from 'store/presenters/presentCollection'
-import presentTopic from 'store/presenters/presentTopic'
-
 export default function presentGroup (group) {
   if (!group) return null
   return {
@@ -26,15 +23,6 @@ export default function presentGroup (group) {
           ...a.ref,
           author: a.creator.name,
           primaryImage: a.attachments.length > 0 ? a.attachments[0].url : false
-        }
-      })
-      : [],
-    customViews: group.customViews
-      ? group.customViews.toModelArray().map(cv => {
-        return {
-          ...cv.ref,
-          collection: cv.collection ? presentCollection(cv.collection) : null,
-          topics: cv.topics.toModelArray().map(topic => presentTopic(topic, {}))
         }
       })
       : [],
