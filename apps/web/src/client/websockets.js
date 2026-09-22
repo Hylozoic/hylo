@@ -31,6 +31,9 @@ function isMobileV2WebView () {
   return typeof window !== 'undefined' && window.HyloMobileV2
 }
 
+let socket
+let socketHeartbeatStarted = false
+
 if (isClient) {
   const io = sailsIOClient(socketIOClient)
   const mobileV2 = isMobileV2WebView()
