@@ -98,6 +98,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const roles = useSelector(state => getRolesForGroup(state, { person, groupId: group?.id }))
   const currentUser = useSelector(getMe)
+  const isCurrentUser = currentUser && currentUser.id === personId
   const previousLocation = useSelector(getPreviousLocation) || { pathname: '/' }
   // Spaces inherit roles/responsibilities from the parent group
   const roleGroupId = group?.parentId || group?.id
@@ -146,7 +147,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
       title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
       icon: 'Person',
       info: '',
-      search: true,
+      search: !isCurrentUser,
       backButton: true,
       mobileBackButton: true,
       // No earlier history entry (profile opened directly): leave for the group home.
@@ -238,7 +239,6 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const memberships = person.memberships.sort((a, b) => a.group.name.localeCompare(b.group.name))
   const projects = person.projects && person.projects.items
   const locationWithoutUsa = person.location && person.location.replace(', United States', '')
-  const isCurrentUser = currentUser && currentUser.id === personId
   const isAxolotl = AXOLOTL_ID === personId
   const canRemove = Boolean(group?.id) && currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)
   const contentDropDownItems = [
