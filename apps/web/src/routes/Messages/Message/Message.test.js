@@ -82,6 +82,20 @@ describe('Message', () => {
     expect(updateComment).toHaveBeenCalledWith('1', '<p>test message</p>')
   })
 
+  it('hides edit for someone elses message and shows reactions under the text', () => {
+    const reactedMessage = {
+      ...defaultMessage,
+      creator: { id: '2', name: 'Other Person', avatarUrl: 'http://avatar.com/i.png' },
+      commentReactions: [
+        { id: 'r1', emojiFull: '👍', user: { id: '2', name: 'Other Person' } }
+      ]
+    }
+    render(<Message message={reactedMessage} isHeader />, { wrapper: testProviders('1') })
+
+    expect(screen.queryByLabelText('Edit')).not.toBeInTheDocument()
+    expect(screen.getByText('👍')).toBeInTheDocument()
+  })
+
   it('parses HTML message content in the editor instead of showing tags', () => {
     const htmlMessage = {
       ...defaultMessage,

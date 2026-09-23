@@ -42,15 +42,17 @@ import { cn } from 'util/index'
 // Tall messages are clipped to this height until the reader asks for the rest,
 // so one long post can't push the rest of the conversation off screen
 const MAX_COLLAPSED_DETAILS_HEIGHT = 200
-// Only clip when doing so buys back meaningful height — a message a hair over
-// the limit would otherwise gain a "See More" that hides a single line
+// Only collapse when doing so buys back meaningful height. A message within
+// this slack of the cap is shown in full: clipping it would cut the last line,
+// and there is no "See More" to bring that line back.
 const COLLAPSE_SLACK = 40
+const COLLAPSE_LIMIT = MAX_COLLAPSED_DETAILS_HEIGHT + COLLAPSE_SLACK
 // Fade the clipped text itself rather than painting a gradient over it: the
 // row's background shifts between default, hover and highlighted states
 const COLLAPSED_DETAILS_FADE = 'linear-gradient(to bottom, black calc(100% - 40px), transparent)'
-// Always clip until expanded so Virtuoso measures the collapsed height on first
-// paint. Measuring full height and then collapsing fights atBottom / shortSizeAlign
-// in a loop at the bottom of the list.
+// Clip from the first layout so Virtuoso measures the collapsed height.
+// Measuring the full height of a long post and then collapsing fights
+// atBottom / shortSizeAlign in a loop at the bottom of the list.
 const clippedDetailsStyle = {
   maxHeight: MAX_COLLAPSED_DETAILS_HEIGHT,
   overflow: 'hidden'
@@ -104,7 +106,12 @@ export default function ChatPost ({
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
   const [detailsOverflowing, setDetailsOverflowing] = useState(false)
   const [detailsExpanded, setDetailsExpanded] = useState(false)
+  // Which `details` string the overflow measurement belongs to. A new message
+  // stays clipped until its own height is known, so a long edit doesn't paint
+  // at full height first.
+  const [measuredDetails, setMeasuredDetails] = useState(null)
   const detailsRef = useRef()
+  const detailsMeasured = measuredDetails === details
 
   const isCreator = currentUser.id === creator.id
   const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id)), [group, post.flaggedGroups])
@@ -130,12 +137,18 @@ export default function ChatPost ({
 
   // Measure rather than count characters: what matters is the height on screen,
   // which shifts with images, embeds and the reader's chosen stream width.
-  // useLayoutEffect so See More is decided before paint — the clip itself is
-  // already on from the first render (see clippedDetailsStyle).
+  // useLayoutEffect so the clip is corrected before paint.
   useLayoutEffect(() => {
     const element = detailsRef.current
     if (!element) return
-    const measure = () => setDetailsOverflowing(element.offsetHeight > MAX_COLLAPSED_DETAILS_HEIGHT + COLLAPSE_SLACK)
+    const measure = () => {
+      const height = element.offsetHeight
+      // Zero means layout hasn't happened yet. Stay clipped until a real height
+      // arrives so we don't flash a long post and then collapse it.
+      if (!height) return
+      setMeasuredDetails(details)
+      setDetailsOverflowing(height > COLLAPSE_LIMIT)
+    }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(element)
@@ -462,7 +475,7 @@ export default function ChatPost ({
                   <div
                     data-testid='chat-post-details'
                     className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm pointer-events-none select-none': isFlagged })}
-                    style={!detailsExpanded
+                    style={!detailsExpanded && (!detailsMeasured || detailsOverflowing)
                       ? (detailsOverflowing
                           ? { ...clippedDetailsStyle, ...collapsedDetailsFadeStyle }
                           : clippedDetailsStyle)
@@ -517,7 +530,7 @@ export default function ChatPost ({
               <div onClick={handleClick}>
                 <EmojiRow
                   className='!mr-0'
-                  pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
+                  pillClassName='m-0 mr-1 mb-0 py-0.5 px-2 h-[26px] rounded-full text-xs items-center'
                   post={post}
                   currentUser={currentUser}
                   onAddReaction={onAddReaction}

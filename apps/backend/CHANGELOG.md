@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dropped display columns on `tracks` and `funding_rounds`. Names, banners, and descriptions live on the space group
 - Removed the `Widget` and `GroupWidget` models, the `group.widgets` field, and the `updateWidget` mutation. New groups no longer seed explore widgets
 
+## [7.0.8] - 2026-09-23
+
+### Added
+- Reactions support to Direct Messages, at last!
+
+### Changed
+- Keep loading member activity at bottom of member profile as you scroll down. Also fix Recent Activity to show correct posts alongside comments as you scroll
+
 ## [7.0.7] - 2026-09-20
 
 ### Fixed

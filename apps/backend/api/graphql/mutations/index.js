@@ -457,6 +457,42 @@ export function messageGroupStewards (userId, groupId) {
   return Group.messageStewards(userId, groupId)
 }
 
+// Notify other people in a direct-message thread that reactions on a message changed
+async function pushCommentReactionUpdate (comment, userId) {
+  const postId = comment.get('post_id')
+  if (!postId) return
+
+  const thread = await Post.find(postId)
+  if (!thread) return
+  const followers = await thread.followers().fetch().then(x => x.models)
+  const excludingSender = followers.map(x => x.id).filter(id => id !== userId)
+
+  await comment.load(['reactions.user'])
+  const commentReactions = comment.related('reactions').map(reaction => {
+    const user = reaction.related('user')
+    return {
+      id: reaction.id,
+      emojiFull: reaction.get('emoji_full'),
+      user: user?.id
+        ? { id: user.id, name: user.get('name') }
+        : null
+    }
+  })
+
+  const response = {
+    id: comment.id,
+    createdAt: (comment.get('created_at') || new Date()).toString(),
+    editedAt: comment.get('edited_at') ? comment.get('edited_at').toString() : undefined,
+    creator: comment.get('user_id'),
+    messageThread: postId,
+    text: comment.get('text'),
+    commentReactions
+  }
+
+  excludingSender.forEach(participantId =>
+    pushToSockets(userRoom(participantId), 'messageUpdated', response))
+}
+
 export function reactOn (userId, entityId, data, context) {
   const lookUp = {
     post: Post,
@@ -489,24 +525,7 @@ export function reactOn (userId, entityId, data, context) {
           context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
         }
 
-        // Push messageUpdated socket event for real-time DM updates (receivers)
-        if (comment.get('post_id')) {
-          const thread = await Post.find(postId)
-          const followers = await thread.followers().fetch().then(x => x.models)
-          const excludingSender = followers.map(x => x.id).filter(id => id !== userId)
-
-          const response = {
-            id: comment.id,
-            createdAt: (comment.get('created_at') || new Date()).toString(),
-            editedAt: comment.get('edited_at') ? comment.get('edited_at').toString() : undefined,
-            creator: comment.get('user_id'),
-            messageThread: comment.get('post_id'),
-            text: comment.get('text')
-          }
-
-          excludingSender.forEach(participantId =>
-            pushToSockets(userRoom(participantId), 'messageUpdated', response))
-        }
+        await pushCommentReactionUpdate(comment, userId)
       }
 
       return result
@@ -545,24 +564,7 @@ export function deleteReaction (userId, entityId, data, context) {
           context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
         }
 
-        // Push messageUpdated socket event for real-time DM updates (receivers)
-        if (comment.get('post_id')) {
-          const thread = await Post.find(postId)
-          const followers = await thread.followers().fetch().then(x => x.models)
-          const excludingSender = followers.map(x => x.id).filter(id => id !== userId)
-
-          const response = {
-            id: comment.id,
-            createdAt: (comment.get('created_at') || new Date()).toString(),
-            editedAt: comment.get('edited_at') ? comment.get('edited_at').toString() : undefined,
-            creator: comment.get('user_id'),
-            messageThread: comment.get('post_id'),
-            text: comment.get('text')
-          }
-
-          excludingSender.forEach(participantId =>
-            pushToSockets(userRoom(participantId), 'messageUpdated', response))
-        }
+        await pushCommentReactionUpdate(comment, userId)
       }
 
       return result

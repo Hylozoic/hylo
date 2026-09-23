@@ -163,14 +163,14 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     if (!isIsolatedPostView) return
     const postType = post?.type || 'post'
     setHeaderDetails({
-      title: t(postType) + ': ' + post?.title,
+      title: post ? t(postType) + ': ' + (post.title || '') : t('Post loading...'),
       icon: getPostTypeIcon(postType),
       info: '',
       search: false,
       mobileBackButton: true,
       backTo: postDetailCloseDestination
     })
-  }, [isIsolatedPostView, post?.type, post?.title, t, setHeaderDetails, postDetailCloseDestination])
+  }, [isIsolatedPostView, post, t, setHeaderDetails, postDetailCloseDestination])
 
   const handleSetComponentPositions = useCallback(() => {
     const container = document.getElementById(DETAIL_COLUMN_ID)

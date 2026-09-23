@@ -107,10 +107,10 @@ export function fetchGroupRoleDetails ({ id, roleId: groupRoleId, first = ROLE_M
   return {
     type: FETCH_GROUP_ROLE_DETAILS,
     graphql: {
-      query: `query fetchGroupRoleDetails ($id: ID, $groupRoleId: ID, $first: Int, $offset: Int) {
+      query: `query fetchGroupRoleDetails ($id: ID, $groupRoleIds: [ID], $groupRoleId: ID, $first: Int, $offset: Int) {
         group (id: $id) {
           id
-          members (first: $first, offset: $offset, groupRoleId: $groupRoleId) {
+          members (first: $first, offset: $offset, groupRoleIds: $groupRoleIds) {
             hasMore
             items {
               id
@@ -145,7 +145,7 @@ export function fetchGroupRoleDetails ({ id, roleId: groupRoleId, first = ROLE_M
         }
       }`,
       variables: {
-        id, groupRoleId, first, offset
+        id, groupRoleIds: groupRoleId ? [groupRoleId] : null, first, offset
       }
     },
     meta: {
@@ -162,10 +162,10 @@ export function fetchMembersForGroupRole ({ id, roleId: groupRoleId, first = ROL
   return {
     type: FETCH_MEMBERS_FOR_GROUP_ROLE,
     graphql: {
-      query: `query fetchMembersForGroupRole ($id: ID, $groupRoleId: ID, $first: Int, $offset: Int) {
+      query: `query fetchMembersForGroupRole ($id: ID, $groupRoleIds: [ID], $first: Int, $offset: Int) {
         group (id: $id) {
           id
-          members (first: $first, offset: $offset, groupRoleId: $groupRoleId) {
+          members (first: $first, offset: $offset, groupRoleIds: $groupRoleIds) {
             hasMore
             items {
               id
@@ -193,7 +193,7 @@ export function fetchMembersForGroupRole ({ id, roleId: groupRoleId, first = ROL
         }
       }`,
       variables: {
-        id, groupRoleId, first, offset
+        id, groupRoleIds: groupRoleId ? [groupRoleId] : null, first, offset
       }
     },
     meta: {

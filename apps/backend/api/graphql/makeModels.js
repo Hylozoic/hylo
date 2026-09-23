@@ -817,9 +817,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           members: {
             querySet: true,
-            filter: (relation, { id, autocomplete, boundingBox, excludeGroupId, groupRoleId, order, search, sortBy, trackCompleted, fundingRoundCapability }) =>
+            filter: (relation, { id, autocomplete, boundingBox, excludeGroupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }) =>
               relation.query(q => {
-                filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, order, search, sortBy, trackCompleted, fundingRoundCapability })(q)
+                filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability })(q)
                 if (excludeGroupId) {
                   q.whereNotIn('users.id',
                     bookshelf.knex('group_memberships')
@@ -1432,7 +1432,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
             arguments: ({ type }) => [type]
           }
         },
-        { reactions: { alias: 'commentReactions' } }
+        // Reaction's default filter only keeps post reactions in groups.
+        // Skip it so direct-message comment reactions are returned.
+        { reactions: { alias: 'commentReactions', skipModelFilter: true } }
       ],
       filter: messageFilter(userId)
     },

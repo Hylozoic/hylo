@@ -235,6 +235,7 @@ function Comment ({
           </ClickCatcher>
           <EmojiRow
             className={cn(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}
+            pillClassName='m-0 mr-1 mb-0 py-0.5 px-2 h-[26px] rounded-full text-xs items-center'
             comment={comment}
             currentUser={currentUser}
             post={post}
