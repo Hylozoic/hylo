@@ -8,7 +8,6 @@ import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import ScrollListener from 'components/ScrollListener'
 import GroupCard from 'components/GroupCard'
-import GroupViewFilter from '../GroupViewFilter'
 import useRouteParams from 'hooks/useRouteParams'
 import useDebounce from 'hooks/useDebounce'
 import useEnsureSearchedGroups from 'hooks/useEnsureSearchedGroups'
@@ -20,7 +19,7 @@ import classes from './GroupSearch.module.scss'
 
 const baseList = [{ value: '', label: 'All' }]
 
-export default function GroupSearch ({ viewFilter, changeView }) {
+export default function GroupSearch ({ viewFilter }) {
   const currentUser = useSelector(state => getMe(state))
   const nearCoord = currentUser && currentUser.locationObject
     ? {
@@ -75,51 +74,44 @@ export default function GroupSearch ({ viewFilter, changeView }) {
 
   return (
     <>
-      <div className='sticky top-10 z-[15] flex flex-col gap-2 font-size-16 py-4 px-2 bg-gradient-to-b from-midground to-transparent'>
-        <div className='flex justify-between items-center'>
-          <GroupViewFilter viewFilter={viewFilter} changeView={changeView} />
-          <div className='flex gap-2'>
-            {viewFilter === FARM_VIEW
-              ? (
-                <button
-                  onClick={() => setFilterToggle(!filterToggle)}
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border-2 border-foreground/20 scale-100 hover:scale-105 transition-all',
-                    filterToggle
-                      ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
-                      : 'bg-background text-foreground border-foreground/20 hover:bg-background/80'
-                  )}
-                >
-                  <Icon
-                    name='Filter'
-                    className={cn(
-                      'w-4 h-4',
-                      filterToggle ? 'text-primary' : 'text-foreground/60'
-                    )}
-                  />
-                  <span className='font-bold'>{t('Filters')}</span>
-                  {filterToggle && <Icon name='Ex' className='w-4 h-4 ml-1' />}
-                </button>
-                )
-              : <div />}
-            {makeDropdown({ selected: sortBy, options: sortOptions(t, nearCoord), onChange: setSortBy, filterLabel: `${t('Sort by')}: `, t })}
-          </div>
-        </div>
-        {filterToggle && viewFilter === FARM_VIEW &&
-          <div className={classes.filterList}>
-            {makeDropdown({ selected: farmQuery.farmType, options: convertListValueKeyToId(baseList.concat(FARM_TYPES)), onChange: (value) => setFarmQuery({ ...farmQuery, farmType: value }), filterLabel: t('Farm Type: '), isFilter: true, t })}
-            {makeDropdown({ selected: farmQuery.productCategories, options: convertListValueKeyToId(baseList.concat(PRODUCT_CATEGORIES)), onChange: (value) => setFarmQuery({ ...farmQuery, productCategories: value }), filterLabel: t('Operation: '), isFilter: true, t })}
-            {makeDropdown({ selected: farmQuery.certOrManagementPlan, options: convertListValueKeyToId(baseList.concat(MANAGEMENT_PLANS, FARM_CERTIFICATIONS)), onChange: (value) => setFarmQuery({ ...farmQuery, certOrManagementPlan: value }), filterLabel: t('Management Techniques: '), isFilter: true, t })}
-          </div>}
-      </div>
-      <div className='w-full pb-4 mb-4 border-b-foreground/20 border-dashed border-t-0 border-l-0 border-r-0 border-b-2'>
+      {filterToggle && viewFilter === FARM_VIEW &&
+        <div className={classes.filterList}>
+          {makeDropdown({ selected: farmQuery.farmType, options: convertListValueKeyToId(baseList.concat(FARM_TYPES)), onChange: (value) => setFarmQuery({ ...farmQuery, farmType: value }), filterLabel: t('Farm Type: '), isFilter: true, t })}
+          {makeDropdown({ selected: farmQuery.productCategories, options: convertListValueKeyToId(baseList.concat(PRODUCT_CATEGORIES)), onChange: (value) => setFarmQuery({ ...farmQuery, productCategories: value }), filterLabel: t('Operation: '), isFilter: true, t })}
+          {makeDropdown({ selected: farmQuery.certOrManagementPlan, options: convertListValueKeyToId(baseList.concat(MANAGEMENT_PLANS, FARM_CERTIFICATIONS)), onChange: (value) => setFarmQuery({ ...farmQuery, certOrManagementPlan: value }), filterLabel: t('Management Techniques: '), isFilter: true, t })}
+        </div>}
+      <div className='flex flex-col gap-2 w-full pb-4 mb-4 border-b-foreground/20 border-dashed border-t-0 border-l-0 border-r-0 border-b-2 sm:flex-row sm:items-center'>
         <input
-          className='bg-input rounded-md selected:text-foreground p-3 text-foreground bg-input w-full rounded-md focus:border-focus border-2 border-foreground/0 transition-all selected:text-foreground placeholder:text-foreground/60'
+          className='bg-input rounded-md selected:text-foreground p-3 text-foreground bg-input w-full sm:w-auto sm:flex-1 sm:min-w-0 rounded-md focus:border-focus border-2 border-foreground/0 transition-all selected:text-foreground placeholder:text-foreground/60'
           type='text'
           onChange={e => setSearch(e.target.value)}
           placeholder={t('Search groups by keyword')}
           value={search}
         />
+        {viewFilter === FARM_VIEW && (
+          <button
+            onClick={() => setFilterToggle(!filterToggle)}
+            className={cn(
+              'flex shrink-0 items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border-2 border-foreground/20 scale-100 hover:scale-105 transition-all',
+              filterToggle
+                ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                : 'bg-background text-foreground border-foreground/20 hover:bg-background/80'
+            )}
+          >
+            <Icon
+              name='Filter'
+              className={cn(
+                'w-4 h-4',
+                filterToggle ? 'text-primary' : 'text-foreground/60'
+              )}
+            />
+            <span className='font-bold'>{t('Filters')}</span>
+            {filterToggle && <Icon name='Ex' className='w-4 h-4 ml-1' />}
+          </button>
+        )}
+        <div className='self-end sm:shrink-0 sm:self-auto'>
+          {makeDropdown({ selected: sortBy, options: sortOptions(t, nearCoord), onChange: setSortBy, filterLabel: `${t('Sort by')}: `, t })}
+        </div>
       </div>
       <div className='flex flex-col gap-4 w-full'>
         {!pending && groups.length === 0 ? <NoPosts message={t('No results for this search')} /> : ''}
