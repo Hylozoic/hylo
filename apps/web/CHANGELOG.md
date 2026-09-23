@@ -17,8 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Post editor readding current path group/space too often and erasing choices in the To field
 - Move AAPA to .well-known
 
-### Fixed
-
 ## [7.0.6] - 2026-09-13
 
 ### Added

@@ -1571,6 +1571,8 @@
   "Ready to jump in?": "Pronto para participar?",
   "Really delete this draft?": "Realmente excluir este rascunho?",
   "Receive an email digest summarizing group activity": "Receber um resumo por e-mail da atividade do grupo",
+  "Unified email digest": "Resumo de e-mail unificado",
+  "When this is on, groups with a daily digest are combined into one daily email, and groups with a weekly digest are combined into one weekly email. A post sent to several groups is included once. Each item shows which of your groups it was posted in.": "Quando esta opção está ativada, os grupos com resumo diário são reunidos em um único e-mail diário e os grupos com resumo semanal em um único e-mail semanal. Uma publicação enviada a vários grupos aparece apenas uma vez, e cada item mostra os grupos em que foi publicada.",
   "Receive group notifications by": "Receber notificações do grupo por",
   "Receive new post notifications for": "Receber notificações de novas publicações neste grupo para",
   "Receive new post notifications in this space for": "Receber notificações de novas publicações neste espaço para",

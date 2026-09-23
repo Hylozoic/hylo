@@ -1571,6 +1571,8 @@
   "Ready to jump in?": "शामिल होने के लिए तैयार हैं?",
   "Really delete this draft?": "क्या सचमुच यह ड्राफ्ट हटा दिया गया है?",
   "Receive an email digest summarizing group activity": "समूह की गतिविधि का सारांश देने वाला ईमेल डाइजेस्ट प्राप्त करें",
+  "Unified email digest": "एकीकृत ईमेल सारांश",
+  "When this is on, groups with a daily digest are combined into one daily email, and groups with a weekly digest are combined into one weekly email. A post sent to several groups is included once. Each item shows which of your groups it was posted in.": "यह चालू होने पर, दैनिक सारांश वाले समूह एक दैनिक ईमेल में जुड़ते हैं और साप्ताहिक सारांश वाले समूह एक साप्ताहिक ईमेल में। कई समूहों में भेजी गई पोस्ट केवल एक बार शामिल होती है, और हर आइटम दिखाता है कि वह किन समूहों में पोस्ट हुई थी।",
   "Receive group notifications by": "समूह की सूचनाएँ प्राप्त करें",
   "Receive new post notifications for": "इस समूह में नई पोस्ट के लिए सूचनाएँ प्राप्त करें",
   "Receive new post notifications in this space for": "इस स्पेस में नई पोस्ट के लिए सूचनाएँ प्राप्त करें",
