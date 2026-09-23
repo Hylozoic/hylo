@@ -3061,5 +3061,9 @@
   "No spaces found in this group": "No spaces found in this group",
   "Offerings that include this space": "Offerings that include this space",
   "If there are no offerings that allow access to this space, members won't be able to join.": "If there are no offerings that allow access to this space, members won't be able to join.",
+  "Has role": "Has role",
+  "No role": "No role",
+  "Only members with one of the required roles will actually be able to join the space.": "Only members with one of the required roles will actually be able to join the space.",
+  "Go to group roles": "Go to group roles",
   "Selected space": "Selected space"
 }

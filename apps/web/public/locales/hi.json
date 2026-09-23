@@ -3064,5 +3064,9 @@
   "No spaces found in this group": "इस समूह में कोई स्पेस नहीं मिला",
   "Offerings that include this space": "ऑफरिंग जो इस स्पेस को शामिल करती हैं",
   "If there are no offerings that allow access to this space, members won't be able to join.": "यदि ऐसी कोई ऑफरिंग नहीं है जो इस स्पेस तक पहुँच देती हो, तो सदस्य शामिल नहीं हो पाएंगे।",
+  "Has role": "Has role",
+  "No role": "No role",
+  "Only members with one of the required roles will actually be able to join the space.": "Only members with one of the required roles will actually be able to join the space.",
+  "Go to group roles": "Go to group roles",
   "Selected space": "चयनित स्पेस"
 }

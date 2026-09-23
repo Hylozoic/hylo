@@ -119,11 +119,22 @@ export function fetchInviteablePeople ({
                 id
                 name
                 avatarUrl
+                groupRoles(groupId: $parentGroupId) {
+                  items {
+                    id
+                  }
+                }
               }
             }
           }
         }`,
-        variables: { parentGroupId, groupId, autocomplete, first, offset }
+        variables: {
+          parentGroupId,
+          groupId,
+          autocomplete,
+          first,
+          offset
+        }
       }
     }
   }
