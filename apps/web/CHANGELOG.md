@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Completed post notices appear grayed out with check mark in Chat
 - Don't show search on member profile if looking at own profile. It was conflicting with Edit Profile button
 - Only bundle reactions when there are more than 2 types, not when there are 2.
+- Move affiliations editing from My Groups to Edit Profile
 
 ### Fixed
 - Map menus being behind map content
