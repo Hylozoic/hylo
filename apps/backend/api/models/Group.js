@@ -1,4 +1,4 @@
-/* global GroupToGroupJoinQuestion, Location, Slack, Widget, FundingRound */
+/* global GroupJoinQuestionAnswer, GroupToGroupJoinQuestion, Location, Slack, Widget, FundingRound */
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
@@ -1166,24 +1166,29 @@ module.exports = bookshelf.Model.extend(merge({
       for (const trigger of zapierTriggers) {
         await fetch(trigger.get('target_url'), {
           method: 'post',
-          body: JSON.stringify(members.map(m => ({
-            id: m.id,
-            avatarUrl: m.get('avatar_url'),
-            bio: m.get('bio'),
-            contactEmail: m.get('contact_email'),
-            contactPhone: m.get('contact_phone'),
-            facebookUrl: m.get('facebook_url'),
-            linkedinUrl: m.get('linkedin_url'),
-            location: m.get('location'),
-            name: m.get('name'),
-            profileUrl: Frontend.Route.profile(m, group),
-            tagline: m.get('tagline'),
-            twitterName: m.get('twitter_name'),
-            url: m.get('url'),
-            // Whether this user was previously in the group and is being reactivated
-            reactivated: reactivatedUserIds.includes(m.id),
-            // Which group were they added to, since the trigger can be for multiple groups
-            group: { id: group.id, name: group.get('name'), url: Frontend.Route.group(group) }
+          body: JSON.stringify(await Promise.all(members.map(async m => {
+            const joinQuestions = await GroupJoinQuestionAnswer.latestAnswersFor(groupId, m.id)
+            return {
+              id: m.id,
+              avatarUrl: m.get('avatar_url'),
+              bio: m.get('bio'),
+              contactEmail: m.get('contact_email'),
+              contactPhone: m.get('contact_phone'),
+              facebookUrl: m.get('facebook_url'),
+              linkedinUrl: m.get('linkedin_url'),
+              location: m.get('location'),
+              name: m.get('name'),
+              profileUrl: Frontend.Route.profile(m, group),
+              tagline: m.get('tagline'),
+              twitterName: m.get('twitter_name'),
+              url: m.get('url'),
+              // Whether this user was previously in the group and is being reactivated
+              reactivated: reactivatedUserIds.includes(m.id),
+              // Which group were they added to, since the trigger can be for multiple groups
+              group: { id: group.id, name: group.get('name'), url: Frontend.Route.group(group) },
+              // Join question answers the user provided when joining this group
+              joinQuestions
+            }
           }))),
           headers: { 'Content-Type': 'application/json' }
         })
