@@ -1433,7 +1433,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
             arguments: ({ type }) => [type]
           }
         },
-        { reactions: { alias: 'commentReactions' } }
+        // Reaction's default filter only keeps post reactions in groups.
+        // Skip it so direct-message comment reactions are returned.
+        { reactions: { alias: 'commentReactions', skipModelFilter: true } }
       ],
       filter: messageFilter(userId)
     },

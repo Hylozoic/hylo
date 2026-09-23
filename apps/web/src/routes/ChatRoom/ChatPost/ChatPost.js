@@ -530,7 +530,7 @@ export default function ChatPost ({
               <div onClick={handleClick}>
                 <EmojiRow
                   className='!mr-0'
-                  pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
+                  pillClassName='m-0 mr-1 mb-0 py-0.5 px-2 h-[26px] rounded-full text-xs items-center'
                   post={post}
                   currentUser={currentUser}
                   onAddReaction={onAddReaction}
