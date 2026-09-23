@@ -1003,7 +1003,7 @@ type Group {
     boundingBox: [PointInput],
     # Exclude people who are already members of this group (e.g. parent members not yet in a space)
     excludeGroupId: ID,
-    # Return members with a specific groupRole
+    # DEPRECATED Return members with a specific groupRole
     groupRoleId: ID,
     # Return members with any of these groupRoles (alternative to single groupRoleId)
     groupRoleIds: [ID],
