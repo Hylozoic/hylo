@@ -92,6 +92,37 @@ describe('ChatPost', () => {
     expect(details).toHaveStyle({ maxHeight: '200px', overflow: 'hidden' })
   })
 
+  it('shows the full message when it only slightly exceeds the collapsed height', () => {
+    const heightSpy = jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(220)
+    renderComponent({
+      post: {
+        ...defaultProps.post,
+        details: '<p>a message that ends with a full sentence.</p>'
+      }
+    })
+    const details = screen.getByTestId('chat-post-details')
+    expect(details.style.maxHeight).toBe('')
+    expect(details.style.overflow).toBe('')
+    expect(screen.queryByRole('button', { name: 'See More' })).not.toBeInTheDocument()
+    heightSpy.mockRestore()
+  })
+
+  it('collapses a message tall enough to need See More, and expands it again', () => {
+    const heightSpy = jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(400)
+    renderComponent({
+      post: {
+        ...defaultProps.post,
+        details: '<p>a long chat post</p>'.repeat(20)
+      }
+    })
+    const details = screen.getByTestId('chat-post-details')
+    expect(details).toHaveStyle({ maxHeight: '200px', overflow: 'hidden' })
+    fireEvent.click(screen.getByRole('button', { name: 'See More' }))
+    expect(details.style.maxHeight).toBe('')
+    expect(screen.getByRole('button', { name: 'See Less' })).toBeInTheDocument()
+    heightSpy.mockRestore()
+  })
+
   it('does not crash when a hover action that expects the click event is used', () => {
     const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false)
     renderComponent()
