@@ -107,6 +107,9 @@ function buildPlugins (): NonNullable<ExpoConfig['plugins']> {
     ])
   }
 
+  // Must be last: re-asserts entitlements that onesignal-expo-plugin drops
+  plugins.push('./plugins/withReassertEntitlements')
+
   return plugins
 }
 
