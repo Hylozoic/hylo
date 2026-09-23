@@ -167,7 +167,6 @@ import {
   updateSpace,
   updateStripeAccount,
   updateViewSettings,
-  updateWidget,
   useInvitation,
   createStripeConnectedAccount,
   createStripeAccountLink,
@@ -909,8 +908,6 @@ export function makeMutations ({ fetchOne }) {
     updateStripeAccount: (root, { accountId }, context) => updateStripeAccount(context.currentUserId, accountId),
 
     updateTrack: (root, { trackId, data }, context) => updateTrack(context.currentUserId, trackId, data),
-
-    updateWidget: (root, { id, changes }, context) => updateWidget(id, changes),
 
     useInvitation: (root, { invitationToken, accessCode }, context) => useInvitation(context.currentUserId, invitationToken, accessCode),
 

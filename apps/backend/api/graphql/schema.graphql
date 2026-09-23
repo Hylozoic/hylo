@@ -1274,9 +1274,6 @@ type Group {
     # Sort by 'created_at', 'expires_at', 'user_name'
     sortBy: String
   ): ContentAccessQuerySet
-
-  # Widgets used on the Explore page
-  widgets: GroupWidgetQuerySet
 }
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type FundingRoundQuerySet {
@@ -1605,37 +1602,6 @@ type GroupTopicQuerySet {
   total: Int
   hasMore: Boolean
   items: [GroupTopic]
-}
-
-# Data related to a widget used on the Explore page in a specific group
-type GroupWidget {
-  id: ID
-  # Where this widget is being displayed. Only option right now is 'landing' which means the group Explore page
-  context: String
-  # Which group this widget is being displayed in
-  group: Group
-  # Whether this widget is to  be displayed or not
-  isVisible: Boolean
-  # Name of the widget
-  name: String
-  # The ordering of widgets displayed in the context
-  order: Int
-  # Settings for this widget in this group/context
-  settings: GroupWidgetSettings
-}
-
-type GroupWidgetSettings {
-  # Text content for this widget if it has some
-  text: String
-  # Title content for this widget if it has one
-  title: String
-}
-
-# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
-type GroupWidgetQuerySet {
-  total: Int
-  hasMore: Boolean
-  items: [GroupWidget]
 }
 
 # NOT USED RIGHT NOW
@@ -3205,13 +3171,6 @@ type ProposalVoteQuerySet {
   items: [ProposalVote]
 }
 
-# A widget is a block of styled content that appears in an Explore page for a group
-type Widget {
-  id: Int
-  # The name of the widget
-  name: String
-}
-
 type ZapierTrigger {
   id: ID
   groupId: ID
@@ -3715,8 +3674,6 @@ type Mutation {
   updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update a track
   updateTrack(trackId: ID, data: TrackInput): Track
-  # Update settings for a GroupWidget
-  updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
   # Accept an invitation to a Group
   useInvitation(
     # The invite code for the Group
@@ -4209,21 +4166,6 @@ input GroupSettingsInput {
   showPostNoticesInChat: Boolean
   # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
   autoAddMembers: Boolean
-}
-
-# Settings for a Widget in a particular Group's explore page
-input GroupWidgetInput {
-  # Whether the widget is visible
-  isVisible: Boolean
-  # Additional Widget data for specific Widgets
-  settings: GroupWidgetSettingsInput
-}
-
-input GroupWidgetSettingsInput {
-  # The text content of the widget, for Widgets that use this
-  text: String
-  # The title of the widget, for Widgets that use this
-  title: String
 }
 
 # Input for creating Stripe offerings

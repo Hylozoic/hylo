@@ -18,6 +18,9 @@ async function saveRound (attrs) {
   const rest = { ...attrs }
   delete rest.phase
   delete rest.published_at
+  delete rest.title
+  delete rest.description
+  delete rest.banner_url
   const round = await new FundingRound(rest).save()
   if (status && rest.group_id) {
     const space = await Group.find(rest.group_id)
@@ -32,6 +35,9 @@ async function patchRound (round, attrs) {
   const rest = { ...attrs }
   delete rest.phase
   delete rest.published_at
+  delete rest.title
+  delete rest.description
+  delete rest.banner_url
   if (Object.keys(rest).length) await round.save(rest, { patch: true })
   if (status) {
     const space = await Group.find(round.get('group_id'))

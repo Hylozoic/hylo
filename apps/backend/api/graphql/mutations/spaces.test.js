@@ -183,7 +183,6 @@ describe('space mutations', () => {
       }, {})
       const round = await FundingRound.forge({
         group_id: space.id,
-        title: 'Round Space',
         voting_method: 'quadratic',
         created_at: new Date(),
         updated_at: new Date()
@@ -394,7 +393,6 @@ describe('space mutations', () => {
       }, {})
       const round = await FundingRound.forge({
         group_id: space.id,
-        title: 'Round Convert',
         voting_method: 'quadratic',
         created_at: new Date(),
         updated_at: new Date()

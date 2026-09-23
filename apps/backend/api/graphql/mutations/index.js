@@ -583,7 +583,3 @@ export async function removePost (userId, postId, groupIdOrSlug) {
     })
     .then(() => ({ success: true }))
 }
-
-export function updateWidget (id, changes) {
-  return GroupWidget.update(id, convertGraphqlData(changes))
-}

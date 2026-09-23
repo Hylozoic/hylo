@@ -996,7 +996,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
               }))
           }
         },
-        { widgets: { querySet: true } },
         { groupExtensions: { querySet: true } },
         // Spaces & Views (see docs/spaces-and-views-engineering-spec.md section 4.2)
         {
@@ -1860,29 +1859,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'post',
         { messageThread: { typename: 'MessageThread' } },
         'group'
-      ]
-    },
-
-    GroupWidget: {
-      model: GroupWidget,
-      attributes: [
-        'id',
-        'is_visible',
-        'name',
-        'order',
-        'context'
-      ],
-      getters: {
-        settings: gw => mapKeys(camelCase, gw.get('settings'))
-      },
-      relations: ['group']
-    },
-
-    Widget: {
-      model: Widget,
-      attributes: [
-        'id',
-        'name'
       ]
     },
 

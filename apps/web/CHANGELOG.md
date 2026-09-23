@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Removed
+- Removed the group Explore landing page. `/groups/:slug/explore` redirects to the group home
+- Farm profiles still use the remaining Widget components. The explore-only widgets and the steward visibility editor are gone
+- Sandbox track and funding-round display fields now come from the space group, matching the API
+
 ## [7.0.8] - 2026-09-23
 
 ### Added

@@ -1052,7 +1052,6 @@ describe('Post', function () {
         slug: `track-space-${Date.now()}`
       }).save()
       track = await Track.create({
-        name: 'Test Track',
         completion_role_id: completionRole.id,
         group_id: space.id
       })

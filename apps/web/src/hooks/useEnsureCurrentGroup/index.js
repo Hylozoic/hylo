@@ -23,7 +23,7 @@ export default function useEnsureCurrentGroup () {
 
   useEffect(() => {
     if (!pending && (!group || !group.id)) {
-      dispatch(fetchGroupDetails({ slug: groupSlug, withWidgets: true }))
+      dispatch(fetchGroupDetails({ slug: groupSlug }))
     }
   }, [dispatch, group, groupSlug, pending])
 

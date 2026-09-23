@@ -7,7 +7,6 @@ import groupDetailsFragment from '@graphql/fragments/groupDetailsFragment'
  * @param accessCode {string} optional access code from invitation link (allows viewing restricted/hidden groups)
  * @param invitationToken {string} optional invitation token from email invite (allows viewing restricted/hidden groups)
  * @param withExtensions {boolean} include group extensions
- * @param withWidgets {boolean} include group widgets
  * @param withTopics {boolean} include group topics
  * @param withJoinQuestions {boolean} include join questions
  * @param withPrerequisites {boolean} include prerequisites
@@ -17,7 +16,6 @@ export default function fetchGroupDetails ({
   accessCode,
   invitationToken,
   withExtensions = true,
-  withWidgets = false,
   withTopics = true,
   withJoinQuestions = true,
   withPrerequisites = true
@@ -27,7 +25,7 @@ export default function fetchGroupDetails ({
     graphql: {
       query: `query GroupDetailsQuery ($slug: String, $accessCode: String, $invitationToken: String) {
         group(slug: $slug, accessCode: $accessCode, invitationToken: $invitationToken) {
-          ${groupDetailsFragment({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets })}
+          ${groupDetailsFragment({ withTopics, withJoinQuestions, withPrerequisites, withExtensions })}
         }
       }`,
       variables: { slug, accessCode, invitationToken }
