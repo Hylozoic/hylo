@@ -290,15 +290,18 @@ async function clearPreviousE2eBaseline (client) {
     [E2E_GROUP_SLUGS]
   )
 
+  // Track display name lives on the space group (tracks.name was dropped).
   await client.query(
     `UPDATE groups SET track_id = NULL
-     WHERE track_id IN (SELECT id FROM tracks WHERE name = 'E2E Paid Track')
-        OR slug = 'e2e-paid-track-space'`
+     WHERE slug = 'e2e-paid-track-space'`
   )
 
   await client.query(`DELETE FROM group_views WHERE group_id IN (SELECT id FROM groups WHERE slug = 'e2e-paid-track-space')`)
+  await client.query(
+    `DELETE FROM tracks
+     WHERE group_id IN (SELECT id FROM groups WHERE slug = 'e2e-paid-track-space')`
+  )
   await client.query(`DELETE FROM groups WHERE slug = 'e2e-paid-track-space'`)
-  await client.query(`DELETE FROM tracks WHERE name = 'E2E Paid Track'`)
 
   await client.query(
     `DELETE FROM groups_posts
@@ -733,7 +736,7 @@ async function main () {
     const paidTrackSpaceRes = await client.query(
       `INSERT INTO groups (
         name, slug, type, parent_id, access_code, visibility, accessibility,
-        created_at, updated_at, settings, active, paywall
+        description, created_at, updated_at, settings, active, paywall
       ) VALUES (
         'E2E Paid Track',
         'e2e-paid-track-space',
@@ -742,24 +745,23 @@ async function main () {
         $2,
         1,
         1,
+        $4,
         $3::timestamptz,
         $3::timestamptz,
         '{}'::jsonb,
         true,
         true
       ) RETURNING id`,
-      [publicGroupId, `e2e-track-${Date.now().toString(36)}`, now]
+      [publicGroupId, `e2e-track-${Date.now().toString(36)}`, now, '<p>Deterministic paid track for Batch P3 E2E</p>']
     )
     const paidTrackSpaceId = paidTrackSpaceRes.rows[0].id
 
     const paidTrackRes = await client.query(
       `INSERT INTO tracks (
-        name, description, access_controlled,
+        access_controlled,
         action_descriptor, action_descriptor_plural,
         group_id, created_at, updated_at, settings
       ) VALUES (
-        'E2E Paid Track',
-        '<p>Deterministic paid track for Batch P3 E2E</p>',
         false,
         'Action',
         'Actions',
