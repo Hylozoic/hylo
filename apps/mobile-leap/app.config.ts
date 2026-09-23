@@ -107,6 +107,9 @@ function buildPlugins (): NonNullable<ExpoConfig['plugins']> {
     ])
   }
 
+  // Must be last: re-asserts entitlements that onesignal-expo-plugin drops
+  plugins.push('./plugins/withReassertEntitlements')
+
   return plugins
 }
 
@@ -115,7 +118,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'Hylo',
   slug: 'hylo-mobile-leap',
   scheme: 'hyloapp',
-  version: '7.0.1',
+  version: '7.0.2',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
@@ -138,7 +141,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     entitlements: {
       'com.apple.developer.associated-domains': [
         'applinks:www.hylo.com',
-        'applinks:staging.hylo.com'
+        'applinks:staging.hylo.com',
+        'applinks:hylo.com'
       ],
       ...(ONESIGNAL_APP_ID ? {
         'aps-environment': ONESIGNAL_APN_MODE,

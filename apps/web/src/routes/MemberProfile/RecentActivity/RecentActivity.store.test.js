@@ -1,6 +1,7 @@
 import orm from 'store/models'
 import normalized from '../MemberProfile.normalized.test.json'
 import { fetchRecentActivity, getRecentActivity } from './RecentActivity.store'
+import { mergeIds, pageHasMore } from '../profilePaging'
 
 describe('fetchRecentActivity', () => {
   it('returns the correct action', () => {
@@ -9,11 +10,33 @@ describe('fetchRecentActivity', () => {
     expect(actual.graphql.variables).toEqual({
       id: '12345',
       first: 10,
-      offset: 0,
-      order: 'desc'
+      postsOffset: 0,
+      commentsOffset: 0,
+      order: 'desc',
+      sortBy: 'created'
     })
     expect(actual.meta).toEqual({ extractModel: 'Person' })
     expect(actual.graphql.query).toContain('query RecentActivity')
+    expect(actual.graphql.query).toContain('comments (first: $first, offset: $commentsOffset, order: $order)')
+    expect(actual.graphql.query).toContain('offset: $postsOffset')
+    expect(actual.graphql.query).toContain('hasMore')
+  })
+})
+
+describe('profile paging', () => {
+  it('keeps paging when either collection has another page of new rows', () => {
+    expect(pageHasMore({ hasMore: true, items: [{ id: 1 }] }, 1, 10)).toBe(true)
+    expect(pageHasMore({ hasMore: false, items: [{ id: 1 }, { id: 2 }] }, 2, 2)).toBe(true)
+  })
+
+  it('stops when a page adds no new rows or both collections are exhausted', () => {
+    expect(pageHasMore({ hasMore: true, items: [{ id: 1 }] }, 0, 10)).toBe(false)
+    expect(pageHasMore({ hasMore: false, items: [{ id: 1 }] }, 1, 10)).toBe(false)
+    expect(pageHasMore(undefined, 1, 10)).toBe(false)
+  })
+
+  it('appends only ids that were not already collected', () => {
+    expect(mergeIds(['1'], [{ id: 1 }, { id: '2' }])).toEqual({ ids: ['1', '2'], added: 1 })
   })
 })
 

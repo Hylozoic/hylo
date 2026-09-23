@@ -97,7 +97,7 @@ import {
 import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
-import { sanitizeURL } from 'util/url'
+import { isMeetingUrl, sanitizeURL } from 'util/url'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
@@ -646,8 +646,8 @@ function PostEditorInner ({
 
     // Current parent group and its spaces first, then everyone else alphabetically.
     // The parent row is omitted when it does not accept the selected post type.
-    const currentParent = topLevelGroups.find(g => String(g.id) === String(currentTopLevelId))
-      || (inSpace && routeParentGroup && !isSpaceGroup(routeParentGroup) ? routeParentGroup : null)
+    const currentParent = topLevelGroups.find(g => String(g.id) === String(currentTopLevelId)) ||
+      (inSpace && routeParentGroup && !isSpaceGroup(routeParentGroup) ? routeParentGroup : null)
     const leading = currentParent
       ? optionsForParent(currentParent, groupAcceptsPostType(currentParent, postTypeForOptions))
       : []
@@ -1011,7 +1011,10 @@ function PostEditorInner ({
 
   const handleAddLinkPreview = useEventCallback((url, force) => {
     debouncedFetchLinkPreview(url, force, currentPost.linkPreview)
-  }, [currentPost.linkPreview, debouncedFetchLinkPreview])
+    if (currentPost.type === 'event' && isMeetingUrl(url)) {
+      setCurrentPost(prev => (prev.meetingLink ? prev : { ...prev, meetingLink: url }))
+    }
+  }, [currentPost.linkPreview, currentPost.type, debouncedFetchLinkPreview, setCurrentPost])
 
   const handleAddTopic = useEventCallback((topic) => {
     setCurrentPost(prev => {

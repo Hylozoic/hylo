@@ -31,6 +31,14 @@ export const MessageThreadQuery = gql`
           }
           createdAt
           editedAt
+          commentReactions {
+            emojiFull
+            id
+            user {
+              id
+              name
+            }
+          }
         }
         total
         hasMore

@@ -464,38 +464,59 @@ export default function makeModels (userId, isAdmin, apiClient) {
               topics,
               types
             }) =>
-              relation.query(filterAndSortPosts({
-                activePostsOnly,
-                afterTime,
-                announcementsOnly,
-                beforeTime,
-                boundingBox,
-                collectionToFilterOut,
-                context,
-                createdBy,
-                cursor,
-                forCollection,
-                groupSlugs,
-                interactedWithBy,
-                isFulfilled,
-                mentionsOf,
-                offset,
-                order,
-                savedBy,
-                search,
-                sortBy,
-                topic,
-                topics,
-                type: filter,
-                types
-              }))
+              relation.query(q => {
+                filterAndSortPosts({
+                  activePostsOnly,
+                  afterTime,
+                  announcementsOnly,
+                  beforeTime,
+                  boundingBox,
+                  collectionToFilterOut,
+                  context,
+                  createdBy,
+                  cursor,
+                  forCollection,
+                  groupSlugs,
+                  interactedWithBy,
+                  isFulfilled,
+                  mentionsOf,
+                  offset,
+                  order,
+                  savedBy,
+                  search,
+                  sortBy,
+                  topic,
+                  topics,
+                  type: filter,
+                  types
+                })(q)
+                // groups_posts is joined for visibility, which repeats a post once per group.
+                // Collapse to one row per post so offset pages return new posts.
+                q.groupBy('posts.id')
+                q.orderBy('posts.id', order === 'asc' ? 'asc' : 'desc')
+              })
           }
         },
         { projects: { querySet: true } },
-        { comments: { querySet: true } },
+        {
+          comments: {
+            querySet: true,
+            filter: (relation, { order }) => relation.query(q => {
+              q.orderBy('comments.created_at', order === 'asc' ? 'asc' : 'desc')
+            })
+          }
+        },
         { skills: { querySet: true } },
         { skillsToLearn: { querySet: true } },
-        { reactions: { querySet: true } }
+        {
+          reactions: {
+            querySet: true,
+            filter: (relation, { order }) => relation.query(q => {
+              q.groupBy('reactions.id')
+              q.orderBy('reactions.date_reacted', order === 'asc' ? 'asc' : 'desc')
+            })
+          }
+        }
       ],
       filter: nonAdminFilter(apiFilter(personFilter(userId))),
       isDefaultTypeForTable: true,
@@ -1411,7 +1432,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
             alias: 'attachments',
             arguments: ({ type }) => [type]
           }
-        }
+        },
+        // Reaction's default filter only keeps post reactions in groups.
+        // Skip it so direct-message comment reactions are returned.
+        { reactions: { alias: 'commentReactions', skipModelFilter: true } }
       ],
       filter: messageFilter(userId)
     },

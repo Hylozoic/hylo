@@ -6,10 +6,11 @@ import presentComment from 'store/presenters/presentComment'
 export const FETCH_MEMBER_COMMENTS = 'FETCH_MEMBER_COMMENTS'
 
 const memberCommentsQuery =
-`query MemberComments ($id: ID, $order: String, $limit: Int) {
+`query MemberComments ($id: ID, $order: String, $limit: Int, $offset: Int) {
   person (id: $id) {
     id
-    comments (first: $limit, order: $order) {
+    comments (first: $limit, offset: $offset, order: $order) {
+      hasMore
       items {
         id
         text
@@ -32,12 +33,12 @@ const memberCommentsQuery =
   }
 }`
 
-export function fetchMemberComments (id, order = 'desc', limit = 20, query = memberCommentsQuery) {
+export function fetchMemberComments (id, order = 'desc', limit = 20, offset = 0, query = memberCommentsQuery) {
   return {
     type: FETCH_MEMBER_COMMENTS,
     graphql: {
       query,
-      variables: { id, limit, order }
+      variables: { id, limit, order, offset }
     },
     meta: { extractModel: 'Person' }
   }

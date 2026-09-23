@@ -5,8 +5,6 @@ import UserGroupsTab from './UserGroupsTab'
 
 jest.mock('./UserGroupsTab.store', () => ({
   ...jest.requireActual('./UserGroupsTab.store'),
-  createAffiliation: () => ({ type: 'MOCK_CREATE_AFFILIATION' }),
-  deleteAffiliation: () => ({ type: 'MOCK_DELETE_AFFILIATION' }),
   leaveGroup: () => ({ type: 'MOCK_LEAVE_GROUP' })
 }))
 
@@ -22,22 +20,22 @@ function providersWithGroups () {
 }
 
 describe('UserGroupsTab', () => {
-  it('renders Hylo Groups and Other Affiliations sections', async () => {
+  it('renders Hylo Groups section and group names', async () => {
     render(<UserGroupsTab />, { wrapper: providersWithGroups() })
 
     await waitFor(() => {
       expect(screen.getByText('Hylo Groups')).toBeInTheDocument()
-      expect(screen.getByText('Other Affiliations')).toBeInTheDocument()
       expect(screen.getByText('Group 1')).toBeInTheDocument()
       expect(screen.getByText('Group 2')).toBeInTheDocument()
     })
   })
 
-  it('shows add affiliation control', async () => {
+  it('does not show affiliation controls', async () => {
     render(<UserGroupsTab />, { wrapper: providersWithGroups() })
 
     await waitFor(() => {
-      expect(screen.getByText('Add new affiliation')).toBeInTheDocument()
+      expect(screen.queryByText('Other Affiliations')).not.toBeInTheDocument()
+      expect(screen.queryByText('Add new affiliation')).not.toBeInTheDocument()
     })
   })
 })

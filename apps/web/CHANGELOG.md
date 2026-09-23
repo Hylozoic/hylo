@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.0.8] - 2026-09-23
+
+### Added
+- Reactions support to Direct Messages, at last!
+- Auto-fill event meeting link from a Zoom/Meet/Jitsi/Microsoft Teams URL in the description
+
+### Changed
+- Keep loading member activity at bottom of member profile as you scroll down. Also fix Recent Activity to show correct posts alongside comments as you scroll
+- Completed post notices appear grayed out with check mark in Chat
+- Don't show search on member profile if looking at own profile. It was conflicting with Edit Profile button
+- Only bundle reactions when there are more than 2 types, not when there are 2.
+
+### Fixed
+- Map menus being behind map content
+- Wrap comment cards on mobile, so the header doesnt overflow the container. For user profiles and search results.
+- Stuck loop when opening a post from a member profile and trying to go back
+- Some chat messages were being cut off on the last line
+- Don't flash post: undefined when loading post as individual view
+
 ## [7.0.7] - 2026-09-20
 
 ### Fixed

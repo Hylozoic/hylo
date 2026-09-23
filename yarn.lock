@@ -15974,7 +15974,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"constantinople@npm:^3.0.1, constantinople@npm:^3.1.2":
+"constantinople@npm:3.1.2":
   version: 3.1.2
   resolution: "constantinople@npm:3.1.2"
   dependencies:
@@ -15983,15 +15983,6 @@ __metadata:
     babel-types: "npm:^6.26.0"
     babylon: "npm:^6.18.0"
   checksum: 10/41552698444b759e4b8a5bd15ddbed0834227c3456214ee268e0fd770e7019bf95948a985d0cab7782efae2f9dd7a8de0303c764d004cec35459fe03a585dd33
-  languageName: node
-  linkType: hard
-
-"constantinople@npm:~3.0.1":
-  version: 3.0.2
-  resolution: "constantinople@npm:3.0.2"
-  dependencies:
-    acorn: "npm:^2.1.0"
-  checksum: 10/75696e90777a1a931e79e23f52dc80368d9c04af4e21d7c010601480ddc0b078384a4bea3d2a391013e0d319e04ed1bbbb0b601ddaf996fe9efe0134915f7f00
   languageName: node
   linkType: hard
 

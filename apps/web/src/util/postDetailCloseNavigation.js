@@ -12,6 +12,50 @@ export function shouldUseSmartPostClose (view) {
   return view === 'post' || isPhoneDevice()
 }
 
+function normalizePathname (pathname) {
+  if (!pathname) return ''
+  const trimmed = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  return trimmed || '/'
+}
+
+/**
+ * True when `pathname` is a post overlay pushed on top of `previousLocation`.
+ * @param {string} pathname
+ * @param {{ pathname?: string }|null|undefined} previousLocation
+ * @returns {boolean}
+ */
+export function isPostOverlayAbovePrevious (pathname, previousLocation) {
+  if (!pathname || !previousLocation?.pathname) return false
+  const parent = normalizePathname(removePostFromUrl(pathname) || '/')
+  if (parent === normalizePathname(pathname)) return false
+  return parent === normalizePathname(previousLocation.pathname)
+}
+
+/**
+ * Leave a post opened over another route without keeping that post in history.
+ * Pops when this entry was pushed on top of the parent page. Otherwise replaces
+ * the current entry with the parent (direct links and refresh).
+ * @param {object} opts
+ * @param {(to: any, options?: object) => void} opts.navigate
+ * @param {string} opts.pathname
+ * @param {string} [opts.search]
+ * @param {string} [opts.hash]
+ * @param {{ pathname?: string }|null|undefined} opts.previousLocation
+ * @param {boolean} opts.canGoBack
+ */
+export function closePostOverlay ({ navigate, pathname, search = '', hash = '', previousLocation, canGoBack }) {
+  const parentPath = removePostFromUrl(pathname) || '/'
+  if (canGoBack && isPostOverlayAbovePrevious(pathname, previousLocation)) {
+    navigate(-1)
+    return
+  }
+  navigate({
+    pathname: parentPath,
+    search: search || '',
+    hash: hash || ''
+  }, { replace: true })
+}
+
 /**
  * Returns group ids the current user belongs to (from Me.memberships).
  * @param {{ memberships?: { toModelArray: () => { group: { id: string|number } }[] } }} me

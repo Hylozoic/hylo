@@ -90,6 +90,32 @@ describe('SocketListener.store.ormSessionReducer', () => {
     expect(message.editedAt).toBe(new Date('2024-01-01T00:00:00.000Z').toString())
   })
 
+  it('stores comment reactions from RECEIVE_MESSAGE_UPDATED', () => {
+    session.Message.create({
+      id: '99',
+      text: 'hello',
+      messageThread: '7',
+      commentReactions: []
+    })
+    const commentReactions = [
+      { id: 'r1', emojiFull: '👍', user: { id: '2', name: 'Ada' } }
+    ]
+    ormSessionReducer(session, {
+      type: RECEIVE_MESSAGE_UPDATED,
+      payload: {
+        data: {
+          message: {
+            id: '99',
+            text: 'hello',
+            commentReactions
+          }
+        }
+      }
+    })
+
+    expect(session.Message.withId('99').commentReactions).toEqual(commentReactions)
+  })
+
   describe('for RECEIVE_POST', () => {
     let action
 
