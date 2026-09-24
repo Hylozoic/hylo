@@ -84,6 +84,24 @@ function filterGroupRolesByGroup (relation, { groupId, slug }) {
   })
 }
 
+/**
+ * Subquery of group ids where the user has the Administration responsibility, for use in
+ * synchronous relation filters. Mirrors GroupMembership.hasResponsibility: roles live on the
+ * role scope group (the parent, for spaces) and the user must be an active member there.
+ */
+function adminGroupIdsSubquery (userId) {
+  return function () {
+    this.select('groups.id').from('groups')
+      .join('group_memberships_group_roles as gmgr', 'gmgr.group_id', bookshelf.knex.raw('COALESCE(groups.parent_id, groups.id)'))
+      .join('group_roles_responsibilities as grr', 'grr.group_role_id', 'gmgr.group_role_id')
+      .join('responsibilities as r', 'r.id', 'grr.responsibility_id')
+      .join('group_memberships as gm', function () {
+        this.on('gm.group_id', 'gmgr.group_id').andOn('gm.user_id', 'gmgr.user_id')
+      })
+      .where({ 'gmgr.user_id': userId, 'gm.active': true, 'r.title': Responsibility.constants.RESP_ADMINISTRATION })
+  }
+}
+
 /** Parses posts.notice_data whether Postgres returned an object or a JSON string. */
 function parsePostNoticeData (post) {
   const value = post.get('notice_data')
@@ -704,13 +722,16 @@ export default function makeModels (userId, isAdmin, apiClient) {
           completionResponses: {
             querySet: true,
             filter: (relation) => {
-              return relation.query(async q => {
-                const postUsers = await PostMembership.where({ post_id: relation.relatedData.parentId }).fetchAll()
-                const hasTracksResponsibility = postUsers.length > 0 && await Promise.any(postUsers.map(postUser => {
-                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
-                }))
-                if (!hasTracksResponsibility) return q.where('user_id', userId)
-                return q
+              // Admins of a group the post is in see all responses; everyone else only their own
+              const postId = relation.relatedData.parentId
+              return relation.query(q => {
+                q.where(function () {
+                  this.where('posts_users.user_id', userId).orWhereExists(function () {
+                    this.select(1).from('groups_posts')
+                      .where('groups_posts.post_id', postId)
+                      .whereIn('groups_posts.group_id', adminGroupIdsSubquery(userId))
+                  })
+                })
               })
             }
           }
@@ -992,6 +1013,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
               relation.query(q => {
                 const groupId = relation.relatedData.parentId
                 // Include tracks whose space is a child of this group (parent listing)
+                // TODO from assistant: this is the first where clause so knex emits it as AND, and bookshelf
+                // then appends "tracks.group_id = groupId", so this relation always returns no tracks.
                 q.orWhereIn('tracks.group_id', function () {
                   this.select('id').from('groups').where('parent_id', groupId)
                 })
@@ -1016,11 +1039,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 q.orderBy(sortBy === 'published_at' ? 'tracks.created_at' : (sortBy || 'id'), order || 'asc')
 
                 // Only admins can see unpublished tracks
-                if (!GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)) {
-                  q.whereIn('tracks.group_id', function () {
+                q.where(function () {
+                  this.whereIn('tracks.group_id', function () {
                     this.select('id').from('groups').whereIn('status', Group.PUBLISHED_STATUSES)
                   })
-                }
+                  if (userId) this.orWhereIn('tracks.group_id', adminGroupIdsSubquery(userId))
+                })
               })
           }
         },

@@ -232,7 +232,7 @@ export async function inviteGroupToGroup (userId, fromId, toId, type, questionAn
 export async function acceptGroupRelationshipInvite (userId, groupRelationshipInviteId, context) {
   const invite = await GroupRelationshipInvite.where({ id: groupRelationshipInviteId }).fetch()
   if (invite) {
-    if (GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
+    if (await GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       const groupRelationship = await invite.accept(userId)
 
       if (groupRelationship) {
@@ -256,7 +256,7 @@ export async function acceptGroupRelationshipInvite (userId, groupRelationshipIn
 export async function cancelGroupRelationshipInvite (userId, groupRelationshipInviteId) {
   const invite = await GroupRelationshipInvite.where({ id: groupRelationshipInviteId }).fetch()
   if (invite) {
-    if (GroupMembership.hasResponsibility(userId, invite.get('from_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
+    if (await GroupMembership.hasResponsibility(userId, invite.get('from_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       return { success: await invite.cancel(userId) }
     } else {
       throw new GraphQLError('You do not have permission to do this')
@@ -269,7 +269,7 @@ export async function cancelGroupRelationshipInvite (userId, groupRelationshipIn
 export async function rejectGroupRelationshipInvite (userId, groupRelationshipInviteId) {
   const invite = await GroupRelationshipInvite.where({ id: groupRelationshipInviteId }).fetch()
   if (invite) {
-    if (GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
+    if (await GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       return { success: await invite.reject(userId) }
     } else {
       throw new GraphQLError('You do not have permission to do this')

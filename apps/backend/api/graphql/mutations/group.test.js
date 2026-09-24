@@ -11,16 +11,12 @@ import {
   deleteGroup,
   invitePeerRelationship,
   updatePeerRelationship,
-  deletePeerRelationship
+  deletePeerRelationship,
+  acceptGroupRelationshipInvite,
+  cancelGroupRelationshipInvite,
+  rejectGroupRelationshipInvite
 } from './group'
-
-let starterGroup, starterPost
-
-before(async () => {
-  starterGroup = await factories.group().save({ slug: 'starter-posts', access_code: 'aasdfkjh3##Sasdfsdfedss', accessibility: Group.Accessibility.OPEN })
-  starterPost = await factories.post().save()
-  await starterGroup.posts().attach(starterPost.id)
-})
+import { addSuggestedSkillToGroup, removeSuggestedSkillFromGroup } from './index'
 
 describe('mutations/group', () => {
   describe('moderation', () => {
@@ -135,14 +131,14 @@ describe('mutations/group', () => {
   })
 
   describe('createGroup', () => {
-    let user
+    let user, starterGroup
 
     before(async () => {
       starterGroup = await factories.group().save({ slug: 'starter-posts', access_code: 'aasdfkjh3##Sasdfsdfedss', accessibility: Group.Accessibility.OPEN })
-      starterPost = await factories.post().save()
+      const starterPost = await factories.post().save()
       await starterGroup.posts().attach(starterPost.id)
       user = await factories.user().save()
-      starterGroup.addMembers([user])
+      await starterGroup.addMembers([user])
     })
 
     it('setups up the new administrator membership correctly', async () => {
@@ -239,7 +235,7 @@ describe('mutations/group', () => {
       await adminUser.joinGroup(toGroup, { assignAdministrator: true })
 
       // Make memberUser a regular member of fromGroup only
-      await memberUser.joinGroup(fromGroup, )
+      await memberUser.joinGroup(fromGroup, { assignAdministrator: false })
     })
 
     beforeEach(async () => {
@@ -508,6 +504,47 @@ describe('mutations/group', () => {
           expect(error.message).to.match(/Relationship not found/)
         }
       })
+    })
+  })
+
+  describe('permission checks for non-admins', () => {
+    let steward, outsider, fromGroup, toGroup, invite
+
+    before(async () => {
+      steward = await factories.user().save()
+      outsider = await factories.user().save()
+      fromGroup = await factories.group().save()
+      toGroup = await factories.group().save()
+      await steward.joinGroup(fromGroup, { assignAdministrator: true })
+      await steward.joinGroup(toGroup, { assignAdministrator: true })
+      await outsider.joinGroup(fromGroup)
+      await outsider.joinGroup(toGroup)
+      invite = await GroupRelationshipInvite.create({
+        userId: steward.id,
+        fromGroupId: fromGroup.id,
+        toGroupId: toGroup.id,
+        type: GroupRelationshipInvite.TYPE.ParentToChild
+      })
+    })
+
+    after(() => bookshelf.knex('groups_suggested_skills').where('group_id', fromGroup.id).del())
+
+    it('does not let a non-admin accept, reject or cancel a group relationship invite', async () => {
+      for (const fn of [acceptGroupRelationshipInvite, rejectGroupRelationshipInvite, cancelGroupRelationshipInvite]) {
+        await expect(fn(outsider.id, invite.id)).to.be.rejectedWith(/permission/)
+      }
+      await invite.refresh()
+      expect(invite.get('status')).to.equal(GroupRelationshipInvite.STATUS.Pending)
+    })
+
+    it('does not let a non-admin add or remove suggested skills', async () => {
+      await expect(addSuggestedSkillToGroup(outsider.id, fromGroup.id, 'gardening')).to.be.rejectedWith(/permission/)
+      await expect(removeSuggestedSkillFromGroup(outsider.id, fromGroup.id, 'gardening')).to.be.rejectedWith(/permission/)
+    })
+
+    it('still lets an admin add suggested skills', async () => {
+      const skill = await addSuggestedSkillToGroup(steward.id, fromGroup.id, 'beekeeping')
+      expect(skill.get('name')).to.equal('beekeeping')
     })
   })
 })

@@ -956,3 +956,44 @@ describe('makeAuthenticatedQueries', () => {
     })
   })
 })
+
+describe('admin-only relation filters', () => {
+  let handler, admin, member, parent, action
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    parent = await factories.group().save()
+    await admin.joinGroup(parent, { assignAdministrator: true })
+    await member.joinGroup(parent)
+
+    action = await factories.post({ type: Post.Type.ACTION, user_id: admin.id }).save()
+    await action.groups().attach(parent)
+    await factories.postUser({ post_id: action.id, user_id: admin.id, completed_at: new Date(), completion_response: JSON.stringify(['admin']) }).save()
+    await factories.postUser({ post_id: action.id, user_id: member.id, completed_at: new Date(), completion_response: JSON.stringify(['member']) }).save()
+  })
+
+  const responsesQuery = () => `{ post(id: ${action.id}) { completionResponses { items { user { id } } } } }`
+
+  it('only shows a non-admin their own completion response', async () => {
+    const data = await run(member.id, responsesQuery())
+    expect(data.post.completionResponses.items.map(i => i.user.id)).to.deep.equal([String(member.id)])
+  })
+
+  it('shows admins every completion response', async () => {
+    const data = await run(admin.id, responsesQuery())
+    expect(data.post.completionResponses.items.map(i => i.user.id)).to.have.members([String(admin.id), String(member.id)])
+  })
+})
