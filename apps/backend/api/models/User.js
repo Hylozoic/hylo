@@ -282,7 +282,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   deactivate: async function (sessionId) {
-    Queue.classMethod('User', 'clearSessionsFor', { userId: this.get('user_id'), sessionId })
+    Queue.classMethod('User', 'clearSessionsFor', { userId: this.id, sessionId })
     return this.save({ active: false })
   },
 
@@ -309,7 +309,7 @@ module.exports = bookshelf.Model.extend(merge({
     */
 
     await this.deleteUserMedia()
-    Queue.classMethod('User', 'clearSessionsFor', { userId: this.get('user_id'), sessionId })
+    Queue.classMethod('User', 'clearSessionsFor', { userId: this.id, sessionId })
     // TODO RESP: will need to add responsibilies, roles, etc to here, where they are missing (some roles are already handled)
     const query = `
     BEGIN;

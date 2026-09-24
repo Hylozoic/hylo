@@ -707,7 +707,7 @@ export function makeMutations ({ fetchOne }) {
 
     createTopic: (root, { topicName, groupId, isDefault, isSubscribing }, context) => createTopic(context.currentUserId, topicName, groupId, isDefault, isSubscribing),
 
-    deactivateMe: (root, args, context) => deactivateUser({ sessionId: context.req.sessionId, userId: context.currentUserId }),
+    deactivateMe: (root, args, context) => deactivateUser({ sessionId: context.req.sessionID, userId: context.currentUserId }),
 
     declineJoinRequest: (root, { joinRequestId }, context) => declineJoinRequest(context.currentUserId, joinRequestId),
 
@@ -729,7 +729,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteGroupTopic: (root, { id }, context) => deleteGroupTopic(context.currentUserId, id),
 
-    deleteMe: (root, args, context) => deleteUser({ sessionId: context.req.sessionId, userId: context.currentUserId }),
+    deleteMe: (root, args, context) => deleteUser({ sessionId: context.req.sessionID, userId: context.currentUserId }),
 
     deletePost: (root, { id }, context) => deletePost(context.currentUserId, id),
 
@@ -891,7 +891,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateTopicFollow: (root, args, context) => updateTopicFollow(context.currentUserId, args),
 
-    updateMe: (root, { changes }, context) => updateMe(context.req.sessionId, context.currentUserId, changes),
+    updateMe: (root, { changes }, context) => updateMe(context.req.sessionID, context.currentUserId, changes),
 
     updateMembership: (root, args, context) => updateMembership(context.currentUserId, args),
 
