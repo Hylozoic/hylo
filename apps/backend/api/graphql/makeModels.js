@@ -655,7 +655,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         groups: async (p, _args, context) => {
           const fetched = await p.groups().fetch()
           const models = fetched?.models || []
-          // Do not skip for platform admins (@hylo.com / HYLO_ADMINS). That
+          // Do not skip for platform admins (HYLO_ADMINS). That
           // listed protected groups on stream cards and post pages.
           if (!userId) {
             return models.filter(g => g.get('visibility') === Group.Visibility.PUBLIC)
