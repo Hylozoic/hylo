@@ -997,3 +997,91 @@ describe('admin-only relation filters', () => {
     expect(data.post.completionResponses.items.map(i => i.user.id)).to.have.members([String(admin.id), String(member.id)])
   })
 })
+
+describe('steward-only group data', () => {
+  let handler, admin, member, requester, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    return executionResult
+  }
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    requester = await factories.user().save()
+    group = await factories.group().save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await member.joinGroup(group)
+
+    await new JoinRequest({ group_id: group.id, user_id: requester.id, status: JoinRequest.STATUS.Pending, created_at: new Date() }).save()
+    await Invitation.create({ userId: admin.id, groupId: group.id, email: 'invitee@example.com' })
+    await ContentAccess.grantAccess({ userId: member.id, grantedByGroupId: group.id, groupId: group.id, grantedById: admin.id })
+  })
+
+  describe('joinRequests', () => {
+    const query = () => `{ joinRequests(groupId: ${group.id}) { items { user { id } } } }`
+
+    it('is refused for a member without the Add Members responsibility', async () => {
+      const result = await run(member.id, query())
+      expect(result.errors[0].message).to.equal('You do not have permission to do that')
+    })
+
+    it('is refused without a groupId', async () => {
+      const result = await run(admin.id, '{ joinRequests { items { id } } }')
+      expect(result.errors[0].message).to.equal('You do not have permission to do that')
+    })
+
+    it('returns the requests to a group admin', async () => {
+      const result = await run(admin.id, query())
+      expect(result.errors).to.be.undefined
+      expect(result.data.joinRequests.items.map(i => i.user.id)).to.deep.equal([String(requester.id)])
+    })
+  })
+
+  describe('Group.pendingInvitations', () => {
+    const query = () => `{ group(id: ${group.id}) { pendingInvitations { total items { email } } } }`
+
+    it('is empty for a member without the Add Members responsibility', async () => {
+      const result = await run(member.id, query())
+      expect(result.errors).to.be.undefined
+      expect(result.data.group.pendingInvitations).to.deep.equal({ total: 0, items: [] })
+    })
+
+    it('lists invitations for a group admin', async () => {
+      const result = await run(admin.id, query())
+      expect(result.data.group.pendingInvitations.items.map(i => i.email)).to.deep.equal(['invitee@example.com'])
+    })
+  })
+
+  describe('contentAccess', () => {
+    const rootQuery = groupIds => `{ contentAccess(groupIds: [${groupIds}]) { items { user { id } } } }`
+
+    it('is refused on the root query for a non-admin', async () => {
+      const result = await run(member.id, rootQuery(group.id))
+      expect(result.errors[0].message).to.equal('You do not have permission to do that')
+    })
+
+    it('is refused on the root query without groupIds', async () => {
+      const result = await run(admin.id, '{ contentAccess { items { id } } }')
+      expect(result.errors[0].message).to.equal('You do not have permission to do that')
+    })
+
+    it('returns records on the root query to a group admin', async () => {
+      const result = await run(admin.id, rootQuery(group.id))
+      expect(result.errors).to.be.undefined
+      expect(result.data.contentAccess.items.map(i => i.user.id)).to.deep.equal([String(member.id)])
+    })
+
+    it('rejects a sort order that is not asc or desc', async () => {
+      const result = await run(admin.id, `{ contentAccess(groupIds: [${group.id}], sortBy: "user_name", order: "asc, (select 1)") { items { id } } }`)
+      expect(result.errors[0].message).to.equal('Cannot use sort order "asc, (select 1)"')
+    })
+  })
+})

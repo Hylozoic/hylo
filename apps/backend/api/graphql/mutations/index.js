@@ -221,7 +221,10 @@ export async function updateMe (sessionId, userId, changes) {
   return user.validateAndSave(sessionId, convertedChanges)
 }
 
-export function allowGroupInvites (groupId, data) {
+export async function allowGroupInvites (userId, groupId, data) {
+  if (!await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)) {
+    throw new GraphQLError('You do not have permission to do that')
+  }
   return Group.where('id', groupId).fetch()
     .then(g => g.addSetting({ allow_group_invites: data }, true))
     .then(() => ({ success: true }))
@@ -261,9 +264,14 @@ export async function findOrCreateLinkPreviewByUrl ({ url }) {
   return preview
 }
 
-export function updateGroupTopic (id, data) {
+export async function updateGroupTopic (userId, id, data) {
   const whitelist = mapKeys(pick(data, ['visibility', 'isDefault']), (v, k) => snakeCase(k))
-  if (isEmpty(whitelist)) return Promise.resolve(null)
+  if (isEmpty(whitelist)) return null
+
+  const groupTag = await GroupTag.where({ id }).fetch()
+  if (!groupTag || !await GroupMembership.hasResponsibility(userId, groupTag.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
+    throw new GraphQLError('You do not have permission to do that')
+  }
 
   return GroupTag.query().where({ id }).update(whitelist)
     .then(() => ({ success: true }))

@@ -1066,6 +1066,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           contentAccess: {
             querySet: true,
+            // TODO from assistant: Group has no contentAccess() relation, so this field always errors.
+            // If it is wired up, restrict it to group admins (e.g. adminGroupIdsSubquery) like the root query.
             filter: (relation, { search, accessType, status, offeringId, trackId, groupId, groupRoleId, sortBy, order }) =>
               relation.query(filterAndSortContentAccess({
                 groupIds: [relation.relatedData.parentId],
@@ -1196,7 +1198,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!userId) return 0
           return ModerationAction.where({ group_id: g.id, status: 'active' }).count().then(Number)
         },
-        pendingInvitations: (g, { first }) => InvitationService.find({ groupId: g.id, pendingOnly: true }),
+        pendingInvitations: async (g, { first }) => {
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
+            return { total: 0, items: [] }
+          }
+          return InvitationService.find({ groupId: g.id, pendingOnly: true })
+        },
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
         // XXX: Flag for translation
@@ -2090,79 +2097,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'groupRole',
         'grantedBy'
       ],
-      fetchMany: (args) => {
-        // Store args for use in filter function
-        ContentAccess._fetchManyArgs = args
-        return ContentAccess
-      },
-      filter: (relation) => {
-        const args = ContentAccess._fetchManyArgs || {}
-        const { groupIds, search, accessType, status, offeringId, trackId, groupId, groupRoleId, sortBy = 'created_at', order } = args
-
-        return relation.query(q => {
-          // Filter by group IDs (groups that granted the access)
-          if (groupIds && groupIds.length > 0) {
-            q.whereIn('content_access.granted_by_group_id', groupIds)
-          }
-
-          // Filter by user name search
-          if (search) {
-            q.join('users', 'users.id', '=', 'content_access.user_id')
-            q.whereRaw('users.name ilike ?', `%${search}%`)
-          }
-
-          // Filter by access type
-          if (accessType) {
-            q.where('content_access.access_type', accessType)
-          }
-
-          // Filter by status
-          if (status) {
-            q.where('content_access.status', status)
-          }
-
-          // Filter by offering ID
-          if (offeringId) {
-            q.where('content_access.product_id', offeringId)
-          }
-
-          // Filter by track ID (legacy)
-          if (trackId) {
-            q.where('content_access.track_id', trackId)
-          }
-
-          // Filter by target group/space ID
-          if (groupId) {
-            q.where('content_access.group_id', groupId)
-          }
-
-          // Filter by group role ID
-          if (groupRoleId) {
-            q.where('content_access.group_role_id', groupRoleId)
-          }
-
-          // Apply sorting
-          const validSortColumns = {
-            created_at: 'content_access.created_at',
-            expires_at: 'content_access.expires_at',
-            user_name: 'users.name'
-          }
-
-          const sortColumn = validSortColumns[sortBy] || validSortColumns.created_at
-
-          // If sorting by user name and not already joined, join users table
-          if (sortBy === 'user_name' && !search) {
-            q.join('users', 'users.id', '=', 'content_access.user_id')
-          }
-
-          // Apply sorting
-          if (sortBy === 'user_name') {
-            q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
-          } else {
-            q.orderBy(sortColumn, order || 'desc')
-          }
-        })
-      },
+      // The root contentAccess resolver checks that the user administers every group in groupIds
+      fetchMany: (args) => ContentAccess.query(filterAndSortContentAccess({ ...args, sortBy: args.sortBy || 'created_at' })),
       getters: {
         userId: ca => ca.get('user_id'),
         grantedByGroupId: ca => ca.get('granted_by_group_id'),

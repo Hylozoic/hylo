@@ -342,6 +342,18 @@ function invitationMatchesGroupQuery (inviteCheck, slug, id) {
 }
 
 /**
+ * Throws unless the user holds the responsibility in every listed group (at least one required).
+ */
+async function requireResponsibilityInGroups (userId, groupIds, responsibility) {
+  if (!userId || !groupIds?.length) throw new GraphQLError('You do not have permission to do that')
+  for (const groupId of groupIds) {
+    if (!await GroupMembership.hasResponsibility(userId, groupId, responsibility)) {
+      throw new GraphQLError('You do not have permission to do that')
+    }
+  }
+}
+
+/**
  * Maps a Bookshelf model instance to its GraphQL type name from makeModels config.
  */
 export function getTypeForInstance (instance, models) {
@@ -438,7 +450,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       InvitationService.check(invitationToken, accessCode),
     comment: (root, { id }) => fetchOne('Comment', id),
     connections: (root, args) => fetchMany('PersonConnection', args),
-    contentAccess: (root, args) => fetchMany('ContentAccess', args),
+    contentAccess: async (root, args, context) => {
+      await requireResponsibilityInGroups(context.currentUserId, args.groupIds, Responsibility.constants.RESP_ADMINISTRATION)
+      return fetchMany('ContentAccess', args)
+    },
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
     group: async (root, { id, slug, updateLastViewed, accessCode, invitationToken }, context) => {
       let group
@@ -481,7 +496,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     groupTopic: (root, { topicName, groupSlug }) => GroupTag.findByTagAndGroup(topicName, groupSlug),
     groupTopics: (root, args) => fetchMany('GroupTopic', args),
     groups: (root, args) => fetchMany('Group', args),
-    joinRequests: (root, args) => fetchMany('JoinRequest', args),
+    joinRequests: async (root, args, context) => {
+      await requireResponsibilityInGroups(context.currentUserId, args.groupId ? [args.groupId] : [], Responsibility.constants.RESP_ADD_MEMBERS)
+      return fetchMany('JoinRequest', args)
+    },
     myDrafts: (root, args, context) =>
       Draft.where({ user_id: context.currentUserId }).orderBy('updated_at', 'desc').fetchAll(),
 
@@ -609,7 +627,7 @@ export function makeMutations ({ fetchOne }) {
 
     allocateTokensToSubmission: (root, { postId, tokens }, context) => allocateTokensToSubmission(context.currentUserId, postId, tokens),
 
-    allowGroupInvites: (root, { groupId, data }) => allowGroupInvites(groupId, data),
+    allowGroupInvites: (root, { groupId, data }, context) => allowGroupInvites(context.currentUserId, groupId, data),
 
     blockUser: (root, { blockedUserId }, context) => blockUser(context.currentUserId, blockedUserId),
 
@@ -885,7 +903,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateGroupSettings: (root, { id, changes }, context) => updateGroup(context.currentUserId, id, changes, context),
 
-    updateGroupTopic: (root, { id, data }, context) => updateGroupTopic(id, data),
+    updateGroupTopic: (root, { id, data }, context) => updateGroupTopic(context.currentUserId, id, data),
 
     updateGroupTopicFollow: (root, args, context) => updateGroupTopicFollow(context.currentUserId, args),
 
