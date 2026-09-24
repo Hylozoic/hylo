@@ -123,9 +123,9 @@ const upsertLinkedAccount = (req, service, profile) => {
       if (account.get('user_id') === userId) {
         return LinkedAccount.updateUser(userId, {type: service, profile})
       }
-      // linked account belongs to someone else -- change its ownership
-      return account.save({user_id: userId}, {patch: true})
-      .then(() => LinkedAccount.updateUser(userId, {type: service, profile}))
+      // Never move a social login off another Hylo account: that would lock its owner
+      // out and let whoever holds this session sign in as them via the provider.
+      throw new Error('linked-account-in-use')
     }
     // we create a new account regardless of whether one exists for the service;
     // this allows the user to continue to log in with the old one
@@ -154,7 +154,8 @@ const finishOAuth = function (strategy, req, res, next) {
       }
 
       return resolve(res.view('popupDone', {
-        error,
+        // pass the message so the web app can match error keys (e.g. 'linked-account-in-use')
+        error: error instanceof Error ? error.message : error,
         provider,
         context: req.session.authContext || 'login',
         layout: null,

@@ -89,6 +89,7 @@
   "Account Settings": "Account Settings",
   "Account Status: Pending": "Account Status: Pending",
   "Account already exists": "Account already exists",
+  "This account is already connected to a different Hylo user. Log out and sign in with it instead.": "This account is already connected to a different Hylo user. Log out and sign in with it instead.",
   "Action Button Text": "Action Button Text",
   "Action Button Text and Action Button URL must be set together": "Action Button Text and Action Button URL must be set together",
   "Action Button URL": "Action Button URL",

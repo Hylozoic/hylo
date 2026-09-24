@@ -84,6 +84,7 @@
   "Account Settings": "खाता सेटिंग्स",
   "Account Status: Pending": "खाता स्थिति: लंबित",
   "Account already exists": "खाता पहले से मौजूद है",
+  "This account is already connected to a different Hylo user. Log out and sign in with it instead.": "यह खाता पहले से किसी दूसरे Hylo उपयोगकर्ता से जुड़ा है। लॉग आउट करें और इसके साथ साइन इन करें।",
   "Action Button Text": "एक्शन बटन टेक्स्ट",
   "Action Button Text and Action Button URL must be set together": "एक्शन बटन टेक्स्ट और URL दोनों एक साथ सेट होने चाहिए",
   "Action Button URL": "एक्शन बटन URL",

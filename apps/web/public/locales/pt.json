@@ -84,6 +84,7 @@
   "Account Settings": "Configurações da conta",
   "Account Status: Pending": "Status da Conta: Pendente",
   "Account already exists": "A conta já existe",
+  "This account is already connected to a different Hylo user. Log out and sign in with it instead.": "Esta conta já está conectada a outro usuário do Hylo. Saia e entre com ela.",
   "Action Button Text": "Texto do botão de ação",
   "Action Button Text and Action Button URL must be set together": "O texto e a URL do botão de ação devem ser definidos juntos",
   "Action Button URL": "URL do botão de ação",

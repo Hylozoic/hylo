@@ -76,6 +76,24 @@ describe('SessionController.upsertLinkedAccount', () => {
         })
     })
   })
+
+  describe('when the social account belongs to another user', () => {
+    let owner
+
+    before(async () => {
+      owner = await factories.user().save()
+      await LinkedAccount.create(owner.id, { type: 'google', profile: { id: 'owned-by-someone-else' } })
+    })
+
+    after(() => LinkedAccount.query().where('user_id', owner.id).del())
+
+    it('refuses to move it to the current user', async () => {
+      await expect(upsertLinkedAccount(req, 'google', { id: 'owned-by-someone-else' }))
+        .to.be.rejectedWith('linked-account-in-use')
+      const account = await LinkedAccount.where({ provider_key: 'google', provider_user_id: 'owned-by-someone-else' }).fetch()
+      expect(account.get('user_id')).to.equal(owner.id)
+    })
+  })
 })
 
 describe('SessionController', function () {

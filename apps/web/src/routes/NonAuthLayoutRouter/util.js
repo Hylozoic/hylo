@@ -56,6 +56,7 @@ export function formatError (error, action, t) {
       'no email provided': t('Please enter a valid email address'),
       'invalid-email': t('Please enter a valid email address'),
       'duplicate-email': t('Account already exists'),
+      'linked-account-in-use': t('This account is already connected to a different Hylo user. Log out and sign in with it instead.'),
       'no password provided': t('Please enter your password'),
       'email not found': t('Email address not found'),
       'invalid-code': t('Invalid code, please try again'),
