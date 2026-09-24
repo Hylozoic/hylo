@@ -52,7 +52,6 @@ module.exports.http = {
       'passportInit',
       'passportSession',
       'compress',
-      'poweredBy',
       'requestLogger',
       '$custom',
       'router',
