@@ -165,6 +165,58 @@ describe('SessionController', function () {
     })
   })
 
+  describe('.finishAppleOAuth', () => {
+    const appleSigninAuth = require('apple-signin-auth').default
+    let originalVerify, victim
+
+    before(async () => {
+      originalVerify = appleSigninAuth.verifyIdToken
+      victim = await factories.user({ email: 'apple-victim@example.com' }).save()
+    })
+
+    after(() => {
+      appleSigninAuth.verifyIdToken = originalVerify
+    })
+
+    it('ignores an email in the request body and uses the verified token email', async () => {
+      appleSigninAuth.verifyIdToken = spy(async () => ({
+        sub: 'apple-attacker-sub',
+        email: 'attacker@privaterelay.appleid.com',
+        email_verified: 'true'
+      }))
+      const appleReq = factories.mock.request()
+      appleReq.body = {
+        user: 'apple-attacker-sub',
+        identityToken: 'token',
+        email: victim.get('email'),
+        fullName: { givenName: 'Apple', familyName: 'Attacker' }
+      }
+      appleReq.get = () => undefined
+      const appleRes = factories.mock.response()
+
+      await SessionController.finishAppleOAuth(appleReq, appleRes)
+
+      expect(appleRes.ok).to.have.been.called()
+      expect(appleReq.session.userId).to.not.equal(victim.id)
+      const created = await User.where({ email: 'attacker@privaterelay.appleid.com' }).fetch()
+      expect(created).to.exist
+      expect(appleReq.session.userId).to.equal(created.id)
+    })
+
+    it('rejects a token that does not verify', async () => {
+      appleSigninAuth.verifyIdToken = spy(async () => { throw new Error('bad audience') })
+      const appleReq = factories.mock.request()
+      appleReq.body = { user: 'x', identityToken: 'token', email: victim.get('email') }
+      appleReq.get = () => undefined
+      const appleRes = factories.mock.response()
+
+      await SessionController.finishAppleOAuth(appleReq, appleRes)
+
+      expect(appleRes.statusCode).to.equal(401)
+      expect(appleReq.session.userId).to.not.equal(victim.id)
+    })
+  })
+
   describe('.createWithJWT', () => {
     var user, token
 

@@ -248,43 +248,52 @@ module.exports = {
   },
 
   finishAppleOAuth: async function (req, res, next) {
-    const { nonce, user, identityToken, email, fullName } = req.body
-    // Check nonce or identityToken with nonce or audience (clientId) or both? See:
-    //    https://medium.com/@rossbulat/react-native-sign-in-with-apple-75733d3fbc3 (search "As a side note...")
-    const appleIdTokenClaims = await appleSigninAuth.verifyIdToken(identityToken, {
-      /** sha256 hex hash of raw nonce */
-      nonce: nonce
-        ? crypto.createHash('sha256').update(nonce).digest('hex')
-        : undefined
-    })
-
-    // Confirm that identityToken was verified:
-    if (appleIdTokenClaims.sub === user) {
-      const isTokenAuth = req.get('X-Hylo-Token-Auth') === '1'
-      // Apple only returns the name on the first authorization; later sign-ins
-      // omit it. Avoid stringifying null/undefined into "null null".
-      const appleName = [fullName?.givenName, fullName?.familyName]
-        .filter(part => typeof part === 'string' && part.trim())
-        .join(' ')
-      upsertUser(req, 'apple', {
-        id: user,
-        email,
-        name: appleName || undefined
-      }, { tokenAuth: isTokenAuth })
-        .then(async authedUser => {
-          // Mobile token-auth clients opt in via header and get a token pair back
-          // (no cookie session was created — mint from the resolved user). Existing
-          // (web) callers are unaffected.
-          if (isTokenAuth) {
-            return res.ok(await mintTokensForUser(authedUser))
-          }
-          return res.ok(authedUser)
-        })
-        .catch(function (err) {
-          // 422 means 'well-formed but semantically invalid'
-          res.status(422).send(err.message)
-        })
+    const { nonce, user, identityToken, fullName } = req.body
+    let appleIdTokenClaims
+    try {
+      appleIdTokenClaims = await appleSigninAuth.verifyIdToken(identityToken, {
+        audience: process.env.APPLE_CLIENT_ID || 'com.hylo.HyloA',
+        /** sha256 hex hash of raw nonce */
+        nonce: nonce
+          ? crypto.createHash('sha256').update(nonce).digest('hex')
+          : undefined
+      })
+    } catch (err) {
+      return res.status(401).send('Invalid Apple identity token')
     }
+
+    if (!appleIdTokenClaims || appleIdTokenClaims.sub !== user) {
+      return res.status(401).send('Invalid Apple identity token')
+    }
+
+    // The email used to find or create the account must come from the signed token, never the request body.
+    const emailVerified = appleIdTokenClaims.email_verified === true || appleIdTokenClaims.email_verified === 'true'
+    const email = emailVerified ? appleIdTokenClaims.email : undefined
+
+    const isTokenAuth = req.get('X-Hylo-Token-Auth') === '1'
+    // Apple only returns the name on the first authorization; later sign-ins
+    // omit it. Avoid stringifying null/undefined into "null null".
+    const appleName = [fullName?.givenName, fullName?.familyName]
+      .filter(part => typeof part === 'string' && part.trim())
+      .join(' ')
+    return upsertUser(req, 'apple', {
+      id: user,
+      email,
+      name: appleName || undefined
+    }, { tokenAuth: isTokenAuth })
+      .then(async authedUser => {
+        // Mobile token-auth clients opt in via header and get a token pair back
+        // (no cookie session was created — mint from the resolved user). Existing
+        // (web) callers are unaffected.
+        if (isTokenAuth) {
+          return res.ok(await mintTokensForUser(authedUser))
+        }
+        return res.ok(authedUser)
+      })
+      .catch(function (err) {
+        // 422 means 'well-formed but semantically invalid'
+        res.status(422).send(err.message)
+      })
   },
 
   startGoogleOAuth: setSessionFromParams(function (req, res) {
