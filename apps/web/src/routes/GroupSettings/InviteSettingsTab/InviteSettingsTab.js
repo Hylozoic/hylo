@@ -126,13 +126,11 @@ function InviteSettingsTab (props) {
         hasMore: pageHasMore(members, rawItems.length)
       }
     }
-    const connections = response?.payload?.data?.connections
-    const rawItems = connections?.items || []
+    const people = response?.payload?.data?.people
+    const rawItems = people?.items || []
     return {
-      items: rawItems
-        .map(c => c.person)
-        .filter(p => p && String(p.id) !== String(currentUser?.id)),
-      hasMore: pageHasMore(connections, rawItems.length)
+      items: rawItems.filter(p => p && String(p.id) !== String(currentUser?.id)),
+      hasMore: pageHasMore(people, rawItems.length)
     }
   }, [currentUser?.id, isSpace, parentGroupId])
 
@@ -145,7 +143,7 @@ function InviteSettingsTab (props) {
   }, [isSpace, group?.requiredRoles])
 
   /**
-   * Loads one page of inviteable people: connections (groups) or parent members (spaces).
+   * Loads one page of inviteable people: co-members (groups) or parent members (spaces).
    */
   const fetchPeopleForInvite = useCallback(async (autocomplete = '') => {
     const search = typeof autocomplete === 'string' ? autocomplete : ''
@@ -449,12 +447,12 @@ function InviteSettingsTab (props) {
           )}
           {isSpace
             ? t('Search members of {{name}} who aren\'t already in this space.', { name: parentName || t('the group') })
-            : t('Search people you\'re connected with who aren\'t already members.')}
+            : t('Search people you can see on Hylo.')}
         </span>
         <PeopleSelector
           placeholder={isSpace
             ? t('Search members of {{name}}...', { name: parentName || t('the group') })
-            : t('Search people you know...')}
+            : t('Search people...')}
           fetchPeople={fetchPeopleForInvite}
           fetchDefaultList={fetchDefaultPeopleList}
           setPeopleSearch={() => {}}
