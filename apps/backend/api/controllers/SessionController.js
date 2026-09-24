@@ -7,6 +7,21 @@ import { mintTokensForUser } from '../services/OIDCTokens'
 
 const sentry = require('../../lib/sentry')
 
+/**
+ * Returns the magic-link redirect target (`n` param) only if it stays on the Hylo frontend,
+ * otherwise null. Relative paths are resolved against the frontend origin.
+ */
+const safeNextUrl = function (next) {
+  if (!next || typeof next !== 'string') return null
+  try {
+    const { origin } = new URL(Frontend.Route.evo.passwordSetting())
+    const resolved = new URL(next, origin)
+    return resolved.origin === origin ? resolved.href : null
+  } catch (e) {
+    return null
+  }
+}
+
 const findUser = function (service, email, id) {
   return User.query(function (qb) {
     qb.leftJoin('linked_account', (q2) => {
@@ -352,7 +367,8 @@ module.exports = {
     // Web links will go directly to the server and redirects from here,
     // Native does a POST as an API call and this should not redirect
     const shouldRedirect = req.method === 'GET'
-    const nextUrl = req.param('n') || Frontend.Route.evo.passwordSetting()
+    const requestedNextUrl = safeNextUrl(req.param('n'))
+    const nextUrl = requestedNextUrl || Frontend.Route.evo.passwordSetting()
 
     // NOTE: this was `req.session.authenticated` but that doesn't seem to
     // populate in the case (or in time) for a POST request? This works.
@@ -370,7 +386,7 @@ module.exports = {
     } else {
       // still redirect, to give the user a chance to log in manually
       // if a specific URL other than the default was the entry point
-      return shouldRedirect && req.param('n')
+      return shouldRedirect && requestedNextUrl
         ? res.redirect(nextUrl)
         : res.status(422).send('Invalid link, please try again')
     }
@@ -381,7 +397,8 @@ module.exports = {
     // Web links will go directly to the server and redirects from here,
     // Native does a POST as an API call and this should not redirect
     const shouldRedirect = req.method === 'GET'
-    const nextUrl = req.param('n') || Frontend.Route.evo.passwordSetting()
+    const requestedNextUrl = safeNextUrl(req.param('n'))
+    const nextUrl = requestedNextUrl || Frontend.Route.evo.passwordSetting()
     try {
       const user = await User.find(req.param('u'))
       if (!user) return res.status(422).send('Link expired')
@@ -394,7 +411,7 @@ module.exports = {
       } else {
         // still redirect, to give the user a chance to log in manually
         // if a specific URL other than the default was the entry point
-        return shouldRedirect && req.param('n')
+        return shouldRedirect && requestedNextUrl
           ? res.redirect(nextUrl)
           : res.status(422).send('Link expired')
       }

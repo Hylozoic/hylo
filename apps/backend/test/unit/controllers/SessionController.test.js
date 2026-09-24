@@ -262,6 +262,37 @@ describe('SessionController', function () {
         })
     })
 
+    describe('redirect target (n param)', () => {
+      const defaultUrl = () => Frontend.Route.evo.passwordSetting()
+      const origin = () => new URL(defaultUrl()).origin
+
+      const redirectFor = async (n, { loggedIn = true } = {}) => {
+        const r = factories.mock.request()
+        r.method = 'GET'
+        r.params = { n }
+        r.session.userId = loggedIn ? user.id : null
+        const s = factories.mock.response()
+        s.status = spy(() => ({ send: spy() }))
+        await SessionController.createWithJWT(r, s)
+        return s.redirected
+      }
+
+      it('follows relative paths and same-origin URLs', async () => {
+        expect(await redirectFor('/groups/foo')).to.equal(`${origin()}/groups/foo`)
+        expect(await redirectFor(`${origin()}/post/1?x=y`)).to.equal(`${origin()}/post/1?x=y`)
+      })
+
+      it('ignores off-site targets and falls back to the default', async () => {
+        for (const n of ['https://evil.example', '//evil.example/x', '/\\evil.example', 'javascript:alert(1)']) {
+          expect(await redirectFor(n)).to.equal(defaultUrl())
+        }
+      })
+
+      it('does not redirect off-site when the link is invalid', async () => {
+        expect(await redirectFor('https://evil.example', { loggedIn: false })).to.be.undefined
+      })
+    })
+
     it('for invalid token and POST it returns error', () => {
       let error
       const send = spy(function (msg) { error = msg })
