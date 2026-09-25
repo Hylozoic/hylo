@@ -38,8 +38,12 @@
 {% endmacro %}
 
 <div class='section'>
-  {% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
-  {% trans %}Here's what's happened in the last {% endtrans %}{{ time_period }} {% trans %}in {% endtrans %}{{ group_pill }}
+  {% if unified %}
+    {% trans %}Here's what's happened in the last {% endtrans %}{{ time_period }} {% trans %}in your Hylo groups{% endtrans %}
+  {% else %}
+    {% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+    {% trans %}Here's what's happened in the last {% endtrans %}{{ time_period }} {% trans %}in {% endtrans %}{{ group_pill }}
+  {% endif %}
 
   {% set jump_count = 0 %}
   {% if discussions|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
@@ -81,7 +85,12 @@
         {% else %}
           {% trans %}{{room_num_new_chats}} new chat in{% endtrans %}
         {% endif %}
-        <a class='title' href='{{room.url}}'>{{room.name}}</a>
+        {% if room.location_label %}
+          {% set room_title = room.location_label %}
+        {% else %}
+          {% set room_title = room.name %}
+        {% endif %}
+        <a class='title' href='{{room.url}}'>{{room_title}}</a>
       </div>
     {% endfor %}
 
@@ -94,7 +103,12 @@
           {% trans %}{{post_comment_count}} new comment in{% endtrans %}
         {% endif %}
         <a href='{{post.url}}' class='title'>{{post.title}}</a>
-        {{ space_label(post) }}
+        {% if post.location_label %}
+          {% set post_location = post.location_label %}
+          <span class='space-label'>{% trans %}in {{post_location}}{% endtrans %}</span>
+        {% else %}
+          {{ space_label(post) }}
+        {% endif %}
       </div>
     {% endfor %}
   </div>
@@ -118,7 +132,14 @@
       </h3>
   {% for post in upcoming %}
     <div class='card post-headline'>
-      {{post_icon(post.type)}} <span>{{post.start_time}} - <a href='{{post.url}}'>{{post.title}}</a> {{ space_label(post) }}</span>
+      {{post_icon(post.type)}} <span>{{post.start_time}} - <a href='{{post.url}}'>{{post.title}}</a>
+        {% if post.groups_label %}
+          {% set groups_label = post.groups_label %}
+          <span class='space-label'>{% trans %}in {{groups_label}}{% endtrans %}</span>
+        {% else %}
+          {{ space_label(post) }}
+        {% endif %}
+      </span>
     </div>
   {% endfor %}
 </div>
@@ -133,7 +154,14 @@
       </h3>
   {% for post in ending %}
     <div class='card post-headline'>
-      {{post_icon(post.type)}} <span>{{post.end_time}} - <a href='{{post.url}}'>{{post.title}}</a> {{ space_label(post) }}</span>
+      {{post_icon(post.type)}} <span>{{post.end_time}} - <a href='{{post.url}}'>{{post.title}}</a>
+        {% if post.groups_label %}
+          {% set groups_label = post.groups_label %}
+          <span class='space-label'>{% trans %}in {{groups_label}}{% endtrans %}</span>
+        {% else %}
+          {{ space_label(post) }}
+        {% endif %}
+      </span>
     </div>
   {% endfor %}
 </div>

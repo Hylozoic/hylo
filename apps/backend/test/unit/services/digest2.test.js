@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import formatData from '../../../lib/group/digest2/formatData'
+import { applyUnifiedGroupLabels, groupLocationLabel, groupsLabelFromIds, mergeDigestData } from '../../../lib/group/digest2/mergeData'
 import personalizeData from '../../../lib/group/digest2/personalizeData'
 import { defaultTimezone, shouldSendData, getRecipients, parseGroupIds } from '../../../lib/group/digest2/util'
 import { sendDigest, sendAllDigests } from '../../../lib/group/digest2'
@@ -185,7 +186,8 @@ describe('group digest v2', () => {
             name: 'Foo Group',
             num_new_chats: 1,
             url: Frontend.Route.chat(group),
-            space_id: null
+            space_id: null,
+            source_group_id: 1
           }
         ],
         requests: [
@@ -836,6 +838,165 @@ describe('getRecipients', () => {
       expect(models.length).to.equal(2)
       expect(models.map(m => m.id).sort())
       .to.deep.equal([uIn1.id, uIn2.id].sort())
+    })
+  })
+})
+
+describe('unified email digest', () => {
+  it('keeps a post once and prefers the parent-group copy', () => {
+    const merged = mergeDigestData([
+      {
+        discussions: [{
+          id: 1,
+          title: 'Shared',
+          space_id: 9,
+          space_name: 'Garden',
+          posted_in: [9],
+          url: 'space-url',
+          comments: []
+        }]
+      },
+      {
+        discussions: [{
+          id: 1,
+          title: 'Shared',
+          posted_in: [2],
+          url: 'parent-url',
+          comments: []
+        }]
+      }
+    ])
+
+    expect(merged.discussions).to.have.length(1)
+    expect(merged.discussions[0].posted_in.map(String).sort()).to.deep.equal(['2', '9'])
+    expect(merged.discussions[0].visible_via_parent).to.equal(true)
+    expect(merged.discussions[0].url).to.equal('parent-url')
+    expect(merged.discussions[0].space_id).to.equal(undefined)
+  })
+
+  it('counts each new comment once', () => {
+    const merged = mergeDigestData([
+      {
+        posts_with_new_comments: [{
+          id: 5,
+          posted_in: [1],
+          comments: [{ id: 1, text: 'a' }],
+          comment_count: 1
+        }]
+      },
+      {
+        posts_with_new_comments: [{
+          id: 5,
+          posted_in: [2],
+          comments: [{ id: 1, text: 'a' }, { id: 2, text: 'b' }],
+          comment_count: 2
+        }]
+      }
+    ])
+
+    expect(merged.posts_with_new_comments[0].comments.map(c => c.id)).to.deep.equal([1, 2])
+    expect(merged.posts_with_new_comments[0].comment_count).to.equal(2)
+    expect(merged.posts_with_new_comments[0].posted_in.map(String).sort()).to.deep.equal(['1', '2'])
+  })
+
+  it('labels a space as Group / Space and lists every membership', () => {
+    const memberships = new Map([
+      ['1', { name: 'Daily Group', type: null }],
+      ['2', { name: 'Garden', type: 'space', parent_name: 'Daily Group' }],
+      ['3', { name: 'Quiet Group', type: null }]
+    ])
+
+    expect(groupLocationLabel(memberships.get('2'))).to.equal('Daily Group / Garden')
+    expect(groupsLabelFromIds([2, 3, 1, 99], memberships)).to.equal('Daily Group, Daily Group / Garden, Quiet Group')
+
+    const data = {
+      discussions: [{ id: 4, posted_in: [1, 2] }],
+      posts_with_new_comments: [{ id: 5, posted_in: [2] }],
+      chat_rooms: [{ source_group_id: 2, name: 'Garden' }]
+    }
+    applyUnifiedGroupLabels(data, memberships)
+    expect(data.discussions[0].groups_label).to.equal('Daily Group, Daily Group / Garden')
+    expect(data.posts_with_new_comments[0].location_label).to.equal('Daily Group / Garden')
+    expect(data.chat_rooms[0].location_label).to.equal('Daily Group / Garden')
+  })
+
+  describe('sendAllDigests', () => {
+    let previousEmailNotificationsEnabled
+
+    before(async () => {
+      await setup.clearDb()
+      previousEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+    })
+
+    after(() => {
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = previousEmailNotificationsEnabled
+    })
+
+    it('bundles daily groups into one email and labels every group the post was sent to', async function () {
+      this.timeout(20000)
+      const calls = []
+      spyify(Email, 'sendSimpleEmail', function () { calls.push(Array.from(arguments)) })
+
+      try {
+        const createdAt = DateTime.now().setZone(defaultTimezone).startOf('day').plus({ hours: 6 }).toISO()
+        const author = await factories.user().save()
+        const reader = await factories.user({ settings: { unified_email_digest: true } }).save()
+        const other = await factories.user().save()
+        const daily = await factories.group({ name: 'Daily Group' }).save()
+        const weekly = await factories.group({ name: 'Weekly Group' }).save()
+        const quiet = await factories.group({ name: 'Quiet Group' }).save()
+        const garden = await factories.group({
+          name: 'Garden',
+          type: 'space',
+          parent_id: daily.id,
+          active: true
+        }).save()
+
+        const shared = await factories.post({
+          created_at: createdAt,
+          user_id: author.id,
+          type: 'discussion',
+          name: 'Shared post'
+        }).save()
+        const gardenPost = await factories.post({
+          created_at: createdAt,
+          user_id: author.id,
+          type: 'discussion',
+          name: 'Garden post'
+        }).save()
+
+        await PostMembership.forge({ post_id: shared.id, group_id: daily.id }).save()
+        await PostMembership.forge({ post_id: shared.id, group_id: weekly.id }).save()
+        await PostMembership.forge({ post_id: shared.id, group_id: quiet.id }).save()
+        await PostMembership.forge({ post_id: gardenPost.id, group_id: garden.id }).save()
+
+        await daily.addMembers([reader.id, other.id], { settings: { sendEmail: true, digestFrequency: 'daily' } })
+        await weekly.addMembers([reader.id], { settings: { sendEmail: true, digestFrequency: 'weekly' } })
+        await quiet.addMembers([reader.id], { settings: { sendEmail: true, digestFrequency: 'never' } })
+        await garden.addMembers([reader.id], { settings: { sendEmail: true, digestFrequency: 'daily' } })
+
+        const result = await sendAllDigests('daily')
+        const readerCalls = calls.filter(call => call[0] === reader.get('email'))
+        const otherCalls = calls.filter(call => call[0] === other.get('email'))
+
+        expect(result).to.deep.equal([[daily.id, 1]])
+        expect(readerCalls).to.have.length(1)
+        expect(readerCalls[0][2].unified).to.equal(true)
+        expect(readerCalls[0][2].subject).to.equal('Your Hylo Daily Digest')
+        expect(readerCalls[0][2].discussions.map(post => post.title).sort()).to.deep.equal(['Garden post', 'Shared post'])
+
+        const sharedSent = readerCalls[0][2].discussions.find(post => post.title === 'Shared post')
+        const gardenSent = readerCalls[0][2].discussions.find(post => post.title === 'Garden post')
+        expect(sharedSent.groups_label).to.equal('Daily Group, Quiet Group, Weekly Group')
+        expect(gardenSent.groups_label).to.equal('Daily Group / Garden')
+
+        expect(otherCalls).to.have.length(1)
+        expect(otherCalls[0][2].unified).to.equal(false)
+        expect(otherCalls[0][2].discussions.map(post => post.title)).to.deep.equal(['Shared post'])
+      } finally {
+        unspyify(Email, 'sendSimpleEmail')
+      }
     })
   })
 })

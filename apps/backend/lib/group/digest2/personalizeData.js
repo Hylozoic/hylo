@@ -2,6 +2,7 @@ import { cloneDeep, flatten, merge, pick, uniq, values } from 'lodash'
 import { includes, filter, get } from 'lodash/fp'
 import { getLocaleStrings } from '../../i18n/locales'
 import { aggregateChatRooms, shouldSendData } from './util'
+import { applyUnifiedGroupLabels } from './mergeData'
 import * as cheerio from 'cheerio'
 
 const generateSubjectLine = (data, type, locale) => {
@@ -9,6 +10,11 @@ const generateSubjectLine = (data, type, locale) => {
   if (data.search) {
     // Saved search
     return L.newSavedSearchResults(data.search.get('name'))
+  }
+
+  if (data.unified) {
+    if (type === 'daily') return L.emailDigestUnifiedDailySubject()
+    if (type === 'weekly') return L.emailDigestUnifiedWeeklySubject()
   }
 
   if (type === 'daily') {
@@ -129,8 +135,9 @@ const filterMyAndBlockedUserData = async (userId, data) => {
       // Filter out posts by the user themselves except for posts with new comments, upcoming, and ending reminders
       if (!['posts_with_new_comments', 'upcoming', 'ending'].includes(key) && parseInt(object.user.id) === parseInt(userId)) return null
 
-      // Drop posts/chats from spaces the recipient is not a member of
-      if (object.space_id && !memberSpaceIds.has(String(object.space_id))) return null
+      // Drop posts/chats from spaces the recipient is not a member of.
+      // A copy that was also posted in a parent group stays (visible_via_parent).
+      if (object.space_id && !memberSpaceIds.has(String(object.space_id)) && !object.visible_via_parent) return null
 
       // Filter out posts that no longer have any comments
       if (key === 'posts_with_new_comments' && object.comments.length === 0) return null
@@ -155,6 +162,39 @@ const filterMyAndBlockedUserData = async (userId, data) => {
   return clonedData
 }
 
+const INTERNAL_FIELDS = ['posted_in', 'visible_via_parent', 'sort_at']
+
+/** Remove merge bookkeeping before the payload is rendered. */
+function stripDigestInternals (data) {
+  for (const key of [...CONTENT_KEYS, 'chat_rooms', 'funding_rounds']) {
+    for (const item of data[key] || []) {
+      for (const field of INTERNAL_FIELDS) delete item[field]
+    }
+  }
+}
+
+/**
+ * Active groups this person belongs to, including a space's parent name.
+ * Used to label unified digest items with every group a post was sent to.
+ */
+async function membershipGroupsById (userId) {
+  const rows = await bookshelf.knex('group_memberships')
+    .join('groups', 'groups.id', 'group_memberships.group_id')
+    .leftJoin('groups as parents', 'parents.id', 'groups.parent_id')
+    .where('group_memberships.user_id', userId)
+    .where('group_memberships.active', true)
+    .where('groups.active', true)
+    .select(
+      'groups.id as id',
+      'groups.name as name',
+      'groups.type as type',
+      'parents.name as parent_name'
+    )
+  const membershipById = new Map()
+  rows.forEach(row => membershipById.set(String(row.id), row))
+  return membershipById
+}
+
 const personalizeData = async (user, type, data, opts = {}) => {
   // Don't show me content I created or created by blocked users
   const filteredData = await filterMyAndBlockedUserData(user.id, data)
@@ -165,11 +205,18 @@ const personalizeData = async (user, type, data, opts = {}) => {
   }
   filteredData.num_sections = Object.keys(filteredData).filter(k => Array.isArray(filteredData[k]) && filteredData[k].length > 0).length
 
+  if (data.unified) {
+    const membershipById = await membershipGroupsById(user.id)
+    applyUnifiedGroupLabels(filteredData, membershipById)
+  }
+  stripDigestInternals(filteredData)
+
   const locale = user.getLocale()
+  const contextName = data.unified ? 'Hylo' : data.group_name
   const clickthroughParams = '?' + new URLSearchParams({
     ctt: 'digest_email',
     cti: user.id,
-    ctcn: data.group_name
+    ctcn: contextName
   }).toString()
 
   getPosts(filteredData).forEach(post => {
@@ -188,6 +235,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
 
   return Promise.props(merge(filteredData, {
     subject: generateSubjectLine(data, type, locale),
+    unified: !!data.unified,
     group_url: Frontend.appendQueryString(filteredData.group_url, clickthroughParams),
     recipient: {
       avatar_url: user.get('avatar_url'),
@@ -196,7 +244,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
     email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
     tracking_pixel_url: Analytics.pixelUrl('Digest', {
       userId: user.id,
-      group: data.group_name
+      group: contextName
     }),
     // TODO: these not being used right now, bring them back?
     post_creation_action_url: Frontend.Route.emailPostForm(),
