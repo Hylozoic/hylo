@@ -161,6 +161,18 @@ export default function makeModels (userId, isAdmin, apiClient) {
 
   const blockGroupMemberEnumerationForAnonymous = !userId && !apiClient
 
+  /**
+   * Anonymous visitors only reach people through public content (post and comment creators, etc.).
+   * They can see who wrote it (id, name, avatar, banner, tagline) but nothing else from the profile.
+   */
+  const fieldsReturning = (value, fields) => Object.fromEntries(fields.map(f => [f, () => value]))
+  const anonymousPersonGetters = {
+    ...fieldsReturning(null, ['bio', 'contactEmail', 'contactPhone', 'facebookUrl', 'lastActiveAt', 'linkedinUrl', 'location', 'locationObject', 'messageThreadId', 'twitterName', 'url']),
+    ...fieldsReturning([], ['memberships', 'moderatedGroupMemberships']),
+    ...fieldsReturning(0, ['membershipsTotal', 'moderatedGroupMembershipsTotal']),
+    ...Object.fromEntries(['affiliations', 'comments', 'eventsAttending', 'groupJoinQuestionAnswers', 'groupRoles', 'posts', 'projects', 'reactions', 'skills', 'skillsToLearn'].map(f => [f, emptyQuerySet]))
+  }
+
   /** Returns a relation query that matches no rows (used for public GraphQL without session). */
   function emptyGroupPeopleRelation (relation) {
     return relation.query(q => q.whereRaw('false'))
@@ -482,7 +494,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         membershipCommonRoles: emptyQuerySet,
         messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null),
         // Never expose null names to clients — they call .split() etc.
-        name: p => p.get('name') || ''
+        name: p => p.get('name') || '',
+        ...(blockGroupMemberEnumerationForAnonymous && anonymousPersonGetters)
       },
       relations: [
         {

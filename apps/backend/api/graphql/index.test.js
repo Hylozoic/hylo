@@ -432,6 +432,63 @@ describe('graphql request handler', () => {
       expect(executionResult.data.privateDirectory.members.items).to.deep.equal([])
     })
 
+    it('only shows who wrote public posts and comments, not their profile', async () => {
+      const author = await factories.user({
+        name: 'Public Author',
+        tagline: 'hello',
+        contact_email: 'author@example.com',
+        contact_phone: '5551212',
+        location: 'Barcelona, Spain',
+        bio: 'secret bio',
+        facebook_url: 'https://facebook.com/author',
+        linkedin_url: 'https://linkedin.com/in/author',
+        twitter_name: 'author',
+        url: 'https://author.example.com',
+        last_active_at: new Date()
+      }).save()
+      const authorGroup = await factories.group().save()
+      await authorGroup.addMembers([author.id])
+      const publicPost = await factories.post({ user_id: author.id, is_public: true }).save()
+      await authorGroup.posts().attach(publicPost)
+      await factories.comment({ post_id: publicPost.id, user_id: author.id }).save()
+
+      const profileFields = `id name tagline contactEmail contactPhone location bio facebookUrl linkedinUrl twitterName url lastActiveAt
+        locationObject { id } memberships { id } membershipsTotal groupRoles { items { id } } skills { items { name } } posts { items { id } }`
+      const { executionResult } = await handler.inject({
+        document: `{
+          post(id: "${publicPost.id}") {
+            creator { ${profileFields} }
+            comments { items { creator { ${profileFields} } } }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.be.ok
+      const hiddenProfile = {
+        id: String(author.id),
+        name: 'Public Author',
+        tagline: 'hello',
+        contactEmail: null,
+        contactPhone: null,
+        location: null,
+        bio: null,
+        facebookUrl: null,
+        linkedinUrl: null,
+        twitterName: null,
+        url: null,
+        lastActiveAt: null,
+        locationObject: null,
+        memberships: [],
+        membershipsTotal: 0,
+        groupRoles: { items: [] },
+        skills: { items: [] },
+        posts: { items: [] }
+      }
+      expect(executionResult.data.post.creator).to.deep.equal(hiddenProfile)
+      expect(executionResult.data.post.comments.items[0].creator).to.deep.equal(hiddenProfile)
+    })
+
     it('allows checkInvitation', async () => {
       const { executionResult } = await handler.inject({
         document: `{
