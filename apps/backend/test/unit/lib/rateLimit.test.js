@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import { RATE_LIMITED_ERROR, authenticateWithRateLimit, clearRateLimits } from '../../../lib/rateLimit'
-import { sendPasswordReset, verifyEmail } from '../../../api/graphql/mutations/user'
+import { sendEmailVerification, sendPasswordReset, verifyEmail } from '../../../api/graphql/mutations/user'
 import factories from '../../setup/factories'
 require('../../setup')
 
@@ -63,6 +63,49 @@ describe('login protection', () => {
         expect(await verifyEmail(() => {})(null, { email, code: wrongCode }, context)).to.deep.equal({ error: 'invalid-code' })
       }
       expect(await verifyEmail(() => {})(null, { email, code }, context)).to.deep.equal({ error: RATE_LIMITED_ERROR })
+    })
+
+    it('cannot be pointed at an existing account by user ID or name', async () => {
+      for (const target of [String(user.id), user.get('name')]) {
+        const { code } = await UserVerificationCode.create(target)
+        const context = { req: { ip: '203.0.113.7', session: {} } }
+
+        expect(await verifyEmail(() => {})(null, { email: target, code }, context)).to.deep.equal({ error: 'invalid-code' })
+        expect(context.req.session.userId).to.be.undefined
+      }
+    })
+
+    it('only accepts the most recently sent code', async () => {
+      const email = 'ratelimit-newest@example.com'
+      const first = await UserVerificationCode.create(email)
+      const second = await UserVerificationCode.create(email)
+
+      expect(await UserVerificationCode.verify({ email, code: first.code })).to.be.false
+      expect(await UserVerificationCode.verify({ email, code: second.code })).to.be.true
+    })
+
+    it('matches codes regardless of email case', async () => {
+      const { code } = await UserVerificationCode.create('Ratelimit-Case@Example.com')
+      expect(await UserVerificationCode.verify({ email: 'ratelimit-case@example.com', code })).to.be.true
+    })
+
+    it('generates 6-digit codes', async () => {
+      for (let i = 0; i < 20; i++) {
+        const { code } = await UserVerificationCode.create('ratelimit-digits@example.com')
+        expect(code).to.match(/^\d{6}$/)
+      }
+    })
+  })
+
+  describe('sendEmailVerification', () => {
+    it('refuses anything that is not an email address', async () => {
+      const context = { req: { ip: '203.0.113.8' } }
+      for (const target of [String(user.id), user.get('name')]) {
+        await UserVerificationCode.where({ email: target.toLowerCase() }).destroy({ require: false })
+        expect(await sendEmailVerification(null, { email: target }, context))
+          .to.deep.equal({ success: false, error: 'Invalid email address' })
+        expect(await UserVerificationCode.where({ email: target.toLowerCase() }).fetch()).to.not.exist
+      }
     })
   })
 
