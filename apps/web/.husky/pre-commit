@@ -13,10 +13,10 @@ if [ -z "${HYLO_LINT_ON_COMMIT}" ]; then
   exit 0
 fi
 
-# Lint staged files under apps/web
-STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^apps/web/.*\.(js|jsx|ts|tsx|cjs)$' || true)
+# Lint staged JS files under apps/web (Standard does not parse TypeScript)
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^apps/web/.*\.(js|jsx|cjs)$' || true)
 if [ -z "$STAGED" ]; then
-  echo 'No staged files to lint (stage some apps/web .js/.jsx/.ts/.tsx/.cjs files first).'
+  echo 'No staged files to lint (stage some apps/web .js/.jsx/.cjs files first).'
   exit 0
 fi
 

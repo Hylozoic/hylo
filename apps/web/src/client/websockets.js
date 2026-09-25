@@ -19,20 +19,20 @@ const environment = import.meta.env.PROD || 'development'
  */
 const isRemoteDevHost = typeof window !== 'undefined' &&
   import.meta.env.DEV &&
-  !['localhost', '127.0.0.1'].includes(window.location.hostname)
+  !['localhost', '[IP_ADDRESS]'].includes(window.location.hostname)
 
 const socketHost = isRemoteDevHost
   ? window.location.origin
   : import.meta.env.VITE_SOCKET_HOST
 const isClient = typeof window !== 'undefined' && !window.isMock && !isSandboxMode()
 
-let socket // client-side singleton
-let socketHeartbeatStarted = false
-
 /** v2 mobile WebView injects this before page JS; native owns session cookies there. */
 function isMobileV2WebView () {
   return typeof window !== 'undefined' && window.HyloMobileV2
 }
+
+let socket
+let socketHeartbeatStarted = false
 
 if (isClient) {
   const io = sailsIOClient(socketIOClient)

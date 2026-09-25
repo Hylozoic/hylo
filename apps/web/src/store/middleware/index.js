@@ -10,6 +10,8 @@ import optimisticMiddleware from './optimisticMiddleware'
 import userBlockingMiddleware from './userBlockingMiddleware'
 import mixpanelMiddleware from './mixpanelMiddleware'
 import errorReporterMiddleware from './errorReporterMiddleware'
+import bootstrapMiddleware from './bootstrapMiddleware'
+import checkLoginBootstrapFanOutMiddleware from './checkLoginBootstrapFanOutMiddleware'
 
 export default function createMiddleware (routerMiddleware, req) {
   const middleware = compact([
@@ -19,9 +21,11 @@ export default function createMiddleware (routerMiddleware, req) {
     optimisticMiddleware,
     pendingMiddleware,
     promiseMiddleware,
+    checkLoginBootstrapFanOutMiddleware,
     userBlockingMiddleware,
     mixpanelMiddleware,
     errorReporterMiddleware,
+    bootstrapMiddleware,
     isDev && createLogger({ collapsed: true })
   ])
 

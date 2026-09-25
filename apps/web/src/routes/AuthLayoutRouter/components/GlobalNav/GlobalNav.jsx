@@ -969,6 +969,7 @@ export default function GlobalNav (props) {
    * Opens the group's context menu at the original press point after a
    * long-press that never became a drag.
    */
+  /* global MouseEvent */
   const openPinnedGroupContextMenu = (groupId, clientX, clientY) => {
     const node = groupRefsMap.current.get(groupId)
     if (!node) return

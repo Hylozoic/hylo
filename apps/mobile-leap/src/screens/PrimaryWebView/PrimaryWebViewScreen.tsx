@@ -12,6 +12,8 @@ import useNetworkConnectivity from '../../hooks/useNetworkConnectivity'
 import useRouteParams from '../../hooks/useRouteParams'
 import useThemeStore from '../../store/themeStore'
 import { isIOS } from '../../util/platform'
+import { authHandshakeEvent } from '../../util/authDebug'
+import { normalizeWebPath } from '../../util/session'
 import NoInternetConnectionScreen from '../NoInternetConnection/NoInternetConnectionScreen'
 
 const hyloAppVersion = Constants.expoConfig?.version ?? '1.0.0'
@@ -78,6 +80,7 @@ export default function PrimaryWebViewScreen () {
 
     switch (type) {
       case WebViewMessageTypes.LOGOUT:
+        authHandshakeEvent('LOGOUT received from web', {}, 'warning')
         setIsLoggingOut(true)
         setSessionRecovering(false)
         setIsWebViewLoading(true)
@@ -119,7 +122,25 @@ export default function PrimaryWebViewScreen () {
     setWebViewError(syntheticEvent.nativeEvent)
   }, [])
 
-  const webViewPath = originalLinkingPath || path || '/app'
+  const webViewPath = normalizeWebPath(originalLinkingPath || path || '/app')
+  const showLoadingOverlay = isLoggingOut || !hasLoadedUser.current || isCookieResolving || isWebViewLoading || sessionRecovering
+
+  useEffect(() => {
+    if (!showLoadingOverlay) return
+    const delays = [5000, 15000, 30000]
+    const timers = delays.map(ms => setTimeout(() => {
+      authHandshakeEvent('PrimaryWebView loading overlay', {
+        elapsedMs: ms,
+        hasLoadedUser: hasLoadedUser.current,
+        isCookieResolving,
+        isWebViewLoading,
+        sessionRecovering,
+        isLoggingOut,
+        userId: currentUser?.id
+      }, 'warning')
+    }, ms))
+    return () => timers.forEach(clearTimeout)
+  }, [showLoadingOverlay, isCookieResolving, isWebViewLoading, sessionRecovering, isLoggingOut, currentUser?.id])
 
   if (!hasLoadedUser.current && (!isConnected || !isInternetReachable)) {
     return (
@@ -143,8 +164,6 @@ export default function PrimaryWebViewScreen () {
       />
     )
   }
-
-  const showLoadingOverlay = isLoggingOut || !hasLoadedUser.current || isCookieResolving || isWebViewLoading || sessionRecovering
 
   return (
     <SafeAreaView
