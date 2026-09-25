@@ -3049,5 +3049,8 @@
   "No role": "No role",
   "Only members with one of the required roles will actually be able to join the space.": "Only members with one of the required roles will actually be able to join the space.",
   "Go to group roles": "Go to group roles",
-  "Selected space": "Espaço selecionado"
+  "Selected space": "Espaço selecionado",
+  "Incorrect email or password.": "E-mail ou senha incorretos.",
+  "If you signed up with Google, log in with Google instead.": "Se você se cadastrou com o Google, entre com o Google.",
+  "Too many attempts. Please wait a few minutes and try again.": "Muitas tentativas. Aguarde alguns minutos e tente novamente."
 }

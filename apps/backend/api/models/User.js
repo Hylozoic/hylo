@@ -670,6 +670,10 @@ module.exports = bookshelf.Model.extend(merge({
 }, HasSettings), {
   AXOLOTL_ID: '13986',
 
+  // One message for every failure, so login can't be used to find out which emails have accounts.
+  // Clients match on this exact string.
+  INVALID_LOGIN_ERROR: 'Incorrect email or password',
+
   authenticate: Promise.method(function (email, password) {
     const compare = Promise.promisify(bcrypt.compare, bcrypt)
 
@@ -679,17 +683,14 @@ module.exports = bookshelf.Model.extend(merge({
     return User.query('whereRaw', 'lower(email) = lower(?)', email)
       .fetch({ withRelated: ['linkedAccounts'] })
       .then(function (user) {
-        if (!user) throw new GraphQLError('email not found')
+        if (!user) throw new GraphQLError(User.INVALID_LOGIN_ERROR)
 
         const account = user.relations.linkedAccounts.find(a => a.get('provider_key') === 'password')
 
-        if (!account) {
-          const keys = user.relations.linkedAccounts.pluck('provider_key')
-          throw new GraphQLError(`password account not found. available: [${keys.join(',')}]`)
-        }
+        if (!account) throw new GraphQLError(User.INVALID_LOGIN_ERROR)
 
         return compare(password, account.get('provider_user_id')).then(function (match) {
-          if (!match) throw new GraphQLError('password does not match')
+          if (!match) throw new GraphQLError(User.INVALID_LOGIN_ERROR)
 
           return user
         })

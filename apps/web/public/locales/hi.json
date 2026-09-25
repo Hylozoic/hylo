@@ -3049,5 +3049,8 @@
   "No role": "No role",
   "Only members with one of the required roles will actually be able to join the space.": "Only members with one of the required roles will actually be able to join the space.",
   "Go to group roles": "Go to group roles",
-  "Selected space": "चयनित स्पेस"
+  "Selected space": "चयनित स्पेस",
+  "Incorrect email or password.": "ईमेल या पासवर्ड गलत है।",
+  "If you signed up with Google, log in with Google instead.": "अगर आपने Google से साइन अप किया था, तो Google से लॉग इन करें।",
+  "Too many attempts. Please wait a few minutes and try again.": "बहुत अधिक प्रयास। कृपया कुछ मिनट प्रतीक्षा करें और फिर से प्रयास करें।"
 }

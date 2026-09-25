@@ -1,30 +1,15 @@
 /* eslint-disable quote-props */
 import React from 'react'
-import { uniq } from 'lodash'
 import classes from './NonAuthLayoutRouter.module.scss'
 
 export function formatError (error, action, t) {
   if (!error) return
 
-  const noPasswordMatch = error.match(/password account not found. available: \[(.*)\]/) // TODO: Handle this translation
-
-  if (noPasswordMatch) {
-    const options = uniq(noPasswordMatch[1].split(',')
-      .map(option => ({
-        'google': 'Google',
-        'google-token': 'Google',
-        'facebook': 'Facebook',
-        'facebook-token': 'Facebook',
-        'linkedin': 'LinkedIn',
-        'linkedin-token': 'LinkedIn'
-      }[option])))
-
+  // Matches User.INVALID_LOGIN_ERROR in the backend
+  if (error === 'Incorrect email or password') {
     return (
       <div className={classes.error}>
-        {t('Your account has no password set.')} <a href='/reset-password'>{t('Set your password here.')}</a>
-        {options[0] && (
-          <span><br />{`${t('Or log in with')} `}{options.join(` ${t('or')} `)}.</span>
-        )}
+        {t('Incorrect email or password.')} {t('If you signed up with Google, log in with Google instead.')} <a href='/reset-password'>{t('Reset your password')}</a>
       </div>
     )
   }
@@ -61,6 +46,8 @@ export function formatError (error, action, t) {
       'email not found': t('Email address not found'),
       'invalid-code': t('Invalid code, please try again'),
       'invalid-link': t('Link expired, please start over'),
+      // Matches RATE_LIMITED_ERROR in the backend
+      'Too many attempts. Please wait a few minutes and try again.': t('Too many attempts. Please wait a few minutes and try again.'),
       'invite-expired': t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'),
       // From oidc-provider
       'invalid_request': t('Request expired, please start over'),

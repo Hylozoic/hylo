@@ -3046,5 +3046,8 @@
   "No role": "No role",
   "Only members with one of the required roles will actually be able to join the space.": "Only members with one of the required roles will actually be able to join the space.",
   "Go to group roles": "Go to group roles",
-  "Selected space": "Selected space"
+  "Selected space": "Selected space",
+  "Incorrect email or password.": "Incorrect email or password.",
+  "If you signed up with Google, log in with Google instead.": "If you signed up with Google, log in with Google instead.",
+  "Too many attempts. Please wait a few minutes and try again.": "Too many attempts. Please wait a few minutes and try again."
 }

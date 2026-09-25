@@ -1,5 +1,6 @@
 import { get } from 'lodash/fp'
 import oidc from '../services/OpenIDConnect'
+import { authenticateWithRateLimit } from '../../lib/rateLimit'
 
 // This is needed for local dev, for some reason it is using :3001 for the port when we want :3000
 // And on staging and prod make sure we use the right base URL
@@ -41,7 +42,7 @@ module.exports = function (app) {
         'POST /noo/oidc/:uid/login': async (req, res, next) => {
           try {
             const details = await oidc.interactionDetails(req, res)
-            const { uid, prompt, params } = details
+            const { prompt, params } = details
 
             if (prompt.name !== 'login') return res.status(403).send({ error: 'Invalid request, please start over' })
 
@@ -55,7 +56,7 @@ module.exports = function (app) {
               user = await User.find(userId)
             } else {
               // Otherwise try to log user in
-              user = await User.authenticate(req.body.email, req.body.password)
+              user = await authenticateWithRateLimit(req, req.body.email, req.body.password)
             }
 
             const result = {
