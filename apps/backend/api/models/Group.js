@@ -10,6 +10,7 @@ import randomstring from 'randomstring'
 import wkx from 'wkx'
 import ical from 'ical-generator'
 import { writeStringToS3 } from '../../lib/uploader/storage'
+import { safeFetch } from '../../lib/safeFetch'
 
 import mixpanel from '../../lib/mixpanel'
 import { AnalyticsEvents, LocationHelpers, POST_TYPE_TO_TYPED_VIEW } from '@hylo/shared'
@@ -1149,7 +1150,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     if (zapierTriggers && zapierTriggers.length > 0) {
       for (const trigger of zapierTriggers) {
-        await fetch(trigger.get('target_url'), {
+        await safeFetch(trigger.get('target_url'), {
           method: 'post',
           body: JSON.stringify(members.map(m => ({
             id: m.id,

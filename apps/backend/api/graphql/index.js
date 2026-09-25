@@ -98,8 +98,16 @@ export const yoga = createYoga({
     maskError: maskAndLogGraphqlError
   },
   logging: process.env.GRAPHQL_YOGA_LOG_LEVEL || 'info',
-  graphiql: true
+  graphiql: graphiqlEnabled
 })
+
+/**
+ * GraphiQL is always available outside production; in production only for Hylo admins.
+ */
+export function graphiqlEnabled (request, { req } = {}) {
+  if (process.env.NODE_ENV !== 'production') return true
+  return !!req?.session && Admin.isSignedIn(req)
+}
 
 // Test-only shim: GraphQL Yoga v3 removed handler.inject(). Unit tests (e.g. api/graphql/index.test.js)
 // still call inject({ document, serverContext: { req, res } }) and assert on executionResult. This

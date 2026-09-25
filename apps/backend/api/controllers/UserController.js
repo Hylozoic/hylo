@@ -8,6 +8,11 @@ import { joinRoom, leaveRoom } from '../services/Websockets'
 module.exports = {
 
   create: async function (req, res) {
+    // Server-to-server only (see APIs.md); checkClientCredentials lets requests without a Bearer token through.
+    if (!req.api_client?.super) {
+      return res.status(403).json({ error: 'Unauthorized' })
+    }
+
     const { name, email, groupId, isAdministrator, isCoordinator } = req.allParams()
     const group = groupId && await Group.find(groupId)
     const assignAdministrator = [isAdministrator, isCoordinator].some(value => value === true || value === 'true')

@@ -84,6 +84,7 @@
   "Account Settings": "खाता सेटिंग्स",
   "Account Status: Pending": "खाता स्थिति: लंबित",
   "Account already exists": "खाता पहले से मौजूद है",
+  "This account is already connected to a different Hylo user. Log out and sign in with it instead.": "यह खाता पहले से किसी दूसरे Hylo उपयोगकर्ता से जुड़ा है। लॉग आउट करें और इसके साथ साइन इन करें।",
   "Action Button Text": "एक्शन बटन टेक्स्ट",
   "Action Button Text and Action Button URL must be set together": "एक्शन बटन टेक्स्ट और URL दोनों एक साथ सेट होने चाहिए",
   "Action Button URL": "एक्शन बटन URL",
@@ -3048,5 +3049,8 @@
   "No role": "No role",
   "Only members with one of the required roles will actually be able to join the space.": "Only members with one of the required roles will actually be able to join the space.",
   "Go to group roles": "Go to group roles",
-  "Selected space": "चयनित स्पेस"
+  "Selected space": "चयनित स्पेस",
+  "Incorrect email or password.": "ईमेल या पासवर्ड गलत है।",
+  "If you signed up with Google, log in with Google instead.": "अगर आपने Google से साइन अप किया था, तो Google से लॉग इन करें।",
+  "Too many attempts. Please wait a few minutes and try again.": "बहुत अधिक प्रयास। कृपया कुछ मिनट प्रतीक्षा करें और फिर से प्रयास करें।"
 }

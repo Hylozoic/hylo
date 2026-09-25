@@ -1,11 +1,28 @@
 import passport from 'passport'
 import appleSigninAuth from 'apple-signin-auth'
 import crypto from 'crypto'
+import { some } from 'lodash'
 import { Validators } from '@hylo/shared'
 import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { mintTokensForUser } from '../services/OIDCTokens'
+import { authenticateWithRateLimit } from '../../lib/rateLimit'
 
 const sentry = require('../../lib/sentry')
+
+/**
+ * Returns the magic-link redirect target (`n` param) only if it stays on the Hylo frontend,
+ * otherwise null. Relative paths are resolved against the frontend origin.
+ */
+const safeNextUrl = function (next) {
+  if (!next || typeof next !== 'string') return null
+  try {
+    const { origin } = new URL(Frontend.Route.evo.passwordSetting())
+    const resolved = new URL(next, origin)
+    return resolved.origin === origin ? resolved.href : null
+  } catch (e) {
+    return null
+  }
+}
 
 const findUser = function (service, email, id) {
   return User.query(function (qb) {
@@ -14,26 +31,26 @@ const findUser = function (service, email, id) {
     })
 
     qb.where(function (q3) {
-      q3.where({provider_user_id: id, 'linked_account.provider_key': service})
-      .orWhereRaw('lower(email) = ?', email ? email.toLowerCase() : null)
+      q3.where({ provider_user_id: id, 'linked_account.provider_key': service })
+        .orWhereRaw('lower(email) = ?', email ? email.toLowerCase() : null)
     })
-  }).fetchAll({withRelated: ['linkedAccounts']})
-  .then(users => {
+  }).fetchAll({ withRelated: ['linkedAccounts'] })
+    .then(users => {
     // if we find both a user matching the email address and one with a matching
     // linked account, prioritize the latter
-    if (users.length >= 2) {
-      return users.find(u => _.some(u.relations.linkedAccounts.models, a =>
-        a.get('provider_user_id') === id && a.get('provider_key') === service))
-    }
-    return users.first()
-  })
+      if (users.length >= 2) {
+        return users.find(u => some(u.relations.linkedAccounts.models, a =>
+          a.get('provider_user_id') === id && a.get('provider_key') === service))
+      }
+      return users.first()
+    })
 }
 
 // FIXME: this doesn't check that the profile_user_id we just got matches the
 // stored one. we should update any existing row to match the new
 // profile_user_id as necessary.
 const hasLinkedAccount = function (user, service) {
-  return !!user.relations.linkedAccounts.where({provider_key: service})[0]
+  return !!user.relations.linkedAccounts.where({ provider_key: service })[0]
 }
 
 // Records a successful login WITHOUT establishing a cookie session. Used by the
@@ -65,63 +82,63 @@ const ensureUserNameFromProfile = async (user, profile) => {
 // server session cookie would leak into the WebView jar and desync auth).
 const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
   return findUser(service, profile.email, profile.id)
-  .then(async (user) => {
-    if (user) {
-      await ensureUserNameFromProfile(user, profile)
+    .then(async (user) => {
+      if (user) {
+        await ensureUserNameFromProfile(user, profile)
+        if (tokenAuth) {
+          await recordTokenLogin(user)
+        } else {
+          await UserSession.login(req, user, service)
+        }
+        // if this is a new account, link it to the user
+        if (!(await hasLinkedAccount(user, service))) {
+          await LinkedAccount.create(user.id, { type: service, profile }, { updateUser: true })
+        }
+        return user
+      }
+
+      const attrs = {
+        email: profile.email,
+        account: { type: service, profile },
+        email_validated: true // When using oAuth email is already verified
+      }
+      const profileName = typeof profile?.name === 'string' ? profile.name.trim() : ''
+      if (profileName) attrs.name = profileName
+
+      const newUser = await User.create(attrs)
+      await Analytics.trackSignup(newUser.id, req)
       if (tokenAuth) {
-        await recordTokenLogin(user)
+        await recordTokenLogin(newUser)
       } else {
-        await UserSession.login(req, user, service)
+        await UserSession.login(req, newUser, service)
       }
-      // if this is a new account, link it to the user
-      if (!(await hasLinkedAccount(user, service))) {
-        await LinkedAccount.create(user.id, { type: service, profile }, { updateUser: true })
-      }
-      return user
-    }
-
-    const attrs = {
-      email: profile.email,
-      account: { type: service, profile },
-      email_validated: true // When using oAuth email is already verified
-    }
-    const profileName = typeof profile?.name === 'string' ? profile.name.trim() : ''
-    if (profileName) attrs.name = profileName
-
-    const newUser = await User.create(attrs)
-    await Analytics.trackSignup(newUser.id, req)
-    if (tokenAuth) {
-      await recordTokenLogin(newUser)
-    } else {
-      await UserSession.login(req, newUser, service)
-    }
-    return newUser
-  })
+      return newUser
+    })
 }
 
 const upsertLinkedAccount = (req, service, profile) => {
-  var userId = req.session.userId
-  return LinkedAccount.where({provider_key: service, provider_user_id: profile.id}).fetch()
-  .then(account => {
-    if (account) {
+  const userId = req.session.userId
+  return LinkedAccount.where({ provider_key: service, provider_user_id: profile.id }).fetch()
+    .then(account => {
+      if (account) {
       // user has this linked account already
-      if (account.get('user_id') === userId) {
-        return LinkedAccount.updateUser(userId, {type: service, profile})
+        if (account.get('user_id') === userId) {
+          return LinkedAccount.updateUser(userId, { type: service, profile })
+        }
+        // Never move a social login off another Hylo account: that would lock its owner
+        // out and let whoever holds this session sign in as them via the provider.
+        throw new Error('linked-account-in-use')
       }
-      // linked account belongs to someone else -- change its ownership
-      return account.save({user_id: userId}, {patch: true})
-      .then(() => LinkedAccount.updateUser(userId, {type: service, profile}))
-    }
-    // we create a new account regardless of whether one exists for the service;
-    // this allows the user to continue to log in with the old one
-    // NOTE: This is currently having the effect of creating a new LinkedAccount for a service
-    // EVERY TIME a user authenticates with that service, even using an already linked account.
-    return LinkedAccount.create(userId, {type: service, profile}, {updateUser: true})
-  })
+      // we create a new account regardless of whether one exists for the service;
+      // this allows the user to continue to log in with the old one
+      // NOTE: This is currently having the effect of creating a new LinkedAccount for a service
+      // EVERY TIME a user authenticates with that service, even using an already linked account.
+      return LinkedAccount.create(userId, { type: service, profile }, { updateUser: true })
+    })
 }
 
 const finishOAuth = function (strategy, req, res, next) {
-  var provider = strategy
+  let provider = strategy
   if (strategy === 'facebook-token') {
     provider = 'facebook'
   } else if (strategy === 'google-token') {
@@ -131,7 +148,7 @@ const finishOAuth = function (strategy, req, res, next) {
   }
 
   return new Promise((resolve, reject) => {
-    var respond = error => {
+    const respond = error => {
       if (error && error.stack) sentry.error(error, req)
       if (req.headers.accept === 'application/json') {
         error ? res.serverError(error) : res.ok({})
@@ -139,7 +156,8 @@ const finishOAuth = function (strategy, req, res, next) {
       }
 
       return resolve(res.view('popupDone', {
-        error,
+        // pass the message so the web app can match error keys (e.g. 'linked-account-in-use')
+        error: error instanceof Error ? error.message : error,
         provider,
         context: req.session.authContext || 'login',
         layout: null,
@@ -147,7 +165,7 @@ const finishOAuth = function (strategy, req, res, next) {
       }))
     }
 
-    var authCallback = function (err, profile, info) {
+    const authCallback = function (err, profile, info) {
       if (err || !profile) return respond(err || 'no user')
       if (!profile.email) return respond('no email')
 
@@ -160,20 +178,20 @@ const finishOAuth = function (strategy, req, res, next) {
       // req.session.userId) drives the downstream writes and token mint.
       if (isTokenAuth) {
         return upsertUser(req, provider, profile, { tokenAuth: true })
-        .then(async (user) => {
-          await UserExternalData.store(user.id, provider, profile._json)
-          res.ok(await mintTokensForUser(user))
-          return resolve()
-        })
-        .catch(respond)
+          .then(async (user) => {
+            await UserExternalData.store(user.id, provider, profile._json)
+            res.ok(await mintTokensForUser(user))
+            return resolve()
+          })
+          .catch(respond)
       }
 
       // Web/popup flow (cookie session, unchanged): attach to the current session
       // when already logged in, otherwise resolve/create from the profile.
       return (UserSession.isLoggedIn(req) ? upsertLinkedAccount : upsertUser)(req, provider, profile)
-      .then(() => UserExternalData.store(req.session.userId, provider, profile._json))
-      .then(() => respond())
-      .catch(respond)
+        .then(() => UserExternalData.store(req.session.userId, provider, profile._json))
+        .then(() => respond())
+        .catch(respond)
     }
 
     passport.authenticate(strategy, authCallback)(req, res, next)
@@ -190,18 +208,18 @@ const setSessionFromParams = fn => (req, res) => {
 
 module.exports = {
   create: function (req, res) {
-    var email = req.param('email') ? req.param('email').toLowerCase() : null
-    var password = req.param('password')
+    const email = req.param('email') ? req.param('email').toLowerCase() : null
+    const password = req.param('password')
 
-    return User.authenticate(email, password)
-    .then(async (user) => {
-      await UserSession.login(req, user, 'password')
-      await res.ok({})
-      return user
-    }).catch(function (err) {
+    return authenticateWithRateLimit(req, email, password)
+      .then(async (user) => {
+        await UserSession.login(req, user, 'password')
+        await res.ok({})
+        return user
+      }).catch(function (err) {
       // 422 means 'well-formed but semantically invalid'
-      res.status(422).send(err.message)
-    })
+        res.status(422).send(err.message)
+      })
   },
 
   // First-party native login: validates email/password the same way as `create` but
@@ -211,7 +229,7 @@ module.exports = {
     try {
       const email = req.param('email') ? req.param('email').toLowerCase() : null
       const password = req.param('password')
-      const user = await User.authenticate(email, password)
+      const user = await authenticateWithRateLimit(req, email, password)
       // Mirror UserSession.login: a successful login reactivates a self-deactivated
       // account. Deleted/pending accounts can't authenticate, so this is safe.
       await user.save({ active: true, last_login_at: new Date() }, { patch: true, autoRefresh: true })
@@ -248,47 +266,56 @@ module.exports = {
   },
 
   finishAppleOAuth: async function (req, res, next) {
-    const { nonce, user, identityToken, email, fullName } = req.body
-    // Check nonce or identityToken with nonce or audience (clientId) or both? See:
-    //    https://medium.com/@rossbulat/react-native-sign-in-with-apple-75733d3fbc3 (search "As a side note...")
-    const appleIdTokenClaims = await appleSigninAuth.verifyIdToken(identityToken, {
-      /** sha256 hex hash of raw nonce */
-      nonce: nonce
-        ? crypto.createHash('sha256').update(nonce).digest('hex')
-        : undefined
-    })
-
-    // Confirm that identityToken was verified:
-    if (appleIdTokenClaims.sub === user) {
-      const isTokenAuth = req.get('X-Hylo-Token-Auth') === '1'
-      // Apple only returns the name on the first authorization; later sign-ins
-      // omit it. Avoid stringifying null/undefined into "null null".
-      const appleName = [fullName?.givenName, fullName?.familyName]
-        .filter(part => typeof part === 'string' && part.trim())
-        .join(' ')
-      upsertUser(req, 'apple', {
-        id: user,
-        email,
-        name: appleName || undefined
-      }, { tokenAuth: isTokenAuth })
-        .then(async authedUser => {
-          // Mobile token-auth clients opt in via header and get a token pair back
-          // (no cookie session was created — mint from the resolved user). Existing
-          // (web) callers are unaffected.
-          if (isTokenAuth) {
-            return res.ok(await mintTokensForUser(authedUser))
-          }
-          return res.ok(authedUser)
-        })
-        .catch(function (err) {
-          // 422 means 'well-formed but semantically invalid'
-          res.status(422).send(err.message)
-        })
+    const { nonce, user, identityToken, fullName } = req.body
+    let appleIdTokenClaims
+    try {
+      appleIdTokenClaims = await appleSigninAuth.verifyIdToken(identityToken, {
+        audience: process.env.APPLE_CLIENT_ID || 'com.hylo.HyloA',
+        /** sha256 hex hash of raw nonce */
+        nonce: nonce
+          ? crypto.createHash('sha256').update(nonce).digest('hex')
+          : undefined
+      })
+    } catch (err) {
+      return res.status(401).send('Invalid Apple identity token')
     }
+
+    if (!appleIdTokenClaims || appleIdTokenClaims.sub !== user) {
+      return res.status(401).send('Invalid Apple identity token')
+    }
+
+    // The email used to find or create the account must come from the signed token, never the request body.
+    const emailVerified = appleIdTokenClaims.email_verified === true || appleIdTokenClaims.email_verified === 'true'
+    const email = emailVerified ? appleIdTokenClaims.email : undefined
+
+    const isTokenAuth = req.get('X-Hylo-Token-Auth') === '1'
+    // Apple only returns the name on the first authorization; later sign-ins
+    // omit it. Avoid stringifying null/undefined into "null null".
+    const appleName = [fullName?.givenName, fullName?.familyName]
+      .filter(part => typeof part === 'string' && part.trim())
+      .join(' ')
+    return upsertUser(req, 'apple', {
+      id: user,
+      email,
+      name: appleName || undefined
+    }, { tokenAuth: isTokenAuth })
+      .then(async authedUser => {
+        // Mobile token-auth clients opt in via header and get a token pair back
+        // (no cookie session was created — mint from the resolved user). Existing
+        // (web) callers are unaffected.
+        if (isTokenAuth) {
+          return res.ok(await mintTokensForUser(authedUser))
+        }
+        return res.ok(authedUser)
+      })
+      .catch(function (err) {
+        // 422 means 'well-formed but semantically invalid'
+        res.status(422).send(err.message)
+      })
   },
 
   startGoogleOAuth: setSessionFromParams(function (req, res) {
-    passport.authenticate('google', {scope: ['email', 'profile']})(req, res)
+    passport.authenticate('google', { scope: ['email', 'profile'] })(req, res)
   }),
 
   finishGoogleOAuth: function (req, res, next) {
@@ -343,7 +370,8 @@ module.exports = {
     // Web links will go directly to the server and redirects from here,
     // Native does a POST as an API call and this should not redirect
     const shouldRedirect = req.method === 'GET'
-    const nextUrl = req.param('n') || Frontend.Route.evo.passwordSetting()
+    const requestedNextUrl = safeNextUrl(req.param('n'))
+    const nextUrl = requestedNextUrl || Frontend.Route.evo.passwordSetting()
 
     // NOTE: this was `req.session.authenticated` but that doesn't seem to
     // populate in the case (or in time) for a POST request? This works.
@@ -361,7 +389,7 @@ module.exports = {
     } else {
       // still redirect, to give the user a chance to log in manually
       // if a specific URL other than the default was the entry point
-      return shouldRedirect && req.param('n')
+      return shouldRedirect && requestedNextUrl
         ? res.redirect(nextUrl)
         : res.status(422).send('Invalid link, please try again')
     }
@@ -372,7 +400,8 @@ module.exports = {
     // Web links will go directly to the server and redirects from here,
     // Native does a POST as an API call and this should not redirect
     const shouldRedirect = req.method === 'GET'
-    const nextUrl = req.param('n') || Frontend.Route.evo.passwordSetting()
+    const requestedNextUrl = safeNextUrl(req.param('n'))
+    const nextUrl = requestedNextUrl || Frontend.Route.evo.passwordSetting()
     try {
       const user = await User.find(req.param('u'))
       if (!user) return res.status(422).send('Link expired')
@@ -381,11 +410,11 @@ module.exports = {
         UserSession.login(req, user, 'password')
         return shouldRedirect
           ? res.redirect(nextUrl)
-          : res.ok({success: true})
+          : res.ok({ success: true })
       } else {
         // still redirect, to give the user a chance to log in manually
         // if a specific URL other than the default was the entry point
-        return shouldRedirect && req.param('n')
+        return shouldRedirect && requestedNextUrl
           ? res.redirect(nextUrl)
           : res.status(422).send('Link expired')
       }
@@ -393,7 +422,7 @@ module.exports = {
       return res.serverError
     }
   },
-  
+
   // these are here for testing
   findUser,
   upsertLinkedAccount

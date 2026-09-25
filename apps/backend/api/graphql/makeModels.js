@@ -84,6 +84,24 @@ function filterGroupRolesByGroup (relation, { groupId, slug }) {
   })
 }
 
+/**
+ * Subquery of group ids where the user has the Administration responsibility, for use in
+ * synchronous relation filters. Mirrors GroupMembership.hasResponsibility: roles live on the
+ * role scope group (the parent, for spaces) and the user must be an active member there.
+ */
+function adminGroupIdsSubquery (userId) {
+  return function () {
+    this.select('groups.id').from('groups')
+      .join('group_memberships_group_roles as gmgr', 'gmgr.group_id', bookshelf.knex.raw('COALESCE(groups.parent_id, groups.id)'))
+      .join('group_roles_responsibilities as grr', 'grr.group_role_id', 'gmgr.group_role_id')
+      .join('responsibilities as r', 'r.id', 'grr.responsibility_id')
+      .join('group_memberships as gm', function () {
+        this.on('gm.group_id', 'gmgr.group_id').andOn('gm.user_id', 'gmgr.user_id')
+      })
+      .where({ 'gmgr.user_id': userId, 'gm.active': true, 'r.title': Responsibility.constants.RESP_ADMINISTRATION })
+  }
+}
+
 /** Parses posts.notice_data whether Postgres returned an object or a JSON string. */
 function parsePostNoticeData (post) {
   const value = post.get('notice_data')
@@ -140,6 +158,76 @@ export default function makeModels (userId, isAdmin, apiClient) {
     }
     return viewIds.map(id => byView.get(String(id)) || [])
   }, { cacheKeyFn: id => String(id) })
+
+  const blockGroupMemberEnumerationForAnonymous = !userId && !apiClient
+
+  /**
+   * Anonymous visitors only reach people through public content (post and comment creators, etc.).
+   * They can see who wrote it (id, name, avatar, banner, tagline) but nothing else from the profile.
+   */
+  const fieldsReturning = (value, fields) => Object.fromEntries(fields.map(f => [f, () => value]))
+  const anonymousPersonGetters = {
+    ...fieldsReturning(null, ['bio', 'contactEmail', 'contactPhone', 'facebookUrl', 'lastActiveAt', 'linkedinUrl', 'location', 'locationObject', 'messageThreadId', 'twitterName', 'url']),
+    ...fieldsReturning([], ['memberships', 'moderatedGroupMemberships']),
+    ...fieldsReturning(0, ['membershipsTotal', 'moderatedGroupMembershipsTotal']),
+    ...Object.fromEntries(['affiliations', 'comments', 'eventsAttending', 'groupJoinQuestionAnswers', 'groupRoles', 'posts', 'projects', 'reactions', 'skills', 'skillsToLearn'].map(f => [f, emptyQuerySet]))
+  }
+
+  /** Returns a relation query that matches no rows (used for public GraphQL without session). */
+  function emptyGroupPeopleRelation (relation) {
+    return relation.query(q => q.whereRaw('false'))
+  }
+
+  /**
+   * When public_member_directory is false on the parent group, only active members of that group
+   * (plus admins and super API clients) may load members / stewards / moderators / memberships.
+   * Anonymous callers are handled by blockGroupMemberEnumerationForAnonymous above.
+   */
+  function applyPublicMemberDirectoryGuard (relation) {
+    if (blockGroupMemberEnumerationForAnonymous) {
+      return emptyGroupPeopleRelation(relation)
+    }
+    if (!userId || isAdmin || (apiClient && apiClient.super)) {
+      return relation
+    }
+    const groupId = relation.relatedData.parentId
+    return relation.query(q => {
+      q.whereRaw(
+        `(
+          COALESCE((SELECT (g.settings->>'public_member_directory')::boolean FROM groups g WHERE g.id = ?), false) = true
+          OR EXISTS (
+            SELECT 1 FROM group_memberships gm_priv
+            WHERE gm_priv.group_id = ?
+              AND gm_priv.user_id = ?
+              AND gm_priv.active = true
+          )
+        )`,
+        [groupId, groupId, userId]
+      )
+    })
+  }
+
+  /** Adds the same guard as applyPublicMemberDirectoryGuard inside an existing .query(q => ...) block. */
+  function appendPublicMemberDirectoryGuard (q, groupId) {
+    if (blockGroupMemberEnumerationForAnonymous) {
+      q.whereRaw('false')
+      return
+    }
+    if (userId && !isAdmin && !(apiClient && apiClient.super)) {
+      q.whereRaw(
+        `(
+          COALESCE((SELECT (g.settings->>'public_member_directory')::boolean FROM groups g WHERE g.id = ?), false) = true
+          OR EXISTS (
+            SELECT 1 FROM group_memberships gm_priv
+            WHERE gm_priv.group_id = ?
+              AND gm_priv.user_id = ?
+              AND gm_priv.active = true
+          )
+        )`,
+        [groupId, groupId, userId]
+      )
+    }
+  }
 
   // Mirrors Post#followers() (following + active posts_users + active users) for GraphQL totals
   async function postActiveFollowersCount (post) {
@@ -406,7 +494,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         membershipCommonRoles: emptyQuerySet,
         messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null),
         // Never expose null names to clients — they call .split() etc.
-        name: p => p.get('name') || ''
+        name: p => p.get('name') || '',
+        ...(blockGroupMemberEnumerationForAnonymous && anonymousPersonGetters)
       },
       relations: [
         {
@@ -597,7 +686,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         groups: async (p, _args, context) => {
           const fetched = await p.groups().fetch()
           const models = fetched?.models || []
-          // Do not skip for platform admins (@hylo.com / HYLO_ADMINS). That
+          // Do not skip for platform admins (HYLO_ADMINS). That
           // listed protected groups on stream cards and post pages.
           if (!userId) {
             return models.filter(g => g.get('visibility') === Group.Visibility.PUBLIC)
@@ -646,13 +735,16 @@ export default function makeModels (userId, isAdmin, apiClient) {
           completionResponses: {
             querySet: true,
             filter: (relation) => {
-              return relation.query(async q => {
-                const postUsers = await PostMembership.where({ post_id: relation.relatedData.parentId }).fetchAll()
-                const hasTracksResponsibility = postUsers.length > 0 && await Promise.any(postUsers.map(postUser => {
-                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
-                }))
-                if (!hasTracksResponsibility) return q.where('user_id', userId)
-                return q
+              // Admins of a group the post is in see all responses; everyone else only their own
+              const postId = relation.relatedData.parentId
+              return relation.query(q => {
+                q.where(function () {
+                  this.where('posts_users.user_id', userId).orWhereExists(function () {
+                    this.select(1).from('groups_posts')
+                      .where('groups_posts.post_id', postId)
+                      .whereIn('groups_posts.group_id', adminGroupIdsSubquery(userId))
+                  })
+                })
               })
             }
           }
@@ -780,7 +872,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'website_url'
       ],
       relations: [
-        { activeMembers: { querySet: true } },
+        {
+          activeMembers: {
+            querySet: true,
+            filter: relation => applyPublicMemberDirectoryGuard(relation)
+          }
+        },
         { agreements: { querySet: true } },
         { childGroups: { querySet: true } },
         { groupRelationshipInvitesFrom: { querySet: true } },
@@ -801,15 +898,30 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         { groupToGroupJoinQuestions: { querySet: true } },
         { joinQuestions: { querySet: true } },
-        { moderators: { querySet: true } },
-        { stewards: { querySet: true } },
+        {
+          moderators: {
+            querySet: true,
+            filter: relation => applyPublicMemberDirectoryGuard(relation)
+          }
+        },
+        {
+          stewards: {
+            querySet: true,
+            filter: relation => applyPublicMemberDirectoryGuard(relation)
+          }
+        },
         {
           memberships: {
             querySet: true,
-            filter: (relation, { userId }) =>
+            filter: (relation, { userId: membershipUserId }) =>
               relation.query(q => {
-                if (userId) {
-                  q.where('group_memberships.user_id', userId)
+                const groupId = relation.relatedData.parentId
+                appendPublicMemberDirectoryGuard(q, groupId)
+                if (blockGroupMemberEnumerationForAnonymous) {
+                  return
+                }
+                if (membershipUserId) {
+                  q.where('group_memberships.user_id', membershipUserId)
                 }
               })
           }
@@ -817,9 +929,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           members: {
             querySet: true,
-            filter: (relation, { id, autocomplete, boundingBox, excludeGroupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }) =>
-              relation.query(q => {
-                filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability })(q)
+            filter: (relation, { id, autocomplete, boundingBox, excludeGroupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }) => {
+              if (blockGroupMemberEnumerationForAnonymous) {
+                return emptyGroupPeopleRelation(relation)
+              }
+              const groupId = relation.relatedData.parentId
+              return relation.query(q => {
+                appendPublicMemberDirectoryGuard(q, groupId)
+                filterAndSortUsers({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability })(q)
                 if (excludeGroupId) {
                   q.whereNotIn('users.id',
                     bookshelf.knex('group_memberships')
@@ -828,6 +945,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                   )
                 }
               })
+            }
           }
         },
         { parentGroups: { querySet: true } },
@@ -908,6 +1026,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
               relation.query(q => {
                 const groupId = relation.relatedData.parentId
                 // Include tracks whose space is a child of this group (parent listing)
+                // TODO from assistant: this is the first where clause so knex emits it as AND, and bookshelf
+                // then appends "tracks.group_id = groupId", so this relation always returns no tracks.
                 q.orWhereIn('tracks.group_id', function () {
                   this.select('id').from('groups').where('parent_id', groupId)
                 })
@@ -932,11 +1052,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 q.orderBy(sortBy === 'published_at' ? 'tracks.created_at' : (sortBy || 'id'), order || 'asc')
 
                 // Only admins can see unpublished tracks
-                if (!GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)) {
-                  q.whereIn('tracks.group_id', function () {
+                q.where(function () {
+                  this.whereIn('tracks.group_id', function () {
                     this.select('id').from('groups').whereIn('status', Group.PUBLISHED_STATUSES)
                   })
-                }
+                  if (userId) this.orWhereIn('tracks.group_id', adminGroupIdsSubquery(userId))
+                })
               })
           }
         },
@@ -958,6 +1079,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           contentAccess: {
             querySet: true,
+            // TODO from assistant: Group has no contentAccess() relation, so this field always errors.
+            // If it is wired up, restrict it to group admins (e.g. adminGroupIdsSubquery) like the root query.
             filter: (relation, { search, accessType, status, offeringId, trackId, groupId, groupRoleId, sortBy, order }) =>
               relation.query(filterAndSortContentAccess({
                 groupIds: [relation.relatedData.parentId],
@@ -1088,7 +1211,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!userId) return 0
           return ModerationAction.where({ group_id: g.id, status: 'active' }).count().then(Number)
         },
-        pendingInvitations: (g, { first }) => InvitationService.find({ groupId: g.id, pendingOnly: true }),
+        pendingInvitations: async (g, { first }) => {
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
+            return { total: 0, items: [] }
+          }
+          return InvitationService.find({ groupId: g.id, pendingOnly: true })
+        },
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
         // XXX: Flag for translation
@@ -1127,7 +1255,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'type',
         'order',
         'icon',
-        'page_content',
         'topics',
         'settings'
       ],
@@ -1140,6 +1267,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         // Protocol-less values like google.com become https:// so every client gets a clickable URL.
         link: gv => TextHelpers.sanitizeURL(gv.get('link')) || gv.get('link'),
+        // Sanitized on read so content saved before sanitizing was added is also covered.
+        pageContent: gv => RichText.sanitizeHTML(gv.get('page_content')),
         // collectionPosts resolves to the actual Posts (not the join rows) per the GraphQL schema.
         // Re-applies the same visibility rules as every other Post query (active, membership,
         // public, blocked-user) since this is a custom getter and bypasses the generic Post filter.
@@ -1982,79 +2111,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'groupRole',
         'grantedBy'
       ],
-      fetchMany: (args) => {
-        // Store args for use in filter function
-        ContentAccess._fetchManyArgs = args
-        return ContentAccess
-      },
-      filter: (relation) => {
-        const args = ContentAccess._fetchManyArgs || {}
-        const { groupIds, search, accessType, status, offeringId, trackId, groupId, groupRoleId, sortBy = 'created_at', order } = args
-
-        return relation.query(q => {
-          // Filter by group IDs (groups that granted the access)
-          if (groupIds && groupIds.length > 0) {
-            q.whereIn('content_access.granted_by_group_id', groupIds)
-          }
-
-          // Filter by user name search
-          if (search) {
-            q.join('users', 'users.id', '=', 'content_access.user_id')
-            q.whereRaw('users.name ilike ?', `%${search}%`)
-          }
-
-          // Filter by access type
-          if (accessType) {
-            q.where('content_access.access_type', accessType)
-          }
-
-          // Filter by status
-          if (status) {
-            q.where('content_access.status', status)
-          }
-
-          // Filter by offering ID
-          if (offeringId) {
-            q.where('content_access.product_id', offeringId)
-          }
-
-          // Filter by track ID (legacy)
-          if (trackId) {
-            q.where('content_access.track_id', trackId)
-          }
-
-          // Filter by target group/space ID
-          if (groupId) {
-            q.where('content_access.group_id', groupId)
-          }
-
-          // Filter by group role ID
-          if (groupRoleId) {
-            q.where('content_access.group_role_id', groupRoleId)
-          }
-
-          // Apply sorting
-          const validSortColumns = {
-            created_at: 'content_access.created_at',
-            expires_at: 'content_access.expires_at',
-            user_name: 'users.name'
-          }
-
-          const sortColumn = validSortColumns[sortBy] || validSortColumns.created_at
-
-          // If sorting by user name and not already joined, join users table
-          if (sortBy === 'user_name' && !search) {
-            q.join('users', 'users.id', '=', 'content_access.user_id')
-          }
-
-          // Apply sorting
-          if (sortBy === 'user_name') {
-            q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
-          } else {
-            q.orderBy(sortColumn, order || 'desc')
-          }
-        })
-      },
+      // The root contentAccess resolver checks that the user administers every group in groupIds
+      fetchMany: (args) => ContentAccess.query(filterAndSortContentAccess({ ...args, sortBy: args.sortBy || 'created_at' })),
       getters: {
         userId: ca => ca.get('user_id'),
         grantedByGroupId: ca => ca.get('granted_by_group_id'),

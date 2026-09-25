@@ -89,6 +89,7 @@
   "Account Settings": "Account Settings",
   "Account Status: Pending": "Account Status: Pending",
   "Account already exists": "Account already exists",
+  "This account is already connected to a different Hylo user. Log out and sign in with it instead.": "This account is already connected to a different Hylo user. Log out and sign in with it instead.",
   "Action Button Text": "Action Button Text",
   "Action Button Text and Action Button URL must be set together": "Action Button Text and Action Button URL must be set together",
   "Action Button URL": "Action Button URL",
@@ -3045,5 +3046,8 @@
   "No role": "No role",
   "Only members with one of the required roles will actually be able to join the space.": "Only members with one of the required roles will actually be able to join the space.",
   "Go to group roles": "Go to group roles",
-  "Selected space": "Selected space"
+  "Selected space": "Selected space",
+  "Incorrect email or password.": "Incorrect email or password.",
+  "If you signed up with Google, log in with Google instead.": "If you signed up with Google, log in with Google instead.",
+  "Too many attempts. Please wait a few minutes and try again.": "Too many attempts. Please wait a few minutes and try again."
 }
