@@ -6,8 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Removed
-- Removed the group Explore landing page. `/groups/:slug/explore` redirects to the group home
+## [7.1.0] - 2026-09-25
+
+### Changed
+- Don't enable Create Account button until email field is valid
+- The people selector in the invite form allows you to invite anyone that is visible to you on hylo. Before it was only allowing you to invite people you had messaged or interacted with.
+- Remove the Farms tab in the Group Explorer for now. It's not being used yet.
+- Refine role-gated space invite dialog
+
+### Fixed
+- Many security related fixes and updates. Details to come soon.
+- Fix display of video embeds in page type views that have little text. Ensure width is wide enough to see the video.
+- Fix searching for emojis on mobile
+
+### Cleanup
+- Removed the old group Explore landing page. `/groups/:slug/explore` redirects to the group home
 - Farm profiles still use the remaining Widget components. The explore-only widgets and the steward visibility editor are gone
 - Sandbox track and funding-round display fields now come from the space group, matching the API
 
