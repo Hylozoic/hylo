@@ -915,6 +915,10 @@ module.exports = bookshelf.Model.extend(merge({
 
     const attributes = mapValues(pick(changes, whitelist), (v, k) => trimAttrs.includes(k) ? trim(v) : v)
     const saneAttrs = clone(attributes)
+    // Editor HTML is stored raw; plain text and markdown stay untouched.
+    if (typeof saneAttrs.description === 'string' && /<\/?[a-z][\s\S]*>/i.test(saneAttrs.description)) {
+      saneAttrs.description = RichText.sanitizeHTML(saneAttrs.description)
+    }
     const wasAutoAdd = this.get('type') === 'space' && !!this.getSetting('auto_add_members')
 
     if (attributes.settings) {

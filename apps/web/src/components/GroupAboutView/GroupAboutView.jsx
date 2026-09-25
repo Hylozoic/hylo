@@ -1,12 +1,12 @@
+import { TextHelpers } from '@hylo/shared'
 import { BadgeDollarSign, Bell, Check, ChevronRight, Copy, ExternalLink, Info, Link2, LogOut, MapPin, Network, Settings, ShieldCheck, Users } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 
-import ClickCatcher from 'components/ClickCatcher'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
-import HyloHTML from 'components/HyloHTML'
+import GroupDescription, { descriptionHasContent } from 'components/GroupDescription'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import RoundImage from 'components/RoundImage'
@@ -75,7 +75,7 @@ function GhostButton ({ icon: IconCmp, children, onClick }) {
   )
 }
 
-function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenMembers, onBeforeNavigate, t }) {
+function AboutPanel ({ group, parentGroup, isSpace, membership, canEditDescription, onLeave, onOpenMembers, onBeforeNavigate, t }) {
   const [urlCopied, setUrlCopied] = useState(false)
   const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
   const stewards = group.stewards && group.stewards.length > 0 ? group.stewards : null
@@ -101,15 +101,9 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
           <p className='m-0 text-sm leading-relaxed text-foreground/80'>{group.purpose}</p>
         </AboutCard>
       )}
-      {(group.description || websiteUrl) && (
+      {(descriptionHasContent(TextHelpers.richTextToHTML(group.description)) || websiteUrl || canEditDescription) && (
         <AboutCard title={t('Description')}>
-          {group.description && (
-            <div className='text-sm leading-relaxed text-foreground/80 global-postContent'>
-              <ClickCatcher groupSlug={group.slug}>
-                <HyloHTML html={group.description} />
-              </ClickCatcher>
-            </div>
-          )}
+          <GroupDescription group={group} canEdit={canEditDescription} />
           {websiteUrl && (
             <>
               <div className='mt-4 text-[10.5px] font-bold uppercase tracking-widest text-foreground/50'>{t('Website')}</div>
@@ -491,6 +485,7 @@ export default function GroupAboutView ({
                   parentGroup={parentGroup}
                   isSpace={isSpace}
                   membership={membership}
+                  canEditDescription={canAdminister}
                   onLeave={() => setShowLeaveDialog(true)}
                   onOpenMembers={() => handleTab('members')}
                   onBeforeNavigate={onBeforeNavigate}

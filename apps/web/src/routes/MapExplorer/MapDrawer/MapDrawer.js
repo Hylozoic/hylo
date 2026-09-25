@@ -83,7 +83,7 @@ function MapGroupCard ({ group, routeParams }) {
         {group.description && (
           <div className='mt-[9px] text-xs leading-normal text-white/80 line-clamp-3 [text-wrap:pretty]'>
             <ClickCatcher>
-              <HyloHTML element='span' html={TextHelpers.markdown(group.description)} />
+              <HyloHTML element='span' html={TextHelpers.richTextToHTML(group.description)} />
             </ClickCatcher>
           </div>
         )}

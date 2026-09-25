@@ -94,6 +94,36 @@ export function textLengthHTML (htmlOrText, options) {
   return presentHTMLToText(htmlOrText, options).length
 }
 
+const MARKDOWN_EXTRA_TAGS = ['del', 'table', 'thead', 'tbody', 'tr', 'th', 'td']
+const HTML_TAG = /<\/?[a-z][\s\S]*>/i
+
+/**
+ * Sanitizes editor HTML stored raw (group pages, group descriptions), keeping
+ * embed video tags that HyloHTML turns into YouTube and Vimeo iframes.
+ */
+export function sanitizeHTML (contentHTML) {
+  if (!contentHTML) return contentHTML
+  const options = insaneOptions()
+  return insane(contentHTML, {
+    ...options,
+    allowedTags: [...options.allowedTags, 'video'],
+    allowedAttributes: { ...options.allowedAttributes, video: ['src', 'data-type'] }
+  })
+}
+
+/**
+ * HTML for display and the editor. Saved editor HTML is sanitized as-is.
+ * Legacy plain text and markdown are converted first.
+ */
+export function richTextToHTML (value) {
+  if (!value) return ''
+  if (HTML_TAG.test(value)) return sanitizeHTML(value) || ''
+  return markdown(value)
+}
+
+/**
+ * Converts markdown to sanitized HTML. marked passes raw HTML through, so the output is always sanitized.
+ */
 export const markdown = (text, options = {}) => {
   if (options.disableAutolinking) {
     marked.use({

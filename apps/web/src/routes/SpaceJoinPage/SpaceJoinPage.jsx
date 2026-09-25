@@ -1,3 +1,4 @@
+import { TextHelpers } from '@hylo/shared'
 import { BadgeDollarSign, Users } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -238,7 +239,7 @@ export default function SpaceJoinPage () {
             {spaceGroup.description && (
               <div className='text-foreground/70 text-sm global-postContent mt-3'>
                 <ClickCatcher groupSlug={spaceFullSlug}>
-                  <HyloHTML html={spaceGroup.description} />
+                  <HyloHTML html={TextHelpers.richTextToHTML(spaceGroup.description)} />
                 </ClickCatcher>
               </div>
             )}
