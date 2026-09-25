@@ -1,6 +1,7 @@
 import { get } from 'lodash/fp'
-import { getLinkPreview } from 'link-preview-js'
+import { getPreviewFromContent } from 'link-preview-js'
 import { TextHelpers } from '@hylo/shared'
+import { safeFetch } from '../../lib/safeFetch'
 
 const HYLO_POST_PATH = /\/post\/(\d+)(?:\/|$)/
 const KNOWN_HYLO_HOSTS = [
@@ -104,12 +105,18 @@ const LinkPreview = bookshelf.Model.extend({
         return preview.save({ ...doneAttrs(), ...hyloAttrs })
       }
 
-      const linkPreviewData = await getLinkPreview(preview.get('url'), {
-        followRedirects: 'follow',
+      const response = await safeFetch(preview.get('url'), {
         headers: {
           'user-agent': 'Twitterbot/1.0',
           'Accept-Language': 'en-US'
-        }
+        },
+        timeout: 3000,
+        size: 5 * 1024 * 1024
+      })
+      const linkPreviewData = await getPreviewFromContent({
+        url: response.url,
+        headers: Object.fromEntries(response.headers.entries()),
+        data: await response.text()
       })
       const attrs = doneAttrs()
 

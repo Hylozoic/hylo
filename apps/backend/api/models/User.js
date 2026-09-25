@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
-import fetch from 'node-fetch'
+import { safeFetch } from '../../lib/safeFetch'
 import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
 import { GraphQLError } from 'graphql'
@@ -897,7 +897,7 @@ module.exports = bookshelf.Model.extend(merge({
       const group = await Group.find(groupId)
       if (user && group) {
         for (const trigger of zapierTriggers) {
-          await fetch(trigger.get('target_url'), {
+          await safeFetch(trigger.get('target_url'), {
             method: 'post',
             body: JSON.stringify({
               id: user.id,
@@ -921,7 +921,7 @@ module.exports = bookshelf.Model.extend(merge({
       memberships.models.forEach(async (membership) => {
         const zapierTriggers = await ZapierTrigger.forTypeAndGroups('member_updated', membership.get('group_id')).fetchAll()
         for (const trigger of zapierTriggers) {
-          await fetch(trigger.get('target_url'), {
+          await safeFetch(trigger.get('target_url'), {
             method: 'post',
             body: JSON.stringify(Object.assign({ id: user.id, profileUrl: Frontend.Route.profile(user, membership.relations.group) }, changes)),
             headers: { 'Content-Type': 'application/json' }
