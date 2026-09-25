@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { TextHelpers } from '@hylo/shared'
 import Dropdown from 'components/Dropdown'
+import HyloEditor from 'components/HyloEditor'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import { ImageUp, Info } from 'lucide-react'
@@ -193,7 +194,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
 
   const { changed, edits, error } = state
   const {
-    aboutVideoUri, acceptedPostTypes, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
+    aboutVideoUri, acceptedPostTypes, avatarUrl, bannerUrl, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
   } = edits
 
   const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', locationDisplayPrecision, showSuggestedSkills, showWelcomePage } = settings
@@ -251,7 +252,22 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         type='textarea'
         value={purpose}
       />
-      <SettingsControl label={t('Description')} onChange={updateSetting('description')} value={description} type='textarea' id='descriptionField' />
+      <SettingsControl
+        label={t('Description')}
+        renderControl={() => (
+          <HyloEditor
+            contentHTML={TextHelpers.richTextToHTML(group.description)}
+            className='min-h-[120px] p-2'
+            containerClassName='hyloEditor flex flex-col border border-foreground/20 rounded-lg bg-input'
+            extendedMenu
+            groupIds={group?.id ? [group.id] : []}
+            onUpdate={updateSettingDirectly('description')}
+            placeholder={t('Add a group description')}
+            showMenu
+            type='welcomePage'
+          />
+        )}
+      />
       <SettingsControl label={t('Website URL')} onChange={updateSetting('websiteUrl')} value={websiteUrl} />
       <SettingsControl label={t('About Video URL')} onChange={updateSetting('aboutVideoUri')} value={aboutVideoUri} />
       <SettingsSection>

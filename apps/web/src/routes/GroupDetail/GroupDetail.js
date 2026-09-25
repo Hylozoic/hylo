@@ -14,6 +14,7 @@ import SegmentedPicker from 'components/SegmentedPicker/SegmentedPicker'
 import ClickCatcher from 'components/ClickCatcher'
 import FarmGroupDetailBody from 'components/FarmGroupDetailBody'
 import GroupAboutVideoEmbed from 'components/GroupAboutVideoEmbed'
+import GroupDescription, { descriptionHasContent } from 'components/GroupDescription'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import SocketSubscriber from 'components/SocketSubscriber'
@@ -569,55 +570,53 @@ function GroupDetail ({ forCurrentGroup = false }) {
 // }
 
 const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t }) => {
+  const canEditDescription = responsibilityTitles.includes(RESP_ADMINISTRATION)
+  const hasDescription = descriptionHasContent(TextHelpers.richTextToHTML(group.description))
+  const showEmptyPrompt = isAboutCurrentGroup && canEditDescription && !group.purpose && !hasDescription
+  const showAbout = Boolean(group.purpose || hasDescription || group.websiteUrl || canEditDescription)
+
   return (
     <>
       {group.aboutVideoUri && (
         <GroupAboutVideoEmbed uri={group.aboutVideoUri} className={g.groupAboutVideo} />
       )}
-      {isAboutCurrentGroup && (!group.purpose && !group.description) && responsibilityTitles.includes(RESP_ADMINISTRATION)
-        ? (
-          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-            <div className={g.noDescription}>
-              <h4 className='text-xl font-bold py-2'>{t('Your group doesn\'t have a purpose or description')}</h4>
-              <p className='text-foreground'>{t('Add a purpose, description, location, and more in your group settings')}</p>
-              <Link className='text-foreground border-foreground' to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
-            </div>
+      {showEmptyPrompt && (
+        <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
+          <div className={g.noDescription}>
+            <h4 className='text-xl font-bold py-2'>{t('Your group doesn\'t have a purpose or description')}</h4>
+            <p className='text-foreground'>{t('Add a purpose, description, location, and more in your group settings')}</p>
+            <Link className='text-foreground border-foreground' to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
           </div>
-          )
-        : group.purpose || group.description || group.websiteUrl
-          ? (
-            <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-              {group.purpose
-                ? (
-                  <>
-                    <h3 className='text-xl font-bold py-2'>{t('Purpose')}</h3>
-                    <ClickCatcher>
-                      <HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} />
-                    </ClickCatcher>
-                  </>
-                  )
-                : ''}
-              {group.description
-                ? (
-                  <>
-                    <h3 className='text-xl font-bold py-2'>{t('Description')}</h3>
-                    <ClickCatcher>
-                      <HyloHTML element='span' html={TextHelpers.markdown(group.description)} />
-                    </ClickCatcher>
-                  </>
-                  )
-                : ''}
-              {group.websiteUrl
-                ? (
-                  <>
-                    <h3 className='text-xl font-bold py-2'>{t('Website')}</h3>
-                    <a href={TextHelpers.sanitizeURL(group.websiteUrl)} target='_blank' rel='noopener noreferrer'>{group.websiteUrl}</a>
-                  </>
-                  )
-                : ''}
-            </div>
-            )
-          : ''}
+        </div>
+      )}
+      {showAbout && (
+        <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
+          {group.purpose
+            ? (
+              <>
+                <h3 className='text-xl font-bold py-2'>{t('Purpose')}</h3>
+                <ClickCatcher>
+                  <HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} />
+                </ClickCatcher>
+              </>
+              )
+            : ''}
+          {(hasDescription || canEditDescription) && (
+            <>
+              <h3 className='text-xl font-bold py-2'>{t('Description')}</h3>
+              <GroupDescription group={group} canEdit={canEditDescription} />
+            </>
+          )}
+          {group.websiteUrl
+            ? (
+              <>
+                <h3 className='text-xl font-bold py-2'>{t('Website')}</h3>
+                <a href={TextHelpers.sanitizeURL(group.websiteUrl)} target='_blank' rel='noopener noreferrer'>{group.websiteUrl}</a>
+              </>
+              )
+            : ''}
+        </div>
+      )}
     </>
   )
 }

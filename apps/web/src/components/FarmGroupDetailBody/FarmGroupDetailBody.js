@@ -24,7 +24,7 @@ export default function FarmGroupDetailBody ({
       settings: {
         embeddedVideoURI: group.aboutVideoUri,
         text: !!group.description && bio,
-        richText: TextHelpers.markdown(group.description)
+        richText: TextHelpers.richTextToHTML(group.description)
       }
     },
     { settings: {}, isVisible: true, name: 'farm_details' },

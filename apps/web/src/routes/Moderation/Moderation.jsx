@@ -1,3 +1,4 @@
+import { TextHelpers } from '@hylo/shared'
 import { ShieldCheck } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
@@ -85,7 +86,7 @@ export default function Moderation (props) {
     <div id='outer-container' className='flex flex-col h-full overflow-auto' ref={setContainer}>
       <Helmet>
         <title>Moderation | {group ? `${group.name} | ` : context} | Hylo</title>
-        <meta name='description' content={group ? `Moderation actions from ${group.name}. ${group.description}` : 'Group Not Found'} />
+        <meta name='description' content={group ? `Moderation actions from ${group.name}. ${TextHelpers.presentHTMLToText(group.description)}` : 'Group Not Found'} />
       </Helmet>
 
       <Routes>

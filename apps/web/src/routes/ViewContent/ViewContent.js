@@ -1,3 +1,4 @@
+import { TextHelpers } from '@hylo/shared'
 import isMobile from 'ismobilejs'
 import { get, isEmpty } from 'lodash/fp'
 import { Bookmark } from 'lucide-react'
@@ -720,7 +721,7 @@ export default function ViewContent (props) {
       {streamTourInvitation}
       <Helmet>
         <title>{name} | {group ? `${group.name} | ` : context} | Hylo</title>
-        <meta name='description' content={group ? `Posts from ${group.name}. ${group.description}` : 'Group Not Found'} />
+        <meta name='description' content={group ? `Posts from ${group.name}. ${TextHelpers.presentHTMLToText(group.description)}` : 'Group Not Found'} />
       </Helmet>
 
       <Routes>

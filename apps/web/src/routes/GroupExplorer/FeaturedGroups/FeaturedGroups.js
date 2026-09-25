@@ -1,3 +1,4 @@
+import { TextHelpers } from '@hylo/shared'
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -112,7 +113,7 @@ export default function FeaturedGroups ({ groupIds = [] }) {
                     )}
                   </h3>
                   <p className='text-sm text-white/80 mb-2'>{group.memberCount} {t('Members')}</p>
-                  <p className='text-sm text-white/90 line-clamp-3 mb-4'>{group.description}</p>
+                  <p className='text-sm text-white/90 line-clamp-3 mb-4'>{TextHelpers.presentHTMLToText(group.description)}</p>
                   <Button variant='outline' className='w-full text-center justify-center text-xs p-1 bg-background/40 hover:bg-background/100'>
                     {t('View')}
                   </Button>

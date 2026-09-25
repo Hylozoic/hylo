@@ -1018,6 +1018,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         // jsonb may come back as a JSON string after save; [String] cannot serialize that.
         acceptedPostTypes: g => parseAcceptedPostTypes(g.get('accepted_post_types')),
+        // Editor HTML is sanitized on read. Plain text and markdown are left as stored.
+        description: g => {
+          const description = g.get('description')
+          if (!description || !/<\/?[a-z][\s\S]*>/i.test(description)) return description
+          return RichText.sanitizeHTML(description)
+        },
         eventCalendarUrl: g => g.eventCalendarUrl(),
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,

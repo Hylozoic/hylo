@@ -34,7 +34,7 @@ describe('GroupSettingsTab', () => {
     renderComponent()
 
     expect(screen.getByDisplayValue('Foomunity')).toBeInTheDocument()
-    expect(screen.getByLabelText('Description')).toBeInTheDocument()
+    expect(screen.getByText('Description')).toBeInTheDocument()
     expect(screen.getByText('Save Changes')).toBeInTheDocument()
     expect(screen.getByText('Show a welcome page to new members when they first land in the group.')).toBeInTheDocument()
     expect(screen.queryByText('Edit Welcome Page Content')).not.toBeInTheDocument()

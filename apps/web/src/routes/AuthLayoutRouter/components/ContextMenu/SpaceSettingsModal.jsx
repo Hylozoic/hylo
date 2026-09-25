@@ -32,6 +32,7 @@ import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
 import { DEFAULT_BANNER } from 'store/models/Group'
 import { offeringGrantsGroupAccess } from 'util/accessGrants'
 import { cn } from 'util/index'
+import { TextHelpers } from '@hylo/shared'
 
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import SpaceIconRow from './SpaceIconRow'
@@ -665,12 +666,16 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
 
         <div className='flex flex-col gap-1'>
           <label className={FIELD_LABEL_CLASS}>{t('Description')}</label>
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
+          <HyloEditor
+            contentHTML={TextHelpers.richTextToHTML(space?.description || '')}
+            className='min-h-[120px] p-2'
+            containerClassName='hyloEditor flex flex-col border border-foreground/20 rounded-lg bg-input'
+            extendedMenu
+            groupIds={space?.id ? [space.id] : []}
+            onUpdate={setDescription}
             placeholder={t('Description (optional)')}
-            rows={3}
-            className={cn(INPUT_CLASS, 'min-h-[80px] resize-none')}
+            showMenu
+            type='welcomePage'
           />
         </div>
 
