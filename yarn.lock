@@ -5112,6 +5112,7 @@ __metadata:
     eslint: "npm:^8.8.0"
     html-to-text: "npm:^8.1.0"
     i18next: "npm:^23.16.5"
+    insane: "npm:^2.6.2"
     intl-pluralrules: "npm:^2.0.1"
     jest: "npm:^27.5.0"
     lodash: "npm:~4.17.21"

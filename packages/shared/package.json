@@ -42,6 +42,7 @@
     "coordinate-parser": "^1.0.7",
     "html-to-text": "^8.1.0",
     "i18next": "^23.16.5",
+    "insane": "^2.6.2",
     "intl-pluralrules": "^2.0.1",
     "lodash": "~4.17.21",
     "luxon": "^3.5.0",

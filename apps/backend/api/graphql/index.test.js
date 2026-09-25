@@ -566,6 +566,30 @@ describe('graphql request handler', () => {
       })
     })
 
+    it('returns sanitized page content for page views', async () => {
+      const view = await GroupView.forge({
+        group_id: group.id,
+        type: 'page',
+        name: 'About',
+        page_content: '<p>Hello<img src="x" onerror="alert(1)"></p><script>alert(2)</script>'
+      }).save()
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          group(id: "${group.id}") {
+            groupViews(id: "${view.id}") { items { pageContent } }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      await view.destroy()
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.group.groupViews.items).to.deep.equal([
+        { pageContent: '<p>Hello<img src="x"/></p>' }
+      ])
+    })
+
     describe('with an invalid sort option', () => {
       it('shows an error', async () => {
         const { executionResult } = await handler.inject({

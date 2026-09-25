@@ -1255,7 +1255,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'type',
         'order',
         'icon',
-        'page_content',
         'topics',
         'settings'
       ],
@@ -1268,6 +1267,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         // Protocol-less values like google.com become https:// so every client gets a clickable URL.
         link: gv => TextHelpers.sanitizeURL(gv.get('link')) || gv.get('link'),
+        // Sanitized on read so content saved before sanitizing was added is also covered.
+        pageContent: gv => RichText.sanitizeHTML(gv.get('page_content')),
         // collectionPosts resolves to the actual Posts (not the join rows) per the GraphQL schema.
         // Re-applies the same visibility rules as every other Post query (active, membership,
         // public, blocked-user) since this is a custom getter and bypasses the generic Post filter.

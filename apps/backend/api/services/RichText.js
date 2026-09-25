@@ -97,6 +97,22 @@ export function processHTML (
 
 /*
 
+Sanitizes editor HTML that is stored raw (e.g. group page content), keeping
+the embed <video> tags that HyloHTML turns into YouTube and Vimeo iframes.
+
+*/
+export function sanitizeHTML (contentHTML) {
+  if (!contentHTML) return contentHTML
+  const options = TextHelpers.insaneOptions()
+  return insane(contentHTML, {
+    ...options,
+    allowedTags: [...options.allowedTags, 'video'],
+    allowedAttributes: { ...options.allowedAttributes, video: ['src', 'data-type'] }
+  })
+}
+
+/*
+
 Prepares content for HTML Email delivery
 
 - Always make sure `processHTML` was ran first, this is done

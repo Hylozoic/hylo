@@ -36,6 +36,44 @@ describe('markdown', () => {
   it('converts to markdown in paragraphs', () => {
     expect(TextHelpers.markdown('asdw\n\n\nasdf')).toBe('<p>asdw</p>\n<p>asdf</p>\n')
   })
+  it('strips scripts, event handlers and javascript: links from the output', () => {
+    const html = TextHelpers.markdown(
+      'hi <img src="x" onerror="alert(1)"><script>alert(2)</script> [click](javascript:alert(3))'
+    )
+    expect(html).toBe('<p>hi <img src="x"/> <a>click</a></p>\n')
+  })
+  it('keeps markdown strikethrough and tables', () => {
+    expect(TextHelpers.markdown('~~gone~~')).toBe('<p><del>gone</del></p>\n')
+    expect(TextHelpers.markdown('| a |\n| - |\n| b |')).toContain('<td>b</td>')
+  })
+})
+
+describe('insaneOptions', () => {
+  const insane = require('insane')
+
+  it('only allows YouTube and Vimeo iframes', () => {
+    const html = [
+      '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>',
+      '<iframe src="https://player.vimeo.com/video/70509133"></iframe>',
+      '<iframe src="https://evil.example/phish"></iframe>',
+      '<iframe src="javascript:alert(1)"></iframe>',
+      '<iframe src="http://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>'
+    ].join('')
+    expect(insane(html, TextHelpers.insaneOptions())).toBe(
+      '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>' +
+      '<iframe src="https://player.vimeo.com/video/70509133"></iframe>'
+    )
+  })
+})
+
+describe('isVideoEmbedURL', () => {
+  it('accepts https YouTube and Vimeo player URLs only', () => {
+    expect(TextHelpers.isVideoEmbedURL('https://www.youtube.com/embed/dQw4w9WgXcQ')).toBe(true)
+    expect(TextHelpers.isVideoEmbedURL('https://player.vimeo.com/video/1?h=abc')).toBe(true)
+    expect(TextHelpers.isVideoEmbedURL('https://www.youtube.com.evil.example/embed/x')).toBe(false)
+    expect(TextHelpers.isVideoEmbedURL('javascript:alert(1)')).toBe(false)
+    expect(TextHelpers.isVideoEmbedURL(undefined)).toBe(false)
+  })
 })
 
 describe('sanitizeURL', () => {
