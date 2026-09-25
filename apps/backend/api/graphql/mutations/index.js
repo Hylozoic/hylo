@@ -221,7 +221,10 @@ export async function updateMe (sessionId, userId, changes) {
   return user.validateAndSave(sessionId, convertedChanges)
 }
 
-export function allowGroupInvites (groupId, data) {
+export async function allowGroupInvites (userId, groupId, data) {
+  if (!await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)) {
+    throw new GraphQLError('You do not have permission to do that')
+  }
   return Group.where('id', groupId).fetch()
     .then(g => g.addSetting({ allow_group_invites: data }, true))
     .then(() => ({ success: true }))
@@ -261,9 +264,14 @@ export async function findOrCreateLinkPreviewByUrl ({ url }) {
   return preview
 }
 
-export function updateGroupTopic (id, data) {
+export async function updateGroupTopic (userId, id, data) {
   const whitelist = mapKeys(pick(data, ['visibility', 'isDefault']), (v, k) => snakeCase(k))
-  if (isEmpty(whitelist)) return Promise.resolve(null)
+  if (isEmpty(whitelist)) return null
+
+  const groupTag = await GroupTag.where({ id }).fetch()
+  if (!groupTag || !await GroupMembership.hasResponsibility(userId, groupTag.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
+    throw new GraphQLError('You do not have permission to do that')
+  }
 
   return GroupTag.query().where({ id }).update(whitelist)
     .then(() => ({ success: true }))
@@ -375,7 +383,7 @@ export async function addSkillToLearn (userId, name) {
 export async function addSuggestedSkillToGroup (userId, groupId, name) {
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLError('Invalid group')
-  const isAdministrator = GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION, {})
+  const isAdministrator = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION, {})
   if (!isAdministrator) throw new GraphQLError('You don\'t have permission to add skill to group')
 
   const skill = await createSkill(name)
@@ -412,7 +420,7 @@ export function removeSkillToLearn (userId, skillIdOrName) {
 export async function removeSuggestedSkillFromGroup (userId, groupId, skillIdOrName) {
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLError('Invalid group')
-  const isAdministrator = GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION)
+  const isAdministrator = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION)
   if (!isAdministrator) throw new GraphQLError('You don\'t have permission to remove skill from group')
 
   return Skill.find(skillIdOrName)
@@ -582,8 +590,4 @@ export async function removePost (userId, postId, groupIdOrSlug) {
       return post.removeFromGroup(groupIdOrSlug)
     })
     .then(() => ({ success: true }))
-}
-
-export function updateWidget (id, changes) {
-  return GroupWidget.update(id, convertGraphqlData(changes))
 }

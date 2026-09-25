@@ -392,8 +392,15 @@ describe('User', function () {
   })
 
   describe('.deactivate and .reactivate', () => {
+    let originalClearSessionsFor
+
     before(function () {
+      originalClearSessionsFor = User.clearSessionsFor
       User.clearSessionsFor = () => {}
+    })
+
+    after(function () {
+      User.clearSessionsFor = originalClearSessionsFor
     })
 
     it('deactivates and reactivates a user', () => {

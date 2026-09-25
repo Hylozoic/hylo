@@ -5,7 +5,7 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "private": true,
-  "version": "7.0.8",
+  "version": "7.1.0",
   "nyc": {
     "sourceMap": false,
     "instrument": false,
@@ -213,7 +213,6 @@
       "GroupView",
       "GroupViewPin",
       "GroupViewUser",
-      "GroupWidget",
       "Invitation",
       "JoinRequest",
       "LinkedAccount",
@@ -264,7 +263,6 @@
       "UserSession",
       "UserVerificationCode",
       "Validation",
-      "Widget",
       "ZapierTrigger",
       "ZapierTriggerGroup"
     ]

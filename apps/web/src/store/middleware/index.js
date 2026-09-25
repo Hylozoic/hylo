@@ -8,6 +8,7 @@ import apiMiddleware from './apiMiddleware'
 import pendingMiddleware from './pendingMiddleware'
 import optimisticMiddleware from './optimisticMiddleware'
 import userBlockingMiddleware from './userBlockingMiddleware'
+import socketReconnectMiddleware from './socketReconnectMiddleware'
 import mixpanelMiddleware from './mixpanelMiddleware'
 import errorReporterMiddleware from './errorReporterMiddleware'
 
@@ -20,6 +21,7 @@ export default function createMiddleware (routerMiddleware, req) {
     pendingMiddleware,
     promiseMiddleware,
     userBlockingMiddleware,
+    socketReconnectMiddleware,
     mixpanelMiddleware,
     errorReporterMiddleware,
     isDev && createLogger({ collapsed: true })

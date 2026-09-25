@@ -118,7 +118,11 @@ before(function (done) {
   })
 })
 
-afterEach(() => nock.cleanAll())
+afterEach(() => {
+  nock.cleanAll()
+  // Counters live in Redis, so they would otherwise carry over between tests and test runs
+  return require('../../lib/rateLimit').clearRateLimits().catch(() => {})
+})
 
 // Split SQL statements on semicolons while ignoring semicolons inside
 // dollar-quoted function/procedure bodies (e.g. $$ ... $$, $tag$ ... $tag$)

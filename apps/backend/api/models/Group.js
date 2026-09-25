@@ -1,4 +1,4 @@
-/* global GroupToGroupJoinQuestion, Location, Slack, Widget, FundingRound */
+/* global GroupToGroupJoinQuestion, Location, Slack, FundingRound */
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
@@ -10,6 +10,7 @@ import randomstring from 'randomstring'
 import wkx from 'wkx'
 import ical from 'ical-generator'
 import { writeStringToS3 } from '../../lib/uploader/storage'
+import { safeFetch } from '../../lib/safeFetch'
 
 import mixpanel from '../../lib/mixpanel'
 import { AnalyticsEvents, LocationHelpers, POST_TYPE_TO_TYPED_VIEW } from '@hylo/shared'
@@ -611,13 +612,6 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
-  widgets: function () {
-    return this.hasMany(GroupWidget).query(q => {
-      q.select(['widgets.name'])
-      q.join('widgets', 'widgets.id', 'group_widgets.widget_id')
-    })
-  },
-
   // ******** Setters ********** //
 
   async addChild (childGroup, { transacting } = {}) {
@@ -716,14 +710,6 @@ module.exports = bookshelf.Model.extend(merge({
     })
 
     return updatedMemberships.concat(newMemberships)
-  },
-
-  createInitialWidgets: async function (transacting) {
-    // In the future this will have to look up the template of whatever group is being created and add widgets based on that
-    const initialWidgets = await Widget.query(q => q.whereIn('id', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 19, 20, 21])).fetchAll({ transacting })
-    Promise.map(initialWidgets.models, async (widget) => {
-      await GroupWidget.create({ group_id: this.id, widget_id: widget.id, order: widget.id, context: widget.id > 10 ? 'group_profile' : 'landing' }, { transacting })
-    })
   },
 
   // TODO: remove this, we are not using it right now
@@ -1164,7 +1150,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     if (zapierTriggers && zapierTriggers.length > 0) {
       for (const trigger of zapierTriggers) {
-        await fetch(trigger.get('target_url'), {
+        await safeFetch(trigger.get('target_url'), {
           method: 'post',
           body: JSON.stringify(members.map(m => ({
             id: m.id,
@@ -1387,9 +1373,6 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
 
-      // TODO: remove? we arent sure if we are using explore page anymore
-      await group.createInitialWidgets(trx)
-
       // Seed GroupView rows from the creator's chosen Included Views
       // list (see routes/CreateGroup.jsx). Defaults to all/chat/members when omitted.
       await Group.setupSpaceViews(group.id, attrs.accepted_post_types, data.view_types, { transacting: trx })
@@ -1490,7 +1473,6 @@ module.exports = bookshelf.Model.extend(merge({
         builder.where({ parent_group_id: spaceId }).orWhere({ child_group_id: spaceId })
       }).del()
       await knex('group_to_group_join_questions').where({ group_id: spaceId }).del()
-      await knex('group_widgets').where({ group_id: spaceId }).del()
       await knex('groups_agreements').where({ group_id: spaceId }).del()
       await knex('groups_posts').where({ group_id: spaceId }).del()
       await knex('groups_suggested_skills').where({ group_id: spaceId }).del()

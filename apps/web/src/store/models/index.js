@@ -32,7 +32,6 @@ import Topic from './Topic'
 import TopicFollow from './TopicFollow'
 import Track, { Role } from './Track'
 import FundingRound from './FundingRound'
-import Widget from './Widget'
 
 const ORM_MODELS = [
   Activity,
@@ -85,8 +84,7 @@ const ORM_MODELS = [
   Skill,
   Topic,
   TopicFollow,
-  Track,
-  Widget
+  Track
 ]
 
 /** Reuse one ORM instance in dev so Vite HMR does not re-register model descriptors. */

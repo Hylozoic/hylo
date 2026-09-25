@@ -1,4 +1,4 @@
-const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets = false }) => `
+const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites, withExtensions }) => `
   id
   aboutVideoUri
   accessibility
@@ -208,18 +208,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
         data
         type
         active
-      }
-    }`
-    : ''}
-  ${withWidgets
-    ? `
-    widgets {
-      items {
-        id
-        name
-        context
-        order
-        isVisible
       }
     }`
     : ''}

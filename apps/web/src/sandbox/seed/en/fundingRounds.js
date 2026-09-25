@@ -6,9 +6,6 @@ export const FUNDING_ROUND_ID = sid('funding-round', 'spring')
 export function buildFundingRound () {
   return {
     id: FUNDING_ROUND_ID,
-    title: 'Bioregional Grants Round 1',
-    bannerUrl: 'https://d3ngex8q79bk55.cloudfront.net/community/1054/banner/1439885439995_BF-Logo_W.jpg',
-    description: '<p>This round distributes <strong>100 Regen Tokens</strong> across community-nominated projects working to heal people, land, and watersheds in the Bay Area bioregion.</p><p>Instead of a top-down grant committee, Terran members propose projects, review each other&#39;s plans in the open, and allocate tokens through participatory budgeting — a practice we&#39;ve been experimenting with since our first cooperative funding pilots.</p><p>Voting is open now. Read the submissions, ask questions in the comments, and put your tokens where you see the most regenerative impact.</p>',
     criteria: 'Projects should:\n• Be led by or deeply connected to Bay Area communities\n• Demonstrate clear regenerative impact on people, place, or ecosystem\n• Have a realistic plan and budget under $10,000\n• Benefit people beyond the project team\n• Align with Terran values: mutual aid, bioregional stewardship, and collective liberation',
     groupId: FUNDING_SPACE_ID,
     phase: 'voting',

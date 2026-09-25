@@ -334,15 +334,6 @@ module.exports = bookshelf.Model.extend({
 
   create: async function (attrs, userId) {
     attrs.voting_method = attrs.voting_method || 'token_allocation_constant'
-    // Dual-write display fields onto leftover NOT NULL columns until the
-    // in-progress drop-column migration ships. Source of truth is the space group.
-    if (!attrs.title && attrs.group_id) {
-      const space = await Group.find(attrs.group_id)
-      attrs.title = (space && space.get('name')) || 'Untitled'
-      if (attrs.description === undefined) attrs.description = space ? space.get('description') : null
-      if (attrs.banner_url === undefined) attrs.banner_url = space ? space.get('banner_url') : null
-    }
-    if (!attrs.title) attrs.title = 'Untitled'
 
     return await bookshelf.transaction(async transacting => {
       const round = this.forge({ created_at: new Date(), updated_at: new Date(), ...attrs })

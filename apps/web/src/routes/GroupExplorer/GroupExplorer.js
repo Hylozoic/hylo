@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -14,9 +14,6 @@ export default function GroupExplorer ({
   currentUserHasMemberships
 }) {
   const { t } = useTranslation()
-  const [viewFilter, setViewFilter] = useState(ALL_VIEW)
-
-  const handleChangeViewFilter = (value) => setViewFilter(value)
 
   const { setHeaderDetails } = useViewHeader()
   React.useEffect(() => {
@@ -35,7 +32,7 @@ export default function GroupExplorer ({
         <meta name='description' content='Find the others on Hylo' />
       </Helmet>
       <FeaturedGroups groupIds={FEATURED_GROUP_IDS} />
-      <GroupSearch viewFilter={viewFilter} changeView={handleChangeViewFilter} />
+      <GroupSearch viewFilter={ALL_VIEW} />
     </div>
   )
 }

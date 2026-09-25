@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.0] - 2026-09-25
+
+### Changed
+- Refine role-gated space invite dialog
+
+### Fixed
+- Many security related fixes and updates. Details to come soon.
+- Fix notifications when accepting a group to group invite. Before it was not sending the notification to the invited user.
+
+### Cleanup
+- Dropped leftover spaces-and-views tables (`tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`, `context_widgets`, `custom_views`, `custom_view_topics`, `collections`, `groups_tracks`, `networks`, `networks_users`) and the explore-page `widgets` / `group_widgets` tables
+- Dropped display columns on `tracks` and `funding_rounds`. Names, banners, and descriptions live on the space group
+- Removed the `Widget` and `GroupWidget` models, the `group.widgets` field, and the `updateWidget` mutation. New groups no longer seed explore widgets
+
 ## [7.0.8] - 2026-09-23
 
 ### Added

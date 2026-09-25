@@ -7,7 +7,7 @@ import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
-import fetch from 'node-fetch'
+import { safeFetch } from '../../lib/safeFetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
 import { decrementNewPostCount } from './post/deletePost'
@@ -943,6 +943,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   isVisibleToUser: async function (postId, userId) {
     if (!postId || !userId) return Promise.resolve(false)
     const post = await Post.find(postId)
+    if (!post) return false
     if (post.isPublic()) return true
 
     const postGroupIds = await PostMembership.query()
@@ -1336,7 +1337,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         const entityUrl = Frontend.Route.post(post, post.relations.groups[0])
 
         const creator = post.relations.user
-        await fetch(trigger.get('target_url'), {
+        await safeFetch(trigger.get('target_url'), {
           method: 'post',
           body: JSON.stringify({
             id: post.id,

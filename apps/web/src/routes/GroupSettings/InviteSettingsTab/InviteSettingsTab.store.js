@@ -96,8 +96,8 @@ export function fetchPendingInvitations (groupId) {
 export const INVITEABLE_PEOPLE_PAGE_SIZE = 15
 
 /**
- * People who can be invited: connections not already in the group, or (for spaces)
- * parent-group members not already in the space. Loads one page at a time.
+ * People who can be invited: people visible to the current user (personFilter),
+ * or (for spaces) parent-group members not already in the space. Loads one page at a time.
  */
 export function fetchInviteablePeople ({
   groupId,
@@ -119,11 +119,22 @@ export function fetchInviteablePeople ({
                 id
                 name
                 avatarUrl
+                groupRoles(groupId: $parentGroupId) {
+                  items {
+                    id
+                  }
+                }
               }
             }
           }
         }`,
-        variables: { parentGroupId, groupId, autocomplete, first, offset }
+        variables: {
+          parentGroupId,
+          groupId,
+          autocomplete,
+          first,
+          offset
+        }
       }
     }
   }
@@ -131,20 +142,17 @@ export function fetchInviteablePeople ({
   return {
     type: FETCH_INVITEABLE_PEOPLE,
     graphql: {
-      query: `query ($groupId: ID, $autocomplete: String, $first: Int, $offset: Int) {
-        connections (first: $first, offset: $offset, autocomplete: $autocomplete, excludeGroupId: $groupId) {
+      query: `query ($autocomplete: String, $first: Int, $offset: Int) {
+        people (first: $first, offset: $offset, autocomplete: $autocomplete, sortBy: "name", order: "asc") {
           hasMore
           items {
             id
-            person {
-              id
-              name
-              avatarUrl
-            }
+            name
+            avatarUrl
           }
         }
       }`,
-      variables: { groupId, autocomplete, first, offset }
+      variables: { autocomplete, first, offset }
     }
   }
 }

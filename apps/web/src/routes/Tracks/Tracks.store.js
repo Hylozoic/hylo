@@ -89,14 +89,11 @@ export function ormSessionReducer (
       group.update({
         track: {
           id: createdTrack.id,
-          name: createdTrack.name,
           actionDescriptor: createdTrack.actionDescriptor,
           actionDescriptorPlural: createdTrack.actionDescriptorPlural,
-          bannerUrl: createdTrack.bannerUrl,
           completionMessage: createdTrack.completionMessage,
           completionRole: createdTrack.completionRole,
-          description: createdTrack.description,
-          welcomeMessage: createdTrack.welcomeMessage
+          space: createdTrack.space
         }
       })
       break
