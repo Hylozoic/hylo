@@ -69,7 +69,8 @@ const SYSTEM_ROLE_DEFINITIONS = [
 /** System responsibilities referenced by SYSTEM_ROLE_DEFINITIONS — schema.sql creates the table but no rows. */
 const SYSTEM_RESPONSIBILITY_DEFINITIONS = [
   { title: 'Administration', description: 'Allows for editing group settings, managing the menu and spaces, exporting data, and deleting the group.' },
-  { title: 'Add Members', description: 'The ability to invite and add new people to the group, and to accept or reject join requests.' },
+  { title: 'Add Members', description: 'Invite and add new people, manage the group join link and all pending invitations, and accept or reject join requests.' },
+  { title: 'Invite Members', description: 'Send personal email invitations to this group and see or cancel the ones you sent. In Restricted and Closed groups a steward reviews them.' },
   { title: 'Remove Members', description: 'The ability to remove a member from the group.' },
   { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' }
 ]
@@ -92,7 +93,8 @@ async function ensureSystemResponsibilities (client, now) {
 }
 
 /**
- * Create per-group system roles (Administrator, Moderator, Host) if missing.
+ * Create per-group system roles (Administrator, Moderator, Host) and the
+ * implicit Member role if missing. Nothing is linked to the Member role.
  * @returns {Promise<Record<string, number>>} role name → groups_roles.id
  */
 async function setupSystemRolesForGroup (client, groupId, now) {
@@ -127,6 +129,12 @@ async function setupSystemRolesForGroup (client, groupId, now) {
     }
     roleIds[roleDef.name] = roleId
   }
+  await client.query(
+    `INSERT INTO groups_roles (group_id, name, emoji, description, type, active, created_at, updated_at)
+     VALUES ($1, 'Member', '', 'Everyone in the group holds this role.', 'member', true, $2::timestamptz, $2::timestamptz)
+     ON CONFLICT (group_id) WHERE type = 'member' DO NOTHING`,
+    [groupId, now]
+  )
   return roleIds
 }
 
