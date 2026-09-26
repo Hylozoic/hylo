@@ -3,6 +3,17 @@ const { createTrackScope, createGroupRoleScope, createGroupScope } = require('..
 const StripeService = require('../services/StripeService')
 const { normalizeLocaleToFull } = require('../../lib/localeHelpers')
 
+function formatCurrencyFromMinorUnits (amountMinor, currencyCode) {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: (currencyCode || 'USD').toUpperCase()
+    }).format((amountMinor || 0) / 100)
+  } catch (e) {
+    return `${((amountMinor || 0) / 100).toFixed(2)} ${(currencyCode || 'USD').toUpperCase()}`
+  }
+}
+
 module.exports = bookshelf.Model.extend({
   tableName: 'content_access',
   requireFetch: false,
@@ -306,6 +317,55 @@ module.exports = bookshelf.Model.extend({
       status: this.Status.REVOKED,
       metadata
     }, { transacting })
+  },
+
+  /**
+   * Emails the member that a purchase was refunded. Never throws, so a refund
+   * that went through is not reported as failed because of the email.
+   * @param {ContentAccess} access - The refunded access record
+   * @param {Object} refund
+   * @param {Number} refund.amount - Amount refunded, in minor units
+   * @param {String} [refund.currency]
+   * @param {String} [refund.reason] - Reason given by the steward, if any
+   * @returns {Promise<Object|Boolean>} the send result, or false when nothing was sent
+   */
+  sendRefundProcessedEmail: async function (access, { amount, currency, reason } = {}) {
+    /* global Email */
+    try {
+      const user = await User.find(access.get('user_id'))
+      if (!user || !user.get('email')) return false
+
+      const grantedByGroup = access.relations.grantedByGroup?.id
+        ? access.relations.grantedByGroup
+        : await Group.find(access.get('granted_by_group_id'))
+      const productId = access.get('product_id')
+      const product = productId ? await StripeProduct.where({ id: productId }).fetch() : null
+      const locale = user.getLocale()
+      const refundCurrency = (currency || access.get('currency') || 'usd').toUpperCase()
+
+      return await Email.sendRefundProcessed({
+        email: user.get('email'),
+        locale,
+        data: {
+          user_name: user.get('name') || user.get('email'),
+          offering_name: product?.get('name') || 'Paid access',
+          group_name: grantedByGroup?.get('name'),
+          group_url: grantedByGroup ? Frontend.Route.group(grantedByGroup) : null,
+          refund_amount_formatted: formatCurrencyFromMinorUnits(amount, refundCurrency),
+          currency: refundCurrency,
+          refund_date: new Date().toLocaleDateString(normalizeLocaleToFull(locale), {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+          refund_reason: reason || null,
+          support_email: process.env.EMAIL_SENDER || 'help@hylo.com'
+        }
+      })
+    } catch (error) {
+      console.error('Failed to send refund processed email:', error)
+      return false
+    }
   },
 
   /**

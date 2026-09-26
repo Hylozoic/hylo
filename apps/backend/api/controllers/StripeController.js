@@ -2184,7 +2184,7 @@ module.exports = {
       }
 
       // Find content access records associated with this session
-      const accessRecords = await ContentAccess.findBySessionId(sessionId)
+      const accessRecords = (await ContentAccess.forStripeSession(sessionId)).models
 
       if (!accessRecords || accessRecords.length === 0) {
         if (process.env.NODE_ENV === 'development') {
@@ -2192,6 +2192,10 @@ module.exports = {
         }
         return
       }
+
+      // refundContentAccess marks its record REFUNDED and emails the member itself
+      const refundedThroughHylo = accessRecords.some(access => access.get('status') === ContentAccess.Status.REFUNDED)
+      const newlyRefunded = []
 
       // Revoke/refund all associated access records
       // Skip records that are already refunded (e.g., from our mutation)
@@ -2223,10 +2227,19 @@ module.exports = {
           status: ContentAccess.Status.REFUNDED,
           metadata
         }, { patch: true })
+        newlyRefunded.push(access)
       }))
 
       if (process.env.NODE_ENV === 'development') {
         console.log(`Processed ${accessRecords.length} access records for refunded charge ${charge.id}`)
+      }
+
+      // One purchase can create several access records, so send one email per refunded charge.
+      if (newlyRefunded.length > 0 && !refundedThroughHylo) {
+        await ContentAccess.sendRefundProcessedEmail(newlyRefunded[0], {
+          amount: charge.amount_refunded,
+          currency: charge.currency
+        })
       }
 
       // Write an analytics/log record for this refund
