@@ -5192,6 +5192,13 @@ CREATE INDEX group_relationships_type_active_index ON public.group_relationships
 
 
 --
+-- Name: group_roles_responsibilities_group_role_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_roles_responsibilities_group_role_id_index ON public.group_roles_responsibilities USING btree (group_role_id);
+
+
+--
 -- Name: group_roles_responsibilities_responsibility_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5217,6 +5224,13 @@ CREATE INDEX group_to_group_join_request_question_answers_join_request_id_in ON 
 --
 
 CREATE INDEX groups_roles_group_id_index ON public.groups_roles USING btree (group_id);
+
+
+--
+-- Name: groups_roles_one_member_role; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX groups_roles_one_member_role ON public.groups_roles USING btree (group_id) WHERE ((type)::text = 'member'::text);
 
 
 --

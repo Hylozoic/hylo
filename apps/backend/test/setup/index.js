@@ -104,6 +104,7 @@ before(function (done) {
           const systemResponsibilities = [
             'Administration',
             'Add Members',
+            'Invite Members',
             'Remove Members',
             'Manage Content'
           ]
