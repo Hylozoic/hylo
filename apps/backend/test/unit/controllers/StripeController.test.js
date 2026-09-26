@@ -346,7 +346,9 @@ describe('StripeController.handleChargeRefunded', () => {
       object: {
         id: 'ch_refunded',
         payment_intent: 'pi_refunded',
+        amount: 1500,
         amount_refunded: 1500,
+        refunded: true,
         currency: 'usd'
       }
     }
@@ -462,5 +464,22 @@ describe('StripeController.handleChargeRefunded', () => {
 
     expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.ACTIVE)
     expect(sentEmails).to.have.length(0)
+  })
+
+  it('keeps access and sends nothing for a partial refund, but still logs it', async () => {
+    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_partial' }).save()
+    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+    const access = await purchase()
+
+    await StripeController.handleChargeRefunded({
+      ...chargeRefundedEvent,
+      account: 'acct_partial',
+      data: { object: { ...chargeRefundedEvent.data.object, amount_refunded: 500, refunded: false } }
+    })
+
+    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    expect(sentEmails).to.have.length(0)
+    const log = await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_refunded' }).first()
+    expect(Number(log.amount)).to.equal(500)
   })
 })

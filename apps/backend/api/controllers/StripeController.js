@@ -2145,7 +2145,7 @@ module.exports = {
 
   /**
    * Handle charge.refunded webhook events
-   * Revokes access and cancels any associated subscriptions when payment is refunded
+   * Revokes access and cancels any associated subscriptions when a payment is fully refunded
    *
    * Note: This handles refunds initiated directly through Stripe dashboard.
    * Refunds initiated through our refundContentAccess mutation will also trigger this,
@@ -2198,10 +2198,12 @@ module.exports = {
       // refundContentAccess marks its record REFUNDED and emails the member itself
       const refundedThroughHylo = accessRecords.some(access => access.get('status') === ContentAccess.Status.REFUNDED)
       const newlyRefunded = []
+      // Stripe also sends charge.refunded for partial refunds. Those leave access in place and are only logged below.
+      const recordsToRefund = charge.refunded ? accessRecords : []
 
       // Revoke/refund all associated access records
       // Skip records that are already refunded (e.g., from our mutation)
-      await Promise.all(accessRecords.map(async (access) => {
+      await Promise.all(recordsToRefund.map(async (access) => {
         const currentStatus = access.get('status')
 
         // Skip if already refunded or revoked (our mutation already handled this)
