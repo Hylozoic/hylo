@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
+import { withFeatureFlag } from '../../../test/setup/helpers'
 import {
   addGroupResponsibility,
   addResponsibilityToRole,
@@ -93,6 +94,25 @@ describe('responsibilities mutations', () => {
       await removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: link.id, userId: administrator.id })
       const remaining = await GroupRoleResponsibility.where({ id: link.id }).fetch()
       expect(remaining).to.be.null
+    })
+
+    it('only lets Invite Members be removed from custom roles while member invitations are switched off', async () => {
+      const manageContentId = await Responsibility.systemId(Responsibility.constants.RESP_MANAGE_CONTENT)
+      const existing = await GroupRoleResponsibility.forge({ group_role_id: customRole.id, responsibility_id: inviteMembersId }).save()
+
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        await removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: existing.id, userId: administrator.id })
+        for (const responsibilityId of [inviteMembersId, String(inviteMembersId)]) {
+          await expect(addResponsibilityToRole({ groupId: group.id, roleId: customRole.id, responsibilityId, userId: administrator.id }))
+            .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
+        }
+        const links = await GroupRoleResponsibility.where({ group_role_id: customRole.id, responsibility_id: inviteMembersId }).count()
+        expect(Number(links)).to.equal(0)
+
+        const link = await addResponsibilityToRole({ groupId: group.id, roleId: customRole.id, responsibilityId: manageContentId, userId: administrator.id })
+        expect(Number(link.get('responsibility_id'))).to.equal(manageContentId)
+        await removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: link.id, userId: administrator.id })
+      })
     })
   })
 })

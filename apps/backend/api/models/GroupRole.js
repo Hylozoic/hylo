@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { GraphQLError } from 'graphql'
+import { isFeatureEnabled, MEMBER_INVITES } from '../../lib/featureFlags'
 
 const TYPE_MEMBER = 'member'
 
@@ -21,6 +22,8 @@ const InvitePolicy = {
 }
 
 const DEFAULT_NEW_GROUP_INVITE_POLICY = Object.freeze({ mode: InvitePolicy.STEWARDS })
+
+const MEMBER_INVITES_UNAVAILABLE_ERROR = 'Invitations from members are not available yet'
 
 async function fetchGroupRow (groupId, transacting) {
   if (!groupId) return null
@@ -169,6 +172,15 @@ module.exports = bookshelf.Model.extend({
   TYPE_MEMBER,
   InvitePolicy,
   DEFAULT_NEW_GROUP_INVITE_POLICY,
+  MEMBER_INVITES_UNAVAILABLE_ERROR,
+
+  /**
+   * Whether members can be given invite access at all: while this is off only
+   * the 'stewards' policy can be set and nobody has limited invite access.
+   */
+  memberInvitesEnabled: function () {
+    return isFeatureEnabled(MEMBER_INVITES)
+  },
 
   /**
    * Map a stored system role name (including legacy names) to the current name.
@@ -356,6 +368,7 @@ module.exports = bookshelf.Model.extend({
    * roles (roles). Chosen roles come from roleIds and from systemRoleNames (such
    * as 'Moderator', for a group being created whose role ids the caller does not
    * know yet), and must be this group's active system or custom roles.
+   * 'everyone' and 'roles' are refused unless memberInvitesEnabled().
    * Returns the resulting policy.
    */
   setInvitePolicy: async function (groupId, { mode, roleIds, systemRoleNames } = {}, { transacting } = {}) {
@@ -365,6 +378,9 @@ module.exports = bookshelf.Model.extend({
     }
     if (!Object.values(InvitePolicy).includes(mode)) {
       throw new GraphQLError('Unknown invite policy mode')
+    }
+    if (mode !== InvitePolicy.STEWARDS && !GroupRole.memberInvitesEnabled()) {
+      throw new GraphQLError(MEMBER_INVITES_UNAVAILABLE_ERROR)
     }
     const group = await fetchGroupRow(groupId, transacting)
     if (!group) throw new GraphQLError('Group not found')

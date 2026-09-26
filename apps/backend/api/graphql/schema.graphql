@@ -4095,7 +4095,7 @@ input GroupInput {
   groupToGroupJoinQuestions: [QuestionInput]
   # The current invite link for this group
   invitePath: String
-  # Who can invite new people to this group (top-level groups only; changing it requires the Administration responsibility)
+  # Who can invite new people to this group (top-level groups only; changing it requires the Administration responsibility). 'everyone' and 'roles' are rejected while member invitations are switched off on this server
   invitePolicy: InvitePolicyInput
   # Questions a Person must answer when requesting to join this group
   joinQuestions: [QuestionInput]

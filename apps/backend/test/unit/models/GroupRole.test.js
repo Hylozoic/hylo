@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../setup'
 import factories from '../../setup/factories'
+import { withFeatureFlag } from '../../setup/helpers'
 
 const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
 
@@ -332,6 +333,40 @@ describe('GroupRole', () => {
     it('reports roles for a custom role given Invite Members in Roles & Badges', async () => {
       await GroupRoleResponsibility.forge({ group_role_id: roles.greeter.id, responsibility_id: inviteMembersId }).save()
       expect(await GroupRole.getInvitePolicy(policyGroup.id)).to.deep.equal({ mode: 'roles', roleIds: [roles.greeter.id] })
+    })
+
+    it('only sets stewards while member invitations are switched off, and changes nothing else', async () => {
+      await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', roleIds: [roles.greeter.id] })
+
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        expect(GroupRole.memberInvitesEnabled()).to.equal(false)
+        await expect(GroupRole.setInvitePolicy(policyGroup.id, { mode: 'everyone' }))
+          .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
+        await expect(GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', systemRoleNames: ['Moderator'] }))
+          .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
+        await expect(bookshelf.transaction(transacting =>
+          GroupRole.setInvitePolicy(policyGroup.id, { mode: 'everyone' }, { transacting })))
+          .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
+        expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.greeter.id])
+
+        const policy = await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })
+        expect(policy).to.deep.equal({ mode: 'stewards', roleIds: [] })
+        expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([])
+      })
+    })
+
+    it('rejects a new group with an everyone or roles policy while member invitations are switched off', async () => {
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        for (const invitePolicy of [{ mode: 'everyone' }, { mode: 'roles', system_role_names: ['Moderator'] }]) {
+          const slug = `switched-off-${invitePolicy.mode}-${Date.now()}`
+          await expect(Group.create(user.id, { name: 'Switched Off', slug, invite_policy: invitePolicy }))
+            .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
+          expect(await Group.where({ slug }).fetch()).to.not.exist
+        }
+
+        const created = await Group.create(user.id, { name: 'Switched Off Stewards', slug: `switched-off-stewards-${Date.now()}` })
+        expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
     })
 
     it('never duplicates links when changed concurrently', async () => {

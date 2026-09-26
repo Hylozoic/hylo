@@ -83,6 +83,12 @@ export async function addResponsibilityToRole ({ userId, responsibilityId, roleI
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       await GroupRole.assertAssignableRoleIds([roleId])
+      if (!GroupRole.memberInvitesEnabled()) {
+        const inviteMembersId = await Responsibility.systemId(Responsibility.constants.RESP_INVITE_MEMBERS)
+        if (inviteMembersId && String(inviteMembersId) === String(responsibilityId).trim()) {
+          throw new GraphQLError(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
+        }
+      }
       return GroupRoleResponsibility.forge({ group_role_id: roleId, responsibility_id: responsibilityId }).save().then((savedRoleResponsibility) => savedRoleResponsibility)
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to add responsibility to role')

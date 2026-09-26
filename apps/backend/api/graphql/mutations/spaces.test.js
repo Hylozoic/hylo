@@ -2,7 +2,7 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
-import { mockify, unspyify } from '../../../test/setup/helpers'
+import { mockify, unspyify, withFeatureFlag } from '../../../test/setup/helpers'
 import { archiveSpace, convertGroupToSpace, convertSpaceToChildGroup, createSpace, deleteSpace, joinSpace, updateSpace } from './spaces'
 import { createInvitation } from './invitation'
 
@@ -433,6 +433,14 @@ describe('space mutations', () => {
 
       it('copies a stewards policy', async () => {
         const converted = await convertNewSpace()
+        expect(await GroupRole.findMemberRole(converted.id)).to.exist
+        expect(await GroupRole.getInvitePolicy(converted.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('gives stewards instead of everyone while member invitations are switched off', async () => {
+        await GroupRole.setInvitePolicy(parentGroup.id, { mode: 'everyone' })
+
+        const converted = await withFeatureFlag('MEMBER_INVITES', 'off', convertNewSpace)
         expect(await GroupRole.findMemberRole(converted.id)).to.exist
         expect(await GroupRole.getInvitePolicy(converted.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
       })

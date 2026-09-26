@@ -181,9 +181,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
    * - 'limited': personal email invitations only, through the system Invite Members
    *   responsibility on an active role they hold, or on the group's Member role
    * - null: neither
-   * Limited access is for active members of top-level groups only. It is matched
-   * by responsibility id, never by title, and is honoured only here, so it never
-   * reaches hasResponsibility or any steward list.
+   * Limited access is for active members of top-level groups only, and only while
+   * GroupRole.memberInvitesEnabled(). It is matched by responsibility id, never by
+   * title, and is honoured only here, so it never reaches hasResponsibility or any
+   * steward list.
    */
   async inviteAccess (userOrId, groupOrId, { transacting } = {}) {
     const userId = userOrId instanceof User ? userOrId.id : userOrId
@@ -193,6 +194,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     if (await this.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADD_MEMBERS, { transacting })) {
       return this.InviteAccess.FULL
     }
+    if (!GroupRole.memberInvitesEnabled()) return null
 
     let groupQuery = bookshelf.knex('groups').where('id', groupId).first('id', 'parent_id', 'type')
     if (transacting) groupQuery = groupQuery.transacting(transacting)

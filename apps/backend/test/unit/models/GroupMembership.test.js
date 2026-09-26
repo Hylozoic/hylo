@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-expressions */
 const root = require('root-path')
 const setup = require(root('test/setup'))
-const { spyify, unspyify } = require(root('test/setup/helpers'))
+const { spyify, unspyify, withFeatureFlag } = require(root('test/setup/helpers'))
 const factories = require(root('test/setup/factories'))
 
 describe('GroupMembership', () => {
@@ -158,6 +158,23 @@ describe('GroupMembership', () => {
       } finally {
         await roles.member.save({ active: true }, { patch: true })
       }
+    })
+
+    it('is null for everyone without full access while member invitations are switched off', async () => {
+      await GroupRole.setInvitePolicy(group.id, { mode: 'roles', roleIds: [roles.moderator.id] })
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        expect(await GroupMembership.inviteAccess(moderator.id, group.id)).to.be.null
+        for (const user of [administrator, host, addMembersHolder]) {
+          expect(await GroupMembership.inviteAccess(user.id, group.id)).to.equal('full')
+        }
+      })
+
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        expect(await GroupMembership.inviteAccess(member.id, group.id)).to.be.null
+        expect(await GroupMembership.inviteAccess(administrator.id, group.id)).to.equal('full')
+      })
+      expect(await GroupMembership.inviteAccess(member.id, group.id)).to.equal('limited')
     })
 
     it('is null in spaces unless the person has full access', async () => {

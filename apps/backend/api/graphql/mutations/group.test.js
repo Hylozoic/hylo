@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import factories from '../../../test/setup/factories'
+import { withFeatureFlag } from '../../../test/setup/helpers'
 
 import {
   createGroup,
@@ -648,6 +649,20 @@ describe('mutations/group', () => {
         }
       })
 
+      it('creates no group with an everyone or roles policy while member invitations are switched off', async () => {
+        await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+          for (const invitePolicy of [{ mode: 'everyone' }, { mode: 'roles', systemRoleNames: ['Moderator'] }]) {
+            const slug = uniqueSlug('switched-off')
+            await expect(createGroup(administrator.id, { name: 'Switched Off', slug, invitePolicy }))
+              .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
+            expect(await Group.find(slug)).to.not.exist
+          }
+
+          const stewards = await createGroup(administrator.id, { name: 'Switched Off Stewards', slug: uniqueSlug('switched-off'), invitePolicy: { mode: 'stewards' } })
+          expect(await GroupRole.getInvitePolicy(stewards.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+        })
+      })
+
       it('uses DEFAULT_NEW_GROUP_INVITE_POLICY when no policy is given', async () => {
         const defaultPolicy = GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY
         const created = await createGroup(administrator.id, { name: 'Default Policy', slug: uniqueSlug('default') })
@@ -705,6 +720,21 @@ describe('mutations/group', () => {
         const stored = await Group.find(group.id)
         expect(stored.get('name')).to.equal(name)
         expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('only lets an Administrator set stewards while member invitations are switched off', async () => {
+        const name = group.get('name')
+        await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+          for (const invitePolicy of [{ mode: 'everyone' }, { mode: 'roles', roleIds: [String(moderatorRole.id)] }]) {
+            await expect(updateGroup(administrator.id, group.id, { name: 'Renamed', invitePolicy }))
+              .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
+          }
+          expect((await Group.find(group.id)).get('name')).to.equal(name)
+          expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+
+          await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'stewards' } })
+          expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+        })
       })
 
       it('leaves the policy alone when none is given', async () => {

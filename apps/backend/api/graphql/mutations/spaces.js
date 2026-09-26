@@ -391,11 +391,11 @@ async function copyParentStewardsToChild (parentGroup, child, { transacting } = 
 /**
  * Give the new child group the parent's invite policy when it is 'everyone' or
  * 'stewards'. A 'roles' policy names the parent's own roles, so the child falls
- * back to 'stewards'.
+ * back to 'stewards', as it does while member invitations are switched off.
  */
 async function copyParentInvitePolicyToChild (parentGroup, child, { transacting } = {}) {
   const parentPolicy = await GroupRole.getInvitePolicy(parentGroup.id, { transacting })
-  const mode = parentPolicy?.mode === GroupRole.InvitePolicy.EVERYONE
+  const mode = parentPolicy?.mode === GroupRole.InvitePolicy.EVERYONE && GroupRole.memberInvitesEnabled()
     ? GroupRole.InvitePolicy.EVERYONE
     : GroupRole.InvitePolicy.STEWARDS
   await GroupRole.setInvitePolicy(child.id, { mode }, { transacting })

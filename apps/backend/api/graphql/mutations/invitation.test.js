@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { mockify, unspyify } from '../../../test/setup/helpers'
+import { mockify, unspyify, withFeatureFlag } from '../../../test/setup/helpers'
 import { createInvitation, expireInvitation, reinviteAll, resendInvitation } from './invitation'
 
 const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
@@ -109,6 +109,21 @@ describe('member invitations', () => {
       expect(invitations.map(i => [i.get('email'), i.get('inviter_access')])).to.deep.equal([[email, 'limited']])
       expect(invitations[0].get('message')).to.include(group.get('name'))
       expect(queuedInvitationIds()).to.deep.equal([invitations[0].id])
+    })
+
+    it('does not let members invite while member invitations are switched off', async () => {
+      const group = await createGroup('everyone')
+      const member = await createMember(group)
+      const [email] = addresses('switched-off', 1)
+
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        await expect(createInvitation(member.id, group.id, { emails: [email] })).to.be.rejectedWith(NO_PERMISSION)
+        const result = await createInvitation(admin.id, group.id, { emails: addresses('switched-off-admin', 1) })
+        expect(result.invitations[0].id).to.exist
+      })
+
+      expect(await invitesBy(member.id, group.id)).to.have.lengthOf(0)
+      expect(await ledgerTotal({ user_id: member.id })).to.equal(0)
     })
 
     it('rejects roles, people by id and spaces', async () => {
