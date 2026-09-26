@@ -14,10 +14,27 @@ import {
   addAttachment,
   getAttachments
 } from 'components/AttachmentManager/AttachmentManager.store'
+import createPost from 'store/actions/createPost'
+import { saveDraft } from 'store/actions/draftActions'
+import { toast } from 'sonner'
 import ChatEditor from './ChatEditor'
 
 jest.mock('client/websockets', () => ({
   sendIsTypingGroup: jest.fn()
+}))
+
+jest.mock('sonner', () => ({
+  toast: {
+    error: jest.fn(() => 'toast-id'),
+    dismiss: jest.fn()
+  }
+}))
+
+jest.mock('store/actions/createPost', () => jest.fn())
+
+jest.mock('store/actions/draftActions', () => ({
+  ...jest.requireActual('store/actions/draftActions'),
+  saveDraft: jest.fn(() => ({ type: 'TEST_SAVE_DRAFT' }))
 }))
 
 function setupStore () {
@@ -27,12 +44,12 @@ function setupStore () {
   return generateStore({ orm: ormSession.state })
 }
 
-function renderChatEditor (store, props = {}) {
+function renderChatEditor (store, props = {}, ref) {
   return render(
     <Provider store={store}>
       <MemoryRouter>
         <SpaceGroupSlugContext.Provider value='test-group'>
-          <ChatEditor autoFocus={false} {...props} />
+          <ChatEditor autoFocus={false} {...props} ref={ref} />
         </SpaceGroupSlugContext.Provider>
       </MemoryRouter>
     </Provider>
@@ -92,4 +109,41 @@ describe('ChatEditor attachments', () => {
     })
     expect(getAttachments(store.getState(), { type: 'post', id: ID_FOR_NEW, attachmentType: 'image' })).toEqual([])
   })
+})
+
+describe('ChatEditor when sending fails', () => {
+  it('withdraws the optimistic message, puts the text back, re-saves the draft and offers a retry', async () => {
+    mockGraphqlServer.use(chatDraftResponse({ details: '<p>Hello there</p>', type: 'chat' }))
+    createPost.mockImplementation(() => ({ type: 'TEST_CREATE_POST_FAILED', payload: Promise.reject(new Error('offline')) }))
+    saveDraft.mockClear()
+    const onSave = jest.fn()
+    const onSaveFailed = jest.fn()
+    const afterSave = jest.fn()
+    const editorRef = React.createRef()
+    const store = setupStore()
+    const { container } = renderChatEditor(store, { onSave, onSaveFailed, afterSave }, editorRef)
+    const editorText = () => container.querySelector('.ProseMirror')?.textContent
+
+    await waitFor(() => expect(editorText()).toContain('Hello there'))
+
+    await act(async () => { await editorRef.current.submit() })
+
+    expect(onSave).toHaveBeenCalledTimes(1)
+    const { localId } = onSave.mock.calls[0][0]
+    expect(onSaveFailed).toHaveBeenCalledWith(localId)
+    expect(afterSave).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith(
+      'Your message couldn\'t be sent',
+      expect.objectContaining({ action: expect.objectContaining({ label: 'Try Again' }) })
+    )
+    await waitFor(() => expect(editorText()).toContain('Hello there'))
+    await waitFor(() => {
+      expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ data: expect.stringContaining('Hello there') }))
+    }, { timeout: 4000 })
+
+    createPost.mockClear()
+    const retry = toast.error.mock.calls[0][1].action.onClick
+    await act(async () => { retry() })
+    await waitFor(() => expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ details: '<p>Hello there</p>' })))
+  }, 20000)
 })

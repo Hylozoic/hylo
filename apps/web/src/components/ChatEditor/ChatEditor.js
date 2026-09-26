@@ -61,6 +61,7 @@ function ChatEditorInner ({
   setIsDirty = () => {},
   onSave,
   afterSave,
+  onSaveFailed,
   onComposerFocus,
   onComposerBlur
 }, ref) {
@@ -109,6 +110,7 @@ function ChatEditorInner ({
   const chatComposerHadContentRef = useRef(false)
   const isSubmittedRef = useRef(false)
   const isSubmittingRef = useRef(false)
+  const sendFailedToastIdRef = useRef(null)
 
   const linkPreview = useSelector(state => getLinkPreview(state))
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
@@ -374,10 +376,75 @@ function ChatEditorInner ({
 
   const isValid = !invalidMessage
 
+  /** Puts a failed chat post back into the composer; the draft effect then re-saves it. */
+  const restoreFailedPost = useCallback((postToSave) => {
+    const details = postToSave.details || ''
+    editorRef.current?.setContent(details)
+    setEditorInitialContent(details)
+    setHasDescription(hasDraftContent(details))
+    setCurrentPost(prev => ({
+      ...prev,
+      details,
+      linkPreview: postToSave.linkPreview || null,
+      linkPreviewFeatured: !!postToSave.linkPreviewFeatured,
+      skipLinkPreview: !!postToSave.skipLinkPreview
+    }))
+    dispatch(setAttachments('post', CHAT_ID_FOR_NEW, 'image', postToSave.imageAttachments || []))
+    dispatch(setAttachments('post', CHAT_ID_FOR_NEW, 'file', postToSave.fileAttachments || []))
+  }, [dispatch, setCurrentPost])
+
+  /**
+   * Sends a chat post. On failure the optimistic message is withdrawn and the
+   * message goes back into the composer, unless something new is already there.
+   */
+  const sendChatPost = useEventCallback(async (postToSave) => {
+    let savedPost
+    try {
+      savedPost = await dispatch(createPost(postToSave))
+    } catch (error) {
+      savedPost = { error }
+    }
+
+    if (savedPost && !savedPost.error) {
+      await clearDraft()
+      setIsDirty(false)
+      if (afterSave) {
+        afterSave(savedPost?.payload?.data?.createPost)
+      }
+      return
+    }
+
+    if (onSaveFailed) onSaveFailed(postToSave.localId)
+    const composerIsEmpty = !!editorRef.current &&
+      !hasDraftContent(editorRef.current.getHTML()) &&
+      isEmpty(imageAttachments) && isEmpty(fileAttachments)
+    if (composerIsEmpty) restoreFailedPost(postToSave)
+
+    sendFailedToastIdRef.current = toast.error(t('Your message couldn\'t be sent'), {
+      action: {
+        label: t('Try Again'),
+        onClick: () => {
+          if (composerIsEmpty) {
+            doSave()
+          } else {
+            if (onSave) onSave(postToSave)
+            sendChatPost(postToSave)
+          }
+        }
+      }
+    })
+  })
+
+  // The retry action needs this composer, so the toast goes when the composer does
+  useEffect(() => () => {
+    if (sendFailedToastIdRef.current != null) toast.dismiss(sendFailedToastIdRef.current)
+  }, [])
+
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
     isSubmittingRef.current = true
 
+    let postToSave
     try {
       const {
         groups,
@@ -395,7 +462,7 @@ function ChatEditorInner ({
       const imageUrls = imageAttachments && imageAttachments.map((attachment) => attachment.url)
       const fileUrls = fileAttachments && fileAttachments.map((attachment) => attachment.url)
 
-      const postToSave = {
+      postToSave = {
         acceptContributions: false,
         commenters: [],
         createdAt: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO(),
@@ -423,22 +490,13 @@ function ChatEditorInner ({
       cancelPendingSave()
       stopTyping()
       reset()
+    } finally {
       // The next message can be composed and sent while this request is in flight.
       isSubmittingRef.current = false
-
-      const savedPost = await dispatch(createPost(postToSave))
-      if (!savedPost.error) {
-        await clearDraft()
-        setIsDirty(false)
-        if (afterSave) {
-          afterSave(savedPost?.payload?.data?.createPost)
-        }
-      }
-    } catch (error) {
-      isSubmittingRef.current = false
-      throw error
     }
-  }, [afterSave, cancelPendingSave, clearDraft, currentPost, currentUser, dispatch, fileAttachments, imageAttachments, onSave, reset, setIsDirty, stopTyping])
+
+    await sendChatPost(postToSave)
+  }, [cancelPendingSave, currentPost, currentUser, fileAttachments, imageAttachments, onSave, reset, sendChatPost, stopTyping])
 
   const doSave = useEventCallback(() => {
     if (!isValid || loading) return

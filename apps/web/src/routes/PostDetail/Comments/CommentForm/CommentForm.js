@@ -7,7 +7,7 @@ import { SendHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendIsTyping } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
-import { addAttachment, getAttachments, clearAttachments } from 'components/AttachmentManager/AttachmentManager.store'
+import { addAttachment, getAttachments, clearAttachments, setAttachments } from 'components/AttachmentManager/AttachmentManager.store'
 import Button from 'components/ui/button'
 import HyloEditor from 'components/HyloEditor'
 import Icon from 'components/Icon'
@@ -19,6 +19,7 @@ import { cn, inIframe } from 'util/index'
 import { STARTED_TYPING_INTERVAL } from 'util/constants'
 import { useSelector, useDispatch } from 'react-redux'
 import useDraft, { hasDraftContent } from 'hooks/useDraft'
+import useEventCallback from 'hooks/useEventCallback'
 import { isMobileDevice } from 'util/mobile'
 
 import classes from './CommentForm.module.scss'
@@ -100,6 +101,41 @@ const CommentForm = forwardRef(function CommentForm ({
     sendIsTypingAction(true)
   }), [])
 
+  /**
+   * Puts a comment that failed to send back into the composer (unless something
+   * new has been typed there), re-saves its draft and offers a retry.
+   */
+  const handleCommentFailed = useEventCallback((text, submittedAttachments) => {
+    const composerIsEmpty = !!editor.current && editor.current.isEmpty()
+    if (composerIsEmpty) {
+      editor.current.setContent(text)
+      draftRef.current = text
+      commentComposerHadContentRef.current = true
+      dispatch(setAttachments('comment', 'new', 'image', submittedAttachments))
+    }
+    // Forced: the send already deleted the server draft, but a failed optimistic
+    // comment rolls the local copy back, which would dedupe a plain save away
+    if (composerIsEmpty || !editor.current) flushSaveDraft(text, { force: true })
+
+    toast.error(t('Your comment couldn\'t be sent'), {
+      action: {
+        label: t('Try Again'),
+        onClick: () => {
+          if (composerIsEmpty && editor.current) {
+            handleSubmit(editor.current.getHTML())
+          } else {
+            sendComment(text, submittedAttachments)
+          }
+        }
+      }
+    })
+  })
+
+  const sendComment = useEventCallback((text, submittedAttachments) => {
+    Promise.resolve(createComment({ text, attachments: submittedAttachments }))
+      .catch(() => handleCommentFailed(text, submittedAttachments))
+  })
+
   const handleSubmit = useCallback(contentHTML => {
     if (editor?.current && isEmpty(attachments) && editor.current.isEmpty()) {
       window.alert(t('You need to include text to post a comment'))
@@ -109,14 +145,14 @@ const CommentForm = forwardRef(function CommentForm ({
     editor.current.clearContent()
     startTyping.cancel()
     sendIsTypingAction(false)
-    createComment({ text: contentHTML, attachments })
+    sendComment(contentHTML, attachments)
     clearAttachmentsAction()
     draftRef.current = ''
     commentComposerHadContentRef.current = false
     clearDraft()
 
     return true
-  }, [attachments, clearAttachmentsAction, clearDraft, createComment, sendIsTypingAction, startTyping])
+  }, [attachments, clearAttachmentsAction, clearDraft, sendComment, sendIsTypingAction, startTyping])
 
   const handleEditorUpdate = useCallback(async (html) => {
     startTyping()
