@@ -4,8 +4,10 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, Navigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { every, isEmpty } from 'lodash/fp'
+import { AnalyticsEvents } from '@hylo/shared'
 import { baseUrl, groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import setReturnToPath from 'store/actions/setReturnToPath'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { getSignupComplete } from 'store/selectors/getSignupState'
@@ -86,6 +88,12 @@ export default function JoinGroup (props) {
         if (!groupSlug) {
           throw new Error(t('Could not determine group from invitation'))
         }
+
+        dispatch(trackAnalyticsEvent(AnalyticsEvents.INVITE_LINK_OPENED, {
+          groupId,
+          method: invitationToken ? 'token' : 'code',
+          signedIn: signupComplete
+        }))
 
         const isParentMember = !!(parentGroupSlug && myMemberships.some(m => m.group?.slug === parentGroupSlug))
 

@@ -9,10 +9,12 @@ import extractModelsForTest from 'util/testing/extractModelsForTest'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import { AuthSessionStatus } from 'store/reducers/authSession'
 import { toast } from 'sonner'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import JoinGroup from './JoinGroup'
 
 jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
 jest.mock('sonner', () => ({ toast: { error: jest.fn() } }))
+jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn(() => ({ type: 'TRACK_ANALYTICS_EVENT' })))
 
 const INVALID_INVITE_MESSAGE = 'Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'
 
@@ -23,6 +25,7 @@ beforeEach(() => {
 afterEach(() => {
   jest.restoreAllMocks()
   toast.error.mockClear()
+  trackAnalyticsEvent.mockClear()
 })
 
 function mockCheckInvitation (checkInvitation) {
@@ -156,6 +159,7 @@ it('shows a signed-in user a toast and the group about page for an invalid acces
     state: { invalidInvite: true }
   }))
   expect(alertSpy).not.toHaveBeenCalled()
+  expect(trackAnalyticsEvent).not.toHaveBeenCalled()
 })
 
 it('shows a signed-in user a toast and goes home for an invalid email invitation', async () => {
@@ -349,4 +353,40 @@ it('falls back to the email in the invitation link when prefilling signup', asyn
     to: '/signup',
     state: { email: 'link@hylo.com' }
   }))
+})
+
+it('tracks Invite Link Opened once the invitation is valid', async () => {
+  mockCheckInvitation({ valid: true, groupId: '3', groupSlug: 'test-group' })
+
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'test-access-code' })
+  jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/join-group', search: '' })
+
+  render(
+    <Routes>
+      <Route path='/join-group' element={<JoinGroup />} />
+      <Route path='/groups/test-group/about' element={<div>Test group about page</div>} />
+    </Routes>,
+    { wrapper: currentUserProvider(true) }
+  )
+
+  expect(await screen.findByText('Test group about page')).toBeInTheDocument()
+  expect(trackAnalyticsEvent).toHaveBeenCalledWith('Invite Link Opened', { groupId: '3', method: 'code', signedIn: true })
+})
+
+it('tracks Invite Link Opened for a signed-out email invitation', async () => {
+  mockCheckInvitation({ valid: true, groupId: '3', groupSlug: 'test-group', email: 'invited@hylo.com' })
+
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({})
+  jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/join-group', search: '?token=invite-token' })
+
+  render(
+    <Routes>
+      <Route path='/join-group' element={<JoinGroup />} />
+      <Route path='/signup' element={<div>Signup page</div>} />
+    </Routes>,
+    { wrapper: currentUserProvider(false) }
+  )
+
+  expect(await screen.findByText('Signup page')).toBeInTheDocument()
+  expect(trackAnalyticsEvent).toHaveBeenCalledWith('Invite Link Opened', { groupId: '3', method: 'token', signedIn: false })
 })
