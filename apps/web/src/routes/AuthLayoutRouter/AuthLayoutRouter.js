@@ -20,7 +20,7 @@ import { isSandboxMode } from 'sandbox/isSandbox'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import IntercomConsentSync from 'components/IntercomConsentSync'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
-import { identifyAnalyticsUser, setAnalyticsGroups } from 'util/analytics'
+import { identifyAnalyticsUser, resolveAnalyticsChoice, setAnalyticsGroups } from 'util/analytics'
 import { getCookieConsent } from 'util/cookieConsent'
 import ContextMenu from './components/ContextMenu'
 import CreatePostModal from 'components/CreatePostModal'
@@ -261,7 +261,7 @@ export default function AuthLayoutRouter (props) {
   const { cookieData } = useCookieConsent()
   // Before the consent context has loaded, fall back to the stored cookie
   const cookieConsent = cookieData || getCookieConsent()
-  const analyticsConsent = cookieConsent?.analytics
+  const analyticsChoice = resolveAnalyticsChoice(cookieConsent, currentUser?.cookieConsentPreferences)
   // Only an explicit rejection turns support chat off: people who have not
   // answered the cookie panel, and the mobile app (which has none), keep it
   const supportAllowed = cookieConsent?.support !== false
@@ -657,12 +657,12 @@ export default function AuthLayoutRouter (props) {
     if (currentUser?.settings?.locale) {
       getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
-    identifyAnalyticsUser(currentUser)
-  }, [analyticsConsent, currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
+    identifyAnalyticsUser(currentUser, analyticsChoice)
+  }, [analyticsChoice, currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
   useEffect(() => {
-    setAnalyticsGroups(memberships, currentGroup)
-  }, [analyticsConsent, currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
+    setAnalyticsGroups(memberships, currentGroup, analyticsChoice)
+  }, [analyticsChoice, currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
 
   // Keep group loading in sync with the URL before paint so we never mount ViewContent/chat,
   // then swap to RouteBootstrapSkeleton when fetchForGroup sets loading (reopen / SPA nav).

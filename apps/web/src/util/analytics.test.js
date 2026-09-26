@@ -35,16 +35,33 @@ function load ({ consent = null, sandbox = false, token = 'test-token', optedOut
   return modules
 }
 
+describe('resolveAnalyticsChoice', () => {
+  const saved = analytics => ({ id: '1', settings: { analytics, support: true }, updatedAt: '2026-01-01T00:00:00.000Z' })
+
+  it.each([
+    ['the cookie accepted', { analytics: true }, saved(false), true],
+    ['the cookie rejected', { analytics: false }, undefined, false],
+    ['there is no cookie and the account rejected', null, saved(false), false],
+    ['there is no cookie and the account accepted', null, saved(true), true],
+    ['there is no cookie and the account has no saved choice', null, null, null],
+    ['there is no cookie and the account has not loaded yet', null, undefined, undefined]
+  ])('when %s', (_, cookieConsent, accountPreferences, expected) => {
+    const { analytics } = load()
+    expect(analytics.resolveAnalyticsChoice(cookieConsent, accountPreferences)).toBe(expected)
+  })
+})
+
 describe('analyticsAllowed', () => {
   it.each([
-    ['nobody has answered the cookie panel', {}, true],
-    ['analytics were accepted', { consent: { analytics: true, support: true } }, true],
-    ['analytics were rejected', { consent: { analytics: false, support: true } }, false],
-    ['in the sandbox', { sandbox: true }, false],
-    ['without a Mixpanel token', { token: '' }, false]
-  ])('when %s', (_, options, expected) => {
+    ['nobody has answered the cookie panel', null, {}, true],
+    ['analytics were accepted', true, {}, true],
+    ['analytics were rejected', false, {}, false],
+    ['the choice is not known yet', undefined, {}, false],
+    ['in the sandbox', true, { sandbox: true }, false],
+    ['without a Mixpanel token', true, { token: '' }, false]
+  ])('when %s', (_, choice, options, expected) => {
     const { analytics } = load(options)
-    expect(analytics.analyticsAllowed()).toBe(expected)
+    expect(analytics.analyticsAllowed(choice)).toBe(expected)
   })
 })
 
@@ -110,17 +127,20 @@ describe('identifyAnalyticsUser and setAnalyticsGroups', () => {
 
   it('sends the profile and groups when analytics are allowed', () => {
     const { analytics, mixpanel } = load()
-    analytics.identifyAnalyticsUser(user)
-    analytics.setAnalyticsGroups(memberships, group)
+    analytics.identifyAnalyticsUser(user, null)
+    analytics.setAnalyticsGroups(memberships, group, null)
     expect(mixpanel.identify).toHaveBeenCalledWith('1')
     expect(mixpanel.people.set).toHaveBeenCalledWith({ $name: 'Ada', $email: 'ada@example.com', $location: 'Somewhere' })
     expect(mixpanel.set_group).toHaveBeenCalledWith('groupId', ['10'])
   })
 
-  it('sends nothing when analytics were rejected', () => {
-    const { analytics, mixpanel } = load({ consent: { analytics: false, support: true } })
-    analytics.identifyAnalyticsUser(user)
-    analytics.setAnalyticsGroups(memberships, group)
+  it.each([
+    ['analytics were rejected', false],
+    ['the choice is not known yet', undefined]
+  ])('sends nothing when %s', (_, choice) => {
+    const { analytics, mixpanel } = load()
+    analytics.identifyAnalyticsUser(user, choice)
+    analytics.setAnalyticsGroups(memberships, group, choice)
     expect(mixpanel.identify).not.toHaveBeenCalled()
     expect(mixpanel.people.set).not.toHaveBeenCalled()
     expect(mixpanel.set_group).not.toHaveBeenCalled()

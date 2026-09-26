@@ -6,11 +6,27 @@ import { getCookieConsent } from 'util/cookieConsent'
 let initialized = false
 
 /**
- * Whether analytics calls may be made. Only an explicit rejection turns them
- * off: people who have not answered the cookie panel keep today's behaviour.
+ * The analytics choice to honour: this browser's cookie, else the one saved on
+ * the account. true or false once answered, null when never answered, and
+ * undefined while it can't be known yet: a browser without the cookie (a new
+ * device, or one cleared or expired) only learns the account's choice when
+ * MeQuery loads cookieConsentPreferences, which is null when none was saved.
  */
-export function analyticsAllowed () {
-  return !isSandboxMode() && !!config.mixpanel.token && getCookieConsent()?.analytics !== false
+export function resolveAnalyticsChoice (cookieConsent, accountPreferences) {
+  if (typeof cookieConsent?.analytics === 'boolean') return cookieConsent.analytics
+  if (accountPreferences === undefined) return undefined
+  const saved = accountPreferences?.settings?.analytics
+  return typeof saved === 'boolean' ? saved : null
+}
+
+/**
+ * Whether analytics calls may be made under a choice from
+ * resolveAnalyticsChoice. Only an explicit rejection turns them off: people who
+ * have not answered the cookie panel keep today's behaviour. Nothing is allowed
+ * while the choice is still unknown.
+ */
+export function analyticsAllowed (choice) {
+  return choice !== undefined && choice !== false && !isSandboxMode() && !!config.mixpanel.token
 }
 
 /**
@@ -40,9 +56,9 @@ export function applyAnalyticsConsent (consent) {
   }
 }
 
-/** Identifies the signed-in person and records their profile, when allowed. */
-export function identifyAnalyticsUser (user) {
-  if (!user?.id || !analyticsAllowed()) return
+/** Identifies the signed-in person and records their profile, when the choice allows it. */
+export function identifyAnalyticsUser (user, choice) {
+  if (!user?.id || !analyticsAllowed(choice)) return
   mixpanel.identify(user.id)
   mixpanel.people.set({
     $name: user.name,
@@ -51,9 +67,9 @@ export function identifyAnalyticsUser (user) {
   })
 }
 
-/** Records the person's group memberships and the current group's profile, when allowed. */
-export function setAnalyticsGroups (memberships, currentGroup) {
-  if (!analyticsAllowed()) return
+/** Records the person's group memberships and the current group's profile, when the choice allows it. */
+export function setAnalyticsGroups (memberships, currentGroup, choice) {
+  if (!analyticsAllowed(choice)) return
   mixpanel.set_group('groupId', memberships.map(m => m.group.id))
   if (currentGroup?.id) {
     mixpanel.get_group('groupId', currentGroup.id).set({
