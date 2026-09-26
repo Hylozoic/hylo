@@ -464,6 +464,10 @@ describe('Notification', function () {
           approver_name: 'Joe'
         })
         expect(opts.data.group_url).to.match(/\/groups\/my-group\//)
+        const introduceUrl = new URL(opts.data.introduce_url)
+        expect(introduceUrl.pathname).to.match(/^\/groups\/my-group\//)
+        expect(introduceUrl.searchParams.get('create')).to.equal('post')
+        expect(introduceUrl.searchParams.get('ctt')).to.equal('approved_join_request_introduce_email')
       })
 
       return preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Email)

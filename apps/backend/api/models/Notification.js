@@ -799,6 +799,13 @@ module.exports = bookshelf.Model.extend({
       ctcn: group.get('name')
     }).toString()
 
+    const introduceParams = '?' + new URLSearchParams({
+      ctt: 'approved_join_request_introduce_email',
+      cti: reader.id,
+      ctcn: group.get('name'),
+      create: 'post'
+    }).toString()
+
     return Email.sendApprovedJoinRequestNotification({
       email: reader.get('email'),
       locale,
@@ -808,6 +815,7 @@ module.exports = bookshelf.Model.extend({
         group_avatar_url: group.get('avatar_url'),
         group_name: group.get('name'),
         group_url: Frontend.Route.groupHome(group) + clickthroughParams,
+        introduce_url: Frontend.Route.groupHome(group) + introduceParams,
         approver_name: actor.get('name'),
         approver_avatar_url: actor.get('avatar_url'),
         approver_profile_url: Frontend.Route.profile(actor) + clickthroughParams
