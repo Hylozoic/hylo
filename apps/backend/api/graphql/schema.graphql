@@ -689,6 +689,10 @@ type CheckInvitationResult {
   email: String
   # The group role that will be assigned when this invitation is used
   groupRole: GroupRole
+  # True for an invitation from a member to a group where a steward approves new people: the person requests to join (with the invitation token) instead of joining
+  requiresApproval: Boolean
+  # Who sent a member invitation (null for other invitations)
+  invitedBy: InvitationSender
 }
 
 # A comment on a post
@@ -3422,7 +3426,7 @@ type Mutation {
   # Convert a child Group into a Space of its single parent
   convertGroupToSpace(id: ID!, parentGroupId: ID!): Group
   # Join a Space (creates a group membership + per-view unread rows).
-  # accessCode or invitationToken pre-approves Closed, Restricted, and role-gated spaces.
+  # accessCode or invitationToken pre-approves Closed and Restricted spaces, but not role-gated ones; a member's invitation never does.
   joinSpace(spaceId: ID!, accessCode: String, invitationToken: String): Membership
   # Update the current logged in user's last-read position for a chat GroupView, recalculating newPostCount
   updateGroupViewUser(viewId: ID!, lastReadPostId: ID): GroupView
@@ -3529,6 +3533,7 @@ type Mutation {
   joinFundingRound(id: ID): FundingRound
   # Join a group. Will fail if the person does not have permission to join this group.
   # For Restricted groups, provide accessCode or invitationToken for pre-approved join.
+  # A member's invitation only pre-approves joining an Open group.
   # Set acceptAgreements to true if user has accepted agreements during join flow.
   joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput], accessCode: String, invitationToken: String, acceptAgreements: Boolean): Membership
   # Join a project Post as a member
@@ -3844,6 +3849,17 @@ type InvitationUseResult {
   error: String
   # If the mutation succeeded, the new group Membership object
   membership: Membership
+  # True when the invitation came from a member and a steward approves new people in the group: nobody joined, and the person can request to join with the invitation token
+  requiresApproval: Boolean
+  # With requiresApproval, the slug of the group to request to join
+  groupSlug: String
+}
+
+# Who sent an invitation, as shown to the person invited and to stewards reviewing their request
+type InvitationSender {
+  id: ID
+  name: String
+  avatarUrl: String
 }
 
 # Result of a login or signup related mutation

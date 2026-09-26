@@ -224,6 +224,107 @@ describe('InvitationService', () => {
     })
   })
 
+  describe('member invitations and approval', () => {
+    let sponsor, open, restricted, closed, parent, space
+
+    const memberInvitation = (target, email = `invitee-${Date.now()}-${Math.random()}@approval.com`) =>
+      Invitation.create({ userId: sponsor.id, groupId: target.id, email, inviterAccess: Invitation.InviterAccess.LIMITED })
+    const stewardInvitation = (target, email = `invitee-${Date.now()}-${Math.random()}@approval.com`) =>
+      Invitation.create({ userId: inviter.id, groupId: target.id, email })
+
+    before(async () => {
+      sponsor = await factories.user({ name: 'Sponsoring Member', avatar_url: 'https://example.com/sponsor.png' }).save()
+      open = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+      restricted = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+      closed = await factories.group({ accessibility: Group.Accessibility.CLOSED }).save()
+      parent = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+      space = await factories.group({ type: 'space', parent_id: parent.id, accessibility: Group.Accessibility.OPEN }).save()
+    })
+
+    it('pre-approves a member invitation only for its own Open top-level group', async () => {
+      expect(await InvitationService.preApproves(await memberInvitation(open), open)).to.be.true
+      expect(await InvitationService.preApproves(await memberInvitation(restricted), restricted)).to.be.false
+      expect(await InvitationService.preApproves(await memberInvitation(closed), closed)).to.be.false
+      expect(await InvitationService.preApproves(await memberInvitation(open), restricted)).to.be.false
+      expect(await InvitationService.preApproves(await memberInvitation(space), space)).to.be.false
+      expect(await InvitationService.preApproves(await memberInvitation(space), parent)).to.be.false
+      expect(await InvitationService.preApproves(null, open)).to.be.false
+    })
+
+    it('pre-approves other invitations for their own group and a space invitation for its parent', async () => {
+      expect(await InvitationService.preApproves(await stewardInvitation(closed), closed)).to.be.true
+      expect(await InvitationService.preApproves(await stewardInvitation(space), space)).to.be.true
+      expect(await InvitationService.preApproves(await stewardInvitation(space), parent)).to.be.true
+      expect(await InvitationService.preApproves(await stewardInvitation(closed), restricted)).to.be.false
+    })
+
+    it('tells the person invited by a member who invited them and whether a steward approves them', async () => {
+      const sender = { id: sponsor.id, name: 'Sponsoring Member', avatarUrl: 'https://example.com/sponsor.png' }
+
+      const restrictedCheck = await InvitationService.check((await memberInvitation(restricted)).get('token'))
+      expect(restrictedCheck).to.include({ valid: true, groupSlug: restricted.get('slug'), requiresApproval: true })
+      expect(restrictedCheck.invitedBy).to.deep.equal(sender)
+
+      expect(await InvitationService.check((await memberInvitation(closed)).get('token'))).to.include({ requiresApproval: true })
+
+      const openCheck = await InvitationService.check((await memberInvitation(open)).get('token'))
+      expect(openCheck.requiresApproval).to.be.false
+      expect(openCheck.invitedBy).to.deep.equal(sender)
+    })
+
+    it('decides approval from the group\'s accessibility at the time of the check', async () => {
+      const changing = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+      const token = (await memberInvitation(changing)).get('token')
+      expect((await InvitationService.check(token)).requiresApproval).to.be.false
+      await changing.save({ accessibility: Group.Accessibility.RESTRICTED }, { patch: true })
+      expect((await InvitationService.check(token)).requiresApproval).to.be.true
+    })
+
+    it('leaves the check for other invitations and join links as it was', async () => {
+      const tokenCheck = await InvitationService.check((await stewardInvitation(restricted)).get('token'))
+      expect(tokenCheck).to.include({ valid: true, requiresApproval: false, invitedBy: null })
+      const codeCheck = await InvitationService.check(null, restricted.get('access_code'))
+      expect(codeCheck).to.include({ valid: true, requiresApproval: false, invitedBy: null })
+    })
+
+    it('does not join a Restricted or Closed group with a member invitation, and asks for a request instead', async () => {
+      for (const target of [restricted, closed]) {
+        const person = await factories.user().save()
+        const invitation = await memberInvitation(target, person.get('email'))
+        const result = await InvitationService.use(person.id, invitation.get('token'))
+        expect(result).to.deep.equal({ requiresApproval: true, groupSlug: target.get('slug') })
+        expect(await GroupMembership.forPair(person.id, target.id, { includeInactive: true }).fetch()).to.not.exist
+        await invitation.refresh()
+        expect(invitation.get('used_by_id')).to.be.null
+      }
+    })
+
+    it('joins an Open group with a member invitation', async () => {
+      const person = await factories.user().save()
+      const invitation = await memberInvitation(open, person.get('email'))
+      const membership = await InvitationService.use(person.id, invitation.get('token'))
+      expect(membership.get('user_id')).to.equal(person.id)
+      expect(membership.get('group_id')).to.equal(open.id)
+      await invitation.refresh()
+      expect(invitation.get('used_by_id')).to.equal(person.id)
+    })
+
+    it('returns the membership of someone already in the group', async () => {
+      const person = await factories.user().save()
+      await person.joinGroup(restricted)
+      const invitation = await memberInvitation(restricted, person.get('email'))
+      const membership = await InvitationService.use(person.id, invitation.get('token'))
+      expect(membership.get('group_id')).to.equal(restricted.id)
+    })
+
+    it('still joins a Restricted group with a steward invitation', async () => {
+      const person = await factories.user().save()
+      const invitation = await stewardInvitation(restricted, person.get('email'))
+      const membership = await InvitationService.use(person.id, invitation.get('token'))
+      expect(membership.get('group_id')).to.equal(restricted.id)
+    })
+  })
+
   describe('pending invitation lists', () => {
     let listGroup, admin, member, other, memberInvitations
 

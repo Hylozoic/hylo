@@ -128,6 +128,74 @@ describe('mutations/group', () => {
       await invitation.refresh()
       expect(invitation.get('used_by_id')).to.equal(user.id)
     })
+
+    describe('with a member invitation', () => {
+      let sponsor
+
+      const memberInvitation = (group, email) =>
+        Invitation.create({ userId: sponsor.id, groupId: group.id, email, inviterAccess: Invitation.InviterAccess.LIMITED })
+
+      const expectNotJoined = async (user, group) =>
+        expect(await GroupMembership.forPair(user, group, { includeInactive: true }).fetch()).to.not.exist
+
+      before(async () => {
+        sponsor = await factories.user().save()
+      })
+
+      it('does not pre-approve a Restricted or Closed group', async () => {
+        for (const accessibility of [Group.Accessibility.RESTRICTED, Group.Accessibility.CLOSED]) {
+          const user = await factories.user().save()
+          const group = await factories.group({ accessibility }).save()
+          const invitation = await memberInvitation(group, user.get('email'))
+
+          await expect(joinGroup(group.id, user.id, [], null, invitation.get('token'), false, {}))
+            .to.be.rejectedWith('You do not have permission to do that')
+          await expectNotJoined(user, group)
+          await invitation.refresh()
+          expect(invitation.get('used_by_id')).to.be.null
+        }
+      })
+
+      it('joins an Open group and marks the invitation used', async () => {
+        const user = await factories.user().save()
+        const group = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+        const invitation = await memberInvitation(group, 'another-address@member-invite.com')
+
+        const membership = await joinGroup(group.id, user.id, [], null, invitation.get('token'), false, {})
+        expect(membership.get('group_id')).to.equal(group.id)
+        await invitation.refresh()
+        expect(invitation.get('used_by_id')).to.equal(user.id)
+      })
+
+      it('never uses it to join its own group while joining another one', async () => {
+        const user = await factories.user().save()
+        const invitedTo = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+        const invitation = await memberInvitation(invitedTo, user.get('email'))
+        const withJoinLink = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+        const open = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+
+        await joinGroup(withJoinLink.id, user.id, [], withJoinLink.get('access_code'), invitation.get('token'), false, {})
+        await joinGroup(open.id, user.id, [], null, invitation.get('token'), false, {})
+
+        expect(await GroupMembership.forPair(user, withJoinLink).fetch()).to.exist
+        expect(await GroupMembership.forPair(user, open).fetch()).to.exist
+        await expectNotJoined(user, invitedTo)
+        await invitation.refresh()
+        expect(invitation.get('used_by_id')).to.be.null
+      })
+
+      it('does not let a member invitation to a space pre-approve its parent', async () => {
+        const user = await factories.user().save()
+        const parent = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+        const space = await factories.group({ type: 'space', parent_id: parent.id, accessibility: Group.Accessibility.OPEN }).save()
+        const invitation = await memberInvitation(space, user.get('email'))
+
+        await expect(joinGroup(parent.id, user.id, [], null, invitation.get('token'), false, {}))
+          .to.be.rejectedWith('You do not have permission to do that')
+        await expectNotJoined(user, parent)
+        await expectNotJoined(user, space)
+      })
+    })
   })
 
   describe('createGroup', () => {

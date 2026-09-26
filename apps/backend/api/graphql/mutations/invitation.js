@@ -108,6 +108,6 @@ export async function reinviteAll (userId, groupId) {
 
 export function useInvitation (userId, invitationToken, accessCode) {
   return InvitationService.use(userId, invitationToken, accessCode)
-    .then(membership => ({ membership }))
+    .then(result => result?.requiresApproval ? result : { membership: result })
     .catch(error => ({ error: error.message }))
 }

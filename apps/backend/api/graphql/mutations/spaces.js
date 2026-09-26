@@ -574,10 +574,10 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
 
 /**
  * Join a space. Parent-group Administration can join any space. A valid
- * accessCode or invitationToken pre-approves Closed and Restricted spaces
- * but does NOT bypass role gating — the invited person must still hold the
- * required role. Paywalled spaces still require purchase unless the user
- * administers the parent.
+ * accessCode or invitationToken (other than a member's invitation) pre-approves
+ * Closed and Restricted spaces but does NOT bypass role gating — the invited
+ * person must still hold the required role. Paywalled spaces still require
+ * purchase unless the user administers the parent.
  * @param userId {string}
  * @param spaceId {string}
  * @param accessCode {string} optional join-link access code
@@ -623,7 +623,8 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
     if (accessCode || invitationToken) {
       inviteCheck = await InvitationService.check(invitationToken, accessCode)
     }
-    hasValidInvitation = !!(inviteCheck?.valid && inviteCheck.groupSlug === space.get('slug'))
+    hasValidInvitation = !!(inviteCheck?.valid && inviteCheck.groupSlug === space.get('slug')) &&
+      (!!accessCode || await InvitationService.preApproves(await Invitation.find(invitationToken), space))
 
     if (!canAdministerParent) {
       if (space.get('paywall')) {

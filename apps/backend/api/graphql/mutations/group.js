@@ -81,6 +81,7 @@ export async function deleteGroupRelationship (userId, parentId, childId, contex
 /**
  * Join a group. For Open groups, anyone can join directly.
  * For Restricted or Closed groups, a valid accessCode or invitationToken is required (pre-approved).
+ * A member's invitation does not pre-approve: that person requests to join instead.
  * @param groupId {string} the group to join
  * @param userId {string} the user joining
  * @param questionAnswers {array} answers to join questions
@@ -101,8 +102,10 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   if (accessCode || invitationToken) {
     inviteCheck = await InvitationService.check(invitationToken, accessCode)
   }
-  const inviteIsForThisGroup = !!(inviteCheck?.valid && inviteCheck.groupSlug === group.get('slug'))
-  const inviteIsForChildSpace = !!(inviteCheck?.valid && inviteCheck.parentGroupSlug === group.get('slug'))
+  const checkedInvitation = inviteCheck?.valid && !accessCode ? await Invitation.find(invitationToken) : null
+  const inviteApproves = !!inviteCheck?.valid && (!!accessCode || await InvitationService.preApproves(checkedInvitation, group))
+  const inviteIsForThisGroup = inviteApproves && inviteCheck.groupSlug === group.get('slug')
+  const inviteIsForChildSpace = inviteApproves && inviteCheck.parentGroupSlug === group.get('slug')
   const hasValidInvitation = inviteIsForThisGroup || inviteIsForChildSpace
 
   // For non-Open groups, require a valid invitation
@@ -132,11 +135,13 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   // Token invitations can attach a group role (e.g. Host). joinGroup marks invites used by
   // email but does not assign roles — invitation.use() handles role assignment.
   // A space invite also joins that space (view unread rows included via joinSpace).
+  // A member invitation is only used here for the group just joined: using it
+  // joins its own group, which may need approval.
   if (inviteIsForChildSpace && inviteCheck.groupId) {
     await joinSpace(userId, inviteCheck.groupId, accessCode, invitationToken)
   } else if (invitationToken && hasValidInvitation) {
-    const invitation = await Invitation.find(invitationToken)
-    if (invitation) {
+    const invitation = checkedInvitation || await Invitation.find(invitationToken)
+    if (invitation && (!invitation.isLimited() || String(invitation.get('group_id')) === String(group.id))) {
       await invitation.use(userId)
     }
   }

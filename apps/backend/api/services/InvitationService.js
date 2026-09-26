@@ -30,8 +30,43 @@ async function invitationResultForGroup (group, extras = {}) {
     parentGroupId,
     parentGroupSlug,
     parentGroupName,
+    requiresApproval: false,
+    invitedBy: null,
     ...extras
   }
+}
+
+/**
+ * Whether this invitation lets its holder join targetGroup without approval.
+ * An invitation from someone with Add Members admits to its own group and,
+ * for a space invitation, to the space's parent group. A member invitation
+ * only ever admits directly to its own group when that is an Open top-level
+ * group; anywhere else a steward approves the person's request to join.
+ * Callers check that the invitation is still valid.
+ */
+async function preApproves (invitation, targetGroup) {
+  if (!invitation || !targetGroup) return false
+  const forTarget = String(invitation.get('group_id')) === String(targetGroup.id)
+  if (invitation.isLimited()) {
+    return forTarget &&
+      !targetGroup.get('parent_id') &&
+      targetGroup.get('type') !== 'space' &&
+      targetGroup.get('accessibility') === Group.Accessibility.OPEN
+  }
+  if (forTarget) return true
+  const invitedGroup = await Group.find(invitation.get('group_id'))
+  return !!invitedGroup?.get('parent_id') && String(invitedGroup.get('parent_id')) === String(targetGroup.id)
+}
+
+/**
+ * Who sent an invitation, as shown to the person invited and to stewards:
+ * only their id, name and avatar.
+ */
+async function invitationSender (invitation) {
+  const creator = await invitation.creator().fetch()
+  return creator
+    ? { id: creator.id, name: creator.get('name'), avatarUrl: creator.get('avatar_url') }
+    : null
 }
 
 /**
@@ -71,6 +106,10 @@ async function addressesAlreadyInGroup (groupId, emails, transacting) {
 }
 
 module.exports = {
+  preApproves,
+
+  invitationSender,
+
   checkPermission: (userId, invitationId) => {
     return Invitation.find(invitationId, { withRelated: 'group' })
       .then(async (invitation) => {
@@ -332,10 +371,13 @@ module.exports = {
   },
 
   /**
-   * Check if an invitation is valid and return group information for redirect
+   * Check if an invitation is valid and return group information for redirect.
+   * For a member invitation, also who sent it and whether a steward has to
+   * approve the person's request to join, which the group's accessibility at
+   * the time of the check decides.
    * @param token {String} invitation token from email invite
    * @param accessCode {String} access code from invite link
-   * @returns {Object} { valid, groupId, groupSlug, groupName, isSpace, parentGroupSlug, email, groupRole }
+   * @returns {Object} { valid, groupId, groupSlug, groupName, isSpace, parentGroupSlug, email, groupRole, requiresApproval, invitedBy }
    */
   check: async (token, accessCode) => {
     if (accessCode) {
@@ -352,6 +394,7 @@ module.exports = {
       }).fetch()
       if (invitation) {
         const group = await Group.find(invitation.get('group_id'))
+        if (!group) return { valid: false }
 
         // Load the group role if one is assigned to this invitation
         let groupRole = null
@@ -359,6 +402,7 @@ module.exports = {
           groupRole = await GroupRole.where({ id: invitation.get('group_role_id') }).fetch()
         }
 
+        const fromMember = invitation.isLimited()
         return invitationResultForGroup(group, {
           groupId: invitation.get('group_id'),
           email: invitation.get('email'),
@@ -368,7 +412,9 @@ module.exports = {
                 name: groupRole.get('name'),
                 emoji: groupRole.get('emoji')
               }
-            : null
+            : null,
+          requiresApproval: fromMember && !(await preApproves(invitation, group)),
+          invitedBy: fromMember ? await invitationSender(invitation) : null
         })
       }
       return { valid: false }
@@ -376,6 +422,12 @@ module.exports = {
     return { valid: false }
   },
 
+  /**
+   * Join the group with a join link code or an invitation token.
+   * @returns the membership or, for a member invitation to a group where a
+   *   steward has to approve new people, { requiresApproval: true, groupSlug }
+   *   without joining: the person can then request to join with the token.
+   */
   async use (userId, token, accessCode) {
     const user = await User.find(userId)
     if (accessCode) {
@@ -392,13 +444,17 @@ module.exports = {
     }
 
     if (token) {
-      return Invitation.where({ token }).fetch()
-        .then(invitation => {
-          if (!invitation) throw new GraphQLError('not found')
-          if (invitation.isExpired()) throw new GraphQLError('expired')
-          // TODO STRIPE: We need to think through how invite links will be impacted by paywall
-          return invitation.use(userId)
-        })
+      const invitation = await Invitation.where({ token }).fetch()
+      if (!invitation) throw new GraphQLError('not found')
+      if (invitation.isExpired()) throw new GraphQLError('expired')
+      if (invitation.isLimited()) {
+        const group = await invitation.group().fetch()
+        if (!(await preApproves(invitation, group)) && !(await GroupMembership.forPair(userId, group.id).fetch())) {
+          return { requiresApproval: true, groupSlug: group.get('slug') }
+        }
+      }
+      // TODO STRIPE: We need to think through how invite links will be impacted by paywall
+      return invitation.use(userId)
     }
 
     throw new Error('must provide either token or accessCode')

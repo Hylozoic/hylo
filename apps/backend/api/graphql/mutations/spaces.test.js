@@ -776,6 +776,22 @@ describe('space mutations', () => {
       expect(invitation.get('used_by_id')).to.equal(member.id)
     })
 
+    it('does not let a member invitation pre-approve a closed space', async () => {
+      const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+      const invitation = await Invitation.create({
+        userId: administrator.id,
+        groupId: space.id,
+        email: member.get('email'),
+        inviterAccess: Invitation.InviterAccess.LIMITED
+      })
+
+      await expect(joinSpace(member.id, space.id, null, invitation.get('token')))
+        .to.be.rejectedWith('This space requires a request to join')
+      expect(await GroupMembership.forPair(member.id, space.id).fetch()).to.not.exist
+      await invitation.refresh()
+      expect(invitation.get('used_by_id')).to.be.null
+    })
+
     it('lets Administration join a role-gated space without the required role', async () => {
       const gatedRole = await GroupRole.forge({
         group_id: parentGroup.id,
