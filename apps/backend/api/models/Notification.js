@@ -6,6 +6,7 @@ import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import { senderNameForGroup, senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
+import { PRIORITY_REASONS } from './notification/priorityReasons'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -1435,15 +1436,8 @@ module.exports = bookshelf.Model.extend({
   },
 
   priorityReason: function (reasons) {
-    const orderedLabels = [
-      'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
-      'newPost', 'follow', 'followAdd', 'unfollow', 'postFulfilled', 'postUnfulfilled', 'joinRequest', 'approvedJoinRequest', 'groupInvitation', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
-      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment',
-      'fundingRoundNewSubmission', 'fundingRoundPhaseTransition', 'fundingRoundReminder'
-    ]
-
     const match = label => reasons.some(r => r.match(new RegExp('^' + label)))
-    return orderedLabels.find(match) || ''
+    return PRIORITY_REASONS.find(match) || ''
   },
 
   removeOldNotifications: function () {

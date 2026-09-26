@@ -1,5 +1,6 @@
 import '../../../setup'
 import { EMAIL_REASONS } from '../../../../api/models/notification/emailReasons'
+import { PRIORITY_REASONS } from '../../../../api/models/notification/priorityReasons'
 
 // Replaces every send*Email method on a notification with a spy, so sendEmail can be
 // called without loading anything, and returns the spies.
@@ -17,25 +18,20 @@ function notificationWithStubbedEmails (reason) {
 }
 
 describe('EMAIL_REASONS', () => {
-  for (const reason of EMAIL_REASONS) {
-    it(`matches an email that Notification#sendEmail sends for '${reason}'`, async () => {
+  it('lists only priority reasons', () => {
+    for (const reason of EMAIL_REASONS) {
       expect(Notification.priorityReason([reason])).to.equal(reason)
+    }
+  })
 
-      const { notification, spies } = notificationWithStubbedEmails(reason)
+  for (const label of PRIORITY_REASONS) {
+    it(`matches whether Notification#sendEmail sends an email for '${label}'`, async () => {
+      const hasEmail = EMAIL_REASONS.has(Notification.priorityReason([label]))
+
+      const { notification, spies } = notificationWithStubbedEmails(label)
       await notification.sendEmail()
       const called = Object.values(spies).filter(s => s.__spy.called)
-      expect(called).to.have.length(1)
-    })
-  }
-
-  for (const reason of ['newComment', 'commentMention', 'newContribution', 'voteReset', 'chat', 'follow', 'followAdd', 'unfollow']) {
-    it(`leaves out '${reason}', which Notification#sendEmail has no email for`, async () => {
-      expect(EMAIL_REASONS.has(reason)).to.equal(false)
-
-      const { notification, spies } = notificationWithStubbedEmails(reason)
-      await notification.sendEmail()
-      const called = Object.values(spies).filter(s => s.__spy.called)
-      expect(called).to.have.length(0)
+      expect(called).to.have.length(hasEmail ? 1 : 0)
     })
   }
 })
