@@ -124,7 +124,8 @@ import {
   reconcileChatActivityNoticesAfterFetch,
   replaceOptimisticChatActivityNotice,
   snapshotChatActivityNotices,
-  upsertOptimisticChatActivityNotice
+  upsertOptimisticChatActivityNotice,
+  withdrawOptimisticChatFromNotice
 } from 'store/util/chatActivityNotice'
 import { membershipBadgeCountFromViews } from '@hylo/shared'
 import { findViewsForGroupBadge } from 'util/viewUnreadBadges'
@@ -240,7 +241,14 @@ function snapshotPinnedPost (post) {
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
   const { payload, type, meta, error } = action
-  if (error) return state
+  if (error) {
+    // CREATE_POST_PENDING added the chat to its hour notice
+    if (type === CREATE_POST && meta?.type === 'chat') {
+      withdrawOptimisticChatFromNotice(session, { localId: meta.graphql?.variables?.localId })
+      return session.state
+    }
+    return state
+  }
 
   const {
     Comment,
