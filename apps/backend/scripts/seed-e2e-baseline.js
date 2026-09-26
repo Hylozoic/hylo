@@ -101,7 +101,7 @@ async function setupSystemRolesForGroup (client, groupId, now) {
   const roleIds = {}
   for (const roleDef of SYSTEM_ROLE_DEFINITIONS) {
     let res = await client.query(
-      `SELECT id FROM groups_roles WHERE group_id = $1 AND name = $2 AND type = 'system' LIMIT 1`,
+      "SELECT id FROM groups_roles WHERE group_id = $1 AND name = $2 AND type = 'system' LIMIT 1",
       [groupId, roleDef.name]
     )
     let roleId = res.rows[0]?.id
@@ -409,12 +409,12 @@ async function clearPreviousE2eBaseline (client) {
      WHERE slug = 'e2e-paid-track-space'`
   )
 
-  await client.query(`DELETE FROM group_views WHERE group_id IN (SELECT id FROM groups WHERE slug = 'e2e-paid-track-space')`)
+  await client.query("DELETE FROM group_views WHERE group_id IN (SELECT id FROM groups WHERE slug = 'e2e-paid-track-space')")
   await client.query(
     `DELETE FROM tracks
      WHERE group_id IN (SELECT id FROM groups WHERE slug = 'e2e-paid-track-space')`
   )
-  await client.query(`DELETE FROM groups WHERE slug = 'e2e-paid-track-space'`)
+  await client.query("DELETE FROM groups WHERE slug = 'e2e-paid-track-space'")
 
   await client.query(
     `DELETE FROM groups_posts
@@ -423,7 +423,7 @@ async function clearPreviousE2eBaseline (client) {
     [E2E_GROUP_SLUGS]
   )
 
-  await client.query(`DELETE FROM posts WHERE name = 'E2E Public Post'`)
+  await client.query("DELETE FROM posts WHERE name = 'E2E Public Post'")
 
   await client.query(
     `DELETE FROM group_memberships_group_roles
@@ -596,11 +596,11 @@ async function main () {
       [E2E_LOCATION_FULL_TEXT, now]
     )
     await client.query(
-      `UPDATE groups SET location_id = $1, location = $2 WHERE id = $3`,
+      'UPDATE groups SET location_id = $1, location = $2 WHERE id = $3',
       [locationRes.rows[0].id, E2E_LOCATION_FULL_TEXT, publicGroupId]
     )
     await client.query(
-      `UPDATE users SET location_id = $1, location = $2 WHERE id = $3`,
+      'UPDATE users SET location_id = $1, location = $2 WHERE id = $3',
       [locationRes.rows[0].id, E2E_LOCATION_FULL_TEXT, userId]
     )
 
@@ -888,7 +888,7 @@ async function main () {
     const paidTrackId = paidTrackRes.rows[0].id
 
     await client.query(
-      `UPDATE groups SET track_id = $1 WHERE id = $2`,
+      'UPDATE groups SET track_id = $1 WHERE id = $2',
       [paidTrackId, paidTrackSpaceId]
     )
 
@@ -900,7 +900,7 @@ async function main () {
       [paidTrackSpaceId, now]
     )
     await client.query(
-      `UPDATE groups SET home_route = '/track-actions' WHERE id = $1`,
+      "UPDATE groups SET home_route = '/track-actions' WHERE id = $1",
       [paidTrackSpaceId]
     )
 
