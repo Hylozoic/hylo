@@ -320,17 +320,19 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Emails the member that a purchase was refunded. Never throws, so a refund
-   * that went through is not reported as failed because of the email.
+   * Queues the email telling the member that a purchase was refunded. Never throws,
+   * so a refund that went through is not reported as failed because of the email.
+   * Queued rather than sent here, so a send failure doesn't affect the request and the
+   * job can be retried.
    * @param {ContentAccess} access - The refunded access record
    * @param {Object} refund
    * @param {Number} refund.amount - Amount refunded, in minor units
    * @param {String} [refund.currency]
    * @param {String} [refund.reason] - Reason given by the steward, if any
-   * @returns {Promise<Object|Boolean>} the send result, or false when nothing was sent
+   * @returns {Promise<Boolean>} true when the email was queued
    */
   sendRefundProcessedEmail: async function (access, { amount, currency, reason } = {}) {
-    /* global Email */
+    /* global Queue */
     try {
       const user = await User.find(access.get('user_id'))
       if (!user || !user.get('email')) return false
@@ -343,7 +345,7 @@ module.exports = bookshelf.Model.extend({
       const locale = user.getLocale()
       const refundCurrency = (currency || access.get('currency') || 'usd').toUpperCase()
 
-      return await Email.sendRefundProcessed({
+      await Queue.classMethod('Email', 'sendRefundProcessed', {
         email: user.get('email'),
         locale,
         data: {
@@ -362,8 +364,9 @@ module.exports = bookshelf.Model.extend({
           support_email: process.env.EMAIL_SENDER || 'help@hylo.com'
         }
       })
+      return true
     } catch (error) {
-      console.error('Failed to send refund processed email:', error)
+      console.error('Failed to queue refund processed email:', error)
       return false
     }
   },
@@ -764,7 +767,7 @@ module.exports = bookshelf.Model.extend({
 
         // Add track info if applicable
         if (track) {
-        emailData.track_name = await track.displayName()
+          emailData.track_name = await track.displayName()
         }
 
         Queue.classMethod('Email', 'sendAccessExpired', {

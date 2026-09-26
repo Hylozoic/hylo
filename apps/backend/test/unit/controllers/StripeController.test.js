@@ -397,16 +397,16 @@ describe('StripeController.handleChargeRefunded', () => {
       return { data: params.payment_intent === 'pi_refunded' ? [{ id: 'cs_refunded' }] : [] }
     }
     sentEmails = []
-    mockify(Email, 'sendRefundProcessed', opts => {
-      sentEmails.push(opts)
-      return Promise.resolve({ success: true })
+    mockify(Queue, 'classMethod', (className, methodName, data) => {
+      if (className === 'Email' && methodName === 'sendRefundProcessed') sentEmails.push(data)
+      return Promise.resolve()
     })
   })
 
   afterEach(() => {
     stripeClient.paymentIntents.retrieve = originalRetrieve
     stripeClient.checkout.sessions.list = originalList
-    unspyify(Email, 'sendRefundProcessed')
+    unspyify(Queue, 'classMethod')
   })
 
   it('emails the member once for a refund issued from the Stripe dashboard', async () => {
