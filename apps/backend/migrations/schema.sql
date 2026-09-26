@@ -3216,6 +3216,16 @@ ALTER SEQUENCE public.tracks_id_seq OWNED BY public.tracks.id;
 
 
 --
+-- Name: user_activity_days; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_activity_days (
+    user_id bigint NOT NULL,
+    day date NOT NULL
+);
+
+
+--
 -- Name: user_affiliations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4903,6 +4913,14 @@ ALTER TABLE ONLY public.group_invites
 
 
 --
+-- Name: user_activity_days user_activity_days_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_activity_days
+    ADD CONSTRAINT user_activity_days_pkey PRIMARY KEY (user_id, day);
+
+
+--
 -- Name: user_affiliations user_affiliations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5589,6 +5607,13 @@ CREATE INDEX subscription_change_events_stripe_subscription_id_index ON public.s
 --
 
 CREATE INDEX subscription_change_events_user_id_group_id_index ON public.subscription_change_events USING btree (user_id, group_id);
+
+
+--
+-- Name: user_activity_days_day_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_activity_days_day_index ON public.user_activity_days USING btree (day);
 
 
 --
@@ -7019,6 +7044,14 @@ ALTER TABLE ONLY public.tag_follows
 
 ALTER TABLE ONLY public.tracks
     ADD CONSTRAINT tracks_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: user_activity_days user_activity_days_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_activity_days
+    ADD CONSTRAINT user_activity_days_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
