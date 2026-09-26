@@ -41,14 +41,15 @@ function setupStore () {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1', name: 'Test User' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
+  ormSession.Group.create({ id: '2', name: 'Other Group', slug: 'other-group' })
   return generateStore({ orm: ormSession.state })
 }
 
-function renderChatEditor (store, props = {}, ref) {
-  return render(
+function chatEditorTree (store, props = {}, ref, groupSlug = 'test-group') {
+  return (
     <Provider store={store}>
       <MemoryRouter>
-        <SpaceGroupSlugContext.Provider value='test-group'>
+        <SpaceGroupSlugContext.Provider value={groupSlug}>
           <ChatEditor autoFocus={false} {...props} ref={ref} />
         </SpaceGroupSlugContext.Provider>
       </MemoryRouter>
@@ -56,27 +57,31 @@ function renderChatEditor (store, props = {}, ref) {
   )
 }
 
+function renderChatEditor (store, props = {}, ref) {
+  return render(chatEditorTree(store, props, ref))
+}
+
+function chatDraft (draftData, groupId = '1') {
+  return {
+    id: `draft-${groupId}`,
+    type: 'post',
+    data: JSON.stringify(draftData),
+    groupId,
+    topicId: null,
+    postId: null,
+    messageThreadId: null,
+    postType: 'chat',
+    isEdit: false,
+    navigateTo: '/',
+    updatedAt: '2026-09-01T00:00:00.000Z',
+    group: { id: groupId, name: 'Test Group', slug: 'test-group' },
+    post: null,
+    messageThread: null
+  }
+}
+
 function chatDraftResponse (draftData) {
-  return graphql.query('FetchDraft', () => HttpResponse.json({
-    data: {
-      draft: {
-        id: 'draft-1',
-        type: 'post',
-        data: JSON.stringify(draftData),
-        groupId: '1',
-        topicId: null,
-        postId: null,
-        messageThreadId: null,
-        postType: 'chat',
-        isEdit: false,
-        navigateTo: '/',
-        updatedAt: '2026-09-01T00:00:00.000Z',
-        group: { id: '1', name: 'Test Group', slug: 'test-group' },
-        post: null,
-        messageThread: null
-      }
-    }
-  }))
+  return graphql.query('FetchDraft', () => HttpResponse.json({ data: { draft: chatDraft(draftData) } }))
 }
 
 describe('ChatEditor attachments', () => {
@@ -175,5 +180,64 @@ describe('ChatEditor when sending fails', () => {
     await waitFor(() => {
       expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ data: expect.stringContaining(imageUrl) }))
     }, { timeout: 4000 })
+  }, 20000)
+})
+
+describe('ChatEditor when sending fails after leaving the room', () => {
+  it('leaves the new room alone, keeps the message as its own room\'s draft and retries it there', async () => {
+    let firstRoomDraft = { details: '<p>Only for the first room</p>', type: 'chat' }
+    const fetchedGroupIds = []
+    mockGraphqlServer.use(graphql.query('FetchDraft', ({ variables }) => {
+      fetchedGroupIds.push(String(variables.groupId))
+      const draft = String(variables.groupId) === '1' && firstRoomDraft ? chatDraft(firstRoomDraft) : null
+      return HttpResponse.json({ data: { draft } })
+    }))
+    let rejectSend
+    createPost.mockClear()
+    createPost.mockImplementation(() => ({
+      type: 'TEST_CREATE_POST',
+      payload: new Promise((resolve, reject) => { rejectSend = reject })
+    }))
+    saveDraft.mockClear()
+    toast.error.mockClear()
+    const props = { onSave: jest.fn(), onSaveFailed: jest.fn(), afterSave: jest.fn() }
+    const editorRef = React.createRef()
+    const store = setupStore()
+    const { container, rerender } = render(chatEditorTree(store, props, editorRef))
+    const editorText = () => container.querySelector('.ProseMirror')?.textContent
+
+    await waitFor(() => expect(editorText()).toContain('Only for the first room'))
+    act(() => { editorRef.current.submit() })
+    expect(createPost.mock.calls[0][0].groups.map(g => g.id)).toEqual(['1'])
+    // Sending removed the first room's draft
+    firstRoomDraft = null
+
+    rerender(chatEditorTree(store, props, editorRef, 'other-group'))
+    await waitFor(() => expect(fetchedGroupIds).toContain('2'))
+    await act(async () => { rejectSend(new Error('server error')) })
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Your message couldn\'t be sent', expect.anything()))
+    expect(editorText()).not.toContain('Only for the first room')
+    expect(props.onSaveFailed).not.toHaveBeenCalled()
+    await waitFor(() => expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({
+      groupId: '1',
+      postType: 'chat',
+      data: expect.stringContaining('Only for the first room')
+    })))
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 2000)) })
+    expect(saveDraft).not.toHaveBeenCalledWith(expect.objectContaining({ groupId: '2' }))
+
+    createPost.mockClear()
+    createPost.mockImplementation(() => ({
+      type: 'TEST_CREATE_POST',
+      payload: Promise.resolve({ data: { createPost: { id: '9' } } })
+    }))
+    await act(async () => { toast.error.mock.calls[0][1].action.onClick() })
+    await waitFor(() => expect(createPost).toHaveBeenCalled())
+    expect(createPost.mock.calls[0][0].groups.map(g => g.id)).toEqual(['1'])
+    expect(createPost.mock.calls[0][0].details).toBe('<p>Only for the first room</p>')
+    expect(props.onSave).toHaveBeenCalledTimes(1)
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 50)) })
+    expect(props.afterSave).not.toHaveBeenCalled()
   }, 20000)
 })

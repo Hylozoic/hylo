@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent } from '@testing-library/react'
+import { act, fireEvent } from '@testing-library/react'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { toast } from 'sonner'
@@ -70,29 +70,29 @@ describe('CommentForm send button', () => {
   })
 })
 
+function commentDraft (data, postId = '1') {
+  return {
+    id: `draft-${postId}`,
+    type: 'comment',
+    data,
+    groupId: null,
+    topicId: null,
+    postId,
+    messageThreadId: null,
+    postType: null,
+    isEdit: false,
+    navigateTo: '/',
+    updatedAt: '2026-09-01T00:00:00.000Z',
+    group: null,
+    post: { id: postId },
+    messageThread: null
+  }
+}
+
 describe('CommentForm when sending fails', () => {
   it('puts the comment back, re-saves its draft and offers a retry', async () => {
     mockGraphqlServer.use(
-      graphql.query('FetchDraft', () => HttpResponse.json({
-        data: {
-          draft: {
-            id: 'draft-1',
-            type: 'comment',
-            data: '<p>Hello comment</p>',
-            groupId: null,
-            topicId: null,
-            postId: '1',
-            messageThreadId: null,
-            postType: null,
-            isEdit: false,
-            navigateTo: '/',
-            updatedAt: '2026-09-01T00:00:00.000Z',
-            group: null,
-            post: { id: '1' },
-            messageThread: null
-          }
-        }
-      }))
+      graphql.query('FetchDraft', () => HttpResponse.json({ data: { draft: commentDraft('<p>Hello comment</p>') } }))
     )
     const createComment = jest.fn(() => Promise.reject(new Error('offline')))
     const { container } = render(
@@ -118,5 +118,52 @@ describe('CommentForm when sending fails', () => {
     createComment.mockClear()
     toast.error.mock.calls[0][1].action.onClick()
     expect(createComment).toHaveBeenCalledWith({ text: '<p>Hello comment</p>', attachments: [] })
+  })
+})
+
+describe('CommentForm when sending fails after moving to another post', () => {
+  it('leaves the other post alone, keeps the comment as its own post\'s draft and retries it there', async () => {
+    let firstPostDraft = '<p>Only for the first post</p>'
+    const fetchedPostIds = []
+    mockGraphqlServer.use(graphql.query('FetchDraft', ({ variables }) => {
+      fetchedPostIds.push(String(variables.postId))
+      const draft = String(variables.postId) === '1' && firstPostDraft ? commentDraft(firstPostDraft) : null
+      return HttpResponse.json({ data: { draft } })
+    }))
+    saveDraft.mockClear()
+    toast.error.mockClear()
+    let rejectSend
+    const createFirstPostComment = jest.fn(() => new Promise((resolve, reject) => { rejectSend = reject }))
+    const createSecondPostComment = jest.fn(() => Promise.resolve())
+    const { container, rerender } = render(
+      <CommentForm postId='1' createComment={createFirstPostComment} />,
+      { wrapper: providersWithUser() }
+    )
+    const editorText = () => container.querySelector('.ProseMirror')?.textContent
+
+    await waitFor(() => expect(editorText()).toContain('Only for the first post'))
+    fireEvent.click(container.querySelector('.lucide-send-horizontal').closest('button'))
+    expect(createFirstPostComment).toHaveBeenCalledWith({ text: '<p>Only for the first post</p>', attachments: [] })
+    // Sending removed the first post's draft
+    firstPostDraft = null
+
+    rerender(<CommentForm postId='2' createComment={createSecondPostComment} />)
+    await waitFor(() => expect(fetchedPostIds).toContain('2'))
+    await act(async () => { rejectSend(new Error('server error')) })
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Your comment couldn\'t be sent', expect.anything()))
+    expect(editorText()).not.toContain('Only for the first post')
+    await waitFor(() => expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'comment',
+      postId: '1',
+      data: '<p>Only for the first post</p>'
+    })))
+    expect(saveDraft).not.toHaveBeenCalledWith(expect.objectContaining({ postId: '2' }))
+
+    createFirstPostComment.mockClear()
+    createFirstPostComment.mockImplementation(() => Promise.resolve())
+    toast.error.mock.calls[0][1].action.onClick()
+    expect(createFirstPostComment).toHaveBeenCalledWith({ text: '<p>Only for the first post</p>', attachments: [] })
+    expect(createSecondPostComment).not.toHaveBeenCalled()
   })
 })

@@ -18,7 +18,7 @@ import getMe from 'store/selectors/getMe'
 import { cn, inIframe } from 'util/index'
 import { STARTED_TYPING_INTERVAL } from 'util/constants'
 import { useSelector, useDispatch } from 'react-redux'
-import useDraft, { hasDraftContent } from 'hooks/useDraft'
+import useDraft, { hasDraftContent, keepAsDraftUnlessPresent } from 'hooks/useDraft'
 import useEventCallback from 'hooks/useEventCallback'
 import { isMobileDevice } from 'util/mobile'
 
@@ -103,40 +103,51 @@ const CommentForm = forwardRef(function CommentForm ({
     sendIsTypingAction(true)
   }), [])
 
+  /** True while this form is still open on the post a comment was sent to. */
+  const isStillOnPost = useEventCallback(target => !!editor.current && String(target.postId) === String(postId))
+
   /**
    * Puts a comment that failed to send back into the composer (unless something
-   * new has been typed there), re-saves its draft and offers a retry.
+   * new has been typed there), re-saves its draft and offers a retry. After the
+   * form has moved to another post, or closed, the comment is kept as its own
+   * post's draft instead.
    */
-  const handleCommentFailed = useEventCallback((text, submittedAttachments) => {
-    const composerIsEmpty = !!editor.current && editor.current.isEmpty()
+  const handleCommentFailed = useEventCallback((text, submittedAttachments, target) => {
+    const stillOnPost = isStillOnPost(target)
+    const composerIsEmpty = stillOnPost && editor.current.isEmpty()
     if (composerIsEmpty) {
       editor.current.setContent(text)
       draftRef.current = text
       setHasText(hasDraftContent(text))
       commentComposerHadContentRef.current = true
       dispatch(setAttachments('comment', 'new', 'image', submittedAttachments))
+      // Forced: the send already deleted the server draft, but a failed optimistic
+      // comment rolls the local copy back, which would dedupe a plain save away
+      flushSaveDraft(text, { force: true })
+    } else if (!stillOnPost) {
+      keepAsDraftUnlessPresent(dispatch, { type: 'comment', postId: target.postId, navigateTo: target.navigateTo }, text)
     }
-    // Forced: the send already deleted the server draft, but a failed optimistic
-    // comment rolls the local copy back, which would dedupe a plain save away
-    if (composerIsEmpty || !editor.current) flushSaveDraft(text, { force: true })
 
     toast.error(t('Your comment couldn\'t be sent'), {
       action: {
         label: t('Try Again'),
-        onClick: () => {
-          if (composerIsEmpty && editor.current) {
-            handleSubmit(editor.current.getHTML())
-          } else {
-            sendComment(text, submittedAttachments)
-          }
-        }
+        onClick: () => retryComment(text, submittedAttachments, target, composerIsEmpty)
       }
     })
   })
 
-  const sendComment = useEventCallback((text, submittedAttachments) => {
-    Promise.resolve(createComment({ text, attachments: submittedAttachments }))
-      .catch(() => handleCommentFailed(text, submittedAttachments))
+  const retryComment = useEventCallback((text, submittedAttachments, target, restoredToComposer) => {
+    if (restoredToComposer && isStillOnPost(target)) {
+      handleSubmit(editor.current.getHTML())
+    } else {
+      sendComment(text, submittedAttachments, target)
+    }
+  })
+
+  /** Sends through the post's own createComment, since this form may move to another post before it settles. */
+  const sendComment = useEventCallback((text, submittedAttachments, target = { postId, createComment, navigateTo: pathname }) => {
+    Promise.resolve(target.createComment({ text, attachments: submittedAttachments }))
+      .catch(() => handleCommentFailed(text, submittedAttachments, target))
   })
 
   const handleSubmit = useCallback(contentHTML => {

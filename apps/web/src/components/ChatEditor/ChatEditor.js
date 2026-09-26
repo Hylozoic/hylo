@@ -43,7 +43,7 @@ import {
 } from 'components/PostEditor/PostEditor.store'
 import useEventCallback from 'hooks/useEventCallback'
 import { MAX_POST_TOPICS } from 'util/constants'
-import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
+import useDraft, { hasDraftContent, hasPostDraftPayloadContent, keepAsDraftUnlessPresent } from 'hooks/useDraft'
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import { buildPostDraftPayload, mergeDraftIntoPost } from 'components/PostEditor/postDraftUtils'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
@@ -111,7 +111,7 @@ function ChatEditorInner ({
   const chatComposerHadContentRef = useRef(false)
   const isSubmittedRef = useRef(false)
   const isSubmittingRef = useRef(false)
-  const sendFailedToastIdRef = useRef(null)
+  const mountedRef = useRef(false)
 
   const linkPreview = useSelector(state => getLinkPreview(state))
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
@@ -394,11 +394,14 @@ function ChatEditorInner ({
     dispatch(setAttachments('post', CHAT_ID_FOR_NEW, 'file', postToSave.fileAttachments || []))
   }, [dispatch, setCurrentPost])
 
+  /** True while this composer is still open on the room a message was sent from. */
+  const isStillInRoom = useEventCallback(room => mountedRef.current && room.draftContextKey === draftContextKey)
+
   /**
-   * Sends a chat post. On failure the optimistic message is withdrawn and the
-   * message goes back into the composer, unless something new is already there.
+   * Sends a chat post to the room it was written in, which the composer may
+   * have left by the time the request settles.
    */
-  const sendChatPost = useEventCallback(async (postToSave) => {
+  const sendChatPost = useEventCallback(async (postToSave, room = { draftContextKey, groupId: currentGroup?.id, navigateTo: navigateToForDraft }) => {
     let savedPost
     try {
       savedPost = await dispatch(createPost(postToSave))
@@ -407,41 +410,68 @@ function ChatEditorInner ({
     }
 
     if (savedPost && !savedPost.error) {
-      await clearDraft()
-      setIsDirty(false)
-      if (afterSave) {
-        afterSave(savedPost?.payload?.data?.createPost)
-      }
-      return
+      await handleSendSucceeded(savedPost, room)
+    } else {
+      handleSendFailed(postToSave, room)
     }
+  })
 
-    if (onSaveFailed) onSaveFailed(postToSave.localId)
-    // Read from the store: this closure's attachments are the ones that were just sent
+  const handleSendSucceeded = useEventCallback(async (savedPost, room) => {
+    if (!isStillInRoom(room)) return
+    await clearDraft()
+    setIsDirty(false)
+    if (afterSave) {
+      afterSave(savedPost?.payload?.data?.createPost)
+    }
+  })
+
+  /**
+   * In the room it was sent from, the optimistic message is withdrawn and the
+   * message goes back into the composer, unless something new is already
+   * there. After leaving that room, it is kept as that room's draft instead.
+   */
+  const handleSendFailed = useEventCallback((postToSave, room) => {
+    const stillInRoom = isStillInRoom(room)
+    // Read from the store: the attachments in earlier closures are the ones that were just sent
     const composerAttachments = attachmentType =>
       getAttachments(store.getState(), { type: 'post', id: CHAT_ID_FOR_NEW, attachmentType })
-    const composerIsEmpty = !!editorRef.current &&
+    const composerIsEmpty = stillInRoom && !!editorRef.current &&
       !hasDraftContent(editorRef.current.getHTML()) &&
       isEmpty(composerAttachments('image')) && isEmpty(composerAttachments('file'))
-    if (composerIsEmpty) restoreFailedPost(postToSave)
 
-    sendFailedToastIdRef.current = toast.error(t('Your message couldn\'t be sent'), {
+    if (stillInRoom && onSaveFailed) onSaveFailed(postToSave.localId)
+    if (composerIsEmpty) {
+      restoreFailedPost(postToSave)
+    } else if (!stillInRoom) {
+      keepAsDraftUnlessPresent(dispatch, {
+        type: 'post',
+        groupId: room.groupId,
+        postType: 'chat',
+        navigateTo: room.navigateTo
+      }, JSON.stringify(buildPostDraftPayload(postToSave)))
+    }
+
+    toast.error(t('Your message couldn\'t be sent'), {
       action: {
         label: t('Try Again'),
-        onClick: () => {
-          if (composerIsEmpty) {
-            doSave()
-          } else {
-            if (onSave) onSave(postToSave)
-            sendChatPost(postToSave)
-          }
-        }
+        onClick: () => retryFailedPost(postToSave, room, composerIsEmpty)
       }
     })
   })
 
-  // The retry action needs this composer, so the toast goes when the composer does
-  useEffect(() => () => {
-    if (sendFailedToastIdRef.current != null) toast.dismiss(sendFailedToastIdRef.current)
+  const retryFailedPost = useEventCallback((postToSave, room, restoredToComposer) => {
+    const stillInRoom = isStillInRoom(room)
+    if (restoredToComposer && stillInRoom) {
+      doSave()
+      return
+    }
+    if (stillInRoom && onSave) onSave(postToSave)
+    sendChatPost(postToSave, room)
+  })
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
   }, [])
 
   const save = useCallback(async () => {
