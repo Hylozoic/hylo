@@ -117,7 +117,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   await bookshelf.transaction(async trx => {
     await space.save(null, { transacting: trx })
     // No setupSystemRoles / assignAdministrator — spaces inherit roles from the parent
-    await space.addMembers([userId], { lastReadAt: new Date() }, { transacting: trx })
+    await space.addMembers([userId], { lastReadAt: new Date(), joinSource: GroupMembership.JoinSource.CREATOR }, { transacting: trx })
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
     // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5).
@@ -344,6 +344,7 @@ async function copyParentStewardsToChild (parentGroup, child, { transacting } = 
   if (newStewardIds.length > 0) {
     await child.addMembers(newStewardIds, {
       lastReadAt: new Date(),
+      joinSource: GroupMembership.JoinSource.SPACE,
       settings: {
         showJoinForm: false,
         agreementsAcceptedAt: new Date(),
@@ -628,7 +629,10 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
       }
     }
 
-    membership = await user.joinGroup(space, { fromInvitation: hasValidInvitation })
+    const joinAttribution = hasValidInvitation
+      ? await GroupMembership.inviteJoinAttribution({ accessCode, invitationToken })
+      : { joinSource: GroupMembership.JoinSource.OPEN }
+    membership = await user.joinGroup(space, { fromInvitation: hasValidInvitation, ...joinAttribution })
   }
 
   if (invitationToken) {

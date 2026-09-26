@@ -128,6 +128,38 @@ describe('mutations/group', () => {
       await invitation.refresh()
       expect(invitation.get('used_by_id')).to.equal(user.id)
     })
+
+    describe('join attribution', () => {
+      let inviter, group
+
+      before(async () => {
+        inviter = await factories.user().save()
+        group = await factories.group().save({ accessibility: Group.Accessibility.OPEN })
+        await inviter.joinGroup(group, { assignAdministrator: true })
+      })
+
+      it('records open when joining without a code or invitation', async () => {
+        const user = await factories.user().save()
+        const membership = await joinGroup(group.id, user.id, [], null, null, false, {})
+        expect(membership.getSetting('joinSource')).to.equal('open')
+      })
+
+      it('records invite_link when joining with the access code', async () => {
+        const user = await factories.user().save()
+        const membership = await joinGroup(group.id, user.id, [], group.get('access_code'), null, false, {})
+        expect(membership.getSetting('joinSource')).to.equal('invite_link')
+      })
+
+      it('records the invitation and inviter when joining with an invitation token', async () => {
+        const user = await factories.user().save()
+        const invitation = await Invitation.create({ userId: inviter.id, groupId: group.id, email: user.get('email') })
+        await joinGroup(group.id, user.id, [], null, invitation.get('token'), false, {})
+        const membership = await GroupMembership.forPair(user, group).fetch()
+        expect(membership.getSetting('joinSource')).to.equal('email_invite')
+        expect(membership.getSetting('invitationId')).to.equal(invitation.id)
+        expect(membership.getSetting('invitedById')).to.equal(inviter.id)
+      })
+    })
   })
 
   describe('createGroup', () => {

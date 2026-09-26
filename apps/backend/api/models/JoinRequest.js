@@ -22,7 +22,7 @@ module.exports = bookshelf.Model.extend({
     const group = await this.group().fetch()
     if (user && group) {
       const wasPending = this.get('status') === JoinRequest.STATUS.Pending
-      const membership = await user.joinGroup(group)
+      const membership = await user.joinGroup(group, { joinSource: GroupMembership.JoinSource.JOIN_REQUEST })
       // Requester already accepted agreements and answered questions when submitting.
       // Carry that through so the welcome modal does not re-ask after approval.
       if (membership) {

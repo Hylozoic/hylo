@@ -120,7 +120,10 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
     }
   })
 
-  const membership = await user.joinGroup(group, { questionAnswers, fromInvitation: hasValidInvitation })
+  const joinAttribution = hasValidInvitation
+    ? await GroupMembership.inviteJoinAttribution({ accessCode, invitationToken })
+    : { joinSource: GroupMembership.JoinSource.OPEN }
+  const membership = await user.joinGroup(group, { questionAnswers, fromInvitation: hasValidInvitation, ...joinAttribution })
 
   // Record agreement acceptance if user accepted agreements during join flow.
   // Keep showJoinForm true so the Welcome/purpose modal still shows, but mark
@@ -286,7 +289,7 @@ export async function addMember (userId, groupId, assignAdministrator = false) {
     return { success: false, error: 'Group not found' }
   }
 
-  await group.addMembers([userId], { assignAdministrator: !!assignAdministrator }, {})
+  await group.addMembers([userId], { assignAdministrator: !!assignAdministrator, joinSource: GroupMembership.JoinSource.ADMIN_ADD }, {})
   return { success: true }
 }
 

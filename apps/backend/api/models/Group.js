@@ -2,7 +2,7 @@
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
-import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
+import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isNull, isUndefined, trim, xor } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
 import fetch from 'node-fetch'
@@ -635,10 +635,18 @@ module.exports = bookshelf.Model.extend(merge({
   // if a group membership doesn't exist for a user id, create it.
   // make sure the group memberships have the passed-in role and settings
   // (merge on top of existing settings).
+  // joinSource (a GroupMembership.JoinSource), invitationId and invitedById are
+  // recorded in settings on new and reactivated memberships only.
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
     const groupSettings = this.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
-    const { assignAdministrator, ...membershipAttrs } = attrs
+    const { assignAdministrator, joinSource, invitationId, invitedById, ...membershipAttrs } = attrs
+    // Nulls on a reactivated membership clear the attribution left from its earlier join
+    const joinAttribution = {
+      joinSource: joinSource || null,
+      invitationId: invitationId || null,
+      invitedById: invitedById || null
+    }
 
     const updatedAttribs = Object.assign(
       {},
@@ -665,7 +673,11 @@ module.exports = bookshelf.Model.extend(merge({
     const reactivatedUserIds = existingMemberships.filter(m => !m.get('active')).map(m => String(m.get('user_id')))
     const existingUserIds = existingMemberships.pluck('user_id').map(id => String(id))
     const newUserIds = difference(userIds, existingUserIds)
-    const updatedMemberships = await this.updateMembers(existingUserIds, updatedAttribs, { transacting })
+    const updatedMemberships = await this.updateMembers(difference(existingUserIds, reactivatedUserIds), updatedAttribs, { transacting })
+    if (reactivatedUserIds.length > 0) {
+      const reactivatedAttribs = { ...updatedAttribs, settings: { ...updatedAttribs.settings, ...joinAttribution } }
+      updatedMemberships.push(...await this.updateMembers(reactivatedUserIds, reactivatedAttribs, { transacting }))
+    }
 
     const newMemberships = []
     const defaultTagIds = (await GroupTag.defaults(this.id, transacting)).models.map(t => t.get('tag_id'))
@@ -680,7 +692,8 @@ module.exports = bookshelf.Model.extend(merge({
             agreementsAcceptedAt: id === this.get('created_by_id') ? new Date() : null,
             joinQuestionsAnsweredAt: id === this.get('created_by_id') ? new Date() : null,
             showJoinForm: id !== this.get('created_by_id'),
-            ...updatedAttribs.settings
+            ...updatedAttribs.settings,
+            ...omitBy(joinAttribution, isNull)
           }
         }), { transacting })
       newMemberships.push(membership)
@@ -1242,6 +1255,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     await space.addMembers(toAdd, {
       lastReadAt: new Date(),
+      joinSource: GroupMembership.JoinSource.AUTO_ADD,
       settings: {
         showJoinForm: false,
         agreementsAcceptedAt: new Date(),
@@ -1378,7 +1392,7 @@ module.exports = bookshelf.Model.extend(merge({
       await Group.setupSpaceViews(group.id, attrs.accepted_post_types, data.view_types, { transacting: trx })
 
       // Set lastReadAt when creating a new group to mark creator as having viewed the group already
-      await group.addMembers([userId], { assignAdministrator: true, lastReadAt: new Date() }, { transacting: trx })
+      await group.addMembers([userId], { assignAdministrator: true, lastReadAt: new Date(), joinSource: GroupMembership.JoinSource.CREATOR }, { transacting: trx })
 
       // Have to add/request add to parent group after admin has been added to the group
       if (data.parent_ids) {

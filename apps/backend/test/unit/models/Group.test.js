@@ -204,6 +204,65 @@ describe('Group', function () {
       expect(freshGroup.get('num_members')).to.equal(1)
       expect(await GroupMembership.hasActiveMembership(user.id, freshGroup.id)).to.be.true
     })
+
+    describe('join attribution', function () {
+      it('records joinSource, invitationId and invitedById on a new membership', async function () {
+        await group.addMembers([u2.id], { joinSource: 'email_invite', invitationId: '12', invitedById: u1.id })
+        const membership = await GroupMembership.forPair(u2, group).fetch()
+        expect(membership.getSetting('joinSource')).to.equal('email_invite')
+        expect(membership.getSetting('invitationId')).to.equal('12')
+        expect(membership.getSetting('invitedById')).to.equal(u1.id)
+      })
+
+      it('adds the source on top of settings a caller passes', async function () {
+        await group.addMembers([u2.id], { joinSource: 'auto_add', settings: { showJoinForm: false } })
+        const membership = await GroupMembership.forPair(u2, group).fetch()
+        expect(membership.get('settings')).to.deep.equal({
+          agreementsAcceptedAt: null,
+          joinQuestionsAnsweredAt: null,
+          showJoinForm: false,
+          joinSource: 'auto_add'
+        })
+      })
+
+      it('leaves the source keys out when none is given', async function () {
+        await group.addMembers([u2.id])
+        const membership = await GroupMembership.forPair(u2, group).fetch()
+        expect(membership.get('settings')).to.not.have.any.keys('joinSource', 'invitationId', 'invitedById')
+      })
+
+      it('does not change the source of someone who is already an active member', async function () {
+        await group.addMembers([u2.id], { joinSource: 'invite_link' })
+        await group.addMembers([u2.id], { joinSource: 'open' })
+        const membership = await GroupMembership.forPair(u2, group).fetch()
+        expect(membership.getSetting('joinSource')).to.equal('invite_link')
+      })
+
+      it('replaces the earlier source when a membership is reactivated', async function () {
+        await group.addMembers([u2.id], { joinSource: 'email_invite', invitationId: '12', invitedById: u1.id })
+        await group.removeMembers([u2.id])
+        await group.addMembers([u2.id], { joinSource: 'invite_link' })
+        const membership = await GroupMembership.forPair(u2, group).fetch()
+        expect(membership.getSetting('joinSource')).to.equal('invite_link')
+        expect(membership.getSetting('invitationId')).to.be.null
+        expect(membership.getSetting('invitedById')).to.be.null
+      })
+
+      it('records creator for the person who creates a group', async function () {
+        const creator = await factories.user().save()
+        const created = await Group.create(creator.id, { name: 'Attribution', slug: `attribution-${Date.now()}` })
+        const membership = await GroupMembership.forPair(creator, created).fetch()
+        expect(membership.getSetting('joinSource')).to.equal('creator')
+      })
+
+      it('records join_request when a join request is accepted', async function () {
+        const requester = await factories.user().save()
+        const joinRequest = await JoinRequest.create({ userId: requester.id, groupId: group.id })
+        await joinRequest.accept(u1.id)
+        const membership = await GroupMembership.forPair(requester, group).fetch()
+        expect(membership.getSetting('joinSource')).to.equal('join_request')
+      })
+    })
   })
 
   describe('removeMembers', function () {
@@ -877,6 +936,7 @@ describe('Group', function () {
 
       const addedMembership = await GroupMembership.forPair(neverJoined, space).fetch()
       expect(addedMembership.get('active')).to.be.true
+      expect(addedMembership.getSetting('joinSource')).to.equal('auto_add')
     })
 
     it('adds a newly joined parent member and still skips people who left', async function () {
