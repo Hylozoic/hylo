@@ -97,6 +97,8 @@ const TOUCH_ACTIVATION = { delay: 500, tolerance: 10 }
 // After a long-press activates, this much movement counts as a drag rather than
 // a press-and-release that should open the context menu.
 const TOUCH_DRAG_SLOP = 10
+// Enter opens a pinned group like a click, so only Space picks a tile up
+const KEYBOARD_DRAG_CODES = { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] }
 
 /**
  * Returns true when a dnd-kit drag was started by a finger, not a mouse.
@@ -131,9 +133,20 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
     }
   }
 
+  // This wrapper, not the tile inside it, is the keyboard stop for a pinned group
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' && !isDragging && event.target === event.currentTarget) {
+      event.preventDefault()
+      event.currentTarget.querySelector('.GlobalNavItemTile')?.click()
+      return
+    }
+    listeners?.onKeyDown?.(event)
+  }
+
   return (
     <div
       ref={handleRef}
+      className='rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
       style={{
         ...style,
         WebkitTouchCallout: 'none',
@@ -143,6 +156,8 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
       }}
       {...attributes}
       {...listeners}
+      onKeyDown={handleKeyDown}
+      aria-label={group.name}
     >
       <GlobalNavItem
         badgeCount={group.newPostCount ? '-' : 0}
@@ -368,12 +383,14 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <span
+        <button
+          type='button'
+          aria-label={t('Settings')}
           data-testid='global-nav-settings-trigger'
           className={triggerClassName || cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer', compactLayout ? 'h-10' : 'h-10 sm:h-8')}
         >
           <Settings className={triggerClassName ? 'w-5 h-5' : cn(compactLayout ? 'w-7 h-7' : 'w-7 h-7 sm:w-6 sm:h-6')} />
-        </span>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side={contentSide}
@@ -949,7 +966,8 @@ export default function GlobalNav (props) {
     useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
     useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
     useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates
+      coordinateGetter: sortableKeyboardCoordinates,
+      keyboardCodes: KEYBOARD_DRAG_CODES
     })
   )
 
@@ -972,7 +990,7 @@ export default function GlobalNav (props) {
   const openPinnedGroupContextMenu = (groupId, clientX, clientY) => {
     const node = groupRefsMap.current.get(groupId)
     if (!node) return
-    node.dispatchEvent(new MouseEvent('contextmenu', {
+    node.dispatchEvent(new window.MouseEvent('contextmenu', {
       bubbles: true,
       cancelable: true,
       view: window,
@@ -1190,8 +1208,10 @@ export default function GlobalNav (props) {
 
         {/* Hidden badges indicator - shows when there are badged groups below the fold */}
         {hiddenBadgeCount > 0 && (
-          <div
+          <button
+            type='button'
             onClick={scrollToNextBadgedGroup}
+            aria-label={t('{{count}} groups with new posts below', { count: hiddenBadgeCount })}
             className={cn(
               'relative cursor-pointer transition-all ease-in-out duration-250',
               'flex flex-col items-center justify-center w-10 h-10',
@@ -1205,7 +1225,7 @@ export default function GlobalNav (props) {
             <span className='absolute -top-1 -right-1 bg-white text-accent text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md'>
               {hiddenBadgeCount}
             </span>
-          </div>
+          </button>
         )}
 
         <GlobalCreateMenu />
@@ -1217,9 +1237,9 @@ export default function GlobalNav (props) {
 
           <DropdownMenu open={helpOpen} onOpenChange={handleHelpOpenChange}>
             <DropdownMenuTrigger asChild>
-              <span className={GLOBAL_NAV_UTILITY_BUTTON} data-tour='help'>
+              <button type='button' className={GLOBAL_NAV_UTILITY_BUTTON} aria-label={t('Help')} data-tour='help'>
                 <HelpCircle className='w-5 h-5' />
-              </span>
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               side='right'
