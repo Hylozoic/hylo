@@ -1,14 +1,17 @@
 /* eslint-disable no-unused-expressions */
+import path from 'path'
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
+import { dependencyOf, mockify, unspyify } from '../../../test/setup/helpers'
 import {
   grantContentAccess,
   revokeContentAccess,
-  recordStripePurchase
+  recordStripePurchase,
+  refundContentAccess
 } from './contentAccess'
 const { expect } = require('chai')
 
-/* global ContentAccess, StripeProduct, Track, GroupRole */
+/* global ContentAccess, StripeProduct, Track, GroupRole, Queue, Frontend */
 
 describe('Content Access Mutations', () => {
   let user, adminUser, group, product, track
@@ -331,6 +334,89 @@ describe('Content Access Mutations', () => {
       const access = await ContentAccess.where({ id: result.id }).fetch()
       expect(access.get('group_role_id')).to.equal(role.id)
       expect(access.get('access_type')).to.equal('stripe_purchase')
+    })
+  })
+
+  describe('refundContentAccess', () => {
+    let StripeService, accessRecord, queued, refundCalls
+
+    before(async () => {
+      const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_refund_mutation' }).save()
+      await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+    })
+
+    beforeEach(async () => {
+      await user.addSetting({ locale: 'es' }, true)
+      accessRecord = await ContentAccess.create({
+        user_id: user.id,
+        granted_by_group_id: group.id,
+        group_id: group.id,
+        product_id: product.id,
+        access_type: 'stripe_purchase',
+        stripe_session_id: 'cs_refund_mutation',
+        status: 'active'
+      })
+
+      StripeService = dependencyOf(
+        path.resolve(__dirname, 'contentAccess.js'),
+        path.resolve(__dirname, '../../services/StripeService.js')
+      )
+      mockify(StripeService, 'getCheckoutSession', async () => ({ payment_intent: 'pi_refund_mutation' }))
+      refundCalls = []
+      mockify(StripeService, 'refund', async params => {
+        refundCalls.push(params)
+        return { id: 're_refund_mutation', amount: 1000, currency: 'usd' }
+      })
+      queued = []
+      mockify(Queue, 'classMethod', (className, methodName, data) => {
+        queued.push({ className, methodName, data })
+        return Promise.resolve()
+      })
+    })
+
+    afterEach(() => {
+      unspyify(StripeService, 'getCheckoutSession')
+      unspyify(StripeService, 'refund')
+      unspyify(Queue, 'classMethod')
+    })
+
+    it('refunds the purchase and emails the member what was refunded and why', async () => {
+      const result = await refundContentAccess(adminUser.id, {
+        accessId: accessRecord.id,
+        reason: 'Event cancelled'
+      })
+
+      expect(result.get('status')).to.equal('refunded')
+      expect(refundCalls).to.deep.equal([{
+        accountId: 'acct_refund_mutation',
+        paymentIntentId: 'pi_refund_mutation',
+        reason: 'requested_by_customer'
+      }])
+
+      const emails = queued.filter(q => q.methodName === 'sendRefundProcessed')
+      expect(emails).to.have.length(1)
+      expect(emails[0].className).to.equal('Email')
+      expect(emails[0].data.email).to.equal(user.get('email'))
+      expect(emails[0].data.locale).to.equal('es-ES')
+      expect(emails[0].data.data).to.include({
+        offering_name: 'Test Product',
+        group_name: group.get('name'),
+        group_url: Frontend.Route.group(group),
+        refund_amount_formatted: '$10.00',
+        currency: 'USD',
+        refund_reason: 'Event cancelled'
+      })
+    })
+
+    it('does not email the member when the refund fails', async () => {
+      mockify(StripeService, 'refund', async () => { throw new Error('card_declined') })
+
+      await expect(refundContentAccess(adminUser.id, { accessId: accessRecord.id }))
+        .to.be.rejectedWith('Failed to refund access')
+
+      expect(queued.filter(q => q.methodName === 'sendRefundProcessed')).to.have.length(0)
+      await accessRecord.refresh()
+      expect(accessRecord.get('status')).to.equal('active')
     })
   })
 })
