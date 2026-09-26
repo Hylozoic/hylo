@@ -572,6 +572,68 @@ describe('Notification', function () {
           ].sort())
         })
     })
+
+    const minutesAgo = minutes => new Date(Date.now() - minutes * 60000)
+
+    const unsentNotification = async timestamps => {
+      const notification = await new Notification({
+        activity_id: activity.id,
+        medium: Notification.MEDIUM.Email
+      }).save()
+      await bookshelf.knex('notifications').where({ id: notification.id }).update(timestamps)
+      return Number(notification.id)
+    }
+
+    it('reclaims a failed notification an hour after it failed', async () => {
+      const id = await unsentNotification({ created_at: minutesAgo(180), failed_at: minutesAgo(120) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([id])
+    })
+
+    it('waits an hour before reclaiming a failed notification', async () => {
+      await unsentNotification({ created_at: minutesAgo(60), failed_at: minutesAgo(20) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([])
+    })
+
+    it('does not claim notifications older than six hours', async () => {
+      await unsentNotification({ created_at: minutesAgo(7 * 60) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([])
+    })
+
+    it('skips notifications claimed in the last 30 minutes and reclaims stale claims', async () => {
+      await unsentNotification({ created_at: minutesAgo(20), processing_started_at: minutesAgo(10) })
+      const staleId = await unsentNotification({ created_at: minutesAgo(60), processing_started_at: minutesAgo(40) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([staleId])
+    })
+  })
+
+  describe('.sendUnsent retries', () => {
+    let originalEmailNotificationsEnabled
+
+    beforeEach(async () => {
+      await bookshelf.knex('notifications').del()
+      originalEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+      mockify(Email, 'sendApprovedJoinRequestNotification', () => Promise.resolve({ success: true }))
+    })
+
+    afterEach(() => {
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
+      unspyify(Email, 'sendApprovedJoinRequestNotification')
+    })
+
+    it('sends a notification that failed more than an hour ago', async () => {
+      const notification = await preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Email)
+      const threeHoursAgo = new Date(Date.now() - 3 * 3600000)
+      const twoHoursAgo = new Date(Date.now() - 2 * 3600000)
+      await bookshelf.knex('notifications').where({ id: notification.id })
+        .update({ created_at: threeHoursAgo, failed_at: twoHoursAgo })
+
+      await Notification.sendUnsent()
+
+      const reloaded = await Notification.find(notification.id)
+      expect(Email.sendApprovedJoinRequestNotification).to.have.been.called.exactly(1)
+      expect(reloaded.get('sent_at')).not.to.equal(null)
+    })
   })
 
   // NOTE: Notification no longer has sendCommentNotificationEmail and
