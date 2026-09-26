@@ -1461,6 +1461,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'user'
       ],
       getters: {
+        invitedBy: async jr => {
+          const invitation = jr.get('invitation_id') && await jr.invitation().fetch()
+          return invitation ? InvitationService.invitationSender(invitation) : null
+        },
         questionAnswers: jr => jr.questionAnswers().fetch()
       },
       fetchMany: ({ groupId }) => JoinRequest.where({ group_id: groupId, status: JoinRequest.STATUS.Pending })

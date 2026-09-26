@@ -1668,6 +1668,8 @@ type JoinRequest {
   createdAt: Date
   # Which group is being requested to join
   group: Group
+  # The member whose invitation this request came from
+  invitedBy: InvitationSender
   # Answers to questions required by Restricted groups
   questionAnswers: [GroupJoinQuestionAnswer]
   # 0 = Pending, 1 = Accepted, 2 = Rejected, 3 = Canceled
@@ -3445,8 +3447,8 @@ type Mutation {
 
   # Invite email addresses and/or existing people to join a Group. With 'limited' invite access: email addresses only, up to 10 at a time and within the daily allowance (fails with 'invite-limit' otherwise)
   createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
-  # Ask to join a Group
-  createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput]): CreatedRequest
+  # Ask to join a Group. invitationToken: a member's invitation to this group, so stewards see who invited the person (otherwise a pending member invitation to the person's email address is used)
+  createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput], invitationToken: String): CreatedRequest
   # Send a direct message
   createMessage(data: MessageInput): Message
   # Create a new moderation action

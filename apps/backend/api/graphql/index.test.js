@@ -1415,3 +1415,69 @@ describe('member invitations through GraphQL', () => {
     })
   })
 })
+
+describe('member invitation approval through GraphQL', () => {
+  let handler, admin, sponsor, invitee, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = userId ? { userId, destroy: () => {} } : {}
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    return executionResult
+  }
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    sponsor = await factories.user({ name: 'Inviting Member', avatar_url: 'https://example.com/inviting-member.png' }).save()
+    invitee = await factories.user().save()
+    group = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await sponsor.joinGroup(group)
+    await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+  })
+
+  it('checks a member invitation, asks for a request, and shows stewards who invited the person', async () => {
+    const invitation = await Invitation.create({ userId: sponsor.id, groupId: group.id, email: invitee.get('email'), inviterAccess: Invitation.InviterAccess.LIMITED })
+    const token = invitation.get('token')
+    const sender = { id: String(sponsor.id), name: 'Inviting Member', avatarUrl: 'https://example.com/inviting-member.png' }
+
+    for (const viewer of [null, invitee.id]) {
+      const checked = await run(viewer, `{ checkInvitation(invitationToken: "${token}") { valid groupSlug requiresApproval invitedBy { id name avatarUrl } } }`)
+      expect(checked.errors).to.be.undefined
+      expect(checked.data.checkInvitation).to.deep.equal({ valid: true, groupSlug: group.get('slug'), requiresApproval: true, invitedBy: sender })
+    }
+
+    const used = await run(invitee.id, `mutation { useInvitation(invitationToken: "${token}") { requiresApproval groupSlug error membership { id } } }`)
+    expect(used.errors).to.be.undefined
+    expect(used.data.useInvitation).to.deep.equal({ requiresApproval: true, groupSlug: group.get('slug'), error: null, membership: null })
+    expect(await GroupMembership.forPair(invitee.id, group.id).fetch()).to.not.exist
+
+    const requested = await run(invitee.id, `mutation { createJoinRequest(groupId: "${group.id}", invitationToken: "${token}") { request { id status invitedBy { id name } } } }`)
+    expect(requested.errors).to.be.undefined
+    expect(requested.data.createJoinRequest.request).to.include({ status: JoinRequest.STATUS.Pending })
+
+    const stewardView = await run(admin.id, `{ joinRequests(groupId: ${group.id}) { items { user { id } invitedBy { id name avatarUrl } } } }`)
+    expect(stewardView.errors).to.be.undefined
+    expect(stewardView.data.joinRequests.items).to.deep.equal([{ user: { id: String(invitee.id) }, invitedBy: sender }])
+
+    expect(await GroupMembership.inviteAccess(sponsor.id, group.id)).to.equal('limited')
+    const sponsorView = await run(sponsor.id, `{ joinRequests(groupId: ${group.id}) { items { id } } }`)
+    expect(sponsorView.errors[0].message).to.equal('You do not have permission to do that')
+  })
+
+  it('leaves steward invitations as they were', async () => {
+    const invitation = await Invitation.create({ userId: admin.id, groupId: group.id, email: 'steward-invitee@approval-graphql.com' })
+    const checked = await run(null, `{ checkInvitation(invitationToken: "${invitation.get('token')}") { valid requiresApproval invitedBy { id } } }`)
+    expect(checked.data.checkInvitation).to.deep.equal({ valid: true, requiresApproval: false, invitedBy: null })
+
+    const person = await factories.user().save()
+    const used = await run(person.id, `mutation { useInvitation(invitationToken: "${invitation.get('token')}") { requiresApproval groupSlug error membership { id } } }`)
+    expect(used.errors).to.be.undefined
+    expect(used.data.useInvitation.requiresApproval).to.be.null
+    expect(used.data.useInvitation.membership.id).to.exist
+  })
+})

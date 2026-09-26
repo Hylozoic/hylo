@@ -173,6 +173,139 @@ describe('join_request mutations', () => {
     })
   })
 
+  describe('requests from member invitations', () => {
+    let restricted, otherGroup, admin, sponsor
+
+    const memberInvitation = ({ email = `invitee-${Date.now()}-${Math.random()}@sponsored.com`, groupId = restricted.id, inviterAccess = Invitation.InviterAccess.LIMITED } = {}) =>
+      Invitation.create({ userId: sponsor.id, groupId, email, inviterAccess })
+
+    const noRequestFrom = async requester =>
+      expect(await JoinRequest.where({ user_id: requester.id, group_id: restricted.id }).fetch()).to.not.exist
+
+    before(async () => {
+      restricted = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+      otherGroup = await factories.group().save()
+      admin = await factories.user().save()
+      sponsor = await factories.user().save()
+      await admin.joinGroup(restricted, { assignAdministrator: true })
+      await sponsor.joinGroup(restricted)
+      await GroupRole.setInvitePolicy(restricted.id, { mode: 'everyone' })
+    })
+
+    it('links the member invitation whose token the requester followed', async () => {
+      const requester = await factories.user().save()
+      const invitation = await memberInvitation()
+      const { request } = await createJoinRequest(requester.id, restricted.id, [], invitation.get('token'))
+      expect(request.get('invitation_id')).to.equal(invitation.id)
+    })
+
+    it('links the invitation to a request the person already made', async () => {
+      const requester = await factories.user().save()
+      const first = await createJoinRequest(requester.id, restricted.id, [])
+      expect(first.request.get('invitation_id')).to.be.null
+
+      const invitation = await memberInvitation()
+      const second = await createJoinRequest(requester.id, restricted.id, [], invitation.get('token'))
+      expect(second.request.id).to.equal(first.request.id)
+      expect((await JoinRequest.find(first.request.id)).get('invitation_id')).to.equal(invitation.id)
+    })
+
+    it('refuses a token that is not a pending member invitation to this group', async () => {
+      const used = await memberInvitation()
+      await used.save({ used_by_id: admin.id, used_at: new Date() }, { patch: true })
+      const expired = await memberInvitation()
+      await expired.expire(sponsor.id)
+      const otherGroupInvitation = await memberInvitation({ groupId: otherGroup.id })
+      const stewardInvitation = await memberInvitation({ inviterAccess: Invitation.InviterAccess.FULL })
+
+      for (const token of ['not-a-token', used.get('token'), expired.get('token'), otherGroupInvitation.get('token'), stewardInvitation.get('token')]) {
+        const requester = await factories.user().save()
+        await expect(createJoinRequest(requester.id, restricted.id, [], token))
+          .to.be.rejectedWith('This invitation cannot be used to request to join this group')
+        await noRequestFrom(requester)
+      }
+    })
+
+    it('without a token, links a pending member invitation to the requester\'s email address', async () => {
+      const requester = await factories.user({ email: `Mixed.Case.${Date.now()}@Sponsored.com` }).save()
+      const email = requester.get('email')
+      await memberInvitation({ email, inviterAccess: Invitation.InviterAccess.FULL })
+      const expired = await memberInvitation({ email })
+      await expired.expire(sponsor.id)
+      const pending = await memberInvitation({ email })
+      await memberInvitation({ email, groupId: otherGroup.id })
+
+      const { request } = await createJoinRequest(requester.id, restricted.id, [])
+      expect(request.get('invitation_id')).to.equal(pending.id)
+
+      const stewardInvitee = await factories.user().save()
+      await memberInvitation({ email: stewardInvitee.get('email'), inviterAccess: Invitation.InviterAccess.FULL })
+      const unlinked = await createJoinRequest(stewardInvitee.id, restricted.id, [])
+      expect(unlinked.request.get('invitation_id')).to.be.null
+    })
+
+    it('notifies people with Add Members, not the member who sent the invitation', async () => {
+      const requester = await factories.user().save()
+      const invitation = await memberInvitation()
+      await createJoinRequest(requester.id, restricted.id, [], invitation.get('token'))
+
+      const notified = async reader => {
+        const activities = await Activity.where({ reader_id: reader.id, actor_id: requester.id, group_id: restricted.id }).fetchAll()
+        return activities.some(a => (a.get('meta')?.reasons || []).includes('joinRequest'))
+      }
+      expect(await notified(admin)).to.be.true
+      expect(await notified(sponsor)).to.be.false
+    })
+
+    it('does not let limited invite access accept or decline requests', async () => {
+      expect(await GroupMembership.inviteAccess(sponsor.id, restricted.id)).to.equal(GroupMembership.InviteAccess.LIMITED)
+      const requester = await factories.user().save()
+      const invitation = await memberInvitation()
+      const { request } = await createJoinRequest(requester.id, restricted.id, [], invitation.get('token'))
+
+      await expect(acceptJoinRequest(sponsor.id, request.id)).to.be.rejectedWith('You do not have permission to accept a join request')
+      await expect(declineJoinRequest(sponsor.id, request.id)).to.be.rejectedWith('You do not have permission to do this')
+      expect((await JoinRequest.find(request.id)).get('status')).to.equal(JoinRequest.STATUS.Pending)
+      await invitation.refresh()
+      expect(invitation.get('used_by_id')).to.be.null
+      expect(invitation.get('expired_by_id')).to.be.null
+    })
+
+    it('marks the invitation used on acceptance, whatever address the requester has, and records who accepted', async () => {
+      const requester = await factories.user().save()
+      const invitation = await memberInvitation({ email: 'a-different-address@sponsored.com' })
+      const { request } = await createJoinRequest(requester.id, restricted.id, [], invitation.get('token'))
+
+      await acceptJoinRequest(admin.id, request.id)
+
+      const accepted = await JoinRequest.find(request.id)
+      expect(accepted.get('status')).to.equal(JoinRequest.STATUS.Accepted)
+      expect(accepted.get('processed_by_id')).to.equal(admin.id)
+      expect(await GroupMembership.forPair(requester.id, restricted.id).fetch()).to.exist
+      await invitation.refresh()
+      expect(invitation.get('used_by_id')).to.equal(requester.id)
+      expect(invitation.get('used_at')).to.exist
+      expect(invitation.get('expired_by_id')).to.be.null
+    })
+
+    it('expires the invitation when the request is declined, and records who declined', async () => {
+      const requester = await factories.user().save()
+      const invitation = await memberInvitation()
+      const { request } = await createJoinRequest(requester.id, restricted.id, [], invitation.get('token'))
+
+      await declineJoinRequest(admin.id, request.id)
+
+      const declined = await JoinRequest.find(request.id)
+      expect(declined.get('status')).to.equal(JoinRequest.STATUS.Rejected)
+      expect(declined.get('processed_by_id')).to.equal(admin.id)
+      await invitation.refresh()
+      expect(invitation.get('expired_by_id')).to.equal(admin.id)
+      expect(invitation.get('used_by_id')).to.be.null
+      await expect(createJoinRequest(requester.id, restricted.id, [], invitation.get('token')))
+        .to.be.rejectedWith('This invitation cannot be used to request to join this group')
+    })
+  })
+
   describe('space join requests', () => {
     let parentGroup, space, parentSteward
 
