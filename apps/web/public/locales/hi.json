@@ -3078,5 +3078,8 @@
   "Create or edit roles in Roles & Badges": "भूमिकाएँ और बैज में भूमिकाएँ बनाएँ या संपादित करें",
   "Everyone in this group holds this role.": "इस समूह में हर किसी के पास यह भूमिका है।",
   "No responsibilities": "कोई ज़िम्मेदारी नहीं",
-  "Change who can add new members in Privacy & Access": "गोपनीयता और पहुँच में बदलें कि नए सदस्यों को कौन जोड़ सकता है"
+  "Change who can add new members in Privacy & Access": "गोपनीयता और पहुँच में बदलें कि नए सदस्यों को कौन जोड़ सकता है",
+  "{{name}} invited you": "{{name}} ने आपको आमंत्रित किया है",
+  "Stewards review every request to join this group.": "स्टीवर्ड इस समूह में शामिल होने के हर अनुरोध की समीक्षा करते हैं।",
+  "Invited by {{name}}": "{{name}} द्वारा आमंत्रित"
 }

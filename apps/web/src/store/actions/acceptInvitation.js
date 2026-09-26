@@ -53,6 +53,8 @@ export default function acceptInvitation (inviteCodes = {}) {
               }
             }
             error
+            requiresApproval
+            groupSlug
           }
         }
       `,

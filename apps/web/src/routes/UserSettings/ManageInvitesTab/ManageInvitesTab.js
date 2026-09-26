@@ -59,7 +59,13 @@ function ManageInvitesTab () {
       return
     }
     dispatch(acceptInvitation({ invitationToken }))
-      .then(() => dispatch(push(destinationAfterInvite(group))))
+      .then(result => {
+        const { requiresApproval, groupSlug } = result?.payload?.data?.useInvitation || {}
+        // A member's invitation to a group that approves new people: request to join from its about page
+        dispatch(push(requiresApproval && groupSlug
+          ? `${groupUrl(groupSlug, 'about')}?token=${encodeURIComponent(invitationToken)}`
+          : destinationAfterInvite(group)))
+      })
   }
 
   const handleCancelJoinRequest = (params) => dispatch(cancelJoinRequest(params))

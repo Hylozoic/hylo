@@ -3077,5 +3077,8 @@
   "Create or edit roles in Roles & Badges": "Créer ou modifier des rôles dans Rôles et badges",
   "Everyone in this group holds this role.": "Tous les membres de ce groupe ont ce rôle.",
   "No responsibilities": "Aucune responsabilité",
-  "Change who can add new members in Privacy & Access": "Modifier qui peut ajouter de nouveaux membres dans Confidentialité et accès"
+  "Change who can add new members in Privacy & Access": "Modifier qui peut ajouter de nouveaux membres dans Confidentialité et accès",
+  "{{name}} invited you": "{{name}} vous a invité",
+  "Stewards review every request to join this group.": "Les intendants examinent chaque demande d'adhésion à ce groupe.",
+  "Invited by {{name}}": "Invitation de {{name}}"
 }

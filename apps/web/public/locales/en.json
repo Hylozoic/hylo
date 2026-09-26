@@ -3075,5 +3075,8 @@
   "Create or edit roles in Roles & Badges": "Create or edit roles in Roles & Badges",
   "Everyone in this group holds this role.": "Everyone in this group holds this role.",
   "No responsibilities": "No responsibilities",
-  "Change who can add new members in Privacy & Access": "Change who can add new members in Privacy & Access"
+  "Change who can add new members in Privacy & Access": "Change who can add new members in Privacy & Access",
+  "{{name}} invited you": "{{name}} invited you",
+  "Stewards review every request to join this group.": "Stewards review every request to join this group.",
+  "Invited by {{name}}": "Invited by {{name}}"
 }
