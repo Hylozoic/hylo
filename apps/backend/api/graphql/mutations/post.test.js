@@ -430,7 +430,7 @@ describe('fulfillPost and unfulfillPost', () => {
 })
 
 describe('followPost and unfollowPost', () => {
-  let author, reader, outsider, post, originalEmailNotificationsEnabled
+  let author, reader, outsider, group, post, originalEmailNotificationsEnabled
 
   const commentOnPost = async () => {
     const comment = await factories.comment({ post_id: post.id, user_id: author.id }).save()
@@ -458,7 +458,7 @@ describe('followPost and unfollowPost', () => {
     author = await factories.user().save()
     reader = await factories.user({ settings: { comment_notifications: 'email' } }).save()
     outsider = await factories.user().save()
-    const group = await factories.group().save()
+    group = await factories.group().save()
     await author.joinGroup(group)
     await reader.joinGroup(group)
     post = await factories.post({ type: 'discussion', user_id: author.id }).save()
@@ -513,5 +513,19 @@ describe('followPost and unfollowPost', () => {
     await thread.addFollowers([author.id, reader.id])
 
     await expect(unfollowPost(reader.id, thread.id)).to.be.rejectedWith('Message threads can be muted but not unfollowed')
+  })
+
+  it('keeps a project member in the project when they unfollow it', async () => {
+    const project = await factories.post({ type: Post.Type.PROJECT, user_id: author.id }).save()
+    await project.groups().attach(group)
+    await project.addProjectMembers([reader.id])
+
+    await unfollowPost(reader.id, project.id)
+    expect((await project.members().fetch()).pluck('id')).to.deep.equal([reader.id])
+    expect((await project.followers().fetch()).pluck('id')).to.not.include(reader.id)
+
+    await followPost(reader.id, project.id)
+    expect((await project.members().fetch()).pluck('id')).to.deep.equal([reader.id])
+    expect((await project.followers().fetch()).pluck('id')).to.include(reader.id)
   })
 })
