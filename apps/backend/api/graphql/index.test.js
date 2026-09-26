@@ -1166,3 +1166,40 @@ describe('steward-only group data', () => {
     })
   })
 })
+
+describe('Group.groupRoles', () => {
+  let handler, admin, member, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    group = await factories.group().save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await member.joinGroup(group)
+    await GroupRole.forge({ group_id: group.id, name: 'Greeter', emoji: '👋', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+  })
+
+  it('lists system and custom roles but never the implicit Member role', async () => {
+    expect(await GroupRole.findMemberRole(group.id)).to.exist
+
+    for (const viewer of [admin, member]) {
+      const data = await run(viewer.id, `{ group(id: "${group.id}") { groupRoles { total items { name type } } } }`)
+      const roles = data.group.groupRoles
+      expect(roles.items.map(role => role.name)).to.have.members(['Administrator', 'Moderator', 'Host', 'Greeter'])
+      expect(roles.items.map(role => role.type)).to.not.include(GroupRole.TYPE_MEMBER)
+      expect(roles.total).to.equal(4)
+    }
+  })
+})

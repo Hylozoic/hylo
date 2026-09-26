@@ -960,7 +960,7 @@ type Group {
   # Questions that a group requesting to join this group must answer
   groupToGroupJoinQuestions: GroupToGroupJoinQuestionQuerySet
 
-  # Special roles or badges attached to this group
+  # Special roles or badges attached to this group (never the implicit Member role)
   groupRoles(
     # Number of roles to return
     first: Int,
@@ -1530,7 +1530,7 @@ type GroupRole {
   membersTotal: Int
   # The name of the role
   name: String
-  # system or custom
+  # system, custom or member (the implicit role every member of a group holds)
   type: String
   # When this role was last updated
   updatedAt: Date

@@ -882,7 +882,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { childGroups: { querySet: true } },
         { groupRelationshipInvitesFrom: { querySet: true } },
         { groupRelationshipInvitesTo: { querySet: true } },
-        { groupRoles: { querySet: true } },
+        {
+          groupRoles: {
+            querySet: true,
+            filter: relation => relation.query(q => q.whereNot('groups_roles.type', GroupRole.TYPE_MEMBER))
+          }
+        },
         {
           groupTags: {
             querySet: true,
