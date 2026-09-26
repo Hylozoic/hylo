@@ -33,7 +33,6 @@ import ViewHeader from 'components/ViewHeader'
 import usePullToRefresh from 'hooks/usePullToRefresh'
 import useIsPhoneViewport from 'hooks/useIsPhoneViewport'
 import getReturnToPath from 'store/selectors/getReturnToPath'
-import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
@@ -105,6 +104,7 @@ import { Toaster } from 'components/ui/sonner'
 import useGroupViews from 'hooks/useGroupViews'
 import useNewAppVersion from 'hooks/useNewAppVersion'
 import useMobileHardwareBack from 'hooks/useMobileHardwareBack'
+import useRefreshBadgesOnReturn from 'hooks/useRefreshBadgesOnReturn'
 import shouldLandOnWelcome from 'util/shouldLandOnWelcome'
 
 import classes from './AuthLayoutRouter.module.scss'
@@ -628,14 +628,9 @@ export default function AuthLayoutRouter (props) {
         setTimeout(runThreads, 2500)
       }
     })()
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        await dispatch(checkForNewNotifications())
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
+
+  useRefreshBadgesOnReturn()
 
   // If the user turns stack-groups on after a flat MeQuery load, refetch so childGroups are available.
   useEffect(() => {

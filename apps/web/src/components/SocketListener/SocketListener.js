@@ -22,6 +22,7 @@ import {
 } from 'components/PeopleTyping/PeopleTyping.store'
 import { addMemberPresent, removeMemberPresent, setRoomPresence } from 'routes/ChatRoom/RoomPresence.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import { refreshBadgeCounts } from 'util/badgeRefresh'
 
 const SocketListener = (props) => {
   const dispatch = useDispatch()
@@ -80,21 +81,27 @@ const SocketListener = (props) => {
     // Re-subscribe the user room on every (re)connection — after a server
     // restart the socket comes back but its room memberships do not
     const resubscribe = () => reconnect(socket)
+    // Pushes sent while disconnected are lost, so the badges they would have
+    // bumped are refetched
+    const handleReconnect = () => {
+      reconnect(socket)
+      refreshBadgeCounts(dispatch)
+    }
     reconnect(socket)
     socket.on('connect', resubscribe)
-    socket.on('reconnect', resubscribe)
+    socket.on('reconnect', handleReconnect)
 
     Object.keys(handlers).forEach(socketEvent =>
       socket.on(socketEvent, handlers[socketEvent]))
 
     return () => {
       socket.off('connect', resubscribe)
-      socket.off('reconnect', resubscribe)
+      socket.off('reconnect', handleReconnect)
       socket.post(socketUrl('/noo/user/unsubscribe'))
       Object.keys(handlers).forEach(socketEvent =>
         socket.off(socketEvent, handlers[socketEvent]))
     }
-  }, [handlers])
+  }, [dispatch, handlers])
 
   const reconnect = (socket) => {
     if (process.env.NODE_ENV === 'development') {
