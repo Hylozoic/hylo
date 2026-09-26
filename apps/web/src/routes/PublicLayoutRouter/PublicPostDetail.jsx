@@ -23,7 +23,7 @@ export default function PublicPostDetail (props) {
       const result = await dispatch(checkIsPostPublic(postId))
       const isPublicPost = result?.payload?.data?.post?.id
       if (!isPublicPost) {
-        navigate('/login?returnToUrl=' + location.pathname + location.search, { replace: true })
+        navigate('/login?returnToUrl=' + encodeURIComponent(location.pathname + location.search), { replace: true })
       }
 
       setLoading(false)

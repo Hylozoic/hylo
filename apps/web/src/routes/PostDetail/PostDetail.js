@@ -7,6 +7,7 @@ import PropTypes from 'prop-types'
 import { get, throttle, find } from 'lodash/fp'
 import { Video } from 'lucide-react'
 import { Helmet } from 'react-helmet'
+import { toast } from 'sonner'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import ActionCompletionResponsesDialog from 'components/ActionCompletionResponsesDialog'
@@ -32,6 +33,7 @@ import PostPeopleDialog from 'components/PostPeopleDialog'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import fetchPost from 'store/actions/fetchPost'
+import { followPost, unfollowPost } from 'store/actions/followPost'
 import joinProject from 'store/actions/joinProject'
 import leaveProject from 'store/actions/leaveProject'
 import processStripeToken from 'store/actions/processStripeToken'
@@ -144,6 +146,25 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       withCompletionResponses: isAction && hasTracksResponsibility
     }))
   }, [postId, post?.type, hasTracksResponsibility])
+
+  // Post emails link here with ?action=unfollow
+  const unfollowRequested = getQuerystringParam('action', location) === 'unfollow'
+  const unfollowHandled = useRef(false)
+  useEffect(() => {
+    if (!unfollowRequested || !postId || !currentUser || unfollowHandled.current) return
+    unfollowHandled.current = true
+    const params = new URLSearchParams(location.search)
+    params.delete('action')
+    const search = params.toString()
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true, state: location.state })
+    dispatch(unfollowPost(postId))
+      .then(() => {
+        toast(t("You won't get notifications for new comments on this post"), {
+          action: { label: t('Undo'), onClick: () => dispatch(followPost(postId)) }
+        })
+      })
+      .catch(() => {})
+  }, [unfollowRequested, postId, currentUser])
 
   useEffect(() => {
     if (!post) return

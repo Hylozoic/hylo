@@ -1,11 +1,15 @@
 import React from 'react'
-import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { toast } from 'sonner'
+import { act, AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import { graphql, HttpResponse, delay } from 'msw'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
 import { DETAIL_COLUMN_ID } from 'util/scrolling'
 import PostDetail from './PostDetail'
+
+const mockNavigate = jest.fn()
+let mockSearch = ''
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -14,8 +18,15 @@ jest.mock('react-router-dom', () => ({
     postId: '91'
   }),
   useLocation: () => ({
-    pathname: '/group/foo/post/91'
-  })
+    pathname: '/group/foo/post/91',
+    search: mockSearch
+  }),
+  useNavigate: () => mockNavigate
+}))
+
+jest.mock('sonner', () => ({
+  ...jest.requireActual('sonner'),
+  toast: jest.fn()
 }))
 
 const post = {
@@ -79,6 +90,59 @@ describe('PostDetail', () => {
       expect(screen.getByText('the body of the post')).toBeInTheDocument()
       expect(screen.getByTestId('post-detail-close')).toBeInTheDocument()
     })
+  })
+
+  it('unfollows the post once when opened from an email unfollow link, then drops the param', async () => {
+    mockSearch = '?action=unfollow&ctt=post_email'
+    const unfollowedPostIds = []
+    const followedPostIds = []
+    mockGraphqlServer.use(
+      graphql.query('FetchPost', () => HttpResponse.json({
+        data: { post }
+      })),
+      graphql.mutation('UnfollowPost', ({ variables }) => {
+        unfollowedPostIds.push(variables.postId)
+        return HttpResponse.json({ data: { unfollowPost: { id: '91', isFollowing: false } } })
+      }),
+      graphql.mutation('FollowPost', ({ variables }) => {
+        followedPostIds.push(variables.postId)
+        return HttpResponse.json({ data: { followPost: { id: '91', isFollowing: true } } })
+      })
+    )
+
+    const ormSession = orm.session(orm.getEmptyState())
+    ormSession.Me.create({ id: '1', name: 'Me' })
+    extractModelsForTest({
+      posts: [post]
+    }, 'Post', ormSession)
+    extractModelsForTest({
+      groups: [{ id: '109', slug: 'foo' }]
+    }, 'Group', ormSession)
+
+    render(
+      <PostDetail />,
+      { wrapper: AllTheProviders({ orm: ormSession.state, pending: {} }) }
+    )
+
+    await waitFor(() => {
+      expect(toast).toHaveBeenCalledWith(
+        "You won't get notifications for new comments on this post",
+        expect.objectContaining({ action: expect.objectContaining({ label: 'Undo' }) })
+      )
+    })
+    expect(unfollowedPostIds).toEqual(['91'])
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { pathname: '/group/foo/post/91', search: '?ctt=post_email' },
+      { replace: true, state: undefined }
+    )
+
+    const [, { action: undo }] = toast.mock.calls[0]
+    await act(async () => { undo.onClick() })
+    await waitFor(() => {
+      expect(followedPostIds).toEqual(['91'])
+    })
+    expect(unfollowedPostIds).toEqual(['91'])
+    mockSearch = ''
   })
 
   it('shows loading state when post is pending', () => {
