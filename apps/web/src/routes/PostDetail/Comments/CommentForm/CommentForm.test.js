@@ -49,6 +49,27 @@ describe('CommentForm', () => {
   })
 })
 
+describe('CommentForm send button', () => {
+  it('explains that text is needed only while there is nothing to send', async () => {
+    render(
+      <CommentForm postId='1' createComment={jest.fn()} />,
+      { wrapper: providersWithUser() }
+    )
+    fireEvent.focus(screen.getByRole('button', { name: 'Send' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('You need to include text to post a comment')
+  })
+
+  it('is simply labelled Send once there is text', async () => {
+    render(
+      <CommentForm postId='1' createComment={jest.fn()} editorContent='<p>Hi</p>' />,
+      { wrapper: providersWithUser() }
+    )
+    fireEvent.focus(screen.getByRole('button', { name: 'Send' }))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Send')
+    expect(screen.queryByText('You need to include text to post a comment')).not.toBeInTheDocument()
+  })
+})
+
 describe('CommentForm when sending fails', () => {
   it('puts the comment back, re-saves its draft and offers a retry', async () => {
     mockGraphqlServer.use(

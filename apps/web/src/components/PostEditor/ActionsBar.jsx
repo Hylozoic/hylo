@@ -1,5 +1,6 @@
+import isMobile from 'ismobilejs'
 import { MapPin, SendHorizontal } from 'lucide-react'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { toast } from 'sonner'
@@ -29,6 +30,7 @@ export default function ActionsBar ({
   setShowLocation,
   doSave, // Pops up announcement modal first if announcement is selected
   onAttachmentAdded,
+  onInvalidSubmit,
   save, // Does actual save
   setIsDirty,
   showAnnouncementModal,
@@ -50,8 +52,24 @@ export default function ActionsBar ({
   }
   const handleUploadError = () => toast.error(t('Couldn\'t upload that file. Please try again.'))
 
+  // Why Post can't be used yet is shown inline once someone tries, since the
+  // hover tooltip never appears on touch screens
+  const [showInvalidMessage, setShowInvalidMessage] = useState(false)
+  useEffect(() => {
+    if (valid) setShowInvalidMessage(false)
+  }, [valid])
+
+  const handleSubmitClick = () => {
+    if (!valid) {
+      setShowInvalidMessage(true)
+      onInvalidSubmit?.()
+      return
+    }
+    doSave()
+  }
+
   return (
-    <div className='w-full flex justify-between'>
+    <div className='w-full flex flex-wrap justify-between'>
       <div className='flex items-center gap-2'>
         <UploadAttachmentButton
           type='post'
@@ -120,17 +138,22 @@ export default function ActionsBar ({
       </div>
 
       <div className='flex items-center gap-2'>
-        <label className='text-xs italic text-foreground/50'>
-          {isEditing
-            ? t(navigator.platform.includes('Mac') ? 'Option-Enter to save' : 'Alt-Enter to save')
-            : t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}
-        </label>
+        {!isMobile.any && (
+          <label className='text-xs italic text-foreground/50'>
+            {isEditing
+              ? t(navigator.platform.includes('Mac') ? 'Option-Enter to save' : 'Alt-Enter to save')
+              : t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}
+          </label>
+        )}
         <Button
-          disabled={!valid || loading || submitting}
-          onClick={doSave}
+          disabled={loading || submitting}
+          ariaDisabled={!valid}
+          onClick={handleSubmitClick}
           className='border-2 border-foreground/30 bg-foreground/30 px-2 py-1 rounded flex items-center'
           dataTipHtml={!valid ? invalidMessage : ''}
           dataFor='submit-tt'
+          dataTestId='post-editor-submit'
+          name={submitButtonLabel}
         >
           <SendHorizontal className={!valid || loading || submitting ? 'text-muted-foreground' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
         </Button>
@@ -141,6 +164,11 @@ export default function ActionsBar ({
           id='submit-tt'
         />
       </div>
+      {showInvalidMessage && !valid && invalidMessage && (
+        <div role='alert' className='basis-full text-right text-xs text-destructive pt-1' data-testid='post-editor-invalid-message'>
+          {invalidMessage.split('<br />').map(message => <div key={message}>{message}</div>)}
+        </div>
+      )}
     </div>
   )
 }

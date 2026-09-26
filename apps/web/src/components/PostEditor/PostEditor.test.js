@@ -138,6 +138,21 @@ describe('PostEditor', () => {
       })
     })
 
+    it('says why it cannot post and focuses the title when the title is missing', async () => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      const { container } = renderComponent({ autoFocus: false })
+      const titleInput = await waitFor(() => {
+        const input = container.querySelector('.PostEditorTitle input')
+        expect(input).toBeInTheDocument()
+        return input
+      })
+
+      fireEvent.click(screen.getByTestId('post-editor-submit'))
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Title is required')
+      expect(titleInput).toHaveFocus()
+    })
+
     it('restores attachments from a saved draft and saves changes to them', async () => {
       const { saveDraft } = require('store/actions/draftActions')
       saveDraft.mockClear()
@@ -310,6 +325,53 @@ describe('ActionsBar', () => {
       const submitButton = buttons.find(button => button.querySelector('svg'))
       expect(submitButton).toHaveClass('disabled')
     })
+  })
+
+  it('explains inline why an invalid post cannot be sent, instead of sending it', () => {
+    const doSave = jest.fn()
+    const onInvalidSubmit = jest.fn()
+    render(
+      <ActionsBar
+        {...baseProps}
+        valid={false}
+        invalidMessage='Title is required<br />At least one group required'
+        doSave={doSave}
+        onInvalidSubmit={onInvalidSubmit}
+      />
+    )
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    const submitButton = screen.getByRole('button', { name: 'Post' })
+    expect(submitButton).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(submitButton)
+
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveTextContent('Title is required')
+    expect(alert).toHaveTextContent('At least one group required')
+    expect(onInvalidSubmit).toHaveBeenCalled()
+    expect(doSave).not.toHaveBeenCalled()
+  })
+
+  it('sends a valid post', () => {
+    const doSave = jest.fn()
+    render(<ActionsBar {...baseProps} doSave={doSave} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Post' }))
+    expect(doSave).toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('hides the keyboard shortcut hint on touch devices', () => {
+    const isMobile = require('ismobilejs')
+    const wasMobile = isMobile.any
+    isMobile.any = true
+    try {
+      render(<ActionsBar {...baseProps} />)
+      expect(screen.queryByText(/Enter to post/)).not.toBeInTheDocument()
+    } finally {
+      isMobile.any = wasMobile
+    }
+    render(<ActionsBar {...baseProps} />)
+    expect(screen.getByText(/Enter to post/)).toBeInTheDocument()
   })
 
   it('shows announcement icon when user can make announcements', async () => {

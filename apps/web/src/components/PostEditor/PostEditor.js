@@ -1329,6 +1329,10 @@ function PostEditorInner ({
     return t('Post')
   }, [postPending, isEditing])
 
+  const handleInvalidSubmit = useCallback(() => {
+    if (!currentPost.title) titleInputRef.current?.focus()
+  }, [currentPost.title])
+
   const toggleAnnouncementModal = useCallback(() => {
     setShowAnnouncementModal(!showAnnouncementModal)
   }, [showAnnouncementModal])
@@ -1951,6 +1955,7 @@ function PostEditorInner ({
         myAdminGroups={myAdminGroups}
         doSave={doSave}
         onAttachmentAdded={markAttachmentsTouched}
+        onInvalidSubmit={handleInvalidSubmit}
         save={save}
         setAnnouncementSelected={setAnnouncementSelected}
         setIsDirty={setIsDirty}

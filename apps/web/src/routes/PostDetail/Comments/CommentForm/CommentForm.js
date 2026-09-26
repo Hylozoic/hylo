@@ -57,6 +57,7 @@ const CommentForm = forwardRef(function CommentForm ({
   const commentEditorInitialHtmlRef = useRef({ postId: null, html: null })
 
   const [isFocused, setIsFocused] = useState(false)
+  const [hasText, setHasText] = useState(hasDraftContent(editorContent))
   const hasUserInteracted = useRef(false)
   const mountTime = useRef(Date.now())
   /** True after the editor has had visible text this visit — delete server draft when cleared. */
@@ -92,6 +93,7 @@ const CommentForm = forwardRef(function CommentForm ({
     if (!isLoaded) return
     const draft = editorContent ?? commentEditorInitialHtmlRef.current.html ?? ''
     draftRef.current = draft
+    setHasText(hasDraftContent(draft))
     if (editor.current) {
       editor.current.setContent(draft)
     }
@@ -110,6 +112,7 @@ const CommentForm = forwardRef(function CommentForm ({
     if (composerIsEmpty) {
       editor.current.setContent(text)
       draftRef.current = text
+      setHasText(hasDraftContent(text))
       commentComposerHadContentRef.current = true
       dispatch(setAttachments('comment', 'new', 'image', submittedAttachments))
     }
@@ -156,6 +159,7 @@ const CommentForm = forwardRef(function CommentForm ({
 
   const handleEditorUpdate = useCallback(async (html) => {
     startTyping()
+    setHasText(hasDraftContent(html))
     if (hasDraftContent(html)) {
       commentComposerHadContentRef.current = true
       draftRef.current = html
@@ -298,7 +302,8 @@ const CommentForm = forwardRef(function CommentForm ({
                     size='icon'
                     onClick={() => handleSubmit(editor.current.getHTML())}
                     className='bg-selected text-foreground hover:scale-102 focus-visible:outline-none'
-                    tooltip={t('You need to include text to post a comment')}
+                    tooltip={hasText || attachments.length > 0 ? t('Send') : t('You need to include text to post a comment')}
+                    aria-label={t('Send')}
                   >
                     <SendHorizontal size={18} color='white' />
                   </Button>

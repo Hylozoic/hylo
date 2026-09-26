@@ -63,4 +63,16 @@ describe('Button', () => {
     const button = screen.getByRole('button')
     expect(button).toHaveTextContent('Child Content')
   })
+
+  it('looks disabled but still takes clicks when aria-disabled', () => {
+    const onClick = jest.fn()
+    render(<Button label='Post' onClick={onClick} ariaDisabled />)
+
+    const button = screen.getByRole('button', { name: 'Post' })
+    expect(button).toHaveClass('disabled')
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+
+    fireEvent.click(button)
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
 })
