@@ -274,6 +274,34 @@ describe('Group', function () {
       expect(otherSpaceMembership).to.not.exist
     })
 
+    it("expires only the leavers' pending member invitations in that group", async function () {
+      const group = await factories.group().save()
+      const otherGroup = await factories.group().save()
+      const leaver = await factories.user().save()
+      const stayer = await factories.user().save()
+      await group.addMembers([leaver.id, stayer.id])
+      await otherGroup.addMembers([leaver.id])
+
+      const invite = (sender, targetGroup, email, inviterAccess = Invitation.InviterAccess.LIMITED) =>
+        Invitation.create({ userId: sender.id, groupId: targetGroup.id, email, inviterAccess })
+      const invitations = {
+        pending: await invite(leaver, group, 'pending@leaver-invites.com'),
+        used: await invite(leaver, group, 'used@leaver-invites.com'),
+        steward: await invite(leaver, group, 'steward@leaver-invites.com', Invitation.InviterAccess.FULL),
+        stayer: await invite(stayer, group, 'stayer@leaver-invites.com'),
+        otherGroup: await invite(leaver, otherGroup, 'other-group@leaver-invites.com')
+      }
+      await invitations.used.save({ used_by_id: stayer.id, used_at: new Date() }, { patch: true })
+
+      await group.removeMembers([leaver.id])
+
+      const expiredBy = {}
+      for (const [name, invitation] of Object.entries(invitations)) {
+        expiredBy[name] = (await Invitation.find(invitation.id)).get('expired_by_id')
+      }
+      expect(expiredBy).to.deep.equal({ pending: leaver.id, used: null, steward: null, stayer: null, otherGroup: null })
+    })
+
     it('does not deactivate parent membership when leaving a space only', async function () {
       const group = await factories.group().save()
       const space = await factories.group({

@@ -538,6 +538,20 @@ describe('space mutations', () => {
       expect(menuEntry.get('order')).to.not.equal(null)
     })
 
+    it('expires the pending invitations members sent to the group', async () => {
+      const child = await createChildGroup()
+      const sender = await factories.user().save()
+      await sender.joinGroup(child)
+      const invite = (email, inviterAccess) => Invitation.create({ userId: sender.id, groupId: child.id, email, inviterAccess })
+      const limited = await invite('limited@converted-group.com', Invitation.InviterAccess.LIMITED)
+      const full = await invite('full@converted-group.com', Invitation.InviterAccess.FULL)
+
+      await convertGroupToSpace(administrator.id, { id: child.id, parentGroupId: parentGroup.id }, {})
+
+      expect((await Invitation.find(limited.id)).get('expired_by_id')).to.equal(administrator.id)
+      expect((await Invitation.find(full.id)).get('expired_by_id')).to.be.null
+    })
+
     it('unpins the converted group and compact remaining pin order', async () => {
       const child = await createChildGroup()
       await member.joinGroup(child)

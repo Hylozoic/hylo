@@ -559,6 +559,8 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
 
   await bookshelf.transaction(async trx => {
     await group.save({ type: 'space', parent_id: parentGroupId }, { patch: true, transacting: trx })
+    // Spaces have no member invitations, and an invitation to a space can admit people to its parent
+    await Invitation.expirePendingLimited({ groupId: group.id, expiredById: userId }, { transacting: trx })
     await relationship.save({ active: false }, { transacting: trx })
     await convertChildGroupViewToSpaceView(parentGroupId, id, group.get('name'), { transacting: trx })
     await GroupView.syncMoreSpacesCount(parentGroupId, { transacting: trx })
