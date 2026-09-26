@@ -2,17 +2,27 @@
 const root = require('root-path')
 const setup = require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
-/* global ContentAccess, StripeProduct, SubscriptionChangeEvent */
+const { mockify, unspyify } = require(root('test/setup/helpers'))
+/* global ContentAccess, StripeProduct, SubscriptionChangeEvent, Frontend, Queue */
 
 let currentWebhookEvent = null
 
 describe('StripeController.webhook', () => {
   let StripeController
+  let originalHandlers
   let req
   let res
 
   before(() => {
     StripeController = require(root('api/controllers/StripeController'))
+    originalHandlers = {
+      handleInvoicePaid: StripeController.handleInvoicePaid,
+      handleInvoicePaymentFailed: StripeController.handleInvoicePaymentFailed
+    }
+  })
+
+  afterEach(() => {
+    Object.assign(StripeController, originalHandlers)
   })
 
   after(() => {
@@ -245,5 +255,83 @@ describe('StripeController.webhook', () => {
     expect(payload.applied).to.equal(true)
     expect(payload.appliedFromWebhookType).to.equal('customer.subscription.deleted')
     expect(payload.appliedFromWebhookEventId).to.equal('evt_lifetime_deleted')
+  })
+})
+
+describe('subscription email links', () => {
+  let StripeController, user, group, product, queued
+
+  before(() => {
+    StripeController = require(root('api/controllers/StripeController'))
+  })
+
+  beforeEach(async () => {
+    await setup.clearDb()
+    user = await factories.user().save()
+    group = await factories.group().save()
+    product = await StripeProduct.create({
+      group_id: group.id,
+      stripe_product_id: 'prod_links',
+      stripe_price_id: 'price_links',
+      name: 'Monthly Membership',
+      description: 'monthly',
+      price_in_cents: 1000,
+      currency: 'usd',
+      renewal_policy: 'automatic',
+      duration: 'month',
+      access_grants: { groupIds: [group.id] },
+      publish_status: 'published'
+    })
+    queued = []
+    mockify(Queue, 'classMethod', (className, methodName, data) => {
+      queued.push({ className, methodName, data })
+      return Promise.resolve()
+    })
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('links the payment failed email to my transactions', async () => {
+    await ContentAccess.create({
+      user_id: user.id,
+      granted_by_group_id: group.id,
+      group_id: group.id,
+      product_id: product.id,
+      access_type: ContentAccess.Type.STRIPE_PURCHASE,
+      stripe_session_id: 'cs_links_failed',
+      stripe_subscription_id: 'sub_links_failed',
+      status: ContentAccess.Status.ACTIVE
+    })
+
+    await StripeController.handleInvoicePaymentFailed({
+      data: { object: { id: 'in_links_failed', subscription: 'sub_links_failed', last_payment_error: { message: 'Card declined' } } }
+    })
+
+    const email = queued.find(q => q.methodName === 'sendPaymentFailed')
+    expect(email).to.exist
+    expect(email.data.data.manage_subscription_url).to.equal(Frontend.Route.myTransactions())
+    expect(email.data.data.update_payment_url).to.equal(Frontend.Route.myTransactions())
+    expect(Frontend.Route.myTransactions()).to.match(/\/my\/transactions$/)
+  })
+
+  it('links the renewal reminder email to my transactions', async () => {
+    await ContentAccess.create({
+      user_id: user.id,
+      granted_by_group_id: group.id,
+      group_id: group.id,
+      product_id: product.id,
+      access_type: ContentAccess.Type.STRIPE_PURCHASE,
+      stripe_session_id: 'cs_links_reminder',
+      stripe_subscription_id: 'sub_links_reminder',
+      status: ContentAccess.Status.ACTIVE,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    })
+
+    await ContentAccess.sendRenewalReminders()
+
+    const email = queued.find(q => q.methodName === 'sendSubscriptionRenewalReminder')
+    expect(email).to.exist
+    expect(email.data.data.manage_subscription_url).to.equal(Frontend.Route.myTransactions())
+    expect(email.data.data.update_payment_url).to.equal(Frontend.Route.myTransactions())
   })
 })

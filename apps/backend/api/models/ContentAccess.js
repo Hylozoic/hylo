@@ -540,8 +540,8 @@ module.exports = bookshelf.Model.extend({
           renewal_date: renewalDateFormatted,
           renewal_amount: renewalAmount,
           renewal_period: renewalPeriod,
-          manage_subscription_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
-          update_payment_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+          manage_subscription_url: Frontend.Route.myTransactions(),
+          update_payment_url: Frontend.Route.myTransactions(),
           group_avatar_url: group.get('avatar_url')
         }
 
