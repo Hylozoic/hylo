@@ -1,4 +1,15 @@
 /* eslint-disable camelcase */
+import { GraphQLError } from 'graphql'
+
+const TYPE_MEMBER = 'member'
+
+// Every top-level group has one implicit Member role. Nobody is assigned it:
+// every active member holds it, so it has no group_memberships_group_roles rows.
+const MEMBER_ROLE = {
+  name: 'Member',
+  emoji: '',
+  description: 'Everyone in the group holds this role.'
+}
 
 const SYSTEM_ROLES = [
   {
@@ -53,6 +64,9 @@ module.exports = bookshelf.Model.extend({
    * @returns {Promise<GroupRole>}
    */
   setScopes: async function (scopeStrings, { transacting } = {}) {
+    if (this.get('type') === TYPE_MEMBER) {
+      throw new GraphQLError('The Member role cannot grant scopes')
+    }
     return this.save({ scopes: scopeStrings }, { transacting })
   },
 
@@ -88,8 +102,10 @@ module.exports = bookshelf.Model.extend({
 
 }, {
   SYSTEM_ROLES,
+  MEMBER_ROLE,
   TYPE_SYSTEM: 'system',
   TYPE_CUSTOM: 'custom',
+  TYPE_MEMBER,
 
   /**
    * Map a stored system role name (including legacy names) to the current name.
@@ -176,7 +192,65 @@ module.exports = bookshelf.Model.extend({
       }
     }
 
+    await GroupRole.ensureMemberRole(groupId, { transacting })
+
     return roleIdByName
+  },
+
+  /**
+   * The group's implicit Member role, or null (spaces have none, and groups
+   * created before it existed get one lazily from ensureMemberRole).
+   */
+  findMemberRole: async function (groupId, { transacting } = {}) {
+    if (!groupId) return null
+    return GroupRole.where({ group_id: groupId, type: TYPE_MEMBER }).fetch({ transacting })
+  },
+
+  /**
+   * Create the Member role for a top-level group if it does not exist yet, and
+   * return it. Never links responsibilities to it. Safe to call concurrently.
+   * Returns null for spaces and missing groups.
+   */
+  ensureMemberRole: async function (groupId, { transacting } = {}) {
+    if (!groupId) return null
+    let groupQuery = bookshelf.knex('groups').where('id', groupId).first('id', 'parent_id', 'type')
+    if (transacting) groupQuery = groupQuery.transacting(transacting)
+    const group = await groupQuery
+    if (!group || group.parent_id || group.type === 'space') return null
+
+    // The ON CONFLICT predicate must be a literal to match the partial unique index
+    let insertQuery = bookshelf.knex.raw(`
+      INSERT INTO groups_roles (group_id, name, emoji, description, type, active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'member', true, now(), now())
+      ON CONFLICT (group_id) WHERE type = 'member' DO NOTHING
+    `, [group.id, MEMBER_ROLE.name, MEMBER_ROLE.emoji, MEMBER_ROLE.description])
+    if (transacting) insertQuery = insertQuery.transacting(transacting)
+    await insertQuery
+
+    return GroupRole.findMemberRole(group.id, { transacting })
+  },
+
+  /**
+   * Throw if any of these role ids is an implicit Member role, which cannot be
+   * edited, assigned to people or used as a requirement. Accepts ids or
+   * { id } objects; ids that are not valid integers are left for the caller's
+   * own validation.
+   */
+  assertAssignableRoleIds: async function (roleIds, { transacting } = {}) {
+    const ids = [].concat(roleIds || [])
+      .map(id => (id != null && typeof id === 'object') ? id.id : id)
+      .map(id => String(id ?? '').trim())
+      .filter(id => /^\d{1,10}$/.test(id) && Number(id) <= 2147483647)
+    if (ids.length === 0) return
+
+    let query = bookshelf.knex('groups_roles')
+      .whereIn('id', ids)
+      .where('type', TYPE_MEMBER)
+      .first('id')
+    if (transacting) query = query.transacting(transacting)
+    if (await query) {
+      throw new GraphQLError('The Member role cannot be edited, assigned or used as a requirement')
+    }
   },
 
   /**
