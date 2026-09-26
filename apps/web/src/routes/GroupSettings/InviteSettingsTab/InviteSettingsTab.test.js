@@ -1,10 +1,36 @@
 import React from 'react'
 import { graphql, HttpResponse } from 'msw'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_TYPES, GROUP_VISIBILITY } from 'store/models/Group'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import InviteSettingsTab from './InviteSettingsTab'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => {
+  const actual = jest.requireActual('store/actions/trackAnalyticsEvent')
+  return { __esModule: true, default: jest.fn(actual.default) }
+})
+
+beforeEach(() => {
+  trackAnalyticsEvent.mockClear()
+})
+
+function mockCreateInvitation (resolver) {
+  const requests = []
+  mockGraphqlServer.use(
+    graphql.operation(({ query, variables }) => {
+      if (!query.includes('createInvitation')) return HttpResponse.json({ data: {} })
+      requests.push(variables)
+      return resolver(variables)
+    })
+  )
+  return requests
+}
+
+function enterEmails (value) {
+  fireEvent.change(screen.getByPlaceholderText(/example@domain.com/i), { target: { value } })
+}
 
 describe('InviteSettingsTab', () => {
   it('renders correctly', () => {
@@ -91,22 +117,6 @@ describe('InviteSettingsTab with limited invite access', () => {
     return render(<InviteSettingsTab group={group} inviteAccess='limited' inModal />, null, providers(group))
   }
 
-  function mockCreateInvitation (resolver) {
-    const requests = []
-    mockGraphqlServer.use(
-      graphql.operation(({ query, variables }) => {
-        if (!query.includes('createInvitation')) return HttpResponse.json({ data: {} })
-        requests.push(variables)
-        return resolver(variables)
-      })
-    )
-    return requests
-  }
-
-  function enterEmails (value) {
-    fireEvent.change(screen.getByPlaceholderText(/example@domain.com/i), { target: { value } })
-  }
-
   it('shows only personal email invites, the allowance and the invites this person sent', () => {
     renderLimited()
 
@@ -187,6 +197,12 @@ describe('InviteSettingsTab with limited invite access', () => {
       userIds: [],
       groupRoleId: null
     })
+    expect(trackAnalyticsEvent).toHaveBeenCalledTimes(1)
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Group Invitations Sent', {
+      numGood: 2,
+      numSubmitted: 3,
+      inviteAccess: 'limited'
+    })
   })
 
   it('shows the over-limit message when the allowance would be exceeded', async () => {
@@ -198,6 +214,7 @@ describe('InviteSettingsTab with limited invite access', () => {
 
     expect(await screen.findByText("You don't have enough invites left today for all of these addresses.")).toBeInTheDocument()
     expect(screen.queryByText('Invites sent to anyone not already in the group')).not.toBeInTheDocument()
+    expect(trackAnalyticsEvent).not.toHaveBeenCalled()
   })
 
   it('does not send more than 10 different addresses at a time', () => {
@@ -239,5 +256,32 @@ describe('InviteSettingsTab with full invite access', () => {
     expect(screen.queryByText(/Invites left today/)).not.toBeInTheDocument()
     expect(screen.getByText('Share a Join Link')).toBeInTheDocument()
     expect(screen.getByText('Assign a role to invitees (optional):')).toBeInTheDocument()
+  })
+
+  it('reports how many addresses were submitted and sent with full access', async () => {
+    mockCreateInvitation(() => HttpResponse.json({
+      data: {
+        createInvitation: {
+          invitations: [
+            { id: '41', email: 'one@example.com', createdAt: '2026-09-22T10:00:00.000Z', lastSentAt: '2026-09-22T10:00:00.000Z', error: null, status: null },
+            { id: null, email: 'not-an-email', createdAt: null, lastSentAt: null, error: 'invalid', status: null }
+          ]
+        }
+      }
+    }))
+    const group = { id: '1', name: 'Go Team', slug: 'goteam' }
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Group.create(group)
+    render(<InviteSettingsTab group={group} />, null, AllTheProviders({ orm: ormSession.state, pending: {} }))
+
+    enterEmails('one@example.com, not-an-email')
+    fireEvent.click(screen.getByRole('button', { name: /Send Invite/i }))
+
+    expect(await screen.findByText('Sent 1 invite')).toBeInTheDocument()
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Group Invitations Sent', {
+      numGood: 1,
+      numSubmitted: 2,
+      inviteAccess: 'full'
+    })
   })
 })

@@ -1,7 +1,13 @@
 import React from 'react'
-import { fireEvent, render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import PrivacySettingsTab from './PrivacySettingsTab'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => {
+  const actual = jest.requireActual('store/actions/trackAnalyticsEvent')
+  return { __esModule: true, default: jest.fn(actual.default) }
+})
 
 describe('PrivacySettingsTab', () => {
   it('renders correctly', () => {
@@ -67,6 +73,7 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
   beforeEach(() => {
     savedFlag = process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
     delete process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
+    trackAnalyticsEvent.mockClear()
   })
 
   afterEach(() => {
@@ -77,8 +84,8 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
     }
   })
 
-  function renderTab (overrides = {}) {
-    const updateGroupSettings = jest.fn()
+  function renderTab (overrides = {}, saveResult = {}) {
+    const updateGroupSettings = jest.fn(() => Promise.resolve(saveResult))
     render(<PrivacySettingsTab group={{ ...baseGroup, ...overrides }} parentGroups={[]} updateGroupSettings={updateGroupSettings} />)
     return updateGroupSettings
   }
@@ -125,16 +132,28 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
     })
   })
 
-  it('saves everyone', () => {
+  it('saves everyone', async () => {
     const updateGroupSettings = renderTab({ invitePolicy: { mode: 'roles', roleIds: ['13'] } })
 
     choose('Everyone in the group')
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
 
     expect(updateGroupSettings.mock.calls[0][0].invitePolicy).toEqual({ mode: 'everyone' })
+    await waitFor(() => expect(trackAnalyticsEvent).toHaveBeenCalledWith('Group Invite Policy Set', { mode: 'everyone', surface: 'settings' }))
   })
 
-  it('does not resend the policy when only other settings change', () => {
+  it('reports a policy only once it has saved', async () => {
+    const updateGroupSettings = renderTab({}, { error: true })
+
+    choose('Everyone in the group')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+
+    await waitFor(() => expect(updateGroupSettings).toHaveBeenCalledTimes(1))
+    await Promise.resolve()
+    expect(trackAnalyticsEvent).not.toHaveBeenCalled()
+  })
+
+  it('does not resend the policy when only other settings change', async () => {
     const updateGroupSettings = renderTab({ invitePolicy: { mode: 'everyone', roleIds: [] } })
 
     fireEvent.click(screen.getByText('Public'))
@@ -142,6 +161,8 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
 
     expect(updateGroupSettings).toHaveBeenCalledTimes(1)
     expect(updateGroupSettings.mock.calls[0][0]).not.toHaveProperty('invitePolicy')
+    await Promise.resolve()
+    expect(trackAnalyticsEvent).not.toHaveBeenCalled()
   })
 
   it('describes the approval step for the access setting being edited', () => {

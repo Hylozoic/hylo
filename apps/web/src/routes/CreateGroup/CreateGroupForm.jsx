@@ -13,7 +13,7 @@ import GroupsSelector from 'components/GroupsSelector'
 import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
-import InvitePolicySelect, { invitePolicyToSave } from 'components/InvitePolicySelect/InvitePolicySelect'
+import InvitePolicySelect, { invitePolicyToSave, trackInvitePolicySet } from 'components/InvitePolicySelect/InvitePolicySelect'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
@@ -575,6 +575,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     }
 
     const newGroup = payload?.data?.createGroup
+    if (memberInvitesEnabled) dispatch(trackInvitePolicySet(invitePolicyInput.mode, 'create'))
 
     const effectiveWelcome = welcomeEnabled
       ? {

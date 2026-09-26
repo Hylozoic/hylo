@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
 import Checkbox from 'components/ui/checkbox'
 import { Label } from 'components/ui/label'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { INVITE_POLICY, RESP_ADD_MEMBERS } from 'store/constants'
 import { GROUP_ACCESSIBILITY } from 'store/models/Group'
 import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
@@ -63,6 +64,14 @@ export function invitePolicyToSave (mode, roles) {
   const roleIds = roles.filter(role => role.checked).map(role => role.id)
   if (!roles.some(role => role.checked && !role.locked)) return { mode: INVITE_POLICY.stewards }
   return { mode, roleIds }
+}
+
+/**
+ * Analytics for a saved invite policy. `surface` is where it was saved:
+ * 'create' (the create-group form) or 'settings' (Privacy & Access).
+ */
+export function trackInvitePolicySet (mode, surface) {
+  return trackAnalyticsEvent('Group Invite Policy Set', { mode, surface })
 }
 
 /**

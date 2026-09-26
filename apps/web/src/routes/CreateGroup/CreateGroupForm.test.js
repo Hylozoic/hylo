@@ -1,9 +1,15 @@
 import React, { createRef } from 'react'
 import { graphql, HttpResponse } from 'msw'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { act, AllTheProviders, fireEvent, render as renderWithProviders, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import CreateGroupForm from './CreateGroupForm'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => {
+  const actual = jest.requireActual('store/actions/trackAnalyticsEvent')
+  return { __esModule: true, default: jest.fn(actual.default) }
+})
 
 const WHO_CAN_ADD = 'Who can add new members?'
 const STEWARDS = 'Administrators and Hosts (anyone who can add members)'
@@ -62,6 +68,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
   beforeEach(() => {
     savedFlag = process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
     delete process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
+    trackAnalyticsEvent.mockClear()
   })
 
   afterEach(() => {
@@ -114,6 +121,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
 
     await waitFor(() => expect(requests).toHaveLength(1))
     expect(requests[0].invitePolicy).toEqual({ mode: 'roles', systemRoleNames: ['Moderator'] })
+    await waitFor(() => expect(trackAnalyticsEvent).toHaveBeenCalledWith('Group Invite Policy Set', { mode: 'roles', surface: 'create' }))
   })
 
   it('sends stewards when specific roles adds no one', async () => {
@@ -126,6 +134,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
 
     await waitFor(() => expect(requests).toHaveLength(1))
     expect(requests[0].invitePolicy).toEqual({ mode: 'stewards' })
+    await waitFor(() => expect(trackAnalyticsEvent).toHaveBeenCalledWith('Group Invite Policy Set', { mode: 'stewards', surface: 'create' }))
   })
 
   it('sends everyone', async () => {
@@ -137,6 +146,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
 
     await waitFor(() => expect(requests).toHaveLength(1))
     expect(requests[0].invitePolicy).toEqual({ mode: 'everyone' })
+    await waitFor(() => expect(trackAnalyticsEvent).toHaveBeenCalledWith('Group Invite Policy Set', { mode: 'everyone', surface: 'create' }))
   })
 
   it('counts a changed policy as entered data', () => {
@@ -191,6 +201,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
       await createNamedGroup()
       await waitFor(() => expect(requests).toHaveLength(1))
       expect(requests[0]).not.toHaveProperty('invitePolicy')
+      expect(trackAnalyticsEvent).not.toHaveBeenCalledWith('Group Invite Policy Set', expect.anything())
     })
   })
 })

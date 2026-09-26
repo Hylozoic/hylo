@@ -269,7 +269,11 @@ function InviteSettingsTab (props) {
               ? t('Sent 1 invite')
               : t('Sent {{numGood}} invites', { numGood })
           }
-          trackAnalyticsEventDispatch('Group Invitations Sent', { numGood })
+          trackAnalyticsEventDispatch('Group Invitations Sent', {
+            numGood,
+            numSubmitted: emailList.length + userIds.length,
+            inviteAccess
+          })
         }
         setEmails(badEmails.join('\n'))
         setErrorMessage(errorMessage)

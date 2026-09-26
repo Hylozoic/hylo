@@ -3,9 +3,10 @@ import { set, startCase, trim } from 'lodash'
 import React, { useState, useEffect, useMemo } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { EyeOff, Shield, X, Globe, Lock, TriangleAlert } from 'lucide-react'
+import { useDispatch } from 'react-redux'
 import { Link } from 'react-router-dom'
 import GroupsSelector from 'components/GroupsSelector'
-import InvitePolicySelect, { invitePolicyRoles, invitePolicyToSave } from 'components/InvitePolicySelect/InvitePolicySelect'
+import InvitePolicySelect, { invitePolicyRoles, invitePolicyToSave, trackInvitePolicySet } from 'components/InvitePolicySelect/InvitePolicySelect'
 import Button from 'components/ui/button'
 import { Switch } from 'components/ui/switch'
 import Loading from 'components/Loading'
@@ -34,6 +35,7 @@ function initialInvitePolicy (group) {
 
 function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSettings }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const [state, setState] = useState(defaultEditState())
   const [invitePolicy, setInvitePolicy] = useState(() => initialInvitePolicy(group))
   const [invitePolicyChanged, setInvitePolicyChanged] = useState(false)
@@ -113,7 +115,12 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
       setInvitePolicyChanged(false)
     }
     setState({ ...state, changed: false })
-    updateGroupSettings(changes)
+    const saving = Promise.resolve(updateGroupSettings(changes))
+    if (changes.invitePolicy) {
+      saving.then(result => {
+        if (!result?.error) dispatch(trackInvitePolicySet(changes.invitePolicy.mode, 'settings'))
+      })
+    }
   }
 
   const { setHeaderDetails } = useViewHeader()
