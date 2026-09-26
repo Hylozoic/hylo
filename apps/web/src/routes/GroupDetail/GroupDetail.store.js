@@ -1,3 +1,4 @@
+import { AnalyticsEvents } from '@hylo/shared'
 import { CREATE_JOIN_REQUEST, FETCH_MY_JOIN_REQUESTS } from 'store/constants'
 import fetchMyPendingJoinRequestsQuery from '@graphql/queries/fetchMyPendingJoinRequestsQuery'
 
@@ -60,7 +61,16 @@ export function joinGroup (groupId, questionAnswers, accessCode, invitationToken
     meta: {
       extractModel: 'Membership',
       groupId,
-      optimistic: true
+      optimistic: true,
+      ...(accessCode || invitationToken
+        ? {
+            analytics: {
+              eventName: AnalyticsEvents.GROUP_INVITATION_ACCEPTED,
+              groupId,
+              method: invitationToken ? 'email' : 'link'
+            }
+          }
+        : {})
     }
   }
 }
