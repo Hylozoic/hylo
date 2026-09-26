@@ -66,4 +66,43 @@ describe('Email', function () {
       expect(sentry.error).not.to.have.been.called()
     })
   })
+
+  describe('headers', () => {
+    let sentBody
+
+    const captureSend = () => {
+      sentBody = null
+      nock('https://api.sendwithus.com')
+        .post(SENDWITHUS_SEND_PATH, body => { sentBody = body; return true })
+        .reply(200, { success: true })
+    }
+
+    it('sends account emails without Precedence: bulk', async () => {
+      for (const send of ['sendPasswordReset', 'sendEmailVerification', 'sendFinishRegistration']) {
+        captureSend()
+        await Email[send]({ email: 'member@example.com', templateData: {}, locale: 'es' })
+        expect(sentBody.headers, send).to.deep.equal({ 'X-Auto-Response-Suppress': 'All' })
+        expect(sentBody.locale, send).to.equal('es-ES')
+        expect(sentBody.sender.name, send).to.equal('The Team at Hylo')
+      }
+    })
+
+    it('sends purchase and refund receipts without Precedence: bulk', async () => {
+      for (const send of ['sendPurchaseConfirmation', 'sendTrackAccessPurchased', 'sendSubscriptionRenewed', 'sendRefundProcessed']) {
+        captureSend()
+        await Email[send]({ email: 'member@example.com', data: {}, locale: 'en' })
+        expect(sentBody.headers, send).to.deep.equal({ 'X-Auto-Response-Suppress': 'All' })
+      }
+    })
+
+    it('keeps Precedence: bulk on digests and notifications', async () => {
+      captureSend()
+      await Email.sendSimpleEmail('member@example.com', 'tem_t7rmGfJKvqXrvmrVWJjjWkg4', {}, { version: 'Spaces' })
+      expect(sentBody.headers).to.deep.equal({ Precedence: 'bulk', 'X-Auto-Response-Suppress': 'All' })
+
+      captureSend()
+      await Email.sendCommentDigest({ email: 'member@example.com', data: {} })
+      expect(sentBody.headers).to.deep.equal({ Precedence: 'bulk', 'X-Auto-Response-Suppress': 'All' })
+    })
+  })
 })
