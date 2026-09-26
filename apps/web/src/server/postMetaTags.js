@@ -20,24 +20,35 @@ export function escapeHtmlAttr (value) {
     .replace(/>/g, '&gt;')
 }
 
+/** The scheme and host the request came in on, honouring the load balancer's forwarded scheme. */
+export function requestOrigin (req) {
+  const forwardedProto = req.get?.('x-forwarded-proto') || req.headers?.['x-forwarded-proto']
+  const protocol = String(forwardedProto || req.protocol || 'https').split(',')[0].trim()
+  const host = req.get?.('host') || req.headers?.host || ''
+  return host ? `${protocol}://${host}` : ''
+}
+
 /**
- * Builds Open Graph / Twitter meta tags for a public post.
+ * Builds Open Graph / Twitter meta tags. Description tags are left out when description is null.
  * @returns {string} HTML to inject into <head>
  */
-export function buildPostMetaTagHtml ({ title, description, imageUrl, url }) {
+export function buildMetaTagHtml ({ title, description = null, imageUrl, url, type = 'article', twitterCard }) {
   const safeTitle = escapeHtmlAttr(title)
-  const safeDescription = escapeHtmlAttr(description)
   const safeUrl = escapeHtmlAttr(url)
   const tags = [
     `<title>${safeTitle}</title>`,
-    `<meta name="description" content="${safeDescription}" />`,
-    '<meta property="og:type" content="article" />',
+    `<meta property="og:type" content="${escapeHtmlAttr(type)}" />`,
     '<meta property="og:site_name" content="Hylo" />',
     `<meta property="og:title" content="${safeTitle}" />`,
-    `<meta property="og:description" content="${safeDescription}" />`,
-    `<meta name="twitter:title" content="${safeTitle}" />`,
-    `<meta name="twitter:description" content="${safeDescription}" />`
+    `<meta name="twitter:title" content="${safeTitle}" />`
   ]
+
+  if (description !== null) {
+    const safeDescription = escapeHtmlAttr(description)
+    tags.push(`<meta name="description" content="${safeDescription}" />`)
+    tags.push(`<meta property="og:description" content="${safeDescription}" />`)
+    tags.push(`<meta name="twitter:description" content="${safeDescription}" />`)
+  }
 
   if (safeUrl) {
     tags.push(`<meta property="og:url" content="${safeUrl}" />`)
@@ -46,13 +57,18 @@ export function buildPostMetaTagHtml ({ title, description, imageUrl, url }) {
   if (imageUrl) {
     const safeImage = escapeHtmlAttr(imageUrl)
     tags.push(`<meta property="og:image" content="${safeImage}" />`)
-    tags.push('<meta name="twitter:card" content="summary_large_image" />')
+    tags.push(`<meta name="twitter:card" content="${twitterCard || 'summary_large_image'}" />`)
     tags.push(`<meta name="twitter:image" content="${safeImage}" />`)
   } else {
     tags.push('<meta name="twitter:card" content="summary" />')
   }
 
   return tags.join('\n    ')
+}
+
+/** Builds Open Graph / Twitter meta tags for a public post. */
+export function buildPostMetaTagHtml ({ title, description, imageUrl, url }) {
+  return buildMetaTagHtml({ title, description: description ?? '', imageUrl, url, type: 'article' })
 }
 
 /** Replaces the default <title> and inserts OG tags before </head>. */
@@ -129,9 +145,7 @@ export async function withPublicPostMetaTags (html, req, opts = {}) {
     const meta = await fetchPublicPostMeta(postId, opts)
     if (!meta) return html
 
-    const protocol = req.protocol || 'https'
-    const host = req.get?.('host') || req.headers?.host || ''
-    const url = host ? `${protocol}://${host}${path}` : path
+    const url = `${requestOrigin(req)}${path}`
     const metaHtml = buildPostMetaTagHtml({ ...meta, url })
     return injectPostMetaTagsIntoHtml(html, metaHtml)
   } catch (err) {

@@ -2,8 +2,10 @@
 import {
   extractPostIdFromPath,
   escapeHtmlAttr,
+  buildMetaTagHtml,
   buildPostMetaTagHtml,
   injectPostMetaTagsIntoHtml,
+  requestOrigin,
   presentPublicPostMeta,
   fetchPublicPostMeta,
   withPublicPostMetaTags
@@ -84,6 +86,25 @@ describe('buildPostMetaTagHtml / injectPostMetaTagsIntoHtml', () => {
     expect(html).toContain('twitter:card')
     expect(html).toContain('summary_large_image')
     expect(html).not.toMatch(/<title>Hylo<\/title>/)
+  })
+})
+
+describe('buildMetaTagHtml', () => {
+  it('leaves the description tags out when there is no description', () => {
+    const metaHtml = buildMetaTagHtml({ title: 'Garden Club', description: null, type: 'website' })
+    expect(metaHtml).toContain('<meta property="og:type" content="website" />')
+    expect(metaHtml).not.toContain('description')
+  })
+})
+
+describe('requestOrigin', () => {
+  it('prefers the scheme forwarded by the load balancer', () => {
+    const req = { protocol: 'http', get: name => ({ host: 'hylo.com', 'x-forwarded-proto': 'https' })[name] }
+    expect(requestOrigin(req)).toBe('https://hylo.com')
+  })
+
+  it('returns an empty origin without a host', () => {
+    expect(requestOrigin({ headers: {} })).toBe('')
   })
 })
 
