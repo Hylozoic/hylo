@@ -35,6 +35,7 @@ export async function updateGroupRole ({ groupRoleId, color, name, description, 
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+      await GroupRole.assertAssignableRoleIds([groupRoleId])
       return bookshelf.transaction(async transacting => {
         const groupRole = await GroupRole.where({ id: groupRoleId }).fetch()
         const verifiedActiveParam = (active == null) ? groupRole.get('active') : active
@@ -63,6 +64,7 @@ export async function addRoleToMember ({ userId, roleId, personId, groupId }) {
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+      await GroupRole.assertAssignableRoleIds([roleId])
       return MemberGroupRole.forge({
         group_role_id: roleId,
         user_id: personId,
@@ -84,6 +86,7 @@ export async function removeRoleFromMember ({ userId, roleId, personId, groupId 
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION) || userId === personId) {
+      await GroupRole.assertAssignableRoleIds([roleId])
       const role = await MemberGroupRole.query(q => {
         return q.where('user_id', personId)
           .andWhere('group_role_id', roleId)
