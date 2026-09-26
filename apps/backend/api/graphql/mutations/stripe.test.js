@@ -4,7 +4,9 @@ import factories from '../../../test/setup/factories'
 import mock from 'mock-require'
 const { expect } = require('chai')
 
-/* global StripeAccount, GroupMembership, StripeProduct */
+/* global StripeAccount, StripeProduct */
+
+const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
 
 // Mock StripeService to avoid real API calls
 let lastCreateCheckoutSessionArgs = null
@@ -354,6 +356,22 @@ describe('Stripe Mutations', () => {
       ).to.be.rejectedWith('You must be a group administrator to create offerings')
     })
 
+    it('rejects the Member role in access grants', async () => {
+      const memberRole = await GroupRole.findMemberRole(group.id)
+      const countOfferings = () => StripeProduct.where({ group_id: group.id }).count().then(Number)
+      const before = await countOfferings()
+
+      await expect(
+        createStripeOffering(adminUser.id, {
+          groupId: group.id,
+          accountId: 'acct_test_123',
+          name: 'Member Grant',
+          priceInCents: 1000,
+          accessGrants: { groupIds: [group.id], groupRoleIds: [memberRole.id] }
+        })
+      ).to.be.rejectedWith(MEMBER_ROLE_ERROR)
+      expect(await countOfferings()).to.equal(before)
+    })
   })
 
   describe('updateStripeOffering', () => {
@@ -432,6 +450,22 @@ describe('Stripe Mutations', () => {
       // Verify the changes were saved
       await testProduct.refresh()
       expect(testProduct.get('access_grants')).to.deep.equal(newAccessGrants)
+    })
+
+    it('rejects the Member role in access grants', async () => {
+      const memberRole = await GroupRole.findMemberRole(group.id)
+      await testProduct.refresh()
+      const before = testProduct.get('access_grants')
+
+      await expect(
+        updateStripeOffering(adminUser.id, {
+          offeringId: testProduct.id,
+          accessGrants: { groupIds: [group.id], groupRoleIds: [String(memberRole.id)] }
+        })
+      ).to.be.rejectedWith(MEMBER_ROLE_ERROR)
+
+      await testProduct.refresh()
+      expect(testProduct.get('access_grants')).to.deep.equal(before)
     })
 
     it('updates renewal policy and duration', async () => {

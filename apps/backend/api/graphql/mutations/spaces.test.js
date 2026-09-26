@@ -6,6 +6,8 @@ import { mockify, unspyify } from '../../../test/setup/helpers'
 import { archiveSpace, convertGroupToSpace, convertSpaceToChildGroup, createSpace, deleteSpace, joinSpace, updateSpace } from './spaces'
 import { createInvitation } from './invitation'
 
+const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+
 describe('space mutations', () => {
   let administrator, member, parentGroup
 
@@ -210,6 +212,28 @@ describe('space mutations', () => {
       }
 
       expect(await Group.find(space.id)).to.not.be.null
+      await deleteSpace(administrator.id, space.id, {})
+    })
+  })
+
+  describe('requiredRoles', () => {
+    it('rejects the Member role when creating or updating a space', async () => {
+      const memberRole = await GroupRole.findMemberRole(parentGroup.id)
+      const name = `Member Gated ${Date.now()}`
+      await expect(createSpace(administrator.id, { parentGroupId: parentGroup.id, name, requiredRoles: [memberRole.id] }, {}))
+        .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+      expect(await Group.where({ parent_id: parentGroup.id, name }).fetch()).to.be.null
+
+      const moderatorRole = await GroupRole.findSystemRole(parentGroup.id, 'Moderator')
+      const space = await createSpace(administrator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Moderator Gated ${Date.now()}`,
+        requiredRoles: [moderatorRole.id]
+      }, {})
+      await expect(updateSpace(administrator.id, { id: space.id, requiredRoles: [moderatorRole.id, memberRole.id] }, {}))
+        .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+      await space.refresh()
+      expect(space.get('required_roles')).to.deep.equal([moderatorRole.id])
       await deleteSpace(administrator.id, space.id, {})
     })
   })

@@ -69,6 +69,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
     throw new GraphQLError("You don't have permission to create spaces in this group")
   }
+  await GroupRole.assertAssignableRoleIds(requiredRoles)
 
   const finalSlug = await uniqueStoredSpaceSlug(parentGroup.get('slug'), slug, name)
   const isPaywalled = Boolean(paywall)
@@ -171,7 +172,10 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
   if (accessibility !== undefined) changes.accessibility = accessibility
   if (description !== undefined) changes.description = description
   if (purpose !== undefined) changes.purpose = purpose
-  if (requiredRoles !== undefined) changes.required_roles = requiredRoles
+  if (requiredRoles !== undefined) {
+    await GroupRole.assertAssignableRoleIds(requiredRoles)
+    changes.required_roles = requiredRoles
+  }
   if (location !== undefined) changes.location = location
   if (locationId !== undefined) changes.location_id = locationId
   if (icon !== undefined) changes.icon = icon || null

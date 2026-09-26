@@ -12,6 +12,8 @@ import {
   allocateTokensToSubmission
 } from './fundingRound'
 
+const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+
 /** Save a funding round and put lifecycle on the space group.status. */
 async function saveRound (attrs) {
   const status = attrs.phase
@@ -169,6 +171,24 @@ describe('createFundingRound', () => {
     expect(parsedSubmitterRoles).to.deep.equal(submitterRoles)
     expect(parsedVoterRoles).to.deep.equal(voterRoles)
   })
+
+  it('rejects the Member role as a submitter or voter role', async () => {
+    const memberRole = await GroupRole.findMemberRole(group.id)
+    const data = {
+      title: 'Member Round',
+      groupId: group.id,
+      votingMethod: 'token_allocation_constant',
+      totalTokens: 100
+    }
+    const countRounds = async () => Number((await bookshelf.knex('funding_rounds').count('id as count').first()).count)
+    const before = await countRounds()
+
+    await expect(createFundingRound(moderatorUser.id, { ...data, submitterRoles: [{ id: memberRole.id }] }))
+      .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+    await expect(createFundingRound(moderatorUser.id, { ...data, voterRoles: [{ id: String(memberRole.id) }] }))
+      .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+    expect(await countRounds()).to.equal(before)
+  })
 })
 
 describe('updateFundingRound', () => {
@@ -219,6 +239,19 @@ describe('updateFundingRound', () => {
     const parsedVoterRoles = typeof storedVoterRoles === 'string' ? JSON.parse(storedVoterRoles) : storedVoterRoles
     expect(parsedSubmitterRoles).to.deep.equal(submitterRoles)
     expect(parsedVoterRoles).to.deep.equal(voterRoles)
+  })
+
+  it('rejects the Member role in role restrictions', async () => {
+    const memberRole = await GroupRole.findMemberRole(group.id)
+    const moderator = await GroupRole.findSystemRole(group.id, 'Moderator')
+
+    await expect(updateFundingRound(moderatorUser.id, round.id, { voterRoles: [{ id: moderator.id }, { id: memberRole.id }] }))
+      .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+
+    await round.refresh()
+    const stored = round.get('voter_roles')
+    const parsed = typeof stored === 'string' ? JSON.parse(stored) : (stored || [])
+    expect(parsed).to.deep.equal([])
   })
 
   it('throws error when round does not exist', async () => {

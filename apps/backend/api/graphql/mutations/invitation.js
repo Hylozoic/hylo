@@ -13,6 +13,7 @@ export async function createInvitation (userId, groupId, data) {
     .then(() => Group.find(groupId))
     .then(async (group) => {
       if (!group) throw new GraphQLError('Cannot find group to send invites for')
+      await GroupRole.assertAssignableRoleIds(data.groupRoleId)
 
       // Defensive check: when inviting specific users (userIds) to a role-gated
       // space, verify each target user has one of the required roles.
