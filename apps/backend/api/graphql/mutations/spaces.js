@@ -606,6 +606,9 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
     }
     hasValidInvitation = !!(inviteCheck?.valid && inviteCheck.groupSlug === space.get('slug'))
 
+    const requiredRoles = space.get('required_roles')
+    const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
+
     if (!canAdministerParent) {
       if (space.get('paywall')) {
         throw new GraphQLError('This space requires purchased access to join')
@@ -613,9 +616,6 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
 
       // Check required roles regardless of invitation status.
       // Invite links do NOT bypass role gating — the invited person must hold the role.
-      const requiredRoles = space.get('required_roles')
-      const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
-
       if (isRoleGated) {
         const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
           .where({ user_id: userId, group_id: parentId, active: true })
@@ -629,9 +629,18 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
       }
     }
 
-    const joinAttribution = hasValidInvitation
-      ? await GroupMembership.inviteJoinAttribution({ accessCode, invitationToken })
-      : { joinSource: GroupMembership.JoinSource.OPEN }
+    // Only a join any parent member could make unaided counts as open. Joins let
+    // through by parent Administration or a required role leave the source unset.
+    const isOpenJoin = spaceStatus !== Group.Status.DRAFT &&
+      !space.get('paywall') &&
+      !isRoleGated &&
+      space.get('accessibility') === Group.Accessibility.OPEN
+    let joinAttribution = {}
+    if (hasValidInvitation) {
+      joinAttribution = await GroupMembership.inviteJoinAttribution({ accessCode, invitationToken })
+    } else if (isOpenJoin) {
+      joinAttribution = { joinSource: GroupMembership.JoinSource.OPEN }
+    }
     membership = await user.joinGroup(space, { fromInvitation: hasValidInvitation, ...joinAttribution })
   }
 
