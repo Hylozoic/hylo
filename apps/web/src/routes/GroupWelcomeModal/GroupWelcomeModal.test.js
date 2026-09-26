@@ -257,3 +257,90 @@ it('tracks Group Welcome Completed when the member jumps in', async () => {
     })
   })
 })
+
+it('does not track Group Welcome Completed when an existing member re-accepts changed agreements', async () => {
+  trackAnalyticsEvent.mockClear()
+  const user = userEvent.setup()
+  const testGroup = {
+    id: '4',
+    name: 'Changed Agreements Group',
+    slug: 'changed-agreements-group',
+    bannerUrl: 'anything',
+    settings: {
+      agreementsLastUpdatedAt: '2022-01-01T00:00:00.000Z'
+    },
+    agreements: [{ id: '41', description: 'Be kind to each other', title: 'Kindness' }]
+  }
+  const testMembership = {
+    id: '4',
+    person: { id: '1' },
+    settings: {
+      showJoinForm: false,
+      agreementsAcceptedAt: '2021-06-01T00:00:00.000Z',
+      joinQuestionsAnsweredAt: '2021-06-01T00:00:00.000Z'
+    },
+    group: testGroup
+  }
+
+  function testProviders () {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    const reduxState = { orm: ormSession.state }
+
+    extractModelsForTest({
+      me: {
+        id: '1',
+        memberships: {
+          items: [testMembership]
+        }
+      }
+    }, 'Me', ormSession)
+
+    extractModelsForTest({
+      groups: [testGroup]
+    }, 'Group', ormSession)
+
+    return AllTheProviders(reduxState)
+  }
+
+  let membershipUpdated = false
+  mockGraphqlServer.use(
+    graphql.query('GroupWelcomeQuery', () => {
+      return HttpResponse.json({
+        data: {
+          group: {
+            id: testGroup.id,
+            settings: testGroup.settings,
+            agreements: {
+              items: [{ id: '41', description: 'Be kind to each other', title: 'Kindness' }]
+            }
+          }
+        }
+      })
+    }),
+    graphql.mutation('UpdateMembershipSettings', () => {
+      membershipUpdated = true
+      return HttpResponse.json({
+        data: {
+          updateMembership: {
+            id: testMembership.id
+          }
+        }
+      })
+    })
+  )
+
+  jest.spyOn(reactRouterDom, 'useParams').mockReturnValue({ groupSlug: testGroup.slug })
+
+  render(
+    <GroupWelcomeModal />,
+    { wrapper: testProviders() }
+  )
+
+  expect(await screen.findByText('The agreements have changed since you last accepted them. Please review and accept them again.')).toBeInTheDocument()
+  await user.click(screen.getByTestId('cbAgreement0'))
+  await user.click(screen.getByTestId('jump-in'))
+
+  await waitFor(() => expect(membershipUpdated).toBe(true))
+  await new Promise(resolve => setTimeout(resolve, 100))
+  expect(trackAnalyticsEvent).not.toHaveBeenCalledWith('Group Welcome Completed', expect.anything())
+})

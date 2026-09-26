@@ -139,6 +139,8 @@ export default function GroupWelcomeModal (props) {
       return
     }
 
+    // Existing members also see this modal to re-accept changed agreements; that is not a welcome
+    const isFirstWelcome = Boolean(currentMembership.settings?.showJoinForm)
     await dispatch(updateMembershipSettings(
       group.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
@@ -146,11 +148,13 @@ export default function GroupWelcomeModal (props) {
       // If join questions were previously answered, don't overwrite them with empty answers here
       questionAnswers && !joinQuestionsAnsweredAt && !questionsHaveSavedAnswers ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : null
     ))
-    dispatch(trackAnalyticsEvent(AnalyticsEvents.GROUP_WELCOME_COMPLETED, {
-      groupId: group.id,
-      hadAgreements: hasFirstPage,
-      hadJoinQuestions: questionsStillRequired
-    }))
+    if (isFirstWelcome) {
+      dispatch(trackAnalyticsEvent(AnalyticsEvents.GROUP_WELCOME_COMPLETED, {
+        groupId: group.id,
+        hadAgreements: hasFirstPage,
+        hadJoinQuestions: questionsStillRequired
+      }))
+    }
     return null
   }
 
