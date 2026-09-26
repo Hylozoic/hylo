@@ -2,12 +2,14 @@ import root from 'root-path'
 import { readFileSync } from 'fs'
 import lodash from 'lodash'
 import { withPublicPostMetaTags } from './postMetaTags.js'
+import { withDefaultMetaTags, withGroupMetaTags } from './groupMetaTags.js'
 
 export default async function appMiddleware (req, res, next) {
   // The shell names hashed assets. It must revalidate on every load so a deploy is picked up.
   res.setHeader('Cache-Control', 'no-cache')
-  const page = await withPublicPostMetaTags(html(''), req)
-  return res.status(200).send(page)
+  const withPostTags = await withPublicPostMetaTags(html(''), req)
+  const withGroupTags = await withGroupMetaTags(withPostTags, req)
+  return res.status(200).send(withDefaultMetaTags(withGroupTags, req))
 }
 
 // A property to make it easy to mock in tests
