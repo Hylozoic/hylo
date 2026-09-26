@@ -779,6 +779,36 @@ describe('group digest v2', () => {
       expect(Email.sendSimpleEmail).to.have.been.called.exactly(2)
       expect(count).to.equal(1)
     })
+
+    it('keeps sending to other members when one send throws', async function () {
+      this.timeout(10000)
+      mockify(Email, 'sendSimpleEmail', address => {
+        if (address === reader.get('email')) throw new Error('template error')
+        return Promise.resolve({ success: true })
+      })
+
+      const count = await sendDigest(group.id, 'daily')
+
+      expect(Email.sendSimpleEmail).to.have.been.called.exactly(2)
+      expect(count).to.equal(1)
+    })
+
+    it('keeps sending other groups when one group fails', async function () {
+      this.timeout(10000)
+      const brokenGroup = await factories.group().save()
+      mockify(Email, 'sendSimpleEmail', () => Promise.resolve({ success: true }))
+      const findGroup = Group.find
+      mockify(Group, 'find', (id, opts) => String(id) === String(brokenGroup.id)
+        ? Promise.reject(new Error('group lookup failed'))
+        : findGroup.call(Group, id, opts))
+
+      try {
+        const result = await sendAllDigests('daily', { groupIds: [brokenGroup.id, group.id] })
+        expect(result).to.deep.equal([[group.id, 2]])
+      } finally {
+        unspyify(Group, 'find')
+      }
+    })
   })
 
   describe('upcomingPostReminders', () => {

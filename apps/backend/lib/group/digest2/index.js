@@ -9,6 +9,7 @@ import {
   shouldSendData
 } from './util'
 import { senderNameViaHylo } from '../../email/senderNameViaHylo'
+import sentry from '../../sentry'
 
 const DIGEST_TEMPLATE_ID = 'tem_t7rmGfJKvqXrvmrVWJjjWkg4'
 const SAVED_SEARCH_TEMPLATE_ID = 'tem_yfgPbhVHbRHYpy6Dc3hgKjcX'
@@ -79,7 +80,12 @@ export const sendDigest = (id, type, opts = {}) => {
         .then(async users => {
           let sent = 0
           for (const user of users) {
-            if (await sendToUser(user, type, data, opts) !== false) sent += 1
+            try {
+              if (await sendToUser(user, type, data, opts) !== false) sent += 1
+            } catch (err) {
+              sails.log.error(`digest2: error sending ${type} digest for group ${id} to user ${user.id}: ${err.message}`, err.stack)
+              sentry.error(err, null, { groupId: id, userId: user.id, type })
+            }
           }
           return sent
         })))
@@ -99,7 +105,13 @@ export const sendAllDigests = (type, opts = {}) => {
   return query
     .pluck('id')
     .then(ids => Promise.map(ids, id =>
-      sendDigest(id, type, opts).then(count => count && [id, count]))
+      sendDigest(id, type, opts)
+        .then(count => count && [id, count])
+        .catch(err => {
+          sails.log.error(`digest2: error sending ${type} digests for group ${id}: ${err.message}`, err.stack)
+          sentry.error(err, null, { groupId: id, type })
+          return null
+        }))
       .then(compact))
 }
 
