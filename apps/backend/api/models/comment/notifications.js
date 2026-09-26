@@ -102,6 +102,16 @@ export const sendDigests = async () => {
   }
 }
 
+// Uses the post's timezone (UTC when unset) because recipients have no timezone setting.
+function formatCommentTime (date, locale, timeZone) {
+  const options = { hour: 'numeric', minute: 'numeric' }
+  try {
+    return date.toLocaleString(locale, { ...options, timeZone: timeZone || 'UTC' })
+  } catch (err) {
+    return date.toLocaleString(locale, { ...options, timeZone: 'UTC' })
+  }
+}
+
 async function sendDigestForUser ({ post, comments, user }) {
   if (user.pivot.get('muted_at')) return
 
@@ -124,7 +134,7 @@ async function sendDigestForUser ({ post, comments, user }) {
       image: comment.relations?.media?.first?.()?.pick('url', 'thumbnail_url'),
       name: comment.relations.user.get('name'),
       avatar_url: comment.relations.user.get('avatar_url'),
-      timestamp: comment.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+      timestamp: formatCommentTime(comment.get('created_at'), locale, post.get('timezone'))
     }
     return presented
   }
@@ -191,8 +201,8 @@ async function sendDigestForUser ({ post, comments, user }) {
         thread_url: Frontend.appendQueryString(Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }), clickthroughParams),
         comments: commentData,
         subject_prefix: some(hasMention, commentData)
-          ? 'You were mentioned in'
-          : 'New comments on'
+          ? getLocaleStrings(locale).commentDigestMentionedIn()
+          : getLocaleStrings(locale).commentDigestNewCommentsOn()
       },
       sender: {
         reply_to: Email.postReplyAddress(post.id, user.id),
