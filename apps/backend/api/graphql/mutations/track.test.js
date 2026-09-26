@@ -132,6 +132,7 @@ describe('track mutations', () => {
       const membership = await GroupMembership.forPair(member.id, space).fetch()
       expect(!!membership).to.equal(true)
       expect(membership.get('active')).to.equal(true)
+      expect(membership.getSetting('joinSource')).to.equal('track')
     })
 
     it('rejects enrollment when the track is not published', async () => {

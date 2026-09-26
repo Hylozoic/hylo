@@ -362,6 +362,7 @@ describe('joinFundingRound', () => {
     const membership = await GroupMembership.forPair(user.id, space).fetch()
     expect(membership).to.exist
     expect(membership.get('active')).to.equal(true)
+    expect(membership.getSetting('joinSource')).to.equal('funding_round')
   })
 
   it('does not allocate tokens when joining before voting', async () => {

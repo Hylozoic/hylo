@@ -245,6 +245,17 @@ describe('space mutations', () => {
     })
   })
 
+  describe('createSpace membership', () => {
+    it('records the creator as the first member', async () => {
+      const space = await createSpace(administrator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Creator ${Date.now()}`
+      }, {})
+      const membership = await GroupMembership.forPair(administrator.id, space.id).fetch()
+      expect(membership.getSetting('joinSource')).to.equal('creator')
+    })
+  })
+
   describe('archiveSpace', () => {
     it('sets status archived and keeps the row active', async () => {
       const space = await createSpace(administrator.id, {
@@ -368,6 +379,8 @@ describe('space mutations', () => {
       expect(converterMembership.get('settings')?.showJoinForm).to.not.equal(true)
       expect(memberMembership.get('settings')?.showJoinForm).to.equal(false)
       expect(hostMembership.get('settings')?.showJoinForm).to.equal(false)
+      expect(memberMembership.getSetting('joinSource')).to.equal('space')
+      expect(hostMembership.getSetting('joinSource')).to.equal('space')
 
       expect(await MemberGroupRole.where({
         user_id: administrator.id,

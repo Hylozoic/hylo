@@ -2,6 +2,7 @@
 import factories from '../../../test/setup/factories'
 
 import {
+  addMember,
   createGroup,
   joinGroup,
   updateGroup,
@@ -159,6 +160,17 @@ describe('mutations/group', () => {
         expect(membership.getSetting('invitationId')).to.equal(invitation.id)
         expect(membership.getSetting('invitedById')).to.equal(inviter.id)
       })
+    })
+  })
+
+  describe('addMember', () => {
+    it('records admin_add as the join source', async () => {
+      const user = await factories.user().save()
+      const group = await factories.group().save()
+      const result = await addMember(user.id, group.id)
+      expect(result.success).to.be.true
+      const membership = await GroupMembership.forPair(user, group).fetch()
+      expect(membership.getSetting('joinSource')).to.equal('admin_add')
     })
   })
 
