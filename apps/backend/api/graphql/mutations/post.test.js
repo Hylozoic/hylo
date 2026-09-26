@@ -2,8 +2,9 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
-import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, deletePost, fulfillPost, unfulfillPost } from './post'
-import { spyify, unspyify } from '../../../test/setup/helpers'
+import RedisClient from '../../services/RedisClient'
+import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, deletePost, fulfillPost, unfulfillPost, followPost, unfollowPost } from './post'
+import { mockify, spyify, unspyify } from '../../../test/setup/helpers'
 
 describe('pinPost', () => {
   var user, group, post, view
@@ -425,5 +426,92 @@ describe('fulfillPost and unfulfillPost', () => {
     expect(requestPost.get('fulfilled_at')).to.not.exist
     expect(Queue.classMethod).to.have.been.called.with('Post', 'publishPostUpdates', { postId: requestPost.id, options: { changeContext: 'completion' } })
     expect(Activity.saveForReasons).to.have.been.called
+  })
+})
+
+describe('followPost and unfollowPost', () => {
+  let author, reader, outsider, post, originalEmailNotificationsEnabled
+
+  const commentOnPost = async () => {
+    const comment = await factories.comment({ post_id: post.id, user_id: author.id }).save()
+    await comment.createActivities()
+    return comment
+  }
+
+  const commentActivityFor = (comment, user) =>
+    Activity.where({ comment_id: comment.id, reader_id: user.id }).fetch()
+
+  const sendCommentDigests = async () => {
+    await (await RedisClient.create()).del(Comment.sendDigests.REDIS_TIMESTAMP_KEY)
+    await Comment.sendDigests()
+  }
+
+  const digestRecipients = () =>
+    Email.sendCommentDigest.__spy.calls.map(([args]) => args.email)
+
+  beforeEach(async () => {
+    await setup.clearDb()
+    originalEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+    process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+    mockify(Email, 'sendCommentDigest', () => Promise.resolve(true))
+
+    author = await factories.user().save()
+    reader = await factories.user({ settings: { comment_notifications: 'email' } }).save()
+    outsider = await factories.user().save()
+    const group = await factories.group().save()
+    await author.joinGroup(group)
+    await reader.joinGroup(group)
+    post = await factories.post({ type: 'discussion', user_id: author.id }).save()
+    await post.groups().attach(group)
+    await post.addFollowers([author.id, reader.id])
+    await PostUser.find(post.id, reader.id).then(pu => pu.save({ saved_at: new Date() }, { patch: true }))
+  })
+
+  afterEach(() => {
+    process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
+    unspyify(Email, 'sendCommentDigest')
+  })
+
+  it('removes the user from the followers but keeps their saved state', async () => {
+    await unfollowPost(reader.id, post.id)
+
+    const followerIds = (await post.followers().fetch()).pluck('id')
+    expect(followerIds).to.not.include(reader.id)
+    const postUser = await PostUser.find(post.id, reader.id)
+    expect(postUser.get('active')).to.equal(true)
+    expect(postUser.get('saved_at')).to.exist
+  })
+
+  it('stops comment activities and comment digests for the unfollower', async () => {
+    await unfollowPost(reader.id, post.id)
+    const comment = await commentOnPost()
+
+    expect(await commentActivityFor(comment, reader)).to.not.exist
+    await sendCommentDigests()
+    expect(digestRecipients()).to.not.include(reader.get('email'))
+  })
+
+  it('restores comment activities and comment digests when following again', async () => {
+    await unfollowPost(reader.id, post.id)
+    await followPost(reader.id, post.id)
+    const comment = await commentOnPost()
+
+    const activity = await commentActivityFor(comment, reader)
+    expect(activity.get('meta').reasons).to.include('newComment')
+    await sendCommentDigests()
+    expect(digestRecipients()).to.include(reader.get('email'))
+  })
+
+  it('rejects a post the user cannot see', async () => {
+    await expect(unfollowPost(outsider.id, post.id)).to.be.rejectedWith('Post not found')
+    await expect(followPost(outsider.id, post.id)).to.be.rejectedWith('Post not found')
+    expect(await PostUser.find(post.id, outsider.id)).to.not.exist
+  })
+
+  it('rejects message threads', async () => {
+    const thread = await factories.post({ type: Post.Type.THREAD, user_id: author.id }).save()
+    await thread.addFollowers([author.id, reader.id])
+
+    await expect(unfollowPost(reader.id, thread.id)).to.be.rejectedWith('Message threads can be muted but not unfollowed')
   })
 })

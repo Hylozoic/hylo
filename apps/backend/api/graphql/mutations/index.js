@@ -93,7 +93,9 @@ export { registerDevice } from './mobile'
 export {
   completePost,
   createPost,
+  followPost,
   fulfillPost,
+  unfollowPost,
   unfulfillPost,
   setProposalOptions,
   addProposalVote,

@@ -169,6 +169,26 @@ export function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
     .then(() => ({ success: true }))
 }
 
+async function findPostToFollow (userId, postId) {
+  const post = await Post.find(postId)
+  if (!post || !(await Post.isVisibleToUser(postId, userId))) throw new GraphQLError('Post not found')
+  if (post.get('type') === Post.Type.THREAD) throw new GraphQLError('Message threads can be muted but not unfollowed')
+  return post
+}
+
+export async function followPost (userId, postId) {
+  const post = await findPostToFollow(userId, postId)
+  await post.addFollowers([userId])
+  return Post.find(postId)
+}
+
+// Keeps the posts_users row active so saved and read state survive
+export async function unfollowPost (userId, postId) {
+  const post = await findPostToFollow(userId, postId)
+  await post.updateFollowers([userId], { following: false })
+  return Post.find(postId)
+}
+
 export async function pinPost (userId, postId, viewId) {
   const view = await GroupView.where({ id: viewId }).fetch()
   if (!view) throw new GraphQLError("Couldn't find view")

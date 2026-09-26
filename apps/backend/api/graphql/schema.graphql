@@ -2345,6 +2345,8 @@ type Post {
   groupsTotal: Int
   # Whether who votes on this proposal is visible or not
   isAnonymousVote: Boolean
+  # Whether the current user follows this post and is notified about new comments on it
+  isFollowing: Boolean
   # Whether this post is publicly visible (outside of the groups it is posted to)
   isPublic: Boolean
   # A strict proposal cannot be edited in all the ways a casual proposal can be
@@ -3495,6 +3497,8 @@ type Mutation {
   findOrCreateThread(data: MessageThreadInput): MessageThread
   # Flag a post as innapropriate
   flagInappropriateContent(data: InappropriateContentInput): GenericResult
+  # Get notified about new comments on a post
+  followPost(postId: ID): Post
   # Mark one of your posts as fulfilled or completed
   fulfillPost(postId: ID): GenericResult
   # Invite a group to join one of your groups as a child of it. Only a group steward can call this.
@@ -3615,6 +3619,8 @@ type Mutation {
   unlinkAccount(provider: String): GenericResult
   # Unblock a user
   unblockUser(blockedUserId: ID): GenericResult
+  # Stop getting notified about new comments on a post
+  unfollowPost(postId: ID): Post
   # Mark a post as unfulfilled/uncompleted
   unfulfillPost(postId: ID): GenericResult
   # Remove a post from your saved posts list
