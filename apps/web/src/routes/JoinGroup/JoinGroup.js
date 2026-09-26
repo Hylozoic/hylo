@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { useLocation, useNavigate, Navigate, useParams } from 'react-router-dom'
+import { useLocation, Navigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { every, isEmpty } from 'lodash/fp'
 import { baseUrl, groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import setReturnToPath from 'store/actions/setReturnToPath'
@@ -13,6 +14,7 @@ import joinSpace from 'store/actions/joinSpace'
 import Loading from 'components/Loading'
 
 export const SIGNUP_PATH = '/signup'
+export const INVALID_INVITE_TOAST_ID = 'invalid-invite'
 
 /**
  * Build the redirect URL for the group about page with invitation params
@@ -53,7 +55,6 @@ function buildSpaceRedirectUrl (parentGroupSlug, spaceSlug) {
  * and then open the space. Otherwise they go to the parent group's about page.
  */
 export default function JoinGroup (props) {
-  const navigate = useNavigate()
   const dispatch = useDispatch()
   const signupComplete = useSelector(getSignupComplete)
   const myMemberships = useSelector(getMyMemberships)
@@ -64,10 +65,10 @@ export default function JoinGroup (props) {
 
   useEffect(() => {
     (async function () {
-      try {
-        const invitationToken = getQuerystringParam('token', location)
-        const accessCode = routeParams.accessCode
+      const invitationToken = getQuerystringParam('token', location)
+      const accessCode = routeParams.accessCode
 
+      try {
         if (every(isEmpty, { invitationToken, accessCode })) {
           throw new Error(t('Please provide either a token query string parameter or accessCode route param'))
         }
@@ -80,7 +81,7 @@ export default function JoinGroup (props) {
           throw new Error(t('Invalid invitation'))
         }
 
-        const { groupId, groupSlug, isSpace, parentGroupSlug } = checkResult
+        const { email, groupId, groupSlug, isSpace, parentGroupSlug } = checkResult
 
         if (!groupSlug) {
           throw new Error(t('Could not determine group from invitation'))
@@ -97,7 +98,7 @@ export default function JoinGroup (props) {
           if (accessCode) params.set('accessCode', accessCode)
           else if (invitationToken) params.set('token', invitationToken)
           const queryString = params.toString()
-          setRedirectTo(queryString ? `${spaceDest}?${queryString}` : spaceDest)
+          setRedirectTo({ to: queryString ? `${spaceDest}?${queryString}` : spaceDest })
           return
         }
 
@@ -108,21 +109,32 @@ export default function JoinGroup (props) {
         if (signupComplete) {
           // Redirect authenticated users to the group about page with invitation params.
           // Space invites for non-parent-members go to the parent group's join page.
-          setRedirectTo(buildAboutRedirectUrl(destinationSlug, accessCode, invitationToken))
+          setRedirectTo({ to: buildAboutRedirectUrl(destinationSlug, accessCode, invitationToken) })
         } else {
           // Redirect non-authenticated users to signup, then back to group about page
           const returnToUrl = buildAboutRedirectUrl(destinationSlug, accessCode, invitationToken)
           dispatch(setReturnToPath(returnToUrl))
-          setRedirectTo(SIGNUP_PATH)
+          const inviteEmail = invitationToken && (email || getQuerystringParam('email', location))
+          setRedirectTo({ to: SIGNUP_PATH, state: inviteEmail ? { email: inviteEmail } : undefined })
         }
       } catch (error) {
-        window.alert(t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'))
-        navigate(baseUrl({}))
+        if (signupComplete) {
+          // GroupDetail repeats this toast (same id) from the router state: the Toaster
+          // remounts while a group the user is not a member of is loading.
+          toast.error(t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'), { id: INVALID_INVITE_TOAST_ID })
+          const joinGroupSlug = routeParams.joinGroupSlug || routeParams.groupSlug
+          setRedirectTo({
+            to: joinGroupSlug ? groupUrl(joinGroupSlug, 'about') : baseUrl({}),
+            state: { invalidInvite: true }
+          })
+        } else {
+          setRedirectTo({ to: `${SIGNUP_PATH}?error=invite-expired` })
+        }
       }
     })()
   }, [])
 
-  if (redirectTo) return <Navigate to={redirectTo} replace />
+  if (redirectTo) return <Navigate to={redirectTo.to} state={redirectTo.state} replace />
 
   return <><Loading /></>
 }

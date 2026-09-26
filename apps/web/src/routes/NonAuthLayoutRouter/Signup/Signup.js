@@ -14,8 +14,8 @@ import TextInput from 'components/TextInput'
 import { cn, validateEmail } from 'util/index'
 export default function Signup (props) {
   const dispatch = useDispatch()
-  const [email, setEmail] = useState()
   const location = useLocation()
+  const [email, setEmail] = useState(location.state?.email)
   const [error, setError] = useState(getQuerystringParam('error', location))
   const [redirectTo, setRedirectTo] = useState()
   const { t } = useTranslation()
