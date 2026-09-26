@@ -15,6 +15,7 @@ import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupCon
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
+import { toast } from 'sonner'
 import { getHourCycle } from 'components/Calendar/calendar-util'
 import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
@@ -302,6 +303,7 @@ function PostEditorInner ({
   const toFieldTouchedRef = useRef(false)
   /** Blocks duplicate create/update dispatches before Redux pending state updates. */
   const isSubmittingRef = useRef(false)
+  const saveFailedToastIdRef = useRef(null)
   /**
    * Latest editor HTML. Kept in a ref so typing does not write into React state on every keystroke.
    * null means not hydrated yet — draft effect falls back to currentPost.details.
@@ -1119,12 +1121,35 @@ function PostEditorInner ({
   // }
 
   /**
+   * Keeps the post in the editor after a failed create/update, turns draft
+   * autosave back on (re-queueing the draft) and offers a retry.
+   */
+  const handleSaveFailed = useEventCallback((wasAnnouncement) => {
+    isSubmittedRef.current = false
+    isSubmittingRef.current = false
+    setAnnouncementSelected(!!wasAnnouncement)
+    const details = editorRef.current?.getHTML?.() ?? detailsHtmlRef.current ?? currentPost.details
+    saveDraftJSON(buildPostDraftPayload({ ...currentPost, details }))
+    saveFailedToastIdRef.current = toast.error(
+      isEditing ? t('Your changes couldn\'t be saved') : t('Your post couldn\'t be sent'),
+      { action: { label: t('Try Again'), onClick: () => doSave() } }
+    )
+  })
+
+  // The retry action needs this editor, so the toast goes when the editor does
+  useEffect(() => () => {
+    if (saveFailedToastIdRef.current != null) toast.dismiss(saveFailedToastIdRef.current)
+  }, [])
+
+  /**
    * Saves the post to the server
    * Collects all form data and dispatches the appropriate action (create or update)
    */
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
     isSubmittingRef.current = true
+    const wasAnnouncement = announcementSelected
+    let savedPost
 
     try {
       const {
@@ -1235,24 +1260,25 @@ function PostEditorInner ({
       syncDetailsToCurrentPost.cancel()
       cancelPendingSave()
 
-      const savedPost = await dispatch(saveFunc(postToSave))
-      if (!savedPost.error) {
-        await clearDraft()
-        setIsDirty(false)
-        if (afterSave) {
-          const returnedPost = isEditing
-            ? savedPost?.payload?.data?.updatePost
-            : savedPost?.payload?.data?.createPost
-          afterSave(returnedPost)
-        }
-      } else {
-        isSubmittingRef.current = false
-      }
+      savedPost = await dispatch(saveFunc(postToSave))
     } catch (error) {
-      isSubmittingRef.current = false
-      throw error
+      savedPost = { error }
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
+
+    if (!savedPost || savedPost.error) {
+      handleSaveFailed(wasAnnouncement)
+      return
+    }
+
+    await clearDraft()
+    setIsDirty(false)
+    if (afterSave) {
+      const returnedPost = isEditing
+        ? savedPost?.payload?.data?.updatePost
+        : savedPost?.payload?.data?.createPost
+      afterSave(returnedPost)
+    }
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, handleSaveFailed, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks

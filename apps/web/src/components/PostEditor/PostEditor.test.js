@@ -2,6 +2,7 @@
 import React from 'react'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
+import { act, fireEvent } from '@testing-library/react'
 import { render, screen, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import orm from 'store/models'
 import PostEditor from './PostEditor'
@@ -29,11 +30,24 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders ({ withLinkPreview } = {}) {
+jest.mock('sonner', () => ({
+  toast: {
+    error: jest.fn(() => 'toast-id'),
+    dismiss: jest.fn()
+  }
+}))
+
+jest.mock('store/actions/draftActions', () => ({
+  ...jest.requireActual('store/actions/draftActions'),
+  saveDraft: jest.fn(() => ({ type: 'TEST_SAVE_DRAFT' }))
+}))
+
+function testProviders ({ withLinkPreview, linkGroup } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
   const postAttrs = { id: '1', title: 'Test Post', type: 'discussion', groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] }
+  if (linkGroup) postAttrs.groups = ['1']
   if (withLinkPreview) {
     ormSession.LinkPreview.create({
       id: 'lp1',
@@ -168,6 +182,45 @@ describe('PostEditor', () => {
         expect(screen.getByText('example.com')).toBeInTheDocument()
       })
     })
+
+    it('keeps the post, re-enables draft saving and offers a retry when saving fails', async () => {
+      const updatePost = require('store/actions/updatePost')
+      const { saveDraft } = require('store/actions/draftActions')
+      const { toast } = require('sonner')
+      updatePost.mockImplementationOnce(() => ({ type: 'TEST_UPDATE_POST_FAILED', payload: Promise.reject(new Error('offline')) }))
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      const afterSave = jest.fn()
+      const editorRef = React.createRef()
+
+      render(
+        <PostEditor {...baseProps} {...editProps} afterSave={afterSave} ref={editorRef} />,
+        { wrapper: testProviders({ linkGroup: true }) }
+      )
+      await screen.findByDisplayValue('Test Post')
+
+      await act(async () => { await editorRef.current.submit() })
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          'Your changes couldn\'t be saved',
+          expect.objectContaining({ action: expect.objectContaining({ label: 'Try Again' }) })
+        )
+      })
+      expect(afterSave).not.toHaveBeenCalled()
+      expect(screen.getByDisplayValue('Test Post')).toBeInTheDocument()
+
+      fireEvent.change(screen.getByDisplayValue('Test Post'), { target: { value: 'Test Post, edited' } })
+      await waitFor(() => {
+        expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({
+          data: expect.stringContaining('Test Post, edited')
+        }))
+      }, { timeout: 4000 })
+
+      const retry = toast.error.mock.calls[0][1].action.onClick
+      await act(async () => { retry() })
+      await waitFor(() => expect(afterSave).toHaveBeenCalled())
+      expect(updatePost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Test Post, edited' }))
+    }, 20000)
   })
 })
 
