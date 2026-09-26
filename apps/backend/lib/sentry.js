@@ -19,8 +19,12 @@ if (enabled) {
   Sentry.init({
     dsn,
     environment,
-    // Error reporting only — no performance tracing (matches web policy)
-    tracesSampleRate: 0,
+    // Error reporting only. Do not set tracesSampleRate: in @sentry/node 10, `0` still
+    // enables tracing and loads the Express integration, which patches every middleware.
+    // That patch, plus the HTTP server.emit wrapper, overflows the Sails router
+    // (RangeError in express trim_prefix). The ESM loader is off so a second
+    // @sentry/core copy cannot wrap server.emit again on every request.
+    registerEsmLoaderHooks: false,
     // Align with existing Rollbar person fields (id / name / email via setUser)
     sendDefaultPii: true,
     initialScope: {
