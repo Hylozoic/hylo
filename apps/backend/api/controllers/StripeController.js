@@ -2170,15 +2170,17 @@ module.exports = {
         return
       }
 
-      // Retrieve the payment intent to get session_id from metadata
+      // Checkout creates the payment intent only when the buyer pays, so the session id
+      // is never on its metadata; look the session up by payment intent instead.
+      // Subscription charges are not tied to a checkout session and are not matched here.
       // Must use the connected account header for Connect webhooks
       const retrieveOptions = connectedAccountId ? { stripeAccount: connectedAccountId } : {}
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {}, retrieveOptions)
-      const sessionId = paymentIntent.metadata?.session_id
+      const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntentId, limit: 1 }, retrieveOptions)
+      const sessionId = sessions?.data?.[0]?.id
 
       if (!sessionId) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`No session_id found in payment intent metadata for ${paymentIntentId}`)
+          console.log(`No checkout session found for payment intent ${paymentIntentId}`)
         }
         return
       }

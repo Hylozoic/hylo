@@ -3,7 +3,7 @@ const root = require('root-path')
 const setup = require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
 const { mockify, unspyify } = require(root('test/setup/helpers'))
-/* global ContentAccess, StripeProduct, SubscriptionChangeEvent, Frontend, Queue */
+/* global bookshelf, ContentAccess, StripeProduct, SubscriptionChangeEvent, Frontend, Queue */
 
 let currentWebhookEvent = null
 
@@ -337,7 +337,7 @@ describe('subscription email links', () => {
 })
 
 describe('StripeController.handleChargeRefunded', () => {
-  let StripeController, stripeClient, originalRetrieve, user, group, product, sentEmails
+  let StripeController, stripeClient, originalRetrieve, originalList, sessionListCalls, user, group, product, sentEmails
 
   const chargeRefundedEvent = {
     id: 'evt_charge_refunded',
@@ -386,7 +386,14 @@ describe('StripeController.handleChargeRefunded', () => {
       publish_status: 'published'
     })
     originalRetrieve = stripeClient.paymentIntents.retrieve
-    stripeClient.paymentIntents.retrieve = async () => ({ metadata: { session_id: 'cs_refunded' } })
+    originalList = stripeClient.checkout.sessions.list
+    // Checkout never writes the real session id onto the payment intent
+    stripeClient.paymentIntents.retrieve = async () => ({ metadata: { session_id: 'placeholder' } })
+    sessionListCalls = []
+    stripeClient.checkout.sessions.list = async (params, options) => {
+      sessionListCalls.push({ params, options })
+      return { data: params.payment_intent === 'pi_refunded' ? [{ id: 'cs_refunded' }] : [] }
+    }
     sentEmails = []
     mockify(Email, 'sendRefundProcessed', opts => {
       sentEmails.push(opts)
@@ -396,6 +403,7 @@ describe('StripeController.handleChargeRefunded', () => {
 
   afterEach(() => {
     stripeClient.paymentIntents.retrieve = originalRetrieve
+    stripeClient.checkout.sessions.list = originalList
     unspyify(Email, 'sendRefundProcessed')
   })
 
@@ -405,6 +413,7 @@ describe('StripeController.handleChargeRefunded', () => {
 
     await StripeController.handleChargeRefunded(chargeRefundedEvent)
 
+    expect(sessionListCalls).to.deep.equal([{ params: { payment_intent: 'pi_refunded', limit: 1 }, options: {} }])
     expect((await ContentAccess.where({ id: groupAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
     expect((await ContentAccess.where({ id: roleAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
     expect(sentEmails).to.have.length(1)
@@ -426,6 +435,32 @@ describe('StripeController.handleChargeRefunded', () => {
     await StripeController.handleChargeRefunded(chargeRefundedEvent)
 
     expect((await ContentAccess.where({ id: otherAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect(sentEmails).to.have.length(0)
+  })
+
+  it('looks the session up on the connected account and logs the refund for its group', async () => {
+    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_refunded' }).save()
+    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+    const access = await purchase()
+
+    await StripeController.handleChargeRefunded({ ...chargeRefundedEvent, account: 'acct_refunded' })
+
+    expect(sessionListCalls[0].options).to.deep.equal({ stripeAccount: 'acct_refunded' })
+    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    const log = await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_refunded' }).first()
+    expect(String(log.group_id)).to.equal(String(group.id))
+    expect(Number(log.amount)).to.equal(1500)
+  })
+
+  it('does nothing when no checkout session matches the payment intent', async () => {
+    const access = await purchase()
+
+    await StripeController.handleChargeRefunded({
+      ...chargeRefundedEvent,
+      data: { object: { ...chargeRefundedEvent.data.object, payment_intent: 'pi_subscription_invoice' } }
+    })
+
+    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.ACTIVE)
     expect(sentEmails).to.have.length(0)
   })
 })
