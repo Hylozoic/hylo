@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
@@ -133,6 +134,7 @@ function RedirectStreamToAll ({ basePath }) {
 }
 
 export default function AuthLayoutRouter (props) {
+  const { t } = useTranslation()
   const resizeRef = useRef()
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
@@ -790,10 +792,10 @@ export default function AuthLayoutRouter (props) {
   useEffect(() => {
     if (!newVersionAvailable || newVersionToastShownRef.current) return
     newVersionToastShownRef.current = true
-    toast('A new version of Hylo is available', {
+    toast(t('A new version of Hylo is available'), {
       duration: Infinity,
       action: {
-        label: 'Refresh',
+        label: t('Refresh'),
         onClick: () => window.location.reload()
       }
     })

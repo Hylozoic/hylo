@@ -91,6 +91,13 @@ describe('Comment', () => {
     expect(screen.getByTestId('Delete')).toBeInTheDocument()
   })
 
+  it('names the comment actions with translated labels', () => {
+    render(<Comment {...props} />, { wrapper: testProviders() })
+    expect(screen.getByRole('button', { name: 'Reply' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+  })
+
   describe('handleEditComment', () => {
     it('shows edit form when edit button is clicked', async () => {
       render(<Comment {...props} />, { wrapper: testProviders() })

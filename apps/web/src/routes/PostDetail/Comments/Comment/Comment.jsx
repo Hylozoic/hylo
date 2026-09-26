@@ -144,9 +144,9 @@ function Comment ({
   const profileUrl = personUrl(creator.id, slug)
   const dropdownItems = filter(item => isFunction(item.onClick), [
     {},
-    { icon: <Pencil className='w-5 h-5 text-foreground' />, label: 'Edit', onClick: isCreator && handleEditComment },
-    { icon: <Trash2 className='w-5 h-5 text-destructive' />, label: 'Delete', onClick: isCreator ? () => deleteCommentWithConfirm(comment.id, t('Are you sure you want to delete this comment')) : null, red: true },
-    { icon: <Trash2 className='w-5 h-5 text-destructive' />, label: 'Remove', onClick: !isCreator && canModerate ? () => deleteCommentWithConfirm(comment.id, t('Are you sure you want to remove this comment?')) : null, red: true }
+    { icon: <Pencil className='w-5 h-5 text-foreground' />, id: 'Edit', label: t('Edit'), onClick: isCreator && handleEditComment },
+    { icon: <Trash2 className='w-5 h-5 text-destructive' />, id: 'Delete', label: t('Delete'), onClick: isCreator ? () => deleteCommentWithConfirm(comment.id, t('Are you sure you want to delete this comment')) : null, red: true },
+    { icon: <Trash2 className='w-5 h-5 text-destructive' />, id: 'Remove', label: t('Remove'), onClick: !isCreator && canModerate ? () => deleteCommentWithConfirm(comment.id, t('Are you sure you want to remove this comment?')) : null, red: true }
   ])
 
   return (
@@ -176,14 +176,14 @@ function Comment ({
         <div className={styles.upperRight}>
           {currentUser && !editing && (
             <div className={cn(styles.commentActions, { [styles.showActions]: showActions })}>
-              <div className={cn(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
+              <div className={cn(styles.commentAction)} onClick={onReplyComment} role='button' aria-label={t('Reply')} data-tooltip-content={t('Reply')} data-tooltip-id={`reply-tip-${id}`}>
                 <Icon name='Replies' />
               </div>
               {dropdownItems.map(item => (
-                <div key={item.label} className={styles.commentAction} onClick={handleDropdownItemClick(item.onClick)}>
+                <div key={item.id} className={styles.commentAction} onClick={handleDropdownItemClick(item.onClick)} role='button' aria-label={item.label}>
                   {React.isValidElement(item.icon)
-                    ? React.cloneElement(item.icon, { 'data-testid': item.label })
-                    : <Icon name={item.icon} dataTestId={item.label} />}
+                    ? React.cloneElement(item.icon, { 'data-testid': item.id })
+                    : <Icon name={item.icon} dataTestId={item.id} />}
                 </div>
               ))}
               <EmojiRow
