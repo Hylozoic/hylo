@@ -1,11 +1,15 @@
 import React from 'react'
+import userEvent from '@testing-library/user-event'
 import { graphql, HttpResponse } from 'msw'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import orm from 'store/models'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import GroupWelcomeModal from './GroupWelcomeModal'
 import * as reactRouterDom from 'react-router-dom'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn(() => ({ type: 'TRACK_ANALYTICS_EVENT' })))
 
 it('selects group and displays agreements', async () => {
   const testGroup = {
@@ -167,4 +171,89 @@ it('does not re-show agreements and join questions that were already completed',
   expect(screen.queryByText('Do good stuff always')).toBeNull()
   expect(screen.queryByText('Why do you want to join?')).toBeNull()
   expect(screen.getByTestId('jump-in')).toBeTruthy()
+})
+
+it('tracks Group Welcome Completed when the member jumps in', async () => {
+  const user = userEvent.setup()
+  const testGroup = {
+    id: '3',
+    name: 'Questions Group',
+    slug: 'questions-group',
+    bannerUrl: 'anything',
+    settings: {
+      askJoinQuestions: true
+    },
+    joinQuestions: [{ id: '31', questionId: '310', text: 'What brings you here?' }]
+  }
+  const testMembership = {
+    id: '3',
+    person: { id: '1' },
+    settings: {
+      showJoinForm: true
+    },
+    group: testGroup
+  }
+
+  function testProviders () {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    const reduxState = { orm: ormSession.state }
+
+    extractModelsForTest({
+      me: {
+        id: '1',
+        memberships: {
+          items: [testMembership]
+        }
+      }
+    }, 'Me', ormSession)
+
+    extractModelsForTest({
+      groups: [testGroup]
+    }, 'Group', ormSession)
+
+    return AllTheProviders(reduxState)
+  }
+
+  mockGraphqlServer.use(
+    graphql.query('GroupWelcomeQuery', () => {
+      return HttpResponse.json({
+        data: {
+          group: {
+            id: testGroup.id,
+            settings: testGroup.settings,
+            joinQuestions: {
+              items: [{ id: '31', questionId: '310', text: 'What brings you here?' }]
+            }
+          }
+        }
+      })
+    }),
+    graphql.mutation('UpdateMembershipSettings', () => {
+      return HttpResponse.json({
+        data: {
+          updateMembership: {
+            id: testMembership.id
+          }
+        }
+      })
+    })
+  )
+
+  jest.spyOn(reactRouterDom, 'useParams').mockReturnValue({ groupSlug: testGroup.slug })
+
+  render(
+    <GroupWelcomeModal />,
+    { wrapper: testProviders() }
+  )
+
+  await user.type(await screen.findByPlaceholderText('Type your answer here...'), 'Good company')
+  await user.click(screen.getByTestId('jump-in'))
+
+  await waitFor(() => {
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Group Welcome Completed', {
+      groupId: '3',
+      hadAgreements: false,
+      hadJoinQuestions: true
+    })
+  })
 })

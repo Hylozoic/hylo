@@ -1,7 +1,10 @@
 import React from 'react'
 import orm from 'store/models'
 import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import WelcomeExplore from './WelcomeExplore'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn(() => ({ type: 'TRACK_ANALYTICS_EVENT' })))
 
 function providersWithUser (user) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
@@ -40,5 +43,14 @@ describe('WelcomeExplore', () => {
     )
 
     expect(container.innerHTML).toContain(avatarUrl)
+  })
+
+  it('tracks the step being viewed', () => {
+    render(
+      <WelcomeExplore />,
+      { wrapper: providersWithUser({ id: '1', name: 'Tibet Sprout' }) }
+    )
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Welcome Wizard Step Viewed', { step: 'explore' })
   })
 })
