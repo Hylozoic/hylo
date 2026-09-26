@@ -3058,5 +3058,22 @@
   "Your pending invites": "Your pending invites",
   "Invites sent to anyone not already in the group": "Invites sent to anyone not already in the group",
   "You don't have enough invites left today for all of these addresses.": "You don't have enough invites left today for all of these addresses.",
-  "You can invite up to {{max}} email addresses at a time": "You can invite up to {{max}} email addresses at a time"
+  "You can invite up to {{max}} email addresses at a time": "You can invite up to {{max}} email addresses at a time",
+  "Who can add new members?": "Who can add new members?",
+  "Everyone in the group": "Everyone in the group",
+  "Every member can send personal email invitations. A steward approves each person they invite before they join.": "Every member can send personal email invitations. A steward approves each person they invite before they join.",
+  "Every member can send personal email invitations, and the people they invite join right away.": "Every member can send personal email invitations, and the people they invite join right away.",
+  "Administrators and Hosts (anyone who can add members)": "Administrators and Hosts (anyone who can add members)",
+  "Only roles that include Add Members can invite people: Administrators, Hosts and any custom role you give it.": "Only roles that include Add Members can invite people: Administrators, Hosts and any custom role you give it.",
+  "Specific roles": "Specific roles",
+  "Administrators and Hosts, and anyone in the roles you choose, can invite people. A steward approves each person the chosen roles invite before they join.": "Administrators and Hosts, and anyone in the roles you choose, can invite people. A steward approves each person the chosen roles invite before they join.",
+  "Administrators and Hosts, and anyone in the roles you choose, can invite people.": "Administrators and Hosts, and anyone in the roles you choose, can invite people.",
+  "Can always invite": "Can always invite",
+  "Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.": "Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.",
+  "Create custom roles later in Roles & Badges": "Create custom roles later in Roles & Badges",
+  "Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.": "Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.",
+  "Create or edit roles in Roles & Badges": "Create or edit roles in Roles & Badges",
+  "Everyone in this group holds this role.": "Everyone in this group holds this role.",
+  "No responsibilities": "No responsibilities",
+  "Change who can add new members in Privacy & Access": "Change who can add new members in Privacy & Access"
 }

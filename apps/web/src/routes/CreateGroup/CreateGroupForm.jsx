@@ -13,6 +13,7 @@ import GroupsSelector from 'components/GroupsSelector'
 import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
+import InvitePolicySelect, { invitePolicyToSave } from 'components/InvitePolicySelect/InvitePolicySelect'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
@@ -23,11 +24,13 @@ import Button from 'components/ui/button'
 import { INPUT_CLASS } from 'components/ui/form-field'
 import InfoButton from 'components/ui/info'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
+import { MEMBER_INVITES } from 'config/featureFlags'
 import { createGroupView, updateGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { RESP_ADMINISTRATION } from 'store/constants'
+import { INVITE_POLICY, RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_AVATAR, GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import { CUSTOM_HOME_VIEW, POST_TYPE_TO_VIEW_TYPE, viewTypesForCreate } from 'store/models/GroupView'
+import { hasFeature } from 'store/models/Me'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -200,6 +203,18 @@ const ACCESSIBILITY_OPTIONS = [
   }
 ]
 
+const CLOSED_DESCRIPTION_WITH_MEMBER_INVITES = 'Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.'
+
+// Matches the server's DEFAULT_NEW_GROUP_INVITE_POLICY
+const DEFAULT_INVITE_POLICY_MODE = INVITE_POLICY.stewards
+
+// The built-in roles every new group gets. Administrators and Hosts include Add Members.
+const NEW_GROUP_INVITE_ROLES = [
+  { id: 'Administrator', emoji: '🪄', locked: true },
+  { id: 'Moderator', emoji: '⚖️', locked: false },
+  { id: 'Host', emoji: '👋', locked: true }
+]
+
 function AgreementsEditor ({ agreements, onChange }) {
   const { t } = useTranslation()
   return (
@@ -317,6 +332,8 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   const [homeView, setHomeView] = useState('STREAM')
   const [visibility, setVisibility] = useState(GROUP_VISIBILITY.Protected)
   const [accessibility, setAccessibility] = useState(GROUP_ACCESSIBILITY.Restricted)
+  const [invitePolicyMode, setInvitePolicyMode] = useState(DEFAULT_INVITE_POLICY_MODE)
+  const [moderatorsCanInvite, setModeratorsCanInvite] = useState(true)
   const [isNameFocused, setIsNameFocused] = useState(false)
   const [nameTouched, setNameTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -348,6 +365,21 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   const [showMenuEditor, setShowMenuEditor] = useState(false)
 
   const slugRef = useRef()
+
+  const memberInvitesEnabled = hasFeature(MEMBER_INVITES)
+
+  const accessibilityOptions = useMemo(() => memberInvitesEnabled
+    ? ACCESSIBILITY_OPTIONS.map(option => option.value === GROUP_ACCESSIBILITY.Closed
+      ? { ...option, description: CLOSED_DESCRIPTION_WITH_MEMBER_INVITES }
+      : option)
+    : ACCESSIBILITY_OPTIONS, [memberInvitesEnabled])
+
+  const newGroupInviteRoles = useMemo(() => NEW_GROUP_INVITE_ROLES.map(role => ({
+    id: role.id,
+    label: `${role.emoji} ${t(role.id)}`,
+    locked: role.locked,
+    checked: !role.locked && moderatorsCanInvite
+  })), [t, moderatorsCanInvite])
 
   const slugFormatError = useMemo(() => {
     if (!slug) return name ? t('Please enter a URL slug') : false
@@ -511,6 +543,12 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     // change the derived list), seed All Activity, Chat, type views, Map, and Members.
     const viewTypes = viewTypesForCreate(standardTypesInOrder, standardViewTypes, homeViewType)
 
+    // New groups' role ids don't exist yet, so chosen roles are sent by name
+    const invitePolicy = invitePolicyToSave(invitePolicyMode, newGroupInviteRoles)
+    const invitePolicyInput = invitePolicy.roleIds
+      ? { mode: invitePolicy.mode, systemRoleNames: invitePolicy.roleIds }
+      : invitePolicy
+
     const { error, payload } = await dispatch(createGroup({
       accessibility,
       avatarUrl: avatarUrl || DEFAULT_AVATAR,
@@ -526,7 +564,8 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       purpose: trim(purpose),
       acceptedPostTypes: postTypes,
       viewTypes,
-      visibility
+      visibility,
+      ...(memberInvitesEnabled ? { invitePolicy: invitePolicyInput } : {})
     }))
 
     if (error) {
@@ -623,6 +662,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     if (homeView !== 'STREAM') return true
     if (visibility !== GROUP_VISIBILITY.Protected) return true
     if (accessibility !== GROUP_ACCESSIBILITY.Restricted) return true
+    if (invitePolicyMode !== DEFAULT_INVITE_POLICY_MODE) return true
     if (locationObject) return true
     const parentIds = parentGroups.map(group => group.id)
     const initialParentIds = initialParentIdsRef.current
@@ -638,7 +678,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     return false
   }, [
     name, slug, slugCustomized, purpose, avatarUrl, bannerUrl,
-    homeView, visibility, accessibility, locationObject, parentGroups, agreements,
+    homeView, visibility, accessibility, invitePolicyMode, locationObject, parentGroups, agreements,
     joinQuestions, postTypes, welcomeEnabled, removedStandardTypes, manualViews, welcomeExtras
   ])
 
@@ -886,9 +926,23 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
             label='Who can join this group?'
             value={accessibility}
             onChange={setAccessibility}
-            options={ACCESSIBILITY_OPTIONS}
+            options={accessibilityOptions}
           />
         </div>
+
+        {memberInvitesEnabled && (
+          <div className='flex flex-col gap-2 mt-5'>
+            <span className='text-xs font-bold text-foreground/80'>{t('Who can add new members?')}</span>
+            <InvitePolicySelect
+              mode={invitePolicyMode}
+              onModeChange={setInvitePolicyMode}
+              roles={newGroupInviteRoles}
+              onToggleRole={() => setModeratorsCanInvite(canInvite => !canInvite)}
+              accessibility={accessibility}
+              hint={t('Create custom roles later in Roles & Badges')}
+            />
+          </div>
+        )}
 
         <div className='mt-5'>
           {/* items-end + shared mb: the button's bottom sits level with the subtitle,

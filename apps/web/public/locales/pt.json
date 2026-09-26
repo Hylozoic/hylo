@@ -3061,5 +3061,22 @@
   "Your pending invites": "Seus convites pendentes",
   "Invites sent to anyone not already in the group": "Convites enviados para quem ainda não está no grupo",
   "You don't have enough invites left today for all of these addresses.": "Você não tem convites suficientes hoje para todos estes endereços.",
-  "You can invite up to {{max}} email addresses at a time": "Você pode convidar até {{max}} endereços de e-mail por vez"
+  "You can invite up to {{max}} email addresses at a time": "Você pode convidar até {{max}} endereços de e-mail por vez",
+  "Who can add new members?": "Quem pode adicionar novos membros?",
+  "Everyone in the group": "Todos no grupo",
+  "Every member can send personal email invitations. A steward approves each person they invite before they join.": "Cada membro pode enviar convites pessoais por e-mail. Um administrador aprova cada pessoa convidada antes que ela entre.",
+  "Every member can send personal email invitations, and the people they invite join right away.": "Cada membro pode enviar convites pessoais por e-mail, e as pessoas convidadas entram na hora.",
+  "Administrators and Hosts (anyone who can add members)": "Administradores e anfitriões (quem pode adicionar membros)",
+  "Only roles that include Add Members can invite people: Administrators, Hosts and any custom role you give it.": "Só as funções que incluem Adicionar membros podem convidar pessoas: administradores, anfitriões e qualquer função personalizada a que você der essa responsabilidade.",
+  "Specific roles": "Funções específicas",
+  "Administrators and Hosts, and anyone in the roles you choose, can invite people. A steward approves each person the chosen roles invite before they join.": "Administradores, anfitriões e quem tiver as funções que você escolher podem convidar pessoas. Um administrador aprova cada pessoa convidada por essas funções antes que ela entre.",
+  "Administrators and Hosts, and anyone in the roles you choose, can invite people.": "Administradores, anfitriões e quem tiver as funções que você escolher podem convidar pessoas.",
+  "Can always invite": "Sempre pode convidar",
+  "Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.": "Ninguém pode pedir para entrar por conta própria. As pessoas chegam por convite; os convites de membros são analisados pelos administradores.",
+  "Create custom roles later in Roles & Badges": "Crie funções personalizadas depois em Funções e Insígnias",
+  "Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.": "Escolha quem pode convidar pessoas para entrar em {{name}}. As funções que incluem Adicionar membros sempre podem convidar.",
+  "Create or edit roles in Roles & Badges": "Crie ou edite funções em Funções e Insígnias",
+  "Everyone in this group holds this role.": "Todos neste grupo têm esta função.",
+  "No responsibilities": "Nenhuma responsabilidade",
+  "Change who can add new members in Privacy & Access": "Altere quem pode adicionar novos membros em Privacidade & Acesso"
 }

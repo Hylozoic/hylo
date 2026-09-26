@@ -3061,5 +3061,22 @@
   "Your pending invites": "आपके लंबित निमंत्रण",
   "Invites sent to anyone not already in the group": "उन सभी को निमंत्रण भेजे गए जो अभी समूह में नहीं हैं",
   "You don't have enough invites left today for all of these addresses.": "आज आपके पास इन सभी पतों के लिए पर्याप्त निमंत्रण नहीं बचे हैं।",
-  "You can invite up to {{max}} email addresses at a time": "आप एक बार में अधिकतम {{max}} ईमेल पते आमंत्रित कर सकते हैं"
+  "You can invite up to {{max}} email addresses at a time": "आप एक बार में अधिकतम {{max}} ईमेल पते आमंत्रित कर सकते हैं",
+  "Who can add new members?": "नए सदस्यों को कौन जोड़ सकता है?",
+  "Everyone in the group": "समूह में हर कोई",
+  "Every member can send personal email invitations. A steward approves each person they invite before they join.": "हर सदस्य व्यक्तिगत ईमेल निमंत्रण भेज सकता है। वे जिसे भी आमंत्रित करें, उसके शामिल होने से पहले कोई स्टीवर्ड उसे अनुमोदित करता है।",
+  "Every member can send personal email invitations, and the people they invite join right away.": "हर सदस्य व्यक्तिगत ईमेल निमंत्रण भेज सकता है, और वे जिन्हें आमंत्रित करते हैं वे तुरंत शामिल हो जाते हैं।",
+  "Administrators and Hosts (anyone who can add members)": "व्यवस्थापक और मेज़बान (जो भी सदस्यों को जोड़ सकता है)",
+  "Only roles that include Add Members can invite people: Administrators, Hosts and any custom role you give it.": "केवल वे भूमिकाएँ लोगों को आमंत्रित कर सकती हैं जिनमें सदस्यों को जोड़ें शामिल है: व्यवस्थापक, मेज़बान और कोई भी कस्टम भूमिका जिसे आप यह ज़िम्मेदारी देते हैं।",
+  "Specific roles": "विशिष्ट भूमिकाएँ",
+  "Administrators and Hosts, and anyone in the roles you choose, can invite people. A steward approves each person the chosen roles invite before they join.": "व्यवस्थापक, मेज़बान और आपकी चुनी हुई भूमिकाओं वाला कोई भी व्यक्ति लोगों को आमंत्रित कर सकता है। इन भूमिकाओं द्वारा आमंत्रित हर व्यक्ति के शामिल होने से पहले कोई स्टीवर्ड उसे अनुमोदित करता है।",
+  "Administrators and Hosts, and anyone in the roles you choose, can invite people.": "व्यवस्थापक, मेज़बान और आपकी चुनी हुई भूमिकाओं वाला कोई भी व्यक्ति लोगों को आमंत्रित कर सकता है।",
+  "Can always invite": "हमेशा आमंत्रित कर सकते हैं",
+  "Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.": "कोई भी अपने आप शामिल होने का अनुरोध नहीं कर सकता। लोग निमंत्रण से आते हैं; सदस्यों के निमंत्रणों की समीक्षा स्टीवर्ड करते हैं।",
+  "Create custom roles later in Roles & Badges": "कस्टम भूमिकाएँ बाद में भूमिकाएँ और बैज में बनाएँ",
+  "Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.": "चुनें कि {{name}} में शामिल होने के लिए लोगों को कौन आमंत्रित कर सकता है। जिन भूमिकाओं में सदस्यों को जोड़ें शामिल है, वे हमेशा आमंत्रित कर सकती हैं।",
+  "Create or edit roles in Roles & Badges": "भूमिकाएँ और बैज में भूमिकाएँ बनाएँ या संपादित करें",
+  "Everyone in this group holds this role.": "इस समूह में हर किसी के पास यह भूमिका है।",
+  "No responsibilities": "कोई ज़िम्मेदारी नहीं",
+  "Change who can add new members in Privacy & Access": "गोपनीयता और पहुँच में बदलें कि नए सदस्यों को कौन जोड़ सकता है"
 }

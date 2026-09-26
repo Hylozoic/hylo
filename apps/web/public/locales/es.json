@@ -3069,5 +3069,22 @@
   "Your pending invites": "Tus invitaciones pendientes",
   "Invites sent to anyone not already in the group": "Invitaciones enviadas a quienes aún no están en el grupo",
   "You don't have enough invites left today for all of these addresses.": "Hoy no te quedan suficientes invitaciones para todas estas direcciones.",
-  "You can invite up to {{max}} email addresses at a time": "Puedes invitar hasta {{max}} direcciones de correo electrónico a la vez"
+  "You can invite up to {{max}} email addresses at a time": "Puedes invitar hasta {{max}} direcciones de correo electrónico a la vez",
+  "Who can add new members?": "¿Quién puede agregar nuevos miembros?",
+  "Everyone in the group": "Todos en el grupo",
+  "Every member can send personal email invitations. A steward approves each person they invite before they join.": "Cada miembro puede enviar invitaciones personales por correo electrónico. Un administrador aprueba a cada persona que invite antes de que se una.",
+  "Every member can send personal email invitations, and the people they invite join right away.": "Cada miembro puede enviar invitaciones personales por correo electrónico, y las personas que invite se unen de inmediato.",
+  "Administrators and Hosts (anyone who can add members)": "Administradores y anfitriones (quien pueda agregar miembros)",
+  "Only roles that include Add Members can invite people: Administrators, Hosts and any custom role you give it.": "Solo los roles que incluyen Agregar Miembros pueden invitar: administradores, anfitriones y cualquier rol personalizado al que se lo asignes.",
+  "Specific roles": "Roles específicos",
+  "Administrators and Hosts, and anyone in the roles you choose, can invite people. A steward approves each person the chosen roles invite before they join.": "Los administradores, los anfitriones y quienes tengan los roles que elijas pueden invitar. Un administrador aprueba a cada persona que inviten esos roles antes de que se una.",
+  "Administrators and Hosts, and anyone in the roles you choose, can invite people.": "Los administradores, los anfitriones y quienes tengan los roles que elijas pueden invitar.",
+  "Can always invite": "Siempre puede invitar",
+  "Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.": "Nadie puede solicitar unirse por su cuenta. Las personas llegan por invitación; los administradores revisan las invitaciones de los miembros.",
+  "Create custom roles later in Roles & Badges": "Crea roles personalizados más adelante en Roles y insignias",
+  "Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.": "Elige quién puede invitar a personas a unirse a {{name}}. Los roles que incluyen Agregar Miembros siempre pueden invitar.",
+  "Create or edit roles in Roles & Badges": "Crea o edita roles en Roles y insignias",
+  "Everyone in this group holds this role.": "Todos en este grupo tienen este rol.",
+  "No responsibilities": "Sin responsabilidades",
+  "Change who can add new members in Privacy & Access": "Cambia quién puede agregar nuevos miembros en Privacidad y Acceso"
 }

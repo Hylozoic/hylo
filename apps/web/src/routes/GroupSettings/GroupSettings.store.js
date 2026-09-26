@@ -66,6 +66,20 @@ export function fetchGroupSettings (slug) {
             region
           }
           invitePath
+          invitePolicy {
+            mode
+            roleIds
+          }
+          memberRole {
+            id
+            responsibilities {
+              items {
+                id
+                title
+                description
+              }
+            }
+          }
           name
           purpose
           settings {
@@ -160,6 +174,12 @@ export function fetchGroupSettings (slug) {
               name
               description
               type
+              responsibilities {
+                items {
+                  id
+                  title
+                }
+              }
             }
           }
           groupToGroupJoinQuestions {
@@ -267,6 +287,20 @@ export function updateGroupSettings (id, changes) {
           stripePayoutsEnabled
           stripeDetailsSubmitted
           paywall
+          invitePolicy {
+            mode
+            roleIds
+          }
+          memberRole {
+            id
+            responsibilities {
+              items {
+                id
+                title
+                description
+              }
+            }
+          }
           settings {
             defaultDigestFrequency
             locationDisplayPrecision

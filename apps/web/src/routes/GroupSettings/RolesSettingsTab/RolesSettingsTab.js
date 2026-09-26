@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import {
   addGroupRole,
   addRoleToMember,
@@ -33,8 +34,11 @@ import KeyControlledItemList from 'components/KeyControlledList/KeyControlledIte
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { keyMap } from 'util/textInput'
 import { cn } from 'util/index'
-import { personUrl } from '@hylo/navigation'
-import { sortCustomGroupRoles, sortSystemGroupRoles, isSystemGroupRole } from '@hylo/hooks/groupRoleHelpers'
+import { groupUrl, personUrl } from '@hylo/navigation'
+import { sortCustomGroupRoles, sortSystemGroupRoles, isMemberGroupRole, isSystemGroupRole } from '@hylo/hooks/groupRoleHelpers'
+import { MEMBER_INVITES } from 'config/featureFlags'
+import { RESP_INVITE_MEMBERS } from 'store/constants'
+import { hasFeature } from 'store/models/Me'
 
 import styles from './RolesSettingsTab.module.scss'
 
@@ -62,24 +66,30 @@ function RolesSettingsTab ({ group, slug }) {
     [group?.groupRoles?.items]
   )
   const customRolesFromGroup = useMemo(
-    () => sortCustomGroupRoles((group?.groupRoles?.items || []).filter(role => !isSystemGroupRole(role))),
+    () => sortCustomGroupRoles((group?.groupRoles?.items || []).filter(role => !isSystemGroupRole(role) && !isMemberGroupRole(role))),
     [group?.groupRoles?.items]
   )
   const [rolesOverride, setRolesOverride] = useState(null)
   const roles = rolesOverride ?? customRolesFromGroup
   const [availableResponsibilities, setAvailableResponsibilities] = useState([])
   const { setHeaderDetails } = useViewHeader()
+  const memberInvitesEnabled = hasFeature(MEMBER_INVITES)
 
   useEffect(() => {
     if (!group?.id) return
     let isMounted = true
     dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))
       .then((response) => {
-        if (isMounted) setAvailableResponsibilities(response?.payload?.data?.responsibilities || [])
+        const responsibilities = response?.payload?.data?.responsibilities || []
+        if (isMounted) {
+          setAvailableResponsibilities(memberInvitesEnabled
+            ? responsibilities
+            : responsibilities.filter(responsibility => responsibility.title !== RESP_INVITE_MEMBERS))
+        }
       })
       .catch((e) => { console.error('Error fetching responsibilities for group', e) })
     return () => { isMounted = false }
-  }, [group?.id, dispatch])
+  }, [group?.id, dispatch, memberInvitesEnabled])
 
   useEffect(() => {
     setHeaderDetails({
@@ -178,6 +188,9 @@ function RolesSettingsTab ({ group, slug }) {
             isSystemRole
           />
         ))}
+        {memberInvitesEnabled && group?.memberRole && (
+          <MemberRoleCard memberRole={group.memberRole} slug={group.slug} />
+        )}
       </SettingsSection>
       <SettingsSection>
         <h3>{t('Custom Roles & Badges')}</h3>
@@ -217,6 +230,33 @@ RolesSettingsTab.propTypes = {
   removeRoleFromMember: PropTypes.func,
   slug: PropTypes.string,
   updateGroupRole: PropTypes.func
+}
+
+/**
+ * The implicit role every member holds. It can't be edited or assigned; its only
+ * possible responsibility, Invite Members, follows "Who can add new members?".
+ */
+function MemberRoleCard ({ memberRole, slug }) {
+  const { t } = useTranslation()
+  const responsibilities = memberRole.responsibilities?.items || []
+
+  return (
+    <div className='bg-foreground/5 rounded-lg my-4 p-4' data-testid='member-role-card'>
+      <h4 className='text-foreground font-bold m-0'>{t('Member')}</h4>
+      <p className='text-foreground/70 text-sm mt-1 mb-3'>{t('Everyone in this group holds this role.')}</p>
+      <h4 className='mb-2'>{t('Responsibilities')}</h4>
+      {responsibilities.length > 0
+        ? (
+          <div className='flex flex-col gap-2'>
+            {responsibilities.map(responsibility => <RemovableListItem item={responsibility} key={responsibility.id} />)}
+          </div>
+          )
+        : <p className='text-foreground/50 text-sm m-0'>{t('No responsibilities')}</p>}
+      <Link to={groupUrl(slug, 'settings/privacy')} className='inline-block text-accent text-sm hover:underline mt-3'>
+        {t('Change who can add new members in Privacy & Access')}
+      </Link>
+    </div>
+  )
 }
 
 function RoleRow ({
