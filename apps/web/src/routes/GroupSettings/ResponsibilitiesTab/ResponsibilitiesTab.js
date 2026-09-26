@@ -6,6 +6,7 @@ import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import Icon from 'components/Icon'
 import SettingsControl from 'components/SettingsControl'
+import { MEMBER_INVITES } from 'config/featureFlags'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import {
   fetchResponsibilitiesForGroup,
@@ -13,6 +14,8 @@ import {
   deleteGroupResponsibility,
   updateGroupResponsibility
 } from 'store/actions/responsibilities'
+import { RESP_INVITE_MEMBERS } from 'store/constants'
+import { hasFeature } from 'store/models/Me'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
@@ -36,9 +39,13 @@ export default function ResponsibilitiesTab ({ group }) {
   const [responsibilities, setResponsibilities] = useState([])
 
   useEffect(() => {
+    const memberInvitesEnabled = hasFeature(MEMBER_INVITES)
     dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))
       .then((response) => {
-        setResponsibilities(response.payload.data.responsibilities)
+        const fetched = response.payload.data.responsibilities
+        setResponsibilities(memberInvitesEnabled
+          ? fetched
+          : fetched.filter(responsibility => responsibility.title !== RESP_INVITE_MEMBERS))
       })
   }, [])
 
