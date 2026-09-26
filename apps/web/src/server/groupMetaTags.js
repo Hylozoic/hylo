@@ -62,7 +62,7 @@ export function presentGroupMeta (group) {
   return {
     title: group.name,
     description: isPublic
-      ? TextHelpers.presentHTMLToText(group.description || group.purpose || '', { truncate: MAX_DESCRIPTION_LENGTH })
+      ? TextHelpers.presentHTMLToText(group.description || group.purpose || '', { truncate: MAX_DESCRIPTION_LENGTH }) || null
       : null,
     imageUrl: bannerUrl || avatarUrl,
     largeImage: !!bannerUrl

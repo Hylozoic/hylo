@@ -72,6 +72,11 @@ describe('presentGroupMeta', () => {
     expect(meta.imageUrl).toBe('https://cdn.example/banner.jpg')
   })
 
+  it('leaves the description out for a public group with no description or purpose', () => {
+    const meta = presentGroupMeta({ ...publicGroup, description: null, purpose: '' })
+    expect(meta.description).toBe(null)
+  })
+
   it('skips the default svg images', () => {
     const meta = presentGroupMeta({ ...publicGroup, bannerUrl: '/default-group-banner.svg', avatarUrl: '/default-group-avatar.svg' })
     expect(meta.imageUrl).toBe(null)
