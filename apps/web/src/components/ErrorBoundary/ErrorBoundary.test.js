@@ -1,6 +1,6 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
-import { reloadPage } from 'client/chunkReload'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { chunkReloadPending, listenForStaleChunks, reloadPage } from 'client/chunkReload'
 import ErrorBoundary from './ErrorBoundary'
 
 // Mock the error reporter module
@@ -22,6 +22,23 @@ const ErrorThrowingComponent = () => {
 
 const ChunkErrorComponent = () => {
   throw new TypeError('Failed to fetch dynamically imported module: /assets/index-abc.js')
+}
+
+// A lazy route whose chunk is gone, failing as Vite's preload helper does in a
+// build: it dispatches vite:preloadError, then rethrows the import's error
+const renderStaleLazyRoute = () => {
+  const StaleRoute = React.lazy(() => {
+    window.dispatchEvent(new Event('vite:preloadError', { cancelable: true }))
+    return Promise.reject(new TypeError('Failed to fetch dynamically imported module: /assets/Route-abc.js'))
+  })
+  render(
+    <ErrorBoundary>
+      <React.Suspense fallback={<div data-testid='route-loading' />}>
+        <StaleRoute />
+      </React.Suspense>
+    </ErrorBoundary>
+  )
+  return waitFor(() => expect(screen.queryByTestId('route-loading')).not.toBeInTheDocument())
 }
 
 describe('ErrorBoundary', () => {
@@ -88,7 +105,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     )
 
-    expect(window.sessionStorage.getItem('vite-reload-attempted')).toBe('1')
+    expect(chunkReloadPending()).toBe(true)
     expect(screen.queryByTestId('error-boundary-container')).not.toBeInTheDocument()
     expect(window.HyloBootLoader.ready).not.toHaveBeenCalled()
   })
@@ -106,5 +123,35 @@ describe('ErrorBoundary', () => {
     expect(screen.getByTestId('error-boundary-container')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reload' })).toBeInTheDocument()
     expect(window.HyloBootLoader.ready).toHaveBeenCalled()
+  })
+
+  describe('with the vite:preloadError listener from index.jsx', () => {
+    let stopListening
+
+    beforeEach(() => {
+      stopListening = listenForStaleChunks()
+    })
+
+    afterEach(() => {
+      stopListening()
+    })
+
+    it('waits for the reload the listener started instead of flashing the error', async () => {
+      await renderStaleLazyRoute()
+
+      expect(chunkReloadPending()).toBe(true)
+      expect(screen.queryByTestId('error-boundary-container')).not.toBeInTheDocument()
+      expect(window.HyloBootLoader.ready).not.toHaveBeenCalled()
+    })
+
+    it('shows the error with Reload when the chunk is still missing after the reload', async () => {
+      window.sessionStorage.setItem('vite-reload-attempted', '1')
+
+      await renderStaleLazyRoute()
+
+      expect(chunkReloadPending()).toBe(false)
+      expect(screen.getByTestId('error-boundary-container')).toBeInTheDocument()
+      expect(window.HyloBootLoader.ready).toHaveBeenCalled()
+    })
   })
 })

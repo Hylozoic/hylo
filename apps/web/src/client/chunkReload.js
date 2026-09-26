@@ -1,4 +1,7 @@
 const RELOAD_FLAG = 'vite-reload-attempted'
+// Stored as the flag's value, so a reload this page started (and is waiting
+// for) can be told apart from one a previous page load already tried
+const PAGE_LOAD_ID = `${Date.now()}-${Math.random().toString(36).slice(2)}`
 
 /**
  * True when this tab has already reloaded once to recover from a stale chunk.
@@ -12,23 +15,48 @@ export function chunkReloadAttempted () {
   }
 }
 
+/**
+ * True when this page has started the reload and it is still in flight.
+ * Vite's vite:preloadError starts it before the failed import reaches an error
+ * boundary, which should then wait for it rather than show an error.
+ */
+export function chunkReloadPending () {
+  try {
+    return window.sessionStorage.getItem(RELOAD_FLAG) === PAGE_LOAD_ID
+  } catch (e) {
+    return false
+  }
+}
+
 export function reloadPage () {
   window.location.reload()
 }
 
 /**
- * Reloads once to pick up a new deploy's chunks. Returns false when this tab
- * already tried, so the caller can show an error instead.
+ * Reloads once to pick up a new deploy's chunks. Returns true while that
+ * reload is underway, and false when an earlier page load already tried, so
+ * the caller can show an error instead.
  */
 export function reloadForStaleChunks () {
+  if (chunkReloadPending()) return true
   if (chunkReloadAttempted()) return false
   try {
-    window.sessionStorage.setItem(RELOAD_FLAG, '1')
+    window.sessionStorage.setItem(RELOAD_FLAG, PAGE_LOAD_ID)
   } catch (e) {
     return false
   }
   reloadPage()
   return true
+}
+
+/**
+ * Reloads once when Vite fails to fetch a dynamic import (stale chunks after a
+ * deploy). Returns a function that stops listening.
+ */
+export function listenForStaleChunks () {
+  const onPreloadError = () => { reloadForStaleChunks() }
+  window.addEventListener('vite:preloadError', onPreloadError)
+  return () => window.removeEventListener('vite:preloadError', onPreloadError)
 }
 
 /**

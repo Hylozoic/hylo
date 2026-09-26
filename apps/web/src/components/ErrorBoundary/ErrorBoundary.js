@@ -2,7 +2,7 @@ import React from 'react'
 import { withTranslation } from 'react-i18next'
 import classes from './ErrorBoundary.module.scss'
 import errorReporter from 'client/errorReporter'
-import { chunkReloadAttempted, reloadForStaleChunks, reloadPage } from 'client/chunkReload'
+import { chunkReloadAttempted, chunkReloadPending, reloadForStaleChunks, reloadPage } from 'client/chunkReload'
 
 /** Returns true if the error is a stale chunk load failure after a new deploy */
 const isChunkLoadError = (error) =>
@@ -17,7 +17,8 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError (error) {
-    return { hasError: true, reloading: isChunkLoadError(error) && !chunkReloadAttempted() }
+    const reloading = isChunkLoadError(error) && (chunkReloadPending() || !chunkReloadAttempted())
+    return { hasError: true, reloading }
   }
 
   componentDidCatch (error, info) {

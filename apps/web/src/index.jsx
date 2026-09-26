@@ -7,15 +7,12 @@ import './client/websockets.js'
 import './css/global/index.scss'
 import './i18n.mjs'
 import { isSandboxMode } from 'sandbox/isSandbox'
-import { reloadForStaleChunks } from 'client/chunkReload'
+import { listenForStaleChunks } from 'client/chunkReload'
 
 // The boot loading screen's second milestone: the module graph has loaded
 window.HyloBootLoader?.milestone?.('modules')
 
-// Reload once when Vite fails to fetch a dynamic import (stale chunks after deploy)
-window.addEventListener('vite:preloadError', () => {
-  reloadForStaleChunks()
-})
+listenForStaleChunks()
 
 async function boot () {
   // Install before React mounts so escape-hatch fetches never hit the real API.
