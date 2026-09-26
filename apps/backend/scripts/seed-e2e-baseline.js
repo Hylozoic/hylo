@@ -66,13 +66,17 @@ const SYSTEM_ROLE_DEFINITIONS = [
   }
 ]
 
-/** System responsibilities referenced by SYSTEM_ROLE_DEFINITIONS — schema.sql creates the table but no rows. */
+/**
+ * System responsibilities referenced by SYSTEM_ROLE_DEFINITIONS — schema.sql creates the table but no rows.
+ * Insertion order sets the ids, which Group.moderators() and stewards() hard-code; Invite Members
+ * comes last, as the migration that added it appends it.
+ */
 const SYSTEM_RESPONSIBILITY_DEFINITIONS = [
   { title: 'Administration', description: 'Allows for editing group settings, managing the menu and spaces, exporting data, and deleting the group.' },
   { title: 'Add Members', description: 'Invite and add new people, manage the group join link and all pending invitations, and accept or reject join requests.' },
-  { title: 'Invite Members', description: 'Send personal email invitations to this group and see or cancel the ones you sent. In Restricted and Closed groups a steward reviews them.' },
   { title: 'Remove Members', description: 'The ability to remove a member from the group.' },
-  { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' }
+  { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' },
+  { title: 'Invite Members', description: 'Send personal email invitations to this group and see or cancel the ones you sent. In Restricted and Closed groups a steward reviews them.' }
 ]
 
 /**
