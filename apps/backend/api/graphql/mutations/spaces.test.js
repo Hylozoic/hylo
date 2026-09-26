@@ -410,6 +410,59 @@ describe('space mutations', () => {
       }).fetch()).to.not.be.null
     })
 
+    describe('invite policy', () => {
+      afterEach(() => GroupRole.setInvitePolicy(parentGroup.id, { mode: 'stewards' }))
+
+      async function convertNewSpace () {
+        const space = await createSpace(administrator.id, {
+          parentGroupId: parentGroup.id,
+          name: `Policy Convert ${Date.now()}`
+        }, {})
+        expect(await GroupRole.findMemberRole(space.id)).to.be.null
+        return convertSpaceToChildGroup(administrator.id, space.id, {})
+      }
+
+      it('creates a Member role and copies an everyone policy', async () => {
+        await GroupRole.setInvitePolicy(parentGroup.id, { mode: 'everyone' })
+
+        const converted = await convertNewSpace()
+        const memberRole = await GroupRole.findMemberRole(converted.id)
+        expect(memberRole).to.exist
+        expect(await GroupRole.getInvitePolicy(converted.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+      })
+
+      it('copies a stewards policy', async () => {
+        const converted = await convertNewSpace()
+        expect(await GroupRole.findMemberRole(converted.id)).to.exist
+        expect(await GroupRole.getInvitePolicy(converted.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('falls back to stewards when the parent names specific roles', async () => {
+        await GroupRole.setInvitePolicy(parentGroup.id, { mode: 'roles', systemRoleNames: ['Moderator'] })
+
+        const converted = await convertNewSpace()
+        expect(await GroupRole.getInvitePolicy(converted.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('replaces the policy a group had before it became a space', async () => {
+        const child = await factories.group().save()
+        await assignAdministrator(administrator, child)
+        await parentGroup.addChild(child)
+        const invitee = await factories.user().save()
+        await invitee.joinGroup(child)
+        await GroupRole.setInvitePolicy(child.id, { mode: 'everyone' })
+        expect(await GroupMembership.inviteAccess(invitee.id, child.id)).to.equal('limited')
+
+        await convertGroupToSpace(administrator.id, { id: child.id, parentGroupId: parentGroup.id }, {})
+        expect(await GroupRole.getInvitePolicy(child.id)).to.be.null
+        expect(await GroupMembership.inviteAccess(invitee.id, child.id)).to.be.null
+
+        await convertSpaceToChildGroup(administrator.id, child.id, {})
+        expect(await GroupRole.getInvitePolicy(child.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+        expect(await GroupMembership.inviteAccess(invitee.id, child.id)).to.be.null
+      })
+    })
+
     it('rejects track and funding round spaces', async () => {
       const space = await createSpace(administrator.id, {
         parentGroupId: parentGroup.id,

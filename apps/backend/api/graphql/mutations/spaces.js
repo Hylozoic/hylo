@@ -389,6 +389,19 @@ async function copyParentStewardsToChild (parentGroup, child, { transacting } = 
 }
 
 /**
+ * Give the new child group the parent's invite policy when it is 'everyone' or
+ * 'stewards'. A 'roles' policy names the parent's own roles, so the child falls
+ * back to 'stewards'.
+ */
+async function copyParentInvitePolicyToChild (parentGroup, child, { transacting } = {}) {
+  const parentPolicy = await GroupRole.getInvitePolicy(parentGroup.id, { transacting })
+  const mode = parentPolicy?.mode === GroupRole.InvitePolicy.EVERYONE
+    ? GroupRole.InvitePolicy.EVERYONE
+    : GroupRole.InvitePolicy.STEWARDS
+  await GroupRole.setInvitePolicy(child.id, { mode }, { transacting })
+}
+
+/**
  * Convert a regular space into a child group of its parent.
  * Clears type/parent_id, creates a parent-child relationship, and
  * turns an on-menu space view into a group view (or deletes an off-menu one).
@@ -427,6 +440,7 @@ export async function convertSpaceToChildGroup (userId, id, context) {
     await space.refresh({ transacting: trx })
     await parentGroup.addChild(space, { transacting: trx })
     await copyParentStewardsToChild(parentGroup, space, { transacting: trx })
+    await copyParentInvitePolicyToChild(parentGroup, space, { transacting: trx })
     await convertSpaceViewToChildGroupView(id, space.get('name'), { transacting: trx })
     await GroupView.syncMoreSpacesCount(parentId, { transacting: trx })
     await removeFromParentSpaceCollections(id, parentId, { transacting: trx })
