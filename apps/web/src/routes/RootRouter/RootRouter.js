@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { connectSocket } from 'client/websockets'
+import { clearChunkReloadFlag } from 'client/chunkReload'
 import config, { debugCheckLogin, isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
@@ -211,7 +212,9 @@ export default function RootRouter () {
 
   const bootDone = !isAuthSessionUnknown && !mobileRecovering
   useEffect(() => {
-    if (bootDone) window.HyloBootLoader?.ready()
+    if (!bootDone) return
+    window.HyloBootLoader?.ready()
+    clearChunkReloadFlag()
   }, [bootDone])
 
   if (isMobileWebViewUserLogoutInProgress()) {

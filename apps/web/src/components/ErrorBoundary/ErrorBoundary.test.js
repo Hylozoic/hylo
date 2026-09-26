@@ -1,5 +1,6 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { reloadPage } from 'client/chunkReload'
 import ErrorBoundary from './ErrorBoundary'
 
 // Mock the error reporter module
@@ -10,7 +11,34 @@ jest.mock('client/errorReporter', () => ({
   }
 }))
 
+jest.mock('client/chunkReload', () => ({
+  ...jest.requireActual('client/chunkReload'),
+  reloadPage: jest.fn()
+}))
+
+const ErrorThrowingComponent = () => {
+  throw new Error('Test error')
+}
+
+const ChunkErrorComponent = () => {
+  throw new TypeError('Failed to fetch dynamically imported module: /assets/index-abc.js')
+}
+
 describe('ErrorBoundary', () => {
+  let consoleErrorSpy
+
+  beforeEach(() => {
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    window.HyloBootLoader = { ready: jest.fn(), milestone: jest.fn() }
+    window.sessionStorage.clear()
+    reloadPage.mockClear()
+  })
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore()
+    delete window.HyloBootLoader
+  })
+
   it('renders children correctly', () => {
     render(
       <ErrorBoundary message='An Error Message'>
@@ -22,12 +50,6 @@ describe('ErrorBoundary', () => {
   })
 
   it('renders an error message when an error is thrown', () => {
-    const ErrorThrowingComponent = () => {
-      throw new Error('Test error')
-    }
-
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-
     render(
       <ErrorBoundary message='An Error Message'>
         <ErrorThrowingComponent />
@@ -36,7 +58,53 @@ describe('ErrorBoundary', () => {
 
     expect(screen.getByText('An Error Message')).toBeInTheDocument()
     expect(screen.getByTestId('error-boundary-container')).toBeInTheDocument()
+  })
 
-    consoleErrorSpy.mockRestore()
+  it('dismisses the boot loader so a render crash does not leave an endless loading screen', () => {
+    render(
+      <ErrorBoundary>
+        <ErrorThrowingComponent />
+      </ErrorBoundary>
+    )
+
+    expect(window.HyloBootLoader.ready).toHaveBeenCalled()
+  })
+
+  it('offers a Reload button that reloads the page', () => {
+    render(
+      <ErrorBoundary>
+        <ErrorThrowingComponent />
+      </ErrorBoundary>
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reload' }))
+    expect(reloadPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('reloads once for a stale chunk instead of showing the error', () => {
+    render(
+      <ErrorBoundary>
+        <ChunkErrorComponent />
+      </ErrorBoundary>
+    )
+
+    expect(window.sessionStorage.getItem('vite-reload-attempted')).toBe('1')
+    expect(screen.queryByTestId('error-boundary-container')).not.toBeInTheDocument()
+    expect(window.HyloBootLoader.ready).not.toHaveBeenCalled()
+  })
+
+  it('shows the error with Reload when a stale chunk fails again after the reload', () => {
+    window.sessionStorage.setItem('vite-reload-attempted', '1')
+
+    render(
+      <ErrorBoundary>
+        <ChunkErrorComponent />
+      </ErrorBoundary>
+    )
+
+    expect(reloadPage).not.toHaveBeenCalled()
+    expect(screen.getByTestId('error-boundary-container')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reload' })).toBeInTheDocument()
+    expect(window.HyloBootLoader.ready).toHaveBeenCalled()
   })
 })
