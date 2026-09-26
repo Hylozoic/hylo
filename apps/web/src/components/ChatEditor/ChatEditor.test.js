@@ -146,4 +146,34 @@ describe('ChatEditor when sending fails', () => {
     await act(async () => { retry() })
     await waitFor(() => expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ details: '<p>Hello there</p>' })))
   }, 20000)
+
+  it.each([
+    ['only an attachment', ''],
+    ['text and an attachment', '<p>Look at this</p>']
+  ])('puts a message with %s back, attachment included, and re-saves the draft', async (_, details) => {
+    const imageUrl = 'https://example.com/chat.png'
+    mockGraphqlServer.use(chatDraftResponse({ details, type: 'chat', imageUrls: [imageUrl], fileUrls: [] }))
+    createPost.mockImplementation(() => ({ type: 'TEST_CREATE_POST_FAILED', payload: Promise.reject(new Error('offline')) }))
+    saveDraft.mockClear()
+    toast.error.mockClear()
+    const onSaveFailed = jest.fn()
+    const editorRef = React.createRef()
+    const store = setupStore()
+    const { container } = renderChatEditor(store, { onSave: jest.fn(), onSaveFailed }, editorRef)
+    const chatImages = () => getAttachments(store.getState(), { type: 'post', id: CHAT_ID_FOR_NEW, attachmentType: 'image' })
+    const editorText = () => container.querySelector('.ProseMirror')?.textContent
+
+    await waitFor(() => expect(chatImages()).toEqual([{ url: imageUrl, attachmentType: 'image' }]))
+
+    await act(async () => { await editorRef.current.submit() })
+
+    expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ imageUrls: [imageUrl] }))
+    expect(onSaveFailed).toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith('Your message couldn\'t be sent', expect.anything())
+    await waitFor(() => expect(chatImages()).toEqual([{ url: imageUrl, attachmentType: 'image' }]))
+    if (details) expect(editorText()).toContain('Look at this')
+    await waitFor(() => {
+      expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ data: expect.stringContaining(imageUrl) }))
+    }, { timeout: 4000 })
+  }, 20000)
 })

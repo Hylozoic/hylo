@@ -3,7 +3,7 @@ import { debounce, isEmpty, uniqueId } from 'lodash/fp'
 import { DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import React, { useCallback, useMemo, useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector, useDispatch, useStore } from 'react-redux'
 import { useLocation, useParams } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
@@ -66,6 +66,7 @@ function ChatEditorInner ({
   onComposerBlur
 }, ref) {
   const dispatch = useDispatch()
+  const store = useStore()
   const urlLocation = useLocation()
   const { pathname, search } = urlLocation
   const navigateToForDraft = `${pathname}${search || ''}`
@@ -415,9 +416,12 @@ function ChatEditorInner ({
     }
 
     if (onSaveFailed) onSaveFailed(postToSave.localId)
+    // Read from the store: this closure's attachments are the ones that were just sent
+    const composerAttachments = attachmentType =>
+      getAttachments(store.getState(), { type: 'post', id: CHAT_ID_FOR_NEW, attachmentType })
     const composerIsEmpty = !!editorRef.current &&
       !hasDraftContent(editorRef.current.getHTML()) &&
-      isEmpty(imageAttachments) && isEmpty(fileAttachments)
+      isEmpty(composerAttachments('image')) && isEmpty(composerAttachments('file'))
     if (composerIsEmpty) restoreFailedPost(postToSave)
 
     sendFailedToastIdRef.current = toast.error(t('Your message couldn\'t be sent'), {
