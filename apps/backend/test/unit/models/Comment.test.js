@@ -96,14 +96,14 @@ describe('Comment', () => {
               image: undefined,
               name: u2.get('name'),
               avatar_url: u2.get('avatar_url'),
-              timestamp: comments[2].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+              timestamp: comments[2].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })
             }, {
               id: comments[3].id,
               text: comments[3].get('text'),
               image: undefined,
               name: u2.get('name'),
               avatar_url: u2.get('avatar_url'),
-              timestamp: comments[3].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+              timestamp: comments[3].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })
             }])
 
           const send2 = log.find(l => l.email === u2.get('email'))
@@ -115,14 +115,14 @@ describe('Comment', () => {
               image: undefined,
               name: u1.get('name'),
               avatar_url: u1.get('avatar_url'),
-              timestamp: comments[0].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+              timestamp: comments[0].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })
             }, {
               id: comments[1].id,
               text: comments[1].get('text'),
               image: undefined,
               name: u1.get('name'),
               avatar_url: u1.get('avatar_url'),
-              timestamp: comments[1].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+              timestamp: comments[1].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })
             }])
         })
       })
@@ -162,7 +162,7 @@ describe('Comment', () => {
             image: undefined,
             name: u2.get('name'),
             avatar_url: u2.get('avatar_url'),
-            timestamp: comments[3].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+            timestamp: comments[3].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })
           }])
         })
       })
@@ -182,14 +182,14 @@ describe('Comment', () => {
             image: undefined,
             name: u1.get('name'),
             avatar_url: u1.get('avatar_url'),
-            timestamp: comments[0].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+            timestamp: comments[0].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })
           }, {
             id: comments[1].id,
             text: comments[1].get('text'),
             image: undefined,
             name: u1.get('name'),
             avatar_url: u1.get('avatar_url'),
-            timestamp: comments[1].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+            timestamp: comments[1].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })
           }])
         })
       })
@@ -221,6 +221,25 @@ describe('Comment', () => {
           const send2 = log.find(l => l.email === u2.get('email'))
           expect(send2.data.subject_prefix).to.match(/You were mentioned/)
         })
+      })
+
+      it('translates the subject prefix and formats times for the recipient', async () => {
+        await u2.addSetting({ locale: 'es' }, true)
+        await post.save({ timezone: 'America/Mexico_City' }, { patch: true })
+        const text = `hola <a class="mention" data-id="${u2.get('id')}" data-label="buddy">buddy</a>!`
+        await comments[1].save({ text }, { patch: true })
+
+        await Comment.sendDigests()
+
+        const spanish = log.find(l => l.email === u2.get('email'))
+        expect(spanish.locale).to.equal('es-ES')
+        expect(spanish.data.subject_prefix).to.equal('Te mencionaron en')
+        expect(spanish.data.comments[0].timestamp).to.equal(
+          comments[0].get('created_at').toLocaleString('es-ES', { hour: 'numeric', minute: 'numeric', timeZone: 'America/Mexico_City' })
+        )
+
+        const english = log.find(l => l.email === u1.get('email'))
+        expect(english.data.subject_prefix).to.equal('New comments on')
       })
 
       it('uses parent > space as the sender name for comments in a space', async () => {
