@@ -54,6 +54,16 @@ describe('MapDrawer', () => {
     expect(screen.getByText('hello')).toBeInTheDocument()
   })
 
+  it('only lists people on a group map', () => {
+    const members = [{ id: 2, name: 'hello' }]
+    const { unmount } = render(<MapDrawer {...defaultMinProps} members={members} />)
+    expect(screen.getByText('hello')).toBeInTheDocument()
+    unmount()
+
+    render(<MapDrawer {...defaultMinProps} context='all' routeParams={{ context: 'all' }} members={members} />)
+    expect(screen.queryByText('hello')).not.toBeInTheDocument()
+  })
+
   it('updates filters when searching', () => {
     const onUpdateFilters = jest.fn()
     render(<MapDrawer {...defaultMinProps} onUpdateFilters={onUpdateFilters} topics={[{ id: 3, name: 'DOAs' }]} />)

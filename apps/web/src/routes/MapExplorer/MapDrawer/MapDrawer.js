@@ -209,7 +209,8 @@ function MapDrawer ({
 
   const spaces = groups.filter(g => g.type === 'space')
   const properGroups = groups.filter(g => g.type !== 'space')
-  const showPeople = context !== 'public'
+  // People are only loaded for a single group's map
+  const showPeople = context === 'groups'
 
   // Result-type tabs collapsed into one lens dropdown, per the design
   const lenses = [
