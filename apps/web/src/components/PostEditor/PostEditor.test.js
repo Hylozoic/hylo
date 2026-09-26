@@ -284,6 +284,38 @@ describe('PostEditor', () => {
       await waitFor(() => expect(afterSave).toHaveBeenCalled())
       expect(updatePost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Test Post, edited' }))
     }, 20000)
+
+    it('reports a failure that arrives after the editor has closed without offering a retry, and keeps the draft', async () => {
+      const updatePost = require('store/actions/updatePost')
+      const { saveDraft } = require('store/actions/draftActions')
+      const { toast } = require('sonner')
+      toast.error.mockClear()
+      saveDraft.mockClear()
+      let rejectSave
+      updatePost.mockImplementationOnce(() => ({
+        type: 'TEST_UPDATE_POST',
+        payload: new Promise((resolve, reject) => { rejectSave = reject })
+      }))
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      const editorRef = React.createRef()
+
+      const { unmount } = render(
+        <PostEditor {...baseProps} {...editProps} afterSave={jest.fn()} ref={editorRef} />,
+        { wrapper: testProviders({ linkGroup: true }) }
+      )
+      await screen.findByDisplayValue('Test Post')
+      await act(async () => { editorRef.current.submit() })
+      await waitFor(() => expect(updatePost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Test Post' })))
+
+      unmount()
+      await act(async () => { rejectSave(new Error('offline')) })
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Your changes couldn\'t be saved'))
+      expect(toast.error.mock.calls[0]).toHaveLength(1)
+      await waitFor(() => {
+        expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ data: expect.stringContaining('Test Post') }))
+      }, { timeout: 4000 })
+    }, 20000)
   })
 })
 

@@ -306,6 +306,7 @@ function PostEditorInner ({
   /** Blocks duplicate create/update dispatches before Redux pending state updates. */
   const isSubmittingRef = useRef(false)
   const saveFailedToastIdRef = useRef(null)
+  const mountedRef = useRef(false)
   /**
    * Latest editor HTML. Kept in a ref so typing does not write into React state on every keystroke.
    * null means not hydrated yet — draft effect falls back to currentPost.details.
@@ -1142,7 +1143,9 @@ function PostEditorInner ({
 
   /**
    * Keeps the post in the editor after a failed create/update, turns draft
-   * autosave back on (re-queueing the draft) and offers a retry.
+   * autosave back on (re-queueing the draft) and offers a retry. If the editor
+   * has closed while saving, the draft is still re-queued but there is nothing
+   * left to retry from.
    */
   const handleSaveFailed = useEventCallback((wasAnnouncement) => {
     isSubmittedRef.current = false
@@ -1150,15 +1153,23 @@ function PostEditorInner ({
     setAnnouncementSelected(!!wasAnnouncement)
     const details = editorRef.current?.getHTML?.() ?? detailsHtmlRef.current ?? currentPost.details
     saveDraftJSON(buildPostDraftPayload(withDraftAttachments({ ...currentPost, details })))
-    saveFailedToastIdRef.current = toast.error(
-      isEditing ? t('Your changes couldn\'t be saved') : t('Your post couldn\'t be sent'),
-      { action: { label: t('Try Again'), onClick: () => doSave() } }
-    )
+    const message = isEditing ? t('Your changes couldn\'t be saved') : t('Your post couldn\'t be sent')
+    if (!mountedRef.current) {
+      toast.error(message)
+      return
+    }
+    saveFailedToastIdRef.current = toast.error(message, {
+      action: { label: t('Try Again'), onClick: () => doSave() }
+    })
   })
 
   // The retry action needs this editor, so the toast goes when the editor does
-  useEffect(() => () => {
-    if (saveFailedToastIdRef.current != null) toast.dismiss(saveFailedToastIdRef.current)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      if (saveFailedToastIdRef.current != null) toast.dismiss(saveFailedToastIdRef.current)
+    }
   }, [])
 
   /**
