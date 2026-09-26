@@ -14,6 +14,15 @@ jest.mock('config/index', () => {
   return { __esModule: true, ...actual, default: { ...actual.default, mixpanel: { token: 'test-token' } } }
 })
 
+const mockIntercomProviderProps = []
+jest.mock('react-use-intercom', () => ({
+  IntercomProvider: props => {
+    mockIntercomProviderProps.push(props)
+    return props.children
+  },
+  useIntercom: () => ({ show: () => {}, boot: () => {}, shutdown: () => {} })
+}))
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: jest.fn().mockReturnValue({ context: 'groups', groupSlug: 'test-group' }),
@@ -159,23 +168,27 @@ describe('cookie consent', () => {
     await waitFor(() => expect(screen.getByText('Test Group')).toBeInTheDocument())
   }
 
+  const lastIntercomProps = () => mockIntercomProviderProps[mockIntercomProviderProps.length - 1]
+
   beforeEach(() => {
     mixpanel.identify.mockClear()
     mixpanel.people.set.mockClear()
     mixpanel.set_group.mockClear()
+    mockIntercomProviderProps.length = 0
   })
 
   afterEach(() => {
     getCookieConsent.mockReturnValue(null)
   })
 
-  it('sends the Mixpanel profile for people who have not answered', async () => {
+  it('sends the Mixpanel profile and boots Intercom for people who have not answered', async () => {
     await renderGroupPage()
 
     await waitFor(() => expect(mixpanel.people.set).toHaveBeenCalled())
+    expect(lastIntercomProps().autoBoot).toBe(true)
   })
 
-  it('sends nothing to Mixpanel after Reject Non-Essential', async () => {
+  it('sends nothing to Mixpanel and does not boot Intercom after Reject Non-Essential', async () => {
     getCookieConsent.mockReturnValue({ analytics: false, support: false })
 
     await renderGroupPage()
@@ -183,5 +196,7 @@ describe('cookie consent', () => {
     expect(mixpanel.identify).not.toHaveBeenCalled()
     expect(mixpanel.people.set).not.toHaveBeenCalled()
     expect(mixpanel.set_group).not.toHaveBeenCalled()
+    expect(lastIntercomProps().autoBoot).toBe(false)
+    expect(lastIntercomProps().shouldInitialize).toBe(false)
   })
 })

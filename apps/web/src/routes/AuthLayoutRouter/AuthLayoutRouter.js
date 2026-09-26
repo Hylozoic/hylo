@@ -17,6 +17,7 @@ import {
 import config, { isDev, isTest } from 'config/index'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import CookieConsentLinker from 'components/CookieConsentLinker'
+import IntercomConsentSync from 'components/IntercomConsentSync'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import { identifyAnalyticsUser, setAnalyticsGroups } from 'util/analytics'
 import { getCookieConsent } from 'util/cookieConsent'
@@ -259,6 +260,9 @@ export default function AuthLayoutRouter (props) {
   // Before the consent context has loaded, fall back to the stored cookie
   const cookieConsent = cookieData || getCookieConsent()
   const analyticsConsent = cookieConsent?.analytics
+  // Only an explicit rejection turns support chat off: people who have not
+  // answered the cookie panel, and the mobile app (which has none), keep it
+  const supportAllowed = cookieConsent?.support !== false
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
 
@@ -901,7 +905,13 @@ export default function AuthLayoutRouter (props) {
   }
 
   return (
-    <IntercomProvider appId={isTest || isSandboxMode() ? '' : config.intercom.appId} autoBoot={!isSandboxMode()} autoBootProps={intercomProps}>
+    <IntercomProvider
+      appId={isTest || isSandboxMode() ? '' : config.intercom.appId}
+      autoBoot={!isSandboxMode() && supportAllowed}
+      autoBootProps={intercomProps}
+      shouldInitialize={supportAllowed}
+    >
+      <IntercomConsentSync allowed={!isSandboxMode() && supportAllowed} bootProps={intercomProps} />
       <SiteBanners />
       {/* Pull-to-refresh indicator - shows during and after gesture */}
       {(isPulling || isRefreshing) && (
