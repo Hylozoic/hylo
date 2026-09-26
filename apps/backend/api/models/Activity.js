@@ -1,4 +1,5 @@
 import { values, omit, filter, find, includes, isEmpty, get } from 'lodash'
+import { EMAIL_REASONS } from './notification/emailReasons'
 
 const isNewPost = activity => {
   const reasons = activity.get('meta').reasons
@@ -349,7 +350,9 @@ module.exports = bookshelf.Model.extend({
       sendNotification = newPostsSetting === 'all' || (newPostsSetting === 'important' && (isAnnouncement(activity) || isMention(activity)))
     }
 
-    if (!isEmpty(emailable) && sendNotification) {
+    const hasEmail = EMAIL_REASONS.has(Notification.priorityReason(reasons))
+
+    if (!isEmpty(emailable) && sendNotification && hasEmail) {
       // TODO: make sure email shows its from the first group that has sendEmail set to true, or maybe show all groups on it?
       notifications.push(Notification.MEDIUM.Email)
     }
