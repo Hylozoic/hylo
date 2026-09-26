@@ -1,6 +1,7 @@
 import { ChevronLeft, Globe, Info } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { spaceUrl, myHomeLandingUrl } from '@hylo/navigation'
@@ -9,6 +10,7 @@ import LucideIcon from 'components/LucideIcon/LucideIcon'
 import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import useMobileNavBack from 'hooks/useMobileNavBack'
+import getHasUnreadActivity from 'store/selectors/getHasUnreadActivity'
 import GroupViewIcon from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewIcon'
 import { hueOf, viewCardColor } from 'routes/AuthLayoutRouter/components/ContextMenu/viewCardTheme'
 import { bgImageStyle, cn } from 'util/index'
@@ -37,9 +39,29 @@ function ViewIconTile ({ icon, hue, className }) {
   )
 }
 
+/**
+ * Phones keep the nav (and its badges) in a closed drawer, so the chevron that
+ * opens it carries a dot when anything there is unread.
+ */
+function NavActivityDot () {
+  const { t } = useTranslation()
+  return (
+    <span
+      role='img'
+      aria-label={t('New activity')}
+      data-testid='view-header-activity-dot'
+      className={cn(
+        'absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-context-menu-background',
+        !isPhoneDevice() && 'sm:hidden'
+      )}
+    />
+  )
+}
+
 const ViewHeader = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const hasUnreadActivity = useSelector(getHasUnreadActivity)
   const {
     performBack,
     headerDetails,
@@ -249,6 +271,7 @@ const ViewHeader = () => {
           data-testid='view-header-nav-toggle'
         >
           <ChevronLeft className='w-6 h-6' />
+          {hasUnreadActivity && <NavActivityDot />}
         </button>
       )}
       {/* DEPRECATED: Now always show back button/menu toggle */}
@@ -256,11 +279,12 @@ const ViewHeader = () => {
       {!centered && (
         <>
           <button
-            className={cn('p-2 -ml-1 mr-1 cursor-pointer', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
+            className={cn('relative p-2 -ml-1 mr-1 cursor-pointer', !compactLayout && 'sm:hidden', !compactLayout && backButton && 'sm:block')}
             onClick={handleChevronClick}
             data-testid='view-header-nav-toggle'
           >
             <ChevronLeft className='w-6 h-6' />
+            {hasUnreadActivity && <NavActivityDot />}
           </button>
           {context !== 'messages' && !oneColumn && (
             <div className={cn('ViewHeaderContextIcon mr-3 w-8 h-8 rounded-lg drop-shadow-md', !compactLayout && 'sm:hidden')}>

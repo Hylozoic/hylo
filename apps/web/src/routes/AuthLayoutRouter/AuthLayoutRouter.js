@@ -4,7 +4,7 @@ import { matchPath, Route, Routes, Navigate, useLocation, useNavigate, useParams
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
-import { get, some } from 'lodash/fp'
+import { get } from 'lodash/fp'
 import { cn } from 'util/index'
 import {
   createPersistentSelectionTracker,
@@ -836,7 +836,6 @@ export default function AuthLayoutRouter (props) {
         userId: currentUser.id
       }
     : { hideDefaultLauncher: true }
-  const showMenuBadge = some(m => m.newPostCount > 0, memberships)
 
   // Only redirect to returnToPath when outside the welcome wizard. Inside the wizard,
   // the PENDING optimistic update sets signupInProgress=false before the server confirms,
@@ -1015,7 +1014,6 @@ export default function AuthLayoutRouter (props) {
                   group={currentGroup}
                   currentUser={currentUser}
                   routeParams={pathMatchParams}
-                  showMenuBadge={showMenuBadge}
                 />
                 {isDrawerOpen && <Drawer className={cn(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
               </>
