@@ -92,3 +92,32 @@ describe('ContextRow', () => {
     expect(screen.getByRole('status')).toBeInTheDocument()
   })
 })
+
+describe('Group Settings link', () => {
+  const group = {
+    id: '11',
+    slug: 'foo',
+    name: 'Foomunity',
+    myInviteAccess: 'limited'
+  }
+
+  function providersWithRoles (roles) {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Group.create(group)
+    ormSession.Me.create({ id: '1', name: 'Test User', groupRoles: { items: roles } })
+    return AllTheProviders({ orm: ormSession.state })
+  }
+
+  it('is not shown to a member whose only invite access comes from the Member role', () => {
+    render(<Drawer group={group} />, { wrapper: providersWithRoles([]) })
+
+    expect(screen.queryByText('Group Settings')).not.toBeInTheDocument()
+  })
+
+  it('is shown to someone with an assigned role that can add members', () => {
+    const host = { id: '3', groupId: '11', name: 'Host', responsibilities: { items: [{ id: '2', title: 'Add Members' }] } }
+    render(<Drawer group={group} />, { wrapper: providersWithRoles([host]) })
+
+    expect(screen.getByText('Group Settings')).toBeInTheDocument()
+  })
+})
