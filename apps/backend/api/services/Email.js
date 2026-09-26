@@ -2,9 +2,12 @@ import { curry, merge } from 'lodash'
 import { format } from 'util'
 import { normalizeLocaleToFull } from '../../lib/localeHelpers'
 import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
+import sentry from '../../lib/sentry'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 
+// Resolves false on failure rather than rejecting: callers treat `false` as "not sent".
+// Failures are reported without the recipient address or email data.
 const sendEmail = opts =>
   new Promise((resolve, reject) =>
     api.send(opts, (err, resp) => err ? reject(err) : resolve(resp)))
@@ -12,7 +15,14 @@ const sendEmail = opts =>
       return resp || true
     })
     .catch(err => {
-      console.error('Error sending email:', err, ' email opts = ', opts)
+      const error = err instanceof Error ? err : new Error(String(err))
+      console.error(`Error sending email ${opts.email_id}: ${error.message}`)
+      sentry.error(error, null, {
+        templateId: opts.email_id,
+        versionName: opts.version_name,
+        locale: opts.locale,
+        statusCode: error.statusCode
+      })
       return false
     })
 

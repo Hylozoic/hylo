@@ -5,10 +5,9 @@ const authConfig = {}
 if (process.env.ONESIGNAL_REST_API_KEY && process.env.ONESIGNAL_APP_ID) {
   authConfig.restApiKey = process.env.ONESIGNAL_REST_API_KEY
   authConfig.appId = process.env.ONESIGNAL_APP_ID
-} else {
-  if (!process.env.NODE_ENV === 'development') {
-    throw new Error('ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY environment variables are required')
-  }
+} else if (process.env.NODE_ENV === 'production') {
+  // Report rather than throw so a missing key can't stop the server from booting.
+  sentry.error(new Error('ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY environment variables are required'))
 }
 
 const configuration = OneSignal.createConfiguration(authConfig)
@@ -51,6 +50,7 @@ function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
 }
 
 module.exports = {
+  // Resolves false when the send fails so callers can leave the push unsent.
   notify: async (opts) => {
     const { readerId } = opts
     try {
@@ -62,6 +62,7 @@ module.exports = {
         readerId,
         response: err.response
       })
+      return false
     }
   }
 }

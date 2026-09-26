@@ -4,7 +4,7 @@ import personalizeData from '../../../lib/group/digest2/personalizeData'
 import { defaultTimezone, shouldSendData, getRecipients, parseGroupIds } from '../../../lib/group/digest2/util'
 import { sendDigest, sendAllDigests } from '../../../lib/group/digest2'
 import factories from '../../setup/factories'
-import { spyify, unspyify } from '../../setup/helpers'
+import { mockify, spyify, unspyify } from '../../setup/helpers'
 import { omit } from 'lodash'
 import setup from '../../setup'
 require('../../setup')
@@ -741,6 +741,43 @@ describe('group digest v2', () => {
       const result = await sendAllDigests('daily', { groupIds: [group.id] })
       const ids = result.map(pair => pair[0])
       expect(ids).to.deep.equal([group.id])
+    })
+  })
+
+  describe('delivery results', () => {
+    let reader, otherReader, author, group, previousEmailNotificationsEnabled
+
+    before(async () => {
+      await setup.clearDb()
+      previousEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+      const six = DateTime.now().setZone(defaultTimezone).startOf('day').plus({ hours: 6 }).toISO()
+
+      reader = await factories.user({ active: true }).save()
+      otherReader = await factories.user({ active: true }).save()
+      author = await factories.user().save()
+      group = await factories.group().save()
+      const post = await factories.post({ created_at: six, user_id: author.id, type: 'discussion' }).save()
+      await PostMembership.forge({ post_id: post.id, group_id: group.id }).save()
+      await group.addMembers([reader.id, otherReader.id], {
+        settings: { sendEmail: true, digestFrequency: 'daily' }
+      })
+    })
+
+    after(() => {
+      unspyify(Email, 'sendSimpleEmail')
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = previousEmailNotificationsEnabled
+    })
+
+    it('counts only the digests that were delivered', async function () {
+      this.timeout(10000)
+      mockify(Email, 'sendSimpleEmail', address =>
+        Promise.resolve(address === reader.get('email') ? false : { success: true }))
+
+      const count = await sendDigest(group.id, 'daily')
+
+      expect(Email.sendSimpleEmail).to.have.been.called.exactly(2)
+      expect(count).to.equal(1)
     })
   })
 

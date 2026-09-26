@@ -59,16 +59,16 @@ export const sendToUser = (user, type, data, opts = {}) => {
 
   return personalizeData(user, type, data, opts)
     .then(data => {
+      if (!data) return false
+      if (opts.dryRun) return true
       const locale = user.getLocale()
-      return opts.dryRun || !data
-        ? false
-        : Email.sendSimpleEmail(user.get('email'), templateId, data, {
-          sender: {
-            name: senderNameViaHylo(senderName, locale),
-            reply_to: 'DoNotReply@hylo.com'
-          },
-          version: 'Spaces'
-        }, locale)
+      return Email.sendSimpleEmail(user.get('email'), templateId, data, {
+        sender: {
+          name: senderNameViaHylo(senderName, locale),
+          reply_to: 'DoNotReply@hylo.com'
+        },
+        version: 'Spaces'
+      }, locale)
     })
 }
 
@@ -76,8 +76,13 @@ export const sendDigest = (id, type, opts = {}) => {
   return prepareDigestData(id, type, opts).then(data =>
     shouldSendData(data, id)
       .then(ok => ok && getRecipients(id, type)
-        .then(users => Promise.each(users, user => sendToUser(user, type, data, opts)))
-        .then(users => users.length)))
+        .then(async users => {
+          let sent = 0
+          for (const user of users) {
+            if (await sendToUser(user, type, data, opts) !== false) sent += 1
+          }
+          return sent
+        })))
 }
 
 export const sendAllDigests = (type, opts = {}) => {
@@ -99,4 +104,4 @@ export const sendAllDigests = (type, opts = {}) => {
 }
 
 export const sendSampleData = address =>
-  Email.sendSimpleEmail(address, DIGEST_TEMPLATE_ID, sampleData, { version: 'Spaces'})
+  Email.sendSimpleEmail(address, DIGEST_TEMPLATE_ID, sampleData, { version: 'Spaces' })
