@@ -832,12 +832,18 @@ type Group {
   moreSpacesCount: Int
   # The current invite link for this group
   invitePath: String
+  # Who can invite new people to this group. Null for spaces, and for anyone without the Administration responsibility
+  invitePolicy: InvitePolicy
   # A string describing the physical location of this group in the world
   location: String
   # The fully geocoded location object
   locationObject: Location
   # Number of members in this group
   memberCount: Int
+  # The implicit role every member of this group holds. Null for spaces, and for anyone without the Administration responsibility
+  memberRole: GroupRole
+  # How the current user can invite people to this group: 'full' (Add Members), 'limited' (personal email invitations only) or null
+  myInviteAccess: String
   # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
   openJoinRequestCount: Int
   # Count of active (unresolved) moderation actions in this group
@@ -1636,6 +1642,14 @@ type InvitationQuerySet {
   total: Int
   hasMore: Boolean
   items: [Invitation]
+}
+
+# Who can invite new people to a group. Roles with Add Members can always invite
+type InvitePolicy {
+  # 'everyone' (every member can send personal email invitations), 'stewards' (only roles with Add Members) or 'roles' (the roles in roleIds can too)
+  mode: String
+  # For 'roles': the roles that can send personal email invitations
+  roleIds: [ID]
 }
 
 # A request from a person to join a group
@@ -4057,6 +4071,8 @@ input GroupInput {
   groupToGroupJoinQuestions: [QuestionInput]
   # The current invite link for this group
   invitePath: String
+  # Who can invite new people to this group (top-level groups only; changing it requires the Administration responsibility)
+  invitePolicy: InvitePolicyInput
   # Questions a Person must answer when requesting to join this group
   joinQuestions: [QuestionInput]
   # A string describing the physical location of this group in the world
@@ -4221,6 +4237,16 @@ input InviteInput {
   assignAdministrator: Boolean
   # Group role ID to assign when the invitation is used
   groupRoleId: ID
+}
+
+# Who can invite new people to a group
+input InvitePolicyInput {
+  # 'everyone' (every member), 'stewards' (roles with Add Members) or 'roles' (the roles below, as well as stewards)
+  mode: String!
+  # For 'roles': ids of this group's active roles
+  roleIds: [ID]
+  # For 'roles': system role names such as 'Moderator', for a group that is being created
+  systemRoleNames: [String]
 }
 
 # A link to a Post or a Person who has been Flagged

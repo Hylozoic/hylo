@@ -1153,6 +1153,20 @@ export default function makeModels (userId, isAdmin, apiClient) {
         invitePath: g =>
           userId && GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
             .then(canInvite => canInvite ? Frontend.Route.invitePath(g) : null),
+        invitePolicy: async g => {
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
+            return null
+          }
+          return GroupRole.getInvitePolicy(g.id)
+        },
+        memberRole: async g => {
+          if (g.get('type') === 'space' || g.get('parent_id')) return null
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
+            return null
+          }
+          return GroupRole.findMemberRole(g.id)
+        },
+        myInviteAccess: g => userId ? GroupMembership.inviteAccess(userId, g) : null,
         location: async (g) => {
           // If location obfuscation is on then non group stewards see a display string that only includes city, region & country
           const precision = g.getSetting('location_display_precision') || LOCATION_DISPLAY_PRECISION.Precise

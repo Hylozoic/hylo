@@ -1203,3 +1203,118 @@ describe('Group.groupRoles', () => {
     }
   })
 })
+
+describe('group invite policy fields', () => {
+  let handler, admin, host, member, group, space
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  const policyQuery = groupId => `{
+    group(id: "${groupId}") {
+      myInviteAccess
+      invitePath
+      invitePolicy { mode roleIds }
+      memberRole { id name type responsibilities { items { title } } }
+    }
+  }`
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    host = await factories.user().save()
+    member = await factories.user().save()
+    group = await factories.group().save()
+    space = await factories.group({ type: 'space', parent_id: group.id }).save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await host.joinGroup(group)
+    await member.joinGroup(group)
+    await member.joinGroup(space)
+    const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+    await MemberGroupRole.forge({ user_id: host.id, group_id: group.id, group_role_id: hostRole.id, active: true }).save()
+  })
+
+  afterEach(() => GroupRole.setInvitePolicy(group.id, { mode: 'stewards' }))
+
+  it('gives stewards full access and members none when the policy is stewards', async () => {
+    expect((await run(admin.id, policyQuery(group.id))).group.myInviteAccess).to.equal('full')
+    expect((await run(host.id, policyQuery(group.id))).group.myInviteAccess).to.equal('full')
+    expect((await run(member.id, policyQuery(group.id))).group.myInviteAccess).to.be.null
+  })
+
+  it('gives members limited access, and no join link, when the policy is everyone', async () => {
+    await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+
+    const data = await run(member.id, policyQuery(group.id))
+    expect(data.group.myInviteAccess).to.equal('limited')
+    expect(data.group.invitePath).to.be.null
+    expect((await run(host.id, policyQuery(group.id))).group.myInviteAccess).to.equal('full')
+  })
+
+  it('shows the policy and the Member role to Administrators only', async () => {
+    await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+    const memberRole = await GroupRole.findMemberRole(group.id)
+
+    const data = await run(admin.id, policyQuery(group.id))
+    expect(data.group.invitePolicy).to.deep.equal({ mode: 'everyone', roleIds: [] })
+    expect(data.group.memberRole).to.deep.equal({
+      id: String(memberRole.id),
+      name: 'Member',
+      type: GroupRole.TYPE_MEMBER,
+      responsibilities: { items: [{ title: Responsibility.constants.RESP_INVITE_MEMBERS }] }
+    })
+
+    for (const viewer of [host, member]) {
+      const hidden = await run(viewer.id, policyQuery(group.id))
+      expect(hidden.group.invitePolicy).to.be.null
+      expect(hidden.group.memberRole).to.be.null
+    }
+  })
+
+  it('lists no responsibilities on the Member role outside everyone mode', async () => {
+    const moderator = await GroupRole.findSystemRole(group.id, 'Moderator')
+    await GroupRole.setInvitePolicy(group.id, { mode: 'roles', roleIds: [moderator.id] })
+
+    const data = await run(admin.id, policyQuery(group.id))
+    expect(data.group.invitePolicy).to.deep.equal({ mode: 'roles', roleIds: [String(moderator.id)] })
+    expect(data.group.memberRole.responsibilities.items).to.deep.equal([])
+  })
+
+  it('has no policy or Member role in a space, and no limited access there', async () => {
+    await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+
+    const adminView = await run(admin.id, policyQuery(space.id))
+    expect(adminView.group.myInviteAccess).to.equal('full')
+    expect(adminView.group.invitePolicy).to.be.null
+    expect(adminView.group.memberRole).to.be.null
+
+    expect((await run(member.id, policyQuery(space.id))).group.myInviteAccess).to.be.null
+  })
+
+  it('sets the policy through updateGroupSettings and createGroup', async () => {
+    const updated = await run(admin.id, `mutation {
+      updateGroupSettings(id: "${group.id}", changes: { invitePolicy: { mode: "everyone" } }) {
+        invitePolicy { mode roleIds }
+      }
+    }`)
+    expect(updated.updateGroupSettings.invitePolicy).to.deep.equal({ mode: 'everyone', roleIds: [] })
+
+    const slug = `graphql-policy-${Date.now()}`
+    const created = await run(admin.id, `mutation {
+      createGroup(data: { name: "GraphQL Policy", slug: "${slug}", invitePolicy: { mode: "roles", systemRoleNames: ["Moderator"] } }) {
+        id
+        invitePolicy { mode roleIds }
+      }
+    }`)
+    const moderator = await GroupRole.findSystemRole(created.createGroup.id, 'Moderator')
+    expect(created.createGroup.invitePolicy).to.deep.equal({ mode: 'roles', roleIds: [String(moderator.id)] })
+  })
+})

@@ -1,4 +1,4 @@
-import { isGroupVisibleToViewer, loadGroupVisibilityContext, makeFilterToggle } from './filters'
+import { groupFilter, isGroupVisibleToViewer, loadGroupVisibilityContext, makeFilterToggle } from './filters'
 import makeModels from './makeModels'
 import { expectEqualQuery } from '../../test/setup/helpers'
 import {
@@ -8,7 +8,7 @@ import factories from '../../test/setup/factories'
 
 const myId = '42'
 
-var models, sharedMemberships
+let models, sharedMemberships
 
 const setupBlockedUserData = async () => {
   const u1 = factories.user()
@@ -27,7 +27,7 @@ const setupBlockedUserData = async () => {
   await u4.joinGroup(group)
   await BlockedUser.create(u1.id, u2.id)
   await BlockedUser.create(u3.id, u1.id)
-  return {u1, u2, u3, u4, group}
+  return { u1, u2, u3, u4, group }
 }
 
 export function blockedUserSqlFragment (userId) {
@@ -43,8 +43,8 @@ export function blockedUserSqlFragment (userId) {
 }
 
 describe('makeFilterToggle', () => {
-  var filterFn = relation => relation.query(q => 'filtered')
-  var relation = {query: fn => fn()}
+  const filterFn = relation => relation.query(q => 'filtered')
+  const relation = { query: fn => fn() }
 
   it('adds a filter when enabled', () => {
     expect(makeFilterToggle(true)(filterFn)(relation)).to.equal('filtered')
@@ -75,7 +75,7 @@ describe('model filters', () => {
   })
 
   describe('Person', () => {
-    var u1, u4;
+    let u1, u4
 
     before(async () => {
       const blockedUserData = await setupBlockedUserData()
@@ -118,7 +118,7 @@ describe('model filters', () => {
   })
 
   describe('Post', () => {
-    var u1, u2, u3, u4, group;
+    let u1, u2, u3, u4, group
 
     before(async () => {
       const blockedUserData = await setupBlockedUserData()
@@ -127,14 +127,14 @@ describe('model filters', () => {
       u3 = blockedUserData.u3
       u4 = blockedUserData.u4
       group = blockedUserData.group
-      const p1 = factories.post({user_id: u2.id})
-      const p2 = factories.post({user_id: u3.id})
-      const p3 = factories.post({user_id: u4.id})
-      await p1.save({active: true})
+      const p1 = factories.post({ user_id: u2.id })
+      const p2 = factories.post({ user_id: u3.id })
+      const p3 = factories.post({ user_id: u4.id })
+      await p1.save({ active: true })
       await p1.groups().attach(group)
-      await p2.save({active: true})
+      await p2.save({ active: true })
       await p2.groups().attach(group)
-      await p3.save({active: true})
+      await p3.save({ active: true })
       await p3.groups().attach(group)
     })
 
@@ -287,6 +287,45 @@ describe('loadGroupVisibilityContext', () => {
     }, ctx, viewer.id)).to.equal(false)
   })
 
+  it('does not show hidden spaces to members who can invite through the Member role', async () => {
+    const viewer = await factories.user().save()
+    const host = await factories.user().save()
+    const parent = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    const hiddenSpace = await factories.group({
+      visibility: Group.Visibility.HIDDEN,
+      type: 'space',
+      parent_id: parent.id
+    }).save()
+    await viewer.joinGroup(parent)
+    await host.joinGroup(parent)
+    await GroupRole.setupSystemRoles(parent.id)
+    const hostRole = await GroupRole.findSystemRole(parent.id, 'Host')
+    await MemberGroupRole.forge({ user_id: host.id, group_id: parent.id, group_role_id: hostRole.id, active: true }).save()
+    await GroupRole.setInvitePolicy(parent.id, { mode: 'everyone' })
+    expect(await GroupMembership.inviteAccess(viewer.id, parent.id)).to.equal('limited')
+
+    const visibleSpaceIds = async userId => {
+      const groups = await groupFilter(userId)(Group.collection().query(q => q.where('groups.id', hiddenSpace.id))).fetch()
+      return groups.map(g => g.id)
+    }
+    expect(await visibleSpaceIds(viewer.id)).to.deep.equal([])
+    expect(await visibleSpaceIds(host.id)).to.deep.equal([hiddenSpace.id])
+
+    const ctx = await loadGroupVisibilityContext(viewer.id)
+    expect(ctx.memberIds.has(String(parent.id))).to.equal(true)
+    expect(ctx.joinManagerIds.has(String(parent.id))).to.equal(false)
+    expect(isGroupVisibleToViewer({
+      id: hiddenSpace.id,
+      get: key => {
+        if (key === 'visibility') return Group.Visibility.HIDDEN
+        if (key === 'type') return 'space'
+        if (key === 'parent_id') return parent.id
+        return null
+      }
+    }, ctx, viewer.id)).to.equal(false)
+    expect((await loadGroupVisibilityContext(host.id)).joinManagerIds.has(String(parent.id))).to.equal(true)
+  })
+
   it('does not show a protected space after leaving the parent', async () => {
     const viewer = await factories.user().save()
     const parent = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
@@ -312,4 +351,3 @@ describe('loadGroupVisibilityContext', () => {
     }, ctx, viewer.id)).to.equal(false)
   })
 })
-
