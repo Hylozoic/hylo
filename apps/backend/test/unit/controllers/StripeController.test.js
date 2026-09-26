@@ -334,6 +334,73 @@ describe('subscription email links', () => {
     expect(email.data.data.manage_subscription_url).to.equal(Frontend.Route.myTransactions())
     expect(email.data.data.update_payment_url).to.equal(Frontend.Route.myTransactions())
   })
+
+  describe('with a stubbed subscription', () => {
+    let stripeClient, originalSubscriptionRetrieve
+    const now = Math.floor(Date.now() / 1000)
+
+    beforeEach(() => {
+      stripeClient = require('stripe')()
+      originalSubscriptionRetrieve = stripeClient.subscriptions.retrieve
+      stripeClient.subscriptions.retrieve = async () => ({ current_period_start: now, current_period_end: now + 30 * 24 * 60 * 60 })
+    })
+
+    afterEach(() => {
+      stripeClient.subscriptions.retrieve = originalSubscriptionRetrieve
+    })
+
+    it('links the purchase confirmation email to my transactions', async () => {
+      await StripeController.handleCheckoutSessionCompleted({
+        data: {
+          object: {
+            id: 'cs_links_purchase',
+            payment_status: 'paid',
+            mode: 'subscription',
+            subscription: 'sub_links_purchase',
+            created: now,
+            amount_total: 1000,
+            currency: 'usd',
+            metadata: { userId: String(user.id), groupId: String(group.id), offeringId: String(product.id) }
+          }
+        }
+      })
+
+      const email = queued.find(q => q.methodName === 'sendPurchaseConfirmation')
+      expect(email).to.exist
+      expect(email.data.data.is_subscription).to.be.ok
+      expect(email.data.data.manage_subscription_url).to.equal(Frontend.Route.myTransactions())
+    })
+
+    it('links the subscription renewed email to my transactions', async () => {
+      await ContentAccess.create({
+        user_id: user.id,
+        granted_by_group_id: group.id,
+        group_id: group.id,
+        product_id: product.id,
+        access_type: ContentAccess.Type.STRIPE_PURCHASE,
+        stripe_session_id: 'cs_links_renewed',
+        stripe_subscription_id: 'sub_links_renewed',
+        status: ContentAccess.Status.ACTIVE
+      })
+
+      await StripeController.handleInvoicePaid({
+        data: {
+          object: {
+            id: 'in_links_renewed',
+            subscription: 'sub_links_renewed',
+            billing_reason: 'subscription_cycle',
+            amount_paid: 1000,
+            currency: 'usd',
+            created: now
+          }
+        }
+      })
+
+      const email = queued.find(q => q.methodName === 'sendSubscriptionRenewed')
+      expect(email).to.exist
+      expect(email.data.data.manage_subscription_url).to.equal(Frontend.Route.myTransactions())
+    })
+  })
 })
 
 describe('StripeController.handleChargeRefunded', () => {
