@@ -242,6 +242,18 @@ describe('Comment', () => {
         expect(english.data.subject_prefix).to.equal('New comments on')
       })
 
+      it('formats times in UTC when the post timezone is not a real timezone', async () => {
+        await post.save({ timezone: 'Not/AZone' }, { patch: true })
+
+        await Comment.sendDigests()
+
+        const send = log.find(l => l.email === u1.get('email'))
+        expect(send.data.date).to.contain('UTC')
+        expect(send.data.comments[0].timestamp).to.equal(
+          comments[2].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })
+        )
+      })
+
       it('uses parent > space as the sender name for comments in a space', async () => {
         const parentGroup = await factories.group({ name: 'Parent Group', slug: `parent-comment-${Date.now()}` }).save()
         const space = await factories.group({

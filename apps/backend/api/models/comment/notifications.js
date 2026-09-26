@@ -102,13 +102,15 @@ export const sendDigests = async () => {
   }
 }
 
-// Uses the post's timezone (UTC when unset) because recipients have no timezone setting.
-function formatCommentTime (date, locale, timeZone) {
-  const options = { hour: 'numeric', minute: 'numeric' }
+// Digests use the post's timezone because recipients have no timezone setting,
+// and UTC when the post has none or one that Intl does not recognise.
+function digestTimeZone (timeZone) {
+  if (!timeZone) return 'UTC'
   try {
-    return date.toLocaleString(locale, { ...options, timeZone: timeZone || 'UTC' })
+    Intl.DateTimeFormat('en-US', { timeZone })
+    return timeZone
   } catch (err) {
-    return date.toLocaleString(locale, { ...options, timeZone: 'UTC' })
+    return 'UTC'
   }
 }
 
@@ -120,6 +122,7 @@ async function sendDigestForUser ({ post, comments, user }) {
   let lastReadAt = user.pivot.get('last_read_at')
   if (lastReadAt) lastReadAt = new Date(lastReadAt)
   const locale = normalizeLocaleToFull(user.get('settings')?.locale || 'en-US')
+  const timeZone = digestTimeZone(post.get('timezone'))
 
   const filtered = comments.filter(c =>
     c.get('created_at') > (lastReadAt || 0) &&
@@ -134,7 +137,7 @@ async function sendDigestForUser ({ post, comments, user }) {
       image: comment.relations?.media?.first?.()?.pick('url', 'thumbnail_url'),
       name: comment.relations.user.get('name'),
       avatar_url: comment.relations.user.get('avatar_url'),
-      timestamp: formatCommentTime(comment.get('created_at'), locale, post.get('timezone'))
+      timestamp: comment.get('created_at').toLocaleString(locale, { hour: 'numeric', minute: 'numeric', timeZone })
     }
     return presented
   }
@@ -194,7 +197,7 @@ async function sendDigestForUser ({ post, comments, user }) {
       locale,
       data: {
         count: commentData.length,
-        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone'), locale }),
+        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: timeZone, locale }),
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
         post_title: post.summary(),
         post_creator_avatar_url: Frontend.appendQueryString(post.relations.user.get('avatar_url'), clickthroughParams),
