@@ -1,7 +1,34 @@
+import path from 'path'
+import { dependencyOf, mockify, unspyify } from '../../setup/helpers'
+
 const nock = require('nock')
 const Module = require('module')
 const root = require('root-path')
 require(root('test/setup'))
+
+const SENDWITHUS_SEND_PATH = '/api/v1_0/send'
+
+// A fresh Email.js built on the REAL sendwithus client with a key set, bypassing the stub in test/setup/core.js,
+// so only Email.js's own guard stands between a send and the network.
+const loadEmailWithRealClient = key => {
+  process.env.SENDWITHUS_KEY = key
+  const emailPath = root('api/services/Email.js')
+  const realSendwithusPath = require.resolve('sendwithus')
+  const stubbedRequire = Module.prototype.require
+  Module.prototype.require = function (id) {
+    return stubbedRequire.call(this, id === 'sendwithus' ? realSendwithusPath : id)
+  }
+  const cached = require.cache[emailPath]
+  delete require.cache[emailPath]
+  try {
+    return require(emailPath)
+  } finally {
+    Module.prototype.require = stubbedRequire
+    // keep the instance the rest of the suite (and sails' global Email) uses
+    if (cached) require.cache[emailPath] = cached
+    else delete require.cache[emailPath]
+  }
+}
 
 describe('Email', function () {
   describe('reply address', () => {
@@ -49,28 +76,6 @@ describe('Email', function () {
       nock.enableNetConnect()
     })
 
-    // A fresh Email.js built on the REAL sendwithus client with a key set, bypassing the stub in test/setup/core.js,
-    // so only Email.js's own guard stands between a send and the network.
-    const loadEmailWithRealClient = key => {
-      process.env.SENDWITHUS_KEY = key
-      const emailPath = root('api/services/Email.js')
-      const realSendwithusPath = require.resolve('sendwithus')
-      const stubbedRequire = Module.prototype.require
-      Module.prototype.require = function (id) {
-        return stubbedRequire.call(this, id === 'sendwithus' ? realSendwithusPath : id)
-      }
-      const cached = require.cache[emailPath]
-      delete require.cache[emailPath]
-      try {
-        return require(emailPath)
-      } finally {
-        Module.prototype.require = stubbedRequire
-        // keep the instance the rest of the suite (and sails' global Email) uses
-        if (cached) require.cache[emailPath] = cached
-        else delete require.cache[emailPath]
-      }
-    }
-
     const interceptSendwithus = () =>
       nock('https://api.sendwithus.com').post(/.*/).reply(200, { success: true })
 
@@ -111,6 +116,65 @@ describe('Email', function () {
 
       expect(await RealEmail.sendSimpleEmail('someone@example.com', 'tem_x', {})).to.deep.equal({ success: true })
       expect(scope.isDone()).to.equal(true)
+    })
+  })
+
+  describe('delivery failures', () => {
+    const recipient = 'failing-recipient@example.com'
+    let sentry
+    let previousEnv
+
+    beforeEach(() => {
+      previousEnv = {
+        NODE_ENV: process.env.NODE_ENV,
+        SENDWITHUS_KEY: process.env.SENDWITHUS_KEY,
+        DISABLE_EMAIL_SENDING: process.env.DISABLE_EMAIL_SENDING
+      }
+      // The send guard refuses NODE_ENV=test. These tests have to leave that mode
+      // so a nocked SendWithUs response can exercise the failure report.
+      process.env.NODE_ENV = 'development'
+      delete process.env.DISABLE_EMAIL_SENDING
+      nock.disableNetConnect()
+      sentry = dependencyOf(
+        path.resolve(__dirname, '../../../api/services/Email.js'),
+        path.resolve(__dirname, '../../../lib/sentry.js')
+      )
+      mockify(sentry, 'error', () => {})
+    })
+
+    afterEach(() => {
+      unspyify(sentry, 'error')
+      Object.entries(previousEnv).forEach(([key, value]) => {
+        if (value === undefined) delete process.env[key]
+        else process.env[key] = value
+      })
+      nock.cleanAll()
+      nock.enableNetConnect()
+    })
+
+    it('resolves false and reports the template to Sentry without the recipient', async () => {
+      nock('https://api.sendwithus.com').post(SENDWITHUS_SEND_PATH).reply(500, { success: false })
+      const RealEmail = loadEmailWithRealClient('test_dummy')
+
+      const result = await RealEmail.sendPostNotification({ email: recipient, data: { post: { title: 'hi' } } })
+
+      expect(result).to.equal(false)
+      expect(sentry.error).to.have.been.called.exactly(1)
+      const [error, , extra] = sentry.error.__spy.calls[0]
+      expect(error).to.be.an.instanceof(Error)
+      expect(extra.templateId).to.equal('tem_cPYpXw7d9pCdm6M8QmtPvPGG')
+      expect(extra.statusCode).to.equal(500)
+      expect(JSON.stringify(extra)).not.to.contain(recipient)
+    })
+
+    it('resolves the SendWithUs response when the send succeeds', async () => {
+      nock('https://api.sendwithus.com').post(SENDWITHUS_SEND_PATH).reply(200, { success: true, status: 'OK' })
+      const RealEmail = loadEmailWithRealClient('test_dummy')
+
+      const result = await RealEmail.sendPostNotification({ email: recipient, data: {} })
+
+      expect(result).to.deep.equal({ success: true, status: 'OK' })
+      expect(sentry.error).not.to.have.been.called()
     })
   })
 })
