@@ -2,7 +2,8 @@
 import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase } from 'lodash'
 
-export async function updateMembership (userId, { groupId, data, data: { settings } }) {
+export async function updateMembership (userId, { groupId, data = {} }) {
+  const settings = data.settings || {}
   const whitelist = mapKeys(pick(data, [
     'newPostCount',
     'navOrder'
