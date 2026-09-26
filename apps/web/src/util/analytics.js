@@ -56,9 +56,16 @@ export function applyAnalyticsConsent (consent) {
   }
 }
 
+// Callers re-run on a new choice before CookieConsentProvider's effect applies
+// it, and an SDK that is still opted out silently drops their calls
+function applyChoiceAndCheck (choice) {
+  applyAnalyticsConsent({ analytics: choice })
+  return analyticsAllowed(choice)
+}
+
 /** Identifies the signed-in person and records their profile, when the choice allows it. */
 export function identifyAnalyticsUser (user, choice) {
-  if (!user?.id || !analyticsAllowed(choice)) return
+  if (!user?.id || !applyChoiceAndCheck(choice)) return
   mixpanel.identify(user.id)
   mixpanel.people.set({
     $name: user.name,
@@ -69,7 +76,7 @@ export function identifyAnalyticsUser (user, choice) {
 
 /** Records the person's group memberships and the current group's profile, when the choice allows it. */
 export function setAnalyticsGroups (memberships, currentGroup, choice) {
-  if (!analyticsAllowed(choice)) return
+  if (!applyChoiceAndCheck(choice)) return
   mixpanel.set_group('groupId', memberships.map(m => m.group.id))
   if (currentGroup?.id) {
     mixpanel.get_group('groupId', currentGroup.id).set({

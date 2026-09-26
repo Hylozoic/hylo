@@ -147,3 +147,44 @@ describe('identifyAnalyticsUser and setAnalyticsGroups', () => {
     expect(mixpanel.get_group).not.toHaveBeenCalled()
   })
 })
+
+describe('when the choice changes before CookieConsentProvider applies it', () => {
+  const user = { id: '1', name: 'Ada', email: 'ada@example.com', location: 'Somewhere' }
+  const memberships = [{ group: { id: '10' } }]
+
+  // Like the real SDK, drops profile and group calls while opted out
+  function trackOptOut (mixpanel, optedOut) {
+    const sent = []
+    mixpanel.has_opted_out_tracking.mockImplementation(() => optedOut)
+    mixpanel.opt_out_tracking.mockImplementation(() => { optedOut = true })
+    mixpanel.opt_in_tracking.mockImplementation(() => { optedOut = false })
+    mixpanel.people.set.mockImplementation(props => { if (!optedOut) sent.push(props) })
+    mixpanel.set_group.mockImplementation((key, ids) => { if (!optedOut) sent.push(ids) })
+    return sent
+  }
+
+  it('opts back in before sending when analytics are accepted after a rejection', () => {
+    const { analytics, mixpanel } = load({ consent: { analytics: false, support: false } })
+    const sent = trackOptOut(mixpanel, false)
+    analytics.initAnalytics()
+
+    analytics.identifyAnalyticsUser(user, true)
+    analytics.setAnalyticsGroups(memberships, null, true)
+
+    expect(mixpanel.opt_in_tracking).toHaveBeenCalledTimes(1)
+    expect(sent).toEqual([{ $name: 'Ada', $email: 'ada@example.com', $location: 'Somewhere' }, ['10']])
+  })
+
+  it('opts out when the rejection is known only from the account', () => {
+    const { analytics, mixpanel } = load()
+    const sent = trackOptOut(mixpanel, false)
+    analytics.initAnalytics()
+
+    analytics.identifyAnalyticsUser(user, false)
+    analytics.setAnalyticsGroups(memberships, null, false)
+
+    expect(mixpanel.opt_out_tracking).toHaveBeenCalledWith({ delete_user: false })
+    expect(mixpanel.identify).not.toHaveBeenCalled()
+    expect(sent).toEqual([])
+  })
+})
