@@ -335,3 +335,97 @@ describe('subscription email links', () => {
     expect(email.data.data.update_payment_url).to.equal(Frontend.Route.myTransactions())
   })
 })
+
+describe('StripeController.handleChargeRefunded', () => {
+  let StripeController, stripeClient, originalRetrieve, user, group, product, sentEmails
+
+  const chargeRefundedEvent = {
+    id: 'evt_charge_refunded',
+    type: 'charge.refunded',
+    data: {
+      object: {
+        id: 'ch_refunded',
+        payment_intent: 'pi_refunded',
+        amount_refunded: 1500,
+        currency: 'usd'
+      }
+    }
+  }
+
+  const purchase = (attrs = {}) => ContentAccess.create({
+    user_id: user.id,
+    granted_by_group_id: group.id,
+    group_id: group.id,
+    product_id: product.id,
+    access_type: ContentAccess.Type.STRIPE_PURCHASE,
+    stripe_session_id: 'cs_refunded',
+    status: ContentAccess.Status.ACTIVE,
+    ...attrs
+  })
+
+  before(() => {
+    StripeController = require(root('api/controllers/StripeController'))
+    stripeClient = require('stripe')()
+  })
+
+  beforeEach(async () => {
+    await setup.clearDb()
+    user = await factories.user({ settings: { locale: 'fr' } }).save()
+    group = await factories.group({ name: 'Garden Club' }).save()
+    product = await StripeProduct.create({
+      group_id: group.id,
+      stripe_product_id: 'prod_refunded',
+      stripe_price_id: 'price_refunded',
+      name: 'Season Pass',
+      description: 'season',
+      price_in_cents: 1500,
+      currency: 'usd',
+      renewal_policy: 'manual',
+      duration: 'season',
+      access_grants: { groupIds: [group.id] },
+      publish_status: 'published'
+    })
+    originalRetrieve = stripeClient.paymentIntents.retrieve
+    stripeClient.paymentIntents.retrieve = async () => ({ metadata: { session_id: 'cs_refunded' } })
+    sentEmails = []
+    mockify(Email, 'sendRefundProcessed', opts => {
+      sentEmails.push(opts)
+      return Promise.resolve({ success: true })
+    })
+  })
+
+  afterEach(() => {
+    stripeClient.paymentIntents.retrieve = originalRetrieve
+    unspyify(Email, 'sendRefundProcessed')
+  })
+
+  it('emails the member once for a refund issued from the Stripe dashboard', async () => {
+    const groupAccess = await purchase()
+    const roleAccess = await purchase({ metadata: { accessType: 'role' } })
+
+    await StripeController.handleChargeRefunded(chargeRefundedEvent)
+
+    expect((await ContentAccess.where({ id: groupAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect((await ContentAccess.where({ id: roleAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect(sentEmails).to.have.length(1)
+    expect(sentEmails[0].email).to.equal(user.get('email'))
+    expect(sentEmails[0].locale).to.equal('fr-FR')
+    expect(sentEmails[0].data).to.include({
+      offering_name: 'Season Pass',
+      group_name: 'Garden Club',
+      refund_amount_formatted: '$15.00',
+      currency: 'USD',
+      refund_reason: null
+    })
+  })
+
+  it('sends nothing when the refund was made through Hylo, which already emailed the member', async () => {
+    await purchase({ status: ContentAccess.Status.REFUNDED })
+    const otherAccess = await purchase()
+
+    await StripeController.handleChargeRefunded(chargeRefundedEvent)
+
+    expect((await ContentAccess.where({ id: otherAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect(sentEmails).to.have.length(0)
+  })
+})
