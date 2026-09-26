@@ -157,13 +157,15 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     params.delete('action')
     const search = params.toString()
     navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true, state: location.state })
+    const undo = () => dispatch(followPost(postId))
+      .catch(() => toast.error(t("Couldn't turn notifications for this post back on")))
     dispatch(unfollowPost(postId))
       .then(() => {
         toast(t("You won't get notifications for new comments on this post"), {
-          action: { label: t('Undo'), onClick: () => dispatch(followPost(postId)) }
+          action: { label: t('Undo'), onClick: undo }
         })
       })
-      .catch(() => {})
+      .catch(() => toast.error(t("Couldn't turn off notifications for this post")))
   }, [unfollowRequested, postId, currentUser])
 
   useEffect(() => {

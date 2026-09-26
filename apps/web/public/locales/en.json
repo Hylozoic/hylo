@@ -503,6 +503,8 @@
   "Could not determine group from invitation": "Could not determine group from invitation",
   "Could not update subscription": "Could not update subscription",
   "Couldn't load posts": "Couldn't load posts",
+  "Couldn't turn notifications for this post back on": "Couldn't turn notifications for this post back on",
+  "Couldn't turn off notifications for this post": "Couldn't turn off notifications for this post",
   "Create": "Create",
   "Create & navigate": "Create & navigate",
   "Create an account to invite people": "Create an account to invite people",
