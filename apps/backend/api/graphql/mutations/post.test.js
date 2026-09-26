@@ -313,7 +313,9 @@ describe('fulfillPost and unfulfillPost', () => {
 
   beforeEach(() => {
     spyify(Queue, 'classMethod', () => Promise.resolve())
-    spyify(Activity, 'saveForReasons', (activities) => Promise.resolve(activities))
+    // mockify, not spyify: a spy still runs the real save without awaiting it, and those
+    // writes race the next describe's clearDb
+    mockify(Activity, 'saveForReasons', (activities) => Promise.resolve(activities))
   })
 
   afterEach(() => {
