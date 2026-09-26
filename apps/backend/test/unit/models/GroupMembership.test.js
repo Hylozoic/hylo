@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 const root = require('root-path')
 const setup = require(root('test/setup'))
 const { spyify, unspyify } = require(root('test/setup/helpers'))
@@ -54,6 +55,153 @@ describe('GroupMembership', () => {
       await gm.updateAndSave({ active: false })
       const actual = await GroupMembership.hasActiveMembership(u, g1)
       expect(actual).to.equal(false)
+    })
+  })
+
+  describe('inviteAccess', () => {
+    let group, space, administrator, host, addMembersHolder, moderator, member, outsider, roles
+
+    async function assignRole (user, role) {
+      return MemberGroupRole.forge({ user_id: user.id, group_id: group.id, group_role_id: role.id, active: true }).save()
+    }
+
+    before(async () => {
+      group = await factories.group().save()
+      space = await factories.group({ type: 'space', parent_id: group.id }).save()
+      ;[administrator, host, addMembersHolder, moderator, member, outsider] = await Promise.all(
+        [1, 2, 3, 4, 5, 6].map(() => factories.user().save())
+      )
+      await administrator.joinGroup(group, { assignAdministrator: true })
+      for (const user of [host, addMembersHolder, moderator, member]) {
+        await user.joinGroup(group)
+      }
+      await member.joinGroup(space)
+
+      roles = {
+        member: await GroupRole.findMemberRole(group.id),
+        host: await GroupRole.findSystemRole(group.id, 'Host'),
+        moderator: await GroupRole.findSystemRole(group.id, 'Moderator'),
+        addMembers: await GroupRole.forge({ group_id: group.id, name: 'Door Keeper', emoji: '🚪', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+      }
+      const addMembersId = await Responsibility.systemId(Responsibility.constants.RESP_ADD_MEMBERS)
+      await GroupRoleResponsibility.forge({ group_role_id: roles.addMembers.id, responsibility_id: addMembersId }).save()
+      await assignRole(host, roles.host)
+      await assignRole(addMembersHolder, roles.addMembers)
+      await assignRole(moderator, roles.moderator)
+    })
+
+    afterEach(() => GroupRole.setInvitePolicy(group.id, { mode: 'stewards' }))
+
+    it('is full for Administrators, Hosts and custom roles with Add Members, whatever the policy', async () => {
+      for (const mode of ['stewards', 'everyone']) {
+        await GroupRole.setInvitePolicy(group.id, { mode })
+        for (const user of [administrator, host, addMembersHolder]) {
+          expect(await GroupMembership.inviteAccess(user.id, group)).to.equal('full')
+        }
+      }
+    })
+
+    it('is limited for every active member when the policy is everyone, and null on stewards', async () => {
+      expect(await GroupMembership.inviteAccess(member.id, group.id)).to.be.null
+      expect(await GroupMembership.inviteAccess(moderator, group)).to.be.null
+
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      expect(await GroupMembership.inviteAccess(member.id, group.id)).to.equal('limited')
+      expect(await GroupMembership.inviteAccess(moderator, group)).to.equal('limited')
+    })
+
+    it('is null for people outside the group and for missing ids', async () => {
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      expect(await GroupMembership.inviteAccess(outsider.id, group.id)).to.be.null
+      expect(await GroupMembership.inviteAccess(null, group.id)).to.be.null
+      expect(await GroupMembership.inviteAccess(member.id, null)).to.be.null
+      expect(await GroupMembership.inviteAccess(member.id, 99999999)).to.be.null
+    })
+
+    it('is null for an inactive membership and after leaving', async () => {
+      const leaver = await factories.user().save()
+      const membership = await leaver.joinGroup(group)
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      expect(await GroupMembership.inviteAccess(leaver.id, group.id)).to.equal('limited')
+
+      await membership.save({ active: false }, { patch: true })
+      expect(await GroupMembership.inviteAccess(leaver.id, group.id)).to.be.null
+
+      await membership.save({ active: true }, { patch: true })
+      await group.removeMembers([leaver.id])
+      expect(await GroupMembership.inviteAccess(leaver.id, group.id)).to.be.null
+    })
+
+    it('is limited for holders of the chosen roles, and null when the role or assignment is inactive', async () => {
+      await GroupRole.setInvitePolicy(group.id, { mode: 'roles', roleIds: [roles.moderator.id] })
+      expect(await GroupMembership.inviteAccess(moderator.id, group.id)).to.equal('limited')
+      expect(await GroupMembership.inviteAccess(member.id, group.id)).to.be.null
+
+      await roles.moderator.save({ active: false }, { patch: true })
+      expect(await GroupMembership.inviteAccess(moderator.id, group.id)).to.be.null
+      await roles.moderator.save({ active: true }, { patch: true })
+
+      const assignment = () => bookshelf.knex('group_memberships_group_roles')
+        .where({ user_id: moderator.id, group_role_id: roles.moderator.id })
+      await assignment().update({ active: false })
+      expect(await GroupMembership.inviteAccess(moderator.id, group.id)).to.be.null
+      await assignment().update({ active: null })
+      expect(await GroupMembership.inviteAccess(moderator.id, group.id)).to.equal('limited')
+      await assignment().update({ active: true })
+    })
+
+    it('is null when the Member role is deactivated', async () => {
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      await roles.member.save({ active: false }, { patch: true })
+      try {
+        expect(await GroupMembership.inviteAccess(member.id, group.id)).to.be.null
+      } finally {
+        await roles.member.save({ active: true }, { patch: true })
+      }
+    })
+
+    it('is null in spaces unless the person has full access', async () => {
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      expect(await GroupMembership.inviteAccess(member.id, space.id)).to.be.null
+      expect(await GroupMembership.inviteAccess(administrator.id, space.id)).to.equal('full')
+      expect(await GroupMembership.inviteAccess(host.id, space)).to.equal('full')
+    })
+
+    it('ignores a group-defined responsibility titled Invite Members', async () => {
+      const [lookalikeId] = await bookshelf.knex('responsibilities')
+        .insert({ title: Responsibility.constants.RESP_INVITE_MEMBERS, type: 'custom', group_id: group.id, created_at: new Date(), updated_at: new Date() })
+        .returning('id')
+        .then(rows => rows.map(row => row.id ?? row))
+      const greeter = await GroupRole.forge({ group_id: group.id, name: 'Greeter', emoji: '🙌', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+      await GroupRoleResponsibility.forge({ group_role_id: greeter.id, responsibility_id: lookalikeId }).save()
+      await GroupRoleResponsibility.forge({ group_role_id: roles.member.id, responsibility_id: lookalikeId }).save()
+      await assignRole(member, greeter)
+
+      try {
+        expect(await GroupMembership.inviteAccess(member.id, group.id)).to.be.null
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      } finally {
+        await bookshelf.knex('group_memberships_group_roles').where({ group_role_id: greeter.id }).del()
+        await bookshelf.knex('group_roles_responsibilities').where({ responsibility_id: lookalikeId }).del()
+        await bookshelf.knex('responsibilities').where({ id: lookalikeId }).del()
+      }
+    })
+
+    it('never lets a Member role link reach hasResponsibility', async () => {
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      const administrationId = await Responsibility.systemId(Responsibility.constants.RESP_ADMINISTRATION)
+      await GroupRoleResponsibility.forge({ group_role_id: roles.member.id, responsibility_id: administrationId }).save()
+
+      try {
+        expect(await Responsibility.fetchForUserAndGroupAsStrings(member.id, group.id)).to.deep.equal([])
+        expect(await GroupMembership.hasResponsibility(member.id, group.id, Responsibility.constants.RESP_ADMINISTRATION)).to.be.false
+        expect(await GroupMembership.hasResponsibility(member.id, group.id, Responsibility.constants.RESP_INVITE_MEMBERS)).to.be.false
+        expect(await GroupMembership.inviteAccess(member.id, group.id)).to.equal('limited')
+      } finally {
+        await bookshelf.knex('group_roles_responsibilities')
+          .where({ group_role_id: roles.member.id, responsibility_id: administrationId })
+          .del()
+      }
     })
   })
 

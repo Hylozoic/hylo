@@ -547,4 +547,113 @@ describe('mutations/group', () => {
       expect(skill.get('name')).to.equal('beekeeping')
     })
   })
+
+  describe('invite policy', () => {
+    let administrator, host, member
+
+    const uniqueSlug = prefix => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+
+    before(async () => {
+      administrator = await factories.user().save()
+      host = await factories.user().save()
+      member = await factories.user().save()
+    })
+
+    describe('createGroup', () => {
+      it('applies each mode inside the create', async () => {
+        const everyone = await createGroup(administrator.id, { name: 'Everyone Invites', slug: uniqueSlug('everyone'), invitePolicy: { mode: 'everyone' } })
+        expect(await GroupRole.getInvitePolicy(everyone.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+
+        const roles = await createGroup(administrator.id, { name: 'Moderators Invite', slug: uniqueSlug('roles'), invitePolicy: { mode: 'roles', systemRoleNames: ['Moderator'] } })
+        const moderator = await GroupRole.findSystemRole(roles.id, 'Moderator')
+        expect(await GroupRole.getInvitePolicy(roles.id)).to.deep.equal({ mode: 'roles', roleIds: [moderator.id] })
+
+        const stewards = await createGroup(administrator.id, { name: 'Stewards Invite', slug: uniqueSlug('stewards'), invitePolicy: { mode: 'stewards' } })
+        expect(await GroupRole.getInvitePolicy(stewards.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('creates no group when the policy is invalid', async () => {
+        for (const invitePolicy of [{ mode: 'anyone' }, { mode: 'roles', systemRoleNames: ['Member'] }, { mode: 'roles', roleIds: ['1'] }]) {
+          const slug = uniqueSlug('invalid-policy')
+          await expect(createGroup(administrator.id, { name: 'Invalid Policy', slug, invitePolicy })).to.be.rejected
+          expect(await Group.find(slug)).to.not.exist
+        }
+      })
+
+      it('uses DEFAULT_NEW_GROUP_INVITE_POLICY when no policy is given', async () => {
+        const defaultPolicy = GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY
+        const created = await createGroup(administrator.id, { name: 'Default Policy', slug: uniqueSlug('default') })
+        expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: defaultPolicy.mode, roleIds: [] })
+
+        GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY = { mode: 'everyone' }
+        try {
+          const flipped = await createGroup(administrator.id, { name: 'Flipped Default', slug: uniqueSlug('flipped') })
+          expect(await GroupRole.getInvitePolicy(flipped.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+        } finally {
+          GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY = defaultPolicy
+        }
+      })
+    })
+
+    describe('updateGroup', () => {
+      let group, moderatorRole
+
+      before(async () => {
+        group = await factories.group().save()
+        await administrator.joinGroup(group, { assignAdministrator: true })
+        await host.joinGroup(group)
+        await member.joinGroup(group)
+        const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+        await MemberGroupRole.forge({ user_id: host.id, group_id: group.id, group_role_id: hostRole.id, active: true }).save()
+        moderatorRole = await GroupRole.findSystemRole(group.id, 'Moderator')
+      })
+
+      afterEach(() => GroupRole.setInvitePolicy(group.id, { mode: 'stewards' }))
+
+      it('lets an Administrator set each mode', async () => {
+        await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'everyone' } })
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+
+        await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'roles', roleIds: [String(moderatorRole.id)] } })
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'roles', roleIds: [moderatorRole.id] })
+
+        await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'stewards' } })
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('rejects a Host', async () => {
+        expect(await GroupMembership.inviteAccess(host.id, group.id)).to.equal('full')
+        await expect(updateGroup(host.id, group.id, { invitePolicy: { mode: 'everyone' } }))
+          .to.be.rejectedWith("You don't have the right responsibilities for this group")
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('saves none of the other changes when the policy is invalid', async () => {
+        const name = group.get('name')
+        const memberRole = await GroupRole.findMemberRole(group.id)
+        await expect(updateGroup(administrator.id, group.id, { name: 'Renamed', invitePolicy: { mode: 'roles', roleIds: [memberRole.id] } }))
+          .to.be.rejectedWith('Invite policy roles must be active roles in this group')
+
+        const stored = await Group.find(group.id)
+        expect(stored.get('name')).to.equal(name)
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('leaves the policy alone when none is given', async () => {
+        await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+        await updateGroup(administrator.id, group.id, { description: 'Still everyone' })
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+      })
+
+      it('does not let limited access regenerate the join link', async () => {
+        await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+        expect(await GroupMembership.inviteAccess(member.id, group.id)).to.equal('limited')
+
+        const code = (await Group.find(group.id)).get('access_code')
+        await expect(regenerateAccessCode(member.id, group.id))
+          .to.be.rejectedWith("You don't have the right responsibilities for this group")
+        expect((await Group.find(group.id)).get('access_code')).to.equal(code)
+      })
+    })
+  })
 })

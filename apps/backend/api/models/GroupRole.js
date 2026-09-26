@@ -11,6 +11,67 @@ const MEMBER_ROLE = {
   description: 'Everyone in the group holds this role.'
 }
 
+// Who can invite new people, stored as the set of this group's roles linked to
+// the system Invite Members responsibility:
+// everyone = the Member role, stewards = none, roles = the chosen roles.
+const InvitePolicy = {
+  EVERYONE: 'everyone',
+  STEWARDS: 'stewards',
+  ROLES: 'roles'
+}
+
+const DEFAULT_NEW_GROUP_INVITE_POLICY = Object.freeze({ mode: InvitePolicy.STEWARDS })
+
+async function fetchGroupRow (groupId, transacting) {
+  if (!groupId) return null
+  let query = bookshelf.knex('groups').where('id', groupId).first('id', 'parent_id', 'type')
+  if (transacting) query = query.transacting(transacting)
+  return query
+}
+
+function isTopLevelGroupRow (group) {
+  return !!group && !group.parent_id && group.type !== 'space'
+}
+
+/**
+ * Ids of this group's active system or custom roles named by roleIds and
+ * systemRoleNames. Throws if any of them is not one.
+ */
+async function resolveInvitePolicyRoleIds (groupId, { roleIds, systemRoleNames }, transacting) {
+  const ids = new Set()
+
+  for (const name of systemRoleNames || []) {
+    if (!SYSTEM_ROLES.some(roleDef => roleDef.name === name)) {
+      throw new GraphQLError(`Unknown system role: ${name}`)
+    }
+    const role = await GroupRole.findSystemRole(groupId, name, { transacting })
+    if (!role || !role.get('active')) {
+      throw new GraphQLError(`This group has no active ${name} role`)
+    }
+    ids.add(String(role.id))
+  }
+
+  const requestedIds = [...new Set((roleIds || []).map(id => String(id ?? '').trim()))]
+  if (requestedIds.length > 0) {
+    if (requestedIds.some(id => !/^\d{1,10}$/.test(id) || Number(id) > 2147483647)) {
+      throw new GraphQLError('Invite policy roles must be active roles in this group')
+    }
+    let query = bookshelf.knex('groups_roles')
+      .whereIn('id', requestedIds)
+      .where({ group_id: groupId, active: true })
+      .whereIn('type', [GroupRole.TYPE_SYSTEM, GroupRole.TYPE_CUSTOM])
+      .pluck('id')
+    if (transacting) query = query.transacting(transacting)
+    const found = await query
+    if (found.length !== requestedIds.length) {
+      throw new GraphQLError('Invite policy roles must be active roles in this group')
+    }
+    found.forEach(id => ids.add(String(id)))
+  }
+
+  return [...ids].map(Number)
+}
+
 const SYSTEM_ROLES = [
   {
     name: 'Administrator',
@@ -106,6 +167,8 @@ module.exports = bookshelf.Model.extend({
   TYPE_SYSTEM: 'system',
   TYPE_CUSTOM: 'custom',
   TYPE_MEMBER,
+  InvitePolicy,
+  DEFAULT_NEW_GROUP_INVITE_POLICY,
 
   /**
    * Map a stored system role name (including legacy names) to the current name.
@@ -212,11 +275,8 @@ module.exports = bookshelf.Model.extend({
    * Returns null for spaces and missing groups.
    */
   ensureMemberRole: async function (groupId, { transacting } = {}) {
-    if (!groupId) return null
-    let groupQuery = bookshelf.knex('groups').where('id', groupId).first('id', 'parent_id', 'type')
-    if (transacting) groupQuery = groupQuery.transacting(transacting)
-    const group = await groupQuery
-    if (!group || group.parent_id || group.type === 'space') return null
+    const group = await fetchGroupRow(groupId, transacting)
+    if (!isTopLevelGroupRow(group)) return null
 
     // The ON CONFLICT predicate must be a literal to match the partial unique index
     let insertQuery = bookshelf.knex.raw(`
@@ -251,6 +311,109 @@ module.exports = bookshelf.Model.extend({
     if (await query) {
       throw new GraphQLError('The Member role cannot be edited, assigned or used as a requirement')
     }
+  },
+
+  /**
+   * Who can invite new people to a top-level group, as { mode, roleIds }, read
+   * from which of its active roles are linked to the system Invite Members
+   * responsibility. Roles that also hold Add Members could invite anyway, so
+   * linking only those still reads as 'stewards'. Null for spaces and missing groups.
+   */
+  getInvitePolicy: async function (groupId, { transacting } = {}) {
+    const group = await fetchGroupRow(groupId, transacting)
+    if (!isTopLevelGroupRow(group)) return null
+
+    const inviteMembersId = await Responsibility.systemId(Responsibility.constants.RESP_INVITE_MEMBERS, { transacting })
+    if (!inviteMembersId) return { mode: InvitePolicy.STEWARDS, roleIds: [] }
+    const addMembersId = await Responsibility.systemId(Responsibility.constants.RESP_ADD_MEMBERS, { transacting })
+
+    let query = bookshelf.knex.raw(`
+      SELECT DISTINCT gr.id, gr.type,
+        EXISTS (
+          SELECT 1 FROM group_roles_responsibilities am
+          WHERE am.group_role_id = gr.id AND am.responsibility_id = ?
+        ) AS holds_add_members
+      FROM groups_roles gr
+      JOIN group_roles_responsibilities grr ON grr.group_role_id = gr.id AND grr.responsibility_id = ?
+      WHERE gr.group_id = ? AND gr.active = true
+      ORDER BY gr.id
+    `, [addMembersId, inviteMembersId, group.id])
+    if (transacting) query = query.transacting(transacting)
+    const { rows } = await query
+
+    if (rows.some(row => row.type === TYPE_MEMBER)) {
+      return { mode: InvitePolicy.EVERYONE, roleIds: [] }
+    }
+    if (rows.some(row => !row.holds_add_members)) {
+      return { mode: InvitePolicy.ROLES, roleIds: rows.map(row => row.id) }
+    }
+    return { mode: InvitePolicy.STEWARDS, roleIds: [] }
+  },
+
+  /**
+   * Set who can invite new people to a top-level group by linking Invite Members
+   * to exactly: the Member role (everyone), no role (stewards), or the chosen
+   * roles (roles). Chosen roles come from roleIds and from systemRoleNames (such
+   * as 'Moderator', for a group being created whose role ids the caller does not
+   * know yet), and must be this group's active system or custom roles.
+   * Returns the resulting policy.
+   */
+  setInvitePolicy: async function (groupId, { mode, roleIds, systemRoleNames } = {}, { transacting } = {}) {
+    if (!transacting) {
+      return bookshelf.transaction(trx =>
+        GroupRole.setInvitePolicy(groupId, { mode, roleIds, systemRoleNames }, { transacting: trx }))
+    }
+    if (!Object.values(InvitePolicy).includes(mode)) {
+      throw new GraphQLError('Unknown invite policy mode')
+    }
+    const group = await fetchGroupRow(groupId, transacting)
+    if (!group) throw new GraphQLError('Group not found')
+    if (!isTopLevelGroupRow(group)) {
+      throw new GraphQLError('Only top-level groups have an invite policy')
+    }
+
+    // group_roles_responsibilities has no unique constraint, so concurrent
+    // changes to one group must not interleave their reads and inserts
+    await bookshelf.knex.raw('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', [`group-invite-policy:${group.id}`])
+      .transacting(transacting)
+
+    let targetRoleIds = []
+    if (mode === InvitePolicy.EVERYONE) {
+      const memberRole = await GroupRole.ensureMemberRole(group.id, { transacting })
+      targetRoleIds = [memberRole.id]
+    } else if (mode === InvitePolicy.ROLES) {
+      targetRoleIds = await resolveInvitePolicyRoleIds(group.id, { roleIds, systemRoleNames }, transacting)
+    }
+
+    const inviteMembersId = await Responsibility.systemId(Responsibility.constants.RESP_INVITE_MEMBERS, { transacting })
+    if (!inviteMembersId) {
+      if (targetRoleIds.length > 0) throw new GraphQLError('The Invite Members responsibility is missing')
+      return GroupRole.getInvitePolicy(group.id, { transacting })
+    }
+
+    const groupRoleIds = bookshelf.knex('groups_roles').select('id').where('group_id', group.id)
+    const linkedRoleIds = await bookshelf.knex('group_roles_responsibilities')
+      .where('responsibility_id', inviteMembersId)
+      .whereIn('group_role_id', groupRoleIds)
+      .pluck('group_role_id')
+      .transacting(transacting)
+
+    await bookshelf.knex('group_roles_responsibilities')
+      .where('responsibility_id', inviteMembersId)
+      .whereIn('group_role_id', groupRoleIds)
+      .whereNotIn('group_role_id', targetRoleIds)
+      .del()
+      .transacting(transacting)
+
+    const linked = new Set(linkedRoleIds.map(String))
+    const toLink = targetRoleIds.filter(id => !linked.has(String(id)))
+    if (toLink.length > 0) {
+      await bookshelf.knex('group_roles_responsibilities')
+        .insert(toLink.map(id => ({ group_role_id: id, responsibility_id: inviteMembersId })))
+        .transacting(transacting)
+    }
+
+    return GroupRole.getInvitePolicy(group.id, { transacting })
   },
 
   /**
