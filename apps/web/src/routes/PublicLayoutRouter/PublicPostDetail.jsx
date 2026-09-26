@@ -5,6 +5,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import Loading from 'components/Loading'
 import PostDetail from 'routes/PostDetail'
 import checkIsPostPublic from 'store/actions/checkIsPostPublic'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import PublicPageHeader from './PublicPageHeader'
 import { DETAIL_COLUMN_ID } from 'util/scrolling'
 
@@ -22,7 +23,9 @@ export default function PublicPostDetail (props) {
 
       const result = await dispatch(checkIsPostPublic(postId))
       const isPublicPost = result?.payload?.data?.post?.id
-      if (!isPublicPost) {
+      // An email unfollow link needs a signed-in reader even when the post is public
+      const unfollowRequested = getQuerystringParam('action', location) === 'unfollow'
+      if (!isPublicPost || unfollowRequested) {
         navigate('/login?returnToUrl=' + encodeURIComponent(location.pathname + location.search), { replace: true })
       }
 
