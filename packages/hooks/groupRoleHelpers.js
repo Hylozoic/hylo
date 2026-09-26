@@ -1,7 +1,11 @@
 export const RESP_ADD_MEMBERS = 'Add Members'
 export const RESP_ADMINISTRATION = 'Administration'
+export const RESP_INVITE_MEMBERS = 'Invite Members'
 export const RESP_MANAGE_CONTENT = 'Manage Content'
 export const RESP_REMOVE_MEMBERS = 'Remove Members'
+
+export const INVITE_ACCESS = { full: 'full', limited: 'limited' }
+export const INVITE_POLICY = { everyone: 'everyone', stewards: 'stewards', roles: 'roles' }
 
 export const SYSTEM_ROLE_NAMES = ['Administrator', 'Moderator', 'Host']
 const LEGACY_SYSTEM_ROLE_NAMES = { Coordinator: 'Administrator' }
@@ -11,6 +15,14 @@ const LEGACY_SYSTEM_ROLE_NAMES = { Coordinator: 'Administrator' }
  */
 export function isSystemGroupRole (role) {
   return role?.type === 'system'
+}
+
+/**
+ * Whether a group role is the group's implicit Member role, which everyone in the group holds
+ * without being assigned it.
+ */
+export function isMemberGroupRole (role) {
+  return role?.type === 'member'
 }
 
 /**
@@ -36,7 +48,7 @@ export function sortSystemGroupRoles (roles) {
  * Active group roles for pickers: system roles (Administrator, Moderator, Host) first, then custom.
  */
 export function groupRolesForPicker (roles) {
-  const active = (roles || []).filter(role => role?.id != null && role.active !== false)
+  const active = (roles || []).filter(role => role?.id != null && role.active !== false && !isMemberGroupRole(role))
     .map(role => SYSTEM_ROLE_NAMES.includes(canonicalSystemRoleName(role.name)) ? { ...role, type: 'system' } : role)
   return [
     ...sortSystemGroupRoles(active),

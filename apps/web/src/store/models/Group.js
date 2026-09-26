@@ -210,6 +210,8 @@ Group.fields = {
   }),
   members: many('Person'),
   memberCount: attr(),
+  myInviteAccess: attr(),
+  myInviteAllowance: attr(),
   openJoinRequestCount: attr(),
   openModerationActionCount: attr(),
   stewards: many({

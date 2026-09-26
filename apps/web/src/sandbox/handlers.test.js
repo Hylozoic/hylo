@@ -212,6 +212,15 @@ describe('sandbox GraphQL handlers', () => {
     expect(seed.track.actions[0].completedAt).toBeTruthy()
   })
 
+  it('gives me full invite access in the groups it presents', () => {
+    const result = handleGraphql({
+      query: 'query FetchForGroup ($slug: String) { group(slug: $slug) { id myInviteAccess } }',
+      variables: { slug: MAIN_GROUP_SLUG }
+    }, seed)
+
+    expect(result.data.group.myInviteAccess).toBe('full')
+  })
+
   it('returns siteBanners as a plain array, not a QuerySet', () => {
     const result = handleGraphql({
       query: 'query { siteBanners { id title text type } }'
