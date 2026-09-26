@@ -127,6 +127,21 @@ describe('Comment', () => {
         })
       })
 
+      it('keeps sending to other followers and advances the timestamp when one send throws', async () => {
+        mockify(Email, 'sendMessageDigest', args => {
+          if (args.email === u1.get('email')) throw new Error('template error')
+          log.push(args)
+          return { success: true }
+        })
+
+        const count = await Comment.sendDigests()
+
+        expect(count).to.equal(1)
+        expect(log.map(l => l.email)).to.deep.equal([u2.get('email')])
+        const lastSentAt = await (await RedisClient.create()).get(Comment.sendDigests.REDIS_TIMESTAMP_KEY)
+        expect(Number(lastSentAt)).to.be.at.least(now.getTime())
+      })
+
       it('respects last_read_at', async () => {
         const pu1 = await PostUser.find(post.id, u1.id)
         await pu1.save({ last_read_at: new Date(now - 4.5 * 60000) })

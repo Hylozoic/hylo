@@ -5,6 +5,7 @@ import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import { normalizeLocaleToFull } from '../../../lib/localeHelpers'
 import { senderNameForGroup } from '../../../lib/email/senderNameViaHylo'
 import RedisClient from '../../services/RedisClient'
+import sentry from '../../../lib/sentry'
 import { getLocaleStrings } from '../../../lib/i18n/locales'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
 
@@ -66,21 +67,30 @@ export const sendDigests = async () => {
 
     sails.log.info(`Comment.sendDigests: checking ${posts.length} posts updated since ${lastDigestAt.toISOString()}`)
 
+    // One failing post or recipient must not stop the watermark from advancing,
+    // or the next run would re-send every digest already delivered in this one.
     const numSends = await Promise.all(posts.map(async post => {
       const { comments } = post.relations
       if (comments.length === 0) return 0
 
-      const followers = await post.followers().fetch()
+      try {
+        const followers = await post.followers().fetch()
 
-      return Promise.map(followers.models, async user => {
-        try {
-          return await sendDigestForUser({ post, comments, user })
-        } catch (err) {
-          sails.log.error(`Comment.sendDigests: error sending digest for post ${post.id} to user ${user.id}: ${err.message}`, err.stack)
-          throw err
-        }
-      })
-        .then(sends => compact(sends).length)
+        const sends = await Promise.map(followers.models, async user => {
+          try {
+            return await sendDigestForUser({ post, comments, user })
+          } catch (err) {
+            sails.log.error(`Comment.sendDigests: error sending digest for post ${post.id} to user ${user.id}: ${err.message}`, err.stack)
+            sentry.error(err, null, { postId: post.id, userId: user.id })
+            return null
+          }
+        })
+        return compact(sends).length
+      } catch (err) {
+        sails.log.error(`Comment.sendDigests: error sending digests for post ${post.id}: ${err.message}`, err.stack)
+        sentry.error(err, null, { postId: post.id })
+        return 0
+      }
     }))
 
     await redisClient.set(sendDigests.REDIS_TIMESTAMP_KEY, now.getTime().toString())

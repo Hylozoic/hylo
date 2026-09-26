@@ -10,6 +10,7 @@ import {
   shouldSendData
 } from './util'
 import { senderNameViaHylo } from '../../email/senderNameViaHylo'
+import sentry from '../../sentry'
 
 const DIGEST_TEMPLATE_ID = 'tem_t7rmGfJKvqXrvmrVWJjjWkg4'
 const SAVED_SEARCH_TEMPLATE_ID = 'tem_yfgPbhVHbRHYpy6Dc3hgKjcX'
@@ -88,7 +89,12 @@ export const sendDigest = (id, type, opts = {}) => {
         .then(async users => {
           let sent = 0
           for (const user of users) {
-            if (await sendToUser(user, type, data, opts) !== false) sent += 1
+            try {
+              if (await sendToUser(user, type, data, opts) !== false) sent += 1
+            } catch (err) {
+              sails.log.error(`digest2: error sending ${type} digest for group ${id} to user ${user.id}: ${err.message}`, err.stack)
+              sentry.error(err, null, { groupId: id, userId: user.id, type })
+            }
           }
           return sent
         })))
@@ -126,28 +132,33 @@ export const sendAllDigests = async (type, opts = {}) => {
   if (opts.groupIds) {
     query = query.whereIn('id', opts.groupIds)
   }
-
   const ids = await query.pluck('id')
   const unifiedByUserId = new Map()
 
   const results = await Promise.map(ids, async id => {
-    const data = await prepareDigestData(id, type, opts)
-    if (!data || !(await shouldSendData(data, id))) return null
+    try {
+      const data = await prepareDigestData(id, type, opts)
+      if (!data || !(await shouldSendData(data, id))) return null
 
-    const users = await getRecipients(id, type)
-    const regular = []
-    users.forEach(user => {
-      if (wantsUnifiedDigest(user)) {
-        const bucket = unifiedByUserId.get(user.id) || { user, datasets: [] }
-        bucket.datasets.push(data)
-        unifiedByUserId.set(user.id, bucket)
-      } else {
-        regular.push(user)
-      }
-    })
+      const users = await getRecipients(id, type)
+      const regular = []
+      users.forEach(user => {
+        if (wantsUnifiedDigest(user)) {
+          const bucket = unifiedByUserId.get(user.id) || { user, datasets: [] }
+          bucket.datasets.push(data)
+          unifiedByUserId.set(user.id, bucket)
+        } else {
+          regular.push(user)
+        }
+      })
 
-    await Promise.each(regular, user => sendToUser(user, type, data, opts))
-    return regular.length ? [id, regular.length] : null
+      await Promise.each(regular, user => sendToUser(user, type, data, opts))
+      return regular.length ? [id, regular.length] : null
+    } catch (err) {
+      sails.log.error(`digest2: error sending ${type} digests for group ${id}: ${err.message}`, err.stack)
+      sentry.error(err, null, { groupId: id, type })
+      return null
+    }
   }, { concurrency: DIGEST_GROUP_CONCURRENCY })
 
   await Promise.map([...unifiedByUserId.values()], ({ user, datasets }) =>
