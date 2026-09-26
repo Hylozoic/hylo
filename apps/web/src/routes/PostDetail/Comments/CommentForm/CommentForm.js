@@ -4,6 +4,7 @@ import { throttle, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import { SendHorizontal } from 'lucide-react'
+import { toast } from 'sonner'
 import { sendIsTyping } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
 import { addAttachment, getAttachments, clearAttachments } from 'components/AttachmentManager/AttachmentManager.store'
@@ -68,6 +69,7 @@ const CommentForm = forwardRef(function CommentForm ({
   const sendIsTypingAction = useCallback((isTyping) => sendIsTyping(postId, isTyping), [postId])
   const addAttachmentAction = useCallback(attachment => dispatch(addAttachment('comment', 'new', attachment)), [dispatch])
   const clearAttachmentsAction = useCallback(() => dispatch(clearAttachments('comment')), [dispatch])
+  const handleUploadError = useCallback(() => toast.error(t('Couldn\'t upload that file. Please try again.')), [t])
 
   useEffect(() => {
     commentComposerHadContentRef.current = false
@@ -270,6 +272,7 @@ const CommentForm = forwardRef(function CommentForm ({
                   id='new'
                   allowMultiple
                   onSuccess={addAttachmentAction}
+                  onError={handleUploadError}
                   customRender={renderProps => (
                     <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
                   )}
@@ -278,7 +281,7 @@ const CommentForm = forwardRef(function CommentForm ({
               )}
         </div>
         {currentUser && (
-          <AttachmentManager type='comment' id='new' attachmentType='image' />
+          <AttachmentManager type='comment' id='new' attachmentType='image' onUploadError={handleUploadError} />
         )}
       </div>
       <p className='text-xs text-foreground/50 text-end'>

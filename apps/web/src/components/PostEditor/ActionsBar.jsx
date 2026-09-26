@@ -2,6 +2,7 @@ import { MapPin, SendHorizontal } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { toast } from 'sonner'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
@@ -27,6 +28,7 @@ export default function ActionsBar ({
   setAnnouncementSelected,
   setShowLocation,
   doSave, // Pops up announcement modal first if announcement is selected
+  onAttachmentAdded,
   save, // Does actual save
   setIsDirty,
   showAnnouncementModal,
@@ -41,6 +43,13 @@ export default function ActionsBar ({
   const dispatch = useDispatch()
   const { t } = useTranslation()
 
+  const handleAttachmentUploaded = (attachment) => {
+    dispatch(addAttachment('post', id, attachment))
+    setIsDirty(true)
+    onAttachmentAdded?.()
+  }
+  const handleUploadError = () => toast.error(t('Couldn\'t upload that file. Please try again.'))
+
   return (
     <div className='w-full flex justify-between'>
       <div className='flex items-center gap-2'>
@@ -48,10 +57,8 @@ export default function ActionsBar ({
           type='post'
           id={id}
           attachmentType='image'
-          onSuccess={(attachment) => {
-            dispatch(addAttachment('post', id, attachment))
-            setIsDirty(true)
-          }}
+          onSuccess={handleAttachmentUploaded}
+          onError={handleUploadError}
           allowMultiple
           disable={showImages}
         >
@@ -65,10 +72,8 @@ export default function ActionsBar ({
           type='post'
           id={id}
           attachmentType='file'
-          onSuccess={(attachment) => {
-            dispatch(addAttachment('post', id, attachment))
-            setIsDirty(true)
-          }}
+          onSuccess={handleAttachmentUploaded}
+          onError={handleUploadError}
           allowMultiple
           disable={showFiles}
         >

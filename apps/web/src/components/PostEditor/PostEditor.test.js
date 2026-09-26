@@ -137,6 +137,54 @@ describe('PostEditor', () => {
         expect(container.querySelector('.hyloEditor')).toBeInTheDocument()
       })
     })
+
+    it('restores attachments from a saved draft and saves changes to them', async () => {
+      const { saveDraft } = require('store/actions/draftActions')
+      saveDraft.mockClear()
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockGraphqlServer.use(
+        graphql.query('FetchDraft', ({ variables }) => HttpResponse.json({
+          data: {
+            draft: {
+              id: 'draft-1',
+              type: 'post',
+              data: JSON.stringify({
+                title: 'Draft with pictures',
+                details: '',
+                type: variables.postType,
+                groups: ['1'],
+                imageUrls: ['https://example.com/a.png', 'https://example.com/b.png'],
+                fileUrls: []
+              }),
+              groupId: '1',
+              topicId: null,
+              postId: null,
+              messageThreadId: null,
+              postType: variables.postType,
+              isEdit: false,
+              navigateTo: '/',
+              updatedAt: '2026-09-01T00:00:00.000Z',
+              group: { id: '1', name: 'Test Group', slug: 'test-group' },
+              post: null,
+              messageThread: null
+            }
+          }
+        }))
+      )
+
+      const { container } = renderComponent()
+      await screen.findByDisplayValue('Draft with pictures')
+      await screen.findByText('Images')
+      expect(container.querySelectorAll('.image')).toHaveLength(2)
+
+      fireEvent.click(container.querySelector('.image').parentElement.querySelector('.icon-Ex'))
+
+      await waitFor(() => {
+        const lastSave = saveDraft.mock.calls[saveDraft.mock.calls.length - 1]?.[0]
+        expect(lastSave?.data).toContain('https://example.com/b.png')
+        expect(lastSave?.data).not.toContain('https://example.com/a.png')
+      }, { timeout: 4000 })
+    }, 20000)
   })
 
   describe('for a new event', () => {

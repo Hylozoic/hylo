@@ -83,9 +83,11 @@ import createPost from 'store/actions/createPost'
 import updatePost from 'store/actions/updatePost'
 import {
   addAttachment,
+  attachmentsFromUrls,
   clearAttachments,
   getAttachments,
-  getUploadAttachmentPending
+  getUploadAttachmentPending,
+  setAttachments
 } from 'components/AttachmentManager/AttachmentManager.store'
 import {
   FETCH_LINK_PREVIEW,
@@ -325,6 +327,17 @@ function PostEditorInner ({
     state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
+  // The attachment bucket fills asynchronously when an existing post loads, so
+  // drafts only take their attachments from it once the user (or a restored
+  // draft) has changed them; until then the post's own attachments stand.
+  const [attachmentsTouched, setAttachmentsTouched] = useState(false)
+  const markAttachmentsTouched = useCallback(() => setAttachmentsTouched(true), [])
+  const handleUploadError = useCallback(() => toast.error(t('Couldn\'t upload that file. Please try again.')), [t])
+  const withDraftAttachments = useCallback(post => (
+    attachmentsTouched
+      ? { ...post, imageUrls: imageAttachments.map(a => a.url), fileUrls: fileAttachments.map(a => a.url) }
+      : post
+  ), [attachmentsTouched, fileAttachments, imageAttachments])
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT, UPDATE_POST], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
 
@@ -467,8 +480,14 @@ function PostEditorInner ({
     setHasDescription(hasDraftContent(details))
     setEditorInitialContent(details)
     editorRef.current?.setContent(details)
+    // Drafts saved before attachments were kept have no url lists; leave the bucket alone then
+    if (Array.isArray(post.imageUrls) && Array.isArray(post.fileUrls)) {
+      dispatch(setAttachments('post', attachmentPostId, 'image', attachmentsFromUrls(post.imageUrls, 'image')))
+      dispatch(setAttachments('post', attachmentPostId, 'file', attachmentsFromUrls(post.fileUrls, 'file')))
+      setAttachmentsTouched(true)
+    }
     draftLoadedRef.current = true
-  }, [currentGroup, editing, syncDetailsToCurrentPost])
+  }, [attachmentPostId, currentGroup, dispatch, editing, syncDetailsToCurrentPost])
 
   /**
    * Filters the available group options to find only those groups
@@ -551,7 +570,7 @@ function PostEditorInner ({
       ? currentPost
       : { ...currentPost, details }
 
-    const payload = buildPostDraftPayload(postForDraft)
+    const payload = buildPostDraftPayload(withDraftAttachments(postForDraft))
 
     if (!hasPostDraftPayloadContent(payload)) {
       saveServerDraft(JSON.stringify(payload))
@@ -575,7 +594,7 @@ function PostEditorInner ({
       return
     }
     setIsDirty(false)
-  }, [currentPost, initialDraftPayload, saveDraftJSON, saveServerDraft, setIsDirty, typeSwitchDialog, clearDraft])
+  }, [currentPost, initialDraftPayload, saveDraftJSON, saveServerDraft, setIsDirty, typeSwitchDialog, clearDraft, withDraftAttachments])
 
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
@@ -818,6 +837,7 @@ function PostEditorInner ({
     setEditorInitialContent(details)
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
+    setAttachmentsTouched(false)
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
@@ -861,7 +881,7 @@ function PostEditorInner ({
       ...currentPost,
       details: detailsHtmlRef.current ?? currentPost.details
     }
-    const currentPayload = buildPostDraftPayload(postWithDetails)
+    const currentPayload = buildPostDraftPayload(withDraftAttachments(postWithDetails))
     inSessionDraftByTypeRef.current[currentPost.type] = currentPayload
     pendingTypeSwitchRef.current = {
       fromType: currentPost.type,
@@ -885,7 +905,7 @@ function PostEditorInner ({
       groups: (prev.groups || []).filter(g => groupAcceptsPostType(g, type))
     }))
     setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
-  }, [currentPost, navigate, setCurrentPost, syncDetailsToCurrentPost, urlLocation])
+  }, [currentPost, navigate, setCurrentPost, syncDetailsToCurrentPost, urlLocation, withDraftAttachments])
 
   const handleKeepCurrentTypeContent = useCallback(() => {
     if (typeSwitchDialog?.targetType && typeSwitchDialog?.carriedPost) {
@@ -1129,7 +1149,7 @@ function PostEditorInner ({
     isSubmittingRef.current = false
     setAnnouncementSelected(!!wasAnnouncement)
     const details = editorRef.current?.getHTML?.() ?? detailsHtmlRef.current ?? currentPost.details
-    saveDraftJSON(buildPostDraftPayload({ ...currentPost, details }))
+    saveDraftJSON(buildPostDraftPayload(withDraftAttachments({ ...currentPost, details })))
     saveFailedToastIdRef.current = toast.error(
       isEditing ? t('Your changes couldn\'t be saved') : t('Your post couldn\'t be sent'),
       { action: { label: t('Try Again'), onClick: () => doSave() } }
@@ -1540,6 +1560,8 @@ function PostEditorInner ({
           showAddButton
           showLabel
           showLoading
+          onChange={markAttachmentsTouched}
+          onUploadError={handleUploadError}
         />
         <AttachmentManager
           type='post'
@@ -1548,6 +1570,8 @@ function PostEditorInner ({
           showAddButton
           showLabel
           showLoading
+          onChange={markAttachmentsTouched}
+          onUploadError={handleUploadError}
         />
       </div>
       {currentPost.type === 'project' && (
@@ -1926,6 +1950,7 @@ function PostEditorInner ({
         submitting={postPending}
         myAdminGroups={myAdminGroups}
         doSave={doSave}
+        onAttachmentAdded={markAttachmentsTouched}
         save={save}
         setAnnouncementSelected={setAnnouncementSelected}
         setIsDirty={setIsDirty}

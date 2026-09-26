@@ -31,6 +31,7 @@ export function hasPostDraftPayloadContent (data) {
   if ((obj.donationsLink || '').trim().length > 0) return true
   if ((obj.projectManagementLink || '').trim().length > 0) return true
   if (obj.startTime || obj.endTime) return true
+  if (obj.imageUrls?.length > 0 || obj.fileUrls?.length > 0) return true
   return false
 }
 
