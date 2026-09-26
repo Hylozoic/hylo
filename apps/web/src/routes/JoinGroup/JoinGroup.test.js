@@ -34,6 +34,17 @@ function mockCheckInvitation (checkInvitation) {
   )
 }
 
+function mockGroupViewable (group) {
+  const requestedSlugs = []
+  mockGraphqlServer.use(
+    graphql.query('CheckIsGroupViewable', ({ variables }) => {
+      requestedSlugs.push(variables.slug)
+      return HttpResponse.json({ data: { group } })
+    })
+  )
+  return requestedSlugs
+}
+
 function navigatePropsFor (navigateSpy) {
   return navigateSpy.mock.calls.map(([props]) => props)
 }
@@ -136,10 +147,11 @@ it('sends a signed-out user with an invalid invitation to signup with the invite
   expect(toast.error).not.toHaveBeenCalled()
 })
 
-it('shows a signed-in user a toast and the group about page for an invalid access code', async () => {
+it('shows a signed-in user a toast and the group about page for an invalid access code to a group they can see', async () => {
   const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {})
   const navigateSpy = jest.spyOn(require('react-router-dom'), 'Navigate')
   mockCheckInvitation({ valid: false })
+  const requestedSlugs = mockGroupViewable({ id: '3', visibility: 2 })
 
   jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'expired-code', joinGroupSlug: 'test-group' })
   jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/join-group', search: '' })
@@ -158,12 +170,38 @@ it('shows a signed-in user a toast and the group about page for an invalid acces
     to: '/groups/test-group/about',
     state: { invalidInvite: true }
   }))
+  expect(requestedSlugs).toEqual(['test-group'])
   expect(alertSpy).not.toHaveBeenCalled()
   expect(trackAnalyticsEvent).not.toHaveBeenCalled()
 })
 
+it('keeps the invalid invite message and goes home when the signed-in user cannot see the group', async () => {
+  const navigateSpy = jest.spyOn(require('react-router-dom'), 'Navigate')
+  mockCheckInvitation({ valid: false })
+  const requestedSlugs = mockGroupViewable(null)
+
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'expired-code', joinGroupSlug: 'hidden-group' })
+  jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/join-group', search: '' })
+
+  render(
+    <Routes>
+      <Route path='/join-group' element={<JoinGroup />} />
+      <Route path='/groups/hidden-group/about' element={<div>Hidden group not found</div>} />
+      <Route path='/all' element={<div>Home</div>} />
+    </Routes>,
+    { wrapper: currentUserProvider(true) }
+  )
+
+  expect(await screen.findByText('Home')).toBeInTheDocument()
+  expect(requestedSlugs).toEqual(['hidden-group'])
+  expect(toast.error).toHaveBeenCalledWith(INVALID_INVITE_MESSAGE, { id: 'invalid-invite' })
+  expect(screen.queryByText('Hidden group not found')).not.toBeInTheDocument()
+  expect(navigatePropsFor(navigateSpy)).not.toContainEqual(expect.objectContaining({ to: '/groups/hidden-group/about' }))
+})
+
 it('shows a signed-in user a toast and goes home for an invalid email invitation', async () => {
   mockCheckInvitation({ valid: false })
+  const requestedSlugs = mockGroupViewable({ id: '3', visibility: 2 })
 
   jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({})
   jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/join-group', search: '?token=expired-token' })
@@ -178,6 +216,7 @@ it('shows a signed-in user a toast and goes home for an invalid email invitation
 
   expect(await screen.findByText('Home')).toBeInTheDocument()
   expect(toast.error).toHaveBeenCalledWith(INVALID_INVITE_MESSAGE, { id: 'invalid-invite' })
+  expect(requestedSlugs).toEqual([])
 })
 
 it('auto-joins a space and opens it when the user is already a parent member', async () => {

@@ -12,6 +12,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { getSignupComplete } from 'store/selectors/getSignupState'
 import checkInvitation from 'store/actions/checkInvitation'
+import checkIsGroupViewable from 'store/actions/checkIsGroupViewable'
 import joinSpace from 'store/actions/joinSpace'
 import Loading from 'components/Loading'
 
@@ -64,6 +65,15 @@ export default function JoinGroup (props) {
   const { t } = useTranslation()
   const routeParams = useParams()
   const location = useLocation()
+
+  const isGroupViewable = async slug => {
+    try {
+      const result = await dispatch(checkIsGroupViewable(slug))
+      return Boolean(result?.payload?.data?.group ?? result?.payload?.getData?.())
+    } catch {
+      return false
+    }
+  }
 
   useEffect(() => {
     (async function () {
@@ -127,14 +137,15 @@ export default function JoinGroup (props) {
         }
       } catch (error) {
         if (signupComplete) {
-          // GroupDetail repeats this toast (same id) from the router state: the Toaster
-          // remounts while a group the user is not a member of is loading.
           toast.error(t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'), { id: INVALID_INVITE_TOAST_ID })
           const joinGroupSlug = routeParams.joinGroupSlug || routeParams.groupSlug
-          setRedirectTo({
-            to: joinGroupSlug ? groupUrl(joinGroupSlug, 'about') : baseUrl({}),
-            state: { invalidInvite: true }
-          })
+          // A group the user can't see renders the layout's NotFound page, which drops
+          // the toast. For a visible group GroupDetail repeats the toast (same id) from
+          // the router state, because the Toaster remounts while the group loads.
+          const canSeeGroup = joinGroupSlug && await isGroupViewable(joinGroupSlug)
+          setRedirectTo(canSeeGroup
+            ? { to: groupUrl(joinGroupSlug, 'about'), state: { invalidInvite: true } }
+            : { to: baseUrl({}) })
         } else {
           setRedirectTo({ to: `${SIGNUP_PATH}?error=invite-expired` })
         }
