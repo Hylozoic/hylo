@@ -14,10 +14,12 @@ import {
   isTextInteractionTarget,
   shouldBailTextSelectionGesture
 } from 'util/textSelectionTouch'
-import mixpanel from 'mixpanel-browser'
 import config, { isDev, isTest } from 'config/index'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import CookieConsentLinker from 'components/CookieConsentLinker'
+import { useCookieConsent } from 'contexts/CookieConsentContext'
+import { identifyAnalyticsUser, setAnalyticsGroups } from 'util/analytics'
+import { getCookieConsent } from 'util/cookieConsent'
 import ContextMenu from './components/ContextMenu'
 import CreatePostModal from 'components/CreatePostModal'
 import GlobalNav from './components/GlobalNav'
@@ -253,6 +255,10 @@ export default function AuthLayoutRouter (props) {
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state)) // For mobile nav
   const lastViewedGroupPath = useSelector(getLastViewedGroupPath)
   const memberships = useSelector(getMyMemberships)
+  const { cookieData } = useCookieConsent()
+  // Before the consent context has loaded, fall back to the stored cookie
+  const cookieConsent = cookieData || getCookieConsent()
+  const analyticsConsent = cookieConsent?.analytics
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
 
@@ -645,29 +651,12 @@ export default function AuthLayoutRouter (props) {
     if (currentUser?.settings?.locale) {
       getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
-    if (isSandboxMode() || !config.mixpanel.token || !currentUser?.id) return
-    mixpanel.identify(currentUser.id)
-    mixpanel.people.set({
-      $name: currentUser.name,
-      $email: currentUser.email,
-      $location: currentUser.location
-    })
-  }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
+    identifyAnalyticsUser(currentUser)
+  }, [analyticsConsent, currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
   useEffect(() => {
-    if (isSandboxMode() || !config.mixpanel.token) return
-    // Add all current group membershps to mixpanel user
-    mixpanel.set_group('groupId', memberships.map(m => m.group.id))
-
-    if (currentGroup?.id) {
-      // Setup group profile info
-      mixpanel.get_group('groupId', currentGroup.id).set({
-        $location: currentGroup.location,
-        $name: currentGroup.name,
-        type: currentGroup.type
-      })
-    }
-  }, [currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
+    setAnalyticsGroups(memberships, currentGroup)
+  }, [analyticsConsent, currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
 
   // Keep group loading in sync with the URL before paint so we never mount ViewContent/chat,
   // then swap to RouteBootstrapSkeleton when fetchForGroup sets loading (reopen / SPA nav).

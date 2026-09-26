@@ -10,6 +10,7 @@ import {
   createCookieConsentData,
   linkCookieConsentToUser
 } from 'util/cookieConsent'
+import { applyAnalyticsConsent } from 'util/analytics'
 
 const CookieConsentContext = createContext()
 
@@ -166,6 +167,12 @@ export const CookieConsentProvider = ({ children }) => {
   useEffect(() => {
     initializeCookieConsent()
   }, [initializeCookieConsent])
+
+  // Every way consent changes (the panel, the saved account preference, linking
+  // at login) lands in cookieData, so Mixpanel's opt-out follows it from here
+  useEffect(() => {
+    applyAnalyticsConsent(cookieData)
+  }, [cookieData?.analytics])
 
   // Re-initialize when login status changes
   useEffect(() => {

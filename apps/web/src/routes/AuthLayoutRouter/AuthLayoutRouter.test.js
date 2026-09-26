@@ -1,10 +1,18 @@
 import React from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { graphql, HttpResponse } from 'msw'
+import mixpanel from 'mixpanel-browser'
 import orm from 'store/models'
+import { getCookieConsent } from 'util/cookieConsent'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { AllTheProviders, render, screen, waitForElementToBeRemoved, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import AuthLayoutRouter from './AuthLayoutRouter'
+
+// A Mixpanel token, so the consent checks (not a missing token) decide what is sent
+jest.mock('config/index', () => {
+  const actual = jest.requireActual('config/index')
+  return { __esModule: true, ...actual, default: { ...actual.default, mixpanel: { token: 'test-token' } } }
+})
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -117,5 +125,63 @@ it('shows NotFound if the group does not exist', async () => {
 
   await waitFor(() => {
     expect(screen.getByText('Oops, there\'s nothing to see here.')).toBeInTheDocument()
+  })
+})
+
+describe('cookie consent', () => {
+  const group = { id: '1', slug: 'test-group', name: 'Test Group' }
+  const me = {
+    id: '1',
+    name: 'Test User',
+    email: 'test@example.com',
+    hasRegistered: true,
+    emailValidated: true,
+    settings: { signupInProgress: false, alreadySeenTour: true },
+    memberships: [{
+      id: '1',
+      person: { id: '1' },
+      group,
+      settings: { showJoinForm: false, joinQuestionsAnsweredAt: '2020-01-01T00:00:00.000Z' }
+    }]
+  }
+
+  const renderGroupPage = async () => {
+    useParamsMocked.mockReturnValue({ context: 'groups', groupSlug: 'test-group' })
+    useLocationMocked.mockReturnValue({ pathname: '/groups/test-group', search: '' })
+    mockGraphqlServer.use(
+      graphql.query('MeQuery', () => HttpResponse.json({ data: { me } })),
+      graphql.query('FetchForGroup', () => HttpResponse.json({ data: { group } })),
+      graphql.query('GroupDetailsQuery', () => HttpResponse.json({ data: { group } })),
+      ...defaultGraphqlHandlers()
+    )
+    render(<AuthLayoutRouter />, { wrapper: testWrapper({}, ['/groups/test-group']) })
+    await waitForElementToBeRemoved(screen.queryByTestId('loading-screen'))
+    await waitFor(() => expect(screen.getByText('Test Group')).toBeInTheDocument())
+  }
+
+  beforeEach(() => {
+    mixpanel.identify.mockClear()
+    mixpanel.people.set.mockClear()
+    mixpanel.set_group.mockClear()
+  })
+
+  afterEach(() => {
+    getCookieConsent.mockReturnValue(null)
+  })
+
+  it('sends the Mixpanel profile for people who have not answered', async () => {
+    await renderGroupPage()
+
+    await waitFor(() => expect(mixpanel.people.set).toHaveBeenCalled())
+  })
+
+  it('sends nothing to Mixpanel after Reject Non-Essential', async () => {
+    getCookieConsent.mockReturnValue({ analytics: false, support: false })
+
+    await renderGroupPage()
+
+    expect(mixpanel.identify).not.toHaveBeenCalled()
+    expect(mixpanel.people.set).not.toHaveBeenCalled()
+    expect(mixpanel.set_group).not.toHaveBeenCalled()
   })
 })

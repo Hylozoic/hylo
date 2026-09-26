@@ -1,4 +1,3 @@
-import mixpanel from 'mixpanel-browser'
 import { WebViewMessageTypes } from '@hylo/shared'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { connectSocket } from 'client/websockets'
 import { clearChunkReloadFlag } from 'client/chunkReload'
-import config, { debugCheckLogin, isProduction, isTest } from 'config/index'
+import { debugCheckLogin } from 'config/index'
 import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import NavigateWithParams from 'components/NavigateWithParams'
@@ -28,10 +27,9 @@ import {
   sendMessageToWebView
 } from 'util/webView'
 import { isSandboxMode } from 'sandbox/isSandbox'
+import { initAnalytics } from 'util/analytics'
 
-if (!isTest && config.mixpanel.token && !isSandboxMode()) {
-  mixpanel.init(config.mixpanel.token, { debug: !isProduction })
-}
+initAnalytics()
 
 // In the v2 mobile WebView, a failed auth check is almost always a transient cookie
 // desync (e.g. social-login resume), NOT a real logout. Ask native to re-establish
