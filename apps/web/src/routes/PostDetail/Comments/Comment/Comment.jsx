@@ -32,6 +32,13 @@ import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { INITIAL_SUBCOMMENTS_DISPLAYED } from 'util/constants'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
+// Enter and Space activate the comment actions like a button
+function activateOnKey (event) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  event.currentTarget.click()
+}
+
 function Comment ({
   comment,
   onReplyComment,
@@ -176,11 +183,11 @@ function Comment ({
         <div className={styles.upperRight}>
           {currentUser && !editing && (
             <div className={cn(styles.commentActions, { [styles.showActions]: showActions })}>
-              <div className={cn(styles.commentAction)} onClick={onReplyComment} role='button' aria-label={t('Reply')} data-tooltip-content={t('Reply')} data-tooltip-id={`reply-tip-${id}`}>
+              <div className={cn(styles.commentAction)} onClick={onReplyComment} onKeyDown={activateOnKey} role='button' tabIndex={0} aria-label={t('Reply')} data-tooltip-content={t('Reply')} data-tooltip-id={`reply-tip-${id}`}>
                 <Icon name='Replies' />
               </div>
               {dropdownItems.map(item => (
-                <div key={item.id} className={styles.commentAction} onClick={handleDropdownItemClick(item.onClick)} role='button' aria-label={item.label}>
+                <div key={item.id} className={styles.commentAction} onClick={handleDropdownItemClick(item.onClick)} onKeyDown={activateOnKey} role='button' tabIndex={0} aria-label={item.label}>
                   {React.isValidElement(item.icon)
                     ? React.cloneElement(item.icon, { 'data-testid': item.id })
                     : <Icon name={item.icon} dataTestId={item.id} />}

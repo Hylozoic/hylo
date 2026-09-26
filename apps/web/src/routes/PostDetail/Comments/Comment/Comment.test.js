@@ -98,6 +98,25 @@ describe('Comment', () => {
     expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
   })
 
+  it('opens the reply form from the keyboard', () => {
+    render(<Comment {...props} />, { wrapper: testProviders() })
+
+    const reply = screen.getByRole('button', { name: 'Reply' })
+    expect(reply).toHaveAttribute('tabindex', '0')
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    fireEvent.keyDown(reply, { key: 'Enter' })
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+  })
+
+  it('starts editing from the keyboard', () => {
+    render(<Comment {...props} />, { wrapper: testProviders() })
+
+    const edit = screen.getByRole('button', { name: 'Edit' })
+    expect(edit).toHaveAttribute('tabindex', '0')
+    fireEvent.keyDown(edit, { key: ' ' })
+    expect(screen.getByTestId('Save')).toBeInTheDocument()
+  })
+
   describe('handleEditComment', () => {
     it('shows edit form when edit button is clicked', async () => {
       render(<Comment {...props} />, { wrapper: testProviders() })
