@@ -206,6 +206,25 @@ describe('Group', function () {
     })
   })
 
+  describe('moderators and stewards', function () {
+    it('include Administrators and Moderators but not Hosts or plain members, even when everyone can invite', async function () {
+      const group = await factories.group().save()
+      const [administrator, moderator, host, member] = await Promise.all([1, 2, 3, 4].map(() => factories.user().save()))
+      await group.addMembers([administrator, moderator, host, member])
+      await GroupMembership.assignAdministratorRole(administrator.id, group.id)
+      for (const [user, roleName] of [[moderator, 'Moderator'], [host, 'Host']]) {
+        const role = await GroupRole.findSystemRole(group.id, roleName)
+        await MemberGroupRole.forge({ user_id: user.id, group_id: group.id, group_role_id: role.id, active: true }).save()
+      }
+      await GroupRole.setInvitePolicy(group.id, { mode: GroupRole.InvitePolicy.EVERYONE })
+
+      const ids = async users => (await users.fetch()).map(user => user.id).sort()
+      const expected = [administrator.id, moderator.id].sort()
+      expect(await ids(group.moderators())).to.deep.equal(expected)
+      expect(await ids(group.stewards())).to.deep.equal(expected)
+    })
+  })
+
   describe('removeMembers', function () {
     it('removes child members', async function () {
       const group = await factories.group().save()
