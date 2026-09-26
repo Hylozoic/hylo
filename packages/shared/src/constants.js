@@ -23,7 +23,21 @@ export const AnalyticsEvents = {
   TRACK_LEFT: 'Track Left',
   TRACK_PUBLISHED: 'Track Published',
   VOTED_ON_POST: 'Voted on Post', // Remove once mobile has switched to POST_REACTION
-  UNBLOCK_USER: 'User Un-Blocked'
+  UNBLOCK_USER: 'User Un-Blocked',
+  GROUP_WELCOME_COMPLETED: 'Group Welcome Completed',
+  GROUP_WELCOME_PAGE_VIEWED: 'Group Welcome Page Viewed',
+  INVITE_LINK_OPENED: 'Invite Link Opened',
+  JOIN_REQUEST_APPROVED: 'Join Request Approved',
+  JOIN_REQUEST_CANCELED: 'Join Request Canceled',
+  JOIN_REQUEST_CREATED: 'Join Request Created',
+  JOIN_REQUEST_DECLINED: 'Join Request Declined',
+  LOGIN_WALL_HIT: 'Login Wall Hit',
+  PUBLIC_GROUP_VIEWED: 'Public Group Viewed',
+  REACTION_REMOVED: 'Reaction Removed',
+  SIGNUP_AGREEMENTS_ACCEPTED: 'Signup Agreements Accepted',
+  SIGNUP_EMAIL_VERIFICATION_FAILED: 'Email Verification Failed',
+  WELCOME_WIZARD_STEP_SKIPPED: 'Welcome Wizard Step Skipped',
+  WELCOME_WIZARD_STEP_VIEWED: 'Welcome Wizard Step Viewed'
 }
 
 // CustomEvent dispatched in the WebView when Android hardware back is pressed.
@@ -60,4 +74,3 @@ export const WebViewMessageTypes = {
     SET_PROPS: 'SET_PROPS'
   }
 }
-
