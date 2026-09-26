@@ -22,7 +22,6 @@ export const AnalyticsEvents = {
   TRACK_ENROLLED: 'Track Enrolled',
   TRACK_LEFT: 'Track Left',
   TRACK_PUBLISHED: 'Track Published',
-  VOTED_ON_POST: 'Voted on Post', // Remove once mobile has switched to POST_REACTION
   UNBLOCK_USER: 'User Un-Blocked',
   GROUP_WELCOME_COMPLETED: 'Group Welcome Completed',
   GROUP_WELCOME_PAGE_VIEWED: 'Group Welcome Page Viewed',
