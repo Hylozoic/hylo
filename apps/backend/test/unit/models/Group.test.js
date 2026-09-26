@@ -657,6 +657,23 @@ describe('Group', function () {
     })
   })
 
+  describe('skills', function () {
+    it('lists the skills members have, not the ones they are learning', async function () {
+      const group = await factories.group().save()
+      const member = await factories.user().save()
+      await group.addMembers([member.id])
+      const has = await new Skill({ name: `has-skill-${Date.now()}` }).save()
+      const learning = await new Skill({ name: `learning-skill-${Date.now()}` }).save()
+      await bookshelf.knex('skills_users').insert([
+        { skill_id: has.id, user_id: member.id, type: Skill.Type.HAS },
+        { skill_id: learning.id, user_id: member.id, type: Skill.Type.LEARNING }
+      ])
+
+      const skills = await group.skills().fetch()
+      expect(skills.pluck('name')).to.deep.equal([has.get('name')])
+    })
+  })
+
   describe('selectIdsForMember', function () {
     it('produces the expected query clause', function () {
       const query = Post.query(q => {

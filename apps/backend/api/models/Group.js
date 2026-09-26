@@ -516,7 +516,8 @@ module.exports = bookshelf.Model.extend(merge({
       q.join('group_memberships', 'group_memberships.user_id', 'skills_users.user_id')
       q.where({
         'group_memberships.group_id': this.id,
-        'group_memberships.active': true
+        'group_memberships.active': true,
+        'skills_users.type': Skill.Type.HAS
       })
     })
   },
