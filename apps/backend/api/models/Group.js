@@ -931,6 +931,7 @@ module.exports = bookshelf.Model.extend(merge({
     const attributes = mapValues(pick(changes, whitelist), (v, k) => trimAttrs.includes(k) ? trim(v) : v)
     const saneAttrs = clone(attributes)
     const wasAutoAdd = this.get('type') === 'space' && !!this.getSetting('auto_add_members')
+    const hadMurmurationsProfile = this.hasMurmurationsProfile()
 
     if (attributes.settings) {
       saneAttrs.settings = merge({}, this.get('settings'), attributes.settings)
@@ -1057,7 +1058,8 @@ module.exports = bookshelf.Model.extend(merge({
       Queue.classMethod('Group', 'addEligibleMembersToSpace', { spaceId: this.id })
     }
 
-    if (this.hasMurmurationsProfile()) {
+    // A group that stops qualifying is re-posted too: the index re-fetches the profile, gets a 404 and drops it
+    if (this.hasMurmurationsProfile() || hadMurmurationsProfile) {
       await Queue.classMethod('Group', 'publishToMurmurations', { groupId: this.id })
     }
     return this
@@ -1437,6 +1439,9 @@ module.exports = bookshelf.Model.extend(merge({
     const group = await Group.find(id)
     if (group) {
       await group.save({ active: false }, opts)
+      if (group.hasMurmurationsProfile()) {
+        await Queue.classMethod('Group', 'publishToMurmurations', { groupId: group.id })
+      }
       return group.removeMembers(await group.members().fetch(), opts)
     }
   },

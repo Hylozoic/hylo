@@ -3,7 +3,7 @@
 import root from 'root-path'
 import setup from '../../setup'
 import factories from '../../setup/factories'
-import { expectEqualQuery, spyify, unspyify } from '../../setup/helpers'
+import { expectEqualQuery, mockify, spyify, unspyify } from '../../setup/helpers'
 
 export function myGroupIdsSqlFragment (userId) {
   return `(select "groups"."id" from "group_memberships"
@@ -654,6 +654,53 @@ describe('Group', function () {
       updatedMemberships.models.forEach(membership => {
         expect(membership.get('project_role_id')).to.equal(project_role_id)
       })
+    })
+  })
+
+  describe('Murmurations publishing', function () {
+    const murmurationsPosts = groupId => Queue.classMethod.__spy.calls
+      .filter(([model, method, data]) => model === 'Group' && method === 'publishToMurmurations' && String(data.groupId) === String(groupId))
+
+    let group, user
+
+    beforeEach(async function () {
+      mockify(Queue, 'classMethod', () => Promise.resolve())
+      user = await factories.user().save()
+      group = await factories.group({
+        visibility: Group.Visibility.PUBLIC,
+        settings: { publish_murmurations_profile: true }
+      }).save()
+    })
+
+    afterEach(function () {
+      unspyify(Queue, 'classMethod')
+    })
+
+    it('re-posts a group that still publishes its profile', async function () {
+      await group.update({ name: 'Renamed' }, user.id)
+      expect(murmurationsPosts(group.id).length).to.equal(1)
+    })
+
+    it('re-posts a group that turns its profile off, so the index drops it', async function () {
+      await group.update({ settings: { publish_murmurations_profile: false } }, user.id)
+      expect(group.hasMurmurationsProfile()).to.be.false
+      expect(murmurationsPosts(group.id).length).to.equal(1)
+    })
+
+    it('re-posts a group that stops being public', async function () {
+      await group.update({ visibility: Group.Visibility.PROTECTED }, user.id)
+      expect(murmurationsPosts(group.id).length).to.equal(1)
+    })
+
+    it('does not post a group that never published a profile', async function () {
+      const privateGroup = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+      await privateGroup.update({ name: 'Still private' }, user.id)
+      expect(murmurationsPosts(privateGroup.id).length).to.equal(0)
+    })
+
+    it('re-posts a published group when it is deactivated', async function () {
+      await Group.deactivate(group.id)
+      expect(murmurationsPosts(group.id).length).to.equal(1)
     })
   })
 
