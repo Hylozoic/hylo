@@ -3052,5 +3052,14 @@
   "Selected space": "चयनित स्पेस",
   "Incorrect email or password.": "ईमेल या पासवर्ड गलत है।",
   "If you signed up with Google, log in with Google instead.": "अगर आपने Google से साइन अप किया था, तो Google से लॉग इन करें।",
-  "Too many attempts. Please wait a few minutes and try again.": "बहुत अधिक प्रयास। कृपया कुछ मिनट प्रतीक्षा करें और फिर से प्रयास करें।"
+  "Too many attempts. Please wait a few minutes and try again.": "बहुत अधिक प्रयास। कृपया कुछ मिनट प्रतीक्षा करें और फिर से प्रयास करें।",
+  "Each person you invite gets an email invitation to join {{name}}.": "आप जिसे भी आमंत्रित करेंगे, उसे {{name}} में शामिल होने के लिए ईमेल निमंत्रण मिलेगा।",
+  "New members of this group need approval, so the people you invite will ask to join and a steward will review their request.": "इस समूह के नए सदस्यों को अनुमोदन चाहिए, इसलिए आप जिन्हें आमंत्रित करेंगे वे शामिल होने का अनुरोध करेंगे और कोई स्टीवर्ड उनके अनुरोध की समीक्षा करेगा।",
+  "Group stewards can see the email addresses you invite.": "समूह के स्टीवर्ड वे ईमेल पते देख सकते हैं जिन्हें आप आमंत्रित करते हैं।",
+  "Enter up to {{max}} email addresses at a time, separated by commas or new lines": "एक बार में अधिकतम {{max}} ईमेल पते कॉमा या नई पंक्ति से अलग करके दर्ज करें",
+  "Invites left today: {{remaining}}": "आज के शेष निमंत्रण: {{remaining}}",
+  "Your pending invites": "आपके लंबित निमंत्रण",
+  "Invites sent to anyone not already in the group": "उन सभी को निमंत्रण भेजे गए जो अभी समूह में नहीं हैं",
+  "You don't have enough invites left today for all of these addresses.": "आज आपके पास इन सभी पतों के लिए पर्याप्त निमंत्रण नहीं बचे हैं।",
+  "You can invite up to {{max}} email addresses at a time": "आप एक बार में अधिकतम {{max}} ईमेल पते आमंत्रित कर सकते हैं"
 }

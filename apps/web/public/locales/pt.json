@@ -3052,5 +3052,14 @@
   "Selected space": "Espaço selecionado",
   "Incorrect email or password.": "E-mail ou senha incorretos.",
   "If you signed up with Google, log in with Google instead.": "Se você se cadastrou com o Google, entre com o Google.",
-  "Too many attempts. Please wait a few minutes and try again.": "Muitas tentativas. Aguarde alguns minutos e tente novamente."
+  "Too many attempts. Please wait a few minutes and try again.": "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
+  "Each person you invite gets an email invitation to join {{name}}.": "Cada pessoa que você convidar recebe um convite por e-mail para entrar em {{name}}.",
+  "New members of this group need approval, so the people you invite will ask to join and a steward will review their request.": "Novos membros deste grupo precisam de aprovação, então as pessoas que você convidar vão pedir para entrar e um administrador vai analisar o pedido.",
+  "Group stewards can see the email addresses you invite.": "Os administradores do grupo podem ver os endereços de e-mail que você convida.",
+  "Enter up to {{max}} email addresses at a time, separated by commas or new lines": "Insira até {{max}} endereços de e-mail por vez, separados por vírgulas ou por novas linhas",
+  "Invites left today: {{remaining}}": "Convites restantes hoje: {{remaining}}",
+  "Your pending invites": "Seus convites pendentes",
+  "Invites sent to anyone not already in the group": "Convites enviados para quem ainda não está no grupo",
+  "You don't have enough invites left today for all of these addresses.": "Você não tem convites suficientes hoje para todos estes endereços.",
+  "You can invite up to {{max}} email addresses at a time": "Você pode convidar até {{max}} endereços de e-mail por vez"
 }

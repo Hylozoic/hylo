@@ -4,7 +4,8 @@ import {
   RESEND_INVITATION_PENDING,
   EXPIRE_INVITATION_PENDING,
   REINVITE_ALL_PENDING,
-  allowGroupInvites
+  allowGroupInvites,
+  fetchPendingInvitations
 } from './InviteSettingsTab.store'
 import orm from 'store/models'
 
@@ -23,9 +24,9 @@ describe('InviteSettingsTab.store.ormSessionReducer', () => {
         data: {
           createInvitation: {
             invitations: [
-              { email: 'foo5@bar.com' },
-              { email: 'foo6@bar.com' },
-              { email: 'foo7@bar.com' }
+              { id: '15', email: 'foo5@bar.com' },
+              { id: '16', email: 'foo6@bar.com' },
+              { id: '17', email: 'foo7@bar.com' }
             ]
           }
         }
@@ -45,6 +46,34 @@ describe('InviteSettingsTab.store.ormSessionReducer', () => {
       const createdAt = new Date(i.createdAt).getTime()
       expect(now - createdAt).toBeLessThan(1000)
     })
+  })
+
+  it('does not store CREATE_INVITATIONS results without an id', () => {
+    session.Group.create({ id: '5' })
+
+    const action = {
+      type: CREATE_INVITATIONS,
+      payload: {
+        data: {
+          createInvitation: {
+            invitations: [
+              { id: null, email: 'sent@bar.com', status: 'sent' },
+              { id: null, email: 'skipped@bar.com', status: 'sent' },
+              { id: null, email: 'bad', error: 'invalid' },
+              { id: '18', email: 'steward@bar.com' }
+            ]
+          }
+        }
+      },
+      meta: { groupId: '5' }
+    }
+
+    ormSessionReducer(session, action)
+    expect(session.Invitation.all().toRefArray().map(i => i.email)).toEqual(['steward@bar.com'])
+  })
+
+  it('fetches the invite allowance along with pending invitations', () => {
+    expect(fetchPendingInvitations('5').graphql.query).toMatch(/myInviteAllowance/)
   })
 
   it('responds to RESEND_INVITATION_PENDING', () => {

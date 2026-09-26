@@ -42,7 +42,8 @@ export function createInvitations (groupId, emails, groupRoleId = null, userIds 
             email,
             createdAt,
             lastSentAt,
-            error
+            error,
+            status
           }
         }
       }`,
@@ -63,7 +64,10 @@ export function createInvitations (groupId, emails, groupRoleId = null, userIds 
   }
 }
 
-/** Loads invitePath and pending invitations so the invite UI works outside Group Settings. */
+/**
+ * Loads invitePath, pending invitations and, for people with limited invite access, how many
+ * more addresses they can invite today, so the invite UI works outside Group Settings.
+ */
 export function fetchPendingInvitations (groupId) {
   return {
     type: FETCH_PENDING_INVITATIONS,
@@ -72,6 +76,7 @@ export function fetchPendingInvitations (groupId) {
         group (id: $id) {
           id
           invitePath
+          myInviteAllowance
           pendingInvitations {
             hasMore
             items {
@@ -255,7 +260,7 @@ export function ormSessionReducer (session, { type, meta, payload }) {
 
   switch (type) {
     case CREATE_INVITATIONS:
-      payload.data.createInvitation.invitations.forEach(i =>
+      payload.data.createInvitation.invitations.filter(i => i.id).forEach(i =>
         Invitation.create({
           email: i.email,
           name: i.name || null,

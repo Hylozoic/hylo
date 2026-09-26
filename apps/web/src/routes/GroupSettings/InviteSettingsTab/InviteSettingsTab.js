@@ -17,6 +17,7 @@ import PeopleSelector from 'routes/Messages/PeopleSelector'
 import { cn } from 'util/index'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import { toast } from 'sonner'
+import { INVITE_ACCESS } from 'store/constants'
 import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_TYPES, GROUP_VISIBILITY } from 'store/models/Group'
 import getMe from 'store/selectors/getMe'
@@ -37,7 +38,9 @@ import {
 
 import classes from './InviteSettingsTab.module.scss'
 
-const { bool, object } = PropTypes
+const { bool, object, oneOf } = PropTypes
+
+const LIMITED_INVITES_PER_SEND = 10
 
 const parseEmailList = emails =>
   (emails || '').split(/,|\n/).map(email => {
@@ -46,8 +49,14 @@ const parseEmailList = emails =>
     return match ? match[1] : trimmed
   })
 
+/**
+ * Invite page. With 'full' invite access (Add Members) it shows the join link, people search,
+ * email invites with an optional role, and every pending invite. With 'limited' access it shows
+ * only personal email invites, the daily allowance, and the invites this person sent.
+ */
 function InviteSettingsTab (props) {
-  const { group, inModal = false, parentGroup } = props
+  const { group, inModal = false, parentGroup, inviteAccess = INVITE_ACCESS.full } = props
+  const limited = inviteAccess === INVITE_ACCESS.limited
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const pendingCreateFromStore = useSelector(state => state.pending[CREATE_INVITATIONS])
@@ -64,6 +73,9 @@ function InviteSettingsTab (props) {
     return orm.session(state.orm).Group.withId(id)?.ref || parentGroup || null
   })
   const inviteLink = groupInviteUrl(storeGroup || group)
+  const inviteAllowance = storeGroup?.myInviteAllowance
+  const accessibility = (storeGroup || group).accessibility
+  const needsApproval = accessibility === GROUP_ACCESSIBILITY.Restricted || accessibility === GROUP_ACCESSIBILITY.Closed
   const isSpace = group.type === GROUP_TYPES.space || !!group.parentId
   const parentGroupId = parentGroup?.id || group.parentId
   const parentName = parentGroup?.name || parentGroupFromStore?.name
@@ -221,15 +233,21 @@ function InviteSettingsTab (props) {
       return
     }
 
+    const emailList = parseEmailList(emails).filter(Boolean)
+    if (limited && new Set(emailList.map(email => email.toLowerCase())).size > LIMITED_INVITES_PER_SEND) {
+      setSuccessMessage('')
+      setErrorMessage(t('You can invite up to {{max}} email addresses at a time', { max: LIMITED_INVITES_PER_SEND }))
+      return
+    }
+
     sendingRef.current = true
 
     let groupRoleId = null
-    if (selectedRoleId) {
+    if (selectedRoleId && !limited) {
       groupRoleId = parseInt(selectedRoleId, 10)
     }
 
-    const userIds = selectedPeople.map(p => p.id)
-    const emailList = parseEmailList(emails).filter(Boolean)
+    const userIds = limited ? [] : selectedPeople.map(p => p.id)
     createInvitations(emailList, groupRoleId, userIds)
       .then(res => {
         sendingRef.current = false
@@ -244,9 +262,13 @@ function InviteSettingsTab (props) {
         }
         const numGood = invitations.length - badEmails.length
         if (numGood > 0) {
-          successMessage = numGood === 1
-            ? t('Sent 1 invite')
-            : t('Sent {{numGood}} invites', { numGood })
+          if (limited) {
+            successMessage = t('Invites sent to anyone not already in the group')
+          } else {
+            successMessage = numGood === 1
+              ? t('Sent 1 invite')
+              : t('Sent {{numGood}} invites', { numGood })
+          }
           trackAnalyticsEventDispatch('Group Invitations Sent', { numGood })
         }
         setEmails(badEmails.join('\n'))
@@ -259,8 +281,14 @@ function InviteSettingsTab (props) {
         }
         dispatch(fetchPendingInvitations(group.id))
       })
-      .catch(() => {
+      .catch(error => {
         sendingRef.current = false
+        if (!limited) return
+        setSuccessMessage('')
+        setErrorMessage(error?.message === 'invite-limit'
+          ? t("You don't have enough invites left today for all of these addresses.")
+          : t('Something went wrong. Please try again.'))
+        dispatch(fetchPendingInvitations(group.id))
       })
   }
 
@@ -276,7 +304,7 @@ function InviteSettingsTab (props) {
 
   const buttonColor = highlight => highlight ? 'green' : 'green-white-green-border'
 
-  const disableSendBtn = ((isEmpty(emails) && selectedPeople.length === 0) || pendingCreate)
+  const disableSendBtn = ((isEmpty(emails) && selectedPeople.length === 0) || pendingCreate || (limited && inviteAllowance === 0))
 
   const resendAllOnClick = useCallback(() => {
     if (window.confirm(t('Are you sure you want to resend all Pending Invitations'))) {
@@ -374,110 +402,135 @@ function InviteSettingsTab (props) {
         </div>
       )}
 
-      <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
-        <div className='text-foreground'>
-          <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Share a Join Link')}</h2>
-          <div className='text-sm'>
-            {isSpace
-              ? (
-                <>
-                  <strong>{t('Use this link to invite people to the space.')}</strong>{' '}
-                  <span className='text-foreground/50'>
-                    {t('If they are not a member of {{name}} they will be given the opportunity to join that first, so make sure you know and trust them.', { name: parentName || t('the group') })}
-                  </span>
-                </>
-                )
-              : (
-                <>
-                  <strong>{t('Use this link to invite people you know and trust.')}</strong>{' '}
-                  <span className='text-foreground/50'>{t('They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.')}</span>
-                </>
+      {!limited && (
+        <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
+          <div className='text-foreground'>
+            <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Share a Join Link')}</h2>
+            <div className='text-sm'>
+              {isSpace
+                ? (
+                  <>
+                    <strong>{t('Use this link to invite people to the space.')}</strong>{' '}
+                    <span className='text-foreground/50'>
+                      {t('If they are not a member of {{name}} they will be given the opportunity to join that first, so make sure you know and trust them.', { name: parentName || t('the group') })}
+                    </span>
+                  </>
+                  )
+                : (
+                  <>
+                    <strong>{t('Use this link to invite people you know and trust.')}</strong>{' '}
+                    <span className='text-foreground/50'>{t('They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.')}</span>
+                  </>
+                  )}
+            </div>
+          </div>
+          <div className='flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 w-full'>
+            {inviteLink && (
+              <div className='min-w-0 w-full sm:flex-1 overflow-hidden'>
+                <CopyToClipboard text={inviteLink} onCopy={onCopyInviteLink}>
+                  <button className='flex relative items-center group gap-2 min-w-0 w-full max-w-full bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={!copiedInviteLink ? t('Click to Copy') : undefined} data-tooltip-id='invite-link-tooltip'>
+                    <span className='min-w-0 flex-1 overflow-hidden whitespace-nowrap text-ellipsis' dir='rtl'>
+                      <bdi className='text-selected'>{inviteLink}</bdi>
+                    </span>
+                    <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all shrink-0'>
+                      {copiedInviteLink
+                        ? <>{t('Copied!')}</>
+                        : <><Icon name='Copy' /> {t('Copy')}</>}
+                    </div>
+                  </button>
+                </CopyToClipboard>
+                {!isMobile.any && (
+                  <Tooltip
+                    place='top'
+                    type='dark'
+                    id='invite-link-tooltip'
+                    effect='solid'
+                    delayShow={500}
+                  />
                 )}
+              </div>
+            )}
+            <button onClick={onReset} className='flex items-center justify-center text-nowrap shrink-0 group gap-2 bg-card border-2 border-accent/20 text-accent rounded-lg p-3 hover:border-foreground/50 transition-all hover:cursor-pointer text-sm w-full sm:w-auto' color={buttonColor(reset)}>
+              {inviteLink ? t('Reset Link') : t('Generate a Link')}
+            </button>
           </div>
         </div>
-        <div className='flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 w-full'>
-          {inviteLink && (
-            <div className='min-w-0 w-full sm:flex-1 overflow-hidden'>
-              <CopyToClipboard text={inviteLink} onCopy={onCopyInviteLink}>
-                <button className='flex relative items-center group gap-2 min-w-0 w-full max-w-full bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={!copiedInviteLink ? t('Click to Copy') : undefined} data-tooltip-id='invite-link-tooltip'>
-                  <span className='min-w-0 flex-1 overflow-hidden whitespace-nowrap text-ellipsis' dir='rtl'>
-                    <bdi className='text-selected'>{inviteLink}</bdi>
-                  </span>
-                  <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all shrink-0'>
-                    {copiedInviteLink
-                      ? <>{t('Copied!')}</>
-                      : <><Icon name='Copy' /> {t('Copy')}</>}
-                  </div>
-                </button>
-              </CopyToClipboard>
-              {!isMobile.any && (
-                <Tooltip
-                  place='top'
-                  type='dark'
-                  id='invite-link-tooltip'
-                  effect='solid'
-                  delayShow={500}
-                />
-              )}
-            </div>
-          )}
-          <button onClick={onReset} className='flex items-center justify-center text-nowrap shrink-0 group gap-2 bg-card border-2 border-accent/20 text-accent rounded-lg p-3 hover:border-foreground/50 transition-all hover:cursor-pointer text-sm w-full sm:w-auto' color={buttonColor(reset)}>
-            {inviteLink ? t('Reset Link') : t('Generate a Link')}
-          </button>
-        </div>
-      </div>
+      )}
 
       <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-2 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
-        <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>
-          {t('Invite people on Hylo')}
-        </h2>
-        <span className='text-sm text-foreground/50'>
-          {isRoleGated && (
-            <p className='text-sm text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2'>
-              {t('Only members with one of the required roles will actually be able to join the space.')}{' '}
-              <a
-                href={`/groups/${group.slug}/settings/roles`}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='underline hover:no-underline font-medium'
-              >
-                {t('Go to group roles')}
-              </a>
-            </p>
-          )}
-          {isSpace
-            ? t('Search members of {{name}} who aren\'t already in this space.', { name: parentName || t('the group') })
-            : t('Search people you can see on Hylo.')}
-        </span>
-        <PeopleSelector
-          placeholder={isSpace
-            ? t('Search members of {{name}}...', { name: parentName || t('the group') })
-            : t('Search people...')}
-          fetchPeople={fetchPeopleForInvite}
-          fetchDefaultList={fetchDefaultPeopleList}
-          setPeopleSearch={() => {}}
-          people={peopleForSelector}
-          selectedPeople={selectedPeople}
-          selectPerson={handleSelectPerson}
-          removePerson={handleRemovePerson}
-          peopleSelectorOpen={peopleSelectorOpen}
-          onFocus={() => setPeopleSelectorOpen(true)}
-          onTyping={() => setPeopleSelectorOpen(true)}
-          onBlur={() => setPeopleSelectorOpen(false)}
-          dropdownClassName={inModal ? 'z-[200]' : undefined}
-          loading={pendingPeople}
-          hasMore={hasMorePeople}
-          onLoadMore={handleLoadMorePeople}
-        />
-        <h2 className='text-lg font-bold mt-4 mb-1 text-foreground'>
+        {!limited && (
+          <>
+            <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>
+              {t('Invite people on Hylo')}
+            </h2>
+            <span className='text-sm text-foreground/50'>
+              {isRoleGated && (
+                <p className='text-sm text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2'>
+                  {t('Only members with one of the required roles will actually be able to join the space.')}{' '}
+                  <a
+                    href={`/groups/${group.slug}/settings/roles`}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='underline hover:no-underline font-medium'
+                  >
+                    {t('Go to group roles')}
+                  </a>
+                </p>
+              )}
+              {isSpace
+                ? t('Search members of {{name}} who aren\'t already in this space.', { name: parentName || t('the group') })
+                : t('Search people you can see on Hylo.')}
+            </span>
+            <PeopleSelector
+              placeholder={isSpace
+                ? t('Search members of {{name}}...', { name: parentName || t('the group') })
+                : t('Search people...')}
+              fetchPeople={fetchPeopleForInvite}
+              fetchDefaultList={fetchDefaultPeopleList}
+              setPeopleSearch={() => {}}
+              people={peopleForSelector}
+              selectedPeople={selectedPeople}
+              selectPerson={handleSelectPerson}
+              removePerson={handleRemovePerson}
+              peopleSelectorOpen={peopleSelectorOpen}
+              onFocus={() => setPeopleSelectorOpen(true)}
+              onTyping={() => setPeopleSelectorOpen(true)}
+              onBlur={() => setPeopleSelectorOpen(false)}
+              dropdownClassName={inModal ? 'z-[200]' : undefined}
+              loading={pendingPeople}
+              hasMore={hasMorePeople}
+              onLoadMore={handleLoadMorePeople}
+            />
+          </>
+        )}
+        <h2 className={cn('text-lg font-bold mb-1 text-foreground', limited ? 'mt-0' : 'mt-4')}>
           {t('Send Invites via email')}
         </h2>
-        <span className='text-sm text-foreground/50'>
-          {isSpace
-            ? t('An invitation link will be sent to each email address to join this space. If they are not yet a member of {{name}} they will be asked to join that first.', { name: parentName || t('the group') })
-            : t('An invitation link will be sent to each email address. They will still be shown any required questions or agreements you may have set to join this group.')}
-        </span>
-        <p>{t('Enter email addresses separated by commas or new lines')}</p>
+        {limited
+          ? (
+            <>
+              <span className='text-sm text-foreground/50'>
+                {t('Each person you invite gets an email invitation to join {{name}}.', { name: group.name })}
+              </span>
+              {needsApproval && (
+                <p className='text-sm text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2'>
+                  {t('New members of this group need approval, so the people you invite will ask to join and a steward will review their request.')}
+                </p>
+              )}
+              <p className='text-sm text-foreground/50'>{t('Group stewards can see the email addresses you invite.')}</p>
+              <p>{t('Enter up to {{max}} email addresses at a time, separated by commas or new lines', { max: LIMITED_INVITES_PER_SEND })}</p>
+            </>
+            )
+          : (
+            <>
+              <span className='text-sm text-foreground/50'>
+                {isSpace
+                  ? t('An invitation link will be sent to each email address to join this space. If they are not yet a member of {{name}} they will be asked to join that first.', { name: parentName || t('the group') })
+                  : t('An invitation link will be sent to each email address. They will still be shown any required questions or agreements you may have set to join this group.')}
+              </span>
+              <p>{t('Enter email addresses separated by commas or new lines')}</p>
+            </>
+            )}
         <TextareaAutosize
           minRows={1}
           className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
@@ -486,23 +539,30 @@ function InviteSettingsTab (props) {
           disabled={pendingCreate}
           onChange={(event) => setEmails(event.target.value)}
         />
-        <div className='mt-4 mb-2'>{t('Assign a role to invitees (optional):')}</div>
-        <select
-          className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
-          value={selectedRoleId}
-          disabled={pendingCreate}
-          onChange={(event) => setSelectedRoleId(event.target.value)}
-        >
-          <option value=''>{t('No special role')}</option>
-          {(isRoleGated
-            ? (group.groupRoles?.items || []).filter(role => role.active && spaceRequiredRoleIds?.includes(String(role.id)))
-            : (group.groupRoles?.items || []).filter(role => role.active)
-          ).map(role => (
-            <option key={role.id} value={role.id}>
-              {role.emoji ? `${role.emoji} ` : ''}{role.name}
-            </option>
-          ))}
-        </select>
+        {!limited && (
+          <>
+            <div className='mt-4 mb-2'>{t('Assign a role to invitees (optional):')}</div>
+            <select
+              className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
+              value={selectedRoleId}
+              disabled={pendingCreate}
+              onChange={(event) => setSelectedRoleId(event.target.value)}
+            >
+              <option value=''>{t('No special role')}</option>
+              {(isRoleGated
+                ? (group.groupRoles?.items || []).filter(role => role.active && spaceRequiredRoleIds?.includes(String(role.id)))
+                : (group.groupRoles?.items || []).filter(role => role.active)
+              ).map(role => (
+                <option key={role.id} value={role.id}>
+                  {role.emoji ? `${role.emoji} ` : ''}{role.name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+        {limited && typeof inviteAllowance === 'number' && (
+          <p className='text-sm text-foreground/50'>{t('Invites left today: {{remaining}}', { remaining: inviteAllowance })}</p>
+        )}
         <div className={classes.sendInviteButton}>
           <div className={classes.sendInviteFeedback}>
             {errorMessage && <span className={classes.error}>{errorMessage}</span>}
@@ -514,7 +574,7 @@ function InviteSettingsTab (props) {
         </div>
       </div>
 
-      {hasPendingInvites && (
+      {!limited && hasPendingInvites && (
         <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
           <div className='w-full flex justify-between items-center'>
             <h2 className='text-lg font-bold mt-0 mb-1 text-foreground w-full'>{t('Pending Invites')}</h2>
@@ -559,6 +619,29 @@ function InviteSettingsTab (props) {
           </TransitionGroup>
         </div>
       )}
+
+      {limited && hasPendingInvites && (
+        <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
+          <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Your pending invites')}</h2>
+          <div className='flex flex-col gap-1'>
+            {pendingInvites.map(invite => (
+              <div className='w-full flex items-center justify-between gap-2 bg-card rounded-lg px-2 py-1.5' key={invite.id}>
+                <div className='flex-1 min-w-0'>
+                  <span className='block truncate'>{invite.email}</span>
+                  <span className='text-foreground/50 text-sm'>{TextHelpers.humanDate(invite.lastSentAt || invite.createdAt)}</span>
+                </div>
+                <button
+                  type='button'
+                  className='shrink-0 bg-foreground/10 rounded-lg p-1 hover:bg-selected/50 transition-all'
+                  onClick={() => expireOnClick(invite.id)}
+                >
+                  {t('Cancel')}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -566,6 +649,7 @@ function InviteSettingsTab (props) {
 InviteSettingsTab.propTypes = {
   group: object,
   inModal: bool,
+  inviteAccess: oneOf(Object.values(INVITE_ACCESS)),
   parentGroup: object
 }
 
