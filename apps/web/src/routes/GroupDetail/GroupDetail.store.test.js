@@ -1,4 +1,4 @@
-import { joinGroup } from './GroupDetail.store'
+import { createJoinRequest, joinGroup } from './GroupDetail.store'
 
 describe('joinGroup', () => {
   it('tracks an accepted email invitation', () => {
@@ -26,5 +26,16 @@ describe('joinGroup', () => {
 
     expect(action.meta.analytics).toBeUndefined()
     expect(action.meta.groupId).toEqual('1')
+  })
+})
+
+describe('createJoinRequest', () => {
+  it('tracks Join Request Created', () => {
+    const action = createJoinRequest('1', [])
+
+    expect(action.meta.analytics).toEqual({
+      eventName: 'Join Request Created',
+      groupId: '1'
+    })
   })
 })

@@ -62,7 +62,7 @@ function ManageInvitesTab () {
       .then(() => dispatch(push(destinationAfterInvite(group))))
   }
 
-  const handleCancelJoinRequest = (params) => dispatch(cancelJoinRequest(params))
+  const handleCancelJoinRequest = (id, groupId) => dispatch(cancelJoinRequest(id, groupId))
   const handleDeclineInvite = (inviteId) => dispatch(declineInvite(inviteId))
 
   useEffect(() => {
@@ -245,7 +245,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
 
   const cancel = () => {
     if (window.confirm(t('Are you sure you want to cancel your request to join {{groupName}}?', { groupName: group.name }))) {
-      cancelJoinRequest(id)
+      cancelJoinRequest(id, group.id)
     }
   }
 

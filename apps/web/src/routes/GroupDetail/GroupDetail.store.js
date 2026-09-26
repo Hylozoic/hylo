@@ -99,7 +99,11 @@ export function createJoinRequest (groupId, questionAnswers) {
     },
     meta: {
       groupId,
-      optimistic: true
+      optimistic: true,
+      analytics: {
+        eventName: AnalyticsEvents.JOIN_REQUEST_CREATED,
+        groupId
+      }
     }
   }
 }
