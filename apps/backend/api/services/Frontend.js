@@ -186,6 +186,10 @@ module.exports = {
       return url('/my/invitations')
     },
 
+    myTransactions: function () {
+      return url('/my/transactions')
+    },
+
     notificationsSettings: function (clickthroughParams, user) {
       const loginToken = user.generateJWT({
         exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 30), // 1 month expiration

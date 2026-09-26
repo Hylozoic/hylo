@@ -981,7 +981,7 @@ module.exports = {
                 }
 
                 // Generate manage subscription URL (Stripe customer portal or Hylo settings)
-                manageSubscriptionUrl = `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`
+                manageSubscriptionUrl = Frontend.Route.myTransactions()
               } catch (subError) {
                 console.error('Error fetching subscription details for email:', subError)
                 // Continue without subscription details
@@ -1857,7 +1857,7 @@ module.exports = {
             amount_paid: amountPaid,
             payment_date: paymentDateFormatted,
             next_renewal_date: nextRenewalDateFormatted,
-            manage_subscription_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+            manage_subscription_url: Frontend.Route.myTransactions(),
             group_avatar_url: group.get('avatar_url')
           }
 
@@ -2109,8 +2109,8 @@ module.exports = {
             group_name: group.get('name'),
             group_url: Frontend.Route.group(group),
             failure_reason: failureReason,
-            manage_subscription_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
-            update_payment_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+            manage_subscription_url: Frontend.Route.myTransactions(),
+            update_payment_url: Frontend.Route.myTransactions(),
             group_avatar_url: group.get('avatar_url')
           }
 
