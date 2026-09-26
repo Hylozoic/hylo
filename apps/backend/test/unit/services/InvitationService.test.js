@@ -223,4 +223,71 @@ describe('InvitationService', () => {
       expect(activity.get('other_group_id')).to.equal(parent.id)
     })
   })
+
+  describe('pending invitation lists', () => {
+    let listGroup, admin, member, other, memberInvitations
+
+    before(async () => {
+      admin = await factories.user().save()
+      member = await factories.user().save()
+      other = await factories.user().save()
+      listGroup = await factories.group().save()
+      await admin.joinGroup(listGroup, { assignAdministrator: true })
+      await member.joinGroup(listGroup)
+      await other.joinGroup(listGroup)
+
+      const create = (sender, email, inviterAccess) =>
+        Invitation.create({ userId: sender.id, groupId: listGroup.id, email, inviterAccess })
+      await create(admin, invitee.get('email'), Invitation.InviterAccess.FULL)
+      memberInvitations = [
+        await create(member, 'first@member-list.com', Invitation.InviterAccess.LIMITED),
+        await create(member, 'second@member-list.com', Invitation.InviterAccess.LIMITED),
+        await create(member, 'third@member-list.com', Invitation.InviterAccess.LIMITED)
+      ]
+      await create(member, 'old-steward-invite@member-list.com', Invitation.InviterAccess.FULL)
+      await create(other, 'other@member-list.com', Invitation.InviterAccess.LIMITED)
+      const used = await create(member, 'used@member-list.com', Invitation.InviterAccess.LIMITED)
+      await used.save({ used_by_id: other.id, used_at: new Date() }, { patch: true })
+      await memberInvitations[2].expire(member.id)
+    })
+
+    it('gives the full list with who sent each invitation and how, and respects the limit', async () => {
+      const { total, items } = await InvitationService.find({ groupId: listGroup.id, pendingOnly: true })
+      expect(total).to.equal(5)
+      const byEmail = Object.fromEntries(items.map(item => [item.email, item]))
+      expect(byEmail[invitee.get('email').toLowerCase()]).to.include({ inviter_access: 'full', userId: invitee.id })
+      expect(byEmail['other@member-list.com'].inviter_access).to.equal('limited')
+      const creator = await byEmail['other@member-list.com'].creator().fetch()
+      expect(creator.id).to.equal(other.id)
+
+      const firstTwo = await InvitationService.find({ groupId: listGroup.id, pendingOnly: true, limit: 2 })
+      expect(firstTwo.total).to.equal(5)
+      expect(firstTwo.items).to.have.lengthOf(2)
+    })
+
+    it('gives a member only the pending invitations they sent as a member, without looking up names', async () => {
+      const { total, items } = await InvitationService.findOwnLimited({ groupId: listGroup.id, userId: member.id })
+      expect(total).to.equal(2)
+      expect(items.map(item => item.email)).to.deep.equal(['second@member-list.com', 'first@member-list.com'])
+      for (const item of items) {
+        expect(Object.keys(item).sort()).to.deep.equal(['created_at', 'creator', 'email', 'id', 'last_sent_at'])
+        expect((await item.creator().fetch()).id).to.equal(member.id)
+      }
+
+      const limited = await InvitationService.findOwnLimited({ groupId: listGroup.id, userId: member.id, limit: 1 })
+      expect(limited.total).to.equal(2)
+      expect(limited.items.map(item => item.id)).to.deep.equal([memberInvitations[1].id])
+    })
+
+    it('lets the sender of a member invitation cancel it, as well as the invitee and stewards', async () => {
+      const [first] = memberInvitations
+      const stewardInvitation = await Invitation.create({ userId: member.id, groupId: listGroup.id, email: 'steward-sent@member-list.com' })
+      expect(await InvitationService.canExpire(member.id, first.id)).to.be.true
+      expect(await InvitationService.canExpire(admin.id, first.id)).to.be.true
+      expect(await InvitationService.canExpire(other.id, first.id)).to.be.false
+      expect(await InvitationService.canExpire(member.id, stewardInvitation.id)).to.be.false
+      expect(await InvitationService.checkPermission(member.id, first.id)).to.be.false
+      await expect(InvitationService.canExpire(member.id, '999999999')).to.be.rejectedWith('Invitation not found')
+    })
+  })
 })

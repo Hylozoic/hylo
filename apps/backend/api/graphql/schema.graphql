@@ -844,6 +844,8 @@ type Group {
   memberRole: GroupRole
   # How the current user can invite people to this group: 'full' (Add Members), 'limited' (personal email invitations only) or null
   myInviteAccess: String
+  # With 'limited' invite access: how many more email addresses the current user can invite to this group today. Null otherwise
+  myInviteAllowance: Int
   # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
   openJoinRequestCount: Int
   # Count of active (unresolved) moderation actions in this group
@@ -1103,7 +1105,7 @@ type Group {
     description: String
   ): GroupRelationshipQuerySet
 
-  # Pending invitations to people to join this group
+  # Pending invitations to people to join this group. With 'limited' invite access, only the ones the current user sent
   pendingInvitations(
     # For pagination, return results after this ID
     cursor: ID,
@@ -1627,12 +1629,16 @@ type Invitation {
   name: String
   # Hylo user id for this invitation, if the email matches an existing account
   userId: ID
-  # NOT USED?
+  # Why an invitation could not be created for this address
   error: String
   # Which group they are being invited to
   group: Group
+  # 'full' if it was sent by someone who can add members, 'limited' if it was sent with personal email invitation access only
+  inviterAccess: String
   # When this invitation was last sent out via email
   lastSentAt: Date
+  # Set on the invitations returned when inviting with 'limited' access: 'sent' for every valid address, whether or not an email went out
+  status: String
   # The login token for the person receiving the invitation to accept it even if they are not logged into Hylo
   token: String
 }
@@ -3433,7 +3439,7 @@ type Mutation {
   # Reorder a Post within a View
   reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
 
-  # Invite email addresses and/or existing people to join a Group
+  # Invite email addresses and/or existing people to join a Group. With 'limited' invite access: email addresses only, up to 10 at a time and within the daily allowance (fails with 'invite-limit' otherwise)
   createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
   # Ask to join a Group
   createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput]): CreatedRequest
@@ -3499,7 +3505,7 @@ type Mutation {
   duplicateTrack(trackId: ID): Track
   # Enroll in a track
   enrollInTrack(trackId: ID): Track
-  # Set an invitation to join a group as expired. Only a group host can call this.
+  # Set an invitation to join a group as expired. Allowed for the invitee, anyone who can add members, and the sender of an invitation sent with 'limited' access
   expireInvitation(invitationId: ID): GenericResult
   # Look for a link preview of a URL, or if not found create one
   findOrCreateLinkPreviewByUrl(data: LinkPreviewInput): LinkPreview

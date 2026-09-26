@@ -48,6 +48,28 @@ function notifyExistingUser ({ actorId, invitee, group }) {
   }])
 }
 
+/**
+ * Which of these lowercased addresses belong to active members of the group or
+ * already have a pending invitation to it.
+ */
+async function addressesAlreadyInGroup (groupId, emails, transacting) {
+  const lowerEmail = column => bookshelf.knex.raw(`lower(${column})`)
+  const members = await bookshelf.knex('group_memberships')
+    .join('users', 'users.id', 'group_memberships.user_id')
+    .where({ 'group_memberships.group_id': groupId, 'group_memberships.active': true })
+    .whereIn(lowerEmail('users.email'), emails)
+    .select(bookshelf.knex.raw('lower(users.email) as email'))
+    .transacting(transacting)
+  const invited = await bookshelf.knex('group_invites')
+    .where({ group_id: groupId })
+    .whereNull('used_by_id')
+    .whereNull('expired_by_id')
+    .whereIn(lowerEmail('email'), emails)
+    .select(bookshelf.knex.raw('lower(email) as email'))
+    .transacting(transacting)
+  return new Set(members.concat(invited).map(row => row.email))
+}
+
 module.exports = {
   checkPermission: (userId, invitationId) => {
     return Invitation.find(invitationId, { withRelated: 'group' })
@@ -57,6 +79,19 @@ module.exports = {
         const user = await User.find(userId)
         return user.get('email') === invitation.get('email') || (GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADD_MEMBERS))
       })
+  },
+
+  /**
+   * Whether this person can cancel the invitation: the invitee, anyone with
+   * Add Members, and the sender of a member invitation.
+   */
+  canExpire: async (userId, invitationId) => {
+    const invitation = await Invitation.find(invitationId, { withRelated: 'group' })
+    if (!invitation) throw new GraphQLError('Invitation not found')
+    if (invitation.isLimited() && String(invitation.get('invited_by_id')) === String(userId)) return true
+    const user = await User.find(userId)
+    if (user && user.get('email') === invitation.get('email')) return true
+    return GroupMembership.hasResponsibility(userId, invitation.relations.group, Responsibility.constants.RESP_ADD_MEMBERS)
   },
 
   findById: (invitationId) => {
@@ -97,13 +132,37 @@ module.exports = {
               avatar_url: i.get('joined_user_avatar_url')
             }
           }
-          return merge(i.pick('id', 'email', 'created_at', 'last_sent_at'), {
+          return merge(i.pick('id', 'email', 'created_at', 'last_sent_at', 'inviter_access'), {
             user: !isEmpty(user) ? user.pick('id', 'name', 'avatar_url') : null,
             name: i.get('invitee_name') || null,
-            userId: i.get('invitee_id') || null
+            userId: i.get('invitee_id') || null,
+            creator: () => i.creator()
           })
         })
       }))
+  },
+
+  /**
+   * The pending invitations this person sent with limited access: the address
+   * they typed and when it was sent, without looking up who it belongs to.
+   */
+  findOwnLimited: async ({ groupId, userId, limit, offset }) => {
+    const invitations = await Invitation.query(qb => {
+      qb.select(bookshelf.knex.raw('group_invites.*, count(*) over () as total'))
+      qb.where({ group_id: groupId, invited_by_id: userId, inviter_access: Invitation.InviterAccess.LIMITED })
+      qb.whereNull('used_by_id')
+      qb.whereNull('expired_by_id')
+      qb.orderBy('created_at', 'desc')
+      qb.limit(limit || 20)
+      qb.offset(offset || 0)
+    }).fetchAll()
+    return {
+      total: invitations.length > 0 ? Number(invitations.first().get('total')) : 0,
+      items: invitations.map(i => ({
+        ...i.pick('id', 'email', 'created_at', 'last_sent_at'),
+        creator: () => i.creator()
+      }))
+    }
   },
 
   /**
@@ -179,6 +238,63 @@ module.exports = {
   },
 
   /**
+   * Send personal email invitations from someone with limited invite access.
+   * Addresses are trimmed, lowercased and deduplicated. Every valid address
+   * counts toward the daily allowance and is reported as sent, but nothing is
+   * sent to the sender, to active members, or to anyone who already has a
+   * pending invitation to the group, and the result does not say which.
+   * @returns {Object[]} { email, status: 'sent' } or { email, error: 'invalid' } for each address
+   */
+  createLimited: async ({ sessionUserId, groupId, emails, subject, message }) => {
+    const results = []
+    const addresses = []
+    for (const entry of emails || []) {
+      const typed = String(entry ?? '').trim()
+      if (!typed) continue
+      const email = typed.toLowerCase()
+      if (!validator.isEmail(email)) {
+        results.push({ email: typed, error: 'invalid' })
+      } else if (!addresses.includes(email)) {
+        addresses.push(email)
+        results.push({ email, status: 'sent' })
+      }
+    }
+    if (addresses.length > InvitationSend.LIMITS.perSend) {
+      throw new GraphQLError(`You can invite up to ${InvitationSend.LIMITS.perSend} email addresses at a time`)
+    }
+    if (addresses.length === 0) return results
+
+    const inviter = await User.find(sessionUserId)
+    const invitations = await bookshelf.transaction(async transacting => {
+      await InvitationSend.lockAllowance({ userId: sessionUserId, groupId }, { transacting })
+      const remaining = await InvitationSend.remainingAllowance({ userId: sessionUserId, groupId }, { transacting })
+      if (addresses.length > remaining) throw new GraphQLError('invite-limit')
+      await InvitationSend.record({ userId: sessionUserId, groupId, recipients: addresses.length }, { transacting })
+
+      const skipped = await addressesAlreadyInGroup(groupId, addresses, transacting)
+      skipped.add((inviter.get('email') || '').toLowerCase())
+      const created = []
+      for (const email of addresses.filter(address => !skipped.has(address))) {
+        created.push(await Invitation.create({
+          email,
+          userId: sessionUserId,
+          groupId,
+          subject,
+          message: TextHelpers.markdown(message, { disableAutolinking: true }),
+          inviterAccess: Invitation.InviterAccess.LIMITED
+        }, { transacting }))
+      }
+      return created
+    })
+
+    await Promise.map(invitations, invitation =>
+      Queue.classMethod('Invitation', 'createAndSend', { invitation })
+        .catch(err => console.error('Error queueing invitation email', err)))
+
+    return results
+  },
+
+  /**
    *
    * @param sessionUserId logged in users ID
    * @param groupId
@@ -199,23 +315,23 @@ module.exports = {
 
   expire: (userId, invitationId) => {
     return Invitation.find(invitationId)
-    .then(invitation => {
-      if (!invitation) throw new GraphQLError('not found')
+      .then(invitation => {
+        if (!invitation) throw new GraphQLError('not found')
 
-      return invitation.expire(userId)
-    })
+        return invitation.expire(userId)
+      })
   },
 
   resend: (invitationId) => {
     return Invitation.find(invitationId)
-    .then(invitation => {
-      if (!invitation) throw new GraphQLError('not found')
+      .then(invitation => {
+        if (!invitation) throw new GraphQLError('not found')
 
-      return invitation.send()
-    })
+        return invitation.send()
+      })
   },
 
-    /**
+  /**
    * Check if an invitation is valid and return group information for redirect
    * @param token {String} invitation token from email invite
    * @param accessCode {String} access code from invite link
@@ -277,12 +393,12 @@ module.exports = {
 
     if (token) {
       return Invitation.where({ token }).fetch()
-      .then(invitation => {
-        if (!invitation) throw new GraphQLError('not found')
-        if (invitation.isExpired()) throw new GraphQLError('expired')
-        // TODO STRIPE: We need to think through how invite links will be impacted by paywall
-        return invitation.use(userId)
-      })
+        .then(invitation => {
+          if (!invitation) throw new GraphQLError('not found')
+          if (invitation.isExpired()) throw new GraphQLError('expired')
+          // TODO STRIPE: We need to think through how invite links will be impacted by paywall
+          return invitation.use(userId)
+        })
     }
 
     throw new Error('must provide either token or accessCode')

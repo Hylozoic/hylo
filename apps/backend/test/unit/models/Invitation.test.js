@@ -1,5 +1,5 @@
-/* eslint-disable no-unused-expressions */
-import { spyify, unspyify } from '../../setup/helpers'
+/* eslint-disable no-unused-expressions, camelcase */
+import { mockify, spyify, unspyify } from '../../setup/helpers'
 import { sortBy } from 'lodash/fp'
 const root = require('root-path')
 const setup = require(root('test/setup'))
@@ -15,7 +15,7 @@ describe('Invitation', function () {
   })
 
   describe('#use', function () {
-    let user, group, tag, invitation1, invitation2, inviter, cr
+    let user, group, tag, invitation1, invitation2, inviter
 
     before(async () => {
       inviter = await factories.user().save()
@@ -57,7 +57,7 @@ describe('Invitation', function () {
   })
 
   describe('.reinviteAll', () => {
-    var group, c2, user, inviter
+    let group, c2, user, inviter
     before(() => {
       group = factories.group()
       c2 = factories.group()
@@ -65,25 +65,25 @@ describe('Invitation', function () {
       inviter = factories.user()
       spyify(Email, 'sendInvitation', () => Promise.resolve({}))
       return Promise.join(inviter.save(), user.save(), group.save(), c2.save())
-      .then(() => {
-        return Promise.join(
-          Invitation.create({
-            groupId: group.id,
-            userId: inviter.id,
-            email: 'foo@bar.com'
-          }),
-          Invitation.create({
-            groupId: group.id,
-            userId: inviter.id,
-            email: 'bar@baz.com'
-          }),
-          Invitation.create({
-            groupId: c2.id,
-            userId: inviter.id,
-            email: 'baz@foo.com'
-          })
-        )
-      })
+        .then(() => {
+          return Promise.join(
+            Invitation.create({
+              groupId: group.id,
+              userId: inviter.id,
+              email: 'foo@bar.com'
+            }),
+            Invitation.create({
+              groupId: group.id,
+              userId: inviter.id,
+              email: 'bar@baz.com'
+            }),
+            Invitation.create({
+              groupId: c2.id,
+              userId: inviter.id,
+              email: 'baz@foo.com'
+            })
+          )
+        })
     })
 
     after(() => unspyify(Email, 'sendInvitation'))
@@ -93,14 +93,27 @@ describe('Invitation', function () {
         userId: inviter.id,
         groupId: group.id
       })
-      .then(() => {
-        expect(Email.sendInvitation).to.have.been.called.exactly(2)
+        .then(() => {
+          expect(Email.sendInvitation).to.have.been.called.exactly(2)
+        })
+    })
+
+    it('leaves invitations sent by members to the automatic reminders', async () => {
+      const memberInvitation = await Invitation.create({
+        groupId: c2.id,
+        userId: user.id,
+        email: 'member-sent@example.com',
+        inviterAccess: Invitation.InviterAccess.LIMITED
       })
+      await Invitation.reinviteAll({ userId: inviter.id, groupId: c2.id })
+      expect((await Invitation.find(memberInvitation.id)).get('sent_count')).to.equal(0)
+      const stewardInvitation = await Invitation.where({ group_id: c2.id, email: 'baz@foo.com' }).fetch()
+      expect(stewardInvitation.get('sent_count')).to.equal(1)
     })
   })
 
   describe('createAndSend', () => {
-    var group, user, inviter, invEmail, invData
+    let group, user, inviter, invEmail, invData
     before(() => {
       group = factories.group()
       user = factories.user()
@@ -128,29 +141,29 @@ describe('Invitation', function () {
         message
       })
       // console.log('invitation in test', invitation)
-      return Invitation.createAndSend({invitation})
-      .then(() => Invitation.where({email: email, group_id: group.id}).fetch())
-      .then(invitation => {
-        expect(invitation).to.exist
-        expect(invitation.get('subject')).to.equal(subject)
-        expect(invitation.get('message')).to.equal(message)
-      })
-      .then(() => {
-        expect(Email.sendInvitation).to.have.been.called.exactly(1)
-        expect(invEmail).to.equal(email)
-        expect(invData).to.contain({
-          subject,
-          message,
-          inviter_name: inviter.get('name'),
-          inviter_email: inviter.get('email'),
-          group_name: group.get('name')
+      return Invitation.createAndSend({ invitation })
+        .then(() => Invitation.where({ email, group_id: group.id }).fetch())
+        .then(invitation => {
+          expect(invitation).to.exist
+          expect(invitation.get('subject')).to.equal(subject)
+          expect(invitation.get('message')).to.equal(message)
         })
-      })
+        .then(() => {
+          expect(Email.sendInvitation).to.have.been.called.exactly(1)
+          expect(invEmail).to.equal(email)
+          expect(invData).to.contain({
+            subject,
+            message,
+            inviter_name: inviter.get('name'),
+            inviter_email: inviter.get('email'),
+            group_name: group.get('name')
+          })
+        })
     })
   })
 
   describe('.resendAllReady', () => {
-    var group, c2, inviter, user
+    let group, c2, inviter, user
     before(() => {
       group = factories.group()
       c2 = factories.group()
@@ -159,41 +172,41 @@ describe('Invitation', function () {
       const day = 1000 * 60 * 60 * 24
       const now = new Date()
       return Promise.join(inviter.save(), group.save(), c2.save(), user.save())
-      .then(() => {
-        const attributes = [
-          {
-            email: 'a@sendme.com',
-            sent_count: 1,
-            last_sent_at: new Date(now - 4.1 * day)
-          },
-          {
-            email: 'b@sendme.com',
-            sent_count: 2,
-            last_sent_at: new Date(now - 9.1 * day)
-          },
-          {
-            email: 'a@used.com',
-            sent_count: 1,
-            last_sent_at: new Date(now - 10 * day),
-            used_by_id: user.id
-          },
-          {
-            email: 'a@notyet.com',
-            sent_count: 1,
-            last_sent_at: new Date(now - 3 * day)
-          },
-          {
-            email: 'b@notyet.com',
-            sent_count: 2,
-            last_sent_at: new Date(now - 8 * day)
-          }
-        ]
+        .then(() => {
+          const attributes = [
+            {
+              email: 'a@sendme.com',
+              sent_count: 1,
+              last_sent_at: new Date(now - 4.1 * day)
+            },
+            {
+              email: 'b@sendme.com',
+              sent_count: 2,
+              last_sent_at: new Date(now - 9.1 * day)
+            },
+            {
+              email: 'a@used.com',
+              sent_count: 1,
+              last_sent_at: new Date(now - 10 * day),
+              used_by_id: user.id
+            },
+            {
+              email: 'a@notyet.com',
+              sent_count: 1,
+              last_sent_at: new Date(now - 3 * day)
+            },
+            {
+              email: 'b@notyet.com',
+              sent_count: 2,
+              last_sent_at: new Date(now - 8 * day)
+            }
+          ]
 
-        const userId = inviter.id
-        return Promise.map(attributes, ({ email, sent_count, last_sent_at, used_by_id }) =>
-          Invitation.create({groupId: group.id, userId, email})
-          .then(i => i.save({sent_count, last_sent_at, used_by_id}, {patch: true})))
-      })
+          const userId = inviter.id
+          return Promise.map(attributes, ({ email, sent_count, last_sent_at, used_by_id }) =>
+            Invitation.create({ groupId: group.id, userId, email })
+              .then(i => i.save({ sent_count, last_sent_at, used_by_id }, { patch: true })))
+        })
     })
 
     it('sends the invitations that are ready and unused', function () {
@@ -201,46 +214,128 @@ describe('Invitation', function () {
       const now = new Date().getTime()
 
       return Invitation.resendAllReady()
-      .then(() => Invitation.where({group_id: group.id}).fetchAll())
-      .then(invitations => {
-        const expected = sortBy('email', [
-          {
-            email: 'a@sendme.com',
-            sent_count: 2
-          },
-          {
-            email: 'b@sendme.com',
-            sent_count: 3
-          },
-          {
-            email: 'a@used.com',
-            sent_count: 1
-          },
-          {
-            email: 'a@notyet.com',
-            sent_count: 1
-          },
-          {
-            email: 'b@notyet.com',
-            sent_count: 2
-          }
-        ])
+        .then(() => Invitation.where({ group_id: group.id }).fetchAll())
+        .then(invitations => {
+          const expected = sortBy('email', [
+            {
+              email: 'a@sendme.com',
+              sent_count: 2
+            },
+            {
+              email: 'b@sendme.com',
+              sent_count: 3
+            },
+            {
+              email: 'a@used.com',
+              sent_count: 1
+            },
+            {
+              email: 'a@notyet.com',
+              sent_count: 1
+            },
+            {
+              email: 'b@notyet.com',
+              sent_count: 2
+            }
+          ])
 
-        expect(sortBy('email', invitations.map(i => ({
-          email: i.get('email'),
-          sent_count: i.get('sent_count')
-        })))).to.deep.equal(expected)
+          expect(sortBy('email', invitations.map(i => ({
+            email: i.get('email'),
+            sent_count: i.get('sent_count')
+          })))).to.deep.equal(expected)
 
-        invitations.forEach(i => {
-          const email = i.get('email')
-          const lastSentAt = i.get('last_sent_at').getTime()
-          if (email.match('@sendme.com')) {
-            expect(lastSentAt).to.be.closeTo(now, 2000)
-          } else {
-            expect(lastSentAt).not.to.be.closeTo(now, 2000)
-          }
+          invitations.forEach(i => {
+            const email = i.get('email')
+            const lastSentAt = i.get('last_sent_at').getTime()
+            if (email.match('@sendme.com')) {
+              expect(lastSentAt).to.be.closeTo(now, 2000)
+            } else {
+              expect(lastSentAt).not.to.be.closeTo(now, 2000)
+            }
+          })
         })
+    })
+  })
+
+  describe('.resendAllReady for invitations sent by members', () => {
+    let admin, member, links, invitations
+
+    const due = { sent_count: 1, last_sent_at: new Date(Date.now() - 4.1 * 24 * 60 * 60 * 1000) }
+
+    const everyoneGroup = async () => {
+      const group = await factories.group().save()
+      await admin.joinGroup(group, { assignAdministrator: true })
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      return group
+    }
+
+    const invite = async (group, sender, email, inviterAccess = Invitation.InviterAccess.LIMITED) => {
+      const invitation = await Invitation.create({ groupId: group.id, userId: sender.id, email, inviterAccess })
+      await invitation.save(due, { patch: true })
+      return invitation
+    }
+
+    before(async () => {
+      links = {}
+      mockify(Email, 'sendInvitation', (email, data) => {
+        links[email] = data.invite_link
+        return Promise.resolve({})
       })
+      admin = await factories.user().save()
+      member = await factories.user().save()
+
+      const group = await everyoneGroup()
+      await member.joinGroup(group)
+      const leaver = await factories.user().save()
+      await leaver.joinGroup(group)
+      const requester = await factories.user().save()
+
+      const stewardsGroup = await everyoneGroup()
+      await member.joinGroup(stewardsGroup)
+
+      const spaceGroup = await everyoneGroup()
+      await member.joinGroup(spaceGroup)
+
+      invitations = {
+        ready: await invite(group, member, 'ready@member-sent.com'),
+        leaver: await invite(group, leaver, 'leaver@member-sent.com'),
+        requested: await invite(group, member, 'requested@member-sent.com'),
+        lostAccess: await invite(stewardsGroup, member, 'lost-access@member-sent.com'),
+        steward: await invite(stewardsGroup, admin, 'steward@member-sent.com', Invitation.InviterAccess.FULL),
+        space: await invite(spaceGroup, member, 'space@member-sent.com')
+      }
+
+      await GroupMembership.where({ user_id: leaver.id, group_id: group.id }).save({ active: false }, { patch: true })
+      await new JoinRequest({
+        group_id: group.id,
+        user_id: requester.id,
+        status: JoinRequest.STATUS.Pending,
+        invitation_id: invitations.requested.id,
+        created_at: new Date()
+      }).save()
+      await GroupRole.setInvitePolicy(stewardsGroup.id, { mode: 'stewards' })
+      await bookshelf.knex('groups').where({ id: spaceGroup.id }).update({ type: 'space', parent_id: group.id })
+    })
+
+    after(() => unspyify(Email, 'sendInvitation'))
+
+    it('reminds only while the sender can still invite and nobody has asked to join from it', async () => {
+      const resentIds = await Invitation.resendAllReady()
+
+      const sentCounts = {}
+      for (const [name, invitation] of Object.entries(invitations)) {
+        sentCounts[name] = (await Invitation.find(invitation.id)).get('sent_count')
+      }
+      expect(sentCounts).to.deep.equal({ ready: 2, leaver: 1, requested: 1, lostAccess: 1, steward: 2, space: 1 })
+      const resent = resentIds.map(String)
+      expect(resent).to.include.members([invitations.ready.id, invitations.steward.id].map(String))
+      for (const name of ['leaver', 'requested', 'lostAccess', 'space']) {
+        expect(resent).to.not.include(String(invitations[name].id))
+      }
+
+      const token = invitations.ready.get('token')
+      expect(links['ready@member-sent.com']).to.match(new RegExp(`/h/invitation\\?token=${token}$`))
+      expect(links['steward@member-sent.com']).to.include('/h/use-invitation?token=')
     })
   })
 })

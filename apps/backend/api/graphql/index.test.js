@@ -1318,3 +1318,100 @@ describe('group invite policy fields', () => {
     expect(created.createGroup.invitePolicy).to.deep.equal({ mode: 'roles', roleIds: [String(moderator.id)] })
   })
 })
+
+describe('member invitations through GraphQL', () => {
+  let handler, admin, member, other, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  const pendingQuery = (first = 20) => `{
+    group(id: "${group.id}") {
+      myInviteAllowance
+      pendingInvitations(first: ${first}) {
+        total
+        items { email name userId inviterAccess creator { id name } }
+      }
+    }
+  }`
+
+  const invite = (userId, emails) => run(userId, `mutation {
+    createInvitation(groupId: "${group.id}", data: { emails: ${JSON.stringify(emails)} }) {
+      invitations { id email status error }
+    }
+  }`)
+
+  before(async () => {
+    handler = createRequestHandler()
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    other = await factories.user().save()
+    group = await factories.group().save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await member.joinGroup(group)
+    await other.joinGroup(group)
+    await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+  })
+
+  after(() => unspyify(Queue, 'classMethod'))
+
+  it('sends member invitations, counts down the allowance and lists only their own', async () => {
+    expect((await run(member.id, pendingQuery())).group).to.deep.equal({
+      myInviteAllowance: 25,
+      pendingInvitations: { total: 0, items: [] }
+    })
+
+    const created = await invite(member.id, ['first@graphql-member.com', other.get('email'), 'nope'])
+    expect(created.createInvitation.invitations).to.deep.equal([
+      { id: null, email: 'first@graphql-member.com', status: 'sent', error: null },
+      { id: null, email: other.get('email').toLowerCase(), status: 'sent', error: null },
+      { id: null, email: 'nope', status: null, error: 'invalid' }
+    ])
+    await invite(member.id, ['second@graphql-member.com'])
+    await invite(other.id, ['from-other@graphql-member.com'])
+
+    const memberView = (await run(member.id, pendingQuery())).group
+    expect(memberView.myInviteAllowance).to.equal(22)
+    expect(memberView.pendingInvitations.total).to.equal(2)
+    expect(memberView.pendingInvitations.items).to.deep.equal([
+      { email: 'second@graphql-member.com', name: null, userId: null, inviterAccess: null, creator: { id: String(member.id), name: member.get('name') } },
+      { email: 'first@graphql-member.com', name: null, userId: null, inviterAccess: null, creator: { id: String(member.id), name: member.get('name') } }
+    ])
+    expect((await run(member.id, pendingQuery(1))).group.pendingInvitations.items).to.have.lengthOf(1)
+  })
+
+  it('shows Add Members holders every invitation with who sent it, and no allowance', async () => {
+    await run(admin.id, `mutation {
+      createInvitation(groupId: "${group.id}", data: { emails: ["steward@graphql-member.com"] }) { invitations { id } }
+    }`)
+
+    const adminView = (await run(admin.id, pendingQuery())).group
+    expect(adminView.myInviteAllowance).to.be.null
+    const byEmail = Object.fromEntries(adminView.pendingInvitations.items.map(item => [item.email, item]))
+    expect(Object.keys(byEmail)).to.have.members([
+      'first@graphql-member.com', 'second@graphql-member.com', 'from-other@graphql-member.com', 'steward@graphql-member.com'
+    ])
+    expect(byEmail['first@graphql-member.com']).to.include({ inviterAccess: 'limited' })
+    expect(byEmail['first@graphql-member.com'].creator).to.deep.equal({ id: String(member.id), name: member.get('name') })
+    expect(byEmail['steward@graphql-member.com']).to.include({ inviterAccess: 'full' })
+    expect(byEmail['steward@graphql-member.com'].creator.id).to.equal(String(admin.id))
+    expect((await run(admin.id, pendingQuery(2))).group.pendingInvitations.items).to.have.lengthOf(2)
+  })
+
+  it('gives members no list and no allowance under the stewards policy', async () => {
+    await GroupRole.setInvitePolicy(group.id, { mode: 'stewards' })
+    expect((await run(member.id, pendingQuery())).group).to.deep.equal({
+      myInviteAllowance: null,
+      pendingInvitations: { total: 0, items: [] }
+    })
+  })
+})
