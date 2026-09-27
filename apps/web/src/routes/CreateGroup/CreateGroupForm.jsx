@@ -24,15 +24,14 @@ import Button from 'components/ui/button'
 import { INPUT_CLASS } from 'components/ui/form-field'
 import InfoButton from 'components/ui/info'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
-import { MEMBER_INVITES } from 'config/featureFlags'
 import { createGroupView, updateGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { INVITE_POLICY, RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_AVATAR, GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import { CUSTOM_HOME_VIEW, POST_TYPE_TO_VIEW_TYPE, viewTypesForCreate } from 'store/models/GroupView'
-import { hasFeature } from 'store/models/Me'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
+import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
@@ -366,7 +365,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
 
   const slugRef = useRef()
 
-  const memberInvitesEnabled = hasFeature(MEMBER_INVITES)
+  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
 
   const accessibilityOptions = useMemo(() => memberInvitesEnabled
     ? ACCESSIBILITY_OPTIONS.map(option => option.value === GROUP_ACCESSIBILITY.Closed

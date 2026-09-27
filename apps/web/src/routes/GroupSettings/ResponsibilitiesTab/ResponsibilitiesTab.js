@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import Icon from 'components/Icon'
 import SettingsControl from 'components/SettingsControl'
-import { MEMBER_INVITES } from 'config/featureFlags'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import {
   fetchResponsibilitiesForGroup,
@@ -15,7 +14,7 @@ import {
   updateGroupResponsibility
 } from 'store/actions/responsibilities'
 import { RESP_INVITE_MEMBERS } from 'store/constants'
-import { hasFeature } from 'store/models/Me'
+import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
@@ -40,9 +39,9 @@ export default function ResponsibilitiesTab ({ group }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const [responsibilities, setResponsibilities] = useState([])
+  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
 
   useEffect(() => {
-    const memberInvitesEnabled = hasFeature(MEMBER_INVITES)
     dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))
       .then((response) => {
         const fetched = response.payload.data.responsibilities

@@ -44,9 +44,9 @@ function mockGraphql () {
   return createGroupRequests
 }
 
-function render (ui) {
+function render (ui, me = {}) {
   const session = orm.mutableSession(orm.getEmptyState())
-  session.Me.create({ id: '10', name: 'Founder', groupRoles: { items: [] } })
+  session.Me.create({ id: '10', name: 'Founder', groupRoles: { items: [] }, ...me })
   return renderWithProviders(ui, null, AllTheProviders({ orm: session.state }))
 }
 
@@ -203,5 +203,17 @@ describe('CreateGroupForm "Who can add new members?"', () => {
       expect(requests[0]).not.toHaveProperty('invitePolicy')
       expect(trackAnalyticsEvent).not.toHaveBeenCalledWith('Group Invite Policy Set', expect.anything())
     })
+  })
+
+  it('hides the setting and sends no policy when the server has member invitations switched off', async () => {
+    process.env.VITE_FEATURE_FLAG_MEMBER_INVITES = 'on'
+    const requests = mockGraphql()
+    render(<CreateGroupForm />, { memberInvitesEnabled: false })
+
+    expect(screen.queryByRole('button', { name: WHO_CAN_ADD })).not.toBeInTheDocument()
+
+    await createNamedGroup()
+    await waitFor(() => expect(requests).toHaveLength(1))
+    expect(requests[0]).not.toHaveProperty('invitePolicy')
   })
 })

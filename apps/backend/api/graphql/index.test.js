@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken'
 import { createRequestHandler, makeMutations, makeAuthenticatedQueries } from './index'
 import '../../test/setup'
 import factories from '../../test/setup/factories'
-import { mockify, spyify, unspyify } from '../../test/setup/helpers'
+import { mockify, spyify, unspyify, withFeatureFlag } from '../../test/setup/helpers'
 import { some } from 'lodash/fp'
 import { updateFollowers } from '../models/post/util'
 
@@ -1297,6 +1297,16 @@ describe('group invite policy fields', () => {
     expect(adminView.group.memberRole).to.be.null
 
     expect((await run(member.id, policyQuery(space.id))).group.myInviteAccess).to.be.null
+  })
+
+  it('tells the viewer whether member invitations are available on this server', async () => {
+    const query = '{ me { memberInvitesEnabled } }'
+    await withFeatureFlag('MEMBER_INVITES', 'on', async () => {
+      expect((await run(member.id, query)).me.memberInvitesEnabled).to.equal(true)
+    })
+    await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+      expect((await run(member.id, query)).me.memberInvitesEnabled).to.equal(false)
+    })
   })
 
   it('sets the policy through updateGroupSettings and createGroup', async () => {

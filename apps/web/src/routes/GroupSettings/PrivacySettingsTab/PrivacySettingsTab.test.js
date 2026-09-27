@@ -1,6 +1,7 @@
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import PrivacySettingsTab from './PrivacySettingsTab'
 
@@ -176,6 +177,23 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
   it('is hidden when the policy was not loaded', () => {
     renderTab({ invitePolicy: null })
     expect(screen.queryByRole('heading', { name: WHO_CAN_ADD })).not.toBeInTheDocument()
+  })
+
+  it('is hidden when the server has member invitations switched off', () => {
+    process.env.VITE_FEATURE_FLAG_MEMBER_INVITES = 'on'
+    const session = orm.mutableSession(orm.getEmptyState())
+    session.Me.create({ id: '10', name: 'Administrator', memberInvitesEnabled: false })
+    const updateGroupSettings = jest.fn(() => Promise.resolve({}))
+    render(
+      <PrivacySettingsTab group={{ ...baseGroup, invitePolicy: { mode: 'stewards', roleIds: [] } }} parentGroups={[]} updateGroupSettings={updateGroupSettings} />,
+      null,
+      AllTheProviders({ orm: session.state })
+    )
+
+    expect(screen.queryByRole('heading', { name: WHO_CAN_ADD })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('Open'))
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    expect(updateGroupSettings.mock.calls[0][0]).not.toHaveProperty('invitePolicy')
   })
 
   it('is hidden while member invitations are switched off', () => {

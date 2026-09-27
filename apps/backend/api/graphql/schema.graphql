@@ -1785,6 +1785,8 @@ type Me {
   location: String
   # Object with the geocoded details of the logged in user's physical location
   locationObject: Location
+  # Whether members can be given invite access ('everyone' and 'roles' invite policies) on this server
+  memberInvitesEnabled: Boolean
   # Number of total group memberships
   membershipsTotal: Int
   # The number of MessageThreads the logged in user is a part of

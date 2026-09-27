@@ -3,7 +3,7 @@ import { set, startCase, trim } from 'lodash'
 import React, { useState, useEffect, useMemo } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { EyeOff, Shield, X, Globe, Lock, TriangleAlert } from 'lucide-react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import GroupsSelector from 'components/GroupsSelector'
 import InvitePolicySelect, { invitePolicyRoles, invitePolicyToSave, trackInvitePolicySet } from 'components/InvitePolicySelect/InvitePolicySelect'
@@ -12,8 +12,7 @@ import { Switch } from 'components/ui/switch'
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { groupUrl } from '@hylo/navigation'
-import { MEMBER_INVITES } from 'config/featureFlags'
-import { hasFeature } from 'store/models/Me'
+import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 import {
   accessibilityDescription,
   accessibilityString,
@@ -39,7 +38,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
   const [state, setState] = useState(defaultEditState())
   const [invitePolicy, setInvitePolicy] = useState(() => initialInvitePolicy(group))
   const [invitePolicyChanged, setInvitePolicyChanged] = useState(false)
-  const memberInvitesEnabled = hasFeature(MEMBER_INVITES)
+  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
 
   useEffect(() => {
     if (!fetchPending) {

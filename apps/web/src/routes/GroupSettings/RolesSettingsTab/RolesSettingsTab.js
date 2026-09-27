@@ -36,9 +36,8 @@ import { keyMap } from 'util/textInput'
 import { cn } from 'util/index'
 import { groupUrl, personUrl } from '@hylo/navigation'
 import { sortCustomGroupRoles, sortSystemGroupRoles, isMemberGroupRole, isSystemGroupRole } from '@hylo/hooks/groupRoleHelpers'
-import { MEMBER_INVITES } from 'config/featureFlags'
 import { RESP_INVITE_MEMBERS } from 'store/constants'
-import { hasFeature } from 'store/models/Me'
+import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 
 import styles from './RolesSettingsTab.module.scss'
 
@@ -73,7 +72,7 @@ function RolesSettingsTab ({ group, slug }) {
   const roles = rolesOverride ?? customRolesFromGroup
   const [availableResponsibilities, setAvailableResponsibilities] = useState([])
   const { setHeaderDetails } = useViewHeader()
-  const memberInvitesEnabled = hasFeature(MEMBER_INVITES)
+  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
 
   useEffect(() => {
     if (!group?.id) return
