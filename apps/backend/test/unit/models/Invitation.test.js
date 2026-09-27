@@ -45,6 +45,16 @@ describe('Invitation', function () {
       expect(hasAdministration).to.be.true
     })
 
+    it('records the invitation and inviter as the source of the membership', async () => {
+      const invitee = await factories.user().save()
+      const invitation = await Invitation.create({ userId: inviter.id, groupId: group.id, email: invitee.get('email') })
+      await invitation.use(invitee.id)
+      const membership = await GroupMembership.forPair(invitee, group).fetch()
+      expect(membership.getSetting('joinSource')).to.equal('email_invite')
+      expect(membership.getSetting('invitationId')).to.equal(invitation.id)
+      expect(membership.getSetting('invitedById')).to.equal(inviter.id)
+    })
+
     it('creates a tag_follow when it has a tag_id', function () {
       return bookshelf.transaction(trx => invitation2.use(user.id, { transacting: trx }))
         .then(TagFollow.where({

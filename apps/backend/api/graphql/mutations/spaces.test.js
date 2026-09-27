@@ -269,6 +269,17 @@ describe('space mutations', () => {
     })
   })
 
+  describe('createSpace membership', () => {
+    it('records the creator as the first member', async () => {
+      const space = await createSpace(administrator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Creator ${Date.now()}`
+      }, {})
+      const membership = await GroupMembership.forPair(administrator.id, space.id).fetch()
+      expect(membership.getSetting('joinSource')).to.equal('creator')
+    })
+  })
+
   describe('archiveSpace', () => {
     it('sets status archived and keeps the row active', async () => {
       const space = await createSpace(administrator.id, {
@@ -392,6 +403,8 @@ describe('space mutations', () => {
       expect(converterMembership.get('settings')?.showJoinForm).to.not.equal(true)
       expect(memberMembership.get('settings')?.showJoinForm).to.equal(false)
       expect(hostMembership.get('settings')?.showJoinForm).to.equal(false)
+      expect(memberMembership.getSetting('joinSource')).to.equal('space')
+      expect(hostMembership.getSetting('joinSource')).to.equal('space')
 
       expect(await MemberGroupRole.where({
         user_id: administrator.id,
@@ -888,6 +901,76 @@ describe('space mutations', () => {
 
       const membership = await joinSpace(member.id, space.id, space.get('access_code'))
       expect(membership).to.be.ok
+    })
+
+    describe('join attribution', () => {
+      async function joinSourceOf (userId, spaceId) {
+        const membership = await GroupMembership.forPair(userId, spaceId).fetch()
+        return membership.getSetting('joinSource')
+      }
+
+      async function newParentMember () {
+        const user = await factories.user().save()
+        await user.joinGroup(parentGroup)
+        return user
+      }
+
+      it('records open when a parent member joins an open space', async () => {
+        const user = await newParentMember()
+        const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.OPEN })
+        await joinSpace(user.id, space.id)
+        expect(await joinSourceOf(user.id, space.id)).to.equal('open')
+      })
+
+      it('records invite_link when joining with the access code', async () => {
+        const user = await newParentMember()
+        const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+        await joinSpace(user.id, space.id, space.get('access_code'))
+        expect(await joinSourceOf(user.id, space.id)).to.equal('invite_link')
+      })
+
+      it('records the invitation and inviter when joining with an invitation token', async () => {
+        const user = await newParentMember()
+        const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+        const invitation = await Invitation.create({
+          userId: administrator.id,
+          groupId: space.id,
+          email: user.get('email')
+        })
+        await joinSpace(user.id, space.id, null, invitation.get('token'))
+        const membership = await GroupMembership.forPair(user.id, space.id).fetch()
+        expect(membership.getSetting('joinSource')).to.equal('email_invite')
+        expect(membership.getSetting('invitationId')).to.equal(invitation.id)
+        expect(membership.getSetting('invitedById')).to.equal(administrator.id)
+      })
+
+      it('leaves the source unset when Administration joins a closed space', async () => {
+        const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+        await joinSpace(administrator.id, space.id)
+        expect(await joinSourceOf(administrator.id, space.id)).to.not.exist
+      })
+
+      it('leaves the source unset when a member joins a role-gated space by holding the role', async () => {
+        const user = await newParentMember()
+        const gatedRole = await GroupRole.forge({
+          group_id: parentGroup.id,
+          name: 'Gated',
+          emoji: '🔑',
+          type: GroupRole.TYPE_CUSTOM
+        }).save()
+        await MemberGroupRole.forge({
+          user_id: user.id,
+          group_id: parentGroup.id,
+          group_role_id: gatedRole.id,
+          active: true
+        }).save()
+        const space = await createAndLeaveSpace({
+          accessibility: Group.Accessibility.OPEN,
+          requiredRoles: [gatedRole.id]
+        })
+        await joinSpace(user.id, space.id)
+        expect(await joinSourceOf(user.id, space.id)).to.not.exist
+      })
     })
   })
 

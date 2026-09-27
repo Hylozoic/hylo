@@ -324,9 +324,10 @@ function MapExplorer (props) {
     setBaseLayerStyle('satellite-streets-v12')
   }
 
-  const possibleFeatureTypes = useMemo(() => context === 'public'
-    ? ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'group']
-    : ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'member', 'group'], [context])
+  // Members can only be loaded for a single group
+  const possibleFeatureTypes = useMemo(() => context === 'groups'
+    ? ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'member', 'group']
+    : ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'group'], [context])
 
   const groupPending = useSelector(state => state.pending[FETCH_FOR_GROUP])
   const pendingPostsMap = useSelector(state => state.pending[FETCH_POSTS_MAP])

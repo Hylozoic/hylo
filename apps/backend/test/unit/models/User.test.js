@@ -354,6 +354,16 @@ describe('User', function () {
         })
     })
 
+    it('records admin_add as the join source when created with a group', async () => {
+      const user = await User.create({
+        email: 'with-group@bar.com',
+        group,
+        name: 'With Group'
+      })
+      const membership = await GroupMembership.forPair(user, group).fetch()
+      expect(membership.getSetting('joinSource')).to.equal('admin_add')
+    })
+
     it('allows inactive users without a name (email verification stub)', function () {
       return User.create({
         email: 'stub-no-name@bar.com',

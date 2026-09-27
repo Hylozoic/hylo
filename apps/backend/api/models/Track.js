@@ -246,7 +246,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         return membership
       }
 
-      const created = await space.addMembers([userId], {}, { transacting: trx })
+      const created = await space.addMembers([userId], { joinSource: GroupMembership.JoinSource.TRACK }, { transacting: trx })
       membership = created[0] || await GroupMembership.forPair(userId, space).fetch({ transacting: trx })
       // Fresh enrollment period: clear prior completion and reset created_at (enrolledAt)
       membership.removeSetting('completedAt')

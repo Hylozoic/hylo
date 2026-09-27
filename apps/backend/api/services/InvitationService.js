@@ -441,7 +441,7 @@ module.exports = {
       if (existingMembership?.get('active')) {
         return existingMembership
       }
-      const memberships = await group.addMembers([userId], {})
+      const memberships = await group.addMembers([userId], { joinSource: GroupMembership.JoinSource.INVITE_LINK })
       return memberships[0]
     }
 
