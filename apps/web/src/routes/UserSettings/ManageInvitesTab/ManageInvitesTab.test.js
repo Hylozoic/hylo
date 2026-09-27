@@ -5,8 +5,10 @@ import { AnalyticsEvents } from '@hylo/shared'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
+import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import ManageInvitesTab from './ManageInvitesTab'
+import { cancelJoinRequest } from './ManageInvitesTab.store'
 
 jest.mock('store/actions/trackAnalyticsEvent', () => {
   const actual = jest.requireActual('store/actions/trackAnalyticsEvent')
@@ -15,6 +17,7 @@ jest.mock('store/actions/trackAnalyticsEvent', () => {
 
 jest.mock('./ManageInvitesTab.store', () => ({
   ...jest.requireActual('./ManageInvitesTab.store'),
+  cancelJoinRequest: jest.fn(() => ({ type: 'MOCK_CANCEL_JOIN_REQUEST' })),
   fetchMyInvitesAndRequests: () => ({ type: 'MOCK_FETCH_MY_REQUESTS_AND_INVITES' })
 }))
 
@@ -44,6 +47,22 @@ describe('ManageInvitesTab', () => {
     )
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
+  })
+
+  it('cancels a join request with its group so the cancel can be tracked', async () => {
+    const user = userEvent.setup()
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true)
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Group.create({ id: '5', name: 'Test Group', slug: 'test-group', type: 'group' })
+    ormSession.JoinRequest.create({ id: '10', group: '5', status: JOIN_REQUEST_STATUS.Pending, createdAt: '2026-01-01T00:00:00.000Z' })
+    ormSession.Me.create({ id: '1', name: 'Test User', joinRequests: ['10'] })
+
+    render(<ManageInvitesTab />, { wrapper: AllTheProviders({ orm: ormSession.state }) })
+
+    await user.click(await screen.findByText('Cancel Request'))
+
+    expect(cancelJoinRequest).toHaveBeenCalledWith('10', '5')
+    confirmSpy.mockRestore()
   })
 })
 

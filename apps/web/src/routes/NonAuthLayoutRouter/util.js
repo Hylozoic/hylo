@@ -2,7 +2,7 @@
 import React from 'react'
 import classes from './NonAuthLayoutRouter.module.scss'
 
-export function formatError (error, action, t) {
+export function formatError (error, action, t = key => key) {
   if (!error) return
 
   // Matches User.INVALID_LOGIN_ERROR in the backend

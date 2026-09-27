@@ -2,11 +2,14 @@ import React from 'react'
 import userEvent from '@testing-library/user-event'
 import { graphql, HttpResponse } from 'msw'
 import { useLocation, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import GroupDetail from './GroupDetail'
+
+jest.mock('sonner', () => ({ toast: { error: jest.fn() } }))
 
 const group = {
   id: '1',
@@ -56,6 +59,7 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.restoreAllMocks()
+  toast.error.mockClear()
   useParams.mockReturnValue({})
   useLocation.mockReturnValue({ pathname: '', search: '' })
 })
@@ -138,5 +142,31 @@ describe('GroupDetail with a member invitation', () => {
     await waitFor(() => expect(joinVariables).toMatchObject({ groupId: group.id, invitationToken: 'member-token' }))
     expect(requested).toBe(false)
     expect(screen.queryByText('Stewards review every request to join this group.')).not.toBeInTheDocument()
+  })
+})
+
+describe('GroupDetail after an invalid invitation redirect', () => {
+  it('shows the invalid invitation toast when JoinGroup redirected here with one', async () => {
+    useParams.mockReturnValue({ groupSlug: 'test-group' })
+    useLocation.mockReturnValue({ pathname: '/groups/test-group/about', search: '', state: { invalidInvite: true } })
+
+    render(<GroupDetail />)
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.',
+        { id: 'invalid-invite' }
+      )
+    })
+  })
+
+  it('does not show the invalid invitation toast otherwise', async () => {
+    useParams.mockReturnValue({ groupSlug: 'test-group' })
+    useLocation.mockReturnValue({ pathname: '/groups/test-group/about', search: '' })
+
+    render(<GroupDetail />)
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(toast.error).not.toHaveBeenCalled()
   })
 })

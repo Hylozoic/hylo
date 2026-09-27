@@ -2,9 +2,11 @@ import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { AnalyticsEvents, Validators } from '@hylo/shared'
 import getMe from 'store/selectors/getMe'
 import { register } from '../Signup.store'
 import logout from 'store/actions/logout'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import Button from 'components/ui/button'
 import Icon from 'components/Icon'
 import TextInput from 'components/TextInput'
@@ -24,7 +26,9 @@ export default function FinishRegistration () {
     password: '',
     passwordConfirmation: ''
   })
-  const canSubmit = formValues.name.length > 1 &&
+  const trimmedName = formValues.name.trim()
+  const canSubmit = trimmedName.length > 1 &&
+    Validators.validateUser.name(trimmedName) === null &&
     formValues.password.length > 8 &&
     formValues.passwordConfirmation.length > 8
 
@@ -37,14 +41,20 @@ export default function FinishRegistration () {
   }
 
   const handleSubmit = async () => {
+    if (!canSubmit) return
+
     try {
       if (formValues.password !== formValues.passwordConfirmation) {
         setError(t("Passwords don't match"))
       } else {
-        const result = await dispatch(register(formValues.name, formValues.password))
-        const error = result?.payload?.getData()?.error
+        const result = await dispatch(register(trimmedName, formValues.password))
+        const data = result?.payload?.getData?.()
 
-        if (error) setError(error)
+        if (data?.error) {
+          setError(data.error)
+        } else if (data?.me) {
+          dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_REGISTERED))
+        }
       }
     } catch (responseError) {
       setError(responseError.message)

@@ -3,11 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import VerificationInput from 'react-verification-input'
+import { AnalyticsEvents } from '@hylo/shared'
 import { formatError } from '../../util'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { sendEmailVerification as sendEmailVerificationAction, verifyEmail } from '../Signup.store'
 import Loading from 'components/Loading'
+
+const VERIFICATION_FAILURE_REASONS = ['invalid-code', 'invalid-link']
 
 export default function VerifyEmail (props) {
   const dispatch = useDispatch()
@@ -51,8 +55,13 @@ export default function VerifyEmail (props) {
 
       if (error) {
         setError(error)
+        dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_FAILED, {
+          reason: VERIFICATION_FAILURE_REASONS.includes(error) ? error : 'other'
+        }))
         return
       }
+
+      dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_EMAIL_VERIFIED))
 
       // Next signup step (agreements). Do not rely only on SignupRouter + getSignupState so a
       // sync gap or selector edge case cannot leave the user on this screen with no feedback.
