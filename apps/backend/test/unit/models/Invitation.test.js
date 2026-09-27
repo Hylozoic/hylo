@@ -288,6 +288,8 @@ describe('Invitation', function () {
       await member.joinGroup(group)
       const leaver = await factories.user().save()
       await leaver.joinGroup(group)
+      const deactivated = await factories.user().save()
+      await deactivated.joinGroup(group)
       const requester = await factories.user().save()
 
       const stewardsGroup = await everyoneGroup()
@@ -299,6 +301,7 @@ describe('Invitation', function () {
       invitations = {
         ready: await invite(group, member, 'ready@member-sent.com'),
         leaver: await invite(group, leaver, 'leaver@member-sent.com'),
+        deactivated: await invite(group, deactivated, 'deactivated@member-sent.com'),
         requested: await invite(group, member, 'requested@member-sent.com'),
         lostAccess: await invite(stewardsGroup, member, 'lost-access@member-sent.com'),
         steward: await invite(stewardsGroup, admin, 'steward@member-sent.com', Invitation.InviterAccess.FULL),
@@ -306,6 +309,7 @@ describe('Invitation', function () {
       }
 
       await GroupMembership.where({ user_id: leaver.id, group_id: group.id }).save({ active: false }, { patch: true })
+      await bookshelf.knex('users').where({ id: deactivated.id }).update({ active: false })
       await new JoinRequest({
         group_id: group.id,
         user_id: requester.id,
@@ -326,16 +330,49 @@ describe('Invitation', function () {
       for (const [name, invitation] of Object.entries(invitations)) {
         sentCounts[name] = (await Invitation.find(invitation.id)).get('sent_count')
       }
-      expect(sentCounts).to.deep.equal({ ready: 2, leaver: 1, requested: 1, lostAccess: 1, steward: 2, space: 1 })
+      expect(sentCounts).to.deep.equal({ ready: 2, leaver: 1, deactivated: 1, requested: 1, lostAccess: 1, steward: 2, space: 1 })
       const resent = resentIds.map(String)
       expect(resent).to.include.members([invitations.ready.id, invitations.steward.id].map(String))
-      for (const name of ['leaver', 'requested', 'lostAccess', 'space']) {
+      for (const name of ['leaver', 'deactivated', 'requested', 'lostAccess', 'space']) {
         expect(resent).to.not.include(String(invitations[name].id))
       }
 
       const token = invitations.ready.get('token')
       expect(links['ready@member-sent.com']).to.match(new RegExp(`/h/invitation\\?token=${token}$`))
       expect(links['steward@member-sent.com']).to.include('/h/use-invitation?token=')
+    })
+  })
+
+  describe('.expirePendingLimited', () => {
+    let sender, other, groupA, groupB
+
+    const create = (userId, groupId, inviterAccess = Invitation.InviterAccess.LIMITED) =>
+      Invitation.create({ userId, groupId, email: `expire-${Date.now()}-${Math.random()}@example.com`, inviterAccess })
+    const expiredBy = async invitation => (await Invitation.find(invitation.id)).get('expired_by_id')
+
+    before(async () => {
+      sender = await factories.user().save()
+      other = await factories.user().save()
+      groupA = await factories.group().save()
+      groupB = await factories.group().save()
+    })
+
+    it('expires the pending member invitations a person sent in every group', async () => {
+      const inA = await create(sender.id, groupA.id)
+      const inB = await create(sender.id, groupB.id)
+      const asSteward = await create(sender.id, groupA.id, Invitation.InviterAccess.FULL)
+      const fromOther = await create(other.id, groupA.id)
+
+      await Invitation.expirePendingLimited({ invitedByIds: [sender.id] })
+
+      expect(await expiredBy(inA)).to.equal(sender.id)
+      expect(await expiredBy(inB)).to.equal(sender.id)
+      expect(await expiredBy(asSteward)).to.be.null
+      expect(await expiredBy(fromOther)).to.be.null
+    })
+
+    it('needs a group or senders', async () => {
+      await expect(Invitation.expirePendingLimited({})).to.be.rejectedWith('expirePendingLimited needs a groupId or invitedByIds')
     })
   })
 })

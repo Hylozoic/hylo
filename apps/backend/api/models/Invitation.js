@@ -241,14 +241,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   /**
-   * Expire the pending member invitations in a group, optionally only those
-   * sent by some people. expiredById defaults to each invitation's sender.
+   * Expire the pending member invitations in a group, those sent by some
+   * people in every group, or those sent by some people in a group.
+   * expiredById defaults to each invitation's sender.
    */
   expirePendingLimited: async function ({ groupId, invitedByIds, expiredById }, { transacting } = {}) {
+    if (!groupId && !invitedByIds) throw new Error('expirePendingLimited needs a groupId or invitedByIds')
     let query = bookshelf.knex('group_invites')
-      .where({ group_id: groupId, inviter_access: InviterAccess.LIMITED })
+      .where({ inviter_access: InviterAccess.LIMITED })
       .whereNull('used_by_id')
       .whereNull('expired_by_id')
+    if (groupId) query = query.where('group_id', groupId)
     if (invitedByIds) query = query.whereIn('invited_by_id', invitedByIds)
     query = query.update({
       expired_by_id: expiredById || bookshelf.knex.raw('invited_by_id'),

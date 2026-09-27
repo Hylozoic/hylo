@@ -132,6 +132,19 @@ describe('GroupMembership', () => {
       expect(await GroupMembership.inviteAccess(leaver.id, group.id)).to.be.null
     })
 
+    it('is null while the member has deactivated their account', async () => {
+      const person = await factories.user().save()
+      await person.joinGroup(group)
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      expect(await GroupMembership.inviteAccess(person.id, group.id)).to.equal('limited')
+
+      await person.save({ active: false }, { patch: true })
+      expect(await GroupMembership.inviteAccess(person.id, group.id)).to.be.null
+
+      await person.save({ active: true }, { patch: true })
+      expect(await GroupMembership.inviteAccess(person.id, group.id)).to.equal('limited')
+    })
+
     it('is limited for holders of the chosen roles, and null when the role or assignment is inactive', async () => {
       await GroupRole.setInvitePolicy(group.id, { mode: 'roles', roleIds: [roles.moderator.id] })
       expect(await GroupMembership.inviteAccess(moderator.id, group.id)).to.equal('limited')

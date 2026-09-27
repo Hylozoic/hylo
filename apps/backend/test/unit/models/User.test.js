@@ -4,7 +4,7 @@ import '../../setup'
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import factories from '../../setup/factories'
-import { wait } from '../../setup/helpers'
+import { mockify, unspyify, wait } from '../../setup/helpers'
 import { times } from 'lodash'
 import { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 import setup from '../../setup'
@@ -415,6 +415,50 @@ describe('User', function () {
           await user.reactivate()
           expect(user.get('active')).to.be.true
         })
+    })
+  })
+
+  describe('pending member invitations when someone leaves Hylo', () => {
+    let sender, group, otherGroup
+
+    const invite = (groupId, inviterAccess = Invitation.InviterAccess.LIMITED) =>
+      Invitation.create({ userId: sender.id, groupId, email: `leaving-${Date.now()}-${Math.random()}@example.com`, inviterAccess })
+    const expiredBy = async invitation => (await Invitation.find(invitation.id)).get('expired_by_id')
+
+    before(() => mockify(Queue, 'classMethod', () => Promise.resolve()))
+
+    after(() => unspyify(Queue, 'classMethod'))
+
+    beforeEach(async () => {
+      sender = await factories.user().save()
+      group = await factories.group().save()
+      otherGroup = await factories.group().save()
+      await sender.joinGroup(group)
+      await sender.joinGroup(otherGroup)
+    })
+
+    it('expires them in every group when the account is deactivated', async () => {
+      const invitations = [await invite(group.id), await invite(otherGroup.id)]
+      const asSteward = await invite(group.id, Invitation.InviterAccess.FULL)
+
+      await sender.deactivate('session')
+
+      for (const invitation of invitations) {
+        expect(await expiredBy(invitation)).to.equal(sender.id)
+      }
+      expect(await expiredBy(asSteward)).to.be.null
+    })
+
+    it('expires them in every group when the account is deleted', async () => {
+      const invitations = [await invite(group.id), await invite(otherGroup.id)]
+      const asSteward = await invite(group.id, Invitation.InviterAccess.FULL)
+
+      await sender.sanelyDeleteUser({ sessionId: 'session' })
+
+      for (const invitation of invitations) {
+        expect(await expiredBy(invitation)).to.equal(sender.id)
+      }
+      expect(await expiredBy(asSteward)).to.be.null
     })
   })
 
