@@ -1,10 +1,27 @@
 import React from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { graphql, HttpResponse } from 'msw'
+import mixpanel from 'mixpanel-browser'
 import orm from 'store/models'
+import { getCookieConsent } from 'util/cookieConsent'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { AllTheProviders, render, screen, waitForElementToBeRemoved, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import AuthLayoutRouter from './AuthLayoutRouter'
+
+// A Mixpanel token, so the consent checks (not a missing token) decide what is sent
+jest.mock('config/index', () => {
+  const actual = jest.requireActual('config/index')
+  return { __esModule: true, ...actual, default: { ...actual.default, mixpanel: { token: 'test-token' } } }
+})
+
+const mockIntercomProviderProps = []
+jest.mock('react-use-intercom', () => ({
+  IntercomProvider: props => {
+    mockIntercomProviderProps.push(props)
+    return props.children
+  },
+  useIntercom: () => ({ show: () => {}, boot: () => {}, shutdown: () => {} })
+}))
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -30,8 +47,9 @@ const defaultGraphqlHandlers = () => [
   graphql.operation(() => HttpResponse.json({ data: {} }))
 ]
 
-const testWrapper = (providedState, initialEntries = []) => ({ children }) => {
+const testWrapper = (providedState, initialEntries = [], seed) => ({ children }) => {
   const ormSession = orm.mutableSession(orm.getEmptyState())
+  if (seed) seed(ormSession)
   const reduxState = { orm: ormSession.state, ...providedState }
 
   const AllTheProvidersComponent = AllTheProviders(reduxState, initialEntries)
@@ -152,4 +170,100 @@ it.each([
   )
 
   expect(await screen.findByText('JoinGroup route')).toBeInTheDocument()
+})
+
+describe('cookie consent', () => {
+  const group = { id: '1', slug: 'test-group', name: 'Test Group' }
+  const me = {
+    id: '1',
+    name: 'Test User',
+    email: 'test@example.com',
+    hasRegistered: true,
+    emailValidated: true,
+    settings: { signupInProgress: false, alreadySeenTour: true },
+    memberships: [{
+      id: '1',
+      person: { id: '1' },
+      group,
+      settings: { showJoinForm: false, joinQuestionsAnsweredAt: '2020-01-01T00:00:00.000Z' }
+    }],
+    // What MeQuery returns when the account has no saved choice
+    cookieConsentPreferences: null
+  }
+
+  // Me as CheckLogin leaves it, before MeQuery has loaded the account's choice
+  const seedCheckLoginMe = session => {
+    const { id, name, email, hasRegistered, emailValidated, settings } = me
+    session.Me.create({ id, name, email, hasRegistered, emailValidated, settings })
+  }
+
+  const renderGroupPage = async ({ meQueryResult = me, seed } = {}) => {
+    useParamsMocked.mockReturnValue({ context: 'groups', groupSlug: 'test-group' })
+    useLocationMocked.mockReturnValue({ pathname: '/groups/test-group', search: '' })
+    mockGraphqlServer.use(
+      graphql.query('MeQuery', () => HttpResponse.json({ data: { me: meQueryResult } })),
+      graphql.query('FetchForGroup', () => HttpResponse.json({ data: { group } })),
+      graphql.query('GroupDetailsQuery', () => HttpResponse.json({ data: { group } })),
+      ...defaultGraphqlHandlers()
+    )
+    render(<AuthLayoutRouter />, { wrapper: testWrapper({}, ['/groups/test-group'], seed) })
+    await waitForElementToBeRemoved(screen.queryByTestId('loading-screen'))
+    await waitFor(() => expect(screen.getByText('Test Group')).toBeInTheDocument())
+  }
+
+  const lastIntercomProps = () => mockIntercomProviderProps[mockIntercomProviderProps.length - 1]
+
+  beforeEach(() => {
+    mixpanel.identify.mockClear()
+    mixpanel.people.set.mockClear()
+    mixpanel.set_group.mockClear()
+    mixpanel.get_group.mockClear()
+    mockIntercomProviderProps.length = 0
+  })
+
+  afterEach(() => {
+    getCookieConsent.mockReturnValue(null)
+  })
+
+  it('sends the Mixpanel profile and boots Intercom for people who have not answered', async () => {
+    await renderGroupPage()
+
+    await waitFor(() => expect(mixpanel.people.set).toHaveBeenCalled())
+    expect(lastIntercomProps().autoBoot).toBe(true)
+  })
+
+  it('sends nothing to Mixpanel and does not boot Intercom after Reject Non-Essential', async () => {
+    getCookieConsent.mockReturnValue({ analytics: false, support: false })
+
+    await renderGroupPage()
+
+    expect(mixpanel.identify).not.toHaveBeenCalled()
+    expect(mixpanel.people.set).not.toHaveBeenCalled()
+    expect(mixpanel.set_group).not.toHaveBeenCalled()
+    expect(lastIntercomProps().autoBoot).toBe(false)
+    expect(lastIntercomProps().shouldInitialize).toBe(false)
+  })
+
+  it('sends nothing to Mixpanel when the rejection is saved only on the account', async () => {
+    const cookieConsentPreferences = {
+      id: '8f7c2c7e-4a4b-4c1e-9a53-3f0c6a1f2b10',
+      settings: { analytics: false, support: false },
+      version: '1.0',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    }
+
+    await renderGroupPage({ meQueryResult: { ...me, cookieConsentPreferences }, seed: seedCheckLoginMe })
+
+    expect(mixpanel.identify).not.toHaveBeenCalled()
+    expect(mixpanel.people.set).not.toHaveBeenCalled()
+    expect(mixpanel.set_group).not.toHaveBeenCalled()
+    expect(mixpanel.get_group).not.toHaveBeenCalled()
+  })
+
+  it('sends the Mixpanel profile once MeQuery shows the account has no saved choice', async () => {
+    await renderGroupPage({ seed: seedCheckLoginMe })
+
+    await waitFor(() => expect(mixpanel.people.set).toHaveBeenCalled())
+    expect(mixpanel.people.set).toHaveBeenCalledWith(expect.objectContaining({ $email: 'test@example.com' }))
+  })
 })

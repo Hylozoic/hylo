@@ -1,10 +1,11 @@
-import mixpanel from 'mixpanel-browser'
 import { WebViewMessageTypes } from '@hylo/shared'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { connectSocket } from 'client/websockets'
-import config, { debugCheckLogin, isProduction, isTest } from 'config/index'
+import { clearChunkReloadFlag } from 'client/chunkReload'
+import { debugCheckLogin } from 'config/index'
 import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import NavigateWithParams from 'components/NavigateWithParams'
@@ -18,17 +19,17 @@ import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getSignupState'
-import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
+import { getAuthSessionTransientError, getAuthSessionUnknown } from 'store/selectors/getAuthSession'
+import { isTransientApiError } from 'store/middleware/apiMiddleware'
 import {
   clearMobileWebViewUserLogout,
   isMobileWebViewUserLogoutInProgress,
   sendMessageToWebView
 } from 'util/webView'
 import { isSandboxMode } from 'sandbox/isSandbox'
+import { initAnalytics } from 'util/analytics'
 
-if (!isTest && config.mixpanel.token && !isSandboxMode()) {
-  mixpanel.init(config.mixpanel.token, { debug: !isProduction })
-}
+initAnalytics()
 
 // In the v2 mobile WebView, a failed auth check is almost always a transient cookie
 // desync (e.g. social-login resume), NOT a real logout. Ask native to re-establish
@@ -37,6 +38,10 @@ if (!isTest && config.mixpanel.token && !isSandboxMode()) {
 const MOBILE_REAUTH_ATTEMPTS_KEY = 'hyloMobileReauthAttempts'
 const MOBILE_RECOVERING_KEY = 'hyloMobileRecovering'
 const MAX_MOBILE_REAUTH_ATTEMPTS = 3
+
+// Backoff for re-checking the session after a network or server failure; the
+// last delay repeats until the API answers
+const CHECK_LOGIN_RETRY_DELAYS_MS = [1000, 3000, 10000]
 
 function readMobileRecovering () {
   try {
@@ -92,10 +97,29 @@ export function isNeutralRootSessionLoadingPath (pathname) {
   return false
 }
 
+function ReconnectingNotice ({ onRetry }) {
+  const { t } = useTranslation()
+  return (
+    <div className='flex h-full min-h-screen w-full flex-col items-center justify-center gap-4 bg-midground p-4 text-center' data-testid='root-reconnecting'>
+      <p className='text-base text-foreground' role='status'>{t('Can\'t reach Hylo. Retrying…')}</p>
+      <button
+        type='button'
+        onClick={onRetry}
+        className='rounded-lg bg-selected px-4 py-2 text-sm font-bold text-white hover:bg-selected/90'
+      >
+        {t('Try Again')}
+      </button>
+    </div>
+  )
+}
+
 export default function RootRouter () {
   const dispatch = useDispatch()
   const isAuthorized = useSelector(getAuthorized)
   const isAuthSessionUnknown = useSelector(getAuthSessionUnknown)
+  const authTransientError = useSelector(getAuthSessionTransientError)
+  const retryAttemptRef = useRef(0)
+  const retryTimerRef = useRef(null)
   const [mobileRecovering, setMobileRecovering] = useState(
     () => typeof window !== 'undefined' && window.HyloMobileV2 && readMobileRecovering()
   )
@@ -106,9 +130,12 @@ export default function RootRouter () {
   // authSession reducer records Authenticated/Anonymous from CHECK_LOGIN, so the
   // separated auth state (isAuthSessionUnknown) drives routing — no local loading flag.
   const runCheckLogin = useCallback(async () => {
+    clearTimeout(retryTimerRef.current)
+    retryTimerRef.current = null
     const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now()
     try {
       const action = await dispatch(checkLogin())
+      retryAttemptRef.current = 0
       const me = action?.payload?.data?.me
       if (debugCheckLogin) {
         const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
@@ -124,8 +151,16 @@ export default function RootRouter () {
           pathname: typeof window !== 'undefined' ? window.location.pathname : ''
         })
       }
+      if (isTransientApiError(err)) {
+        const attempt = retryAttemptRef.current
+        retryAttemptRef.current = attempt + 1
+        const delay = CHECK_LOGIN_RETRY_DELAYS_MS[Math.min(attempt, CHECK_LOGIN_RETRY_DELAYS_MS.length - 1)]
+        retryTimerRef.current = setTimeout(runCheckLogin, delay)
+      }
     }
   }, [dispatch])
+
+  useEffect(() => () => clearTimeout(retryTimerRef.current), [])
 
   useEffect(() => {
     runCheckLogin()
@@ -210,12 +245,19 @@ export default function RootRouter () {
   }, [])
 
   const bootDone = !isAuthSessionUnknown && !mobileRecovering
+  // The boot loader would otherwise cover the reconnecting notice
+  const showReconnecting = isAuthSessionUnknown && authTransientError
   useEffect(() => {
-    if (bootDone) window.HyloBootLoader?.ready()
-  }, [bootDone])
+    if (bootDone || showReconnecting) window.HyloBootLoader?.ready()
+    if (bootDone) clearChunkReloadFlag()
+  }, [bootDone, showReconnecting])
 
   if (isMobileWebViewUserLogoutInProgress()) {
     return <Loading type='fullscreen' />
+  }
+
+  if (showReconnecting) {
+    return <ReconnectingNotice onRetry={() => runCheckLogin()} />
   }
 
   if (isAuthSessionUnknown || mobileRecovering) {

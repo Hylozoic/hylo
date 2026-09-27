@@ -1,0 +1,88 @@
+import mixpanel from 'mixpanel-browser'
+import config, { isProduction, isTest } from 'config/index'
+import { isSandboxMode } from 'sandbox/isSandbox'
+import { getCookieConsent } from 'util/cookieConsent'
+
+let initialized = false
+
+/**
+ * The analytics choice to honour: this browser's cookie, else the one saved on
+ * the account. true or false once answered, null when never answered, and
+ * undefined while it can't be known yet: a browser without the cookie (a new
+ * device, or one cleared or expired) only learns the account's choice when
+ * MeQuery loads cookieConsentPreferences, which is null when none was saved.
+ */
+export function resolveAnalyticsChoice (cookieConsent, accountPreferences) {
+  if (typeof cookieConsent?.analytics === 'boolean') return cookieConsent.analytics
+  if (accountPreferences === undefined) return undefined
+  const saved = accountPreferences?.settings?.analytics
+  return typeof saved === 'boolean' ? saved : null
+}
+
+/**
+ * Whether analytics calls may be made under a choice from
+ * resolveAnalyticsChoice. Only an explicit rejection turns them off: people who
+ * have not answered the cookie panel keep today's behaviour. Nothing is allowed
+ * while the choice is still unknown.
+ */
+export function analyticsAllowed (choice) {
+  return choice !== undefined && choice !== false && !isSandboxMode() && !!config.mixpanel.token
+}
+
+/**
+ * Initializes Mixpanel once, and opts out right away when the stored consent
+ * already rejects analytics, so nothing is sent before the consent UI loads.
+ */
+export function initAnalytics () {
+  if (initialized || isTest || isSandboxMode() || !config.mixpanel.token) return
+  mixpanel.init(config.mixpanel.token, { debug: !isProduction })
+  initialized = true
+  applyAnalyticsConsent(getCookieConsent())
+}
+
+/**
+ * Mirrors a consent choice into Mixpanel's own opt-out, which makes the SDK drop
+ * every call and stop writing its cookie. Only an answered choice changes
+ * anything, and only when it differs from the SDK's current state.
+ */
+export function applyAnalyticsConsent (consent) {
+  if (!initialized || typeof consent?.analytics !== 'boolean') return
+  const optedOut = mixpanel.has_opted_out_tracking()
+  if (consent.analytics === false && !optedOut) {
+    // Deleting the existing profile is a separate decision; this only stops sending
+    mixpanel.opt_out_tracking({ delete_user: false })
+  } else if (consent.analytics === true && optedOut) {
+    mixpanel.opt_in_tracking()
+  }
+}
+
+// Callers re-run on a new choice before CookieConsentProvider's effect applies
+// it, and an SDK that is still opted out silently drops their calls
+function applyChoiceAndCheck (choice) {
+  applyAnalyticsConsent({ analytics: choice })
+  return analyticsAllowed(choice)
+}
+
+/** Identifies the signed-in person and records their profile, when the choice allows it. */
+export function identifyAnalyticsUser (user, choice) {
+  if (!user?.id || !applyChoiceAndCheck(choice)) return
+  mixpanel.identify(user.id)
+  mixpanel.people.set({
+    $name: user.name,
+    $email: user.email,
+    $location: user.location
+  })
+}
+
+/** Records the person's group memberships and the current group's profile, when the choice allows it. */
+export function setAnalyticsGroups (memberships, currentGroup, choice) {
+  if (!applyChoiceAndCheck(choice)) return
+  mixpanel.set_group('groupId', memberships.map(m => m.group.id))
+  if (currentGroup?.id) {
+    mixpanel.get_group('groupId', currentGroup.id).set({
+      $location: currentGroup.location,
+      $name: currentGroup.name,
+      type: currentGroup.type
+    })
+  }
+}

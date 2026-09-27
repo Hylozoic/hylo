@@ -15,7 +15,7 @@ function NotFound ({ className }) {
   return (
     <div className={cn(classes.container, className)}>
       <h3>{t('Oops, there\'s nothing to see here.')}</h3>
-      <a className={classes.goBack} onClick={handleGoBack}>{t('Go back')}</a>
+      <button type='button' className={cn(classes.goBack, 'text-focus hover:text-selected')} onClick={handleGoBack}>{t('Go back')}</button>
       <div className={classes.axolotl} />
       <span className={classes.footer}>{t('404 Not Found')}</span>
     </div>

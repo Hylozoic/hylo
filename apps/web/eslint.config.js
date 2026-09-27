@@ -1,14 +1,13 @@
 import globals from 'globals'
 import path from 'node:path'
 import url from 'node:url'
-import babelParser from '@babel/eslint-parser'
 import js from '@eslint/js'
 import { FlatCompat } from '@eslint/eslintrc'
-import { fixupPluginRules } from '@eslint/compat'
 // import eslintConfigPrettier from 'eslint-config-prettier'
 // import eslintConfigStandard from 'eslint-config-standard'
 // import importPlugin from 'eslint-plugin-import'
 import jest from 'eslint-plugin-jest'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
 // import nPlugin from 'eslint-plugin-n'
 // import promisePlugin from 'eslint-plugin-promise'
 import react from 'eslint-plugin-react'
@@ -25,6 +24,15 @@ const compat = new FlatCompat({
   recommendedConfig: js.configs.recommended,
   allConfig: js.configs.all
 })
+
+// Accessibility findings are reported as warnings (options kept) so existing
+// code doesn't fail lint while it is brought up to standard
+const jsxA11yWarnings = Object.fromEntries(
+  Object.entries(jsxA11y.flatConfigs.recommended.rules).map(([rule, setting]) => {
+    const [level, ...options] = [].concat(setting)
+    return [rule, level === 'off' ? setting : ['warn', ...options]]
+  })
+)
 
 // ESLINT 8/9
 export default [
@@ -47,6 +55,7 @@ export default [
       'react-refresh': reactRefresh,
       jest,
       testingLibrary,
+      'jsx-a11y': jsxA11y,
       '@typescript-eslint': typescriptEslintPlugin
       // 'react-hooks': fixupPluginRules(reactHooksPlugin)
       // import: importPlugin,
@@ -83,6 +92,7 @@ export default [
       // Add your custom rules here
       // 'react/react-in-jsx-scope': 'off',
       ...reactHooksPlugin.configs.recommended.rules,
+      ...jsxA11yWarnings,
       'prettier/prettier': 'off',
       'react/prop-types': 'off',
       'react/no-children-prop': 'warn',

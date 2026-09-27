@@ -1,9 +1,10 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { fireEvent, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import PostTitle from './index'
 
 describe('PostTitle', () => {
   const defaultProps = {
+    id: '42',
     title: 'Hello there',
     location: 'New York, NY',
     locationObject: { city: 'New York', region: 'NY' },
@@ -37,12 +38,23 @@ describe('PostTitle', () => {
 
   it('applies constrained class when constrained prop is true', () => {
     render(<PostTitle {...defaultProps} constrained />)
-    expect(screen.getByText('Hello there')).toHaveClass('constrained')
+    expect(screen.getByText('Hello there').closest('.hdr-headline')).toHaveClass('constrained')
+  })
+
+  it('renders the title as a keyboard-reachable link to the post on a card', () => {
+    render(<PostTitle {...defaultProps} />)
+    expect(screen.getByRole('link', { name: 'Hello there' })).toHaveAttribute('href', expect.stringContaining('/post/42'))
+  })
+
+  it('renders plain text without a card click handler', () => {
+    render(<PostTitle {...defaultProps} onClick={undefined} />)
+    expect(screen.getByText('Hello there')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Hello there' })).not.toBeInTheDocument()
   })
 
   it('calls onClick when title is clicked', () => {
     render(<PostTitle {...defaultProps} />)
-    screen.getByText('Hello there').click()
+    fireEvent.click(screen.getByText('Hello there'))
     expect(defaultProps.onClick).toHaveBeenCalled()
   })
 

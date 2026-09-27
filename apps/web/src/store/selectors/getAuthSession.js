@@ -32,3 +32,8 @@ export const getAuthSessionSignupInProgress = createSelector(
   getAuthSession,
   authSession => authSession.signupInProgress
 )
+
+export const getAuthSessionTransientError = createSelector(
+  getAuthSession,
+  authSession => !!authSession.transientError
+)

@@ -2,7 +2,7 @@ import React from 'react'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import orm from 'store/models'
-import { AllTheProviders, render, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import GlobalNav from './GlobalNav'
 
 jest.mock('react-use-intercom', () => ({
@@ -45,5 +45,15 @@ describe('GlobalNav', () => {
     await waitFor(() => {
       expect(container.querySelector('.globalNavContainer')).toBeInTheDocument()
     })
+  })
+
+  it('exposes Settings and Help as named buttons', async () => {
+    render(
+      <GlobalNav routeParams={{ context: 'all', view: 'all' }} />,
+      { wrapper: providersWithMe() }
+    )
+
+    expect(await screen.findByRole('button', { name: 'Settings' })).toHaveAttribute('type', 'button')
+    expect(screen.getByRole('button', { name: 'Help' })).toHaveAttribute('type', 'button')
   })
 })

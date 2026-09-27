@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
-import { get, some } from 'lodash/fp'
+import { get } from 'lodash/fp'
 import { cn } from 'util/index'
 import {
   createPersistentSelectionTracker,
@@ -14,10 +15,13 @@ import {
   isTextInteractionTarget,
   shouldBailTextSelectionGesture
 } from 'util/textSelectionTouch'
-import mixpanel from 'mixpanel-browser'
 import config, { isDev, isTest } from 'config/index'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import CookieConsentLinker from 'components/CookieConsentLinker'
+import IntercomConsentSync from 'components/IntercomConsentSync'
+import { useCookieConsent } from 'contexts/CookieConsentContext'
+import { identifyAnalyticsUser, resolveAnalyticsChoice, setAnalyticsGroups } from 'util/analytics'
+import { getCookieConsent } from 'util/cookieConsent'
 import ContextMenu from './components/ContextMenu'
 import CreatePostModal from 'components/CreatePostModal'
 import GlobalNav from './components/GlobalNav'
@@ -33,7 +37,6 @@ import ViewHeader from 'components/ViewHeader'
 import usePullToRefresh from 'hooks/usePullToRefresh'
 import useIsPhoneViewport from 'hooks/useIsPhoneViewport'
 import getReturnToPath from 'store/selectors/getReturnToPath'
-import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
@@ -105,6 +108,7 @@ import { Toaster } from 'components/ui/sonner'
 import useGroupViews from 'hooks/useGroupViews'
 import useNewAppVersion from 'hooks/useNewAppVersion'
 import useMobileHardwareBack from 'hooks/useMobileHardwareBack'
+import useRefreshBadgesOnReturn from 'hooks/useRefreshBadgesOnReturn'
 import shouldLandOnWelcome from 'util/shouldLandOnWelcome'
 
 import classes from './AuthLayoutRouter.module.scss'
@@ -130,6 +134,7 @@ function RedirectStreamToAll ({ basePath }) {
 }
 
 export default function AuthLayoutRouter (props) {
+  const { t } = useTranslation()
   const resizeRef = useRef()
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
@@ -253,6 +258,13 @@ export default function AuthLayoutRouter (props) {
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state)) // For mobile nav
   const lastViewedGroupPath = useSelector(getLastViewedGroupPath)
   const memberships = useSelector(getMyMemberships)
+  const { cookieData } = useCookieConsent()
+  // Before the consent context has loaded, fall back to the stored cookie
+  const cookieConsent = cookieData || getCookieConsent()
+  const analyticsChoice = resolveAnalyticsChoice(cookieConsent, currentUser?.cookieConsentPreferences)
+  // Only an explicit rejection turns support chat off: people who have not
+  // answered the cookie panel, and the mobile app (which has none), keep it
+  const supportAllowed = cookieConsent?.support !== false
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
 
@@ -628,14 +640,9 @@ export default function AuthLayoutRouter (props) {
         setTimeout(runThreads, 2500)
       }
     })()
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        await dispatch(checkForNewNotifications())
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
+
+  useRefreshBadgesOnReturn()
 
   // If the user turns stack-groups on after a flat MeQuery load, refetch so childGroups are available.
   useEffect(() => {
@@ -650,29 +657,12 @@ export default function AuthLayoutRouter (props) {
     if (currentUser?.settings?.locale) {
       getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
-    if (isSandboxMode() || !config.mixpanel.token || !currentUser?.id) return
-    mixpanel.identify(currentUser.id)
-    mixpanel.people.set({
-      $name: currentUser.name,
-      $email: currentUser.email,
-      $location: currentUser.location
-    })
-  }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
+    identifyAnalyticsUser(currentUser, analyticsChoice)
+  }, [analyticsChoice, currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
   useEffect(() => {
-    if (isSandboxMode() || !config.mixpanel.token) return
-    // Add all current group membershps to mixpanel user
-    mixpanel.set_group('groupId', memberships.map(m => m.group.id))
-
-    if (currentGroup?.id) {
-      // Setup group profile info
-      mixpanel.get_group('groupId', currentGroup.id).set({
-        $location: currentGroup.location,
-        $name: currentGroup.name,
-        type: currentGroup.type
-      })
-    }
-  }, [currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
+    setAnalyticsGroups(memberships, currentGroup, analyticsChoice)
+  }, [analyticsChoice, currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
 
   // Keep group loading in sync with the URL before paint so we never mount ViewContent/chat,
   // then swap to RouteBootstrapSkeleton when fetchForGroup sets loading (reopen / SPA nav).
@@ -802,10 +792,10 @@ export default function AuthLayoutRouter (props) {
   useEffect(() => {
     if (!newVersionAvailable || newVersionToastShownRef.current) return
     newVersionToastShownRef.current = true
-    toast('A new version of Hylo is available', {
+    toast(t('A new version of Hylo is available'), {
       duration: Infinity,
       action: {
-        label: 'Refresh',
+        label: t('Refresh'),
         onClick: () => window.location.reload()
       }
     })
@@ -836,7 +826,6 @@ export default function AuthLayoutRouter (props) {
         userId: currentUser.id
       }
     : { hideDefaultLauncher: true }
-  const showMenuBadge = some(m => m.newPostCount > 0, memberships)
 
   // Only redirect to returnToPath when outside the welcome wizard. Inside the wizard,
   // the PENDING optimistic update sets signupInProgress=false before the server confirms,
@@ -918,7 +907,13 @@ export default function AuthLayoutRouter (props) {
   }
 
   return (
-    <IntercomProvider appId={isTest || isSandboxMode() ? '' : config.intercom.appId} autoBoot={!isSandboxMode()} autoBootProps={intercomProps}>
+    <IntercomProvider
+      appId={isTest || isSandboxMode() ? '' : config.intercom.appId}
+      autoBoot={!isSandboxMode() && supportAllowed}
+      autoBootProps={intercomProps}
+      shouldInitialize={supportAllowed}
+    >
+      <IntercomConsentSync allowed={!isSandboxMode() && supportAllowed} bootProps={intercomProps} />
       <SiteBanners />
       {/* Pull-to-refresh indicator - shows during and after gesture */}
       {(isPulling || isRefreshing) && (
@@ -1015,7 +1010,6 @@ export default function AuthLayoutRouter (props) {
                   group={currentGroup}
                   currentUser={currentUser}
                   routeParams={pathMatchParams}
-                  showMenuBadge={showMenuBadge}
                 />
                 {isDrawerOpen && <Drawer className={cn(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
               </>

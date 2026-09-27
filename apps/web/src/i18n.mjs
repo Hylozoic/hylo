@@ -14,6 +14,7 @@ import {
   localeToTranslationKey,
   normalizeLocaleToFull
 } from '@hylo/shared'
+import { syncDocumentLanguage } from 'util/documentLanguage'
 
 if (typeof window !== 'undefined') {
   const stored = window.localStorage.getItem('hylo-i18n-lng')
@@ -24,6 +25,9 @@ if (typeof window !== 'undefined') {
     }
   }
 }
+
+// Registered before init, which reports the detected language as a change
+syncDocumentLanguage(i18n)
 
 i18n
   // load translation using http -> see /public/locales (i.e. https://github.com/i18next/react-i18next/tree/master/example/react/public/locales)
