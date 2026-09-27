@@ -372,6 +372,26 @@ describe('Stripe Mutations', () => {
       ).to.be.rejectedWith(MEMBER_ROLE_ERROR)
       expect(await countOfferings()).to.equal(before)
     })
+
+    it('rejects role ids that are not plain decimal digits in access grants', async () => {
+      const memberRole = await GroupRole.findMemberRole(group.id)
+      const countOfferings = () => StripeProduct.where({ group_id: group.id }).count().then(Number)
+      const before = await countOfferings()
+
+      for (const roleId of [`+${memberRole.id}`, `${memberRole.id}x`, `${memberRole.id}.5`]) {
+        await expect(
+          createStripeOffering(adminUser.id, {
+            groupId: group.id,
+            accountId: 'acct_test_123',
+            name: 'Member Grant',
+            priceInCents: 1000,
+            accessGrants: { groupIds: [group.id], groupRoleIds: [roleId] }
+          }),
+          roleId
+        ).to.be.rejectedWith('Invalid role id')
+      }
+      expect(await countOfferings()).to.equal(before)
+    })
   })
 
   describe('updateStripeOffering', () => {

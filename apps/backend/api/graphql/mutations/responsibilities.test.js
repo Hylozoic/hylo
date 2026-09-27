@@ -79,6 +79,15 @@ describe('responsibilities mutations', () => {
       expect(Number(links)).to.equal(0)
     })
 
+    it('cannot be given a responsibility through ids written in other forms Postgres reads as integers', async () => {
+      for (const roleId of [`+${memberRole.id}`, `0x${Number(memberRole.id).toString(16)}`, `0_${memberRole.id}`]) {
+        await expect(addResponsibilityToRole({ groupId: group.id, roleId, responsibilityId: inviteMembersId, userId: administrator.id }), roleId)
+          .to.be.rejectedWith('Invalid role id')
+      }
+      const links = await GroupRoleResponsibility.where({ group_role_id: memberRole.id }).count()
+      expect(Number(links)).to.equal(0)
+    })
+
     it('cannot have a responsibility removed', async () => {
       const link = await GroupRoleResponsibility.forge({ group_role_id: memberRole.id, responsibility_id: inviteMembersId }).save()
       await expect(removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: link.id, userId: administrator.id }))
@@ -102,7 +111,7 @@ describe('responsibilities mutations', () => {
 
       await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
         await removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: existing.id, userId: administrator.id })
-        for (const responsibilityId of [inviteMembersId, String(inviteMembersId)]) {
+        for (const responsibilityId of [inviteMembersId, String(inviteMembersId), `+${inviteMembersId}`, `0x${Number(inviteMembersId).toString(16)}`, ` ${inviteMembersId} `]) {
           await expect(addResponsibilityToRole({ groupId: group.id, roleId: customRole.id, responsibilityId, userId: administrator.id }))
             .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
         }

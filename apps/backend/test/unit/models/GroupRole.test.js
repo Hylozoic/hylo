@@ -146,10 +146,23 @@ describe('GroupRole', () => {
       await expect(GroupRole.assertAssignableRoleIds([{ id: String(memberRole.id) }])).to.be.rejectedWith(MEMBER_ROLE_ERROR)
     })
 
-    it('ignores empty and malformed ids', async () => {
+    it('skips missing ids', async () => {
       await GroupRole.assertAssignableRoleIds(null)
+      await GroupRole.assertAssignableRoleIds(undefined)
       await GroupRole.assertAssignableRoleIds([])
-      await GroupRole.assertAssignableRoleIds([null, undefined, '', 'abc', '1.5', '-3', '99999999999999999999', {}])
+      await GroupRole.assertAssignableRoleIds([null, undefined, '', administrator.id])
+    })
+
+    it('rejects every id that is not plain decimal digits, including forms Postgres reads as integers', async () => {
+      const id = memberRole.id
+      const malformed = [
+        `+${id}`, `0x${Number(id).toString(16)}`, `${id}_0`, `${id}x`, `${id}.0`, `-${id}`, ' ',
+        'abc', '99999999999999999999', 1.5, {}, { id: `+${id}` }, true, [id]
+      ]
+      for (const value of malformed) {
+        await expect(GroupRole.assertAssignableRoleIds([administrator.id, value]), JSON.stringify(value))
+          .to.be.rejectedWith('Invalid role id')
+      }
     })
 
     it('uses a transaction when given one', async () => {
@@ -158,6 +171,21 @@ describe('GroupRole', () => {
         await GroupRole.assertAssignableRoleIds([role.id], { transacting })
         await expect(GroupRole.assertAssignableRoleIds([role.id, memberRole.id], { transacting })).to.be.rejectedWith(MEMBER_ROLE_ERROR)
       })
+    })
+  })
+
+  describe('parseRoleId', () => {
+    it('reads numbers, digit strings and { id } objects', () => {
+      expect(GroupRole.parseRoleId(12)).to.equal(12)
+      expect(GroupRole.parseRoleId('12')).to.equal(12)
+      expect(GroupRole.parseRoleId(' 12 ')).to.equal(12)
+      expect(GroupRole.parseRoleId({ id: '12' })).to.equal(12)
+    })
+
+    it('returns null for anything else', () => {
+      for (const value of [null, undefined, '', '+12', '0x0C', '1_2', '12x', '-12', '1.5', 1.5, -12, '99999999999999999999', {}, true]) {
+        expect(GroupRole.parseRoleId(value), JSON.stringify(value)).to.equal(null)
+      }
     })
   })
 

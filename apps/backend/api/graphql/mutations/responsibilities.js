@@ -85,7 +85,8 @@ export async function addResponsibilityToRole ({ userId, responsibilityId, roleI
       await GroupRole.assertAssignableRoleIds([roleId])
       if (!GroupRole.memberInvitesEnabled()) {
         const inviteMembersId = await Responsibility.systemId(Responsibility.constants.RESP_INVITE_MEMBERS)
-        if (inviteMembersId && String(inviteMembersId) === String(responsibilityId).trim()) {
+        const responsibility = await Responsibility.where({ id: responsibilityId }).fetch()
+        if (inviteMembersId && responsibility && String(responsibility.id) === String(inviteMembersId)) {
           throw new GraphQLError(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
         }
       }

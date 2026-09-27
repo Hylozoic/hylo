@@ -25,6 +25,23 @@ const DEFAULT_NEW_GROUP_INVITE_POLICY = Object.freeze({ mode: InvitePolicy.STEWA
 
 const MEMBER_INVITES_UNAVAILABLE_ERROR = 'Invitations from members are not available yet'
 
+const MEMBER_ROLE_LOCKED_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+
+const MAX_INTEGER_ID = 2147483647
+
+/**
+ * A role id (or an { id } object) as a number, or null unless it is written as
+ * plain decimal digits. Postgres also reads forms such as '+4', '0x04' and
+ * '4_0' as integers, so anything else could name a row a check never looked at.
+ */
+function parseRoleId (value) {
+  const id = (value != null && typeof value === 'object') ? value.id : value
+  if (typeof id !== 'number' && typeof id !== 'string') return null
+  const digits = String(id).trim()
+  if (!/^\d{1,10}$/.test(digits) || Number(digits) > MAX_INTEGER_ID) return null
+  return Number(digits)
+}
+
 async function fetchGroupRow (groupId, transacting) {
   if (!groupId) return null
   let query = bookshelf.knex('groups').where('id', groupId).first('id', 'parent_id', 'type')
@@ -54,9 +71,9 @@ async function resolveInvitePolicyRoleIds (groupId, { roleIds, systemRoleNames }
     ids.add(String(role.id))
   }
 
-  const requestedIds = [...new Set((roleIds || []).map(id => String(id ?? '').trim()))]
+  const requestedIds = [...new Set((roleIds || []).map(parseRoleId))]
   if (requestedIds.length > 0) {
-    if (requestedIds.some(id => !/^\d{1,10}$/.test(id) || Number(id) > 2147483647)) {
+    if (requestedIds.includes(null)) {
       throw new GraphQLError('Invite policy roles must be active roles in this group')
     }
     let query = bookshelf.knex('groups_roles')
@@ -173,6 +190,7 @@ module.exports = bookshelf.Model.extend({
   InvitePolicy,
   DEFAULT_NEW_GROUP_INVITE_POLICY,
   MEMBER_INVITES_UNAVAILABLE_ERROR,
+  MEMBER_ROLE_LOCKED_ERROR,
 
   /**
    * Whether members can be given invite access at all: while this is off only
@@ -302,17 +320,19 @@ module.exports = bookshelf.Model.extend({
     return GroupRole.findMemberRole(group.id, { transacting })
   },
 
+  parseRoleId,
+
   /**
    * Throw if any of these role ids is an implicit Member role, which cannot be
-   * edited, assigned to people or used as a requirement. Accepts ids or
-   * { id } objects; ids that are not valid integers are left for the caller's
-   * own validation.
+   * edited, assigned to people or used as a requirement, or is not written as
+   * plain decimal digits. Accepts ids or { id } objects; null, undefined and ''
+   * mean no role and are skipped.
    */
   assertAssignableRoleIds: async function (roleIds, { transacting } = {}) {
-    const ids = [].concat(roleIds || [])
-      .map(id => (id != null && typeof id === 'object') ? id.id : id)
-      .map(id => String(id ?? '').trim())
-      .filter(id => /^\d{1,10}$/.test(id) && Number(id) <= 2147483647)
+    const ids = [].concat(roleIds ?? [])
+      .filter(id => id != null && id !== '')
+      .map(parseRoleId)
+    if (ids.includes(null)) throw new GraphQLError('Invalid role id')
     if (ids.length === 0) return
 
     let query = bookshelf.knex('groups_roles')
@@ -321,7 +341,7 @@ module.exports = bookshelf.Model.extend({
       .first('id')
     if (transacting) query = query.transacting(transacting)
     if (await query) {
-      throw new GraphQLError('The Member role cannot be edited, assigned or used as a requirement')
+      throw new GraphQLError(MEMBER_ROLE_LOCKED_ERROR)
     }
   },
 

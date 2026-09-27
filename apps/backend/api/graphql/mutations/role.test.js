@@ -89,6 +89,24 @@ describe('roles mutations', () => {
         .to.be.rejectedWith(MEMBER_ROLE_ERROR)
     })
 
+    it('cannot be reached through ids written in other forms Postgres reads as integers', async () => {
+      const forms = [`+${memberRole.id}`, `0x${Number(memberRole.id).toString(16)}`, `0_${memberRole.id}`, `${memberRole.id}x`]
+      for (const roleId of forms) {
+        await expect(updateGroupRole({ groupId: group.id, name: 'Renamed', active: false, userId: user2.id, groupRoleId: roleId }), roleId)
+          .to.be.rejected
+        await expect(addRoleToMember({ userId: user2.id, roleId, personId: user.id, groupId: group.id }), roleId)
+          .to.be.rejected
+        await expect(removeRoleFromMember({ userId: user2.id, roleId, personId: user.id, groupId: group.id }), roleId)
+          .to.be.rejected
+      }
+
+      await memberRole.refresh()
+      expect(memberRole.get('name')).to.equal('Member')
+      expect(memberRole.get('active')).to.equal(true)
+      const assignments = await MemberGroupRole.where({ group_role_id: memberRole.id }).count()
+      expect(Number(assignments)).to.equal(0)
+    })
+
     it('reports missing privileges before anything about the role', async () => {
       await expect(addRoleToMember({ userId: user.id, roleId: memberRole.id, personId: user.id, groupId: group.id }))
         .to.be.rejectedWith("User doesn't have required privileges to add role to member")

@@ -37,7 +37,9 @@ export async function updateGroupRole ({ groupRoleId, color, name, description, 
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       await GroupRole.assertAssignableRoleIds([groupRoleId])
       return bookshelf.transaction(async transacting => {
-        const groupRole = await GroupRole.where({ id: groupRoleId }).fetch()
+        const groupRole = await GroupRole.where({ id: groupRoleId }).fetch({ transacting })
+        if (!groupRole) throw new GraphQLError('Role not found')
+        if (groupRole.get('type') === GroupRole.TYPE_MEMBER) throw new GraphQLError(GroupRole.MEMBER_ROLE_LOCKED_ERROR)
         const verifiedActiveParam = (active == null) ? groupRole.get('active') : active
         const updatedAttributes = {
           color: color || groupRole.get('color'),
