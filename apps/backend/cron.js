@@ -26,6 +26,7 @@ const daily = now => {
 
   sails.log.debug('Removing old kue jobs')
   tasks.push(Queue.removeOldJobs('complete', 20000))
+  tasks.push(Queue.removeOldJobs('failed', 20000, 7).then(count => sails.log.debug(`Removed ${count} failed kue jobs`)))
 
   sails.log.debug('Removing old notifications')
   tasks.push(Notification.removeOldNotifications())
@@ -80,9 +81,11 @@ const hourly = now => {
 }
 
 const every10minutes = now => {
-  sails.log.debug('Refreshing full-text search index, sending comment digests, updating member counts, updating proposal statuses, and checking funding round phase transitions')
+  sails.log.debug('Refreshing full-text search index, sending unsent notifications and comment digests, updating member counts, updating proposal statuses, and checking funding round phase transitions')
   return [
     FullTextSearch.refreshView(),
+    // Retries failed notifications; claimUnsentIds skips rows a worker job has locked.
+    Notification.sendUnsent(),
     Comment.sendDigests().then(count => sails.log.debug(`Sent ${count} comment/message digests`)),
     Group.updateAllMemberCounts(),
     Post.updateProposalStatuses(),

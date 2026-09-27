@@ -58,3 +58,13 @@ export function expectEqualQuery (actual, expected, { isCollection = true } = {}
   const reformattedQuery = query.toString().replace(/\n\s*/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')')
   expect(reformattedQuery).to.equal(reformatted)
 }
+
+// Sails reloads api modules along with everything they require, so a test that
+// imports a shared module (e.g. lib/sentry) can hold a different instance than
+// the api module under test. This returns the instance that module actually uses.
+export const dependencyOf = (modulePath, dependencyPath) => {
+  const parent = require.cache[require.resolve(modulePath)]
+  const resolved = require.resolve(dependencyPath)
+  const child = parent && parent.children.find(m => m.id === resolved)
+  return child ? child.exports : require(resolved)
+}

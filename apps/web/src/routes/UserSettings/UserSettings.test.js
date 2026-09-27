@@ -1,5 +1,6 @@
 import React from 'react'
-import { AllTheProviders, render } from 'util/testing/reactTestingLibraryExtended'
+import { Route, Routes } from 'react-router-dom'
+import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
 import orm from 'store/models'
@@ -85,5 +86,17 @@ describe('UserSettings', () => {
     )
 
     expect(container.querySelector('#root') || container).toBeTruthy()
+  })
+
+  it('redirects the subscriptions path that emails link to over to my transactions', async () => {
+    render(
+      <Routes>
+        <Route path='my/transactions' element={<div>My transactions page</div>} />
+        <Route path='*' element={<UserSettings />} />
+      </Routes>,
+      { wrapper: AllTheProviders(reduxState, ['/subscriptions']) }
+    )
+
+    expect(await screen.findByText('My transactions page')).toBeInTheDocument()
   })
 })

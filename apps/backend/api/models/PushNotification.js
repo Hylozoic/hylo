@@ -30,12 +30,13 @@ module.exports = bookshelf.Model.extend({
       disabled = process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED !== 'true' || !isTester
     }
 
-    await this.save({ sent_at: new Date().toISOString(), disabled }, options)
     if (!disabled) {
-      await OneSignal.notify({
+      const result = await OneSignal.notify({
         readerId, alert, path, badgeNo
       })
+      if (result === false) return false
     }
+    await this.save({ sent_at: new Date().toISOString(), disabled }, options)
     return this
   },
 
