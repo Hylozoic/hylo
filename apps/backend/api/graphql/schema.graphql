@@ -3853,9 +3853,9 @@ type InvitationUseResult {
   error: String
   # If the mutation succeeded, the new group Membership object
   membership: Membership
-  # True when the invitation came from a member and a steward approves new people in the group: nobody joined, and the person can request to join with the invitation token
+  # True when the invitation came from a member and nobody joined: either a steward approves new people in the group, and the person can request to join with the invitation token, or the person has not joined the group's prerequisite groups yet
   requiresApproval: Boolean
-  # With requiresApproval, the slug of the group to request to join
+  # With requiresApproval, the slug of the group, whose about page shows how to join
   groupSlug: String
 }
 
