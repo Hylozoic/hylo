@@ -3081,5 +3081,6 @@
   "{{name}} invited you": "{{name}} vous a invité",
   "Stewards review every request to join this group.": "Les intendants examinent chaque demande d'adhésion à ce groupe.",
   "Invited by {{name}}": "Invitation de {{name}}",
-  "A built-in responsibility already has this name. Please choose another.": "Une responsabilité intégrée porte déjà ce nom. Veuillez en choisir un autre."
+  "A built-in responsibility already has this name. Please choose another.": "Une responsabilité intégrée porte déjà ce nom. Veuillez en choisir un autre.",
+  "Invitations sent by members are not included. They get automatic reminders instead.": "Les invitations envoyées par des membres ne sont pas incluses. Elles reçoivent plutôt des rappels automatiques."
 }

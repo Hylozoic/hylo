@@ -258,6 +258,58 @@ describe('InviteSettingsTab with full invite access', () => {
     expect(screen.getByText('Assign a role to invitees (optional):')).toBeInTheDocument()
   })
 
+  describe('with invitations sent by members', () => {
+    const group = { id: '1', name: 'Go Team', slug: 'goteam', myInviteAccess: 'full' }
+
+    function renderWithMemberInvite () {
+      const ormSession = orm.mutableSession(orm.getEmptyState())
+      ormSession.Group.create(group)
+      ormSession.Person.create({ id: '7', name: 'Ada Member' })
+      ormSession.Person.create({ id: '8', name: 'Sam Steward' })
+      ormSession.Invitation.create({ id: '31', email: 'steward-sent@example.com', group: '1', creator: '8', inviterAccess: 'full', createdAt: '2026-09-20T10:00:00.000Z', lastSentAt: '2026-09-20T10:00:00.000Z' })
+      ormSession.Invitation.create({ id: '32', email: 'member-sent@example.com', group: '1', creator: '7', inviterAccess: 'limited', createdAt: '2026-09-21T10:00:00.000Z', lastSentAt: '2026-09-21T10:00:00.000Z' })
+      render(<InviteSettingsTab group={group} />, null, AllTheProviders({ orm: ormSession.state, pending: {} }))
+    }
+
+    let confirmSpy
+
+    beforeEach(() => {
+      confirmSpy = jest.spyOn(window, 'confirm').mockImplementation(() => false)
+    })
+
+    afterEach(() => confirmSpy.mockRestore())
+
+    it('says who sent each invitation from a member', () => {
+      renderWithMemberInvite()
+
+      expect(screen.getByText(/Invited by Ada Member/)).toBeInTheDocument()
+      expect(screen.queryByText(/Invited by Sam Steward/)).not.toBeInTheDocument()
+    })
+
+    it('says that Resend All leaves out invitations from members', () => {
+      renderWithMemberInvite()
+      fireEvent.click(screen.getByText('Resend All'))
+
+      expect(confirmSpy).toHaveBeenCalledWith(
+        'Are you sure you want to resend all Pending Invitations\n\nInvitations sent by members are not included. They get automatic reminders instead.'
+      )
+    })
+  })
+
+  it('asks only the usual question before Resend All when no member sent an invitation', () => {
+    const confirmSpy = jest.spyOn(window, 'confirm').mockImplementation(() => false)
+    const group = { id: '1', name: 'Go Team', slug: 'goteam', myInviteAccess: 'full' }
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Group.create(group)
+    ormSession.Invitation.create({ id: '31', email: 'first@example.com', group: '1', inviterAccess: 'full', createdAt: '2026-09-20T10:00:00.000Z', lastSentAt: '2026-09-20T10:00:00.000Z' })
+    render(<InviteSettingsTab group={group} />, null, AllTheProviders({ orm: ormSession.state, pending: {} }))
+
+    fireEvent.click(screen.getByText('Resend All'))
+
+    expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to resend all Pending Invitations')
+    confirmSpy.mockRestore()
+  })
+
   it('reports how many addresses were submitted and sent with full access', async () => {
     mockCreateInvitation(() => HttpResponse.json({
       data: {

@@ -76,6 +76,12 @@ describe('InviteSettingsTab.store.ormSessionReducer', () => {
     expect(fetchPendingInvitations('5').graphql.query).toMatch(/myInviteAllowance/)
   })
 
+  it('fetches who sent each pending invitation and how', () => {
+    const { query } = fetchPendingInvitations('5').graphql
+    expect(query).toMatch(/inviterAccess/)
+    expect(query).toMatch(/creator\s*{\s*id\s+name\s*}/)
+  })
+
   it('responds to RESEND_INVITATION_PENDING', () => {
     session.Invitation.create({ id: '4' })
     const action = {
@@ -112,6 +118,15 @@ describe('InviteSettingsTab.store.ormSessionReducer', () => {
         .toRefArray().map(i => i.resent)
     ).toEqual([true, true, true])
     expect(session.Invitation.withId('5').resent).toBeFalsy()
+  })
+
+  it('leaves invitations sent by members alone on REINVITE_ALL_PENDING', () => {
+    session.Group.create({ id: '1' })
+    session.Invitation.create({ id: '2', group: '1', inviterAccess: 'full' })
+    session.Invitation.create({ id: '3', group: '1', inviterAccess: 'limited' })
+    ormSessionReducer(session, { type: REINVITE_ALL_PENDING, meta: { groupId: '1' } })
+    expect(session.Invitation.withId('2').resent).toBe(true)
+    expect(session.Invitation.withId('3').resent).toBeFalsy()
   })
 
   it('matches the last snapshot for allowGroupInvites', () => {

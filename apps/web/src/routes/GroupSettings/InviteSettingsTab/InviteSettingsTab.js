@@ -310,11 +310,17 @@ function InviteSettingsTab (props) {
 
   const disableSendBtn = ((isEmpty(emails) && selectedPeople.length === 0) || pendingCreate || (limited && inviteAllowance === 0))
 
+  const hasMemberInvites = pendingInvites.some(invite => invite.inviterAccess === INVITE_ACCESS.limited)
+
   const resendAllOnClick = useCallback(() => {
-    if (window.confirm(t('Are you sure you want to resend all Pending Invitations'))) {
+    const question = t('Are you sure you want to resend all Pending Invitations')
+    const confirmation = hasMemberInvites
+      ? `${question}\n\n${t('Invitations sent by members are not included. They get automatic reminders instead.')}`
+      : question
+    if (window.confirm(confirmation)) {
       reinviteAll()
     }
-  }, [reinviteAll])
+  }, [reinviteAll, hasMemberInvites, t])
 
   const expireOnClick = useCallback((invitationToken) => {
     expireInvitation(invitationToken)
@@ -611,7 +617,12 @@ function InviteSettingsTab (props) {
                         ? <>{invite.name} <span className='text-foreground/50'>{invite.email}</span></>
                         : invite.email}
                     </span>
-                    <span className='text-foreground/50 text-sm'>{TextHelpers.humanDate(invite.lastSentAt)}</span>
+                    <span className='text-foreground/50 text-sm'>
+                      {TextHelpers.humanDate(invite.lastSentAt)}
+                      {invite.inviterAccess === INVITE_ACCESS.limited && invite.creator?.name && (
+                        <> · {t('Invited by {{name}}', { name: invite.creator.name })}</>
+                      )}
+                    </span>
                   </div>
                   <div className='flex items-center gap-2 shrink-0'>
                     <span className={cn('flex items-center gap-2 bg-foreground/10 rounded-lg p-1 cursor-pointer group-hover:bg-selected/50 transition-all', classes.expireBtn)} onClick={() => expireOnClick(invite.id)}>{t('Expire')}</span>

@@ -1,4 +1,5 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
+import { INVITE_ACCESS } from 'store/constants'
 import orm from 'store/models'
 
 export const MODULE_NAME = 'InviteSettingsTab'
@@ -86,6 +87,11 @@ export function fetchPendingInvitations (groupId) {
               userId
               createdAt
               lastSentAt
+              inviterAccess
+              creator {
+                id
+                name
+              }
             }
           }
         }
@@ -283,7 +289,10 @@ export function ormSessionReducer (session, { type, meta, payload }) {
 
     case REINVITE_ALL_PENDING:
       group = Group.withId(meta.groupId)
-      group.pendingInvitations.update({ resent: true, lastSentAt: new Date() })
+      // reinviteAll leaves invitations sent by members to the automatic reminders
+      group.pendingInvitations
+        .filter(invitation => invitation.inviterAccess !== INVITE_ACCESS.limited)
+        .update({ resent: true, lastSentAt: new Date() })
       break
   }
 }
