@@ -33,6 +33,9 @@ const validateResponsibility = ({ title }) => {
   return true
 }
 
+// The server's message when a custom title matches a built-in responsibility
+const RESERVED_TITLE_ERROR = 'A built-in responsibility already has this title'
+
 export default function ResponsibilitiesTab ({ group }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
@@ -84,6 +87,12 @@ export default function ResponsibilitiesTab ({ group }) {
     setResponsibilities(newResponsbilities)
   }
 
+  const alertSaveError = (error) => {
+    window.alert(error?.message === RESERVED_TITLE_ERROR
+      ? t('A built-in responsibility already has this name. Please choose another.')
+      : t('There was an error, please try again.'))
+  }
+
   const saveResponsibility = (i) => () => {
     const responsbility = { ...responsibilities[i] }
     if (validateResponsibility(responsbility)) {
@@ -91,7 +100,7 @@ export default function ResponsibilitiesTab ({ group }) {
         const newResponsbilities = [...responsibilities]
         newResponsbilities[i] = { ...response.payload.data.addGroupResponsibility }
         setResponsibilities(newResponsbilities)
-      })
+      }).catch(alertSaveError)
     } else {
       window.alert(t('A responsibility must have a title over three characters long to be saved'))
     }
@@ -111,7 +120,7 @@ export default function ResponsibilitiesTab ({ group }) {
         const newResponsbilities = [...responsibilities]
         newResponsbilities[i] = { ...response.payload.data.updateGroupResponsibility }
         setResponsibilities(newResponsbilities)
-      })
+      }).catch(alertSaveError)
     } else {
       window.alert(t('A responsibility must have at least three characters for its title'))
     }

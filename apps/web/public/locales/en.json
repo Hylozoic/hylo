@@ -3078,5 +3078,6 @@
   "Change who can add new members in Privacy & Access": "Change who can add new members in Privacy & Access",
   "{{name}} invited you": "{{name}} invited you",
   "Stewards review every request to join this group.": "Stewards review every request to join this group.",
-  "Invited by {{name}}": "Invited by {{name}}"
+  "Invited by {{name}}": "Invited by {{name}}",
+  "A built-in responsibility already has this name. Please choose another.": "A built-in responsibility already has this name. Please choose another."
 }

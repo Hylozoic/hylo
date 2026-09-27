@@ -3089,5 +3089,6 @@
   "Change who can add new members in Privacy & Access": "Cambia quién puede agregar nuevos miembros en Privacidad y Acceso",
   "{{name}} invited you": "{{name}} te invitó",
   "Stewards review every request to join this group.": "Los administradores revisan cada solicitud para unirse a este grupo.",
-  "Invited by {{name}}": "Invitación de {{name}}"
+  "Invited by {{name}}": "Invitación de {{name}}",
+  "A built-in responsibility already has this name. Please choose another.": "Ya existe una responsabilidad integrada con este nombre. Por favor, elige otro."
 }

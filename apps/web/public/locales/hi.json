@@ -3081,5 +3081,6 @@
   "Change who can add new members in Privacy & Access": "गोपनीयता और पहुँच में बदलें कि नए सदस्यों को कौन जोड़ सकता है",
   "{{name}} invited you": "{{name}} ने आपको आमंत्रित किया है",
   "Stewards review every request to join this group.": "स्टीवर्ड इस समूह में शामिल होने के हर अनुरोध की समीक्षा करते हैं।",
-  "Invited by {{name}}": "{{name}} द्वारा आमंत्रित"
+  "Invited by {{name}}": "{{name}} द्वारा आमंत्रित",
+  "A built-in responsibility already has this name. Please choose another.": "इस नाम की एक अंतर्निहित जिम्मेदारी पहले से मौजूद है। कृपया कोई दूसरा नाम चुनें।"
 }
