@@ -120,4 +120,31 @@ describe('Group Settings link', () => {
 
     expect(screen.getByText('Group Settings')).toBeInTheDocument()
   })
+
+  it('is shown to Administrators', () => {
+    const administrator = {
+      id: '1',
+      groupId: '11',
+      name: 'Administrator',
+      responsibilities: { items: ['Administration', 'Add Members', 'Remove Members', 'Manage Content'].map((title, i) => ({ id: String(i + 1), title })) }
+    }
+    render(<Drawer group={group} />, { wrapper: providersWithRoles([administrator]) })
+
+    expect(screen.getByText('Group Settings')).toBeInTheDocument()
+  })
+
+  it('is not shown for a role whose only responsibility is Invite Members, or another that cannot open Group Settings', () => {
+    const inviter = { id: '5', groupId: '11', name: 'Greeter', responsibilities: { items: [{ id: '41', title: 'Invite Members' }] } }
+    const custom = { id: '6', groupId: '11', name: 'Gardener', responsibilities: { items: [{ id: '70', title: 'Water the plants' }] } }
+    render(<Drawer group={group} />, { wrapper: providersWithRoles([inviter, custom]) })
+
+    expect(screen.queryByText('Group Settings')).not.toBeInTheDocument()
+  })
+
+  it('is not shown to Moderators', () => {
+    const moderator = { id: '2', groupId: '11', name: 'Moderator', responsibilities: { items: [{ id: '3', title: 'Remove Members' }, { id: '4', title: 'Manage Content' }] } }
+    render(<Drawer group={group} />, { wrapper: providersWithRoles([moderator]) })
+
+    expect(screen.queryByText('Group Settings')).not.toBeInTheDocument()
+  })
 })
