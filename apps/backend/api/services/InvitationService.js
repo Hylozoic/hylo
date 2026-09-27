@@ -424,9 +424,11 @@ module.exports = {
 
   /**
    * Join the group with a join link code or an invitation token.
-   * @returns the membership or, for a member invitation to a group where a
-   *   steward has to approve new people, { requiresApproval: true, groupSlug }
-   *   without joining: the person can then request to join with the token.
+   * @returns the membership or, for a member invitation the person cannot join
+   *   with directly, { requiresApproval: true, groupSlug } without joining:
+   *   either a steward has to approve new people, and the person can request to
+   *   join with the token, or the group has prerequisite groups the person has
+   *   not joined yet, which its about page lists.
    */
   async use (userId, token, accessCode) {
     const user = await User.find(userId)
@@ -449,7 +451,8 @@ module.exports = {
       if (invitation.isExpired()) throw new GraphQLError('expired')
       if (invitation.isLimited()) {
         const group = await invitation.group().fetch()
-        if (!(await preApproves(invitation, group)) && !(await GroupMembership.forPair(userId, group.id).fetch())) {
+        const canJoinDirectly = await preApproves(invitation, group) && await group.numPrerequisitesLeft(userId) === 0
+        if (!canJoinDirectly && !(await GroupMembership.forPair(userId, group.id).fetch())) {
           return { requiresApproval: true, groupSlug: group.get('slug') }
         }
       }

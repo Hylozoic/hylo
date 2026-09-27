@@ -309,6 +309,29 @@ describe('InvitationService', () => {
       expect(invitation.get('used_by_id')).to.equal(person.id)
     })
 
+    it('does not join an Open group with a member invitation before its prerequisite groups', async () => {
+      const prerequisite = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+      const gated = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+      await GroupRelationship.forge({
+        parent_group_id: prerequisite.id,
+        child_group_id: gated.id,
+        active: true,
+        settings: { isPrerequisite: true }
+      }).save()
+      const person = await factories.user().save()
+      const invitation = await memberInvitation(gated, person.get('email'))
+
+      const result = await InvitationService.use(person.id, invitation.get('token'))
+      expect(result).to.deep.equal({ requiresApproval: true, groupSlug: gated.get('slug') })
+      expect(await GroupMembership.forPair(person.id, gated.id, { includeInactive: true }).fetch()).to.not.exist
+      await invitation.refresh()
+      expect(invitation.get('used_by_id')).to.be.null
+
+      await person.joinGroup(prerequisite)
+      const membership = await InvitationService.use(person.id, invitation.get('token'))
+      expect(membership.get('group_id')).to.equal(gated.id)
+    })
+
     it('returns the membership of someone already in the group', async () => {
       const person = await factories.user().save()
       await person.joinGroup(restricted)

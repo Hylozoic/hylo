@@ -2,7 +2,7 @@
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { mockify, unspyify, withFeatureFlag } from '../../../test/setup/helpers'
-import { createInvitation, expireInvitation, reinviteAll, resendInvitation } from './invitation'
+import { createInvitation, expireInvitation, reinviteAll, resendInvitation, useInvitation } from './invitation'
 
 const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
 const NO_PERMISSION = "You don't have permission to create an invitation for this group"
@@ -238,6 +238,28 @@ describe('member invitations', () => {
       expect(invitation.id).to.exist
       expect((await Invitation.find(invitation.id)).get('inviter_access')).to.equal('full')
       expect(await ledgerTotal({ user_id: admin.id, group_id: group.id })).to.equal(0)
+    })
+  })
+
+  describe('useInvitation', () => {
+    it('does not skip the prerequisite groups of an Open group', async () => {
+      const group = await createGroup()
+      await group.save({ accessibility: Group.Accessibility.OPEN }, { patch: true })
+      const prerequisite = await factories.group().save()
+      await GroupRelationship.forge({
+        parent_group_id: prerequisite.id,
+        child_group_id: group.id,
+        active: true,
+        settings: { isPrerequisite: true }
+      }).save()
+      const member = await createMember(group)
+      const outsider = await factories.user({ email: addresses('prerequisite', 1)[0] }).save()
+      await createInvitation(member.id, group.id, { emails: [outsider.get('email')] })
+      const [invitation] = await invitesBy(member.id, group.id)
+
+      expect(await useInvitation(outsider.id, invitation.get('token')))
+        .to.deep.equal({ requiresApproval: true, groupSlug: group.get('slug') })
+      expect(await GroupMembership.forPair(outsider.id, group.id, { includeInactive: true }).fetch()).to.not.exist
     })
   })
 
