@@ -12,6 +12,8 @@ jest.mock('react-router-dom', () => ({
   useLocation: jest.fn().mockReturnValue({ pathname: '/groups/test-group', search: '' })
 }))
 
+jest.mock('routes/JoinGroup', () => () => <div>JoinGroup route</div>)
+
 const useParamsMocked = jest.mocked(useParams)
 const useLocationMocked = jest.mocked(useLocation)
 
@@ -118,4 +120,36 @@ it('shows NotFound if the group does not exist', async () => {
   await waitFor(() => {
     expect(screen.getByText('Oops, there\'s nothing to see here.')).toBeInTheDocument()
   })
+})
+
+it.each([
+  ['/h/use-invitation', '?token=steward-token'],
+  ['/h/invitation', '?token=member-token']
+])('opens the invitation link %s with JoinGroup', async (pathname, search) => {
+  const me = {
+    id: '1',
+    name: 'Test User',
+    hasRegistered: true,
+    emailValidated: true,
+    settings: {
+      signupInProgress: false,
+      alreadySeenTour: true
+    },
+    memberships: []
+  }
+
+  useParamsMocked.mockReturnValue({})
+  useLocationMocked.mockReturnValue({ pathname, search })
+
+  mockGraphqlServer.use(
+    graphql.query('MeQuery', () => HttpResponse.json({ data: { me } })),
+    ...defaultGraphqlHandlers()
+  )
+
+  render(
+    <AuthLayoutRouter />,
+    { wrapper: testWrapper({}, [pathname + search]) }
+  )
+
+  expect(await screen.findByText('JoinGroup route')).toBeInTheDocument()
 })

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
 import Loading from 'components/Loading'
@@ -13,6 +13,8 @@ import {
   deleteGroupResponsibility,
   updateGroupResponsibility
 } from 'store/actions/responsibilities'
+import { RESP_INVITE_MEMBERS } from 'store/constants'
+import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
@@ -30,15 +32,22 @@ const validateResponsibility = ({ title }) => {
   return true
 }
 
+// The server's message when a custom title matches a built-in responsibility
+const RESERVED_TITLE_ERROR = 'A built-in responsibility already has this title'
+
 export default function ResponsibilitiesTab ({ group }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const [responsibilities, setResponsibilities] = useState([])
+  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
 
   useEffect(() => {
     dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))
       .then((response) => {
-        setResponsibilities(response.payload.data.responsibilities)
+        const fetched = response.payload.data.responsibilities
+        setResponsibilities(memberInvitesEnabled
+          ? fetched
+          : fetched.filter(responsibility => responsibility.title !== RESP_INVITE_MEMBERS))
       })
   }, [])
 
@@ -77,6 +86,12 @@ export default function ResponsibilitiesTab ({ group }) {
     setResponsibilities(newResponsbilities)
   }
 
+  const alertSaveError = (error) => {
+    window.alert(error?.message === RESERVED_TITLE_ERROR
+      ? t('A built-in responsibility already has this name. Please choose another.')
+      : t('There was an error, please try again.'))
+  }
+
   const saveResponsibility = (i) => () => {
     const responsbility = { ...responsibilities[i] }
     if (validateResponsibility(responsbility)) {
@@ -84,7 +99,7 @@ export default function ResponsibilitiesTab ({ group }) {
         const newResponsbilities = [...responsibilities]
         newResponsbilities[i] = { ...response.payload.data.addGroupResponsibility }
         setResponsibilities(newResponsbilities)
-      })
+      }).catch(alertSaveError)
     } else {
       window.alert(t('A responsibility must have a title over three characters long to be saved'))
     }
@@ -104,7 +119,7 @@ export default function ResponsibilitiesTab ({ group }) {
         const newResponsbilities = [...responsibilities]
         newResponsbilities[i] = { ...response.payload.data.updateGroupResponsibility }
         setResponsibilities(newResponsbilities)
-      })
+      }).catch(alertSaveError)
     } else {
       window.alert(t('A responsibility must have at least three characters for its title'))
     }

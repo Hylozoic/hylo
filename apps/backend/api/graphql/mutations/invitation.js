@@ -1,18 +1,48 @@
 import { GraphQLError } from 'graphql'
+import { isEmpty } from 'lodash'
 import { getLocaleStrings } from '../../../lib/i18n/locales'
 import InvitationService from '../../services/InvitationService'
+
+/**
+ * Personal email invitations from someone with limited invite access: no roles,
+ * no existing Hylo people by id, and top-level groups only.
+ */
+async function createLimitedInvitations (userId, group, data, localeStrings) {
+  if (group.get('type') === 'space' || group.get('parent_id')) {
+    throw new GraphQLError("You don't have permission to create an invitation for this group")
+  }
+  if (data.groupRoleId || data.assignAdministrator) {
+    throw new GraphQLError("You don't have permission to invite people with a role")
+  }
+  if (!isEmpty(data.userIds)) {
+    throw new GraphQLError('You can only invite people by email address')
+  }
+  const invitations = await InvitationService.createLimited({
+    sessionUserId: userId,
+    groupId: group.id,
+    emails: data.emails,
+    message: localeStrings.createInvitationMessage(group.get('name')),
+    subject: localeStrings.createInvitationSubject(group.get('name'))
+  })
+  return { invitations }
+}
 
 export async function createInvitation (userId, groupId, data) {
   const group = await Group.find(groupId)
   const user = await User.find(userId)
   const localeStrings = getLocaleStrings(user.getLocale())
-  return GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADD_MEMBERS)
+  const inviteAccess = group ? await GroupMembership.inviteAccess(userId, group) : null
+  if (inviteAccess === GroupMembership.InviteAccess.LIMITED) {
+    return createLimitedInvitations(userId, group, data || {}, localeStrings)
+  }
+  return Promise.resolve(inviteAccess === GroupMembership.InviteAccess.FULL)
     .then(ok => {
       if (!ok) throw new GraphQLError("You don't have permission to create an invitation for this group")
     })
     .then(() => Group.find(groupId))
     .then(async (group) => {
       if (!group) throw new GraphQLError('Cannot find group to send invites for')
+      await GroupRole.assertAssignableRoleIds(data.groupRoleId)
 
       // Defensive check: when inviting specific users (userIds) to a role-gated
       // space, verify each target user has one of the required roles.
@@ -49,7 +79,7 @@ export async function createInvitation (userId, groupId, data) {
 }
 
 export function expireInvitation (userId, invitationId) {
-  return InvitationService.checkPermission(userId, invitationId)
+  return InvitationService.canExpire(userId, invitationId)
     .then(ok => {
       if (!ok) throw new GraphQLError("You don't have permission to modify this invitation")
     })
@@ -78,6 +108,6 @@ export async function reinviteAll (userId, groupId) {
 
 export function useInvitation (userId, invitationToken, accessCode) {
   return InvitationService.use(userId, invitationToken, accessCode)
-    .then(membership => ({ membership }))
+    .then(result => result?.requiresApproval ? result : { membership: result })
     .catch(error => ({ error: error.message }))
 }

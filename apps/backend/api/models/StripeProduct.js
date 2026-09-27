@@ -131,12 +131,12 @@ module.exports = bookshelf.Model.extend({
       : [grantedByGroupIdNum] // Default to the group that owns the product
 
     if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
-      /* global MemberGroupRole */
+      /* global GroupRole, MemberGroupRole */
       for (const groupIdNum of groupIdsForRoles) {
         for (const roleId of accessGrants.groupRoleIds) {
           // Convert roleId to integer or null
-          const roleIdNum = roleId != null ? parseInt(roleId, 10) : null
-          if (roleId != null && (isNaN(roleIdNum) || roleIdNum <= 0)) {
+          const roleIdNum = roleId != null ? GroupRole.parseRoleId(roleId) : null
+          if (roleId != null && !(roleIdNum > 0)) {
             console.warn(`Invalid groupRoleId: ${roleId}, skipping`)
             continue
           }

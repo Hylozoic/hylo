@@ -1,4 +1,5 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
+import { INVITE_ACCESS } from 'store/constants'
 import orm from 'store/models'
 
 export const MODULE_NAME = 'InviteSettingsTab'
@@ -42,7 +43,8 @@ export function createInvitations (groupId, emails, groupRoleId = null, userIds 
             email,
             createdAt,
             lastSentAt,
-            error
+            error,
+            status
           }
         }
       }`,
@@ -63,7 +65,10 @@ export function createInvitations (groupId, emails, groupRoleId = null, userIds 
   }
 }
 
-/** Loads invitePath and pending invitations so the invite UI works outside Group Settings. */
+/**
+ * Loads invitePath, pending invitations and, for people with limited invite access, how many
+ * more addresses they can invite today, so the invite UI works outside Group Settings.
+ */
 export function fetchPendingInvitations (groupId) {
   return {
     type: FETCH_PENDING_INVITATIONS,
@@ -72,6 +77,7 @@ export function fetchPendingInvitations (groupId) {
         group (id: $id) {
           id
           invitePath
+          myInviteAllowance
           pendingInvitations {
             hasMore
             items {
@@ -81,6 +87,11 @@ export function fetchPendingInvitations (groupId) {
               userId
               createdAt
               lastSentAt
+              inviterAccess
+              creator {
+                id
+                name
+              }
             }
           }
         }
@@ -255,7 +266,7 @@ export function ormSessionReducer (session, { type, meta, payload }) {
 
   switch (type) {
     case CREATE_INVITATIONS:
-      payload.data.createInvitation.invitations.forEach(i =>
+      payload.data.createInvitation.invitations.filter(i => i.id).forEach(i =>
         Invitation.create({
           email: i.email,
           name: i.name || null,
@@ -278,7 +289,10 @@ export function ormSessionReducer (session, { type, meta, payload }) {
 
     case REINVITE_ALL_PENDING:
       group = Group.withId(meta.groupId)
-      group.pendingInvitations.update({ resent: true, lastSentAt: new Date() })
+      // reinviteAll leaves invitations sent by members to the automatic reminders
+      group.pendingInvitations
+        .filter(invitation => invitation.inviterAccess !== INVITE_ACCESS.limited)
+        .update({ resent: true, lastSentAt: new Date() })
       break
   }
 }

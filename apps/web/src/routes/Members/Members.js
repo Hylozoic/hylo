@@ -7,7 +7,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search, Waypoints } from 'lucide-react'
-import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
+import InviteMembersDialog, { inviteAccessFor } from 'components/InviteMembersDialog/InviteMembersDialog'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import MasonryGrid from 'components/MasonryGrid/MasonryGrid'
@@ -249,7 +249,7 @@ function Members (props) {
   const { setHeaderDetails } = useViewHeader()
   const isAboutMembersTab = /\/about\/members/.test(location.pathname)
   const pageTitle = isAboutMembersTab ? t('Members') : t('Member Directory')
-  const canAddMembers = myResponsibilityTitles.includes(RESP_ADD_MEMBERS)
+  const canInvite = !!inviteAccessFor(group, myResponsibilityTitles.includes(RESP_ADD_MEMBERS))
   const inviteParentGroup = group?.parentId ? rolesSourceGroup : null
   useEffect(() => {
     setHeaderDetails({
@@ -258,7 +258,7 @@ function Members (props) {
       icon: 'Users',
       info: '',
       search: true,
-      headerActions: canAddMembers
+      headerActions: canInvite
         ? (
           <InviteMembersDialog
             group={group}
@@ -270,7 +270,7 @@ function Members (props) {
           )
         : null
     })
-  }, [t, pageTitle, canAddMembers, group?.id, inviteParentGroup?.id])
+  }, [t, pageTitle, canInvite, group?.id, inviteParentGroup?.id])
 
   const fetchMore = () => {
     if (pending || members.length === 0 || !hasMore) return

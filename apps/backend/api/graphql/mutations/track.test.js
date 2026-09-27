@@ -12,6 +12,8 @@ import {
   updateTrack
 } from './track'
 
+const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+
 describe('track mutations', () => {
   let trackManager, member, group
 
@@ -47,6 +49,29 @@ describe('track mutations', () => {
       expect(String(track.get('group_id'))).to.equal(String(space.id))
       await space.refresh()
       expect(String(space.get('track_id'))).to.equal(String(track.id))
+    })
+  })
+
+  describe('completion role', () => {
+    it('rejects the Member role when creating or updating a track', async () => {
+      const memberRole = await GroupRole.findMemberRole(group.id)
+      const countTracks = async () => Number((await bookshelf.knex('tracks').count('id as count').first()).count)
+      const before = await countTracks()
+      await expect(createTrack(trackManager.id, { groupId: group.id, completionRoleId: String(memberRole.id) }))
+        .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+      expect(await countTracks()).to.equal(before)
+
+      const track = await createTrack(trackManager.id, { groupId: group.id })
+      await expect(updateTrack(trackManager.id, track.id, { completionRoleId: String(memberRole.id) }))
+        .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+      await track.refresh()
+      expect(track.get('completion_role_id')).to.equal(null)
+    })
+
+    it('still awards a system role on completion', async () => {
+      const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+      const track = await createTrack(trackManager.id, { groupId: group.id, completionRoleId: String(hostRole.id) })
+      expect(String(track.get('completion_role_id'))).to.equal(String(hostRole.id))
     })
   })
 

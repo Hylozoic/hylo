@@ -72,7 +72,7 @@ function writeMobileReauthAttempts (n) {
  * During `checkLogin`, avoid BootstrapShell (logged-in nav + feed-shaped skeleton) for URLs
  * that render login, signup, or other non-auth layouts so the flash matches those pages.
  */
-function isNeutralRootSessionLoadingPath (pathname) {
+export function isNeutralRootSessionLoadingPath (pathname) {
   if (pathname === '/' || pathname === '/login' || pathname === '/reset-password' || pathname === '/notifications') {
     return true
   }
@@ -80,7 +80,7 @@ function isNeutralRootSessionLoadingPath (pathname) {
   if (pathname === '/public' || pathname.startsWith('/public/')) return true
   if (pathname.startsWith('/post/')) return true
   if (pathname.startsWith('/oauth/')) return true
-  if (pathname === '/h/use-invitation') return true
+  if (pathname === '/h/use-invitation' || pathname === '/h/invitation') return true
   if (pathname.includes('/join/')) return true
   // Single-segment paths that are not obvious “main app” entry slugs resolve to non-auth (e.g. → /login); avoid auth-shaped skeleton while checkLogin runs
   const oneSeg = pathname.match(/^\/([^/]+)$/)

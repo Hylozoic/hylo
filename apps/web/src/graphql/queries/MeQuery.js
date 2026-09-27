@@ -38,6 +38,7 @@ export default gql`
     }
     email
     emailValidated
+    memberInvitesEnabled
     bannerUrl
     bio
     contactEmail
