@@ -1,9 +1,9 @@
 /* eslint-env jest */
 import React from 'react'
-import { render, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import orm from 'store/models'
 import ChatRoom from './ChatRoom'
-import { chatRoomPageParams, chatShowsDayLabel, computeChatInitialScrollIndex, isPersistedChatPostId, samePostId } from './chatRoomUtils'
+import { chatRoomPageParams, chatShowsDayLabel, computeChatInitialScrollIndex, isPendingLocalPost, isPersistedChatPostId, samePostId } from './chatRoomUtils'
 
 jest.mock('@virtuoso.dev/message-list', () => ({
   VirtuosoMessageList: () => <div data-testid='virtuoso-message-list' />,
@@ -20,8 +20,10 @@ jest.mock('client/websockets.js', () => ({
   })
 }))
 
+const mockChatEditorProps = {}
 jest.mock('components/ChatEditor', () => {
-  return function MockChatEditor () {
+  return function MockChatEditor (props) {
+    Object.assign(mockChatEditorProps, props)
     return <div data-testid='post-editor' />
   }
 })
@@ -57,6 +59,16 @@ describe('ChatRoom', () => {
     )
     expect(container.querySelector('#root') || container).toBeTruthy()
   })
+
+  it('lets the composer withdraw a message that failed to send', () => {
+    render(
+      <ChatRoom groupSlug='test-group' />,
+      null,
+      setupTestProviders()
+    )
+    expect(screen.getByTestId('post-editor')).toBeInTheDocument()
+    expect(mockChatEditorProps.onSaveFailed).toEqual(expect.any(Function))
+  })
 })
 
 describe('chatShowsDayLabel', () => {
@@ -78,6 +90,15 @@ describe('isPersistedChatPostId', () => {
     expect(isPersistedChatPostId({ localId: 'post_1', pending: true })).toBe(false)
     expect(isPersistedChatPostId({ id: String(Number.MAX_SAFE_INTEGER) })).toBe(false)
     expect(isPersistedChatPostId({ id: 'post_1' })).toBe(false)
+  })
+})
+
+describe('isPendingLocalPost', () => {
+  it('matches only the unsent optimistic message for a failed send', () => {
+    expect(isPendingLocalPost({ localId: 'post_3', pending: true }, 'post_3')).toBe(true)
+    expect(isPendingLocalPost({ localId: 'post_3', id: '108579' }, 'post_3')).toBe(false)
+    expect(isPendingLocalPost({ localId: 'post_4', pending: true }, 'post_3')).toBe(false)
+    expect(isPendingLocalPost({ pending: true }, undefined)).toBe(false)
   })
 })
 

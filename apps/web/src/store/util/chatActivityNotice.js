@@ -91,6 +91,43 @@ export function confirmOptimisticChatInNotice (session, { groupId, localId, chat
 }
 
 /**
+ * Takes a chat that failed to send back out of the notice it was optimistically
+ * added to, dropping a temporary notice that held nothing else.
+ * @param {object} session
+ * @param {{ localId?: string }} opts
+ */
+export function withdrawOptimisticChatFromNotice (session, { localId }) {
+  if (!localId) return
+  const isWithdrawn = id => String(id) === String(localId)
+
+  session.Post.all().toModelArray()
+    .filter(p => p.type === 'chat_activity')
+    .forEach(notice => {
+      const data = parseNoticeData(notice.noticeData) || {}
+      const prevPosts = notice.noticePosts || []
+      const prevIds = data.recentPostIds || []
+      if (!prevPosts.some(p => isWithdrawn(p.id)) && !prevIds.some(isWithdrawn)) return
+
+      const noticePosts = prevPosts.filter(p => !isWithdrawn(p.id))
+      const postCount = Math.max((data.postCount || 0) - 1, 0)
+      if (postCount === 0 && isOptimisticChatActivityNoticeId(notice.id)) {
+        notice.delete()
+        return
+      }
+      const latest = noticePosts[0]
+      notice.update({
+        ...(latest ? { createdAt: latest.createdAt, updatedAt: latest.createdAt } : {}),
+        noticeData: {
+          ...data,
+          recentPostIds: prevIds.filter(id => !isWithdrawn(id)),
+          postCount
+        },
+        noticePosts
+      })
+    })
+}
+
+/**
  * Drops the temporary notice once the real server post is in ORM.
  * @param {object} session
  * @param {object} realNotice

@@ -12,6 +12,9 @@ export const ADD_ATTACHMENT = `${MODULE_NAME}/ADD_ATTACHMENT`
 export const REMOVE_ATTACHMENT = `${MODULE_NAME}/REMOVE_ATTACHMENT`
 export const MOVE_ATTACHMENT = `${MODULE_NAME}/MOVE_ATTACHMENT`
 export const ID_FOR_NEW = 'new'
+// The chat composer keeps its own bucket, so a post composer opened over a
+// chat room neither shows nor clears the chat's pending attachments.
+export const CHAT_ID_FOR_NEW = 'chat-new'
 
 // -- LOCAL STORE --
 
@@ -162,3 +165,10 @@ export default function reducer (state = defaultState, action) {
 export const ATTACHMENT_KEYS_WHITELIST = ['url', 'attachmentType']
 
 export const makeAttachmentKey = (type, id) => [type, id || ID_FOR_NEW].join('-')
+
+/** The id the upload endpoint expects: local-only buckets upload as a new record. */
+export const uploadTargetId = id => id === CHAT_ID_FOR_NEW ? ID_FOR_NEW : id
+
+/** Attachment objects for the store from a saved draft's url list. */
+export const attachmentsFromUrls = (urls, attachmentType) =>
+  (urls || []).filter(Boolean).map(url => ({ url, attachmentType }))

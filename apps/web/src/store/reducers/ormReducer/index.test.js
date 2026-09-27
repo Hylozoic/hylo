@@ -6,6 +6,8 @@ import {
   CREATE_MESSAGE,
   CREATE_MODERATION_ACTION,
   CREATE_MODERATION_ACTION_PENDING,
+  CREATE_POST,
+  CREATE_POST_PENDING,
   CONVERT_GROUP_TO_SPACE_PENDING,
   DELETE_COMMENT_PENDING,
   DELETE_POST_PENDING,
@@ -1002,5 +1004,50 @@ describe('on CONVERT_GROUP_TO_SPACE_PENDING', () => {
     expect(newSession.Membership.withId('m-child').navOrder).toBeNull()
     expect(newSession.Membership.withId('m-parent').navOrder).toEqual(0)
     expect(newSession.Membership.withId('m-other').navOrder).toEqual(1)
+  })
+})
+
+describe('on a failed CREATE_POST for a chat', () => {
+  const chatAction = (localId, details) => ({
+    meta: {
+      type: 'chat',
+      groupIds: ['10'],
+      graphql: { variables: { localId, details } }
+    }
+  })
+  const chatNotices = state => orm.session(state).Post.all().toModelArray().filter(p => p.type === 'chat_activity')
+
+  function sessionWithGroup () {
+    const session = orm.session(orm.getEmptyState())
+    session.Me.create({ id: '1', name: 'Me' })
+    session.Group.create({ id: '10', name: 'Bar', slug: 'bar' })
+    return session
+  }
+
+  it('drops the hour notice that only held the failed chat', () => {
+    const pendingState = ormReducer(sessionWithGroup().state, { type: CREATE_POST_PENDING, ...chatAction('post_1', '<p>hi</p>') })
+    expect(chatNotices(pendingState)).toHaveLength(1)
+
+    const failedState = ormReducer(pendingState, { type: CREATE_POST, error: true, payload: new Error('offline'), ...chatAction('post_1', '<p>hi</p>') })
+
+    expect(chatNotices(failedState)).toHaveLength(0)
+  })
+
+  it('takes the failed chat out of the preview and count, keeping the rest', () => {
+    let state = ormReducer(sessionWithGroup().state, { type: CREATE_POST_PENDING, ...chatAction('post_1', '<p>sent</p>') })
+    state = ormReducer(state, { type: CREATE_POST_PENDING, ...chatAction('post_2', '<p>failed</p>') })
+    expect(chatNotices(state)[0].noticeData.postCount).toEqual(2)
+
+    state = ormReducer(state, { type: CREATE_POST, error: true, payload: new Error('offline'), ...chatAction('post_2', '<p>failed</p>') })
+
+    const [notice] = chatNotices(state)
+    expect(notice.noticeData.postCount).toEqual(1)
+    expect(notice.noticeData.recentPostIds).toEqual(['post_1'])
+    expect(notice.noticePosts.map(p => p.details)).toEqual(['<p>sent</p>'])
+  })
+
+  it('leaves the store alone for other failed posts', () => {
+    const state = sessionWithGroup().state
+    expect(ormReducer(state, { type: CREATE_POST, error: true, payload: new Error('offline'), meta: { type: 'discussion' } })).toBe(state)
   })
 })

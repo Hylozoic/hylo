@@ -26,6 +26,7 @@ import {
   chatRoomPageParams,
   chatShowsDayLabel,
   computeChatInitialScrollIndex,
+  isPendingLocalPost,
   isPersistedChatPostId,
   samePostId
 } from './chatRoomUtils'
@@ -831,6 +832,11 @@ export default function ChatRoom (props) {
     }
   }, [group?.id])
 
+  // Withdraws the optimistic message when sending it fails
+  const onCreateFailed = useCallback((localId) => {
+    messageListRef.current?.data.findAndDelete((item) => isPendingLocalPost(item, localId))
+  }, [])
+
   const handleRemovePost = useCallback((postId) => {
     messageListRef.current?.data.findAndDelete((item) => postId === item.id)
   }, [currentUser])
@@ -1036,6 +1042,7 @@ export default function ChatRoom (props) {
             autoFocus={!isMobile.any}
             onSave={onCreate}
             afterSave={afterCreate}
+            onSaveFailed={onCreateFailed}
             onComposerFocus={() => { composerFocusedRef.current = true }}
             onComposerBlur={() => { composerFocusedRef.current = false }}
           />

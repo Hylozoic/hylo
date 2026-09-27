@@ -7,6 +7,9 @@ const { string, bool, func, object, oneOfType, node } = PropTypes
 
 export default function Button ({
   active,
+  // Looks disabled and says so to assistive tech, but still receives clicks
+  // (e.g. to explain why the action is unavailable)
+  ariaDisabled = false,
   borderRadius = 'auto',
   children,
   className,
@@ -33,7 +36,7 @@ export default function Button ({
       [classes.active]: active,
       [classes.narrow]: narrow,
       [classes.small]: small,
-      [classes.disabled]: disabled
+      [classes.disabled]: disabled || ariaDisabled
     },
     className
   )
@@ -50,6 +53,7 @@ export default function Button ({
       data-tooltip-id={dataFor}
       data-testid={dataTestId}
       aria-label={name || label}
+      aria-disabled={ariaDisabled || undefined}
     >
       {label || children}
     </div>
@@ -69,5 +73,6 @@ Button.propTypes = {
   noDefaultStyles: bool,
   onClick: func,
   disabled: bool,
+  ariaDisabled: bool,
   className: string
 }

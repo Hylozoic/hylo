@@ -5,7 +5,14 @@ import reducer, {
   REMOVE_ATTACHMENT,
   SWITCH_ATTACHMENTS,
   getUploadAttachmentPending,
-  defaultState
+  defaultState,
+  CHAT_ID_FOR_NEW,
+  ID_FOR_NEW,
+  addAttachment,
+  attachmentsFromUrls,
+  getAttachments,
+  makeAttachmentKey,
+  uploadTargetId
 } from './AttachmentManager.store'
 import { UPLOAD_ATTACHMENT } from 'store/constants'
 
@@ -151,5 +158,27 @@ describe('AttachmentManager store', () => {
 
       expect(getUploadAttachmentPending(state, { type: props.type, id: props.id })).toEqual(true)
     })
+  })
+})
+
+describe('chat attachment bucket', () => {
+  it('keeps chat attachments apart from a new post\'s', () => {
+    expect(makeAttachmentKey('post', CHAT_ID_FOR_NEW)).not.toEqual(makeAttachmentKey('post', ID_FOR_NEW))
+
+    const chatImage = { url: 'chat.png', attachmentType: 'image' }
+    const state = { AttachmentManager: reducer(defaultState, addAttachment('post', CHAT_ID_FOR_NEW, chatImage)) }
+
+    expect(getAttachments(state, { type: 'post', id: CHAT_ID_FOR_NEW, attachmentType: 'image' })).toEqual([chatImage])
+    expect(getAttachments(state, { type: 'post', attachmentType: 'image' })).toEqual([])
+  })
+
+  it('uploads chat attachments as a new post', () => {
+    expect(uploadTargetId(CHAT_ID_FOR_NEW)).toEqual(ID_FOR_NEW)
+    expect(uploadTargetId('123')).toEqual('123')
+  })
+
+  it('builds store attachments from draft urls', () => {
+    expect(attachmentsFromUrls(['a.png', null], 'image')).toEqual([{ url: 'a.png', attachmentType: 'image' }])
+    expect(attachmentsFromUrls(undefined, 'file')).toEqual([])
   })
 })

@@ -4,9 +4,10 @@ import { throttle, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import { SendHorizontal } from 'lucide-react'
+import { toast } from 'sonner'
 import { sendIsTyping } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
-import { addAttachment, getAttachments, clearAttachments } from 'components/AttachmentManager/AttachmentManager.store'
+import { addAttachment, getAttachments, clearAttachments, setAttachments } from 'components/AttachmentManager/AttachmentManager.store'
 import Button from 'components/ui/button'
 import HyloEditor from 'components/HyloEditor'
 import Icon from 'components/Icon'
@@ -17,7 +18,8 @@ import getMe from 'store/selectors/getMe'
 import { cn, inIframe } from 'util/index'
 import { STARTED_TYPING_INTERVAL } from 'util/constants'
 import { useSelector, useDispatch } from 'react-redux'
-import useDraft, { hasDraftContent } from 'hooks/useDraft'
+import useDraft, { hasDraftContent, keepAsDraftUnlessPresent } from 'hooks/useDraft'
+import useEventCallback from 'hooks/useEventCallback'
 import { isMobileDevice } from 'util/mobile'
 
 import classes from './CommentForm.module.scss'
@@ -55,6 +57,7 @@ const CommentForm = forwardRef(function CommentForm ({
   const commentEditorInitialHtmlRef = useRef({ postId: null, html: null })
 
   const [isFocused, setIsFocused] = useState(false)
+  const [hasText, setHasText] = useState(hasDraftContent(editorContent))
   const hasUserInteracted = useRef(false)
   const mountTime = useRef(Date.now())
   /** True after the editor has had visible text this visit — delete server draft when cleared. */
@@ -68,6 +71,7 @@ const CommentForm = forwardRef(function CommentForm ({
   const sendIsTypingAction = useCallback((isTyping) => sendIsTyping(postId, isTyping), [postId])
   const addAttachmentAction = useCallback(attachment => dispatch(addAttachment('comment', 'new', attachment)), [dispatch])
   const clearAttachmentsAction = useCallback(() => dispatch(clearAttachments('comment')), [dispatch])
+  const handleUploadError = useCallback(() => toast.error(t('Couldn\'t upload that file. Please try again.')), [t])
 
   useEffect(() => {
     commentComposerHadContentRef.current = false
@@ -89,6 +93,7 @@ const CommentForm = forwardRef(function CommentForm ({
     if (!isLoaded) return
     const draft = editorContent ?? commentEditorInitialHtmlRef.current.html ?? ''
     draftRef.current = draft
+    setHasText(hasDraftContent(draft))
     if (editor.current) {
       editor.current.setContent(draft)
     }
@@ -97,6 +102,53 @@ const CommentForm = forwardRef(function CommentForm ({
   const startTyping = useCallback(throttle(STARTED_TYPING_INTERVAL, () => {
     sendIsTypingAction(true)
   }), [])
+
+  /** True while this form is still open on the post a comment was sent to. */
+  const isStillOnPost = useEventCallback(target => !!editor.current && String(target.postId) === String(postId))
+
+  /**
+   * Puts a comment that failed to send back into the composer (unless something
+   * new has been typed there), re-saves its draft and offers a retry. After the
+   * form has moved to another post, or closed, the comment is kept as its own
+   * post's draft instead.
+   */
+  const handleCommentFailed = useEventCallback((text, submittedAttachments, target) => {
+    const stillOnPost = isStillOnPost(target)
+    const composerIsEmpty = stillOnPost && editor.current.isEmpty()
+    if (composerIsEmpty) {
+      editor.current.setContent(text)
+      draftRef.current = text
+      setHasText(hasDraftContent(text))
+      commentComposerHadContentRef.current = true
+      dispatch(setAttachments('comment', 'new', 'image', submittedAttachments))
+      // Forced: the send already deleted the server draft, but a failed optimistic
+      // comment rolls the local copy back, which would dedupe a plain save away
+      flushSaveDraft(text, { force: true })
+    } else if (!stillOnPost) {
+      keepAsDraftUnlessPresent(dispatch, { type: 'comment', postId: target.postId, navigateTo: target.navigateTo }, text)
+    }
+
+    toast.error(t('Your comment couldn\'t be sent'), {
+      action: {
+        label: t('Try Again'),
+        onClick: () => retryComment(text, submittedAttachments, target, composerIsEmpty)
+      }
+    })
+  })
+
+  const retryComment = useEventCallback((text, submittedAttachments, target, restoredToComposer) => {
+    if (restoredToComposer && isStillOnPost(target)) {
+      handleSubmit(editor.current.getHTML())
+    } else {
+      sendComment(text, submittedAttachments, target)
+    }
+  })
+
+  /** Sends through the post's own createComment, since this form may move to another post before it settles. */
+  const sendComment = useEventCallback((text, submittedAttachments, target = { postId, createComment, navigateTo: pathname }) => {
+    Promise.resolve(target.createComment({ text, attachments: submittedAttachments }))
+      .catch(() => handleCommentFailed(text, submittedAttachments, target))
+  })
 
   const handleSubmit = useCallback(contentHTML => {
     if (editor?.current && isEmpty(attachments) && editor.current.isEmpty()) {
@@ -107,17 +159,18 @@ const CommentForm = forwardRef(function CommentForm ({
     editor.current.clearContent()
     startTyping.cancel()
     sendIsTypingAction(false)
-    createComment({ text: contentHTML, attachments })
+    sendComment(contentHTML, attachments)
     clearAttachmentsAction()
     draftRef.current = ''
     commentComposerHadContentRef.current = false
     clearDraft()
 
     return true
-  }, [attachments, clearAttachmentsAction, clearDraft, createComment, sendIsTypingAction, startTyping])
+  }, [attachments, clearAttachmentsAction, clearDraft, sendComment, sendIsTypingAction, startTyping])
 
   const handleEditorUpdate = useCallback(async (html) => {
     startTyping()
+    setHasText(hasDraftContent(html))
     if (hasDraftContent(html)) {
       commentComposerHadContentRef.current = true
       draftRef.current = html
@@ -260,7 +313,8 @@ const CommentForm = forwardRef(function CommentForm ({
                     size='icon'
                     onClick={() => handleSubmit(editor.current.getHTML())}
                     className='bg-selected text-foreground hover:scale-102 focus-visible:outline-none'
-                    tooltip={t('You need to include text to post a comment')}
+                    tooltip={hasText || attachments.length > 0 ? t('Send') : t('You need to include text to post a comment')}
+                    aria-label={t('Send')}
                   >
                     <SendHorizontal size={18} color='white' />
                   </Button>
@@ -270,6 +324,7 @@ const CommentForm = forwardRef(function CommentForm ({
                   id='new'
                   allowMultiple
                   onSuccess={addAttachmentAction}
+                  onError={handleUploadError}
                   customRender={renderProps => (
                     <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
                   )}
@@ -278,7 +333,7 @@ const CommentForm = forwardRef(function CommentForm ({
               )}
         </div>
         {currentUser && (
-          <AttachmentManager type='comment' id='new' attachmentType='image' />
+          <AttachmentManager type='comment' id='new' attachmentType='image' onUploadError={handleUploadError} />
         )}
       </div>
       <p className='text-xs text-foreground/50 text-end'>

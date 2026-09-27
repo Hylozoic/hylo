@@ -31,6 +31,7 @@ export function hasPostDraftPayloadContent (data) {
   if ((obj.donationsLink || '').trim().length > 0) return true
   if ((obj.projectManagementLink || '').trim().length > 0) return true
   if (obj.startTime || obj.endTime) return true
+  if (obj.imageUrls?.length > 0 || obj.fileUrls?.length > 0) return true
   return false
 }
 
@@ -75,6 +76,28 @@ function draftDedupeKey (data) {
     // Opaque string (e.g. comment HTML)
   }
   return str
+}
+
+const DRAFT_CONTEXT_KEYS = ['type', 'postId', 'groupId', 'topicId', 'messageThreadId', 'postType', 'isEdit']
+
+const sameDraftContext = (a, b) => DRAFT_CONTEXT_KEYS.every(key => a?.[key] === b?.[key])
+
+/**
+ * Saves `data` as the draft for `context` unless the server already holds one
+ * there. For content whose composer has since moved on to another context.
+ */
+export async function keepAsDraftUnlessPresent (dispatch, context, data) {
+  const { type, postId, groupId, topicId, messageThreadId, postType, isEdit = false, navigateTo } = context
+  try {
+    const existing = await dispatch(fetchDraft({ type, postId, groupId, topicId, messageThreadId, postType, isEdit }))
+    if (existing?.payload?.data?.draft) return
+    await dispatch(saveDraftAction({ type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }))
+    window.dispatchEvent(new Event('hylo:drafts-changed'))
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[useDraft] keeping draft failed:', err)
+    }
+  }
 }
 
 /**
@@ -170,6 +193,8 @@ export default function useDraft ({
     // Empty / non-persistable payload: drop any pending debounced save so a
     // previous timer cannot fire after the user clears the composer (e.g.
     // message draft after deleting to one character then clearing).
+    // The context is the one the content was written in: the composer may
+    // have moved on (another chat room or post) before the timer fires.
     const ctx = contextRef.current
     if (!shouldPersistDraftPayload(ctx.type, serialised)) {
       pendingSaveRef.current = null
@@ -183,12 +208,10 @@ export default function useDraft ({
       const payload = pendingSaveRef.current
       const dedupeKey = draftDedupeKey(payload)
       if (!payload || dedupeKey === lastSavedDedupeKeyRef.current) return
-      const ctxForPayload = contextRef.current
-      if (!shouldPersistDraftPayload(ctxForPayload.type, payload)) return
+      if (!shouldPersistDraftPayload(ctx.type, payload)) return
       isSavingRef.current = true
 
       try {
-        const ctx = contextRef.current
         const variables = {
           type: ctx.type,
           data: payload,
@@ -202,11 +225,12 @@ export default function useDraft ({
         }
         const result = await dispatch(saveDraftAction(variables))
         const draft = result?.payload?.data?.saveDraft
-        if (draft?.id) {
+        const stillInContext = sameDraftContext(ctx, contextRef.current)
+        if (draft?.id && stillInContext) {
           activeDraftIdRef.current = draft.id
         }
         if (draft?.id || draft?.data != null) {
-          lastSavedDedupeKeyRef.current = dedupeKey
+          if (stillInContext) lastSavedDedupeKeyRef.current = dedupeKey
           window.dispatchEvent(new Event('hylo:drafts-changed'))
         }
       } catch (err) {
