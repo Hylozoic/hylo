@@ -23,6 +23,10 @@ describe('invitation actions', () => {
     expect(selectedFields(graphql.query, 'useInvitation')).toEqual(expect.arrayContaining(['membership', 'requiresApproval', 'groupSlug']))
   })
 
+  it('acceptInvitation leaves analytics to the caller, which knows whether anyone joined', () => {
+    expect(acceptInvitation({ invitationToken: 'member-token' }).meta.analytics).toBeUndefined()
+  })
+
   it('createJoinRequest sends the invitation token only when given one', () => {
     const withToken = createJoinRequest('1', [], 'member-token')
     const withoutToken = createJoinRequest('1', [])

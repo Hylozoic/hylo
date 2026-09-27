@@ -1,10 +1,17 @@
 import React from 'react'
 import userEvent from '@testing-library/user-event'
 import { graphql, HttpResponse } from 'msw'
+import { AnalyticsEvents } from '@hylo/shared'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import ManageInvitesTab from './ManageInvitesTab'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => {
+  const actual = jest.requireActual('store/actions/trackAnalyticsEvent')
+  return { __esModule: true, default: jest.fn(actual.default) }
+})
 
 jest.mock('./ManageInvitesTab.store', () => ({
   ...jest.requireActual('./ManageInvitesTab.store'),
@@ -56,6 +63,8 @@ describe('ManageInvitesTab accepting an invitation', () => {
     )
   }
 
+  beforeEach(() => trackAnalyticsEvent.mockClear())
+
   afterEach(() => {
     window.history.pushState({}, '', '/')
   })
@@ -71,6 +80,7 @@ describe('ManageInvitesTab accepting an invitation', () => {
     await waitFor(() => {
       expect(window.location.pathname + window.location.search).toBe('/groups/garden/about?token=invite-token')
     })
+    expect(trackAnalyticsEvent).not.toHaveBeenCalled()
   })
 
   it('opens the group once the invitation has made the person a member', async () => {
@@ -89,5 +99,6 @@ describe('ManageInvitesTab accepting an invitation', () => {
     await waitFor(() => {
       expect(window.location.pathname + window.location.search).toBe('/groups/garden')
     })
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith(AnalyticsEvents.GROUP_INVITATION_ACCEPTED)
   })
 })

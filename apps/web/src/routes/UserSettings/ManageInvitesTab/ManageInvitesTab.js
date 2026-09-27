@@ -5,12 +5,14 @@ import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { formatLocalizedDate } from 'util/dateFormat'
 import { CircleOff } from 'lucide-react'
+import { AnalyticsEvents } from '@hylo/shared'
 import GroupButton from 'components/GroupButton'
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
 import { currentUserSettingsUrl, personUrl, groupUrl, spaceHomeUrl } from '@hylo/navigation'
 import acceptInvitation from 'store/actions/acceptInvitation'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { FETCH_MY_REQUESTS_AND_INVITES } from 'store/constants'
 import { isSpaceGroup } from 'store/selectors/getMyGroups'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -60,7 +62,8 @@ function ManageInvitesTab () {
     }
     dispatch(acceptInvitation({ invitationToken }))
       .then(result => {
-        const { requiresApproval, groupSlug } = result?.payload?.data?.useInvitation || {}
+        const { membership, requiresApproval, groupSlug } = result?.payload?.data?.useInvitation || {}
+        if (membership) dispatch(trackAnalyticsEvent(AnalyticsEvents.GROUP_INVITATION_ACCEPTED))
         // A member's invitation to a group that approves new people: request to join from its about page
         dispatch(push(requiresApproval && groupSlug
           ? `${groupUrl(groupSlug, 'about')}?token=${encodeURIComponent(invitationToken)}`
