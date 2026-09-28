@@ -1,5 +1,6 @@
 import { get } from 'lodash/fp'
 import { CHECK_LOGIN } from 'store/constants'
+import { SESSION_CHECK_TIMEOUT_MS } from 'store/middleware/apiMiddleware'
 
 export default function checkLogin () {
   return {
@@ -36,6 +37,7 @@ export default function checkLogin () {
       `
     },
     meta: {
+      timeout: SESSION_CHECK_TIMEOUT_MS,
       extractModel: [
         {
           getRoot: get('me'),
