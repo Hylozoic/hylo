@@ -177,6 +177,72 @@ describe('RoleList', () => {
       expect(screen.getByText('Common roles cannot have their responsibilities edited')).toBeInTheDocument()
     })
   })
+
+  const roleListProps = {
+    clearStewardSuggestions: jest.fn(),
+    fetchStewardSuggestions: jest.fn(),
+    roleId: '1',
+    slug: 'foogroup',
+    suggestions: [],
+    isSystemRole: true,
+    group: { id: 1 },
+    availableResponsibilities: []
+  }
+  const holders = {
+    data: {
+      group: {
+        id: 1,
+        members: {
+          hasMore: false,
+          items: [
+            { id: '11', name: 'Ada Admin', avatarUrl: '', groupRoles: { items: [] } },
+            { id: '12', name: 'Bo Builder', avatarUrl: '', groupRoles: { items: [] } }
+          ]
+        }
+      },
+      responsibilities: []
+    }
+  }
+
+  it('shows a loading line until the role holders arrive, then lists them', async () => {
+    mockGraphqlServer.use(
+      graphql.query('fetchGroupRoleDetails', () => HttpResponse.json(holders))
+    )
+
+    render(<RoleList {...roleListProps} />, { wrapper: AllTheProviders() })
+
+    expect(screen.getByTestId('role-details-loading')).toBeInTheDocument()
+    expect(await screen.findByText('Ada Admin')).toBeInTheDocument()
+    expect(screen.getByText('Bo Builder')).toBeInTheDocument()
+    expect(screen.queryByTestId('role-details-loading')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('role-details-error')).not.toBeInTheDocument()
+  })
+
+  it('says when the role holders could not be loaded, and loads them on Try Again', async () => {
+    let calls = 0
+    mockGraphqlServer.use(
+      graphql.query('fetchGroupRoleDetails', () => {
+        calls += 1
+        return calls === 1
+          ? HttpResponse.json({ error: 'unavailable' }, { status: 503 })
+          : HttpResponse.json(holders)
+      })
+    )
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+    render(<RoleList {...roleListProps} />, { wrapper: AllTheProviders() })
+
+    const error = await screen.findByTestId('role-details-error')
+    expect(error).toHaveTextContent("Couldn't load this role's members and responsibilities.")
+    expect(screen.queryByText('Ada Admin')).not.toBeInTheDocument()
+
+    await userEvent.click(within(error).getByRole('button', { name: 'Try Again' }))
+
+    expect(await screen.findByText('Ada Admin')).toBeInTheDocument()
+    expect(screen.queryByTestId('role-details-error')).not.toBeInTheDocument()
+    expect(calls).toBe(2)
+    consoleError.mockRestore()
+  })
 })
 
 describe('AddMemberToRole', () => {
