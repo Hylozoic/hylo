@@ -7,6 +7,7 @@ import RedisPubSub from '../services/RedisPubSub'
 import makeSchema from './makeSchema'
 import { createGroupVisibilityLoader } from './filters'
 import sentry from '../../lib/sentry'
+import { touchLastActiveAt } from './touchLastActiveAt'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
 
@@ -80,10 +81,8 @@ export const yoga = createYoga({
       sails.log.info(`[auth] graphql context op=${opName || '?'} currentUserId=${req.session.userId} viaToken=${!!req.api_client} hasCookieHeader=${!!req.headers.cookie}`)
     }
 
-    // Update user last active time unless this is an oAuth login
-    if (req.session.userId && !req.api_client) {
-      await User.query().where({ id: req.session.userId }).update({ last_active_at: new Date() })
-    }
+    // oAuth clients are skipped inside touchLastActiveAt
+    touchLastActiveAt(req)
 
     // This is unrelated to the above which is using context as a hook,
     // this is putting the subscriptions pubSub method on context
