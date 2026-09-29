@@ -19,7 +19,7 @@ describe('InvitationService.check: who invited the person', () => {
     await member.joinGroup(group)
   })
 
-  it("names the steward who sent an email invitation, with only their id, name and avatar", async () => {
+  it('names the steward who sent an email invitation, with only their id, name and avatar', async () => {
     const invitation = await Invitation.create({ userId: steward.id, groupId: group.id, email: 'invitee@inviter-check.com' })
     const check = await InvitationService.check(invitation.get('token'))
     expect(check).to.include({ valid: true, groupSlug: group.get('slug'), requiresApproval: false })
@@ -33,7 +33,7 @@ describe('InvitationService.check: who invited the person', () => {
     expect(check.invitedBy).to.be.null
   })
 
-  it("names the member whose personal invite link it is", async () => {
+  it('names the member whose personal invite link it is', async () => {
     await withFeatureFlag('MEMBER_INVITES', 'on', async () => {
       await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
       const link = await MemberInviteLink.findOrCreate({ groupId: group.id, userId: member.id })
