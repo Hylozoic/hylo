@@ -4,8 +4,9 @@ import { getLocaleStrings } from '../../../lib/i18n/locales'
 import InvitationService from '../../services/InvitationService'
 
 /**
- * Personal email invitations from someone with limited invite access: no roles,
- * no existing Hylo people by id, and top-level groups only.
+ * Personal invitations from someone with limited invite access: no roles, top-level
+ * groups only, and existing Hylo people by id only while the member people picker
+ * is switched on.
  */
 async function createLimitedInvitations (userId, group, data, localeStrings) {
   if (group.get('type') === 'space' || group.get('parent_id')) {
@@ -14,13 +15,14 @@ async function createLimitedInvitations (userId, group, data, localeStrings) {
   if (data.groupRoleId || data.assignAdministrator) {
     throw new GraphQLError("You don't have permission to invite people with a role")
   }
-  if (!isEmpty(data.userIds)) {
+  if (!isEmpty(data.userIds) && !InvitationService.memberPickerEnabled()) {
     throw new GraphQLError('You can only invite people by email address')
   }
   const invitations = await InvitationService.createLimited({
     sessionUserId: userId,
     groupId: group.id,
     emails: data.emails,
+    userIds: data.userIds,
     message: localeStrings.createInvitationMessage(group.get('name')),
     subject: localeStrings.createInvitationSubject(group.get('name'))
   })

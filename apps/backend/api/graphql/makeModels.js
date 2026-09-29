@@ -610,8 +610,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       filter: nonAdminFilter(apiFilter(personFilter(userId))),
       isDefaultTypeForTable: true,
-      fetchMany: ({ boundingBox, first, order, sortBy, offset, search, autocomplete, groupIds, filter, excludeGroupId }) =>
+      fetchMany: ({ boundingBox, first, order, sortBy, offset, search, autocomplete, groupIds, filter, excludeGroupId, sharedGroupsOnly }) =>
         searchQuerySet('users', {
+          sharedWithUserId: sharedGroupsOnly ? userId : undefined,
           boundingBox,
           term: search,
           limit: first,

@@ -312,7 +312,9 @@ type Query {
     # Return People where the search term matches the name, bio or skills on their profile
     search: String,
     # Leave out active members of this group (and the Axolotl), for inviting people to it
-    excludeGroupId: ID
+    excludeGroupId: ID,
+    # Only return People who share an active group with the current user
+    sharedGroupsOnly: Boolean
   ): PersonQuerySet
 
   # Find a Person by ID or by email
@@ -3453,7 +3455,7 @@ type Mutation {
   # Reorder a Post within a View
   reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
 
-  # Invite email addresses and/or existing people to join a Group. With 'limited' invite access: email addresses only, up to 10 at a time and within the daily allowance (fails with 'invite-limit' otherwise)
+  # Invite email addresses and/or existing people to join a Group. With 'limited' invite access: email addresses, and people who share a group with the sender while the member people picker is switched on (in-app notification only), up to 10 at a time and within the daily allowance (fails with 'invite-limit' otherwise)
   createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
   # Ask to join a Group. invitationToken: a member's invitation to this group, so stewards see who invited the person (otherwise a pending member invitation to the person's email address is used)
   createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput], invitationToken: String): CreatedRequest
@@ -4267,7 +4269,7 @@ input InappropriateContentInput {
 
 input InviteInput {
   emails: [String]
-  # Existing Hylo users to invite by id (their account email is used)
+  # Existing Hylo users to invite by id (their account email is used). With 'limited' invite access they are notified in the app only
   userIds: [ID]
   # Assign Administrator system role when the invitation is used
   assignAdministrator: Boolean

@@ -2,7 +2,7 @@
 const root = require('root-path')
 require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
-const { mockify } = require(root('test/setup/helpers'))
+const { mockify, unspyify } = require(root('test/setup/helpers'))
 const InvitationService = require(root('api/services/InvitationService'))
 
 describe('InvitationService', () => {
@@ -386,6 +386,115 @@ describe('InvitationService', () => {
       const ids = await peopleIds({})
       expect(ids).to.include.members([String(outsider.id), String(member.id), String(axolotl.id)])
     })
+
+    it('finds only people who share an active group with someone, when asked', async () => {
+      const searcher = await factories.user().save()
+      const sharedGroup = await factories.group().save()
+      const formerGroup = await factories.group().save()
+      const neighbour = await factories.user().save()
+      const formerNeighbour = await factories.user().save()
+      await searcher.joinGroup(sharedGroup)
+      await neighbour.joinGroup(sharedGroup)
+      await searcher.joinGroup(formerGroup)
+      await formerNeighbour.joinGroup(formerGroup)
+      await formerGroup.removeMembers([formerNeighbour.id])
+
+      const ids = await peopleIds({ sharedWithUserId: searcher.id })
+      expect(ids).to.include(String(neighbour.id))
+      expect(ids).to.not.include(String(formerNeighbour.id))
+      expect(ids).to.not.include(String(outsider.id))
+    })
+  })
+
+  describe('members inviting people from the people search', () => {
+    let pickGroup, sender, sharedGroup, neighbour, existingMember, alreadyInvited, blockedPerson, stranger, queued
+
+    const notifications = readerId => Activity.where({ reader_id: readerId, group_id: pickGroup.id }).fetchAll()
+    const ledgerTotal = async userId => {
+      const row = await bookshelf.knex('invitation_sends').where({ user_id: userId }).sum('recipients as total').first()
+      return Number(row.total || 0)
+    }
+
+    before(async () => {
+      pickGroup = await factories.group().save()
+      sharedGroup = await factories.group().save()
+      sender = await factories.user().save()
+      await sender.joinGroup(pickGroup)
+      await sender.joinGroup(sharedGroup)
+      neighbour = await factories.user().save()
+      existingMember = await factories.user().save()
+      alreadyInvited = await factories.user().save()
+      blockedPerson = await factories.user().save()
+      stranger = await factories.user().save()
+      for (const person of [neighbour, existingMember, alreadyInvited, blockedPerson]) {
+        await person.joinGroup(sharedGroup)
+      }
+      await existingMember.joinGroup(pickGroup)
+      await Invitation.create({ userId: inviter.id, groupId: pickGroup.id, email: alreadyInvited.get('email') })
+      await BlockedUser.create(blockedPerson.id, sender.id)
+      queued = []
+      mockify(Queue, 'classMethod', (cls, method, data) => Promise.resolve(queued.push([cls, method, data])))
+    })
+
+    it('invites only people who share a group with the sender, in the app and not by email, and says the same for everyone', async () => {
+      const picked = [neighbour, existingMember, alreadyInvited, blockedPerson, sender].map(person => String(person.id))
+      const results = await InvitationService.createLimitedForUsers({
+        sessionUserId: sender.id,
+        groupId: pickGroup.id,
+        userIds: [...picked, String(stranger.id), String(neighbour.id)],
+        subject: 'Join us',
+        message: 'Come along'
+      })
+
+      expect(results).to.deep.equal([
+        ...picked.map(userId => ({ userId, status: 'sent' })),
+        { userId: String(stranger.id), error: 'invalid' }
+      ])
+      const invitations = await Invitation.where({ group_id: pickGroup.id, invited_by_id: sender.id }).fetchAll()
+      expect(invitations.map(i => [i.get('email'), i.get('inviter_access'), i.get('sent_count')])).to.deep.equal([
+        [neighbour.get('email').toLowerCase(), 'limited', 0]
+      ])
+      expect(queued.filter(([cls]) => cls === 'Invitation')).to.have.lengthOf(0)
+      expect(await ledgerTotal(sender.id)).to.equal(5)
+      expect((await notifications(neighbour.id)).length).to.equal(1)
+      for (const person of [existingMember, alreadyInvited, blockedPerson, stranger]) {
+        expect((await notifications(person.id)).length).to.equal(0)
+      }
+    })
+
+    it('keeps to the same limits as email invitations', async () => {
+      const busySender = await factories.user().save()
+      await busySender.joinGroup(pickGroup)
+      await busySender.joinGroup(sharedGroup)
+      const people = []
+      for (let i = 0; i < 11; i++) {
+        const person = await factories.user().save()
+        await person.joinGroup(sharedGroup)
+        people.push(String(person.id))
+      }
+      await expect(InvitationService.createLimitedForUsers({ sessionUserId: busySender.id, groupId: pickGroup.id, userIds: people }))
+        .to.be.rejectedWith('You can invite up to 10 email addresses at a time')
+
+      await bookshelf.knex('invitation_sends').insert({ user_id: busySender.id, group_id: pickGroup.id, recipients: 20 })
+      await expect(InvitationService.createLimited({
+        sessionUserId: busySender.id,
+        groupId: pickGroup.id,
+        emails: ['one@picker-limits.com', 'two@picker-limits.com'],
+        userIds: people.slice(0, 4)
+      })).to.be.rejectedWith('invite-limit')
+      expect(await ledgerTotal(busySender.id)).to.equal(20)
+
+      const results = await InvitationService.createLimited({
+        sessionUserId: busySender.id,
+        groupId: pickGroup.id,
+        emails: ['one@picker-limits.com'],
+        userIds: people.slice(0, 4)
+      })
+      expect(results.filter(result => result.status === 'sent')).to.have.lengthOf(5)
+      expect(await InvitationSend.remainingAllowance({ userId: busySender.id, groupId: pickGroup.id })).to.equal(0)
+    })
+
+    after(() => unspyify(Queue, 'classMethod'))
   })
 
   describe('pending invitation lists', () => {

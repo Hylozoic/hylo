@@ -54,6 +54,20 @@ export default function (opts) {
       qb.whereNot('users.id', User.AXOLOTL_ID)
     }
 
+    // Only people who share an active group with this person
+    if (opts.sharedWithUserId) {
+      qb.whereExists(function () {
+        this.select(bookshelf.knex.raw(1)).from('group_memberships as shared_theirs')
+          .join('group_memberships as shared_mine', 'shared_mine.group_id', 'shared_theirs.group_id')
+          .join('groups as shared_group', 'shared_group.id', 'shared_theirs.group_id')
+          .whereRaw('shared_theirs.user_id = users.id')
+          .where('shared_theirs.active', true)
+          .where('shared_mine.user_id', opts.sharedWithUserId)
+          .where('shared_mine.active', true)
+          .where('shared_group.active', true)
+      })
+    }
+
     if (groups && groups.length > 1) {
       // prevent duplicates due to the joins
       if (opts.sort === 'join') {

@@ -228,6 +228,55 @@ describe('InviteSettingsTab with limited invite access', () => {
     expect(requests).toHaveLength(0)
   })
 
+  describe('with the member people picker switched on', () => {
+    let savedFlag
+
+    beforeEach(() => {
+      savedFlag = process.env.VITE_FEATURE_FLAG_MEMBER_INVITE_PICKER
+      process.env.VITE_FEATURE_FLAG_MEMBER_INVITE_PICKER = 'on'
+    })
+
+    afterEach(() => {
+      if (savedFlag === undefined) delete process.env.VITE_FEATURE_FLAG_MEMBER_INVITE_PICKER
+      else process.env.VITE_FEATURE_FLAG_MEMBER_INVITE_PICKER = savedFlag
+    })
+
+    it('searches only people who share a group with the member, and sends the people picked', async () => {
+      let peopleVariables
+      const requests = []
+      mockGraphqlServer.use(
+        graphql.operation(({ query, variables }) => {
+          if (query.includes('people (')) {
+            peopleVariables = variables
+            return HttpResponse.json({ data: { people: { hasMore: false, items: [{ id: '60', name: 'Robin Park', avatarUrl: null }] } } })
+          }
+          if (query.includes('createInvitation')) {
+            requests.push(variables)
+            return HttpResponse.json({ data: { createInvitation: { invitations: [{ id: null, email: null, createdAt: null, lastSentAt: null, error: null, status: 'sent' }] } } })
+          }
+          return HttpResponse.json({ data: {} })
+        })
+      )
+      renderLimited()
+
+      expect(screen.getByText('Invite people you know on Hylo')).toBeInTheDocument()
+      fireEvent.focus(screen.getByPlaceholderText('Search people...'))
+      fireEvent.click(await screen.findByText('Robin Park'))
+      fireEvent.click(screen.getByRole('button', { name: /Send Invite/i }))
+
+      expect(await screen.findByText('Invites sent to anyone not already in the group')).toBeInTheDocument()
+      expect(peopleVariables).toMatchObject({ excludeGroupId: '1', sharedGroupsOnly: true })
+      expect(requests[0].data).toEqual({ emails: [], userIds: ['60'], groupRoleId: null })
+    })
+  })
+
+  it('does not offer the people search to members while the picker is switched off', () => {
+    renderLimited()
+
+    expect(screen.queryByText('Invite people you know on Hylo')).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Search people...')).not.toBeInTheDocument()
+  })
+
   it('disables sending when no invites are left today', () => {
     renderLimited({ myInviteAllowance: 0 })
 

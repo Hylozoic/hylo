@@ -149,6 +149,31 @@ describe('member invitations', () => {
       expect(queuedInvitationIds()).to.deep.equal([])
     })
 
+    it('lets members invite people who share a group with them only while the people picker is switched on', async () => {
+      const group = await createGroup()
+      const member = await createMember(group)
+      const neighbourhood = await factories.group().save()
+      const neighbour = await factories.user().save()
+      await member.joinGroup(neighbourhood)
+      await neighbour.joinGroup(neighbourhood)
+
+      await expect(createInvitation(member.id, group.id, { userIds: [neighbour.id] }))
+        .to.be.rejectedWith('You can only invite people by email address')
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        await withFeatureFlag('MEMBER_INVITE_PICKER', 'on', async () => {
+          await expect(createInvitation(member.id, group.id, { userIds: [neighbour.id] })).to.be.rejectedWith(NO_PERMISSION)
+        })
+      })
+      expect(await invitesBy(member.id, group.id)).to.have.lengthOf(0)
+
+      const result = await withFeatureFlag('MEMBER_INVITE_PICKER', 'on', () =>
+        createInvitation(member.id, group.id, { userIds: [neighbour.id] }))
+      expect(result).to.deep.equal({ invitations: [{ userId: String(neighbour.id), status: 'sent' }] })
+      const invitations = await invitesBy(member.id, group.id)
+      expect(invitations.map(i => [i.get('email'), i.get('inviter_access')])).to.deep.equal([[neighbour.get('email').toLowerCase(), 'limited']])
+      expect(queuedInvitationIds()).to.deep.equal([])
+    })
+
     it('takes at most 10 different valid addresses at a time', async () => {
       const group = await createGroup()
       const member = await createMember(group)

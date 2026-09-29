@@ -17,10 +17,13 @@ import PeopleSelector from 'routes/Messages/PeopleSelector'
 import { cn } from 'util/index'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import { toast } from 'sonner'
+import { MEMBER_INVITE_PICKER } from 'config/featureFlags'
 import { INVITE_ACCESS } from 'store/constants'
 import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_TYPES, GROUP_VISIBILITY } from 'store/models/Group'
+import { hasFeature } from 'store/models/Me'
 import getMe from 'store/selectors/getMe'
+import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { regenerateAccessCode as regenerateAccessCodeAction } from '../GroupSettings.store'
 import {
@@ -59,6 +62,10 @@ function InviteSettingsTab (props) {
   const limited = inviteAccess === INVITE_ACCESS.limited
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
+  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
+  // Members may also pick people who share a group with them, while that is switched on
+  const limitedPicker = limited && memberInvitesEnabled && hasFeature(MEMBER_INVITE_PICKER)
+  const showPeopleSearch = !limited || limitedPicker
   const pendingCreateFromStore = useSelector(state => state.pending[CREATE_INVITATIONS])
   const pendingCreate = !!(props.pendingCreate || pendingCreateFromStore)
   const pendingPeople = useSelector(state => !!state.pending[FETCH_INVITEABLE_PEOPLE])
@@ -169,14 +176,15 @@ function InviteSettingsTab (props) {
       groupRoleIds: spaceRequiredRoleIds,
       autocomplete: search,
       first: INVITEABLE_PEOPLE_PAGE_SIZE,
-      offset: 0
+      offset: 0,
+      sharedGroupsOnly: limited
     }))
     if (gen !== peopleFetchGenRef.current) return
     const { items, hasMore } = parseInviteablePeopleResponse(response)
     peopleOffsetRef.current = INVITEABLE_PEOPLE_PAGE_SIZE
     setPeople(items)
     setHasMorePeople(!!hasMore)
-  }, [dispatch, group.id, isSpace, parentGroupId, parseInviteablePeopleResponse])
+  }, [dispatch, group.id, isSpace, limited, parentGroupId, parseInviteablePeopleResponse])
 
   /**
    * Appends the next page of inviteable people when the picker list is scrolled to the bottom.
@@ -192,7 +200,8 @@ function InviteSettingsTab (props) {
       groupRoleIds: spaceRequiredRoleIds,
       autocomplete: peopleSearchRef.current,
       first: INVITEABLE_PEOPLE_PAGE_SIZE,
-      offset
+      offset,
+      sharedGroupsOnly: limited
     }))
     if (gen !== peopleFetchGenRef.current) {
       loadingMorePeopleRef.current = false
@@ -206,7 +215,7 @@ function InviteSettingsTab (props) {
     })
     setHasMorePeople(!!hasMore)
     loadingMorePeopleRef.current = false
-  }, [dispatch, group.id, isSpace, parentGroupId, parseInviteablePeopleResponse])
+  }, [dispatch, group.id, isSpace, limited, parentGroupId, parseInviteablePeopleResponse])
 
   const fetchDefaultPeopleList = useCallback(() => {
     fetchPeopleForInvite('')
@@ -234,9 +243,12 @@ function InviteSettingsTab (props) {
     }
 
     const emailList = parseEmailList(emails).filter(Boolean)
-    if (limited && new Set(emailList.map(email => email.toLowerCase())).size > LIMITED_INVITES_PER_SEND) {
+    const userIds = showPeopleSearch ? selectedPeople.map(p => p.id) : []
+    if (limited && new Set(emailList.map(email => email.toLowerCase())).size + userIds.length > LIMITED_INVITES_PER_SEND) {
       setSuccessMessage('')
-      setErrorMessage(t('You can invite up to {{max}} email addresses at a time', { max: LIMITED_INVITES_PER_SEND }))
+      setErrorMessage(limitedPicker
+        ? t('You can invite up to {{max}} people at a time', { max: LIMITED_INVITES_PER_SEND })
+        : t('You can invite up to {{max}} email addresses at a time', { max: LIMITED_INVITES_PER_SEND }))
       return
     }
 
@@ -247,20 +259,19 @@ function InviteSettingsTab (props) {
       groupRoleId = parseInt(selectedRoleId, 10)
     }
 
-    const userIds = limited ? [] : selectedPeople.map(p => p.id)
     createInvitations(emailList, groupRoleId, userIds)
       .then(res => {
         sendingRef.current = false
         if (!res?.payload?.data?.createInvitation) return
         const { invitations } = res.payload.data.createInvitation
-        const badEmails = invitations.filter(email => email.error).map(e => e.email)
+        const badEmails = invitations.filter(invite => invite.error && invite.email).map(invite => invite.email)
 
         const numBad = badEmails.length
         let errorMessage, successMessage
         if (numBad > 0) {
           errorMessage = `${t('{{numBad}} invalid email address/es found (see above)).', { numBad })}{' '}`
         }
-        const numGood = invitations.length - badEmails.length
+        const numGood = invitations.filter(invite => !invite.error).length
         if (numGood > 0) {
           if (limited) {
             successMessage = t('Invites sent to anyone not already in the group')
@@ -466,13 +477,13 @@ function InviteSettingsTab (props) {
       )}
 
       <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-2 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
-        {!limited && (
+        {showPeopleSearch && (
           <>
             <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>
-              {t('Invite people on Hylo')}
+              {limited ? t('Invite people you know on Hylo') : t('Invite people on Hylo')}
             </h2>
             <span className='text-sm text-foreground/50'>
-              {isRoleGated && (
+              {!limited && isRoleGated && (
                 <p className='text-sm text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2'>
                   {t('Only members with one of the required roles will actually be able to join the space.')}{' '}
                   <a
@@ -485,9 +496,11 @@ function InviteSettingsTab (props) {
                   </a>
                 </p>
               )}
-              {isSpace
-                ? t('Search members of {{name}} who aren\'t already in this space.', { name: parentName || t('the group') })
-                : t('Search people you can see on Hylo.')}
+              {limited
+                ? t('Search people who share a group with you. They get a notification on Hylo instead of an email.')
+                : isSpace
+                  ? t('Search members of {{name}} who aren\'t already in this space.', { name: parentName || t('the group') })
+                  : t('Search people you can see on Hylo.')}
             </span>
             <PeopleSelector
               placeholder={isSpace
@@ -511,7 +524,7 @@ function InviteSettingsTab (props) {
             />
           </>
         )}
-        <h2 className={cn('text-lg font-bold mb-1 text-foreground', limited ? 'mt-0' : 'mt-4')}>
+        <h2 className={cn('text-lg font-bold mb-1 text-foreground', showPeopleSearch ? 'mt-4' : 'mt-0')}>
           {t('Send Invites via email')}
         </h2>
         {limited

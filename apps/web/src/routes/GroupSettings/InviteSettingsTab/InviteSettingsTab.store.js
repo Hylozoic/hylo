@@ -109,14 +109,16 @@ export const INVITEABLE_PEOPLE_PAGE_SIZE = 15
 /**
  * People who can be invited: people visible to the current user (personFilter) who are not
  * already members of the group, or (for spaces) parent-group members not already in the space.
- * Loads one page at a time.
+ * With sharedGroupsOnly (members with limited invite access), only people who share a group
+ * with the current user. Loads one page at a time.
  */
 export function fetchInviteablePeople ({
   groupId,
   parentGroupId,
   autocomplete = '',
   first = INVITEABLE_PEOPLE_PAGE_SIZE,
-  offset = 0
+  offset = 0,
+  sharedGroupsOnly = false
 }) {
   if (parentGroupId) {
     return {
@@ -154,8 +156,8 @@ export function fetchInviteablePeople ({
   return {
     type: FETCH_INVITEABLE_PEOPLE,
     graphql: {
-      query: `query ($autocomplete: String, $first: Int, $offset: Int, $excludeGroupId: ID) {
-        people (first: $first, offset: $offset, autocomplete: $autocomplete, sortBy: "name", order: "asc", excludeGroupId: $excludeGroupId) {
+      query: `query ($autocomplete: String, $first: Int, $offset: Int, $excludeGroupId: ID, $sharedGroupsOnly: Boolean) {
+        people (first: $first, offset: $offset, autocomplete: $autocomplete, sortBy: "name", order: "asc", excludeGroupId: $excludeGroupId, sharedGroupsOnly: $sharedGroupsOnly) {
           hasMore
           items {
             id
@@ -164,7 +166,7 @@ export function fetchInviteablePeople ({
           }
         }
       }`,
-      variables: { autocomplete, first, offset, excludeGroupId: groupId }
+      variables: { autocomplete, first, offset, excludeGroupId: groupId, sharedGroupsOnly }
     }
   }
 }

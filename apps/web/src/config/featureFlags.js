@@ -1,6 +1,9 @@
 export const PROJECT_CONTRIBUTIONS = 'PROJECT_CONTRIBUTIONS'
 // Members sending invitations: the "Who can add new members?" controls
 export const MEMBER_INVITES = 'MEMBER_INVITES'
+// Members inviting existing Hylo people from the people search. Off everywhere
+// unless VITE_FEATURE_FLAG_MEMBER_INVITE_PICKER is 'on', and only with MEMBER_INVITES
+export const MEMBER_INVITE_PICKER = 'MEMBER_INVITE_PICKER'
 
 // Flags that default to 'on' in development, test and staging, and to off in production
 const ON_OUTSIDE_PRODUCTION = [MEMBER_INVITES]

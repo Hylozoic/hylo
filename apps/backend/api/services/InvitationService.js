@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import validator from 'validator'
 import { TextHelpers } from '@hylo/shared'
 import { get, isEmpty, map, merge } from 'lodash/fp'
+import { MEMBER_INVITE_PICKER, isFeatureEnabled } from '../../lib/featureFlags'
 
 /**
  * Builds the public checkInvitation payload for a group, including parent
@@ -103,6 +104,125 @@ async function addressesAlreadyInGroup (groupId, emails, transacting) {
     .select(bookshelf.knex.raw('lower(email) as email'))
     .transacting(transacting)
   return new Set(members.concat(invited).map(row => row.email))
+}
+
+/**
+ * Which of these people share an active group with the sender, as a map from
+ * their id to their lowercased email address: the only people someone with
+ * limited invite access can pick from the people search.
+ */
+async function peopleSharingAGroup (senderId, userIds) {
+  const rows = await bookshelf.knex('users')
+    .whereIn('users.id', userIds)
+    .where('users.active', true)
+    .whereNotNull('users.email')
+    .whereExists(function () {
+      this.select(bookshelf.knex.raw(1)).from('group_memberships as theirs')
+        .join('group_memberships as mine', 'mine.group_id', 'theirs.group_id')
+        .join('groups as shared', 'shared.id', 'theirs.group_id')
+        .whereRaw('theirs.user_id = users.id')
+        .where('theirs.active', true)
+        .where('mine.user_id', senderId)
+        .where('mine.active', true)
+        .where('shared.active', true)
+    })
+    .select('users.id', bookshelf.knex.raw('lower(users.email) as email'))
+  return new Map(rows.map(row => [String(row.id), row.email]))
+}
+
+/**
+ * Invitations from someone with limited invite access, to email addresses
+ * and to people picked from the people search. Every valid address and
+ * person counts toward the daily allowance and is reported as sent, but
+ * nothing is sent to the sender, to active members, to anyone who already has
+ * a pending invitation to the group, or to someone the sender blocked or was
+ * blocked by, and the result does not say which. People picked from the
+ * search get an in-app notification only, never an email.
+ */
+async function createLimitedInvitations ({ sessionUserId, groupId, emails = [], userIds = [], subject, message }) {
+  const results = []
+  const addresses = []
+  for (const entry of emails || []) {
+    const typed = String(entry ?? '').trim()
+    if (!typed) continue
+    const email = typed.toLowerCase()
+    if (!validator.isEmail(email)) {
+      results.push({ email: typed, error: 'invalid' })
+    } else if (!addresses.includes(email)) {
+      addresses.push(email)
+      results.push({ email, status: 'sent' })
+    }
+  }
+  const pickedIds = []
+  for (const entry of userIds || []) {
+    const id = String(entry ?? '').trim()
+    if (id && !pickedIds.includes(id)) pickedIds.push(id)
+  }
+  if (addresses.length + pickedIds.length > InvitationSend.LIMITS.perSend) {
+    throw new GraphQLError(`You can invite up to ${InvitationSend.LIMITS.perSend} email addresses at a time`)
+  }
+
+  const reachable = pickedIds.length > 0 ? await peopleSharingAGroup(sessionUserId, pickedIds) : new Map()
+  for (const id of pickedIds) {
+    results.push(reachable.has(id) ? { userId: id, status: 'sent' } : { userId: id, error: 'invalid' })
+  }
+  const people = pickedIds.filter(id => reachable.has(id))
+  if (addresses.length + people.length === 0) return results
+
+  const inviter = await User.find(sessionUserId)
+  const blocked = new Set()
+  if (people.length > 0) {
+    const { rows } = await BlockedUser.blockedFor(sessionUserId)
+    rows.forEach(row => blocked.add(String(row.user_id)))
+  }
+  const { emailInvitations, personInvitations } = await bookshelf.transaction(async transacting => {
+    await InvitationSend.lockAllowance({ userId: sessionUserId, groupId }, { transacting })
+    const remaining = await InvitationSend.remainingAllowance({ userId: sessionUserId, groupId }, { transacting })
+    const counted = addresses.length + people.length
+    if (counted > remaining) throw new GraphQLError('invite-limit')
+    await InvitationSend.record({ userId: sessionUserId, groupId, recipients: counted }, { transacting })
+
+    const skipped = await addressesAlreadyInGroup(groupId, addresses.concat(people.map(id => reachable.get(id))), transacting)
+    skipped.add((inviter.get('email') || '').toLowerCase())
+    // One invitation per address, whether it was typed or belongs to a picked person
+    const invite = async email => {
+      if (skipped.has(email)) return null
+      skipped.add(email)
+      return Invitation.create({
+        email,
+        userId: sessionUserId,
+        groupId,
+        subject,
+        message: TextHelpers.markdown(message, { disableAutolinking: true }),
+        inviterAccess: Invitation.InviterAccess.LIMITED
+      }, { transacting })
+    }
+
+    const emailInvitations = []
+    for (const email of addresses) {
+      const invitation = await invite(email)
+      if (invitation) emailInvitations.push(invitation)
+    }
+    const personInvitations = []
+    for (const id of people) {
+      const invitation = blocked.has(id) ? null : await invite(reachable.get(id))
+      if (invitation) personInvitations.push({ inviteeId: id, invitation })
+    }
+    return { emailInvitations, personInvitations }
+  })
+
+  await Promise.map(emailInvitations, invitation =>
+    Queue.classMethod('Invitation', 'createAndSend', { invitation })
+      .catch(err => console.error('Error queueing invitation email', err)))
+
+  if (personInvitations.length > 0) {
+    const group = await Group.find(groupId)
+    await Promise.map(personInvitations, ({ inviteeId }) =>
+      notifyExistingUser({ actorId: sessionUserId, invitee: { id: inviteeId }, group })
+        .catch(err => console.error('Error creating invitation notification', err)))
+  }
+
+  return results
 }
 
 module.exports = {
@@ -277,61 +397,27 @@ module.exports = {
   },
 
   /**
-   * Send personal email invitations from someone with limited invite access.
-   * Addresses are trimmed, lowercased and deduplicated. Every valid address
-   * counts toward the daily allowance and is reported as sent, but nothing is
-   * sent to the sender, to active members, or to anyone who already has a
-   * pending invitation to the group, and the result does not say which.
-   * @returns {Object[]} { email, status: 'sent' } or { email, error: 'invalid' } for each address
+   * Send personal email invitations from someone with limited invite access,
+   * and, with userIds, invite people they picked from the people search (see
+   * createLimitedInvitations). Addresses are trimmed, lowercased and
+   * deduplicated.
+   * @returns {Object[]} { email, status: 'sent' } or { email, error: 'invalid' } for each address,
+   *   and { userId, status: 'sent' } or { userId, error: 'invalid' } for each person
    */
-  createLimited: async ({ sessionUserId, groupId, emails, subject, message }) => {
-    const results = []
-    const addresses = []
-    for (const entry of emails || []) {
-      const typed = String(entry ?? '').trim()
-      if (!typed) continue
-      const email = typed.toLowerCase()
-      if (!validator.isEmail(email)) {
-        results.push({ email: typed, error: 'invalid' })
-      } else if (!addresses.includes(email)) {
-        addresses.push(email)
-        results.push({ email, status: 'sent' })
-      }
-    }
-    if (addresses.length > InvitationSend.LIMITS.perSend) {
-      throw new GraphQLError(`You can invite up to ${InvitationSend.LIMITS.perSend} email addresses at a time`)
-    }
-    if (addresses.length === 0) return results
+  createLimited: ({ sessionUserId, groupId, emails, userIds, subject, message }) =>
+    createLimitedInvitations({ sessionUserId, groupId, emails, userIds, subject, message }),
 
-    const inviter = await User.find(sessionUserId)
-    const invitations = await bookshelf.transaction(async transacting => {
-      await InvitationSend.lockAllowance({ userId: sessionUserId, groupId }, { transacting })
-      const remaining = await InvitationSend.remainingAllowance({ userId: sessionUserId, groupId }, { transacting })
-      if (addresses.length > remaining) throw new GraphQLError('invite-limit')
-      await InvitationSend.record({ userId: sessionUserId, groupId, recipients: addresses.length }, { transacting })
+  /**
+   * Invite people picked from the people search, from someone with limited
+   * invite access: only people who share an active group with them, within
+   * the same limits as email invitations, with an in-app notification and no
+   * email. Anyone already in the group or invited is left out without saying so.
+   */
+  createLimitedForUsers: ({ sessionUserId, groupId, userIds, subject, message }) =>
+    createLimitedInvitations({ sessionUserId, groupId, userIds, subject, message }),
 
-      const skipped = await addressesAlreadyInGroup(groupId, addresses, transacting)
-      skipped.add((inviter.get('email') || '').toLowerCase())
-      const created = []
-      for (const email of addresses.filter(address => !skipped.has(address))) {
-        created.push(await Invitation.create({
-          email,
-          userId: sessionUserId,
-          groupId,
-          subject,
-          message: TextHelpers.markdown(message, { disableAutolinking: true }),
-          inviterAccess: Invitation.InviterAccess.LIMITED
-        }, { transacting }))
-      }
-      return created
-    })
-
-    await Promise.map(invitations, invitation =>
-      Queue.classMethod('Invitation', 'createAndSend', { invitation })
-        .catch(err => console.error('Error queueing invitation email', err)))
-
-    return results
-  },
+  /** Whether people with limited invite access may pick people from the people search. */
+  memberPickerEnabled: () => GroupRole.memberInvitesEnabled() && isFeatureEnabled(MEMBER_INVITE_PICKER),
 
   /**
    *
