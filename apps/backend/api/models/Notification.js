@@ -222,6 +222,7 @@ module.exports = bookshelf.Model.extend({
       case 'fundingRoundReminder':
         return this.sendFundingRoundReminderPush()
       case 'reaction':
+      case 'eventRsvp':
         return this.sendSocialFeedbackPush()
       default:
         return Promise.resolve()

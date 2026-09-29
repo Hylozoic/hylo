@@ -265,4 +265,66 @@ describe('respondToEvent', () => {
       expect(eventInvitation.get('response')).to.equal(EventInvitation.RESPONSE.NO)
     })
   })
+  describe('notices to the host (D45)', () => {
+    let host, guests, event, group
+
+    const rsvpActivities = async () => (await Activity.query(q => {
+      q.where({ reader_id: host.id })
+      q.whereRaw("meta->'reasons' \\? 'eventRsvp'")
+      q.orderBy('id')
+    }).fetchAll()).models
+
+    before(async () => {
+      await setup.clearDb()
+      host = await factories.user().save()
+      guests = await Promise.all([1, 2].map(() => factories.user().save()))
+      group = await factories.group().save()
+      await group.addMembers([host, ...guests])
+      event = await factories.post({ type: Post.Type.EVENT, user_id: host.id, name: 'Picnic' }).save()
+      await group.posts().attach(event)
+    })
+
+    beforeEach(async () => {
+      spyify(Queue, 'classMethod', () => Promise.resolve())
+      await bookshelf.knex('notifications').del()
+      await bookshelf.knex('activities').del()
+      await bookshelf.knex('event_invitations').del()
+    })
+
+    afterEach(() => unspyify(Queue, 'classMethod'))
+
+    it('tells the host once per event, counting everyone who answers', async () => {
+      await respondToEvent(guests[0].id, event.id, EventInvitation.RESPONSE.YES)
+      await respondToEvent(guests[1].id, event.id, EventInvitation.RESPONSE.INTERESTED)
+
+      const activities = await rsvpActivities()
+      expect(activities.length).to.equal(1)
+      expect(activities[0].get('group_key')).to.equal(`eventRsvp:post:${event.id}`)
+      expect(activities[0].get('meta').actorCount).to.equal(2)
+      expect(activities[0].get('meta').response).to.equal(EventInvitation.RESPONSE.INTERESTED)
+
+      const media = (await Notification.where({ activity_id: activities[0].id }).fetchAll()).pluck('medium').sort()
+      expect(media).to.deep.equal([Notification.MEDIUM.InApp, Notification.MEDIUM.Push])
+    })
+
+    it('does not notify again when the same person changes their answer', async () => {
+      await respondToEvent(guests[0].id, event.id, EventInvitation.RESPONSE.YES)
+      await respondToEvent(guests[0].id, event.id, EventInvitation.RESPONSE.NO)
+      await respondToEvent(guests[0].id, event.id, EventInvitation.RESPONSE.INTERESTED)
+
+      const activities = await rsvpActivities()
+      expect(activities.length).to.equal(1)
+      expect(activities[0].get('meta').actorCount).to.equal(1)
+    })
+
+    it("does not notify for 'no'", async () => {
+      await respondToEvent(guests[0].id, event.id, EventInvitation.RESPONSE.NO)
+      expect(await rsvpActivities()).to.have.length(0)
+    })
+
+    it('does not notify the host about their own RSVP', async () => {
+      await respondToEvent(host.id, event.id, EventInvitation.RESPONSE.YES)
+      expect(await rsvpActivities()).to.have.length(0)
+    })
+  })
 })

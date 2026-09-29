@@ -83,7 +83,8 @@ const TODAY = {
 // Reasons added since the class table, with the channels their cards decided
 // (activity-notices: D15, D27, D44, D45, D46, D57)
 Object.assign(TODAY, {
-  reaction: ['push', 'inApp']
+  reaction: ['push', 'inApp'],
+  eventRsvp: ['push', 'inApp']
 })
 
 describe('signalClasses', () => {

@@ -114,6 +114,10 @@ exports.fr = {
     const verb = others > 0 ? 'ont réagi' : 'a réagi'
     return onComment ? `${who} ${verb} à votre commentaire sur « ${postName} »` : `${who} ${verb} à votre publication « ${postName} »`
   },
+  textForEventRsvp: ({ person, others, postName, response }) => {
+    if (others > 0) return `${person} et ${others} ${others === 1 ? 'autre personne ont' : 'autres personnes ont'} répondu à votre événement « ${postName} »`
+    return response === 'interested' ? `${person} est intéressé·e par votre événement « ${postName} »` : `${person} participera à votre événement « ${postName} »`
+  },
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} a soumis « ${post.summary()} » pour « ${fundingRoundTitle} »`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

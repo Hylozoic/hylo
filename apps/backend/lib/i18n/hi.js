@@ -110,8 +110,12 @@ exports.hi = {
   textForTrackEnrollment: ({ actor, trackName }) => `ट्रैक नामांकन: "${trackName}" में ${actor.get('name')} ने नामांकन लिया`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} ने ${groupName} में प्रस्ताव: "${postName}" के विकल्प बदल दिए। वोट रीसेट हो गए हैं`,
   textForReaction: ({ person, others, postName, onComment }) => {
-    const who = others > 0 ? `${person} और ${others} अन्य लोगों` : person
+    const who = others > 0 ? `${person} और ${others} ${others === 1 ? 'अन्य' : 'अन्य लोगों'}` : person
     return onComment ? `${who} ने "${postName}" पर आपकी टिप्पणी पर प्रतिक्रिया दी` : `${who} ने आपकी पोस्ट "${postName}" पर प्रतिक्रिया दी`
+  },
+  textForEventRsvp: ({ person, others, postName, response }) => {
+    if (others > 0) return `${person} और ${others} ${others === 1 ? 'अन्य' : 'अन्य लोगों'} ने आपके इवेंट "${postName}" का जवाब दिया`
+    return response === 'interested' ? `${person} आपके इवेंट "${postName}" में रुचि रखते हैं` : `${person} आपके इवेंट "${postName}" में आ रहे हैं`
   },
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} ने "${fundingRoundTitle}" के लिए "${post.summary()}" जमा किया`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {

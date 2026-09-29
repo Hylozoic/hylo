@@ -113,6 +113,10 @@ exports.en = {
     const who = others > 0 ? `${person} and ${others} ${others === 1 ? 'other' : 'others'}` : person
     return onComment ? `${who} reacted to your comment on "${postName}"` : `${who} reacted to your post "${postName}"`
   },
+  textForEventRsvp: ({ person, others, postName, response }) => {
+    if (others > 0) return `${person} and ${others} ${others === 1 ? 'other' : 'others'} responded to your event "${postName}"`
+    return response === 'interested' ? `${person} is interested in your event "${postName}"` : `${person} is going to your event "${postName}"`
+  },
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} submitted "${post.summary()}" to "${fundingRoundTitle}"`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

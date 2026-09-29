@@ -72,6 +72,7 @@ export const ACTION_FUNDING_ROUND_REMINDER = 'fundingRoundReminder'
 export const ACTION_POST_FULFILLED = 'postFulfilled'
 export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
 export const ACTION_REACTION = 'reaction'
+export const ACTION_EVENT_RSVP = 'eventRsvp'
 
 // How many other people a grouped notice counts ("Sam and 3 others reacted")
 export function othersCount (activity) {
@@ -187,6 +188,13 @@ export function titleForNotification (notification, t) {
         ? t('<strong>{{name}}</strong> and {{count}} others reacted to your post', { name, count })
         : t('<strong>{{name}}</strong> reacted to your post', { name })
     }
+    case ACTION_EVENT_RSVP: {
+      const count = othersCount(notification.activity)
+      if (count > 0) return t('<strong>{{name}}</strong> and {{count}} others responded to your event', { name, count })
+      return notification.activity.meta?.response === 'interested'
+        ? t('<strong>{{name}}</strong> is interested in your event', { name })
+        : t('<strong>{{name}}</strong> is going to your event', { name })
+    }
     default:
       return null
   }
@@ -287,6 +295,8 @@ export function bodyForNotification (notification, t) {
       return t('"<strong>{{postSummary}}</strong>"', { postSummary })
     case ACTION_REACTION:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary: comment ? truncateHTML(comment.text) : postSummary })
+    case ACTION_EVENT_RSVP:
+      return t('"<strong>{{postSummary}}</strong>"', { postSummary })
     default:
       return null
   }
@@ -383,6 +393,8 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
       return comment
         ? primaryPostUrl(post, { commentId: comment.id, ...postOpts })
         : primaryPostUrl(post, postOpts)
+    case ACTION_EVENT_RSVP:
+      return primaryPostUrl(post, postOpts)
   }
 }
 

@@ -67,3 +67,16 @@ export const notifyReaction = reported(async ({ post, comment, userId }) => {
     reason: 'reaction'
   })
 })
+
+// D45: someone said they're going to, or interested in, someone else's event. One
+// grouped notice per event for the host, in-app plus a grouped push, no email.
+export const notifyRsvp = reported(async ({ event, userId, response }) => {
+  if (!event || event.get('type') !== 'event') return null
+  return saveNotice({
+    readerId: event.get('user_id'),
+    actorId: userId,
+    postId: event.id,
+    reason: 'eventRsvp',
+    meta: { response }
+  })
+})

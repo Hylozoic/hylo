@@ -156,7 +156,8 @@ module.exports = bookshelf.Model.extend({
     FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
     FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
     FundingRoundReminder: 'fundingRoundReminder', // Reminder for funding round deadline
-    Reaction: 'reaction' // someone reacted to your post or comment (grouped, D15)
+    Reaction: 'reaction', // someone reacted to your post or comment (grouped, D15)
+    EventRsvp: 'eventRsvp' // someone is going to or interested in your event (grouped, D45)
   },
 
   find: function (id, options) {

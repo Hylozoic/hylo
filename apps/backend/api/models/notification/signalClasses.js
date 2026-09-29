@@ -89,7 +89,9 @@ export const REASON_SIGNALS = {
   fundingRoundPhaseTransition: { class: OPERATIONAL },
   fundingRoundReminder: { class: OPERATIONAL },
   // D15: in-app plus at most one grouped push per item per hour (notification/grouping)
-  reaction: { class: SOCIAL }
+  reaction: { class: SOCIAL },
+  // D45: to the host, in-app plus a grouped push, no email
+  eventRsvp: { class: SOCIAL }
 }
 
 // A reason with no line (or no priority reason at all) keeps every channel, as before.

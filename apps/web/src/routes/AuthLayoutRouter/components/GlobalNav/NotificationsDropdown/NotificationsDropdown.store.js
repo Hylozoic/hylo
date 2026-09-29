@@ -85,6 +85,7 @@ export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
                 phase
                 reminderType
                 actorCount
+                response
               }
               action
               unread

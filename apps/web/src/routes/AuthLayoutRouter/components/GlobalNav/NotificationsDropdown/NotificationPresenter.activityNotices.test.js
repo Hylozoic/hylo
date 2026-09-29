@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import i18next from 'i18next'
 import {
+  ACTION_EVENT_RSVP,
   ACTION_REACTION,
   bodyForNotification,
   titleForNotification,
@@ -66,6 +67,22 @@ describe('grouped social feedback notices', () => {
       const tFr = await translator('fr')
       const notification = notificationFor(ACTION_REACTION, { meta: { reasons: ['reaction'], actorCount: 4 } })
       expect(titleForNotification(notification, tFr)).toBe('<strong>Sam</strong> et 3 autres personnes ont réagi à votre publication')
+    })
+  })
+
+  describe(ACTION_EVENT_RSVP, () => {
+    it('says whether one person is going or interested', () => {
+      const going = notificationFor(ACTION_EVENT_RSVP, { meta: { reasons: ['eventRsvp'], actorCount: 1, response: 'yes' } })
+      const interested = notificationFor(ACTION_EVENT_RSVP, { meta: { reasons: ['eventRsvp'], actorCount: 1, response: 'interested' } })
+      expect(titleForNotification(going, t)).toBe('<strong>Sam</strong> is going to your event')
+      expect(titleForNotification(interested, t)).toBe('<strong>Sam</strong> is interested in your event')
+      expect(bodyForNotification(going, t)).toBe('"<strong>Seed swap on Saturday</strong>"')
+      expect(urlForNotification(going)).toMatch(/\/post\/10$/)
+    })
+
+    it('counts everyone who answered', () => {
+      const notification = notificationFor(ACTION_EVENT_RSVP, { meta: { reasons: ['eventRsvp'], actorCount: 3, response: 'yes' } })
+      expect(titleForNotification(notification, t)).toBe('<strong>Sam</strong> and 2 others responded to your event')
     })
   })
 })

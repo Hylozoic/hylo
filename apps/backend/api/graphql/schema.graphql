@@ -610,6 +610,8 @@ type ActivityMeta {
   reminderType: String
   # How many people a grouped notice counts ("Sam and 3 others reacted"), including the actor
   actorCount: Int
+  # For an RSVP notice, the latest answer: 'yes' (going) or 'interested'
+  response: String
 }
 
 # An activity that someone may want to be notified about
