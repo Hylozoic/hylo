@@ -199,8 +199,8 @@ module.exports = bookshelf.Model.extend({
   /**
    * Tells each person whose request to join has had no answer for UNANSWERED_DAYS,
    * once per request (D14); the email suggests open groups to try. Skips requests made
-   * more than UNANSWERED_LOOKBACK_DAYS ago, closed accounts, inactive groups and people
-   * who are already members. Each request is marked before its notice goes out, so
+   * more than UNANSWERED_LOOKBACK_DAYS ago, closed accounts, inactive or archived groups
+   * (where waiting won't help) and people who are already members. Each request is marked before its notice goes out, so
    * overlapping runs can't send twice. Runs from the daily steward job
    * (lib/group/stewardDigest.js). Returns how many people were told.
    */
@@ -212,7 +212,7 @@ module.exports = bookshelf.Model.extend({
       UPDATE join_requests SET unanswered_notified_at = ?
       WHERE id IN (
         SELECT r.id FROM join_requests r
-        JOIN groups g ON g.id = r.group_id AND g.active = true
+        JOIN groups g ON g.id = r.group_id AND g.active = true AND g.status IS DISTINCT FROM ?
         JOIN users u ON u.id = r.user_id AND u.active = true
         WHERE r.status = ? AND r.unanswered_notified_at IS NULL
           AND r.created_at <= ? AND r.created_at > ?
@@ -225,7 +225,7 @@ module.exports = bookshelf.Model.extend({
         FOR UPDATE OF r SKIP LOCKED
       )
       RETURNING id
-    `, [now, JoinRequest.STATUS.Pending, answeredBy, madeAfter, limit])
+    `, [now, Group.Status.ARCHIVED, JoinRequest.STATUS.Pending, answeredBy, madeAfter, limit])
 
     for (const { id } of rows) {
       const request = await JoinRequest.where({ id }).fetch({ withRelated: 'group' })

@@ -122,6 +122,17 @@ describe('join request feedback (D14)', () => {
       }
     })
 
+    it('leaves requests to archived groups alone, where waiting won\'t help', async () => {
+      const archived = await factories.group().save()
+      await bookshelf.knex('groups').where('id', archived.id).update({ status: Group.Status.ARCHIVED })
+      const person = await factories.user().save()
+      await bookshelf.knex('join_requests').insert({
+        user_id: person.id, group_id: archived.id, status: JoinRequest.STATUS.Pending, created_at: new Date(now.getTime() - 15 * DAY)
+      })
+      await JoinRequest.notifyUnanswered({ now })
+      expect(await noticesFor(person.id, 'unansweredJoinRequest')).to.be.empty
+    })
+
     it('keeps the note in-app only for someone who turned email down', async () => {
       const unsubscribed = await factories.user({ settings: { locale: 'en-US', email_unsubscribe_scope: 'everything' } }).save()
       await requestFrom(unsubscribed, 15)
