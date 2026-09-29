@@ -1,7 +1,7 @@
 import React from 'react'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import orm from 'store/models'
-import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Members from './Members'
 
 let mockGroupSlug
@@ -97,5 +97,36 @@ describe('Members header Invite pill', () => {
     renderMembers({ myInviteAccess: null })
 
     expect(screen.queryByRole('button', { name: 'Invite Members' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Members sort options', () => {
+  function providers ({ withLocation }) {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Group.create({ id: '1', slug: 'goteam', name: 'Go Team', memberCount: 3 })
+    if (withLocation) ormSession.Location.create({ id: '9', center: { lat: 48.75, lng: -122.48 } })
+    ormSession.Me.create({
+      id: '1',
+      name: 'You',
+      locationObject: withLocation ? '9' : null,
+      memberships: [ormSession.Membership.create({ id: '1', group: '1' })]
+    })
+    return AllTheProviders({ orm: ormSession.state, pending: {} })
+  }
+
+  beforeEach(() => { mockGroupSlug = 'goteam' })
+  afterEach(() => { mockGroupSlug = undefined })
+
+  it('offers Distance when you have a location', () => {
+    render(<Members />, null, providers({ withLocation: true }))
+    fireEvent.click(screen.getByText(/Sort by/))
+    expect(screen.getByText('Distance')).toBeInTheDocument()
+  })
+
+  it('leaves Distance out when you have no location to measure from', () => {
+    render(<Members />, null, providers({ withLocation: false }))
+    fireEvent.click(screen.getByText(/Sort by/))
+    expect(screen.getByText('Join Date')).toBeInTheDocument()
+    expect(screen.queryByText('Distance')).not.toBeInTheDocument()
   })
 })

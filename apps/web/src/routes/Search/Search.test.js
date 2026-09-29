@@ -206,7 +206,7 @@ describe('Search', () => {
     expect(screen.getByText('home')).toBeInTheDocument()
   })
 
-  it('renders a skill when the search terms match a skill', () => {
+  it('shows the skill the search matched on a person card', () => {
     const mockResults = [{
       id: '77',
       type: 'Person',
@@ -215,19 +215,31 @@ describe('Search', () => {
         name: 'Joe Person',
         avatarUrl: 'me.png',
         location: 'home',
-        skills: [{ name: 'crawling' }, { name: 'walking' }]
+        skills: [{ name: 'crawling' }, { name: 'trail-walking' }]
       }
     }]
 
     __setMockResults(mockResults)
+    searchFor('walk')
+    render(<Search />, { wrapper: testProviders(mockResults) })
 
-    // Create a component with props to simulate search terms
-    const props = { searchForInput: 'walking' }
-    render(<Search {...props} />, { wrapper: testProviders(mockResults) })
+    expect(screen.getByText('trail-walking')).toBeInTheDocument()
+    expect(screen.queryByText('crawling')).not.toBeInTheDocument()
+  })
 
-    // The component needs to be updated to actually show skills that match
-    // This test might need adjustment based on how your component actually works
-    // expect(screen.getByText('walking')).toBeInTheDocument()
+  it('shows no skill when the search matched something else', () => {
+    const mockResults = [{
+      id: '77',
+      type: 'Person',
+      content: { id: 77, name: 'Joe Person', avatarUrl: 'me.png', location: 'home', skills: [{ name: 'crawling' }] }
+    }]
+
+    __setMockResults(mockResults)
+    searchFor('joe')
+    render(<Search />, { wrapper: testProviders(mockResults) })
+
+    expect(screen.getByText('Joe Person')).toBeInTheDocument()
+    expect(screen.queryByText('crawling')).not.toBeInTheDocument()
   })
 
   it('does not fetch search results until the term is at least two characters', () => {

@@ -1,4 +1,4 @@
-import { get, intersection, debounce } from 'lodash/fp'
+import { debounce } from 'lodash/fp'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -392,8 +392,9 @@ function SearchResult ({
     return null
   }
 
+  // Highlighting stays off; the search term still picks out a matching skill on person cards
   const highlightProps = {
-    terms: [], // term.split(' '),
+    terms: [],
     highlightClassName: classes.highlight
   }
 
@@ -403,6 +404,7 @@ function SearchResult ({
       component = (
         <PersonCard
           person={content}
+          term={term}
           showPerson={showPerson}
           highlightProps={highlightProps}
         />
@@ -436,13 +438,26 @@ function SearchResult ({
   )
 }
 
-function PersonCard ({ person, showPerson, highlightProps }) {
+/**
+ * The first of a person's skills that the search matched: a search word starts
+ * one of the words in the skill's name, as full-text search matches prefixes.
+ */
+export function matchingSkill (skills = [], term = '') {
+  const words = String(term).toLowerCase().split(/\s+/)
+    .map(word => word.replace(/[^\p{L}\p{N}]/gu, ''))
+    .filter(Boolean)
+  if (words.length === 0) return null
+  const skill = skills.find(s => {
+    const parts = String(s?.name || '').toLowerCase().split(/[\s-]+/)
+    return words.some(word => parts.some(part => part.startsWith(word)))
+  })
+  return skill ? skill.name : null
+}
+
+function PersonCard ({ person, term, showPerson, highlightProps }) {
   if (!person) return null
 
-  const matchingSkill = get('0', intersection(
-    person.skills.map(s => s.name.toLowerCase()),
-    highlightProps.terms.map(t => t.toLowerCase())
-  ))
+  const skill = matchingSkill(person.skills, term)
 
   return (
     <div
@@ -456,7 +471,7 @@ function PersonCard ({ person, showPerson, highlightProps }) {
         </Highlight>
         <div className='text-sm text-foreground/50'>{person.location}</div>
       </div>
-      {matchingSkill && <Pill label={matchingSkill} className={classes.personSkill} small />}
+      {skill && <Pill label={skill} className={classes.personSkill} small />}
     </div>
   )
 }

@@ -213,7 +213,7 @@ function applyFundingRoundCapabilityFilter (q, groupId, capability) {
   `, [groupId])
 }
 
-export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }, q) => {
+export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability, viewerId }, q) => {
   if (autocomplete) {
     const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
       .map(word => word.replace(/[,;|:&()!\\]+/, ''))
@@ -281,6 +281,15 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
 
   if (sortBy === 'join') {
     q.orderBy('group_memberships.created_at', order || 'desc')
+  } else if (sortBy === 'location') {
+    // Distance: nearest to the viewer first, people without a location last, then by name.
+    // When the viewer has no location every distance is null, so this is name order.
+    // Subqueries rather than joins keep this valid in queries grouped by users.id.
+    q.orderByRaw(`ST_Distance(
+      (SELECT member_location.center::geography FROM locations member_location WHERE member_location.id = users.location_id),
+      (SELECT viewer_location.center::geography FROM users viewer JOIN locations viewer_location ON viewer_location.id = viewer.location_id WHERE viewer.id = ?)
+    ) ${order || 'asc'} NULLS LAST`, [viewerId || null])
+    q.orderByRaw('lower("users"."name") asc')
   } else if (!sortBy || sortBy === 'name') {
     q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
   } else {

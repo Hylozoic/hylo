@@ -4104,7 +4104,7 @@ UNION
     COALESCE(( SELECT max(gm.created_at) AS max
            FROM public.group_memberships gm
           WHERE ((gm.user_id = u.id) AND (gm.active = true))), u.last_active_at, u.updated_at, u.created_at) AS sort_ts,
-    ((setweight(to_tsvector('english'::regconfig, (u.name)::text), 'A'::"char") || setweight(to_tsvector('english'::regconfig, COALESCE(string_agg(replace((s.name)::text, '-'::text, ' '::text), ' '::text), ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(u.bio, ''::text)), 'C'::"char")) AS document
+    ((((setweight(to_tsvector('english'::regconfig, (u.name)::text), 'A'::"char") || setweight(to_tsvector('english'::regconfig, COALESCE(string_agg(replace((s.name)::text, '-'::text, ' '::text), ' '::text), ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(u.bio, ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, (COALESCE(u.location, ''::character varying))::text), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, (COALESCE(u.tagline, ''::character varying))::text), 'C'::"char")) AS document
    FROM ((public.users u
      LEFT JOIN public.skills_users su ON (((u.id = su.user_id) AND (su.type = 0))))
      LEFT JOIN public.skills s ON ((su.skill_id = s.id)))

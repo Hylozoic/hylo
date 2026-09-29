@@ -2,7 +2,7 @@ import { DateTime } from 'luxon'
 import { expectEqualQuery } from '../../setup/helpers'
 import setup from '../../setup'
 import factories from '../../setup/factories'
-import { RECENT_ACTIVITY_WINDOW_DAYS } from '../../../api/services/Search/util'
+import { RECENT_ACTIVITY_WINDOW_DAYS, filterAndSortUsers } from '../../../api/services/Search/util'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -155,12 +155,12 @@ describe('Search', function () {
     })
 
     describe('for the main search', () => {
-      let viewer, mine, listed, child, peer
+      let viewer, mine, child, peer
 
       before(async () => {
         viewer = await factories.user().save()
         mine = await factories.group({ name: 'Walnut Mine', visibility: 1 }).save()
-        listed = await factories.group({ name: 'Walnut Listed', visibility: 2, allow_in_public: true }).save()
+        await factories.group({ name: 'Walnut Listed', visibility: 2, allow_in_public: true }).save()
         await factories.group({ name: 'Walnut Unlisted', visibility: 2, allow_in_public: false }).save()
         child = await factories.group({ name: 'Walnut Child', visibility: 1 }).save()
         const hiddenChild = await factories.group({ name: 'Walnut Hidden', visibility: 0 }).save()
@@ -293,6 +293,51 @@ describe('Search', function () {
         }).fetchAll()
         expect(users.length).to.equal(0)
       })
+    })
+  })
+
+  describe('.forUsers sorted by distance', () => {
+    let viewer, placeless, near, far, homeless, group, otherGroup
+
+    const place = (lng, lat) => new Location({ center: { lng, lat }, full_text: `${lat}, ${lng}` }).save()
+
+    before(async () => {
+      const home = await place(-122.48, 48.75)
+      viewer = await factories.user({ name: 'Viewer Person', location_id: home.id }).save()
+      placeless = await factories.user({ name: 'Placeless Viewer' }).save()
+      near = await factories.user({ name: 'Zed Nearby', location_id: (await place(-122.5, 48.8)).id }).save()
+      far = await factories.user({ name: 'Yan Faraway', location_id: (await place(2.35, 48.85)).id }).save()
+      homeless = await factories.user({ name: 'Abe Nowhere' }).save()
+      group = await factories.group().save()
+      otherGroup = await factories.group().save()
+      await group.addMembers([near.id, far.id, homeless.id])
+      await otherGroup.addMembers([near.id, far.id, homeless.id])
+    })
+
+    const names = users => users.map(u => u.get('name'))
+
+    it('puts the nearest people first and people without a location last', async () => {
+      const users = await Search.forUsers({ sort: 'location', currentUserId: viewer.id, groups: [group.id] }).fetchAll()
+      expect(names(users)).to.deep.equal(['Zed Nearby', 'Yan Faraway', 'Abe Nowhere'])
+    })
+
+    it('works across several groups', async () => {
+      const users = await Search.forUsers({ sort: 'location', currentUserId: viewer.id, groups: [group.id, otherGroup.id] }).fetchAll()
+      expect(names(users)).to.deep.equal(['Zed Nearby', 'Yan Faraway', 'Abe Nowhere'])
+    })
+
+    it('falls back to name order when the viewer has no location', async () => {
+      const users = await Search.forUsers({ sort: 'location', currentUserId: placeless.id, groups: [group.id] }).fetchAll()
+      expect(names(users)).to.deep.equal(['Abe Nowhere', 'Yan Faraway', 'Zed Nearby'])
+    })
+
+    it('sorts a group\'s members by distance to the viewer', async () => {
+      // As the GraphQL members field runs it: the filter, then pagination's total column
+      const members = await group.members().query(q => {
+        filterAndSortUsers({ sortBy: 'location', viewerId: viewer.id })(q)
+        q.select(bookshelf.knex.raw('users.*, count(*) over () as __total'))
+      }).fetch()
+      expect(names(members)).to.deep.equal(['Zed Nearby', 'Yan Faraway', 'Abe Nowhere'])
     })
   })
 })

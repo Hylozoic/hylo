@@ -14,7 +14,8 @@ export default function (opts) {
       boundingBox: opts.boundingBox,
       search: opts.term,
       sortBy: opts.sort,
-      order: opts.order
+      order: opts.order,
+      viewerId: opts.currentUserId
     }, qb)
 
     if (opts.sort === 'join') {

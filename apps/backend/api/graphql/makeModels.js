@@ -613,6 +613,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       fetchMany: ({ boundingBox, first, order, sortBy, offset, search, autocomplete, groupIds, filter }) =>
         searchQuerySet('users', {
           boundingBox,
+          currentUserId: userId,
           term: search,
           limit: first,
           offset,
@@ -947,7 +948,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
               const groupId = relation.relatedData.parentId
               return relation.query(q => {
                 appendPublicMemberDirectoryGuard(q, groupId)
-                filterAndSortUsers({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability })(q)
+                filterAndSortUsers({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability, viewerId: userId })(q)
                 if (excludeGroupId) {
                   q.whereNotIn('users.id',
                     bookshelf.knex('group_memberships')

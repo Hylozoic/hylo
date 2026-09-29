@@ -25,6 +25,7 @@ import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGr
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import getTrack from 'store/selectors/getTrack'
@@ -60,7 +61,9 @@ function Members (props) {
 
   // State selectors
   const group = useSelector(state => getGroupForSlug(state, slug))
-  const sortKeys = sortKeysFactory()
+  // Distance is measured from your own location, so it's only offered once you have one
+  const viewerHasLocation = useSelector(state => !!getMe(state)?.locationObject)
+  const sortKeys = sortKeysFactory(viewerHasLocation)
   const sortByParam = getQuerystringParam('s', location) || defaultSortBy
   const sortBy = sortKeys[sortByParam] ? sortByParam : defaultSortBy
   const search = getQuerystringParam('q', location)
@@ -564,10 +567,10 @@ function roleLabel (role) {
   return `${role.emoji ? role.emoji + ' ' : ''}${role.name}`.trim()
 }
 
-function sortKeysFactory () {
+function sortKeysFactory (includeDistance) {
   return {
     name: 'Name',
-    location: 'Distance',
+    ...(includeDistance ? { location: 'Distance' } : {}),
     join: 'Join Date',
     last_active_at: 'Last Active'
   }
