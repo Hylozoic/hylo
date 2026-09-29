@@ -921,6 +921,7 @@
   "Important means announcements, anything that mentions you, and new messages in a chat for a little while after you write there. In quieter groups every post counts as important. Mentions reach you even with No Posts.": "Important, ce sont les annonces, tout ce qui vous mentionne et les nouveaux messages d'un chat pendant un moment après que vous y avez écrit. Dans les groupes plus calmes, chaque publication compte comme importante. Les mentions vous parviennent même avec « Aucune publication ».",
   "Announcements, mentions and replies in chats you're part of. Every post while the space is quiet.": "Annonces, mentions et réponses dans les chats auxquels vous participez. Chaque publication tant que l'espace est calme.",
   "You won't hear about new posts in this space, except ones that mention you.": "Vous ne serez pas informé des nouvelles publications dans cet espace, sauf celles qui vous mentionnent.",
+  "Comments that mention you still notify you, by email and push where your group settings allow.": "Les commentaires qui vous mentionnent vous notifient quand même, par e-mail et push, selon les paramètres de votre groupe.",
   "{{name}} sent you a message": "{{name}} vous a envoyé un message",
   "In {{name}}": "Dans {{name}}",
   "In the meantime, click a topic from an individual\ngroup to see posts from that group.": "En attendant, cliquez sur un sujet d'un groupe individuel\npour voir les publications de ce groupe.",

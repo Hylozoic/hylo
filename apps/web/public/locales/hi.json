@@ -921,6 +921,7 @@
   "Important means announcements, anything that mentions you, and new messages in a chat for a little while after you write there. In quieter groups every post counts as important. Mentions reach you even with No Posts.": "महत्वपूर्ण का मतलब है घोषणाएँ, हर वह चीज़ जिसमें आपका उल्लेख हो, और किसी चैट में आपके लिखने के कुछ समय बाद तक उसके नए संदेश। शांत समूहों में हर पोस्ट महत्वपूर्ण मानी जाती है। \"कोई पोस्ट नहीं\" चुनने पर भी उल्लेख आप तक पहुँचते हैं।",
   "Announcements, mentions and replies in chats you're part of. Every post while the space is quiet.": "घोषणाएँ, उल्लेख और उन चैट के जवाब जिनमें आप शामिल हैं। स्पेस शांत रहने तक हर पोस्ट।",
   "You won't hear about new posts in this space, except ones that mention you.": "इस स्पेस की नई पोस्ट के बारे में आपको सूचना नहीं मिलेगी, सिवाय उनके जिनमें आपका उल्लेख हो।",
+  "Comments that mention you still notify you, by email and push where your group settings allow.": "जिन टिप्पणियों में आपका उल्लेख होता है, वे आपको फिर भी सूचित करती हैं, ईमेल और पुश से, जहाँ तक आपकी ग्रुप सेटिंग्स अनुमति देती हैं।",
   "{{name}} sent you a message": "{{name}} ने आपको एक संदेश भेजा",
   "In {{name}}": "{{name}} में",
   "In the meantime, click a topic from an individual\ngroup to see posts from that group.": "इस बीच, किसी व्यक्तिगत समूह के किसी विषय पर क्लिक करें ताकि आप उस समूह की पोस्ट देख सकें।",

@@ -120,6 +120,11 @@ export default function ManageNotifications (props) {
                     ))}
                   </SelectContent>
                 </Select>
+                {!unsubscribeAll && (
+                  <p className='text-xs text-foreground/60 mt-1 mb-0'>
+                    {t('Comments that mention you still notify you, by email and push where your group settings allow.')}
+                  </p>
+                )}
               </div>
               <div className={styles.settingWrapper}>
                 <label className={styles.settingExplanation}>{t('Send notifications for direct messages via')}</label>

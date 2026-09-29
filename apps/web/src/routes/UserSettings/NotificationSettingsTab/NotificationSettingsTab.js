@@ -193,7 +193,19 @@ function NotificationSettingsTab ({
           </div>
           <div className='border-b-2 border-foreground/20 py-2'>
             <SettingsToggles
-              label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Comments on followed posts')}</span>}
+              label={
+                <span className='text-xl inline-flex items-center gap-1'>
+                  <Icon name='Messages' className='mr-1' />
+                  {t('Comments on followed posts')}
+                  <InfoButton
+                    content={
+                      <span className='block max-w-xs'>
+                        {t('Comments that mention you still notify you, by email and push where your group settings allow.')}
+                      </span>
+                    }
+                  />
+                </span>
+              }
               settings={getCurrentSettings(me, 'commentNotifications')}
               update={updateUserSetting('commentNotifications')}
             />

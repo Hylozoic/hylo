@@ -71,6 +71,21 @@ describe('ManageNotifications', () => {
     screen.getAllByRole('option', { name: '~ Mixed ~' }).forEach(option => expect(option).toBeDisabled())
   })
 
+  it('says comment mentions still notify, until everything is unsubscribed', async () => {
+    const note = 'Comments that mention you still notify you, by email and push where your group settings allow.'
+    render(
+      <ManageNotifications />,
+      { wrapper: testProviders() }
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(note)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(screen.queryByText(note)).not.toBeInTheDocument()
+  })
+
   it('sends only the settings that were changed', async () => {
     render(
       <ManageNotifications />,
