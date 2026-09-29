@@ -52,6 +52,7 @@ import BadgedIcon from 'components/BadgedIcon'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import HelpMenu from './HelpMenu'
+import { useVisitTracker } from 'util/lastVisit'
 import { getMyGroupsWithChildren, isSpaceGroup } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice } from 'util/mobile'
 import { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
@@ -570,6 +571,9 @@ export default function GlobalNav (props) {
     autoStart: true,
     inviteMessage: t('New to Hylo? Let us show you around.')
   })
+  // The navigation is on screen all session, so it keeps "last visit" current
+  // for the What's new divider in All My Groups
+  useVisitTracker(currentUser?.id)
   const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   // A stack's subgroup menu and the rail's labels are alternatives, never both at

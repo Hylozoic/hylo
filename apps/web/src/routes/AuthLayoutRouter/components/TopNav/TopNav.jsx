@@ -28,6 +28,7 @@ import { isSandboxMode } from 'sandbox/isSandbox'
 import useTour from 'tours/useTour'
 import { GLOBAL_CHROME_TOUR_ID, globalChromeTourSteps } from 'tours/globalChromeTour'
 import { TOUR_LAYOUT_TABS } from 'tours/layouts'
+import { useVisitTracker } from 'util/lastVisit'
 
 const NotificationsDropdown = React.lazy(() => import('../GlobalNav/NotificationsDropdown'))
 
@@ -203,6 +204,8 @@ export default function TopNav ({ currentUser }) {
     autoStart: true,
     inviteMessage: t('New to Hylo? Let us show you around.')
   })
+  // Keeps "last visit" current for the What's new divider (as GlobalNav does)
+  useVisitTracker(currentUser?.id)
   const [iconOnly, setIconOnly] = useState(false)
 
   const currentBase = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug })

@@ -41,3 +41,75 @@ describe('ViewContent empty stream', () => {
     expect(screen.queryByRole('button', { name: 'Explore Groups' })).not.toBeInTheDocument()
   })
 })
+
+describe('ViewContent What\'s new divider', () => {
+  const lastVisit = new Date('2026-09-10T00:00:00.000Z')
+  const post = (id, createdAt) => ({
+    id,
+    title: `Post ${id}`,
+    details: '',
+    type: 'discussion',
+    createdAt,
+    updatedAt: createdAt,
+    creator: { id: '2', name: 'Someone', avatarUrl: '' },
+    groups: [{ id: '1', name: 'Group 1', slug: 'group-1' }],
+    commenters: [],
+    commentersTotal: 0,
+    commentsTotal: 0,
+    members: { items: [] },
+    topics: [],
+    attachments: []
+  })
+
+  function providersInGroups (count) {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Me.create({ id: '1', name: 'Test User', settings: {} })
+    for (let i = 1; i <= count; i++) {
+      ormSession.Group.create({ id: String(i), name: `Group ${i}`, slug: `group-${i}` })
+      ormSession.Membership.create({ id: String(i), group: String(i), person: '1' })
+    }
+    return AllTheProviders({ orm: ormSession.state })
+  }
+
+  beforeEach(() => {
+    window.sessionStorage.setItem('hylo-visit-baseline:1', String(lastVisit.getTime()))
+    mockGraphqlServer.use(
+      graphql.query('PostsQuery', () => HttpResponse.json({
+        data: {
+          posts: {
+            hasMore: false,
+            total: 3,
+            items: [
+              post('3', '2026-09-12T00:00:00.000Z'),
+              post('2', '2026-09-11T00:00:00.000Z'),
+              post('1', '2026-09-01T00:00:00.000Z')
+            ]
+          }
+        }
+      }))
+    )
+  })
+
+  afterEach(() => {
+    window.sessionStorage.clear()
+    window.localStorage.clear()
+  })
+
+  it('marks where posts from before the last visit begin, for people in 3+ groups', async () => {
+    render(<ViewContent context='all' view='all' />, { wrapper: providersInGroups(3) })
+
+    const divider = await screen.findByTestId('new-since-divider')
+    expect(divider).toHaveAccessibleName('New since your last visit')
+    const newer = screen.getByText('Post 2')
+    const older = screen.getByText('Post 1')
+    expect(newer.compareDocumentPosition(divider) & window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(divider.compareDocumentPosition(older) & window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('leaves the feed as it is for people in fewer than 3 groups', async () => {
+    render(<ViewContent context='all' view='all' />, { wrapper: providersInGroups(2) })
+
+    expect(await screen.findByText('Post 1')).toBeInTheDocument()
+    expect(screen.queryByTestId('new-since-divider')).not.toBeInTheDocument()
+  })
+})
