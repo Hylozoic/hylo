@@ -16,7 +16,8 @@ const SELECT_ITEM_CLASS = 'pl-2 pr-8 [&>span:first-child]:left-auto [&>span:firs
 /**
  * Shared notification settings for a group membership (or all-groups defaults):
  * receive-by channels, post notifications, and email digest.
- * postNotifications also controls the hourly chat digest (all / important / none).
+ * postNotifications picks which chats the hourly chat digest includes (all / important /
+ * none), and an email digest of Never stops the chat digest too.
  *
  * @param {boolean} compact - Tighter padding/text and stacked channel toggles (popover layout)
  * @param {boolean} postsOnly - Spaces only control post notifications; channel + digest are group settings

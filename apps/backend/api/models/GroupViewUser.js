@@ -151,10 +151,23 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * The email digest setting that governs a chat room's digest. Spaces have no digest
+   * setting of their own, so a space membership follows the parent group membership.
+   */
+  digestFrequencyFor: async function (membership, group) {
+    if (group.get('type') === 'space' && group.get('parent_id')) {
+      const parentMembership = await GroupMembership.forPair(membership.get('user_id'), group.get('parent_id')).fetch()
+      if (parentMembership) return parentMembership.getSetting('digestFrequency')
+    }
+    return membership.getSetting('digestFrequency')
+  },
+
+  /**
    * Hourly email digests for chat views with unread chat posts.
    * Sends one email per chat view (parent group chat and each space chat).
    * Uses membership postNotifications: all = every chat, important = mentions
-   * (and announcements), none = skip digest.
+   * (and announcements), none = skip digest. An email digest set to Never stops the
+   * chat digest too (D72).
    */
   sendDigests: async function () {
     const redisClient = RedisClient.create()
@@ -201,6 +214,7 @@ module.exports = bookshelf.Model.extend({
           const membership = await GroupMembership.forPair(userId, groupId).fetch()
           if (!membership || !membership.get('active')) continue
           if (!(await GroupViewUser.emailEnabledFor(membership, group))) continue
+          if ((await GroupViewUser.digestFrequencyFor(membership, group)) === 'never') continue
 
           const postNotifications = membership.getSetting('postNotifications')
           if (postNotifications !== 'all' && postNotifications !== 'important') continue
