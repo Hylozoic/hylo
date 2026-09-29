@@ -3,7 +3,9 @@
  * they typed, or per person they picked, whether or not an invitation was
  * created for it. invitation_id links the invitation when one was. Their
  * "Your pending invites" list shows these rows, all in the same way, until
- * they age out or the member cancels one (hidden_at).
+ * they age out or the member cancels one (hidden_at). Members' invitations
+ * that are still pending from the last 14 days get a row too, dated when they
+ * were sent.
  */
 
 exports.up = async function (knex) {
@@ -28,6 +30,17 @@ exports.up = async function (knex) {
         ADD CONSTRAINT invitation_submissions_email_or_invitee CHECK (email IS NOT NULL OR invitee_id IS NOT NULL);
       END IF;
     END $$
+  `)
+  // Members' pending invitations from before this list existed, so they can still see and cancel them
+  await knex.raw(`
+    INSERT INTO invitation_submissions (user_id, group_id, email, invitation_id, created_at)
+    SELECT gi.invited_by_id, gi.group_id, lower(gi.email), gi.id, gi.created_at
+    FROM group_invites gi
+    WHERE gi.inviter_access = 'limited'
+      AND gi.used_by_id IS NULL
+      AND gi.expired_by_id IS NULL
+      AND gi.created_at > now() - interval '14 days'
+      AND NOT EXISTS (SELECT 1 FROM invitation_submissions s WHERE s.invitation_id = gi.id)
   `)
 }
 
