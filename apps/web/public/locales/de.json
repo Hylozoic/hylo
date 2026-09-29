@@ -3121,6 +3121,7 @@
   "Stewards, and anyone in the roles you choose, can invite people. A steward approves each person that Moderators and the chosen roles invite before they join.": "Stewards und alle in den von dir gewählten Rollen können Personen einladen. Ein Steward bestätigt jede Person, die von der Moderation oder den gewählten Rollen eingeladen wird, bevor sie beitritt.",
   "Stewards, and anyone in the roles you choose, can invite people.": "Stewards und alle in den von dir gewählten Rollen können Personen einladen.",
   "Choose who can invite people to join {{name}}. Administrators, Moderators and Hosts can always invite.": "Wähle, wer Personen zu {{name}} einladen kann. Administration, Moderation und Gastgeber/innen können immer einladen.",
+  "Pending invitations sent by members who can no longer invite will be cancelled. Save anyway?": "Ausstehende Einladungen von Mitgliedern, die nicht mehr einladen können, werden storniert. Trotzdem speichern?",
   "Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.": "Niemand kann von sich aus einen Beitritt anfragen. Menschen kommen auf Einladung; Einladungen von Mitgliedern werden von Stewards geprüft.",
   "Create custom roles later in Roles & Badges": "Benutzerdefinierte Rollen kannst du später unter Rollen & Abzeichen erstellen",
   "Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.": "Wähle, wer Menschen einladen kann, {{name}} beizutreten. Rollen mit „Mitglieder hinzufügen“ können immer einladen.",

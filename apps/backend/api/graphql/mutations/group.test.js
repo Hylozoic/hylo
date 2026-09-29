@@ -830,6 +830,69 @@ describe('mutations/group', () => {
         expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
       })
 
+      describe('tightening it', () => {
+        let moderator
+        const pendingFrom = async sender => (await Invitation.where({ group_id: group.id, invited_by_id: sender.id }).fetchAll())
+          .models.filter(invitation => !invitation.isExpired() && !invitation.isUsed()).length
+        const invite = (sender, suffix) => Invitation.create({
+          userId: sender.id,
+          groupId: group.id,
+          email: `tighten-${suffix}-${Date.now()}@example.com`,
+          inviterAccess: Invitation.InviterAccess.LIMITED
+        })
+
+        before(async () => {
+          moderator = await factories.user().save()
+          await moderator.joinGroup(group)
+          await MemberGroupRole.forge({ user_id: moderator.id, group_id: group.id, group_role_id: moderatorRole.id, active: true }).save()
+        })
+
+        it('expires the pending invitations of members who can no longer invite, and keeps the rest', async () => {
+          await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+          await invite(member, 'member')
+          await invite(moderator, 'moderator')
+          const fullInvite = await Invitation.create({ userId: administrator.id, groupId: group.id, email: `tighten-admin-${Date.now()}@example.com` })
+
+          await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'stewards' } })
+
+          expect(await pendingFrom(member)).to.equal(0)
+          expect(await pendingFrom(moderator)).to.equal(1)
+          await fullInvite.refresh()
+          expect(fullInvite.isExpired()).to.be.false
+        })
+
+        it('expires the invitations of a role taken out of specific roles', async () => {
+          const greeter = await factories.user().save()
+          await greeter.joinGroup(group)
+          await MemberGroupRole.forge({ user_id: greeter.id, group_id: group.id, group_role_id: greeterRole.id, active: true }).save()
+          const keeperRole = await GroupRole.forge({ group_id: group.id, name: 'Keeper', emoji: '🗝️', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+          const keeper = await factories.user().save()
+          await keeper.joinGroup(group)
+          await MemberGroupRole.forge({ user_id: keeper.id, group_id: group.id, group_role_id: keeperRole.id, active: true }).save()
+
+          await GroupRole.setInvitePolicy(group.id, { mode: 'roles', roleIds: [greeterRole.id, keeperRole.id] })
+          await invite(greeter, 'greeter')
+          await invite(keeper, 'keeper')
+
+          await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'roles', roleIds: [String(keeperRole.id)] } })
+
+          expect(await pendingFrom(greeter)).to.equal(0)
+          expect(await pendingFrom(keeper)).to.equal(1)
+        })
+
+        it('expires nothing while member invitations are switched off', async () => {
+          await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+          const straggler = await factories.user().save()
+          await straggler.joinGroup(group)
+          await invite(straggler, 'straggler')
+
+          await withFeatureFlag('MEMBER_INVITES', 'off', () =>
+            updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'stewards' } }))
+
+          expect(await pendingFrom(straggler)).to.equal(1)
+        })
+      })
+
       it('does not let limited access regenerate the join link', async () => {
         await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
         expect(await GroupMembership.inviteAccess(member.id, group.id)).to.equal('limited')

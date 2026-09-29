@@ -21,6 +21,7 @@ import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import * as administrators from './group/administrators'
+import expireForPolicyChange, { invitePolicyNarrowed } from './invitation/expireForPolicyChange'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import { groupRoom, userRoom, pushToSockets } from '../services/Websockets'
 const { createGroupScope } = require('../../lib/scopes')
@@ -982,7 +983,10 @@ module.exports = bookshelf.Model.extend(merge({
       !wasAutoAdd
     await bookshelf.transaction(async transacting => {
       if (changes.invite_policy) {
-        await GroupRole.setInvitePolicy(this.id, invitePolicyFromData(changes.invite_policy), { transacting })
+        const previousPolicy = await GroupRole.getInvitePolicy(this.id, { transacting })
+        const policy = await GroupRole.setInvitePolicy(this.id, invitePolicyFromData(changes.invite_policy), { transacting })
+        // Members who can no longer invite no longer vouch for the people they invited
+        if (invitePolicyNarrowed(previousPolicy, policy)) await expireForPolicyChange(this.id, { transacting })
       }
 
       if (changes.agreements && this.get('type') !== 'space' && !this.get('parent_id')) {

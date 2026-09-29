@@ -3121,6 +3121,7 @@
   "Stewards, and anyone in the roles you choose, can invite people. A steward approves each person that Moderators and the chosen roles invite before they join.": "स्टीवर्ड, और आपके चुने हुए रोल वाले सभी लोग, दूसरों को आमंत्रित कर सकते हैं। मॉडरेटर और चुने हुए रोल द्वारा आमंत्रित हर व्यक्ति को जुड़ने से पहले एक स्टीवर्ड स्वीकृति देता है।",
   "Stewards, and anyone in the roles you choose, can invite people.": "स्टीवर्ड, और आपके चुने हुए रोल वाले सभी लोग, दूसरों को आमंत्रित कर सकते हैं।",
   "Choose who can invite people to join {{name}}. Administrators, Moderators and Hosts can always invite.": "चुनें कि {{name}} से जुड़ने के लिए लोगों को कौन आमंत्रित कर सकता है। व्यवस्थापक, मॉडरेटर और होस्ट हमेशा आमंत्रित कर सकते हैं।",
+  "Pending invitations sent by members who can no longer invite will be cancelled. Save anyway?": "उन सदस्यों के भेजे गए लंबित निमंत्रण रद्द हो जाएंगे जो अब आमंत्रित नहीं कर सकते। फिर भी सहेजें?",
   "Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.": "कोई भी अपने आप शामिल होने का अनुरोध नहीं कर सकता। लोग निमंत्रण से आते हैं; सदस्यों के निमंत्रणों की समीक्षा स्टीवर्ड करते हैं।",
   "Create custom roles later in Roles & Badges": "कस्टम भूमिकाएँ बाद में भूमिकाएँ और बैज में बनाएँ",
   "Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.": "चुनें कि {{name}} में शामिल होने के लिए लोगों को कौन आमंत्रित कर सकता है। जिन भूमिकाओं में सदस्यों को जोड़ें शामिल है, वे हमेशा आमंत्रित कर सकती हैं।",

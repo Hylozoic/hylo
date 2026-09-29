@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { assertKeepsAdministrator } from '../../models/group/administrators'
+import expireForPolicyChange from '../../models/invitation/expireForPolicyChange'
 
 /**
  * Reject role mutations targeting a space — roles are only edited on the parent group.
@@ -53,7 +54,13 @@ export async function updateGroupRole ({ groupRoleId, color, name, description, 
           active: verifiedActiveParam
         }
 
-        return groupRole.save(updatedAttributes, { transacting }).then((savedGroupRole) => savedGroupRole)
+        const wasActive = groupRole.get('active')
+        const savedGroupRole = await groupRole.save(updatedAttributes, { transacting })
+        // People who could only invite through this role no longer vouch for their pending invitations
+        if (wasActive && verifiedActiveParam === false) {
+          await expireForPolicyChange(groupRole.get('group_id'), { transacting })
+        }
+        return savedGroupRole
       })
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to update a group role')

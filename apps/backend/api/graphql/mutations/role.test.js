@@ -112,6 +112,29 @@ describe('roles mutations', () => {
     })
   })
 
+  describe('deactivating a role', () => {
+    it("expires the pending member invitations of people who could only invite through it, and keeps others'", async () => {
+      const administrator = await factories.user().save()
+      const greeter = await factories.user().save()
+      const inviteGroup = await factories.group().save()
+      await administrator.joinGroup(inviteGroup, { assignAdministrator: true })
+      await greeter.joinGroup(inviteGroup)
+      const greeterRole = await addGroupRole({ groupId: inviteGroup.id, color, name: 'Greeter', emoji, userId: administrator.id })
+      await GroupRole.setInvitePolicy(inviteGroup.id, { mode: 'roles', roleIds: [greeterRole.id] })
+      await MemberGroupRole.forge({ user_id: greeter.id, group_id: inviteGroup.id, group_role_id: greeterRole.id, active: true }).save()
+      const limited = Invitation.InviterAccess.LIMITED
+      const fromGreeter = await Invitation.create({ userId: greeter.id, groupId: inviteGroup.id, email: `greeter-${Date.now()}@example.com`, inviterAccess: limited })
+      const fromAdministrator = await Invitation.create({ userId: administrator.id, groupId: inviteGroup.id, email: `admin-${Date.now()}@example.com` })
+
+      await updateGroupRole({ groupId: inviteGroup.id, active: false, userId: administrator.id, groupRoleId: greeterRole.id })
+
+      await fromGreeter.refresh()
+      await fromAdministrator.refresh()
+      expect(fromGreeter.isExpired()).to.be.true
+      expect(fromAdministrator.isExpired()).to.be.false
+    })
+  })
+
   describe('the implicit Member role', () => {
     let memberRole
 

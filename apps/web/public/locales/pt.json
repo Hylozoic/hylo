@@ -3121,6 +3121,7 @@
   "Stewards, and anyone in the roles you choose, can invite people. A steward approves each person that Moderators and the chosen roles invite before they join.": "Stewards, e qualquer pessoa nos papéis que você escolher, podem convidar pessoas. Um steward aprova cada pessoa convidada por Moderadores e pelos papéis escolhidos antes de ela entrar.",
   "Stewards, and anyone in the roles you choose, can invite people.": "Stewards, e qualquer pessoa nos papéis que você escolher, podem convidar pessoas.",
   "Choose who can invite people to join {{name}}. Administrators, Moderators and Hosts can always invite.": "Escolha quem pode convidar pessoas para {{name}}. Administradores, Moderadores e Anfitriões sempre podem convidar.",
+  "Pending invitations sent by members who can no longer invite will be cancelled. Save anyway?": "Convites pendentes enviados por membros que não podem mais convidar serão cancelados. Salvar mesmo assim?",
   "Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.": "Ninguém pode pedir para entrar por conta própria. As pessoas chegam por convite; os convites de membros são analisados pelos administradores.",
   "Create custom roles later in Roles & Badges": "Crie funções personalizadas depois em Funções e Insígnias",
   "Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.": "Escolha quem pode convidar pessoas para entrar em {{name}}. As funções que incluem Adicionar membros sempre podem convidar.",

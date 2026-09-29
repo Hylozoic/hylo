@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { assertKeepsAdministrator } from '../../models/group/administrators'
+import expireForPolicyChange from '../../models/invitation/expireForPolicyChange'
 
 /**
  * Reject responsibility mutations targeting a space — edit on the parent group instead.
@@ -116,7 +117,12 @@ export async function removeResponsibilityFromRole ({ userId, roleResponsibility
       if (role) {
         await assertKeepsAdministrator(role.get('group_id'), { excludeRoleResponsibilityId: roleResponsibility.id })
       }
-      return roleResponsibility.destroy()
+      const removedInviteMembers = String(roleResponsibility.get('responsibility_id')) ===
+        String(await Responsibility.systemId(Responsibility.constants.RESP_INVITE_MEMBERS))
+      const destroyed = await roleResponsibility.destroy()
+      // People who could only invite through this role no longer vouch for their pending invitations
+      if (role && removedInviteMembers) await expireForPolicyChange(role.get('group_id'))
+      return destroyed
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to remove responsibility from role')
     }

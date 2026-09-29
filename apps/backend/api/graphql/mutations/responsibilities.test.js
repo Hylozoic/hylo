@@ -56,6 +56,22 @@ describe('responsibilities mutations', () => {
     })
   })
 
+  describe('removing Invite Members from a role', () => {
+    it('expires the pending member invitations of people who could only invite through it', async () => {
+      const inviterRole = await GroupRole.forge({ group_id: group.id, name: 'Inviter', emoji: '✉️', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+      const link = await addResponsibilityToRole({ groupId: group.id, roleId: inviterRole.id, responsibilityId: inviteMembersId, userId: administrator.id })
+      await MemberGroupRole.forge({ user_id: member.id, group_id: group.id, group_role_id: inviterRole.id, active: true }).save()
+      expect(await GroupMembership.inviteAccess(member.id, group.id)).to.equal('limited')
+      const invitation = await Invitation.create({ userId: member.id, groupId: group.id, email: `inviter-${Date.now()}@example.com`, inviterAccess: Invitation.InviterAccess.LIMITED })
+
+      await removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: link.id, userId: administrator.id })
+
+      await invitation.refresh()
+      expect(invitation.isExpired()).to.be.true
+      await bookshelf.knex('group_memberships_group_roles').where({ group_role_id: inviterRole.id }).del()
+    })
+  })
+
   describe('custom responsibility titles', () => {
     it('rejects the title of any built-in responsibility, ignoring case and spaces', async () => {
       for (const title of ['Invite Members', ' invite members ', 'ADMINISTRATION', 'add Members']) {

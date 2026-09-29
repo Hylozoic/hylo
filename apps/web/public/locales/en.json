@@ -3121,6 +3121,7 @@
   "Stewards, and anyone in the roles you choose, can invite people. A steward approves each person that Moderators and the chosen roles invite before they join.": "Stewards, and anyone in the roles you choose, can invite people. A steward approves each person that Moderators and the chosen roles invite before they join.",
   "Stewards, and anyone in the roles you choose, can invite people.": "Stewards, and anyone in the roles you choose, can invite people.",
   "Choose who can invite people to join {{name}}. Administrators, Moderators and Hosts can always invite.": "Choose who can invite people to join {{name}}. Administrators, Moderators and Hosts can always invite.",
+  "Pending invitations sent by members who can no longer invite will be cancelled. Save anyway?": "Pending invitations sent by members who can no longer invite will be cancelled. Save anyway?",
   "Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.": "Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.",
   "Create custom roles later in Roles & Badges": "Create custom roles later in Roles & Badges",
   "Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.": "Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.",
