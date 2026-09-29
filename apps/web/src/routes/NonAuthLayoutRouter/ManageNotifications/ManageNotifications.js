@@ -46,7 +46,7 @@ export default function ManageNotifications (props) {
       const payload = data.payload || {}
       setSettings({ ...payload, allGroupNotifications: 'keep' })
       setChangedSettings({})
-      if (UNSUBSCRIBE_SCOPES.includes(payload.unsubscribeScope)) setScopeChoice(payload.unsubscribeScope)
+      setScopeChoice(UNSUBSCRIBE_SCOPES.includes(payload.unsubscribeScope) ? payload.unsubscribeScope : DEFAULT_UNSUBSCRIBE_SCOPE)
     })
 
   useEffect(() => {

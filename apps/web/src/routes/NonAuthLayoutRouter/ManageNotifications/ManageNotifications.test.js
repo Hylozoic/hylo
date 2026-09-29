@@ -143,11 +143,18 @@ describe('ManageNotifications', () => {
     })
     expect(screen.getByRole('radio', { name: /Fewer emails \(digest only\)/ })).toBeChecked()
 
+    // After resubscribing, the settings come back without a saved choice
+    const { unsubscribeScope, ...resubscribed } = mockSettingsResponse
+    mockSettingsResponse = resubscribed
     fireEvent.click(screen.getByTestId('resubscribe-button'))
 
     await waitFor(() => {
-      expect(mockApiCalls.some(call => call.params?.unsubscribeScope === 'none')).toBe(true)
+      expect(screen.getByText('You are resubscribed. The settings above apply again.')).toBeInTheDocument()
     })
+    expect(mockApiCalls.some(call => call.params?.unsubscribeScope === 'none')).toBe(true)
+    expect(screen.queryByTestId('saved-unsubscribe-scope')).not.toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /Everything except direct/ })).toBeChecked()
+    expect(screen.getByRole('radio', { name: /Fewer emails \(digest only\)/ })).not.toBeChecked()
   })
 
   it('sends only the settings that were changed', async () => {
