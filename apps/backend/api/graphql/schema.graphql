@@ -1335,6 +1335,9 @@ type Group {
     # Sort by 'created_at', 'expires_at', 'user_name'
     sortBy: String
   ): ContentAccessQuerySet
+  # For a paid group or space: what people can see before they buy (titles and counts only).
+  # Null when the paywall is off, the steward turned the preview off, or the viewer can't see the group
+  paywallPreview: PaywallPreview
 }
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type FundingRoundQuerySet {
@@ -1513,6 +1516,20 @@ type GroupSettings {
   showPostNoticesInChat: Boolean
   # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
   autoAddMembers: Boolean
+  # Whether people who haven't bought access see titles of the paid content (on unless turned off)
+  showPaywallPreview: Boolean
+}
+
+# What people can see of a paid group or space before they buy: titles and counts only
+type PaywallPreview {
+  # Titles of pinned, then recent, posts (no bodies, authors or attachments)
+  postTitles: [String]
+  # For a track space: titles of its actions, still locked
+  actionTitles: [String]
+  # For a track space: how many actions it has
+  numActions: Int
+  # For a track space: how many people have completed it
+  numPeopleCompleted: Int
 }
 
 # A relationship between two Groups
@@ -2987,6 +3004,10 @@ type ContentAccess {
   subscriptionPeriodEnd: Date
   subscriptionCancellationScheduledAt: Date
   subscriptionCancelReason: String
+  # When the most recent refund was recorded (a refund does not change access)
+  refundedAt: Date
+  # Amount of the most recent refund, in cents
+  refundedAmount: Int
 }
 
 type ContentAccessResult {
@@ -3058,6 +3079,10 @@ type UserTransaction {
   receiptUrl: String
   # When a plan change is scheduled for period end (or lifetime path), surfaced from subscription_change_events
   pendingMembershipSubscriptionChange: PendingMembershipSubscriptionChange
+  # When the most recent refund was recorded (a refund does not change access)
+  refundedAt: Date
+  # Amount of the most recent refund, in cents
+  refundedAmount: Int
 }
 
 type UserTransactionQuerySet {
@@ -3465,10 +3490,13 @@ type Mutation {
     accessId: ID!,
     reason: String
   ): ContentAccess
-  # Refund content access (admin only) - revokes access and issues Stripe refund
+  # Refund content access (admin only) - issues a Stripe refund for the most recent payment
+  # and records it; access is not changed
   refundContentAccess(
     accessId: ID!,
-    reason: String
+    reason: String,
+    # When true and the purchase is a subscription, cancel it at the end of the paid period
+    cancelFuturePayments: Boolean
   ): ContentAccess
   # Record a Stripe purchase (internal use)
   recordStripePurchase(
@@ -4412,6 +4440,8 @@ input GroupSettingsInput {
   showPostNoticesInChat: Boolean
   # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
   autoAddMembers: Boolean
+  # Whether people who haven't bought access see titles of the paid content (on unless turned off)
+  showPaywallPreview: Boolean
 }
 
 # Input for creating Stripe offerings

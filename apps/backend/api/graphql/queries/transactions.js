@@ -6,6 +6,7 @@
 
 import { GraphQLError } from 'graphql'
 import StripeService from '../../services/StripeService'
+import { whereContentAccessStatus } from '../../services/Search/util'
 
 /* global ContentAccess, StripeAccount, SubscriptionChangeEvent */
 
@@ -196,7 +197,7 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
 
       // Filter by status if provided
       if (status) {
-        q.where('content_access.status', status)
+        whereContentAccessStatus(q, status)
       }
 
       // Filter by offering/product ID if provided
@@ -220,7 +221,7 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
       q.where('content_access.user_id', userId)
       q.where('content_access.access_type', 'stripe_purchase')
       if (status) {
-        q.where('content_access.status', status)
+        whereContentAccessStatus(q, status)
       }
       if (offeringId) {
         q.where('content_access.product_id', offeringId)
@@ -299,6 +300,10 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
         subscriptionPeriodEnd: metadata.subscription_period_end ? new Date(metadata.subscription_period_end) : null,
         subscriptionCancellationScheduledAt: metadata.subscription_cancellation_scheduled_at ? new Date(metadata.subscription_cancellation_scheduled_at) : null,
         subscriptionCancelReason: metadata.subscription_cancel_reason || null,
+
+        // Refunds are recorded without changing access
+        refundedAt: record.get('refunded_at') || null,
+        refundedAmount: record.get('refunded_amount'),
 
         // Stripe data placeholders - will be enriched below
         subscriptionStatus: null,

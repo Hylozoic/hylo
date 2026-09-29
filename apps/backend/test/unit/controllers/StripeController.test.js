@@ -403,8 +403,179 @@ describe('subscription email links', () => {
   })
 })
 
+describe('StripeController delayed checkout payments', () => {
+  let StripeController, user, group, product, req, res
+
+  const sessionFor = (attrs = {}) => ({
+    id: 'cs_delayed',
+    mode: 'payment',
+    payment_status: 'paid',
+    created: Math.floor(Date.now() / 1000),
+    amount_total: 1500,
+    currency: 'usd',
+    metadata: { userId: String(user.id), groupId: String(group.id), offeringId: String(product.id) },
+    ...attrs
+  })
+
+  const accessRows = () => ContentAccess.where({ stripe_session_id: 'cs_delayed' }).fetchAll()
+
+  before(() => {
+    StripeController = require(root('api/controllers/StripeController'))
+  })
+
+  beforeEach(async () => {
+    await setup.clearDb()
+    user = await factories.user().save()
+    group = await factories.group().save()
+    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_delayed' }).save()
+    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+    product = await StripeProduct.create({
+      group_id: group.id,
+      stripe_product_id: 'prod_delayed',
+      stripe_price_id: 'price_delayed',
+      name: 'Season Pass',
+      description: 'season',
+      price_in_cents: 1500,
+      currency: 'usd',
+      renewal_policy: 'manual',
+      duration: 'season',
+      access_grants: { groupIds: [group.id] },
+      publish_status: 'published'
+    })
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+    req = factories.mock.request()
+    res = factories.mock.response()
+    req.body = Buffer.from('fake-body')
+    req.headers['stripe-signature'] = 'sig_test'
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
+  })
+
+  afterEach(() => {
+    unspyify(Queue, 'classMethod')
+    delete global.__stripeWebhookConstructEvent
+  })
+
+  it('grants nothing when checkout completes before a delayed payment clears', async () => {
+    await StripeController.handleCheckoutSessionCompleted({ account: 'acct_delayed', data: { object: sessionFor({ payment_status: 'unpaid' }) } })
+
+    expect((await accessRows()).length).to.equal(0)
+  })
+
+  it('grants access when the delayed payment succeeds', async () => {
+    global.__stripeWebhookConstructEvent = () => ({
+      id: 'evt_async_succeeded',
+      type: 'checkout.session.async_payment_succeeded',
+      account: 'acct_delayed',
+      data: { object: sessionFor() }
+    })
+
+    await StripeController.webhook(req, res)
+
+    expect(res.body.received).to.equal(true)
+    const rows = await accessRows()
+    expect(rows.length).to.equal(1)
+    expect(rows.first().get('status')).to.equal(ContentAccess.Status.ACTIVE)
+  })
+
+  describe('with a promotion code', () => {
+    let StripeService, stripeClient, originalSessionRetrieve, feeRefundCalls
+
+    beforeEach(() => {
+      StripeService = require(root('api/services/StripeService'))
+      stripeClient = require('stripe')()
+      originalSessionRetrieve = stripeClient.checkout.sessions.retrieve
+      stripeClient.checkout.sessions.retrieve = async () => ({
+        line_items: {
+          data: [{ description: 'Season Pass', quantity: 1, amount_total: 500, price: { unit_amount: 10000, product: { name: 'Season Pass' } } }]
+        }
+      })
+      feeRefundCalls = []
+      mockify(StripeService, 'refundApplicationFeeAboveShare', async params => {
+        feeRefundCalls.push(params)
+        return 665
+      })
+    })
+
+    afterEach(() => {
+      stripeClient.checkout.sessions.retrieve = originalSessionRetrieve
+      unspyify(StripeService, 'refundApplicationFeeAboveShare')
+    })
+
+    it('refunds the part of the application fee above Hylo\'s share of what was paid', async () => {
+      await StripeController.handleCheckoutSessionCompleted({
+        account: 'acct_delayed',
+        data: { object: sessionFor({ amount_total: 500, payment_intent: 'pi_promo', total_details: { amount_discount: 9500 } }) }
+      })
+
+      expect(feeRefundCalls).to.deep.equal([{ accountId: 'acct_delayed', paymentIntentId: 'pi_promo', paidAmount: 500 }])
+    })
+
+    describe('and a Hylo contribution', () => {
+      let transferCalls
+
+      beforeEach(() => {
+        stripeClient.checkout.sessions.retrieve = async () => ({
+          line_items: {
+            data: [
+              { description: 'Season Pass', quantity: 1, amount_total: 5000, price: { unit_amount: 10000, product: { name: 'Season Pass' } } },
+              { description: 'Hylo Platform Contribution', quantity: 1, amount_total: 500, price: { unit_amount: 1000, product: { name: 'Hylo Platform Contribution' } } }
+            ]
+          }
+        })
+        transferCalls = []
+        mockify(StripeService, 'transferContributionToPlatform', async params => {
+          transferCalls.push(params)
+          return {}
+        })
+      })
+
+      afterEach(() => {
+        unspyify(StripeService, 'transferContributionToPlatform')
+      })
+
+      it('counts only what was paid for the offering, and transfers only what was paid for the contribution', async () => {
+        await StripeController.handleCheckoutSessionCompleted({
+          account: 'acct_delayed',
+          data: { object: sessionFor({ amount_total: 5600, payment_intent: 'pi_promo_contribution', total_details: { amount_discount: 5500 } }) }
+        })
+
+        expect(feeRefundCalls).to.deep.equal([{ accountId: 'acct_delayed', paymentIntentId: 'pi_promo_contribution', paidAmount: 5000 }])
+        expect(transferCalls).to.have.length(1)
+        expect(transferCalls[0]).to.include({ connectedAccountId: 'acct_delayed', paymentIntentId: 'pi_promo_contribution', donationAmount: 500 })
+      })
+    })
+
+    it('leaves the fee alone when no discount was applied', async () => {
+      await StripeController.handleCheckoutSessionCompleted({
+        account: 'acct_delayed',
+        data: { object: sessionFor({ payment_intent: 'pi_full_price', total_details: { amount_discount: 0 } }) }
+      })
+
+      expect(feeRefundCalls).to.have.length(0)
+    })
+  })
+
+  it('logs a failed delayed payment and grants nothing', async () => {
+    global.__stripeWebhookConstructEvent = () => ({
+      id: 'evt_async_failed',
+      type: 'checkout.session.async_payment_failed',
+      account: 'acct_delayed',
+      data: { object: sessionFor({ payment_status: 'unpaid' }) }
+    })
+
+    await StripeController.webhook(req, res)
+
+    expect(res.body.received).to.equal(true)
+    expect((await accessRows()).length).to.equal(0)
+    const logs = await bookshelf.knex('stripe_logs').where({ log_type: 'async_payment_failed', external_id: 'cs_delayed' })
+    expect(logs).to.have.length(1)
+    expect(String(logs[0].group_id)).to.equal(String(group.id))
+    expect(logs[0].metadata).to.deep.equal({ offering_id: String(product.id) })
+  })
+})
+
 describe('StripeController.handleChargeRefunded', () => {
-  let StripeController, stripeClient, originalRetrieve, originalList, sessionListCalls, user, group, product, sentEmails
+  let StripeController, StripeService, stripeClient, originalRetrieve, originalList, sessionListCalls, user, group, product, sentEmails
 
   const chargeRefundedEvent = {
     id: 'evt_charge_refunded',
@@ -432,8 +603,17 @@ describe('StripeController.handleChargeRefunded', () => {
     ...attrs
   })
 
+  const reload = access => ContentAccess.where({ id: access.id }).fetch()
+  const refundLogs = () => bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_refunded' })
+
+  const connectGroup = async (externalId) => {
+    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: externalId }).save()
+    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+  }
+
   before(() => {
     StripeController = require(root('api/controllers/StripeController'))
+    StripeService = require(root('api/services/StripeService'))
     stripeClient = require('stripe')()
   })
 
@@ -468,23 +648,43 @@ describe('StripeController.handleChargeRefunded', () => {
       if (className === 'Email' && methodName === 'sendRefundProcessed') sentEmails.push(data)
       return Promise.resolve()
     })
+    mockify(ContentAccess, 'revoke', async () => { throw new Error('a refund must not revoke access') })
+    mockify(StripeService, 'cancelSubscription', async () => { throw new Error('a refund must not cancel the subscription') })
   })
 
   afterEach(() => {
     stripeClient.paymentIntents.retrieve = originalRetrieve
     stripeClient.checkout.sessions.list = originalList
     unspyify(Queue, 'classMethod')
+    unspyify(ContentAccess, 'revoke')
+    unspyify(StripeService, 'cancelSubscription')
   })
 
-  it('emails the member once for a refund issued from the Stripe dashboard', async () => {
+  it('keeps access for a full refund issued from the Stripe dashboard, records it and emails the member once', async () => {
+    await connectGroup('acct_full')
     const groupAccess = await purchase()
     const roleAccess = await purchase({ metadata: { accessType: 'role' } })
 
-    await StripeController.handleChargeRefunded(chargeRefundedEvent)
+    await StripeController.handleChargeRefunded({ ...chargeRefundedEvent, account: 'acct_full' })
 
-    expect(sessionListCalls).to.deep.equal([{ params: { payment_intent: 'pi_refunded', limit: 1 }, options: {} }])
-    expect((await ContentAccess.where({ id: groupAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
-    expect((await ContentAccess.where({ id: roleAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect(sessionListCalls).to.deep.equal([{ params: { payment_intent: 'pi_refunded', limit: 1 }, options: { stripeAccount: 'acct_full' } }])
+    for (const access of [groupAccess, roleAccess]) {
+      const refreshed = await reload(access)
+      expect(refreshed.get('status')).to.equal(ContentAccess.Status.ACTIVE)
+      expect(refreshed.get('metadata')).to.include({
+        refund_amount: 1500,
+        refund_charge_id: 'ch_refunded',
+        refund_source: 'stripe_webhook'
+      })
+      expect(refreshed.get('metadata').refunded_at).to.be.a('string')
+      expect(refreshed.get('metadata').revokedAt).to.equal(undefined)
+      expect(refreshed.get('refunded_at')).to.be.an.instanceof(Date)
+      expect(refreshed.get('refunded_amount')).to.equal(1500)
+    }
+    expect((await reload(roleAccess)).get('metadata').accessType).to.equal('role')
+    expect(ContentAccess.revoke).to.not.have.been.called()
+    expect(StripeService.cancelSubscription).to.not.have.been.called()
+
     expect(sentEmails).to.have.length(1)
     expect(sentEmails[0].email).to.equal(user.get('email'))
     expect(sentEmails[0].locale).to.equal('fr-FR')
@@ -495,47 +695,154 @@ describe('StripeController.handleChargeRefunded', () => {
       currency: 'USD',
       refund_reason: null
     })
+
+    const logs = await refundLogs()
+    expect(logs).to.have.length(1)
+    expect(String(logs[0].group_id)).to.equal(String(group.id))
+    expect(String(logs[0].content_access_id)).to.equal(String(groupAccess.id))
+    expect(Number(logs[0].amount)).to.equal(1500)
   })
 
-  it('sends nothing when the refund was made through Hylo, which already emailed the member', async () => {
-    await purchase({ status: ContentAccess.Status.REFUNDED })
+  it('sends nothing more when the same refund event is handled again', async () => {
+    await connectGroup('acct_replay')
+    const access = await purchase()
+    const event = { ...chargeRefundedEvent, account: 'acct_replay' }
+
+    await StripeController.handleChargeRefunded(event)
+    const firstMetadata = (await reload(access)).get('metadata')
+    await StripeController.handleChargeRefunded(event)
+
+    expect(sentEmails).to.have.length(1)
+    expect((await reload(access)).get('metadata').refunded_at).to.equal(firstMetadata.refunded_at)
+    expect(await refundLogs()).to.have.length(1)
+  })
+
+  it('sends nothing when Hylo\'s Refund button already recorded and emailed this refund', async () => {
+    const access = await purchase({
+      metadata: {
+        refundId: 're_button',
+        refund_charge_id: 'ch_refunded',
+        refunded_at: new Date().toISOString(),
+        refund_source: 'hylo_refund_button'
+      }
+    })
+
+    await StripeController.handleChargeRefunded(chargeRefundedEvent)
+
+    const refreshed = await reload(access)
+    expect(refreshed.get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    expect(refreshed.get('metadata').refund_source).to.equal('hylo_refund_button')
+    expect(sentEmails).to.have.length(0)
+  })
+
+  it('sends nothing for a purchase the earlier Refund button marked refunded, and leaves the other rows active', async () => {
+    await purchase({ status: ContentAccess.Status.REFUNDED, metadata: { refundId: 're_old_button' } })
     const otherAccess = await purchase()
 
     await StripeController.handleChargeRefunded(chargeRefundedEvent)
 
-    expect((await ContentAccess.where({ id: otherAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect((await reload(otherAccess)).get('status')).to.equal(ContentAccess.Status.ACTIVE)
     expect(sentEmails).to.have.length(0)
   })
 
-  it('looks the session up on the connected account and logs the refund for its group', async () => {
-    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_refunded' }).save()
-    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
-    const access = await purchase()
+  describe('for a subscription charge', () => {
+    let rawRequests, invoicePaymentsFor, subscriptionAccess
 
-    await StripeController.handleChargeRefunded({ ...chargeRefundedEvent, account: 'acct_refunded' })
+    const renewalRefundEvent = {
+      ...chargeRefundedEvent,
+      id: 'evt_renewal_refunded',
+      account: 'acct_renewal',
+      data: { object: { ...chargeRefundedEvent.data.object, id: 'ch_renewal', payment_intent: 'pi_renewal' } }
+    }
 
-    expect(sessionListCalls[0].options).to.deep.equal({ stripeAccount: 'acct_refunded' })
-    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
-    const log = await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_refunded' }).first()
-    expect(String(log.group_id)).to.equal(String(group.id))
-    expect(Number(log.amount)).to.equal(1500)
+    beforeEach(async () => {
+      await connectGroup('acct_renewal')
+      subscriptionAccess = await purchase({ stripe_session_id: 'cs_subscription', stripe_subscription_id: 'sub_renewal' })
+      rawRequests = []
+      invoicePaymentsFor = {
+        pi_renewal: { data: [{ invoice: { id: 'in_renewal', parent: { subscription_details: { subscription: 'sub_renewal' } } } }] }
+      }
+      stripeClient.rawRequest = async (method, path, params, options) => {
+        rawRequests.push({ method, path, params, options })
+        const paymentIntent = new URL(path, 'https://api.stripe.com').searchParams.get('payment[payment_intent]')
+        return invoicePaymentsFor[paymentIntent] || { data: [] }
+      }
+    })
+
+    afterEach(() => {
+      delete stripeClient.rawRequest
+    })
+
+    it('matches a renewal refund through its invoice, records and logs it, and leaves access and the subscription alone', async () => {
+      await StripeController.handleChargeRefunded(renewalRefundEvent)
+
+      expect(rawRequests).to.have.length(1)
+      expect(rawRequests[0].method).to.equal('GET')
+      const params = new URL(rawRequests[0].path, 'https://api.stripe.com').searchParams
+      expect(params.get('payment[type]')).to.equal('payment_intent')
+      expect(params.get('payment[payment_intent]')).to.equal('pi_renewal')
+      expect(rawRequests[0].options).to.deep.equal({ stripeAccount: 'acct_renewal' })
+
+      const refreshed = await reload(subscriptionAccess)
+      expect(refreshed.get('status')).to.equal(ContentAccess.Status.ACTIVE)
+      expect(refreshed.get('refunded_amount')).to.equal(1500)
+      expect(refreshed.get('metadata').refund_charge_id).to.equal('ch_renewal')
+      expect(ContentAccess.revoke).to.not.have.been.called()
+      expect(StripeService.cancelSubscription).to.not.have.been.called()
+      expect(sentEmails).to.have.length(0)
+
+      const logs = await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_renewal' })
+      expect(logs).to.have.length(1)
+      expect(String(logs[0].content_access_id)).to.equal(String(subscriptionAccess.id))
+      expect(logs[0].metadata).to.include({ matched_by: 'subscription', stripe_subscription_id: 'sub_renewal' })
+    })
+
+    it('reads the subscription from an older invoice shape too', async () => {
+      invoicePaymentsFor.pi_renewal = { data: [{ invoice: { id: 'in_renewal', subscription: 'sub_renewal' } }] }
+
+      await StripeController.handleChargeRefunded(renewalRefundEvent)
+
+      expect(await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_renewal' })).to.have.length(1)
+    })
+
+    it('logs nothing and does not throw when the charge matches no purchase', async () => {
+      const access = await purchase()
+
+      await StripeController.handleChargeRefunded({
+        ...renewalRefundEvent,
+        data: { object: { ...renewalRefundEvent.data.object, id: 'ch_unknown', payment_intent: 'pi_unknown' } }
+      })
+
+      expect((await reload(access)).get('status')).to.equal(ContentAccess.Status.ACTIVE)
+      expect(sentEmails).to.have.length(0)
+      expect(await bookshelf.knex('stripe_logs').where({ log_type: 'refund' })).to.have.length(0)
+    })
+
+    it('does not throw when the invoice lookup fails', async () => {
+      stripeClient.rawRequest = async () => { throw new Error('lookup failed') }
+
+      await StripeController.handleChargeRefunded(renewalRefundEvent)
+
+      expect(await bookshelf.knex('stripe_logs').where({ log_type: 'refund' })).to.have.length(0)
+    })
   })
 
-  it('does nothing when no checkout session matches the payment intent', async () => {
+  it('does nothing when no checkout session or invoice matches the payment intent', async () => {
     const access = await purchase()
+    stripeClient.rawRequest = async () => ({ data: [] })
 
     await StripeController.handleChargeRefunded({
       ...chargeRefundedEvent,
       data: { object: { ...chargeRefundedEvent.data.object, payment_intent: 'pi_subscription_invoice' } }
     })
+    delete stripeClient.rawRequest
 
-    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    expect((await reload(access)).get('status')).to.equal(ContentAccess.Status.ACTIVE)
     expect(sentEmails).to.have.length(0)
   })
 
   it('keeps access and sends nothing for a partial refund, but still logs it', async () => {
-    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_partial' }).save()
-    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+    await connectGroup('acct_partial')
     const access = await purchase()
 
     await StripeController.handleChargeRefunded({
@@ -544,9 +851,34 @@ describe('StripeController.handleChargeRefunded', () => {
       data: { object: { ...chargeRefundedEvent.data.object, amount_refunded: 500, refunded: false } }
     })
 
-    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    const refreshed = await reload(access)
+    expect(refreshed.get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    expect(refreshed.get('metadata').refunded_at).to.equal(undefined)
+    expect(refreshed.get('refunded_at')).to.equal(null)
     expect(sentEmails).to.have.length(0)
-    const log = await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_refunded' }).first()
-    expect(Number(log.amount)).to.equal(500)
+    const logs = await refundLogs()
+    expect(logs).to.have.length(1)
+    expect(Number(logs[0].amount)).to.equal(500)
+  })
+
+  it('updates the log when the rest of a partly refunded charge is refunded', async () => {
+    await connectGroup('acct_partial_then_full')
+    const access = await purchase()
+    const refundOf = (amountRefunded, refunded) => StripeController.handleChargeRefunded({
+      ...chargeRefundedEvent,
+      account: 'acct_partial_then_full',
+      data: { object: { ...chargeRefundedEvent.data.object, amount_refunded: amountRefunded, refunded } }
+    })
+
+    await refundOf(500, false)
+    await refundOf(1500, true)
+
+    expect((await reload(access)).get('refunded_amount')).to.equal(1500)
+    expect(sentEmails).to.have.length(1)
+    const logs = await refundLogs()
+    expect(logs).to.have.length(1)
+    expect(Number(logs[0].amount)).to.equal(1500)
+    expect(logs[0].metadata).to.include({ matched_by: 'checkout_session', full_refund: true })
+    expect(String(logs[0].content_access_id)).to.equal(String(access.id))
   })
 })

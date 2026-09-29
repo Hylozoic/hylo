@@ -339,6 +339,12 @@ module.exports = bookshelf.Model.extend({
       const round = this.forge({ created_at: new Date(), updated_at: new Date(), ...attrs })
       await round.save({}, { transacting })
 
+      // Link the space to its round before the creator joins, so the join is counted
+      const space = attrs.group_id ? await Group.where({ id: attrs.group_id }).fetch({ transacting }) : null
+      if (space && space.get('type') === 'space' && !space.get('funding_round_id')) {
+        await space.save({ funding_round_id: round.id }, { patch: true, transacting })
+      }
+
       // Create the special chat room for this round
       const topic = await Tag.findOrCreate('‡funding_round_' + round.id, { transacting })
       await Tag.addToGroup({ group_id: attrs.group_id, tag_id: topic.id, isSubscribing: true }, { transacting })
@@ -377,28 +383,15 @@ module.exports = bookshelf.Model.extend({
       throw new GraphQLError('Funding round space not found')
     }
 
-    let membership = await GroupMembership.forPair(userId, space, { includeInactive: true }).fetch({ transacting })
+    const membership = await GroupMembership.forPair(userId, space, { includeInactive: true }).fetch({ transacting })
     if (membership && membership.get('active')) {
       return membership
     }
 
-    const created = await space.addMembers([userId], { joinSource: GroupMembership.JoinSource.FUNDING_ROUND }, { transacting })
-    membership = created[0] || await GroupMembership.forPair(userId, space).fetch({ transacting })
-    await membership.save({ created_at: new Date() }, { patch: true, transacting })
-    await round.save({ num_participants: (round.get('num_participants') || 0) + 1 }, { transacting })
-
-    const canAllocateOnJoin = round.get('allow_late_joiners') &&
-      round.get('voting_method') === 'token_allocation_constant' &&
-      await round.spaceStatus({ transacting }) === FundingRound.PHASES.VOTING &&
-      round.get('total_tokens')
-
-    // Late joiners only receive tokens when the round is already in voting
-    if (canAllocateOnJoin && await round.canUserVote(userId)) {
-      membership.addSetting({ tokensRemaining: round.get('total_tokens') })
-      await membership.save({ settings: membership.get('settings') }, { transacting, patch: true })
-    }
-
-    return membership
+    // Group.settleJoin (run by addMembers) counts the participant, restarts joined-at and
+    // gives a late joiner their tokens
+    await space.addMembers([userId], { joinSource: GroupMembership.JoinSource.FUNDING_ROUND }, { transacting })
+    return GroupMembership.forPair(userId, space).fetch({ transacting })
   },
 
   /**

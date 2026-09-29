@@ -1,5 +1,7 @@
 import React from 'react'
 import { screen, waitFor } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
+import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { AllTheProviders, render } from 'util/testing/reactTestingLibraryExtended'
 import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_TYPES } from 'store/models/Group'
@@ -26,7 +28,7 @@ jest.mock('store/selectors/getQuerystringParam', () => jest.fn())
 
 jest.mock('store/actions/joinSpace', () => () => ({ type: 'SpaceJoinPage/JOIN_SPACE' }))
 
-function setupProviders () {
+function setupProviders ({ paywall = false } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Group.create({
     id: '10',
@@ -41,7 +43,7 @@ function setupProviders () {
     type: GROUP_TYPES.space,
     parentId: '10',
     accessibility: GROUP_ACCESSIBILITY.Closed,
-    paywall: false,
+    paywall,
     requiredRoles: [],
     bannerUrl: 'https://example.com/banner.jpg',
     memberCount: 3
@@ -55,8 +57,8 @@ function setupProviders () {
   return AllTheProviders({ orm: ormSession.state }, ['/groups/parent-group/spaces/invite-space'])
 }
 
-function renderPage () {
-  return render(<SpaceJoinPage />, null, setupProviders())
+function renderPage (options) {
+  return render(<SpaceJoinPage />, null, setupProviders(options))
 }
 
 describe('SpaceJoinPage', () => {
@@ -78,5 +80,42 @@ describe('SpaceJoinPage', () => {
     renderPage()
     expect(screen.queryByRole('button', { name: 'Join Space' })).not.toBeInTheDocument()
     expect(screen.getByText('This space is invite only. You need an invitation to join.')).toBeInTheDocument()
+  })
+
+  it('shows a paid track space\'s locked action titles and counts above the offerings', async () => {
+    getQuerystringParam.mockReturnValue(null)
+    mockGraphqlServer.use(
+      http.post('*/noo/graphql', async ({ request }) => {
+        const { query } = await request.json()
+        if (query.includes('paywallPreview')) {
+          return HttpResponse.json({
+            data: {
+              group: {
+                id: '20',
+                paywallPreview: { postTitles: [], actionTitles: ['Read the guide', 'Plant your first bed'], numActions: 2, numPeopleCompleted: 3 }
+              }
+            }
+          })
+        }
+        if (query.includes('publicStripeOfferings')) {
+          return HttpResponse.json({
+            data: {
+              publicStripeOfferings: {
+                success: true,
+                offerings: [{ id: '5', name: 'Season Pass', priceInCents: 1500, currency: 'usd', accessGrants: { groupIds: ['20'] } }]
+              }
+            }
+          })
+        }
+        return HttpResponse.json({ data: {} })
+      })
+    )
+
+    renderPage({ paywall: true })
+
+    expect(await screen.findByText('Read the guide')).toBeInTheDocument()
+    expect(screen.getByText('Plant your first bed')).toBeInTheDocument()
+    expect(screen.getByTestId('paywall-preview')).toBeInTheDocument()
+    expect(await screen.findByText('Season Pass')).toBeInTheDocument()
   })
 })

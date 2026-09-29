@@ -469,22 +469,27 @@ module.exports = {
   /**
    * Refund content access (admin only)
    *
-   * Revokes access, cancels any associated subscription, and issues a Stripe refund
-   * for the most recent payment. This is a destructive action that cannot be undone.
+   * Issues a Stripe refund for the most recent payment and records it on the access row.
+   * A refund gives the money back and never changes access; to remove access, a steward
+   * revokes it or removes the person. When cancelFuturePayments is true and the purchase is
+   * a subscription, the subscription is set to cancel at the end of the period already paid
+   * for, and the subscription.deleted webhook ends access then.
    *
    * Usage:
    *   mutation {
    *     refundContentAccess(
    *       accessId: "123"
    *       reason: "Customer requested refund"
+   *       cancelFuturePayments: true
    *     ) {
    *       id
    *       status
-   *       metadata
+   *       refundedAt
+   *       refundedAmount
    *     }
    *   }
    */
-  refundContentAccess: async (sessionUserId, { accessId, reason }) => {
+  refundContentAccess: async (sessionUserId, { accessId, reason, cancelFuturePayments = false }) => {
     try {
       // Check if user is authenticated
       if (!sessionUserId) {
@@ -512,6 +517,12 @@ module.exports = {
       // Verify this is a Stripe purchase (not an admin grant)
       if (access.get('access_type') !== ContentAccess.Type.STRIPE_PURCHASE) {
         throw new GraphQLError('Only Stripe purchases can be refunded. Admin grants should be revoked instead.')
+      }
+
+      // The refund covers the most recent payment; refuse a second refund of it rather than
+      // let Stripe pick an older payment
+      if (ContentAccess.latestPaymentRefunded(access)) {
+        throw new GraphQLError('The most recent payment for this purchase has already been refunded')
       }
 
       // Get the Stripe account info
@@ -637,36 +648,43 @@ module.exports = {
         throw new GraphQLError('Unable to issue refund: no payment found for this access record')
       }
 
-      // IMPORTANT: Set status to REFUNDED *before* cancelling subscription
-      // This prevents the subscription.deleted webhook from overwriting to 'expired'
-      const metadata = access.get('metadata') || {}
-      metadata.refundId = refund.id
-      metadata.refundAmount = refund.amount
-      metadata.refundedAt = new Date().toISOString()
-      metadata.refundedBy = sessionUserId
-      metadata.revokedAt = new Date().toISOString()
-      metadata.revokedBy = sessionUserId
-      if (reason) metadata.refundReason = reason
+      // Record the refund without changing access. The webhook for the same charge sees
+      // this marker and does not email the member a second time.
+      await ContentAccess.recordRefund(access, {
+        amount: refund.amount,
+        chargeId: typeof refund.charge === 'string' ? refund.charge : refund.charge?.id,
+        source: 'hylo_refund_button',
+        reason
+      }, {
+        refundId: refund.id,
+        refundAmount: refund.amount,
+        refundedAt: new Date().toISOString(),
+        refundedBy: sessionUserId,
+        ...(reason ? { refundReason: reason } : {})
+      })
 
-      // Save REFUNDED status first
-      await access.save({
-        status: ContentAccess.Status.REFUNDED,
-        metadata
-      }, { patch: true })
-
-      // Now cancel the subscription (if any) - webhook will see REFUNDED status and skip
-      if (subscriptionId) {
+      // Stop future payments only when the steward chose to, and only at the end of the
+      // period already paid for, so the member keeps what they paid for
+      if (cancelFuturePayments && subscriptionId) {
         try {
-          await StripeService.cancelSubscription({
+          const subscription = await StripeService.cancelSubscription({
             accountId: externalAccountId,
             subscriptionId,
-            immediately: true
+            immediately: false
           })
-          // Update metadata to note subscription was cancelled
-          metadata.subscriptionCancelled = true
-          await access.save({ metadata }, { patch: true })
+          const periodEnd = subscription?.cancel_at || subscription?.current_period_end || subscription?.items?.data?.[0]?.current_period_end
+          const metadata = access.get('metadata') || {}
+          await access.save({
+            metadata: {
+              ...metadata,
+              subscription_cancel_at_period_end: true,
+              subscription_cancellation_scheduled_at: new Date().toISOString(),
+              subscription_cancel_reason: 'refunded_by_steward',
+              ...(periodEnd ? { subscription_period_end: new Date(periodEnd * 1000).toISOString() } : {})
+            }
+          }, { patch: true })
         } catch (cancelError) {
-          console.error(`Failed to cancel subscription ${subscriptionId}:`, cancelError.message)
+          console.error(`Failed to cancel subscription ${subscriptionId} at period end:`, cancelError.message)
           // Don't fail the refund if subscription cancellation fails
         }
       }

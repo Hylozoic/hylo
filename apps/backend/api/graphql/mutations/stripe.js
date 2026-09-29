@@ -693,10 +693,14 @@ module.exports = {
       const initialQuantity = sanitizedAdjustableQuantity?.minimum ?? quantity ?? 1
       const totalAmount = priceObject.unit_amount * initialQuantity
 
-      // Calculate application fee (7% of total)
+      // Calculate application fee (7% of total). A promotion code applied at checkout can lower
+      // what is paid; the checkout webhook then refunds the part of this fee above that share.
       // TODO STRIPE: Consider making this configurable per group or product
-      const applicationFeePercentage = 0.07 // 7%
-      const applicationFeeAmount = Math.round(totalAmount * applicationFeePercentage)
+      const applicationFeeAmount = StripeService.applicationFeeForAmount(totalAmount)
+
+      // Pre-fill the checkout page with the signed-in buyer's email
+      const buyer = await User.find(userId)
+      const customerEmail = buyer?.get('email') || null
 
       // Create the checkout session
       const checkoutSession = await StripeService.createCheckoutSession({
@@ -709,6 +713,7 @@ module.exports = {
         mode: checkoutMode,
         adjustableQuantity: sanitizedAdjustableQuantity,
         locale: effectiveLocale,
+        customerEmail,
         metadata: {
           groupId,
           offeringId,
