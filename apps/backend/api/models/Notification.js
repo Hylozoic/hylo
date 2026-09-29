@@ -11,6 +11,14 @@ import { PRIORITY_REASONS } from './notification/priorityReasons'
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
 
+// A push is only worth sending soon after it was created (D85): unsent pushes are
+// tried within this many minutes of creation, retrying failures every
+// PUSH_RETRY_INTERVAL_MINUTES. Emails retry hourly for up to six hours.
+const PUSH_RETRY_WINDOW_MINUTES = 15
+const PUSH_RETRY_INTERVAL_MINUTES = 2
+const EMAIL_RETRY_WINDOW_HOURS = 6
+const EMAIL_RETRY_INTERVAL_HOURS = 1
+
 // Extracts pathname + search from a full route URL so query params (e.g. commentId, postId)
 // are preserved in push notification deep links. Using .pathname alone silently drops them.
 function routeToPath (routeURL) {
@@ -1367,6 +1375,8 @@ module.exports = bookshelf.Model.extend({
   MEDIUM,
   TYPE,
   EMAIL_SKIPPED,
+  PUSH_RETRY_WINDOW_MINUTES,
+  PUSH_RETRY_INTERVAL_MINUTES,
 
   find: function (id, options) {
     if (!id) return Promise.resolve(null)
@@ -1379,15 +1389,26 @@ module.exports = bookshelf.Model.extend({
    */
   claimUnsentIds: function ({ includeOld = false } = {}) {
     const knex = bookshelf.knex
-    const createdClause = includeOld
+    const emailCreatedClause = includeOld
       ? 'true'
-      : "created_at > now() - interval '6 hour'"
+      : `created_at > now() - interval '${EMAIL_RETRY_WINDOW_HOURS} hour'`
+    // The medium check stays inside the locked CTE so concurrent workers stay safe.
     const sql = `
       WITH cte AS (
         SELECT id FROM notifications
         WHERE sent_at IS NULL
-        AND (${createdClause})
-        AND (failed_at IS NULL OR failed_at < now() - interval '1 hour')
+        AND (
+          (
+            medium = ${MEDIUM.Push}
+            AND created_at > now() - interval '${PUSH_RETRY_WINDOW_MINUTES} minutes'
+            AND (failed_at IS NULL OR failed_at < now() - interval '${PUSH_RETRY_INTERVAL_MINUTES} minutes')
+          )
+          OR (
+            medium <> ${MEDIUM.Push}
+            AND (${emailCreatedClause})
+            AND (failed_at IS NULL OR failed_at < now() - interval '${EMAIL_RETRY_INTERVAL_HOURS} hour')
+          )
+        )
         AND (
           processing_started_at IS NULL
           OR processing_started_at < now() - interval '${STALE_NOTIFICATION_CLAIM_MINUTES} minutes'
@@ -1440,13 +1461,19 @@ module.exports = bookshelf.Model.extend({
       })
       .then(async ns => {
         if (!ns || ns.length === 0) return
+        let pushFailed = false
         await Promise.each(ns.models, n =>
           n.send().catch(err => {
             console.error('Error sending notification', err, n.attributes)
             sentry.error(err, null, { notification: n.attributes })
+            if (n.get('medium') === MEDIUM.Push) pushFailed = true
             return n.save({ failed_at: new Date(), processing_started_at: null }, { patch: true })
           })
         )
+        // Retry a failed push inside its window rather than waiting for the 10-minute cron.
+        if (pushFailed) {
+          Queue.classMethod('Notification', 'sendUnsent', {}, (PUSH_RETRY_INTERVAL_MINUTES * 60 + 15) * 1000)
+        }
         // If we hit the batch limit, there may be more to process.
         if (ns.length >= UNSENT_NOTIFICATION_BATCH_SIZE) {
           // Re-enqueue another pass shortly.

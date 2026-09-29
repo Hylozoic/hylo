@@ -598,14 +598,41 @@ describe('Notification', function () {
 
     const minutesAgo = minutes => new Date(Date.now() - minutes * 60000)
 
-    const unsentNotification = async timestamps => {
+    const unsentNotification = async (timestamps, medium = Notification.MEDIUM.Email) => {
       const notification = await new Notification({
         activity_id: activity.id,
-        medium: Notification.MEDIUM.Email
+        medium
       }).save()
       await bookshelf.knex('notifications').where({ id: notification.id }).update(timestamps)
       return Number(notification.id)
     }
+    const unsentPush = timestamps => unsentNotification(timestamps, Notification.MEDIUM.Push)
+
+    it('retries a push that failed 3 minutes ago inside its window', async () => {
+      const id = await unsentPush({ created_at: minutesAgo(5), failed_at: minutesAgo(3) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([id])
+    })
+
+    it('waits a short interval before retrying a failed push', async () => {
+      await unsentPush({ created_at: minutesAgo(2), failed_at: minutesAgo(1) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([])
+    })
+
+    it('does not claim a push created 20 minutes ago', async () => {
+      await unsentPush({ created_at: minutesAgo(20) })
+      await unsentPush({ created_at: minutesAgo(20), failed_at: minutesAgo(10) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([])
+    })
+
+    it('keeps the hourly retry for an email that failed 3 minutes ago', async () => {
+      await unsentNotification({ created_at: minutesAgo(5), failed_at: minutesAgo(3) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([])
+    })
+
+    it('still claims an email created 20 minutes ago', async () => {
+      const id = await unsentNotification({ created_at: minutesAgo(20) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([id])
+    })
 
     it('reclaims a failed notification an hour after it failed', async () => {
       const id = await unsentNotification({ created_at: minutesAgo(180), failed_at: minutesAgo(120) })
@@ -642,6 +669,35 @@ describe('Notification', function () {
     afterEach(() => {
       process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
       unspyify(Email, 'sendApprovedJoinRequestNotification')
+    })
+
+    it('queues a short retry when a push fails', async () => {
+      mockify(OneSignal, 'notify', () => Promise.resolve(false))
+      mockify(Queue, 'classMethod', () => Promise.resolve())
+      try {
+        const notification = await preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Push)
+
+        await Notification.sendUnsent()
+
+        const reloaded = await Notification.find(notification.id)
+        expect(reloaded.get('failed_at')).not.to.equal(null)
+        expect(Queue.classMethod).to.have.been.called.with('Notification', 'sendUnsent', {}, (Notification.PUSH_RETRY_INTERVAL_MINUTES * 60 + 15) * 1000)
+      } finally {
+        unspyify(OneSignal, 'notify')
+        unspyify(Queue, 'classMethod')
+      }
+    })
+
+    it('does not queue a push retry when only an email fails', async () => {
+      mockify(Email, 'sendApprovedJoinRequestNotification', () => Promise.resolve(false))
+      mockify(Queue, 'classMethod', () => Promise.resolve())
+      try {
+        await preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Email)
+        await Notification.sendUnsent()
+        expect(Queue.classMethod).not.to.have.been.called()
+      } finally {
+        unspyify(Queue, 'classMethod')
+      }
     })
 
     it('sends a notification that failed more than an hour ago', async () => {
