@@ -118,6 +118,10 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLError(`Group id ${groupId} not found`)
   await assertWritable(group)
+  // Someone a steward removed and blocked from rejoining can't come back by any route
+  if (!(await GroupMembership.forPair(userId, group.id).fetch())) {
+    await GroupBan.assertNotBanned(userId, group)
+  }
 
   // Check if user has a valid invitation for pre-approved join. A space invite
   // also authorizes joining that space's parent group.
@@ -194,17 +198,35 @@ export async function regenerateAccessCode (userId, groupId) {
 }
 
 /**
- * As a host, removes member from a group.
+ * Refuse to block someone from rejoining where that can't be done: yourself,
+ * or a space (a block on its group covers it).
  */
-export async function removeMember (loggedInUserId, userIdToRemove, groupId, context) {
+function assertCanBan (group, loggedInUserId, personId) {
+  if (String(loggedInUserId) === String(personId)) {
+    throw new GraphQLError("You can't block yourself from rejoining a group")
+  }
+  if (group.get('type') === 'space') {
+    throw new GraphQLError('Block people from rejoining the group this space belongs to')
+  }
+}
+
+/**
+ * As a host, removes member from a group. With blockFromRejoining, the person
+ * also can't come back until a steward lifts the block.
+ */
+export async function removeMember (loggedInUserId, userIdToRemove, groupId, context, { blockFromRejoining = false } = {}) {
   const group = await getStewardedGroup(loggedInUserId, groupId, Responsibility.constants.RESP_REMOVE_MEMBERS)
   const memberToRemove = await User.find(userIdToRemove)
+  if (blockFromRejoining) assertCanBan(group, loggedInUserId, userIdToRemove)
   // Someone leaving on their own is never blocked; the daily check finds groups left without an Administrator
   if (String(loggedInUserId) !== String(userIdToRemove)) {
     await assertKeepsAdministrator(group.id, { excludeUserId: userIdToRemove })
   }
 
   await GroupService.removeMember(userIdToRemove, groupId)
+  if (blockFromRejoining) {
+    await GroupBan.create({ groupId: group.id, userId: userIdToRemove, createdById: loggedInUserId })
+  }
 
   publishAsync(publishGroupMembershipUpdate, context, groupId, {
     group,
@@ -215,6 +237,35 @@ export async function removeMember (loggedInUserId, userIdToRemove, groupId, con
   })
 
   return group
+}
+
+/**
+ * Block someone who is no longer in the group from rejoining it, for example
+ * right after removing them. Only people who can remove members can do this.
+ */
+export async function banFromGroup (userId, personId, groupId) {
+  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_REMOVE_MEMBERS)
+  assertCanBan(group, userId, personId)
+  const person = personId && await User.find(personId)
+  if (!person) throw new GraphQLError('Person not found')
+  if (await GroupMembership.forPair(person.id, group.id).fetch()) {
+    throw new GraphQLError('Remove this person from the group first')
+  }
+  await GroupBan.create({ groupId: group.id, userId: person.id, createdById: userId })
+  return { success: true }
+}
+
+/**
+ * Let someone blocked from rejoining a group come back through its usual
+ * routes. Anyone who can add or remove members can do this.
+ */
+export async function liftGroupBan (userId, personId, groupId) {
+  const group = await Group.find(groupId)
+  if (!group || !(await GroupBan.canManage(userId, group))) {
+    throw new GraphQLError("You don't have the right responsibilities for this group")
+  }
+  const lifted = await GroupBan.lift({ groupId: group.id, userId: personId, liftedById: userId })
+  return { success: lifted }
 }
 
 export async function updateGroup (userId, groupId, changes, context) {

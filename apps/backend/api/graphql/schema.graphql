@@ -903,6 +903,8 @@ type Group {
   myInviteAllowance: Int
   # With 'limited' invite access: the current user's personal invite link to this group, if they have made one. Null otherwise
   myInviteLink: MemberInviteLink
+  # People removed from this group and blocked from rejoining it, while the block lasts, newest first. Empty for anyone who can't add or remove members
+  blockedFromRejoining: [GroupBan]
   # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
   openJoinRequestCount: Int
   # Count of active (unresolved) moderation actions in this group
@@ -1741,6 +1743,16 @@ type InvitationQuerySet {
 type MemberInviteLink {
   # The link's path, like a group join link: /groups/<slug>/join/<code>
   path: String
+  createdAt: Date
+}
+
+# Someone a steward removed from a group and blocked from rejoining it
+type GroupBan {
+  id: ID
+  # The person blocked: only their id, name and avatar
+  person: InvitationSender
+  # Who blocked them
+  createdBy: InvitationSender
   createdAt: Date
 }
 
@@ -3884,8 +3896,12 @@ type Mutation {
   registerStripeAccount(authorizationCode: String): GenericResult
   # Reject a Group's invite or request to connect to one of your groups. Only a group steward can call this.
   rejectGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
-  # Remove a Person from a Group. Only a group Moderator can call this.
-  removeMember(personId: ID, groupId: ID): Group
+  # Remove a Person from a Group. Only a group Moderator can call this. With blockFromRejoining, they can't come back through a join link, an invite link, an invitation or a request until a steward lifts the block
+  removeMember(personId: ID, groupId: ID, blockFromRejoining: Boolean): Group
+  # Block someone no longer in a group from rejoining it. Only someone who can remove members can call this
+  banFromGroup(personId: ID, groupId: ID): GenericResult
+  # Let someone blocked from rejoining a group come back. Anyone who can add or remove members can call this
+  liftGroupBan(personId: ID, groupId: ID): GenericResult
   # Remove a Post from a group, by groupId or group slug
   removePost(postId: ID, slug: String, groupId: ID): GenericResult
   # Remove a group responsibility from a group

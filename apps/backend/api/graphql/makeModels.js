@@ -1197,6 +1197,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
           const link = await MemberInviteLink.findActive({ groupId: g.id, userId })
           return link ? { path: link.path(g), createdAt: link.get('created_at') } : null
         },
+        blockedFromRejoining: async g => userId && await GroupBan.canManage(userId, g)
+          ? GroupBan.listActive(g.id)
+          : [],
         myInviteAllowance: async g => {
           if (!userId || await GroupMembership.inviteAccess(userId, g) !== GroupMembership.InviteAccess.LIMITED) {
             return null

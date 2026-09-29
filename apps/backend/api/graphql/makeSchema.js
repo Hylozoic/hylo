@@ -209,7 +209,9 @@ import {
   deletedGroups,
   handOffAdministrator,
   restoreDeletedGroup,
-  unarchiveGroup
+  unarchiveGroup,
+  banFromGroup,
+  liftGroupBan
 } from './mutations/group'
 import { explorerReviewList, reviewExplorerGroup } from './mutations/explorerReview'
 import { leaveMessageThread } from './mutations/messageThread'
@@ -927,7 +929,11 @@ export function makeMutations ({ fetchOne }) {
 
     rejectGroupRelationshipInvite: (root, { groupRelationshipInviteId }, context) => rejectGroupRelationshipInvite(context.currentUserId, groupRelationshipInviteId),
 
-    removeMember: (root, { personId, groupId }, context) => removeMember(context.currentUserId, personId, groupId, context),
+    removeMember: (root, { personId, groupId, blockFromRejoining }, context) => removeMember(context.currentUserId, personId, groupId, context, { blockFromRejoining }),
+
+    banFromGroup: (root, { personId, groupId }, context) => banFromGroup(context.currentUserId, personId, groupId),
+
+    liftGroupBan: (root, { personId, groupId }, context) => liftGroupBan(context.currentUserId, personId, groupId),
 
     removePost: (root, { postId, groupId, slug }, context) => removePost(context.currentUserId, postId, groupId || slug),
 
