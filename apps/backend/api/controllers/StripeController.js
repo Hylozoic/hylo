@@ -543,7 +543,6 @@ module.exports = {
         if (accountId && accountId.startsWith('acct_')) {
           return accountId
         }
-        const StripeAccount = bookshelf.model('StripeAccount')
         const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
         if (!stripeAccount) {
           throw new Error('Stripe account record not found')
@@ -997,7 +996,6 @@ module.exports = {
                   if (accountId && accountId.startsWith('acct_')) {
                     return accountId
                   }
-                  const StripeAccount = bookshelf.model('StripeAccount')
                   const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
                   if (!stripeAccount) {
                     throw new Error('Stripe account record not found')
@@ -1992,7 +1990,6 @@ module.exports = {
                   if (accountId && accountId.startsWith('acct_')) {
                     return accountId
                   }
-                  const StripeAccount = bookshelf.model('StripeAccount')
                   const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
                   if (!stripeAccount) {
                     throw new Error('Stripe account record not found')
@@ -2122,7 +2119,6 @@ module.exports = {
                 if (accountId && accountId.startsWith('acct_')) {
                   return accountId
                 }
-                const StripeAccount = bookshelf.model('StripeAccount')
                 const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
                 if (!stripeAccount) {
                   throw new Error('Stripe account record not found')
