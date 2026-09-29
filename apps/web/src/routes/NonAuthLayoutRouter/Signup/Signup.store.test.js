@@ -1,4 +1,13 @@
-import { register, verifyEmail } from './Signup.store'
+import { AnalyticsEvents } from '@hylo/shared'
+import { register, sendEmailVerification, verifyEmail } from './Signup.store'
+
+describe('sendEmailVerification', () => {
+  it('tracks the event without the email address', () => {
+    const { analytics } = sendEmailVerification('test@hylo.com').meta
+    expect(analytics).toEqual({ eventName: AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT })
+    expect(JSON.stringify(analytics)).not.toContain('test@hylo.com')
+  })
+})
 
 describe('register', () => {
   it('should match latest snapshot', () => {

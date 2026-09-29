@@ -31,8 +31,7 @@ export function sendEmailVerification (email) {
         }
       ],
       analytics: {
-        eventName: AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT,
-        email
+        eventName: AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT
       }
     }
   }

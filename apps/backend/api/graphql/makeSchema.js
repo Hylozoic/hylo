@@ -5,7 +5,6 @@ import { join } from 'path'
 import { merge, reduce } from 'lodash'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
-import mixpanel from '../../lib/mixpanel'
 import {
   saveDraft,
   deleteDraft,
@@ -292,8 +291,6 @@ async function buildGraphqlSchema (req) {
   if (userId) {
     // authenticated users
     // TODO: look for api_client.scope to see what an oAuthed user is allowed to access
-
-    mixpanel.people.set(userId)
 
     allResolvers = {
       Query: makeAuthenticatedQueries({ fetchOne, fetchMany }),

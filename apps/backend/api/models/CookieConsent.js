@@ -107,6 +107,34 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   /**
+   * Each user's latest saved analytics choice (the same record getLatestForUser
+   * returns), for many users in one query. Resolves to a Map from user id, as a
+   * string, to true or false. Users who never saved an answer are left out.
+   */
+  latestAnalyticsChoices: async function (userIds) {
+    const ids = [...new Set((userIds || [])
+      .filter(id => id !== null && id !== undefined && id !== '')
+      .map(String))]
+    if (ids.length === 0) return new Map()
+
+    const rows = await bookshelf.knex('cookie_consents')
+      .distinctOn('user_id')
+      .select('user_id', bookshelf.knex.raw("settings->'analytics' as analytics"))
+      .whereIn('user_id', ids)
+      .orderBy([
+        { column: 'user_id' },
+        { column: 'created_at', order: 'desc' },
+        { column: 'id', order: 'desc' }
+      ])
+
+    const choices = new Map()
+    for (const row of rows) {
+      if (typeof row.analytics === 'boolean') choices.set(String(row.user_id), row.analytics)
+    }
+    return choices
+  },
+
+  /**
    * Get consent by consent_id
    */
   getByConsentId: async function (consentId) {
