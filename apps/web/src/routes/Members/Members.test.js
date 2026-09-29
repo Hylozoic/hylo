@@ -140,4 +140,24 @@ describe('Members sort options', () => {
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith('Member Directory Filtered', { sort: 'join', filterKind: 'sort', hasSearch: false })
   })
+
+  it('records one search event for a burst of typing', () => {
+    jest.useFakeTimers()
+    try {
+      trackAnalyticsEvent.mockClear()
+      render(<Members />, null, providers({ withLocation: false }))
+      const input = screen.getByPlaceholderText('Search name, skill, location, keyword')
+      for (const value of ['g', 'ga', 'gar', 'gard', 'garde', 'garden']) {
+        fireEvent.change(input, { target: { value } })
+        jest.advanceTimersByTime(50)
+      }
+      jest.advanceTimersByTime(400)
+
+      const searchEvents = trackAnalyticsEvent.mock.calls
+        .filter(([name, props]) => name === 'Member Directory Filtered' && props.filterKind === 'search')
+      expect(searchEvents).toEqual([['Member Directory Filtered', { sort: 'name', filterKind: 'search', hasSearch: true }]])
+    } finally {
+      jest.useRealTimers()
+    }
+  })
 })

@@ -297,7 +297,11 @@ function Members (props) {
     fetchMembersAction(members.length)
   }
 
-  const debouncedSearch = debounce(300, changeSearch)
+  // One debounced function for the life of the page, so a burst of typing makes one
+  // search (and one analytics event); it always calls the latest changeSearch
+  const changeSearchRef = useRef(changeSearch)
+  changeSearchRef.current = changeSearch
+  const debouncedSearch = useMemo(() => debounce(300, term => changeSearchRef.current(term)), [])
 
   const openMobileSearch = () => {
     setMobileSearchOpen(true)
