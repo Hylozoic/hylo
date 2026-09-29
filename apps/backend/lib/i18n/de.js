@@ -54,8 +54,8 @@ exports.de = {
   Name: () => 'Name',
   newSavedSearchResults: (name) => `Neue Ergebnisse für die gespeicherte Suche in ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} hat deine Anfrage angenommen, ${groupName} beizutreten`,
-  textForAnnouncement: ({ person, postName, groupName }) => `${person} hat eine Ankündigung „${postName}“ an ${groupName} gesendet`,
-  textForChatPost: ({ firstTag, groupName, person, postName }) => `${person} hat im Chat „${postName}“ in ${groupName} geschrieben${firstTag ? ` #${firstTag}` : ''}`,
+  textForAnnouncement: ({ person, postName }) => `Ankündigung von ${person}: ${postName}`,
+  textForChatPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForCommentImage: person => `${person} hat ein Bild gesendet`,
   textForCommentMention: ({ person, blurb, postName }) => `${person} hat dich erwähnt: „${blurb}“ (in „${postName}“)`,
   textForComment: ({ person, blurb, postName }) => `${person}: „${blurb}“ (in „${postName}“)`,
@@ -90,8 +90,8 @@ exports.de = {
     }
     return `${actor.get('name')} hat deinen Beitrag „${postName}“ geschlossen`
   },
-  textForPostMention: ({ groupName, person, postName }) => `${person} hat dich im Beitrag „${postName}“ in ${groupName} erwähnt`,
-  textForPost: ({ firstTag, groupName, person, postName }) => `${person} hat „${postName}“ in ${groupName} veröffentlicht${firstTag ? ` #${firstTag}` : ''}`,
+  textForPostMention: ({ person, postName }) => `${person} hat dich erwähnt: ${postName}`,
+  textForPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `Lernpfad abgeschlossen: „${trackName}“ von ${actor.get('name')} abgeschlossen`,
   textForTrackEnrollment: ({ actor, trackName }) => `Lernpfad-Teilnahme: „${trackName}“ von ${actor.get('name')} begonnen`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} hat die Optionen für den Vorschlag „${postName}“ in ${groupName} geändert. Die Stimmen wurden zurückgesetzt`,

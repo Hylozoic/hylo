@@ -1,7 +1,9 @@
 import { isEqual } from 'lodash'
 import { useEffect, useMemo, useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector, useStore } from 'react-redux'
 import { useLocation } from 'react-router-dom'
+import { push } from 'redux-first-history'
 import { getSocket, socketUrl } from 'client/websockets.js'
 import errorReporter from 'client/errorReporter'
 import useRouteParams from 'hooks/useRouteParams'
@@ -23,9 +25,12 @@ import {
 import { addMemberPresent, removeMemberPresent, setRoomPresence } from 'routes/ChatRoom/RoomPresence.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { refreshBadgeCounts } from 'util/badgeRefresh'
+import { createToaster } from './directToasts'
 
 const SocketListener = (props) => {
   const dispatch = useDispatch()
+  const store = useStore()
+  const { t } = useTranslation()
   const location = useLocation()
   const locationRef = useRef(location)
   const routeParams = useRouteParams()
@@ -37,6 +42,20 @@ const SocketListener = (props) => {
     locationRef.current = location
   }, [location])
 
+  // The toaster reads the latest t when it fires, so a new t (a language change) does
+  // not rebuild the handlers and resubscribe the socket
+  const tRef = useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
+
+  // Toasts for direct notifications and messages (D71), fired here rather than in a reducer
+  const toaster = useMemo(() => createToaster({
+    getState: store.getState,
+    t: (...args) => tRef.current(...args),
+    open: url => dispatch(push(url))
+  }), [dispatch, store])
+
   const handlers = useMemo(() => ({
     commentAdded: data => dispatch(receiveComment(data)),
     groupUpdated: (data) => {
@@ -47,13 +66,18 @@ const SocketListener = (props) => {
     },
     messageAdded: (data) => {
       const message = convertToMessage(data)
+      const viewingThread = isActiveThread(locationRef.current, data)
       dispatch(receiveMessage(message, {
-        bumpUnreadCount: !isActiveThread(locationRef.current, data),
+        bumpUnreadCount: !viewingThread,
         isMuted: data.isMuted
       }))
+      toaster.message(message, { viewingThread, isMuted: data.isMuted })
     },
     messageUpdated: data => dispatch(receiveMessageUpdated(convertToMessage(data))),
-    newNotification: data => dispatch(receiveNotification(data)),
+    newNotification: data => {
+      dispatch(receiveNotification(data))
+      toaster.notification(data, { pathname: locationRef.current.pathname })
+    },
     openJoinRequestCountUpdated: (data) => {
       if (data?.groupId == null || data?.openJoinRequestCount == null) return
       dispatch(receiveOpenJoinRequestCount(data.groupId, data.openJoinRequestCount))
@@ -66,7 +90,14 @@ const SocketListener = (props) => {
       if (!postGroupId) return
       dispatch(receivePost(data, postGroupId))
     },
-    newThread: data => dispatch(receiveThread(convertToThread(data))),
+    newThread: data => {
+      const thread = convertToThread(data)
+      dispatch(receiveThread(thread))
+      toaster.thread(thread, {
+        viewingThread: isActiveThread(locationRef.current, { messageThread: String(thread.id) }),
+        isMuted: data.isMuted
+      })
+    },
     userTyping: ({ userId, userName, isTyping, groupId, postId }) => {
       isTyping ? dispatch(addUserTyping(userId, userName, { groupId, postId })) : dispatch(clearUserTyping(userId))
     },
@@ -74,7 +105,7 @@ const SocketListener = (props) => {
     roomPresence: ({ groupId, members }) => dispatch(setRoomPresence(groupId, members)),
     memberPresent: ({ groupId, member }) => dispatch(addMemberPresent(groupId, member)),
     memberAway: ({ groupId, userId }) => dispatch(removeMemberPresent(groupId, userId))
-  }), [currentUser?.id, dispatch, group?.id])
+  }), [currentUser?.id, dispatch, group?.id, toaster])
 
   useEffect(() => {
     const socket = getSocket()

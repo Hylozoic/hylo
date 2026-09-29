@@ -7,9 +7,19 @@ import RedisPubSub from '../services/RedisPubSub'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import { senderNameForGroup, senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 import { PRIORITY_REASONS } from './notification/priorityReasons'
+import { pushGroupingFor } from './notification/pushGrouping'
+import { isReplyToReader } from './notification/signalClasses'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
+
+// A push is only worth sending soon after it was created (D85): unsent pushes are
+// tried within this many minutes of creation, retrying failures every
+// PUSH_RETRY_INTERVAL_MINUTES. Emails retry hourly for up to six hours.
+const PUSH_RETRY_WINDOW_MINUTES = 15
+const PUSH_RETRY_INTERVAL_MINUTES = 2
+const EMAIL_RETRY_WINDOW_HOURS = 6
+const EMAIL_RETRY_INTERVAL_HOURS = 1
 
 // Extracts pathname + search from a full route URL so query params (e.g. commentId, postId)
 // are preserved in push notification deep links. Using .pathname alone silently drops them.
@@ -220,7 +230,7 @@ module.exports = bookshelf.Model.extend({
       .then(group => {
         const path = routeToPath(Frontend.Route.group(group))
         const alertText = PushNotification.textForApprovedJoinRequest(group, this.actor(), locale)
-        return this.reader().sendPushNotification(alertText, path)
+        return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
       })
   },
 
@@ -233,7 +243,7 @@ module.exports = bookshelf.Model.extend({
     if (!group) throw new Error('no member group for reader in activity')
     const path = routeToPath(Frontend.Route.post(post, group))
     const alertText = PushNotification.textForAnnouncement(post, group, locale)
-    return reader.sendPushNotification(alertText, path)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendContributionPush: function (version) {
@@ -275,7 +285,7 @@ module.exports = bookshelf.Model.extend({
       .then(group => {
         const path = routeToPath(Frontend.Route.post(post, group))
         const alertText = PushNotification.textForEventInvitation(post, actor, locale)
-        return this.reader().sendPushNotification(alertText, path)
+        return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
       })
   },
 
@@ -290,7 +300,8 @@ module.exports = bookshelf.Model.extend({
     const group = await groupForNotificationForUser(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.post(post, group))
     const alertText = PushNotification.textForPost(post, group, firstTag, version, locale)
-    return reader.sendPushNotification(alertText, path)
+    // Only a chat room collapses, so a burst replaces itself; mentions never do.
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group, { collapse: version === 'chat' }))
   },
 
   sendCommentPush: async function (version) {
@@ -300,14 +311,16 @@ module.exports = bookshelf.Model.extend({
     const activity = this.relations.activity
     const locale = this.locale()
 
-    if (!(await reader.enabledNotification(TYPE.Comment, MEDIUM.Push))) {
+    // A mention always reaches the person (D8): this push row exists only when the post's
+    // group allows push, so the user-level comment setting governs plain comments only.
+    if (version !== 'mention' && !(await reader.enabledNotification(TYPE.Comment, MEDIUM.Push))) {
       return Promise.resolve()
     }
 
     const group = await groupForNotificationForUser(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.comment({ comment, group, post }))
     const alertText = PushNotification.textForComment(comment, version, locale)
-    return reader.sendPushNotification(alertText, path)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendJoinRequestPush: async function () {
@@ -322,7 +335,7 @@ module.exports = bookshelf.Model.extend({
     if (parentGroup) group.relations.parentGroup = parentGroup
     const path = routeToPath(Frontend.Route.groupJoinRequests(group))
     const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale, parentGroup)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendGroupInvitationPush: async function () {
@@ -336,7 +349,7 @@ module.exports = bookshelf.Model.extend({
       : null
     const path = routeToPath(Frontend.Route.myInvitations())
     const alertText = PushNotification.textForGroupInvitation(group, this.actor(), locale, parentGroup)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendGroupChildGroupInvitePush: async function () {
@@ -346,7 +359,7 @@ module.exports = bookshelf.Model.extend({
     if (!childGroup || !parentGroup) throw new Error('Missing a group in activity')
     const path = routeToPath(Frontend.Route.groupRelationshipInvites(childGroup))
     const alertText = PushNotification.textForGroupChildGroupInvite(parentGroup, childGroup, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(childGroup))
   },
 
   sendGroupChildGroupInviteAcceptedPush: async function () {
@@ -371,7 +384,7 @@ module.exports = bookshelf.Model.extend({
       alertPath = routeToPath(Frontend.Route.group(parentGroup))
       alertText = PushNotification.textForGroupChildGroupInviteAcceptedChildMember(parentGroup, childGroup, this.actor(), locale)
     }
-    return this.reader().sendPushNotification(alertText, alertPath)
+    return this.reader().sendPushNotification(alertText, alertPath, pushGroupingFor(whichGroup === 'parent' ? parentGroup : childGroup))
   },
 
   sendGroupParentGroupJoinRequestPush: async function () {
@@ -381,7 +394,7 @@ module.exports = bookshelf.Model.extend({
     if (!childGroup || !parentGroup) throw new Error('Missing a group in activity')
     const path = routeToPath(Frontend.Route.groupRelationshipJoinRequests(parentGroup))
     const alertText = PushNotification.textForGroupParentGroupJoinRequest(parentGroup, childGroup, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(parentGroup))
   },
 
   sendGroupParentGroupJoinRequestAcceptedPush: async function () {
@@ -406,7 +419,7 @@ module.exports = bookshelf.Model.extend({
       alertPath = routeToPath(Frontend.Route.group(parentGroup))
       alertText = PushNotification.textForGroupParentGroupJoinRequestAcceptedChildMember(parentGroup, childGroup, locale)
     }
-    return this.reader().sendPushNotification(alertText, alertPath)
+    return this.reader().sendPushNotification(alertText, alertPath, pushGroupingFor(whichGroup === 'parent' ? parentGroup : childGroup))
   },
 
   sendGroupPeerGroupInvitePush: async function () {
@@ -416,7 +429,7 @@ module.exports = bookshelf.Model.extend({
     if (!fromGroup || !toGroup) throw new Error('Missing a group in activity')
     const path = routeToPath(Frontend.Route.groupRelationshipInvites(toGroup))
     const alertText = PushNotification.textForGroupPeerGroupInvite(fromGroup, toGroup, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(toGroup))
   },
 
   sendGroupPeerGroupInviteAcceptedPush: async function () {
@@ -428,7 +441,7 @@ module.exports = bookshelf.Model.extend({
     // Only moderators get peer relationship acceptance notifications
     const alertPath = routeToPath(Frontend.Route.group(toGroup))
     const alertText = PushNotification.textForGroupPeerGroupInviteAccepted(fromGroup, toGroup, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, alertPath)
+    return this.reader().sendPushNotification(alertText, alertPath, pushGroupingFor(fromGroup))
   },
 
   sendPushDonationTo: async function () {
@@ -458,7 +471,7 @@ module.exports = bookshelf.Model.extend({
     const group = await groupForNotificationForUser(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.post(post, group))
     const alertText = PushNotification.textForPostModeratedFulfillment(post, this.actor(), reason, locale)
-    return reader.sendPushNotification(alertText, path)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendPostModeratedFulfillmentEmail: async function () {
@@ -505,7 +518,7 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     const path = routeToPath(Frontend.Route.profile(actor, group))
     const alertText = PushNotification.textForMemberJoinedGroup(group, actor, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendEmail: async function () {
@@ -1158,7 +1171,7 @@ module.exports = bookshelf.Model.extend({
     const fundingRoundTitle = group ? group.get('name') : ''
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const alertText = PushNotification.textForFundingRoundNewSubmission(fundingRoundTitle, post, actor, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendFundingRoundNewSubmissionEmail: async function () {
@@ -1198,7 +1211,7 @@ module.exports = bookshelf.Model.extend({
     const meta = this.relations.activity.get('meta')
     const phase = meta.phase
     const alertText = PushNotification.textForFundingRoundPhaseTransition(group.get('name'), phase, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendFundingRoundPhaseTransitionEmail: async function () {
@@ -1271,7 +1284,7 @@ module.exports = bookshelf.Model.extend({
     const meta = this.relations.activity.get('meta')
     const reminderType = meta.reminderType
     const alertText = PushNotification.textForFundingRoundReminder(group.get('name'), reminderType, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendFundingRoundReminderEmail: async function () {
@@ -1337,6 +1350,8 @@ module.exports = bookshelf.Model.extend({
         refineOne(activity, ['created_at', 'id', 'meta', 'unread']),
         {
           action,
+          // Lets the web app toast a comment that replies to the reader (D71)
+          replyToYou: action === 'newComment' && isReplyToReader(activity),
           actor: refineOne(actor, ['avatar_url', 'id', 'name']),
           comment: refineOne(comment, ['id', 'text']),
           group: refineOne(group, ['id', 'name', 'slug']),
@@ -1365,6 +1380,8 @@ module.exports = bookshelf.Model.extend({
   MEDIUM,
   TYPE,
   EMAIL_SKIPPED,
+  PUSH_RETRY_WINDOW_MINUTES,
+  PUSH_RETRY_INTERVAL_MINUTES,
 
   find: function (id, options) {
     if (!id) return Promise.resolve(null)
@@ -1377,15 +1394,26 @@ module.exports = bookshelf.Model.extend({
    */
   claimUnsentIds: function ({ includeOld = false } = {}) {
     const knex = bookshelf.knex
-    const createdClause = includeOld
+    const emailCreatedClause = includeOld
       ? 'true'
-      : "created_at > now() - interval '6 hour'"
+      : `created_at > now() - interval '${EMAIL_RETRY_WINDOW_HOURS} hour'`
+    // The medium check stays inside the locked CTE so concurrent workers stay safe.
     const sql = `
       WITH cte AS (
         SELECT id FROM notifications
         WHERE sent_at IS NULL
-        AND (${createdClause})
-        AND (failed_at IS NULL OR failed_at < now() - interval '1 hour')
+        AND (
+          (
+            medium = ${MEDIUM.Push}
+            AND created_at > now() - interval '${PUSH_RETRY_WINDOW_MINUTES} minutes'
+            AND (failed_at IS NULL OR failed_at < now() - interval '${PUSH_RETRY_INTERVAL_MINUTES} minutes')
+          )
+          OR (
+            medium <> ${MEDIUM.Push}
+            AND (${emailCreatedClause})
+            AND (failed_at IS NULL OR failed_at < now() - interval '${EMAIL_RETRY_INTERVAL_HOURS} hour')
+          )
+        )
         AND (
           processing_started_at IS NULL
           OR processing_started_at < now() - interval '${STALE_NOTIFICATION_CLAIM_MINUTES} minutes'
@@ -1424,6 +1452,7 @@ module.exports = bookshelf.Model.extend({
       'activity.comment.post.user',
       'activity.comment.post.relatedUsers',
       'activity.comment.post.groups',
+      'activity.parentComment',
       'activity.group',
       'activity.otherGroup',
       'activity.reader',
@@ -1438,13 +1467,19 @@ module.exports = bookshelf.Model.extend({
       })
       .then(async ns => {
         if (!ns || ns.length === 0) return
+        let pushFailed = false
         await Promise.each(ns.models, n =>
           n.send().catch(err => {
             console.error('Error sending notification', err, n.attributes)
             sentry.error(err, null, { notification: n.attributes })
+            if (n.get('medium') === MEDIUM.Push) pushFailed = true
             return n.save({ failed_at: new Date(), processing_started_at: null }, { patch: true })
           })
         )
+        // Retry a failed push inside its window rather than waiting for the 10-minute cron.
+        if (pushFailed) {
+          Queue.classMethod('Notification', 'sendUnsent', {}, (PUSH_RETRY_INTERVAL_MINUTES * 60 + 15) * 1000)
+        }
         // If we hit the batch limit, there may be more to process.
         if (ns.length >= UNSENT_NOTIFICATION_BATCH_SIZE) {
           // Re-enqueue another pass shortly.

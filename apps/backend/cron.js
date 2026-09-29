@@ -46,6 +46,8 @@ const daily = now => {
     return count
   }))
 
+  tasks.push(require('./api/models/group/activityBenchmark').runDaily().then(({ line, marked }) => sails.log.debug(`Marked ${marked} groups quiet or busy (line: ${line} feed posts in 28 days)`)).catch(err => sails.log.error('Quiet-group benchmark failed', err)))
+
   return tasks
 }
 

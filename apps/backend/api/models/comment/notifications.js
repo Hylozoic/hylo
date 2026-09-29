@@ -178,13 +178,21 @@ async function sendDigestForUser ({ post, comments, user }) {
       }
     })
   } else {
-    if (!(await user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email))) return
+    const hasMention = ({ text }) =>
+      RichText.getUserMentions(text).includes(user.id)
+
+    let digestComments = filtered
+    if (!(await user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email))) {
+      // A mention always reaches the person (D8): with comment email off, the digest
+      // still carries the comments that mention them, on the post's group email toggle.
+      digestComments = filtered.filter(comment => hasMention({ text: comment.text() }))
+      if (digestComments.length === 0) return
+      if (!(await mentionEmailAllowed(user, post))) return
+    }
 
     const routeGroup = await post.groupForFrontendRouteForUser(user.id)
 
-    const commentData = filtered.map(presentComment)
-    const hasMention = ({ text }) =>
-      RichText.getUserMentions(text).includes(user.id)
+    const commentData = digestComments.map(presentComment)
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'comment_digest_email',
@@ -197,11 +205,11 @@ async function sendDigestForUser ({ post, comments, user }) {
       locale,
       data: {
         count: commentData.length,
-        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: timeZone, locale }),
+        date: DateTimeHelpers.formatDatePair({ start: digestComments[0].get('created_at'), timezone: timeZone, locale }),
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
         post_title: post.summary(),
         post_creator_avatar_url: Frontend.appendQueryString(post.relations.user.get('avatar_url'), clickthroughParams),
-        thread_url: Frontend.appendQueryString(Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }), clickthroughParams),
+        thread_url: Frontend.appendQueryString(Frontend.Route.comment({ comment: digestComments[0], group: routeGroup, post }), clickthroughParams),
         comments: commentData,
         subject_prefix: some(hasMention, commentData)
           ? getLocaleStrings(locale).commentDigestMentionedIn()
@@ -213,6 +221,21 @@ async function sendDigestForUser ({ post, comments, user }) {
       }
     })
   }
+}
+
+// Whether a mention in a comment may be emailed: email notifications are on (or the
+// user is a tester) and one of the post's groups allows email for them. Spaces follow
+// the parent group's email setting.
+async function mentionEmailAllowed (user, post) {
+  if (process.env.EMAIL_NOTIFICATIONS_ENABLED !== 'true' && !(await User.isTester(user.id))) return false
+  const groups = post.relations.groups?.models || []
+  for (const group of groups) {
+    const membership = await GroupMembership.forPair(user.id, group.id).fetch()
+    if (membership && membership.get('active') && await GroupViewUser.emailEnabledFor(membership, group)) {
+      return true
+    }
+  }
+  return false
 }
 
 // we keep track of the last time we sent comment digests in Redis, so that the

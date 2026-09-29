@@ -54,8 +54,8 @@ exports.pt = {
   Name: () => 'Nome',
   newSavedSearchResults: (name) => `Novos resultados da pesquisa salva em ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} aprovou seu pedido para entrar em ${groupName}`,
-  textForAnnouncement: ({ person, postName, groupName }) => `${person} enviou um anúncio “${postName}” para ${groupName}`,
-  textForChatPost: ({ firstTag, groupName, person, postName }) => `${person} conversou “${postName}” em ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
+  textForAnnouncement: ({ person, postName }) => `Anúncio de ${person}: ${postName}`,
+  textForChatPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForCommentImage: person => `${person} enviou uma imagem`,
   textForCommentMention: ({ person, blurb, postName }) => `${person} mencionou você: “${blurb}” (em “${postName}”)`,
   textForComment: ({ person, blurb, postName }) => `${person}: “${blurb}” (em “${postName}”)`,
@@ -90,8 +90,8 @@ exports.pt = {
     }
     return `${actor.get('name')} fechou a sua publicação "${postName}"`
   },
-  textForPostMention: ({ groupName, person, postName }) => `${person} mencionou você na publicação “${postName}” em ${groupName}`,
-  textForPost: ({ firstTag, groupName, person, postName }) => `${person} publicou “${postName}” em ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
+  textForPostMention: ({ person, postName }) => `${person} mencionou você: ${postName}`,
+  textForPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `Trilha concluída: “${trackName}” foi concluída por ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, trackName }) => `Inscrição na trilha: “${trackName}” por ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} alterou as opções da proposta: “${postName}” em ${groupName}. Os votos foram zerados`,

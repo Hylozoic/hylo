@@ -13,8 +13,9 @@ if (process.env.ONESIGNAL_REST_API_KEY && process.env.ONESIGNAL_APP_ID) {
 const configuration = OneSignal.createConfiguration(authConfig)
 const client = new OneSignal.DefaultApi(configuration)
 
-// Helper function to create notification object for SDK
-function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
+// Helper function to create notification object for SDK.
+// heading, groupKey and collapseKey come from notification/pushGrouping (D42).
+function createNotificationObject ({ readerId, alert, path, appId, badgeNo, heading, groupKey, collapseKey }) {
   if (!readerId) {
     throw new Error('Need a readerId to send a push notification')
   }
@@ -29,6 +30,18 @@ function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
   notification.target_channel = 'push'
 
   if (alert) notification.contents = { en: alert }
+
+  if (heading) notification.headings = { en: heading }
+
+  // Stack a group's pushes together in the tray: iOS threads, Android groups
+  if (groupKey) {
+    notification.thread_id = groupKey
+    notification.android_group = groupKey
+    if (heading) notification.summary_arg = heading
+  }
+
+  // A later push with the same collapse_id replaces this one (chat rooms only)
+  if (collapseKey) notification.collapse_id = collapseKey
 
   if (path) {
     // Send path in additionalData so the mobile click listener can navigate in-app
@@ -50,6 +63,8 @@ function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
 }
 
 module.exports = {
+  createNotificationObject,
+
   // Resolves false when the send fails so callers can leave the push unsent.
   notify: async (opts) => {
     const { readerId } = opts

@@ -72,6 +72,23 @@ export const ACTION_FUNDING_ROUND_REMINDER = 'fundingRoundReminder'
 export const ACTION_POST_FULFILLED = 'postFulfilled'
 export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
 
+// Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
+// shows these as a toast; everything else only bumps the notification counter.
+export const DIRECT_ACTIONS = [
+  ACTION_MENTION,
+  ACTION_COMMENT_MENTION,
+  ACTION_APPROVED_JOIN_REQUEST
+]
+
+// True for a mention, a comment mention, an approved join request, or a comment that
+// replies to you (on your post or under your comment; the server marks it replyToYou).
+export function isDirectAction (notification) {
+  const activity = notification?.activity
+  if (!activity) return false
+  if (DIRECT_ACTIONS.includes(activity.action)) return true
+  return activity.action === ACTION_NEW_COMMENT && activity.replyToYou === true
+}
+
 export default function NotificationPresenter (notification) {
   return {
     ...notification,

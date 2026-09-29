@@ -68,8 +68,8 @@ export default function MembershipSettingsRow ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className='!z-[300]'>
-                      <SelectItem value='none' className={SELECT_ITEM_CLASS}>{t('No Posts')}</SelectItem>
-                      <SelectItem value='important' className={SELECT_ITEM_CLASS}>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
+                      <SelectItem value='none' className={SELECT_ITEM_CLASS}>{t('No Posts (mentions still notify)')}</SelectItem>
+                      <SelectItem value='important' className={SELECT_ITEM_CLASS}>{t('Important Posts (Announcements, Mentions & Replies)')}</SelectItem>
                       <SelectItem value='all' className={SELECT_ITEM_CLASS}>{t('Every Post')}</SelectItem>
                     </SelectContent>
                   </Select>
