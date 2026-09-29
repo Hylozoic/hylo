@@ -2918,8 +2918,9 @@ type Track {
   deactivatedAt: Date
   # Whether the current user has completed this track
   didComplete: Boolean
-  # The users enrolled in this track; completed narrows it to those who have (true) or haven't (false) finished
-  enrolledUsers(first: Int, offset: Int, completed: Boolean): PersonQuerySet
+  # The users enrolled in this track; completed narrows it to those who have (true) or haven't (false) finished,
+  # and learnersOnly leaves out whoever set up the track's space (its creator), who is a member without enrolling
+  enrolledUsers(first: Int, offset: Int, completed: Boolean, learnersOnly: Boolean): PersonQuerySet
   # The total number of groups this track is a part of
   groupsTotal: Int
   # Whether the current user is enrolled in this track

@@ -49,6 +49,9 @@ async function createTrackWithActions (page) {
     }))
     actions.push(action)
   }
+  // Creating the space made the e2e user a member without enrolling, and stewards leave
+  // the space's creator out of the learners. Leaving and enrolling makes them a learner.
+  expectOk(await graphql(page, 'mutation ($trackId: ID) { leaveTrack(trackId: $trackId) { id } }', { trackId: track.id }))
   expectOk(await graphql(page, 'mutation ($trackId: ID) { enrollInTrack(trackId: $trackId) { id } }', { trackId: track.id }))
   expectOk(await graphql(page, 'mutation ($postId: ID, $completionResponse: JSON) { completePost(postId: $postId, completionResponse: $completionResponse) { id } }', {
     postId: actions[0].id,

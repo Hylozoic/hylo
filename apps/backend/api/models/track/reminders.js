@@ -1,4 +1,5 @@
 /* global bookshelf, Activity, Group, GroupMembership, PostUser */
+import { learnerMembershipSql } from './progress'
 // D63: learners who stall in a track get one reminder after 7 idle days and one after
 // 21, never more than two per enrollment. A reminder links to their next action and
 // goes in the app and by email, following their group's email setting.
@@ -8,7 +9,8 @@
 // grace window, so a missed daily run still sends it, but someone idle for months when
 // this starts gets nothing. The count (settings.trackRemindersSent) and the time of the
 // last one (settings.trackReminderLastAt) live on the enrollment; Group.settleJoin
-// clears them when someone enrolls again.
+// clears them when someone enrolls again. Whoever set the track space up is a member
+// without being a learner, and gets no reminders (progress.learnerMembershipSql).
 
 export const TRACK_REMINDER_REASON = 'trackReminder'
 export const REMINDER_IDLE_DAYS = [7, 21]
@@ -65,6 +67,7 @@ export async function candidateEnrollments (now = new Date()) {
     .where('t.num_actions', '>', 0)
     .where('u.active', true)
     .whereRaw('gm.settings ->> \'completedAt\' IS NULL')
+    .whereRaw(learnerMembershipSql('gm'))
     .whereRaw('COALESCE((gm.settings ->> \'trackRemindersSent\')::int, 0) < ?', [MAX_REMINDERS])
     .whereRaw(`${lastActivity} <= ?`, [newestIdle])
     .whereRaw(`${lastActivity} > ?`, [oldestIdle])

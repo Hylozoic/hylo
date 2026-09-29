@@ -427,8 +427,10 @@ export function fetchMyTrackProgress () {
 
 /**
  * Each learner's progress in a track, for its stewards (D63). With completed: false,
- * only those who haven't finished. The people are added to the store so a group
- * message can be started with them; the list itself is read from the response.
+ * only those who haven't finished. Whoever created the track's space is left out
+ * (learnersOnly): they are a member without having enrolled. The people are added to
+ * the store so a group message can be started with them; the list itself is read from
+ * the response.
  */
 export function fetchTrackLearnerProgress (trackId, { completed = null } = {}) {
   return {
@@ -439,7 +441,7 @@ export function fetchTrackLearnerProgress (trackId, { completed = null } = {}) {
           track(id: $id) {
             id
             numActions
-            enrolledUsers(completed: $completed, first: $first) {
+            enrolledUsers(completed: $completed, learnersOnly: true, first: $first) {
               total
               items {
                 id

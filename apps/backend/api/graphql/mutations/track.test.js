@@ -4,6 +4,7 @@ import factories from '../../../test/setup/factories'
 import { spyify, unspyify } from '../../../test/setup/helpers'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import { createRequestHandler } from '../index'
+import { createSpace } from './spaces'
 import {
   createTrack,
   deleteTrack,
@@ -307,6 +308,38 @@ describe('track mutations', () => {
 
       const finished = await run(trackManager.id, progressQuery({ completed: true }))
       expect(finished.data.track.enrolledUsers.items.map(item => item.id)).to.deep.equal([String(learner.id)])
+    })
+
+    it('leaves whoever created the track space out of its learners, when asked', async () => {
+      const createdSpace = await createSpace(trackManager.id, {
+        parentGroupId: group.id,
+        name: 'Seed saving',
+        viewTypes: ['track-actions', 'members']
+      }, {})
+      const createdTrack = await createTrack(trackManager.id, { groupId: createdSpace.id })
+      await enrollInTrack(second.id, createdTrack.id)
+      const query = learnersOnly => `{
+        track(id: "${createdTrack.id}") {
+          enrolledUsers(${learnersOnly ? 'learnersOnly: true, ' : ''}first: 50) { total items { id } }
+        }
+      }`
+      const ids = result => result.data.track.enrolledUsers.items.map(item => item.id).sort()
+
+      const everyone = await run(trackManager.id, query(false))
+      expect(everyone.errors).to.be.undefined
+      expect(ids(everyone)).to.deep.equal([String(trackManager.id), String(second.id)].sort())
+
+      const learners = await run(trackManager.id, query(true))
+      expect(learners.errors).to.be.undefined
+      expect(ids(learners)).to.deep.equal([String(second.id)])
+      expect(learners.data.track.enrolledUsers.total).to.equal(1)
+
+      // A creator whose membership has no recorded join source is still left out
+      await bookshelf.knex.raw(
+        'UPDATE group_memberships SET settings = settings - \'joinSource\' WHERE group_id = ? AND user_id = ?',
+        [createdSpace.id, trackManager.id]
+      )
+      expect(ids(await run(trackManager.id, query(true)))).to.deep.equal([String(second.id)])
     })
   })
 })

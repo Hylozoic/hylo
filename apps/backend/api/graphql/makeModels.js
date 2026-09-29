@@ -1796,7 +1796,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           enrolledUsers: {
             querySet: true,
-            filter: (relation, { completed }) => filterEnrolledByCompletion(relation, completed)
+            filter: (relation, { completed, learnersOnly }) => filterEnrolledByCompletion(relation, completed, { learnersOnly })
           }
         },
         { group: { alias: 'space' } }

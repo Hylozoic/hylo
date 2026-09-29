@@ -2,6 +2,8 @@
 import setup from '../../../setup'
 import factories from '../../../setup/factories'
 import { mockify, unspyify } from '../../../setup/helpers'
+import { assignAdministrator } from '../../../setup/roleHelpers'
+import { createSpace } from '../../../../api/graphql/mutations/spaces'
 import { createTrack, enrollInTrack, leaveTrack } from '../../../../api/graphql/mutations/track'
 import {
   TRACK_REMINDER_REASON,
@@ -129,6 +131,33 @@ describe('track reminders (D63)', () => {
       for (const learner of [recent, finished, longGone, activeLately]) {
         expect(await remindersFor(learner)).to.have.length(0)
       }
+    })
+
+    it('leaves out whoever created the track space, who is a member without having enrolled', async () => {
+      const creator = await factories.user().save()
+      await assignAdministrator(creator, group)
+      const createdSpace = await createSpace(creator.id, {
+        parentGroupId: group.id,
+        name: 'Seed saving',
+        viewTypes: ['track-actions', 'members']
+      }, {})
+      const createdTrack = await createTrack(creator.id, { groupId: createdSpace.id })
+      const action = await factories.post({ type: 'action', user_id: creator.id, name: 'Collect seeds' }).save()
+      await action.groups().attach([createdSpace.id])
+      await Track.addPost(action, await Track.find(createdTrack.id))
+      const learner = await factories.user().save()
+      await group.addMembers([learner.id])
+      await enrollInTrack(learner.id, createdTrack.id)
+      // The space was set up, and the learner enrolled, 8 days ago
+      await bookshelf.knex('group_memberships')
+        .where({ group_id: createdSpace.id })
+        .update({ created_at: new Date(Date.now() - 8 * DAY) })
+
+      await sendTrackReminders()
+      expect(await remindersFor(creator)).to.have.length(0)
+      const [reminder] = await remindersFor(learner)
+      expect(reminder).to.exist
+      expect(String(reminder.track_id)).to.equal(String(createdTrack.id))
     })
 
     it('gives a new enrollment a fresh allowance', async () => {
