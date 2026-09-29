@@ -1464,6 +1464,8 @@ type GroupSettings {
   showPostNoticesInChat: Boolean
   # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
   autoAddMembers: Boolean
+  # Text a member's post starts with when they choose Introduce yourself; empty means the standard translated introduction
+  introTemplate: String
 }
 
 # A relationship between two Groups
@@ -4212,6 +4214,8 @@ input GroupSettingsInput {
   showPostNoticesInChat: Boolean
   # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
   autoAddMembers: Boolean
+  # Text a member's post starts with when they choose Introduce yourself; empty means the standard translated introduction
+  introTemplate: String
 }
 
 # Input for creating Stripe offerings

@@ -804,7 +804,10 @@ module.exports = bookshelf.Model.extend({
       ctt: 'approved_join_request_introduce_email',
       cti: reader.id,
       ctcn: group.get('name'),
-      create: 'post'
+      create: 'post',
+      newPostType: 'discussion',
+      template: 'intro',
+      composerEntry: 'email'
     }).toString()
 
     return Email.sendApprovedJoinRequestNotification({

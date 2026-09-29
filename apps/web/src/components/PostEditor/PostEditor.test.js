@@ -44,10 +44,14 @@ jest.mock('store/actions/draftActions', () => ({
   saveDraft: jest.fn(() => ({ type: 'TEST_SAVE_DRAFT' }))
 }))
 
-function testProviders ({ withLinkPreview, linkGroup } = {}) {
+function testProviders ({ withLinkPreview, linkGroup, withJoinAnswer } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
+  if (withJoinAnswer) {
+    ormSession.GroupJoinQuestionAnswer.create({ id: 'a1', answer: withJoinAnswer })
+    ormSession.Membership.create({ id: 'm1', person: '1', group: '1', settings: {}, joinQuestionAnswers: ['a1'] })
+  }
   const postAttrs = { id: '1', title: 'Test Post', type: 'discussion', groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] }
   if (linkGroup) postAttrs.groups = ['1']
   if (withLinkPreview) {
@@ -346,6 +350,54 @@ describe('PostEditor', () => {
         expect(lastSave?.data).toContain('https://example.com/b.png')
         expect(lastSave?.data).not.toContain('https://example.com/a.png')
       }, { timeout: 4000 })
+    }, 20000)
+  })
+
+  describe('from a template', () => {
+    const editorText = container => container.querySelector('.ProseMirror')?.textContent
+
+    beforeEach(() => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+    })
+
+    it('starts an introduction with the text the group\'s stewards wrote', async () => {
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion&template=intro' })
+      mockGraphqlServer.use(graphql.query('GroupIntroTemplate', () => HttpResponse.json({
+        data: { group: { id: '1', settings: { introTemplate: 'Say hi!\nWhat do you grow?' } } }
+      })))
+      const { container } = renderComponent({ autoFocus: false })
+
+      await waitFor(() => expect(editorText(container)).toBe('Say hi!What do you grow?'))
+      expect(container.querySelectorAll('.ProseMirror p')).toHaveLength(2)
+    }, 20000)
+
+    it('uses the standard introduction when the group has none, and nothing members wrote when joining', async () => {
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion&template=intro' })
+      mockGraphqlServer.use(graphql.query('GroupIntroTemplate', () => HttpResponse.json({
+        data: { group: { id: '1', settings: { introTemplate: null } } }
+      })))
+      const { container } = renderComponent({ autoFocus: false }, { withJoinAnswer: 'My private answer for the stewards' })
+
+      await waitFor(() => expect(editorText(container)).toBe('introTemplateDefault'))
+      expect(container.textContent).not.toContain('My private answer for the stewards')
+    }, 20000)
+
+    it('starts a welcome post with the standard welcome', async () => {
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion&template=welcome' })
+      const { container } = renderComponent({ autoFocus: false })
+
+      await waitFor(() => expect(editorText(container)).toBe('welcomeTemplateDefault'))
+    }, 20000)
+
+    it('opens a saved draft instead of the template', async () => {
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion&template=intro' })
+      mockGraphqlServer.use(
+        graphql.query('GroupIntroTemplate', () => HttpResponse.json({ data: { group: { id: '1', settings: { introTemplate: 'Say hi!' } } } })),
+        draftResponse({ title: '', details: '<p>What I had already written</p>' })
+      )
+      const { container } = renderComponent({ autoFocus: false })
+
+      await waitFor(() => expect(editorText(container)).toBe('What I had already written'))
     }, 20000)
   })
 

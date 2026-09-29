@@ -343,6 +343,19 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
             </button>
           )}
         </div>
+        <div className='mt-6'>
+          <SettingsControl
+            id='introTemplateField'
+            label={t('Introduction template')}
+            helpText={t('introTemplateHelpText')}
+            type='textarea'
+            minRows={3}
+            maxLength={2000}
+            placeholder={t('introTemplateDefault', { name: '…', groupName: name })}
+            onChange={updateSetting('settings.introTemplate')}
+            value={settings.introTemplate || ''}
+          />
+        </div>
       </SettingsSection>
       {welcomeSettingsOpen && welcomeView && (
         <GroupViewSettingsModal

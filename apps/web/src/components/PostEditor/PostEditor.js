@@ -100,7 +100,7 @@ import {
 } from './PostEditor.store'
 import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
-import { setQuerystringParam } from '@hylo/navigation'
+import { COMPOSER_TEMPLATE_INTRO, COMPOSER_TEMPLATE_PARAM, setQuerystringParam } from '@hylo/navigation'
 import { isMeetingUrl, sanitizeURL } from 'util/url'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
@@ -108,6 +108,13 @@ import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
 import titleFromDetails, { isTitleOptional } from './titleFromDetails'
+import {
+  composerTemplateText,
+  fetchGroupIntroTemplate,
+  isComposerTemplate,
+  textToEditorHtml,
+  withoutComposerTemplateParams
+} from './composerTemplates'
 
 /** First post type as shown in PostTypeSelect (POST_TYPES order), among allowed types. */
 function firstDropdownPostType (allowedPostTypes) {
@@ -180,7 +187,8 @@ function PostEditorInner ({
   const dispatch = useDispatch()
   const urlLocation = useLocation()
   const { pathname, search } = urlLocation
-  const navigateToForDraft = `${pathname}${search || ''}`
+  // Drafts reopen without the one-time template and entry parameters
+  const navigateToForDraft = withoutComposerTemplateParams(`${pathname}${search || ''}`)
   const routeParams = useParams()
   const parsedRouteParams = useRouteParams()
   // When inside a space, groupSlug is the space; parentGroupSlug / spaceSlug come from the URL
@@ -257,6 +265,48 @@ function PostEditorInner ({
     if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
     return postType
   })()
+  // ?template=intro or ?template=welcome starts a new post from a template.
+  // A saved draft for the same place and type still wins over it.
+  const templateParam = getQuerystringParam(COMPOSER_TEMPLATE_PARAM, urlLocation)
+  const composerTemplate = !editing && !fromPostId && isComposerTemplate(templateParam) ? templateParam : null
+  // Templates name the group, so they wait for it (but not forever)
+  const [templateGroupTimedOut, setTemplateGroupTimedOut] = useState(false)
+  const waitingForTemplateGroup = !!composerTemplate && !!groupSlug && !currentGroup?.id && !templateGroupTimedOut
+  useEffect(() => {
+    if (!waitingForTemplateGroup) return
+    const timer = setTimeout(() => setTemplateGroupTimedOut(true), 5000)
+    return () => clearTimeout(timer)
+  }, [waitingForTemplateGroup])
+  // undefined while the group's own Introduction template is still being read
+  const [groupIntroTemplate, setGroupIntroTemplate] = useState(composerTemplate === COMPOSER_TEMPLATE_INTRO ? undefined : null)
+  useEffect(() => {
+    if (composerTemplate !== COMPOSER_TEMPLATE_INTRO || waitingForTemplateGroup) return
+    if (!currentGroup?.id) {
+      setGroupIntroTemplate(null)
+      return
+    }
+    let cancelled = false
+    fetchGroupIntroTemplate(currentGroup.id)
+      .catch(() => null)
+      .then(text => { if (!cancelled) setGroupIntroTemplate(text || null) })
+    return () => { cancelled = true }
+  }, [composerTemplate, currentGroup?.id, waitingForTemplateGroup])
+  const templatePending = waitingForTemplateGroup ||
+    (composerTemplate === COMPOSER_TEMPLATE_INTRO && groupIntroTemplate === undefined)
+  // The editor opens once the template (or a saved draft) is in place, so it
+  // starts with that text rather than having it swapped in
+  const [templateApplied, setTemplateApplied] = useState(!composerTemplate)
+  const templateHtml = useMemo(() => {
+    if (!composerTemplate || templatePending) return ''
+    return textToEditorHtml(composerTemplateText({
+      template: composerTemplate,
+      groupIntroTemplate,
+      t,
+      name: currentUser?.name,
+      groupName: currentGroup?.name
+    }))
+  }, [composerTemplate, templatePending, groupIntroTemplate, t, currentUser?.name, currentGroup?.name])
+
   // Optional topic from URL / caller (e.g. topic stream, funding round). Spaces/views do not load chat rooms.
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
@@ -344,7 +394,7 @@ function PostEditorInner ({
       : post
   ), [attachmentsTouched, fileAttachments, imageAttachments])
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT, UPDATE_POST], state))
-  const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
+  const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending || templatePending || !templateApplied
 
   let inputPost = propsPost
   const _editingPost = useSelector(state => getPost(state, editingPostId))
@@ -391,7 +441,7 @@ function PostEditorInner ({
       acceptContributions: false,
       completionAction: 'button',
       completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
-      details: '',
+      details: templateHtml,
       groups: currentGroup ? [currentGroup] : [],
       isAnonymousVote: false,
       isPublic: context === 'public',
@@ -411,7 +461,7 @@ function PostEditorInner ({
       startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
       endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
     }
-  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, inputPost?.linkPreview?.id, inputPost?.linkPreviewFeatured, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
+  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, inputPost?.linkPreview?.id, inputPost?.linkPreviewFeatured, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, templateHtml, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -513,7 +563,7 @@ function PostEditorInner ({
 
   useEffect(() => {
     if (isSubmittedRef.current) return
-    if (!serverDraftLoaded || draftLoadedRef.current) return
+    if (!serverDraftLoaded || draftLoadedRef.current || templatePending) return
     const activeType = createPostType
     const serverDraft = loadDraftJSON()
     const sessionDraft = inSessionDraftByTypeRef.current[activeType]
@@ -540,7 +590,8 @@ function PostEditorInner ({
 
     const mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
     applyPostToEditor(mergedPost)
-  }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON])
+    setTemplateApplied(true)
+  }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON, templatePending])
 
   useEffect(() => {
     if (editing || !currentGroup?.id) return

@@ -30,6 +30,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     showWelcomePage
     layout
     autoAddMembers
+    introTemplate
   }
   slug
   type

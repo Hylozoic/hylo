@@ -14,6 +14,7 @@ import fetchGroupViews from 'store/actions/fetchGroupViews'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import useGroupViews from 'hooks/useGroupViews'
+import useIntroducePrompt from 'hooks/useIntroducePrompt'
 import { spaceHomeRoutePath, spaceHomeUrl } from '@hylo/navigation'
 
 /** True when welcome HTML has visible text or embedded media. */
@@ -40,6 +41,7 @@ function GroupWelcomePage () {
   }, [groupViews])
   const hasWelcomeContent = welcomeHtmlHasContent(welcomeHtml)
   const isTrack = Boolean(group?.track?.id)
+  const { canIntroduce, openIntroduction } = useIntroducePrompt(group, { entry: 'welcome' })
 
   const { setHeaderDetails } = useViewHeader()
 
@@ -97,6 +99,13 @@ function GroupWelcomePage () {
         <div className='mt-8 flex justify-center'>
           <Button variant='secondary' size='lg' onClick={handleBegin}>
             {t('Begin')}
+          </Button>
+        </div>
+      )}
+      {!isTrack && canIntroduce && (
+        <div className='mt-8 flex justify-center'>
+          <Button variant='secondary' size='lg' onClick={openIntroduction} data-testid='welcome-page-introduce-yourself'>
+            {t('Introduce yourself')}
           </Button>
         </div>
       )}
