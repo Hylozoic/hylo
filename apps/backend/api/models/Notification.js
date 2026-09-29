@@ -9,6 +9,7 @@ import { senderNameForGroup, senderNameViaHylo } from '../../lib/email/senderNam
 import { PRIORITY_REASONS } from './notification/priorityReasons'
 import { pushGroupingFor } from './notification/pushGrouping'
 import { isReplyToReader } from './notification/signalClasses'
+import { isGroupedPushThrottled, recordGroupedPush } from './notification/grouping'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -137,8 +138,11 @@ module.exports = bookshelf.Model.extend({
     // A send that reports `false` throws so sendUnsent records failed_at and retries it.
     switch (this.get('medium')) {
       case MEDIUM.Push:
+        // One grouped push per item per hour for social feedback (notification/grouping)
+        if (await isGroupedPushThrottled(this)) return this.destroy()
         if (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || (await User.isTester(userId))) {
           if (await this.sendPush() === false) throw new Error('Push notification was not delivered')
+          await recordGroupedPush(this)
         }
         break
       case MEDIUM.Email:

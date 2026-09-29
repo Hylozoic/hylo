@@ -267,7 +267,8 @@ CREATE TABLE public.activities (
     group_id bigint,
     other_group_id bigint,
     track_id bigint,
-    funding_round_id bigint
+    funding_round_id bigint,
+    group_key character varying(255)
 );
 
 
@@ -5431,6 +5432,13 @@ ALTER TABLE ONLY public.zapier_triggers
 
 
 --
+-- Name: activities_group_key_reader_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX activities_group_key_reader_id_index ON public.activities USING btree (group_key, reader_id) WHERE (group_key IS NOT NULL);
+
+
+--
 -- Name: blocked_users_blocked_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6066,6 +6074,13 @@ CREATE UNIQUE INDEX member_invite_links_one_active ON public.member_invite_links
 --
 
 CREATE INDEX member_invite_links_user_id_index ON public.member_invite_links USING btree (user_id);
+
+
+--
+-- Name: notifications_activity_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX notifications_activity_id_index ON public.notifications USING btree (activity_id);
 
 
 --

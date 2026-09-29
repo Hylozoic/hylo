@@ -608,6 +608,8 @@ type ActivityMeta {
   reasons: [String]
   # The type of reminder for this activity if it is a reminder (for funding rounds)
   reminderType: String
+  # How many people a grouped notice counts ("Sam and 3 others reacted"), including the actor
+  actorCount: Int
 }
 
 # An activity that someone may want to be notified about

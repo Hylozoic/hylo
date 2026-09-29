@@ -1,5 +1,6 @@
 import { values, omit, get, includes } from 'lodash'
 import { notificationMedia } from './notification/rules'
+import { isGroupedKey, removeActivities, saveGrouped } from './notification/grouping'
 
 const mergeByReader = activities => {
   const fields = ['actor_id', 'group_id', 'other_group_id']
@@ -22,16 +23,12 @@ const mergeByReader = activities => {
   return values(merged)
 }
 
+// removeActivities also takes back what the removed notices added to the readers'
+// new_notification_count.
 const removeForRelation = (model) => (id, trx) => {
-  const trxOpt = { transacting: trx, require: false }
-  return Activity.where(`${model}_id`, id).query()
-    .pluck('id').transacting(trx)
-    .then(ids => {
-      // TODO: New Activity count needs to be decremented
-      // if inApp medium is used-- see User#decNewNotificationCount
-      return Notification.where('activity_id', 'in', ids).destroy(trxOpt)
-        .then(() => Activity.where('id', 'in', ids).destroy(trxOpt))
-    })
+  const query = Activity.where(`${model}_id`, id).query().pluck('id')
+  return (trx ? query.transacting(trx) : query)
+    .then(ids => removeActivities(ids, trx))
 }
 
 module.exports = bookshelf.Model.extend({
@@ -282,6 +279,8 @@ module.exports = bookshelf.Model.extend({
   },
 
   createWithNotifications: function (attributes, trx) {
+    // Social feedback notices group per reader and item (notification/grouping)
+    if (isGroupedKey(attributes.group_key)) return saveGrouped(attributes, trx)
     return new Activity(Object.assign({ created_at: new Date() }, attributes))
       .save({}, { transacting: trx })
       .tap(activity => activity.createNotifications(trx))
