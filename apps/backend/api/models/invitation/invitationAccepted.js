@@ -15,11 +15,9 @@ const invitedJoinSources = () => {
  * a member's personal invite link, a request a member's invitation or link led
  * to, or a member's email invitation.
  */
-async function fromMemberInvite ({ joinSource, invitationId }) {
+function fromMemberInvite ({ joinSource, invitation }) {
   const { JOIN_REQUEST, MEMBER_LINK } = GroupMembership.JoinSource
   if (joinSource === MEMBER_LINK || joinSource === JOIN_REQUEST) return true
-  if (!invitationId) return false
-  const invitation = await Invitation.where({ id: invitationId }).fetch()
   return !!invitation && invitation.isLimited()
 }
 
@@ -37,7 +35,8 @@ async function inviterStillIn (inviterId, group) {
  * app and by push ('<Name> joined <group>, say hi'). Called after people join or
  * rejoin a group with an inviter recorded on their membership. Nobody is told
  * about joining through the group's own join link, about inviting themselves, or
- * when the inviter has left the group since. Joins through a member's
+ * when the inviter has left the group since. An invitation is told about only
+ * for the group it is for. Joins through a member's
  * invitation or invite link tell the member only while member invitations are
  * switched on.
  * @returns the number of notices queued
@@ -46,7 +45,10 @@ export default async function notifyInviterOfJoin ({ group, userIds = [], invite
   if (!group || !invitedById || !invitedJoinSources().includes(joinSource)) return 0
   const joinedIds = userIds.filter(id => id && String(id) !== String(invitedById))
   if (joinedIds.length === 0) return 0
-  if (await fromMemberInvite({ joinSource, invitationId }) && !GroupRole.memberInvitesEnabled()) return 0
+  const invitation = invitationId ? await Invitation.where({ id: invitationId }).fetch() : null
+  // An invitation to a space also joins the group it belongs to first: tell the inviter once, about the space
+  if (invitation && String(invitation.get('group_id')) !== String(group.id)) return 0
+  if (fromMemberInvite({ joinSource, invitation }) && !GroupRole.memberInvitesEnabled()) return 0
   if (!await inviterStillIn(invitedById, group)) return 0
 
   // One activity each, so several people joining at once each get their own notice

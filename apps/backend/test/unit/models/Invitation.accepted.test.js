@@ -5,6 +5,7 @@ const factories = require(root('test/setup/factories'))
 const { mockify, unspyify, withFeatureFlag } = require(root('test/setup/helpers'))
 const InvitationService = require(root('api/services/InvitationService'))
 const { createJoinRequest } = require(root('api/graphql/mutations/join_request'))
+const { joinGroup } = require(root('api/graphql/mutations/group'))
 
 // D47: the person whose invitation is accepted hears that the invitee joined
 describe('telling the inviter their invitation was accepted', () => {
@@ -66,6 +67,20 @@ describe('telling the inviter their invitation was accepted', () => {
     expect(notices).to.have.length(1)
     const media = (await Notification.where({ activity_id: notices[0].id }).fetchAll()).map(n => n.get('medium'))
     expect(media.sort()).to.deep.equal([Notification.MEDIUM.InApp, Notification.MEDIUM.Push].sort())
+  })
+
+  it("tells the steward once, about the space, when an invitation to a space is accepted from its group's about page", async () => {
+    const space = await factories.group({ type: 'space', parent_id: restricted.id, accessibility: Group.Accessibility.RESTRICTED }).save()
+    const invitee = await factories.user().save()
+    const invitation = await Invitation.create({ userId: steward.id, groupId: space.id, email: invitee.get('email') })
+
+    await joinGroup(restricted.id, invitee.id, [], null, invitation.get('token'))
+    await runQueuedJoins()
+
+    expect(await GroupMembership.forPair(invitee.id, restricted.id).fetch()).to.exist
+    expect(await GroupMembership.forPair(invitee.id, space.id).fetch()).to.exist
+    const notices = await noticesTo(steward, { actor: invitee })
+    expect(notices.map(notice => String(notice.get('group_id')))).to.deep.equal([String(space.id)])
   })
 
   it('writes the push as "<Name> joined <group>, say hi", opening the new member\'s profile', async () => {
