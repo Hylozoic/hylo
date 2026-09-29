@@ -229,7 +229,7 @@ describe('PostHeader follow control', () => {
   })
 
   it('offers to unfollow a post the reader follows', () => {
-    render(<PostHeader {...defaultProps} post={buildPost({ isFollowing: true })} />, { wrapper: signedInAs() })
+    render(<PostHeader {...defaultProps} offerFollow post={buildPost({ isFollowing: true })} />, { wrapper: signedInAs() })
     openMenu()
 
     fireEvent.click(screen.getByText('Unfollow post'))
@@ -239,7 +239,7 @@ describe('PostHeader follow control', () => {
   })
 
   it('offers to follow a post the reader does not follow', () => {
-    render(<PostHeader {...defaultProps} post={buildPost({ isFollowing: false })} />, { wrapper: signedInAs() })
+    render(<PostHeader {...defaultProps} offerFollow post={buildPost({ isFollowing: false })} />, { wrapper: signedInAs() })
     openMenu()
 
     fireEvent.click(screen.getByText('Follow post'))
@@ -248,19 +248,25 @@ describe('PostHeader follow control', () => {
   })
 
   it('is not offered to signed-out readers, on message threads, or before the state is known', () => {
-    const { unmount } = render(<PostHeader {...defaultProps} post={buildPost({ isFollowing: true })} />)
+    const { unmount } = render(<PostHeader {...defaultProps} offerFollow post={buildPost({ isFollowing: true })} />)
     openMenu()
     expect(screen.queryByText('Unfollow post')).not.toBeInTheDocument()
     unmount()
 
-    const thread = render(<PostHeader {...defaultProps} post={buildPost({ type: 'thread', isFollowing: true })} />, { wrapper: signedInAs() })
+    const thread = render(<PostHeader {...defaultProps} offerFollow post={buildPost({ type: 'thread', isFollowing: true })} />, { wrapper: signedInAs() })
     openMenu()
     expect(screen.queryByText('Unfollow post')).not.toBeInTheDocument()
     thread.unmount()
 
-    render(<PostHeader {...defaultProps} post={buildPost()} />, { wrapper: signedInAs() })
+    render(<PostHeader {...defaultProps} offerFollow post={buildPost()} />, { wrapper: signedInAs() })
     openMenu()
     expect(screen.queryByText('Follow post')).not.toBeInTheDocument()
+    expect(screen.queryByText('Unfollow post')).not.toBeInTheDocument()
+  })
+
+  it('is left to the post page, not offered on stream cards', () => {
+    render(<PostHeader {...defaultProps} post={buildPost({ isFollowing: true })} />, { wrapper: signedInAs() })
+    openMenu()
     expect(screen.queryByText('Unfollow post')).not.toBeInTheDocument()
   })
 })

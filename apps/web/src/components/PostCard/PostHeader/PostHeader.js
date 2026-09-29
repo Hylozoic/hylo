@@ -86,6 +86,7 @@ function PostHeader (props) {
     isCurrentAction,
     actionDescriptor,
     isFlagged,
+    offerFollow,
     close,
     className,
     constrained,
@@ -263,10 +264,11 @@ function PostHeader (props) {
     }
   }, [unsavePostProp, id, dispatch])
 
-  // Following a post brings notifications of its new comments. Offered to
-  // signed-in people once we know whether they follow it; message threads
-  // have their own mute instead
-  const canFollow = !!currentUser && type !== 'thread' && typeof isFollowing === 'boolean'
+  // Following a post brings notifications of its new comments. Offered where
+  // the caller asks (the post's own page, which loads isFollowing; stream
+  // cards don't), to signed-in people once we know whether they follow it;
+  // message threads have their own mute instead
+  const canFollow = !!offerFollow && !!currentUser && type !== 'thread' && typeof isFollowing === 'boolean'
   const toggleFollow = useCallback(() => {
     dispatch(isFollowing ? unfollowPost(id) : followPost(id))
   }, [dispatch, id, isFollowing])

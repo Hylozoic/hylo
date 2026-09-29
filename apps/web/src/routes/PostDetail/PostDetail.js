@@ -631,6 +631,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
           expanded
           isFlagged={isFlagged}
           hasImage={hasImage}
+          offerFollow
         />
         <PostGroups
           isPublic={post.isPublic}
@@ -647,6 +648,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               routeParams={routeParams}
               close={isIsolatedPostView ? undefined : attemptClose}
               isFlagged={isFlagged}
+              offerFollow
             />
           </div>
         )}
