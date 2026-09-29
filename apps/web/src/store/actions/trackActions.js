@@ -11,6 +11,8 @@ export const LEAVE_TRACK = `${MODULE_NAME}/LEAVE_TRACK`
 export const LEAVE_TRACK_PENDING = `${MODULE_NAME}/LEAVE_TRACK_PENDING`
 export const UPDATE_TRACK = `${MODULE_NAME}/UPDATE_TRACK`
 export const UPDATE_TRACK_PENDING = `${MODULE_NAME}/UPDATE_TRACK_PENDING`
+export const FETCH_TRACK_SUGGESTIONS = `${MODULE_NAME}/FETCH_TRACK_SUGGESTIONS`
+export const FETCH_MY_TRACK_PROGRESS = `${MODULE_NAME}/FETCH_MY_TRACK_PROGRESS`
 
 export const PostFieldsFragment = `
   id
@@ -347,6 +349,76 @@ export function duplicateTrack (trackId) {
     },
     meta: {
       extractModel: 'Track'
+    }
+  }
+}
+
+/**
+ * The parent group's other track spaces, for the suggestions on a track's completion
+ * screen (D33). Read from the response; nothing is added to the store.
+ */
+export function fetchTrackSuggestions (groupId) {
+  return {
+    type: FETCH_TRACK_SUGGESTIONS,
+    graphql: {
+      query: `
+        query FetchTrackSuggestions ($groupId: ID) {
+          group(id: $groupId) {
+            id
+            slug
+            spaces {
+              items {
+                id
+                name
+                slug
+                status
+                active
+                avatarUrl
+                track {
+                  id
+                  isEnrolled
+                  didComplete
+                  numActions
+                }
+              }
+            }
+          }
+        }
+      `,
+      variables: { groupId }
+    },
+    meta: { groupId }
+  }
+}
+
+/**
+ * The current user's progress in each track space they belong to, for the My Tracks
+ * cards (D33): the track's action count and their membership settings, which record
+ * actionsCompleted. Read from the response; nothing is added to the store.
+ */
+export function fetchMyTrackProgress () {
+  return {
+    type: FETCH_MY_TRACK_PROGRESS,
+    graphql: {
+      query: `
+        query FetchMyTrackProgress {
+          me {
+            id
+            memberships {
+              id
+              group {
+                id
+                track {
+                  id
+                  numActions
+                  didComplete
+                  userSettings
+                }
+              }
+            }
+          }
+        }
+      `
     }
   }
 }

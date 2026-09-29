@@ -2,7 +2,7 @@ import { DndContext, closestCorners } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isEmpty } from 'lodash/fp'
-import { Pencil, Plus, Shapes } from 'lucide-react'
+import { PartyPopper, Pencil, Plus, Shapes } from 'lucide-react'
 import React, { useEffect, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -10,19 +10,24 @@ import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Loading from 'components/Loading'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
+import TrackCompletionSuggestions from 'components/TrackCompletionSuggestions/TrackCompletionSuggestions'
+import TrackProgressBar from 'components/TrackProgressBar'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { fetchViewPosts, reorderViewPost } from 'store/actions/groupViews'
+import { fetchTrack } from 'store/actions/trackActions'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import getTrack from 'store/selectors/getTrack'
 import { addQuerystringToPath, createPostUrl } from '@hylo/navigation'
 import { cn } from 'util/index'
+import { trackProgress } from 'util/trackProgress'
 
 import ActionSummary from './ActionSummary'
 
@@ -63,6 +68,14 @@ export default function TrackActionsView () {
   if (posts !== null) cachedPostsRef.current = posts
   const displayedPosts = posts !== null ? posts : cachedPostsRef.current
   const currentActionId = displayedPosts.find(p => !p.completedAt)?.id
+
+  // Enrollment comes with the full track record, which the progress bar needs (D33)
+  const fetchedTrack = useSelector(state => trackId ? getTrack(state, trackId) : null)
+  const isEnrolled = Boolean(fetchedTrack?.isEnrolled)
+  const progress = trackProgress(displayedPosts)
+  useEffect(() => {
+    if (trackId && !fetchedTrack?.id) dispatch(fetchTrack(trackId))
+  }, [dispatch, trackId, fetchedTrack?.id])
 
   const groupViewsLoaded = group?.groupViews != null
 
@@ -134,6 +147,20 @@ export default function TrackActionsView () {
       {!hasAccess && (
         <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 text-center my-4'>
           <p className='text-foreground/70'>{t('You need to be granted access to view the actions in this track.')}</p>
+        </div>
+      )}
+
+      {isEnrolled && hasAccess && !isEditing && progress.total > 0 && (
+        <TrackProgressBar completed={progress.completed} total={progress.total} className='mb-4' />
+      )}
+
+      {isEnrolled && hasAccess && !isEditing && progress.isComplete && (
+        <div className='border-2 border-dashed border-green-500/40 rounded-xl p-4 mb-4 flex flex-col gap-3' data-testid='track-completion-panel'>
+          <div className='flex flex-row items-center gap-2'>
+            <PartyPopper className='w-6 h-6 text-green-500 shrink-0' />
+            <h3 className='m-0 text-lg font-bold'>{t('You completed {{trackName}}!', { trackName: group.name })}</h3>
+          </div>
+          <TrackCompletionSuggestions parentGroup={parentGroup || (group.parentId ? { id: group.parentId, slug: parentGroupSlug } : null)} space={group} />
         </div>
       )}
 
