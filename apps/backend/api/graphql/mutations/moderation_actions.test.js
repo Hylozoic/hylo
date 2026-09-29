@@ -117,6 +117,44 @@ describe('Moderation Action', () => {
         .catch(e => expect(e.message).to.match(/Comment not found/))
     })
 
+    it('rejects a comment in a direct message conversation', async () => {
+      const dm = await factories.post({ type: Post.Type.THREAD, user_id: commenter.id }).save()
+      await dm.addFollowers([commenter.id, user2.id])
+      const dmComment = await factories.comment({ post_id: dm.id, user_id: commenter.id }).save()
+      return createModerationAction({
+        userId: user2.id,
+        data: { commentId: dmComment.id, text: 'Rude reply', groupId: g1.id, anonymous: false, agreements: [agreements.models[0].id], platformAgreements: [] }
+      })
+        .then(() => expect.fail('should reject'))
+        .catch(e => expect(e.message).to.match(/Comment not found/))
+    })
+
+    it("rejects a group the comment's post is not in", async () => {
+      const otherGroup = await factories.group({ active: true }).save()
+      await user2.joinGroup(otherGroup)
+      return createModerationAction({
+        userId: user2.id,
+        data: { commentId: comment.id, text: 'Rude reply', groupId: otherGroup.id, anonymous: false, agreements: [agreements.models[0].id], platformAgreements: [] }
+      })
+        .then(() => expect.fail('should reject'))
+        .catch(e => expect(e.message).to.match(/not in that group/))
+    })
+
+    it('accepts the parent group of a space the post is in', async () => {
+      const parent = await factories.group({ active: true }).save()
+      const space = await factories.group({ active: true, parent_id: parent.id }).save()
+      await user2.joinGroup(space)
+      const spacePost = await factories.post({ type: 'discussion', user_id: commenter.id }).save()
+      await spacePost.groups().attach(space.id)
+      const spaceComment = await factories.comment({ post_id: spacePost.id, user_id: commenter.id }).save()
+
+      const action = await createModerationAction({
+        userId: user2.id,
+        data: { commentId: spaceComment.id, text: 'Rude reply', groupId: parent.id, anonymous: false, agreements: [agreements.models[0].id], platformAgreements: [] }
+      })
+      expect(String(action.get('group_id'))).to.equal(String(parent.id))
+    })
+
     it('clearing a comment report leaves the post flags alone', async () => {
       await clearModerationAction({ userId: user2.id, postId: commentAction.get('post_id'), groupId: g1.id, moderationActionId: commentAction.id })
       const cleared = await ModerationAction.where({ id: commentAction.id }).fetch()

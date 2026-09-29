@@ -12,6 +12,18 @@ export async function createModerationAction ({ userId, data }) {
     if (!comment || !comment.get('active')) throw new GraphQLError('Comment not found')
     if (postId && String(postId) !== String(comment.get('post_id'))) throw new GraphQLError('Comment not found')
     postId = comment.get('post_id')
+
+    // Only comments on group posts go to a group queue, and only to a group the post is in
+    // (or the parent group of a space it is in)
+    const commentPost = await Post.find(postId)
+    if (!commentPost || commentPost.isThread()) throw new GraphQLError('Comment not found')
+    const postGroups = await commentPost.groups().fetch()
+    const allowedGroupIds = new Set()
+    postGroups.forEach(g => {
+      allowedGroupIds.add(String(g.id))
+      if (g.get('parent_id')) allowedGroupIds.add(String(g.get('parent_id')))
+    })
+    if (!groupId || !allowedGroupIds.has(String(groupId))) throw new GraphQLError('This comment is not in that group')
   }
 
   if (!userId || !postId || !text) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, text })}`)
