@@ -10,6 +10,21 @@ import sentry from '../../lib/sentry'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
 
+// Hylo's own apps that call the API with an OAuth access token instead of a cookie
+// (api/services/OIDCTokens.js NATIVE_CLIENT_ID: the mobile app)
+export const FIRST_PARTY_CLIENT_IDS = ['hylo-mobile']
+
+// Whether this request counts as the person using Hylo: signed in with a cookie, or
+// through one of Hylo's own apps. Requests from other OAuth clients don't count.
+// last_active_at drives the quieter delivery for members who are away (D9).
+export const countsAsActivity = req =>
+  !!req.session?.userId && (!req.api_client || FIRST_PARTY_CLIENT_IDS.includes(req.api_client.id))
+
+export async function recordActivity (req) {
+  if (!countsAsActivity(req)) return
+  await User.query().where({ id: req.session.userId }).update({ last_active_at: new Date() })
+}
+
 // Per-execute store so maskError can attach user / operation without leaking across requests
 const graphqlRequestStore = new AsyncLocalStorage()
 
@@ -80,10 +95,8 @@ export const yoga = createYoga({
       sails.log.info(`[auth] graphql context op=${opName || '?'} currentUserId=${req.session.userId} viaToken=${!!req.api_client} hasCookieHeader=${!!req.headers.cookie}`)
     }
 
-    // Update user last active time unless this is an oAuth login
-    if (req.session.userId && !req.api_client) {
-      await User.query().where({ id: req.session.userId }).update({ last_active_at: new Date() })
-    }
+    // Update user last active time, except for requests from other OAuth clients
+    await recordActivity(req)
 
     // This is unrelated to the above which is using context as a hook,
     // this is putting the subscriptions pubSub method on context
