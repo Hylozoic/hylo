@@ -13,7 +13,9 @@ export const AUTO_TITLE_LENGTH = 80
 export default function titleFromDetails (html, maxLength = AUTO_TITLE_LENGTH) {
   const text = TextHelpers.presentHTMLToText(html || '').replace(/\s+/g, ' ').trim()
   if (text.length <= maxLength) return text
-  const cut = text.slice(0, maxLength - 1)
+  let cut = text.slice(0, maxLength - 1)
+  // Never stop halfway through an emoji or other character that takes two code units
+  if (/[\uD800-\uDBFF]$/.test(cut)) cut = cut.slice(0, -1)
   const lastSpace = cut.lastIndexOf(' ')
   const base = lastSpace > maxLength / 2 ? cut.slice(0, lastSpace) : cut
   return base.replace(/[\s.,;:!?-]+$/, '') + '…'
