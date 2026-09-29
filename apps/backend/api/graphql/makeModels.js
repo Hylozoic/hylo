@@ -2180,7 +2180,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         subscriptionCancelReason: ca => {
           const metadata = ca.get('metadata') || {}
           return metadata.subscription_cancel_reason || null
-        }
+        },
+        refundedAt: ca => ca.get('refunded_at') || null,
+        refundedAmount: ca => ca.get('refunded_amount')
       }
     },
 

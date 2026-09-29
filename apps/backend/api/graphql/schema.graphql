@@ -2915,6 +2915,10 @@ type ContentAccess {
   subscriptionPeriodEnd: Date
   subscriptionCancellationScheduledAt: Date
   subscriptionCancelReason: String
+  # When the most recent refund was recorded (a refund does not change access)
+  refundedAt: Date
+  # Amount of the most recent refund, in cents
+  refundedAmount: Int
 }
 
 type ContentAccessResult {
@@ -2986,6 +2990,10 @@ type UserTransaction {
   receiptUrl: String
   # When a plan change is scheduled for period end (or lifetime path), surfaced from subscription_change_events
   pendingMembershipSubscriptionChange: PendingMembershipSubscriptionChange
+  # When the most recent refund was recorded (a refund does not change access)
+  refundedAt: Date
+  # Amount of the most recent refund, in cents
+  refundedAmount: Int
 }
 
 type UserTransactionQuerySet {
@@ -3303,10 +3311,13 @@ type Mutation {
     accessId: ID!,
     reason: String
   ): ContentAccess
-  # Refund content access (admin only) - revokes access and issues Stripe refund
+  # Refund content access (admin only) - issues a Stripe refund for the most recent payment
+  # and records it; access is not changed
   refundContentAccess(
     accessId: ID!,
-    reason: String
+    reason: String,
+    # When true and the purchase is a subscription, cancel it at the end of the paid period
+    cancelFuturePayments: Boolean
   ): ContentAccess
   # Record a Stripe purchase (internal use)
   recordStripePurchase(

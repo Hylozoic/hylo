@@ -332,12 +332,13 @@ module.exports = bookshelf.Model.extend({
     if (access.get('status') === this.Status.REFUNDED) return true
     const metadata = access.get('metadata') || {}
     if (metadata.refund_charge_id) return !chargeId || metadata.refund_charge_id === chargeId
-    return !!(metadata.refundId || metadata.refunded_at)
+    return !!(access.get('refunded_at') || metadata.refundId || metadata.refunded_at)
   },
 
   /**
-   * Records a refund on the access row without changing access: a refund gives the money
-   * back, and removing access means removing the person.
+   * Records a refund on the access row (refunded_at, refunded_amount and refund details in
+   * metadata) without changing access: a refund gives the money back, and removing access
+   * means removing the person.
    * @param {ContentAccess} access
    * @param {Object} refund
    * @param {Number} refund.amount - Amount refunded, in minor units
@@ -360,7 +361,11 @@ module.exports = bookshelf.Model.extend({
     if (source) metadata.refund_source = source
     if (reason) metadata.refund_reason = reason
 
-    return access.save({ metadata }, { patch: true, transacting })
+    return access.save({
+      refunded_at: refundedAt,
+      refunded_amount: Number.isInteger(amount) ? amount : null,
+      metadata
+    }, { patch: true, transacting })
   },
 
   /**

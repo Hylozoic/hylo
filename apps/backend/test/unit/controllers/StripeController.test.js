@@ -507,6 +507,8 @@ describe('StripeController.handleChargeRefunded', () => {
       })
       expect(refreshed.get('metadata').refunded_at).to.be.a('string')
       expect(refreshed.get('metadata').revokedAt).to.equal(undefined)
+      expect(refreshed.get('refunded_at')).to.be.an.instanceof(Date)
+      expect(refreshed.get('refunded_amount')).to.equal(1500)
     }
     expect((await reload(roleAccess)).get('metadata').accessType).to.equal('role')
     expect(ContentAccess.revoke).to.not.have.been.called()
@@ -597,6 +599,7 @@ describe('StripeController.handleChargeRefunded', () => {
     const refreshed = await reload(access)
     expect(refreshed.get('status')).to.equal(ContentAccess.Status.ACTIVE)
     expect(refreshed.get('metadata').refunded_at).to.equal(undefined)
+    expect(refreshed.get('refunded_at')).to.equal(null)
     expect(sentEmails).to.have.length(0)
     const logs = await refundLogs()
     expect(logs).to.have.length(1)

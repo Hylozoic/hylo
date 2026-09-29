@@ -503,7 +503,9 @@ CREATE TABLE public.content_access (
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     stripe_subscription_id character varying(255),
     group_role_id integer,
-    stripe_customer_id character varying(255)
+    stripe_customer_id character varying(255),
+    refunded_at timestamp with time zone,
+    refunded_amount integer
 );
 
 
@@ -519,6 +521,20 @@ COMMENT ON COLUMN public.content_access.stripe_subscription_id IS 'Stripe subscr
 --
 
 COMMENT ON COLUMN public.content_access.stripe_customer_id IS 'Stripe customer id (cus_...) on the connected account; set at checkout completion';
+
+
+--
+-- Name: COLUMN content_access.refunded_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.content_access.refunded_at IS 'When the most recent refund of this purchase was recorded; access is not changed by a refund';
+
+
+--
+-- Name: COLUMN content_access.refunded_amount; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.content_access.refunded_amount IS 'Amount of the most recent refund, in the smallest currency unit';
 
 
 --

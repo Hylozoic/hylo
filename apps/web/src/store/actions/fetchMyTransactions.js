@@ -44,6 +44,8 @@ query FetchMyTransactions (
       subscriptionPeriodEnd
       subscriptionCancellationScheduledAt
       subscriptionCancelReason
+      refundedAt
+      refundedAmount
       amountPaid
       currency
       manageUrl

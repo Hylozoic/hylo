@@ -26,6 +26,8 @@ import fetchMyTransactions from 'store/actions/fetchMyTransactions'
 import { membershipChangeDefersToPeriodEnd } from 'util/membershipChangeModes'
 import { getMyTransactions } from 'store/reducers/myTransactions'
 
+const refundedBadgeClassName = 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+
 const filterSelectTriggerClassName = cn(
   'h-10 w-full text-sm font-medium',
   /* Contrast with parent `bg-card` (avoid `bg-card` on `bg-card`) */
@@ -144,7 +146,9 @@ function TransactionCard ({ transaction, t, onMembershipChangeCommitted }) {
     currency,
     manageUrl,
     receiptUrl,
-    pendingMembershipSubscriptionChange
+    pendingMembershipSubscriptionChange,
+    refundedAt,
+    refundedAmount
   } = transaction
 
   // Determine status badge color
@@ -153,6 +157,7 @@ function TransactionCard ({ transaction, t, onMembershipChangeCommitted }) {
     if (status === 'active') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
     if (status === 'expired') return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
     if (status === 'revoked') return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+    if (status === 'refunded') return refundedBadgeClassName
     return 'bg-gray-100 text-gray-800'
   }
 
@@ -161,8 +166,12 @@ function TransactionCard ({ transaction, t, onMembershipChangeCommitted }) {
     if (subscriptionCancelAtPeriodEnd) return t('Cancelling')
     if (status === 'active') return t('Active')
     if (status === 'expired') return t('Expired')
+    if (status === 'refunded') return t('Refunded')
     return t('Revoked')
   }
+
+  // A refund keeps access, so a refunded purchase can still be active
+  const showRefundedBadge = !!refundedAt && status !== 'refunded'
 
   // Format access type for display
   const getAccessTypeLabel = () => {
@@ -195,9 +204,16 @@ function TransactionCard ({ transaction, t, onMembershipChangeCommitted }) {
         <h3 className='font-semibold text-foreground text-lg'>
           {offeringName || t('Unnamed Offering')}
         </h3>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor()}`}>
-          {getStatusLabel()}
-        </span>
+        <div className='flex flex-wrap items-center justify-end gap-2'>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor()}`}>
+            {getStatusLabel()}
+          </span>
+          {showRefundedBadge && (
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${refundedBadgeClassName}`}>
+              {t('Refunded')}
+            </span>
+          )}
+        </div>
       </div>
 
       {paymentType === 'subscription' && pendingMembershipSubscriptionChange && (
@@ -271,6 +287,15 @@ function TransactionCard ({ transaction, t, onMembershipChangeCommitted }) {
         {/* Purchase Date */}
         <div className='text-muted-foreground'>{t('Purchased')}:</div>
         <div className='text-foreground'>{formatDate(purchaseDate)}</div>
+
+        {refundedAt && (
+          <>
+            <div className='text-muted-foreground'>{t('Refunded')}:</div>
+            <div className='text-foreground'>
+              {[formatPrice(refundedAmount, currency || offering?.currency || 'usd'), formatDate(refundedAt)].filter(Boolean).join(' · ')}
+            </div>
+          </>
+        )}
 
         {/* Renewal/Expiration */}
         {paymentType === 'subscription' && (
@@ -612,4 +637,5 @@ function MyTransactions () {
   )
 }
 
+export { TransactionCard }
 export default MyTransactions

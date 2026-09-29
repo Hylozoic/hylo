@@ -9,6 +9,7 @@ import {
   recordStripePurchase,
   refundContentAccess
 } from './contentAccess'
+import { filterAndSortContentAccess } from '../../services/Search/util'
 const { expect } = require('chai')
 
 /* global ContentAccess, StripeProduct, Track, GroupRole, Queue, Frontend */
@@ -355,7 +356,7 @@ describe('Content Access Mutations', () => {
   })
 
   describe('refundContentAccess', () => {
-    let StripeService, accessRecord, queued, refundCalls
+    let StripeService, accessRecord, queued, refundCalls, cancelCalls
 
     before(async () => {
       const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_refund_mutation' }).save()
@@ -382,7 +383,12 @@ describe('Content Access Mutations', () => {
       refundCalls = []
       mockify(StripeService, 'refund', async params => {
         refundCalls.push(params)
-        return { id: 're_refund_mutation', amount: 1000, currency: 'usd' }
+        return { id: 're_refund_mutation', amount: 1000, currency: 'usd', charge: 'ch_refund_mutation' }
+      })
+      cancelCalls = []
+      mockify(StripeService, 'cancelSubscription', async params => {
+        cancelCalls.push(params)
+        return { id: params.subscriptionId, cancel_at_period_end: true, cancel_at: 1893456000 }
       })
       queued = []
       mockify(Queue, 'classMethod', (className, methodName, data) => {
@@ -394,16 +400,41 @@ describe('Content Access Mutations', () => {
     afterEach(() => {
       unspyify(StripeService, 'getCheckoutSession')
       unspyify(StripeService, 'refund')
+      unspyify(StripeService, 'cancelSubscription')
       unspyify(Queue, 'classMethod')
     })
 
-    it('refunds the purchase and emails the member what was refunded and why', async () => {
+    const subscriptionPurchase = () => ContentAccess.create({
+      user_id: user.id,
+      granted_by_group_id: group.id,
+      group_id: group.id,
+      product_id: product.id,
+      access_type: 'stripe_purchase',
+      stripe_session_id: 'cs_refund_subscription',
+      stripe_subscription_id: 'sub_refund_mutation',
+      status: 'active'
+    })
+
+    it('refunds the purchase, keeps access and emails the member what was refunded and why', async () => {
       const result = await refundContentAccess(adminUser.id, {
         accessId: accessRecord.id,
         reason: 'Event cancelled'
       })
 
-      expect(result.get('status')).to.equal('refunded')
+      expect(result.get('status')).to.equal('active')
+      expect(result.get('refunded_at')).to.be.an.instanceof(Date)
+      expect(result.get('refunded_amount')).to.equal(1000)
+      const metadata = result.get('metadata')
+      expect(metadata).to.include({
+        refundId: 're_refund_mutation',
+        refund_charge_id: 'ch_refund_mutation',
+        refund_source: 'hylo_refund_button',
+        refund_amount: 1000,
+        refundReason: 'Event cancelled'
+      })
+      expect(metadata.revokedAt).to.equal(undefined)
+      expect(metadata.revokedBy).to.equal(undefined)
+      expect(cancelCalls).to.have.length(0)
       expect(refundCalls).to.deep.equal([{
         accountId: 'acct_refund_mutation',
         paymentIntentId: 'pi_refund_mutation',
@@ -434,6 +465,81 @@ describe('Content Access Mutations', () => {
       expect(queued.filter(q => q.methodName === 'sendRefundProcessed')).to.have.length(0)
       await accessRecord.refresh()
       expect(accessRecord.get('status')).to.equal('active')
+      expect(accessRecord.get('refunded_at')).to.equal(null)
+    })
+
+    it('leaves a refunded subscription running unless the steward asks to cancel future payments', async () => {
+      const subscriptionAccess = await subscriptionPurchase()
+
+      const result = await refundContentAccess(adminUser.id, { accessId: subscriptionAccess.id })
+
+      expect(refundCalls[0]).to.include({ subscriptionId: 'sub_refund_mutation' })
+      expect(result.get('status')).to.equal('active')
+      expect(result.get('refunded_at')).to.be.an.instanceof(Date)
+      expect(cancelCalls).to.have.length(0)
+      expect(result.get('metadata').subscription_cancel_at_period_end).to.equal(undefined)
+      expect(queued.filter(q => q.methodName === 'sendRefundProcessed')).to.have.length(1)
+    })
+
+    it('cancels future payments at the end of the paid period when asked, keeping access until then', async () => {
+      const subscriptionAccess = await subscriptionPurchase()
+
+      const result = await refundContentAccess(adminUser.id, {
+        accessId: subscriptionAccess.id,
+        cancelFuturePayments: true
+      })
+
+      expect(cancelCalls).to.deep.equal([{
+        accountId: 'acct_refund_mutation',
+        subscriptionId: 'sub_refund_mutation',
+        immediately: false
+      }])
+      expect(result.get('status')).to.equal('active')
+      expect(result.get('metadata')).to.include({
+        subscription_cancel_at_period_end: true,
+        subscription_period_end: new Date(1893456000 * 1000).toISOString()
+      })
+      expect(queued.filter(q => q.methodName === 'sendRefundProcessed')).to.have.length(1)
+    })
+
+    it('lists a refunded purchase under the Refunded filter while it stays active', async () => {
+      await refundContentAccess(adminUser.id, { accessId: accessRecord.id })
+      const earlierButtonRefund = await ContentAccess.create({
+        user_id: user.id,
+        granted_by_group_id: group.id,
+        group_id: group.id,
+        access_type: 'stripe_purchase',
+        status: 'refunded'
+      })
+      const notRefunded = await ContentAccess.create({
+        user_id: user.id,
+        granted_by_group_id: group.id,
+        group_id: group.id,
+        access_type: 'stripe_purchase',
+        status: 'active'
+      })
+      const idsFor = async status => (await ContentAccess.query(filterAndSortContentAccess({ groupIds: [group.id], status })).fetchAll())
+        .map(access => String(access.id))
+
+      const refundedIds = await idsFor('refunded')
+      expect(refundedIds).to.include(String(accessRecord.id))
+      expect(refundedIds).to.include(String(earlierButtonRefund.id))
+      expect(refundedIds).to.not.include(String(notRefunded.id))
+
+      const activeIds = await idsFor('active')
+      expect(activeIds).to.include(String(accessRecord.id))
+      expect(activeIds).to.include(String(notRefunded.id))
+      expect(activeIds).to.not.include(String(earlierButtonRefund.id))
+    })
+
+    it('ignores cancelFuturePayments for a one-time purchase', async () => {
+      const result = await refundContentAccess(adminUser.id, {
+        accessId: accessRecord.id,
+        cancelFuturePayments: true
+      })
+
+      expect(cancelCalls).to.have.length(0)
+      expect(result.get('status')).to.equal('active')
     })
   })
 })
