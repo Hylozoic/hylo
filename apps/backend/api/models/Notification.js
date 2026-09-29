@@ -7,6 +7,7 @@ import RedisPubSub from '../services/RedisPubSub'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import { senderNameForGroup, senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 import { PRIORITY_REASONS } from './notification/priorityReasons'
+import { pushGroupingFor } from './notification/pushGrouping'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -228,7 +229,7 @@ module.exports = bookshelf.Model.extend({
       .then(group => {
         const path = routeToPath(Frontend.Route.group(group))
         const alertText = PushNotification.textForApprovedJoinRequest(group, this.actor(), locale)
-        return this.reader().sendPushNotification(alertText, path)
+        return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
       })
   },
 
@@ -241,7 +242,7 @@ module.exports = bookshelf.Model.extend({
     if (!group) throw new Error('no member group for reader in activity')
     const path = routeToPath(Frontend.Route.post(post, group))
     const alertText = PushNotification.textForAnnouncement(post, group, locale)
-    return reader.sendPushNotification(alertText, path)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendContributionPush: function (version) {
@@ -283,7 +284,7 @@ module.exports = bookshelf.Model.extend({
       .then(group => {
         const path = routeToPath(Frontend.Route.post(post, group))
         const alertText = PushNotification.textForEventInvitation(post, actor, locale)
-        return this.reader().sendPushNotification(alertText, path)
+        return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
       })
   },
 
@@ -298,7 +299,8 @@ module.exports = bookshelf.Model.extend({
     const group = await groupForNotificationForUser(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.post(post, group))
     const alertText = PushNotification.textForPost(post, group, firstTag, version, locale)
-    return reader.sendPushNotification(alertText, path)
+    // Only a chat room collapses, so a burst replaces itself; mentions never do.
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group, { collapse: version === 'chat' }))
   },
 
   sendCommentPush: async function (version) {
@@ -317,7 +319,7 @@ module.exports = bookshelf.Model.extend({
     const group = await groupForNotificationForUser(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.comment({ comment, group, post }))
     const alertText = PushNotification.textForComment(comment, version, locale)
-    return reader.sendPushNotification(alertText, path)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendJoinRequestPush: async function () {
@@ -332,7 +334,7 @@ module.exports = bookshelf.Model.extend({
     if (parentGroup) group.relations.parentGroup = parentGroup
     const path = routeToPath(Frontend.Route.groupJoinRequests(group))
     const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale, parentGroup)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendGroupInvitationPush: async function () {
@@ -346,7 +348,7 @@ module.exports = bookshelf.Model.extend({
       : null
     const path = routeToPath(Frontend.Route.myInvitations())
     const alertText = PushNotification.textForGroupInvitation(group, this.actor(), locale, parentGroup)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendGroupChildGroupInvitePush: async function () {
@@ -356,7 +358,7 @@ module.exports = bookshelf.Model.extend({
     if (!childGroup || !parentGroup) throw new Error('Missing a group in activity')
     const path = routeToPath(Frontend.Route.groupRelationshipInvites(childGroup))
     const alertText = PushNotification.textForGroupChildGroupInvite(parentGroup, childGroup, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(childGroup))
   },
 
   sendGroupChildGroupInviteAcceptedPush: async function () {
@@ -381,7 +383,7 @@ module.exports = bookshelf.Model.extend({
       alertPath = routeToPath(Frontend.Route.group(parentGroup))
       alertText = PushNotification.textForGroupChildGroupInviteAcceptedChildMember(parentGroup, childGroup, this.actor(), locale)
     }
-    return this.reader().sendPushNotification(alertText, alertPath)
+    return this.reader().sendPushNotification(alertText, alertPath, pushGroupingFor(whichGroup === 'parent' ? parentGroup : childGroup))
   },
 
   sendGroupParentGroupJoinRequestPush: async function () {
@@ -391,7 +393,7 @@ module.exports = bookshelf.Model.extend({
     if (!childGroup || !parentGroup) throw new Error('Missing a group in activity')
     const path = routeToPath(Frontend.Route.groupRelationshipJoinRequests(parentGroup))
     const alertText = PushNotification.textForGroupParentGroupJoinRequest(parentGroup, childGroup, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(parentGroup))
   },
 
   sendGroupParentGroupJoinRequestAcceptedPush: async function () {
@@ -416,7 +418,7 @@ module.exports = bookshelf.Model.extend({
       alertPath = routeToPath(Frontend.Route.group(parentGroup))
       alertText = PushNotification.textForGroupParentGroupJoinRequestAcceptedChildMember(parentGroup, childGroup, locale)
     }
-    return this.reader().sendPushNotification(alertText, alertPath)
+    return this.reader().sendPushNotification(alertText, alertPath, pushGroupingFor(whichGroup === 'parent' ? parentGroup : childGroup))
   },
 
   sendGroupPeerGroupInvitePush: async function () {
@@ -426,7 +428,7 @@ module.exports = bookshelf.Model.extend({
     if (!fromGroup || !toGroup) throw new Error('Missing a group in activity')
     const path = routeToPath(Frontend.Route.groupRelationshipInvites(toGroup))
     const alertText = PushNotification.textForGroupPeerGroupInvite(fromGroup, toGroup, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(toGroup))
   },
 
   sendGroupPeerGroupInviteAcceptedPush: async function () {
@@ -438,7 +440,7 @@ module.exports = bookshelf.Model.extend({
     // Only moderators get peer relationship acceptance notifications
     const alertPath = routeToPath(Frontend.Route.group(toGroup))
     const alertText = PushNotification.textForGroupPeerGroupInviteAccepted(fromGroup, toGroup, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, alertPath)
+    return this.reader().sendPushNotification(alertText, alertPath, pushGroupingFor(fromGroup))
   },
 
   sendPushDonationTo: async function () {
@@ -468,7 +470,7 @@ module.exports = bookshelf.Model.extend({
     const group = await groupForNotificationForUser(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.post(post, group))
     const alertText = PushNotification.textForPostModeratedFulfillment(post, this.actor(), reason, locale)
-    return reader.sendPushNotification(alertText, path)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendPostModeratedFulfillmentEmail: async function () {
@@ -515,7 +517,7 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     const path = routeToPath(Frontend.Route.profile(actor, group))
     const alertText = PushNotification.textForMemberJoinedGroup(group, actor, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendEmail: async function () {
@@ -1168,7 +1170,7 @@ module.exports = bookshelf.Model.extend({
     const fundingRoundTitle = group ? group.get('name') : ''
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const alertText = PushNotification.textForFundingRoundNewSubmission(fundingRoundTitle, post, actor, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendFundingRoundNewSubmissionEmail: async function () {
@@ -1208,7 +1210,7 @@ module.exports = bookshelf.Model.extend({
     const meta = this.relations.activity.get('meta')
     const phase = meta.phase
     const alertText = PushNotification.textForFundingRoundPhaseTransition(group.get('name'), phase, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendFundingRoundPhaseTransitionEmail: async function () {
@@ -1281,7 +1283,7 @@ module.exports = bookshelf.Model.extend({
     const meta = this.relations.activity.get('meta')
     const reminderType = meta.reminderType
     const alertText = PushNotification.textForFundingRoundReminder(group.get('name'), reminderType, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendFundingRoundReminderEmail: async function () {

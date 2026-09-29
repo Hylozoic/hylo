@@ -127,8 +127,44 @@ describe('Notification', function () {
         .then(pns => {
           expect(pns.length).to.equal(1)
           const pn = pns.first()
-          expect(pn.get('alert')).to.equal('Joe posted "My Post" in My Group')
+          expect(pn.get('alert')).to.equal('Joe: My Post')
         })
+    })
+
+    it('heads a post push with the group name and stacks it per group without collapsing', async () => {
+      const notification = await preloadNotification(activities.newPost, Notification.MEDIUM.Push)
+      await notification.send()
+      const opts = OneSignal.notify.__spy.calls[0][0]
+      expect(opts.heading).to.equal('My Group')
+      expect(opts.groupKey).to.equal(`group-${group.id}`)
+      expect(opts.collapseKey).to.equal(undefined)
+    })
+
+    it('collapses chat pushes per room with a stable key', async () => {
+      const chatActivity = {
+        post_id: post.id,
+        meta: { reasons: ['chat'] },
+        reader_id: reader.id,
+        actor_id: actor.id,
+        group_id: group.id
+      }
+      const first = await preloadNotification(chatActivity, Notification.MEDIUM.Push)
+      await first.send()
+      const second = await preloadNotification(chatActivity, Notification.MEDIUM.Push)
+      await second.send()
+      const [call1, call2] = OneSignal.notify.__spy.calls.map(call => call[0])
+      expect(call1.collapseKey).to.equal(`chat-${group.id}`)
+      expect(call2.collapseKey).to.equal(call1.collapseKey)
+      expect(call1.heading).to.equal('My Group')
+      expect(call1.alert).to.equal('Joe: My Post')
+    })
+
+    it('never collapses a mention push', async () => {
+      const notification = await preloadNotification({ ...activities.mention, group_id: group.id }, Notification.MEDIUM.Push)
+      await notification.send()
+      const opts = OneSignal.notify.__spy.calls[0][0]
+      expect(opts.collapseKey).to.equal(undefined)
+      expect(opts.heading).to.equal('My Group')
     })
 
     it('sends a push for a mention in a post', () => {
@@ -138,7 +174,7 @@ describe('Notification', function () {
         .then(pns => {
           expect(pns.length).to.equal(1)
           const pn = pns.first()
-          expect(pn.get('alert')).to.equal('Joe mentioned you in post "My Post" in My Group')
+          expect(pn.get('alert')).to.equal('Joe mentioned you: My Post')
         })
     })
 

@@ -54,8 +54,8 @@ exports.fr = {
   Name: () => 'Nom',
   newSavedSearchResults: (name) => `Nouveaux résultats de recherche enregistrée dans ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} a accepté votre demande pour rejoindre ${groupName}`,
-  textForAnnouncement: ({ person, postName, groupName }) => `${person} a envoyé une annonce « ${postName} » à ${groupName}`,
-  textForChatPost: ({ firstTag, groupName, person, postName }) => `${person} a écrit dans le chat « ${postName} » dans ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
+  textForAnnouncement: ({ person, postName }) => `Annonce de ${person} : ${postName}`,
+  textForChatPost: ({ firstTag, person, postName }) => `${person} : ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForCommentImage: person => `${person} a envoyé une image`,
   textForCommentMention: ({ person, blurb, postName }) => `${person} vous a mentionné·e : « ${blurb} » (dans « ${postName} »)`,
   textForComment: ({ person, blurb, postName }) => `${person} : « ${blurb} » (dans « ${postName} »)`,
@@ -90,8 +90,8 @@ exports.fr = {
     }
     return `${actor.get('name')} a fermé votre publication « ${postName} »`
   },
-  textForPostMention: ({ groupName, person, postName }) => `${person} vous a mentionné·e dans la publication « ${postName} » dans ${groupName}`,
-  textForPost: ({ firstTag, groupName, person, postName }) => `${person} a publié « ${postName} » dans ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
+  textForPostMention: ({ person, postName }) => `${person} vous a mentionné·e : ${postName}`,
+  textForPost: ({ firstTag, person, postName }) => `${person} : ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `Parcours terminé : « ${trackName} » complété par ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, trackName }) => `Inscription au parcours : « ${trackName} » par ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} a modifié les options de la proposition « ${postName} » dans ${groupName}. Les votes ont été réinitialisés`,

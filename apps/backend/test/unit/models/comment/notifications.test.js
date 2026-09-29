@@ -32,4 +32,12 @@ describe('notifyAboutMessage', () => {
     const validResults = compact(results)
     expect(validResults.length).to.equal(1)
   })
+
+  it('never collapses or groups a direct message push', async () => {
+    OneSignal.notify.__spy.calls.length = 0
+    await notifyAboutMessage({ commentId: comment.id })
+    const opts = OneSignal.notify.__spy.calls[0][0]
+    expect(opts).not.to.have.property('collapseKey')
+    expect(opts).not.to.have.property('groupKey')
+  })
 })

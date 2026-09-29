@@ -55,9 +55,9 @@ exports.es = {
   Name: () => 'Nombre',
   newSavedSearchResults: (name) => `Nuevos resultados de búsqueda guardados en ${name}`,
   recentActivityFrom: (name) => `Actividad reciente de ${name}`,
-  textForAnnouncement: ({ groupName, person, postName }) => `${person} envió un anuncio titulado "${postName}" en ${groupName}`,
+  textForAnnouncement: ({ person, postName }) => `Anuncio de ${person}: ${postName}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} aprobó tu solicitud para unirte ${groupName}`,
-  textForChatPost: ({ firstTag, groupName, person, postName }) => `${person} habló "${postName}" en ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
+  textForChatPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForCommentImage: person => `${person} envió una imagen`,
   textForCommentMention: ({ person, blurb, postName }) => `${person} te mencionó: "${blurb}" (en "${postName}")`,
   textForComment: ({ person, blurb, postName }) => `${person}: "${blurb}" (en "${postName}")`,
@@ -92,8 +92,8 @@ exports.es = {
     }
     return `${actor.get('name')} cerró tu publicación "${postName}"`
   },
-  textForPostMention: ({ groupName, person, postName }) => `${person} te mencionó en "${postName}" en ${groupName}`,
-  textForPost: ({ firstTag, groupName, person, postName }) => `${person} publicó "${postName}" en ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
+  textForPostMention: ({ person, postName }) => `${person} te mencionó: ${postName}`,
+  textForPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `Pista completada: "${trackName}" fue completada por ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, trackName }) => `Inscripción en pista: "${trackName}" fue inscrita por ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} cambió las opciones de propuesta: "${postName}" en ${groupName}. Esto ha reiniciado los votos`,

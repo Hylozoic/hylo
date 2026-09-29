@@ -54,8 +54,8 @@ exports.en = {
   Name: () => 'Name',
   newSavedSearchResults: (name) => `New saved search results in ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} approved your request to join ${groupName}`,
-  textForAnnouncement: ({ person, postName, groupName }) => `${person} sent an announcement "${postName}" to ${groupName}`,
-  textForChatPost: ({ firstTag, groupName, person, postName }) => `${person} chatted "${postName}" in ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
+  textForAnnouncement: ({ person, postName }) => `Announcement from ${person}: ${postName}`,
+  textForChatPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForCommentImage: person => `${person} sent an image`,
   textForCommentMention: ({ person, blurb, postName }) => `${person} mentioned you: "${blurb}" (in "${postName}")`,
   textForComment: ({ person, blurb, postName }) => `${person}: "${blurb}" (in "${postName}")`,
@@ -90,8 +90,8 @@ exports.en = {
     }
     return `${actor.get('name')} closed your post "${postName}"`
   },
-  textForPostMention: ({ groupName, person, postName }) => `${person} mentioned you in post "${postName}" in ${groupName}`,
-  textForPost: ({ firstTag, groupName, person, postName }) => `${person} posted "${postName}" in ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
+  textForPostMention: ({ person, postName }) => `${person} mentioned you: ${postName}`,
+  textForPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `Track completed: "${trackName}" was completed by ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, trackName }) => `Track enrollment: "${trackName}" was enrolled in by ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} changed the options for proposal: "${postName}" in ${groupName}. This has reset the votes`,

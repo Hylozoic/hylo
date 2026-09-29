@@ -54,8 +54,8 @@ exports.hi = {
   Name: () => 'नाम',
   newSavedSearchResults: (name) => `${name} में सहेजी खोज के नए परिणाम`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} ने ${groupName} में शामिल होने के आपके अनुरोध को मंजूर किया`,
-  textForAnnouncement: ({ person, postName, groupName }) => `${person} ने ${groupName} को घोषणा "${postName}" भेजी`,
-  textForChatPost: ({ firstTag, groupName, person, postName }) => `${person} ने ${groupName} में चैट "${postName}" की${firstTag ? ` #${firstTag}` : ''}`,
+  textForAnnouncement: ({ person, postName }) => `${person} की घोषणा: ${postName}`,
+  textForChatPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForCommentImage: person => `${person} ने एक छवि भेजी`,
   textForCommentMention: ({ person, blurb, postName }) => `${person} ने आपका उल्लेख किया: "${blurb}" ("${postName}" में)`,
   textForComment: ({ person, blurb, postName }) => `${person}: "${blurb}" ("${postName}" में)`,
@@ -90,8 +90,8 @@ exports.hi = {
     }
     return `${actor.get('name')} ने आपकी पोस्ट "${postName}" बंद कर दी`
   },
-  textForPostMention: ({ groupName, person, postName }) => `${person} ने ${groupName} में पोस्ट "${postName}" में आपका उल्लेख किया`,
-  textForPost: ({ firstTag, groupName, person, postName }) => `${person} ने ${groupName} में "${postName}" पोस्ट की${firstTag ? ` #${firstTag}` : ''}`,
+  textForPostMention: ({ person, postName }) => `${person} ने आपका उल्लेख किया: ${postName}`,
+  textForPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `ट्रैक पूर्ण: "${trackName}" ${actor.get('name')} द्वारा पूर्ण किया गया`,
   textForTrackEnrollment: ({ actor, trackName }) => `ट्रैक नामांकन: "${trackName}" में ${actor.get('name')} ने नामांकन लिया`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} ने ${groupName} में प्रस्ताव: "${postName}" के विकल्प बदल दिए। वोट रीसेट हो गए हैं`,
