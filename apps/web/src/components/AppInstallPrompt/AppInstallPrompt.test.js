@@ -88,6 +88,14 @@ describe('AppInstallPrompt', () => {
     expect(screen.queryByTestId('app-install-prompt')).not.toBeInTheDocument()
   })
 
+  it('sits under the post composer, so its Post button is never covered', () => {
+    // .create-modal in components/CreatePostModal/CreatePostModal.module.scss
+    const POST_COMPOSER_Z = 70
+    render(<AppInstallPrompt userAgent={ANDROID_CHROME} />, { wrapper: providers() })
+    const zIndex = Number(screen.getByTestId('app-install-prompt').className.match(/\bz-\[(\d+)\]/)?.[1])
+    expect(zIndex).toBeLessThan(POST_COMPOSER_Z)
+  })
+
   it('does not show on iPhone', () => {
     render(<AppInstallPrompt userAgent={IPHONE} />, { wrapper: providers() })
     expect(screen.queryByTestId('app-install-prompt')).not.toBeInTheDocument()
