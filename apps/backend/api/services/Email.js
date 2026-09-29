@@ -41,14 +41,21 @@ const SKIPPED = Object.freeze({ skipped: true })
 
 const TRANSPORT = { BULK: 'bulk', TRANSACTIONAL: 'transactional' }
 
-// The Hylo account an address belongs to (both spellings hit the unique email index)
+// The Hylo account an address belongs to (both spellings hit the unique email index).
+// If the lookup fails the email still goes, as it did before, without the checks and
+// headers that need the account.
 async function recipientFor (address) {
   if (!address || typeof address !== 'string') return null
-  const rows = await bookshelf.knex('users')
-    .select('id', 'settings', 'email_undeliverable_at')
-    .whereIn('email', uniq([address, address.toLowerCase()]))
-    .limit(1)
-  return rows[0] || null
+  try {
+    const rows = await bookshelf.knex('users')
+      .select('id', 'settings', 'email_undeliverable_at')
+      .whereIn('email', uniq([address, address.toLowerCase()]))
+      .limit(1)
+    return rows[0] || null
+  } catch (err) {
+    sentry.error(err instanceof Error ? err : new Error(String(err)), null, { step: 'Email recipient lookup' })
+    return null
+  }
 }
 
 // Group-scoped descriptors need a group (or, for the unified digest, a frequency);
