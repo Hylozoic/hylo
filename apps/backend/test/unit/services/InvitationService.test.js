@@ -354,6 +354,40 @@ describe('InvitationService', () => {
     })
   })
 
+  describe('people to invite', () => {
+    let pickerGroup, member, outsider, leaver, axolotl
+
+    const peopleIds = async opts => {
+      const people = await Search.forUsers({ limit: 1000, ...opts }).fetchAll()
+      return people.map(person => String(person.id))
+    }
+
+    before(async () => {
+      pickerGroup = await factories.group().save()
+      member = await factories.user({ name: 'Picker Member' }).save()
+      outsider = await factories.user({ name: 'Picker Outsider' }).save()
+      leaver = await factories.user({ name: 'Picker Leaver' }).save()
+      axolotl = await User.where({ id: User.AXOLOTL_ID }).fetch() ||
+        await factories.user({ id: User.AXOLOTL_ID, name: 'Picker Axolotl' }).save(null, { method: 'insert' })
+      await member.joinGroup(pickerGroup)
+      await leaver.joinGroup(pickerGroup)
+      await pickerGroup.removeMembers([leaver.id])
+    })
+
+    it('leaves out active members of the group and the Axolotl when asked', async () => {
+      const ids = await peopleIds({ excludeGroupId: pickerGroup.id })
+      expect(ids).to.include(String(outsider.id))
+      expect(ids).to.include(String(leaver.id))
+      expect(ids).to.not.include(String(member.id))
+      expect(ids).to.not.include(String(axolotl.id))
+    })
+
+    it('leaves everyone in when not asked', async () => {
+      const ids = await peopleIds({})
+      expect(ids).to.include.members([String(outsider.id), String(member.id), String(axolotl.id)])
+    })
+  })
+
   describe('pending invitation lists', () => {
     let listGroup, admin, member, other, memberInvitations
 

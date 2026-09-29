@@ -107,8 +107,9 @@ export function fetchPendingInvitations (groupId) {
 export const INVITEABLE_PEOPLE_PAGE_SIZE = 15
 
 /**
- * People who can be invited: people visible to the current user (personFilter),
- * or (for spaces) parent-group members not already in the space. Loads one page at a time.
+ * People who can be invited: people visible to the current user (personFilter) who are not
+ * already members of the group, or (for spaces) parent-group members not already in the space.
+ * Loads one page at a time.
  */
 export function fetchInviteablePeople ({
   groupId,
@@ -153,8 +154,8 @@ export function fetchInviteablePeople ({
   return {
     type: FETCH_INVITEABLE_PEOPLE,
     graphql: {
-      query: `query ($autocomplete: String, $first: Int, $offset: Int) {
-        people (first: $first, offset: $offset, autocomplete: $autocomplete, sortBy: "name", order: "asc") {
+      query: `query ($autocomplete: String, $first: Int, $offset: Int, $excludeGroupId: ID) {
+        people (first: $first, offset: $offset, autocomplete: $autocomplete, sortBy: "name", order: "asc", excludeGroupId: $excludeGroupId) {
           hasMore
           items {
             id
@@ -163,7 +164,7 @@ export function fetchInviteablePeople ({
           }
         }
       }`,
-      variables: { autocomplete, first, offset }
+      variables: { autocomplete, first, offset, excludeGroupId: groupId }
     }
   }
 }

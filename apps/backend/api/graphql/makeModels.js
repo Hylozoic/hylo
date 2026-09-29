@@ -610,7 +610,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       filter: nonAdminFilter(apiFilter(personFilter(userId))),
       isDefaultTypeForTable: true,
-      fetchMany: ({ boundingBox, first, order, sortBy, offset, search, autocomplete, groupIds, filter }) =>
+      fetchMany: ({ boundingBox, first, order, sortBy, offset, search, autocomplete, groupIds, filter, excludeGroupId }) =>
         searchQuerySet('users', {
           boundingBox,
           term: search,
@@ -620,7 +620,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           type: filter,
           autocomplete,
           groups: groupIds,
-          sort: sortBy
+          sort: sortBy,
+          excludeGroupId
         })
     },
 

@@ -296,6 +296,41 @@ describe('InviteSettingsTab with full invite access', () => {
     })
   })
 
+  it('asks for people who are not in the group, and keeps someone who shares a name with an invitee', async () => {
+    let peopleVariables
+    mockGraphqlServer.use(
+      graphql.operation(({ query, variables }) => {
+        if (!query.includes('people (')) return HttpResponse.json({ data: {} })
+        peopleVariables = variables
+        return HttpResponse.json({
+          data: {
+            people: {
+              hasMore: false,
+              items: [
+                { id: '50', name: 'Pat Lee', avatarUrl: null },
+                { id: '51', name: 'Pat Lee', avatarUrl: null },
+                { id: '52', name: 'Robin Park', avatarUrl: null }
+              ]
+            }
+          }
+        })
+      })
+    )
+    const group = { id: '1', name: 'Go Team', slug: 'goteam', myInviteAccess: 'full' }
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Group.create(group)
+    ormSession.Me.create({ id: '10', name: 'Tester' })
+    ormSession.Invitation.create({ id: '31', email: 'pat@example.com', name: 'Pat Lee', userId: '50', group: '1', createdAt: '2026-09-20T10:00:00.000Z', lastSentAt: '2026-09-20T10:00:00.000Z' })
+    render(<InviteSettingsTab group={group} />, null, AllTheProviders({ orm: ormSession.state, pending: {} }))
+
+    fireEvent.focus(screen.getByPlaceholderText('Search people...'))
+
+    expect(await screen.findByText('Robin Park')).toBeInTheDocument()
+    expect(peopleVariables.excludeGroupId).toBe('1')
+    // One in the pending invites list, and the other Pat Lee in the picker
+    expect(screen.getAllByText('Pat Lee')).toHaveLength(2)
+  })
+
   it('asks only the usual question before Resend All when no member sent an invitation', () => {
     const confirmSpy = jest.spyOn(window, 'confirm').mockImplementation(() => false)
     const group = { id: '1', name: 'Go Team', slug: 'goteam', myInviteAccess: 'full' }

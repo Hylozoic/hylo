@@ -310,7 +310,9 @@ type Query {
     # Options are: 'name', 'location', 'join' (join date), 'last_active_at'
     sortBy: String,
     # Return People where the search term matches the name, bio or skills on their profile
-    search: String
+    search: String,
+    # Leave out active members of this group (and the Axolotl), for inviting people to it
+    excludeGroupId: ID
   ): PersonQuerySet
 
   # Find a Person by ID or by email

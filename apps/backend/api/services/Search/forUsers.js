@@ -43,6 +43,17 @@ export default function (opts) {
       qb.whereNotIn('id', opts.exclude)
     }
 
+    // For inviting people to a group: leave out its active members and the Axolotl
+    if (opts.excludeGroupId) {
+      qb.whereNotExists(function () {
+        this.select(bookshelf.knex.raw(1)).from('group_memberships as excluded_membership')
+          .whereRaw('excluded_membership.user_id = users.id')
+          .where('excluded_membership.group_id', opts.excludeGroupId)
+          .where('excluded_membership.active', true)
+      })
+      qb.whereNot('users.id', User.AXOLOTL_ID)
+    }
+
     if (groups && groups.length > 1) {
       // prevent duplicates due to the joins
       if (opts.sort === 'join') {

@@ -337,12 +337,10 @@ function InviteSettingsTab (props) {
 
   const peopleForSelector = useMemo(() => {
     const invitedIds = new Set(pendingInvites.map(i => i.userId != null && String(i.userId)).filter(Boolean))
-    const invitedNames = new Set(pendingInvites.map(i => i.name && i.name.toLowerCase()).filter(Boolean))
     const invitedEmails = new Set(pendingInvites.map(i => i.email && i.email.toLowerCase()).filter(Boolean))
     const allowed = people.filter(p => {
       if (invitedIds.has(String(p.id))) return false
       if (p.email && invitedEmails.has(String(p.email).toLowerCase())) return false
-      if (p.name && invitedNames.has(p.name.toLowerCase())) return false
       return true
     })
     if (!isRoleGated || !spaceRequiredRoleIds) return allowed
