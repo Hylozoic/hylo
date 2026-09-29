@@ -125,6 +125,16 @@ describe('notification reader filters', () => {
           .to.deep.equal([Notification.MEDIUM.InApp])
       })
 
+      it("'all_but_direct': an announcement that mentions the reader still emails and pushes", async () => {
+        const reader = mockReader([{ settings: everyChannel, relations: { group: { id: 1 } } }],
+          { settings: { email_unsubscribe_scope: 'all_but_direct' } })
+
+        expect(await media(postActivity(['newPost: 1', 'announcement', 'mention'], reader)))
+          .to.have.members([Notification.MEDIUM.Email, Notification.MEDIUM.Push, Notification.MEDIUM.InApp])
+        expect(await media(postActivity(['newPost: 1', 'announcement'], reader)))
+          .to.deep.equal([Notification.MEDIUM.InApp])
+      })
+
       it("'digest_only': a new post no longer emails but still pushes", async () => {
         const reader = mockReader([{ settings: everyChannel, relations: { group: { id: 1 } } }],
           { settings: { email_unsubscribe_scope: 'digest_only' } })

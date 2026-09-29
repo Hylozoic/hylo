@@ -44,6 +44,13 @@ export function unsubscribeScopeOf (userOrSettings) {
   return isUnsubscribeScope(scope) ? scope : null
 }
 
+// Direct for this reader: its class is direct, or it mentions them. An announcement that
+// mentions you is classed by its announcement (the higher priority reason), and is still
+// a mention.
+export const isDirectSignal = ctx =>
+  ctx.signalClass === SIGNAL_CLASS.DIRECT ||
+  (ctx.reasons || []).some(reason => /^mention/.test(reason))
+
 // Scopes under which only direct signals still reach the person by email and push
 export const keepsOnlyDirect = scope =>
   scope === UNSUBSCRIBE_SCOPE.ALL_BUT_DIRECT || scope === UNSUBSCRIBE_SCOPE.EVERYTHING
@@ -63,13 +70,13 @@ export function unsubscribeScopeFilter (ctx) {
       ctx.channels.delete(CHANNEL.PUSH)
       break
     case UNSUBSCRIBE_SCOPE.ALL_BUT_DIRECT:
-      if (ctx.signalClass !== SIGNAL_CLASS.DIRECT) {
+      if (!isDirectSignal(ctx)) {
         ctx.channels.delete(CHANNEL.EMAIL)
         ctx.channels.delete(CHANNEL.PUSH)
       }
       break
     case UNSUBSCRIBE_SCOPE.DIGEST_ONLY:
-      if (ctx.signalClass === SIGNAL_CLASS.AMBIENT) ctx.channels.delete(CHANNEL.EMAIL)
+      if (ctx.signalClass === SIGNAL_CLASS.AMBIENT && !isDirectSignal(ctx)) ctx.channels.delete(CHANNEL.EMAIL)
       break
     // no_group_emails is already in each membership's sendEmail
   }
