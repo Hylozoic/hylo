@@ -327,6 +327,10 @@ type Query {
   # Query for a Post by ID
   post(id: ID): Post
 
+  # For signed-out visitors: whether a post they can't see exists, and a group it's
+  # in when that group's About page is already public. Reveals nothing else.
+  postTeaser(id: ID): PostTeaser
+
   # Query for a set of Posts
   posts(
     # Only return posts that have not be fulfilled/completed and that are not past their end time
@@ -2515,6 +2519,19 @@ type PostQuerySet {
   total: Int
   hasMore: Boolean
   items: [Post]
+}
+
+# What a signed-out visitor may know about a post they can't see
+type PostTeaser {
+  exists: Boolean
+  # Only set for a group whose About page is already public
+  group: PostTeaserGroup
+}
+
+type PostTeaserGroup {
+  name: String
+  slug: String
+  avatarUrl: String
 }
 
 # The relationship between a Post and a Group

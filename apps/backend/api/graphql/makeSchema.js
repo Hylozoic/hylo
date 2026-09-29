@@ -196,6 +196,7 @@ import {
 import peopleTyping from './mutations/peopleTyping'
 import { leaveMessageThread } from './mutations/messageThread'
 import { reportToStaff, resolveStaffReport } from './mutations/moderation_actions'
+import postTeaser from './queries/postTeaser'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -439,6 +440,7 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
     groups: (root, args) => fetchMany('Group', Object.assign(args, { visibility: Group.Visibility.PUBLIC })),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
+    postTeaser: (root, { id }) => postTeaser(id),
     posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true })),
     publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
     publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId })
