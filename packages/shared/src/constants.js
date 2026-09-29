@@ -31,6 +31,7 @@ export const AnalyticsEvents = {
   JOIN_REQUEST_CREATED: 'Join Request Created',
   JOIN_REQUEST_DECLINED: 'Join Request Declined',
   LOGIN_WALL_HIT: 'Login Wall Hit',
+  PAGE_VIEWED: 'Page Viewed',
   PUBLIC_GROUP_VIEWED: 'Public Group Viewed',
   REACTION_REMOVED: 'Reaction Removed',
   SIGNUP_AGREEMENTS_ACCEPTED: 'Signup Agreements Accepted',
