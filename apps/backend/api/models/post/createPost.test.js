@@ -237,6 +237,71 @@ describe('createPost accepted_post_types', () => {
   })
 })
 
+describe('createPost title fallback', () => {
+  let user, group
+
+  before(() =>
+    setup.clearDb()
+      .then(() => Promise.props({
+        u: new User({ name: 'U1', email: 'title@b.c', active: true }).save(),
+        g: new Group({ slug: 'title-group', name: 'Title Group' }).save()
+      }))
+      .then(props => {
+        user = props.u
+        group = props.g
+        return user.joinGroup(group)
+      })
+  )
+
+  beforeEach(() => {
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('titles an untitled discussion with the start of its text, cut at a word', async () => {
+    const description = '<p>Hello <strong>everyone</strong>, I just joined and wanted to say how glad I am to be here with all of you today.</p>'
+    const post = await createPost(user.id, {
+      name: '',
+      description,
+      type: Post.Type.DISCUSSION,
+      group_ids: [group.id]
+    })
+    const title = post.get('name')
+    expect(title).to.equal('Hello everyone, I just joined and wanted to say how glad I am to be here with…')
+    expect(title.length).to.be.at.most(80)
+  })
+
+  it('uses short text as it is', async () => {
+    const post = await createPost(user.id, {
+      description: '<p>Short and sweet</p>',
+      type: Post.Type.DISCUSSION,
+      group_ids: [group.id]
+    })
+    expect(post.get('name')).to.equal('Short and sweet')
+  })
+
+  it('keeps a title that was given', async () => {
+    const post = await createPost(user.id, {
+      name: 'My own title',
+      description: '<p>Some text</p>',
+      type: Post.Type.DISCUSSION,
+      group_ids: [group.id]
+    })
+    expect(post.get('name')).to.equal('My own title')
+  })
+
+  it('does not make up a title for a request', async () => {
+    const post = await createPost(user.id, {
+      name: '',
+      description: '<p>Can anyone lend me a ladder?</p>',
+      type: Post.Type.REQUEST,
+      group_ids: [group.id]
+    })
+    expect(post.get('name')).to.equal('')
+  })
+})
+
 describe('createPost imageUrls', () => {
   let user, group
   const hostedUrl = 'https://cdn.hylo.com/evo-uploads/user/1/post/new/hosted.png'

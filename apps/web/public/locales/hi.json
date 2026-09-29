@@ -1973,6 +1973,8 @@
   "Timezone": "समय क्षेत्र",
   "Title": "शीर्षक",
   "Title is required": "शीर्षक आवश्यक है",
+  "(optional)": "(वैकल्पिक)",
+  "Add a title or some text": "शीर्षक या कुछ पाठ जोड़ें",
   "Title limited to {{maxTitleLength}} characters": "शीर्षक को {{maxTitleLength}} वर्णों तक सीमित किया गया है",
   "To": "को",
   "To accept financial contributions for this project, you have\n                  to connect a Stripe account. Go to": "इस परियोजना के लिए वित्तीय योगदान स्वीकार करने के लिए, आपको\n                  एक Stripe खाता कनेक्ट करना होगा। पर जाएँ",

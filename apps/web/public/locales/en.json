@@ -2058,6 +2058,8 @@
   "Timezone": "Timezone",
   "Title": "Title",
   "Title is required": "Title is required",
+  "(optional)": "(optional)",
+  "Add a title or some text": "Add a title or some text",
   "Title limited to {{maxTitleLength}} characters": "Title limited to {{maxTitleLength}} characters",
   "To": "To",
   "To accept financial contributions for this project, you have\n                  to connect a Stripe account. Go to": "To accept financial contributions for this project, you have\n                  to connect a Stripe account. Go to",

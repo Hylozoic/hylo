@@ -106,6 +106,7 @@ import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+import titleFromDetails, { isTitleOptional } from './titleFromDetails'
 
 /** First post type as shown in PostTypeSelect (POST_TYPES order), among allowed types. */
 function firstDropdownPostType (allowedPostTypes) {
@@ -1119,7 +1120,15 @@ function PostEditorInner ({
         break
     }
 
-    if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
+    // Discussions can go without a title (one is made from the text on save),
+    // but not without both
+    if (isTitleOptional(type)) {
+      if (!title?.trim() && !hasDescription) {
+        errorMessages.push(t('Add a title or some text'))
+      } else if (title?.length > MAX_TITLE_LENGTH) {
+        errorMessages.push(t('Title is required'))
+      }
+    } else if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
       errorMessages.push(t('Title is required'))
     }
 
@@ -1213,6 +1222,7 @@ function PostEditorInner ({
         type
       } = currentPost
       const details = editorRef.current.getHTML()
+      const titleToSave = isTitleOptional(type) && !title?.trim() ? titleFromDetails(details) : title
       const topicNames = topics?.map((t) => t.name)
       const memberIds = members?.map((m) => m.id) || []
       if (type === 'project') {
@@ -1273,7 +1283,7 @@ function PostEditorInner ({
         sendAnnouncement: announcementSelected,
         startTime,
         timezone,
-        title,
+        title: titleToSave,
         topicNames,
         trackId: currentTrack?.id,
         markAsReadTopicName,
@@ -1341,8 +1351,13 @@ function PostEditorInner ({
   }, [postPending, isEditing])
 
   const handleInvalidSubmit = useCallback(() => {
-    if (!currentPost.title) titleInputRef.current?.focus()
-  }, [currentPost.title])
+    if (currentPost.title) return
+    if (isTitleOptional(currentPost.type)) {
+      editorRef.current?.focus()
+    } else {
+      titleInputRef.current?.focus()
+    }
+  }, [currentPost.title, currentPost.type])
 
   const toggleAnnouncementModal = useCallback(() => {
     setShowAnnouncementModal(!showAnnouncementModal)
@@ -1522,6 +1537,7 @@ function PostEditorInner ({
           type='text'
           className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
           value={currentPost.title || ''}
+          placeholder={isTitleOptional(currentPost.type) ? t('(optional)') : undefined}
           onChange={handleTitleChange}
           disabled={loading}
           ref={titleInputRef}

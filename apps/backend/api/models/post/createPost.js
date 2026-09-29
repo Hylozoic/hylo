@@ -3,6 +3,7 @@ import { flatten, merge, pick, uniq } from 'lodash'
 import setupPostAttrs from './setupPostAttrs'
 import updateChildren from './updateChildren'
 import { assertGroupsAcceptPostType } from './validatePostData'
+import titleFromDetails, { needsTitleFallback } from './titleFromDetails'
 import { groupRoom, pushToSockets } from '../../services/Websockets'
 import { partitionImageUrls } from '../../../lib/uploader/rehostRemoteMedia'
 import {
@@ -12,6 +13,10 @@ import {
 
 export default async function createPost (userId, params) {
   await assertGroupsAcceptPostType(params.group_ids, params.type)
+  // Discussions can be posted without a title: use the start of the text
+  if (needsTitleFallback(params.type, params.name ?? '')) {
+    params = { ...params, name: titleFromDetails(params.description) }
+  }
   const { hosted: hostedImageUrls, remote: remoteImageUrls } = partitionImageUrls(params.imageUrls)
   return setupPostAttrs(userId, merge(Post.newPostAttrs(), params), true)
     .then(attrs => bookshelf.transaction(transacting =>

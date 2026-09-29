@@ -1973,6 +1973,8 @@
   "Timezone": "Fuseau horaire",
   "Title": "Titre",
   "Title is required": "Le titre est requis",
+  "(optional)": "(facultatif)",
+  "Add a title or some text": "Ajoutez un titre ou du texte",
   "Title limited to {{maxTitleLength}} characters": "Titre limité à {{maxTitleLength}} caractères",
   "To": "Pour",
   "To accept financial contributions for this project, you have\n                  to connect a Stripe account. Go to": "Pour accepter des contributions financières pour ce projet, vous devez connecter un compte Stripe. Accédez à",

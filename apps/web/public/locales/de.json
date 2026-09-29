@@ -1972,6 +1972,8 @@
   "Timezone": "Zeitzone",
   "Title": "Titel",
   "Title is required": "Titel ist erforderlich",
+  "(optional)": "(optional)",
+  "Add a title or some text": "Füge einen Titel oder etwas Text hinzu",
   "Title limited to {{maxTitleLength}} characters": "Titel ist auf {{maxTitleLength}} Zeichen begrenzt",
   "To": "An",
   "To accept financial contributions for this project, you have\n                  to connect a Stripe account. Go to": "Um finanzielle Beiträge für dieses Projekt zu akzeptieren, müssen Sie ein Stripe-Konto verbinden. Gehen Sie zu",

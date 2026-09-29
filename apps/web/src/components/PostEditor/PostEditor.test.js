@@ -65,7 +65,38 @@ function testProviders ({ withLinkPreview, linkGroup } = {}) {
   return AllTheProviders(reduxState)
 }
 
+function draftResponse (draftData) {
+  return graphql.query('FetchDraft', ({ variables }) => HttpResponse.json({
+    data: {
+      draft: {
+        id: 'draft-1',
+        type: 'post',
+        data: JSON.stringify({ details: '', groups: ['1'], type: variables.postType, ...draftData }),
+        groupId: '1',
+        topicId: null,
+        postId: null,
+        messageThreadId: null,
+        postType: variables.postType,
+        isEdit: false,
+        navigateTo: '/',
+        updatedAt: '2026-09-01T00:00:00.000Z',
+        group: { id: '1', name: 'Test Group', slug: 'test-group' },
+        post: null,
+        messageThread: null
+      }
+    }
+  }))
+}
+
+function mockLocation (location) {
+  require('react-router-dom').useLocation.mockReturnValue({ hash: '', state: null, key: 'default', ...location })
+}
+
 describe('PostEditor', () => {
+  afterEach(() => {
+    mockLocation({ pathname: '', search: '' })
+  })
+
   beforeEach(() => {
     mockGraphqlServer.use(
       graphql.query('FetchPost', () => {
@@ -138,8 +169,9 @@ describe('PostEditor', () => {
       })
     })
 
-    it('says why it cannot post and focuses the title when the title is missing', async () => {
+    it('says why it cannot post and focuses the title when a request has no title', async () => {
       jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=request' })
       const { container } = renderComponent({ autoFocus: false })
       const titleInput = await waitFor(() => {
         const input = container.querySelector('.PostEditorTitle input')
@@ -152,6 +184,42 @@ describe('PostEditor', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('Title is required')
       expect(titleInput).toHaveFocus()
     })
+
+    it('does not ask for a title for a discussion, only for a title or some text', async () => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      const { container } = renderComponent({ autoFocus: false })
+      const titleInput = await waitFor(() => {
+        const input = container.querySelector('.PostEditorTitle input')
+        expect(input).toBeInTheDocument()
+        return input
+      })
+      expect(titleInput).toHaveAttribute('placeholder', '(optional)')
+
+      fireEvent.click(screen.getByTestId('post-editor-submit'))
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Add a title or some text')
+      expect(screen.getByRole('alert')).not.toHaveTextContent('Title is required')
+    })
+
+    it('posts an untitled discussion with a title made from its text', async () => {
+      const createPost = require('store/actions/createPost')
+      createPost.mockClear()
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockGraphqlServer.use(draftResponse({
+        title: '',
+        details: '<p>Hello everyone, this is <strong>my first</strong> discussion here and I am glad to finally be part of it all</p>'
+      }))
+      const { container } = renderComponent({ autoFocus: false })
+      await waitFor(() => expect(container.querySelector('.ProseMirror')?.textContent).toContain('Hello everyone'))
+
+      await act(async () => { fireEvent.click(screen.getByTestId('post-editor-submit')) })
+
+      await waitFor(() => expect(createPost).toHaveBeenCalled())
+      const { title, type } = createPost.mock.calls[0][0]
+      expect(type).toBe('discussion')
+      expect(title).toBe('Hello everyone, this is my first discussion here and I am glad to finally be…')
+      expect(title.length).toBeLessThanOrEqual(80)
+    }, 20000)
 
     it('restores attachments from a saved draft and saves changes to them', async () => {
       const { saveDraft } = require('store/actions/draftActions')
