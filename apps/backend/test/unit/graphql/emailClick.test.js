@@ -2,7 +2,15 @@ import '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { createRequestHandler } from '../../../api/graphql'
 import { clearRateLimits } from '../../../lib/rateLimit'
+import RedisClient from '../../../api/services/RedisClient'
 import { recordEmailClick } from '../../../api/graphql/mutations/emailClick'
+
+// The click limit is counted in Redis and lets everything through while Redis can't be reached,
+// so a check of the limit has to wait until the connection is up
+async function redisReady () {
+  const redis = RedisClient.create()
+  if (redis.status !== 'ready') await new Promise(resolve => redis.once('ready', resolve))
+}
 
 describe('recordEmailClick', () => {
   let handler, reader, someoneElse
@@ -65,6 +73,7 @@ describe('recordEmailClick', () => {
   })
 
   it('stops recording after too many clicks from one address', async () => {
+    await redisReady()
     try {
       let last
       for (let i = 0; i < 121; i++) {
