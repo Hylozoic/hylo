@@ -1337,9 +1337,11 @@ async function main () {
       )
       memberLinkIds[key] = { groupId, linkId: linkRes.rows[0].id }
     }
+    // The busy group has used its whole daily allowance (InvitationSend.LIMITS.perGroupPerDay),
+    // sent by its administrator, so Member A still has their own allowance for the other links
     await client.query(
-      'INSERT INTO invitation_sends (user_id, group_id, recipients) VALUES ($1, $2, 25)',
-      [memberAId, memberLinkIds.busy.groupId]
+      'INSERT INTO invitation_sends (user_id, group_id, recipients) VALUES ($1, $2, 100)',
+      [hostId, memberLinkIds.busy.groupId]
     )
     const linkInviteeRes = await client.query(
       `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
