@@ -1281,11 +1281,14 @@ describe('group invite policy fields', () => {
 
   it('lists no responsibilities on the Member role outside everyone mode', async () => {
     const moderator = await GroupRole.findSystemRole(group.id, 'Moderator')
-    await GroupRole.setInvitePolicy(group.id, { mode: 'roles', roleIds: [moderator.id] })
+    const greeter = await GroupRole.forge({ group_id: group.id, name: 'Greeter', emoji: '🙌', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+    await GroupRole.setInvitePolicy(group.id, { mode: 'roles', roleIds: [greeter.id] })
 
     const data = await run(admin.id, policyQuery(group.id))
-    expect(data.group.invitePolicy).to.deep.equal({ mode: 'roles', roleIds: [String(moderator.id)] })
+    // Specific roles always include the Moderator role
+    expect(data.group.invitePolicy).to.deep.equal({ mode: 'roles', roleIds: [String(moderator.id), String(greeter.id)] })
     expect(data.group.memberRole.responsibilities.items).to.deep.equal([])
+    await greeter.save({ active: false }, { patch: true })
   })
 
   it('has no policy or Member role in a space, and no limited access there', async () => {
@@ -1324,8 +1327,8 @@ describe('group invite policy fields', () => {
         invitePolicy { mode roleIds }
       }
     }`)
-    const moderator = await GroupRole.findSystemRole(created.createGroup.id, 'Moderator')
-    expect(created.createGroup.invitePolicy).to.deep.equal({ mode: 'roles', roleIds: [String(moderator.id)] })
+    // Moderators are stewards, so choosing only them reads as stewards
+    expect(created.createGroup.invitePolicy).to.deep.equal({ mode: 'stewards', roleIds: [] })
   })
 })
 
