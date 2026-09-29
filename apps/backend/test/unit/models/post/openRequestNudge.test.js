@@ -134,6 +134,20 @@ describe('open request nudge (D58)', () => {
       expect(await answerOpenRequestNudge(author.id, { postId: post.id, answer: 'still_needed' })).to.deep.equal({ success: true })
     })
 
+    it('keeps an answer given from the digest before the nudge, and then sends no nudge', async () => {
+      const post = await savePost({ created_at: daysAgo(1.5) })
+      await answerOpenRequestNudge(author.id, { postId: post.id, answer: 'still_needed' })
+
+      const [answered] = await nudgesFor(post.id)
+      expect(answered.meta.answer).to.equal('still_needed')
+      expect(answered.unread).to.equal(false)
+      expect(await bookshelf.knex('notifications').where({ activity_id: answered.id })).to.have.length(0)
+
+      // Day 3: the post is due, but its author has already answered
+      expect(await sendOpenRequestNudges(new Date(Date.now() + 1.7 * DAY))).to.equal(0)
+      expect(await nudgesFor(post.id)).to.have.length(1)
+    })
+
     it('only lets the author answer, with a known answer, about a request or offer', async () => {
       const post = await savePost()
       const discussion = await savePost({ type: 'discussion' })

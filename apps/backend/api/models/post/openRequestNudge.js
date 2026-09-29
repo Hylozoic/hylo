@@ -6,7 +6,9 @@
 // ?action=still-needed and ?action=met, and answerOpenRequestNudge records the answer.
 //
 // A post is nudged once: the nudge activity itself is the marker, and it also holds
-// the answer (meta.answer, meta.answeredAt).
+// the answer (meta.answer, meta.answeredAt). The digest's Open requests section offers
+// the same one-tap answers before the nudge is due; an answer given there is saved as a
+// nudge activity with no notifications, so the author isn't asked again.
 
 export const NUDGE_REASON = 'openRequestNudge'
 export const NUDGE_POST_TYPES = ['request', 'offer']
@@ -90,20 +92,34 @@ export async function sendOpenRequestNudges (now = new Date()) {
 }
 
 /**
- * Records the author's answer on the post's nudge, if it has one.
- * @returns {Promise<boolean>} whether a nudge was there to record it on
+ * Records the author's answer on the post's nudge. With no nudge yet (answered from a
+ * digest), saves a silent nudge activity holding the answer instead: it has no
+ * notifications and is already read, and it stops the daily job nudging the post later.
+ * @returns {Promise<boolean>} whether a nudge was already there to record it on
  */
 export async function recordNudgeAnswer (post, answer, { at = new Date() } = {}) {
   if (!Object.values(NUDGE_ANSWERS).includes(answer)) throw new Error(`Unknown open request answer: ${answer}`)
+  const answered = { answer, answeredAt: at.toISOString() }
   const updated = await bookshelf.knex('activities')
     .where('activities.post_id', post.id)
     .where('activities.reader_id', post.get('user_id'))
     .modify(whereNudgeActivity)
     .update({
-      meta: bookshelf.knex.raw('COALESCE(activities.meta, \'{}\'::jsonb) || ?::jsonb', [JSON.stringify({ answer, answeredAt: at.toISOString() })]),
+      meta: bookshelf.knex.raw('COALESCE(activities.meta, \'{}\'::jsonb) || ?::jsonb', [JSON.stringify(answered)]),
       updated_at: at
     })
-  return updated > 0
+  if (updated > 0) return true
+
+  await bookshelf.knex('activities').insert({
+    reader_id: post.get('user_id'),
+    actor_id: post.get('user_id'),
+    post_id: post.id,
+    unread: false,
+    meta: JSON.stringify({ reasons: [NUDGE_REASON], ...answered, answeredBeforeNudge: true }),
+    created_at: at,
+    updated_at: at
+  })
+  return false
 }
 
 export const isOpenRequestType = post => NUDGE_POST_TYPES.includes(post?.get('type'))
