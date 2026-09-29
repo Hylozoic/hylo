@@ -8,6 +8,7 @@ import { AnalyticsEvents } from '@hylo/shared'
 import { getCookieConsent } from 'util/cookieConsent'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import mixpanelMiddleware from 'store/middleware/mixpanelMiddleware'
+import orm from 'store/models'
 import useEmailClickthrough from './useEmailClickthrough'
 import usePageViewTracking, { PAGE_VIEW_SETTLE_MS } from './usePageViewTracking'
 
@@ -27,9 +28,19 @@ function Harness () {
   return null
 }
 
-function makeStore (status = 'anonymous') {
-  const reducer = (state = { authSession: { status } }, action) =>
-    action.type === 'SET_STATUS' ? { authSession: { status: action.status } } : state
+// me: the Me row as CheckLogin or MeQuery leave it (signed in only)
+function makeStore (status = 'anonymous', me) {
+  const session = orm.session(orm.getEmptyState())
+  if (me) session.Me.create({ id: '1', name: 'Test User', ...me })
+  const reducer = (state = { authSession: { status }, orm: session.state }, action) => {
+    if (action.type === 'SET_STATUS') return { ...state, authSession: { status: action.status } }
+    if (action.type === 'SET_ME') {
+      const next = orm.session(state.orm)
+      next.Me.withId('1').update(action.me)
+      return { ...state, orm: next.state }
+    }
+    return state
+  }
   return createStore(reducer, applyMiddleware(mixpanelMiddleware))
 }
 
@@ -51,6 +62,7 @@ beforeEach(() => {
   jest.useFakeTimers()
   process.env.VITE_MIXPANEL_TOKEN = 'test-token'
   mixpanel.track.mockClear()
+  mixpanel.identify.mockClear()
   getCookieConsent.mockReturnValue(null)
   isSandboxMode.mockReturnValue(false)
 })
@@ -117,5 +129,37 @@ describe('usePageViewTracking', () => {
 
     expect(pageViews()).toHaveLength(1)
     expect(JSON.stringify(mixpanel.track.mock.calls)).not.toMatch(/ctt|cti|ctcn|Garden|42/)
+  })
+
+  describe('for a signed-in person without the cookie', () => {
+    it("waits for the account's choice, and sends nothing when it rejects analytics", async () => {
+      const store = renderAt('/groups/garden-club/stream', makeStore('authenticated', {}))
+      await settle()
+      expect(mixpanel.track).not.toHaveBeenCalled()
+
+      await act(async () => {
+        store.dispatch({ type: 'SET_ME', me: { cookieConsentPreferences: { settings: { analytics: false, support: true } } } })
+      })
+      await settle()
+      expect(mixpanel.track).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['has no saved choice', null],
+      ['accepted analytics', { settings: { analytics: true, support: true } }]
+    ])('sends the waiting page view once the account %s', async (_, cookieConsentPreferences) => {
+      const store = renderAt('/groups/garden-club/stream', makeStore('authenticated', {}))
+      await settle()
+      expect(pageViews()).toHaveLength(0)
+
+      await act(async () => { store.dispatch({ type: 'SET_ME', me: { cookieConsentPreferences } }) })
+      await settle()
+      expect(pageViews().map(([, props]) => props.route)).toEqual(['/groups/:groupSlug/stream'])
+      expect(mixpanel.identify).toHaveBeenCalledWith('1')
+
+      await act(async () => { store.dispatch({ type: 'SET_ME', me: { cookieConsentPreferences: cookieConsentPreferences && { ...cookieConsentPreferences } } }) })
+      await settle()
+      expect(pageViews()).toHaveLength(1)
+    })
   })
 })

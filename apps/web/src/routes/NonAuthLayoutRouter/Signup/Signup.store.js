@@ -53,6 +53,12 @@ export function verifyEmail (email, code, token) {
               emailValidated
               hasRegistered
               name
+              cookieConsentPreferences {
+                id
+                settings
+                version
+                updatedAt
+              }
               settings {
                 alreadySeenTour
                 toursSeen
@@ -105,6 +111,12 @@ export function register (name, password) {
               emailValidated
               hasRegistered
               name
+              cookieConsentPreferences {
+                id
+                settings
+                version
+                updatedAt
+              }
               settings {
                 alreadySeenTour
                 toursSeen

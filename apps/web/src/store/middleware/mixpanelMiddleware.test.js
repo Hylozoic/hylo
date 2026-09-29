@@ -1,6 +1,7 @@
 import orm from 'store/models'
 import mixpanelMiddleware from './mixpanelMiddleware'
 import mixpanel from 'mixpanel-browser'
+import { getCookieConsent } from 'util/cookieConsent'
 
 jest.mock('mixpanel-browser', () => ({
   track: jest.fn(),
@@ -112,5 +113,53 @@ describe('mixpanelMiddleware', () => {
     mixpanel.track.mockClear()
     mixpanelMiddlewareInstance({ type: 'CREATE_POST_PENDING', meta: { analytics: 'Post Created' } })
     expect(mixpanel.track).not.toHaveBeenCalled()
+  })
+
+  describe('for a signed-in person', () => {
+    function trackSignedIn (me) {
+      mixpanel.track.mockClear()
+      mixpanel.identify.mockClear()
+      const session = orm.session(orm.getEmptyState())
+      session.Me.create({ id: '1', name: 'Test User', ...me })
+      const store = {
+        getState: () => ({
+          authSession: { status: 'authenticated', userId: '1' },
+          orm: session.state
+        })
+      }
+      mixpanelMiddleware(store)(() => {})({ type: 'Anything', meta: { analytics: 'Event Name' } })
+    }
+
+    afterEach(() => getCookieConsent.mockReturnValue(null))
+
+    test('sends nothing without the cookie until the account\'s choice has loaded', () => {
+      trackSignedIn({})
+      expect(mixpanel.track).not.toHaveBeenCalled()
+      expect(mixpanel.identify).not.toHaveBeenCalled()
+    })
+
+    test('sends nothing without the cookie when the account rejected analytics', () => {
+      trackSignedIn({ cookieConsentPreferences: { settings: { analytics: false, support: true } } })
+      expect(mixpanel.track).not.toHaveBeenCalled()
+      expect(mixpanel.identify).not.toHaveBeenCalled()
+    })
+
+    test('identifies and sends without the cookie when the account has no saved choice', () => {
+      trackSignedIn({ cookieConsentPreferences: null })
+      expect(mixpanel.identify).toHaveBeenCalledWith('1')
+      expect(mixpanel.track).toHaveBeenCalledWith('Event Name', {})
+    })
+
+    test('follows the cookie before the account\'s choice has loaded', () => {
+      getCookieConsent.mockReturnValue({ analytics: true, support: true })
+      trackSignedIn({})
+      expect(mixpanel.track).toHaveBeenCalledWith('Event Name', {})
+    })
+
+    test('sends nothing when the cookie rejects analytics, whatever the account says', () => {
+      getCookieConsent.mockReturnValue({ analytics: false, support: true })
+      trackSignedIn({ cookieConsentPreferences: { settings: { analytics: true } } })
+      expect(mixpanel.track).not.toHaveBeenCalled()
+    })
   })
 })

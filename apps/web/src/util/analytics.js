@@ -13,7 +13,8 @@ let identifiedUserId = null
  * the account. true or false once answered, null when never answered, and
  * undefined while it can't be known yet: a browser without the cookie (a new
  * device, or one cleared or expired) only learns the account's choice when
- * MeQuery loads cookieConsentPreferences, which is null when none was saved.
+ * CheckLogin or MeQuery loads cookieConsentPreferences, which is null when
+ * none was saved.
  */
 export function resolveAnalyticsChoice (cookieConsent, accountPreferences) {
   if (typeof cookieConsent?.analytics === 'boolean') return cookieConsent.analytics
