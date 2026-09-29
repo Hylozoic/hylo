@@ -2,13 +2,16 @@ import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
- * D33 and D63, on a free track the signed-in e2e user (a steward of the seeded
- * `e2e-public-group`) creates in that group for each run, with three actions, enrolls
- * in and completes one of:
- * - the learner sees "1 of 3 completed" at the top of the actions, and a
- *   "Next: <title>" button on the completed action
- * - the steward sees each learner's N of M in the track's members view, with the
- *   Not finished filter
+ * D33 and D63:
+ * - the learner sees "1 of 3 completed" at the top of the actions, and a "Next: <title>"
+ *   button on the completed action. This runs on a free track the signed-in e2e user (a
+ *   steward of the seeded `e2e-public-group`) creates in that group for each run, with three
+ *   actions, then enrolls in and completes one of.
+ * - the steward sees each learner's N of M in the track's members view, with the Not finished
+ *   filter. A learner's count is recorded by a queued job (Post.checkCompletedTrack), which the
+ *   isolated E2E stack doesn't run, so this uses the seeded E2E Progress Track in
+ *   `e2e-track-progress-group` (see apps/backend/scripts/seed-e2e-baseline.js): E2E Member A has
+ *   done one of its three actions and E2E Member B all three.
  * Screenshots land in e2e/screenshots/, named per project.
  */
 
@@ -16,6 +19,7 @@ test.describe.configure({ timeout: 180000 })
 
 const uiTimeout = { timeout: 60000 }
 const GROUP_SLUG = 'e2e-public-group'
+const SEEDED_TRACK_PATH = '/groups/e2e-track-progress-group/spaces/e2e-track-progress-space'
 const shot = name => `e2e/screenshots/${test.info().project.name}-${name}.png`
 
 async function graphql (page, query, variables = {}) {
@@ -80,19 +84,22 @@ test.describe('Track progress', () => {
   })
 
   test('the steward sees each learner\'s progress, not finished first', async ({ page }) => {
-    await page.goto(`/groups/${GROUP_SLUG}/all`)
-    await waitPastRootSessionLoading(page)
-    const { spacePath } = await createTrackWithActions(page)
-
-    await page.goto(`${spacePath}/members`)
+    await page.goto(`${SEEDED_TRACK_PATH}/members`)
     await waitPastRootSessionLoading(page)
     const panel = page.getByTestId('track-progress-panel')
+    const learner = name => panel.getByRole('listitem').filter({ hasText: name })
     await expect(panel).toBeVisible(uiTimeout)
     await expect(panel.getByRole('button', { name: 'Not finished' })).toHaveAttribute('aria-pressed', 'true')
-    await expect(panel).toContainText('1 of 3 completed', uiTimeout)
+    await expect(learner('E2E Member A')).toContainText('1 of 3 completed', uiTimeout)
+    await expect(learner('E2E Member B')).toHaveCount(0)
+    // The steward who set the track up is a member of its space but not a learner
+    await expect(learner('E2E User')).toHaveCount(0)
     await page.screenshot({ path: shot('track-progress-steward') })
 
     await panel.getByRole('button', { name: 'Everyone' }).click()
     await expect(panel.getByRole('button', { name: 'Everyone' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(learner('E2E Member B')).toContainText('3 of 3 completed', uiTimeout)
+    await expect(learner('E2E Member A')).toContainText('1 of 3 completed')
+    await page.screenshot({ path: shot('track-progress-steward-everyone') })
   })
 })
