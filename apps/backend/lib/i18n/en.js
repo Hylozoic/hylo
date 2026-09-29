@@ -96,6 +96,8 @@ exports.en = {
     ? `${actor.get('name')} has invited you to join them in space ${groupName} in ${parentGroupName}`
     : `${actor.get('name')} has invited you to join them in ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} accepted your invitation to join ${groupName}`,
+  // Someone joined through your invitation (D47)
+  textForInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} joined ${groupName}, say hi`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} invited your group ${toGroup.get('name')} to form a peer relationship with ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} accepted the peer relationship between ${fromGroup.get('name')} and ${toGroup.get('name')}`,
   textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName

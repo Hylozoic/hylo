@@ -60,6 +60,7 @@ export default gql`
       alreadySeenTour
       toursSeen
       toursOutcome
+      profileNudge
       colorScheme
       dmNotifications
       commentNotifications

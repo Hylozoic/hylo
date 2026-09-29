@@ -338,6 +338,12 @@ const E2E_MEMBER_LINK_GROUPS = {
   requests: { slug: 'e2e-member-link-requests', name: 'E2E Member Link Requests', code: 'e2eMemberLinkReqs01', accessibility: 1 }
 }
 const E2E_LINK_INVITEE_EMAIL = 'e2e.link-invitee@hylo.test'
+/**
+ * Someone who has just created their account and not finished the welcome steps
+ * (settings.signup_in_progress), in no group: `invite-landing.spec.js` logs in as them from an
+ * invitation to check they skip the photo and location steps and land back on it (D16).
+ */
+const E2E_INVITE_SIGNUP_EMAIL = 'e2e.invite-signup@hylo.test'
 
 const E2E_GROUP_SLUGS = [
   'e2e-public-group',
@@ -362,6 +368,7 @@ const E2E_USER_EMAILS = [
   E2E_MEMBER_B_EMAIL,
   E2E_INVITEE_EMAIL,
   E2E_LINK_INVITEE_EMAIL,
+  E2E_INVITE_SIGNUP_EMAIL,
   'e2e.join-host@hylo.test'
 ].map((email) => email.toLowerCase())
 
@@ -1248,6 +1255,18 @@ async function main () {
       `INSERT INTO linked_account (user_id, provider_user_id, provider_key)
        VALUES ($1, $2, 'password')`,
       [nogroupsUserId, passwordHash]
+    )
+
+    const inviteSignupRes = await client.query(
+      `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
+       VALUES ($1, $2, $3, $4, true, true, $5::timestamptz, $5::timestamptz, $6::jsonb)
+       RETURNING id`,
+      [E2E_INVITE_SIGNUP_EMAIL, 'E2E Invite Signup', 'E2E', 'Signup', now, JSON.stringify({ locale: 'en', signup_in_progress: true })]
+    )
+    await client.query(
+      `INSERT INTO linked_account (user_id, provider_user_id, provider_key)
+       VALUES ($1, $2, 'password')`,
+      [inviteSignupRes.rows[0].id, passwordHash]
     )
 
     const trackViewerRes = await client.query(

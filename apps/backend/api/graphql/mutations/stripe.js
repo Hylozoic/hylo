@@ -596,6 +596,10 @@ module.exports = {
       if (group.get('stripe_sales_paused')) {
         throw new GraphQLError('This group cannot accept payments right now. Please contact the group stewards.')
       }
+      // Someone a steward removed and blocked from rejoining can't buy their way back in
+      if (!(await GroupMembership.forPair(userId, group.id).fetch()) && await GroupBan.isBanned(userId, group)) {
+        throw new GraphQLError(GroupBan.BANNED_ERROR)
+      }
 
       // Get the Stripe price ID from the offering
       const stripePriceId = offering.get('stripe_price_id')

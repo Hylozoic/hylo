@@ -17,6 +17,8 @@ import ClickCatcher from 'components/ClickCatcher'
 import Dropdown from 'components/Dropdown'
 import FlagContent from 'components/FlagContent/FlagContent'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
+import BlockFromRejoiningOption from 'components/Member/BlockFromRejoiningOption'
+import useAfterRemoval from 'components/Member/useAfterRemoval'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import NotFound from 'components/NotFound'
@@ -130,6 +132,9 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const bioRef = useRef(null)
 
   const [confirmingRemove, setConfirmingRemove] = useState(false)
+  // 'Also block from rejoining' (D60), off each time the remove dialog opens
+  const [blockFromRejoining, setBlockFromRejoining] = useState(false)
+  const { canBlock, afterRemoval } = useAfterRemoval(group, currentUserResponsibilities)
   const [reporting, setReporting] = useState(false)
 
   const { setHeaderDetails } = useViewHeader()
@@ -215,9 +220,18 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     }
   }
 
+  const openRemoveDialog = () => {
+    setBlockFromRejoining(false)
+    setConfirmingRemove(true)
+  }
+
   const confirmRemoveMember = () => {
+    const block = blockFromRejoining
     setConfirmingRemove(false)
-    removeMemberAction(personId).then(goToPreviousLocation, error => window.alert(error?.message === 'A group must keep at least one Administrator'
+    removeMemberAction(personId).then(() => {
+      goToPreviousLocation()
+      return afterRemoval({ member: person, block })
+    }, error => window.alert(error?.message === 'A group must keep at least one Administrator'
       ? t('A group must keep at least one Administrator')
       : t('There was an error, please try again.')))
   }
@@ -266,7 +280,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
     { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Report to Hylo'), onClick: () => setReporting(true), hide: isCurrentUser || isAxolotl },
-    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: () => setConfirmingRemove(true), hide: isCurrentUser || isAxolotl || !canRemove }
+    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: openRemoveDialog, hide: isCurrentUser || isAxolotl || !canRemove }
   ]
   const {
     title: currentContentTitle,
@@ -325,6 +339,9 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                     <span>{t('from the group. Are you sure?')}</span>
                   </div>
                 </DialogDescription>
+                {canBlock && (
+                  <BlockFromRejoiningOption id={personId} checked={blockFromRejoining} onChange={setBlockFromRejoining} />
+                )}
                 <DialogFooter>
                   <button
                     type='button'

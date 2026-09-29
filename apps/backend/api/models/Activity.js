@@ -177,7 +177,8 @@ module.exports = bookshelf.Model.extend({
     RoleGranted: 'roleGranted', // a steward gave you a role or badge (D48)
     NewMembersJoined: 'newMembersJoined', // weekly: people joined your group, say hi (D38)
     FirstPostUnanswered: 'firstPostUnanswered', // a newcomer's first post has no response yet (D49)
-    GroupQuiet: 'groupQuiet' // a group you steward has had no posts for 30 days (D13)
+    GroupQuiet: 'groupQuiet', // a group you steward has had no posts for 30 days (D13)
+    InvitationAccepted: 'invitationAccepted' // someone joined through your invitation (D47)
   },
 
   find: function (id, options) {

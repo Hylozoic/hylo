@@ -12,6 +12,28 @@ import getReturnToPath from 'store/selectors/getReturnToPath'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import updateUserSettings from 'store/actions/updateUserSettings'
 
+/**
+ * The 'Where do you call home?' field, as the welcome wizard shows it. Also used by
+ * ProfileNudge, which asks for a location later.
+ */
+export function HomeLocationInput ({ currentUser, location, onChange, onEnter, autofocus = false }) {
+  const { t } = useTranslation()
+  return (
+    <LocationInput
+      saveLocationToDB
+      inputClass='w-full text-lg font-light text-muted-foreground bg-background border-b border-foreground/20 px-4 py-2 focus:outline-none'
+      location={location}
+      locationObject={currentUser ? currentUser.locationObject : null}
+      onChange={onChange}
+      placeholder={t('Where do you call home?')}
+      onKeyPress={event => {
+        if (event.key === 'Enter' && onEnter) onEnter()
+      }}
+      autofocus={autofocus}
+    />
+  )
+}
+
 function AddLocation () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -73,18 +95,11 @@ function AddLocation () {
             <MapPin className='w-[100px] h-[100px] mb-5 text-muted-foreground' strokeWidth={1.25} />
           </div>
           <div className='flex justify-center items-center relative'>
-            <LocationInput
-              saveLocationToDB
-              inputClass='w-full text-lg font-light text-muted-foreground bg-background border-b border-foreground/20 px-4 py-2 focus:outline-none'
+            <HomeLocationInput
+              currentUser={currentUser}
               location={location}
-              locationObject={currentUser ? currentUser.locationObject : null}
               onChange={handleLocationChange}
-              placeholder={t('Where do you call home?')}
-              onKeyPress={event => {
-                if (event.key === 'Enter') {
-                  submit()
-                }
-              }}
+              onEnter={submit}
               autofocus
             />
           </div>

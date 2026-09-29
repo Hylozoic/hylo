@@ -26,6 +26,7 @@ import * as stewardAudience from './group/stewardAudience'
 import { assertWritable } from './group/archive'
 import { sendGroupClosedEmails } from './group/deletion'
 import expireForPolicyChange, { invitePolicyNarrowed } from './invitation/expireForPolicyChange'
+import notifyInviterOfJoin from './invitation/invitationAccepted'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import { groupRoom, userRoom, pushToSockets } from '../services/Websockets'
 import { sendTrackEnrolledEvents } from './track/events'
@@ -756,7 +757,9 @@ module.exports = bookshelf.Model.extend(merge({
     Queue.classMethod('Group', 'afterAddMembers', {
       groupId: this.id,
       newUserIds,
-      reactivatedUserIds
+      reactivatedUserIds,
+      // Who invited the people who joined, so they can be told (D47)
+      ...(invitedById ? joinAttribution : {})
     })
 
     return updatedMemberships.concat(newMemberships)
@@ -1267,11 +1270,20 @@ module.exports = bookshelf.Model.extend(merge({
   // ******* Class methods ******** //
 
   // Background task to do additional work/tasks when new members are added to a group
-  async afterAddMembers ({ groupId, newUserIds, reactivatedUserIds }) {
+  async afterAddMembers ({ groupId, newUserIds, reactivatedUserIds, invitedById, joinSource, invitationId }) {
     const zapierTriggers = await ZapierTrigger.forTypeAndGroups('new_member', groupId).fetchAll()
 
     const members = await User.query(q => q.whereIn('id', newUserIds.concat(reactivatedUserIds))).fetchAll()
     const group = await Group.find(groupId)
+
+    // Tell whoever invited them that their invitation was accepted
+    if (group && invitedById) {
+      try {
+        await notifyInviterOfJoin({ group, userIds: newUserIds.concat(reactivatedUserIds), invitedById, joinSource, invitationId })
+      } catch (error) {
+        console.error('Error telling the inviter about a join in afterAddMembers:', error)
+      }
+    }
 
     // Auto-add new/reactivated parent-group members to spaces with autoAddMembers
     if (group && group.get('type') !== 'space') {

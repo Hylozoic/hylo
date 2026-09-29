@@ -195,6 +195,7 @@
       "CollectionPost",
       "Group",
       "GroupAgreement",
+      "GroupBan",
       "GroupExtension",
       "GroupMembership",
       "GroupJoinQuestion",

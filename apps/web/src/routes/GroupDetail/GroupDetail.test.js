@@ -298,3 +298,111 @@ describe('GroupDetail when the group cannot be loaded', () => {
     expect(screen.queryByTestId('load-failed')).not.toBeInTheDocument()
   })
 })
+
+describe('GroupDetail for someone not signed in with an invitation', () => {
+  const steward = { id: '8', name: 'Sam Steward', avatarUrl: null }
+
+  function signedOutProviders () {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Group.create(group)
+    return AllTheProviders({ orm: ormSession.state, pending: {} })
+  }
+
+  beforeEach(() => {
+    useLocation.mockReturnValue({ pathname: '/groups/garden/about', search: '?token=steward-token', hash: '' })
+    try { window.localStorage.removeItem('returnToPath') } catch (e) {}
+  })
+
+  it('says who invited them and logs in without dropping the invitation', async () => {
+    mockGraphqlServer.use(mockInvitation({ requiresApproval: false, invitedBy: steward }))
+    render(<GroupDetail />, null, signedOutProviders())
+
+    expect(await screen.findByText('Sam Steward invited you')).toBeInTheDocument()
+    expect(screen.queryByText('Stewards review every request to join this group.')).not.toBeInTheDocument()
+    expect(screen.getByTestId('signed-out-log-in'))
+      .toHaveAttribute('href', `/login?returnToUrl=${encodeURIComponent('/groups/garden/about?token=steward-token')}`)
+    expect(screen.queryByText('Signup or Login to connect with')).not.toBeInTheDocument()
+  })
+
+  it('signs up with the invited email filled in and the invitation kept to come back to', async () => {
+    const user = userEvent.setup()
+    const navigateMock = jest.fn()
+    jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(navigateMock)
+    mockGraphqlServer.use(mockInvitation({ requiresApproval: false, invitedBy: steward }))
+    render(<GroupDetail />, null, signedOutProviders())
+
+    await screen.findByText('Sam Steward invited you')
+    await user.click(screen.getByRole('button', { name: 'Sign up to join Garden Club' }))
+
+    expect(navigateMock).toHaveBeenCalledWith('/signup', { state: { email: INVITEE_EMAIL } })
+    expect(JSON.parse(window.localStorage.getItem('returnToPath'))).toBe('/groups/garden/about?token=steward-token')
+  })
+})
+
+describe('GroupDetail as one combined join screen for a valid invitation', () => {
+  const steward = { id: '8', name: 'Sam Steward', avatarUrl: null }
+  const withAgreements = {
+    ...group,
+    agreements: { items: [{ id: 'a1', title: 'Be kind', description: 'Please be kind', order: 1 }] }
+  }
+
+  beforeEach(() => {
+    useLocation.mockReturnValue({ pathname: '/groups/garden/about', search: '?token=steward-token', hash: '' })
+    mockGraphqlServer.use(
+      graphql.query('GroupDetailsQuery', () => HttpResponse.json({ data: { group: withAgreements } }))
+    )
+  })
+
+  it('lists the agreements once, open, with a single Join that works once they are accepted', async () => {
+    const user = userEvent.setup()
+    let joinVariables
+    mockGraphqlServer.use(
+      mockInvitation({ requiresApproval: false, invitedBy: steward }),
+      graphql.operation(({ query, variables }) => {
+        if (!query.includes('joinGroup(')) return
+        joinVariables = variables
+        return HttpResponse.json({ data: {} })
+      })
+    )
+
+    render(<GroupDetail />, null, providers())
+
+    expect(await screen.findByText('Sam Steward invited you')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('checkbox')).toBeInTheDocument())
+    expect(screen.getAllByText('Be kind')).toHaveLength(1)
+    const join = screen.getByRole('button', { name: 'Join {{group.name}}' })
+    expect(join).toBeDisabled()
+
+    await user.click(screen.getByRole('checkbox'))
+    await user.click(join)
+
+    await waitFor(() => expect(joinVariables).toMatchObject({ groupId: group.id, invitationToken: 'steward-token', acceptAgreements: true }))
+  })
+
+  it('says so when the person was blocked from rejoining', async () => {
+    const user = userEvent.setup()
+    mockGraphqlServer.use(
+      mockInvitation({ requiresApproval: false, invitedBy: steward }),
+      graphql.operation(({ query }) => {
+        if (!query.includes('joinGroup(')) return
+        return HttpResponse.json({ errors: [{ message: "You can't join this group" }], data: { joinGroup: null } })
+      })
+    )
+
+    render(<GroupDetail />, null, providers())
+
+    await waitFor(() => expect(screen.getByRole('checkbox')).toBeInTheDocument())
+    await user.click(screen.getByRole('checkbox'))
+    await user.click(screen.getByRole('button', { name: 'Join {{group.name}}' }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("You can't join this group"))
+  })
+
+  it('keeps the agreements in the About without an invitation', async () => {
+    useLocation.mockReturnValue({ pathname: '/groups/garden/about', search: '', hash: '' })
+    render(<GroupDetail />, null, providers())
+
+    expect(await screen.findByText('Please be kind')).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+  })
+})

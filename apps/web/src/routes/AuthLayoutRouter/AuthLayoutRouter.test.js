@@ -267,3 +267,81 @@ describe('cookie consent', () => {
     expect(mixpanel.people.set).toHaveBeenCalledWith(expect.objectContaining({ $email: 'test@example.com' }))
   })
 })
+
+describe('finishing signup (D16)', () => {
+  const INVITE_PATH = '/groups/test-group/about?token=steward-token'
+  const newcomer = {
+    id: '1',
+    name: 'New Person',
+    hasRegistered: true,
+    emailValidated: true,
+    settings: { signupInProgress: true, alreadySeenTour: true },
+    memberships: []
+  }
+  const signingUp = returnToPath => ({
+    authSession: {
+      status: 'authenticated',
+      userId: '1',
+      emailValidated: true,
+      hasRegistered: true,
+      signupInProgress: true,
+      checkedAt: Date.now(),
+      transientError: false
+    },
+    returnToPath
+  })
+
+  let navigateSpy, settingsChanges
+
+  beforeEach(() => {
+    settingsChanges = []
+    navigateSpy = jest.spyOn(require('react-router-dom'), 'Navigate').mockImplementation(() => null)
+    useParamsMocked.mockReturnValue({})
+    useLocationMocked.mockReturnValue({ pathname: '/signup/finish', search: '' })
+    mockGraphqlServer.use(
+      graphql.query('MeQuery', () => HttpResponse.json({ data: { me: newcomer } })),
+      graphql.operation(({ query, variables }) => {
+        if (!query.includes('updateMe(')) return
+        settingsChanges.push(variables.changes)
+        return HttpResponse.json({
+          data: {
+            updateMe: {
+              id: '1',
+              name: 'New Person',
+              hasRegistered: true,
+              emailValidated: true,
+              settings: { signupInProgress: false, profileNudge: variables.changes.settings?.profileNudge || null }
+            }
+          }
+        })
+      }),
+      ...defaultGraphqlHandlers()
+    )
+  })
+
+  afterEach(() => navigateSpy.mockRestore())
+
+  const navigatedTo = () => navigateSpy.mock.calls.map(([props]) => props.to)
+
+  it('takes someone who signed up from an invitation straight back to it, skipping the photo and location steps', async () => {
+    render(<AuthLayoutRouter />, { wrapper: testWrapper(signingUp(INVITE_PATH), ['/signup/finish']) })
+
+    await waitFor(() => expect(navigatedTo()).toContain(INVITE_PATH))
+    expect(navigatedTo()).not.toContain('/welcome')
+    expect(settingsChanges).toEqual([{ settings: { signupInProgress: false, profileNudge: 'pending' } }])
+  })
+
+  it('still sends everyone else to the welcome steps', async () => {
+    render(<AuthLayoutRouter />, { wrapper: testWrapper(signingUp(null), ['/signup/finish']) })
+
+    await waitFor(() => expect(navigatedTo()).toContain('/welcome'))
+    expect(settingsChanges).toEqual([])
+  })
+
+  it('sends someone who signed up after following an ordinary link to the welcome steps too', async () => {
+    render(<AuthLayoutRouter />, { wrapper: testWrapper(signingUp('/groups/test-group/stream'), ['/signup/finish']) })
+
+    await waitFor(() => expect(navigatedTo()).toContain('/welcome'))
+    expect(settingsChanges).toEqual([])
+  })
+})
