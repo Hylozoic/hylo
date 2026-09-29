@@ -38,7 +38,7 @@ export default {
   snapshotSerializers: [
     'jest-serializer-graphql'
   ],
-  testEnvironment: 'jest-fixed-jsdom',
+  testEnvironment: '<rootDir>/config/jest/environment.js',
   testEnvironmentOptions: {
     customExportConditions: ['node', 'node-addons', 'msw'],
     url: 'http://localhost'
