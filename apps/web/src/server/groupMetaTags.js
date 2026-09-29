@@ -2,6 +2,7 @@ import LRU from 'lru-cache'
 import { readFileSync } from 'fs'
 import root from 'root-path'
 import * as TextHelpers from '@hylo/shared/TextHelpers'
+import { APP_STORE_APP_ID } from '../util/mobile.js'
 import {
   buildMetaTagHtml,
   escapeHtmlAttr,
@@ -238,4 +239,18 @@ export function withDefaultMetaTags (html, req, opts = {}) {
     tags.push(`<meta name="twitter:description" content="${safeDescription}" />`)
   }
   return injectPostMetaTagsIntoHtml(html, tags.join('\n    '))
+}
+
+/**
+ * iOS Smart App Banner: Safari offers the Hylo app, and opening it lands on the
+ * page the person is on (app-argument is this page's absolute URL).
+ */
+export function withAppBannerMetaTag (html, req) {
+  if (!html || /name="apple-itunes-app"/.test(html)) return html
+  const path = req.originalUrl || req.url || '/'
+  // A comma would end the app-argument value early, so it is percent-encoded
+  const pageUrl = `${requestOrigin(req)}${path}`.replace(/,/g, '%2C')
+  const content = escapeHtmlAttr(`app-id=${APP_STORE_APP_ID}, app-argument=${pageUrl}`)
+  const tag = `<meta name="apple-itunes-app" content="${content}" />`
+  return html.includes('</head>') ? html.replace('</head>', `    ${tag}\n  </head>`) : html
 }
