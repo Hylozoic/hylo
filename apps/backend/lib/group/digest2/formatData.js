@@ -108,6 +108,11 @@ const formatData = curry((group, data) => {
 
   ret.posts_with_new_comments = sortBy(p => -p.id, postsWithNewComments)
 
+  // Unanswered requests from before this window (D58); dedupe never filters these
+  if (data.openRequests && data.openRequests.length > 0) {
+    ret.open_requests = data.openRequests.map(p => presentPost(p, group, spacesById, 'oneline'))
+  }
+
   // Add funding round submissions
   if (data.fundingRoundSubmissions && data.fundingRoundSubmissions.length > 0) {
     ret.funding_rounds = data.fundingRoundSubmissions.map(fr => ({

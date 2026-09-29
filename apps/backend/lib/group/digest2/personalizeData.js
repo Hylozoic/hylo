@@ -5,6 +5,7 @@ import { aggregateChatRooms, shouldSendData } from './util'
 import { applyUnifiedGroupLabels } from './mergeData'
 import { dropSeenContent } from './dedupe'
 import { claimWeeklyDigestNotice } from './weeklyNotice'
+import { OPEN_REQUESTS_PER_DIGEST } from './openRequests'
 import * as cheerio from 'cheerio'
 
 // Post sections in the order the digest template shows them
@@ -100,11 +101,12 @@ const CONTENT_KEYS = [
   'chats',
   'posts_with_new_comments',
   'upcoming',
-  'ending'
+  'ending',
+  'open_requests'
 ]
 
 const getPosts = data =>
-  flatten(values(pick(data, 'requests', 'offers', 'resources', 'discussions', 'projects', 'events', 'proposals', 'posts_with_new_comments', 'upcoming', 'ending')))
+  flatten(values(pick(data, 'requests', 'offers', 'resources', 'discussions', 'projects', 'events', 'proposals', 'posts_with_new_comments', 'upcoming', 'ending', 'open_requests')))
 
 const addParamsToLinks = (text, params) => {
   if (!text) return
@@ -195,8 +197,9 @@ const filterMyAndBlockedUserData = async (userId, data) => {
       // Filter out all posts by blocked users
       if (includes(get('user.id', object), blockedUserIds)) return null
 
-      // Filter out posts by the user themselves except for posts with new comments, upcoming, and ending reminders
-      if (!['posts_with_new_comments', 'upcoming', 'ending'].includes(key) && parseInt(object.user.id) === parseInt(userId)) return null
+      // Filter out posts by the user themselves except for posts with new comments, upcoming and ending
+      // reminders, and open requests (the author answers their own there)
+      if (!['posts_with_new_comments', 'upcoming', 'ending', 'open_requests'].includes(key) && parseInt(object.user.id) === parseInt(userId)) return null
 
       // Drop posts/chats from spaces the recipient is not a member of.
       // A copy that was also posted in a parent group stays (visible_via_parent).
@@ -269,6 +272,9 @@ const personalizeData = async (user, type, data, opts = {}) => {
   if (!(await shouldSendData(filteredData, user.id))) {
     return null
   }
+  if (filteredData.open_requests) {
+    filteredData.open_requests = filteredData.open_requests.slice(0, OPEN_REQUESTS_PER_DIGEST)
+  }
   filteredData.num_sections = Object.keys(filteredData).filter(k => Array.isArray(filteredData[k]) && filteredData[k].length > 0).length
 
   if (data.unified) {
@@ -293,6 +299,14 @@ const personalizeData = async (user, type, data, opts = {}) => {
     if (post.details) {
       post.details = addParamsToLinks(post.details, clickthroughParams)
     }
+  })
+
+  // The author of an open request can answer in one tap: still needed, or met (D58)
+  ;(filteredData.open_requests || []).forEach(post => {
+    if (String(post.user?.id) !== String(user.id)) return
+    post.is_own = true
+    post.still_needed_url = Frontend.appendQueryString(post.url, 'action=still-needed')
+    post.met_url = Frontend.appendQueryString(post.url, 'action=met')
   })
 
   ;(filteredData.chat_rooms || []).forEach(room => {

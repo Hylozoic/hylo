@@ -291,5 +291,30 @@
       }
     }
   ],
-  "preheader": "Does anyone have a ladder I could borrow this weekend? I only need it for an afternoon."
+  "preheader": "Does anyone have a ladder I could borrow this weekend? I only need it for an afternoon.",
+  "open_requests": [
+    {
+      "id": 501,
+      "type": "request",
+      "title": "Looking for a ride to the farmers market",
+      "url": "https://www.hylo.com/groups/sandbox/post/501",
+      "user": {
+        "id": 2,
+        "name": "Squawky McSquawkface"
+      }
+    },
+    {
+      "id": 502,
+      "type": "request",
+      "title": "Help moving compost bins",
+      "url": "https://www.hylo.com/groups/sandbox/post/502",
+      "user": {
+        "id": 1,
+        "name": "Jamie Rivers"
+      },
+      "is_own": true,
+      "still_needed_url": "https://www.hylo.com/groups/sandbox/post/502?action=still-needed",
+      "met_url": "https://www.hylo.com/groups/sandbox/post/502?action=met"
+    }
+  ]
 }

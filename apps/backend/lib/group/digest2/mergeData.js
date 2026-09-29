@@ -12,7 +12,8 @@ const LIST_KEYS = [
   'posts_with_new_comments',
   'upcoming',
   'ending',
-  'funding_rounds'
+  'funding_rounds',
+  'open_requests'
 ]
 
 const POST_LABEL_KEYS = [
@@ -25,7 +26,8 @@ const POST_LABEL_KEYS = [
   'proposals',
   'posts_with_new_comments',
   'upcoming',
-  'ending'
+  'ending',
+  'open_requests'
 ]
 
 /**
@@ -111,7 +113,7 @@ export function mergeDigestData (datasets) {
   }
 
   const byIdDesc = (a, b) => Number(b.id) - Number(a.id)
-  for (const key of ['discussions', 'requests', 'offers', 'events', 'projects', 'resources', 'proposals', 'chats', 'posts_with_new_comments', 'funding_rounds']) {
+  for (const key of ['discussions', 'requests', 'offers', 'events', 'projects', 'resources', 'proposals', 'chats', 'posts_with_new_comments', 'funding_rounds', 'open_requests']) {
     merged[key].sort(byIdDesc)
   }
   const bySortAt = (a, b) => {

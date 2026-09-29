@@ -4,6 +4,9 @@ import factories from '../../setup/factories'
 import { mockify, unspyify } from '../../setup/helpers'
 import personalizeData from '../../../lib/group/digest2/personalizeData'
 import { seenContentFor } from '../../../lib/group/digest2/dedupe'
+import { openRequestsForDigest } from '../../../lib/group/digest2/openRequests'
+import formatData from '../../../lib/group/digest2/formatData'
+import { mergeDigestData } from '../../../lib/group/digest2/mergeData'
 import { sendToUser, sendUnifiedToUser } from '../../../lib/group/digest2'
 
 const HOUR = 60 * 60 * 1000
@@ -395,6 +398,94 @@ describe('digest content', () => {
       const member = await factories.user({ settings: { locale: 'es', weekly_digest_notice_pending: true } }).save()
       const result = await personalizeData(member, 'weekly', digest({ discussions: [fresh()] }))
       expect(result.weekly_digest_notice).to.match(/resúmenes semanales/)
+    })
+  })
+  describe('Open requests section (D58)', () => {
+    const DAY = 24 * HOUR
+    const windowStart = new Date(Date.now() - DAY)
+    let otherGroup, space
+
+    before(async () => {
+      otherGroup = await factories.group({ name: 'Other Club' }).save()
+      space = await factories.group({ type: 'space', parent_id: group.id, name: 'Tool Shed' }).save()
+    })
+
+    const request = async (attrs = {}, inGroup = group) => {
+      const post = await savePost({ type: 'request', created_at: new Date(Date.now() - 3 * DAY), ...attrs })
+      await bookshelf.knex('groups_posts').insert({ group_id: inGroup.id, post_id: post.id })
+      return post
+    }
+
+    it('finds unmet requests with no comments from before the digest window, newest first', async () => {
+      const older = await request({ name: 'Older open request', created_at: new Date(Date.now() - 6 * DAY) })
+      const inSpace = await request({ name: 'Open request in a space' }, space)
+      await request({ name: 'Posted inside the window', created_at: new Date(Date.now() - HOUR) })
+      await request({ name: 'Too old', created_at: new Date(Date.now() - 40 * DAY) })
+      await request({ name: 'Met', fulfilled_at: new Date() })
+      await request({ name: 'An offer', type: 'offer' })
+      await request({ name: 'Elsewhere' }, otherGroup)
+      const answered = await request({ name: 'Answered' })
+      await factories.comment({ post_id: answered.id, user_id: author.id }).save()
+
+      const found = await openRequestsForDigest(group, [space], windowStart)
+      expect(found.map(p => p.get('name'))).to.deep.equal([inSpace.get('name'), older.get('name')])
+
+      const formatted = formatData(group, { posts: [], comments: [], openRequests: found, spaces: [space] })
+      expect(formatted.open_requests.map(p => p.id)).to.deep.equal([Number(inSpace.id), Number(older.id)])
+      expect(formatted.open_requests[0].space_name).to.equal('Tool Shed')
+      expect(formatted.open_requests[1].url).to.contain(`/post/${older.id}`)
+    })
+
+    it('shows open requests even when the member has read them or had them by email', async () => {
+      const recipient = await newRecipient()
+      const seenRequest = await savePost({ type: 'request' })
+      await notified(recipient, seenRequest)
+      await read(recipient, seenRequest, hoursAgo(1))
+
+      const result = await personalizeData(recipient, 'daily', digest({
+        discussions: [presented(await savePost())],
+        open_requests: [presented(seenRequest, { type: 'request' })]
+      }))
+      expect(result.open_requests.map(p => p.id)).to.deep.equal([Number(seenRequest.id)])
+      expect(result.open_requests[0].is_own).to.equal(undefined)
+      expect(result.open_requests[0].met_url).to.equal(undefined)
+    })
+
+    it('gives the author one-tap "still needed" and "met" links on their own request', async () => {
+      const result = await personalizeData(author, 'daily', digest({
+        discussions: [{ ...presented(await savePost()), user: { id: 999999 } }],
+        open_requests: [{ ...presented(await savePost({ type: 'request' })), type: 'request' }]
+      }))
+      const [own] = result.open_requests
+      expect(own.is_own).to.equal(true)
+      expect(own.still_needed_url).to.match(/\/post\/\d+\?ctt=digest_email&.*&action=still-needed$/)
+      expect(own.met_url).to.match(/\/post\/\d+\?ctt=digest_email&.*&action=met$/)
+    })
+
+    it('shows at most three', async () => {
+      const recipient = await newRecipient()
+      const requests = []
+      for (let i = 0; i < 5; i++) requests.push(presented(await savePost({ type: 'request' }), { type: 'request' }))
+      const result = await personalizeData(recipient, 'daily', digest({ discussions: [presented(await savePost())], open_requests: requests }))
+      expect(result.open_requests).to.have.length(3)
+    })
+
+    it('does not send a digest that has nothing but open requests', async () => {
+      const recipient = await newRecipient()
+      const result = await personalizeData(recipient, 'daily', digest({
+        open_requests: [presented(await savePost({ type: 'request' }), { type: 'request' })]
+      }))
+      expect(result).to.equal(null)
+    })
+
+    it('keeps each open request once in the digest that covers all of someone\'s groups', () => {
+      const shared = { id: 42, title: 'Shared request', user: { id: author.id }, posted_in: [1] }
+      const merged = mergeDigestData([
+        { open_requests: [shared] },
+        { open_requests: [{ ...shared, posted_in: [2] }, { id: 43, title: 'Another', user: { id: author.id }, posted_in: [2] }] }
+      ])
+      expect(merged.open_requests.map(p => p.id)).to.deep.equal([43, 42])
+      expect(merged.open_requests[1].posted_in).to.deep.equal([1, 2])
     })
   })
 })

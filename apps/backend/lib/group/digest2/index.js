@@ -11,6 +11,7 @@ import {
 } from './util'
 import { senderNameViaHylo } from '../../email/senderNameViaHylo'
 import { settleWeeklyDigestNotice } from './weeklyNotice'
+import { openRequestsForDigest } from './openRequests'
 import sentry from '../../sentry'
 
 const DIGEST_TEMPLATE_ID = 'tem_t7rmGfJKvqXrvmrVWJjjWkg4'
@@ -45,6 +46,7 @@ export const prepareDigestData = async (id, type, opts = {}) => {
   })
   const data = await getPostsAndComments(group, startTime, endTime, type, spaces)
   if (!data) return false
+  data.openRequests = await openRequestsForDigest(group, spaces, startTime)
   const formattedData = await formatData(group, data)
   return merge({
     group_id: group.id,
