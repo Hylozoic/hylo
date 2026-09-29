@@ -40,6 +40,10 @@ const daily = now => {
   sails.log.debug('Sending expired access notifications')
   tasks.push(ContentAccess.sendExpiredAccessNotifications().then(count => sails.log.debug(`Sent ${count} expired access notification emails`)))
 
+  sails.log.debug('Building the sitemap of listed Public groups and their public posts')
+  /* global Sitemap */
+  tasks.push(Sitemap.generate().then(count => sails.log.debug(`Sitemap lists ${count} URLs`)))
+
   sails.log.debug('Cleaning up expired OIDC payloads')
   tasks.push(OIDCAdapter.cleanupExpired().then(count => {
     sails.log.debug(`Removed ${count} expired OIDC payloads`)
