@@ -155,12 +155,12 @@ export default function EmailUnsubscribe ({ className }) {
           )}
 
           {status === 'done' && (
-            <>
-              <h1 className='text-xl font-bold mb-3 text-center' role='status'>{t("You're unsubscribed.")}</h1>
+            <div role='status'>
+              <h1 className='text-xl font-bold mb-3 text-center'>{t("You're unsubscribed.")}</h1>
               <p className='mb-0 text-foreground/80 text-center'>
                 {t('You can change this any time:')} {settingsLink}
               </p>
-            </>
+            </div>
           )}
 
           {status === 'invalid' && (

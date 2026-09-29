@@ -59,7 +59,9 @@ describe('EmailUnsubscribe', () => {
 
     fireEvent.click(await screen.findByTestId('confirm-unsubscribe'))
 
-    expect(await screen.findByText("You're unsubscribed.")).toBeInTheDocument()
+    // Still the page's heading, inside a status region that announces it
+    const heading = await screen.findByRole('heading', { name: "You're unsubscribed." })
+    expect(screen.getByRole('status')).toContainElement(heading)
     expect(posts()).toEqual([{ path: '/noo/email/unsubscribe', method: 'POST', params: { token: 'abc.def.ghi' } }])
     expect(screen.getByTestId('notification-settings-link')).toHaveAttribute('href', '/my/notifications')
   })
