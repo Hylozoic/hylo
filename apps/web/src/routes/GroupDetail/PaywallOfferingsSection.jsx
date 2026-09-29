@@ -10,6 +10,7 @@ import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
 import { createStripeCheckoutSession } from 'util/offerings'
 import { offeringGrantsGroupAccess, parseAccessGrants } from 'util/accessGrants'
+import formatPrice from 'util/formatPrice'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import setReturnToPath from 'store/actions/setReturnToPath'
@@ -97,7 +98,7 @@ export default function PaywallOfferingsSection ({ group, sellingGroup }) {
     if (!currentUser) {
       const returnToUrl = location.pathname + location.search
       dispatch(setReturnToPath(returnToUrl))
-      navigate('/login?returnToUrl=' + encodeURIComponent(returnToUrl))
+      navigate('/signup?returnToUrl=' + encodeURIComponent(returnToUrl))
       return
     }
 
@@ -261,24 +262,22 @@ function OfferingCard ({ offering, group, isSpace, checkoutLoading, onPurchase, 
     const slidingScale = accessGrants.slidingScale || accessGrants.sliding_scale
     if (!slidingScale?.enabled) return null
 
-    const unitAmount = offering.priceInCents / 100
     const currencyCode = offering.currency?.toUpperCase() || 'USD'
 
     const minQuantity = slidingScale.minimum != null ? Number(slidingScale.minimum) : 1
     const maxQuantity = slidingScale.maximum != null ? Number(slidingScale.maximum) : null
 
-    const minAmount = unitAmount * minQuantity
+    const minAmount = formatPrice(offering.priceInCents * minQuantity, currencyCode)
     if (maxQuantity != null) {
-      const maxAmount = unitAmount * maxQuantity
       return t('Pay {{min}} - {{max}} {{currency}} (your choice)', {
-        min: minAmount.toFixed(2),
-        max: maxAmount.toFixed(2),
+        min: minAmount,
+        max: formatPrice(offering.priceInCents * maxQuantity, currencyCode),
         currency: currencyCode
       })
     }
 
     return t('Pay at least {{min}} {{currency}} (your choice)', {
-      min: minAmount.toFixed(2),
+      min: minAmount,
       currency: currencyCode
     })
   }, [offering?.priceInCents, offering?.accessGrants, offering?.currency, t])
@@ -303,7 +302,7 @@ function OfferingCard ({ offering, group, isSpace, checkoutLoading, onPurchase, 
             )}
             {!slidingScaleDisplay && offering.priceInCents && (
               <span>
-                {t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}
+                {t('Price')}: {formatPrice(offering.priceInCents, offering.currency)}
               </span>
             )}
             {offering.duration && (

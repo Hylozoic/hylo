@@ -11,6 +11,7 @@ import { CreditCard, LogIn } from 'lucide-react'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { offeringUrl, origin } from '@hylo/navigation'
 import { offeringGrantsGroupAccess, parseAccessGrants } from 'util/accessGrants'
+import formatPrice from 'util/formatPrice'
 import { createStripeCheckoutSession } from 'util/offerings'
 import fetchPublicStripeOffering from 'store/actions/fetchPublicStripeOffering'
 import getMe from 'store/selectors/getMe'
@@ -80,24 +81,22 @@ export default function OfferingDetails () {
     const slidingScale = accessGrants.slidingScale || accessGrants.sliding_scale
     if (!slidingScale?.enabled) return null
 
-    const unitAmount = offering.priceInCents / 100
     const currencyCode = offering.currency?.toUpperCase() || 'USD'
 
     const minQuantity = slidingScale.minimum != null ? Number(slidingScale.minimum) : 1
     const maxQuantity = slidingScale.maximum != null ? Number(slidingScale.maximum) : null
 
-    const minAmount = unitAmount * minQuantity
+    const minAmount = formatPrice(offering.priceInCents * minQuantity, currencyCode)
     if (maxQuantity != null) {
-      const maxAmount = unitAmount * maxQuantity
       return t('Pay {{min}} - {{max}} {{currency}} (your choice)', {
-        min: minAmount.toFixed(2),
-        max: maxAmount.toFixed(2),
+        min: minAmount,
+        max: formatPrice(offering.priceInCents * maxQuantity, currencyCode),
         currency: currencyCode
       })
     }
 
     return t('Pay at least {{min}} {{currency}} (your choice)', {
-      min: minAmount.toFixed(2),
+      min: minAmount,
       currency: currencyCode
     })
   }, [offering, t])
@@ -116,7 +115,7 @@ export default function OfferingDetails () {
     if (!currentUser) {
       const returnToUrl = location.pathname + location.search
       dispatch(setReturnToPath(returnToUrl))
-      navigate('/login?returnToUrl=' + encodeURIComponent(returnToUrl))
+      navigate('/signup?returnToUrl=' + encodeURIComponent(returnToUrl))
       return
     }
 
@@ -221,10 +220,7 @@ export default function OfferingDetails () {
               {!slidingScaleDisplay && offering.priceInCents && (
                 <div className='flex items-center gap-2'>
                   <span className='text-2xl font-bold text-foreground'>
-                    ${(offering.priceInCents / 100).toFixed(2)}
-                  </span>
-                  <span className='text-lg text-foreground/70'>
-                    {offering.currency?.toUpperCase()}
+                    {formatPrice(offering.priceInCents, offering.currency)}
                   </span>
                 </div>
               )}

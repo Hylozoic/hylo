@@ -21,6 +21,7 @@ import {
 } from 'components/ui/select'
 import { cn } from 'util/index'
 import { formatLocalizedDate } from 'util/dateFormat'
+import formatPrice from 'util/formatPrice'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchMyTransactions from 'store/actions/fetchMyTransactions'
 import { membershipChangeDefersToPeriodEnd } from 'util/membershipChangeModes'
@@ -47,18 +48,6 @@ const filterSelectTriggerClassName = cn(
  */
 function formatDate (date) {
   return formatLocalizedDate(date, { style: 'medium' })
-}
-
-/**
- * Formats price from cents to display string
- */
-function formatPrice (cents, currency = 'usd') {
-  if (!cents) return null
-  const dollars = cents / 100
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency.toUpperCase()
-  }).format(dollars)
 }
 
 /**
