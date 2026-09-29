@@ -217,8 +217,23 @@ module.exports = bookshelf.Model.extend({
     return getLocaleStrings(locale).textForFundingRoundNewSubmission({ fundingRoundTitle, post, actor })
   },
 
-  textForFundingRoundPhaseTransition: function (fundingRoundTitle, phase, locale) {
-    return getLocaleStrings(locale).textForFundingRoundPhaseTransition({ fundingRoundTitle, phase })
+  // A submitter's own result is added when the round completes (D77)
+  textForFundingRoundPhaseTransition: function (fundingRoundTitle, phase, locale, meta = {}) {
+    const L = getLocaleStrings(locale)
+    const text = L.textForFundingRoundPhaseTransition({ fundingRoundTitle, phase })
+    const result = PushNotification.fundingRoundResultText(meta, locale)
+    return result ? `${text}. ${result}` : text
+  },
+
+  // '' unless the activity carries a submitter's result (FundingRound/notifications)
+  fundingRoundResultText: function (meta = {}, locale) {
+    if (!meta.resultsHidden && !(meta.submissionResults || []).length) return ''
+    return getLocaleStrings(locale).fundingRoundResultText({
+      results: meta.submissionResults || [],
+      total: meta.submissionCount,
+      tokenType: meta.tokenType,
+      hidden: !!meta.resultsHidden
+    })
   },
 
   textForFundingRoundReminder: function (fundingRoundTitle, reminderType, locale) {

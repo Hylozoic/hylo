@@ -236,6 +236,20 @@ export function titleForNotification (notification, t) {
   }
 }
 
+// A submitter's own result when a funding round completes (D77), or null
+function fundingRoundResultBody (meta, t) {
+  if (meta?.resultsHidden) return t('Voting has closed. The stewards will follow up with the results.')
+  const results = meta?.submissionResults || []
+  if (results.length === 0) return null
+  return results.map(({ title, tokens, rank }) => t('Your submission "{{title}}" received {{tokens}} {{tokenType}} and ranked {{rank}} of {{total}}.', {
+    title,
+    tokens,
+    rank,
+    total: meta.submissionCount,
+    tokenType: meta.tokenType || t('votes')
+  })).join(' ')
+}
+
 export function bodyForNotification (notification, t) {
   const { activity: { action, actor, post, comment, group, otherGroup, contributionAmount, meta: { phase, reminderType } } } = notification
 
@@ -309,7 +323,7 @@ export function bodyForNotification (notification, t) {
         case 'voting':
           return t('Voting is now open')
         case 'completed':
-          return t('Voting has closed and the round has ended')
+          return fundingRoundResultBody(notification.activity.meta, t) || t('Voting has closed and the round has ended')
       }
       break
     }

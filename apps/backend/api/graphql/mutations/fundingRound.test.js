@@ -2,6 +2,7 @@
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
+import { mockify, unspyify } from '../../../test/setup/helpers'
 import {
   createFundingRound,
   updateFundingRound,
@@ -903,5 +904,112 @@ describe('allocateTokensToSubmission', () => {
 
     const membership = await GroupMembership.forPair(voter.id, space).fetch()
     expect(membership.get('settings').tokensRemaining).to.equal(100)
+  })
+})
+
+describe('funding round notices (D77)', () => {
+  let parentGroup, space, round, submitterA, submitterB, voter, broke, submissionA, submissionB
+
+  const phaseActivitiesFor = async userId => (await Activity.query(q => {
+    q.where({ funding_round_id: round.id, reader_id: userId })
+    q.whereRaw("meta->>'phase' = 'completed'")
+  }).fetchAll()).models
+
+  const allocate = (post, user, tokens) => bookshelf.knex('posts_users')
+    .insert({ post_id: post.id, user_id: user.id, tokens_allocated_to: tokens, active: true, following: false, created_at: new Date() })
+
+  const setTokensRemaining = async (user, tokensRemaining) => {
+    const membership = await GroupMembership.forPair(user.id, space).fetch()
+    membership.addSetting({ tokensRemaining })
+    await membership.save({ settings: membership.get('settings') }, { patch: true })
+  }
+
+  beforeEach(async () => {
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+    parentGroup = await factories.group().save()
+    submitterA = await factories.user().save()
+    submitterB = await factories.user().save()
+    voter = await factories.user().save()
+    broke = await factories.user().save()
+    for (const user of [submitterA, submitterB, voter, broke]) await user.joinGroup(parentGroup)
+    space = await factories.group({ type: 'space', parent_id: parentGroup.id, slug: `fr-space-notices-${Date.now()}` }).save()
+    round = await saveRound({
+      title: 'Notices Round',
+      group_id: space.id,
+      phase: FundingRound.PHASES.VOTING,
+      token_type: 'credits',
+      voting_method: 'token_allocation_constant',
+      voting_closes_at: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    })
+    await space.save({ funding_round_id: round.id }, { patch: true })
+    for (const user of [submitterA, submitterB, voter, broke]) await FundingRound.join(round.id, user.id)
+
+    submissionA = await factories.post({ type: Post.Type.SUBMISSION, user_id: submitterA.id, name: 'Garden beds' }).save()
+    submissionB = await factories.post({ type: Post.Type.SUBMISSION, user_id: submitterB.id, name: 'Tool library' }).save()
+    await space.posts().attach([submissionA.id, submissionB.id])
+    await allocate(submissionA, voter, 30)
+    await allocate(submissionB, voter, 50)
+    await allocate(submissionB, broke, 10)
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('tells each submitter their own result when the round completes', async () => {
+    await FundingRound.sendPhaseTransitionNotifications({ roundId: round.id, phase: FundingRound.PHASES.COMPLETED })
+
+    const [forA] = await phaseActivitiesFor(submitterA.id)
+    expect(forA.get('meta').submissionResults).to.deep.equal([{ postId: String(submissionA.id), title: 'Garden beds', tokens: 30, rank: 2 }])
+    expect(forA.get('meta').submissionCount).to.equal(2)
+    expect(forA.get('meta').tokenType).to.equal('credits')
+
+    const [forB] = await phaseActivitiesFor(submitterB.id)
+    expect(forB.get('meta').submissionResults).to.deep.equal([{ postId: String(submissionB.id), title: 'Tool library', tokens: 60, rank: 1 }])
+
+    const [forVoter] = await phaseActivitiesFor(voter.id)
+    expect(forVoter.get('meta').submissionResults).to.not.exist
+
+    const text = PushNotification.textForFundingRoundPhaseTransition('Notices Round', 'completed', 'en', forA.get('meta'))
+    expect(text).to.equal('Notices Round: Voting has closed and the round has ended. Your submission "Garden beds" received 30 credits and ranked 2 of 2.')
+  })
+
+  it('says the stewards will follow up when the round hides its final results', async () => {
+    await round.save({ hide_final_results_from_participants: true }, { patch: true })
+    await FundingRound.sendPhaseTransitionNotifications({ roundId: round.id, phase: FundingRound.PHASES.COMPLETED })
+
+    const [forA] = await phaseActivitiesFor(submitterA.id)
+    expect(forA.get('meta')).to.include({ resultsHidden: true })
+    expect(forA.get('meta').submissionResults).to.not.exist
+    const text = PushNotification.textForFundingRoundPhaseTransition('Notices Round', 'completed', 'en', forA.get('meta'))
+    expect(text).to.equal('Notices Round: Voting has closed and the round has ended. The stewards will follow up with the results.')
+  })
+
+  it('puts the result in the phase email without changing the other template variables', async () => {
+    await FundingRound.sendPhaseTransitionNotifications({ roundId: round.id, phase: FundingRound.PHASES.COMPLETED })
+    const [forA] = await phaseActivitiesFor(submitterA.id)
+    const notification = await new Notification({ activity_id: forA.id, medium: Notification.MEDIUM.Email, user_id: submitterA.id }).save()
+    await notification.load(['activity', 'activity.reader', 'activity.actor', 'activity.fundingRound'])
+    mockify(Email, 'sendFundingRoundPhaseTransitionEmail', () => Promise.resolve(true))
+    try {
+      await notification.sendEmail()
+      const [{ data }] = Email.sendFundingRoundPhaseTransitionEmail.__spy.calls[0]
+      expect(data.transition_text).to.equal('Voting is now closed')
+      expect(data.result_text).to.equal('Your submission "Garden beds" received 30 credits and ranked 2 of 2.')
+      expect(data).to.include.keys('action_url', 'button_text', 'funding_round_title', 'funding_round_url')
+    } finally {
+      unspyify(Email, 'sendFundingRoundPhaseTransitionEmail')
+    }
+  })
+
+  it('reminds only participants who still have tokens that voting closes soon', async () => {
+    await setTokensRemaining(voter, 20)
+    await setTokensRemaining(broke, 0)
+
+    await FundingRound.sendReminderNotifications()
+
+    const reminded = (await Activity.query(q => {
+      q.where({ funding_round_id: round.id })
+      q.where('meta', '@>', JSON.stringify({ reminderType: 'votingClosing1Day' }))
+    }).fetchAll()).pluck('reader_id').map(String)
+    expect(reminded).to.deep.equal([String(voter.id)])
   })
 })

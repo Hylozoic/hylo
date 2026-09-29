@@ -80,6 +80,8 @@
   "Your request is marked as met. Pick the people who helped and we'll let them know. This is optional.": "आपका अनुरोध पूरा हुआ के रूप में चिह्नित है। मदद करने वाले लोगों को चुनें और हम उन्हें बता देंगे। यह वैकल्पिक है।",
   "Skip": "छोड़ें",
   "Thank them": "उन्हें धन्यवाद दें",
+  "Your submission \"{{title}}\" received {{tokens}} {{tokenType}} and ranked {{rank}} of {{total}}.": "आपके सबमिशन \"{{title}}\" को {{tokens}} {{tokenType}} मिले और यह {{total}} में से {{rank}} स्थान पर रहा।",
+  "Voting has closed. The stewards will follow up with the results.": "मतदान बंद हो गया है। संचालक परिणामों के बारे में आपसे संपर्क करेंगे।",
   "<strong>{{name}}</strong> submitted ": "<strong>{{name}}</strong> ने प्रस्तुत किया",
   "<strong>{{name}}</strong> wrote: \"{{text}}\"": "<strong>{{name}}</strong> ने लिखा: \"{{text}}\"",
   "A": "A",

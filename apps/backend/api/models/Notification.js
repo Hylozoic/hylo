@@ -1323,7 +1323,7 @@ module.exports = bookshelf.Model.extend({
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const meta = this.relations.activity.get('meta')
     const phase = meta.phase
-    const alertText = PushNotification.textForFundingRoundPhaseTransition(group.get('name'), phase, locale)
+    const alertText = PushNotification.textForFundingRoundPhaseTransition(group.get('name'), phase, locale, meta)
     return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
@@ -1374,11 +1374,15 @@ module.exports = bookshelf.Model.extend({
           : L.fundingRoundTransitionButtonText({ phase: 'viewRound' })
         data.transition_text = L.fundingRoundTransitionText({ phase: 'voting' })
         break
-      case 'completed':
+      case 'completed': {
         data.action_url = Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams
         data.button_text = L.fundingRoundTransitionButtonText({ phase: 'completed' })
         data.transition_text = L.fundingRoundTransitionText({ phase: 'completed' })
+        // A submitter's own result (D77); the shared template shows it only when set
+        const resultText = PushNotification.fundingRoundResultText(meta, locale)
+        if (resultText) data.result_text = resultText
         break
+      }
     }
 
     return Email.sendFundingRoundPhaseTransitionEmail({

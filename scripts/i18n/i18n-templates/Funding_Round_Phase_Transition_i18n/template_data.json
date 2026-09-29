@@ -3,5 +3,6 @@
   "button_text": "Vote in the Round",
   "funding_round_title": "Float #1",
   "funding_round_url": "https://hylo.com",
-  "transition_text": "Voting has started"
+  "transition_text": "Voting has started",
+  "result_text": "Your submission \"Garden beds\" received 42 votes and ranked 2 of 7."
 }

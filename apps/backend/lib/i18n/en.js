@@ -128,6 +128,10 @@ exports.en = {
   textForEventReminder: ({ postName, date }) => `Reminder: "${postName}" is coming up, ${date}`,
   textForProjectJoined: ({ person, postName }) => `${person} joined your project "${postName}"`,
   textForRequestHelped: ({ person, postName }) => `${person} marked "${postName}" as met and says you helped. Thank you!`,
+  fundingRoundResultText: ({ results = [], total, tokenType, hidden }) => {
+    if (hidden) return 'The stewards will follow up with the results.'
+    return results.map(({ title, tokens, rank }) => `Your submission "${title}" received ${tokens} ${tokenType || 'votes'} and ranked ${rank} of ${total}.`).join(' ')
+  },
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} submitted "${post.summary()}" to "${fundingRoundTitle}"`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

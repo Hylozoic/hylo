@@ -90,6 +90,15 @@ export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
                 tie
                 forAuthor
                 outcome
+                submissionResults {
+                  postId
+                  title
+                  tokens
+                  rank
+                }
+                submissionCount
+                tokenType
+                resultsHidden
               }
               action
               unread

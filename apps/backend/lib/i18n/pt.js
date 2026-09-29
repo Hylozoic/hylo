@@ -129,6 +129,10 @@ exports.pt = {
   textForEventReminder: ({ postName, date }) => `Lembrete: “${postName}” está chegando, ${date}`,
   textForProjectJoined: ({ person, postName }) => `${person} entrou no seu projeto “${postName}”`,
   textForRequestHelped: ({ person, postName }) => `${person} marcou “${postName}” como atendido e disse que você ajudou. Obrigado!`,
+  fundingRoundResultText: ({ results = [], total, tokenType, hidden }) => {
+    if (hidden) return 'As pessoas responsáveis vão compartilhar os resultados.'
+    return results.map(({ title, tokens, rank }) => `Sua proposta “${title}” recebeu ${tokens} ${tokenType || 'votos'} e ficou em ${rank}º lugar de ${total}.`).join(' ')
+  },
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} enviou “${post.summary()}” para “${fundingRoundTitle}”`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

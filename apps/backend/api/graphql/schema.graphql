@@ -619,6 +619,22 @@ type ActivityMeta {
   forAuthor: Boolean
   # The outcome the author recorded for a proposal
   outcome: String
+  # When a funding round completes, the reader's own submissions and how they did
+  submissionResults: [ActivitySubmissionResult]
+  # How many submissions the round had
+  submissionCount: Int
+  # The round's name for its tokens, when it has one
+  tokenType: String
+  # The round hides its final results: the stewards will follow up
+  resultsHidden: Boolean
+}
+
+# One submission's result in a completed funding round, for its submitter
+type ActivitySubmissionResult {
+  postId: ID
+  title: String
+  tokens: Int
+  rank: Int
 }
 
 # An activity that someone may want to be notified about

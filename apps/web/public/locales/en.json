@@ -81,6 +81,8 @@
   "Your request is marked as met. Pick the people who helped and we'll let them know. This is optional.": "Your request is marked as met. Pick the people who helped and we'll let them know. This is optional.",
   "Skip": "Skip",
   "Thank them": "Thank them",
+  "Your submission \"{{title}}\" received {{tokens}} {{tokenType}} and ranked {{rank}} of {{total}}.": "Your submission \"{{title}}\" received {{tokens}} {{tokenType}} and ranked {{rank}} of {{total}}.",
+  "Voting has closed. The stewards will follow up with the results.": "Voting has closed. The stewards will follow up with the results.",
   "<strong>{{name}}</strong> submitted ": "<strong>{{name}}</strong> submitted ",
   "<strong>{{name}}</strong> wrote: \"{{text}}\"": "<strong>{{name}}</strong> wrote: \"{{text}}\"",
   "A": "A",

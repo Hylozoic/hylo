@@ -128,6 +128,10 @@ exports.hi = {
   textForEventReminder: ({ postName, date }) => `रिमाइंडर: "${postName}" जल्द ही है, ${date}`,
   textForProjectJoined: ({ person, postName }) => `${person} आपके प्रोजेक्ट "${postName}" में शामिल हुए`,
   textForRequestHelped: ({ person, postName }) => `${person} ने "${postName}" को पूरा बताया और कहा कि आपने मदद की। धन्यवाद!`,
+  fundingRoundResultText: ({ results = [], total, tokenType, hidden }) => {
+    if (hidden) return 'संचालक परिणामों के बारे में आपसे संपर्क करेंगे।'
+    return results.map(({ title, tokens, rank }) => `आपके सबमिशन "${title}" को ${tokens} ${tokenType || 'वोट'} मिले और यह ${total} में से ${rank} स्थान पर रहा।`).join(' ')
+  },
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} ने "${fundingRoundTitle}" के लिए "${post.summary()}" जमा किया`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

@@ -3,6 +3,7 @@ import path from 'path'
 import i18next from 'i18next'
 import {
   ACTION_EVENT_NUDGE,
+  ACTION_FUNDING_ROUND_PHASE_TRANSITION,
   ACTION_EVENT_RSVP,
   ACTION_PROJECT_JOINED,
   ACTION_PROPOSAL_CLOSED,
@@ -172,5 +173,28 @@ describe("'Who helped?' notices", () => {
     const notification = notificationFor(ACTION_REQUEST_MET, { meta: { reasons: ['requestMet'] } })
     expect(titleForNotification(notification, t)).toBe('Request met: <strong>Seed swap on Saturday</strong>')
     expect(bodyForNotification(notification, t)).toBe('<strong>Sam</strong> marked it as met')
+  })
+})
+
+describe('funding round results (D77)', () => {
+  const completed = meta => notificationFor(ACTION_FUNDING_ROUND_PHASE_TRANSITION, {
+    fundingRound: { id: '4', group: { name: 'Spring Round' } },
+    meta: { reasons: ['fundingRoundPhaseTransition:completed'], phase: 'completed', ...meta }
+  })
+
+  it("tells a submitter their own submission's result", async () => {
+    const t = await translator('en')
+    const notification = completed({
+      submissionResults: [{ postId: '8', title: 'Garden beds', tokens: 30, rank: 2 }],
+      submissionCount: 5,
+      tokenType: 'credits'
+    })
+    expect(bodyForNotification(notification, t)).toBe('Your submission "Garden beds" received 30 credits and ranked 2 of 5.')
+  })
+
+  it('says the stewards will follow up when results are hidden, and keeps the old text for everyone else', async () => {
+    const t = await translator('en')
+    expect(bodyForNotification(completed({ resultsHidden: true }), t)).toBe('Voting has closed. The stewards will follow up with the results.')
+    expect(bodyForNotification(completed({}), t)).toBe('Voting has closed and the round has ended')
   })
 })

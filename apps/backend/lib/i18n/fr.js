@@ -129,6 +129,10 @@ exports.fr = {
   textForEventReminder: ({ postName, date }) => `Rappel : « ${postName} » approche, ${date}`,
   textForProjectJoined: ({ person, postName }) => `${person} a rejoint votre projet « ${postName} »`,
   textForRequestHelped: ({ person, postName }) => `${person} a indiqué que « ${postName} » est satisfaite et que vous avez aidé. Merci !`,
+  fundingRoundResultText: ({ results = [], total, tokenType, hidden }) => {
+    if (hidden) return 'Les responsables vous communiqueront les résultats.'
+    return results.map(({ title, tokens, rank }) => `Votre proposition « ${title} » a reçu ${tokens} ${tokenType || 'votes'} et s'est classée ${rank} sur ${total}.`).join(' ')
+  },
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} a soumis « ${post.summary()} » pour « ${fundingRoundTitle} »`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

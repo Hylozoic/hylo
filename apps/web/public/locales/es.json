@@ -81,6 +81,8 @@
   "Your request is marked as met. Pick the people who helped and we'll let them know. This is optional.": "Tu solicitud está marcada como resuelta. Elige a las personas que ayudaron y se lo haremos saber. Es opcional.",
   "Skip": "Omitir",
   "Thank them": "Agradecerles",
+  "Your submission \"{{title}}\" received {{tokens}} {{tokenType}} and ranked {{rank}} of {{total}}.": "Tu propuesta \"{{title}}\" recibió {{tokens}} {{tokenType}} y quedó en el puesto {{rank}} de {{total}}.",
+  "Voting has closed. The stewards will follow up with the results.": "La votación terminó. Las personas administradoras compartirán los resultados.",
   "<strong>{{name}}</strong> submitted ": "<strong>{{name}}</strong> enviado",
   "<strong>{{name}}</strong> wrote: \"{{text}}\"": "<strong>{{name}}</strong> escribió: \"{{text}}\"",
   "A": "A",
