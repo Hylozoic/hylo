@@ -277,5 +277,12 @@ module.exports = bookshelf.Model.extend({
       default:
         return postName
     }
+  },
+
+  // Names whoever changed the options (the activity's actor), not always the author
+  textForVoteReset: function (post, group, actor, locale) {
+    const person = actor?.get('name') || post.relations.user?.get('name')
+    const postName = firstLine(decode(post.summary()))
+    return getLocaleStrings(locale).textForVoteReset({ person, postName, groupName: group?.get('name') })
   }
 })

@@ -16,6 +16,7 @@ import rehostAndAttachImages from './post/rehostAndAttachImages'
 import upsertChatActivityNoticeForPost from './post/upsertChatActivityNotice'
 import { conversationParticipants } from './notification/rules/adaptiveImportant'
 import { inBackground, notifyProposalVote, notifyReaction } from './notification/socialNotices'
+import { notifyProposalOutcome } from './post/proposalNotices'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -572,7 +573,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // Add activities for vote reset
     if (options.length > 0 && existingOptionIds.length > 0) {
-      await this.createVoteResetActivities(opts.transacting)
+      await this.createVoteResetActivities(opts.transacting, userId)
     }
 
     // Delete ALL votes any time options are updated
@@ -756,19 +757,21 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Activity.saveForReasons(activitiesToCreate, trx)
   },
 
-  createVoteResetActivities: async function (trx) {
+  // `changedBy` is whoever changed the options (the author when not given): voters
+  // hear it from them, and they are not told about their own change.
+  createVoteResetActivities: async function (trx, changedBy) {
     // updateProposalOptions may pass a placeholder rather than a transaction
     const transacting = trx?.client ? trx : undefined
     const voterIds = await ProposalVote.getVoterIdsForPost(this.id).fetchAll({ transacting })
     if (!voterIds || voterIds.length === 0) return Promise.resolve()
 
-    // The person who changed the options is not told about their own change
+    const actorId = changedBy || this.get('user_id')
     const voters = voterIds
-      .filter(voterId => String(voterId.get('user_id')) !== String(this.get('user_id')))
+      .filter(voterId => String(voterId.get('user_id')) !== String(actorId))
       .map(voterId => ({
         reader_id: voterId.get('user_id'),
         post_id: this.id,
-        actor_id: this.get('user_id'),
+        actor_id: actorId,
         reason: 'voteReset'
       }))
 
@@ -1310,6 +1313,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .filter(row => row.proposal_status === Post.Proposal_Status.COMPLETED)
       .map(row => String(row.id))
   },
+
+  // Queued by updateProposalOutcome (post/proposalNotices)
+  sendProposalOutcomeNotice: data => notifyProposalOutcome(data),
 
   /**
    * Downloads remote image URLs (e.g. Airtable attachments), stores them on S3,

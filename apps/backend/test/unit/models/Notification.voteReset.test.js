@@ -62,6 +62,15 @@ describe('vote reset notices', () => {
     expect(opts.heading).to.equal('Garden Group')
   })
 
+  it('names whoever changed the options in the push', async () => {
+    const changer = await factories.user({ name: 'Bo' }).save()
+    const activity = await new Activity({ reader_id: voter.id, actor_id: changer.id, post_id: post.id, meta: { reasons: ['voteReset'] } }).save()
+    const push = await new Notification({ activity_id: activity.id, medium: Notification.MEDIUM.Push, user_id: voter.id }).save()
+    await push.load(relations)
+    await push.send()
+    expect(OneSignal.notify.__spy.calls[0][0].alert).to.equal('Bo changed the options for proposal: "Paint the shed" in Garden Group. This has reset the votes')
+  })
+
   it('has push text for every new notice in all six languages', () => {
     const keys = [
       'textForReaction',

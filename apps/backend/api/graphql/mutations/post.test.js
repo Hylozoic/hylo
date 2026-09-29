@@ -5,6 +5,7 @@ import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import RedisClient from '../../services/RedisClient'
 import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, updateProposalOutcome, deletePost, fulfillPost, unfulfillPost, followPost, unfollowPost } from './post'
 import { mockify, spyify, unspyify } from '../../../test/setup/helpers'
+import { OUTCOME_SETTLE_MINUTES } from '../../models/post/proposalNotices'
 
 describe('pinPost', () => {
   var user, group, post, view
@@ -553,18 +554,45 @@ describe('updateProposalOutcome notices (D46)', () => {
     }
   })
 
-  beforeEach(() => spyify(Queue, 'classMethod', () => Promise.resolve()))
+  // updateProposalOutcome queues the notice with a delay; run the queued jobs here
+  let queued
+  beforeEach(() => {
+    queued = []
+    mockify(Queue, 'classMethod', (className, methodName, data, delay) => {
+      queued.push({ className, methodName, data, delay })
+      return Promise.resolve()
+    })
+  })
   afterEach(() => unspyify(Queue, 'classMethod'))
 
-  it('tells the voters the first time the outcome is recorded, and only then', async () => {
+  const runOutcomeJobs = async () => {
+    const jobs = queued.filter(job => job.className === 'Post' && job.methodName === 'sendProposalOutcomeNotice')
+    queued = []
+    for (const job of jobs) await Post.sendProposalOutcomeNotice(job.data)
+  }
+
+  it('tells the voters the finished outcome once the author stops typing, and only the first time', async () => {
+    // The web app saves as the author types
+    await updateProposalOutcome({ userId: author.id, postId: post.id, proposalOutcome: 'We paint it' })
     await updateProposalOutcome({ userId: author.id, postId: post.id, proposalOutcome: 'We paint it blue next month' })
+    expect(queued.filter(job => job.methodName === 'sendProposalOutcomeNotice').map(job => job.delay))
+      .to.deep.equal([OUTCOME_SETTLE_MINUTES * 60 * 1000, OUTCOME_SETTLE_MINUTES * 60 * 1000])
+    expect(await outcomeActivities()).to.have.length(0)
+
+    await runOutcomeJobs()
     const activities = await outcomeActivities()
     expect(activities.map(a => String(a.get('reader_id'))).sort()).to.deep.equal(voters.map(v => String(v.id)).sort())
-    expect(activities[0].get('meta').outcome).to.equal('We paint it blue next month')
+    expect(activities.map(a => a.get('meta').outcome)).to.deep.equal(['We paint it blue next month', 'We paint it blue next month'])
     expect(String(activities[0].get('actor_id'))).to.equal(String(author.id))
 
     await updateProposalOutcome({ userId: author.id, postId: post.id, proposalOutcome: 'We paint it green' })
+    await runOutcomeJobs()
     expect(await outcomeActivities()).to.have.length(2)
+  })
+
+  it('sends nothing for an outcome that was cleared', async () => {
+    await updateProposalOutcome({ userId: author.id, postId: post.id, proposalOutcome: '   ' })
+    expect(queued.filter(job => job.methodName === 'sendProposalOutcomeNotice')).to.have.length(0)
   })
 
   it('does not notify when someone other than the author tries', async () => {

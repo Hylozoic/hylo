@@ -1,4 +1,4 @@
-/* global Activity, Post, bookshelf */
+/* global Activity, Post, Queue, bookshelf */
 // Proposal notices (D46). There is deliberately no 'voting opened' broadcast.
 //
 //   proposalVote         to the author as votes come in: grouped, in-app only
@@ -11,12 +11,22 @@
 //
 // The every-10-minutes cron runs sendProposalNotices right after
 // Post.updateProposalStatuses, which returns the proposals it moved to 'completed'.
+// It also picks up proposals completed another way in the last CLOSED_SWEEP_HOURS
+// (an end time edited into the past, or a run whose notices failed).
 // One-off notices carry a group_key, so a proposal is never told twice.
 import { uniq } from 'lodash'
 import sentry from '../../../lib/sentry'
 import { groupKeyFor, sentNoticeKeys } from '../notification/grouping'
 
 export const CLOSING_SOON_HOURS = 24
+
+// The web app saves the outcome as the author types. Voters are told once the text has
+// stayed the same this long, so they get the finished outcome, not the first pause.
+export const OUTCOME_SETTLE_MINUTES = 5
+
+export const CLOSED_SWEEP_HOURS = 24
+
+const HOUR = 60 * 60 * 1000
 
 const OUTCOME_MAX_LENGTH = 140
 
@@ -67,7 +77,7 @@ const noticeFor = (post, reason, readerId, extra = {}) => ({
 // Proposals in their last CLOSING_SOON_HOURS of voting, and at least halfway through,
 // so a short vote is not announced the moment it opens.
 export async function sendClosingSoonNotices ({ now = new Date() } = {}) {
-  const until = new Date(now.getTime() + CLOSING_SOON_HOURS * 60 * 60 * 1000)
+  const until = new Date(now.getTime() + CLOSING_SOON_HOURS * HOUR)
   const posts = await Post.query(q => {
     q.where({ type: Post.Type.PROPOSAL, active: true, proposal_status: Post.Proposal_Status.VOTING })
     q.whereNotNull('start_time')
@@ -126,30 +136,63 @@ export async function notifyProposalsClosed (postIds = []) {
   return notified
 }
 
-// The author recorded an outcome: tell the voters, the first time only (later edits
-// to the outcome are quiet).
-export async function notifyProposalOutcome ({ post, userId, outcome }) {
+// Proposals completed in the last CLOSED_SWEEP_HOURS, whatever completed them. A
+// proposal created with an end time already past (recording an earlier decision) had
+// no voting on Hylo and is left out.
+export async function recentlyCompletedIds ({ now = new Date() } = {}) {
+  const rows = await bookshelf.knex('posts')
+    .where({ type: Post.Type.PROPOSAL, active: true, proposal_status: Post.Proposal_Status.COMPLETED })
+    .where('end_time', '>', new Date(now.getTime() - CLOSED_SWEEP_HOURS * HOUR))
+    .where('end_time', '<=', now)
+    .whereRaw('end_time > created_at')
+    .pluck('id')
+  return rows.map(String)
+}
+
+// The author saved an outcome (updateProposalOutcome). Checks back after
+// OUTCOME_SETTLE_MINUTES; see notifyProposalOutcome.
+export async function queueProposalOutcomeNotice ({ post, userId, outcome }) {
+  const text = String(outcome || '').trim()
+  if (!post || !text || !post.isProposal()) return
+  try {
+    await Queue.classMethod('Post', 'sendProposalOutcomeNotice',
+      { postId: post.id, userId, outcome: text }, OUTCOME_SETTLE_MINUTES * 60 * 1000)
+  } catch (err) {
+    sentry.error(err, null, { postId: post.id })
+  }
+}
+
+// Tells the voters about the outcome, the first time only (later edits are quiet). Each
+// save queues one of these with the text it saved; only a job whose text is still the
+// post's outcome sends, so a save made while the author was still typing sends nothing.
+export async function notifyProposalOutcome ({ postId, userId, outcome }) {
   try {
     const text = String(outcome || '').trim()
+    const post = postId ? await Post.find(postId) : null
     if (!post || !text || !post.isProposal()) return 0
+    if (String(post.get('proposal_outcome') || '').trim() !== text) return 0
     const key = groupKeyFor('proposalOutcome', { postId: post.id })
-    if ((await sentNoticeKeys([key])).has(key)) return 0
-    const readers = uniq(await voterIds(post.id)).filter(id => !sameId(id, userId))
-    if (readers.length === 0) return 0
-    const summary = text.length > OUTCOME_MAX_LENGTH ? text.slice(0, OUTCOME_MAX_LENGTH - 1).trimEnd() + '…' : text
-    await Activity.saveForReasons(readers.map(readerId => ({
-      ...noticeFor(post, 'proposalOutcome', readerId, { meta: { outcome: summary } }),
-      actor_id: userId
-    })))
-    return readers.length
+    return await bookshelf.transaction(async trx => {
+      await bookshelf.knex.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [key]).transacting(trx)
+      if ((await sentNoticeKeys([key], trx)).has(key)) return 0
+      const readers = uniq(await voterIds(post.id)).filter(id => !sameId(id, userId))
+      if (readers.length === 0) return 0
+      const summary = text.length > OUTCOME_MAX_LENGTH ? text.slice(0, OUTCOME_MAX_LENGTH - 1).trimEnd() + '…' : text
+      await Activity.saveForReasons(readers.map(readerId => ({
+        ...noticeFor(post, 'proposalOutcome', readerId, { meta: { outcome: summary } }),
+        actor_id: userId
+      })), trx)
+      return readers.length
+    })
   } catch (err) {
-    sentry.error(err, null, { postId: post?.id })
+    sentry.error(err, null, { postId })
     return 0
   }
 }
 
-export async function sendProposalNotices ({ completedIds = [], now } = {}) {
-  const closed = await notifyProposalsClosed(completedIds)
+export async function sendProposalNotices ({ completedIds = [], now = new Date() } = {}) {
+  const recent = await recentlyCompletedIds({ now })
+  const closed = await notifyProposalsClosed(uniq([...completedIds.map(String), ...recent]))
   const closingSoon = await sendClosingSoonNotices({ now })
   return { closed, closingSoon }
 }

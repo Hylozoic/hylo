@@ -3,7 +3,7 @@ import setup from '../../setup'
 import factories from '../../setup/factories'
 import { mockify, unspyify } from '../../setup/helpers'
 import { REACTION_NOTICES, TABLE as ASSIGNMENTS } from '../../../lib/experiments'
-import { notifyProposalsClosed, sendClosingSoonNotices, votingResult } from '../../../api/models/post/proposalNotices'
+import { notifyProposalsClosed, sendClosingSoonNotices, sendProposalNotices, votingResult } from '../../../api/models/post/proposalNotices'
 import { noticesSettled } from '../../../api/models/notification/socialNotices'
 
 const activitiesWithReason = async (reason, where = {}) => (await Activity.query(q => {
@@ -259,6 +259,21 @@ describe('Post notices', () => {
         expect(await notifyProposalsClosed(completed)).to.equal(0)
       })
 
+      it('also picks up a proposal completed by editing its end time into the past', async () => {
+        const { post, yes } = await proposalBy(author, { proposal_status: Post.Proposal_Status.COMPLETED, end_time: new Date(Date.now() - HOUR) })
+        await vote(post, fans[0], yes)
+        await bookshelf.knex('posts').where({ id: post.id }).update({ created_at: new Date(Date.now() - 4 * 24 * HOUR) })
+        // Recorded after the fact: created with its end time already past
+        await proposalBy(author, { proposal_status: Post.Proposal_Status.COMPLETED, end_time: new Date(Date.now() - HOUR) })
+        await bookshelf.knex('notifications').del()
+        await bookshelf.knex('activities').del()
+
+        expect(await sendProposalNotices({ completedIds: [] })).to.deep.equal({ closed: 2, closingSoon: 0 })
+        const closed = await activitiesWithReason('proposalClosed')
+        expect(closed.map(a => String(a.get('post_id')))).to.deep.equal([String(post.id), String(post.id)])
+        expect((await sendProposalNotices({ completedIds: [String(post.id)] })).closed).to.equal(0)
+      })
+
       it('reports a tie, or that no one voted', async () => {
         const { post, yes, no } = await proposalBy(author)
         expect(await votingResult(post.id)).to.deep.equal({ winningOption: null, tie: false })
@@ -281,6 +296,21 @@ describe('Post notices', () => {
         const activities = await activitiesWithReason('voteReset')
         expect(activities.map(a => String(a.get('reader_id')))).to.deep.equal([String(fans[0].id)])
         expect(await mediaFor(activities[0])).to.deep.equal([InApp, Push])
+      })
+
+      it('comes from whoever changed the options, and not to them', async () => {
+        const { post, yes } = await proposalBy(author, { proposal_status: Post.Proposal_Status.DISCUSSION })
+        await vote(post, fans[0], yes)
+        await vote(post, fans[1], yes)
+        await vote(post, author, yes)
+        await bookshelf.knex('notifications').del()
+        await bookshelf.knex('activities').del()
+
+        await post.updateProposalOptions({ options: [{ text: 'Blue' }, { text: 'Green' }], userId: fans[1].id })
+
+        const activities = await activitiesWithReason('voteReset')
+        expect(activities.map(a => String(a.get('reader_id'))).sort()).to.deep.equal([author.id, fans[0].id].map(String).sort())
+        expect(activities.map(a => String(a.get('actor_id')))).to.deep.equal([String(fans[1].id), String(fans[1].id)])
       })
     })
   })

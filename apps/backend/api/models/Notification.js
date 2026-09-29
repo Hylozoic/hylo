@@ -218,7 +218,7 @@ module.exports = bookshelf.Model.extend({
       case 'postUnfulfilled':
         return this.sendPostModeratedFulfillmentPush()
       case 'voteReset':
-        return this.sendPostPush('voteReset')
+        return this.sendVoteResetPush()
       case 'fundingRoundNewSubmission':
         return this.sendFundingRoundNewSubmissionPush()
       case 'fundingRoundPhaseTransition':
@@ -292,6 +292,15 @@ module.exports = bookshelf.Model.extend({
         user_name: reader.get('name')
       }
     })
+  },
+
+  sendVoteResetPush: async function () {
+    const post = this.post()
+    const reader = this.reader()
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const alertText = PushNotification.textForVoteReset(post, group, this.actor(), this.locale())
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   // Proposal notices (post/proposalNotices): closing soon, closed and outcome recorded

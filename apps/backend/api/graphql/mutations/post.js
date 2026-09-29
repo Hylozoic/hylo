@@ -9,7 +9,7 @@ import {
 } from '../../models/post/postFulfillmentPermissions'
 import { deletePostDraftForCreate } from './draft'
 import { assertPostWritable } from '../../models/group/archive'
-import { notifyProposalOutcome } from '../../models/post/proposalNotices'
+import { queueProposalOutcomeNotice } from '../../models/post/proposalNotices'
 import { notifyRequestMet, removeRequestMetFor } from '../../models/post/fulfillPost'
 
 export async function completePost (userId, postId, completionResponse) {
@@ -201,8 +201,9 @@ export function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
         throw new GraphQLError("You don't have permission to modify this post")
       }
       await post.updateProposalOutcome(proposalOutcome)
-      // D46: voters hear about the outcome the first time it is recorded
-      await notifyProposalOutcome({ post, userId, outcome: proposalOutcome })
+      // D46: voters hear about the outcome the first time it is recorded, once the
+      // author has stopped typing
+      await queueProposalOutcomeNotice({ post, userId, outcome: proposalOutcome })
     })
     .then(() => ({ success: true }))
 }
