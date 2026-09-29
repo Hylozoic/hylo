@@ -938,6 +938,40 @@ ALTER SEQUENCE public.extensions_id_seq OWNED BY public.extensions.id;
 
 
 --
+-- Name: first_post_nudges; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.first_post_nudges (
+    id bigint NOT NULL,
+    post_id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    variant character varying(64) NOT NULL,
+    nudged_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: first_post_nudges_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.first_post_nudges_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: first_post_nudges_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.first_post_nudges_id_seq OWNED BY public.first_post_nudges.id;
+
+
+--
 -- Name: flagged_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1945,7 +1979,8 @@ CREATE TABLE public.join_requests (
     group_id bigint NOT NULL,
     processed_by_id bigint,
     invitation_id bigint,
-    member_invite_link_id bigint
+    member_invite_link_id bigint,
+    unanswered_notified_at timestamp with time zone
 );
 
 
@@ -3950,6 +3985,13 @@ ALTER TABLE ONLY public.extensions ALTER COLUMN id SET DEFAULT nextval('public.e
 
 
 --
+-- Name: first_post_nudges id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges ALTER COLUMN id SET DEFAULT nextval('public.first_post_nudges_id_seq'::regclass);
+
+
+--
 -- Name: flagged_items id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4612,6 +4654,22 @@ ALTER TABLE ONLY public.experiment_assignments
 
 ALTER TABLE ONLY public.extensions
     ADD CONSTRAINT extensions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: first_post_nudges first_post_nudges_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges
+    ADD CONSTRAINT first_post_nudges_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: first_post_nudges first_post_nudges_post_id_group_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges
+    ADD CONSTRAINT first_post_nudges_post_id_group_id_unique UNIQUE (post_id, group_id);
 
 
 --
@@ -5589,6 +5647,13 @@ CREATE INDEX email_enabled_testers_user_id_index ON public.email_enabled_testers
 --
 
 CREATE INDEX experiment_assignments_experiment_variant_index ON public.experiment_assignments USING btree (experiment, variant);
+
+
+--
+-- Name: first_post_nudges_group_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX first_post_nudges_group_id_created_at_index ON public.first_post_nudges USING btree (group_id, created_at);
 
 
 --
@@ -6752,6 +6817,30 @@ ALTER TABLE ONLY public.user_post_relevance
 
 ALTER TABLE ONLY public.reactions
     ADD CONSTRAINT fk_vote_user_13 FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: first_post_nudges first_post_nudges_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges
+    ADD CONSTRAINT first_post_nudges_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: first_post_nudges first_post_nudges_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges
+    ADD CONSTRAINT first_post_nudges_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: first_post_nudges first_post_nudges_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges
+    ADD CONSTRAINT first_post_nudges_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
