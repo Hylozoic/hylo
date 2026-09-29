@@ -3325,6 +3325,8 @@
   "Change who can add new members in Privacy & Access": "Modifier qui peut ajouter de nouveaux membres dans Confidentialité et accès",
   "{{name}} invited you": "{{name}} vous a invité",
   "Stewards review every request to join this group.": "Les intendants examinent chaque demande d'adhésion à ce groupe.",
+  "Sign up to join {{groupName}}": "Inscrivez-vous pour rejoindre {{groupName}}",
+  "You can't join this group": "Vous ne pouvez pas rejoindre ce groupe",
   "Invited by {{name}}": "Invitation de {{name}}",
   "A built-in responsibility already has this name. Please choose another.": "Une responsabilité intégrée porte déjà ce nom. Veuillez en choisir un autre.",
   "Invitations sent by members are not included. They get automatic reminders instead.": "Les invitations envoyées par des membres ne sont pas incluses. Elles reçoivent plutôt des rappels automatiques."

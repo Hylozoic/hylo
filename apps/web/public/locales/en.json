@@ -3325,6 +3325,8 @@
   "Change who can add new members in Privacy & Access": "Change who can add new members in Privacy & Access",
   "{{name}} invited you": "{{name}} invited you",
   "Stewards review every request to join this group.": "Stewards review every request to join this group.",
+  "Sign up to join {{groupName}}": "Sign up to join {{groupName}}",
+  "You can't join this group": "You can't join this group",
   "Invited by {{name}}": "Invited by {{name}}",
   "A built-in responsibility already has this name. Please choose another.": "A built-in responsibility already has this name. Please choose another.",
   "Invitations sent by members are not included. They get automatic reminders instead.": "Invitations sent by members are not included. They get automatic reminders instead."

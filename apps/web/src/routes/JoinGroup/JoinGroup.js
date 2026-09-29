@@ -54,7 +54,9 @@ function buildSpaceRedirectUrl (parentGroupSlug, spaceSlug) {
 /**
  * JoinGroup route component - validates invitation and redirects.
  * Group invites (and members' personal invite links) go to the about page so the user can
- * review and join; a member's link that can't be used until later says so instead.
+ * review and join, whether or not they are signed in yet; an invalid link sends someone
+ * not signed in to signup with the invite-expired message. A member's link that can't be
+ * used until later says so instead.
  * Space invites auto-join when the user is already a parent-group member
  * and then open the space. Otherwise they go to the parent group's about page.
  */
@@ -133,16 +135,18 @@ export default function JoinGroup (props) {
           ? parentGroupSlug
           : groupSlug
 
+        const aboutUrl = buildAboutRedirectUrl(destinationSlug, accessCode, invitationToken)
         if (signupComplete) {
           // Redirect authenticated users to the group about page with invitation params.
           // Space invites for non-parent-members go to the parent group's join page.
-          setRedirectTo({ to: buildAboutRedirectUrl(destinationSlug, accessCode, invitationToken) })
+          setRedirectTo({ to: aboutUrl })
         } else {
-          // Redirect non-authenticated users to signup, then back to group about page
-          const returnToUrl = buildAboutRedirectUrl(destinationSlug, accessCode, invitationToken)
-          dispatch(setReturnToPath(returnToUrl))
+          // People who aren't signed in see what they're invited to first: the group's about
+          // page, with who invited them and a Sign up that keeps the invitation. Signing up by
+          // any other way still comes back here.
+          dispatch(setReturnToPath(aboutUrl))
           const inviteEmail = invitationToken && (email || getQuerystringParam('email', location))
-          setRedirectTo({ to: SIGNUP_PATH, state: inviteEmail ? { email: inviteEmail } : undefined })
+          setRedirectTo({ to: aboutUrl, state: inviteEmail ? { email: inviteEmail } : undefined })
         }
       } catch (error) {
         if (signupComplete) {

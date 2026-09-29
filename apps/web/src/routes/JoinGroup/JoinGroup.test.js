@@ -308,7 +308,7 @@ it('redirects space invites to the parent group about page when the user is not 
   })
 })
 
-it('sets returnToPath and forwards to signup page when invitation is valid and user is not logged-in', async () => {
+it('sends someone not signed in with a valid invitation to the group about page, keeping the invitation as the return path', async () => {
   mockGraphqlServer.use(
     graphql.query('CheckInvitation', () => {
       return HttpResponse.json({
@@ -326,28 +326,32 @@ it('sets returnToPath and forwards to signup page when invitation is valid and u
   // XXX: I'm not sure this is quite the right way to test this, but couldn't find a better way yet
   jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: 'route/to/join-group', search: '' })
 
-  const SignupMock = () => {
+  const AboutMock = () => {
     const returnToPath = useSelector(getReturnToPath)
     return (
       <>
+        <div>About page</div>
         <div>{returnToPath}</div>
       </>
     )
   }
+  const navigateSpy = jest.spyOn(require('react-router-dom'), 'Navigate')
 
   render(
     <>
       <Routes>
         <Route path='/join-group' element={<JoinGroup />} />
-        <Route path='/signup' element={<SignupMock />} />
+        <Route path='/groups/test-group/about' element={<AboutMock />} />
+        <Route path='/signup' element={<div>Signup page</div>} />
       </Routes>
     </>,
     { wrapper: currentUserProvider(false) }
   )
 
-  await waitFor(() => {
-    expect(screen.getByText('/groups/test-group/about?accessCode=anything')).toBeInTheDocument()
-  })
+  expect(await screen.findByText('About page')).toBeInTheDocument()
+  expect(screen.getByText('/groups/test-group/about?accessCode=anything')).toBeInTheDocument()
+  expect(navigatePropsFor(navigateSpy)).toContainEqual(expect.objectContaining({ to: '/groups/test-group/about?accessCode=anything' }))
+  expect(screen.queryByText('Signup page')).not.toBeInTheDocument()
 })
 
 it('sends a member invitation that needs approval to the group about page with its token', async () => {
@@ -389,7 +393,7 @@ it('sends a member invitation that needs approval to the group about page with i
   })
 })
 
-it('prefills signup with the invited email for a signed-out email invitation', async () => {
+it('sends a signed-out email invitation to the about page with its token, carrying the invited email for signup', async () => {
   const navigateSpy = jest.spyOn(require('react-router-dom'), 'Navigate')
   mockCheckInvitation({ valid: true, groupId: '3', groupSlug: 'test-group', email: 'invited@hylo.com' })
 
@@ -399,19 +403,19 @@ it('prefills signup with the invited email for a signed-out email invitation', a
   render(
     <Routes>
       <Route path='/join-group' element={<JoinGroup />} />
-      <Route path='/signup' element={<div>Signup page</div>} />
+      <Route path='/groups/test-group/about' element={<div>About page</div>} />
     </Routes>,
     { wrapper: currentUserProvider(false) }
   )
 
-  expect(await screen.findByText('Signup page')).toBeInTheDocument()
+  expect(await screen.findByText('About page')).toBeInTheDocument()
   expect(navigatePropsFor(navigateSpy)).toContainEqual(expect.objectContaining({
-    to: '/signup',
+    to: '/groups/test-group/about?token=invite-token',
     state: { email: 'invited@hylo.com' }
   }))
 })
 
-it('falls back to the email in the invitation link when prefilling signup', async () => {
+it('falls back to the email in the invitation link for the signup prefill', async () => {
   const navigateSpy = jest.spyOn(require('react-router-dom'), 'Navigate')
   mockCheckInvitation({ valid: true, groupId: '3', groupSlug: 'test-group', email: null })
 
@@ -421,14 +425,14 @@ it('falls back to the email in the invitation link when prefilling signup', asyn
   render(
     <Routes>
       <Route path='/join-group' element={<JoinGroup />} />
-      <Route path='/signup' element={<div>Signup page</div>} />
+      <Route path='/groups/test-group/about' element={<div>About page</div>} />
     </Routes>,
     { wrapper: currentUserProvider(false) }
   )
 
-  expect(await screen.findByText('Signup page')).toBeInTheDocument()
+  expect(await screen.findByText('About page')).toBeInTheDocument()
   expect(navigatePropsFor(navigateSpy)).toContainEqual(expect.objectContaining({
-    to: '/signup',
+    to: '/groups/test-group/about?token=invite-token',
     state: { email: 'link@hylo.com' }
   }))
 })
@@ -460,12 +464,12 @@ it('tracks Invite Link Opened for a signed-out email invitation', async () => {
   render(
     <Routes>
       <Route path='/join-group' element={<JoinGroup />} />
-      <Route path='/signup' element={<div>Signup page</div>} />
+      <Route path='/groups/test-group/about' element={<div>About page</div>} />
     </Routes>,
     { wrapper: currentUserProvider(false) }
   )
 
-  expect(await screen.findByText('Signup page')).toBeInTheDocument()
+  expect(await screen.findByText('About page')).toBeInTheDocument()
   expect(trackAnalyticsEvent).toHaveBeenCalledWith('Invite Link Opened', { groupId: '3', method: 'token', signedIn: false })
 })
 

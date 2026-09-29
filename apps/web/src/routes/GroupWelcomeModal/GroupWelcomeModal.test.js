@@ -380,3 +380,64 @@ it('offers Introduce yourself on the last step, and opens the composer with the 
   expect(opened.searchParams.get('composerEntry')).toBe('welcome')
   reactRouterDom.useLocation.mockReturnValue({ pathname: '', search: '' })
 })
+
+it('after joining on the combined invitation screen, shows only the purpose and Introduce yourself, never the agreements, questions or skills again', async () => {
+  const testGroup = {
+    id: '6',
+    name: 'Combined Join Group',
+    slug: 'combined-join-group',
+    bannerUrl: 'anything',
+    purpose: 'Grow food together',
+    settings: { askJoinQuestions: true, showSuggestedSkills: true },
+    agreements: [{ id: '61', description: 'Share the harvest', title: 'Sharing' }],
+    joinQuestions: [{ id: '61', questionId: '610', text: 'What do you like to grow?' }],
+    suggestedSkills: [{ id: '62', name: 'composting' }]
+  }
+  // The membership as joinGroup returns it after the combined join screen: agreements accepted,
+  // questions answered, and the welcome still to show
+  const testMembership = {
+    id: '6',
+    person: { id: '1' },
+    settings: {
+      showJoinForm: true,
+      agreementsAcceptedAt: new Date().toISOString(),
+      joinQuestionsAnsweredAt: new Date().toISOString()
+    },
+    group: testGroup
+  }
+
+  function testProviders () {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    extractModelsForTest({ me: { id: '1', memberships: { items: [testMembership] } } }, 'Me', ormSession)
+    extractModelsForTest({ groups: [testGroup] }, 'Group', ormSession)
+    return AllTheProviders({ orm: ormSession.state })
+  }
+
+  mockGraphqlServer.use(
+    graphql.query('GroupWelcomeQuery', () => HttpResponse.json({
+      data: {
+        group: {
+          id: testGroup.id,
+          settings: testGroup.settings,
+          agreements: { items: [{ id: '61', description: 'Share the harvest', title: 'Sharing' }] },
+          joinQuestions: { items: [{ id: '61', questionId: '610', text: 'What do you like to grow?' }] },
+          suggestedSkills: { items: [{ id: '62', name: 'composting' }] }
+        }
+      }
+    }))
+  )
+  jest.spyOn(reactRouterDom, 'useParams').mockReturnValue({ groupSlug: testGroup.slug })
+  reactRouterDom.useLocation.mockReturnValue({ pathname: '/groups/combined-join-group/stream', search: '' })
+
+  render(<GroupWelcomeModal />, { wrapper: testProviders() })
+
+  await waitFor(() => expect(screen.getByTestId('group-welcome-modal')).toBeTruthy())
+  expect(screen.getAllByText('Grow food together').length).toBeGreaterThan(0)
+  expect(screen.queryByText('Share the harvest')).toBeNull()
+  expect(screen.queryByText('What do you like to grow?')).toBeNull()
+  expect(screen.queryByText('composting')).toBeNull()
+  expect(screen.queryByText('Next')).toBeNull()
+  await waitFor(() => expect(screen.getByTestId('jump-in')).toBeEnabled())
+  expect(screen.getByTestId('welcome-introduce-yourself')).toBeInTheDocument()
+  reactRouterDom.useLocation.mockReturnValue({ pathname: '', search: '' })
+})

@@ -1,12 +1,17 @@
 import { trim } from 'lodash'
 import React, { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
+import { Link, useNavigate } from 'react-router-dom'
+import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
+import ClickCatcher from 'components/ClickCatcher'
+import HyloHTML from 'components/HyloHTML'
 import Button from 'components/ui/button'
 import SuggestedSkills from 'components/SuggestedSkills'
+import setReturnToPath from 'store/actions/setReturnToPath'
 import { DEFAULT_AVATAR, DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, accessibilityString, accessibilityDescription, visibilityIcon, visibilityString, visibilityDescription } from 'store/models/Group'
-import { cn } from 'util/index'
+import { cn, inIframe } from 'util/index'
 import { groupUrl, groupDetailUrl } from '@hylo/navigation'
 import PaywallOfferingsSection from './PaywallOfferingsSection'
 
@@ -44,7 +49,11 @@ function AgreementsBarrierBlock ({ agreements, acceptedAgreements, setAcceptedAg
         >
           <strong className='text-foreground'>{agreement.title}</strong>
           {agreement.description && (
-            <div className='text-foreground/70 text-sm mt-1'>{agreement.description}</div>
+            <div className='text-foreground/70 text-sm mt-1'>
+              <ClickCatcher>
+                <HyloHTML element='span' html={TextHelpers.markdown(agreement.description)} />
+              </ClickCatcher>
+            </div>
           )}
           <label className='flex items-center gap-2 mt-3 cursor-pointer select-none'>
             <input
@@ -171,20 +180,80 @@ export function JoinBarriers ({ group, onBarriersStateChange, joinIntroCopy = fa
   )
 }
 
-/** Who invited the person, on a member invitation that a steward still has to approve. */
-function InvitedByBanner ({ invitedBy, t }) {
+/**
+ * Who invited the person, from an email invitation or a member's personal invite
+ * link, for people signed in or not. sponsored: a steward still has to approve
+ * their request to join.
+ */
+export function InvitedByBanner ({ invitedBy, sponsored = false }) {
+  const { t } = useTranslation()
   return (
-    <div className='bg-selected/10 border border-selected/30 rounded-xl p-4 mb-4 text-center'>
+    <div className='bg-selected/10 border border-selected/30 rounded-xl p-4 mb-4 text-center' data-testid='invited-by-banner'>
       <div className='flex items-center justify-center gap-2 text-foreground'>
         <Avatar avatarUrl={invitedBy.avatarUrl} small className='shrink-0' />
         <span className='font-medium'>{t('{{name}} invited you', { name: invitedBy.name })}</span>
       </div>
-      <p className='text-foreground/70 text-sm mt-2 mb-0'>{t('Stewards review every request to join this group.')}</p>
+      {sponsored && (
+        <p className='text-foreground/70 text-sm mt-2 mb-0'>{t('Stewards review every request to join this group.')}</p>
+      )}
     </div>
   )
 }
 
-export default function JoinSection ({ accessCode, currentUser, fullPage, group, groupsWithPendingRequests, invitationRequiresApproval, invitationRole, invitationToken, invitationTryLater, invitedBy, joinGroup, linkedSpaceName, requestToJoinGroup, routeParams, t }) {
+/**
+ * For someone not signed in: who invited them, then Sign up and Log in, both of
+ * which bring them back to this page with their invitation afterwards. Sign up
+ * starts with the invited email address filled in.
+ */
+export function SignedOutJoinPrompt ({ group, invitedBy, invitationEmail, invitationRequiresApproval, returnToPath }) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+
+  const signUp = useCallback(event => {
+    event.preventDefault()
+    dispatch(setReturnToPath(returnToPath))
+    if (inIframe()) {
+      window.open('/signup', '_blank')
+      return
+    }
+    navigate('/signup', { state: invitationEmail ? { email: invitationEmail } : undefined })
+  }, [dispatch, invitationEmail, navigate, returnToPath])
+
+  return (
+    <div className='JoinSection-SignedOut flex flex-col items-center w-full mt-4 mb-8' data-testid='signed-out-join'>
+      {invitedBy && <InvitedByBanner invitedBy={invitedBy} sponsored={invitationRequiresApproval} />}
+      <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 w-full flex flex-col items-center gap-3'>
+        <Button
+          variant='secondary'
+          className='border-2 border-selected w-full font-bold rounded-xl p-2 whitespace-normal'
+          onClick={signUp}
+          data-testid='signed-out-sign-up'
+        >
+          {t('Sign up to join {{groupName}}', { groupName: group.name })}
+        </Button>
+        <div className='text-sm text-foreground/70'>
+          {t('Already have an account?')}{' '}
+          <Link
+            to={`/login?returnToUrl=${encodeURIComponent(returnToPath)}`}
+            target={inIframe() ? '_blank' : ''}
+            className='text-foreground underline hover:no-underline'
+            data-testid='signed-out-log-in'
+          >
+            {t('Log in')}
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * expandJoinForm: the person arrived with a valid invitation, so the agreements
+ * and join questions show open on this one screen, with a single Join (or
+ * request) button that works once they are done.
+ */
+export default function JoinSection ({ accessCode, currentUser, expandJoinForm = false, fullPage, group, groupsWithPendingRequests, invitationRequiresApproval, invitationRole, invitationToken, invitationTryLater, invitedBy, joinGroup, linkedSpaceName, requestToJoinGroup, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
   // A member's invitation or personal invite link to a Restricted or Closed group becomes a request to join that stewards review
@@ -192,6 +261,11 @@ export default function JoinSection ({ accessCode, currentUser, fullPage, group,
 
   // User arrived with a join link (accessCode) or a steward's email invite link (token) — pre-approved for Closed/Restricted
   const hasJoinOrInviteLink = (!!accessCode || !!invitationToken) && !hasSponsoredRequest
+
+  // Who invited them, unless all that is left is waiting for a steward to answer their request
+  const invitedByBanner = invitedBy && !(hasPendingRequest && !hasJoinOrInviteLink)
+    ? <InvitedByBanner invitedBy={invitedBy} sponsored={hasSponsoredRequest} />
+    : null
 
   // A member's invite link that has been used as often as it can be today: nobody joins through it for now
   if (invitationTryLater) {
@@ -218,6 +292,7 @@ export default function JoinSection ({ accessCode, currentUser, fullPage, group,
   if (group.paywall) {
     return (
       <div className={cn('JoinSection requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>
+        {invitedByBanner}
         {linkedSpaceNotice}
         <PaywallOfferingsSection group={group} />
       </div>
@@ -237,6 +312,7 @@ export default function JoinSection ({ accessCode, currentUser, fullPage, group,
           </div>
         </div>
       )}
+      {invitedByBanner}
       {linkedSpaceNotice}
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
         ? (
@@ -301,6 +377,7 @@ export default function JoinSection ({ accessCode, currentUser, fullPage, group,
                 group={group}
                 joinGroup={joinGroup}
                 joinText={t('Join {{group.name}}', { group })}
+                startExpanded={expandJoinForm}
                 t={t}
               />
               )
@@ -313,6 +390,7 @@ export default function JoinSection ({ accessCode, currentUser, fullPage, group,
                     group={group}
                     joinGroup={joinGroup}
                     joinText={t('Join {{group.name}}', { group })}
+                    startExpanded={expandJoinForm}
                     t={t}
                   />
                   )
@@ -325,16 +403,14 @@ export default function JoinSection ({ accessCode, currentUser, fullPage, group,
                     )
                   : hasSponsoredRequest || group.accessibility === GROUP_ACCESSIBILITY.Restricted
                     ? (
-                      <>
-                        {hasSponsoredRequest && invitedBy && <InvitedByBanner invitedBy={invitedBy} t={t} />}
-                        <JoinQuestionsAndButtons
-                          currentUser={currentUser}
-                          group={group}
-                          joinGroup={requestToJoinGroup}
-                          joinText={t('Request Membership in {{group.name}}', { group })}
-                          t={t}
-                        />
-                      </>
+                      <JoinQuestionsAndButtons
+                        currentUser={currentUser}
+                        group={group}
+                        joinGroup={requestToJoinGroup}
+                        joinText={t('Request Membership in {{group.name}}', { group })}
+                        startExpanded={expandJoinForm && hasSponsoredRequest}
+                        t={t}
+                      />
                       )
                     : (
                       <div className='border-2 border-dashed border-foreground/20 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
@@ -346,7 +422,12 @@ export default function JoinSection ({ accessCode, currentUser, fullPage, group,
   )
 }
 
-function JoinQuestionsAndButtons ({ currentUser, group, joinGroup, joinText, t }) {
+/**
+ * The agreements and join questions (and suggested skills) behind a Join button.
+ * They open on the first click, or at once with startExpanded; the button then
+ * works once every agreement is accepted and every question answered.
+ */
+function JoinQuestionsAndButtons ({ currentUser, group, joinGroup, joinText, startExpanded = false, t }) {
   const agreements = group.agreements || []
   const hasAgreements = agreements.length > 0
   const hasRequiredQuestions = group.settings?.askJoinQuestions && group.joinQuestions?.length > 0
@@ -354,7 +435,12 @@ function JoinQuestionsAndButtons ({ currentUser, group, joinGroup, joinText, t }
   const hasBarriers = hasAgreements || hasRequiredQuestions
   // Expand for agreements/questions and/or skills — skills stay hidden until Join is clicked
   const hasExpandableContent = hasBarriers || hasSuggestedSkills
-  const [formExpanded, setFormExpanded] = useState(!hasExpandableContent)
+  const [formExpanded, setFormExpanded] = useState(startExpanded || !hasExpandableContent)
+
+  // An invitation checked after the first paint opens the form then
+  useEffect(() => {
+    if (startExpanded) setFormExpanded(true)
+  }, [startExpanded])
 
   const [barriersState, setBarriersState] = useState(null)
 
