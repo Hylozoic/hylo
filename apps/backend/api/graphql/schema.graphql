@@ -738,7 +738,7 @@ type CheckInvitationResult {
   groupRole: GroupRole
   # True for an invitation from a member to a group where a steward approves new people: the person requests to join (with the invitation token) instead of joining
   requiresApproval: Boolean
-  # Who sent a member invitation, or whose personal invite link this is (null for other invitations)
+  # Who sent an email invitation, or whose personal invite link this is: only their id, name and avatar (null for the group's own join link)
   invitedBy: InvitationSender
   # True when the code is a member's personal invite link rather than the group's join link
   isMemberLink: Boolean

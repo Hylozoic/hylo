@@ -666,9 +666,11 @@ module.exports = {
 
   /**
    * Check if an invitation is valid and return group information for redirect.
-   * For a member invitation, also who sent it and whether a steward has to
-   * approve the person's request to join, which the group's accessibility at
-   * the time of the check decides.
+   * For an email invitation, also who sent it (only their id, name and avatar,
+   * as the invitation email shows), and for a member invitation whether a
+   * steward has to approve the person's request to join, which the group's
+   * accessibility at the time of the check decides. The group's own join link
+   * names nobody.
    * The code of a member's personal invite link is checked the same way, after
    * the group join link codes.
    * @param token {String} invitation token from email invite
@@ -711,7 +713,8 @@ module.exports = {
               }
             : null,
           requiresApproval: fromMember && !(await preApproves(invitation, group)),
-          invitedBy: fromMember ? await invitationSender(invitation) : null
+          // The person holding the token was sent the invitation, which names who sent it
+          invitedBy: await invitationSender(invitation)
         })
       }
       return { valid: false }
