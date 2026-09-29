@@ -120,8 +120,8 @@ export default function ExplorerReview () {
                 busy={busyId === group.id}
                 recommendation={group.meetsBar ? t('Recommended: Approve') : t('Recommended: Deny')}
                 actions={[
-                  { label: t('Approve'), variant: 'default', onClick: () => decide(group, 'approve', 'pending') },
-                  { label: t('Deny'), variant: 'secondary', onClick: () => decide(group, 'deny', 'pending') }
+                  { label: t('Approve'), variant: 'default', handleClick: () => decide(group, 'approve', 'pending') },
+                  { label: t('Deny'), variant: 'secondary', handleClick: () => decide(group, 'deny', 'pending') }
                 ]}
               />
             ))}
@@ -143,8 +143,8 @@ export default function ExplorerReview () {
                 busy={busyId === group.id}
                 recommendation={group.meetsBar ? t('Recommended: Keep') : t('Recommended: Unlist')}
                 actions={[
-                  { label: t('Keep'), variant: 'secondary', onClick: () => decide(group, 'keep', 'keepOrUnlist') },
-                  { label: t('Unlist'), variant: 'destructive', onClick: () => decide(group, 'unlist', 'keepOrUnlist') }
+                  { label: t('Keep'), variant: 'secondary', handleClick: () => decide(group, 'keep', 'keepOrUnlist') },
+                  { label: t('Unlist'), variant: 'destructive', handleClick: () => decide(group, 'unlist', 'keepOrUnlist') }
                 ]}
               />
             ))}
@@ -185,7 +185,7 @@ function ReviewRow ({ group, days, busy, recommendation, actions }) {
       </div>
       <div className='flex gap-2 shrink-0'>
         {actions.map(action => (
-          <Button key={action.label} variant={action.variant} size='sm' disabled={busy} onClick={action.onClick}>
+          <Button key={action.label} variant={action.variant} size='sm' disabled={busy} onClick={action.handleClick}>
             {action.label}
           </Button>
         ))}
