@@ -29,9 +29,15 @@ const recommended = attrs => ({
   ...attrs
 })
 
-function providers () {
+function providers ({ inGroup = false } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
-  ormSession.Me.create({ id: '1', name: 'New Person' })
+  if (inGroup) {
+    ormSession.Group.create({ id: '11', slug: 'garden-circle', name: 'Garden Circle' })
+    ormSession.Membership.create({ id: 'm1', group: '11', person: '1' })
+    ormSession.Me.create({ id: '1', name: 'New Person' })
+  } else {
+    ormSession.Me.create({ id: '1', name: 'New Person' })
+  }
   return AllTheProviders({ orm: ormSession.state })
 }
 
@@ -120,6 +126,19 @@ describe('RecommendedGroups', () => {
     await user.click(screen.getByText('Skip for now'))
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith('Welcome Wizard Step Skipped', { step: 'recommended-groups' })
+    expect(push).toHaveBeenCalledWith('/welcome/explore')
+  }, 30000)
+
+  it('counts coming back after joining a group as joined, not skipped', async () => {
+    mockApi([recommended({ id: '12', name: 'Pond Watchers', slug: 'pond' })])
+    const user = userEvent.setup()
+
+    render(<RecommendedGroups />, { wrapper: providers({ inGroup: true }) })
+
+    await screen.findByText('Pond Watchers', {}, { timeout: 10000 })
+    await user.click(screen.getByText('Continue'))
+
+    expect(trackAnalyticsEvent).not.toHaveBeenCalledWith('Welcome Wizard Step Skipped', expect.anything())
     expect(push).toHaveBeenCalledWith('/welcome/explore')
   }, 30000)
 

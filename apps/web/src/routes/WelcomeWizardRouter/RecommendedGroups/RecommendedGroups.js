@@ -9,6 +9,7 @@ import Loading from 'components/Loading'
 import RoundImage from 'components/RoundImage'
 import { joinGroup } from 'routes/GroupDetail/GroupDetail.store'
 import getMe from 'store/selectors/getMe'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import WelcomeWizardModalFooter from '../WelcomeWizardModalFooter'
@@ -69,11 +70,14 @@ export default function RecommendedGroups () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
+  const myMemberships = useSelector(getMyMemberships)
   const [groups, setGroups] = useState(null)
   const [joiningId, setJoiningId] = useState(null)
   const [joinedIds, setJoinedIds] = useState([])
   const [error, setError] = useState(null)
   const hasLocation = !!currentUser?.locationObject
+  // Coming back to this step after joining a group (it's no longer recommended) still counts as joined
+  const inAGroup = joinedIds.length > 0 || myMemberships.length > 0
 
   useEffect(() => {
     let cancelled = false
@@ -113,7 +117,7 @@ export default function RecommendedGroups () {
   }, [dispatch, hasLocation, t])
 
   const next = () => {
-    if (joinedIds.length === 0) {
+    if (!inAGroup) {
       dispatch(trackAnalyticsEvent(AnalyticsEvents.WELCOME_WIZARD_STEP_SKIPPED, { step: STEP }))
     }
     dispatch(push(NEXT_STEP_PATH))
@@ -167,8 +171,8 @@ export default function RecommendedGroups () {
           <WelcomeWizardModalFooter
             showPrevious={false}
             submit={next}
-            continueReady={joinedIds.length > 0}
-            continueText={joinedIds.length > 0 ? t('Continue') : t('Skip for now')}
+            continueReady={inAGroup}
+            continueText={inAGroup ? t('Continue') : t('Skip for now')}
           />
         </div>
       </div>
