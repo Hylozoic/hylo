@@ -1067,6 +1067,40 @@ describe('mutations/group', () => {
         await expect(restoreDeletedGroup(staff.id, record.id)).to.be.rejectedWith('This group has already been restored')
       })
 
+      it('leaves out accounts closed since, keeps menu positions and publishes a Murmurations profile again', async () => {
+        const closer = await factories.user().save()
+        await closer.joinGroup(group)
+        const moderatorRole = await GroupRole.findSystemRole(group.id, 'Moderator')
+        await MemberGroupRole.forge({ user_id: closer.id, group_id: group.id, group_role_id: moderatorRole.id, active: true }).save()
+        await bookshelf.knex('group_memberships').where({ user_id: member.id, group_id: group.id }).update({ nav_order: 3 })
+        await group.save({ visibility: Group.Visibility.PUBLIC, settings: { ...group.get('settings'), publish_murmurations_profile: true } }, { patch: true })
+
+        await deleteGroup(administrator.id, group.id)
+        const record = await bookshelf.knex('group_deletions').where({ group_id: group.id }).first()
+
+        // The account is closed before staff restore the group
+        await bookshelf.knex('group_memberships_group_roles').where({ user_id: closer.id }).del()
+        await closer.save({ active: false }, { patch: true })
+
+        const queued = []
+        mockify(Queue, 'classMethod', (cls, method, data) => {
+          queued.push([cls, method, data])
+          return Promise.resolve()
+        })
+        try {
+          await restoreDeletedGroup(staff.id, record.id)
+        } finally {
+          unspyify(Queue, 'classMethod')
+        }
+
+        expect(await GroupMembership.hasActiveMembership(member.id, group.id)).to.be.true
+        expect(await GroupMembership.hasActiveMembership(closer.id, group.id)).to.be.false
+        expect(await bookshelf.knex('group_memberships_group_roles').where({ user_id: closer.id, group_id: group.id }).first()).to.not.exist
+        const navOrder = await bookshelf.knex('group_memberships').where({ user_id: member.id, group_id: group.id }).first('nav_order')
+        expect(navOrder.nav_order).to.equal(3)
+        expect(queued).to.deep.include(['Group', 'publishToMurmurations', { groupId: group.id }])
+      })
+
       it('is refused after 30 days', async () => {
         await deleteGroup(administrator.id, group.id)
         const record = await bookshelf.knex('group_deletions').where({ group_id: group.id }).first()

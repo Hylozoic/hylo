@@ -5,7 +5,8 @@ import { GraphQLError } from 'graphql'
   When a group is deleted, the memberships it had (its own and its spaces'),
   its role assignments and its members' accepted agreements are recorded in
   group_deletions, so Hylo staff can restore the group and exactly those
-  memberships for RESTORE_WINDOW_DAYS.
+  memberships for RESTORE_WINDOW_DAYS. People whose accounts have been closed
+  since are left out of a restore.
 */
 
 export const RESTORE_WINDOW_DAYS = 30
@@ -44,7 +45,7 @@ export async function recordGroupDeletion (group, deletedById, { transacting } =
     bookshelf.knex('group_memberships')
       .whereIn('group_id', [groupId, ...spaceIds])
       .where('active', true)
-      .select('id', 'group_id', 'user_id', 'settings'), transacting)
+      .select('id', 'group_id', 'user_id', 'settings', 'nav_order'), transacting)
 
   const roleAssignments = await withTransaction(
     bookshelf.knex('group_memberships_group_roles')
@@ -66,7 +67,7 @@ export async function recordGroupDeletion (group, deletedById, { transacting } =
     bookshelf.knex('group_deletions').insert({
       group_id: groupId,
       deleted_by_id: deletedById || null,
-      memberships: JSON.stringify(memberships.map(m => ({ id: m.id, group_id: m.group_id, user_id: m.user_id, settings: m.settings || {} }))),
+      memberships: JSON.stringify(memberships.map(m => ({ id: m.id, group_id: m.group_id, user_id: m.user_id, settings: m.settings || {}, nav_order: m.nav_order ?? null }))),
       role_assignments: JSON.stringify(roleAssignments),
       accepted_agreement_ids: JSON.stringify(agreementIds),
       restorable_until: restorableUntil,
@@ -110,12 +111,14 @@ function parseJson (value, fallback) {
 }
 
 /**
- * Bring a deleted group back with exactly the memberships, role assignments and
- * accepted agreements recorded when it was deleted. Refused once restored or
- * after the window.
+ * Bring a deleted group back with exactly the memberships (with their settings
+ * and menu position), role assignments and accepted agreements recorded when it
+ * was deleted, for people whose accounts are still active. Refused once
+ * restored or after the window. A group with a Murmurations profile is
+ * published there again.
  */
 export async function restoreGroupDeletion (deletionId, restoredById) {
-  return bookshelf.transaction(async transacting => {
+  const result = await bookshelf.transaction(async transacting => {
     const deletion = await bookshelf.knex('group_deletions').where({ id: deletionId }).forUpdate().first().transacting(transacting)
     if (!deletion) throw new GraphQLError('Deleted group not found')
     if (deletion.restored_at) throw new GraphQLError('This group has already been restored')
@@ -124,8 +127,13 @@ export async function restoreGroupDeletion (deletionId, restoredById) {
     }
 
     const groupId = deletion.group_id
-    const memberships = parseJson(deletion.memberships, [])
-    const roleAssignments = parseJson(deletion.role_assignments, [])
+    const recordedMemberships = parseJson(deletion.memberships, [])
+    const recordedUserIds = [...new Set(recordedMemberships.map(m => String(m.user_id)))]
+    const activeUserIds = new Set(recordedUserIds.length === 0
+      ? []
+      : (await bookshelf.knex('users').whereIn('id', recordedUserIds).where('active', true).pluck('id').transacting(transacting)).map(String))
+    const memberships = recordedMemberships.filter(m => activeUserIds.has(String(m.user_id)))
+    const roleAssignments = parseJson(deletion.role_assignments, []).filter(a => activeUserIds.has(String(a.user_id)))
     const agreementIds = parseJson(deletion.accepted_agreement_ids, [])
 
     await bookshelf.knex('groups').where({ id: groupId }).update({ active: true, updated_at: new Date() }).transacting(transacting)
@@ -133,7 +141,7 @@ export async function restoreGroupDeletion (deletionId, restoredById) {
     for (const membership of memberships) {
       await bookshelf.knex('group_memberships')
         .where({ id: membership.id, user_id: membership.user_id, group_id: membership.group_id })
-        .update({ active: true, settings: JSON.stringify(membership.settings || {}), updated_at: new Date() })
+        .update({ active: true, settings: JSON.stringify(membership.settings || {}), nav_order: membership.nav_order ?? null, updated_at: new Date() })
         .transacting(transacting)
     }
 
@@ -169,6 +177,12 @@ export async function restoreGroupDeletion (deletionId, restoredById) {
 
     return { success: true, groupId }
   })
+
+  const group = await Group.find(result.groupId)
+  if (group && group.hasMurmurationsProfile()) {
+    await Queue.classMethod('Group', 'publishToMurmurations', { groupId: group.id })
+  }
+  return result
 }
 
 /**
@@ -194,7 +208,7 @@ export async function sendGroupClosedEmails ({ groupId, userIds = [], closedById
         first_name: name.split(' ')[0] || name,
         group_name: group.get('name'),
         closed_by_name: closedBy ? closedBy.get('name') : null,
-        explore_url: Frontend.Route.prefix + '/groups'
+        explore_url: Frontend.Route.prefix + '/public/groups'
       }
     })
     if (result) sent += 1
