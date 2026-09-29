@@ -1498,10 +1498,10 @@ describe('member invitation approval through GraphQL', () => {
     expect(sponsorView.errors[0].message).to.equal('You do not have permission to do that')
   })
 
-  it('leaves steward invitations as they were', async () => {
+  it('leaves steward invitations as they were, naming the steward who sent one', async () => {
     const invitation = await Invitation.create({ userId: admin.id, groupId: group.id, email: 'steward-invitee@approval-graphql.com' })
     const checked = await run(null, `{ checkInvitation(invitationToken: "${invitation.get('token')}") { valid requiresApproval invitedBy { id } } }`)
-    expect(checked.data.checkInvitation).to.deep.equal({ valid: true, requiresApproval: false, invitedBy: null })
+    expect(checked.data.checkInvitation).to.deep.equal({ valid: true, requiresApproval: false, invitedBy: { id: String(admin.id) } })
 
     const person = await factories.user().save()
     const used = await run(person.id, `mutation { useInvitation(invitationToken: "${invitation.get('token')}") { requiresApproval groupSlug error membership { id } } }`)

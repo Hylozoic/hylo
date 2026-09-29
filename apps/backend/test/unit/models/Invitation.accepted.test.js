@@ -108,6 +108,19 @@ describe('telling the inviter their invitation was accepted', () => {
     })
   })
 
+  it('tells the member whose invite link led to a request once a steward accepts it', async () => {
+    await withFeatureFlag('MEMBER_INVITES', 'on', async () => {
+      await GroupRole.setInvitePolicy(restricted.id, { mode: 'everyone' })
+      const link = await MemberInviteLink.findOrCreate({ groupId: restricted.id, userId: member.id })
+      const invitee = await factories.user().save()
+      const { request } = await createJoinRequest(invitee.id, restricted.id, [], null, link.get('code'))
+      await request.accept(steward.id)
+      await runQueuedJoins()
+
+      expect(await noticesTo(member, { actor: invitee, group: restricted })).to.have.length(1)
+    })
+  })
+
   it('tells the member whose personal invite link someone joined through, while member invitations are on', async () => {
     await withFeatureFlag('MEMBER_INVITES', 'on', async () => {
       await GroupRole.setInvitePolicy(open.id, { mode: 'everyone' })
