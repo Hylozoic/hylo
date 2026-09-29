@@ -214,6 +214,22 @@ describe('digest content', () => {
       expect(queries).to.have.length(1)
     })
 
+    it('keeps saved-search results the member has read or had by email', async () => {
+      const recipient = await newRecipient()
+      const emailed = await savePost()
+      const opened = await savePost()
+      await notified(recipient, emailed)
+      await read(recipient, opened, hoursAgo(1))
+
+      const search = { get: key => (key === 'name' ? 'compost' : null) }
+      const result = await personalizeData(recipient, 'daily', digest({
+        search,
+        discussions: [presented(emailed), presented(opened)]
+      }))
+
+      expect(result.discussions.map(p => p.id).sort()).to.deep.equal([Number(emailed.id), Number(opened.id)].sort())
+    })
+
     it('makes no query when there is nothing to check', async () => {
       const seen = await seenContentFor(1, { postIds: [], commentIds: [] })
       expect(seen.emailedPostIds.size + seen.readPostIds.size + seen.seenCommentIds.size).to.equal(0)

@@ -265,8 +265,10 @@ const personalizeData = async (user, type, data, opts = {}) => {
   // Don't show me content I created or created by blocked users
   const filteredData = await filterMyAndBlockedUserData(user.id, data)
 
-  // Leave out posts they already got by email or have read, and comments they have seen (D39)
-  await dropSeenContent(user.id, filteredData)
+  // Leave out posts they already got by email or have read, and comments they have seen (D39).
+  // Not for saved-search emails: those list what matches the search, and their
+  // last_post_id only moves on when one is sent.
+  if (!data.search) await dropSeenContent(user.id, filteredData)
 
   // Check again after filtering to make sure we're not sending empty digests
   if (!(await shouldSendData(filteredData, user.id))) {
