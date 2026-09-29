@@ -5649,6 +5649,13 @@ CREATE INDEX notifications_pk_medium_0 ON public.notifications USING btree (id) 
 
 
 --
+-- Name: posts_chat_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX posts_chat_created_at_index ON public.posts USING btree (created_at) WHERE ((type)::text = 'chat'::text);
+
+
+--
 -- Name: posts_proposal_outcome_index; Type: INDEX; Schema: public; Owner: -
 --
 

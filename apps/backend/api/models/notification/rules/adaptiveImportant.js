@@ -34,7 +34,9 @@ export const READER_ACTIVE_DAYS = 30
 
 // One query: the people (other than the author) whose own latest chat message in one
 // of these rooms was sent within the window before this message. Returns
-// [{ groupId, userId }] as strings.
+// [{ groupId, userId }] as strings. It runs on every chat message, so it starts from
+// the partial index posts_chat_created_at_index (recent chats only); the type test is
+// a literal so the planner can match that index's predicate.
 export async function conversationParticipants ({ postId, authorId, groupIds, createdAt, trx, minutes = conversationWindowMinutes() }) {
   if (!groupIds || groupIds.length === 0) return []
   const at = createdAt ? new Date(createdAt) : new Date()
@@ -43,7 +45,7 @@ export async function conversationParticipants ({ postId, authorId, groupIds, cr
     .join('groups_posts', 'groups_posts.post_id', 'posts.id')
     .distinct('groups_posts.group_id', 'posts.user_id')
     .whereIn('groups_posts.group_id', groupIds)
-    .where('posts.type', 'chat')
+    .whereRaw("posts.type = 'chat'")
     .where('posts.active', true)
     .whereNot('posts.user_id', authorId)
     .whereNot('posts.id', postId)
