@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Moon, Sun, Palette, Trees, Waves, Mountain, Snowflake, TreePalm, Monitor, Flower2, Leaf, Gem, PanelLeft, AppWindow, Layers, List, LayoutGrid, Columns2, LayoutPanelTop } from 'lucide-react'
+import { Moon, Sun, Palette, Trees, Waves, Mountain, Snowflake, TreePalm, Monitor, Flower2, Leaf, Gem, PanelLeft, AppWindow, Layers, List, LayoutGrid, Columns2, LayoutPanelTop, ChevronDown } from 'lucide-react'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useAppearance from 'hooks/useAppearance'
 import { themes } from '../../../themes'
@@ -68,6 +68,9 @@ export default function AppearanceTab () {
   const stackGroups = currentUser?.settings?.stackGroups === true
   const groupNavStyle = currentUser?.settings?.groupNavStyle || NAV_STYLE_GROUP_DEFAULT
   const resolvedScheme = useMemo(() => effectiveColorScheme, [effectiveColorScheme])
+  // The three navigation preferences change how Hylo is laid out, so they sit
+  // in a collapsed Advanced section rather than beside the everyday choices
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   useEffect(() => {
     setHeaderDetails({
@@ -134,122 +137,6 @@ export default function AppearanceTab () {
           </div>
         </div>
 
-        <div className='flex items-center justify-between'>
-          <label className='text-sm font-medium'>{t('Global Navigation')}</label>
-          <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1'>
-            <button
-              onClick={() => handleSettingChange({ globalNavStyle: 'sidebar' })}
-              className={cn(
-                'p-2 rounded-md transition-colors flex items-center gap-1.5',
-                globalNavStyle === 'sidebar'
-                  ? 'bg-selected text-selected-foreground'
-                  : 'hover:bg-muted'
-              )}
-              aria-label={t('Sidebar')}
-              title={t('Sidebar')}
-            >
-              <PanelLeft className='h-4 w-4' />
-              <span className='text-xs'>{t('Sidebar')}</span>
-            </button>
-            <button
-              onClick={() => handleSettingChange({ globalNavStyle: 'tabs' })}
-              className={cn(
-                'p-2 rounded-md transition-colors flex items-center gap-1.5',
-                globalNavStyle === 'tabs'
-                  ? 'bg-selected text-selected-foreground'
-                  : 'hover:bg-muted'
-              )}
-              aria-label={t('Topbar')}
-              title={t('Topbar')}
-            >
-              <AppWindow className='h-4 w-4' />
-              <span className='text-xs'>{t('Topbar')}</span>
-            </button>
-          </div>
-        </div>
-
-        <div className='flex items-center justify-between'>
-          <label className='text-sm font-medium'>{t('Group Nav Stacking')}</label>
-          <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1'>
-            <button
-              onClick={() => handleSettingChange({ stackGroups: false })}
-              className={cn(
-                'p-2 rounded-md transition-colors flex items-center gap-1.5',
-                !stackGroups
-                  ? 'bg-selected text-selected-foreground'
-                  : 'hover:bg-muted'
-              )}
-              aria-label={t('Flat')}
-              title={t('Show every group as its own item')}
-            >
-              <List className='h-4 w-4' />
-              <span className='text-xs'>{t('Flat')}</span>
-            </button>
-            <button
-              onClick={() => handleSettingChange({ stackGroups: true })}
-              className={cn(
-                'p-2 rounded-md transition-colors flex items-center gap-1.5',
-                stackGroups
-                  ? 'bg-selected text-selected-foreground'
-                  : 'hover:bg-muted'
-              )}
-              aria-label={t('Stacked')}
-              title={t('Show subgroups stacked on their parent group')}
-            >
-              <Layers className='h-4 w-4' />
-              <span className='text-xs'>{t('Stacked')}</span>
-            </button>
-          </div>
-        </div>
-
-        <div className='flex items-center justify-between gap-3'>
-          <label className='text-sm font-medium shrink-0'>{t('Group Menu Style')}</label>
-          <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1 flex-wrap justify-end'>
-            <button
-              onClick={() => handleSettingChange({ groupNavStyle: NAV_STYLE_GROUP_DEFAULT })}
-              className={cn(
-                'p-2 rounded-md transition-colors flex items-center gap-1.5',
-                groupNavStyle === NAV_STYLE_GROUP_DEFAULT || !groupNavStyle
-                  ? 'bg-selected text-selected-foreground'
-                  : 'hover:bg-muted'
-              )}
-              aria-label={t('Group Default')}
-              title={t('Use each group layout setting')}
-            >
-              <LayoutPanelTop className='h-4 w-4' />
-              <span className='text-xs'>{t('Group Default')}</span>
-            </button>
-            <button
-              onClick={() => handleSettingChange({ groupNavStyle: NAV_STYLE_TWO_COLUMN })}
-              className={cn(
-                'p-2 rounded-md transition-colors flex items-center gap-1.5',
-                groupNavStyle === NAV_STYLE_TWO_COLUMN
-                  ? 'bg-selected text-selected-foreground'
-                  : 'hover:bg-muted'
-              )}
-              aria-label={t('Side Menu')}
-              title={t('Always show the side menu beside the view')}
-            >
-              <Columns2 className='h-4 w-4' />
-              <span className='text-xs'>{t('Side Menu')}</span>
-            </button>
-            <button
-              onClick={() => handleSettingChange({ groupNavStyle: NAV_STYLE_ONE_COLUMN })}
-              className={cn(
-                'p-2 rounded-md transition-colors flex items-center gap-1.5',
-                groupNavStyle === NAV_STYLE_ONE_COLUMN
-                  ? 'bg-selected text-selected-foreground'
-                  : 'hover:bg-muted'
-              )}
-              aria-label={t('Card Menu')}
-              title={t('Always use the full-screen card menu')}
-            >
-              <LayoutGrid className='h-4 w-4' />
-              <span className='text-xs'>{t('Card Menu')}</span>
-            </button>
-          </div>
-        </div>
-
         <div className='space-y-2'>
           <label className='text-sm font-medium'>{t('Color Theme')}</label>
           <div className='grid grid-cols-1 gap-2 md:grid-cols-2'>
@@ -281,6 +168,142 @@ export default function AppearanceTab () {
               )
             })}
           </div>
+        </div>
+
+        <div className='border-t border-foreground/10 pt-4'>
+          <button
+            type='button'
+            onClick={() => setShowAdvanced(open => !open)}
+            aria-expanded={showAdvanced}
+            aria-controls='appearance-advanced'
+            data-testid='appearance-advanced-toggle'
+            className='flex w-full items-center justify-between text-sm font-medium text-foreground/80 hover:text-foreground'
+          >
+            <span>{t('Advanced')}</span>
+            <ChevronDown className={cn('h-4 w-4 transition-transform', showAdvanced && 'rotate-180')} />
+          </button>
+          {showAdvanced && (
+            <div id='appearance-advanced' className='mt-4 flex flex-col gap-4'>
+              <p className='text-sm text-foreground/70'>
+                {t('Change how Hylo arranges its navigation. Most people never need these.')}
+              </p>
+              <div className='flex items-center justify-between'>
+                <label className='text-sm font-medium'>{t('Global Navigation')}</label>
+                <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1'>
+                  <button
+                    onClick={() => handleSettingChange({ globalNavStyle: 'sidebar' })}
+                    className={cn(
+                      'p-2 rounded-md transition-colors flex items-center gap-1.5',
+                      globalNavStyle === 'sidebar'
+                        ? 'bg-selected text-selected-foreground'
+                        : 'hover:bg-muted'
+                    )}
+                    aria-label={t('Sidebar')}
+                    title={t('Sidebar')}
+                  >
+                    <PanelLeft className='h-4 w-4' />
+                    <span className='text-xs'>{t('Sidebar')}</span>
+                  </button>
+                  <button
+                    onClick={() => handleSettingChange({ globalNavStyle: 'tabs' })}
+                    className={cn(
+                      'p-2 rounded-md transition-colors flex items-center gap-1.5',
+                      globalNavStyle === 'tabs'
+                        ? 'bg-selected text-selected-foreground'
+                        : 'hover:bg-muted'
+                    )}
+                    aria-label={t('Topbar')}
+                    title={t('Topbar')}
+                  >
+                    <AppWindow className='h-4 w-4' />
+                    <span className='text-xs'>{t('Topbar')}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className='flex items-center justify-between'>
+                <label className='text-sm font-medium'>{t('Group Nav Stacking')}</label>
+                <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1'>
+                  <button
+                    onClick={() => handleSettingChange({ stackGroups: false })}
+                    className={cn(
+                      'p-2 rounded-md transition-colors flex items-center gap-1.5',
+                      !stackGroups
+                        ? 'bg-selected text-selected-foreground'
+                        : 'hover:bg-muted'
+                    )}
+                    aria-label={t('Flat')}
+                    title={t('Show every group as its own item')}
+                  >
+                    <List className='h-4 w-4' />
+                    <span className='text-xs'>{t('Flat')}</span>
+                  </button>
+                  <button
+                    onClick={() => handleSettingChange({ stackGroups: true })}
+                    className={cn(
+                      'p-2 rounded-md transition-colors flex items-center gap-1.5',
+                      stackGroups
+                        ? 'bg-selected text-selected-foreground'
+                        : 'hover:bg-muted'
+                    )}
+                    aria-label={t('Stacked')}
+                    title={t('Show subgroups stacked on their parent group')}
+                  >
+                    <Layers className='h-4 w-4' />
+                    <span className='text-xs'>{t('Stacked')}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className='flex items-center justify-between gap-3'>
+                <label className='text-sm font-medium shrink-0'>{t('Group Menu Style')}</label>
+                <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1 flex-wrap justify-end'>
+                  <button
+                    onClick={() => handleSettingChange({ groupNavStyle: NAV_STYLE_GROUP_DEFAULT })}
+                    className={cn(
+                      'p-2 rounded-md transition-colors flex items-center gap-1.5',
+                      groupNavStyle === NAV_STYLE_GROUP_DEFAULT || !groupNavStyle
+                        ? 'bg-selected text-selected-foreground'
+                        : 'hover:bg-muted'
+                    )}
+                    aria-label={t('Group Default')}
+                    title={t('Use each group layout setting')}
+                  >
+                    <LayoutPanelTop className='h-4 w-4' />
+                    <span className='text-xs'>{t('Group Default')}</span>
+                  </button>
+                  <button
+                    onClick={() => handleSettingChange({ groupNavStyle: NAV_STYLE_TWO_COLUMN })}
+                    className={cn(
+                      'p-2 rounded-md transition-colors flex items-center gap-1.5',
+                      groupNavStyle === NAV_STYLE_TWO_COLUMN
+                        ? 'bg-selected text-selected-foreground'
+                        : 'hover:bg-muted'
+                    )}
+                    aria-label={t('Side Menu')}
+                    title={t('Always show the side menu beside the view')}
+                  >
+                    <Columns2 className='h-4 w-4' />
+                    <span className='text-xs'>{t('Side Menu')}</span>
+                  </button>
+                  <button
+                    onClick={() => handleSettingChange({ groupNavStyle: NAV_STYLE_ONE_COLUMN })}
+                    className={cn(
+                      'p-2 rounded-md transition-colors flex items-center gap-1.5',
+                      groupNavStyle === NAV_STYLE_ONE_COLUMN
+                        ? 'bg-selected text-selected-foreground'
+                        : 'hover:bg-muted'
+                    )}
+                    aria-label={t('Card Menu')}
+                    title={t('Always use the full-screen card menu')}
+                  >
+                    <LayoutGrid className='h-4 w-4' />
+                    <span className='text-xs'>{t('Card Menu')}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

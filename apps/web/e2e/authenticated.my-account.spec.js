@@ -18,10 +18,10 @@ async function expectAuthedShell (page, urlPattern) {
 }
 
 test.describe('Batch H: My streams & redirect', () => {
-  test('GET /my redirects to /my/posts', async ({ page }) => {
+  test('GET /my opens All My Groups for someone in groups', async ({ page }) => {
     await page.goto('/my')
     await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(/\/my\/posts/, navTimeout)
+    await expect(page).toHaveURL(/\/all\/all/, navTimeout)
   })
 
   test('GET /my/posts loads My Posts stream', async ({ page }) => {

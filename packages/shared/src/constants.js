@@ -63,7 +63,11 @@ export const AnalyticsEvents = {
   // Post composer
   COMPOSER_OPENED: 'Composer Opened',
   COMPOSER_ABANDONED: 'Composer Abandoned',
-  POST_FAILED: 'Post Failed'
+  POST_FAILED: 'Post Failed',
+  // New group setup checklist in the group menu
+  GROUP_SETUP_CHECKLIST_SHOWN: 'Group Setup Checklist Shown',
+  GROUP_SETUP_CHECKLIST_ITEM_CLICKED: 'Group Setup Checklist Item Clicked',
+  GROUP_SETUP_CHECKLIST_DISMISSED: 'Group Setup Checklist Dismissed'
 }
 
 // CustomEvent dispatched in the WebView when Android hardware back is pressed.

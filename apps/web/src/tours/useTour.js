@@ -10,6 +10,7 @@ import getMe from 'store/selectors/getMe'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import TourInvitation from './TourInvitation'
+import { resolveTourSteps } from './layouts'
 
 /**
  * Guided tours built on driver.js. Each tour is a short, contextual sequence of
@@ -141,6 +142,15 @@ export function tourLayout (settings) {
 }
 
 /**
+ * Steps for the layout on screen (see tours/layouts.js) whose anchor is
+ * visible; steps without an anchor always count.
+ */
+export function presentTourSteps (steps) {
+  return resolveTourSteps(steps)
+    .filter(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
+}
+
+/**
  * Runs a tour's steps through the shared driver.js setup. Steps whose anchor
  * is absent or covered are dropped; with nothing left it returns null and
  * nothing happens. Callers own persistence via onDestroyed, which learns
@@ -149,7 +159,7 @@ export function tourLayout (settings) {
  */
 export function driveTour (steps, { onDestroyed } = {}) {
   clearSandboxOverlayResize()
-  const presentSteps = steps.filter(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
+  const presentSteps = presentTourSteps(steps)
   if (presentSteps.length === 0) return null
   const keepSandboxBannerClear = isSandboxMode()
   let completed = false
@@ -334,8 +344,7 @@ export default function useTour ({
       !tourActive &&
       !inviteActive &&
       !blockedBySelectors.some(selector => document.querySelector(selector))
-    const anchorsAvailable = () =>
-      steps.some(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
+    const anchorsAvailable = () => presentTourSteps(steps).length > 0
     // Both paths are no-ops while every anchor is off-screen (phone nav
     // closed), so keep retrying quietly until the surface is actually visible
     const attempt = () => {

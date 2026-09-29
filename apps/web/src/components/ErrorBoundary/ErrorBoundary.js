@@ -2,6 +2,7 @@ import React from 'react'
 import { withTranslation } from 'react-i18next'
 import classes from './ErrorBoundary.module.scss'
 import errorReporter from 'client/errorReporter'
+import NeedHelpLink from 'components/NeedHelpLink/NeedHelpLink'
 import { chunkReloadAttempted, chunkReloadPending, reloadForStaleChunks, reloadPage } from 'client/chunkReload'
 
 /** Returns true if the error is a stale chunk load failure after a new deploy */
@@ -50,6 +51,7 @@ class ErrorBoundary extends React.Component {
           >
             {t('Reload')}
           </button>
+          <NeedHelpLink className='mt-3' />
         </div>
       )
     }

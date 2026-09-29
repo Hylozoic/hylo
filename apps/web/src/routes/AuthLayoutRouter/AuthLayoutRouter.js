@@ -49,7 +49,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import { getSignupInProgress } from 'store/selectors/getSignupState'
-import { getLastViewedGroupPath } from 'store/selectors/getLastViewedGroup'
+import { getLandingPath, getMyHomePath } from 'store/selectors/getLandingPath'
 import { isSpaceGroup } from 'store/selectors/getMyGroups'
 import orm from 'store/models'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -256,7 +256,8 @@ export default function AuthLayoutRouter (props) {
   const isPhoneSettings = isPhoneViewport && isOnGroupSettings
   const isDrawerOpen = useSelector(state => get('AuthLayoutRouter.isDrawerOpen', state))
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state)) // For mobile nav
-  const lastViewedGroupPath = useSelector(getLastViewedGroupPath)
+  const landingPath = useSelector(getLandingPath)
+  const myHomePath = useSelector(getMyHomePath)
   const memberships = useSelector(getMyMemberships)
   const { cookieData } = useCookieConsent()
   // Before the consent context has loaded, fall back to the stored cookie
@@ -1162,7 +1163,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/funding-rounds/*' element={<MySpaceCollection kind='funding-round' />} />
                 <Route path='my/transactions' element={<MyTransactions />} />
                 <Route path='my/*' element={<UserSettings />} />
-                <Route path='my' element={isCardMenuUser ? <ContextMenuGrid context='my' /> : <Navigate to='/my/posts' replace />} />
+                {/* /my opens All My Groups (My Profile for someone in no groups); the card menu keeps its My Home grid */}
+                <Route path='my' element={isCardMenuUser ? <ContextMenuGrid context='my' /> : <Navigate to={myHomePath} replace />} />
                 {/* **** Management Routes (Admin Only) **** */}
                 <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}
@@ -1175,8 +1177,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='search/*' element={<Search />} />
                 <Route path='themes' element={<Themes />} />
                 <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
-                {/* **** Default Route (404) **** */}
-                <Route path='*' element={<Navigate to={lastViewedGroupPath} replace />} />
+                {/* **** Default Route: cold open lands on the Group Explorer, the last group, or What's new (see getLandingPath) **** */}
+                <Route path='*' element={<Navigate to={landingPath} replace />} />
               </Routes>
             </div>
 

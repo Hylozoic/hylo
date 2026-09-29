@@ -10,6 +10,7 @@ import login from 'store/actions/login'
 import loginWithService from 'store/actions/loginWithService'
 import TextInput from 'components/TextInput'
 import GoogleButton from 'components/GoogleButton'
+import NeedHelpLink from 'components/NeedHelpLink/NeedHelpLink'
 import Button from 'components/ui/button'
 import classes from './Login.module.scss'
 import { cn } from 'util/index'
@@ -154,6 +155,7 @@ export default function Login (props) {
         <div className='flex justify-center px-4 pb-4'>
           <GoogleButton onClick={() => handleLoginWithService('google')} />
         </div>
+        <NeedHelpLink className='px-4 pb-4' />
       </div>
     </>
   )

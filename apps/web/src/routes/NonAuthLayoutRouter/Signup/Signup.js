@@ -10,6 +10,7 @@ import checkLogin from 'store/actions/checkLogin'
 import { sendEmailVerification as sendEmailVerificationAction } from './Signup.store'
 import loginWithService from 'store/actions/loginWithService'
 import GoogleButton from 'components/GoogleButton'
+import NeedHelpLink from 'components/NeedHelpLink/NeedHelpLink'
 import TextInput from 'components/TextInput'
 import { cn, validateEmail } from 'util/index'
 export default function Signup (props) {
@@ -120,6 +121,7 @@ export default function Signup (props) {
         <div className='flex justify-center'>
           <GoogleButton onClick={() => handleSignupWithService('google')} />
         </div>
+        <NeedHelpLink className='mt-4' />
       </div>
     </>
   )

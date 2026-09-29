@@ -98,6 +98,16 @@ describe('ErrorBoundary', () => {
     expect(reloadPage).toHaveBeenCalledTimes(1)
   })
 
+  it('links to Building Hylo for help', () => {
+    render(
+      <ErrorBoundary>
+        <ErrorThrowingComponent />
+      </ErrorBoundary>
+    )
+
+    expect(screen.getByRole('link', { name: 'Need help?' })).toHaveAttribute('href', '/groups/building-hylo/about')
+  })
+
   it('reloads once for a stale chunk instead of showing the error', () => {
     render(
       <ErrorBoundary>
