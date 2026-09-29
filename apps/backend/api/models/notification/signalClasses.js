@@ -87,7 +87,9 @@ export const REASON_SIGNALS = {
   trackEnrollment: { class: SOCIAL, channels: ALL_CHANNELS },
   fundingRoundNewSubmission: { class: OPERATIONAL },
   fundingRoundPhaseTransition: { class: OPERATIONAL },
-  fundingRoundReminder: { class: OPERATIONAL }
+  fundingRoundReminder: { class: OPERATIONAL },
+  // D58: in-app and push only; the one-tap answers live on the post page
+  openRequestNudge: { class: LIFECYCLE, channels: [IN_APP, PUSH] }
 }
 
 // A reason with no line (or no priority reason at all) keeps every channel, as before.

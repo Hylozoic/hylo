@@ -3809,6 +3809,8 @@ type Mutation {
   followPost(postId: ID): Post
   # Mark one of your posts as fulfilled or completed
   fulfillPost(postId: ID): GenericResult
+  # The author's answer to the nudge about a request or offer with no replies: 'still_needed' or 'met'
+  answerOpenRequestNudge(postId: ID!, answer: String!): GenericResult
   # Invite a group to join one of your groups as a child of it. Only a group steward can call this.
   inviteGroupToJoinParent(parentId: ID, childId: ID): CreatedGroupRelationshipInvite
   # Invite a group to form a peer-to-peer relationship. Only a group steward can call this.

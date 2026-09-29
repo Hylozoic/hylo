@@ -66,6 +66,9 @@ const daily = now => {
     return count
   }))
 
+  // One nudge to authors of requests and offers nobody has answered after about 3 days (D58)
+  tasks.push(require('./api/models/post/openRequestNudge').sendOpenRequestNudges().then(count => sails.log.debug(`Sent ${count} open request nudges`)).catch(err => sails.log.error('Open request nudges failed', err)))
+
   return tasks
 }
 

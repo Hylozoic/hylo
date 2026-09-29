@@ -78,7 +78,8 @@ const TYPE = {
   TrackEnrollment: 'trackEnrollment',
   FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
   FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
-  FundingRoundReminder: 'fundingRoundReminder' // Reminder for funding round deadline
+  FundingRoundReminder: 'fundingRoundReminder', // Reminder for funding round deadline
+  OpenRequestNudge: 'openRequestNudge' // your request or offer has had no reply (D58)
 }
 
 const MEDIUM = {
@@ -217,6 +218,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendFundingRoundPhaseTransitionPush()
       case 'fundingRoundReminder':
         return this.sendFundingRoundReminderPush()
+      case 'openRequestNudge':
+        return this.sendOpenRequestNudgePush()
       default:
         return Promise.resolve()
     }
@@ -255,6 +258,17 @@ module.exports = bookshelf.Model.extend({
         const alertText = PushNotification.textForContribution(contribution, version, locale)
         return this.reader().sendPushNotification(alertText, path)
       })
+  },
+
+  // Opens the post with ?nudge=open-request, where the author can answer in one tap (D58)
+  sendOpenRequestNudgePush: async function () {
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group, 'nudge=open-request'))
+    const alertText = PushNotification.textForOpenRequestNudge(post, locale)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendTrackCompletedPush: async function () {

@@ -108,6 +108,9 @@ exports.hi = {
     return `${actor.get('name')} ने आपकी पोस्ट "${postName}" बंद कर दी`
   },
   textForPostMention: ({ person, postName }) => `${person} ने आपका उल्लेख किया: ${postName}`,
+  textForOpenRequestNudge: ({ postName, type }) => type === 'offer'
+    ? `आपके प्रस्ताव "${postName}" पर अभी तक कोई जवाब नहीं आया। क्या यह अभी भी उपलब्ध है?`
+    : `आपके अनुरोध "${postName}" पर अभी तक कोई जवाब नहीं आया। क्या इसकी अभी भी ज़रूरत है?`,
   textForPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `ट्रैक पूर्ण: "${trackName}" ${actor.get('name')} द्वारा पूर्ण किया गया`,
   textForTrackEnrollment: ({ actor, trackName }) => `ट्रैक नामांकन: "${trackName}" में ${actor.get('name')} ने नामांकन लिया`,

@@ -77,7 +77,9 @@ const TODAY = {
   trackEnrollment: ['email', 'push', 'inApp'],
   fundingRoundNewSubmission: ['email', 'push', 'inApp'],
   fundingRoundPhaseTransition: ['email', 'push', 'inApp'],
-  fundingRoundReminder: ['email', 'push', 'inApp']
+  fundingRoundReminder: ['email', 'push', 'inApp'],
+  // Added with their own channels: D58
+  openRequestNudge: ['push', 'inApp']
 }
 
 describe('signalClasses', () => {

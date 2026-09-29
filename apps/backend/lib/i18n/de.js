@@ -108,6 +108,9 @@ exports.de = {
     return `${actor.get('name')} hat deinen Beitrag „${postName}“ geschlossen`
   },
   textForPostMention: ({ person, postName }) => `${person} hat dich erwähnt: ${postName}`,
+  textForOpenRequestNudge: ({ postName, type }) => type === 'offer'
+    ? `Noch keine Antworten auf dein Angebot „${postName}“. Ist es noch verfügbar?`
+    : `Noch keine Antworten auf deine Anfrage „${postName}“. Wird es noch gebraucht?`,
   textForPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `Lernpfad abgeschlossen: „${trackName}“ von ${actor.get('name')} abgeschlossen`,
   textForTrackEnrollment: ({ actor, trackName }) => `Lernpfad-Teilnahme: „${trackName}“ von ${actor.get('name')} begonnen`,

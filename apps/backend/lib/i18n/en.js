@@ -108,6 +108,9 @@ exports.en = {
     return `${actor.get('name')} closed your post "${postName}"`
   },
   textForPostMention: ({ person, postName }) => `${person} mentioned you: ${postName}`,
+  textForOpenRequestNudge: ({ postName, type }) => type === 'offer'
+    ? `No replies yet to your offer "${postName}". Is it still available?`
+    : `No replies yet to your request "${postName}". Is it still needed?`,
   textForPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `Track completed: "${trackName}" was completed by ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, trackName }) => `Track enrollment: "${trackName}" was enrolled in by ${actor.get('name')}`,

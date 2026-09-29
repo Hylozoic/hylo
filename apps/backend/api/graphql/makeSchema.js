@@ -5,6 +5,7 @@ import { join } from 'path'
 import { merge, reduce } from 'lodash'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { recordEmailClick } from './mutations/emailClick'
+import { answerOpenRequestNudge } from './mutations/openRequestNudge'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import { PAGINATION_TOTAL_COLUMN_NAME } from '../../lib/graphql-bookshelf-bridge/util/applyPagination'
 import {
@@ -846,6 +847,8 @@ export function makeMutations ({ fetchOne }) {
     followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
 
     fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
+
+    answerOpenRequestNudge: (root, { postId, answer }, context) => answerOpenRequestNudge(context.currentUserId, { postId, answer }),
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
 

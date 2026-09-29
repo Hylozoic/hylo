@@ -110,6 +110,9 @@ exports.es = {
     return `${actor.get('name')} cerró tu publicación "${postName}"`
   },
   textForPostMention: ({ person, postName }) => `${person} te mencionó: ${postName}`,
+  textForOpenRequestNudge: ({ postName, type }) => type === 'offer'
+    ? `Todavía no hay respuestas a tu oferta "${postName}". ¿Sigue disponible?`
+    : `Todavía no hay respuestas a tu solicitud "${postName}". ¿Todavía lo necesitas?`,
   textForPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `Pista completada: "${trackName}" fue completada por ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, trackName }) => `Inscripción en pista: "${trackName}" fue inscrita por ${actor.get('name')}`,
