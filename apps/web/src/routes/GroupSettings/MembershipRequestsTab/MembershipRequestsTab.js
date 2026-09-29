@@ -3,6 +3,7 @@ import React, { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Check, X, Users, CircleOff, UserPlus } from 'lucide-react'
 import { groupUrl, personUrl, spaceUrl } from '@hylo/navigation'
 import Avatar from 'components/Avatar'
@@ -20,6 +21,9 @@ import {
   declineJoinRequest,
   fetchJoinRequests
 } from './MembershipRequestsTab.store'
+
+// What the server says when a steward accepts a request from someone blocked from rejoining
+const BLOCKED_REQUEST_ERROR = 'This person is blocked from rejoining this group. Lift the block first.'
 
 export default function MembershipRequestsTab ({
   group: groupProp
@@ -51,7 +55,11 @@ export default function MembershipRequestsTab ({
   const requestCreatedAt = (joinRequestId) => joinRequests.find(r => r.id === joinRequestId)?.createdAt
 
   const submitAccept = (joinRequestId) => {
-    dispatch(acceptJoinRequest(joinRequestId, group.id, requestCreatedAt(joinRequestId)))
+    // The request comes back to the list if accepting it fails, so say why
+    Promise.resolve(dispatch(acceptJoinRequest(joinRequestId, group.id, requestCreatedAt(joinRequestId))))
+      .catch(error => toast.error(error?.message === BLOCKED_REQUEST_ERROR
+        ? t('This person is blocked from rejoining this group. Lift the block first.')
+        : t('There was an error, please try again.')))
   }
 
   const submitDecline = (joinRequestId) => {

@@ -1,10 +1,13 @@
 import React from 'react'
 import { graphql, HttpResponse } from 'msw'
+import { toast } from 'sonner'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import userEvent from '@testing-library/user-event'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import MembershipRequestsTab from './MembershipRequestsTab'
+
+jest.mock('sonner', () => ({ toast: { error: jest.fn(), success: jest.fn() } }))
 
 const group = { id: '1', name: 'Garden Club', slug: 'garden', joinQuestions: [] }
 
@@ -106,5 +109,31 @@ describe('MembershipRequestsTab: people blocked from rejoining', () => {
     expect(await screen.findByText('No new join requests')).toBeInTheDocument()
     await new Promise(resolve => setTimeout(resolve, 50))
     expect(screen.queryByTestId('blocked-from-rejoining')).not.toBeInTheDocument()
+  })
+})
+
+describe('MembershipRequestsTab: accepting a request fails', () => {
+  it('puts the request back and says the person has to be unblocked first', async () => {
+    const user = userEvent.setup()
+    toast.error.mockClear()
+    mockGraphqlServer.use(
+      graphql.query('FetchJoinRequests', () => HttpResponse.json({
+        data: { joinRequests: { total: 1, hasMore: false, items: [joinRequest('8', { id: '4', name: 'Removed Person' }, null)] } }
+      })),
+      graphql.query('BlockedFromRejoining', () => HttpResponse.json({ data: { group: { id: group.id, blockedFromRejoining: [] } } })),
+      graphql.operation(({ query }) => {
+        if (!query.includes('acceptJoinRequest(')) return
+        return HttpResponse.json({
+          errors: [{ message: 'This person is blocked from rejoining this group. Lift the block first.' }]
+        })
+      })
+    )
+
+    render(<MembershipRequestsTab group={group} />, null, providers())
+
+    await user.click(await screen.findByRole('button', { name: 'Welcome' }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('This person is blocked from rejoining this group. Lift the block first.'))
+    expect(await screen.findByText('Removed Person')).toBeInTheDocument()
   })
 })
