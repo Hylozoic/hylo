@@ -157,6 +157,27 @@ export function createPostModalUrl (location, params = {}) {
   return createModalUrl(location, CREATE_POST, params)
 }
 
+// Opens the composer prefilled from a template: `template=intro` (introduce
+// yourself, from the group's Introduction template) or `template=welcome`
+// (a steward's welcome post).
+export const COMPOSER_TEMPLATE_PARAM = 'template'
+export const COMPOSER_TEMPLATE_INTRO = 'intro'
+export const COMPOSER_TEMPLATE_WELCOME = 'welcome'
+// Where the composer was opened from, for the Composer Opened event
+export const COMPOSER_ENTRY_PARAM = 'composerEntry'
+
+/**
+ * The composer as a discussion prefilled with the group's introduction
+ * template, over the current page.
+ */
+export function introduceYourselfUrl (location, { entry } = {}) {
+  return createPostModalUrl(location, {
+    newPostType: 'discussion',
+    [COMPOSER_TEMPLATE_PARAM]: COMPOSER_TEMPLATE_INTRO,
+    [COMPOSER_ENTRY_PARAM]: entry
+  })
+}
+
 export function createUrl (opts = {}, querystringParams = {}) {
   return addQuerystringToPath(baseUrl(opts), { ...querystringParams, [CREATE_QUERY_PARAM]: CREATE_POST })
 }
@@ -524,6 +545,8 @@ export function stripComposeModalQueryParams (url) {
     u.searchParams.delete('sourceDraftId')
     u.searchParams.delete('closePath')
     u.searchParams.delete('fromPostId')
+    u.searchParams.delete(COMPOSER_TEMPLATE_PARAM)
+    u.searchParams.delete(COMPOSER_ENTRY_PARAM)
     return `${u.pathname}${u.search}${u.hash}`
   } catch {
     return url

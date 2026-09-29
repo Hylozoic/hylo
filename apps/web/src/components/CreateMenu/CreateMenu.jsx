@@ -36,7 +36,7 @@ export default function CreateMenu ({ coordinates, mapView }) {
       <h2 className='text-foreground/80 mb-3 font-bold mt-0 text-selected'>{coordinates ? t('New post at this location:') + ' ' : t('What would you like to create?')}</h2>
       <div className='flex flex-col gap-2'>
         {visiblePostTypes.map(postType => {
-          const extra = { newPostType: postType }
+          const extra = { newPostType: postType, composerEntry: 'create_menu' }
           if (coordinates) {
             extra.lat = coordinates.lat
             extra.lng = coordinates.lng

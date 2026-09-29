@@ -8,6 +8,7 @@ import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
+import useIntroducePrompt from 'hooks/useIntroducePrompt'
 import presentGroup from 'store/presenters/presentGroup'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
@@ -39,6 +40,7 @@ export default function GroupWelcomeModal (props) {
   const welcomeModalRef = useRef(null)
   const numAgreements = group?.agreements?.length || 0
   const [currentAgreements, setCurrentAgreements] = useState(Array(numAgreements).fill(false))
+  const { canIntroduce, openIntroduction } = useIntroducePrompt(currentGroup, { entry: 'welcome' })
 
   const numCheckedAgreements = currentAgreements.reduce((count, agreement) => count + (agreement ? 1 : 0), 0)
   const checkedAllAgreements = numCheckedAgreements === numAgreements
@@ -156,6 +158,12 @@ export default function GroupWelcomeModal (props) {
       }))
     }
     return null
+  }
+
+  // Last step of a first welcome: jump in straight to introducing yourself
+  const handleIntroduceYourself = async () => {
+    await handleAccept()
+    openIntroduction()
   }
 
   const handleDecline = async () => {
@@ -289,6 +297,17 @@ export default function GroupWelcomeModal (props) {
               >
                 {page === 1 && hasSecondPage ? t('Next') : t('Jump in!')}
               </Button>
+              {canIntroduce && currentMembership.settings?.showJoinForm && !(page === 1 && hasSecondPage) && (
+                <Button
+                  variant='outline'
+                  className='w-full rounded-md mt-4 border-highlight justify-center'
+                  data-testid='welcome-introduce-yourself'
+                  disabled={(page === 1 && !checkedAllAgreements) || (page === 2 && !answersComplete)}
+                  onClick={handleIntroduceYourself}
+                >
+                  {t('Introduce yourself')}
+                </Button>
+              )}
               {page === 1 && (
                 <Button
                   variant='outline'

@@ -37,15 +37,21 @@ jest.mock('sonner', () => ({
   }
 }))
 
+jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn((eventName, data) => ({ type: 'TEST_TRACK_ANALYTICS_EVENT', eventName, data })))
+
 jest.mock('store/actions/draftActions', () => ({
   ...jest.requireActual('store/actions/draftActions'),
   saveDraft: jest.fn(() => ({ type: 'TEST_SAVE_DRAFT' }))
 }))
 
-function testProviders ({ withLinkPreview, linkGroup } = {}) {
+function testProviders ({ withLinkPreview, linkGroup, withJoinAnswer } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
+  if (withJoinAnswer) {
+    ormSession.GroupJoinQuestionAnswer.create({ id: 'a1', answer: withJoinAnswer })
+    ormSession.Membership.create({ id: 'm1', person: '1', group: '1', settings: {}, joinQuestionAnswers: ['a1'] })
+  }
   const postAttrs = { id: '1', title: 'Test Post', type: 'discussion', groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] }
   if (linkGroup) postAttrs.groups = ['1']
   if (withLinkPreview) {
@@ -65,7 +71,44 @@ function testProviders ({ withLinkPreview, linkGroup } = {}) {
   return AllTheProviders(reduxState)
 }
 
+function draftResponse (draftData) {
+  return graphql.query('FetchDraft', ({ variables }) => HttpResponse.json({
+    data: {
+      draft: {
+        id: 'draft-1',
+        type: 'post',
+        data: JSON.stringify({ details: '', groups: ['1'], type: variables.postType, ...draftData }),
+        groupId: '1',
+        topicId: null,
+        postId: null,
+        messageThreadId: null,
+        postType: variables.postType,
+        isEdit: false,
+        navigateTo: '/',
+        updatedAt: '2026-09-01T00:00:00.000Z',
+        group: { id: '1', name: 'Test Group', slug: 'test-group' },
+        post: null,
+        messageThread: null
+      }
+    }
+  }))
+}
+
+// A draft save the server accepted
+function savedDraftAction ({ data }) {
+  return { type: 'TEST_SAVE_DRAFT', payload: { data: { saveDraft: { id: 'draft-saved', data } } } }
+}
+
+function mockLocation (location) {
+  require('react-router-dom').useLocation.mockReturnValue({ hash: '', state: null, key: 'default', ...location })
+}
+
 describe('PostEditor', () => {
+  afterEach(() => {
+    mockLocation({ pathname: '', search: '' })
+    require('store/actions/draftActions').saveDraft.mockImplementation(() => ({ type: 'TEST_SAVE_DRAFT' }))
+  })
+
   beforeEach(() => {
     mockGraphqlServer.use(
       graphql.query('FetchPost', () => {
@@ -138,8 +181,9 @@ describe('PostEditor', () => {
       })
     })
 
-    it('says why it cannot post and focuses the title when the title is missing', async () => {
+    it('says why it cannot post and focuses the title when a request has no title', async () => {
       jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=request' })
       const { container } = renderComponent({ autoFocus: false })
       const titleInput = await waitFor(() => {
         const input = container.querySelector('.PostEditorTitle input')
@@ -152,6 +196,187 @@ describe('PostEditor', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('Title is required')
       expect(titleInput).toHaveFocus()
     })
+
+    it('does not ask for a title for a discussion, only for a title or some text', async () => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      const { container } = renderComponent({ autoFocus: false })
+      const titleInput = await waitFor(() => {
+        const input = container.querySelector('.PostEditorTitle input')
+        expect(input).toBeInTheDocument()
+        return input
+      })
+      expect(titleInput).toHaveAttribute('placeholder', '(optional)')
+
+      fireEvent.click(screen.getByTestId('post-editor-submit'))
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Add a title or some text')
+      expect(screen.getByRole('alert')).not.toHaveTextContent('Title is required')
+    })
+
+    it('posts an untitled discussion with a title made from its text', async () => {
+      const createPost = require('store/actions/createPost')
+      createPost.mockClear()
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockGraphqlServer.use(draftResponse({
+        title: '',
+        details: '<p>Hello everyone, this is <strong>my first</strong> discussion here and I am glad to finally be part of it all</p>'
+      }))
+      const { container } = renderComponent({ autoFocus: false })
+      await waitFor(() => expect(container.querySelector('.ProseMirror')?.textContent).toContain('Hello everyone'))
+
+      await act(async () => { fireEvent.click(screen.getByTestId('post-editor-submit')) })
+
+      await waitFor(() => expect(createPost).toHaveBeenCalled())
+      const { title, type } = createPost.mock.calls[0][0]
+      expect(type).toBe('discussion')
+      expect(title).toBe('Hello everyone, this is my first discussion here and I am glad to finally be…')
+      expect(title.length).toBeLessThanOrEqual(80)
+    }, 20000)
+
+    it('does not post an untitled discussion whose text is only blank lines', async () => {
+      const createPost = require('store/actions/createPost')
+      createPost.mockClear()
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockGraphqlServer.use(draftResponse({ title: '', details: '<p>Some words</p>' }))
+      const { container } = renderComponent({ autoFocus: false })
+      await waitFor(() => expect(container.querySelector('.ProseMirror')?.textContent).toContain('Some words'), { timeout: 10000 })
+      const editor = container.querySelector('.ProseMirror').editor
+
+      // As if the person deleted the words and left empty lines and spaces
+      await act(async () => { editor.commands.setContent('<p></p><p>   </p><p></p>', true) })
+      expect(editor.getText().length).toBeGreaterThan(0)
+      await act(async () => { fireEvent.click(screen.getByTestId('post-editor-submit')) })
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Add a title or some text')
+      expect(createPost).not.toHaveBeenCalled()
+    }, 20000)
+
+    it('keeps a new post as a draft and offers to open it when sending fails after the editor has closed', async () => {
+      const createPost = require('store/actions/createPost')
+      const { saveDraft } = require('store/actions/draftActions')
+      const { toast } = require('sonner')
+      toast.error.mockClear()
+      saveDraft.mockClear()
+      let rejectSave
+      createPost.mockImplementationOnce(() => ({
+        type: 'TEST_CREATE_POST',
+        payload: new Promise((resolve, reject) => { rejectSave = reject })
+      }))
+      saveDraft.mockImplementation(savedDraftAction)
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post' })
+      mockGraphqlServer.use(draftResponse({ title: 'Never sent' }))
+      const editorRef = React.createRef()
+
+      const { unmount } = render(
+        <PostEditor {...baseProps} ref={editorRef} />,
+        { wrapper: testProviders() }
+      )
+      await screen.findByDisplayValue('Never sent')
+      await act(async () => { editorRef.current.submit() })
+      await waitFor(() => expect(createPost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Never sent' })))
+      saveDraft.mockClear()
+
+      unmount()
+      await act(async () => { rejectSave(new Error('offline')) })
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
+        'Your post wasn\'t sent!',
+        expect.objectContaining({ action: expect.objectContaining({ label: 'View Draft' }) })
+      ))
+      // Kept right away, not after the autosave delay
+      expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ data: expect.stringContaining('Never sent') }))
+      expect(require('store/actions/trackAnalyticsEvent')).toHaveBeenCalledWith('Post Failed', {
+        postType: 'discussion',
+        editing: false,
+        editorOpen: false,
+        discarded: false
+      })
+
+      await act(async () => { toast.error.mock.calls[0][1].action.onClick() })
+      await waitFor(() => expect(`${window.location.pathname}${window.location.search}`).toBe('/groups/test-group?create=post&newPostType=discussion'))
+      // Saved once, not again when opening it
+      expect(saveDraft).toHaveBeenCalledTimes(1)
+    }, 20000)
+
+    it('opens the latest text from View Draft when the connection is down and the draft could not be saved either', async () => {
+      const createPost = require('store/actions/createPost')
+      const { saveDraft } = require('store/actions/draftActions')
+      const { toast } = require('sonner')
+      toast.error.mockClear()
+      let rejectSave
+      createPost.mockImplementationOnce(() => ({
+        type: 'TEST_CREATE_POST',
+        payload: new Promise((resolve, reject) => { rejectSave = reject })
+      }))
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post' })
+      mockGraphqlServer.use(draftResponse({ title: 'Saved a while ago' }))
+      const editorRef = React.createRef()
+
+      const { unmount } = render(
+        <PostEditor {...baseProps} ref={editorRef} />,
+        { wrapper: testProviders() }
+      )
+      const titleInput = await screen.findByDisplayValue('Saved a while ago')
+      // The connection drops: draft saves fail from here on
+      saveDraft.mockImplementation(() => ({ type: 'TEST_SAVE_DRAFT', payload: Promise.reject(new Error('offline')) }))
+      fireEvent.change(titleInput, { target: { value: 'Typed just before sending' } })
+      await act(async () => { editorRef.current.submit() })
+      await waitFor(() => expect(createPost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Typed just before sending' })))
+
+      unmount()
+      saveDraft.mockClear()
+      await act(async () => { rejectSave(new Error('offline')) })
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
+        'Your post wasn\'t sent!',
+        expect.objectContaining({ action: expect.objectContaining({ label: 'View Draft' }) })
+      ))
+
+      window.history.pushState({}, '', '/groups/test-group')
+      await act(async () => { toast.error.mock.calls[0][1].action.onClick() })
+      await waitFor(() => expect(`${window.location.pathname}${window.location.search}`).toBe('/groups/test-group?create=post&newPostType=discussion'))
+      // Tried again on View Draft, as the connection may be back by then
+      expect(saveDraft).toHaveBeenCalledTimes(2)
+
+      // Still offline: the composer can't fetch any draft, and opens on the text anyway
+      mockGraphqlServer.use(graphql.query('FetchDraft', () => HttpResponse.error()))
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion' })
+      render(<PostEditor {...baseProps} />, { wrapper: testProviders() })
+      expect(await screen.findByDisplayValue('Typed just before sending', {}, { timeout: 10000 })).toBeInTheDocument()
+    }, 30000)
+
+    it('keeps no draft and shows nothing when the person discarded the post while it was being sent', async () => {
+      const createPost = require('store/actions/createPost')
+      const { saveDraft } = require('store/actions/draftActions')
+      const { toast } = require('sonner')
+      toast.error.mockClear()
+      let rejectSave
+      createPost.mockImplementationOnce(() => ({
+        type: 'TEST_CREATE_POST',
+        payload: new Promise((resolve, reject) => { rejectSave = reject })
+      }))
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockGraphqlServer.use(draftResponse({ title: 'Changed my mind' }))
+      const editorRef = React.createRef()
+
+      const { unmount } = render(
+        <PostEditor {...baseProps} ref={editorRef} />,
+        { wrapper: testProviders() }
+      )
+      await screen.findByDisplayValue('Changed my mind')
+      await act(async () => { editorRef.current.submit() })
+      await waitFor(() => expect(createPost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Changed my mind' })))
+
+      await act(async () => { editorRef.current.discard() })
+      unmount()
+      saveDraft.mockClear()
+      await act(async () => { rejectSave(new Error('offline')) })
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 2000)) })
+
+      expect(toast.error).not.toHaveBeenCalled()
+      expect(saveDraft).not.toHaveBeenCalled()
+    }, 20000)
 
     it('restores attachments from a saved draft and saves changes to them', async () => {
       const { saveDraft } = require('store/actions/draftActions')
@@ -199,6 +424,54 @@ describe('PostEditor', () => {
         expect(lastSave?.data).toContain('https://example.com/b.png')
         expect(lastSave?.data).not.toContain('https://example.com/a.png')
       }, { timeout: 4000 })
+    }, 20000)
+  })
+
+  describe('from a template', () => {
+    const editorText = container => container.querySelector('.ProseMirror')?.textContent
+
+    beforeEach(() => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+    })
+
+    it('starts an introduction with the text the group\'s stewards wrote', async () => {
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion&template=intro' })
+      mockGraphqlServer.use(graphql.query('GroupIntroTemplate', () => HttpResponse.json({
+        data: { group: { id: '1', settings: { introTemplate: 'Say hi!\nWhat do you grow?' } } }
+      })))
+      const { container } = renderComponent({ autoFocus: false })
+
+      await waitFor(() => expect(editorText(container)).toBe('Say hi!What do you grow?'))
+      expect(container.querySelectorAll('.ProseMirror p')).toHaveLength(2)
+    }, 20000)
+
+    it('uses the standard introduction when the group has none, and nothing members wrote when joining', async () => {
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion&template=intro' })
+      mockGraphqlServer.use(graphql.query('GroupIntroTemplate', () => HttpResponse.json({
+        data: { group: { id: '1', settings: { introTemplate: null } } }
+      })))
+      const { container } = renderComponent({ autoFocus: false }, { withJoinAnswer: 'My private answer for the stewards' })
+
+      await waitFor(() => expect(editorText(container)).toBe('introTemplateDefault'))
+      expect(container.textContent).not.toContain('My private answer for the stewards')
+    }, 20000)
+
+    it('starts a welcome post with the standard welcome', async () => {
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion&template=welcome' })
+      const { container } = renderComponent({ autoFocus: false })
+
+      await waitFor(() => expect(editorText(container)).toBe('welcomeTemplateDefault'))
+    }, 20000)
+
+    it('opens a saved draft instead of the template', async () => {
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion&template=intro' })
+      mockGraphqlServer.use(
+        graphql.query('GroupIntroTemplate', () => HttpResponse.json({ data: { group: { id: '1', settings: { introTemplate: 'Say hi!' } } } })),
+        draftResponse({ title: '', details: '<p>What I had already written</p>' })
+      )
+      const { container } = renderComponent({ autoFocus: false })
+
+      await waitFor(() => expect(editorText(container)).toBe('What I had already written'))
     }, 20000)
   })
 
@@ -285,7 +558,7 @@ describe('PostEditor', () => {
       expect(updatePost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Test Post, edited' }))
     }, 20000)
 
-    it('reports a failure that arrives after the editor has closed without offering a retry, and keeps the draft', async () => {
+    it('keeps the changes as a draft and offers to open them when saving fails after the editor has closed', async () => {
       const updatePost = require('store/actions/updatePost')
       const { saveDraft } = require('store/actions/draftActions')
       const { toast } = require('sonner')
@@ -296,7 +569,9 @@ describe('PostEditor', () => {
         type: 'TEST_UPDATE_POST',
         payload: new Promise((resolve, reject) => { rejectSave = reject })
       }))
+      saveDraft.mockImplementation(savedDraftAction)
       jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      mockLocation({ pathname: '/groups/test-group/post/1/edit', search: '' })
       const editorRef = React.createRef()
 
       const { unmount } = render(
@@ -310,11 +585,16 @@ describe('PostEditor', () => {
       unmount()
       await act(async () => { rejectSave(new Error('offline')) })
 
-      await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Your changes couldn\'t be saved'))
-      expect(toast.error.mock.calls[0]).toHaveLength(1)
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
+        'Your changes couldn\'t be saved',
+        expect.objectContaining({ action: expect.objectContaining({ label: 'View Draft' }) })
+      ))
       await waitFor(() => {
         expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ data: expect.stringContaining('Test Post') }))
-      }, { timeout: 4000 })
+      })
+
+      await act(async () => { toast.error.mock.calls[0][1].action.onClick() })
+      await waitFor(() => expect(window.location.pathname).toBe('/groups/test-group/post/1/edit'))
     }, 20000)
   })
 })

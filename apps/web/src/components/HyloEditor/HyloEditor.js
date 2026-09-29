@@ -12,6 +12,7 @@ import PeopleMentions from './extensions/PeopleMentions'
 import TopicMentions from './extensions/TopicMentions'
 import Video from './extensions/Video'
 import HyloEditorMenuBar from './HyloEditorMenuBar'
+import { hasOpenSuggestions } from './extensions/suggestions'
 import 'tippy.js/dist/tippy.css'
 import { shouldBailTextSelectionGesture } from 'util/textSelectionTouch'
 import classes from './HyloEditor.module.scss'
@@ -80,6 +81,9 @@ const HyloEditor = React.forwardRef(({
           },
           Enter: ({ editor }) => {
             if (!onEnter) return false
+            // The suggestion list normally takes Enter first; if it is still
+            // open here (results not ready), swallow Enter rather than send
+            if (hasOpenSuggestions(editor)) return true
             return onEnter(editor.getHTML())
           },
           Escape: () => {

@@ -8,11 +8,12 @@ import {
   updateFollowers
 } from './util'
 import { partitionImageUrls } from '../../../lib/uploader/rehostRemoteMedia'
+import titleFromDetails, { needsTitleFallback } from './titleFromDetails'
 
 export default function updatePost (userId, id, params) {
   if (!id) throw new GraphQLError('updatePost called with no ID')
   const { hosted: hostedImageUrls, remote: remoteImageUrls } = partitionImageUrls(params.imageUrls)
-  const paramsForUpdate = params.imageUrls
+  let paramsForUpdate = params.imageUrls
     ? { ...params, imageUrls: hostedImageUrls }
     : params
   return setupPostAttrs(userId, paramsForUpdate)
@@ -33,6 +34,13 @@ export default function updatePost (userId, id, params) {
         ]
         if (!updatableTypes.includes(post.get('type'))) {
           throw new GraphQLError("This post can't be modified")
+        }
+
+        // A discussion whose title was cleared takes the start of its text instead
+        if (needsTitleFallback(paramsForUpdate.type || post.get('type'), paramsForUpdate.name)) {
+          const name = titleFromDetails(paramsForUpdate.description ?? post.get('description'))
+          attrs.name = name
+          paramsForUpdate = { ...paramsForUpdate, name }
         }
 
         if (!isEqual(post.details(), paramsForUpdate.description) || !isEqual(post.title(), paramsForUpdate.name)) {

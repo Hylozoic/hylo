@@ -19,7 +19,7 @@ export default function PostPrompt (props) {
   const type = useMemo(() => postTypesAvailable && postTypesAvailable.length === 1 ? postTypesAvailable[0] : 'default', [postTypesAvailable])
   const newPostType = postTypesAvailable?.[0]
   const createPostPath = useMemo(() => {
-    const extra = {}
+    const extra = { composerEntry: 'new_button' }
     if (newPostType) extra.newPostType = newPostType
     if (eventDate) extra.eventDate = eventDate
     return createPostModalUrl(location, extra)

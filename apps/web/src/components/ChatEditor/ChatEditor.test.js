@@ -2,7 +2,7 @@
 import React from 'react'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router-dom'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { generateStore } from 'util/testing/reactTestingLibraryExtended'
@@ -17,7 +17,9 @@ import {
 import createPost from 'store/actions/createPost'
 import { saveDraft } from 'store/actions/draftActions'
 import { toast } from 'sonner'
-import ChatEditor from './ChatEditor'
+import isWebView from 'util/webView'
+import suggestions from 'components/HyloEditor/extensions/suggestions'
+import ChatEditor, { enterSendsChat } from './ChatEditor'
 
 jest.mock('client/websockets', () => ({
   sendIsTypingGroup: jest.fn()
@@ -240,4 +242,110 @@ describe('ChatEditor when sending fails after leaving the room', () => {
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 50)) })
     expect(props.afterSave).not.toHaveBeenCalled()
   }, 20000)
+})
+
+describe('ChatEditor keyboard sending', () => {
+  const fineMatchMedia = query => ({
+    matches: query === '(pointer: fine)',
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn()
+  })
+  const coarseMatchMedia = query => ({ ...fineMatchMedia(query), matches: false })
+  // The draft loads and the send dispatches asynchronously; give both room on a busy machine
+  const slow = { timeout: 10000 }
+
+  afterEach(() => {
+    window.matchMedia.mockImplementation(coarseMatchMedia)
+    isWebView.mockReturnValue(false)
+  })
+
+  async function renderWithDraft (details = '<p>Hello there</p>') {
+    mockGraphqlServer.use(chatDraftResponse({ details, type: 'chat' }))
+    createPost.mockReset()
+    createPost.mockImplementation(() => ({
+      type: 'TEST_CREATE_POST',
+      payload: Promise.resolve({ data: { createPost: { id: '9' } } })
+    }))
+    const store = setupStore()
+    const utils = renderChatEditor(store, { onSave: jest.fn(), afterSave: jest.fn() })
+    const proseMirror = () => utils.container.querySelector('.ProseMirror')
+    await waitFor(() => expect(proseMirror()?.textContent).toContain(details.replace(/<[^>]+>/g, '')), slow)
+    return { ...utils, proseMirror }
+  }
+
+  it('sends on Enter on a device with a fine pointer', async () => {
+    window.matchMedia.mockImplementation(fineMatchMedia)
+    const { proseMirror } = await renderWithDraft()
+
+    await act(async () => { fireEvent.keyDown(proseMirror(), { key: 'Enter' }) })
+
+    await waitFor(() => expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ details: '<p>Hello there</p>', type: 'chat' })), slow)
+  }, 20000)
+
+  it('adds a line instead of sending on Shift-Enter', async () => {
+    window.matchMedia.mockImplementation(fineMatchMedia)
+    const { proseMirror } = await renderWithDraft()
+
+    await act(async () => { fireEvent.keyDown(proseMirror(), { key: 'Enter', shiftKey: true }) })
+
+    expect(createPost).not.toHaveBeenCalled()
+  }, 20000)
+
+  it('does not send on Enter while an @mention or #topic list is open', async () => {
+    window.matchMedia.mockImplementation(fineMatchMedia)
+    const { proseMirror } = await renderWithDraft()
+    const editor = proseMirror().editor
+    const suggestionList = suggestions.render()
+
+    act(() => { suggestionList.onBeforeStart({ editor, items: [], query: '', clientRect: null }) })
+    await act(async () => { fireEvent.keyDown(proseMirror(), { key: 'Enter' }) })
+    expect(createPost).not.toHaveBeenCalled()
+
+    act(() => { suggestionList.onExit() })
+    await act(async () => { fireEvent.keyDown(proseMirror(), { key: 'Enter' }) })
+    await waitFor(() => expect(createPost).toHaveBeenCalled(), slow)
+  }, 20000)
+
+  it('keeps Enter as a new line on touch screens and in the app', async () => {
+    const { proseMirror } = await renderWithDraft()
+    await act(async () => { fireEvent.keyDown(proseMirror(), { key: 'Enter' }) })
+    expect(createPost).not.toHaveBeenCalled()
+
+    window.matchMedia.mockImplementation(fineMatchMedia)
+    isWebView.mockReturnValue(true)
+    const inApp = await renderWithDraft('<p>From the app</p>')
+    await act(async () => { fireEvent.keyDown(inApp.proseMirror(), { key: 'Enter' }) })
+    expect(createPost).not.toHaveBeenCalled()
+  }, 20000)
+
+  it('still sends on Alt-Enter everywhere', async () => {
+    const { proseMirror } = await renderWithDraft()
+
+    await act(async () => { fireEvent.keyDown(proseMirror(), { key: 'Enter', altKey: true }) })
+
+    await waitFor(() => expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ details: '<p>Hello there</p>' })), slow)
+  }, 20000)
+})
+
+describe('enterSendsChat', () => {
+  afterEach(() => {
+    isWebView.mockReturnValue(false)
+  })
+
+  it('is true only for a fine pointer outside the app', () => {
+    window.matchMedia.mockImplementationOnce(query => ({ matches: query === '(pointer: fine)' }))
+    expect(enterSendsChat()).toBe(true)
+
+    window.matchMedia.mockImplementationOnce(() => ({ matches: false }))
+    expect(enterSendsChat()).toBe(false)
+
+    isWebView.mockReturnValue(true)
+    window.matchMedia.mockImplementationOnce(query => ({ matches: query === '(pointer: fine)' }))
+    expect(enterSendsChat()).toBe(false)
+  })
 })

@@ -54,7 +54,16 @@ export const AnalyticsEvents = {
   // Member Directory sort or filter changed: { sort, filterKind, hasSearch }
   MEMBER_DIRECTORY_FILTERED: 'Member Directory Filtered',
   // Map feature, layer or base layer changed: { filter, value, enabled, context }
-  MAP_FILTER_CHANGED: 'Map Filter Changed'
+  MAP_FILTER_CHANGED: 'Map Filter Changed',
+  // Guided tours: { tourId, stepIndex, layout }
+  TOUR_OFFERED: 'Tour Offered',
+  TOUR_ACCEPTED: 'Tour Accepted',
+  TOUR_DISMISSED: 'Tour Dismissed',
+  TOUR_COMPLETED: 'Tour Completed',
+  // Post composer
+  COMPOSER_OPENED: 'Composer Opened',
+  COMPOSER_ABANDONED: 'Composer Abandoned',
+  POST_FAILED: 'Post Failed'
 }
 
 // CustomEvent dispatched in the WebView when Android hardware back is pressed.

@@ -344,3 +344,39 @@ it('does not track Group Welcome Completed when an existing member re-accepts ch
   await new Promise(resolve => setTimeout(resolve, 100))
   expect(trackAnalyticsEvent).not.toHaveBeenCalledWith('Group Welcome Completed', expect.anything())
 })
+
+it('offers Introduce yourself on the last step, and opens the composer with the template after jumping in', async () => {
+  const user = userEvent.setup()
+  const testGroup = { id: '5', name: 'Intro Group', slug: 'intro-group', bannerUrl: 'anything', settings: {} }
+  const testMembership = { id: '5', person: { id: '1' }, settings: { showJoinForm: true }, group: testGroup }
+
+  function testProviders () {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    extractModelsForTest({ me: { id: '1', memberships: { items: [testMembership] } } }, 'Me', ormSession)
+    extractModelsForTest({ groups: [testGroup] }, 'Group', ormSession)
+    return AllTheProviders({ orm: ormSession.state })
+  }
+
+  let membershipSaved = false
+  mockGraphqlServer.use(
+    graphql.query('GroupWelcomeQuery', () => HttpResponse.json({ data: { group: { id: testGroup.id } } })),
+    graphql.mutation('UpdateMembershipSettings', () => {
+      membershipSaved = true
+      return HttpResponse.json({ data: { updateMembership: { id: testMembership.id } } })
+    })
+  )
+  jest.spyOn(reactRouterDom, 'useParams').mockReturnValue({ groupSlug: testGroup.slug })
+  reactRouterDom.useLocation.mockReturnValue({ pathname: '/groups/intro-group/stream', search: '' })
+
+  render(<GroupWelcomeModal />, { wrapper: testProviders() })
+
+  await user.click(await screen.findByTestId('welcome-introduce-yourself'))
+
+  await waitFor(() => expect(membershipSaved).toBe(true))
+  await waitFor(() => expect(new URL(window.location.href).searchParams.get('template')).toBe('intro'))
+  const opened = new URL(window.location.href)
+  expect(opened.pathname).toBe('/groups/intro-group/stream')
+  expect(opened.searchParams.get('newPostType')).toBe('discussion')
+  expect(opened.searchParams.get('composerEntry')).toBe('welcome')
+  reactRouterDom.useLocation.mockReturnValue({ pathname: '', search: '' })
+})

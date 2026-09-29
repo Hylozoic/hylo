@@ -37,6 +37,40 @@ describe('useDraft', () => {
   })
 })
 
+describe('useDraft drafts that could not reach the server', () => {
+  const store = generateStore()
+  const wrapper = ({ children }) => <Provider store={store}>{children}</Provider>
+  const composer = groupId => renderHook(() => useDraft({ type: 'post', groupId, postType: 'discussion' }), { wrapper })
+  const unsent = JSON.stringify({ title: 'Unsent' })
+
+  afterEach(() => saveDraft.mockImplementation(() => ({ type: 'TEST_SAVE_DRAFT' })))
+
+  it('says when a draft could not be saved, and hands a held one to the next composer in the same place', async () => {
+    saveDraft.mockImplementation(() => ({ type: 'TEST_SAVE_DRAFT', payload: Promise.reject(new Error('offline')) }))
+    const failed = composer('3')
+    let saved
+    await act(async () => { saved = await failed.result.current.flushSaveDraft(unsent, { force: true }) })
+    expect(saved).toBe(false)
+    act(() => { failed.result.current.holdUnsentDraft(unsent) })
+    failed.unmount()
+
+    expect(composer('4').result.current.takeUnsentDraft()).toBeNull()
+    const reopened = composer('3')
+    expect(reopened.result.current.takeUnsentDraft()).toBe(unsent)
+    expect(reopened.result.current.takeUnsentDraft()).toBeNull()
+  })
+
+  it('lets a held draft go once the draft for that place is saved', async () => {
+    const held = composer('5')
+    act(() => { held.result.current.holdUnsentDraft(unsent) })
+    saveDraft.mockImplementation(({ data }) => ({ type: 'TEST_SAVE_DRAFT', payload: { data: { saveDraft: { id: 'draft-5', data } } } }))
+    let saved
+    await act(async () => { saved = await held.result.current.flushSaveDraft(unsent, { force: true }) })
+    expect(saved).toBe(true)
+    expect(held.result.current.takeUnsentDraft()).toBeNull()
+  })
+})
+
 describe('keepAsDraftUnlessPresent', () => {
   const context = { type: 'comment', postId: '7', navigateTo: '/post/7' }
 

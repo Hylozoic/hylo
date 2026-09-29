@@ -82,6 +82,18 @@ const DRAFT_CONTEXT_KEYS = ['type', 'postId', 'groupId', 'topicId', 'messageThre
 
 const sameDraftContext = (a, b) => DRAFT_CONTEXT_KEYS.every(key => a?.[key] === b?.[key])
 
+const draftContextKey = context => DRAFT_CONTEXT_KEYS
+  .map(key => key === 'isEdit' ? String(!!context?.[key]) : String(context?.[key] ?? ''))
+  .join('|')
+
+/**
+ * Drafts that could not reach the server (for example a post that failed to
+ * send while offline), kept in memory for the next composer opened in the same
+ * context. They are newer than any copy the server has, so that composer
+ * starts from them. A later successful save in that context lets them go.
+ */
+const unsentDrafts = new Map()
+
 /**
  * Saves `data` as the draft for `context` unless the server already holds one
  * there. For content whose composer has since moved on to another context.
@@ -231,6 +243,7 @@ export default function useDraft ({
         }
         if (draft?.id || draft?.data != null) {
           if (stillInContext) lastSavedDedupeKeyRef.current = dedupeKey
+          unsentDrafts.delete(draftContextKey(ctx))
           window.dispatchEvent(new Event('hylo:drafts-changed'))
         }
       } catch (err) {
@@ -248,9 +261,10 @@ export default function useDraft ({
    * or omit to flush whatever was last passed to saveDraft.
    * @param {string|object|undefined|null} overrideData Latest payload, or omit to use pending buffer
    * @param {{ force?: boolean }} [options] Pass `{ force: true }` so an explicit leave-save always hits the server (skips dedupe).
+   * @returns {Promise<boolean>} true when the server holds this draft afterwards
    */
   const flushSaveDraft = useCallback(async (overrideData, options = {}) => {
-    if (skip || !type) return
+    if (skip || !type) return false
 
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current)
@@ -261,12 +275,12 @@ export default function useDraft ({
       ? (typeof overrideData === 'string' ? overrideData : JSON.stringify(overrideData))
       : pendingSaveRef.current
 
-    if (!serialised) return
+    if (!serialised) return false
     const dedupeKey = draftDedupeKey(serialised)
-    if (!options.force && dedupeKey === lastSavedDedupeKeyRef.current) return
+    if (!options.force && dedupeKey === lastSavedDedupeKeyRef.current) return true
 
     const ctxBeforeSave = contextRef.current
-    if (!shouldPersistDraftPayload(ctxBeforeSave.type, serialised)) return
+    if (!shouldPersistDraftPayload(ctxBeforeSave.type, serialised)) return false
 
     pendingSaveRef.current = serialised
     const ctx = contextRef.current
@@ -290,16 +304,37 @@ export default function useDraft ({
       }
       if (saved?.id || saved?.data != null) {
         lastSavedDedupeKeyRef.current = dedupeKey
+        unsentDrafts.delete(draftContextKey(ctx))
         window.dispatchEvent(new Event('hylo:drafts-changed'))
+        return true
       }
+      return false
     } catch (err) {
       if (process.env.NODE_ENV === 'development') {
         console.warn('[useDraft] flush save failed:', err)
       }
+      return false
     } finally {
       isSavingRef.current = false
     }
   }, [dispatch, skip, type])
+
+  /**
+   * Keeps a draft that could not be saved to the server in memory, so the next
+   * composer opened in this context starts from it (see takeUnsentDraft).
+   */
+  const holdUnsentDraft = useCallback((data) => {
+    if (skip || !type || data == null) return
+    unsentDrafts.set(draftContextKey(contextRef.current), typeof data === 'string' ? data : JSON.stringify(data))
+  }, [skip, type])
+
+  /** Returns, and forgets, a draft held for this context by holdUnsentDraft; null when there is none. */
+  const takeUnsentDraft = useCallback(() => {
+    const key = draftContextKey(context)
+    const data = unsentDrafts.get(key) ?? null
+    unsentDrafts.delete(key)
+    return data
+  }, [context])
 
   /**
    * Cancels any pending debounced save without touching Redux or the server.
@@ -328,6 +363,7 @@ export default function useDraft ({
       saveTimerRef.current = null
     }
     pendingSaveRef.current = null
+    unsentDrafts.delete(draftContextKey(contextRef.current))
 
     // Use the ref — it is always current and does not make this callback unstable.
     const idToDelete = deleteOnServer ? activeDraftIdRef.current : null
@@ -361,6 +397,8 @@ export default function useDraft ({
     saveDraft,
     flushSaveDraft,
     cancelPendingSave,
-    clearDraft
+    clearDraft,
+    holdUnsentDraft,
+    takeUnsentDraft
   }
 }

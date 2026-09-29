@@ -9,6 +9,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { useTranslation } from 'react-i18next'
 import { throttle } from 'lodash'
+import isMobile from 'ismobilejs'
 import { CaseSensitive, ImagePlus, Paperclip, Plus, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendIsTypingGroup } from 'client/websockets'
@@ -47,10 +48,23 @@ import useDraft, { hasDraftContent, hasPostDraftPayloadContent, keepAsDraftUnles
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import { buildPostDraftPayload, mergeDraftIntoPost } from 'components/PostEditor/postDraftUtils'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
+import isWebView from 'util/webView'
+import { isPhoneDevice } from 'util/mobile'
 
 /** Change-detection key for chat drafts: the text plus any attachment urls. */
 const chatDraftKey = (details, imageUrls = [], fileUrls = []) =>
   JSON.stringify([details || '', imageUrls || [], fileUrls || []])
+
+/**
+ * True where Enter should send a chat message: a fine pointer (mouse or
+ * trackpad, so almost certainly a real keyboard), not a phone and not the
+ * mobile app's WebView. Everywhere else Enter adds a line, as on phones.
+ */
+export function enterSendsChat () {
+  if (isWebView() || isPhoneDevice()) return false
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(pointer: fine)').matches
+}
 
 /**
  * Inline chat composer for ChatRoom — creates chat posts with draft persistence.
@@ -159,6 +173,7 @@ function ChatEditorInner ({
   // Formatting toolbar is hidden by default; the CaseSensitive button in the composer toggles it
   const [showToolbar, setShowToolbar] = useState(false)
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
+  const [composerFocused, setComposerFocused] = useState(false)
 
   const setCurrentPost = useCallback((value) => {
     if (typeof value === 'function') {
@@ -537,6 +552,27 @@ function ChatEditorInner ({
     save()
   }, [isValid, loading, save])
 
+  // Decided once per mount: HyloEditor binds its key handlers when it is created
+  const enterSends = useMemo(() => enterSendsChat(), [])
+  // Enter never adds a line where it sends, even when there is nothing to send yet
+  const handleEnter = useEventCallback(() => {
+    doSave()
+    return true
+  })
+  const handleComposerFocus = useEventCallback(() => {
+    setComposerFocused(true)
+    if (onComposerFocus) onComposerFocus()
+  })
+  const handleComposerBlur = useEventCallback(() => {
+    setComposerFocused(false)
+    if (onComposerBlur) onComposerBlur()
+  })
+  const sendHint = enterSends
+    ? t('Enter to send, Shift-Enter for a new line')
+    : isMobile.any
+      ? undefined
+      : t(navigator.platform.includes('Mac') ? 'Option-Enter to send' : 'Alt-Enter to send')
+
   useImperativeHandle(ref, () => ({
     submit: () => doSave(),
     resetToInitial: () => reset()
@@ -610,10 +646,11 @@ function ChatEditorInner ({
                   placeholder={t('Chat with {{groupName}}', { groupName: currentGroup?.name })}
                   onUpdate={handleDetailsChange}
                   onAltEnter={doSave}
+                  onEnter={enterSends ? handleEnter : undefined}
                   onAddTopic={handleAddTopic}
                   onAddLink={handleAddLinkPreview}
-                  onFocus={onComposerFocus}
-                  onBlur={onComposerBlur}
+                  onFocus={handleComposerFocus}
+                  onBlur={handleComposerBlur}
                   contentHTML={editorInitialContent}
                   groupIds={groupIds}
                   showMenu={showToolbar}
@@ -643,7 +680,8 @@ function ChatEditorInner ({
             type='button'
             onClick={doSave}
             disabled={!canSubmit}
-            title={!isValid ? invalidMessage.replace(/<br \/>/g, ', ') : undefined}
+            title={!isValid ? invalidMessage.replace(/<br \/>/g, ', ') : sendHint}
+            aria-keyshortcuts={enterSends ? 'Enter' : 'Alt+Enter'}
             className={cn(
               'p-1.5 shrink-0 rounded-lg border transition-colors',
               canSubmit
@@ -688,6 +726,11 @@ function ChatEditorInner ({
           onUploadError={handleUploadError}
         />
       </div>
+      {enterSends && composerFocused && hasDescription && (
+        <div className='absolute -bottom-4 right-2 text-[10px] leading-none text-foreground/40 pointer-events-none' data-testid='chat-send-hint'>
+          {sendHint}
+        </div>
+      )}
     </div>
   )
 }

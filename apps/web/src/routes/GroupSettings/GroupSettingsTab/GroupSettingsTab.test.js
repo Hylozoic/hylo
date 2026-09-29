@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import GroupSettingsTab from './GroupSettingsTab'
 
 describe('GroupSettingsTab', () => {
@@ -45,6 +45,25 @@ describe('GroupSettingsTab', () => {
 
     expect(screen.getByText('Current settings up to date')).toBeInTheDocument()
     expect(screen.getByText('Save Changes')).toBeInTheDocument()
+  })
+
+  it('saves the Introduction template members start from', async () => {
+    const updateGroupSettings = jest.fn()
+    const { container } = renderComponent({
+      group: { ...group, location: '', settings: { introTemplate: 'Say hello' } },
+      currentUser: {},
+      updateGroupSettings
+    })
+    const field = container.querySelector('#introTemplateField')
+    expect(field).toHaveValue('Say hello')
+    expect(screen.getByText('Introduction template')).toBeInTheDocument()
+
+    fireEvent.change(field, { target: { value: 'Tell us where you farm' } })
+    fireEvent.click(screen.getByText('Save Changes'))
+
+    await waitFor(() => expect(updateGroupSettings).toHaveBeenCalledWith(expect.objectContaining({
+      settings: expect.objectContaining({ introTemplate: 'Tell us where you farm' })
+    })))
   })
 
   it('updates state and button when changes are made', () => {

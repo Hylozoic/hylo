@@ -527,6 +527,8 @@ describe('Notification', function () {
         const introduceUrl = new URL(opts.data.introduce_url)
         expect(introduceUrl.pathname).to.match(/^\/groups\/my-group\//)
         expect(introduceUrl.searchParams.get('create')).to.equal('post')
+        expect(introduceUrl.searchParams.get('newPostType')).to.equal('discussion')
+        expect(introduceUrl.searchParams.get('template')).to.equal('intro')
         expect(introduceUrl.searchParams.get('ctt')).to.equal('approved_join_request_introduce_email')
       })
 

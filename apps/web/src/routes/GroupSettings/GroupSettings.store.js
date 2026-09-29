@@ -97,6 +97,7 @@ export function fetchGroupSettings (slug) {
             layout
             autoAddMembers
             showPaywallPreview
+            introTemplate
           }
           type
           parentId
@@ -310,6 +311,7 @@ export function updateGroupSettings (id, changes) {
             showPostNoticesInChat
             layout
             autoAddMembers
+            introTemplate
           }
           agreements {
             items {

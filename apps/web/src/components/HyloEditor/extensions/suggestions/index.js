@@ -20,11 +20,21 @@ function normalizeItems (props, extras = {}) {
   }
 }
 
+// Editors with an @mention or #topic list open. While one is open, Enter
+// belongs to the list (it picks the highlighted suggestion), never to a
+// composer that sends on Enter.
+const editorsWithOpenSuggestions = new WeakSet()
+
+export function hasOpenSuggestions (editor) {
+  return !!editor && editorsWithOpenSuggestions.has(editor)
+}
+
 export default {
   render: (suggestionsThemeName = 'suggestions', onLoadMore) => {
     let component
     let popup
     let exited = false
+    let activeEditor = null
 
     const createPopup = clientRect => {
       const tippyOptions = {
@@ -104,6 +114,8 @@ export default {
     return {
       onBeforeStart (props) {
         exited = false
+        activeEditor = props.editor
+        if (activeEditor) editorsWithOpenSuggestions.add(activeEditor)
         mountOrUpdate(props, { loading: true })
       },
 
@@ -159,6 +171,10 @@ export default {
 
       onExit () {
         exited = true
+        if (activeEditor) {
+          editorsWithOpenSuggestions.delete(activeEditor)
+          activeEditor = null
+        }
         if (popup) {
           popup[0].destroy()
           popup = null

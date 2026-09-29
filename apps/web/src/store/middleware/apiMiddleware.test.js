@@ -75,6 +75,11 @@ describe('isTransientApiError', () => {
     expect(isTransientApiError({ response: { status: 404 } })).toBe(false)
     expect(isTransientApiError(new Error('GraphQL error'))).toBe(false)
   })
+
+  it('is true for a request that got no answer, even when it came back as a response', () => {
+    expect(isTransientApiError({ response: { status: 0 } })).toBe(true)
+    expect(isTransientApiError({ response: { status: 503 } })).toBe(true)
+  })
 })
 
 describe('apiMiddleware', () => {
