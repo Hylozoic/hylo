@@ -1087,6 +1087,8 @@
   "Join Question Responses": "प्रश्न उत्तरों में शामिल हों",
   "Join Questions": "प्रश्नों में शामिल हों",
   "Join Request Approved": "शामिल होने का अनुरोध स्वीकृत",
+  "Your invitation was accepted": "आपका निमंत्रण स्वीकार किया गया",
+  "<strong>{{name}}</strong> joined {{groupName}}, say hi": "<strong>{{name}}</strong> {{groupName}} में शामिल हुए, नमस्ते कहें",
   "Join Requests": "शामिल होने के अनुरोध",
   "Join Round": "राउंड में शामिल हों",
   "Join group": "समूह में शामिल हों",

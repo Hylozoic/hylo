@@ -1087,6 +1087,8 @@
   "Join Question Responses": "Unir respostas de perguntas",
   "Join Questions": "Unir perguntas",
   "Join Request Approved": "Solicitação de participação aprovada",
+  "Your invitation was accepted": "Seu convite foi aceito",
+  "<strong>{{name}}</strong> joined {{groupName}}, say hi": "<strong>{{name}}</strong> entrou em {{groupName}}, diga oi",
   "Join Requests": "Solicitações de participação",
   "Join Round": "Junte-se à Rodada",
   "Join group": "Participar do grupo",

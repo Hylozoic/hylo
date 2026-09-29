@@ -86,6 +86,8 @@ exports.es = {
     ? `${actor.get('name')} te ha invitado a unirte al espacio ${groupName} en ${parentGroupName}`
     : `${actor.get('name')} te ha invitado a unirte a ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} aceptó tu invitación para unirse ${groupName}`,
+  // Someone joined through your invitation (D47)
+  textForInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} se unió a ${groupName}, ¡salúdale!`,
   textForGroupChildGroupInvite: ({ actor, parentGroup, childGroup }) => `${actor.get('name')} invitó a tu grupo ${childGroup.get('name')} a unirse a su grupo ${parentGroup.get('name')}`,
   textForGroupChildGroupInviteAcceptedParentModerator: ({ actor, parentGroup, childGroup }) => `${actor.get('name')} aceptó su invitación de su grupo ${childGroup.get('name')} para unirse a su grupo ${parentGroup.get('name')}`,
   textForGroupChildGroupInviteAcceptedChildModerator: ({ actor, parentGroup, childGroup }) => `${actor.get('name')} aceptó la invitación de su grupo ${childGroup.get('name')} para unirse a su grupo. ${parentGroup.get('name')}`,

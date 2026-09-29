@@ -1120,6 +1120,8 @@
   "Join Question Responses": "Join Question Responses",
   "Join Questions": "Join Questions",
   "Join Request Approved": "Join Request Approved",
+  "Your invitation was accepted": "Your invitation was accepted",
+  "<strong>{{name}}</strong> joined {{groupName}}, say hi": "<strong>{{name}}</strong> joined {{groupName}}, say hi",
   "Join Requests": "Join Requests",
   "Join Round": "Join Round",
   "Join group": "Join group",

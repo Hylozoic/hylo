@@ -201,6 +201,10 @@ module.exports = bookshelf.Model.extend({
     return getLocaleStrings(locale).textForMemberJoinedGroup({ group, actor })
   },
 
+  textForInvitationAccepted: function (group, actor, locale) {
+    return getLocaleStrings(locale).textForInvitationAccepted({ actor, groupName: group.get('name') })
+  },
+
   textForPostModeratedFulfillment: function (post, actor, reason, locale) {
     return getLocaleStrings(locale).textForPostModeratedFulfillment({ post, actor, reason })
   },

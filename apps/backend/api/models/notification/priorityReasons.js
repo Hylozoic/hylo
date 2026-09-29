@@ -31,5 +31,6 @@ export const PRIORITY_REASONS = [
   'trackEnrollment',
   'fundingRoundNewSubmission',
   'fundingRoundPhaseTransition',
-  'fundingRoundReminder'
+  'fundingRoundReminder',
+  'invitationAccepted'
 ]

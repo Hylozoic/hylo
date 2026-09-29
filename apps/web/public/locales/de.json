@@ -1087,6 +1087,8 @@
   "Join Question Responses": "Antworten auf Beitrittsfragen",
   "Join Questions": "Beitrittsfragen",
   "Join Request Approved": "Beitrittsanfrage genehmigt",
+  "Your invitation was accepted": "Deine Einladung wurde angenommen",
+  "<strong>{{name}}</strong> joined {{groupName}}, say hi": "<strong>{{name}}</strong> ist {{groupName}} beigetreten, sag Hallo",
   "Join Requests": "Beitrittsanfragen",
   "Join Round": "Runde beitreten",
   "Join group": "Gruppe beitreten",

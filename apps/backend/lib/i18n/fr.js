@@ -91,6 +91,8 @@ exports.fr = {
     ? `${actor.get('name')} vous a invité·e à les rejoindre dans l'espace ${groupName} de ${parentGroupName}`
     : `${actor.get('name')} vous a invité·e à les rejoindre dans ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} a accepté votre invitation à rejoindre ${groupName}`,
+  // Someone joined through your invitation (D47)
+  textForInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} a rejoint ${groupName}, dites bonjour`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} a invité votre groupe ${toGroup.get('name')} à former un lien de pairs avec ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} a accepté le lien de pairs entre ${fromGroup.get('name')} et ${toGroup.get('name')}`,
   textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName

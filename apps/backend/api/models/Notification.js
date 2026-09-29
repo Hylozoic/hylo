@@ -78,7 +78,8 @@ const TYPE = {
   TrackEnrollment: 'trackEnrollment',
   FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
   FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
-  FundingRoundReminder: 'fundingRoundReminder' // Reminder for funding round deadline
+  FundingRoundReminder: 'fundingRoundReminder', // Reminder for funding round deadline
+  InvitationAccepted: 'invitationAccepted' // Someone joined through your invitation
 }
 
 const MEDIUM = {
@@ -217,6 +218,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendFundingRoundPhaseTransitionPush()
       case 'fundingRoundReminder':
         return this.sendFundingRoundReminderPush()
+      case 'invitationAccepted':
+        return this.sendInvitationAcceptedPush()
       default:
         return Promise.resolve()
     }
@@ -510,6 +513,18 @@ module.exports = bookshelf.Model.extend({
       },
       locale
     })
+  },
+
+  // '<Name> joined <group>, say hi' to the person whose invitation they accepted, opening
+  // the new member's profile in the group so they can say hi
+  sendInvitationAcceptedPush: async function () {
+    const group = await this.relations.activity.group().fetch()
+    const actor = await this.relations.activity.actor().fetch()
+    if (!group || !actor) return Promise.resolve()
+    const locale = this.locale()
+    const path = routeToPath(Frontend.Route.profile(actor, group))
+    const alertText = PushNotification.textForInvitationAccepted(group, actor, locale)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendMemberJoinedGroupPush: async function () {

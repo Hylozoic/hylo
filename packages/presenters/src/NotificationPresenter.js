@@ -71,6 +71,8 @@ export const ACTION_FUNDING_ROUND_PHASE_TRANSITION = 'fundingRoundPhaseTransitio
 export const ACTION_FUNDING_ROUND_REMINDER = 'fundingRoundReminder'
 export const ACTION_POST_FULFILLED = 'postFulfilled'
 export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
+// Someone joined a group through the reader's invitation (D47)
+export const ACTION_INVITATION_ACCEPTED = 'invitationAccepted'
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -169,6 +171,8 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> closed your post', { name })
     case ACTION_POST_UNFULFILLED:
       return t('<strong>{{name}}</strong> reopened your post', { name })
+    case ACTION_INVITATION_ACCEPTED:
+      return t('Your invitation was accepted')
     default:
       return null
   }
@@ -267,6 +271,8 @@ export function bodyForNotification (notification, t) {
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary })
+    case ACTION_INVITATION_ACCEPTED:
+      return t('<strong>{{name}}</strong> joined {{groupName}}, say hi', { name, groupName: group?.name })
     default:
       return null
   }
@@ -341,6 +347,7 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
       return primaryPostUrl(post, postOpts)
     }
     case ACTION_MEMBER_JOINED_GROUP:
+    case ACTION_INVITATION_ACCEPTED:
       return personUrl(actor.id, groupSlug)
     case ACTION_TAG: {
       return primaryPostUrl(post, postOpts)
