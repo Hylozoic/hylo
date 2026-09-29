@@ -3,6 +3,7 @@ import { respondToEvent } from './event'
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { spyify, unspyify } from '../../../test/setup/helpers'
+import { noticesSettled } from '../../models/notification/socialNotices'
 
 describe('respondToEvent', () => {
   describe('Queue.classMethod calls', () => {
@@ -15,7 +16,8 @@ describe('respondToEvent', () => {
       spyify(Queue, 'classMethod', () => Promise.resolve())
     })
 
-    afterEach(() => {
+    afterEach(async () => {
+      await noticesSettled()
       unspyify(Queue, 'classMethod')
     })
 
@@ -293,9 +295,15 @@ describe('respondToEvent', () => {
 
     afterEach(() => unspyify(Queue, 'classMethod'))
 
+    // The host's notice is sent after the RSVP responds
+    const respond = async (...args) => {
+      await respondToEvent(...args)
+      await noticesSettled()
+    }
+
     it('tells the host once per event, counting everyone who answers', async () => {
-      await respondToEvent(guests[0].id, event.id, EventInvitation.RESPONSE.YES)
-      await respondToEvent(guests[1].id, event.id, EventInvitation.RESPONSE.INTERESTED)
+      await respond(guests[0].id, event.id, EventInvitation.RESPONSE.YES)
+      await respond(guests[1].id, event.id, EventInvitation.RESPONSE.INTERESTED)
 
       const activities = await rsvpActivities()
       expect(activities.length).to.equal(1)
@@ -308,9 +316,9 @@ describe('respondToEvent', () => {
     })
 
     it('does not notify again when the same person changes their answer', async () => {
-      await respondToEvent(guests[0].id, event.id, EventInvitation.RESPONSE.YES)
-      await respondToEvent(guests[0].id, event.id, EventInvitation.RESPONSE.NO)
-      await respondToEvent(guests[0].id, event.id, EventInvitation.RESPONSE.INTERESTED)
+      await respond(guests[0].id, event.id, EventInvitation.RESPONSE.YES)
+      await respond(guests[0].id, event.id, EventInvitation.RESPONSE.NO)
+      await respond(guests[0].id, event.id, EventInvitation.RESPONSE.INTERESTED)
 
       const activities = await rsvpActivities()
       expect(activities.length).to.equal(1)
@@ -318,12 +326,22 @@ describe('respondToEvent', () => {
     })
 
     it("does not notify for 'no'", async () => {
-      await respondToEvent(guests[0].id, event.id, EventInvitation.RESPONSE.NO)
+      await respond(guests[0].id, event.id, EventInvitation.RESPONSE.NO)
       expect(await rsvpActivities()).to.have.length(0)
     })
 
+    it('does not notify between people who have blocked each other', async () => {
+      await BlockedUser.create(host.id, guests[1].id)
+      try {
+        await respond(guests[1].id, event.id, EventInvitation.RESPONSE.YES)
+        expect(await rsvpActivities()).to.have.length(0)
+      } finally {
+        await bookshelf.knex('blocked_users').del()
+      }
+    })
+
     it('does not notify the host about their own RSVP', async () => {
-      await respondToEvent(host.id, event.id, EventInvitation.RESPONSE.YES)
+      await respond(host.id, event.id, EventInvitation.RESPONSE.YES)
       expect(await rsvpActivities()).to.have.length(0)
     })
   })

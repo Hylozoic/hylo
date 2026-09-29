@@ -2,7 +2,7 @@ import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
 import { TextHelpers } from '@hylo/shared'
 import { notifyAboutMessage, sendDigests } from './comment/notifications'
-import { notifyReaction } from './notification/socialNotices'
+import { inBackground, notifyReaction } from './notification/socialNotices'
 import EnsureLoad from './mixins/EnsureLoad'
 import * as RichText from '../services/RichText'
 
@@ -90,8 +90,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }
       return false
     })
-    // D15: tell the comment's author once the reaction is saved (notification/socialNotices)
-    if (result) await notifyReaction({ comment: this, userId })
+    // D15: tell the comment's author once the reaction is saved, after the reaction responds
+    if (result) inBackground(notifyReaction({ comment: this, userId }))
     return result
   },
 

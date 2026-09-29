@@ -5,7 +5,8 @@
 // Channels come from signalClasses: reactions and RSVPs are in-app plus a grouped push,
 // votes are in-app only, and none of them email.
 //
-// Creating a notice never fails the action that caused it; errors are reported.
+// Creating a notice never fails the action that caused it; errors are reported. Callers
+// don't wait for it either (inBackground), so a reaction, RSVP or vote responds at once.
 import sentry from '../../../lib/sentry'
 import { REACTION_NOTICES, isInVariant } from '../../../lib/experiments'
 import { groupKeyFor } from './grouping'
@@ -34,6 +35,18 @@ async function saveNotice ({ readerId, actorId, postId, commentId, reason, meta 
   }])
   return activity || null
 }
+
+// Notices still being saved, so tests can wait for them (noticesSettled)
+const pending = new Set()
+
+export function inBackground (promise) {
+  const settled = Promise.resolve(promise)
+    .catch(err => sentry.error(err))
+    .finally(() => pending.delete(settled))
+  pending.add(settled)
+}
+
+export const noticesSettled = () => Promise.all([...pending])
 
 const reported = fn => async (...args) => {
   try {

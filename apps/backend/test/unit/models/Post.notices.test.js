@@ -4,6 +4,7 @@ import factories from '../../setup/factories'
 import { mockify, unspyify } from '../../setup/helpers'
 import { REACTION_NOTICES, TABLE as ASSIGNMENTS } from '../../../lib/experiments'
 import { notifyProposalsClosed, sendClosingSoonNotices, votingResult } from '../../../api/models/post/proposalNotices'
+import { noticesSettled } from '../../../api/models/notification/socialNotices'
 
 const activitiesWithReason = async (reason, where = {}) => (await Activity.query(q => {
   q.where(where)
@@ -60,8 +61,11 @@ describe('Post notices', () => {
       await assignVariant(author.id, 'notices')
       const post = await postBy(author)
       await post.addReaction(fans[0].id, '👍')
+      await noticesSettled()
       await post.addReaction(fans[1].id, '🎉')
+      await noticesSettled()
       await post.addReaction(fans[1].id, '👍')
+      await noticesSettled()
 
       const activities = await activitiesWithReason('reaction', { reader_id: author.id })
       expect(activities.length).to.equal(1)
@@ -74,7 +78,9 @@ describe('Post notices', () => {
       await assignVariant(author.id, 'notices')
       const post = await postBy(author)
       await post.addReaction(fans[0].id, '👍')
+      await noticesSettled()
       await post.addReaction(fans[1].id, '👍')
+      await noticesSettled()
 
       const [activity] = await activitiesWithReason('reaction', { reader_id: author.id })
       const push = await Notification.where({ activity_id: activity.id, medium: Push }).fetch({
@@ -91,12 +97,14 @@ describe('Post notices', () => {
       await assignVariant(author.id, 'control')
       const post = await postBy(author)
       await post.addReaction(fans[0].id, '👍')
+      await noticesSettled()
       expect(await activitiesWithReason('reaction')).to.have.length(0)
     })
 
     it('does nothing for a self-reaction, and does not assign the author', async () => {
       const post = await postBy(author)
       await post.addReaction(author.id, '👍')
+      await noticesSettled()
       expect(await activitiesWithReason('reaction')).to.have.length(0)
       expect(await bookshelf.knex(ASSIGNMENTS).where({ subject_id: author.id }).first()).to.not.exist
     })
@@ -105,13 +113,28 @@ describe('Post notices', () => {
       await assignVariant(author.id, 'notices')
       const chat = await postBy(author, { type: 'chat' })
       await chat.addReaction(fans[0].id, '👍')
+      await noticesSettled()
       expect(await activitiesWithReason('reaction')).to.have.length(0)
+    })
+
+    it('does nothing between people who have blocked each other', async () => {
+      await assignVariant(author.id, 'notices')
+      const post = await postBy(author)
+      await BlockedUser.create(author.id, fans[2].id)
+      try {
+        await post.addReaction(fans[2].id, '👍')
+        await noticesSettled()
+        expect(await activitiesWithReason('reaction')).to.have.length(0)
+      } finally {
+        await bookshelf.knex('blocked_users').del()
+      }
     })
 
     it('does not notify when a reaction is removed', async () => {
       await assignVariant(author.id, 'notices')
       const post = await postBy(author)
       await post.addReaction(fans[0].id, '👍')
+      await noticesSettled()
       await bookshelf.knex('notifications').del()
       await bookshelf.knex('activities').del()
       await post.deleteReaction(fans[0].id, '👍')
@@ -139,7 +162,11 @@ describe('Post notices', () => {
       return { post, yes: yes.id || yes, no: no.id || no }
     }
 
-    const vote = (post, user, optionId) => post.addProposalVote({ userId: user.id, optionId })
+    // The author's notice is sent after the vote responds
+    const vote = async (post, user, optionId) => {
+      await post.addProposalVote({ userId: user.id, optionId })
+      await noticesSettled()
+    }
 
     describe('votes', () => {
       it('tell the author in-app only, grouped per proposal', async () => {

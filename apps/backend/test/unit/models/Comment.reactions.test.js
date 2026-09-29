@@ -3,6 +3,7 @@ import setup from '../../setup'
 import factories from '../../setup/factories'
 import { mockify, unspyify } from '../../setup/helpers'
 import { REACTION_NOTICES, TABLE as ASSIGNMENTS } from '../../../lib/experiments'
+import { noticesSettled } from '../../../api/models/notification/socialNotices'
 
 // D15: reaction notices run as an experiment; the stored variant decides the arm
 const assignVariant = (userId, variant) => bookshelf.knex(ASSIGNMENTS).insert({
@@ -48,7 +49,10 @@ describe('Comment#addReaction notices (D15)', () => {
     const comment = await commentBy(author)
 
     await comment.addReaction(fan.id, '👍')
+
+    await noticesSettled()
     await comment.addReaction(otherFan.id, '🎉')
+    await noticesSettled()
 
     const activities = await reactionActivitiesFor(author.id)
     expect(activities.length).to.equal(1)
@@ -63,6 +67,7 @@ describe('Comment#addReaction notices (D15)', () => {
     await assignVariant(author.id, 'notices')
     const comment = await commentBy(author)
     await comment.addReaction(fan.id, '👍')
+    await noticesSettled()
     const [activity] = await reactionActivitiesFor(author.id)
     const media = (await Notification.where({ activity_id: activity.id }).fetchAll()).pluck('medium').sort()
     expect(media).to.deep.equal([Notification.MEDIUM.InApp, Notification.MEDIUM.Push].sort())
@@ -72,6 +77,7 @@ describe('Comment#addReaction notices (D15)', () => {
     const comment = await commentBy(author)
     await assignVariant(author.id, 'control')
     await comment.addReaction(fan.id, '👍')
+    await noticesSettled()
 
     expect(await reactionActivitiesFor(author.id)).to.have.length(0)
     const row = await bookshelf.knex(ASSIGNMENTS).where({ subject_id: author.id }).first()
@@ -81,6 +87,7 @@ describe('Comment#addReaction notices (D15)', () => {
   it('records the assignment the first time someone reacts', async () => {
     const comment = await commentBy(author)
     await comment.addReaction(fan.id, '👍')
+    await noticesSettled()
     const row = await bookshelf.knex(ASSIGNMENTS).where({ experiment: REACTION_NOTICES.name, subject_id: author.id }).first()
     expect(row).to.exist
     expect(['control', 'notices']).to.include(row.variant)
@@ -90,6 +97,7 @@ describe('Comment#addReaction notices (D15)', () => {
     await assignVariant(author.id, 'notices')
     const comment = await commentBy(author)
     await comment.addReaction(author.id, '👍')
+    await noticesSettled()
     expect(await reactionActivitiesFor(author.id)).to.have.length(0)
   })
 
@@ -99,14 +107,29 @@ describe('Comment#addReaction notices (D15)', () => {
       const otherPost = await factories.post({ user_id: fan.id, type }).save()
       const comment = await commentBy(author, otherPost)
       await comment.addReaction(fan.id, '👍')
+      await noticesSettled()
     }
     expect(await reactionActivitiesFor(author.id)).to.have.length(0)
+  })
+
+  it('does nothing between people who have blocked each other', async () => {
+    await assignVariant(author.id, 'notices')
+    const comment = await commentBy(author)
+    await BlockedUser.create(fan.id, author.id)
+    try {
+      await comment.addReaction(fan.id, '👍')
+      await noticesSettled()
+      expect(await reactionActivitiesFor(author.id)).to.have.length(0)
+    } finally {
+      await bookshelf.knex('blocked_users').del()
+    }
   })
 
   it('does not notify when a reaction is removed', async () => {
     await assignVariant(author.id, 'notices')
     const comment = await commentBy(author)
     await comment.addReaction(fan.id, '👍')
+    await noticesSettled()
     await bookshelf.knex('notifications').del()
     await bookshelf.knex('activities').del()
 
@@ -120,6 +143,7 @@ describe('Comment#addReaction notices (D15)', () => {
     mockify(Activity, 'saveForReasons', () => Promise.reject(new Error('boom')))
     try {
       expect(await comment.addReaction(fan.id, '👍')).to.equal(comment)
+      await noticesSettled()
     } finally {
       unspyify(Activity, 'saveForReasons')
     }

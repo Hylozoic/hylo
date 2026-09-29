@@ -126,7 +126,8 @@ test('reactions to your post group into one notice in the bell', async ({ page, 
 
   // Reaction notices run as an experiment (D15); an author in the control arm gets none
   const grouped = page.getByText(/and 1 other reacted to your post/)
-  const shown = await grouped.first().isVisible({ timeout: 30000 }).catch(() => false)
+  // Notices are saved just after the reaction responds, so wait for the bell to show it
+  const shown = await grouped.first().waitFor({ state: 'visible', timeout: 30000 }).then(() => true, () => false)
   test.skip(!shown, 'the e2e user is in the control arm of the reaction_notices experiment')
 
   await page.screenshot({ path: testInfo.outputPath('grouped-reaction-notice.png'), animations: 'disabled' })

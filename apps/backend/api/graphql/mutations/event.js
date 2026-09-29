@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { values, includes } from 'lodash/fp'
-import { notifyRsvp } from '../../models/notification/socialNotices'
+import { inBackground, notifyRsvp } from '../../models/notification/socialNotices'
 
 export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
@@ -40,7 +40,7 @@ export async function respondToEvent (userId, eventId, response) {
   }
 
   // D45: tell the host, grouped per event (the host's own RSVP notifies no one)
-  if (becameGoing) await notifyRsvp({ event, userId, response })
+  if (becameGoing) inBackground(notifyRsvp({ event, userId, response }))
 
   return { success: true }
 }

@@ -15,7 +15,7 @@ import { incrementNewPostCount } from './post/createPost'
 import rehostAndAttachImages from './post/rehostAndAttachImages'
 import upsertChatActivityNoticeForPost from './post/upsertChatActivityNotice'
 import { conversationParticipants } from './notification/rules/adaptiveImportant'
-import { notifyProposalVote, notifyReaction } from './notification/socialNotices'
+import { inBackground, notifyProposalVote, notifyReaction } from './notification/socialNotices'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -506,8 +506,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async addProposalVote ({ userId, optionId }) {
     const result = await ProposalVote.forge({ post_id: this.id, user_id: userId, option_id: optionId, created_at: new Date() }).save()
     Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
-    // D46: a grouped in-app notice to the author (notification/socialNotices)
-    await notifyProposalVote({ post: this, userId })
+    // D46: a grouped in-app notice to the author, sent after the vote responds
+    inBackground(notifyProposalVote({ post: this, userId }))
     return result
   },
 
@@ -826,8 +826,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
       return this
     })
-    // D15: tell the author once the reaction is saved (notification/socialNotices)
-    if (result) await notifyReaction({ post: this, userId })
+    // D15: tell the author once the reaction is saved, after the reaction responds
+    if (result) inBackground(notifyReaction({ post: this, userId }))
     return result
   },
 
