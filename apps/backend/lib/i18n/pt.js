@@ -97,6 +97,9 @@ exports.pt = {
     ? `${actor.get('name')} pediu para entrar em ${groupName} em ${parentGroupName}`
     : `${actor.get('name')} pediu para entrar em ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Novo membro entrou em ${group.get('name')}: ${actor.get('name')}`,
+  joinRequestReceivedSubject: (groupName) => `Seu pedido para entrar em ${groupName} foi enviado`,
+  joinRequestDeclinedSubject: (groupName) => `Sobre seu pedido para entrar em ${groupName}`,
+  joinRequestUnansweredSubject: (groupName) => `Seu pedido para entrar em ${groupName} ainda aguarda resposta`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

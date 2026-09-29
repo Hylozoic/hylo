@@ -97,6 +97,9 @@ exports.de = {
     ? `${actor.get('name')} möchte ${groupName} in ${parentGroupName} beitreten`
     : `${actor.get('name')} möchte ${groupName} beitreten`,
   textForMemberJoinedGroup: ({ group, actor }) => `Neues Mitglied in ${group.get('name')}: ${actor.get('name')}`,
+  joinRequestReceivedSubject: (groupName) => `Deine Anfrage, ${groupName} beizutreten, wurde gesendet`,
+  joinRequestDeclinedSubject: (groupName) => `Zu deiner Anfrage, ${groupName} beizutreten`,
+  joinRequestUnansweredSubject: (groupName) => `Deine Anfrage, ${groupName} beizutreten, wartet noch auf Antwort`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

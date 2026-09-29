@@ -812,6 +812,43 @@ msgstr "%(subject_formatted)s"
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr "Votre demande pour rejoindre %(group_pill)s a été approuvée par %(approver_pill)s !"
 
+#, python-format
+msgid "Hi %(first_name_var)s,"
+msgstr "Bonjour %(first_name_var)s,"
+
+#, python-format
+msgid "Your request to join %(group_pill)s was sent."
+msgstr "Votre demande pour rejoindre %(group_pill)s a été envoyée."
+
+msgid "The group's stewards look at each request themselves, so an answer can take a few days. We'll let you know by email and in Hylo as soon as they answer."
+msgstr "Les responsables du groupe examinent chaque demande eux-mêmes, une réponse peut donc prendre quelques jours. Nous vous préviendrons par e-mail et dans Hylo dès qu'ils auront répondu."
+
+msgid "See the group"
+msgstr "Voir le groupe"
+
+msgid "While you wait, you can also find open groups to join right away."
+msgstr "En attendant, vous pouvez aussi trouver des groupes ouverts à rejoindre tout de suite."
+
+msgid "Explore groups"
+msgstr "Découvrir des groupes"
+
+#, python-format
+msgid "Your request to join %(group_pill)s wasn't approved this time."
+msgstr "Votre demande pour rejoindre %(group_pill)s n'a pas été acceptée cette fois-ci."
+
+msgid "Each group decides who joins in its own way. There are many other groups on Hylo you can join right away."
+msgstr "Chaque groupe décide à sa façon qui le rejoint. Il existe beaucoup d'autres groupes sur Hylo que vous pouvez rejoindre tout de suite."
+
+#, python-format
+msgid "Your request to join %(group_pill)s has been waiting %(days_waiting_var)s days without an answer."
+msgstr "Votre demande pour rejoindre %(group_pill)s attend une réponse depuis %(days_waiting_var)s jours."
+
+msgid "You can keep waiting: your request stays open, and we'll tell you when the stewards answer."
+msgstr "Vous pouvez continuer à attendre : votre demande reste ouverte, et nous vous préviendrons quand les responsables répondront."
+
+msgid "Or join one of these open groups today:"
+msgstr "Ou rejoignez dès aujourd'hui l'un de ces groupes ouverts :"
+
 msgid "Introduce yourself to the group"
 msgstr "Présentez-vous au groupe"
 

@@ -24,6 +24,9 @@ function presentPost (post) {
 }
 
 const NOTIFICATION_TEXT_MAX = 76
+
+// The Group Explorer, where people find open groups to join
+const GROUP_EXPLORER_URL = '/public/groups'
 export function truncateHTML (html) {
   if (!html) return ''
 
@@ -71,6 +74,10 @@ export const ACTION_FUNDING_ROUND_PHASE_TRANSITION = 'fundingRoundPhaseTransitio
 export const ACTION_FUNDING_ROUND_REMINDER = 'fundingRoundReminder'
 export const ACTION_POST_FULFILLED = 'postFulfilled'
 export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
+// D14: notices to someone who asked to join a group
+export const ACTION_ACKNOWLEDGED_JOIN_REQUEST = 'acknowledgedJoinRequest'
+export const ACTION_DECLINED_JOIN_REQUEST = 'declinedJoinRequest'
+export const ACTION_UNANSWERED_JOIN_REQUEST = 'unansweredJoinRequest'
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -169,6 +176,12 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> closed your post', { name })
     case ACTION_POST_UNFULFILLED:
       return t('<strong>{{name}}</strong> reopened your post', { name })
+    case ACTION_ACKNOWLEDGED_JOIN_REQUEST:
+      return t('Request sent to <strong>{{groupName}}</strong>', { groupName: group?.name })
+    case ACTION_DECLINED_JOIN_REQUEST:
+      return t('About your request to join <strong>{{groupName}}</strong>', { groupName: group?.name })
+    case ACTION_UNANSWERED_JOIN_REQUEST:
+      return t('No answer yet from <strong>{{groupName}}</strong>', { groupName: group?.name })
     default:
       return null
   }
@@ -267,6 +280,12 @@ export function bodyForNotification (notification, t) {
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary })
+    case ACTION_ACKNOWLEDGED_JOIN_REQUEST:
+      return t("Its stewards review each request. We'll let you know when they answer.")
+    case ACTION_DECLINED_JOIN_REQUEST:
+      return t("Your request wasn't approved this time. There are other groups you can join.")
+    case ACTION_UNANSWERED_JOIN_REQUEST:
+      return t('Your request has been waiting two weeks. You can keep waiting, or find an open group to join now.')
     default:
       return null
   }
@@ -359,12 +378,25 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
       return primaryPostUrl(post, postOpts)
+    case ACTION_ACKNOWLEDGED_JOIN_REQUEST: {
+      const parentSlug = group?.parentGroup?.slug || otherGroupSlug
+      if (parentSlug && groupSlug) {
+        return spaceUrl(parentSlug, localSpaceSlug(parentSlug, groupSlug), 'about')
+      }
+      return groupUrl(groupSlug, 'about')
+    }
+    case ACTION_DECLINED_JOIN_REQUEST:
+    case ACTION_UNANSWERED_JOIN_REQUEST:
+      return GROUP_EXPLORER_URL
   }
 }
 
 export function imageForNotification (notification) {
   const { activity: { action, actor, group } } = notification
   switch (action) {
+    case ACTION_ACKNOWLEDGED_JOIN_REQUEST:
+    case ACTION_DECLINED_JOIN_REQUEST:
+    case ACTION_UNANSWERED_JOIN_REQUEST:
     case ACTION_MEMBER_JOINED_GROUP:
     case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
     case ACTION_FUNDING_ROUND_PHASE_TRANSITION:

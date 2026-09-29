@@ -76,7 +76,11 @@ export const EMAIL_TYPES = {
   sendTrackAccessPurchased: essential('track purchase receipt'),
   sendMessageDigest: bulk('dm_email', 'direct message digest'),
   sendCommentDigest: bulk('comment_email', 'comment digest, including "You were mentioned in"'),
-  sendChatDigest: bulk('group_digest', 'hourly chat digest (D72)')
+  sendChatDigest: bulk('group_digest', 'hourly chat digest (D72)'),
+  // D14: to someone who asked to join a group (they aren't a member yet)
+  sendJoinRequestReceived: essential('your request to join a group arrived, and what happens next'),
+  sendJoinRequestDeclined: essential('your request to join a group was not approved'),
+  sendJoinRequestUnanswered: bulk('settings_page', 'your request to join has had no answer for 14 days, with open groups to try')
 }
 
 export const EMAIL_KINDS = ['essential', 'bulk']

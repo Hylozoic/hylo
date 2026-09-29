@@ -31,5 +31,9 @@ export const PRIORITY_REASONS = [
   'trackEnrollment',
   'fundingRoundNewSubmission',
   'fundingRoundPhaseTransition',
-  'fundingRoundReminder'
+  'fundingRoundReminder',
+  // D14: to the person who asked to join. Named so no earlier label is a prefix of them
+  'acknowledgedJoinRequest',
+  'declinedJoinRequest',
+  'unansweredJoinRequest'
 ]

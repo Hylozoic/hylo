@@ -812,6 +812,43 @@ msgstr "%(subject_formatted)s"
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr "आपकी %(group_pill)s में शामिल होने की अनुरोध %(approver_pill)s ने स्वीकार कर ली!"
 
+#, python-format
+msgid "Hi %(first_name_var)s,"
+msgstr "नमस्ते %(first_name_var)s,"
+
+#, python-format
+msgid "Your request to join %(group_pill)s was sent."
+msgstr "%(group_pill)s में शामिल होने का आपका अनुरोध भेज दिया गया है।"
+
+msgid "The group's stewards look at each request themselves, so an answer can take a few days. We'll let you know by email and in Hylo as soon as they answer."
+msgstr "समूह के संचालक हर अनुरोध को खुद देखते हैं, इसलिए जवाब आने में कुछ दिन लग सकते हैं। जैसे ही वे जवाब देंगे, हम आपको ईमेल और Hylo पर बताएंगे।"
+
+msgid "See the group"
+msgstr "समूह देखें"
+
+msgid "While you wait, you can also find open groups to join right away."
+msgstr "इंतज़ार के दौरान, आप ऐसे खुले समूह भी ढूंढ सकते हैं जिनमें अभी शामिल हुआ जा सके।"
+
+msgid "Explore groups"
+msgstr "समूह खोजें"
+
+#, python-format
+msgid "Your request to join %(group_pill)s wasn't approved this time."
+msgstr "इस बार %(group_pill)s में शामिल होने का आपका अनुरोध स्वीकृत नहीं हुआ।"
+
+msgid "Each group decides who joins in its own way. There are many other groups on Hylo you can join right away."
+msgstr "हर समूह अपने तरीके से तय करता है कि कौन शामिल हो। Hylo पर कई और समूह हैं जिनमें आप अभी शामिल हो सकते हैं।"
+
+#, python-format
+msgid "Your request to join %(group_pill)s has been waiting %(days_waiting_var)s days without an answer."
+msgstr "%(group_pill)s में शामिल होने का आपका अनुरोध %(days_waiting_var)s दिनों से बिना जवाब के इंतज़ार कर रहा है।"
+
+msgid "You can keep waiting: your request stays open, and we'll tell you when the stewards answer."
+msgstr "आप इंतज़ार कर सकते हैं: आपका अनुरोध खुला रहेगा, और जब संचालक जवाब देंगे तो हम आपको बताएंगे।"
+
+msgid "Or join one of these open groups today:"
+msgstr "या आज ही इनमें से किसी खुले समूह में शामिल हों:"
+
 msgid "Introduce yourself to the group"
 msgstr "समूह से अपना परिचय दें"
 

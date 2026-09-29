@@ -17,6 +17,7 @@ import { isChat, isNewPost } from './predicates'
 import { importantAnnouncement, mentionsAlwaysReachYou } from './directSignals'
 import { conversationPasses, quietGroupPasses } from './adaptiveImportant'
 import { inAppOnlyOverride } from './inAppOnly'
+import { nonMemberRequesterOverride } from './nonMemberRequester'
 
 // Phase 1
 const groupInvitationOverride = ctx => {
@@ -27,7 +28,8 @@ const groupInvitationOverride = ctx => {
 
 export const OVERRIDES = [
   groupInvitationOverride,
-  inAppOnlyOverride
+  inAppOnlyOverride,
+  nonMemberRequesterOverride
 ]
 
 // Phase 2

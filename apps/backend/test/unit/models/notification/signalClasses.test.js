@@ -77,8 +77,15 @@ const TODAY = {
   trackEnrollment: ['email', 'push', 'inApp'],
   fundingRoundNewSubmission: ['email', 'push', 'inApp'],
   fundingRoundPhaseTransition: ['email', 'push', 'inApp'],
-  fundingRoundReminder: ['email', 'push', 'inApp']
+  fundingRoundReminder: ['email', 'push', 'inApp'],
+  // D14: to someone who asked to join, who isn't a member (rules/nonMemberRequester)
+  acknowledgedJoinRequest: ['inApp', 'email'],
+  declinedJoinRequest: ['inApp', 'email'],
+  unansweredJoinRequest: ['inApp', 'email']
 }
+
+// Reasons whose media don't depend on a group membership's email and push toggles
+const MEMBERSHIP_INDEPENDENT = ['groupInvitation', 'acknowledgedJoinRequest', 'declinedJoinRequest', 'unansweredJoinRequest']
 
 describe('signalClasses', () => {
   it('gives every priority reason a class', () => {
@@ -160,7 +167,7 @@ describe('signalClasses', () => {
         results[reason] = names(await Activity.generateNotificationMedia(activityFor([reason], off)))
       }
       expect(results).to.deep.equal(mapValues(TODAY, (media, reason) =>
-        reason === 'groupInvitation' ? media : ['inApp']))
+        MEMBERSHIP_INDEPENDENT.includes(reason) ? media : ['inApp']))
     })
   })
 })

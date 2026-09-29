@@ -812,6 +812,43 @@ msgstr "%(subject_formatted)s"
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr "¡Tu solicitud para unirte a %(group_pill)s fue aprobada por %(approver_pill)s!"
 
+#, python-format
+msgid "Hi %(first_name_var)s,"
+msgstr "Hola %(first_name_var)s,"
+
+#, python-format
+msgid "Your request to join %(group_pill)s was sent."
+msgstr "Tu solicitud para unirte a %(group_pill)s fue enviada."
+
+msgid "The group's stewards look at each request themselves, so an answer can take a few days. We'll let you know by email and in Hylo as soon as they answer."
+msgstr "Los administradores del grupo revisan cada solicitud personalmente, así que la respuesta puede tardar unos días. Te avisaremos por correo y en Hylo en cuanto respondan."
+
+msgid "See the group"
+msgstr "Ver el grupo"
+
+msgid "While you wait, you can also find open groups to join right away."
+msgstr "Mientras esperas, también puedes encontrar grupos abiertos a los que unirte ahora mismo."
+
+msgid "Explore groups"
+msgstr "Explorar grupos"
+
+#, python-format
+msgid "Your request to join %(group_pill)s wasn't approved this time."
+msgstr "Tu solicitud para unirte a %(group_pill)s no fue aprobada esta vez."
+
+msgid "Each group decides who joins in its own way. There are many other groups on Hylo you can join right away."
+msgstr "Cada grupo decide a su manera quién se une. Hay muchos otros grupos en Hylo a los que puedes unirte ahora mismo."
+
+#, python-format
+msgid "Your request to join %(group_pill)s has been waiting %(days_waiting_var)s days without an answer."
+msgstr "Tu solicitud para unirte a %(group_pill)s lleva %(days_waiting_var)s días sin respuesta."
+
+msgid "You can keep waiting: your request stays open, and we'll tell you when the stewards answer."
+msgstr "Puedes seguir esperando: tu solicitud sigue abierta y te avisaremos cuando los administradores respondan."
+
+msgid "Or join one of these open groups today:"
+msgstr "O únete hoy a uno de estos grupos abiertos:"
+
 msgid "Introduce yourself to the group"
 msgstr "Preséntate al grupo"
 

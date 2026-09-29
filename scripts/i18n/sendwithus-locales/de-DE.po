@@ -812,6 +812,43 @@ msgstr "%(subject_formatted)s"
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr "Deine Anfrage zum Beitritt zu %(group_pill)s wurde von %(approver_pill)s genehmigt!"
 
+#, python-format
+msgid "Hi %(first_name_var)s,"
+msgstr "Hallo %(first_name_var)s,"
+
+#, python-format
+msgid "Your request to join %(group_pill)s was sent."
+msgstr "Deine Anfrage zum Beitritt zu %(group_pill)s wurde gesendet."
+
+msgid "The group's stewards look at each request themselves, so an answer can take a few days. We'll let you know by email and in Hylo as soon as they answer."
+msgstr "Die Stewards der Gruppe sehen sich jede Anfrage selbst an, daher kann eine Antwort ein paar Tage dauern. Wir sagen dir per E-Mail und in Hylo Bescheid, sobald sie antworten."
+
+msgid "See the group"
+msgstr "Zur Gruppe"
+
+msgid "While you wait, you can also find open groups to join right away."
+msgstr "Während du wartest, kannst du auch offene Gruppen finden, denen du sofort beitreten kannst."
+
+msgid "Explore groups"
+msgstr "Gruppen entdecken"
+
+#, python-format
+msgid "Your request to join %(group_pill)s wasn't approved this time."
+msgstr "Deine Anfrage zum Beitritt zu %(group_pill)s wurde diesmal nicht angenommen."
+
+msgid "Each group decides who joins in its own way. There are many other groups on Hylo you can join right away."
+msgstr "Jede Gruppe entscheidet auf ihre eigene Weise, wer beitritt. Es gibt viele andere Gruppen auf Hylo, denen du sofort beitreten kannst."
+
+#, python-format
+msgid "Your request to join %(group_pill)s has been waiting %(days_waiting_var)s days without an answer."
+msgstr "Deine Anfrage zum Beitritt zu %(group_pill)s wartet seit %(days_waiting_var)s Tagen auf eine Antwort."
+
+msgid "You can keep waiting: your request stays open, and we'll tell you when the stewards answer."
+msgstr "Du kannst weiter warten: Deine Anfrage bleibt offen, und wir sagen dir Bescheid, wenn die Stewards antworten."
+
+msgid "Or join one of these open groups today:"
+msgstr "Oder tritt noch heute einer dieser offenen Gruppen bei:"
+
 msgid "Introduce yourself to the group"
 msgstr "Stell dich der Gruppe vor"
 

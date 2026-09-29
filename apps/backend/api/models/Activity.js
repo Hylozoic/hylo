@@ -158,7 +158,10 @@ module.exports = bookshelf.Model.extend({
     PostUnfulfilled: 'postUnfulfilled',
     FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
     FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
-    FundingRoundReminder: 'fundingRoundReminder' // Reminder for funding round deadline
+    FundingRoundReminder: 'fundingRoundReminder', // Reminder for funding round deadline
+    AcknowledgedJoinRequest: 'acknowledgedJoinRequest', // your request to join was received (D14)
+    DeclinedJoinRequest: 'declinedJoinRequest', // your request to join was not approved (D14)
+    UnansweredJoinRequest: 'unansweredJoinRequest' // your request has had no answer for 14 days (D14)
   },
 
   find: function (id, options) {

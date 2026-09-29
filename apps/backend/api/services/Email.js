@@ -96,6 +96,14 @@ const GROUP_CLOSED_TEMPLATE_ID = null
 // is uploaded; until then the confirmation is skipped (the sender resolves false).
 const ACCOUNT_CLOSED_TEMPLATE_ID = null
 
+// Steward notices (D13, D14, D48). Set each to its SendWithUs template id once the
+// template in scripts/i18n/i18n-templates is uploaded. Until then these senders send
+// nothing and resolve null, so the notification is marked done rather than retried.
+const JOIN_REQUEST_RECEIVED_TEMPLATE_ID = null // Join_Request_Received_i18n
+const JOIN_REQUEST_DECLINED_TEMPLATE_ID = null // Join_Request_Declined_i18n
+const JOIN_REQUEST_UNANSWERED_TEMPLATE_ID = null // Join_Request_Unanswered_i18n
+const templateNotUploaded = () => Promise.resolve(null)
+
 module.exports = {
   sendSimpleEmail,
 
@@ -362,6 +370,18 @@ Profile: ${opts.actorProfileUrl}
   // One reminder to someone who started signing up and stopped (api/models/invitation/stalledSignupReminder.js).
   // The template is named by STALLED_SIGNUP_REMINDER_TEMPLATE_ID.
   sendStalledSignupReminder: ({ email, data, locale }) =>
-    sendSimpleEmail(email, process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID, data, {}, normalizeLocaleToFull(locale))
+    sendSimpleEmail(email, process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID, data, {}, normalizeLocaleToFull(locale)),
+
+  // D14: to someone who asked to join a group. The acknowledgment and the decline
+  // answer the person's own request, so they go without the bulk header.
+  sendJoinRequestReceived: opts => JOIN_REQUEST_RECEIVED_TEMPLATE_ID
+    ? sendTransactionalEmailWithOptions(JOIN_REQUEST_RECEIVED_TEMPLATE_ID, opts)
+    : templateNotUploaded(),
+  sendJoinRequestDeclined: opts => JOIN_REQUEST_DECLINED_TEMPLATE_ID
+    ? sendTransactionalEmailWithOptions(JOIN_REQUEST_DECLINED_TEMPLATE_ID, opts)
+    : templateNotUploaded(),
+  sendJoinRequestUnanswered: opts => JOIN_REQUEST_UNANSWERED_TEMPLATE_ID
+    ? sendEmailWithOptions(JOIN_REQUEST_UNANSWERED_TEMPLATE_ID, opts)
+    : templateNotUploaded()
 
 }

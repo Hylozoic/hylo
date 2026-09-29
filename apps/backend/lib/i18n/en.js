@@ -97,6 +97,9 @@ exports.en = {
     ? `${actor.get('name')} asked to join ${groupName} in ${parentGroupName}`
     : `${actor.get('name')} asked to join ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `New member has joined ${group.get('name')}: ${actor.get('name')}`,
+  joinRequestReceivedSubject: (groupName) => `Your request to join ${groupName} was sent`,
+  joinRequestDeclinedSubject: (groupName) => `About your request to join ${groupName}`,
+  joinRequestUnansweredSubject: (groupName) => `Your request to join ${groupName} is still waiting`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

@@ -914,6 +914,43 @@ msgstr ""
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr ""
 
+#, python-format
+msgid "Hi %(first_name_var)s,"
+msgstr ""
+
+#, python-format
+msgid "Your request to join %(group_pill)s was sent."
+msgstr ""
+
+msgid "The group's stewards look at each request themselves, so an answer can take a few days. We'll let you know by email and in Hylo as soon as they answer."
+msgstr ""
+
+msgid "See the group"
+msgstr ""
+
+msgid "While you wait, you can also find open groups to join right away."
+msgstr ""
+
+msgid "Explore groups"
+msgstr ""
+
+#, python-format
+msgid "Your request to join %(group_pill)s wasn't approved this time."
+msgstr ""
+
+msgid "Each group decides who joins in its own way. There are many other groups on Hylo you can join right away."
+msgstr ""
+
+#, python-format
+msgid "Your request to join %(group_pill)s has been waiting %(days_waiting_var)s days without an answer."
+msgstr ""
+
+msgid "You can keep waiting: your request stays open, and we'll tell you when the stewards answer."
+msgstr ""
+
+msgid "Or join one of these open groups today:"
+msgstr ""
+
 msgid "Introduce yourself to the group"
 msgstr ""
 

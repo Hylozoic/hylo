@@ -1,0 +1,35 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+{% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+
+<p>
+  {% set first_name_var = first_name %}
+  {% trans %}Hi {{first_name_var}},{% endtrans %}
+</p>
+
+<p>
+  {% set days_waiting_var = days_waiting %}
+  {% trans %}Your request to join {{group_pill}} has been waiting {{days_waiting_var}} days without an answer.{% endtrans %}
+</p>
+
+<p>{% trans %}You can keep waiting: your request stays open, and we'll tell you when the stewards answer.{% endtrans %}</p>
+
+{% if suggested_groups %}
+  <p>{% trans %}Or join one of these open groups today:{% endtrans %}</p>
+  {% for suggestion in suggested_groups %}
+    {% set suggestion_pill = actor_pill(suggestion.name, suggestion.avatar_url, suggestion.url) %}
+    <div class='card'>{{suggestion_pill}}</div>
+  {% endfor %}
+{% endif %}
+
+<a class='btn btn-blue' href="{{explore_url}}" clicktracking="off">{% trans %}Explore groups{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

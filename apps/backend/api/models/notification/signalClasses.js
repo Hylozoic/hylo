@@ -87,7 +87,11 @@ export const REASON_SIGNALS = {
   trackEnrollment: { class: SOCIAL, channels: ALL_CHANNELS },
   fundingRoundNewSubmission: { class: OPERATIONAL },
   fundingRoundPhaseTransition: { class: OPERATIONAL },
-  fundingRoundReminder: { class: OPERATIONAL }
+  fundingRoundReminder: { class: OPERATIONAL },
+  // D14: to someone who asked to join, in-app and email (notification/rules/nonMemberRequester)
+  acknowledgedJoinRequest: { class: OPERATIONAL, channels: [IN_APP, EMAIL] },
+  declinedJoinRequest: { class: OPERATIONAL, channels: [IN_APP, EMAIL] },
+  unansweredJoinRequest: { class: OPERATIONAL, channels: [IN_APP, EMAIL] }
 }
 
 // A reason with no line (or no priority reason at all) keeps every channel, as before.
