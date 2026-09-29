@@ -953,6 +953,7 @@
   "Important means announcements, anything that mentions you, and new messages in a chat for a little while after you write there. In quieter groups every post counts as important. Mentions reach you even with No Posts.": "Important means announcements, anything that mentions you, and new messages in a chat for a little while after you write there. In quieter groups every post counts as important. Mentions reach you even with No Posts.",
   "Announcements, mentions and replies in chats you're part of. Every post while the space is quiet.": "Announcements, mentions and replies in chats you're part of. Every post while the space is quiet.",
   "You won't hear about new posts in this space, except ones that mention you.": "You won't hear about new posts in this space, except ones that mention you.",
+  "{{name}} sent you a message": "{{name}} sent you a message",
   "In {{name}}": "In {{name}}",
   "In the meantime, click a topic from an individual\ngroup to see posts from that group.": "In the meantime, click a topic from an individual\ngroup to see posts from that group.",
   "Inappropriate Content": "Inappropriate Content",

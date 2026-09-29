@@ -9,6 +9,11 @@ const notificationSentry = () => dependencyOf(
   path.resolve(__dirname, '../../../lib/sentry.js')
 )
 
+const notificationWebsockets = () => dependencyOf(
+  path.resolve(__dirname, '../../../api/models/Notification.js'),
+  path.resolve(__dirname, '../../../api/services/Websockets.js')
+)
+
 const destroyAllPushNotifications = () => {
   return PushNotification.fetchAll()
     .then(pns => pns.map(pn => pn.destroy()))
@@ -568,6 +573,59 @@ describe('Notification', function () {
       expect(captureException.__spy.calls[0][1].level).to.equal('warning')
       const reloaded = await Notification.find(notification.id)
       expect(reloaded.get('sent_at')).not.to.equal(null)
+    })
+  })
+
+  describe('#updateUserSocketRoom', () => {
+    let websockets
+
+    beforeEach(() => {
+      websockets = notificationWebsockets()
+      mockify(websockets, 'broadcast', () => {})
+    })
+
+    afterEach(() => unspyify(websockets, 'broadcast'))
+
+    // Loads the same relations as sendUnsent, including the parent comment
+    const payloadFor = async activityAttrs => {
+      const saved = await new Activity(activityAttrs).save()
+      const notification = await new Notification({ activity_id: saved.id, medium: Notification.MEDIUM.InApp }).save()
+      await notification.load([...relations, 'activity.parentComment'])
+      await notification.updateUserSocketRoom(reader.id)
+      return websockets.broadcast.__spy.calls[0][2]
+    }
+
+    it('marks a comment on the reader\'s own post as a reply to them', async () => {
+      const ownPost = await factories.post({ name: 'Reader post', user_id: reader.id }).save()
+      const reply = await new Comment({ text: 'nice', user_id: actor.id, post_id: ownPost.id }).save()
+      const payload = await payloadFor({
+        post_id: ownPost.id,
+        comment_id: reply.id,
+        meta: { reasons: ['newComment'] },
+        reader_id: reader.id,
+        actor_id: actor.id
+      })
+      expect(payload.activity.action).to.equal('newComment')
+      expect(payload.activity.replyToYou).to.equal(true)
+    })
+
+    it('marks a reply under the reader\'s comment as a reply to them', async () => {
+      const readerComment = await new Comment({ text: 'first', user_id: reader.id, post_id: post.id }).save()
+      const reply = await new Comment({ text: 'reply', user_id: actor.id, post_id: post.id, comment_id: readerComment.id }).save()
+      const payload = await payloadFor({
+        post_id: post.id,
+        comment_id: reply.id,
+        parent_comment_id: readerComment.id,
+        meta: { reasons: ['newComment'] },
+        reader_id: reader.id,
+        actor_id: actor.id
+      })
+      expect(payload.activity.replyToYou).to.equal(true)
+    })
+
+    it('does not mark other comments on a followed post', async () => {
+      const payload = await payloadFor({ ...activities.newComment, post_id: post.id })
+      expect(payload.activity.replyToYou).to.equal(false)
     })
   })
 

@@ -945,6 +945,7 @@
   "Important means announcements, anything that mentions you, and new messages in a chat for a little while after you write there. In quieter groups every post counts as important. Mentions reach you even with No Posts.": "Importante significa anuncios, todo lo que te mencione y los mensajes nuevos de un chat durante un rato después de que escribas en él. En los grupos más tranquilos, todas las publicaciones cuentan como importantes. Las menciones te llegan incluso con «Ninguna publicación».",
   "Announcements, mentions and replies in chats you're part of. Every post while the space is quiet.": "Anuncios, menciones y respuestas en los chats en los que participas. Todas las publicaciones mientras el espacio esté tranquilo.",
   "You won't hear about new posts in this space, except ones that mention you.": "No recibirás avisos de nuevas publicaciones en este espacio, salvo las que te mencionen.",
+  "{{name}} sent you a message": "{{name}} te envió un mensaje",
   "In {{name}}": "En {{name}}",
   "In the meantime, click a topic from an individual\ngroup to see posts from that group.": "Mientras tanto, haz clic en un tema de un grupo\nindividual para ver las publicaciones de ese grupo.",
   "Inappropriate Content": "Contenido inapropiado",

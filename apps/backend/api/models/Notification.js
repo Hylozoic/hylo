@@ -8,6 +8,7 @@ import { getLocaleStrings } from '../../lib/i18n/locales'
 import { senderNameForGroup, senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 import { PRIORITY_REASONS } from './notification/priorityReasons'
 import { pushGroupingFor } from './notification/pushGrouping'
+import { isReplyToReader } from './notification/signalClasses'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -1349,6 +1350,8 @@ module.exports = bookshelf.Model.extend({
         refineOne(activity, ['created_at', 'id', 'meta', 'unread']),
         {
           action,
+          // Lets the web app toast a comment that replies to the reader (D71)
+          replyToYou: action === 'newComment' && isReplyToReader(activity),
           actor: refineOne(actor, ['avatar_url', 'id', 'name']),
           comment: refineOne(comment, ['id', 'text']),
           group: refineOne(group, ['id', 'name', 'slug']),
@@ -1449,6 +1452,7 @@ module.exports = bookshelf.Model.extend({
       'activity.comment.post.user',
       'activity.comment.post.relatedUsers',
       'activity.comment.post.groups',
+      'activity.parentComment',
       'activity.group',
       'activity.otherGroup',
       'activity.reader',
