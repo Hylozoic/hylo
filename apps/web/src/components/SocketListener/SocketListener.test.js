@@ -1,8 +1,9 @@
 import React from 'react'
-import { useLocation } from 'react-router-dom'
+import { Provider } from 'react-redux'
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import orm from 'store/models'
-import { AllTheProviders, act, render } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders, act, generateStore, render } from 'util/testing/reactTestingLibraryExtended'
 import SocketListener from './SocketListener'
 import { getSocket, setSocket } from 'client/websockets'
 import { refreshBadgeCounts } from 'util/badgeRefresh'
@@ -205,5 +206,39 @@ describe('toasts for direct notifications and messages', () => {
     render(<SocketListener />, {}, providers('/messages/7'))
     act(() => handlersByEvent.messageAdded(message('7')))
     expect(toast).not.toHaveBeenCalled()
+  })
+
+  it('keeps its socket subscription when the language changes, and toasts in the new language', () => {
+    const socket = getSocket()
+    useLocation.mockReturnValue({ pathname: '/groups/garden/stream', search: '' })
+    const session = orm.mutableSession(orm.getEmptyState())
+    session.Me.create({ id: '1', newNotificationCount: 0, unseenThreadCount: 0 })
+    session.Person.create({ id: '3', name: 'Sam' })
+    const store = generateStore({ orm: session.state })
+    const Wrapper = ({ children }) => (
+      <Provider store={store}>
+        <BrowserRouter>
+          <Routes>
+            <Route path='*' element={children} />
+          </Routes>
+        </BrowserRouter>
+      </Provider>
+    )
+    const useTranslation = jest.spyOn(require('react-i18next'), 'useTranslation')
+    try {
+      useTranslation.mockReturnValue({ t: (key, values) => key.replace('{{name}}', values?.name) })
+      const { rerender } = render(<SocketListener />, { wrapper: Wrapper })
+      const subscribeCalls = socket.post.mock.calls.length
+
+      useTranslation.mockReturnValue({ t: (key, values) => `de: ${key.replace('{{name}}', values?.name)}` })
+      rerender(<SocketListener />)
+
+      expect(socket.off).not.toHaveBeenCalled()
+      expect(socket.post).toHaveBeenCalledTimes(subscribeCalls)
+      act(() => handlersByEvent.messageAdded(message('7')))
+      expect(toast).toHaveBeenCalledWith('de: Sam sent you a message', expect.anything())
+    } finally {
+      useTranslation.mockRestore()
+    }
   })
 })

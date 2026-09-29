@@ -42,12 +42,19 @@ const SocketListener = (props) => {
     locationRef.current = location
   }, [location])
 
+  // The toaster reads the latest t when it fires, so a new t (a language change) does
+  // not rebuild the handlers and resubscribe the socket
+  const tRef = useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
+
   // Toasts for direct notifications and messages (D71), fired here rather than in a reducer
   const toaster = useMemo(() => createToaster({
     getState: store.getState,
-    t,
+    t: (...args) => tRef.current(...args),
     open: url => dispatch(push(url))
-  }), [dispatch, store, t])
+  }), [dispatch, store])
 
   const handlers = useMemo(() => ({
     commentAdded: data => dispatch(receiveComment(data)),
