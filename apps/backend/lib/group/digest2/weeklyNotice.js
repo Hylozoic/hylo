@@ -1,4 +1,4 @@
-/* global bookshelf, sails */
+/* global bookshelf, sails, Email */
 // D73: one line about the weekly-digest mix-up in a flagged member's next weekly
 // digest (migrations/20261011000000_flag_weekly_digest_notice.js sets the flag).
 //
@@ -57,8 +57,9 @@ async function clearFlag (user) {
 
 /**
  * Runs the send for a digest payload. When the payload carries the line, a successful
- * send clears the flag and a failed one (false or an error) releases it. Resolves to
- * what the send resolved to.
+ * send clears the flag and a failed one (false or an error) releases it, as does a send
+ * Email.js skipped (Email.SKIPPED: the reader's unsubscribe choice or an undeliverable
+ * address), since nothing reached them. Resolves to what the send resolved to.
  */
 export async function settleWeeklyDigestNotice (user, data, send) {
   if (!data?.weekly_digest_notice) return send()
@@ -69,7 +70,7 @@ export async function settleWeeklyDigestNotice (user, data, send) {
     releaseWeeklyDigestNotice(user)
     throw err
   }
-  if (result === false) {
+  if (result === false || result === Email.SKIPPED) {
     releaseWeeklyDigestNotice(user)
     return result
   }
