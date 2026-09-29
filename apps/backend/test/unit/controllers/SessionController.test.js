@@ -15,7 +15,7 @@ describe('SessionController.findUser', () => {
 
   describe('with no directly linked user', () => {
     it('picks a user with matching email address', () => {
-      return findUser('facebook', u2.get('email'), 'foo')
+      return findUser('google', u2.get('email'), 'foo')
         .then(user => {
           expect(user.id).to.equal(u2.id)
         })
@@ -24,7 +24,7 @@ describe('SessionController.findUser', () => {
 
   describe('with a directly linked user', () => {
     before(() => {
-      return LinkedAccount.create(u1.id, {type: 'facebook', profile: {id: 'foo'}})
+      return LinkedAccount.create(u1.id, { type: 'google', profile: { id: 'foo' } })
     })
 
     after(() => {
@@ -32,7 +32,7 @@ describe('SessionController.findUser', () => {
     })
 
     it('returns that user, not one with a matching email address', () => {
-      return findUser('facebook', u2.get('email'), 'foo')
+      return findUser('google', u2.get('email'), 'foo')
         .then(user => {
           expect(user.id).to.equal(u1.id)
         })
@@ -49,10 +49,10 @@ describe('SessionController.upsertLinkedAccount', () => {
     profile = {
       id: 'foo',
       _json: {
-        link: facebookUrl
+        link: 'http://example.com/someone-else'
       }
     }
-    user = factories.user()
+    user = factories.user({ facebook_url: facebookUrl })
     return user.save()
       .then(() => {
         req = {session: {userId: user.id}}
@@ -61,19 +61,19 @@ describe('SessionController.upsertLinkedAccount', () => {
 
   describe('with a directly linked user ', () => {
     before(() => {
-      return LinkedAccount.create(user.id, {type: 'facebook', profile: {id: profile.id}})
+      return LinkedAccount.create(user.id, { type: 'google', profile: { id: profile.id } })
     })
 
     after(() => {
       return LinkedAccount.query().where('user_id', user.id).del()
     })
 
-    it('updates the user facebook_url', () => {
-      return upsertLinkedAccount(req, 'facebook', profile)
-        .then(() => user.refresh())
-        .then(() => {
-          expect(user.get('facebook_url')).to.equal(facebookUrl)
-        })
+    it('keeps the account linked and leaves the profile links the person set', async () => {
+      await upsertLinkedAccount(req, 'google', profile)
+      await user.refresh()
+      expect(user.get('facebook_url')).to.equal(facebookUrl)
+      const account = await LinkedAccount.where({ provider_key: 'google', provider_user_id: profile.id }).fetch()
+      expect(account.get('user_id')).to.equal(user.id)
     })
   })
 
@@ -369,5 +369,24 @@ describe('SessionController and the first-touch acquisition source', () => {
     await SessionController.upsertUser(req, 'google', googleProfile(existing.get('email')))
     await existing.refresh()
     expect(existing.get('acquisition_source')).to.deep.equal({ channel: 'sandbox_demo' })
+  })
+})
+
+describe('SessionController sign-in providers', () => {
+  it('offers no Facebook or LinkedIn sign-in', () => {
+    const removed = ['startFacebookOAuth', 'finishFacebookOAuth', 'finishFacebookTokenOAuth', 'startLinkedinOAuth', 'finishLinkedinOauth', 'finishLinkedinTokenOauth']
+    removed.forEach(name => expect(SessionController[name]).to.equal(undefined))
+
+    const { routes } = require('../../../config/routes')
+    expect(Object.keys(routes).filter(route => /facebook|linkedin/i.test(route))).to.deep.equal([])
+    expect(Object.keys(routes).some(route => route.includes('/noo/login/google'))).to.equal(true)
+
+    expect(passport._strategy('linkedin')).to.equal(undefined)
+    expect(passport._strategy('linkedin-token')).to.equal(undefined)
+    expect(passport._strategy('facebook')).to.equal(undefined)
+  })
+
+  it('fills no profile fields from a sign-in provider', () => {
+    expect(LinkedAccount.socialMediaAttributes('google', { id: '1', _json: {} })).to.deep.equal({})
   })
 })

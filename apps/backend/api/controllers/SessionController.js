@@ -145,14 +145,7 @@ const upsertLinkedAccount = (req, service, profile) => {
 }
 
 const finishOAuth = function (strategy, req, res, next) {
-  let provider = strategy
-  if (strategy === 'facebook-token') {
-    provider = 'facebook'
-  } else if (strategy === 'google-token') {
-    provider = 'google'
-  } else if (strategy === 'linkedin-token') {
-    provider = 'linkedin'
-  }
+  const provider = strategy === 'google-token' ? 'google' : strategy
 
   return new Promise((resolve, reject) => {
     const respond = error => {
@@ -333,35 +326,8 @@ module.exports = {
     return finishOAuth('google', req, res, next)
   },
 
-  startFacebookOAuth: setSessionFromParams(function (req, res) {
-    passport.authenticate('facebook', {
-      display: 'popup',
-      scope: ['email', 'public_profile']
-    })(req, res)
-  }),
-
-  finishFacebookOAuth: function (req, res, next) {
-    return finishOAuth('facebook', req, res, next)
-  },
-
-  finishFacebookTokenOAuth: function (req, res, next) {
-    return finishOAuth('facebook-token', req, res, next)
-  },
-
   finishGoogleTokenOAuth: function (req, res, next) {
     return finishOAuth('google-token', req, res, next)
-  },
-
-  startLinkedinOAuth: setSessionFromParams(function (req, res) {
-    passport.authenticate('linkedin')(req, res)
-  }),
-
-  finishLinkedinOauth: function (req, res, next) {
-    return finishOAuth('linkedin', req, res, next)
-  },
-
-  finishLinkedinTokenOauth: function (req, res, next) {
-    return finishOAuth('linkedin-token', req, res, next)
   },
 
   destroy: function (req, res) {

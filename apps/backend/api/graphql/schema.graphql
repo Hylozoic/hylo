@@ -3649,7 +3649,8 @@ type Mutation {
   subscribe(groupId: ID, topicId: ID, isSubscribing: Boolean): GenericResult
   # Swap votes on a proposal
   swapProposalVote(postId: ID, addOptionId: ID, removeOptionId: ID): GenericResult
-  # Unlink profile from previously linked social platform. Provider can be 'facebook', 'twitter', or 'linkedin'
+  # Remove a social profile link from your profile: 'facebook', 'twitter' or 'linkedin'. Clears the profile URL
+  # (or Twitter name) and any old sign-in linked for that provider; Google is the only social sign-in now
   unlinkAccount(provider: String): GenericResult
   # Unblock a user
   unblockUser(blockedUserId: ID): GenericResult

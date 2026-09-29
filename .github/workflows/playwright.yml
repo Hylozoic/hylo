@@ -47,8 +47,6 @@ env:
   ADMIN_GOOGLE_CLIENT_SECRET: e2e-ci-placeholder-oauth-client-secret
   GOOGLE_CLIENT_ID: e2e-ci-placeholder-oauth-client-id
   GOOGLE_CLIENT_SECRET: e2e-ci-placeholder-oauth-client-secret
-  LINKEDIN_API_KEY: e2e-ci-placeholder-linkedin-key
-  LINKEDIN_API_SECRET: e2e-ci-placeholder-linkedin-secret
   # StripeService requires a key at Sails load; isolated runner also sets defaults — override with secrets if needed.
   STRIPE_SECRET_KEY: sk_test_fake_key_for_testing_purposes
   STRIPE_API_KEY: sk_test_fake_api_key_for_testing_purposes
