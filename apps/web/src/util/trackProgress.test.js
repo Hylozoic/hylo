@@ -1,4 +1,5 @@
 import {
+  needsFullTrack,
   nextIncompleteAction,
   progressFromCounts,
   progressFromSettings,
@@ -38,6 +39,23 @@ describe('progressFromSettings', () => {
   it('shows a completed track as all done', () => {
     expect(progressFromSettings({ actionsCompleted: 3 }, 5, true)).toMatchObject({ completed: 5, total: 5, isComplete: true })
     expect(progressFromSettings({ completedAt: '2026-01-01' }, 4, false)).toMatchObject({ completed: 4, total: 4 })
+  })
+})
+
+describe('needsFullTrack', () => {
+  it('fetches a track that is not stored yet', () => {
+    expect(needsFullTrack(null)).toBe(true)
+    expect(needsFullTrack(undefined)).toBe(true)
+  })
+
+  it('fetches a track a notification stored with only a few fields', () => {
+    expect(needsFullTrack({ id: '3', actionDescriptor: 'Action' })).toBe(true)
+  })
+
+  it('is done once the full track, with the viewer\'s enrollment, is stored', () => {
+    expect(needsFullTrack({ id: '3', isEnrolled: true })).toBe(false)
+    expect(needsFullTrack({ id: '3', isEnrolled: false })).toBe(false)
+    expect(needsFullTrack({ id: '3', isEnrolled: null })).toBe(false)
   })
 })
 
