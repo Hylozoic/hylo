@@ -100,6 +100,7 @@ import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
 import SiteBanners from 'components/SiteBanners/SiteBanners'
 import AppInstallPrompt from 'components/AppInstallPrompt/AppInstallPrompt'
+import UndeliverableEmailBanner from 'components/UndeliverableEmailBanner/UndeliverableEmailBanner'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import isWebView, { isLegacyWebView } from 'util/webView'
@@ -918,6 +919,7 @@ export default function AuthLayoutRouter (props) {
       <IntercomConsentSync allowed={!isSandboxMode() && supportAllowed} bootProps={intercomProps} />
       <SiteBanners />
       <AppInstallPrompt />
+      <UndeliverableEmailBanner />
       {/* Pull-to-refresh indicator - shows during and after gesture */}
       {(isPulling || isRefreshing) && (
         <div className='fixed top-4 left-1/2 -translate-x-1/2 z-50'>

@@ -245,6 +245,18 @@ describe('Email', function () {
       expect(sends).to.equal(1)
     })
 
+    it('skips non-essential email to an undeliverable address and still tries essential email (D36)', async () => {
+      await member.save({ email_undeliverable_at: new Date(), email_undeliverable_reason: 'bounce' }, { patch: true })
+      captureSend()
+
+      expect(await Email.sendMessageDigest({ email: member.get('email'), data: {} })).to.equal(Email.SKIPPED)
+      expect(await Email.sendSimpleEmail(member.get('email'), 'tem_t7rmGfJKvqXrvmrVWJjjWkg4', {}, {})).to.equal(Email.SKIPPED)
+      expect(sends).to.equal(0)
+
+      await Email.sendPasswordReset({ email: member.get('email'), templateData: {} })
+      expect(sends).to.equal(1)
+    })
+
     it('lists every Email.js sender in lib/email/emailTypes.js', () => {
       const senders = Object.keys(Email).filter(name => /^send[A-Z]/.test(name) && typeof Email[name] === 'function')
       expect(senders.length).to.be.above(40)

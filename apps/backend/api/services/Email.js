@@ -35,7 +35,8 @@ const sendEmail = opts =>
 const currentSender = new AsyncLocalStorage()
 
 // What a send resolves to when Hylo decides not to send it: the recipient's unsubscribe
-// choice rules it out. Not `false`, which callers read as a failed send to retry.
+// choice rules it out, or their address is undeliverable. Not `false`, which callers
+// read as a failed send to retry.
 const SKIPPED = Object.freeze({ skipped: true })
 
 const TRANSPORT = { BULK: 'bulk', TRANSACTIONAL: 'transactional' }
@@ -44,7 +45,7 @@ const TRANSPORT = { BULK: 'bulk', TRANSACTIONAL: 'transactional' }
 async function recipientFor (address) {
   if (!address || typeof address !== 'string') return null
   const rows = await bookshelf.knex('users')
-    .select('id', 'settings')
+    .select('id', 'settings', 'email_undeliverable_at')
     .whereIn('email', uniq([address, address.toLowerCase()]))
     .limit(1)
   return rows[0] || null
@@ -65,7 +66,8 @@ function unsubscribeDescriptor (type, context) {
 function emailTags (senderName, context) {
   return [
     senderName && `hylo_type:${senderName}`,
-    context?.groupId && `hylo_group:${context.groupId}`
+    context?.groupId && `hylo_group:${context.groupId}`,
+    context?.frequency && `hylo_frequency:${context.frequency}`
   ].filter(Boolean)
 }
 
@@ -104,6 +106,8 @@ async function deliver (transport, emailOpts, context = {}) {
   if (!essential) {
     const recipient = await recipientFor(emailOpts.recipient?.address)
     if (recipient) {
+      // The provider reported the address undeliverable (D36); essential email is still tried
+      if (recipient.email_undeliverable_at) return SKIPPED
       if (!scopeAllowsBulkEmail(unsubscribeScopeOf(recipient.settings), type)) return SKIPPED
       if (transport === TRANSPORT.BULK) addUnsubscribe(emailOpts, { senderName, type, recipient, context })
     }

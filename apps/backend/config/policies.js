@@ -105,5 +105,10 @@ module.exports.policies = {
     show:        true,
     describe:    true,
     unsubscribe: true
+  },
+
+  // Authorized by the webhook's signature
+  EmailEventsController: {
+    receive: true
   }
 }

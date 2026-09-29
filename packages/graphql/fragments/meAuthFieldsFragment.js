@@ -6,6 +6,7 @@ export default gql`
     avatarUrl
     email
     emailValidated
+    emailUndeliverable
     hasRegistered
     name
     settings {
