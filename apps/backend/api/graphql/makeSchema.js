@@ -197,6 +197,7 @@ import peopleTyping from './mutations/peopleTyping'
 import { leaveMessageThread } from './mutations/messageThread'
 import { reportToStaff, resolveStaffReport } from './mutations/moderation_actions'
 import postTeaser from './queries/postTeaser'
+import { clickSiteBanner } from './mutations/siteBanners'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -586,7 +587,12 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     },
     siteBanners: async (root, args, context) => {
       const banners = await SiteBanner.activeForUser(context.currentUserId)
-      return banners.toModelArray ? banners.toModelArray() : banners
+      const viewer = context.currentUserId ? await User.find(context.currentUserId) : null
+      const locale = viewer ? viewer.getLocale() : null
+      const models = banners.toModelArray ? banners.toModelArray() : banners
+      // Viewers see the banner in their language, falling back to English
+      models.forEach(banner => { banner.displayLocale = locale })
+      return models
     },
     allSiteBanners: async (root, args, context) => {
       if (!(await Admin.isSuperAdmin(context.currentUserId))) {
@@ -966,7 +972,9 @@ export function makeMutations ({ fetchOne }) {
 
     deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
 
-    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id)
+    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    clickSiteBanner: (root, { id }, context) => clickSiteBanner(context.currentUserId, id)
   }
 }
 

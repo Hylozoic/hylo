@@ -2853,7 +2853,8 @@ CREATE TABLE public.site_banners (
     unpublished_at timestamp with time zone,
     show_to_new_users boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    translations jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
 
@@ -2885,7 +2886,8 @@ CREATE TABLE public.site_banners_users (
     id integer NOT NULL,
     site_banner_id integer,
     user_id bigint,
-    dismissed_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    dismissed_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    clicked_at timestamp with time zone
 );
 
 

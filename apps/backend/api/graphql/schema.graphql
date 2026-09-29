@@ -3217,8 +3217,13 @@ type SiteBanner {
   unpublishedAt: Date
   createdAt: Date
   updatedAt: Date
-  # Number of users who have dismissed this banner (admin only)
+  # Number of users who closed this banner without using its action button (admin only)
   dismissedCount: Int
+  # Number of users who used this banner's action button (admin only)
+  clickedCount: Int
+  # Per-language text: { "de": { "title": "...", "text": "...", "action_text": "..." }, ... }.
+  # title, text and actionText above are English, or the viewer's language in siteBanners
+  translations: JSON
 }
 
 input SiteBannerInput {
@@ -3228,6 +3233,8 @@ input SiteBannerInput {
   actionText: String
   actionUrl: String
   showToNewUsers: Boolean
+  # Per-language text for de, es, fr, hi and pt: { "de": { "title", "text", "actionText" } }
+  translations: JSON
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -3781,6 +3788,8 @@ type Mutation {
   deleteSiteBanner(id: ID!): Boolean
   # Dismiss a site banner for the current user
   dismissSiteBanner(id: ID!): Boolean
+  # Record that the current user used a site banner's action button; also hides it for them
+  clickSiteBanner(id: ID!): Boolean
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
