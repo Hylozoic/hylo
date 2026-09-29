@@ -103,6 +103,9 @@ describe('joinProject', () => {
     await user.save()
     project = factories.post({type: Post.Type.PROJECT})
     await project.save()
+    const group = await factories.group().save()
+    await group.addMembers([user])
+    await group.posts().attach(project)
   })
 
   it('adds a user to a project', async () => {
@@ -147,6 +150,31 @@ describe('joinProject notice to the creator (D57)', () => {
     await bookshelf.knex('activities').where({ post_id: project.id }).del()
     await joinProject(project.id, creator.id)
     expect(await joinedActivities()).to.have.length(0)
+  })
+
+  it('notifies once per person, however often they leave and join again', async () => {
+    const other = await factories.user().save()
+    await group.addMembers([other])
+    await bookshelf.knex('notifications').del()
+    await bookshelf.knex('activities').where({ post_id: project.id }).del()
+
+    for (let i = 0; i < 3; i++) {
+      await joinProject(project.id, other.id)
+      await leaveProject(project.id, other.id)
+    }
+    const activities = await joinedActivities()
+    expect(activities.map(a => String(a.get('actor_id')))).to.deep.equal([String(other.id)])
+  })
+
+  it('only joins projects the person can see', async () => {
+    const outsider = await factories.user().save()
+    await expect(joinProject(project.id, outsider.id)).to.be.rejectedWith(/Project not found/)
+    expect(await project.isProjectMember(outsider.id)).to.be.false
+
+    const discussion = await factories.post({ type: 'discussion', user_id: creator.id }).save()
+    await group.posts().attach(discussion)
+    await expect(joinProject(discussion.id, joiner.id)).to.be.rejectedWith(/Project not found/)
+    expect((await Activity.where({ post_id: discussion.id }).fetchAll()).length).to.equal(0)
   })
 })
 
