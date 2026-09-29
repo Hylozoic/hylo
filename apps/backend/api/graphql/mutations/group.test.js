@@ -744,18 +744,23 @@ describe('mutations/group', () => {
         })
       })
 
-      it('uses DEFAULT_NEW_GROUP_INVITE_POLICY when no policy is given', async () => {
-        const defaultPolicy = GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY
-        const created = await createGroup(administrator.id, { name: 'Default Policy', slug: uniqueSlug('default') })
-        expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: defaultPolicy.mode, roleIds: [] })
+      it('defaults to everyone while member invitations are on, and to stewards while they are off', async () => {
+        await withFeatureFlag('MEMBER_INVITES', 'on', async () => {
+          const created = await createGroup(administrator.id, { name: 'Default Policy', slug: uniqueSlug('default') })
+          expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+        })
 
-        GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY = { mode: 'everyone' }
-        try {
-          const flipped = await createGroup(administrator.id, { name: 'Flipped Default', slug: uniqueSlug('flipped') })
-          expect(await GroupRole.getInvitePolicy(flipped.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
-        } finally {
-          GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY = defaultPolicy
-        }
+        await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+          const created = await createGroup(administrator.id, { name: 'Default Policy Off', slug: uniqueSlug('default-off') })
+          expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY.mode, roleIds: [] })
+          expect(GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY.mode).to.equal('stewards')
+        })
+      })
+
+      it('keeps Protected visibility and Restricted joining for callers that send neither', async () => {
+        const created = await createGroup(administrator.id, { name: 'Server Defaults', slug: uniqueSlug('server-defaults') })
+        expect(created.get('visibility')).to.equal(Group.Visibility.PROTECTED)
+        expect(created.get('accessibility')).to.equal(Group.Accessibility.RESTRICTED)
       })
     })
 

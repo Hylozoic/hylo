@@ -56,7 +56,9 @@ describe('GroupRole', () => {
     })
 
     it('is created by Group.create', async () => {
-      const created = await Group.create(user.id, { name: 'Member Role Group', slug: `member-role-${Date.now()}` })
+      // With member invitations off, a new group starts on stewards, so nothing is linked to the Member role
+      const created = await withFeatureFlag('MEMBER_INVITES', 'off', () =>
+        Group.create(user.id, { name: 'Member Role Group', slug: `member-role-${Date.now()}` }))
       const memberRole = await GroupRole.findMemberRole(created.id)
       expect(memberRole).to.exist
       expect(memberRole.get('type')).to.equal(GroupRole.TYPE_MEMBER)
@@ -443,6 +445,19 @@ describe('GroupRole', () => {
         }
 
         const created = await Group.create(user.id, { name: 'Switched Off Stewards', slug: `switched-off-stewards-${Date.now()}` })
+        expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+    })
+
+    it('gives a new group with no chosen policy everyone while member invitations are on, and stewards while off', async () => {
+      await withFeatureFlag('MEMBER_INVITES', 'on', async () => {
+        expect(GroupRole.defaultNewGroupInvitePolicy()).to.deep.equal({ mode: 'everyone' })
+        const created = await Group.create(user.id, { name: 'Default On', slug: `default-on-${Date.now()}` })
+        expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+      })
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        expect(GroupRole.defaultNewGroupInvitePolicy()).to.deep.equal({ mode: 'stewards' })
+        const created = await Group.create(user.id, { name: 'Default Off', slug: `default-off-${Date.now()}` })
         expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
       })
     })

@@ -28,7 +28,7 @@ const INVITEE_NAME = 'E2E Invitee'
 const GROUP_ADMINISTRATOR_NAME = 'E2E Join Host'
 
 const WHO_CAN_ADD = 'Who can add new members?'
-const STEWARDS_ONLY = 'Administrators and Hosts (anyone who can add members)'
+const STEWARDS = 'Stewards (Administrators, Moderators and Hosts)'
 
 /**
  * Saves a viewport screenshot (after scrolling `focus` into view) when
@@ -69,21 +69,24 @@ test.describe('Who can add new members? (administrator)', () => {
     await createDialog.locator('#groupName').fill(name)
 
     const createPolicy = createDialog.getByRole('button', { name: WHO_CAN_ADD })
-    await expect(createPolicy).toContainText(STEWARDS_ONLY)
+    await expect(createPolicy).toContainText('Everyone in the group')
     await createPolicy.click()
     await page.getByRole('button', { name: 'Specific roles' }).click()
     await expect(createPolicy).toContainText('Specific roles')
 
     const moderator = createDialog.getByRole('checkbox', { name: '⚖️ Moderator' })
-    await expect(moderator).toBeEnabled()
-    await expect(moderator).toHaveAttribute('aria-checked', 'true')
-    for (const lockedRole of ['🪄 Administrator', '👋 Host']) {
+    for (const lockedRole of ['🪄 Administrator', '⚖️ Moderator', '👋 Host']) {
       const checkbox = createDialog.getByRole('checkbox', { name: lockedRole })
       await expect(checkbox).toBeDisabled()
       await expect(checkbox).toHaveAttribute('aria-checked', 'true')
     }
     await expect(createDialog.getByText('Create custom roles later in Roles & Badges')).toBeVisible()
     await capture(page, testInfo, 'invite-policy-01-create-specific-roles', moderator)
+
+    await createDialog.getByRole('button', { name: 'Who can see this group?' }).click()
+    await page.getByRole('button', { name: /^Visible to related groups/ }).click()
+    await createDialog.getByRole('button', { name: 'Who can join this group?' }).click()
+    await page.getByRole('button', { name: /^By request, with approval/ }).click()
 
     const slug = await createDialog.locator('#groupSlug').inputValue()
     expect(slug).toBeTruthy()
@@ -95,11 +98,10 @@ test.describe('Who can add new members? (administrator)', () => {
     await page.goto(`/groups/${slug}/settings/privacy`)
     await waitPastRootSessionLoading(page)
     await expect(page.getByRole('heading', { name: WHO_CAN_ADD })).toBeVisible(uiTimeout)
+    // Specific roles that add no one beyond the stewards is saved as Stewards
     const settingsPolicy = page.getByRole('button', { name: WHO_CAN_ADD })
-    await expect(settingsPolicy).toContainText('Specific roles', uiTimeout)
-    await expect(page.getByRole('checkbox', { name: '⚖️ Moderator' })).toHaveAttribute('aria-checked', 'true')
-    await expect(page.getByRole('checkbox', { name: '🪄 Administrator' })).toBeDisabled()
-    await capture(page, testInfo, 'invite-policy-02-settings-specific-roles', settingsPolicy)
+    await expect(settingsPolicy).toContainText(STEWARDS, uiTimeout)
+    await capture(page, testInfo, 'invite-policy-02-settings-stewards', settingsPolicy)
 
     await settingsPolicy.click()
     await page.getByRole('button', { name: 'Everyone in the group' }).click()

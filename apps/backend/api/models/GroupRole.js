@@ -217,6 +217,16 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * The invite policy for a new group whose creator chose none: everyone while
+   * member invitations are on, otherwise DEFAULT_NEW_GROUP_INVITE_POLICY.
+   */
+  defaultNewGroupInvitePolicy: function () {
+    return GroupRole.memberInvitesEnabled()
+      ? { mode: InvitePolicy.EVERYONE }
+      : GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY
+  },
+
+  /**
    * Map a stored system role name (including legacy names) to the current name.
    */
   canonicalSystemRoleName: function (name) {

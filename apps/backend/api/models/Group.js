@@ -1429,7 +1429,7 @@ module.exports = bookshelf.Model.extend(merge({
       if (data.invite_policy) {
         await GroupRole.setInvitePolicy(group.id, invitePolicyFromData(data.invite_policy), { transacting: trx })
       } else if (group.get('type') !== 'space') {
-        await GroupRole.setInvitePolicy(group.id, GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY, { transacting: trx })
+        await GroupRole.setInvitePolicy(group.id, GroupRole.defaultNewGroupInvitePolicy(), { transacting: trx })
       }
 
       if (data.group_extensions) {
