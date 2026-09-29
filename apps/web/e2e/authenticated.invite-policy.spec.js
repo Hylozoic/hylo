@@ -71,17 +71,11 @@ test.describe('Who can add new members? (administrator)', () => {
     const createPolicy = createDialog.getByRole('button', { name: WHO_CAN_ADD })
     await expect(createPolicy).toContainText('Everyone in the group')
     await createPolicy.click()
-    await page.getByRole('button', { name: 'Specific roles' }).click()
-    await expect(createPolicy).toContainText('Specific roles')
-
-    const moderator = createDialog.getByRole('checkbox', { name: '⚖️ Moderator' })
-    for (const lockedRole of ['🪄 Administrator', '⚖️ Moderator', '👋 Host']) {
-      const checkbox = createDialog.getByRole('checkbox', { name: lockedRole })
-      await expect(checkbox).toBeDisabled()
-      await expect(checkbox).toHaveAttribute('aria-checked', 'true')
-    }
-    await expect(createDialog.getByText('Create custom roles later in Roles & Badges')).toBeVisible()
-    await capture(page, testInfo, 'invite-policy-01-create-specific-roles', moderator)
+    // A new group has only the steward roles, so the create form has no 'Specific roles' choice
+    await expect(page.getByRole('button', { name: 'Specific roles' })).toHaveCount(0)
+    await page.getByRole('button', { name: STEWARDS }).click()
+    await expect(createPolicy).toContainText(STEWARDS)
+    await capture(page, testInfo, 'invite-policy-01-create-stewards', createPolicy)
 
     await createDialog.getByRole('button', { name: 'Who can see this group?' }).click()
     await page.getByRole('button', { name: /^Visible to related groups/ }).click()
@@ -98,7 +92,6 @@ test.describe('Who can add new members? (administrator)', () => {
     await page.goto(`/groups/${slug}/settings/privacy`)
     await waitPastRootSessionLoading(page)
     await expect(page.getByRole('heading', { name: WHO_CAN_ADD })).toBeVisible(uiTimeout)
-    // Specific roles that add no one beyond the stewards is saved as Stewards
     const settingsPolicy = page.getByRole('button', { name: WHO_CAN_ADD })
     await expect(settingsPolicy).toContainText(STEWARDS, uiTimeout)
     await capture(page, testInfo, 'invite-policy-02-settings-stewards', settingsPolicy)

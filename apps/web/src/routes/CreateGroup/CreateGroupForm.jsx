@@ -13,7 +13,7 @@ import GroupsSelector from 'components/GroupsSelector'
 import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
-import InvitePolicySelect, { invitePolicyToSave, trackInvitePolicySet } from 'components/InvitePolicySelect/InvitePolicySelect'
+import InvitePolicySelect, { trackInvitePolicySet } from 'components/InvitePolicySelect/InvitePolicySelect'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
@@ -217,13 +217,6 @@ function missingChoicesMessage ({ visibility, accessibility }) {
   return null
 }
 
-// The built-in roles every new group gets. All three are stewards, who can always invite.
-const NEW_GROUP_INVITE_ROLES = [
-  { id: 'Administrator', emoji: '🪄', locked: true },
-  { id: 'Moderator', emoji: '⚖️', locked: true },
-  { id: 'Host', emoji: '👋', locked: true }
-]
-
 function AgreementsEditor ({ agreements, onChange }) {
   const { t } = useTranslation()
   return (
@@ -384,13 +377,6 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       ? { ...option, description: CLOSED_DESCRIPTION_WITH_MEMBER_INVITES }
       : option)
     : ACCESSIBILITY_OPTIONS, [memberInvitesEnabled])
-
-  const newGroupInviteRoles = useMemo(() => NEW_GROUP_INVITE_ROLES.map(role => ({
-    id: role.id,
-    label: `${role.emoji} ${t(role.id)}`,
-    locked: role.locked,
-    checked: false
-  })), [t])
 
   const slugFormatError = useMemo(() => {
     if (!slug) return name ? t('Please enter a URL slug') : false
@@ -555,11 +541,8 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     // change the derived list), seed All Activity, Chat, type views, Map, and Members.
     const viewTypes = viewTypesForCreate(standardTypesInOrder, standardViewTypes, homeViewType)
 
-    // New groups' role ids don't exist yet, so chosen roles are sent by name
-    const invitePolicy = invitePolicyToSave(invitePolicyMode, newGroupInviteRoles)
-    const invitePolicyInput = invitePolicy.roleIds
-      ? { mode: invitePolicy.mode, systemRoleNames: invitePolicy.roleIds }
-      : invitePolicy
+    // A new group has only the built-in steward roles, so there is no 'Specific roles' choice here
+    const invitePolicyInput = { mode: invitePolicyMode }
 
     const { error, payload } = await dispatch(createGroup({
       accessibility,
@@ -955,10 +938,8 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
             <InvitePolicySelect
               mode={invitePolicyMode}
               onModeChange={setInvitePolicyMode}
-              roles={newGroupInviteRoles}
-              onToggleRole={() => {}}
               accessibility={accessibility}
-              hint={t('Create custom roles later in Roles & Badges')}
+              offerSpecificRoles={false}
             />
           </div>
         )}

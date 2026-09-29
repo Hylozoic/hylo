@@ -55,23 +55,16 @@ test.describe('Creating a group', () => {
     await page.screenshot({ path: path.resolve(screenshotDir, 'create-group-policy-02-chosen.png') })
   })
 
-  test('starts "Who can add new members?" on Everyone and offers Stewards', async ({ page }) => {
+  test('starts "Who can add new members?" on Everyone and offers Stewards, but not specific roles', async ({ page }) => {
     const dialog = await openCreateGroup(page)
     const policy = dialog.getByRole('button', { name: 'Who can add new members?' })
     await expect(policy).toContainText('Everyone in the group')
 
     await policy.click()
+    await expect(page.getByRole('button', { name: 'Specific roles' })).toHaveCount(0)
     await page.getByRole('button', { name: 'Stewards (Administrators, Moderators and Hosts)' }).click()
     await expect(policy).toContainText('Stewards (Administrators, Moderators and Hosts)')
-    await expect(dialog.getByText('Administrators, Moderators and Hosts can invite people.', { exact: false })).toBeVisible()
-
-    await policy.click()
-    await page.getByRole('button', { name: 'Specific roles' }).click()
-    for (const name of ['🪄 Administrator', '⚖️ Moderator', '👋 Host']) {
-      const role = dialog.getByRole('checkbox', { name })
-      await expect(role).toBeDisabled()
-      await expect(role).toHaveAttribute('aria-checked', 'true')
-    }
-    await page.screenshot({ path: path.resolve(screenshotDir, 'create-group-policy-03-stewards-locked.png') })
+    await expect(dialog.getByText('Administrators, Moderators and Hosts can invite people.', { exact: true })).toBeVisible()
+    await page.screenshot({ path: path.resolve(screenshotDir, 'create-group-policy-03-stewards.png') })
   })
 })

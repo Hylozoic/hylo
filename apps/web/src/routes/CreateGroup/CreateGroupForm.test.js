@@ -84,7 +84,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
     }
   })
 
-  it('starts on Everyone in the group and offers stewards and specific roles', () => {
+  it('starts on Everyone in the group and offers stewards, but not specific roles', () => {
     mockGraphql()
     render(<CreateGroupForm />)
 
@@ -93,7 +93,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
 
     fireEvent.click(screen.getByRole('button', { name: WHO_CAN_ADD }))
     expect(screen.getByRole('button', { name: STEWARDS })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Specific roles' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Specific roles' })).not.toBeInTheDocument()
   })
 
   it('sends the Everyone default when nothing else is chosen', async () => {
@@ -115,29 +115,24 @@ describe('CreateGroupForm "Who can add new members?"', () => {
 
     fireEvent.click(screen.getByRole('button', { name: WHO_CAN_ADD }))
     expect(screen.getByRole('button', { name: 'Everyone in the group' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Specific roles' })).toBeInTheDocument()
   })
 
-  it('lists Administrators, Moderators and Hosts under specific roles, all locked on', () => {
+  it('adds the approval sentence only once a joining rule that needs it is chosen', () => {
     mockGraphql()
     render(<CreateGroupForm />)
 
-    choose(WHO_CAN_ADD, 'Specific roles')
+    choose(WHO_CAN_ADD, STEWARDS)
+    expect(screen.getByText('Administrators, Moderators and Hosts can invite people.')).toBeInTheDocument()
 
-    for (const name of ['🪄 Administrator', '⚖️ Moderator', '👋 Host']) {
-      const role = screen.getByRole('checkbox', { name })
-      expect(role).toBeDisabled()
-      expect(role).toHaveAttribute('aria-checked', 'true')
-    }
-    expect(screen.getAllByText('Can always invite')).toHaveLength(3)
-    expect(screen.getByText('Create custom roles later in Roles & Badges')).toBeInTheDocument()
+    choose('Who can join this group?', 'By request, with approval')
+    expect(screen.getByText('Administrators, Moderators and Hosts can invite people. A steward approves each person a Moderator invites before they join.')).toBeInTheDocument()
   })
 
-  it('sends stewards when specific roles adds no one beyond the stewards', async () => {
+  it('sends stewards', async () => {
     const requests = mockGraphql()
     render(<CreateGroupForm />)
 
-    choose(WHO_CAN_ADD, 'Specific roles')
+    choose(WHO_CAN_ADD, STEWARDS)
     await createNamedGroup()
 
     await waitFor(() => expect(requests).toHaveLength(1))

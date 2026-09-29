@@ -36,6 +36,19 @@ describe('InvitePolicySelect', () => {
     expect(screen.getByText('Stewards, and anyone in the roles you choose, can invite people. A steward approves each person that Moderators and the chosen roles invite before they join.')).toBeInTheDocument()
   })
 
+  it('leaves out the approval sentence until the joining rule is known', () => {
+    render(<InvitePolicySelect mode='everyone' onModeChange={jest.fn()} accessibility={null} />)
+    expect(screen.getByText(NO_APPROVAL)).toBeInTheDocument()
+    expect(screen.queryByText(APPROVAL)).not.toBeInTheDocument()
+  })
+
+  it('can leave out the specific roles choice', () => {
+    render(<InvitePolicySelect mode='stewards' onModeChange={jest.fn()} offerSpecificRoles={false} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Who can add new members?' }))
+    expect(screen.getByRole('button', { name: 'Everyone in the group' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Specific roles' })).not.toBeInTheDocument()
+  })
+
   it('says stewards approve invited people in Restricted and Closed groups only', () => {
     const { rerender } = render(<InvitePolicySelect mode='everyone' onModeChange={jest.fn()} accessibility={GROUP_ACCESSIBILITY.Closed} />)
     expect(screen.getByText(APPROVAL)).toBeInTheDocument()

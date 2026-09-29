@@ -81,12 +81,17 @@ export function trackInvitePolicySet (mode, surface) {
 /**
  * "Who can add new members?": everyone in the group, stewards (Administrators,
  * Moderators and Hosts), or stewards plus chosen roles. `roles`
- * ({ id, label, locked, checked }) are listed when specific roles are chosen.
+ * ({ id, label, locked, checked }) are listed when specific roles are chosen;
+ * `offerSpecificRoles` false leaves that choice out. The approval sentence is
+ * shown once `accessibility` is known and is not Open.
  */
-export default function InvitePolicySelect ({ mode, onModeChange, roles = [], onToggleRole, accessibility, hint, popoverClassName }) {
+export default function InvitePolicySelect ({ mode, onModeChange, roles = [], onToggleRole, accessibility, hint, popoverClassName, offerSpecificRoles = true }) {
   const { t } = useTranslation()
-  const needsApproval = accessibility !== GROUP_ACCESSIBILITY.Open
-  const options = useMemo(() => invitePolicyOptions(needsApproval), [needsApproval])
+  const needsApproval = accessibility != null && accessibility !== GROUP_ACCESSIBILITY.Open
+  const options = useMemo(
+    () => invitePolicyOptions(needsApproval).filter(option => offerSpecificRoles || option.value !== INVITE_POLICY.roles),
+    [needsApproval, offerSpecificRoles]
+  )
 
   return (
     <div className='flex flex-col gap-3'>
