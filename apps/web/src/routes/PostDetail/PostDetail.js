@@ -26,6 +26,7 @@ import Comments from './Comments'
 import SocketSubscriber from 'components/SocketSubscriber'
 import Button from 'components/ui/button'
 import NotFound from 'components/NotFound'
+import LoadFailed from 'components/LoadFailed'
 import PostDetailSkeleton from './PostDetailSkeleton'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
 import ProjectContributions from './ProjectContributions'
@@ -40,6 +41,7 @@ import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { FETCH_POST, RESP_ADMINISTRATION } from 'store/constants'
+import { isTransientApiError } from 'store/middleware/apiMiddleware'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -136,16 +138,29 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         }
   }, [post, location.pathname, location.search, currentUser])
 
+  // Why the last load of this post failed, if it did. A dropped connection or
+  // a server error says nothing about whether the post exists, so those get
+  // a way to try again rather than "not found".
+  const [loadError, setLoadError] = useState(null)
+
   // Fetch post; include action-completion fields only for action posts.
   // Deep-linked actions may fetch twice: once without type, again once type is known.
-  useEffect(() => {
+  const loadPost = useCallback(() => {
     if (!postId) return
     const isAction = post?.type === 'action'
-    dispatch(fetchPost(postId, {
+    setLoadError(null)
+    const request = dispatch(fetchPost(postId, {
       withCompletion: isAction,
       withCompletionResponses: isAction && hasTracksResponsibility
     }))
-  }, [postId, post?.type, hasTracksResponsibility])
+    if (request?.catch) {
+      request.catch(error => setLoadError({ postId, transient: isTransientApiError(error) }))
+    }
+  }, [dispatch, postId, post?.type, hasTracksResponsibility])
+
+  useEffect(() => {
+    loadPost()
+  }, [loadPost])
 
   // Post emails link here with ?action=unfollow
   const unfollowRequested = getQuerystringParam('action', location) === 'unfollow'
@@ -567,6 +582,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const showPeopleDialog = hasPeople && state.showPeopleDialog
   const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
 
+  if (!post && !pending && loadError?.transient && loadError.postId === postId) return <LoadFailed onRetry={loadPost} />
   if (!post && !pending) return <NotFound />
   if (!post && pending) return <PostDetailSkeleton />
 

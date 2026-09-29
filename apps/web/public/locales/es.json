@@ -507,6 +507,8 @@
   "Could not determine group from invitation": "No se pudo determinar el grupo de la invitación",
   "Could not update subscription": "No se pudo actualizar la suscripción",
   "Couldn't load posts": "No se pudieron cargar las publicaciones",
+  "Couldn't load this": "No se pudo cargar",
+  "Check your connection, then try again.": "Revisa tu conexión y vuelve a intentarlo.",
   "Couldn't load this role's members and responsibilities.": "No se pudieron cargar los miembros y las responsabilidades de este rol.",
   "Couldn't turn notifications for this post back on": "No se pudieron volver a activar las notificaciones de esta publicación",
   "Couldn't turn off notifications for this post": "No se pudieron desactivar las notificaciones de esta publicación",

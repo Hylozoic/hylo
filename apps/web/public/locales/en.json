@@ -509,6 +509,8 @@
   "Could not determine group from invitation": "Could not determine group from invitation",
   "Could not update subscription": "Could not update subscription",
   "Couldn't load posts": "Couldn't load posts",
+  "Couldn't load this": "Couldn't load this",
+  "Check your connection, then try again.": "Check your connection, then try again.",
   "Couldn't load this role's members and responsibilities.": "Couldn't load this role's members and responsibilities.",
   "Couldn't turn notifications for this post back on": "Couldn't turn notifications for this post back on",
   "Couldn't turn off notifications for this post": "Couldn't turn off notifications for this post",

@@ -490,6 +490,8 @@
   "Copy and paste this URL into your calendar client to automatically add your Hylo RSVPs:": "Copie e cole esta URL no seu cliente de calendário para adicionar automaticamente suas confirmações de presença do Hylo:",
   "Could not update subscription": "Não foi possível atualizar a assinatura",
   "Couldn't load posts": "Não foi possível carregar as publicações",
+  "Couldn't load this": "Não foi possível carregar",
+  "Check your connection, then try again.": "Verifique sua conexão e tente novamente.",
   "Couldn't load this role's members and responsibilities.": "Não foi possível carregar os membros e as responsabilidades desta função.",
   "Couldn't turn notifications for this post back on": "Não foi possível reativar as notificações desta publicação",
   "Couldn't turn off notifications for this post": "Não foi possível desativar as notificações desta publicação",
