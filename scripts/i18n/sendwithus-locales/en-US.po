@@ -954,8 +954,8 @@ msgstr "Posts: %(posts_this_week_var)s this week, %(posts_last_week_var)s the we
 msgid "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
 msgstr "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
 
-msgid "Turn off this weekly email for this group"
-msgstr "Turn off this weekly email for this group"
+msgid "Manage this weekly email in your notification settings"
+msgstr "Manage this weekly email in your notification settings"
 
 msgid "Introduce yourself to the group"
 msgstr "Introduce yourself to the group"

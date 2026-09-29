@@ -1,4 +1,4 @@
-/* global bookshelf, Activity, Email, Frontend, Group, JoinRequest, Post, User */
+/* global bookshelf, Activity, Email, Frontend, Group, GroupMembership, JoinRequest, Post, User, sails */
 /*
   The daily steward job (cron.js), for D13, D14 and D49:
 
@@ -11,15 +11,21 @@
      new members, join requests waiting more than WAITING_REQUEST_DAYS days, open
      reports in the moderation queue, posts and comments against the week before,
      newcomers' first posts that still have no response (D49), and the quiet line.
+     Requests and reports older than REPORT_LOOKBACK_DAYS are left out, so a group
+     whose only news is a long-forgotten request or report gets no email.
 
   Stewards are the people holding the Administrator, Moderator or Host role
   (group/stewardAudience.js), never people who can only add members. A steward turns
   the email off with the stewardDigest membership setting (false), which the toggle on
   their notification settings and the one-click unsubscribe set. The join-request
   notice itself stays immediate. Each group's email is sent at most once every
-  MIN_DAYS_BETWEEN_DIGESTS days, and a group with nothing to report gets none.
+  MIN_DAYS_BETWEEN_DIGESTS days, and a group with nothing to report gets none. A run
+  handles at most MAX_DIGEST_GROUPS_PER_RUN groups, those that went longest without
+  being handled first, so a group the cap leaves out is among the first the next
+  week. A group that fails is logged and skipped, so it doesn't stop the rest.
 */
 import { DateTime } from 'luxon'
+import sentry from '../sentry'
 import { getLocaleStrings } from '../i18n/locales'
 import { senderNameForGroup } from '../email/senderNameViaHylo'
 import { stewardIds } from '../../api/models/group/stewardAudience'
@@ -31,6 +37,9 @@ export const ZONE = 'America/Los_Angeles'
 export const WEEK_DAYS = 7
 export const MIN_DAYS_BETWEEN_DIGESTS = 6
 export const WAITING_REQUEST_DAYS = 3
+// Join requests and reports older than this are left out of the email (as with the
+// 14-day note to people who asked to join, JoinRequest.UNANSWERED_LOOKBACK_DAYS)
+export const REPORT_LOOKBACK_DAYS = 30
 export const QUIET_DAYS = 30
 // A group whose quiet spell began longer ago than this is left alone, so the first run
 // doesn't prompt the stewards of every long-dormant group
@@ -137,15 +146,18 @@ export async function promptQuietGroups ({ now = new Date() } = {}) {
 }
 
 /**
- * Groups with stewards and something to report this week, not emailed in the last
- * MIN_DAYS_BETWEEN_DIGESTS days. Returns group ids.
+ * Groups with stewards and something to report this week, not handled in the last
+ * MIN_DAYS_BETWEEN_DIGESTS days, those that went longest without being handled
+ * first. Returns group ids.
  */
 export async function digestGroupIds ({ now = new Date(), limit = MAX_DIGEST_GROUPS_PER_RUN } = {}) {
   const weekAgo = daysBefore(now, WEEK_DAYS)
+  const lookback = daysBefore(now, REPORT_LOOKBACK_DAYS)
   const notYet = notMarkedSinceCondition('g.id', KIND.STEWARD_DIGEST, daysBefore(now, MIN_DAYS_BETWEEN_DIGESTS))
   const { rows } = await bookshelf.knex.raw(`
     SELECT g.id
     FROM groups g
+    LEFT JOIN group_notice_marks handled ON handled.group_id = g.id AND handled.kind = ?
     WHERE ${liveTopLevelGroup('g')}
       AND ${notYet.sql}
       AND EXISTS (
@@ -155,9 +167,18 @@ export async function digestGroupIds ({ now = new Date(), limit = MAX_DIGEST_GRO
         WHERE mgr.group_id = g.id AND mgr.active IS NOT FALSE
       )
       AND (
-        EXISTS (SELECT 1 FROM group_memberships gm WHERE gm.group_id = g.id AND gm.active = true AND gm.created_at > ?)
-        OR EXISTS (SELECT 1 FROM join_requests jr WHERE jr.group_id IN ${scopeSql('g.id')} AND jr.status = ?)
-        OR EXISTS (SELECT 1 FROM moderation_actions ma WHERE ma.group_id IN ${scopeSql('g.id')} AND ma.queue = 'group' AND ma.status = 'active')
+        EXISTS (
+          SELECT 1 FROM group_memberships gm WHERE gm.group_id = g.id AND gm.active = true AND gm.created_at > ?
+            AND COALESCE(gm.settings->>'joinSource', '') <> ?
+        )
+        OR EXISTS (
+          SELECT 1 FROM join_requests jr WHERE jr.group_id IN ${scopeSql('g.id')} AND jr.status = ?
+            AND jr.created_at > ? AND jr.created_at < ?
+        )
+        OR EXISTS (
+          SELECT 1 FROM moderation_actions ma WHERE ma.group_id IN ${scopeSql('g.id')} AND ma.queue = 'group' AND ma.status = 'active'
+            AND ma.created_at > ?
+        )
         OR EXISTS (
           SELECT 1 FROM groups_posts gp JOIN posts p ON p.id = gp.post_id AND p.active = true AND p.created_at > ?
           WHERE gp.group_id IN ${scopeSql('g.id')}
@@ -165,12 +186,17 @@ export async function digestGroupIds ({ now = new Date(), limit = MAX_DIGEST_GRO
         OR EXISTS (SELECT 1 FROM first_post_nudges n WHERE n.group_id IN ${scopeSql('g.id')} AND n.nudged_at > ?)
         OR EXISTS (SELECT 1 FROM group_notice_marks q WHERE q.group_id = g.id AND q.kind = ? AND q.sent_at > ?)
       )
-    ORDER BY g.id
+    ORDER BY handled.sent_at ASC NULLS FIRST, g.id
     LIMIT ?
   `, [
+    KIND.STEWARD_DIGEST,
     ...notYet.bindings,
     weekAgo,
+    GroupMembership.JoinSource.CREATOR,
     JoinRequest.STATUS.Pending,
+    lookback,
+    daysBefore(now, WAITING_REQUEST_DAYS),
+    lookback,
     daysBefore(now, 2 * WEEK_DAYS),
     weekAgo,
     KIND.QUIET_PROMPT,
@@ -192,31 +218,34 @@ export async function sectionsFor (group, { now = new Date() } = {}) {
   const groupId = group.id
   const weekAgo = daysBefore(now, WEEK_DAYS)
   const twoWeeksAgo = daysBefore(now, 2 * WEEK_DAYS)
+  const lookback = daysBefore(now, REPORT_LOOKBACK_DAYS)
   const scope = scopeSql('?')
 
+  // The group's creator doesn't count as a new member (as in group/newcomerBatch.js)
   const newMembers = (await bookshelf.knex.raw(`
     SELECT u.id, u.name, u.avatar_url, COUNT(*) OVER () AS total
     FROM group_memberships gm
     JOIN users u ON u.id = gm.user_id AND u.active = true
     WHERE gm.group_id = ? AND gm.active = true AND gm.created_at > ?
+      AND COALESCE(gm.settings->>'joinSource', '') <> ?
     ORDER BY gm.created_at DESC, gm.id DESC
     LIMIT ?
-  `, [groupId, weekAgo, LIST_LIMIT])).rows
+  `, [groupId, weekAgo, GroupMembership.JoinSource.CREATOR, LIST_LIMIT])).rows
 
   const waitingRequests = (await bookshelf.knex.raw(`
     SELECT u.id, u.name, u.avatar_url, jr.created_at, COUNT(*) OVER () AS total
     FROM join_requests jr
     JOIN users u ON u.id = jr.user_id AND u.active = true
-    WHERE jr.group_id IN ${scope} AND jr.status = ? AND jr.created_at < ?
+    WHERE jr.group_id IN ${scope} AND jr.status = ? AND jr.created_at > ? AND jr.created_at < ?
     ORDER BY jr.created_at ASC, jr.id ASC
     LIMIT ?
-  `, [groupId, groupId, JoinRequest.STATUS.Pending, daysBefore(now, WAITING_REQUEST_DAYS), LIST_LIMIT])).rows
+  `, [groupId, groupId, JoinRequest.STATUS.Pending, lookback, daysBefore(now, WAITING_REQUEST_DAYS), LIST_LIMIT])).rows
 
   // Reports in the group's moderation queue (posts and comments), not the legacy flags
   const openReports = await count(`
     SELECT COUNT(*) AS count FROM moderation_actions
-    WHERE group_id IN ${scope} AND queue = 'group' AND status = 'active'
-  `, [groupId, groupId])
+    WHERE group_id IN ${scope} AND queue = 'group' AND status = 'active' AND created_at > ?
+  `, [groupId, groupId, lookback])
   const newReports = await count(`
     SELECT COUNT(*) AS count FROM moderation_actions
     WHERE group_id IN ${scope} AND queue = 'group' AND created_at > ?
@@ -344,41 +373,64 @@ export async function emailData ({ group, sections, steward, locale }) {
     create_post_url: link(Frontend.Route.groupHome(group) + '?create=post&newPostType=discussion'),
 
     email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, steward),
+    // Where a signed-in steward finds this group's 'Weekly steward email' switch
     steward_settings_url: link(Frontend.Route.prefix + `/my/notifications?group=${group.id}`)
   }
 }
 
+function logFailure (err, message, extra) {
+  sails.log.error(`${message}: ${err.message}`, err.stack)
+  sentry.captureException(err, { extra: { job: 'stewardDigest', ...extra } })
+}
+
+// Sends one steward their email; true when it was sent
+async function sendToSteward ({ group, sections, stewardId }) {
+  try {
+    const steward = await User.find(stewardId)
+    if (!steward) return false
+    const locale = steward.getLocale()
+    const sent = await Email.sendStewardWeekly({
+      email: steward.get('email'),
+      locale,
+      sender: { name: await senderNameForGroup(group, locale) },
+      data: await emailData({ group, sections, steward, locale }),
+      // For the one-click unsubscribe: it turns off this steward's stewardDigest
+      // setting for this group (lib/email/emailTypes.js)
+      unsubscribe: { userId: steward.id, groupId: group.id }
+    })
+    return !!sent
+  } catch (err) {
+    logFailure(err, `Steward email failed for steward ${stewardId} in group ${group.id}`, { groupId: group.id, stewardId })
+    return false
+  }
+}
+
 /**
- * Emails each group's stewards their weekly summary. Returns { groups, emails }.
+ * Emails each group's stewards their weekly summary. Returns { groups, emails }:
+ * how many groups had an email and how many emails were actually sent.
  */
 export async function sendWeeklyEmails ({ now = new Date(), limit = MAX_DIGEST_GROUPS_PER_RUN } = {}) {
   const groupIds = await digestGroupIds({ now, limit })
   let groups = 0
   let emails = 0
   for (const groupId of groupIds) {
-    const group = await Group.find(groupId)
-    if (!group) continue
-    const sections = await sectionsFor(group, { now })
-    if (!hasNews(sections)) continue
-    const stewardIdsToEmail = await recipients(groupId)
-    if (stewardIdsToEmail.length === 0) continue
-    // Recorded first, so an overlapping run doesn't send the same week twice
-    if (!await claim(groupId, KIND.STEWARD_DIGEST, now, { unlessAfter: daysBefore(now, MIN_DAYS_BETWEEN_DIGESTS) })) continue
-    groups += 1
-    for (const stewardId of stewardIdsToEmail) {
-      const steward = await User.find(stewardId)
-      if (!steward) continue
-      const locale = steward.getLocale()
-      await Email.sendStewardWeekly({
-        email: steward.get('email'),
-        locale,
-        sender: { name: await senderNameForGroup(group, locale) },
-        data: await emailData({ group, sections, steward, locale }),
-        // For the one-click unsubscribe: it turns off this steward's stewardDigest
-        // setting for this group (lib/email/emailTypes.js)
-        unsubscribe: { userId: steward.id, groupId: group.id }
-      })
-      emails += 1
+    try {
+      // Recorded first, so an overlapping run doesn't send the same week twice, and a
+      // group with nothing to send this week goes to the back of next week's queue
+      if (!await claim(groupId, KIND.STEWARD_DIGEST, now, { unlessAfter: daysBefore(now, MIN_DAYS_BETWEEN_DIGESTS) })) continue
+      const group = await Group.find(groupId)
+      if (!group) continue
+      const sections = await sectionsFor(group, { now })
+      if (!hasNews(sections)) continue
+      const stewardIdsToEmail = await recipients(groupId)
+      let sent = 0
+      for (const stewardId of stewardIdsToEmail) {
+        if (await sendToSteward({ group, sections, stewardId })) sent += 1
+      }
+      if (sent > 0) groups += 1
+      emails += sent
+    } catch (err) {
+      logFailure(err, `Steward email failed for group ${groupId}`, { groupId })
     }
   }
   return { groups, emails }

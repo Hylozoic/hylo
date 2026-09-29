@@ -4,6 +4,7 @@ import factories from '../../setup/factories'
 import { mockify, spyify, unspyify } from '../../setup/helpers'
 import {
   digestGroupIds,
+  hasNews,
   promptQuietGroups,
   quietGroups,
   recipients,
@@ -163,6 +164,38 @@ describe('lib/group/stewardDigest', () => {
       expect(await digestGroupIds({ now })).to.not.include(String(idle.id))
     })
 
+    it('leaves out requests and reports older than the look-back, so a long-dormant group gets no email', async () => {
+      const dormant = await factories.group().save()
+      const steward = await factories.user().save()
+      const author = await factories.user().save()
+      const requester = await factories.user().save()
+      for (const person of [steward, author]) {
+        await person.joinGroup(dormant, { assignAdministrator: person === steward })
+        await setMembershipCreatedAt(person, dormant, daysAgo(900))
+      }
+      const oldPost = await postIn(dormant, author, { at: daysAgo(800) })
+      await bookshelf.knex('join_requests').insert({
+        user_id: requester.id, group_id: dormant.id, status: JoinRequest.STATUS.Pending, created_at: daysAgo(800)
+      })
+      await bookshelf.knex('moderation_actions').insert({
+        reporter_id: steward.id, post_id: oldPost.id, group_id: dormant.id, text: 'Off topic', status: 'active', queue: 'group', created_at: daysAgo(700)
+      })
+
+      expect(await digestGroupIds({ now })).to.not.include(String(dormant.id))
+      const sections = await sectionsFor(dormant, { now })
+      expect(sections.waitingRequestCount).to.equal(0)
+      expect(sections.openReports).to.equal(0)
+      expect(hasNews(sections)).to.be.false
+    })
+
+    it('does not count the creator of a group made this week as a new member', async () => {
+      const fresh = await factories.group().save()
+      const founder = await factories.user().save()
+      await founder.joinGroup(fresh, { assignAdministrator: true, joinSource: GroupMembership.JoinSource.CREATOR })
+      expect(await digestGroupIds({ now })).to.not.include(String(fresh.id))
+      expect((await sectionsFor(fresh, { now })).newMemberCount).to.equal(0)
+    })
+
     it('runs the 14-day check every day and the email only on the digest weekday', async () => {
       mockify(Email, 'sendStewardWeekly', () => Promise.resolve(true))
       spyify(JoinRequest, 'notifyUnanswered')
@@ -177,6 +210,63 @@ describe('lib/group/stewardDigest', () => {
       } finally {
         unspyify(JoinRequest, 'notifyUnanswered')
       }
+    })
+  })
+
+  describe('the cap on groups per run', () => {
+    let now, groups, members
+
+    before(async () => {
+      await setup.clearDb()
+      now = new Date()
+      groups = []
+      members = []
+      for (let i = 0; i < 3; i++) {
+        const g = await factories.group({ name: `Garden ${i + 1}` }).save()
+        const steward = await factories.user().save()
+        const member = await factories.user().save()
+        await steward.joinGroup(g, { assignAdministrator: true })
+        await member.joinGroup(g)
+        for (const person of [steward, member]) await setMembershipCreatedAt(person, g, daysAgo(90))
+        await postIn(g, member, { at: daysAgo(1) })
+        groups.push(g)
+        members.push(member)
+      }
+    })
+
+    afterEach(() => {
+      unspyify(Email, 'sendStewardWeekly')
+      unspyify(Group, 'find')
+    })
+
+    it('serves the groups that went longest without being handled first, so a group the cap left out comes first the next week', async () => {
+      mockify(Email, 'sendStewardWeekly', () => Promise.resolve(true))
+      const [first, second, third] = groups
+      expect(await sendWeeklyEmails({ now, limit: 2 })).to.deep.equal({ groups: 2, emails: 2 })
+      const emailed = Email.sendStewardWeekly.__spy.calls.map(call => call[0].data.group_name)
+      expect(emailed).to.have.members([first.get('name'), second.get('name')])
+
+      const nextWeek = new Date(now.getTime() + 7 * DAY)
+      expect((await digestGroupIds({ now: nextWeek }))[0]).to.equal(String(third.id))
+      expect(await sendWeeklyEmails({ now: nextWeek, limit: 1 })).to.deep.equal({ groups: 1, emails: 1 })
+      expect(Email.sendStewardWeekly.__spy.calls[2][0].data.group_name).to.equal(third.get('name'))
+    })
+
+    it('counts only emails that were sent, and keeps going when one group fails', async () => {
+      const [first, second, third] = groups
+      const when = new Date(now.getTime() + 21 * DAY)
+      for (let i = 0; i < groups.length; i++) {
+        await postIn(groups[i], members[i], { at: new Date(when.getTime() - DAY) })
+      }
+      mockify(Group, 'find', (id, ...rest) => String(id) === String(first.id)
+        ? Promise.reject(new Error('Unavailable'))
+        : Group._originalfind(id, ...rest))
+      mockify(Email, 'sendStewardWeekly', ({ data }) =>
+        Promise.resolve(data.group_name === second.get('name') ? null : true))
+
+      expect(await sendWeeklyEmails({ now: when })).to.deep.equal({ groups: 1, emails: 1 })
+      expect(Email.sendStewardWeekly.__spy.calls.map(call => call[0].data.group_name))
+        .to.have.members([second.get('name'), third.get('name')])
     })
   })
 
@@ -211,7 +301,7 @@ describe('lib/group/stewardDigest', () => {
 
       const ids = (await quietGroups({ now })).map(row => row.groupId)
       expect(ids).to.include(String(quiet.id))
-      expect(ids).to.not.include.members([dormant.id, busy.id, alone.id].map(String))
+      for (const g of [dormant, busy, alone]) expect(ids).to.not.include(String(g.id))
     })
 
     it('prompts its stewards in-app once per quiet spell, and puts a line in that week\'s email', async () => {

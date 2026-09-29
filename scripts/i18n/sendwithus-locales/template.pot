@@ -1018,7 +1018,7 @@ msgstr ""
 msgid "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
 msgstr ""
 
-msgid "Turn off this weekly email for this group"
+msgid "Manage this weekly email in your notification settings"
 msgstr ""
 
 msgid "Introduce yourself to the group"

@@ -916,8 +916,8 @@ msgstr "पोस्ट: इस हफ़्ते %(posts_this_week_var)s, प�
 msgid "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
 msgstr "टिप्पणियाँ: इस हफ़्ते %(comments_this_week_var)s, पिछले हफ़्ते %(comments_last_week_var)s।"
 
-msgid "Turn off this weekly email for this group"
-msgstr "इस समूह के लिए यह साप्ताहिक ईमेल बंद करें"
+msgid "Manage this weekly email in your notification settings"
+msgstr "अपनी सूचना सेटिंग्स में इस साप्ताहिक ईमेल को प्रबंधित करें"
 
 msgid "Introduce yourself to the group"
 msgstr "समूह से अपना परिचय दें"

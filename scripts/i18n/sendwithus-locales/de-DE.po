@@ -916,8 +916,8 @@ msgstr "Beiträge: %(posts_this_week_var)s diese Woche, %(posts_last_week_var)s 
 msgid "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
 msgstr "Kommentare: %(comments_this_week_var)s diese Woche, %(comments_last_week_var)s in der Woche davor."
 
-msgid "Turn off this weekly email for this group"
-msgstr "Diese wöchentliche E-Mail für diese Gruppe abschalten"
+msgid "Manage this weekly email in your notification settings"
+msgstr "Diese wöchentliche E-Mail in deinen Benachrichtigungseinstellungen verwalten"
 
 msgid "Introduce yourself to the group"
 msgstr "Stell dich der Gruppe vor"
