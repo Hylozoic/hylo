@@ -477,7 +477,8 @@ function PostEditorInner ({
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
   const [typeSwitchDialog, setTypeSwitchDialog] = useState(null)
   const [invalidMessage, setInvalidMessage] = useState('')
-  const [hasDescription, setHasDescription] = useState(initialPost.details?.length > 0) // TODO: an optimization to not run isValid no every character changed in the description
+  // True when the text has something other than blank space; a discussion needs this or a title
+  const [hasDescription, setHasDescription] = useState(hasDraftContent(initialPost.details))
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
   const [showAllSubmissionCriteria, setShowAllSubmissionCriteria] = useState(false)
@@ -896,7 +897,7 @@ function PostEditorInner ({
     const details = initialPost.details || ''
     detailsHtmlRef.current = details
     editorRef.current?.setContent(details)
-    setHasDescription(details.length > 0)
+    setHasDescription(hasDraftContent(details))
     dispatch(clearLinkPreview())
     setCurrentPost(() => ({
       ...initialPost,
@@ -1008,7 +1009,8 @@ function PostEditorInner ({
    */
   const handleDetailsChange = useCallback((html) => {
     detailsHtmlRef.current = html
-    const hasContent = (editorRef.current?.getText?.() || '').length > 0
+    // Blank lines and spaces alone are not text: an untitled discussion needs real words
+    const hasContent = (editorRef.current?.getText?.() || '').trim().length > 0
     // queueMicrotask: TipTap updates synchronously; deferring avoids render-cycle conflicts
     // that can surface as characters appearing out of order under load.
     queueMicrotask(() => {

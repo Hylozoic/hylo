@@ -233,6 +233,24 @@ describe('PostEditor', () => {
       expect(title.length).toBeLessThanOrEqual(80)
     }, 20000)
 
+    it('does not post an untitled discussion whose text is only blank lines', async () => {
+      const createPost = require('store/actions/createPost')
+      createPost.mockClear()
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockGraphqlServer.use(draftResponse({ title: '', details: '<p>Some words</p>' }))
+      const { container } = renderComponent({ autoFocus: false })
+      await waitFor(() => expect(container.querySelector('.ProseMirror')?.textContent).toContain('Some words'), { timeout: 10000 })
+      const editor = container.querySelector('.ProseMirror').editor
+
+      // As if the person deleted the words and left empty lines and spaces
+      await act(async () => { editor.commands.setContent('<p></p><p>   </p><p></p>', true) })
+      expect(editor.getText().length).toBeGreaterThan(0)
+      await act(async () => { fireEvent.click(screen.getByTestId('post-editor-submit')) })
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Add a title or some text')
+      expect(createPost).not.toHaveBeenCalled()
+    }, 20000)
+
     it('keeps a new post as a draft and offers to open it when sending fails after the editor has closed', async () => {
       const createPost = require('store/actions/createPost')
       const { saveDraft } = require('store/actions/draftActions')
