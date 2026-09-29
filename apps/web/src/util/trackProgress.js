@@ -1,4 +1,5 @@
 import { localSpaceSlug, spaceUrl } from '@hylo/navigation'
+import { MAX_MESSAGE_THREAD_PARTICIPANTS } from 'routes/Messages/messageThreadLimits'
 
 // D33: how far someone is through a track, and what to do next.
 
@@ -74,4 +75,14 @@ export function trackProgressBySpaceId (data) {
     bySpaceId[String(membership.group.id)] = progressFromSettings(track.userSettings, track.numActions, track.didComplete)
   }
   return bySpaceId
+}
+
+/**
+ * Who a steward can message together from a list of learners: everyone but themselves,
+ * within the group message limit (which counts the sender).
+ */
+export function messageRecipients (people, myId) {
+  return (people || [])
+    .filter(person => person?.id && String(person.id) !== String(myId))
+    .slice(0, MAX_MESSAGE_THREAD_PARTICIPANTS - 1)
 }
