@@ -142,6 +142,16 @@ function sameGroupId (a, b) {
   return a != null && b != null && String(a) === String(b)
 }
 
+/** A draft held while it could not reach the server (JSON), or null. */
+function parseUnsentDraft (data) {
+  if (!data) return null
+  try {
+    return JSON.parse(data)
+  } catch {
+    return null
+  }
+}
+
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
 const MAX_TITLE_LENGTH = 80
 
@@ -311,7 +321,7 @@ function PostEditorInner ({
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
-  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, flushSaveDraft, cancelPendingSave, clearDraft } = useDraft({
+  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, flushSaveDraft, cancelPendingSave, clearDraft, holdUnsentDraft, takeUnsentDraft } = useDraft({
     type: 'post',
     postId: editing ? editingPostId : undefined,
     groupId: currentGroup?.id,
@@ -588,10 +598,13 @@ function PostEditorInner ({
       return
     }
 
-    const mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
+    // A post that failed to send, whose draft could not reach the server
+    // either, is newer than anything the server holds
+    const unsentDraft = parseUnsentDraft(takeUnsentDraft())
+    const mergedPost = mergeDraftIntoPost(initialPost, unsentDraft || sessionDraft || serverDraft, groupOptions)
     applyPostToEditor(mergedPost)
     setTemplateApplied(true)
-  }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON, templatePending])
+  }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON, takeUnsentDraft, templatePending])
 
   useEffect(() => {
     if (editing || !currentGroup?.id) return
@@ -1221,8 +1234,9 @@ function PostEditorInner ({
   /**
    * Keeps the post in the editor after a failed create/update, turns draft
    * autosave back on (re-queueing the draft) and offers a retry. If the editor
-   * has closed while saving, the post is kept as a draft straight away and the
-   * toast offers to open it. If the person chose Discard while it was saving,
+   * has closed while saving, the post is kept as a draft straight away (held
+   * in memory when the server can't be reached) and the toast offers to open
+   * it. If the person chose Discard while it was saving,
    * nothing is kept and nothing is shown.
    */
   const handleSaveFailed = useEventCallback((wasAnnouncement) => {
@@ -1239,14 +1253,24 @@ function PostEditorInner ({
     const details = editorRef.current?.getHTML?.() ?? detailsHtmlRef.current ?? currentPost.details
     const draftPayload = buildPostDraftPayload(withDraftAttachments({ ...currentPost, details }))
     if (!mountedRef.current) {
-      const draftSaved = hasPostDraftPayloadContent(draftPayload)
-        ? flushSaveDraft(JSON.stringify(draftPayload), { force: true })
-        : Promise.resolve()
+      // Saved straight away. When that fails too (usually the same dropped
+      // connection), the text is held here so the composer still opens with it,
+      // and View Draft tries the server again first since it may be back
+      const draftJson = hasPostDraftPayloadContent(draftPayload) ? JSON.stringify(draftPayload) : null
+      const saveDraftNow = () => draftJson ? flushSaveDraft(draftJson, { force: true }) : Promise.resolve(true)
+      const draftSaved = saveDraftNow().then(saved => {
+        if (!saved) holdUnsentDraft(draftJson)
+        return saved
+      })
       const path = viewDraftPath()
       toast.error(isEditing ? t('Your changes couldn\'t be saved') : t('Your post wasn\'t sent!'), {
         action: {
           label: t('View Draft'),
-          onClick: () => { draftSaved.finally(() => navigate(path)) }
+          onClick: () => {
+            draftSaved
+              .then(saved => saved || saveDraftNow())
+              .finally(() => navigate(path))
+          }
         }
       })
       return

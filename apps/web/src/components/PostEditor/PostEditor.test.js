@@ -94,6 +94,11 @@ function draftResponse (draftData) {
   }))
 }
 
+// A draft save the server accepted
+function savedDraftAction ({ data }) {
+  return { type: 'TEST_SAVE_DRAFT', payload: { data: { saveDraft: { id: 'draft-saved', data } } } }
+}
+
 function mockLocation (location) {
   require('react-router-dom').useLocation.mockReturnValue({ hash: '', state: null, key: 'default', ...location })
 }
@@ -101,6 +106,7 @@ function mockLocation (location) {
 describe('PostEditor', () => {
   afterEach(() => {
     mockLocation({ pathname: '', search: '' })
+    require('store/actions/draftActions').saveDraft.mockImplementation(() => ({ type: 'TEST_SAVE_DRAFT' }))
   })
 
   beforeEach(() => {
@@ -238,6 +244,7 @@ describe('PostEditor', () => {
         type: 'TEST_CREATE_POST',
         payload: new Promise((resolve, reject) => { rejectSave = reject })
       }))
+      saveDraft.mockImplementation(savedDraftAction)
       jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
       mockLocation({ pathname: '/groups/test-group', search: '?create=post' })
       mockGraphqlServer.use(draftResponse({ title: 'Never sent' }))
@@ -270,7 +277,56 @@ describe('PostEditor', () => {
 
       await act(async () => { toast.error.mock.calls[0][1].action.onClick() })
       await waitFor(() => expect(`${window.location.pathname}${window.location.search}`).toBe('/groups/test-group?create=post&newPostType=discussion'))
+      // Saved once, not again when opening it
+      expect(saveDraft).toHaveBeenCalledTimes(1)
     }, 20000)
+
+    it('opens the latest text from View Draft when the connection is down and the draft could not be saved either', async () => {
+      const createPost = require('store/actions/createPost')
+      const { saveDraft } = require('store/actions/draftActions')
+      const { toast } = require('sonner')
+      toast.error.mockClear()
+      let rejectSave
+      createPost.mockImplementationOnce(() => ({
+        type: 'TEST_CREATE_POST',
+        payload: new Promise((resolve, reject) => { rejectSave = reject })
+      }))
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post' })
+      mockGraphqlServer.use(draftResponse({ title: 'Saved a while ago' }))
+      const editorRef = React.createRef()
+
+      const { unmount } = render(
+        <PostEditor {...baseProps} ref={editorRef} />,
+        { wrapper: testProviders() }
+      )
+      const titleInput = await screen.findByDisplayValue('Saved a while ago')
+      // The connection drops: draft saves fail from here on
+      saveDraft.mockImplementation(() => ({ type: 'TEST_SAVE_DRAFT', payload: Promise.reject(new Error('offline')) }))
+      fireEvent.change(titleInput, { target: { value: 'Typed just before sending' } })
+      await act(async () => { editorRef.current.submit() })
+      await waitFor(() => expect(createPost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Typed just before sending' })))
+
+      unmount()
+      saveDraft.mockClear()
+      await act(async () => { rejectSave(new Error('offline')) })
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
+        'Your post wasn\'t sent!',
+        expect.objectContaining({ action: expect.objectContaining({ label: 'View Draft' }) })
+      ))
+
+      window.history.pushState({}, '', '/groups/test-group')
+      await act(async () => { toast.error.mock.calls[0][1].action.onClick() })
+      await waitFor(() => expect(`${window.location.pathname}${window.location.search}`).toBe('/groups/test-group?create=post&newPostType=discussion'))
+      // Tried again on View Draft, as the connection may be back by then
+      expect(saveDraft).toHaveBeenCalledTimes(2)
+
+      // Still offline: the composer can't fetch any draft, and opens on the text anyway
+      mockGraphqlServer.use(graphql.query('FetchDraft', () => HttpResponse.error()))
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion' })
+      render(<PostEditor {...baseProps} />, { wrapper: testProviders() })
+      expect(await screen.findByDisplayValue('Typed just before sending', {}, { timeout: 10000 })).toBeInTheDocument()
+    }, 30000)
 
     it('keeps no draft and shows nothing when the person discarded the post while it was being sent', async () => {
       const createPost = require('store/actions/createPost')
@@ -495,6 +551,7 @@ describe('PostEditor', () => {
         type: 'TEST_UPDATE_POST',
         payload: new Promise((resolve, reject) => { rejectSave = reject })
       }))
+      saveDraft.mockImplementation(savedDraftAction)
       jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
       mockLocation({ pathname: '/groups/test-group/post/1/edit', search: '' })
       const editorRef = React.createRef()
