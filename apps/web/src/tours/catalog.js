@@ -8,7 +8,7 @@ import { GROUP_SETTINGS_TOUR_ID, groupSettingsTourSteps } from './groupSettingsT
 import { SPACE_CREATE_TOUR_ID, spaceCreateTourSteps } from './spaceCreateTour'
 import { TRACK_SETUP_TOUR_ID, trackSetupTourSteps } from './trackSetupTour'
 import { FUNDING_ROUND_SETUP_TOUR_ID, fundingRoundSetupTourSteps } from './fundingRoundSetupTour'
-import { isAnchorVisible } from './useTour'
+import { presentTourSteps } from './useTour'
 
 /**
  * Every tour in the app, for the Help menu's "Take a tour" list. A tour is
@@ -31,7 +31,10 @@ export function tourCatalog (t) {
   ]
 }
 
-/** True when any of the tour's anchors is visible on the current surface. */
+/**
+ * True when any of the tour's anchors is visible on the current surface, in
+ * whichever layout (sidebar, top bar, card menu) is showing.
+ */
 export function isTourAvailable (tour) {
-  return tour.steps.some(step => step.element && isAnchorVisible(document.querySelector(step.element)))
+  return presentTourSteps(tour.steps).some(step => step.element)
 }

@@ -7,7 +7,7 @@ import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import useTour from 'tours/useTour'
-import { GROUP_CREATOR_TOUR_ID, GROUP_WELCOME_TOUR_ID, groupCreatorTourSteps, groupWelcomeTourSteps } from 'tours/groupTours'
+import { useGroupTour } from 'tours/groupTours'
 import { MENU_EDIT_TOUR_ID, menuEditTourSteps } from 'tours/menuEditTour'
 
 import {
@@ -655,25 +655,13 @@ export default function ContextMenu (props) {
   )
   const profileUrl = personUrl(currentUser?.id, groupSlug)
 
-  // Guided first-visit tours, offered via a floating invitation: the creator
-  // of a brand-new group (sole member, administers) gets the steward tour;
-  // everyone else gets the member tour. Held until the group welcome modal
-  // (agreements / join questions) closes. Two-column only — the card grid
-  // renders none of these anchors.
-  const isNewlyCreatedGroup = canAdminister && group?.memberCount === 1
-  const groupTourSteps = useMemo(
-    () => isNewlyCreatedGroup ? groupCreatorTourSteps(t) : groupWelcomeTourSteps(t),
-    [isNewlyCreatedGroup, t]
-  )
-  const { invitation: groupTourInvitation } = useTour({
-    id: isNewlyCreatedGroup ? GROUP_CREATOR_TOUR_ID : GROUP_WELCOME_TOUR_ID,
-    steps: groupTourSteps,
-    autoStart: true,
-    inviteMessage: isNewlyCreatedGroup
-      ? t('Your group is ready — want a quick tour?')
-      : t('New here? Take a quick tour of this group.'),
-    enabled: isGroupContext && !!group?.id && !isOneColumnLayout && !isEditing,
-    blockedBySelectors: ['[data-testid="group-welcome-modal"]']
+  // Guided first-visit group tour (steward tour for a brand-new group's
+  // creator, member tour for everyone else). The card menu (ContextMenuGrid)
+  // runs its own copy for one-column groups.
+  const { invitation: groupTourInvitation } = useGroupTour({
+    group,
+    canAdminister,
+    enabled: isGroupContext && !isOneColumnLayout && !isEditing
   })
   const menuEditSteps = useMemo(() => menuEditTourSteps(t), [t])
   const { invitation: menuEditInvitation } = useTour({

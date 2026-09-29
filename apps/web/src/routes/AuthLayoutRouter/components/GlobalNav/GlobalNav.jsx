@@ -1,12 +1,10 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Compass, Globe, HelpCircle, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
+import { Globe, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, Wrench } from 'lucide-react'
 import React, { Suspense, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import useTour, { driveTour, isTourTestMode } from 'tours/useTour'
+import useTour from 'tours/useTour'
 import { GLOBAL_CHROME_TOUR_ID, globalChromeTourSteps } from 'tours/globalChromeTour'
-import { tourCatalog, isTourAvailable } from 'tours/catalog'
-import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -42,7 +40,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -54,13 +51,11 @@ import {
 import BadgedIcon from 'components/BadgedIcon'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
+import HelpMenu from './HelpMenu'
 import { getMyGroupsWithChildren, isSpaceGroup } from 'store/selectors/getMyGroups'
-import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
-import isWebView, { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
-import { getCookieConsent } from 'util/cookieConsent'
+import { isCompactLayoutDevice, isMobileDevice } from 'util/mobile'
+import { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
 import { isSandboxMode } from 'sandbox/isSandbox'
-import { useCookieConsent } from 'contexts/CookieConsentContext'
-import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
@@ -455,40 +450,43 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
               ))}
             </DropdownMenuRadioGroup>
           </SettingsSubMenu>
-          {!isPhoneViewport && (
-            <SettingsSubMenu compact={compactLayout} label={t('Global Navigation')}>
-              <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
-                <DropdownMenuRadioItem value='sidebar'>
-                  {t('Sidebar')}
+          {/* Layout preferences are rarely changed, so they sit one level down */}
+          <SettingsSubMenu compact={compactLayout} label={t('Advanced')}>
+            {!isPhoneViewport && (
+              <SettingsSubMenu compact={compactLayout} label={t('Global Navigation')}>
+                <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
+                  <DropdownMenuRadioItem value='sidebar'>
+                    {t('Sidebar')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value='tabs'>
+                    {t('Topbar')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </SettingsSubMenu>
+            )}
+            <SettingsSubMenu compact={compactLayout} label={t('Group Nav Stacking')}>
+              <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
+                <DropdownMenuRadioItem value='flat'>
+                  {t('Flat')}
                 </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value='tabs'>
-                  {t('Topbar')}
+                <DropdownMenuRadioItem value='stacked'>
+                  {t('Stacked')}
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </SettingsSubMenu>
-          )}
-          <SettingsSubMenu compact={compactLayout} label={t('Group Nav Stacking')}>
-            <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
-              <DropdownMenuRadioItem value='flat'>
-                {t('Flat')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='stacked'>
-                {t('Stacked')}
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </SettingsSubMenu>
-          <SettingsSubMenu compact={compactLayout} label={t('Group Menu Style')}>
-            <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
-              <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
-                {t('Group Default')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
-                {t('Side Menu')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
-                {t('Card Menu')}
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
+            <SettingsSubMenu compact={compactLayout} label={t('Group Menu Style')}>
+              <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
+                <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
+                  {t('Group Default')}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
+                  {t('Side Menu')}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
+                  {t('Card Menu')}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </SettingsSubMenu>
           </SettingsSubMenu>
         </SettingsSubMenu>
         <SettingsSubMenu compact={compactLayout} icon={<Languages className='mr-2 h-4 w-4' />} label={t('Language')}>
@@ -548,9 +546,6 @@ const GLOBAL_NAV_UTILITY_BUTTON = 'relative flex items-center justify-center w-8
 
 export default function GlobalNav (props) {
   const { currentUser } = props
-  const { show: showIntercom } = useIntercom()
-  const { showPreferences } = useCookieConsent()
-  const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
   const stackGroups = currentUser?.settings?.stackGroups === true
   const rawGroups = useSelector(getMyGroupsWithChildren)
@@ -567,11 +562,7 @@ export default function GlobalNav (props) {
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder != null), [sortedGroups])
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder == null), [sortedGroups])
   const compactLayout = isCompactLayoutDevice()
-  // The store links only go anywhere on a phone or tablet, so don't offer the
-  // download at all on desktop
-  const showAppStoreLink = isMobileDevice() && !isWebView()
   const { t } = useTranslation()
-  const [helpOpen, setHelpOpen] = useState(false)
   const tourSteps = useMemo(() => globalChromeTourSteps(t, { sandboxMode: isSandboxMode() }), [t])
   const { invitation: chromeTourInvitation } = useTour({
     id: GLOBAL_CHROME_TOUR_ID,
@@ -579,34 +570,6 @@ export default function GlobalNav (props) {
     autoStart: true,
     inviteMessage: t('New to Hylo? Let us show you around.')
   })
-  // The Help menu lists every tour; ones whose anchors aren't on the current
-  // surface are shown disabled. Availability is a DOM question, so it's
-  // measured fresh each time the menu opens
-  const allTours = useMemo(() => tourCatalog(t), [t])
-  const [availableTourIds, setAvailableTourIds] = useState(() => new Set())
-  const handleHelpOpenChange = useCallback((open) => {
-    setHelpOpen(open)
-    if (open) {
-      setAvailableTourIds(new Set(allTours.filter(isTourAvailable).map(tour => tour.id)))
-    }
-  }, [allTours])
-  const toursSeen = currentUser?.settings?.toursSeen
-  const handleRunTour = useCallback((tour) => {
-    setHelpOpen(false)
-    // Let the menu finish closing before the overlay measures the anchors
-    setTimeout(() => {
-      driveTour(tour.steps, {
-        // A finished replay counts as seen, same as an organic run
-        onDestroyed: () => {
-          if (isTourTestMode()) return
-          const seenNow = toursSeen || []
-          if (!seenNow.includes(tour.id)) {
-            dispatch(updateUserSettings({ settings: { toursSeen: [...seenNow, tour.id] } }))
-          }
-        }
-      })
-    }, 150)
-  }, [toursSeen, dispatch])
   const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   // A stack's subgroup menu and the rail's labels are alternatives, never both at
@@ -940,15 +903,6 @@ export default function GlobalNav (props) {
     }
   }, [startClearHoverCountdown])
 
-  const handleSupportClick = () => {
-    const consent = getCookieConsent()
-    if (consent && consent.support === false) {
-      setShowSupportModal(true)
-    } else {
-      showIntercom()
-    }
-  }
-
   const handlePinGroup = (groupId) => {
     dispatch(pinGroup(groupId))
   }
@@ -1235,94 +1189,7 @@ export default function GlobalNav (props) {
         <div className='flex items-center justify-center gap-1.5'>
           <SettingsMenu currentUser={currentUser} triggerClassName={GLOBAL_NAV_UTILITY_BUTTON} />
 
-          <DropdownMenu open={helpOpen} onOpenChange={handleHelpOpenChange}>
-            <DropdownMenuTrigger asChild>
-              <button type='button' className={GLOBAL_NAV_UTILITY_BUTTON} aria-label={t('Help')} data-tour='help'>
-                <HelpCircle className='w-5 h-5' />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              side='right'
-              align='start'
-              className={cn(
-                'z-[200] bg-card',
-                compactLayout
-                  ? 'min-w-[260px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base'
-                  : 'min-w-[260px] sm:min-w-[200px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'
-              )}
-            >
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger data-testid='take-a-tour'>
-                  <Compass className='mr-2 h-4 w-4' />
-                  <span>{t('Take a tour')} ({availableTourIds.size})</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className='z-[200] bg-card'>
-                  <DropdownMenuLabel className='text-foreground/60 font-normal'>{t('Tours for this view')}</DropdownMenuLabel>
-                  {allTours.map(tour => (
-                    <DropdownMenuItem
-                      key={tour.id}
-                      disabled={!availableTourIds.has(tour.id)}
-                      onClick={() => handleRunTour(tour)}
-                    >
-                      {tour.title}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSupportClick}>
-                <MessagesSquare className='mr-2 h-4 w-4' />
-                <span>{t('Feedback & Support')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
-                  <BookOpen className='mr-2 h-4 w-4' />
-                  <span>{t('User Guide')}</span>
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href='http://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
-                  <Shield className='mr-2 h-4 w-4' />
-                  <span>{t('Terms & Privacy')}</span>
-                </a>
-              </DropdownMenuItem>
-              {showAppStoreLink && (
-                <DropdownMenuItem onClick={downloadApp}>
-                  <Download className='mr-2 h-4 w-4' />
-                  <span>{t('Download App')}</span>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem asChild>
-                <a href='https://opencollective.com/hylo' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
-                  <Heart className='mr-2 h-4 w-4' />
-                  <span>{t('Contribute to Hylo')}</span>
-                </a>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {/* Outside the menu: selecting Feedback & Support closes it, and this
-              dialog has to outlive that close */}
-          {showSupportModal && (
-            <ModalDialog
-              closeModal={() => setShowSupportModal(false)}
-              showModalTitle={false}
-              submitButtonAction={() => {
-                setShowSupportModal(false)
-                showPreferences()
-              }}
-              submitButtonText={t('Edit Cookie Preferences')}
-            >
-              <div className='p-4'>
-                <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
-                <p className='text-foreground/70 mb-4'>
-                  {t('To use the support chat you need to enable support cookies in your cookie preferences')}
-                </p>
-                <p className='text-foreground/70 mb-2'>
-                  {t('Click below to edit your cookie preferences')}
-                </p>
-              </div>
-            </ModalDialog>
-          )}
+          <HelpMenu currentUser={currentUser} triggerClassName={GLOBAL_NAV_UTILITY_BUTTON} />
         </div>
       </div>
     </div>

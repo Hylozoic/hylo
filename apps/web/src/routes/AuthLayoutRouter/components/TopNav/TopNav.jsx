@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, Layers, Pin } from 'lucide-react'
+import { Globe, PlusCircle, Bell, MessagesSquare, Layers, Pin } from 'lucide-react'
 import React, { Suspense, useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -22,7 +22,12 @@ import useRouteParams from 'hooks/useRouteParams'
 import { baseUrl, myHomeLandingUrl, isMyHomeContext } from '@hylo/navigation'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { SettingsMenu } from '../GlobalNav/GlobalNav'
+import HelpMenu from '../GlobalNav/HelpMenu'
 import { pinGroup } from 'store/actions/pinGroup'
+import { isSandboxMode } from 'sandbox/isSandbox'
+import useTour from 'tours/useTour'
+import { GLOBAL_CHROME_TOUR_ID, globalChromeTourSteps } from 'tours/globalChromeTour'
+import { TOUR_LAYOUT_TABS } from 'tours/layouts'
 
 const NotificationsDropdown = React.lazy(() => import('../GlobalNav/NotificationsDropdown'))
 
@@ -83,12 +88,13 @@ function StackedAvatars ({ parentImg, parentLabel, childGroups }) {
   )
 }
 
-function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNavigate, iconOnly = false, childGroups, onNavigateChild }) {
+function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNavigate, iconOnly = false, childGroups, onNavigateChild, dataTour }) {
   const hasChildren = childGroups && childGroups.length > 0
 
   const tabContent = (
     <div
       onClick={hasChildren ? undefined : () => onNavigate(url)}
+      data-tour={dataTour}
       className={cn(
         'TopNavTab group relative flex items-center h-full cursor-pointer select-none',
         'border-r border-foreground/10 transition-colors duration-150',
@@ -187,6 +193,16 @@ export default function TopNav ({ currentUser }) {
   )
   const tabContainerRef = useRef(null)
   const [visibleGroupCount, setVisibleGroupCount] = useState(sortedGroups.length)
+
+  // The first-session tour of the global navigation, top-bar version: the
+  // side rail (GlobalNav) that normally offers it isn't shown in this layout
+  const tourSteps = useMemo(() => globalChromeTourSteps(t, { sandboxMode: isSandboxMode() }), [t])
+  const { invitation: chromeTourInvitation } = useTour({
+    id: GLOBAL_CHROME_TOUR_ID,
+    steps: tourSteps,
+    autoStart: true,
+    inviteMessage: t('New to Hylo? Let us show you around.')
+  })
   const [iconOnly, setIconOnly] = useState(false)
 
   const currentBase = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug })
@@ -294,10 +310,12 @@ export default function TopNav ({ currentUser }) {
   return (
     <div
       className='TopNav flex items-stretch bg-card w-full h-11 shrink-0 border-b border-foreground/15 z-50 relative'
+      data-tour-layout={TOUR_LAYOUT_TABS}
       style={{
         boxShadow: '0 1px 3px hsl(var(--darkening) / 0.15)'
       }}
     >
+      {chromeTourInvitation}
       <div className='absolute inset-0 bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 z-0' />
 
       {/* User home — first item */}
@@ -310,18 +328,19 @@ export default function TopNav ({ currentUser }) {
           isActive={currentBase === homeTab.url}
           onNavigate={handleNavigate}
           iconOnly={iconOnly}
+          dataTour='my-home'
         />
       )}
 
       {/* Notifications button */}
       <Suspense fallback={
-        <div className='relative z-10 flex items-center px-2 border-r border-foreground/10'>
+        <div className='relative z-10 flex items-center px-2 border-r border-foreground/10' data-tour='activity'>
           <span className={SYSTEM_ICON_FRAME}><Bell className='w-4 h-4' /></span>
         </div>
       }
       >
         <NotificationsDropdown renderToggleChildren={showBadge =>
-          <div className='relative z-10 flex items-center px-2 border-r border-foreground/10 cursor-pointer hover:bg-foreground/5 transition-colors'>
+          <div className='relative z-10 flex items-center px-2 border-r border-foreground/10 cursor-pointer hover:bg-foreground/5 transition-colors' data-tour='activity'>
             <span className={SYSTEM_ICON_FRAME}>
               <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer text-base' />
             </span>
@@ -344,6 +363,7 @@ export default function TopNav ({ currentUser }) {
             isActive={currentBase === tab.url}
             onNavigate={handleNavigate}
             iconOnly={iconOnly}
+            dataTour={tab.key === 'messages' ? 'messages' : tab.key === 'commons' ? 'the-commons' : undefined}
           >
             {tab.key === 'messages' && <MessagesSquare className='w-4 h-4' />}
             {tab.key === 'commons' && <Globe className='w-4 h-4' />}
@@ -435,7 +455,7 @@ export default function TopNav ({ currentUser }) {
       {/* Action buttons */}
       <div className='relative z-10 flex items-center gap-1.5 px-2 border-l border-foreground/10'>
         <Popover>
-          <PopoverTrigger>
+          <PopoverTrigger aria-label={t('Create')} data-tour='create'>
             <div className={cn(SYSTEM_ICON_FRAME, 'cursor-pointer transition-all hover:drop-shadow [&>svg]:w-4 [&>svg]:h-4')}>
               <PlusCircle />
             </div>
@@ -452,20 +472,13 @@ export default function TopNav ({ currentUser }) {
           contentAlign='end'
         />
 
-        <Popover>
-          <PopoverTrigger>
-            <div className={cn(SYSTEM_ICON_FRAME, 'cursor-pointer transition-all hover:drop-shadow [&>svg]:w-4 [&>svg]:h-4')}>
-              <HelpCircle />
-            </div>
-          </PopoverTrigger>
-          <PopoverContent side='bottom' align='end'>
-            <ul className='flex flex-col gap-2 m-0 p-0'>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2 text-sm' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2 text-sm' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2 text-sm' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
-            </ul>
-          </PopoverContent>
-        </Popover>
+        <HelpMenu
+          currentUser={currentUser}
+          triggerClassName={cn(SYSTEM_ICON_FRAME, 'cursor-pointer transition-all hover:drop-shadow')}
+          iconClassName='w-4 h-4'
+          contentSide='bottom'
+          contentAlign='end'
+        />
       </div>
     </div>
   )
