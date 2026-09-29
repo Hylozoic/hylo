@@ -98,6 +98,18 @@ describe('event reminders (D44)', () => {
     expect(await mediaFor(nudge)).to.deep.equal([Notification.MEDIUM.InApp])
   })
 
+  it('names whoever sent the invitation in a nudge', async () => {
+    const event = await eventStarting(24)
+    await bookshelf.knex('event_invitations')
+      .where({ event_id: event.id, user_id: unanswered.id })
+      .update({ inviter_id: going.id })
+    await sendEventReminders()
+    const [nudge] = await noticesFor('eventNudge', event.id)
+    expect(String(nudge.get('actor_id'))).to.equal(String(going.id))
+    const reminders = await noticesFor('eventReminder', event.id)
+    expect(reminders.map(a => String(a.get('actor_id')))).to.deep.equal(reminders.map(() => String(host.id)))
+  })
+
   it('catches each event exactly once across hourly runs', async () => {
     const event = await eventStarting(24.5)
     await sendEventReminders()
@@ -139,8 +151,8 @@ describe('event reminders (D44)', () => {
       unspyify(Email, 'sendEventReminderEmail')
     })
 
-    const notificationFor = async (medium) => {
-      const event = await eventStarting(24)
+    const notificationFor = async (medium, attrs) => {
+      const event = await eventStarting(24, attrs)
       await sendEventReminders()
       const reminder = (await noticesFor('eventReminder', event.id)).find(a => String(a.get('reader_id')) === String(going.id))
       const notification = await Notification.where({ activity_id: reminder.id, medium }).fetch({ withRelated: relations })
@@ -158,14 +170,15 @@ describe('event reminders (D44)', () => {
 
     it('emails the event details once the template is named', async () => {
       process.env.EVENT_REMINDER_TEMPLATE_ID = 'tem_test'
-      const { event, notification } = await notificationFor(Notification.MEDIUM.Email)
+      const { event, notification } = await notificationFor(Notification.MEDIUM.Email, { meeting_link: 'https://example.com/meet' })
       await notification.sendEmail()
       const [opts] = Email.sendEventReminderEmail.__spy.calls[0]
       expect(opts.email).to.equal(going.get('email'))
       expect(opts.data.event_name).to.equal('Seed swap')
       expect(opts.data.going).to.be.true
       expect(opts.data.group_name).to.equal('Garden Group')
-      expect(opts.data.event_location).to.equal('Community garden')
+      expect(opts.data.event_address).to.equal('Community garden')
+      expect(opts.data.meeting_link).to.equal('https://example.com/meet')
       expect(opts.data.date).to.match(/P[DS]T/)
       expect(opts.data.event_url).to.include(`/post/${event.id}`)
     })

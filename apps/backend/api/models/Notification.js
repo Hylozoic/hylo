@@ -11,7 +11,6 @@ import { pushGroupingFor } from './notification/pushGrouping'
 import { isReplyToReader } from './notification/signalClasses'
 import { isGroupedPushThrottled, recordGroupedPush } from './notification/grouping'
 import { DateTimeHelpers } from '@hylo/shared'
-import { formatEventLocationForEmail } from './event/mixin'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -283,11 +282,12 @@ module.exports = bookshelf.Model.extend({
       data: {
         date: this.eventReminderDate(post, locale),
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-        event_location: formatEventLocationForEmail(post.get('location'), post.get('meeting_link')),
+        event_address: post.get('location') || '',
         event_name: post.title(),
         event_url: Frontend.Route.post(post, group, clickthroughParams),
         going: response === EventInvitation.RESPONSE.YES,
         group_name: group ? group.get('name') : '',
+        meeting_link: post.get('meeting_link') || '',
         response: response || null,
         user_name: reader.get('name')
       }

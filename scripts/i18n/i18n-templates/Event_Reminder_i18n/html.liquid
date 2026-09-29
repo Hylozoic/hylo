@@ -22,8 +22,11 @@
 
 <h2>{{event_name}}</h2>
 <p><strong>{{date}}</strong></p>
-{% if event_location %}
-  <p>{{event_location}}</p>
+{% if event_address %}
+  <p>{{event_address}}</p>
+{% endif %}
+{% if meeting_link %}
+  <p>{% trans %}Join online:{% endtrans %} <a href='{{meeting_link}}'>{{meeting_link}}</a></p>
 {% endif %}
 {% if group_name %}
   {% set group_name_var = group_name %}

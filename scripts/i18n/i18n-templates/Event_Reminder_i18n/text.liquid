@@ -4,7 +4,8 @@
 
 {{event_name}}
 {{date}}
-{% if event_location %}{{event_location}}
+{% if event_address %}{{event_address}}
+{% endif %}{% if meeting_link %}{% trans %}Join online:{% endtrans %} {{meeting_link}}
 {% endif %}{% if group_name %}{% set group_name_var = group_name %}{% trans %}in {{group_name_var}}{% endtrans %}
 {% endif %}
 {% trans %}See the event{% endtrans %}: {{event_url}}

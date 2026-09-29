@@ -35,7 +35,7 @@ async function answersFor (event) {
     .join('users', 'users.id', 'event_invitations.user_id')
     .where('event_invitations.event_id', event.id)
     .where('users.active', true)
-    .select('event_invitations.user_id', 'event_invitations.response')
+    .select('event_invitations.user_id', 'event_invitations.response', 'event_invitations.inviter_id')
   return rows.filter(row => !hostId || String(row.user_id) !== String(hostId))
 }
 
@@ -57,9 +57,10 @@ export async function sendEventReminders ({ now = new Date() } = {}) {
     try {
       const answers = await answersFor(event)
       const groupKey = reminderKeyFor(event)
+      // A nudge names whoever sent the invitation; a reminder comes from the host
       const notice = (reason, row) => ({
         reader_id: row.user_id,
-        actor_id: event.get('user_id'),
+        actor_id: (reason === 'eventNudge' && row.inviter_id) || event.get('user_id'),
         post_id: event.id,
         reason,
         group_key: groupKey,
