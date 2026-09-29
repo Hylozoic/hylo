@@ -20,6 +20,8 @@ import { importantAnnouncement, mentionsAlwaysReachYou } from './directSignals'
 import { conversationPasses, quietGroupPasses } from './adaptiveImportant'
 import { unsubscribeScopeFilter } from './unsubscribeScope'
 import { inactiveReaderFilter } from './inactiveReader'
+import { inAppOnlyOverride } from './inAppOnly'
+import { nonMemberRequesterOverride } from './nonMemberRequester'
 
 // Phase 1
 const groupInvitationOverride = ctx => {
@@ -29,7 +31,9 @@ const groupInvitationOverride = ctx => {
 }
 
 export const OVERRIDES = [
-  groupInvitationOverride
+  groupInvitationOverride,
+  inAppOnlyOverride,
+  nonMemberRequesterOverride
 ]
 
 // Phase 2

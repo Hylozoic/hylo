@@ -863,6 +863,113 @@ msgstr "%(subject_formatted)s"
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr "आपकी %(group_pill)s में शामिल होने की अनुरोध %(approver_pill)s ने स्वीकार कर ली!"
 
+#, python-format
+msgid "Hi %(first_name_var)s,"
+msgstr "नमस्ते %(first_name_var)s,"
+
+#, python-format
+msgid "Your request to join %(group_pill)s was sent."
+msgstr "%(group_pill)s में शामिल होने का आपका अनुरोध भेज दिया गया है।"
+
+msgid "The group's stewards look at each request themselves, so an answer can take a few days. We'll let you know by email and in Hylo as soon as they answer."
+msgstr "समूह के संचालक हर अनुरोध को खुद देखते हैं, इसलिए जवाब आने में कुछ दिन लग सकते हैं। जैसे ही वे जवाब देंगे, हम आपको ईमेल और Hylo पर बताएंगे।"
+
+msgid "See the group"
+msgstr "समूह देखें"
+
+msgid "While you wait, you can also find open groups to join right away."
+msgstr "इंतज़ार के दौरान, आप ऐसे खुले समूह भी ढूंढ सकते हैं जिनमें अभी शामिल हुआ जा सके।"
+
+msgid "Explore groups"
+msgstr "समूह खोजें"
+
+#, python-format
+msgid "Your request to join %(group_pill)s wasn't approved this time."
+msgstr "इस बार %(group_pill)s में शामिल होने का आपका अनुरोध स्वीकृत नहीं हुआ।"
+
+msgid "Each group decides who joins in its own way. There are many other groups on Hylo you can join right away."
+msgstr "हर समूह अपने तरीके से तय करता है कि कौन शामिल हो। Hylo पर कई और समूह हैं जिनमें आप अभी शामिल हो सकते हैं।"
+
+#, python-format
+msgid "Your request to join %(group_pill)s has been waiting %(days_waiting_var)s days without an answer."
+msgstr "%(group_pill)s में शामिल होने का आपका अनुरोध %(days_waiting_var)s दिनों से बिना जवाब के इंतज़ार कर रहा है।"
+
+msgid "You can keep waiting: your request stays open, and we'll tell you when the stewards answer."
+msgstr "आप इंतज़ार कर सकते हैं: आपका अनुरोध खुला रहेगा, और जब संचालक जवाब देंगे तो हम आपको बताएंगे।"
+
+msgid "Or join one of these open groups today:"
+msgstr "या आज ही इनमें से किसी खुले समूह में शामिल हों:"
+
+#, python-format
+msgid "%(granter_pill)s gave you the %(role_name_var)s role in %(group_pill)s."
+msgstr "%(granter_pill)s ने आपको %(group_pill)s में %(role_name_var)s की भूमिका दी।"
+
+msgid "Go to the group"
+msgstr "समूह पर जाएं"
+
+#, python-format
+msgid "Here is your week in %(group_pill)s, for its Administrators, Moderators and Hosts."
+msgstr "%(group_pill)s में आपका यह हफ़्ता, इसके व्यवस्थापकों, मॉडरेटरों और मेज़बानों के लिए।"
+
+#, python-format
+msgid "The group has been quiet for %(quiet_days_var)s days"
+msgstr "समूह %(quiet_days_var)s दिनों से शांत है"
+
+msgid "A new post or a question can get people talking again."
+msgstr "एक नई पोस्ट या कोई सवाल लोगों को फिर से बातचीत में ला सकता है।"
+
+msgid "Write a post"
+msgstr "पोस्ट लिखें"
+
+#, python-format
+msgid "New members this week: %(new_member_count_var)s"
+msgstr "इस हफ़्ते के नए सदस्य: %(new_member_count_var)s"
+
+msgid "Welcome them"
+msgstr "उनका स्वागत करें"
+
+#, python-format
+msgid "Join requests waiting more than 3 days: %(waiting_request_count_var)s"
+msgstr "3 दिनों से ज़्यादा से इंतज़ार कर रहे शामिल होने के अनुरोध: %(waiting_request_count_var)s"
+
+#, python-format
+msgid "waiting %(days_waiting_var)s days"
+msgstr "%(days_waiting_var)s दिनों से इंतज़ार में"
+
+msgid "Answer requests"
+msgstr "अनुरोधों का जवाब दें"
+
+#, python-format
+msgid "Reports to review: %(open_report_count_var)s"
+msgstr "समीक्षा के लिए रिपोर्ट: %(open_report_count_var)s"
+
+#, python-format
+msgid "%(new_report_count_var)s new this week."
+msgstr "इस हफ़्ते %(new_report_count_var)s नई।"
+
+msgid "Open the moderation queue"
+msgstr "मॉडरेशन कतार खोलें"
+
+msgid "Newcomers' first posts with no replies yet"
+msgstr "नए लोगों की पहली पोस्ट जिन पर अभी तक कोई जवाब नहीं आया"
+
+msgid "A reply or a reaction can help them feel welcome."
+msgstr "एक जवाब या प्रतिक्रिया उन्हें स्वागत महसूस करा सकती है।"
+
+msgid "Activity"
+msgstr "गतिविधि"
+
+#, python-format
+msgid "Posts: %(posts_this_week_var)s this week, %(posts_last_week_var)s the week before."
+msgstr "पोस्ट: इस हफ़्ते %(posts_this_week_var)s, पिछले हफ़्ते %(posts_last_week_var)s।"
+
+#, python-format
+msgid "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
+msgstr "टिप्पणियाँ: इस हफ़्ते %(comments_this_week_var)s, पिछले हफ़्ते %(comments_last_week_var)s।"
+
+msgid "Manage this weekly email in your notification settings"
+msgstr "अपनी सूचना सेटिंग्स में इस साप्ताहिक ईमेल को प्रबंधित करें"
+
 msgid "Introduce yourself to the group"
 msgstr "समूह से अपना परिचय दें"
 

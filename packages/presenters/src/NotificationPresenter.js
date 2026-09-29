@@ -2,7 +2,7 @@ import { convert as convertHtmlToText } from 'html-to-text'
 import find from 'lodash/find.js'
 import get from 'lodash/fp/get.js'
 import truncText from 'trunc-text'
-import { primaryPostUrl, groupUrl, personUrl, trackUrl, fundingRoundUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
+import { primaryPostUrl, groupUrl, groupHomeUrl, personUrl, trackUrl, fundingRoundUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
 // Used by web and electron. Once everyone is on URQL switch over to PostPresenter
 function presentPost (post) {
@@ -24,6 +24,12 @@ function presentPost (post) {
 }
 
 const NOTIFICATION_TEXT_MAX = 76
+
+// The Group Explorer, where people find open groups to join
+const GROUP_EXPLORER_URL = '/public/groups'
+
+// A role's emoji and name, as the role list shows them
+const roleLabel = (meta = {}) => [meta.roleEmoji, meta.roleName].filter(Boolean).join(' ')
 export function truncateHTML (html) {
   if (!html) return ''
 
@@ -93,6 +99,18 @@ export function othersCount (activity) {
   const count = Number(activity?.meta?.actorCount) || 1
   return Math.max(count - 1, 0)
 }
+// D14: notices to someone who asked to join a group
+export const ACTION_ACKNOWLEDGED_JOIN_REQUEST = 'acknowledgedJoinRequest'
+export const ACTION_DECLINED_JOIN_REQUEST = 'declinedJoinRequest'
+export const ACTION_UNANSWERED_JOIN_REQUEST = 'unansweredJoinRequest'
+// D48: a steward gave you a role or badge
+export const ACTION_ROLE_GRANTED = 'roleGranted'
+// D38: weekly, people joined your group
+export const ACTION_NEW_MEMBERS_JOINED = 'newMembersJoined'
+// D49: a newcomer's first post has no response yet (to stewards)
+export const ACTION_FIRST_POST_UNANSWERED = 'firstPostUnanswered'
+// D13: a group you steward has had no posts for 30 days
+export const ACTION_GROUP_QUIET = 'groupQuiet'
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -242,6 +260,21 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> says you helped with their request', { name })
     case ACTION_REQUEST_MET:
       return t('Request met: <strong>{{postSummary}}</strong>', { postSummary })
+    // The person who asked isn't a member, so a group they can no longer see comes back empty
+    case ACTION_ACKNOWLEDGED_JOIN_REQUEST:
+      return t('Request sent to <strong>{{groupName}}</strong>', { groupName: group?.name || t('the group') })
+    case ACTION_DECLINED_JOIN_REQUEST:
+      return t('About your request to join <strong>{{groupName}}</strong>', { groupName: group?.name || t('the group') })
+    case ACTION_UNANSWERED_JOIN_REQUEST:
+      return t('No answer yet from <strong>{{groupName}}</strong>', { groupName: group?.name || t('the group') })
+    case ACTION_ROLE_GRANTED:
+      return t('<strong>{{name}}</strong> gave you the <strong>{{roleName}}</strong> role', { name, roleName: roleLabel(notification.activity.meta) })
+    case ACTION_NEW_MEMBERS_JOINED:
+      return t('newMembersJoinedTitle', { count: notification.activity.meta?.newMemberCount || 1, groupName: group?.name })
+    case ACTION_FIRST_POST_UNANSWERED:
+      return t('<strong>{{name}}</strong> is new to {{groupName}} and their first post has no replies yet', { name, groupName: group?.name })
+    case ACTION_GROUP_QUIET:
+      return t('<strong>{{groupName}}</strong> has had no posts for {{days}} days', { groupName: group?.name, days: notification.activity.meta?.quietDays || 30 })
     default:
       return null
   }
@@ -387,6 +420,20 @@ export function bodyForNotification (notification, t) {
       return t('Your vote was reset. You can vote again.')
     case ACTION_EVENT_NUDGE:
       return t("It starts in about a day, and you haven't answered <strong>{{name}}</strong>'s invitation yet", { name })
+    case ACTION_ACKNOWLEDGED_JOIN_REQUEST:
+      return t("Its stewards review each request. We'll let you know when they answer.")
+    case ACTION_DECLINED_JOIN_REQUEST:
+      return t("Your request wasn't approved this time. There are other groups you can join.")
+    case ACTION_UNANSWERED_JOIN_REQUEST:
+      return t('Your request has been waiting two weeks. You can keep waiting, or find an open group to join now.')
+    case ACTION_ROLE_GRANTED:
+      return t('See who else holds it in {{groupName}}', { groupName: group?.name })
+    case ACTION_NEW_MEMBERS_JOINED:
+      return t('Say hi and help them feel welcome.')
+    case ACTION_FIRST_POST_UNANSWERED:
+      return t('A reply or a reaction can help them feel welcome: "{{postSummary}}"', { postSummary })
+    case ACTION_GROUP_QUIET:
+      return t('A new post or a question can get people talking again.')
     default:
       return null
   }
@@ -409,7 +456,7 @@ function groupPostUrlOpts (group, groupSlug, homeRoute) {
   return { groupSlug, homeRoute }
 }
 
-export function urlForNotification ({ id, activity: { action, actor, post, comment, group, fundingRound, meta: { reasons }, otherGroup, track } }) {
+export function urlForNotification ({ id, activity: { action, actor, post, comment, group, fundingRound, meta: { reasons, roleId }, otherGroup, track } }) {
   const groupSlug = get('slug', group) ||
     // 2020-06-03 - LEJ
     // Some notifications (i.e. new comment and comment mention)
@@ -508,18 +555,45 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_NEW_CONTRIBUTION:
     case ACTION_REQUEST_MET:
       return primaryPostUrl(post, postOpts)
+    case ACTION_ACKNOWLEDGED_JOIN_REQUEST: {
+      if (!groupSlug) return GROUP_EXPLORER_URL
+      const parentSlug = group?.parentGroup?.slug || otherGroupSlug
+      if (parentSlug) {
+        return spaceUrl(parentSlug, localSpaceSlug(parentSlug, groupSlug), 'about')
+      }
+      return groupUrl(groupSlug, 'about')
+    }
+    case ACTION_DECLINED_JOIN_REQUEST:
+    case ACTION_UNANSWERED_JOIN_REQUEST:
+      return GROUP_EXPLORER_URL
+    case ACTION_ROLE_GRANTED:
+      return groupUrl(groupSlug, 'members') + (roleId ? `?r=${encodeURIComponent(roleId)}` : '')
+    case ACTION_NEW_MEMBERS_JOINED:
+      // Members sorted by join date, newest first
+      return groupUrl(groupSlug, 'members') + '?s=join'
+    case ACTION_FIRST_POST_UNANSWERED:
+      return primaryPostUrl(post, postOpts)
+    case ACTION_GROUP_QUIET:
+      // Opens the post composer on the group's home
+      return `${groupHomeUrl({ group })}?create=post&newPostType=discussion`
   }
 }
 
 export function imageForNotification (notification) {
   const { activity: { action, actor, group } } = notification
   switch (action) {
+    case ACTION_ACKNOWLEDGED_JOIN_REQUEST:
+    case ACTION_DECLINED_JOIN_REQUEST:
+    case ACTION_UNANSWERED_JOIN_REQUEST:
+    case ACTION_NEW_MEMBERS_JOINED:
+    case ACTION_GROUP_QUIET:
     case ACTION_MEMBER_JOINED_GROUP:
     case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
     case ACTION_FUNDING_ROUND_PHASE_TRANSITION:
     case ACTION_FUNDING_ROUND_REMINDER:
-      return group.avatarUrl
+      // A group the reader can't see comes back empty; show the person instead
+      return group ? group.avatarUrl : actor?.avatarUrl
     default:
-      return actor.avatarUrl
+      return actor?.avatarUrl
   }
 }

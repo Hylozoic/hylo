@@ -1,0 +1,33 @@
+{
+  "subject": "This week in Seed Library, for stewards",
+  "first_name": "Sam",
+  "group_name": "Seed Library",
+  "group_avatar_url": "https://www.hylo.com/default-group-avatar.png",
+  "group_url": "https://hylo.com/groups/seed-library/all",
+  "new_member_count": 3,
+  "new_members": [
+    { "name": "Nia Newcomer", "avatar_url": "https://www.hylo.com/default-user-avatar.png", "profile_url": "https://hylo.com/groups/seed-library/members/11" },
+    { "name": "Rey Rivera", "avatar_url": "https://www.hylo.com/default-user-avatar.png", "profile_url": "https://hylo.com/groups/seed-library/members/12" }
+  ],
+  "members_url": "https://hylo.com/groups/seed-library/members?s=join",
+  "waiting_request_count": 1,
+  "waiting_requests": [
+    { "name": "Alex Asker", "avatar_url": "https://www.hylo.com/default-user-avatar.png", "days_waiting": 5 }
+  ],
+  "join_requests_url": "https://hylo.com/groups/seed-library/settings/requests",
+  "open_report_count": 1,
+  "new_report_count": 1,
+  "moderation_url": "https://hylo.com/groups/seed-library/moderation",
+  "posts_this_week": 4,
+  "posts_last_week": 6,
+  "comments_this_week": 12,
+  "comments_last_week": 9,
+  "unanswered_first_posts": [
+    { "author_name": "Nia Newcomer", "author_avatar_url": "https://www.hylo.com/default-user-avatar.png", "title": "Hello from the orchard", "url": "https://hylo.com/groups/seed-library/post/55" }
+  ],
+  "group_quiet": false,
+  "quiet_days": 30,
+  "create_post_url": "https://hylo.com/groups/seed-library/all?create=post&newPostType=discussion",
+  "email_settings_url": "https://hylo.com/notifications",
+  "steward_settings_url": "https://hylo.com/my/notifications?group=1"
+}

@@ -939,6 +939,41 @@ ALTER SEQUENCE public.extensions_id_seq OWNED BY public.extensions.id;
 
 
 --
+-- Name: first_post_nudges; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.first_post_nudges (
+    id bigint NOT NULL,
+    post_id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    variant character varying(64) NOT NULL,
+    nudged_at timestamp with time zone,
+    steward_count integer,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: first_post_nudges_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.first_post_nudges_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: first_post_nudges_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.first_post_nudges_id_seq OWNED BY public.first_post_nudges.id;
+
+
+--
 -- Name: flagged_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1306,6 +1341,37 @@ CREATE SEQUENCE public.group_memberships_id_seq
 --
 
 ALTER SEQUENCE public.group_memberships_id_seq OWNED BY public.group_memberships.id;
+
+
+--
+-- Name: group_notice_marks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_notice_marks (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    kind character varying(64) NOT NULL,
+    sent_at timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: group_notice_marks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_notice_marks_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_notice_marks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_notice_marks_id_seq OWNED BY public.group_notice_marks.id;
 
 
 --
@@ -1946,7 +2012,8 @@ CREATE TABLE public.join_requests (
     group_id bigint NOT NULL,
     processed_by_id bigint,
     invitation_id bigint,
-    member_invite_link_id bigint
+    member_invite_link_id bigint,
+    unanswered_notified_at timestamp with time zone
 );
 
 
@@ -3967,6 +4034,13 @@ ALTER TABLE ONLY public.extensions ALTER COLUMN id SET DEFAULT nextval('public.e
 
 
 --
+-- Name: first_post_nudges id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges ALTER COLUMN id SET DEFAULT nextval('public.first_post_nudges_id_seq'::regclass);
+
+
+--
 -- Name: flagged_items id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4020,6 +4094,13 @@ ALTER TABLE ONLY public.group_memberships ALTER COLUMN id SET DEFAULT nextval('p
 --
 
 ALTER TABLE ONLY public.group_memberships_group_roles ALTER COLUMN id SET DEFAULT nextval('public.members_roles_id_seq'::regclass);
+
+
+--
+-- Name: group_notice_marks id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_notice_marks ALTER COLUMN id SET DEFAULT nextval('public.group_notice_marks_id_seq'::regclass);
 
 
 --
@@ -4632,6 +4713,22 @@ ALTER TABLE ONLY public.extensions
 
 
 --
+-- Name: first_post_nudges first_post_nudges_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges
+    ADD CONSTRAINT first_post_nudges_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: first_post_nudges first_post_nudges_post_id_group_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges
+    ADD CONSTRAINT first_post_nudges_post_id_group_id_unique UNIQUE (post_id, group_id);
+
+
+--
 -- Name: flagged_items flagged_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4709,6 +4806,22 @@ ALTER TABLE ONLY public.group_memberships
 
 ALTER TABLE ONLY public.group_memberships
     ADD CONSTRAINT group_memberships_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_notice_marks group_notice_marks_group_id_kind_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_notice_marks
+    ADD CONSTRAINT group_notice_marks_group_id_kind_unique UNIQUE (group_id, kind);
+
+
+--
+-- Name: group_notice_marks group_notice_marks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_notice_marks
+    ADD CONSTRAINT group_notice_marks_pkey PRIMARY KEY (id);
 
 
 --
@@ -5620,6 +5733,13 @@ CREATE INDEX email_enabled_testers_user_id_index ON public.email_enabled_testers
 --
 
 CREATE INDEX experiment_assignments_experiment_variant_index ON public.experiment_assignments USING btree (experiment, variant);
+
+
+--
+-- Name: first_post_nudges_group_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX first_post_nudges_group_id_created_at_index ON public.first_post_nudges USING btree (group_id, created_at);
 
 
 --
@@ -6800,6 +6920,30 @@ ALTER TABLE ONLY public.reactions
 
 
 --
+-- Name: first_post_nudges first_post_nudges_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges
+    ADD CONSTRAINT first_post_nudges_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: first_post_nudges first_post_nudges_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges
+    ADD CONSTRAINT first_post_nudges_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: first_post_nudges first_post_nudges_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.first_post_nudges
+    ADD CONSTRAINT first_post_nudges_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: flagged_items flagged_items_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6957,6 +7101,14 @@ ALTER TABLE ONLY public.group_memberships
 
 ALTER TABLE ONLY public.group_memberships
     ADD CONSTRAINT group_memberships_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: group_notice_marks group_notice_marks_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_notice_marks
+    ADD CONSTRAINT group_notice_marks_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
 
 
 --

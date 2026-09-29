@@ -901,6 +901,113 @@ msgstr "%(subject_formatted)s"
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 
+#, python-format
+msgid "Hi %(first_name_var)s,"
+msgstr "Hi %(first_name_var)s,"
+
+#, python-format
+msgid "Your request to join %(group_pill)s was sent."
+msgstr "Your request to join %(group_pill)s was sent."
+
+msgid "The group's stewards look at each request themselves, so an answer can take a few days. We'll let you know by email and in Hylo as soon as they answer."
+msgstr "The group's stewards look at each request themselves, so an answer can take a few days. We'll let you know by email and in Hylo as soon as they answer."
+
+msgid "See the group"
+msgstr "See the group"
+
+msgid "While you wait, you can also find open groups to join right away."
+msgstr "While you wait, you can also find open groups to join right away."
+
+msgid "Explore groups"
+msgstr "Explore groups"
+
+#, python-format
+msgid "Your request to join %(group_pill)s wasn't approved this time."
+msgstr "Your request to join %(group_pill)s wasn't approved this time."
+
+msgid "Each group decides who joins in its own way. There are many other groups on Hylo you can join right away."
+msgstr "Each group decides who joins in its own way. There are many other groups on Hylo you can join right away."
+
+#, python-format
+msgid "Your request to join %(group_pill)s has been waiting %(days_waiting_var)s days without an answer."
+msgstr "Your request to join %(group_pill)s has been waiting %(days_waiting_var)s days without an answer."
+
+msgid "You can keep waiting: your request stays open, and we'll tell you when the stewards answer."
+msgstr "You can keep waiting: your request stays open, and we'll tell you when the stewards answer."
+
+msgid "Or join one of these open groups today:"
+msgstr "Or join one of these open groups today:"
+
+#, python-format
+msgid "%(granter_pill)s gave you the %(role_name_var)s role in %(group_pill)s."
+msgstr "%(granter_pill)s gave you the %(role_name_var)s role in %(group_pill)s."
+
+msgid "Go to the group"
+msgstr "Go to the group"
+
+#, python-format
+msgid "Here is your week in %(group_pill)s, for its Administrators, Moderators and Hosts."
+msgstr "Here is your week in %(group_pill)s, for its Administrators, Moderators and Hosts."
+
+#, python-format
+msgid "The group has been quiet for %(quiet_days_var)s days"
+msgstr "The group has been quiet for %(quiet_days_var)s days"
+
+msgid "A new post or a question can get people talking again."
+msgstr "A new post or a question can get people talking again."
+
+msgid "Write a post"
+msgstr "Write a post"
+
+#, python-format
+msgid "New members this week: %(new_member_count_var)s"
+msgstr "New members this week: %(new_member_count_var)s"
+
+msgid "Welcome them"
+msgstr "Welcome them"
+
+#, python-format
+msgid "Join requests waiting more than 3 days: %(waiting_request_count_var)s"
+msgstr "Join requests waiting more than 3 days: %(waiting_request_count_var)s"
+
+#, python-format
+msgid "waiting %(days_waiting_var)s days"
+msgstr "waiting %(days_waiting_var)s days"
+
+msgid "Answer requests"
+msgstr "Answer requests"
+
+#, python-format
+msgid "Reports to review: %(open_report_count_var)s"
+msgstr "Reports to review: %(open_report_count_var)s"
+
+#, python-format
+msgid "%(new_report_count_var)s new this week."
+msgstr "%(new_report_count_var)s new this week."
+
+msgid "Open the moderation queue"
+msgstr "Open the moderation queue"
+
+msgid "Newcomers' first posts with no replies yet"
+msgstr "Newcomers' first posts with no replies yet"
+
+msgid "A reply or a reaction can help them feel welcome."
+msgstr "A reply or a reaction can help them feel welcome."
+
+msgid "Activity"
+msgstr "Activity"
+
+#, python-format
+msgid "Posts: %(posts_this_week_var)s this week, %(posts_last_week_var)s the week before."
+msgstr "Posts: %(posts_this_week_var)s this week, %(posts_last_week_var)s the week before."
+
+#, python-format
+msgid "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
+msgstr "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
+
+msgid "Manage this weekly email in your notification settings"
+msgstr "Manage this weekly email in your notification settings"
+
 msgid "Introduce yourself to the group"
 msgstr "Introduce yourself to the group"
 

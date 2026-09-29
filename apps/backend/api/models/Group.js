@@ -22,6 +22,7 @@ import { explorerStatusForNewGroup, explorerStatusOnVisibilityChange } from '../
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import * as administrators from './group/administrators'
+import * as stewardAudience from './group/stewardAudience'
 import { assertWritable } from './group/archive'
 import { sendGroupClosedEmails } from './group/deletion'
 import expireForPolicyChange, { invitePolicyNarrowed } from './invitation/expireForPolicyChange'
@@ -397,6 +398,9 @@ module.exports = bookshelf.Model.extend(merge({
   stewards () {
     return this.membersWithResponsibilities([1, 3, 4])
   },
+
+  // Members holding the Administrator, Moderator or Host role (group/stewardAudience.js)
+  stewardsByRole () { return stewardAudience.stewardsRelation(this) },
 
   // Return # of prereq groups userId is not a member of yet
   // This is used on front-end to figure out if user can see all prereqs or not
@@ -1474,16 +1478,21 @@ module.exports = bookshelf.Model.extend(merge({
     // Auto-add spaces put people in without a join flow; don't email stewards "X joined"
     if (group.get('type') === 'space' && group.getSetting('auto_add_members')) return
 
-    const moderators = await group.moderators().fetch()
+    // Administrators, Moderators and Hosts (D38). After an approved request the stewards
+    // already had the request notice, so this one is in-app only (D13).
+    const stewardIds = await stewardAudience.stewardIds(groupId, { excludeUserIds: [userId] })
+    const membership = await GroupMembership.forPair(userId, groupId).fetch()
+    const afterRequest = membership?.getSetting('joinSource') === GroupMembership.JoinSource.JOIN_REQUEST
 
-    const activities = moderators.map(moderator => ({
+    const activities = stewardIds.map(stewardId => ({
       actor_id: userId,
-      reader_id: moderator.id,
+      reader_id: stewardId,
       group_id: groupId,
-      reason: 'memberJoinedGroup'
+      reason: 'memberJoinedGroup',
+      ...(afterRequest ? { meta: { inAppOnly: true } } : {})
     }))
 
-    Activity.saveForReasons(activities)
+    return Activity.saveForReasons(activities)
   },
 
   async create (userId, data) {
@@ -1847,7 +1856,8 @@ module.exports = bookshelf.Model.extend(merge({
     const group = await groupFilter(fromUserId)(Group.where({ id: groupId })).fetch()
     // TODO: ADD RESP TO THIS ONE
     if (group) {
-      const stewards = await group.stewards().fetch()
+      // Administrators, Moderators and Hosts, the same people the About page lists (D38)
+      const stewards = await group.stewardsByRole().fetch()
       if (stewards.length > 0) {
         // HACK: add user_connection row so that the people can see each other even though they are not in the same group
         stewards.forEach(async (m) => {

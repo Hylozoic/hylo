@@ -101,6 +101,9 @@ module.exports = bookshelf.Model.extend({
     }
     if (wasPending) {
       await Group.adjustOpenJoinRequestCount(this.get('group_id'), -1)
+      // A neutral notice to the person who asked (D14): it names neither the steward
+      // nor a reason
+      await JoinRequest.notifyRequester(this, Activity.Reason.DeclinedJoinRequest)
     }
     return this
   },
@@ -163,6 +166,72 @@ module.exports = bookshelf.Model.extend({
     }))
 
     await Activity.saveForReasons(announcees)
+
+    // Tell the person their request arrived and what happens next (D14)
+    await JoinRequest.notifyRequester(request, Activity.Reason.AcknowledgedJoinRequest)
+  },
+
+  /**
+   * An in-app and email notice to the person who asked to join (reason is one of
+   * acknowledgedJoinRequest, declinedJoinRequest and unansweredJoinRequest). The
+   * person is also the actor, so a notice never names the steward who acted.
+   */
+  notifyRequester: async function (request, reason) {
+    const userId = request.get('user_id')
+    const groupId = request.get('group_id')
+    if (!userId || !groupId) return
+    const group = request.relations.group || await Group.find(groupId)
+    const parentId = group?.get('parent_id')
+    return Activity.saveForReasons([{
+      actor_id: userId,
+      reader_id: userId,
+      group_id: groupId,
+      ...(parentId ? { other_group_id: parentId } : {}),
+      reason
+    }])
+  },
+
+  UNANSWERED_DAYS: 14,
+  // Requests older than this are left alone, so the first run doesn't write to people
+  // about requests they made long ago
+  UNANSWERED_LOOKBACK_DAYS: 30,
+
+  /**
+   * Tells each person whose request to join has had no answer for UNANSWERED_DAYS,
+   * once per request (D14); the email suggests open groups to try. Skips requests made
+   * more than UNANSWERED_LOOKBACK_DAYS ago, closed accounts, inactive or archived groups
+   * (where waiting won't help) and people who are already members. Each request is marked before its notice goes out, so
+   * overlapping runs can't send twice. Runs from the daily steward job
+   * (lib/group/stewardDigest.js). Returns how many people were told.
+   */
+  notifyUnanswered: async function ({ now = new Date(), limit = 500 } = {}) {
+    const day = 24 * 60 * 60 * 1000
+    const answeredBy = new Date(now.getTime() - JoinRequest.UNANSWERED_DAYS * day)
+    const madeAfter = new Date(now.getTime() - JoinRequest.UNANSWERED_LOOKBACK_DAYS * day)
+    const { rows } = await bookshelf.knex.raw(`
+      UPDATE join_requests SET unanswered_notified_at = ?
+      WHERE id IN (
+        SELECT r.id FROM join_requests r
+        JOIN groups g ON g.id = r.group_id AND g.active = true AND g.status IS DISTINCT FROM ?
+        JOIN users u ON u.id = r.user_id AND u.active = true
+        WHERE r.status = ? AND r.unanswered_notified_at IS NULL
+          AND r.created_at <= ? AND r.created_at > ?
+          AND NOT EXISTS (
+            SELECT 1 FROM group_memberships gm
+            WHERE gm.group_id = r.group_id AND gm.user_id = r.user_id AND gm.active = true
+          )
+        ORDER BY r.id
+        LIMIT ?
+        FOR UPDATE OF r SKIP LOCKED
+      )
+      RETURNING id
+    `, [now, Group.Status.ARCHIVED, JoinRequest.STATUS.Pending, answeredBy, madeAfter, limit])
+
+    for (const { id } of rows) {
+      const request = await JoinRequest.where({ id }).fetch({ withRelated: 'group' })
+      if (request) await JoinRequest.notifyRequester(request, Activity.Reason.UnansweredJoinRequest)
+    }
+    return rows.length
   },
 
   find: async function (id) {

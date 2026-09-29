@@ -1,0 +1,86 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+{% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+
+<p>
+  {% set first_name_var = first_name %}
+  {% trans %}Hi {{first_name_var}},{% endtrans %}
+</p>
+
+<p>{% trans %}Here is your week in {{group_pill}}, for its Administrators, Moderators and Hosts.{% endtrans %}</p>
+
+{% if group_quiet %}
+  <div class='card'>
+    {% set quiet_days_var = quiet_days %}
+    <h3>{% trans %}The group has been quiet for {{quiet_days_var}} days{% endtrans %}</h3>
+    <p>{% trans %}A new post or a question can get people talking again.{% endtrans %}</p>
+    <a class='btn btn-blue' href="{{create_post_url}}" clicktracking="off">{% trans %}Write a post{% endtrans %}</a>
+  </div>
+{% endif %}
+
+{% if new_member_count %}
+  <div class='card'>
+    {% set new_member_count_var = new_member_count %}
+    <h3>{% trans %}New members this week: {{new_member_count_var}}{% endtrans %}</h3>
+    {% for member in new_members %}
+      {{ actor_pill(member.name, member.avatar_url, member.profile_url) }}
+    {% endfor %}
+    <p><a href="{{members_url}}" clicktracking="off">{% trans %}Welcome them{% endtrans %}</a></p>
+  </div>
+{% endif %}
+
+{% if waiting_request_count %}
+  <div class='card'>
+    {% set waiting_request_count_var = waiting_request_count %}
+    <h3>{% trans %}Join requests waiting more than 3 days: {{waiting_request_count_var}}{% endtrans %}</h3>
+    {% for request in waiting_requests %}
+      {% set days_waiting_var = request.days_waiting %}
+      <p>{{ actor_pill(request.name, request.avatar_url, join_requests_url) }} {% trans %}waiting {{days_waiting_var}} days{% endtrans %}</p>
+    {% endfor %}
+    <a class='btn btn-blue' href="{{join_requests_url}}" clicktracking="off">{% trans %}Answer requests{% endtrans %}</a>
+  </div>
+{% endif %}
+
+{% if open_report_count %}
+  <div class='card'>
+    {% set open_report_count_var = open_report_count %}
+    {% set new_report_count_var = new_report_count %}
+    <h3>{% trans %}Reports to review: {{open_report_count_var}}{% endtrans %}</h3>
+    {% if new_report_count %}
+      <p>{% trans %}{{new_report_count_var}} new this week.{% endtrans %}</p>
+    {% endif %}
+    <a class='btn btn-blue' href="{{moderation_url}}" clicktracking="off">{% trans %}Open the moderation queue{% endtrans %}</a>
+  </div>
+{% endif %}
+
+{% if unanswered_first_posts %}
+  <div class='card'>
+    <h3>{% trans %}Newcomers' first posts with no replies yet{% endtrans %}</h3>
+    {% for first_post in unanswered_first_posts %}
+      <p>{{ actor_pill(first_post.author_name, first_post.author_avatar_url, first_post.url) }} <a href="{{first_post.url}}" clicktracking="off">{{first_post.title|e}}</a></p>
+    {% endfor %}
+    <p>{% trans %}A reply or a reaction can help them feel welcome.{% endtrans %}</p>
+  </div>
+{% endif %}
+
+<div class='card'>
+  {% set posts_this_week_var = posts_this_week %}
+  {% set posts_last_week_var = posts_last_week %}
+  {% set comments_this_week_var = comments_this_week %}
+  {% set comments_last_week_var = comments_last_week %}
+  <h3>{% trans %}Activity{% endtrans %}</h3>
+  <p>{% trans %}Posts: {{posts_this_week_var}} this week, {{posts_last_week_var}} the week before.{% endtrans %}</p>
+  <p>{% trans %}Comments: {{comments_this_week_var}} this week, {{comments_last_week_var}} the week before.{% endtrans %}</p>
+</div>
+
+<p><a href="{{steward_settings_url}}" clicktracking="off">{% trans %}Manage this weekly email in your notification settings{% endtrans %}</a></p>
+
+{% snippet "footer_redesign" %}

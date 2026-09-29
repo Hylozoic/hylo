@@ -508,6 +508,7 @@ export default function GroupAboutView ({
                 <AboutCard title={t('Notification Settings for {{name}}', { name: group.name })}>
                   <GroupMembershipNotificationSettings
                     id={membership.id}
+                    groupId={group.id}
                     settings={membership.settings}
                     update={changes => dispatch(updateMembershipSettings(group.id, changes))}
                     compact

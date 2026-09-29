@@ -863,6 +863,113 @@ msgstr "%(subject_formatted)s"
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr "Seu pedido para participar de %(group_pill)s foi aprovado por %(approver_pill)s!"
 
+#, python-format
+msgid "Hi %(first_name_var)s,"
+msgstr "Olá %(first_name_var)s,"
+
+#, python-format
+msgid "Your request to join %(group_pill)s was sent."
+msgstr "Seu pedido para participar de %(group_pill)s foi enviado."
+
+msgid "The group's stewards look at each request themselves, so an answer can take a few days. We'll let you know by email and in Hylo as soon as they answer."
+msgstr "Os responsáveis pelo grupo analisam cada pedido pessoalmente, então a resposta pode levar alguns dias. Avisaremos você por e-mail e no Hylo assim que responderem."
+
+msgid "See the group"
+msgstr "Ver o grupo"
+
+msgid "While you wait, you can also find open groups to join right away."
+msgstr "Enquanto espera, você também pode encontrar grupos abertos para participar agora mesmo."
+
+msgid "Explore groups"
+msgstr "Explorar grupos"
+
+#, python-format
+msgid "Your request to join %(group_pill)s wasn't approved this time."
+msgstr "Seu pedido para participar de %(group_pill)s não foi aprovado desta vez."
+
+msgid "Each group decides who joins in its own way. There are many other groups on Hylo you can join right away."
+msgstr "Cada grupo decide à sua maneira quem participa. Há muitos outros grupos no Hylo em que você pode entrar agora mesmo."
+
+#, python-format
+msgid "Your request to join %(group_pill)s has been waiting %(days_waiting_var)s days without an answer."
+msgstr "Seu pedido para participar de %(group_pill)s está há %(days_waiting_var)s dias sem resposta."
+
+msgid "You can keep waiting: your request stays open, and we'll tell you when the stewards answer."
+msgstr "Você pode continuar esperando: seu pedido continua aberto, e avisaremos quando os responsáveis responderem."
+
+msgid "Or join one of these open groups today:"
+msgstr "Ou participe hoje de um destes grupos abertos:"
+
+#, python-format
+msgid "%(granter_pill)s gave you the %(role_name_var)s role in %(group_pill)s."
+msgstr "%(granter_pill)s deu a você a função %(role_name_var)s em %(group_pill)s."
+
+msgid "Go to the group"
+msgstr "Ir para o grupo"
+
+#, python-format
+msgid "Here is your week in %(group_pill)s, for its Administrators, Moderators and Hosts."
+msgstr "Esta é a sua semana em %(group_pill)s, para seus administradores, moderadores e anfitriões."
+
+#, python-format
+msgid "The group has been quiet for %(quiet_days_var)s days"
+msgstr "O grupo está quieto há %(quiet_days_var)s dias"
+
+msgid "A new post or a question can get people talking again."
+msgstr "Uma nova publicação ou uma pergunta pode fazer as pessoas voltarem a conversar."
+
+msgid "Write a post"
+msgstr "Escrever uma publicação"
+
+#, python-format
+msgid "New members this week: %(new_member_count_var)s"
+msgstr "Novos membros esta semana: %(new_member_count_var)s"
+
+msgid "Welcome them"
+msgstr "Dê as boas-vindas"
+
+#, python-format
+msgid "Join requests waiting more than 3 days: %(waiting_request_count_var)s"
+msgstr "Solicitações de participação esperando há mais de 3 dias: %(waiting_request_count_var)s"
+
+#, python-format
+msgid "waiting %(days_waiting_var)s days"
+msgstr "esperando há %(days_waiting_var)s dias"
+
+msgid "Answer requests"
+msgstr "Responder às solicitações"
+
+#, python-format
+msgid "Reports to review: %(open_report_count_var)s"
+msgstr "Denúncias para revisar: %(open_report_count_var)s"
+
+#, python-format
+msgid "%(new_report_count_var)s new this week."
+msgstr "%(new_report_count_var)s novas esta semana."
+
+msgid "Open the moderation queue"
+msgstr "Abrir a fila de moderação"
+
+msgid "Newcomers' first posts with no replies yet"
+msgstr "Primeiras publicações de recém-chegados ainda sem respostas"
+
+msgid "A reply or a reaction can help them feel welcome."
+msgstr "Uma resposta ou reação pode ajudá-los a se sentirem bem-vindos."
+
+msgid "Activity"
+msgstr "Atividade"
+
+#, python-format
+msgid "Posts: %(posts_this_week_var)s this week, %(posts_last_week_var)s the week before."
+msgstr "Publicações: %(posts_this_week_var)s esta semana, %(posts_last_week_var)s na semana anterior."
+
+#, python-format
+msgid "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
+msgstr "Comentários: %(comments_this_week_var)s esta semana, %(comments_last_week_var)s na semana anterior."
+
+msgid "Manage this weekly email in your notification settings"
+msgstr "Gerencie este e-mail semanal nas suas configurações de notificação"
+
 msgid "Introduce yourself to the group"
 msgstr "Apresente-se ao grupo"
 

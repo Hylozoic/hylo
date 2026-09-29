@@ -102,6 +102,11 @@ exports.hi = {
     ? `${actor.get('name')} ने ${parentGroupName} में ${groupName} में शामिल होने के लिए कहा`
     : `${actor.get('name')} ने ${groupName} में शामिल होने के लिए कहा`,
   textForMemberJoinedGroup: ({ group, actor }) => `${group.get('name')} में नया सदस्य शामिल हुआ: ${actor.get('name')}`,
+  joinRequestReceivedSubject: (groupName) => `${groupName} में शामिल होने का आपका अनुरोध भेज दिया गया है`,
+  joinRequestDeclinedSubject: (groupName) => `${groupName} में शामिल होने के आपके अनुरोध के बारे में`,
+  joinRequestUnansweredSubject: (groupName) => `${groupName} में शामिल होने का आपका अनुरोध अभी भी जवाब का इंतज़ार कर रहा है`,
+  roleGrantedSubject: ({ roleName, groupName }) => `${groupName} में आपकी नई भूमिका: ${roleName}`,
+  stewardWeeklySubject: (groupName) => `${groupName} में यह हफ़्ता, संचालकों के लिए`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

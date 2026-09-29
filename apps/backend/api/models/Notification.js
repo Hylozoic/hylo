@@ -713,6 +713,14 @@ module.exports = bookshelf.Model.extend({
         return this.sendTrackReminderEmail()
       case 'eventReminder':
         return this.sendEventReminderEmail()
+      case 'acknowledgedJoinRequest':
+        return this.sendAcknowledgedJoinRequestEmail()
+      case 'declinedJoinRequest':
+        return this.sendDeclinedJoinRequestEmail()
+      case 'unansweredJoinRequest':
+        return this.sendUnansweredJoinRequestEmail()
+      case 'roleGranted':
+        return this.sendRoleGrantedEmail()
       default:
         // Must not throw: an unhandled reason would otherwise be retried until it ages out.
         sentry.captureException(new Error('No email is defined for this notification reason'), {
@@ -1515,6 +1523,110 @@ module.exports = bookshelf.Model.extend({
         action_url: Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams,
         button_text: L.fundingRoundTransitionButtonText({ phase }),
         transition_text: L.textForFundingRoundReminder({ reminderType })
+      }
+    })
+  },
+
+  // D14: what the three notices to someone who asked to join share. They aren't a
+  // member yet, so links go to the group's About page.
+  requesterEmailOptions: async function (clickthroughType, subjectKey) {
+    const reader = this.reader()
+    const activity = this.relations.activity
+    const locale = this.locale()
+    const group = await Group.find(activity.get('group_id'))
+    if (!group) throw new Error('no group in activity')
+    const parentGroup = activity.get('other_group_id') ? await Group.find(activity.get('other_group_id')) : null
+    if (parentGroup) group.relations.parentGroup = parentGroup
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: clickthroughType,
+      cti: reader.id,
+      ctcn: group.get('name')
+    }).toString()
+    const aboutUrl = parentGroup ? Frontend.Route.space(group, 'about') : Frontend.Route.group(group) + '/about'
+
+    return {
+      reader,
+      locale,
+      group,
+      clickthroughParams,
+      options: {
+        email: reader.get('email'),
+        locale,
+        sender: { name: await senderNameForGroup(group, locale) },
+        data: {
+          subject: getLocaleStrings(locale)[subjectKey](group.get('name')),
+          email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+          explore_url: Frontend.appendQueryString(Frontend.Route.prefix + '/public/groups', clickthroughParams),
+          first_name: reader.get('first_name') || reader.get('name'),
+          group_avatar_url: group.get('avatar_url'),
+          group_name: group.get('name'),
+          group_url: Frontend.appendQueryString(aboutUrl, clickthroughParams),
+          parent_group_name: parentGroup ? parentGroup.get('name') : null
+        }
+      }
+    }
+  },
+
+  sendAcknowledgedJoinRequestEmail: async function () {
+    const { options } = await this.requesterEmailOptions('join_request_received_email', 'joinRequestReceivedSubject')
+    return Email.sendJoinRequestReceived(options)
+  },
+
+  sendDeclinedJoinRequestEmail: async function () {
+    const { options } = await this.requesterEmailOptions('join_request_declined_email', 'joinRequestDeclinedSubject')
+    return Email.sendJoinRequestDeclined(options)
+  },
+
+  sendUnansweredJoinRequestEmail: async function () {
+    const { reader, options, clickthroughParams } = await this.requesterEmailOptions('join_request_unanswered_email', 'joinRequestUnansweredSubject')
+    // Open, Explorer-listed groups they could join now (the same list new members get)
+    const suggestions = await Search.recommendedGroups({ userId: reader.id, limit: 3 }).fetchAll()
+    options.data.days_waiting = JoinRequest.UNANSWERED_DAYS
+    options.data.suggested_groups = suggestions.models.map(suggestion => ({
+      name: suggestion.get('name'),
+      avatar_url: suggestion.get('avatar_url'),
+      member_count: suggestion.get('num_members'),
+      url: Frontend.appendQueryString(Frontend.Route.group(suggestion) + '/about', clickthroughParams)
+    }))
+    return Email.sendJoinRequestUnanswered(options)
+  },
+
+  // D48: a steward gave the reader a role or badge by hand (mutations/role.js)
+  sendRoleGrantedEmail: async function () {
+    const actor = this.actor()
+    const reader = this.reader()
+    const activity = this.relations.activity
+    const meta = activity.get('meta') || {}
+    const locale = this.locale()
+    const group = await Group.find(activity.get('group_id'))
+    if (!group) throw new Error('no group in activity')
+    const role = meta.roleId ? await GroupRole.where({ id: meta.roleId }).fetch() : null
+    const roleName = role ? role.get('name') : meta.roleName
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'role_granted_email',
+      cti: reader.id,
+      ctcn: group.get('name')
+    }).toString()
+
+    return Email.sendRoleGranted({
+      email: reader.get('email'),
+      locale,
+      sender: { name: await senderNameForGroup(group, locale) },
+      data: {
+        subject: getLocaleStrings(locale).roleGrantedSubject({ roleName, groupName: group.get('name') }),
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        first_name: reader.get('first_name') || reader.get('name'),
+        granter_name: actor.get('name'),
+        granter_avatar_url: actor.get('avatar_url'),
+        granter_profile_url: Frontend.Route.profile(actor, group) + clickthroughParams,
+        group_name: group.get('name'),
+        group_avatar_url: group.get('avatar_url'),
+        group_url: Frontend.Route.groupHome(group) + clickthroughParams,
+        role_name: roleName,
+        role_emoji: role ? role.get('emoji') : meta.roleEmoji,
+        role_description: role ? role.get('description') : null
       }
     })
   },

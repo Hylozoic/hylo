@@ -122,6 +122,7 @@ export default gql`
         sendPushNotifications
         showJoinForm
         setupChecklistDismissedAt
+        stewardDigest
       }
       group {
         id

@@ -113,7 +113,19 @@ export const REASON_SIGNALS = {
   projectJoined: { class: SOCIAL, channels: [IN_APP, PUSH] },
   // D27: helpers get an in-app notice and a push; followers an in-app notice
   requestHelped: { class: SOCIAL, channels: [IN_APP, PUSH] },
-  requestMet: { class: AMBIENT, channels: [IN_APP] }
+  requestMet: { class: AMBIENT, channels: [IN_APP] },
+  // D14: to someone who asked to join, in-app and email (notification/rules/nonMemberRequester)
+  acknowledgedJoinRequest: { class: OPERATIONAL, channels: [IN_APP, EMAIL] },
+  declinedJoinRequest: { class: OPERATIONAL, channels: [IN_APP, EMAIL] },
+  unansweredJoinRequest: { class: OPERATIONAL, channels: [IN_APP, EMAIL] },
+  // D48: in-app and email, no push
+  roleGranted: { class: OPERATIONAL, channels: [IN_APP, EMAIL] },
+  // D38: in-app only, no push or email
+  newMembersJoined: { class: AMBIENT, channels: [IN_APP] },
+  // D49: an in-app nudge to stewards, no push or email
+  firstPostUnanswered: { class: OPERATIONAL, channels: [IN_APP] },
+  // D13: in-app, plus a line in the weekly steward email
+  groupQuiet: { class: OPERATIONAL, channels: [IN_APP] }
 }
 
 // A reason with no line (or no priority reason at all) keeps every channel, as before.
