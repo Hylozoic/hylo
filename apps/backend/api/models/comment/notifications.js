@@ -187,7 +187,11 @@ async function sendDigestForUser ({ post, comments, user }) {
       RichText.getUserMentions(text).includes(user.id)
 
     let digestComments = filtered
+    // One-click unsubscribe turns comment email off (D34). A digest of only mentions is
+    // sent with comment email already off, so it links to the settings page instead.
+    let unsubscribe
     if (!(await user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email))) {
+      unsubscribe = { descriptor: 'settings_page' }
       // A mention always reaches the person (D8): with comment email off, the digest
       // still carries the comments that mention them, on the post's group email toggle.
       digestComments = filtered.filter(comment => hasMention({ text: comment.text() }))
@@ -227,7 +231,8 @@ async function sendDigestForUser ({ post, comments, user }) {
       sender: {
         reply_to: Email.postReplyAddress(post.id, user.id),
         name: routeGroup ? await senderNameForGroup(routeGroup, locale) : getLocaleStrings(locale).theTeamAtHylo
-      }
+      },
+      unsubscribe
     })
   }
 }

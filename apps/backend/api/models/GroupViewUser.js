@@ -303,7 +303,10 @@ module.exports = bookshelf.Model.extend({
                 clickthroughParams
               ),
               posts: postData
-            }
+            },
+            // One-click unsubscribe sets this group's email digest to Never, which stops
+            // its chat digests too (D34, D72); a space's goes to its parent group
+            unsubscribe: { groupId: group.id }
           })
           if (result !== false) {
             const maxPostId = posts.models.reduce(

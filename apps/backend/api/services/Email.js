@@ -1,7 +1,11 @@
-import { curry, merge } from 'lodash'
+import { AsyncLocalStorage } from 'async_hooks'
+import { curry, merge, uniq } from 'lodash'
 import { format } from 'util'
 import { normalizeLocaleToFull } from '../../lib/localeHelpers'
 import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
+import { emailTypeFor } from '../../lib/email/emailTypes'
+import { confirmPageUrl, createUnsubscribeToken, oneClickUrl } from '../../lib/email/unsubscribeToken'
+import { scopeAllowsBulkEmail, unsubscribeScopeOf } from '../models/notification/rules/unsubscribeScope'
 import sentry from '../../lib/sentry'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
@@ -25,6 +29,88 @@ const sendEmail = opts =>
       })
       return false
     })
+
+// Which exported sender is running (see the end of this file), so the shared send path
+// can read its line in lib/email/emailTypes.js without every sender passing it along
+const currentSender = new AsyncLocalStorage()
+
+// What a send resolves to when Hylo decides not to send it: the recipient's unsubscribe
+// choice rules it out. Not `false`, which callers read as a failed send to retry.
+const SKIPPED = Object.freeze({ skipped: true })
+
+const TRANSPORT = { BULK: 'bulk', TRANSACTIONAL: 'transactional' }
+
+// The Hylo account an address belongs to (both spellings hit the unique email index)
+async function recipientFor (address) {
+  if (!address || typeof address !== 'string') return null
+  const rows = await bookshelf.knex('users')
+    .select('id', 'settings')
+    .whereIn('email', uniq([address, address.toLowerCase()]))
+    .limit(1)
+  return rows[0] || null
+}
+
+// Group-scoped descriptors need a group (or, for the unified digest, a frequency);
+// without one the email links to the settings page instead
+function unsubscribeDescriptor (type, context) {
+  const descriptor = context?.descriptor || type?.unsubscribe || 'settings_page'
+  const [kind] = descriptor.split(':')
+  if (kind === 'group_digest' && !context?.groupId && !context?.frequency) return 'settings_page'
+  if (kind === 'group_post_email' && !context?.groupId) return 'settings_page'
+  return descriptor
+}
+
+// Tags go to SendWithUs, which passes them to the email provider (categories), so the
+// provider's events can say what kind of email a bounce or complaint was about (D36)
+function emailTags (senderName, context) {
+  return [
+    senderName && `hylo_type:${senderName}`,
+    context?.groupId && `hylo_group:${context.groupId}`
+  ].filter(Boolean)
+}
+
+// List-Unsubscribe on bulk email only (D34). Carries only the token. A descriptor with a
+// switch gets RFC 8058 one-click and an unsubscribe_url for the template's footer link;
+// settings_page gets a link to the confirmation page, which points to the settings page.
+function addUnsubscribe (emailOpts, { senderName, type, recipient, context }) {
+  const descriptor = unsubscribeDescriptor(type, context)
+  const token = createUnsubscribeToken({
+    userId: recipient.id,
+    sender: senderName,
+    descriptor,
+    groupId: descriptor === 'settings_page' ? null : context?.groupId,
+    frequency: context?.frequency
+  })
+  if (!token) return
+  emailOpts.headers = { ...emailOpts.headers, 'List-Unsubscribe': `<${oneClickUrl(token)}>` }
+  if (descriptor !== 'settings_page') {
+    emailOpts.headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+    emailOpts.email_data = { ...emailOpts.email_data, unsubscribe_url: confirmPageUrl(token) }
+  }
+}
+
+// Every send goes through here. `context` (optional, never sent to SendWithUs):
+//   groupId     the group the email is about, for a one-click that applies to a group
+//   frequency   'daily' or 'weekly', for the unified digest's one-click
+//   descriptor  overrides the sender's unsubscribe descriptor for this send
+async function deliver (transport, emailOpts, context = {}) {
+  const senderName = currentSender.getStore() || null
+  const type = senderName ? emailTypeFor(senderName) : null
+  // A sender not in emailTypes.js yet is essential when it's sent as transactional
+  const essential = type ? type.kind === 'essential' : transport === TRANSPORT.TRANSACTIONAL
+
+  emailOpts.tags = emailTags(senderName, context)
+
+  if (!essential) {
+    const recipient = await recipientFor(emailOpts.recipient?.address)
+    if (recipient) {
+      if (!scopeAllowsBulkEmail(unsubscribeScopeOf(recipient.settings), type)) return SKIPPED
+      if (transport === TRANSPORT.BULK) addUnsubscribe(emailOpts, { senderName, type, recipient, context })
+    }
+  }
+
+  return sendEmail(emailOpts)
+}
 
 const sender = {
   address: process.env.EMAIL_SENDER,
@@ -50,24 +136,27 @@ const transactionalOptions = {
   }
 }
 
-const simpleEmailSender = baseOptions => (address, templateId, data, extraOptions, locale = 'en-US') => {
+// extraOptions.unsubscribe is the send's context for deliver(), not a SendWithUs option
+const simpleEmailSender = (baseOptions, transport) => (address, templateId, data, extraOptions, locale = 'en-US') => {
+  const { unsubscribe: context, ...options } = extraOptions || {}
   const emailOpts = merge({}, baseOptions, {
     email_id: templateId,
     recipient: { address },
     email_data: data,
     locale: normalizeLocaleToFull(locale)
-  }, extraOptions)
+  }, options)
   if (emailOpts.version) {
     emailOpts.version_name = emailOpts.version
     delete emailOpts.version
   }
-  return sendEmail(emailOpts)
+  return deliver(transport, emailOpts, context)
 }
 
-const sendSimpleEmail = simpleEmailSender(bulkOptions)
-const sendTransactionalSimpleEmail = simpleEmailSender(transactionalOptions)
+const sendSimpleEmail = simpleEmailSender(bulkOptions, TRANSPORT.BULK)
+const sendTransactionalSimpleEmail = simpleEmailSender(transactionalOptions, TRANSPORT.TRANSACTIONAL)
 
-const emailWithOptionsSender = baseOptions => curry((templateId, opts) => {
+// opts.unsubscribe is the send's context for deliver()
+const emailWithOptionsSender = (baseOptions, transport) => curry((templateId, opts) => {
   const emailOpts = merge({}, baseOptions, {
     email_id: templateId,
     recipient: { address: opts.email },
@@ -82,11 +171,11 @@ const emailWithOptionsSender = baseOptions => curry((templateId, opts) => {
     emailOpts.version_name = opts.version
   }
 
-  return sendEmail(emailOpts)
+  return deliver(transport, emailOpts, opts.unsubscribe)
 })
 
-const sendEmailWithOptions = emailWithOptionsSender(bulkOptions)
-const sendTransactionalEmailWithOptions = emailWithOptionsSender(transactionalOptions)
+const sendEmailWithOptions = emailWithOptionsSender(bulkOptions, TRANSPORT.BULK)
+const sendTransactionalEmailWithOptions = emailWithOptionsSender(transactionalOptions, TRANSPORT.TRANSACTIONAL)
 
 // Set to the SendWithUs template id once scripts/i18n/i18n-templates/Group_Closed_i18n
 // is uploaded; until then the notice is skipped (the sender resolves false).
@@ -96,7 +185,7 @@ const GROUP_CLOSED_TEMPLATE_ID = null
 // is uploaded; until then the confirmation is skipped (the sender resolves false).
 const ACCOUNT_CLOSED_TEMPLATE_ID = null
 
-module.exports = {
+const senders = {
   sendSimpleEmail,
 
   sendRawEmail: ({ email, data, extraOptions }) =>
@@ -368,3 +457,15 @@ Profile: ${opts.actorProfileUrl}
     sendSimpleEmail(email, process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID, data, {}, normalizeLocaleToFull(locale))
 
 }
+
+// Each exported send* runs with its own name in currentSender, so deliver() can look up
+// whether it is essential or bulk and what its one-click switches off
+for (const [name, fn] of Object.entries(senders)) {
+  if (typeof fn === 'function' && /^send[A-Z]/.test(name)) {
+    senders[name] = (...args) => currentSender.run(name, () => fn(...args))
+  }
+}
+
+senders.SKIPPED = SKIPPED
+
+module.exports = senders

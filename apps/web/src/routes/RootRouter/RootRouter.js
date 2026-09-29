@@ -37,6 +37,9 @@ const PublicLayoutRouter = React.lazy(() => import('routes/PublicLayoutRouter'))
 const PublicGroupDetail = React.lazy(() => import('routes/PublicLayoutRouter/PublicGroupDetail'))
 const PublicPostDetail = React.lazy(() => import('routes/PublicLayoutRouter/PublicPostDetail'))
 const OfferingDetails = React.lazy(() => import('routes/OfferingDetails/OfferingDetails'))
+// An email's unsubscribe link works the same signed in or out
+const EmailUnsubscribePage = React.lazy(() => import('routes/NonAuthLayoutRouter/EmailUnsubscribe/EmailUnsubscribe')
+  .then(module => ({ default: module.EmailUnsubscribePage })))
 
 /**
  * Rendered inside the routes' Suspense boundary, so it mounts only once the
@@ -102,6 +105,7 @@ export function isNeutralRootSessionLoadingPath (pathname) {
   if (pathname === '/' || pathname === '/login' || pathname === '/reset-password' || pathname === '/notifications') {
     return true
   }
+  if (pathname === '/email/unsubscribe') return true
   if (pathname.startsWith('/signup')) return true
   if (pathname === '/public' || pathname.startsWith('/public/')) return true
   if (pathname.startsWith('/post/')) return true
@@ -312,6 +316,7 @@ export default function RootRouter () {
         <Routes>
           {/* If authenticated we still need to do oauth stuff when requested */}
           <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
+          <Route path='/email/unsubscribe' element={<EmailUnsubscribePage />} />
           <Route path='*' element={<AuthLayoutRouter />} />
         </Routes>
       </Suspense>

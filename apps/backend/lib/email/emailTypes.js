@@ -88,7 +88,10 @@ export const EMAIL_TYPES = {
   // Narrowed to mentions and replies for readers who chose everything except direct
   sendCommentDigest: bulkDirect('comment_email', 'comment digest, including "You were mentioned in"'),
   // Narrowed to mentions for readers who chose everything except direct
-  sendChatDigest: bulkDirect('group_digest', 'hourly chat digest (D72)')
+  sendChatDigest: bulkDirect('group_digest', 'hourly chat digest (D72)'),
+  sendAccountClosed: essential('your account was deactivated or deleted (D70)'),
+  sendGroupClosed: bulk('settings_page', 'a group you were in was closed'),
+  sendStalledSignupReminder: bulk('settings_page', 'reminder to finish signing up')
 }
 
 export const EMAIL_KINDS = ['essential', 'bulk']

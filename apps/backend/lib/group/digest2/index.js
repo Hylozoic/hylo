@@ -67,6 +67,13 @@ export const sendToUser = (user, type, data, opts = {}) => {
     senderName = `${data.group_name} ${startCase(type)} Digest`
   }
 
+  // What a one-click unsubscribe from this digest turns off (D34): that group's digest,
+  // or for the unified digest every group on this frequency; a saved search links to
+  // the settings page
+  const unsubscribe = data.search
+    ? { descriptor: 'settings_page' }
+    : data.unified ? { frequency: type } : { groupId: data.group_id }
+
   return personalizeData(user, type, data, opts)
     .then(data => {
       if (!data) return false
@@ -77,7 +84,8 @@ export const sendToUser = (user, type, data, opts = {}) => {
           name: senderNameViaHylo(senderName, locale),
           reply_to: 'DoNotReply@hylo.com'
         },
-        version: 'Spaces'
+        version: 'Spaces',
+        unsubscribe
       }, locale)
     })
 }

@@ -607,7 +607,9 @@ module.exports = bookshelf.Model.extend({
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
         post: post.presentForEmail({ group, clickthroughParams, locale })
-      }
+      },
+      // One-click unsubscribe turns off this group's email (D34)
+      unsubscribe: { groupId: group.id }
     })
   },
 
@@ -639,7 +641,9 @@ module.exports = bookshelf.Model.extend({
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
         post: post.presentForEmail({ group, clickthroughParams, locale })
-      }
+      },
+      // One-click unsubscribe turns off this group's email (D34)
+      unsubscribe: { groupId: group.id }
     })
   },
 
@@ -1068,7 +1072,9 @@ module.exports = bookshelf.Model.extend({
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
         post: post.presentForEmail({ group, clickthroughParams, locale })
-      }
+      },
+      // One-click unsubscribe turns off this group's email (D34)
+      unsubscribe: { groupId: group.id }
     })
   },
 

@@ -82,5 +82,11 @@ module.exports.routes = {
   'POST   /noo/upload':                                   'UploadController.create',
 
   'GET    /noo/export/group':                             'ExportController.groupData',
-  'POST   /noo/export/user-account':                      'ExportController.userAccountData'
+  'POST   /noo/export/user-account':                      'ExportController.userAccountData',
+
+  // One-click unsubscribe from bulk email (RFC 8058): GET only redirects to the
+  // confirmation page, POST unsubscribes
+  'GET    /noo/email/unsubscribe':                        'UnsubscribeController.show',
+  'GET    /noo/email/unsubscribe/describe':               'UnsubscribeController.describe',
+  'POST   /noo/email/unsubscribe':                        'UnsubscribeController.unsubscribe'
 }
