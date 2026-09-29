@@ -2,6 +2,13 @@ import CookieConsentService from '../services/CookieConsentService'
 import { validate as uuidValidate } from 'uuid'
 import mixpanel from '../../lib/mixpanel'
 
+// Deleting a Mixpanel profile can't be undone, so it's done only for the
+// signed-in person's own account
+function isSignedInAs (req, userId) {
+  const sessionUserId = req.session?.userId
+  return !!sessionUserId && String(sessionUserId) === String(userId)
+}
+
 module.exports = {
   /**
    * Upsert a cookie consent record (unauthenticated)
@@ -77,7 +84,7 @@ module.exports = {
       if (userId) {
         previousConsent = await CookieConsent.getLatestForUser(userId)
         previousAnalytics = previousConsent?.get('settings')?.analytics
-        newAnalytics = sanitizedSettings.hasOwnProperty('analytics') ? sanitizedSettings.analytics : undefined
+        newAnalytics = 'analytics' in sanitizedSettings ? sanitizedSettings.analytics : undefined
       }
 
       const consent = await CookieConsentService.upsert({
@@ -90,15 +97,14 @@ module.exports = {
       })
 
       // --- Update Mixpanel if analytics preference changed and userId is present ---
-      if (userId && typeof newAnalytics === 'boolean' && previousAnalytics !== undefined && newAnalytics !== previousAnalytics) {
-        if (!mixpanel.disabled) {
-          if (newAnalytics) {
-            // Opt in: set a profile property to indicate consent
-            mixpanel.people.set(userId, { analytics_opt_in: true })
-          } else {
-            // Opt out: set a profile property to indicate opt-out
-            mixpanel.people.set(userId, { analytics_opt_in: false })
-          }
+      if (userId && typeof newAnalytics === 'boolean' && newAnalytics !== previousAnalytics && !mixpanel.disabled) {
+        if (newAnalytics && previousAnalytics !== undefined) {
+          // Opt in: set a profile property to indicate consent
+          mixpanel.people.set(userId, { analytics_opt_in: true })
+        } else if (!newAnalytics && isSignedInAs(req, userId)) {
+          // Opt out, including from never having answered: delete the person's
+          // Mixpanel profile (writing a property here would recreate it)
+          mixpanel.people.delete_user(String(userId))
         }
       }
 

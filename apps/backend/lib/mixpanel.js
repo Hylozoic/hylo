@@ -10,7 +10,8 @@ if (process.env.MIXPANEL_TOKEN && process.env.NODE_ENV !== 'test') {
     track: () => {},
 
     people: {
-      set: () => {}
+      set: () => {},
+      delete_user: () => {}
     },
 
     groups: {

@@ -44,13 +44,17 @@ export function initAnalytics () {
  * Mirrors a consent choice into Mixpanel's own opt-out, which makes the SDK drop
  * every call and stop writing its cookie. Only an answered choice changes
  * anything, and only when it differs from the SDK's current state.
+ *
+ * `explicit` marks a choice the person is making right now (the cookie panel or
+ * the analytics setting). Rejecting then also deletes the Mixpanel profile the
+ * SDK identified. A stored choice replayed at startup, from the account or at
+ * login only stops sending, so it doesn't re-issue a deletion.
  */
-export function applyAnalyticsConsent (consent) {
+export function applyAnalyticsConsent (consent, { explicit = false } = {}) {
   if (!initialized || typeof consent?.analytics !== 'boolean') return
   const optedOut = mixpanel.has_opted_out_tracking()
   if (consent.analytics === false && !optedOut) {
-    // Deleting the existing profile is a separate decision; this only stops sending
-    mixpanel.opt_out_tracking({ delete_user: false })
+    mixpanel.opt_out_tracking({ delete_user: explicit })
   } else if (consent.analytics === true && optedOut) {
     mixpanel.opt_in_tracking()
   }

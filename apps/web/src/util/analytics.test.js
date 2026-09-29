@@ -72,12 +72,35 @@ describe('applyAnalyticsConsent', () => {
     expect(mixpanel.opt_out_tracking).not.toHaveBeenCalled()
   })
 
-  it('opts out when analytics are rejected, without deleting the profile', () => {
+  it('opts out without deleting the profile when a stored rejection is replayed', () => {
     const { analytics, mixpanel } = load()
     analytics.initAnalytics()
     analytics.applyAnalyticsConsent({ analytics: false, support: true })
     expect(mixpanel.opt_out_tracking).toHaveBeenCalledWith({ delete_user: false })
     expect(mixpanel.opt_in_tracking).not.toHaveBeenCalled()
+  })
+
+  it('deletes the profile when the person rejects analytics now', () => {
+    const { analytics, mixpanel } = load()
+    analytics.initAnalytics()
+    analytics.applyAnalyticsConsent({ analytics: false, support: true }, { explicit: true })
+    expect(mixpanel.opt_out_tracking).toHaveBeenCalledTimes(1)
+    expect(mixpanel.opt_out_tracking).toHaveBeenCalledWith({ delete_user: true })
+  })
+
+  it('does not delete again when an explicit rejection finds Mixpanel already opted out', () => {
+    const { analytics, mixpanel } = load({ optedOut: true })
+    analytics.initAnalytics()
+    analytics.applyAnalyticsConsent({ analytics: false }, { explicit: true })
+    expect(mixpanel.opt_out_tracking).not.toHaveBeenCalled()
+  })
+
+  it('opts back in, without deleting anything, when the person accepts analytics now', () => {
+    const { analytics, mixpanel } = load({ optedOut: true })
+    analytics.initAnalytics()
+    analytics.applyAnalyticsConsent({ analytics: true }, { explicit: true })
+    expect(mixpanel.opt_in_tracking).toHaveBeenCalledTimes(1)
+    expect(mixpanel.opt_out_tracking).not.toHaveBeenCalled()
   })
 
   it('opts back in when analytics are accepted after an opt-out', () => {
