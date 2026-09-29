@@ -96,6 +96,10 @@ const GROUP_CLOSED_TEMPLATE_ID = null
 // is uploaded; until then the confirmation is skipped (the sender resolves false).
 const ACCOUNT_CLOSED_TEMPLATE_ID = null
 
+// Set to the SendWithUs template id once scripts/i18n/i18n-templates/Track_Reminder_i18n
+// is uploaded; until then track reminders go in the app only (D63).
+const TRACK_REMINDER_TEMPLATE_ID = null
+
 module.exports = {
   sendSimpleEmail,
 
@@ -158,6 +162,11 @@ module.exports = {
   sendExportUserAccount: sendEmailWithOptions('tem_qRkBwBC4MVwqww87gDgRdHSG'),
   sendTrackCompletedEmail: sendEmailWithOptions('tem_G69qyjJ6xVHxMJMqcwp98dfF'),
   sendTrackEnrollmentEmail: sendEmailWithOptions('tem_tFrcKvJvTRVYMbDYSrTHwVfV'),
+  // A learner idle in a track: their next action (D63). Resolves false until the template exists.
+  sendTrackReminderEmail: opts => TRACK_REMINDER_TEMPLATE_ID
+    ? sendEmailWithOptions(TRACK_REMINDER_TEMPLATE_ID, opts)
+    : Promise.resolve(false),
+  hasTrackReminderTemplate: () => Boolean(TRACK_REMINDER_TEMPLATE_ID),
   sendWelcomeEmail: sendEmailWithOptions('tem_jkdjbcSVK9cmGvwXbtX9PQbJ'),
   sendGroupCreatedEmail: sendEmailWithOptions('tem_7dHq84ct6mJS847pTVJK6b4P'),
   sendFundingRoundNewSubmissionEmail: sendEmailWithOptions('tem_dMt4Dwm493JvYdXGWBpTxxR7'),

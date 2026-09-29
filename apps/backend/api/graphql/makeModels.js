@@ -22,6 +22,7 @@ import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
 import InvitationService from '../services/InvitationService'
 import { paywallPreview } from '../models/track/preview'
+import { filterEnrolledByCompletion, learnerProgressAccess, progressFromMembershipSettings } from '../models/track/progress'
 import { hasFundingRounds, hasSavedSearches, hasTracks, hasTransactions } from './meHasAny'
 import { groupSetupChecklistFor } from './groupSetupChecklist'
 import {
@@ -147,6 +148,21 @@ export default function makeModels (userId, isAdmin, apiClient) {
     const byView = new Map(rows.map(row => [String(row.view_id), row]))
     return viewIds.map(id => byView.get(String(id)) || null)
   }, { cache: false, cacheKeyFn: id => String(id) })
+
+  // Track learners' progress (D63) is shown to the learner and to the track's stewards.
+  // One access check per track space for a whole list of enrolled people.
+  const learnerProgressAccessLoader = new DataLoader(async (spaceIds) => {
+    const access = await learnerProgressAccess(userId, spaceIds)
+    return spaceIds.map(id => access.get(String(id)))
+  }, { cache: false })
+  const learnerProgressField = async (person, field) => {
+    const pivot = person.pivot
+    if (!userId || !pivot || !pivot.get('group_id')) return null
+    const access = await learnerProgressAccessLoader.load(String(pivot.get('group_id')))
+    if (!access?.isTrack) return null
+    if (!access.canSeeAll && String(person.id) !== String(userId)) return null
+    return progressFromMembershipSettings(pivot.get('settings'))[field]
+  }
 
   const pinnedPostIdsLoader = new DataLoader(async (viewIds) => {
     const rows = await bookshelf.knex('group_view_pins')
@@ -506,6 +522,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // When loading via Track.users: enrollment = membership created_at; completion in settings
         completedAt: p => p.pivot && (p.pivot.get('settings') || {}).completedAt,
         enrolledAt: p => p.pivot && p.pivot.get('created_at'),
+        // Via Track.enrolledUsers: progress through the track (D63)
+        actionsCompleted: p => learnerProgressField(p, 'actionsCompleted'),
+        lastActionAt: p => learnerProgressField(p, 'lastActionAt'),
         membershipCommonRoles: emptyQuerySet,
         messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null),
         // Never expose null names to clients — they call .split() etc.
@@ -1774,7 +1793,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       relations: [
         'completionRole',
-        { enrolledUsers: { querySet: true } },
+        {
+          enrolledUsers: {
+            querySet: true,
+            filter: (relation, { completed }) => filterEnrolledByCompletion(relation, completed)
+          }
+        },
         { group: { alias: 'space' } }
       ],
       getters: {

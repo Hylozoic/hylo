@@ -911,7 +911,8 @@ module.exports = bookshelf.Model.extend(merge({
 
     const joinedAt = new Date()
     await Promise.map(memberships.models, async membership => {
-      if (trackId) membership.removeSetting('completedAt')
+      // A fresh enrollment also gets a fresh allowance of idle reminders (D63)
+      if (trackId) ['completedAt', 'trackRemindersSent', 'trackReminderLastAt'].forEach(key => membership.removeSetting(key))
       await membership.save({ created_at: joinedAt, settings: membership.get('settings') }, { patch: true, transacting })
     })
 

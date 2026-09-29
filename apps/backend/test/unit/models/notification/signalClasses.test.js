@@ -78,8 +78,10 @@ const TODAY = {
   fundingRoundNewSubmission: ['email', 'push', 'inApp'],
   fundingRoundPhaseTransition: ['email', 'push', 'inApp'],
   fundingRoundReminder: ['email', 'push', 'inApp'],
-  // Added with their own channels: D58
-  openRequestNudge: ['push', 'inApp']
+  // Added with their own channels: D58, D63
+  openRequestNudge: ['push', 'inApp'],
+  trackCompletedLearner: ['inApp'],
+  trackReminder: ['email', 'inApp']
 }
 
 describe('signalClasses', () => {

@@ -57,6 +57,7 @@ export const EMAIL_TYPES = {
   sendExportUserAccount: essential('account export you requested'),
   sendTrackCompletedEmail: bulk('group_post_email', 'someone completed your track'),
   sendTrackEnrollmentEmail: bulk('group_post_email', 'someone enrolled in your track'),
+  sendTrackReminderEmail: bulk('group_post_email', 'reminder to continue a track you enrolled in (D63)'),
   sendWelcomeEmail: bulk('settings_page', 'welcome after signing up'),
   sendGroupCreatedEmail: essential('the group you just created'),
   sendFundingRoundNewSubmissionEmail: bulk('group_post_email', 'new funding round submission'),

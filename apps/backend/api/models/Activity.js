@@ -159,7 +159,9 @@ module.exports = bookshelf.Model.extend({
     FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
     FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
     FundingRoundReminder: 'fundingRoundReminder', // Reminder for funding round deadline
-    OpenRequestNudge: 'openRequestNudge' // a request or offer has had no reply for a few days (D58)
+    OpenRequestNudge: 'openRequestNudge', // a request or offer has had no reply for a few days (D58)
+    TrackCompletedLearner: 'trackCompletedLearner', // you completed a track (D63)
+    TrackReminder: 'trackReminder' // you haven't done anything in a track for a while (D63)
   },
 
   find: function (id, options) {
