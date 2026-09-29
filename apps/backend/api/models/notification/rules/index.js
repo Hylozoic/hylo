@@ -15,6 +15,7 @@ import { EMAIL_REASONS } from '../emailReasons'
 import { CHANNEL, channelsForReason, classForActivity } from '../signalClasses'
 import { isChat, isNewPost } from './predicates'
 import { importantAnnouncement, mentionsAlwaysReachYou } from './directSignals'
+import { conversationPasses, quietGroupPasses } from './adaptiveImportant'
 
 // Phase 1
 const groupInvitationOverride = ctx => {
@@ -61,7 +62,9 @@ const everyPost = ctx => ctx.postSetting === 'all'
 export const GATE_PASSES = [
   everyPost,
   mentionsAlwaysReachYou,
-  importantAnnouncement
+  importantAnnouncement,
+  conversationPasses,
+  quietGroupPasses
 ]
 
 const isGated = ctx => isChat(ctx) || isNewPost(ctx)

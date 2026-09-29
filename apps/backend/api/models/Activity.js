@@ -10,6 +10,9 @@ const mergeByReader = activities => {
         if (activity[f]) current[f] = activity[f]
       })
       current.reasons.push(activity.reason)
+      // Keep flags from every row, e.g. a chat row's meta.inConversation when the
+      // reader's mention row came first
+      if (activity.meta) current.meta = { ...current.meta, ...activity.meta }
     } else {
       acc[activity.reader_id] = Object.assign(
         { reasons: [activity.reason] }, omit(activity, 'reason'))
