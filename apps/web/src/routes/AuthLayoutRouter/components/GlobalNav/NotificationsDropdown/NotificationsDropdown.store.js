@@ -86,6 +86,10 @@ export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
                 reminderType
                 actorCount
                 response
+                winningOption
+                tie
+                forAuthor
+                outcome
               }
               action
               unread

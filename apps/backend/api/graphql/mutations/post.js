@@ -9,6 +9,7 @@ import {
 } from '../../models/post/postFulfillmentPermissions'
 import { deletePostDraftForCreate } from './draft'
 import { assertPostWritable } from '../../models/group/archive'
+import { notifyProposalOutcome } from '../../models/post/proposalNotices'
 
 export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
@@ -163,11 +164,13 @@ export async function swapProposalVote ({ userId, postId, removeOptionId, addOpt
 
 export function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
   return Post.find(postId)
-    .then(post => {
+    .then(async post => {
       if (post.get('user_id') !== userId) {
         throw new GraphQLError("You don't have permission to modify this post")
       }
-      return post.updateProposalOutcome(proposalOutcome)
+      await post.updateProposalOutcome(proposalOutcome)
+      // D46: voters hear about the outcome the first time it is recorded
+      await notifyProposalOutcome({ post, userId, outcome: proposalOutcome })
     })
     .then(() => ({ success: true }))
 }

@@ -118,6 +118,14 @@ exports.fr = {
     if (others > 0) return `${person} et ${others} ${others === 1 ? 'autre personne ont' : 'autres personnes ont'} répondu à votre événement « ${postName} »`
     return response === 'interested' ? `${person} est intéressé·e par votre événement « ${postName} »` : `${person} participera à votre événement « ${postName} »`
   },
+  textForProposalClosingSoon: ({ postName }) => `Le vote sur « ${postName} » se termine bientôt. Vous n'avez pas encore voté`,
+  textForProposalClosed: ({ postName, winningOption, tie, forAuthor }) => {
+    const result = winningOption ? ` : ${winningOption}` : tie ? ' : égalité' : ''
+    return forAuthor
+      ? `Le vote sur votre proposition « ${postName} » est terminé${result}. Indiquez la décision prise pour les votant·e·s`
+      : `Le vote sur « ${postName} » est terminé${result}`
+  },
+  textForProposalOutcome: ({ person, postName, outcome }) => `${person} a indiqué la décision prise pour « ${postName} » : ${outcome}`,
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} a soumis « ${post.summary()} » pour « ${fundingRoundTitle} »`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

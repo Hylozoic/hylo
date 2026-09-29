@@ -109,7 +109,11 @@ const every10minutes = now => {
     Notification.sendUnsent(),
     Comment.sendDigests().then(count => sails.log.debug(`Sent ${count} comment/message digests`)),
     Group.updateAllMemberCounts(),
-    Post.updateProposalStatuses(),
+    // D46: proposals whose voting just ended, and ones closing soon (post/proposalNotices)
+    Post.updateProposalStatuses()
+      .then(completedIds => require('./api/models/post/proposalNotices').sendProposalNotices({ completedIds }))
+      .then(({ closed, closingSoon }) => sails.log.debug(`Sent ${closed} proposal closed and ${closingSoon} closing soon notices`))
+      .catch(err => sails.log.error('Proposal notices failed', err)),
     FundingRound.checkPhaseTransitions().then(count => sails.log.debug(`Sent ${count} funding round phase transition notifications`))
   ]
 }

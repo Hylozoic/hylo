@@ -3,7 +3,12 @@ import path from 'path'
 import i18next from 'i18next'
 import {
   ACTION_EVENT_RSVP,
+  ACTION_PROPOSAL_CLOSED,
+  ACTION_PROPOSAL_CLOSING_SOON,
+  ACTION_PROPOSAL_OUTCOME,
+  ACTION_PROPOSAL_VOTE,
   ACTION_REACTION,
+  ACTION_VOTE_RESET,
   bodyForNotification,
   titleForNotification,
   urlForNotification
@@ -84,5 +89,45 @@ describe('grouped social feedback notices', () => {
       const notification = notificationFor(ACTION_EVENT_RSVP, { meta: { reasons: ['eventRsvp'], actorCount: 3, response: 'yes' } })
       expect(titleForNotification(notification, t)).toBe('<strong>Sam</strong> and 2 others responded to your event')
     })
+  })
+})
+
+describe('proposal notices', () => {
+  let t
+  beforeAll(async () => { t = await translator('en') })
+
+  it('groups votes for the author', () => {
+    const one = notificationFor(ACTION_PROPOSAL_VOTE, { meta: { reasons: ['proposalVote'], actorCount: 1 } })
+    const three = notificationFor(ACTION_PROPOSAL_VOTE, { meta: { reasons: ['proposalVote'], actorCount: 3 } })
+    expect(titleForNotification(one, t)).toBe('<strong>Sam</strong> voted on your proposal')
+    expect(titleForNotification(three, t)).toBe('<strong>Sam</strong> and 2 others voted on your proposal')
+  })
+
+  it('says voting closes soon', () => {
+    const notification = notificationFor(ACTION_PROPOSAL_CLOSING_SOON, { meta: { reasons: ['proposalClosingSoon'] } })
+    expect(titleForNotification(notification, t)).toBe('Voting closes soon on <strong>Seed swap on Saturday</strong>')
+    expect(bodyForNotification(notification, t)).toBe("You haven't voted yet")
+    expect(urlForNotification(notification)).toMatch(/\/post\/10$/)
+  })
+
+  it('gives voters the result and asks the author to record the outcome', () => {
+    const voter = notificationFor(ACTION_PROPOSAL_CLOSED, { meta: { reasons: ['proposalClosed'], winningOption: '👍 Yes' } })
+    const author = notificationFor(ACTION_PROPOSAL_CLOSED, { meta: { reasons: ['proposalClosed'], tie: true, forAuthor: true } })
+    expect(titleForNotification(voter, t)).toBe('Voting closed on <strong>Seed swap on Saturday</strong>')
+    expect(bodyForNotification(voter, t)).toBe('Result: <strong>👍 Yes</strong>.')
+    expect(titleForNotification(author, t)).toBe('Voting closed on your proposal <strong>Seed swap on Saturday</strong>')
+    expect(bodyForNotification(author, t)).toBe('The vote ended in a tie. Record the outcome for your voters.')
+  })
+
+  it('shares the recorded outcome', () => {
+    const notification = notificationFor(ACTION_PROPOSAL_OUTCOME, { meta: { reasons: ['proposalOutcome'], outcome: 'Blue it is' } })
+    expect(titleForNotification(notification, t)).toBe('<strong>Sam</strong> recorded the outcome of <strong>Seed swap on Saturday</strong>')
+    expect(bodyForNotification(notification, t)).toBe('"<strong>Blue it is</strong>"')
+  })
+
+  it('has a title and body for a vote reset', () => {
+    const notification = notificationFor(ACTION_VOTE_RESET, { meta: { reasons: ['voteReset'] } })
+    expect(titleForNotification(notification, t)).toBe('<strong>Sam</strong> changed the options on <strong>Seed swap on Saturday</strong>')
+    expect(bodyForNotification(notification, t)).toBe('Your vote was reset. You can vote again.')
   })
 })

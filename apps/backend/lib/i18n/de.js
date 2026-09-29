@@ -118,6 +118,14 @@ exports.de = {
     if (others > 0) return `${person} und ${others} ${others === 1 ? 'weitere Person haben' : 'weitere Personen haben'} auf deine Veranstaltung „${postName}“ geantwortet`
     return response === 'interested' ? `${person} interessiert sich für deine Veranstaltung „${postName}“` : `${person} nimmt an deiner Veranstaltung „${postName}“ teil`
   },
+  textForProposalClosingSoon: ({ postName }) => `Die Abstimmung über „${postName}“ endet bald. Du hast noch nicht abgestimmt`,
+  textForProposalClosed: ({ postName, winningOption, tie, forAuthor }) => {
+    const result = winningOption ? `: ${winningOption}` : tie ? ': Gleichstand' : ''
+    return forAuthor
+      ? `Die Abstimmung über deinen Vorschlag „${postName}“ ist beendet${result}. Halte das Ergebnis für die Abstimmenden fest`
+      : `Die Abstimmung über „${postName}“ ist beendet${result}`
+  },
+  textForProposalOutcome: ({ person, postName, outcome }) => `${person} hat das Ergebnis von „${postName}“ festgehalten: ${outcome}`,
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} hat „${post.summary()}“ für „${fundingRoundTitle}“ eingereicht`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

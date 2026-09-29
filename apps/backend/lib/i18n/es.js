@@ -120,6 +120,14 @@ exports.es = {
     if (others > 0) return `${person} y ${others} ${others === 1 ? 'persona más' : 'personas más'} respondieron a tu evento "${postName}"`
     return response === 'interested' ? `A ${person} le interesa tu evento "${postName}"` : `${person} asistirá a tu evento "${postName}"`
   },
+  textForProposalClosingSoon: ({ postName }) => `La votación sobre "${postName}" cierra pronto. Todavía no has votado`,
+  textForProposalClosed: ({ postName, winningOption, tie, forAuthor }) => {
+    const result = winningOption ? `: ${winningOption}` : tie ? ': empate' : ''
+    return forAuthor
+      ? `La votación de tu propuesta "${postName}" terminó${result}. Registra el resultado para quienes votaron`
+      : `La votación sobre "${postName}" terminó${result}`
+  },
+  textForProposalOutcome: ({ person, postName, outcome }) => `${person} registró el resultado de "${postName}": ${outcome}`,
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} presentó "${post.summary()}" a "${fundingRoundTitle}"`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

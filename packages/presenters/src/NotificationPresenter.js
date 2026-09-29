@@ -73,6 +73,11 @@ export const ACTION_POST_FULFILLED = 'postFulfilled'
 export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
 export const ACTION_REACTION = 'reaction'
 export const ACTION_EVENT_RSVP = 'eventRsvp'
+export const ACTION_PROPOSAL_VOTE = 'proposalVote'
+export const ACTION_PROPOSAL_CLOSING_SOON = 'proposalClosingSoon'
+export const ACTION_PROPOSAL_CLOSED = 'proposalClosed'
+export const ACTION_PROPOSAL_OUTCOME = 'proposalOutcome'
+export const ACTION_VOTE_RESET = 'voteReset'
 
 // How many other people a grouped notice counts ("Sam and 3 others reacted")
 export function othersCount (activity) {
@@ -195,6 +200,22 @@ export function titleForNotification (notification, t) {
         ? t('<strong>{{name}}</strong> is interested in your event', { name })
         : t('<strong>{{name}}</strong> is going to your event', { name })
     }
+    case ACTION_PROPOSAL_VOTE: {
+      const count = othersCount(notification.activity)
+      return count > 0
+        ? t('<strong>{{name}}</strong> and {{count}} others voted on your proposal', { name, count })
+        : t('<strong>{{name}}</strong> voted on your proposal', { name })
+    }
+    case ACTION_PROPOSAL_CLOSING_SOON:
+      return t('Voting closes soon on <strong>{{postSummary}}</strong>', { postSummary })
+    case ACTION_PROPOSAL_CLOSED:
+      return notification.activity.meta?.forAuthor
+        ? t('Voting closed on your proposal <strong>{{postSummary}}</strong>', { postSummary })
+        : t('Voting closed on <strong>{{postSummary}}</strong>', { postSummary })
+    case ACTION_PROPOSAL_OUTCOME:
+      return t('<strong>{{name}}</strong> recorded the outcome of <strong>{{postSummary}}</strong>', { name, postSummary })
+    case ACTION_VOTE_RESET:
+      return t('<strong>{{name}}</strong> changed the options on <strong>{{postSummary}}</strong>', { name, postSummary })
     default:
       return null
   }
@@ -296,7 +317,21 @@ export function bodyForNotification (notification, t) {
     case ACTION_REACTION:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary: comment ? truncateHTML(comment.text) : postSummary })
     case ACTION_EVENT_RSVP:
+    case ACTION_PROPOSAL_VOTE:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary })
+    case ACTION_PROPOSAL_CLOSING_SOON:
+      return t("You haven't voted yet")
+    case ACTION_PROPOSAL_CLOSED: {
+      const { winningOption, tie, forAuthor } = notification.activity.meta || {}
+      const result = winningOption
+        ? t('Result: <strong>{{option}}</strong>.', { option: winningOption })
+        : tie ? t('The vote ended in a tie.') : t('No one voted.')
+      return forAuthor ? `${result} ${t('Record the outcome for your voters.')}` : result
+    }
+    case ACTION_PROPOSAL_OUTCOME:
+      return t('"<strong>{{postSummary}}</strong>"', { postSummary: notification.activity.meta?.outcome })
+    case ACTION_VOTE_RESET:
+      return t('Your vote was reset. You can vote again.')
     default:
       return null
   }
@@ -394,6 +429,11 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
         ? primaryPostUrl(post, { commentId: comment.id, ...postOpts })
         : primaryPostUrl(post, postOpts)
     case ACTION_EVENT_RSVP:
+    case ACTION_PROPOSAL_VOTE:
+    case ACTION_PROPOSAL_CLOSING_SOON:
+    case ACTION_PROPOSAL_CLOSED:
+    case ACTION_PROPOSAL_OUTCOME:
+    case ACTION_VOTE_RESET:
       return primaryPostUrl(post, postOpts)
   }
 }

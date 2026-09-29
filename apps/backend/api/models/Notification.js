@@ -224,9 +224,30 @@ module.exports = bookshelf.Model.extend({
       case 'reaction':
       case 'eventRsvp':
         return this.sendSocialFeedbackPush()
+      case 'proposalClosingSoon':
+      case 'proposalClosed':
+      case 'proposalOutcome':
+        return this.sendProposalPush()
       default:
         return Promise.resolve()
     }
+  },
+
+  // Proposal notices (post/proposalNotices): closing soon, closed and outcome recorded
+  sendProposalPush: async function () {
+    const activity = this.relations.activity
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await groupForNotificationForUser(post, activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const reason = Notification.priorityReason(activity.get('meta').reasons)
+    const alertText = PushNotification.textForProposalNotice(reason, {
+      actor: this.actor(),
+      post,
+      meta: activity.get('meta')
+    }, locale)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   // Grouped social feedback (notification/grouping): the text counts everyone so far,

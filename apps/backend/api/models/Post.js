@@ -15,7 +15,7 @@ import { incrementNewPostCount } from './post/createPost'
 import rehostAndAttachImages from './post/rehostAndAttachImages'
 import upsertChatActivityNoticeForPost from './post/upsertChatActivityNotice'
 import { conversationParticipants } from './notification/rules/adaptiveImportant'
-import { notifyReaction } from './notification/socialNotices'
+import { notifyProposalVote, notifyReaction } from './notification/socialNotices'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -506,6 +506,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async addProposalVote ({ userId, optionId }) {
     const result = await ProposalVote.forge({ post_id: this.id, user_id: userId, option_id: optionId, created_at: new Date() }).save()
     Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    // D46: a grouped in-app notice to the author (notification/socialNotices)
+    await notifyProposalVote({ post: this, userId })
     return result
   },
 
@@ -755,17 +757,22 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   createVoteResetActivities: async function (trx) {
-    const voterIds = await ProposalVote.getVoterIdsForPost(this.id).fetchAll({ transacting: trx })
+    // updateProposalOptions may pass a placeholder rather than a transaction
+    const transacting = trx?.client ? trx : undefined
+    const voterIds = await ProposalVote.getVoterIdsForPost(this.id).fetchAll({ transacting })
     if (!voterIds || voterIds.length === 0) return Promise.resolve()
 
-    const voters = voterIds.map(voterId => ({
-      reader_id: voterId.get('user_id'),
-      post_id: this.id,
-      actor_id: this.get('user_id'),
-      reason: 'voteReset'
-    }))
+    // The person who changed the options is not told about their own change
+    const voters = voterIds
+      .filter(voterId => String(voterId.get('user_id')) !== String(this.get('user_id')))
+      .map(voterId => ({
+        reader_id: voterId.get('user_id'),
+        post_id: this.id,
+        actor_id: this.get('user_id'),
+        reason: 'voteReset'
+      }))
 
-    return Activity.saveForReasons(voters, trx)
+    return Activity.saveForReasons(voters, transacting)
   },
 
   fulfill,
@@ -1275,8 +1282,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
   // queued before the deploy finish quietly; remove it in the release after.
   notifySlack: () => Promise.resolve(),
 
+  // Returns the ids of the proposals this run moved to 'completed' (their voting just
+  // ended), for post/proposalNotices.
   updateProposalStatuses: async () => {
-    return bookshelf.knex.raw(
+    const result = await bookshelf.knex.raw(
       `UPDATE posts
       SET proposal_status =
           CASE
@@ -1293,8 +1302,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       WHERE type = 'proposal'
         AND proposal_status NOT IN ('casual', 'completed')
         AND start_time IS NOT NULL
-        AND end_time IS NOT NULL;`
+        AND end_time IS NOT NULL
+      RETURNING id, proposal_status;`
     )
+    // Rows were not completed before (see WHERE), so 'completed' here is a transition
+    return result.rows
+      .filter(row => row.proposal_status === Post.Proposal_Status.COMPLETED)
+      .map(row => String(row.id))
   },
 
   /**

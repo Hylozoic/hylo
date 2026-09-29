@@ -239,5 +239,20 @@ module.exports = bookshelf.Model.extend({
       default:
         return postName
     }
+  },
+
+  textForProposalNotice: function (reason, { actor, post, meta = {} }, locale) {
+    const L = getLocaleStrings(locale)
+    const postName = firstLine(decode(post.summary()))
+    switch (reason) {
+      case 'proposalClosingSoon':
+        return L.textForProposalClosingSoon({ postName })
+      case 'proposalClosed':
+        return L.textForProposalClosed({ postName, winningOption: meta.winningOption, tie: !!meta.tie, forAuthor: !!meta.forAuthor })
+      case 'proposalOutcome':
+        return L.textForProposalOutcome({ person: actor?.get('name'), postName, outcome: meta.outcome })
+      default:
+        return postName
+    }
   }
 })

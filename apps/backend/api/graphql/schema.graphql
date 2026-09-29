@@ -612,6 +612,13 @@ type ActivityMeta {
   actorCount: Int
   # For an RSVP notice, the latest answer: 'yes' (going) or 'interested'
   response: String
+  # For a proposal that closed: the option with the most votes, or whether it was a tie
+  winningOption: String
+  tie: Boolean
+  # The notice goes to the proposal's author (asking them to record the outcome)
+  forAuthor: Boolean
+  # The outcome the author recorded for a proposal
+  outcome: String
 }
 
 # An activity that someone may want to be notified about

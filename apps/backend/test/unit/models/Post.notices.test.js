@@ -3,6 +3,7 @@ import setup from '../../setup'
 import factories from '../../setup/factories'
 import { mockify, unspyify } from '../../setup/helpers'
 import { REACTION_NOTICES, TABLE as ASSIGNMENTS } from '../../../lib/experiments'
+import { notifyProposalsClosed, sendClosingSoonNotices, votingResult } from '../../../api/models/post/proposalNotices'
 
 const activitiesWithReason = async (reason, where = {}) => (await Activity.query(q => {
   q.where(where)
@@ -115,6 +116,145 @@ describe('Post notices', () => {
       await bookshelf.knex('activities').del()
       await post.deleteReaction(fans[0].id, '👍')
       expect(await activitiesWithReason('reaction')).to.have.length(0)
+    })
+  })
+  describe('proposals (D46)', () => {
+    const HOUR = 60 * 60 * 1000
+
+    // Each test looks at its own proposals only
+    beforeEach(() => bookshelf.knex('posts').where({ type: 'proposal' }).update({ active: false }))
+
+    const proposalBy = async (user, attrs = {}) => {
+      const post = await postBy(user, {
+        type: 'proposal',
+        name: 'Paint the shed',
+        proposal_status: Post.Proposal_Status.VOTING,
+        start_time: new Date(Date.now() - 3 * 24 * HOUR),
+        end_time: new Date(Date.now() + 10 * HOUR),
+        ...attrs
+      })
+      const [yes, no] = await bookshelf.knex('proposal_options')
+        .insert([{ post_id: post.id, text: 'Yes', emoji: '👍' }, { post_id: post.id, text: 'No', emoji: '👎' }])
+        .returning('id')
+      return { post, yes: yes.id || yes, no: no.id || no }
+    }
+
+    const vote = (post, user, optionId) => post.addProposalVote({ userId: user.id, optionId })
+
+    describe('votes', () => {
+      it('tell the author in-app only, grouped per proposal', async () => {
+        const { post, yes, no } = await proposalBy(author)
+        await vote(post, fans[0], yes)
+        await vote(post, fans[1], no)
+        await vote(post, fans[1], yes)
+
+        const activities = await activitiesWithReason('proposalVote', { reader_id: author.id })
+        expect(activities.length).to.equal(1)
+        expect(activities[0].get('meta').actorCount).to.equal(2)
+        expect(await mediaFor(activities[0])).to.deep.equal([InApp])
+      })
+
+      it("don't name voters on an anonymous proposal, or notify for the author's own vote", async () => {
+        const { post: anonymous, yes } = await proposalBy(author, { anonymous_voting: 'true' })
+        await vote(anonymous, fans[0], yes)
+        const { post, yes: ownYes } = await proposalBy(author)
+        await vote(post, author, ownYes)
+        expect(await activitiesWithReason('proposalVote')).to.have.length(0)
+      })
+    })
+
+    describe('closing soon', () => {
+      it('goes once, in-app and push, to members who have not voted', async () => {
+        const { post, yes } = await proposalBy(author)
+        await vote(post, fans[0], yes)
+        await bookshelf.knex('notifications').del()
+        await bookshelf.knex('activities').del()
+
+        expect(await sendClosingSoonNotices()).to.equal(2)
+        const activities = await activitiesWithReason('proposalClosingSoon')
+        expect(activities.map(a => String(a.get('reader_id'))).sort()).to.deep.equal([fans[1].id, fans[2].id].map(String).sort())
+        expect(activities[0].get('group_key')).to.equal(`proposalClosingSoon:post:${post.id}`)
+        expect(await mediaFor(activities[0])).to.deep.equal([InApp, Push])
+
+        expect(await sendClosingSoonNotices()).to.equal(0)
+        expect(await activitiesWithReason('proposalClosingSoon')).to.have.length(2)
+      })
+
+      it('waits for the last day of voting and at least half of the voting time', async () => {
+        await proposalBy(author, { end_time: new Date(Date.now() + 30 * HOUR) })
+        await proposalBy(author, { start_time: new Date(Date.now() - HOUR), end_time: new Date(Date.now() + 5 * HOUR) })
+        await proposalBy(author, { proposal_status: Post.Proposal_Status.DISCUSSION })
+        expect(await sendClosingSoonNotices()).to.equal(0)
+      })
+
+      it('pushes that voting closes soon', async () => {
+        const { post } = await proposalBy(author)
+        await sendClosingSoonNotices()
+        const [activity] = await activitiesWithReason('proposalClosingSoon', { reader_id: fans[0].id })
+        const push = await Notification.where({ activity_id: activity.id, medium: Push }).fetch({
+          withRelated: ['activity', 'activity.post', 'activity.post.groups', 'activity.post.user', 'activity.reader', 'activity.actor']
+        })
+        await push.send()
+        expect(OneSignal.notify.__spy.calls[0][0].alert).to.equal(`Voting closes soon on "${post.get('name')}". You haven't voted yet`)
+      })
+    })
+
+    describe('voting closed', () => {
+      it('updateProposalStatuses returns the proposals it completes', async () => {
+        const { post: ended } = await proposalBy(author, { end_time: new Date(Date.now() - HOUR) })
+        const { post: open } = await proposalBy(author)
+        const completed = await Post.updateProposalStatuses()
+        expect(completed).to.include(String(ended.id))
+        expect(completed).to.not.include(String(open.id))
+        expect(await Post.updateProposalStatuses()).to.not.include(String(ended.id))
+      })
+
+      it('tells voters the winning option and asks the author to record the outcome, once', async () => {
+        const { post, yes, no } = await proposalBy(author)
+        await vote(post, fans[0], yes)
+        await vote(post, fans[1], yes)
+        await vote(post, fans[2], no)
+        await post.save({ end_time: new Date(Date.now() - HOUR) }, { patch: true })
+        await bookshelf.knex('notifications').del()
+        await bookshelf.knex('activities').del()
+
+        const completed = await Post.updateProposalStatuses()
+        expect(await notifyProposalsClosed(completed)).to.equal(4)
+
+        const voters = await activitiesWithReason('proposalClosed')
+        const forAuthor = voters.filter(a => a.get('meta').forAuthor)
+        expect(forAuthor.map(a => String(a.get('reader_id')))).to.deep.equal([String(author.id)])
+        expect(voters.filter(a => !a.get('meta').forAuthor).map(a => String(a.get('reader_id'))).sort())
+          .to.deep.equal(fans.map(f => String(f.id)).sort())
+        expect(voters[0].get('meta').winningOption).to.equal('👍 Yes')
+        expect(await mediaFor(voters[0])).to.deep.equal([InApp, Push])
+
+        expect(await notifyProposalsClosed(completed)).to.equal(0)
+      })
+
+      it('reports a tie, or that no one voted', async () => {
+        const { post, yes, no } = await proposalBy(author)
+        expect(await votingResult(post.id)).to.deep.equal({ winningOption: null, tie: false })
+        await vote(post, fans[0], yes)
+        await vote(post, fans[1], no)
+        expect(await votingResult(post.id)).to.deep.equal({ winningOption: null, tie: true })
+      })
+    })
+
+    describe('vote reset', () => {
+      it('changing the options of a voted proposal notifies voters, in-app and push', async () => {
+        const { post, yes } = await proposalBy(author, { proposal_status: Post.Proposal_Status.DISCUSSION })
+        await vote(post, fans[0], yes)
+        await vote(post, author, yes)
+        await bookshelf.knex('notifications').del()
+        await bookshelf.knex('activities').del()
+
+        await post.updateProposalOptions({ options: [{ text: 'Blue' }, { text: 'Green' }], userId: author.id })
+
+        const activities = await activitiesWithReason('voteReset')
+        expect(activities.map(a => String(a.get('reader_id')))).to.deep.equal([String(fans[0].id)])
+        expect(await mediaFor(activities[0])).to.deep.equal([InApp, Push])
+      })
     })
   })
 })

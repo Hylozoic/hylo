@@ -33,5 +33,10 @@ export const PRIORITY_REASONS = [
   'fundingRoundPhaseTransition',
   'fundingRoundReminder',
   'reaction',
-  'eventRsvp'
+  'eventRsvp',
+  'proposalVote',
+  'proposalClosingSoon',
+  'proposalClosed',
+  'proposalOutcome',
+  'voteReset'
 ]

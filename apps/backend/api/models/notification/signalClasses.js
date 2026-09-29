@@ -91,7 +91,14 @@ export const REASON_SIGNALS = {
   // D15: in-app plus at most one grouped push per item per hour (notification/grouping)
   reaction: { class: SOCIAL },
   // D45: to the host, in-app plus a grouped push, no email
-  eventRsvp: { class: SOCIAL }
+  eventRsvp: { class: SOCIAL },
+  // D46: vote notices to authors are in-app only; closing soon is in-app and push
+  proposalVote: { class: SOCIAL, channels: [IN_APP] },
+  proposalClosingSoon: { class: LIFECYCLE, channels: [IN_APP, PUSH] },
+  proposalClosed: { class: SOCIAL },
+  proposalOutcome: { class: SOCIAL },
+  // Changing a proposal's options resets its votes; there is no email for it
+  voteReset: { class: OPERATIONAL, channels: [IN_APP, PUSH] }
 }
 
 // A reason with no line (or no priority reason at all) keeps every channel, as before.

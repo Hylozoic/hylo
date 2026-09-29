@@ -117,6 +117,14 @@ exports.en = {
     if (others > 0) return `${person} and ${others} ${others === 1 ? 'other' : 'others'} responded to your event "${postName}"`
     return response === 'interested' ? `${person} is interested in your event "${postName}"` : `${person} is going to your event "${postName}"`
   },
+  textForProposalClosingSoon: ({ postName }) => `Voting closes soon on "${postName}". You haven't voted yet`,
+  textForProposalClosed: ({ postName, winningOption, tie, forAuthor }) => {
+    const result = winningOption ? `: ${winningOption}` : tie ? ': a tie' : ''
+    return forAuthor
+      ? `Voting closed on your proposal "${postName}"${result}. Record the outcome for your voters`
+      : `Voting closed on "${postName}"${result}`
+  },
+  textForProposalOutcome: ({ person, postName, outcome }) => `${person} recorded the outcome of "${postName}": ${outcome}`,
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} submitted "${post.summary()}" to "${fundingRoundTitle}"`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

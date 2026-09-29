@@ -84,7 +84,12 @@ const TODAY = {
 // (activity-notices: D15, D27, D44, D45, D46, D57)
 Object.assign(TODAY, {
   reaction: ['push', 'inApp'],
-  eventRsvp: ['push', 'inApp']
+  eventRsvp: ['push', 'inApp'],
+  proposalVote: ['inApp'],
+  proposalClosingSoon: ['push', 'inApp'],
+  proposalClosed: ['push', 'inApp'],
+  proposalOutcome: ['push', 'inApp'],
+  voteReset: ['push', 'inApp']
 })
 
 describe('signalClasses', () => {

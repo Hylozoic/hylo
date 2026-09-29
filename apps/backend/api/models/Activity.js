@@ -157,7 +157,12 @@ module.exports = bookshelf.Model.extend({
     FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
     FundingRoundReminder: 'fundingRoundReminder', // Reminder for funding round deadline
     Reaction: 'reaction', // someone reacted to your post or comment (grouped, D15)
-    EventRsvp: 'eventRsvp' // someone is going to or interested in your event (grouped, D45)
+    EventRsvp: 'eventRsvp', // someone is going to or interested in your event (grouped, D45)
+    ProposalVote: 'proposalVote', // someone voted on your proposal (grouped, in-app only, D46)
+    ProposalClosingSoon: 'proposalClosingSoon', // voting closes soon and you haven't voted (D46)
+    ProposalClosed: 'proposalClosed', // voting closed on a proposal you voted on or wrote (D46)
+    ProposalOutcome: 'proposalOutcome', // the author recorded the outcome of a proposal you voted on (D46)
+    VoteReset: 'voteReset' // the author changed a proposal's options, which reset your vote
   },
 
   find: function (id, options) {

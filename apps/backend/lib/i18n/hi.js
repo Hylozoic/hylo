@@ -117,6 +117,14 @@ exports.hi = {
     if (others > 0) return `${person} और ${others} ${others === 1 ? 'अन्य' : 'अन्य लोगों'} ने आपके इवेंट "${postName}" का जवाब दिया`
     return response === 'interested' ? `${person} आपके इवेंट "${postName}" में रुचि रखते हैं` : `${person} आपके इवेंट "${postName}" में आ रहे हैं`
   },
+  textForProposalClosingSoon: ({ postName }) => `"${postName}" पर मतदान जल्द बंद होगा। आपने अभी तक वोट नहीं दिया है`,
+  textForProposalClosed: ({ postName, winningOption, tie, forAuthor }) => {
+    const result = winningOption ? `: ${winningOption}` : tie ? ': बराबरी' : ''
+    return forAuthor
+      ? `आपके प्रस्ताव "${postName}" पर मतदान बंद हो गया${result}। वोट देने वालों के लिए परिणाम दर्ज करें`
+      : `"${postName}" पर मतदान बंद हो गया${result}`
+  },
+  textForProposalOutcome: ({ person, postName, outcome }) => `${person} ने "${postName}" का परिणाम दर्ज किया: ${outcome}`,
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} ने "${fundingRoundTitle}" के लिए "${post.summary()}" जमा किया`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

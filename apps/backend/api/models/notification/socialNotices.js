@@ -80,3 +80,16 @@ export const notifyRsvp = reported(async ({ event, userId, response }) => {
     meta: { response }
   })
 })
+
+// D46: votes on someone's proposal, grouped per proposal, in-app only. Anonymous votes
+// stay anonymous: the author is not told who voted.
+export const notifyProposalVote = reported(async ({ post, userId }) => {
+  if (!post || post.get('type') !== 'proposal') return null
+  if (post.get('anonymous_voting') === 'true') return null
+  return saveNotice({
+    readerId: post.get('user_id'),
+    actorId: userId,
+    postId: post.id,
+    reason: 'proposalVote'
+  })
+})

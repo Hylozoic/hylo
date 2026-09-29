@@ -3,7 +3,7 @@ import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import RedisClient from '../../services/RedisClient'
-import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, deletePost, fulfillPost, unfulfillPost, followPost, unfollowPost } from './post'
+import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, updateProposalOutcome, deletePost, fulfillPost, unfulfillPost, followPost, unfollowPost } from './post'
 import { mockify, spyify, unspyify } from '../../../test/setup/helpers'
 
 describe('pinPost', () => {
@@ -529,5 +529,46 @@ describe('followPost and unfollowPost', () => {
     await followPost(reader.id, project.id)
     expect((await project.members().fetch()).pluck('id')).to.deep.equal([reader.id])
     expect((await project.followers().fetch()).pluck('id')).to.include(reader.id)
+  })
+})
+
+describe('updateProposalOutcome notices (D46)', () => {
+  let author, voters, post
+
+  const outcomeActivities = async () => (await Activity.query(q => {
+    q.whereRaw("meta->'reasons' \\? 'proposalOutcome'")
+  }).fetchAll()).models
+
+  before(async () => {
+    await setup.clearDb()
+    author = await factories.user().save()
+    voters = await Promise.all([1, 2].map(() => factories.user().save()))
+    const group = await factories.group().save()
+    await group.addMembers([author, ...voters])
+    post = await factories.post({ user_id: author.id, type: 'proposal', proposal_status: Post.Proposal_Status.COMPLETED }).save()
+    await group.posts().attach(post)
+    const [option] = await bookshelf.knex('proposal_options').insert({ post_id: post.id, text: 'Yes' }).returning('id')
+    for (const user of [...voters, author]) {
+      await bookshelf.knex('proposal_votes').insert({ post_id: post.id, option_id: option.id || option, user_id: user.id, created_at: new Date() })
+    }
+  })
+
+  beforeEach(() => spyify(Queue, 'classMethod', () => Promise.resolve()))
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('tells the voters the first time the outcome is recorded, and only then', async () => {
+    await updateProposalOutcome({ userId: author.id, postId: post.id, proposalOutcome: 'We paint it blue next month' })
+    const activities = await outcomeActivities()
+    expect(activities.map(a => String(a.get('reader_id'))).sort()).to.deep.equal(voters.map(v => String(v.id)).sort())
+    expect(activities[0].get('meta').outcome).to.equal('We paint it blue next month')
+    expect(String(activities[0].get('actor_id'))).to.equal(String(author.id))
+
+    await updateProposalOutcome({ userId: author.id, postId: post.id, proposalOutcome: 'We paint it green' })
+    expect(await outcomeActivities()).to.have.length(2)
+  })
+
+  it('does not notify when someone other than the author tries', async () => {
+    await expect(updateProposalOutcome({ userId: voters[0].id, postId: post.id, proposalOutcome: 'No' }))
+      .to.be.rejectedWith(/permission/)
   })
 })
