@@ -84,6 +84,14 @@
         margin-left: 0.35em;
         cursor: pointer;
       }
+      #hylo-boot-help a {
+        display: block;
+        margin-top: 0.5em;
+        font-size: 14px;
+        color: inherit;
+        opacity: 0.75;
+        text-decoration: underline;
+      }
       @media (prefers-color-scheme: dark) {
         #hylo-boot-loader {
           background: linear-gradient(152deg, #3A3A3A 0%, #2E2E2E 55%, #232323 100%);
@@ -287,15 +295,18 @@
       })
       // If the app never reports ready (a failed request, a script that never
       // arrives) the loader would otherwise stay up forever. This runs before
-      // the app's translations load, so it carries its own copy.
+      // the app's translations load, so it carries its own copy. "Need help?"
+      // opens Building Hylo's public About page (util/support.js has the same
+      // path for the app)
       var HELP_AFTER_MS = 20000
+      var HELP_PATH = '/groups/building-hylo/about'
       var HELP_COPY = {
-        en: ['Having trouble?', 'Reload'],
-        es: ['¿Tienes problemas?', 'Recargar'],
-        fr: ['Un problème ?', 'Recharger'],
-        de: ['Probleme?', 'Neu laden'],
-        hi: ['कोई समस्या है?', 'फिर से लोड करें'],
-        pt: ['Está com problemas?', 'Recarregar']
+        en: ['Having trouble?', 'Reload', 'Need help?'],
+        es: ['¿Tienes problemas?', 'Recargar', '¿Necesitas ayuda?'],
+        fr: ['Un problème ?', 'Recharger', 'Besoin d\'aide ?'],
+        de: ['Probleme?', 'Neu laden', 'Brauchst du Hilfe?'],
+        hi: ['कोई समस्या है?', 'फिर से लोड करें', 'मदद चाहिए?'],
+        pt: ['Está com problemas?', 'Recarregar', 'Precisa de ajuda?']
       }
       function helpLanguage () {
         var stored = null
@@ -316,6 +327,10 @@
         reload.textContent = copy[1]
         reload.addEventListener('click', function () { window.location.reload() })
         help.appendChild(reload)
+        var needHelp = document.createElement('a')
+        needHelp.href = HELP_PATH
+        needHelp.textContent = copy[2]
+        help.appendChild(needHelp)
         host.appendChild(help)
       }
       var helpTimer = window.setTimeout(showHelp, HELP_AFTER_MS)

@@ -1,7 +1,8 @@
-import { BookOpen, Compass, Download, Heart, HelpCircle, MessagesSquare, Shield } from 'lucide-react'
+import { BookOpen, Compass, Download, Heart, HelpCircle, LifeBuoy, MessagesSquare, Shield } from 'lucide-react'
 import React, { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { Link } from 'react-router-dom'
 import { useIntercom } from 'react-use-intercom'
 import {
   DropdownMenu,
@@ -22,12 +23,15 @@ import { driveTour, isTourTestMode } from 'tours/useTour'
 import { getCookieConsent } from 'util/cookieConsent'
 import { cn } from 'util/index'
 import { downloadApp, isCompactLayoutDevice, isMobileDevice } from 'util/mobile'
+import { BUILDING_HYLO_ABOUT_PATH } from 'util/support'
 import isWebView from 'util/webView'
 
 /**
  * The "?" help menu: guided tours for the current view, support, the user
  * guide and other links. Shared by the side rail (GlobalNav) and the top bar
- * (TopNav), so both layouts offer the same help.
+ * (TopNav), so both layouts offer the same help. Join Building Hylo is the
+ * help route that works without the support chat (support cookies off, or
+ * the mobile app, which shows this same menu).
  */
 export default function HelpMenu ({
   currentUser,
@@ -128,6 +132,12 @@ export default function HelpMenu ({
             <span>{t('Feedback & Support')}</span>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
+            <Link to={BUILDING_HYLO_ABOUT_PATH} className='text-foreground hover:text-foreground' data-testid='help-menu-building-hylo'>
+              <LifeBuoy className='mr-2 h-4 w-4' />
+              <span>{t('Join Building Hylo')}</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
             <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
               <BookOpen className='mr-2 h-4 w-4' />
               <span>{t('User Guide')}</span>
@@ -170,9 +180,21 @@ export default function HelpMenu ({
             <p className='text-foreground/70 mb-4'>
               {t('To use the support chat you need to enable support cookies in your cookie preferences')}
             </p>
-            <p className='text-foreground/70 mb-2'>
+            <p className='text-foreground/70 mb-4'>
               {t('Click below to edit your cookie preferences')}
             </p>
+            <p className='text-foreground/70 mb-2'>
+              {t('You can also ask the Hylo team and community for help in Building Hylo, Hylo\'s own group.')}
+            </p>
+            <Link
+              to={BUILDING_HYLO_ABOUT_PATH}
+              onClick={() => setShowSupportModal(false)}
+              className='inline-flex items-center gap-1.5 text-focus underline underline-offset-2 hover:text-focus/80'
+              data-testid='support-modal-building-hylo'
+            >
+              <LifeBuoy className='h-4 w-4' />
+              {t('Join Building Hylo')}
+            </Link>
           </div>
         </ModalDialog>
       )}

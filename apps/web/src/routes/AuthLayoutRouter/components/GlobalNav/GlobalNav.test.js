@@ -1,8 +1,10 @@
 import React from 'react'
+import userEvent from '@testing-library/user-event'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import orm from 'store/models'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { BUILDING_HYLO_ABOUT_PATH } from 'util/support'
 import GlobalNav from './GlobalNav'
 
 jest.mock('react-use-intercom', () => ({
@@ -55,5 +57,16 @@ describe('GlobalNav', () => {
 
     expect(await screen.findByRole('button', { name: 'Settings' })).toHaveAttribute('type', 'button')
     expect(screen.getByRole('button', { name: 'Help' })).toHaveAttribute('type', 'button')
+  })
+
+  it('offers Join Building Hylo in the Help menu', async () => {
+    const user = userEvent.setup()
+    render(
+      <GlobalNav routeParams={{ context: 'all', view: 'all' }} />,
+      { wrapper: providersWithMe() }
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Help' }))
+    expect(await screen.findByRole('menuitem', { name: 'Join Building Hylo' })).toHaveAttribute('href', BUILDING_HYLO_ABOUT_PATH)
   })
 })

@@ -36,3 +36,11 @@ it('shows the invite error passed in the query string', () => {
 
   expect(screen.getByText('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.')).toBeInTheDocument()
 })
+
+it('links to Building Hylo for help', () => {
+  render(
+    <Signup />
+  )
+
+  expect(screen.getByRole('link', { name: 'Need help?' })).toHaveAttribute('href', '/groups/building-hylo/about')
+})

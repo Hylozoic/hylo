@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { BUILDING_HYLO_ABOUT_PATH } from 'util/support'
 
 // The boot loading screen is an inline script in index.html that runs before
 // the app. Run that script against a stub page to check how it animates.
@@ -77,5 +78,28 @@ describe('boot loading screen', () => {
     startLoader({ reducedMotion: true })
     expect(typeof window.HyloBootLoader.milestone).toBe('function')
     expect(typeof window.HyloBootLoader.ready).toBe('function')
+  })
+
+  describe('when the app never reports ready', () => {
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+
+    it('offers Reload and a Need help? link to Building Hylo', () => {
+      startLoader({ reducedMotion: false })
+      jest.advanceTimersByTime(20000)
+      const help = document.getElementById('hylo-boot-help')
+      expect(help.querySelector('button').textContent).toBe('Reload')
+      const link = help.querySelector('a')
+      expect(link.textContent).toBe('Need help?')
+      // index.html can't import util/support.js, so check the two paths agree
+      expect(link.getAttribute('href')).toBe(BUILDING_HYLO_ABOUT_PATH)
+    })
+
+    it('does not show the help once the app is ready', () => {
+      startLoader({ reducedMotion: false })
+      window.HyloBootLoader.ready()
+      jest.advanceTimersByTime(20000)
+      expect(document.getElementById('hylo-boot-help')).toBeNull()
+    })
   })
 })
