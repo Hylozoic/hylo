@@ -9,7 +9,9 @@
 //                      every other signal goes through
 //   4. READER_FILTERS  per-reader narrowing after the gate. These also narrow what an
 //                      override returns, so the reader's unsubscribe choice and the
-//                      quieter delivery for members who are away apply to every notice.
+//                      quieter delivery for members who are away apply to every notice,
+//                      except the answer to someone's own join request, whose email is
+//                      essential (rules/nonMemberRequester)
 //
 // To add a rule, write a module in this folder and add one line to its phase.
 import { filter, find, includes, isEmpty } from 'lodash'
@@ -21,7 +23,7 @@ import { conversationPasses, quietGroupPasses } from './adaptiveImportant'
 import { unsubscribeScopeFilter } from './unsubscribeScope'
 import { inactiveReaderFilter } from './inactiveReader'
 import { inAppOnlyOverride } from './inAppOnly'
-import { nonMemberRequesterOverride } from './nonMemberRequester'
+import { answersOwnRequest, nonMemberRequesterOverride } from './nonMemberRequester'
 
 // Phase 1
 const groupInvitationOverride = ctx => {
@@ -157,7 +159,7 @@ export async function notificationMedia (activity) {
 
   for (const override of OVERRIDES) {
     const media = override({ activity, reasons })
-    if (media) return filterOverride(activity, reasons, media)
+    if (media) return answersOwnRequest(reasons) ? media : filterOverride(activity, reasons, media)
   }
 
   const ctx = await buildContext(activity)

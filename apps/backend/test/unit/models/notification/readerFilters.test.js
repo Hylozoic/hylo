@@ -232,6 +232,27 @@ describe('notification reader filters', () => {
       })
     })
 
+    describe('notices to someone who asked to join, which skip the channel rules', () => {
+      const requesterNotice = (reason, reader) => model({ meta: { reasons: [reason] }, group_id: 1, relations: { group: { id: 1 }, reader } })
+      const readerWith = attrs => mockReader([], attrs)
+      const dormant = { last_active_at: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000) }
+
+      it('keeps the email for the acknowledgment and the decline, which answer their own request', async () => {
+        for (const reason of ['acknowledgedJoinRequest', 'declinedJoinRequest']) {
+          for (const attrs of [{}, { settings: { email_unsubscribe_scope: 'everything' } }, { settings: { email_unsubscribe_scope: 'all_but_direct' } }, dormant]) {
+            expect(await media(requesterNotice(reason, readerWith(attrs))), reason).to.deep.equal([Notification.MEDIUM.InApp, Notification.MEDIUM.Email])
+          }
+        }
+      })
+
+      it('sends the 14-day note in-app only under an unsubscribe choice or after 180 days away', async () => {
+        expect(await media(requesterNotice('unansweredJoinRequest', readerWith({})))).to.deep.equal([Notification.MEDIUM.InApp, Notification.MEDIUM.Email])
+        for (const attrs of [{ settings: { email_unsubscribe_scope: 'digest_only' } }, dormant]) {
+          expect(await media(requesterNotice('unansweredJoinRequest', readerWith(attrs)))).to.deep.equal([Notification.MEDIUM.InApp])
+        }
+      })
+    })
+
     describe('bulk email outside notifications (Email.js)', () => {
       it('never stops essential email', () => {
         for (const scope of ['digest_only', 'no_group_emails', 'all_but_direct', 'everything']) {

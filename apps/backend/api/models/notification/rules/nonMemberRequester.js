@@ -14,6 +14,13 @@ export const NON_MEMBER_REQUESTER_REASONS = [
   'unansweredJoinRequest'
 ]
 
+// The acknowledgment and the decline answer the person's own request, and their emails
+// are essential (lib/email/emailTypes.js), so the reader filters (unsubscribe choice,
+// time away) don't narrow them. The 14-day note goes through the filters as usual.
+export const OWN_REQUEST_ANSWER_REASONS = ['acknowledgedJoinRequest', 'declinedJoinRequest']
+
+export const answersOwnRequest = reasons => OWN_REQUEST_ANSWER_REASONS.includes(reasons?.[0])
+
 export const nonMemberRequesterOverride = ({ activity, reasons }) => {
   if (!NON_MEMBER_REQUESTER_REASONS.includes(reasons[0])) return
   if (reasons[0] === 'unansweredJoinRequest') {
