@@ -5,6 +5,7 @@ import { Validators } from '@hylo/shared'
 import { decodeHyloJWT } from '../../../lib/HyloJWT'
 import { RATE_LIMITED_ERROR, authenticateWithRateLimit, isRateLimited, recordAttempt } from '../../../lib/rateLimit'
 import sentry from '../../../lib/sentry'
+import { trackServerEvent, requestPlatform, ServerAnalyticsEvents } from '../../../lib/analytics/trackServerEvent'
 
 // Sign-up Related
 
@@ -112,8 +113,9 @@ export const register = (fetchOne) => async (_, { name, password }, context) => 
       await user.save({ name, active: true }, { transacting })
       await UserSession.login(context.req, user, 'password', { transacting }) // XXX: this does another save of the user, ideally we just do one of those
       await LinkedAccount.create(context.currentUserId, { type: 'password', password }, { transacting })
-      await Analytics.trackSignup(user.id, context.req)
     })
+
+    await trackServerEvent(user.id, ServerAnalyticsEvents.SIGNUP_SUCCESS, { platform: requestPlatform(context.req) }, { req: context.req })
 
     return { me: fetchOne('Me', user.id) }
   } catch (error) {

@@ -6,6 +6,7 @@ import createComment from '../models/comment/createComment'
 import Busboy from 'busboy'
 import { PassThrough } from 'stream'
 import { isValidInboundEmailSignature } from '../../lib/inboundEmailSignature'
+import { trackServerEvent, ServerAnalyticsEvents } from '../../lib/analytics/trackServerEvent'
 
 module.exports = {
   createFromEmail: function (req, res) {
@@ -53,20 +54,15 @@ module.exports = {
           if (!user) return res.status(422).send('valid token, but user not found')
           const group = post.relations.groups.first()
 
-          Analytics.track({
-            userId: replyData.userId,
-            event: 'Post: Comment: Add by Email',
-            properties: {
-              post_id: post.id,
-              group: group && group.get('name')
-            }
-          })
-
           const emailBody = params.text || params['stripped-text'] || params.html || params['stripped-html']
           const text = Comment.cleanEmailText(user, emailBody, {
             useMarkdown: !post.isThread()
           })
           return createComment(replyData.userId, { text, post, created_from: 'email' })
+            .then(() => trackServerEvent(replyData.userId, ServerAnalyticsEvents.COMMENT_ADDED_BY_EMAIL, {
+              postId: post.id,
+              groupId: group ? [group.id] : []
+            }))
             .then(() => res.ok({}), res.serverError)
         })
     }
@@ -157,16 +153,6 @@ module.exports = {
                   created_from: 'email batch form'
                 })
                   .then((newComment) => {
-                    Analytics.track({
-                      userId,
-                      event: 'Post: Comment: Add by Email Form',
-                      properties: {
-                        post_id: post.id,
-                        group: group && group.get('name'),
-                        comment_id: newComment.id
-                      }
-                    })
-
                     // TODO: then this function is getting called twice, that ok?
                     return Post.updateFromNewComment({
                       postId: post.id,

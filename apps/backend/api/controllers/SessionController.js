@@ -6,6 +6,7 @@ import { Validators } from '@hylo/shared'
 import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { mintTokensForUser } from '../services/OIDCTokens'
 import { authenticateWithRateLimit } from '../../lib/rateLimit'
+import { trackServerEvent, requestPlatform, ServerAnalyticsEvents } from '../../lib/analytics/trackServerEvent'
 
 const sentry = require('../../lib/sentry')
 
@@ -106,7 +107,7 @@ const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
       if (profileName) attrs.name = profileName
 
       const newUser = await User.create(attrs)
-      await Analytics.trackSignup(newUser.id, req)
+      await trackServerEvent(newUser.id, ServerAnalyticsEvents.SIGNUP_SUCCESS, { platform: requestPlatform(req) }, { req })
       if (tokenAuth) {
         await recordTokenLogin(newUser)
       } else {

@@ -593,8 +593,7 @@ module.exports = bookshelf.Model.extend({
         announcement: true,
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams, locale }),
-        tracking_pixel_url: Analytics.pixelUrl('Announcement', { userId: reader.id })
+        post: post.presentForEmail({ group, clickthroughParams, locale })
       }
     })
   },
@@ -626,8 +625,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams, locale }),
-        tracking_pixel_url: Analytics.pixelUrl('Post', { userId: reader.id })
+        post: post.presentForEmail({ group, clickthroughParams, locale })
       }
     })
   },
@@ -658,8 +656,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group?.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams, locale }),
-        tracking_pixel_url: Analytics.pixelUrl('Mention in Post', { userId: reader.id })
+        post: post.presentForEmail({ group, clickthroughParams, locale })
       }
     })
   },
@@ -1054,8 +1051,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams, locale }),
-        tracking_pixel_url: Analytics.pixelUrl('Event Invitation', { userId: reader.id })
+        post: post.presentForEmail({ group, clickthroughParams, locale })
       }
     })
   },
@@ -1184,8 +1180,7 @@ module.exports = bookshelf.Model.extend({
         funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
         group_name: group.get('name'),
         group_avatar_url: group.get('avatar_url'),
-        post: post.presentForEmail({ fundingRound, group, clickthroughParams, locale }),
-        tracking_pixel_url: Analytics.pixelUrl('Post', { userId: reader.id })
+        post: post.presentForEmail({ fundingRound, group, clickthroughParams, locale })
       }
     })
   },
