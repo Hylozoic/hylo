@@ -17,6 +17,7 @@ import {
 } from 'components/ui/dropdown-menu'
 import ModalDialog from 'components/ModalDialog'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import { tourCatalog, isTourAvailable } from 'tours/catalog'
 import { driveTour, isTourTestMode } from 'tours/useTour'
@@ -81,6 +82,12 @@ export default function HelpMenu ({
     }, 150)
   }, [toursSeen, dispatch])
 
+  // On phones this menu sits in the slide-out nav, which a route change
+  // doesn't close; close it so the page opens in front
+  const closeNavMenu = useCallback(() => {
+    dispatch(toggleNavMenu(false))
+  }, [dispatch])
+
   const handleSupportClick = useCallback(() => {
     const consent = getCookieConsent()
     if (consent && consent.support === false) {
@@ -132,7 +139,7 @@ export default function HelpMenu ({
             <span>{t('Feedback & Support')}</span>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link to={BUILDING_HYLO_ABOUT_PATH} className='text-foreground hover:text-foreground' data-testid='help-menu-building-hylo'>
+            <Link to={BUILDING_HYLO_ABOUT_PATH} onClick={closeNavMenu} className='text-foreground hover:text-foreground' data-testid='help-menu-building-hylo'>
               <LifeBuoy className='mr-2 h-4 w-4' />
               <span>{t('Join Building Hylo')}</span>
             </Link>
@@ -188,7 +195,10 @@ export default function HelpMenu ({
             </p>
             <Link
               to={BUILDING_HYLO_ABOUT_PATH}
-              onClick={() => setShowSupportModal(false)}
+              onClick={() => {
+                setShowSupportModal(false)
+                closeNavMenu()
+              }}
               className='inline-flex items-center gap-1.5 text-focus underline underline-offset-2 hover:text-focus/80'
               data-testid='support-modal-building-hylo'
             >

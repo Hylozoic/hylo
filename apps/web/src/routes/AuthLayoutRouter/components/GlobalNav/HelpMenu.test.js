@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import { getCookieConsent } from 'util/cookieConsent'
 import { BUILDING_HYLO_ABOUT_PATH } from 'util/support'
+import * as navStore from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import HelpMenu from './HelpMenu'
 
 const mockShowIntercom = jest.fn()
@@ -34,6 +35,19 @@ describe('HelpMenu', () => {
     expect(item).toHaveAttribute('href', BUILDING_HYLO_ABOUT_PATH)
     expect(screen.getByRole('menuitem', { name: 'Feedback & Support' })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: /Take a tour/ })).toBeInTheDocument()
+  })
+
+  it('closes the phone nav drawer when opening Building Hylo', async () => {
+    const toggleNavMenu = jest.spyOn(navStore, 'toggleNavMenu')
+    const user = userEvent.setup()
+    render(<HelpMenu currentUser={currentUser} />)
+
+    await user.click(screen.getByRole('button', { name: 'Help' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Join Building Hylo' }))
+
+    expect(toggleNavMenu).toHaveBeenCalledWith(false)
+    expect(window.location.pathname).toBe(BUILDING_HYLO_ABOUT_PATH)
+    toggleNavMenu.mockRestore()
   })
 
   it('opens the support chat when support cookies are allowed', async () => {
