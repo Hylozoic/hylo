@@ -44,12 +44,14 @@ export function unsubscribeScopeOf (userOrSettings) {
   return isUnsubscribeScope(scope) ? scope : null
 }
 
+// Whether an activity's reasons include a mention of its reader
+export const mentionsReader = reasons => (reasons || []).some(reason => /^mention/.test(reason))
+
 // Direct for this reader: its class is direct, or it mentions them. An announcement that
 // mentions you is classed by its announcement (the higher priority reason), and is still
 // a mention.
 export const isDirectSignal = ctx =>
-  ctx.signalClass === SIGNAL_CLASS.DIRECT ||
-  (ctx.reasons || []).some(reason => /^mention/.test(reason))
+  ctx.signalClass === SIGNAL_CLASS.DIRECT || mentionsReader(ctx.reasons)
 
 // Scopes under which only direct signals still reach the person by email and push
 export const keepsOnlyDirect = scope =>
@@ -86,7 +88,9 @@ export function unsubscribeScopeFilter (ctx) {
 // Email.js asks this for every non-essential send, so it also covers email that does not
 // come from a notification (welcome, win-back, group closed and so on). `type` is the
 // sender's lib/email/emailTypes.js line (null when the sender is not listed yet).
-export function scopeAllowsBulkEmail (scope, type) {
+// `context.direct` marks one send as direct when its sender usually isn't, such as an
+// announcement that mentions the reader.
+export function scopeAllowsBulkEmail (scope, type, context = {}) {
   if (type?.kind === 'essential') return true
   switch (scope) {
     case UNSUBSCRIBE_SCOPE.EVERYTHING:
@@ -94,7 +98,7 @@ export function scopeAllowsBulkEmail (scope, type) {
     case UNSUBSCRIBE_SCOPE.ALL_BUT_DIRECT:
       // Senders marked direct only carry direct content for these readers (the comment
       // and chat digests are narrowed to mentions and replies before they are sent)
-      return type?.direct === true
+      return type?.direct === true || context?.direct === true
     default:
       return true
   }

@@ -228,6 +228,13 @@ describe('notification reader filters', () => {
         expect(scopeAllowsBulkEmail('all_but_direct', null)).to.equal(false)
       })
 
+      it('lets one send mark itself direct, such as an announcement that mentions the reader', () => {
+        const postEmail = emailTypeFor('sendPostNotification')
+        expect(scopeAllowsBulkEmail('all_but_direct', postEmail)).to.equal(false)
+        expect(scopeAllowsBulkEmail('all_but_direct', postEmail, { direct: true })).to.equal(true)
+        expect(scopeAllowsBulkEmail('everything', postEmail, { direct: true })).to.equal(false)
+      })
+
       it("'everything' stops all bulk email; the other choices leave it to the senders", () => {
         expect(scopeAllowsBulkEmail('everything', emailTypeFor('sendMessageDigest'))).to.equal(false)
         expect(scopeAllowsBulkEmail('digest_only', emailTypeFor('sendWelcomeEmail'))).to.equal(true)

@@ -102,6 +102,9 @@ function addUnsubscribe (emailOpts, { senderName, type, recipient, context }) {
 //   groupId     the group the email is about, for a one-click that applies to a group
 //   frequency   'daily' or 'weekly', for the unified digest's one-click
 //   descriptor  overrides the sender's unsubscribe descriptor for this send
+//   direct      this send carries a direct signal although its sender usually doesn't
+//               (an announcement that mentions the reader), so it still reaches people
+//               who chose "everything except direct"
 async function deliver (transport, emailOpts, context = {}) {
   const senderName = currentSender.getStore() || null
   const type = senderName ? emailTypeFor(senderName) : null
@@ -115,7 +118,7 @@ async function deliver (transport, emailOpts, context = {}) {
     if (recipient) {
       // The provider reported the address undeliverable (D36); essential email is still tried
       if (recipient.email_undeliverable_at) return SKIPPED
-      if (!scopeAllowsBulkEmail(unsubscribeScopeOf(recipient.settings), type)) return SKIPPED
+      if (!scopeAllowsBulkEmail(unsubscribeScopeOf(recipient.settings), type, context)) return SKIPPED
       if (transport === TRANSPORT.BULK) addUnsubscribe(emailOpts, { senderName, type, recipient, context })
     }
   }

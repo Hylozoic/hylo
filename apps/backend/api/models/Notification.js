@@ -9,6 +9,7 @@ import { senderNameForGroup, senderNameViaHylo } from '../../lib/email/senderNam
 import { PRIORITY_REASONS } from './notification/priorityReasons'
 import { pushGroupingFor } from './notification/pushGrouping'
 import { isReplyToReader } from './notification/signalClasses'
+import { mentionsReader } from './notification/rules/unsubscribeScope'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -608,8 +609,12 @@ module.exports = bookshelf.Model.extend({
         group_name: group.get('name'),
         post: post.presentForEmail({ group, clickthroughParams, locale })
       },
-      // One-click unsubscribe turns off this group's email (D34)
-      unsubscribe: { groupId: group.id }
+      // One-click unsubscribe turns off this group's email (D34). An announcement that
+      // mentions the reader is direct (D7): it reaches people who chose "everything
+      // except direct", and like a mention email it links to the settings page.
+      unsubscribe: mentionsReader(this.relations.activity.get('meta').reasons)
+        ? { groupId: group.id, direct: true, descriptor: 'settings_page' }
+        : { groupId: group.id }
     })
   },
 
