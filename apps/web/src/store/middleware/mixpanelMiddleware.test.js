@@ -11,8 +11,20 @@ jest.mock('mixpanel-browser', () => ({
 
 describe('mixpanelMiddleware', () => {
   let mixpanelMiddlewareInstance
+  // The middleware only tracks when a token is configured. Set one here so the
+  // suite doesn't depend on a local apps/web/.env (CI has none).
+  const originalToken = process.env.VITE_MIXPANEL_TOKEN
+
+  afterEach(() => {
+    if (originalToken === undefined) {
+      delete process.env.VITE_MIXPANEL_TOKEN
+    } else {
+      process.env.VITE_MIXPANEL_TOKEN = originalToken
+    }
+  })
 
   beforeEach(() => {
+    process.env.VITE_MIXPANEL_TOKEN = 'test-token'
     const session = orm.session(orm.getEmptyState())
     session.Me.create({
       id: '1',
