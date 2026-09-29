@@ -223,5 +223,19 @@ module.exports = bookshelf.Model.extend({
 
   textForFundingRoundReminder: function (fundingRoundTitle, reminderType, locale) {
     return fundingRoundTitle + ': ' + getLocaleStrings(locale).textForFundingRoundReminder({ reminderType })
+  },
+
+  // Grouped social feedback: `count` is everyone the notice counts, including the actor
+  textForSocialFeedback: function (reason, { actor, count, post, comment, meta = {} }, locale) {
+    const L = getLocaleStrings(locale)
+    const person = actor.get('name')
+    const others = Math.max((count || 1) - 1, 0)
+    const postName = firstLine(decode(post.summary()))
+    switch (reason) {
+      case 'reaction':
+        return L.textForReaction({ person, others, postName, onComment: !!comment })
+      default:
+        return postName
+    }
   }
 })

@@ -80,6 +80,12 @@ const TODAY = {
   fundingRoundReminder: ['email', 'push', 'inApp']
 }
 
+// Reasons added since the class table, with the channels their cards decided
+// (activity-notices: D15, D27, D44, D45, D46, D57)
+Object.assign(TODAY, {
+  reaction: ['push', 'inApp']
+})
+
 describe('signalClasses', () => {
   it('gives every priority reason a class', () => {
     for (const reason of PRIORITY_REASONS) {
@@ -160,7 +166,7 @@ describe('signalClasses', () => {
         results[reason] = names(await Activity.generateNotificationMedia(activityFor([reason], off)))
       }
       expect(results).to.deep.equal(mapValues(TODAY, (media, reason) =>
-        reason === 'groupInvitation' ? media : ['inApp']))
+        reason === 'groupInvitation' ? media : media.filter(medium => medium === 'inApp')))
     })
   })
 })

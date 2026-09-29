@@ -221,9 +221,37 @@ module.exports = bookshelf.Model.extend({
         return this.sendFundingRoundPhaseTransitionPush()
       case 'fundingRoundReminder':
         return this.sendFundingRoundReminderPush()
+      case 'reaction':
+        return this.sendSocialFeedbackPush()
       default:
         return Promise.resolve()
     }
+  },
+
+  // Grouped social feedback (notification/grouping): the text counts everyone so far,
+  // and a later push for the same item replaces this one in the tray.
+  sendSocialFeedbackPush: async function () {
+    const activity = this.relations.activity
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const comment = activity.get('comment_id') ? this.comment() : null
+    const group = await groupForNotificationForUser(post, activity, reader.id)
+    const path = routeToPath(comment
+      ? Frontend.Route.comment({ comment, group, post })
+      : Frontend.Route.post(post, group))
+    const reason = Notification.priorityReason(activity.get('meta').reasons)
+    const alertText = PushNotification.textForSocialFeedback(reason, {
+      actor: this.actor(),
+      count: activity.get('meta').actorCount,
+      post,
+      comment,
+      meta: activity.get('meta')
+    }, locale)
+    return reader.sendPushNotification(alertText, path, {
+      ...pushGroupingFor(group),
+      collapseKey: activity.get('group_key')
+    })
   },
 
   sendApprovedJoinRequestPush: function () {

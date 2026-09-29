@@ -15,6 +15,7 @@ import { incrementNewPostCount } from './post/createPost'
 import rehostAndAttachImages from './post/rehostAndAttachImages'
 import upsertChatActivityNoticeForPost from './post/upsertChatActivityNotice'
 import { conversationParticipants } from './notification/rules/adaptiveImportant'
+import { notifyReaction } from './notification/socialNotices'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -776,8 +777,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return isUpvote ? this.addReaction(userId, '\uD83D\uDC4D') : this.deleteReaction(userId, '\uD83D\uDC4D')
   },
 
-  addReaction: function (userId, emojiFull) {
-    return bookshelf.transaction(async trx => {
+  addReaction: async function (userId, emojiFull) {
+    const result = await bookshelf.transaction(async trx => {
       const userReactions = await this.reactionsForUser(userId).fetch()
       const deltaPeople = userReactions?.models?.length > 0 ? 0 : 1
       const userReaction = userReactions.filter(reaction => reaction.attributes?.emoji_full === emojiFull)[0]
@@ -818,6 +819,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
       return this
     })
+    // D15: tell the author once the reaction is saved (notification/socialNotices)
+    if (result) await notifyReaction({ post: this, userId })
+    return result
   },
 
   deleteReaction: function (userId, emojiFull) {

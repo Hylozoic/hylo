@@ -71,6 +71,13 @@ export const ACTION_FUNDING_ROUND_PHASE_TRANSITION = 'fundingRoundPhaseTransitio
 export const ACTION_FUNDING_ROUND_REMINDER = 'fundingRoundReminder'
 export const ACTION_POST_FULFILLED = 'postFulfilled'
 export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
+export const ACTION_REACTION = 'reaction'
+
+// How many other people a grouped notice counts ("Sam and 3 others reacted")
+export function othersCount (activity) {
+  const count = Number(activity?.meta?.actorCount) || 1
+  return Math.max(count - 1, 0)
+}
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -169,6 +176,17 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> closed your post', { name })
     case ACTION_POST_UNFULFILLED:
       return t('<strong>{{name}}</strong> reopened your post', { name })
+    case ACTION_REACTION: {
+      const count = othersCount(notification.activity)
+      if (notification.activity.comment) {
+        return count > 0
+          ? t('<strong>{{name}}</strong> and {{count}} others reacted to your comment', { name, count })
+          : t('<strong>{{name}}</strong> reacted to your comment', { name })
+      }
+      return count > 0
+        ? t('<strong>{{name}}</strong> and {{count}} others reacted to your post', { name, count })
+        : t('<strong>{{name}}</strong> reacted to your post', { name })
+    }
     default:
       return null
   }
@@ -267,6 +285,8 @@ export function bodyForNotification (notification, t) {
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary })
+    case ACTION_REACTION:
+      return t('"<strong>{{postSummary}}</strong>"', { postSummary: comment ? truncateHTML(comment.text) : postSummary })
     default:
       return null
   }
@@ -359,6 +379,10 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
       return primaryPostUrl(post, postOpts)
+    case ACTION_REACTION:
+      return comment
+        ? primaryPostUrl(post, { commentId: comment.id, ...postOpts })
+        : primaryPostUrl(post, postOpts)
   }
 }
 

@@ -87,7 +87,9 @@ export const REASON_SIGNALS = {
   trackEnrollment: { class: SOCIAL, channels: ALL_CHANNELS },
   fundingRoundNewSubmission: { class: OPERATIONAL },
   fundingRoundPhaseTransition: { class: OPERATIONAL },
-  fundingRoundReminder: { class: OPERATIONAL }
+  fundingRoundReminder: { class: OPERATIONAL },
+  // D15: in-app plus at most one grouped push per item per hour (notification/grouping)
+  reaction: { class: SOCIAL }
 }
 
 // A reason with no line (or no priority reason at all) keeps every channel, as before.
