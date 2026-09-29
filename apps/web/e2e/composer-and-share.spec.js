@@ -10,7 +10,7 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  * - the Introduce yourself link opens the composer with the introduction
  *   template (opened by URL: clicking the welcome step's button would clear the
  *   seeded membership's welcome form for later runs)
- * Screenshots land in e2e/screenshots/.
+ * Screenshots land in e2e/screenshots/, named per project.
  */
 
 test.describe.configure({ timeout: 120000 })
@@ -19,6 +19,8 @@ const navTimeout = { timeout: 90000 }
 const uiTimeout = { timeout: 60000 }
 
 const GROUP_SLUG = 'e2e-public-group'
+/** Named per project, so the desktop and phone runs don't overwrite each other */
+const shot = name => `e2e/screenshots/${test.info().project.name}-${name}.png`
 const SEEDED_POST_ID = '1'
 
 test.describe('Composer and sharing', () => {
@@ -32,7 +34,7 @@ test.describe('Composer and sharing', () => {
     const text = `Untitled discussion from e2e ${Date.now()}`
     await modal.locator('.PostEditorContent .ProseMirror').click()
     await page.keyboard.type(text)
-    await page.screenshot({ path: 'e2e/screenshots/composer-untitled-discussion.png' })
+    await page.screenshot({ path: shot('composer-untitled-discussion') })
 
     await modal.getByTestId('post-editor-submit').click()
     await expect(modal).toBeHidden(navTimeout)
@@ -53,7 +55,7 @@ test.describe('Composer and sharing', () => {
     await page.keyboard.type('Checking the Post button')
     // A trial click fails when anything covers the button
     await modal.getByTestId('post-editor-submit').click({ trial: true })
-    await page.screenshot({ path: 'e2e/screenshots/composer-over-app-prompt.png' })
+    await page.screenshot({ path: shot('composer-over-app-prompt') })
   })
 
   test('Enter sends a chat message on desktop', async ({ page }) => {
@@ -67,7 +69,7 @@ test.describe('Composer and sharing', () => {
     await editor.click()
     await page.keyboard.type(message)
     await expect(page.getByTestId('chat-send-hint')).toBeVisible(uiTimeout)
-    await page.screenshot({ path: 'e2e/screenshots/chat-enter-hint.png' })
+    await page.screenshot({ path: shot('chat-enter-hint') })
     await page.keyboard.press('Enter')
 
     await expect(page.locator('#chats').getByText(message).first()).toBeVisible(uiTimeout)
@@ -82,7 +84,7 @@ test.describe('Composer and sharing', () => {
 
     const share = page.getByTestId('post-share-button').first()
     await expect(share).toBeVisible(uiTimeout)
-    await page.screenshot({ path: 'e2e/screenshots/post-share-button.png' })
+    await page.screenshot({ path: shot('post-share-button') })
     await share.click()
 
     await expect(page.getByText('Link copied')).toBeVisible(uiTimeout)
@@ -98,6 +100,6 @@ test.describe('Composer and sharing', () => {
     const body = modal.locator('.PostEditorContent .ProseMirror')
     await expect(body).not.toBeEmpty(uiTimeout)
     await expect(body.locator('p').first()).toBeVisible(uiTimeout)
-    await page.screenshot({ path: 'e2e/screenshots/composer-introduce-yourself.png' })
+    await page.screenshot({ path: shot('composer-introduce-yourself') })
   })
 })
