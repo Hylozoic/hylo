@@ -4,7 +4,7 @@ import factories from '../../setup/factories'
 import { mockify, unspyify } from '../../setup/helpers'
 import personalizeData from '../../../lib/group/digest2/personalizeData'
 import { seenContentFor } from '../../../lib/group/digest2/dedupe'
-import { sendToUser } from '../../../lib/group/digest2'
+import { sendToUser, sendUnifiedToUser } from '../../../lib/group/digest2'
 
 const HOUR = 60 * 60 * 1000
 const hoursAgo = hours => new Date(Date.now() - hours * HOUR)
@@ -321,6 +321,80 @@ describe('digest content', () => {
       }))
       expect(result.subject).to.equal('Need a ladder +2 more in Garden Club')
       expect(result.preheader).to.equal('Harvest party · Work day')
+    })
+  })
+  describe('weekly digest mix-up line (D73)', () => {
+    let nextId = 995000
+    const fresh = () => {
+      nextId += 1
+      return { id: nextId, title: `Post ${nextId}`, details: '', user: { id: author.id, name: 'Post Author' }, comments: [], url: `https://www.hylo.com/post/${nextId}` }
+    }
+    const flaggedRecipient = () => factories.user({ settings: { locale: 'en-US', weekly_digest_notice_pending: true } }).save()
+    const flagOf = async user => (await User.find(user.id)).get('settings').weekly_digest_notice_pending
+
+    let sent
+    const mockSend = result => mockify(Email, 'sendSimpleEmail', (address, templateId, data) => {
+      sent.push(data)
+      return Promise.resolve(result)
+    })
+
+    beforeEach(() => { sent = [] })
+    afterEach(() => unspyify(Email, 'sendSimpleEmail'))
+
+    it('adds the line to a flagged member\'s next weekly digest once, then clears the flag', async () => {
+      const member = await flaggedRecipient()
+      mockSend(true)
+
+      await sendToUser(member, 'weekly', digest({ discussions: [fresh()] }))
+      await sendToUser(member, 'weekly', digest({ discussions: [fresh()] }))
+
+      expect(sent).to.have.length(2)
+      expect(sent[0].weekly_digest_notice).to.match(/weekly digests like this one were sent monthly by mistake/)
+      expect(sent[1].weekly_digest_notice).to.equal(null)
+      expect(await flagOf(member)).to.equal(false)
+    })
+
+    it('keeps the flag when the digest could not be sent, so the next weekly digest carries the line', async () => {
+      const member = await flaggedRecipient()
+      mockSend(false)
+      await sendToUser(member, 'weekly', digest({ discussions: [fresh()] }))
+      expect(sent[0].weekly_digest_notice).to.be.a('string')
+      expect(await flagOf(member)).to.equal(true)
+
+      unspyify(Email, 'sendSimpleEmail')
+      mockSend(true)
+      await sendToUser(member, 'weekly', digest({ discussions: [fresh()] }))
+      expect(sent[1].weekly_digest_notice).to.be.a('string')
+      expect(await flagOf(member)).to.equal(false)
+    })
+
+    it('never adds the line to a daily digest, a dry run, or an unflagged member', async () => {
+      const member = await flaggedRecipient()
+      const other = await newRecipient()
+      mockSend(true)
+
+      await sendToUser(member, 'daily', digest({ discussions: [fresh()] }))
+      await sendToUser(other, 'weekly', digest({ discussions: [fresh()] }))
+      expect(await sendToUser(member, 'weekly', digest({ discussions: [fresh()] }), { dryRun: true })).to.equal(true)
+
+      expect(sent.map(data => data.weekly_digest_notice)).to.deep.equal([null, null])
+      expect(await flagOf(member)).to.equal(true)
+    })
+
+    it('adds the line to the weekly digest that covers all of someone\'s groups', async () => {
+      const member = await flaggedRecipient()
+      mockSend(true)
+      await sendUnifiedToUser(member, 'weekly', [digest({ discussions: [fresh()] })])
+      expect(sent).to.have.length(1)
+      expect(sent[0].unified).to.equal(true)
+      expect(sent[0].weekly_digest_notice).to.be.a('string')
+      expect(await flagOf(member)).to.equal(false)
+    })
+
+    it('is translated', async () => {
+      const member = await factories.user({ settings: { locale: 'es', weekly_digest_notice_pending: true } }).save()
+      const result = await personalizeData(member, 'weekly', digest({ discussions: [fresh()] }))
+      expect(result.weekly_digest_notice).to.match(/resúmenes semanales/)
     })
   })
 })

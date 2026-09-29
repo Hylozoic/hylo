@@ -4,6 +4,7 @@ import { getLocaleStrings } from '../../i18n/locales'
 import { aggregateChatRooms, shouldSendData } from './util'
 import { applyUnifiedGroupLabels } from './mergeData'
 import { dropSeenContent } from './dedupe'
+import { claimWeeklyDigestNotice } from './weeklyNotice'
 import * as cheerio from 'cheerio'
 
 // Post sections in the order the digest template shows them
@@ -277,6 +278,8 @@ const personalizeData = async (user, type, data, opts = {}) => {
   stripDigestInternals(filteredData)
 
   const locale = user.getLocale()
+  // One line about the weekly-digest mix-up, in the next weekly digest only (D73)
+  const weeklyDigestNotice = data.search || opts.dryRun ? null : claimWeeklyDigestNotice(user, type)
   const contextName = data.unified ? 'Hylo' : data.group_name
   const clickthroughParams = '?' + new URLSearchParams({
     ctt: 'digest_email',
@@ -301,6 +304,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
   return Promise.props(merge(filteredData, {
     subject: generateSubjectLine(data, filteredData, type, locale),
     preheader: data.search ? '' : generatePreheader(filteredData),
+    weekly_digest_notice: weeklyDigestNotice,
     unified: !!data.unified,
     group_url: Frontend.appendQueryString(filteredData.group_url, clickthroughParams),
     recipient: {

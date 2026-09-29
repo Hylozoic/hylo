@@ -25,6 +25,7 @@ exports.es = {
   emailDigestUnifiedWeeklySubject: () => 'Tu resumen semanal de Hylo',
   emailDigestTopPostSubject: ({ title, count, groupName }) => count > 0 ? `${title} +${count} más en ${groupName}` : `${title} en ${groupName}`,
   emailDigestUnifiedTopPostSubject: ({ title, count }) => count > 0 ? `${title} +${count} más en tus grupos` : title,
+  emailDigestWeeklyMixupNotice: () => 'Perdón por la pausa: hasta agosto, los resúmenes semanales como este se enviaban por error una vez al mes. Ya está solucionado y a partir de ahora recibirás este resumen cada semana.',
   emailSenderViaHyloSuffix: () => ' (vía Hylo)',
   groupCreatedNotifySubject: (name) => `Nuevo Grupo de Hylo Creado: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {

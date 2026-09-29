@@ -24,6 +24,7 @@ exports.en = {
   emailDigestUnifiedWeeklySubject: () => 'Your Hylo Weekly Digest',
   emailDigestTopPostSubject: ({ title, count, groupName }) => count > 0 ? `${title} +${count} more in ${groupName}` : `${title} in ${groupName}`,
   emailDigestUnifiedTopPostSubject: ({ title, count }) => count > 0 ? `${title} +${count} more across your groups` : title,
+  emailDigestWeeklyMixupNotice: () => "Sorry for the gap: until August, weekly digests like this one were sent monthly by mistake. That's fixed, and you'll now get this digest every week.",
   emailSenderViaHyloSuffix: () => ' (via Hylo)',
   groupCreatedNotifySubject: (name) => `New Hylo Group Created: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {

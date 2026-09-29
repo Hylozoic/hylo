@@ -59,6 +59,9 @@
 {% set recipient_first_name = recipient.name.split(' ')|first %}
 {% trans %}Hey, {{recipient_first_name}}! Here's what's happening in our group.{% endtrans %}
 {% endif %}
+{% if weekly_digest_notice %}
+{{ weekly_digest_notice }}
+{% endif %}
 {% if requests|length > 0 or offers|length > 0 or resources|length > 0 or conversations|length > 0 %}
 
 {% trans %}New Posts{% endtrans %}

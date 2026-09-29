@@ -24,6 +24,7 @@ exports.hi = {
   emailDigestUnifiedWeeklySubject: () => 'आपका Hylo साप्ताहिक सारांश',
   emailDigestTopPostSubject: ({ title, count, groupName }) => count > 0 ? `${title} +${count} और ${groupName} में` : `${title} ${groupName} में`,
   emailDigestUnifiedTopPostSubject: ({ title, count }) => count > 0 ? `${title} +${count} और आपके समूहों में` : title,
+  emailDigestWeeklyMixupNotice: () => 'इस अंतराल के लिए खेद है: अगस्त तक, इस तरह के साप्ताहिक सारांश गलती से महीने में एक बार भेजे जा रहे थे। यह ठीक कर दिया गया है, और अब आपको यह सारांश हर सप्ताह मिलेगा।',
   emailSenderViaHyloSuffix: () => ' (Hylo के माध्यम से)',
   groupCreatedNotifySubject: (name) => `नया Hylo समूह बनाया गया: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {

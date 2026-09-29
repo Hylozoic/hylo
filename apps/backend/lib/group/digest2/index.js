@@ -10,6 +10,7 @@ import {
   shouldSendData
 } from './util'
 import { senderNameViaHylo } from '../../email/senderNameViaHylo'
+import { settleWeeklyDigestNotice } from './weeklyNotice'
 import sentry from '../../sentry'
 
 const DIGEST_TEMPLATE_ID = 'tem_t7rmGfJKvqXrvmrVWJjjWkg4'
@@ -72,13 +73,14 @@ export const sendToUser = (user, type, data, opts = {}) => {
       if (!data) return false
       if (opts.dryRun) return true
       const locale = user.getLocale()
-      return Email.sendSimpleEmail(user.get('email'), templateId, data, {
+      // Clears the weekly-digest notice once the digest carrying it has gone out (D73)
+      return settleWeeklyDigestNotice(user, data, () => Email.sendSimpleEmail(user.get('email'), templateId, data, {
         sender: {
           name: senderNameViaHylo(senderName, locale),
           reply_to: 'DoNotReply@hylo.com'
         },
         version: 'Spaces'
-      }, locale)
+      }, locale))
     })
 }
 

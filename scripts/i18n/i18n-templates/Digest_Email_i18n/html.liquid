@@ -73,6 +73,12 @@
   {% endif %}
 </div>
 
+{% if weekly_digest_notice %}
+<div class='section'>
+  <p class='weekly-digest-notice' style='margin: 0; padding: 10px 12px; border-radius: 6px; background-color: #f1f5f9;'>{{ weekly_digest_notice }}</p>
+</div>
+{% endif %}
+
 {% if posts_with_new_comments|length > 0 or chat_rooms|length > 0 %}
 <div class='section'>
   <h3 class='section-title'>{% trans %}Active Conversations{% endtrans %}</h3>
