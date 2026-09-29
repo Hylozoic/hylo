@@ -1,7 +1,9 @@
 /*
   One reminder email to someone who started signing up and stopped: they gave
-  their email address (so an account was made for it) but never finished
-  creating the account. It goes out once, 48 hours after they started, and is
+  their email address (so an account was made for it) and confirmed it with the
+  code or link we sent, but never finished creating the account. Addresses that
+  were never confirmed get nothing, so a mistyped address, or one somebody else
+  typed, gets no further mail. It goes out once, 48 hours after they started, and is
   marked on the user (settings.stalled_signup_reminder_sent_at) before it is
   sent, so nobody gets it twice. When a pending invitation to their address
   exists, the email names the group and who invited them and links to the
@@ -18,13 +20,14 @@ export const REMIND_AFTER_HOURS = 48
 export const LOOK_BACK_DAYS = 7
 const SENT_SETTING = 'stalled_signup_reminder_sent_at'
 
-/** Who started signing up in the window and has not finished or been reminded. */
+/** Who started signing up in the window, confirmed their address, and has not finished or been reminded. */
 function stalledSignups (now) {
   const hour = 60 * 60 * 1000
   return bookshelf.knex('users')
     .where('users.active', false)
     .whereNull('users.name')
     .whereNotNull('users.email')
+    .where('users.email_validated', true)
     .where('users.created_at', '<=', new Date(now.getTime() - REMIND_AFTER_HOURS * hour))
     .where('users.created_at', '>', new Date(now.getTime() - LOOK_BACK_DAYS * 24 * hour))
     .whereRaw("coalesce((users.settings->>'signup_in_progress')::boolean, false) = true")

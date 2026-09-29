@@ -442,8 +442,8 @@ describe('Invitation', function () {
     const hoursAgo = hours => new Date(Date.now() - hours * 60 * 60 * 1000)
     let sent, previousTemplateId
 
-    const signupStartedAt = (email, createdAt, settings = { signup_in_progress: true, locale: 'de' }) =>
-      factories.user({ email, name: null, active: false, created_at: createdAt, settings }).save()
+    const signupStartedAt = (email, createdAt, settings = { signup_in_progress: true, locale: 'de' }, { confirmed = true } = {}) =>
+      factories.user({ email, name: null, active: false, email_validated: confirmed, created_at: createdAt, settings }).save()
 
     before(async () => {
       previousTemplateId = process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID
@@ -459,6 +459,8 @@ describe('Invitation', function () {
       await signupStartedAt('finished@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 1), { signup_in_progress: false })
       await signupStartedAt('opted-out@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 1))
       await InvitationOptOut.record({ email: 'opted-out@stalled-signup.com' })
+      await signupStartedAt('unconfirmed@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 1), undefined, { confirmed: false })
+      await signupStartedAt('never-asked@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 1), undefined, { confirmed: null })
       const invited = await signupStartedAt('invited@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 2))
       const group = await factories.group({ name: 'Stalled Signup Group' }).save()
       const inviter = await factories.user({ name: 'Stalled Signup Inviter' }).save()
@@ -471,7 +473,7 @@ describe('Invitation', function () {
       else process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID = previousTemplateId
     })
 
-    it('reminds people who stopped signing up 48 hours ago, once, with their invitation when they have one', async () => {
+    it('reminds people who confirmed their address and stopped signing up 48 hours ago, once, with their invitation when they have one', async () => {
       expect(await sendStalledSignupReminders()).to.equal(2)
       const byEmail = Object.fromEntries(sent.map(opts => [opts.email, opts]))
       expect(Object.keys(byEmail).sort()).to.deep.equal(['invited@stalled-signup.com', 'stalled@stalled-signup.com'])
