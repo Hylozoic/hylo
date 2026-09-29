@@ -684,8 +684,8 @@ export function makeMutations ({ fetchOne }) {
 
     reorderViewPost: (root, { viewId, postId, order }, context) => reorderViewPost(context.currentUserId, viewId, postId, order),
 
-    createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context) =>
-      createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context),
+    createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context) =>
+      createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context),
 
     updateSpace: (root, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context) =>
       updateSpace(context.currentUserId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context),

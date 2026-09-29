@@ -63,6 +63,17 @@ describe('Group', function () {
     expect(calendarToken).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
   })
 
+  it('can be created with a geo_shape boundary', async function () {
+    const polygon = { type: 'Polygon', coordinates: [[[-122.5, 37.7], [-122.4, 37.7], [-122.4, 37.8], [-122.5, 37.7]]] }
+    const data = { name: 'my group', slug: 'shaped1', geo_shape: JSON.stringify(polygon) }
+
+    const user = await new User({ name: 'username', email: 'shaped1@foo.com', active: true }).save()
+    await Group.create(user.id, data)
+    const savedGroup = await Group.find('shaped1')
+    expect(savedGroup.get('geo_shape').type).to.equal('Polygon')
+    expect(savedGroup.get('geo_shape').coordinates).to.deep.equal(polygon.coordinates)
+  })
+
   it('can be created with group extension data', async function () {
     const data = {
       name: 'my group',
