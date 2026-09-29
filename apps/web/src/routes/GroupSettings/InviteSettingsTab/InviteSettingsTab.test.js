@@ -12,6 +12,12 @@ jest.mock('store/actions/trackAnalyticsEvent', () => {
   return { __esModule: true, default: jest.fn(actual.default) }
 })
 
+// Copying needs a real clipboard: clicking the wrapped button reports a copy instead
+jest.mock('react-copy-to-clipboard', () => {
+  const React = jest.requireActual('react')
+  return ({ children, onCopy, text }) => React.cloneElement(children, { onClick: () => onCopy(text, true) })
+})
+
 beforeEach(() => {
   trackAnalyticsEvent.mockClear()
 })
@@ -68,6 +74,26 @@ describe('InviteSettingsTab', () => {
 
     expect(screen.getByText('Public Group Link')).toBeInTheDocument()
     expect(screen.getByText('Share a Join Link')).toBeInTheDocument()
+  })
+
+  it('reports which link was copied', () => {
+    const group = {
+      id: '1',
+      name: 'Hylo',
+      slug: 'hylo',
+      visibility: GROUP_VISIBILITY.Public,
+      accessibility: GROUP_ACCESSIBILITY.Open,
+      invitePath: '/groups/hylo/join/lalala'
+    }
+    render(<InviteSettingsTab group={group} />)
+
+    const copyButtons = screen.getAllByText('Copy')
+    fireEvent.click(copyButtons[0])
+    fireEvent.click(copyButtons[1])
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Invite Link Copied', { groupId: '1', kind: 'public' })
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Invite Link Copied', { groupId: '1', kind: 'join' })
+    expect(trackAnalyticsEvent).toHaveBeenCalledTimes(2)
   })
 
   it('hides the public link for spaces and only shows the join link', () => {

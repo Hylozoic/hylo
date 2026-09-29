@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import TextareaAutosize from 'react-textarea-autosize'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Tooltip } from 'react-tooltip'
-import { TextHelpers } from '@hylo/shared'
+import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { groupInviteUrl } from '@hylo/navigation'
 import { isEmpty } from 'lodash'
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
@@ -318,8 +318,14 @@ function InviteSettingsTab (props) {
     }
   }
 
-  const onCopyPublicLink = () => setTemporaryState(setCopiedPublicLink, true)
-  const onCopyInviteLink = () => setTemporaryState(setCopiedInviteLink, true)
+  const onCopyPublicLink = () => {
+    setTemporaryState(setCopiedPublicLink, true)
+    trackAnalyticsEventDispatch(AnalyticsEvents.INVITE_LINK_COPIED, { groupId: group.id, kind: 'public' })
+  }
+  const onCopyInviteLink = () => {
+    setTemporaryState(setCopiedInviteLink, true)
+    trackAnalyticsEventDispatch(AnalyticsEvents.INVITE_LINK_COPIED, { groupId: group.id, kind: 'join' })
+  }
 
   const buttonColor = highlight => highlight ? 'green' : 'green-white-green-border'
 
