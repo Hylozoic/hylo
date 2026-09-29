@@ -792,6 +792,39 @@ ALTER SEQUENCE public.event_responses_id_seq OWNED BY public.event_responses.id;
 
 
 --
+-- Name: experiment_assignments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.experiment_assignments (
+    id bigint NOT NULL,
+    experiment character varying(255) NOT NULL,
+    subject_type character varying(255) NOT NULL,
+    subject_id bigint NOT NULL,
+    variant character varying(255) NOT NULL,
+    assigned_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: experiment_assignments_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.experiment_assignments_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: experiment_assignments_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.experiment_assignments_id_seq OWNED BY public.experiment_assignments.id;
+
+
+--
 -- Name: extensions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3645,6 +3678,13 @@ ALTER TABLE ONLY public.event_responses ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: experiment_assignments id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.experiment_assignments ALTER COLUMN id SET DEFAULT nextval('public.experiment_assignments_id_seq'::regclass);
+
+
+--
 -- Name: extensions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4246,6 +4286,22 @@ ALTER TABLE ONLY public.event_responses
 
 ALTER TABLE ONLY public.event_responses
     ADD CONSTRAINT event_responses_user_id_post_id_unique UNIQUE (user_id, post_id);
+
+
+--
+-- Name: experiment_assignments experiment_assignments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.experiment_assignments
+    ADD CONSTRAINT experiment_assignments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: experiment_assignments experiment_assignments_subject_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.experiment_assignments
+    ADD CONSTRAINT experiment_assignments_subject_unique UNIQUE (experiment, subject_type, subject_id);
 
 
 --
@@ -5162,6 +5218,13 @@ CREATE INDEX drafts_user_id_index ON public.drafts USING btree (user_id);
 --
 
 CREATE INDEX email_enabled_testers_user_id_index ON public.email_enabled_testers USING btree (user_id);
+
+
+--
+-- Name: experiment_assignments_experiment_variant_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX experiment_assignments_experiment_variant_index ON public.experiment_assignments USING btree (experiment, variant);
 
 
 --
