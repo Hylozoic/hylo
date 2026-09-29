@@ -3128,6 +3128,8 @@
   "Create or edit roles in Roles & Badges": "Create or edit roles in Roles & Badges",
   "Everyone in this group holds this role.": "Everyone in this group holds this role.",
   "No responsibilities": "No responsibilities",
+  "You can give everyone this group's own responsibilities. Built-in ones stay with the roles that hold them.": "You can give everyone this group's own responsibilities. Built-in ones stay with the roles that hold them.",
+  "The Member role can only take this group's own responsibilities": "The Member role can only take this group's own responsibilities",
   "Change who can add new members in Privacy & Access": "Change who can add new members in Privacy & Access",
   "{{name}} invited you": "{{name}} invited you",
   "Stewards review every request to join this group.": "Stewards review every request to join this group.",

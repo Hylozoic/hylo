@@ -17,7 +17,8 @@ import ScrollListener from 'components/ScrollListener'
 import {
   removeResponsibilityFromRole,
   addResponsibilityToRole,
-  fetchResponsibilitiesForGroup
+  fetchResponsibilitiesForGroup,
+  fetchResponsibilitiesForGroupRole
 } from 'store/actions/responsibilities'
 import {
   fetchStewardSuggestions,
@@ -49,14 +50,18 @@ const emptyRole = {
   active: ''
 }
 
-const LAST_ADMINISTRATOR_ERROR = 'A group must keep at least one Administrator'
+// Refusals from the server that the steward can act on, shown in their language
+const EXPLAINED_ROLE_ERRORS = [
+  'A group must keep at least one Administrator',
+  "The Member role can only take this group's own responsibilities"
+]
 
 // Tells the steward why a role change was refused. Takes the dispatch result or
 // the error it rejected with, and returns true when the change failed.
 function reportRoleChangeError (result, t) {
   const error = result instanceof Error ? result : (result?.error ? result.payload : null)
   if (!error) return false
-  window.alert(error?.message === LAST_ADMINISTRATOR_ERROR ? t(LAST_ADMINISTRATOR_ERROR) : t('There was an error, please try again.'))
+  window.alert(EXPLAINED_ROLE_ERRORS.includes(error?.message) ? t(error.message) : t('There was an error, please try again.'))
   return true
 }
 
@@ -200,7 +205,7 @@ function RolesSettingsTab ({ group, slug }) {
           />
         ))}
         {memberInvitesEnabled && group?.memberRole && (
-          <MemberRoleCard memberRole={group.memberRole} slug={group.slug} />
+          <MemberRoleCard memberRole={group.memberRole} group={group} availableResponsibilities={availableResponsibilities} />
         )}
       </SettingsSection>
       <SettingsSection>
@@ -244,12 +249,48 @@ RolesSettingsTab.propTypes = {
 }
 
 /**
- * The implicit role every member holds. It can't be edited or assigned; its only
- * possible responsibility, Invite Members, follows "Who can add new members?".
+ * The implicit role every member holds. It can't be edited or assigned. Its only
+ * built-in responsibility, Invite Members, follows "Who can add new members?";
+ * stewards can also give it the group's own custom responsibilities.
  */
-function MemberRoleCard ({ memberRole, slug }) {
+function MemberRoleCard ({ memberRole, group, availableResponsibilities = [] }) {
   const { t } = useTranslation()
-  const responsibilities = memberRole.responsibilities?.items || []
+  const dispatch = useDispatch()
+  // Until the role's own links load, show what the group settings already carry
+  const [responsibilities, setResponsibilities] = useState(memberRole.responsibilities?.items || [])
+  const [linksLoaded, setLinksLoaded] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+    Promise.resolve(dispatch(fetchResponsibilitiesForGroupRole({ roleId: memberRole.id })))
+      .then(response => {
+        const linked = response?.payload?.data?.responsibilities
+        if (!isMounted || !Array.isArray(linked)) return
+        setResponsibilities(linked)
+        setLinksLoaded(true)
+      })
+      .catch(() => {})
+    return () => { isMounted = false }
+  }, [memberRole.id, dispatch])
+
+  const linkedTitles = responsibilities.map(responsibility => responsibility.title)
+  const customSuggestions = availableResponsibilities.filter(responsibility =>
+    responsibility.type !== 'system' && !includes(responsibility.title, linkedTitles))
+
+  const handleRemove = id => {
+    dispatch(removeResponsibilityFromRole({ roleResponsibilityId: id, groupId: group.id })).then(response => {
+      if (reportRoleChangeError(response, t)) return
+      setResponsibilities(current => current.filter(responsibility => responsibility.id !== id))
+    }).catch(error => reportRoleChangeError(error, t))
+  }
+
+  const handleAdd = ({ responsibilityId, roleId, groupId, responsibility }) => {
+    return dispatch(addResponsibilityToRole({ responsibilityId, roleId, groupId })).then(response => {
+      if (reportRoleChangeError(response, t)) return
+      const linkId = response.payload.data.addResponsibilityToRole.id
+      setResponsibilities(current => [...current, { ...responsibility, id: linkId, responsibilityId: responsibility.id }])
+    }).catch(error => reportRoleChangeError(error, t))
+  }
 
   return (
     <div className='bg-foreground/5 rounded-lg my-4 p-4' data-testid='member-role-card'>
@@ -259,11 +300,26 @@ function MemberRoleCard ({ memberRole, slug }) {
       {responsibilities.length > 0
         ? (
           <div className='flex flex-col gap-2'>
-            {responsibilities.map(responsibility => <RemovableListItem item={responsibility} key={responsibility.id} />)}
+            {responsibilities.map(responsibility => (
+              <RemovableListItem
+                item={responsibility}
+                key={responsibility.id}
+                removeItem={linksLoaded && responsibility.type !== 'system' ? handleRemove : null}
+              />
+            ))}
           </div>
           )
         : <p className='text-foreground/50 text-sm m-0'>{t('No responsibilities')}</p>}
-      <Link to={groupUrl(slug, 'settings/privacy')} className='inline-block text-accent text-sm hover:underline mt-3'>
+      <p className='text-foreground/60 text-xs mt-3 mb-0'>{t("You can give everyone this group's own responsibilities. Built-in ones stay with the roles that hold them.")}</p>
+      {linksLoaded && (
+        <AddResponsibilityToRoleSection
+          handleAddResponsibilityToRole={handleAdd}
+          responsibilitySuggestions={customSuggestions}
+          roleId={memberRole.id}
+          group={group}
+        />
+      )}
+      <Link to={groupUrl(group.slug, 'settings/privacy')} className='inline-block text-accent text-sm hover:underline mt-3'>
         {t('Change who can add new members in Privacy & Access')}
       </Link>
     </div>

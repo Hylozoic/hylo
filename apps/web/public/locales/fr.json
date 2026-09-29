@@ -3128,6 +3128,8 @@
   "Create or edit roles in Roles & Badges": "Créer ou modifier des rôles dans Rôles et badges",
   "Everyone in this group holds this role.": "Tous les membres de ce groupe ont ce rôle.",
   "No responsibilities": "Aucune responsabilité",
+  "You can give everyone this group's own responsibilities. Built-in ones stay with the roles that hold them.": "Vous pouvez donner à tout le monde les responsabilités propres à ce groupe. Les responsabilités intégrées restent aux rôles qui les détiennent.",
+  "The Member role can only take this group's own responsibilities": "Le rôle Membre ne peut recevoir que les responsabilités propres à ce groupe",
   "Change who can add new members in Privacy & Access": "Modifier qui peut ajouter de nouveaux membres dans Confidentialité et accès",
   "{{name}} invited you": "{{name}} vous a invité",
   "Stewards review every request to join this group.": "Les intendants examinent chaque demande d'adhésion à ce groupe.",

@@ -79,6 +79,62 @@ describe('RolesSettingsTab Member card', () => {
       .toHaveAttribute('href', '/groups/test-group/settings/privacy')
   })
 
+  it("lets stewards add and remove the group's own responsibilities, but not built-in ones", async () => {
+    let added = null
+    let removed = null
+    mockGraphqlServer.use(
+      graphql.query('fetchResponsibiltiesForGroup', () => HttpResponse.json({
+        data: {
+          responsibilities: [
+            { ...inviteMembers, type: 'system' },
+            { id: '42', title: 'Manage Content', type: 'system', description: '' },
+            { id: '60', title: 'Welcome newcomers', type: 'group', description: 'Say hello' },
+            { id: '61', title: 'Water the garden', type: 'group', description: '' }
+          ]
+        }
+      })),
+      graphql.query('fetchResponsibilitiesForGroupRole', () => HttpResponse.json({
+        data: {
+          responsibilities: [
+            { id: '900', responsibilityId: '41', title: 'Invite Members', type: 'system', description: '' },
+            { id: '901', responsibilityId: '61', title: 'Water the garden', type: 'group', description: '' }
+          ]
+        }
+      })),
+      graphql.operation(({ query, variables }) => {
+        if (query.includes('addResponsibilityToRole')) {
+          added = variables
+          return HttpResponse.json({ data: { addResponsibilityToRole: { id: '902', title: 'Welcome newcomers', description: 'Say hello', type: 'group', responsibilityId: '60' } } })
+        }
+        if (query.includes('removeResponsibilityFromRole')) {
+          removed = variables
+          return HttpResponse.json({ data: { removeResponsibilityFromRole: { success: true } } })
+        }
+        return HttpResponse.json({ data: {} })
+      })
+    )
+    const confirm = jest.spyOn(window, 'confirm').mockImplementation(() => true)
+    const memberRole = { id: '9', name: 'Member', responsibilities: { items: [inviteMembers] } }
+    render(<RolesSettingsTab group={groupWith(memberRole)} slug='test-group' />, { wrapper: AllTheProviders() })
+
+    const card = screen.getByTestId('member-role-card')
+    await within(card).findByText('Water the garden')
+    const inviteRow = within(card).getByText('Invite Members').closest('div')
+    expect(within(inviteRow.parentElement).queryByText('Remove')).not.toBeInTheDocument()
+
+    fireEvent.click(within(card).getByText('+ Add Responsibility to Role'))
+    expect(await within(card).findByText('Welcome newcomers')).toBeInTheDocument()
+    expect(within(card).queryByText('Manage Content')).not.toBeInTheDocument()
+    fireEvent.click(within(card).getByText('Welcome newcomers'))
+    await waitFor(() => expect(added).toEqual({ groupId: 1, roleId: '9', responsibilityId: '60' }))
+
+    const gardenRow = within(card).getByText('Water the garden').parentElement.parentElement
+    fireEvent.click(within(gardenRow).getByText('Remove'))
+    await waitFor(() => expect(removed).toEqual({ groupId: 1, roleResponsibilityId: '901' }))
+    await waitFor(() => expect(within(card).queryByText('Water the garden')).not.toBeInTheDocument())
+    confirm.mockRestore()
+  })
+
   it('shows no responsibilities when members cannot invite', () => {
     const memberRole = { id: '9', name: 'Member', responsibilities: { items: [] } }
     render(<RolesSettingsTab group={groupWith(memberRole)} slug='test-group' />, { wrapper: AllTheProviders() })
