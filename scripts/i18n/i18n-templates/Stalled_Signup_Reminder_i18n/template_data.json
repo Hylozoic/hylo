@@ -1,0 +1,7 @@
+{
+  "has_invitation": true,
+  "continue_url": "https://www.hylo.com/h/invitation?token=example-token",
+  "group_name": "Neighborhood Garden",
+  "group_avatar_url": "https://d3ngex8q79bk55.cloudfront.net/community/1/avatar/devAvatar.png",
+  "inviter_name": "Sam Example"
+}

@@ -119,8 +119,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
       { patch: true, transacting })
   },
 
-  // Nothing is sent to an address that asked for no more invitations
-  send: function () {
+  // Nothing is sent to an address that asked for no more invitations. socialProof adds
+  // the group's member count and recent activity (the second automatic reminder).
+  send: function ({ socialProof = false } = {}) {
     return this.ensureLoad(['creator', 'group', 'tag'])
       .then(async () => {
         const { creator, group } = this.relations
@@ -144,7 +145,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
             recipient: email,
             group: group.get('name')
           }),
-          opt_out_url: Invitation.optOutUrl(this.get('token'), creator.getLocale())
+          opt_out_url: Invitation.optOutUrl(this.get('token'), creator.getLocale()),
+          ...(socialProof ? await Invitation.socialProof(group) : {})
         }
         return this.save({
           sent_count: this.get('sent_count') + 1,
@@ -196,6 +198,25 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .then(invitation =>
         invitation.send()
       )
+  },
+
+  /**
+   * What the second automatic reminder adds, for the email to show: how many
+   * people are in the group, and how many posts they shared in the last 30 days.
+   */
+  socialProof: async function (group) {
+    const row = await bookshelf.knex('posts')
+      .join('groups_posts', 'groups_posts.post_id', 'posts.id')
+      .where('groups_posts.group_id', group.id)
+      .where('posts.active', true)
+      .whereRaw("posts.created_at > now() - interval '30 days'")
+      .countDistinct('posts.id as count')
+      .first()
+    return {
+      social_proof: true,
+      member_count: Number(group.get('num_members') || 0),
+      recent_post_count: Number(row?.count || 0)
+    }
   },
 
   /** The "stop invitations to this address" link for an invitation email. */
@@ -257,7 +278,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }
       return senderAccess.get(key).then(Boolean)
     }, { concurrency: 5 })
-    await Promise.map(ready, invitation => invitation.send())
+    // The second reminder (the third email) also says how many people are in the group and how active it is
+    await Promise.map(ready, invitation => invitation.send({ socialProof: invitation.get('sent_count') === 2 }))
     return ready.map(invitation => invitation.id)
   },
 

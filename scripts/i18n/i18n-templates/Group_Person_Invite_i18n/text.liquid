@@ -3,3 +3,7 @@
 {% trans %}Click this link to join me on Hylo: {{invite_link}}{% endtrans %}
 
 {% trans %}{{inviter_name}}{% endtrans %}
+{% if opt_out_url %}
+
+{% trans %}Stop invitations to this address: {{opt_out_url}}{% endtrans %}
+{% endif %}

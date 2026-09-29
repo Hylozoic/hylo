@@ -756,6 +756,51 @@ msgid "Click this link to join me on Hylo: %(invite_link)s"
 msgstr "Klicke auf diesen Link, um mir auf Hylo beizutreten: %(invite_link)s"
 
 #, python-format
+msgid "%(member_count_var)s people are already in %(group_name_var)s."
+msgstr "%(member_count_var)s Menschen sind schon in %(group_name_var)s."
+
+#, python-format
+msgid "They shared %(recent_post_count_var)s posts in the last 30 days."
+msgstr "Sie haben in den letzten 30 Tagen %(recent_post_count_var)s Beiträge geteilt."
+
+msgid "Stop invitations to this address"
+msgstr "Keine Einladungen mehr an diese Adresse"
+
+#, python-format
+msgid "Stop invitations to this address: %(opt_out_url)s"
+msgstr "Keine Einladungen mehr an diese Adresse: %(opt_out_url)s"
+
+#, python-format
+msgid "%(inviter_name_var)s invited you to join %(group_name_var)s on Hylo."
+msgstr "%(inviter_name_var)s hat dich eingeladen, %(group_name_var)s auf Hylo beizutreten."
+
+#, python-format
+msgid "You were invited to join %(group_name_var)s on Hylo."
+msgstr "Du wurdest eingeladen, %(group_name_var)s auf Hylo beizutreten."
+
+msgid "You started signing up but didn't finish. Your invitation is still waiting for you."
+msgstr "Du hast mit der Registrierung begonnen, sie aber nicht abgeschlossen. Deine Einladung wartet noch auf dich."
+
+msgid "You started signing up for Hylo but didn't finish."
+msgstr "Du hast mit der Registrierung bei Hylo begonnen, sie aber nicht abgeschlossen."
+
+msgid "It only takes a minute to pick up where you left off."
+msgstr "Es dauert nur eine Minute, dort weiterzumachen, wo du aufgehört hast."
+
+msgid "Finish signing up"
+msgstr "Registrierung abschließen"
+
+msgid "If you didn't mean to sign up, you can ignore this email. We won't send another."
+msgstr "Wenn du dich nicht registrieren wolltest, kannst du diese E-Mail ignorieren. Wir schicken keine weitere."
+
+#, python-format
+msgid "Your invitation to %(group_name_var)s is waiting"
+msgstr "Deine Einladung zu %(group_name_var)s wartet auf dich"
+
+msgid "Finish signing up for Hylo"
+msgstr "Schließe deine Registrierung bei Hylo ab"
+
+#, python-format
 msgid "%(inviter_name)s"
 msgstr "%(inviter_name)s"
 
