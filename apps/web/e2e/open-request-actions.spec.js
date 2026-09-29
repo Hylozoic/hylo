@@ -64,7 +64,8 @@ test.describe('Open request answers', () => {
     const request = await postRequest(page)
 
     await page.goto(`/groups/${GROUP_SLUG}/post/${request.id}?action=met`)
-    await waitPastRootSessionLoading(page)
+    // The toast shows for a few seconds as soon as the post loads, which can be over before
+    // waitPastRootSessionLoading returns, so look for it straight away
     await expect(page.getByText('Marked as met. Thanks for letting everyone know!')).toBeVisible(uiTimeout)
     await expect(page).not.toHaveURL(/action=/)
 
