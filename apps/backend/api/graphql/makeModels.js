@@ -933,8 +933,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         {
-          stewards: {
+          // Administrators, Moderators and Hosts (D38, M3); Group#stewards() stays for other callers
+          stewardsByRole: {
             querySet: true,
+            alias: 'stewards',
             filter: relation => applyPublicMemberDirectoryGuard(relation)
           }
         },

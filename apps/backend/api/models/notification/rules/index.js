@@ -16,6 +16,7 @@ import { CHANNEL, channelsForReason, classForActivity } from '../signalClasses'
 import { isChat, isNewPost } from './predicates'
 import { importantAnnouncement, mentionsAlwaysReachYou } from './directSignals'
 import { conversationPasses, quietGroupPasses } from './adaptiveImportant'
+import { inAppOnlyOverride } from './inAppOnly'
 
 // Phase 1
 const groupInvitationOverride = ctx => {
@@ -25,7 +26,8 @@ const groupInvitationOverride = ctx => {
 }
 
 export const OVERRIDES = [
-  groupInvitationOverride
+  groupInvitationOverride,
+  inAppOnlyOverride
 ]
 
 // Phase 2
