@@ -158,18 +158,22 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
   // Fetch post; include action-completion fields only for action posts.
   // Deep-linked actions may fetch twice: once without type, again once type is known.
+  // Load again only when the fields to ask for change (an action's completion), not whenever
+  // the post's type becomes known: a second read sent as ?action=met fulfills the post could
+  // answer after the fulfill and put the post back to still needed
+  const isAction = post?.type === 'action'
+  const withCompletionResponses = isAction && hasTracksResponsibility
   const loadPost = useCallback(() => {
     if (!postId) return
-    const isAction = post?.type === 'action'
     setLoadError(null)
     const request = dispatch(fetchPost(postId, {
       withCompletion: isAction,
-      withCompletionResponses: isAction && hasTracksResponsibility
+      withCompletionResponses
     }))
     if (request?.catch) {
       request.catch(error => setLoadError({ postId, transient: isTransientApiError(error) }))
     }
-  }, [dispatch, postId, post?.type, hasTracksResponsibility])
+  }, [dispatch, postId, isAction, withCompletionResponses])
 
   useEffect(() => {
     loadPost()
