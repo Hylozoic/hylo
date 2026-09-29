@@ -7,6 +7,8 @@ import { withDefaultMetaTags, withGroupMetaTags } from './groupMetaTags.js'
 export default async function appMiddleware (req, res, next) {
   const withPostTags = await withPublicPostMetaTags(html(''), req)
   const withGroupTags = await withGroupMetaTags(withPostTags, req)
+  // The default preview description follows the request's language
+  if (typeof res.vary === 'function') res.vary('Accept-Language')
   return res.status(200).send(withDefaultMetaTags(withGroupTags, req))
 }
 

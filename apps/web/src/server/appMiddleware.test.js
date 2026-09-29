@@ -68,5 +68,17 @@ describe('appMiddleware', () => {
     expect(global.fetch).not.toHaveBeenCalled()
     expect(html).toContain('<meta property="og:title" content="Hylo" />')
     expect(html).toContain('<meta property="og:image" content="https://hylo.com/hylo-merkaba.png" />')
+    expect(html).toContain('<meta property="og:description" content="Hylo is the prosocial coordination platform for purpose-driven groups" />')
+  })
+
+  it("doesn't put the default description on a group page", async () => {
+    global.fetch.mockResolvedValue(graphqlResponse({
+      group: { name: 'Garden Club', description: 'We grow food.', visibility: 2 }
+    }))
+
+    const html = await render('/groups/garden-club')
+
+    expect(html).toContain('<meta property="og:description" content="We grow food." />')
+    expect(html).not.toContain('prosocial coordination platform')
   })
 })
