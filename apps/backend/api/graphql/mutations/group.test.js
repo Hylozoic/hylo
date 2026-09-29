@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-expressions */
+import '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { mockify, unspyify, withFeatureFlag } from '../../../test/setup/helpers'
 
