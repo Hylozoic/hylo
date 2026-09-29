@@ -121,9 +121,10 @@ describe('message toasts', () => {
     expect(shouldToastMessage(message, {})).toBe(true)
   })
 
-  it('does not toast in the desktop app', () => {
+  it('still toasts in the desktop app, which shows no system notification for messages', () => {
     window.electron = { showNotification: jest.fn() }
-    expect(shouldToastMessage(message, {})).toBe(false)
+    expect(shouldToastMessage(message, {})).toBe(true)
+    expect(shouldToastMessage(message, { viewingThread: true })).toBe(false)
   })
 
   describe('createToaster', () => {

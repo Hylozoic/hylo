@@ -33,7 +33,8 @@ export function isOnTarget (pathname, url, postId) {
   return !!postId && new RegExp(`/post/${postId}(/|$)`).test(current)
 }
 
-// The desktop app shows its own system notification for these.
+// The desktop app shows its own system notification for new notifications (see
+// SocketListener.store), but not for direct messages, so messages still toast there.
 const desktopShowsNotifications = () => typeof window !== 'undefined' && !!window.electron
 
 export function shouldToastNotification (notification, { pathname } = {}) {
@@ -66,7 +67,6 @@ export function showNotificationToast (notification, { t, pathname, open }) {
 }
 
 export function shouldToastMessage (message, { viewingThread, isMuted } = {}) {
-  if (desktopShowsNotifications()) return false
   if (viewingThread || isMuted) return false
   return !!message?.messageThread
 }
