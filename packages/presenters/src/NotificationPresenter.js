@@ -79,6 +79,7 @@ export const ACTION_PROPOSAL_CLOSED = 'proposalClosed'
 export const ACTION_PROPOSAL_OUTCOME = 'proposalOutcome'
 export const ACTION_VOTE_RESET = 'voteReset'
 export const ACTION_EVENT_NUDGE = 'eventNudge'
+export const ACTION_PROJECT_JOINED = 'projectJoined'
 
 // How many other people a grouped notice counts ("Sam and 3 others reacted")
 export function othersCount (activity) {
@@ -219,6 +220,8 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> changed the options on <strong>{{postSummary}}</strong>', { name, postSummary })
     case ACTION_EVENT_NUDGE:
       return t('Are you going to <strong>{{postSummary}}</strong>?', { postSummary })
+    case ACTION_PROJECT_JOINED:
+      return t('<strong>{{name}}</strong> joined your project', { name })
     default:
       return null
   }
@@ -321,6 +324,7 @@ export function bodyForNotification (notification, t) {
       return t('"<strong>{{postSummary}}</strong>"', { postSummary: comment ? truncateHTML(comment.text) : postSummary })
     case ACTION_EVENT_RSVP:
     case ACTION_PROPOSAL_VOTE:
+    case ACTION_PROJECT_JOINED:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary })
     case ACTION_PROPOSAL_CLOSING_SOON:
       return t("You haven't voted yet")
@@ -440,6 +444,7 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_PROPOSAL_OUTCOME:
     case ACTION_VOTE_RESET:
     case ACTION_EVENT_NUDGE:
+    case ACTION_PROJECT_JOINED:
       return primaryPostUrl(post, postOpts)
   }
 }

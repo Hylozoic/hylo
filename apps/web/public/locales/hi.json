@@ -72,6 +72,7 @@
   "Your vote was reset. You can vote again.": "आपका वोट रीसेट हो गया। आप फिर से वोट दे सकते हैं।",
   "Are you going to <strong>{{postSummary}}</strong>?": "क्या आप <strong>{{postSummary}}</strong> में आ रहे हैं?",
   "It starts in about a day, and you haven't answered <strong>{{name}}</strong>'s invitation yet": "यह लगभग एक दिन में शुरू होगा, और आपने अभी तक <strong>{{name}}</strong> के निमंत्रण का जवाब नहीं दिया है",
+  "<strong>{{name}}</strong> joined your project": "<strong>{{name}}</strong> आपके प्रोजेक्ट में शामिल हुए",
   "<strong>{{name}}</strong> submitted ": "<strong>{{name}}</strong> ने प्रस्तुत किया",
   "<strong>{{name}}</strong> wrote: \"{{text}}\"": "<strong>{{name}}</strong> ने लिखा: \"{{text}}\"",
   "A": "A",

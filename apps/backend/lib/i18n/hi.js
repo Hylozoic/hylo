@@ -126,6 +126,7 @@ exports.hi = {
   },
   textForProposalOutcome: ({ person, postName, outcome }) => `${person} ने "${postName}" का परिणाम दर्ज किया: ${outcome}`,
   textForEventReminder: ({ postName, date }) => `रिमाइंडर: "${postName}" जल्द ही है, ${date}`,
+  textForProjectJoined: ({ person, postName }) => `${person} आपके प्रोजेक्ट "${postName}" में शामिल हुए`,
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} ने "${fundingRoundTitle}" के लिए "${post.summary()}" जमा किया`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

@@ -72,6 +72,7 @@
   "Your vote was reset. You can vote again.": "Deine Stimme wurde zurückgesetzt. Du kannst erneut abstimmen.",
   "Are you going to <strong>{{postSummary}}</strong>?": "Nimmst du an <strong>{{postSummary}}</strong> teil?",
   "It starts in about a day, and you haven't answered <strong>{{name}}</strong>'s invitation yet": "Es beginnt in etwa einem Tag, und du hast auf die Einladung von <strong>{{name}}</strong> noch nicht geantwortet",
+  "<strong>{{name}}</strong> joined your project": "<strong>{{name}}</strong> ist deinem Projekt beigetreten",
   "<strong>{{name}}</strong> submitted ": "<strong>{{name}}</strong> hat eingereicht",
   "<strong>{{name}}</strong> wrote: \"{{text}}\"": "<strong>{{name}}</strong> schrieb: „{{text}}“",
   "A": "A",

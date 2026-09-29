@@ -236,6 +236,8 @@ module.exports = bookshelf.Model.extend({
         return L.textForReaction({ person, others, postName, onComment: !!comment })
       case 'eventRsvp':
         return L.textForEventRsvp({ person, others, postName, response: meta.response })
+      case 'projectJoined':
+        return L.textForProjectJoined({ person, postName })
       default:
         return postName
     }

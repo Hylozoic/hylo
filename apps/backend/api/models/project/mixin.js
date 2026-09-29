@@ -20,6 +20,26 @@ export default {
     }, opts)
   },
 
+  isProjectMember: async function (userId, opts) {
+    const postUser = await PostUser.query(q => {
+      q.where({ post_id: this.id, user_id: userId, active: true })
+      q.whereNotNull('project_role_id')
+    }).fetch(opts)
+    return !!postUser
+  },
+
+  // D57: the project's creator hears when someone joins, in-app and by push
+  notifyCreatorOfJoin: async function (userId) {
+    const creatorId = this.get('user_id')
+    if (!creatorId || String(creatorId) === String(userId)) return null
+    return Activity.saveForReasons([{
+      reader_id: creatorId,
+      actor_id: userId,
+      post_id: this.id,
+      reason: 'projectJoined'
+    }])
+  },
+
   removeProjectMembers: async function (usersOrIds, opts) {
     return this.updateFollowers(usersOrIds, {
       project_role_id: null,

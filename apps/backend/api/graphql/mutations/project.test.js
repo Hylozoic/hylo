@@ -113,6 +113,43 @@ describe('joinProject', () => {
   })
 })
 
+describe('joinProject notice to the creator (D57)', () => {
+  let creator, joiner, group, project
+
+  const joinedActivities = async () => (await Activity.query(q => {
+    q.where({ post_id: project.id })
+    q.whereRaw("meta->'reasons' \\? 'projectJoined'")
+  }).fetchAll()).models
+
+  before(async () => {
+    creator = await factories.user().save()
+    joiner = await factories.user().save()
+    group = await factories.group().save()
+    await group.addMembers([creator, joiner])
+    project = await factories.post({ type: Post.Type.PROJECT, user_id: creator.id }).save()
+    await group.posts().attach(project)
+  })
+
+  it('notifies the creator once, in-app and by push', async () => {
+    await joinProject(project.id, joiner.id)
+    await joinProject(project.id, joiner.id)
+
+    const activities = await joinedActivities()
+    expect(activities.length).to.equal(1)
+    expect(String(activities[0].get('reader_id'))).to.equal(String(creator.id))
+    expect(String(activities[0].get('actor_id'))).to.equal(String(joiner.id))
+    const media = (await Notification.where({ activity_id: activities[0].id }).fetchAll()).pluck('medium').sort()
+    expect(media).to.deep.equal([Notification.MEDIUM.InApp, Notification.MEDIUM.Push])
+  })
+
+  it('does not notify the creator about their own join', async () => {
+    await bookshelf.knex('notifications').del()
+    await bookshelf.knex('activities').where({ post_id: project.id }).del()
+    await joinProject(project.id, creator.id)
+    expect(await joinedActivities()).to.have.length(0)
+  })
+})
+
 describe('leaveProject', () => {
   var user, project
 

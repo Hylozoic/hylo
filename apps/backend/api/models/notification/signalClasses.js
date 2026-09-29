@@ -102,7 +102,9 @@ export const REASON_SIGNALS = {
   // D44: a push and an email to people going or interested, an in-app nudge to
   // invitees who haven't answered (event/reminders)
   eventReminder: { class: LIFECYCLE, channels: [PUSH, EMAIL] },
-  eventNudge: { class: LIFECYCLE, channels: [IN_APP] }
+  eventNudge: { class: LIFECYCLE, channels: [IN_APP] },
+  // D57: the creator gets an in-app notice and a push
+  projectJoined: { class: SOCIAL, channels: [IN_APP, PUSH] }
 }
 
 // A reason with no line (or no priority reason at all) keeps every channel, as before.

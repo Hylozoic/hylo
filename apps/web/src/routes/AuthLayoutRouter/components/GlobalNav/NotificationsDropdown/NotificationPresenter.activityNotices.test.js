@@ -4,6 +4,7 @@ import i18next from 'i18next'
 import {
   ACTION_EVENT_NUDGE,
   ACTION_EVENT_RSVP,
+  ACTION_PROJECT_JOINED,
   ACTION_PROPOSAL_CLOSED,
   ACTION_PROPOSAL_CLOSING_SOON,
   ACTION_PROPOSAL_OUTCOME,
@@ -139,6 +140,16 @@ describe('event reminders', () => {
     const notification = notificationFor(ACTION_EVENT_NUDGE, { meta: { reasons: ['eventNudge'] } })
     expect(titleForNotification(notification, t)).toBe('Are you going to <strong>Seed swap on Saturday</strong>?')
     expect(bodyForNotification(notification, t)).toBe("It starts in about a day, and you haven't answered <strong>Sam</strong>'s invitation yet")
+    expect(urlForNotification(notification)).toMatch(/\/post\/10$/)
+  })
+})
+
+describe('project joins', () => {
+  it('tells the creator who joined', async () => {
+    const t = await translator('en')
+    const notification = notificationFor(ACTION_PROJECT_JOINED, { post: { ...post, type: 'project' }, meta: { reasons: ['projectJoined'] } })
+    expect(titleForNotification(notification, t)).toBe('<strong>Sam</strong> joined your project')
+    expect(bodyForNotification(notification, t)).toBe('"<strong>Seed swap on Saturday</strong>"')
     expect(urlForNotification(notification)).toMatch(/\/post\/10$/)
   })
 })

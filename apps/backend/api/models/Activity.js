@@ -164,7 +164,8 @@ module.exports = bookshelf.Model.extend({
     ProposalOutcome: 'proposalOutcome', // the author recorded the outcome of a proposal you voted on (D46)
     VoteReset: 'voteReset', // the author changed a proposal's options, which reset your vote
     EventReminder: 'eventReminder', // an event you're going to or interested in starts in about a day (D44)
-    EventNudge: 'eventNudge' // an event you were invited to and haven't answered starts in about a day (D44)
+    EventNudge: 'eventNudge', // an event you were invited to and haven't answered starts in about a day (D44)
+    ProjectJoined: 'projectJoined' // someone joined your project (D57)
   },
 
   find: function (id, options) {

@@ -72,6 +72,7 @@
   "Your vote was reset. You can vote again.": "Seu voto foi zerado. Você pode votar de novo.",
   "Are you going to <strong>{{postSummary}}</strong>?": "Você vai a <strong>{{postSummary}}</strong>?",
   "It starts in about a day, and you haven't answered <strong>{{name}}</strong>'s invitation yet": "Começa em cerca de um dia, e você ainda não respondeu ao convite de <strong>{{name}}</strong>",
+  "<strong>{{name}}</strong> joined your project": "<strong>{{name}}</strong> entrou no seu projeto",
   "<strong>{{name}}</strong> submitted ": "<strong>{{name}}</strong> enviou",
   "<strong>{{name}}</strong> wrote: \"{{text}}\"": "<strong>{{name}}</strong> escreveu: \"{{text}}\"",
   "A": "A",

@@ -127,6 +127,7 @@ exports.de = {
   },
   textForProposalOutcome: ({ person, postName, outcome }) => `${person} hat das Ergebnis von „${postName}“ festgehalten: ${outcome}`,
   textForEventReminder: ({ postName, date }) => `Erinnerung: „${postName}“ steht bevor, ${date}`,
+  textForProjectJoined: ({ person, postName }) => `${person} ist deinem Projekt „${postName}“ beigetreten`,
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} hat „${post.summary()}“ für „${fundingRoundTitle}“ eingereicht`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
