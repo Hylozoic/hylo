@@ -40,6 +40,19 @@ export async function ensureHyloCookieConsent (page) {
 }
 
 /**
+ * Marks the Android app prompt (components/AppInstallPrompt) as dismissed for
+ * this origin. The phone projects use an Android user agent, so without this
+ * the card sits over the bottom of every signed-in page (Save bars, the nav
+ * rail's Settings and Help). Call on an app page before saving storageState.
+ * @param {import('@playwright/test').Page} page
+ */
+export async function dismissAppInstallPrompt (page) {
+  await page.evaluate(() => {
+    window.localStorage.setItem('hylo:appInstallPrompt:dismissedAt', '2026-01-01T00:00:00.000Z')
+  })
+}
+
+/**
  * Playwright `isVisible()` is true for the closed mobile drawer (`translateX(-100%)`).
  * Clicks then hang because the control is outside the viewport.
  * @param {import('@playwright/test').Locator} locator
