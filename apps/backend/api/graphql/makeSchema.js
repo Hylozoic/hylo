@@ -5,6 +5,7 @@ import { join } from 'path'
 import { merge, reduce } from 'lodash'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
+import { PAGINATION_TOTAL_COLUMN_NAME } from '../../lib/graphql-bookshelf-bridge/util/applyPagination'
 import mixpanel from '../../lib/mixpanel'
 import {
   saveDraft,
@@ -587,15 +588,18 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     },
     explorerReviewList: (root, args, context) => explorerReviewList(context.currentUserId),
     searchGroups: async (root, { term, first = 20, offset = 0 }, context) => {
-      if (!term || term.trim().length < 2) return presentQuerySet([], { first, offset, total: 0 })
+      const limit = Math.max(1, Math.min(first || 20, 50))
+      const start = Math.max(0, offset || 0)
+      if (!term || term.trim().length < 2) return presentQuerySet([], { first: limit, offset: start, total: 0 })
       const groups = await Search.forGroups({
         term: term.trim(),
-        limit: first,
-        offset,
+        limit,
+        offset: start,
         sort: 'recent',
-        discoverableBy: context.currentUserId
+        discoverableBy: context.currentUserId,
+        totalColumnName: PAGINATION_TOTAL_COLUMN_NAME
       }).fetchAll()
-      return presentQuerySet(groups.models, { first, offset })
+      return presentQuerySet(groups.models, { first: limit, offset: start })
     },
     recommendedGroups: async (root, { first = 4 }, context) => {
       const groups = await Search.recommendedGroups({
