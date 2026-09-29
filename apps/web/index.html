@@ -151,6 +151,11 @@
       var AT = [CUES.Spark + 0.08, CUES.Chain - 0.032, CUES.Chain + 0.24, CUES.Web, CUES.Web + 0.269, CUES.Web + 0.538]
       var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
       var ink = dark ? '#FFFFFF' : '#090B0A'
+      // With reduced motion on, the mark is drawn already assembled and holds
+      // still; only the progress bar moves. Timing, milestones and ready() are
+      // the same either way
+      var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+      var SETTLED_T = CUES.Name + 3
 
       var svg = document.createElementNS(NS, 'svg')
       svg.setAttribute('viewBox', '0 0 156 226')
@@ -207,7 +212,7 @@
         if (last != null) dt = Math.min((now - last) / 1000, 0.1)
         T += dt
         last = now
-        var t = T
+        var t = reduceMotion ? SETTLED_T : T
         for (var i = 0; i < ORDER.length; i++) {
           var to = NODES[ORDER[i]]
           var from = i === 0 ? [to[0], to[1] + 38] : NODES[ORDER[i - 1]]
@@ -240,7 +245,7 @@
         wordG.setAttribute('opacity', outCubic(wp))
         wordG.setAttribute('transform', 'translate(2.5 ' + (195 + 9 * (1 - outCubic(wd))) + ')')
         var zoom = 1
-        if (t > CUES.Name + 0.15) {
+        if (!reduceMotion && t > CUES.Name + 0.15) {
           var phase = (t - (CUES.Name + 0.15)) % 9
           var up = phase < 6 ? phase / 6 : 1 - (phase - 6) / 3
           zoom = 1 + 0.30 * inOutSine(up)
