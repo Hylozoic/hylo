@@ -3,6 +3,7 @@ import { includes, filter, get } from 'lodash/fp'
 import { getLocaleStrings } from '../../i18n/locales'
 import { aggregateChatRooms, shouldSendData } from './util'
 import { applyUnifiedGroupLabels } from './mergeData'
+import { dropSeenContent } from './dedupe'
 import * as cheerio from 'cheerio'
 
 const generateSubjectLine = (data, type, locale) => {
@@ -118,7 +119,7 @@ const filterMyAndBlockedUserData = async (userId, data) => {
   for (const post of clonedData.posts_with_new_comments || []) {
     // Filter out comments by blocked user or the user themselves
     post.comments = filter(comment => !includes(get('user.id', comment), blockedUserIds.concat(userId)), post.comments)
-    // TODO: filter out comments that have alraedy been seen? Unfortunatly we arent tracking last read post time very well right now.
+    // Comments older than the member's last read of the post are dropped by dedupe.js
   }
 
   const allItems = CONTENT_KEYS.flatMap(key => clonedData[key] || [])
@@ -198,6 +199,9 @@ async function membershipGroupsById (userId) {
 const personalizeData = async (user, type, data, opts = {}) => {
   // Don't show me content I created or created by blocked users
   const filteredData = await filterMyAndBlockedUserData(user.id, data)
+
+  // Leave out posts they already got by email or have read, and comments they have seen (D39)
+  await dropSeenContent(user.id, filteredData)
 
   // Check again after filtering to make sure we're not sending empty digests
   if (!(await shouldSendData(filteredData, user.id))) {
