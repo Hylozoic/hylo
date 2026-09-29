@@ -291,6 +291,8 @@ const E2E_MEMBER_B_EMAIL = 'e2e.member-b@hylo.test'
 const E2E_TEST_SPACE_SLUG = 'e2e-test-space'
 const E2E_ONE_COLUMN_GROUP_SLUG = 'e2e-one-column-group'
 const E2E_ONE_COLUMN_SPACE_SLUG = 'e2e-one-column-space'
+/** Stewards list spec: an Administrator, a Host and a plain member. */
+const E2E_STEWARDS_GROUP_SLUG = 'e2e-stewards-group'
 const E2E_LOCATION_FULL_TEXT = 'E2E San Francisco, CA'
 const E2E_SKILL_NAMES = ['E2E Facilitation', 'E2E Organizing']
 
@@ -345,6 +347,7 @@ const E2E_GROUP_SLUGS = [
   E2E_TEST_SPACE_SLUG,
   E2E_ONE_COLUMN_GROUP_SLUG,
   E2E_ONE_COLUMN_SPACE_SLUG,
+  E2E_STEWARDS_GROUP_SLUG,
   ...E2E_JOIN_LINK_GROUPS.map((g) => g.slug),
   ...E2E_INVITE_LINK_GROUPS.map((g) => g.slug),
   ...Object.values(E2E_MEMBER_INVITE_GROUPS).map((g) => g.slug),
@@ -1095,6 +1098,33 @@ async function main () {
     ]) {
       await assignAdministratorRole(client, hostId, gid, administratorRoleId, now)
     }
+
+    /**
+     * Stewards list (apps/web/e2e/stewards-list.spec.js): a Public group with a public
+     * member directory whose Administrator is E2E Join Host and whose Host is E2E Member A.
+     * E2E Member B is a plain member. The main user is not a member.
+     */
+    const stewardsGroupRes = await client.query(
+      `INSERT INTO groups (
+        active, created_at, updated_at, name, slug, description,
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, home_route
+      ) VALUES (
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        2, 1, $5, $6::jsonb, 3, false, '/all'
+      ) RETURNING id`,
+      [now, 'E2E Stewards Group', E2E_STEWARDS_GROUP_SLUG, 'E2E: Administrator, Host and a member', hostId, JSON.stringify({ public_member_directory: true })]
+    )
+    const stewardsGroupId = stewardsGroupRes.rows[0].id
+    const stewardsRoles = await setupSystemRolesForGroup(client, stewardsGroupId, now)
+    for (const memberId of [hostId, ...extraMemberIds]) {
+      await client.query(
+        `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+         VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+        [stewardsGroupId, memberId, now, membershipSettings]
+      )
+    }
+    await assignAdministratorRole(client, hostId, stewardsGroupId, stewardsRoles.Administrator, now)
+    await assignAdministratorRole(client, extraMemberIds[0], stewardsGroupId, stewardsRoles.Host, now)
 
     const postMultiPublicRes = await client.query(
       `INSERT INTO posts (name, description, type, created_at, updated_at, user_id, active, visibility, is_public)
