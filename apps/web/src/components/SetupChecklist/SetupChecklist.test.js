@@ -29,6 +29,11 @@ describe('setupChecklistVisible', () => {
     expect(setupChecklistVisible({ checklist: { ...fresh, hasOtherMembers: true } })).toBe(false)
   })
 
+  it('goes away once the group has a second member, even before the checklist is refetched', () => {
+    expect(setupChecklistVisible({ checklist: fresh, memberCount: 2 })).toBe(false)
+    expect(setupChecklistVisible({ checklist: fresh, memberCount: 1 })).toBe(true)
+  })
+
   it('goes away once someone other than the founder posts', () => {
     expect(setupChecklistVisible({ checklist: { ...fresh, hasPostByOthers: true } })).toBe(false)
   })
@@ -60,13 +65,13 @@ describe('setupChecklistItems', () => {
 describe('SetupChecklist', () => {
   const group = { id: '10', slug: 'new-group', name: 'New Group', memberCount: 1 }
 
-  function renderChecklist ({ checklist = fresh, dismissedAt, administers = true } = {}) {
+  function renderChecklist ({ checklist = fresh, dismissedAt, administers = true, memberCount = group.memberCount } = {}) {
     const session = orm.mutableSession(orm.getEmptyState())
     const groupRoles = administers
       ? { items: [{ id: '1', groupId: group.id, name: 'Coordinator', responsibilities: { items: [{ id: '1', title: 'Administration' }, { id: '2', title: 'Add Members' }] } }] }
       : { items: [] }
     const me = session.Me.create({ id: '1', name: 'Founder', groupRoles })
-    session.Group.create({ ...group, setupChecklist: checklist })
+    session.Group.create({ ...group, memberCount, setupChecklist: checklist })
     session.Membership.create({ id: 'm1', group: group.id, person: me.id, settings: { setupChecklistDismissedAt: dismissedAt } })
     mockGraphqlServer.use(
       graphql.query('FetchGroupSetupChecklist', () => HttpResponse.json({ data: { group: { id: group.id, setupChecklist: checklist } } })),
@@ -86,6 +91,11 @@ describe('SetupChecklist', () => {
 
   it('renders nothing once someone else has joined', () => {
     renderChecklist({ checklist: { ...fresh, hasOtherMembers: true } })
+    expect(screen.queryByTestId('setup-checklist')).not.toBeInTheDocument()
+  })
+
+  it('renders nothing once the group has a second member, even with an older checklist', () => {
+    renderChecklist({ checklist: fresh, memberCount: 2 })
     expect(screen.queryByTestId('setup-checklist')).not.toBeInTheDocument()
   })
 

@@ -18,11 +18,13 @@ import { cn } from 'util/index'
 /**
  * Whether the founder's setup checklist shows: only to the group's creator,
  * until a second member joins or someone else posts, and never again once
- * dismissed.
+ * dismissed. The group's member count is checked too, since it can be newer
+ * than the last checklist fetch.
  */
-export function setupChecklistVisible ({ checklist, dismissedAt }) {
+export function setupChecklistVisible ({ checklist, dismissedAt, memberCount }) {
   if (!checklist?.isCreator) return false
   if (dismissedAt) return false
+  if (memberCount > 1) return false
   if (checklist.hasOtherMembers || checklist.hasPostByOthers) return false
   return true
 }
@@ -94,7 +96,7 @@ export default function SetupChecklist ({ group, className }) {
   const membership = useSelector(state => getMyGroupMembership(state, group?.slug))
   const checklist = group?.setupChecklist
   const dismissedAt = membership?.settings?.setupChecklistDismissedAt
-  const visible = setupChecklistVisible({ checklist, dismissedAt })
+  const visible = setupChecklistVisible({ checklist, dismissedAt, memberCount: group?.memberCount })
   // Once it can't show again there is nothing to fetch: dismissed, someone
   // else joined or posted, or not the founder. Most groups never need it
   const settled = Boolean(
