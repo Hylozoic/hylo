@@ -519,6 +519,12 @@ module.exports = {
         throw new GraphQLError('Only Stripe purchases can be refunded. Admin grants should be revoked instead.')
       }
 
+      // The refund covers the most recent payment; refuse a second refund of it rather than
+      // let Stripe pick an older payment
+      if (ContentAccess.latestPaymentRefunded(access)) {
+        throw new GraphQLError('The most recent payment for this purchase has already been refunded')
+      }
+
       // Get the Stripe account info
       const grantedByGroup = access.related('grantedByGroup')
       const stripeAccountId = grantedByGroup.get('stripe_account_id')

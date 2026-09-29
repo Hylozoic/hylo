@@ -532,6 +532,35 @@ describe('Content Access Mutations', () => {
       expect(activeIds).to.not.include(String(earlierButtonRefund.id))
     })
 
+    it('refuses to refund the same payment twice, with a clear message', async () => {
+      await refundContentAccess(adminUser.id, { accessId: accessRecord.id })
+
+      await expect(refundContentAccess(adminUser.id, { accessId: accessRecord.id }))
+        .to.be.rejectedWith('The most recent payment for this purchase has already been refunded')
+
+      expect(refundCalls).to.have.length(1)
+      expect(queued.filter(q => q.methodName === 'sendRefundProcessed')).to.have.length(1)
+    })
+
+    it('refunds a subscription again only after a newer payment', async () => {
+      const subscriptionAccess = await subscriptionPurchase()
+      await refundContentAccess(adminUser.id, { accessId: subscriptionAccess.id })
+
+      await expect(refundContentAccess(adminUser.id, { accessId: subscriptionAccess.id }))
+        .to.be.rejectedWith('already been refunded')
+      expect(refundCalls).to.have.length(1)
+
+      await subscriptionAccess.refresh()
+      const renewedAt = new Date(new Date(subscriptionAccess.get('refunded_at')).getTime() + 1000)
+      await subscriptionAccess.save({
+        metadata: { ...subscriptionAccess.get('metadata'), subscription_period_start: renewedAt.toISOString() }
+      }, { patch: true })
+
+      const result = await refundContentAccess(adminUser.id, { accessId: subscriptionAccess.id })
+      expect(refundCalls).to.have.length(2)
+      expect(result.get('status')).to.equal('active')
+    })
+
     it('ignores cancelFuturePayments for a one-time purchase', async () => {
       const result = await refundContentAccess(adminUser.id, {
         accessId: accessRecord.id,

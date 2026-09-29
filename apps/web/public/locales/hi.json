@@ -2907,6 +2907,7 @@
   "This will refund the most recent payment from {{userName}}. Their access stays in place. To remove their access, revoke it or remove them from the group.": "इससे {{userName}} के सबसे हाल के भुगतान की धनवापसी होगी। उनकी पहुंच बनी रहेगी। उनकी पहुंच हटाने के लिए, उसे रद्द करें या उन्हें समूह से हटा दें।",
   "Also cancel future payments": "आगे के भुगतान भी रद्द करें",
   "The subscription ends when the period they have paid for is over, and their access ends then.": "सदस्यता तब समाप्त होगी जब उनकी भुगतान की गई अवधि पूरी हो जाएगी, और तभी उनकी पहुंच भी समाप्त होगी।",
+  "The refund could not be issued. Check this payment in your Stripe dashboard.": "धनवापसी जारी नहीं की जा सकी। इस भुगतान को अपने Stripe डैशबोर्ड में देखें।",
   "Remove link": "लिंक हटाएँ",
   "Renews": "नवीनीकरण",
   "Request access from a group admin to enroll": "नामांकन के लिए समूह व्यवस्थापक से पहुँच का अनुरोध करें",

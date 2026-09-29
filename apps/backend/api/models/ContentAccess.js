@@ -336,6 +336,22 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * Whether the most recent payment for a purchase was already refunded: a refund was recorded
+   * during the period last paid for (for a one-time purchase, at any time after buying).
+   * Hylo's Refund covers the most recent payment, so it is not offered for the same payment twice.
+   * @param {ContentAccess} access
+   * @returns {Boolean}
+   */
+  latestPaymentRefunded: function (access) {
+    if (access.get('status') === this.Status.REFUNDED) return true
+    const metadata = access.get('metadata') || {}
+    const refundedAt = access.get('refunded_at') || metadata.refunded_at || metadata.refundedAt
+    if (!refundedAt) return false
+    const paidFrom = metadata.subscription_period_start || access.get('created_at')
+    return !paidFrom || new Date(refundedAt) >= new Date(paidFrom)
+  },
+
+  /**
    * Records a refund on the access row (refunded_at, refunded_amount and refund details in
    * metadata) without changing access: a refund gives the money back, and removing access
    * means removing the person.

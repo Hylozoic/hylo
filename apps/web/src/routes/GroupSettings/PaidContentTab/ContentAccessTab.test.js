@@ -7,6 +7,9 @@ import { ContentAccessRecordItem } from './ContentAccessTab'
 
 jest.mock('store/actions/refundContentAccess', () => jest.fn(() => ({ type: 'TEST_REFUND_CONTENT_ACCESS' })))
 
+// Radix dialogs with userEvent can be slow on a busy machine
+jest.setTimeout(20000)
+
 const t = (str, params) => {
   if (!params) return str
   return Object.entries(params).reduce((result, [key, value]) => result.replace(`{{${key}}}`, value), str)
@@ -90,6 +93,48 @@ describe('ContentAccessRecordItem refund', () => {
     await user.click(screen.getAllByRole('button')[0])
     expect(await screen.findByText('Revoke Access')).toBeInTheDocument()
     expect(screen.queryByText('Refund')).not.toBeInTheDocument()
+  })
+
+  it('hides Refund for a subscription whose most recent payment was already refunded', async () => {
+    const user = userEvent.setup()
+    renderRecord({
+      stripeSubscriptionId: 'sub_123',
+      refundedAt: '2026-09-20T00:00:00.000Z',
+      metadata: { subscription_period_start: '2026-09-01T00:00:00.000Z' }
+    })
+
+    await user.click(screen.getAllByRole('button')[0])
+    expect(await screen.findByText('Revoke Access')).toBeInTheDocument()
+    expect(screen.queryByText('Refund')).not.toBeInTheDocument()
+  })
+
+  it('offers Refund again once a subscription has a newer payment', async () => {
+    const user = userEvent.setup()
+    renderRecord({
+      stripeSubscriptionId: 'sub_123',
+      refundedAt: '2026-09-20T00:00:00.000Z',
+      metadata: { subscription_period_start: '2026-10-01T00:00:00.000Z' }
+    })
+
+    await openRefundDialog(user)
+    expect(screen.getByLabelText('Also cancel future payments')).toBeInTheDocument()
+  })
+
+  it('says so in the dialog when the refund fails', async () => {
+    refundContentAccess.mockImplementationOnce(() => ({
+      type: 'TEST_REFUND_CONTENT_ACCESS',
+      payload: Promise.reject(new Error('The most recent payment for this purchase has already been refunded'))
+    }))
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const user = userEvent.setup()
+    renderRecord()
+
+    await openRefundDialog(user)
+    await user.click(screen.getAllByRole('button', { name: 'Refund' }).at(-1))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The refund could not be issued. Check this payment in your Stripe dashboard.')
+    expect(screen.getByText('Refund Purchase')).toBeInTheDocument()
+    consoleError.mockRestore()
   })
 
   it('shows the Refunded status for a purchase the earlier Refund button marked refunded', () => {

@@ -2907,6 +2907,7 @@
   "This will refund the most recent payment from {{userName}}. Their access stays in place. To remove their access, revoke it or remove them from the group.": "Cela remboursera le paiement le plus récent de {{userName}}. Son accès est conservé. Pour lui retirer l'accès, révoquez-le ou retirez cette personne du groupe.",
   "Also cancel future payments": "Annuler aussi les paiements futurs",
   "The subscription ends when the period they have paid for is over, and their access ends then.": "L'abonnement prend fin à la fin de la période déjà payée, et l'accès prend fin à ce moment-là.",
+  "The refund could not be issued. Check this payment in your Stripe dashboard.": "Le remboursement n'a pas pu être effectué. Vérifiez ce paiement dans votre tableau de bord Stripe.",
   "Remove link": "Supprimer le lien",
   "Renews": "Se renouvelle",
   "Request access from a group admin to enroll": "Demandez l'accès à un administrateur du groupe pour vous inscrire",

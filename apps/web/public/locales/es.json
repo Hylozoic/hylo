@@ -1619,6 +1619,7 @@
   "This will refund the most recent payment from {{userName}}. Their access stays in place. To remove their access, revoke it or remove them from the group.": "Esto reembolsará el pago más reciente de {{userName}}. Su acceso se mantiene. Para quitarle el acceso, revócalo o elimínalo del grupo.",
   "Also cancel future payments": "Cancelar también los pagos futuros",
   "The subscription ends when the period they have paid for is over, and their access ends then.": "La suscripción termina cuando acabe el periodo que ya pagó, y su acceso termina entonces.",
+  "The refund could not be issued. Check this payment in your Stripe dashboard.": "No se pudo emitir el reembolso. Revisa este pago en tu panel de Stripe.",
   "Reject Non-Essential": "Rechazar no esenciales",
   "Related Groups": "Grupos relacionados",
   "Related Groups & Spaces": "Grupos y espacios relacionados",

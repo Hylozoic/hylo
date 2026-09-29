@@ -415,7 +415,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
  */
 function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }) {
   const dispatch = useDispatch()
-  const { id, user, offering, track, group: accessGroup, groupRole, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd, stripeSubscriptionId, refundedAt } = record
+  const { id, user, offering, track, group: accessGroup, groupRole, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd, stripeSubscriptionId, refundedAt, metadata } = record
 
   const role = groupRole
   const isParentGroupAccess = accessGroup?.id && parentGroupId && String(accessGroup.id) === String(parentGroupId)
@@ -424,13 +424,17 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
   const [showRevokeDialog, setShowRevokeDialog] = useState(false)
   const [showRefundDialog, setShowRefundDialog] = useState(false)
   const [cancelFuturePayments, setCancelFuturePayments] = useState(false)
+  const [refundFailed, setRefundFailed] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const isActive = status === 'active'
   const isPurchase = accessType === 'stripe_purchase'
   const isSubscription = !!stripeSubscriptionId
-  // A refund keeps access, so a refunded purchase stays active; a one-time purchase has nothing more to refund
-  const canRefund = isPurchase && (isSubscription || !refundedAt)
+  // A refund keeps access, so a refunded purchase stays active. Refund covers the most recent
+  // payment, so it is offered again only after a newer subscription payment.
+  const paidFrom = metadata?.subscription_period_start || createdAt
+  const latestPaymentRefunded = !!refundedAt && (!paidFrom || new Date(refundedAt) >= new Date(paidFrom))
+  const canRefund = isPurchase && !latestPaymentRefunded
 
   const getAccessTypeBadge = (type) => {
     if (type === 'stripe_purchase') {
@@ -474,11 +478,15 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
 
   const handleRefundDialogChange = (open) => {
     setShowRefundDialog(open)
-    if (!open) setCancelFuturePayments(false)
+    if (!open) {
+      setCancelFuturePayments(false)
+      setRefundFailed(false)
+    }
   }
 
   const handleRefund = async () => {
     setIsProcessing(true)
+    setRefundFailed(false)
     try {
       await dispatch(refundContentAccess({
         accessId: id,
@@ -489,6 +497,7 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
       if (onActionComplete) onActionComplete()
     } catch (error) {
       console.error('Failed to refund access:', error)
+      setRefundFailed(true)
     } finally {
       setIsProcessing(false)
     }
@@ -643,6 +652,11 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
                 </p>
               </div>
             </div>
+          )}
+          {refundFailed && (
+            <p role='alert' className='text-sm text-destructive'>
+              {t('The refund could not be issued. Check this payment in your Stripe dashboard.')}
+            </p>
           )}
           <DialogFooter>
             <button
