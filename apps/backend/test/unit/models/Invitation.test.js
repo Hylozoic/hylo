@@ -168,7 +168,53 @@ describe('Invitation', function () {
             inviter_email: inviter.get('email'),
             group_name: group.get('name')
           })
+          expect(invData.opt_out_url).to.match(new RegExp(`/noo/invitation/${invitation.get('token')}/opt-out\\?locale=en-US$`))
         })
+    })
+  })
+
+  describe('addresses that asked for no more invitations', () => {
+    let group, inviter, sent
+
+    const invite = (email, attrs) => Invitation.create({ userId: inviter.id, groupId: group.id, email })
+      .then(i => attrs ? i.save(attrs, { patch: true }) : i)
+
+    before(async () => {
+      group = await factories.group().save()
+      inviter = await factories.user().save()
+      sent = []
+      mockify(Email, 'sendInvitation', email => {
+        sent.push(email)
+        return Promise.resolve({})
+      })
+      await InvitationOptOut.record({ email: 'Stop@OptedOut.com' })
+    })
+
+    after(() => unspyify(Email, 'sendInvitation'))
+
+    beforeEach(() => { sent = [] })
+
+    it('are never sent an invitation', async () => {
+      const invitation = await invite('stop@optedout.com')
+      expect(await invitation.send()).to.equal(false)
+      await invitation.refresh()
+      expect(invitation.get('sent_count')).to.equal(0)
+      expect(sent).to.deep.equal([])
+    })
+
+    it('get no automatic reminders and are left out of Resend All', async () => {
+      const day = 1000 * 60 * 60 * 24
+      await invite('stop@optedout.com', { sent_count: 1, last_sent_at: new Date(Date.now() - 5 * day) })
+      await invite('keep@optedout.com', { sent_count: 1, last_sent_at: new Date(Date.now() - 5 * day) })
+
+      await Invitation.resendAllReady()
+      expect(sent).to.include('keep@optedout.com')
+      expect(sent).to.not.include('stop@optedout.com')
+
+      sent = []
+      await Invitation.reinviteAll({ groupId: group.id })
+      expect(sent).to.include('keep@optedout.com')
+      expect(sent).to.not.include('stop@optedout.com')
     })
   })
 

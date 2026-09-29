@@ -119,11 +119,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       { patch: true, transacting })
   },
 
+  // Nothing is sent to an address that asked for no more invitations
   send: function () {
     return this.ensureLoad(['creator', 'group', 'tag'])
-      .then(() => {
+      .then(async () => {
         const { creator, group } = this.relations
         const email = this.get('email')
+        if (await InvitationOptOut.isOptedOut(email)) return false
 
         const data = {
           subject: this.get('subject'),
@@ -141,7 +143,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
           tracking_pixel_url: Analytics.pixelUrl('Invitation', {
             recipient: email,
             group: group.get('name')
-          })
+          }),
+          opt_out_url: Invitation.optOutUrl(this.get('token'), creator.getLocale())
         }
         return this.save({
           sent_count: this.get('sent_count') + 1,
@@ -195,10 +198,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
       )
   },
 
-  // Member invitations are left to the automatic reminders
+  /** The "stop invitations to this address" link for an invitation email. */
+  optOutUrl: function (token, locale) {
+    const query = locale ? `?locale=${encodeURIComponent(locale)}` : ''
+    return `${Frontend.Route.prefix}/noo/invitation/${encodeURIComponent(token)}/opt-out${query}`
+  },
+
+  // Member invitations are left to the automatic reminders, and addresses that
+  // asked for no more invitations are left out
   reinviteAll: function (opts) {
     const { groupId } = opts
-    return Invitation.where({ group_id: groupId, used_by_id: null, expired_by_id: null, inviter_access: InviterAccess.FULL })
+    return Invitation.query(q => {
+      q.where({ group_id: groupId, used_by_id: null, expired_by_id: null, inviter_access: InviterAccess.FULL })
+      InvitationOptOut.whereNotOptedOut(q)
+    })
       .fetchAll({ withRelated: ['creator', 'group', 'tag'] })
       .then(invitations =>
         Promise.map(invitations.models, invitation => invitation.send()))
@@ -207,7 +220,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   /**
    * Send the automatic reminders that are due. A member invitation gets no more
    * reminders once its group has become a space, a join request came from it,
-   * or its sender can no longer invite people to the group.
+   * or its sender can no longer invite people to the group. Addresses that
+   * asked for no more invitations get none.
    */
   async resendAllReady () {
     const invitations = await Invitation.query(q => {
@@ -216,6 +230,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       q.whereRaw(whereClause)
       q.whereNull('used_by_id')
       q.whereNull('expired_by_id')
+      InvitationOptOut.whereNotOptedOut(q)
       q.where(function () {
         this.where('group_invites.inviter_access', InviterAccess.FULL)
           .orWhere(function () {

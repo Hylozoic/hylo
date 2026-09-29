@@ -741,6 +741,59 @@ describe('InvitationService', () => {
     })
   })
 
+  describe('addresses that asked for no more invitations', () => {
+    let optOutGroup, admin, member, queued
+
+    before(async () => {
+      optOutGroup = await factories.group().save()
+      admin = await factories.user().save()
+      member = await factories.user().save()
+      await admin.joinGroup(optOutGroup, { assignAdministrator: true })
+      await member.joinGroup(optOutGroup)
+      await InvitationOptOut.record({ email: 'no-thanks@opt-out.com' })
+      queued = []
+      mockify(Queue, 'classMethod', (cls, method, data) => Promise.resolve(queued.push([cls, method, data])))
+    })
+
+    beforeEach(() => { queued = [] })
+
+    after(() => unspyify(Queue, 'classMethod'))
+
+    const invitationsTo = email => Invitation.where({ group_id: optOutGroup.id, email }).fetchAll()
+
+    it('are left out of invitations from stewards without saying so', async () => {
+      const results = await InvitationService.create({
+        sessionUserId: admin.id,
+        groupId: optOutGroup.id,
+        emails: ['No-Thanks@opt-out.com', 'welcome@opt-out.com'],
+        subject: 'Join us',
+        message: 'Come along'
+      })
+      expect(results[0]).to.deep.equal({ email: 'No-Thanks@opt-out.com' })
+      expect(results[1].id).to.exist
+      expect((await invitationsTo('no-thanks@opt-out.com')).length).to.equal(0)
+      expect(queued).to.have.lengthOf(1)
+    })
+
+    it('are counted and reported as sent for members, like people already in the group, with no invitation', async () => {
+      const results = await InvitationService.createLimited({
+        sessionUserId: member.id,
+        groupId: optOutGroup.id,
+        emails: ['no-thanks@opt-out.com', 'member-friend@opt-out.com']
+      })
+      expect(results).to.deep.equal([
+        { email: 'no-thanks@opt-out.com', status: 'sent' },
+        { email: 'member-friend@opt-out.com', status: 'sent' }
+      ])
+      expect((await invitationsTo('no-thanks@opt-out.com')).length).to.equal(0)
+      expect((await invitationsTo('member-friend@opt-out.com')).length).to.equal(1)
+      expect(await InvitationSend.remainingAllowance({ userId: member.id, groupId: optOutGroup.id }))
+        .to.equal(InvitationSend.LIMITS.perInviterPerDay - 2)
+      const { items } = await InvitationService.findOwnLimited({ groupId: optOutGroup.id, userId: member.id })
+      expect(items.map(item => item.email).sort()).to.deep.equal(['member-friend@opt-out.com', 'no-thanks@opt-out.com'])
+    })
+  })
+
   describe('pending invitation lists', () => {
     let listGroup, admin, member, other, memberInvitations
 

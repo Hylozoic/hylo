@@ -1638,6 +1638,38 @@ ALTER SEQUENCE public.groups_suggested_skills_id_seq OWNED BY public.groups_sugg
 
 
 --
+-- Name: invitation_opt_outs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invitation_opt_outs (
+    id bigint NOT NULL,
+    email text NOT NULL,
+    invitation_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT invitation_opt_outs_email_lowercase CHECK ((email = lower(email)))
+);
+
+
+--
+-- Name: invitation_opt_outs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.invitation_opt_outs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: invitation_opt_outs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.invitation_opt_outs_id_seq OWNED BY public.invitation_opt_outs.id;
+
+
+--
 -- Name: invitation_sends; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3869,6 +3901,13 @@ ALTER TABLE ONLY public.groups_tags ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
+-- Name: invitation_opt_outs id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_opt_outs ALTER COLUMN id SET DEFAULT nextval('public.invitation_opt_outs_id_seq'::regclass);
+
+
+--
 -- Name: invitation_sends id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4546,6 +4585,22 @@ ALTER TABLE ONLY public.groups_suggested_skills
 
 ALTER TABLE ONLY public.groups_tags
     ADD CONSTRAINT groups_tags_group_id_tag_id_unique UNIQUE (group_id, tag_id);
+
+
+--
+-- Name: invitation_opt_outs invitation_opt_outs_email_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_opt_outs
+    ADD CONSTRAINT invitation_opt_outs_email_unique UNIQUE (email);
+
+
+--
+-- Name: invitation_opt_outs invitation_opt_outs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_opt_outs
+    ADD CONSTRAINT invitation_opt_outs_pkey PRIMARY KEY (id);
 
 
 --
@@ -6767,6 +6822,14 @@ ALTER TABLE ONLY public.groups_tags
 
 ALTER TABLE ONLY public.groups
     ADD CONSTRAINT groups_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: invitation_opt_outs invitation_opt_outs_invitation_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_opt_outs
+    ADD CONSTRAINT invitation_opt_outs_invitation_id_foreign FOREIGN KEY (invitation_id) REFERENCES public.group_invites(id) ON DELETE SET NULL;
 
 
 --

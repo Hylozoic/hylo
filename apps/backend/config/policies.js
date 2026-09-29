@@ -38,6 +38,11 @@ module.exports.policies = {
     '*': true
   },
 
+  InvitationController: {
+    showOptOut: true,
+    optOut:     true
+  },
+
   UploadController: {
     '*': 'sessionAuth'
   },

@@ -222,8 +222,9 @@ async function peopleSharingAGroup (senderId, userIds) {
  * and to people picked from the people search. Every valid address and
  * person counts toward the daily allowance and is reported as sent, but
  * nothing is sent to the sender, to active members, to anyone who already has
- * a pending invitation to the group, or to someone the sender blocked or was
- * blocked by, and the result does not say which. People picked from the
+ * a pending invitation to the group, to an address that asked for no more
+ * invitations, or to someone the sender blocked or was blocked by, and the
+ * result does not say which. People picked from the
  * search get an in-app notification only, never an email.
  */
 async function createLimitedInvitations ({ sessionUserId, groupId, emails = [], userIds = [], subject, message }) {
@@ -269,8 +270,11 @@ async function createLimitedInvitations ({ sessionUserId, groupId, emails = [], 
     if (counted > remaining) throw new GraphQLError('invite-limit')
     await InvitationSend.record({ userId: sessionUserId, groupId, recipients: counted }, { transacting })
 
-    const skipped = await addressesAlreadyInGroup(groupId, addresses.concat(people.map(id => reachable.get(id))), transacting)
+    const candidates = addresses.concat(people.map(id => reachable.get(id)))
+    const skipped = await addressesAlreadyInGroup(groupId, candidates, transacting)
     skipped.add((inviter.get('email') || '').toLowerCase())
+    // Addresses that asked for no more invitations are left out like people already in the group
+    for (const email of await InvitationOptOut.optedOut(candidates, { transacting })) skipped.add(email)
     // One invitation per address, whether it was typed or belongs to a picked person
     const invite = async email => {
       if (skipped.has(email)) return null
@@ -473,7 +477,8 @@ module.exports = {
   },
 
   /**
-   *
+   * Invitations from someone with Add Members. Addresses that asked for no
+   * more invitations are left out without saying so.
    * @param sessionUserId
    * @param groupId
    * @param tagName {String}
@@ -489,18 +494,21 @@ module.exports = {
       userIds && User.query(q => q.whereIn('id', userIds)).fetchAll(),
       Group.find(groupId),
       tagName && Tag.find({ name: tagName }),
-      (users, group, tag) => {
+      async (users, group, tag) => {
         const invitedUsers = get('models', users) || []
         const usersByEmail = {}
         invitedUsers.forEach(u => {
           usersByEmail[u.get('email').toLowerCase()] = u
         })
         const concatenatedEmails = emails.concat(map(u => u.get('email'), invitedUsers))
+        const optedOut = await InvitationOptOut.optedOut(concatenatedEmails)
 
         return Promise.map(concatenatedEmails, email => {
           if (!validator.isEmail(email)) {
             return { email, error: 'not a valid email address' }
           }
+          // An address that asked for no more invitations gets none, without saying so
+          if (optedOut.has(email.trim().toLowerCase())) return { email }
 
           const opts = {
             email,

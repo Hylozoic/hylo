@@ -58,6 +58,10 @@ module.exports.routes = {
 
   'POST   /noo/cookie-consent':                           'CookieConsentController.upsert',
 
+  // "Stop invitations" link in invitation emails: GET asks to confirm, POST records it
+  'GET    /noo/invitation/:token/opt-out':                'InvitationController.showOptOut',
+  'POST   /noo/invitation/:token/opt-out':                'InvitationController.optOut',
+
   'GET     /noo/mobile/check-should-update':              'MobileAppController.checkShouldUpdate',
   'GET     /noo/mobile/auto-update-info':                 'MobileAppController.updateInfo',
   'POST    /noo/mobile/logerror':                         'MobileAppController.logError',
