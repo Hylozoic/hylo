@@ -28,17 +28,17 @@ const ROOTS = new Set([
 const PAGE_NAMES = new Set([
   'about', 'account', 'add-location', 'agreements', 'all', 'all-topics', 'all-views', 'announcements',
   'appearance', 'banners', 'blocked-users', 'cancel', 'chat', 'collection', 'comment', 'comments',
-  'consent', 'content-access', 'create', 'create-group', 'custom', 'delete', 'details', 'discussions',
+  'consent', 'content-access', 'create', 'create-group', 'custom', 'delete', 'deleted', 'details', 'discussions',
   'drafts', 'edit', 'edit-profile', 'email-testers', 'events', 'explore', 'export', 'failure', 'finish',
   'funding-round-submissions', 'funding-rounds', 'group', 'groups', 'h', 'import', 'interactions',
   'invitation', 'invitations', 'invite', 'join', 'locale', 'login', 'management', 'manage-round', 'map',
-  'members', 'mentions', 'messages', 'moderation', 'more-spaces', 'my', 'new', 'notifications', 'oauth',
+  'members', 'mentions', 'messages', 'moderation', 'more-spaces', 'my', 'new', 'new-public-groups', 'notifications', 'oauth',
   'offerings', 'page', 'paid-content', 'payment', 'post', 'posts', 'privacy', 'projects', 'proposals',
-  'public', 'related-groups', 'relationships', 'requests', 'requests-and-offers', 'reset-password',
-  'resources', 'responsibilities', 'roles', 'saved-posts', 'saved-searches', 'search', 'settings',
+  'public', 'recommended-groups', 'related-groups', 'relationships', 'reports', 'requests', 'requests-and-offers', 'reset-password',
+  'resources', 'responsibilities', 'roles', 'safety', 'saved-posts', 'saved-searches', 'search', 'settings',
   'signup', 'site', 'space-collection', 'spaces', 'staging', 'stream', 'stripe-analytics',
   'subscriptions', 'success', 'themes', 'topics', 'track-actions', 'tracks', 'transactions',
-  'upload-photo', 'use-invitation', 'verify-email', 'welcome'
+  'upload-photo', 'use-invitation', 'verify-email', 'welcome', 'without-administrator'
 ])
 
 // The segment after one of these is someone's data, so it's always a placeholder

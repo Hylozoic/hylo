@@ -24,7 +24,12 @@ describe('routePattern', () => {
     ['/public/groups', '/public/groups'],
     ['/oauth/login/Xy12AbC', '/oauth/login/:uid'],
     ['/login', '/login'],
-    ['/signup/verify-email', '/signup/verify-email']
+    ['/signup/verify-email', '/signup/verify-email'],
+    ['/welcome/recommended-groups', '/welcome/recommended-groups'],
+    ['/management/groups/without-administrator', '/management/groups/without-administrator'],
+    ['/management/groups/deleted', '/management/groups/deleted'],
+    ['/management/site/new-public-groups', '/management/site/new-public-groups'],
+    ['/management/safety/reports', '/management/safety/reports']
   ])('%s → %s', (pathname, expected) => {
     expect(routePattern(pathname)).toBe(expected)
   })
