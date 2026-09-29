@@ -215,7 +215,9 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
 
   const confirmRemoveMember = () => {
     setConfirmingRemove(false)
-    removeMemberAction(personId).then(goToPreviousLocation)
+    removeMemberAction(personId).then(goToPreviousLocation, error => window.alert(error?.message === 'A group must keep at least one Administrator'
+      ? t('A group must keep at least one Administrator')
+      : t('There was an error, please try again.')))
   }
 
   const toggleShowAllGroups = () => {

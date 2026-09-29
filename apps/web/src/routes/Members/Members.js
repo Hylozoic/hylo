@@ -210,16 +210,25 @@ function Members (props) {
   const clearMemberFilters = useCallback(() => {
     dispatch(changeQuerystringParams(location, { r: null, tc: null, fr: null }))
   }, [location, dispatch])
-  const removeMemberAction = useCallback((id) => {
-    if (!group?.id) return
-    // We pass slug and group.id because slug is needed to optimistically update the query results, which are based on slug
-    // TODO: ideally switch removeMember to also use slug so we dont need to pass in group.id too
-    dispatch(removeMember(id, group.id, slug))
-  }, [dispatch, group?.id, slug])
   const fetchMembersAction = useCallback((offset = 0) => {
     if (!group?.id || !slug) return
     dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability }))
   }, [dispatch, slug, group?.id, sortBy, search, groupRoleIds, trackCompleted, fundingRoundCapability])
+  const removeMemberAction = useCallback(async (id) => {
+    if (!group?.id) return
+    // We pass slug and group.id because slug is needed to optimistically update the query results, which are based on slug
+    // TODO: ideally switch removeMember to also use slug so we dont need to pass in group.id too
+    const result = await Promise.resolve(dispatch(removeMember(id, group.id, slug)))
+      .catch(error => ({ error: true, payload: error }))
+    // The list dropped the person before the server answered, so on a refusal say why and reload it
+    if (result?.error) {
+      window.alert(result.payload?.message === 'A group must keep at least one Administrator'
+        ? t('A group must keep at least one Administrator')
+        : t('There was an error, please try again.'))
+      fetchMembersAction(0)
+    }
+    return result
+  }, [dispatch, group?.id, slug, t, fetchMembersAction])
 
   useLayoutEffect(() => {
     const centerColumn = document.getElementById(CENTER_COLUMN_ID)
