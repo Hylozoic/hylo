@@ -176,7 +176,8 @@ export const POST_TYPES = {
     backgroundColor: 'rgba(0, 163, 227, .2)', // $color-link-water
     map: true,
     label: 'Discussion',
-    description: 'Talk about what\'s important with others'
+    // Matches the existing translation key, which has no apostrophe
+    description: 'Talk about whats important with others'
   },
   event: {
     primaryColor: [254, 72, 80, 255], // $color-medium-purple
