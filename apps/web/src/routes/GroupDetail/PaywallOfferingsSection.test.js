@@ -19,6 +19,7 @@ jest.mock('react-redux', () => ({
 }))
 
 jest.mock('store/actions/fetchPublicStripeOfferings', () => () => ({ type: 'TEST_FETCH_OFFERINGS' }))
+jest.mock('store/actions/fetchPaywallPreview', () => () => ({ type: 'TEST_FETCH_PREVIEW' }))
 
 const group = { id: '1', slug: 'garden-club', name: 'Garden Club', paywall: true, type: 'group' }
 
@@ -32,12 +33,45 @@ const offering = {
 }
 
 describe('PaywallOfferingsSection', () => {
+  let preview
+
   beforeEach(() => {
+    preview = null
     mockNavigate.mockReset()
     mockDispatch.mockReset()
-    mockDispatch.mockImplementation(action => action.type === 'TEST_FETCH_OFFERINGS'
-      ? Promise.resolve({ payload: { data: { publicStripeOfferings: { offerings: [offering] } } } })
-      : action)
+    mockDispatch.mockImplementation(action => {
+      if (action.type === 'TEST_FETCH_OFFERINGS') {
+        return Promise.resolve({ payload: { data: { publicStripeOfferings: { offerings: [offering] } } } })
+      }
+      if (action.type === 'TEST_FETCH_PREVIEW') {
+        return Promise.resolve({ payload: { data: { group: { id: '1', paywallPreview: preview } } } })
+      }
+      return action
+    })
+  })
+
+  it('shows the titles of pinned and recent posts above the offerings', async () => {
+    preview = { postTitles: ['Welcome to the season', 'Planting schedule'], actionTitles: [], numActions: null, numPeopleCompleted: null }
+    render(<PaywallOfferingsSection group={group} />)
+
+    expect(await screen.findByText('Welcome to the season')).toBeInTheDocument()
+    expect(screen.getByText('Planting schedule')).toBeInTheDocument()
+    expect(screen.getByText('A look inside')).toBeInTheDocument()
+  })
+
+  it('shows a track\'s action titles and counts', async () => {
+    preview = { postTitles: [], actionTitles: ['Read the guide'], numActions: 4, numPeopleCompleted: 1 }
+    render(<PaywallOfferingsSection group={group} />)
+
+    expect(await screen.findByText('Read the guide')).toBeInTheDocument()
+    expect(screen.getByTestId('paywall-preview')).toHaveTextContent('paywallPreviewActions, paywallPreviewCompleted')
+  })
+
+  it('shows no preview when the stewards turned it off', async () => {
+    render(<PaywallOfferingsSection group={group} />)
+
+    expect(await screen.findByText('Season Pass')).toBeInTheDocument()
+    expect(screen.queryByTestId('paywall-preview')).not.toBeInTheDocument()
   })
 
   it('sends a signed-out buyer to sign up, returning to this page afterwards', async () => {

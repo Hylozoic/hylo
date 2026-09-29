@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Button from 'components/ui/button'
 import { stripHtml } from 'hooks/useDraft'
-import { DollarSign, CreditCard, LogIn } from 'lucide-react'
+import { DollarSign, CreditCard, LogIn, Lock } from 'lucide-react'
 import { localSpaceSlug } from '@hylo/navigation'
 import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
+import fetchPaywallPreview from 'store/actions/fetchPaywallPreview'
 import { createStripeCheckoutSession } from 'util/offerings'
 import { offeringGrantsGroupAccess, parseAccessGrants } from 'util/accessGrants'
 import formatPrice from 'util/formatPrice'
@@ -37,6 +38,7 @@ export default function PaywallOfferingsSection ({ group, sellingGroup }) {
     group?.id && myMemberships?.some(m => m.group?.id === group.id),
   [group?.id, myMemberships])
   const [offerings, setOfferings] = useState([])
+  const [preview, setPreview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(null)
   const offeringsGroupId = sellingGroup?.id || (group?.type === 'space' && group?.parentId) || group?.id
@@ -82,6 +84,25 @@ export default function PaywallOfferingsSection ({ group, sellingGroup }) {
 
     loadOfferings()
   }, [dispatch, group?.id, group?.paywall, offeringsGroupId])
+
+  // What people can see before they buy, when the stewards leave the preview on
+  useEffect(() => {
+    if (!group?.paywall || !group?.id) return undefined
+    let cancelled = false
+
+    const loadPreview = async () => {
+      try {
+        const result = await dispatch(fetchPaywallPreview({ groupId: group.id }))
+        const data = result?.payload?.getData ? result.payload.getData() : result?.payload?.data?.group
+        if (!cancelled) setPreview(data?.paywallPreview || null)
+      } catch (error) {
+        if (!cancelled) setPreview(null)
+      }
+    }
+
+    loadPreview()
+    return () => { cancelled = true }
+  }, [dispatch, group?.id, group?.paywall])
 
   /**
    * Creates a Stripe checkout session and redirects to payment
@@ -191,6 +212,8 @@ export default function PaywallOfferingsSection ({ group, sellingGroup }) {
             : t('Either your membership has lapsed or the group stewards have added a paywall to the group.')}
         </p>
       )}
+      <PaywallPreview preview={preview} />
+
       <p className='text-foreground/70 text-sm mb-4'>
         {isSpace
           ? t('Choose a payment option below to gain access to this space:')
@@ -219,6 +242,44 @@ export default function PaywallOfferingsSection ({ group, sellingGroup }) {
           />
         ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * PaywallPreview Component
+ *
+ * Titles of what is inside, still locked: a track's actions with how many there are and
+ * how many people completed it, or a group's pinned and recent post titles.
+ */
+export function PaywallPreview ({ preview }) {
+  const { t } = useTranslation()
+  if (!preview) return null
+
+  const isTrack = preview.numActions !== null && preview.numActions !== undefined
+  const titles = (isTrack ? preview.actionTitles : preview.postTitles) || []
+  if (!isTrack && titles.length === 0) return null
+
+  return (
+    <div className='rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5 mb-4' data-testid='paywall-preview'>
+      <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50 mb-1'>{t('A look inside')}</div>
+      {isTrack && (
+        <p className='text-sm text-foreground/70 mb-2'>
+          {t('paywallPreviewActions', { count: preview.numActions })}
+          {', '}
+          {t('paywallPreviewCompleted', { count: preview.numPeopleCompleted || 0 })}
+        </p>
+      )}
+      {titles.length > 0 && (
+        <ul className='flex flex-col gap-1.5 m-0 p-0 list-none'>
+          {titles.map((title, index) => (
+            <li key={`${index}-${title}`} className='flex items-center gap-2 text-sm text-foreground/80 min-w-0'>
+              <Lock className='w-3.5 h-3.5 shrink-0 text-foreground/40' aria-hidden='true' />
+              <span className='truncate'>{title}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

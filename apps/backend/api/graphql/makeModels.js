@@ -21,6 +21,7 @@ import {
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
 import InvitationService from '../services/InvitationService'
+import { paywallPreview } from '../models/track/preview'
 import {
   filterAndSortContentAccess,
   filterAndSortPosts,
@@ -1256,7 +1257,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         settings: g => mapKeys(camelCase, g.get('settings')),
         // XXX: Flag for translation
         typeDescriptor: g => g.get('type_descriptor') || (g.get('type') ? startCase(g.get('type')) : 'Group'),
-        typeDescriptorPlural: g => g.get('type_descriptor_plural') || (g.get('type') ? pluralize(startCase(g.get('type'))) : 'Groups')
+        typeDescriptorPlural: g => g.get('type_descriptor_plural') || (g.get('type') ? pluralize(startCase(g.get('type'))) : 'Groups'),
+        // Titles and counts only, for people deciding whether to buy access
+        paywallPreview: g => g ? paywallPreview(g, userId) : null
       },
       filter: nonAdminFilter(apiFilter(groupFilter(userId))),
       fetchMany: ({ allowedInPublic, autocomplete, boundingBox, context, farmQuery, filter, first, groupIds, groupType, nearCoord, offset, onlyMine, order, parentSlugs, search, sortBy, visibility }) =>
