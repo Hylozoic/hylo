@@ -240,18 +240,17 @@ export async function removeMember (loggedInUserId, userIdToRemove, groupId, con
 }
 
 /**
- * Block someone who is no longer in the group from rejoining it, for example
- * right after removing them. Only people who can remove members can do this.
+ * Block someone who was in the group and is no longer, for example right after
+ * removing them, from rejoining it. Only people who can remove members can do
+ * this, and nobody can be blocked before they have been in the group.
  */
 export async function banFromGroup (userId, personId, groupId) {
   const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_REMOVE_MEMBERS)
   assertCanBan(group, userId, personId)
-  const person = personId && await User.find(personId)
-  if (!person) throw new GraphQLError('Person not found')
-  if (await GroupMembership.forPair(person.id, group.id).fetch()) {
-    throw new GraphQLError('Remove this person from the group first')
-  }
-  await GroupBan.create({ groupId: group.id, userId: person.id, createdById: userId })
+  const membership = personId && await GroupMembership.forPair(personId, group.id, { includeInactive: true }).fetch()
+  if (!membership) throw new GraphQLError('Only people who were in this group can be blocked from rejoining it')
+  if (membership.get('active')) throw new GraphQLError('Remove this person from the group first')
+  await GroupBan.create({ groupId: group.id, userId: membership.get('user_id'), createdById: userId })
   return { success: true }
 }
 

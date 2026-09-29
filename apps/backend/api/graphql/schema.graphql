@@ -3900,7 +3900,7 @@ type Mutation {
   rejectGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
   # Remove a Person from a Group. Only a group Moderator can call this. With blockFromRejoining, they can't come back through a join link, an invite link, an invitation or a request until a steward lifts the block
   removeMember(personId: ID, groupId: ID, blockFromRejoining: Boolean): Group
-  # Block someone no longer in a group from rejoining it. Only someone who can remove members can call this
+  # Block someone who was in a group and no longer is from rejoining it. Only someone who can remove members can call this
   banFromGroup(personId: ID, groupId: ID): GenericResult
   # Let someone blocked from rejoining a group come back. Anyone who can add or remove members can call this
   liftGroupBan(personId: ID, groupId: ID): GenericResult

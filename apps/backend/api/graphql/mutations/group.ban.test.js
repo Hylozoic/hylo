@@ -87,6 +87,13 @@ describe('blocking removed people from rejoining a group', () => {
       await expect(banFromGroup(member.id, outsider.id, open.id)).to.be.rejectedWith("You don't have the right responsibilities for this group")
       expect(await GroupBan.isBanned(outsider.id, open.id)).to.be.false
     })
+
+    it('refuses to block someone who was never in the group, or no one at all, the same way', async () => {
+      const neverIn = 'Only people who were in this group can be blocked from rejoining it'
+      await expect(banFromGroup(steward.id, outsider.id, open.id)).to.be.rejectedWith(neverIn)
+      await expect(banFromGroup(steward.id, '999999999', open.id)).to.be.rejectedWith(neverIn)
+      expect(await GroupBan.isBanned(outsider.id, open.id)).to.be.false
+    })
   })
 
   describe('every route back in', () => {
