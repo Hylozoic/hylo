@@ -187,12 +187,13 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> closed your post', { name })
     case ACTION_POST_UNFULFILLED:
       return t('<strong>{{name}}</strong> reopened your post', { name })
+    // The person who asked isn't a member, so a group they can no longer see comes back empty
     case ACTION_ACKNOWLEDGED_JOIN_REQUEST:
-      return t('Request sent to <strong>{{groupName}}</strong>', { groupName: group?.name })
+      return t('Request sent to <strong>{{groupName}}</strong>', { groupName: group?.name || t('the group') })
     case ACTION_DECLINED_JOIN_REQUEST:
-      return t('About your request to join <strong>{{groupName}}</strong>', { groupName: group?.name })
+      return t('About your request to join <strong>{{groupName}}</strong>', { groupName: group?.name || t('the group') })
     case ACTION_UNANSWERED_JOIN_REQUEST:
-      return t('No answer yet from <strong>{{groupName}}</strong>', { groupName: group?.name })
+      return t('No answer yet from <strong>{{groupName}}</strong>', { groupName: group?.name || t('the group') })
     case ACTION_ROLE_GRANTED:
       return t('<strong>{{name}}</strong> gave you the <strong>{{roleName}}</strong> role', { name, roleName: roleLabel(notification.activity.meta) })
     case ACTION_NEW_MEMBERS_JOINED:
@@ -406,8 +407,9 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_POST_UNFULFILLED:
       return primaryPostUrl(post, postOpts)
     case ACTION_ACKNOWLEDGED_JOIN_REQUEST: {
+      if (!groupSlug) return GROUP_EXPLORER_URL
       const parentSlug = group?.parentGroup?.slug || otherGroupSlug
-      if (parentSlug && groupSlug) {
+      if (parentSlug) {
         return spaceUrl(parentSlug, localSpaceSlug(parentSlug, groupSlug), 'about')
       }
       return groupUrl(groupSlug, 'about')
@@ -440,8 +442,9 @@ export function imageForNotification (notification) {
     case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
     case ACTION_FUNDING_ROUND_PHASE_TRANSITION:
     case ACTION_FUNDING_ROUND_REMINDER:
-      return group.avatarUrl
+      // A group the reader can't see comes back empty; show the person instead
+      return group ? group.avatarUrl : actor?.avatarUrl
     default:
-      return actor.avatarUrl
+      return actor?.avatarUrl
   }
 }

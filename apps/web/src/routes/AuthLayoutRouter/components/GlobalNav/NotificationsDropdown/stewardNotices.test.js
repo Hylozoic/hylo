@@ -53,6 +53,15 @@ describe('notices to someone who asked to join (D14)', () => {
     expect(bodyForNotification(n, t)).toContain('two weeks')
     expect(urlForNotification(n)).toEqual('/public/groups')
   })
+
+  it('still shows the notices when the person can no longer see the group', () => {
+    for (const action of ['acknowledgedJoinRequest', 'declinedJoinRequest', 'unansweredJoinRequest']) {
+      const n = notification(action, { group: null })
+      expect(titleForNotification(n, t)).toContain('<strong>the group</strong>')
+      expect(imageForNotification(n)).toEqual('rey.png')
+      expect(urlForNotification(n)).toEqual('/public/groups')
+    }
+  })
 })
 
 describe('role granted (D48)', () => {
