@@ -144,6 +144,16 @@ describe('notification/grouping', () => {
       expect(await newNotificationCount(author.id)).to.equal(1)
     })
 
+    it('lets a send finish when its row was replaced while it was being sent', async () => {
+      await Activity.saveForReasons([reactionBy(fans[0])])
+      const [first] = await activitiesFor()
+      const push = (await notificationsFor(first)).find(n => n.get('medium') === Notification.MEDIUM.Push)
+      await push.load(relations)
+      await Activity.saveForReasons([reactionBy(fans[1])])
+      expect(await Notification.where({ id: push.id }).fetch()).to.not.exist
+      await push.send()
+    })
+
     it('does not change the count when the replaced notice was never sent', async () => {
       await User.query().where({ id: author.id }).update({ new_notification_count: 3 })
       await Activity.saveForReasons([reactionBy(fans[0])])

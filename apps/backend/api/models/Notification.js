@@ -158,10 +158,12 @@ module.exports = bookshelf.Model.extend({
         break
       }
     }
+    // require: false because a grouped notice (notification/grouping) may have replaced
+    // this row while it was being sent
     await this.save({
       sent_at: (new Date()).toISOString(),
       processing_started_at: null
-    }, { patch: true })
+    }, { patch: true, require: false })
     return Promise.resolve()
   },
 
@@ -1590,7 +1592,7 @@ module.exports = bookshelf.Model.extend({
             console.error('Error sending notification', err, n.attributes)
             sentry.error(err, null, { notification: n.attributes })
             if (n.get('medium') === MEDIUM.Push) pushFailed = true
-            return n.save({ failed_at: new Date(), processing_started_at: null }, { patch: true })
+            return n.save({ failed_at: new Date(), processing_started_at: null }, { patch: true, require: false })
           })
         )
         // Retry a failed push inside its window rather than waiting for the 10-minute cron.
