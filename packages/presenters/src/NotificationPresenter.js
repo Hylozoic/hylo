@@ -27,6 +27,9 @@ const NOTIFICATION_TEXT_MAX = 76
 
 // The Group Explorer, where people find open groups to join
 const GROUP_EXPLORER_URL = '/public/groups'
+
+// A role's emoji and name, as the role list shows them
+const roleLabel = (meta = {}) => [meta.roleEmoji, meta.roleName].filter(Boolean).join(' ')
 export function truncateHTML (html) {
   if (!html) return ''
 
@@ -78,6 +81,8 @@ export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
 export const ACTION_ACKNOWLEDGED_JOIN_REQUEST = 'acknowledgedJoinRequest'
 export const ACTION_DECLINED_JOIN_REQUEST = 'declinedJoinRequest'
 export const ACTION_UNANSWERED_JOIN_REQUEST = 'unansweredJoinRequest'
+// D48: a steward gave you a role or badge
+export const ACTION_ROLE_GRANTED = 'roleGranted'
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -182,6 +187,8 @@ export function titleForNotification (notification, t) {
       return t('About your request to join <strong>{{groupName}}</strong>', { groupName: group?.name })
     case ACTION_UNANSWERED_JOIN_REQUEST:
       return t('No answer yet from <strong>{{groupName}}</strong>', { groupName: group?.name })
+    case ACTION_ROLE_GRANTED:
+      return t('<strong>{{name}}</strong> gave you the <strong>{{roleName}}</strong> role', { name, roleName: roleLabel(notification.activity.meta) })
     default:
       return null
   }
@@ -286,6 +293,8 @@ export function bodyForNotification (notification, t) {
       return t("Your request wasn't approved this time. There are other groups you can join.")
     case ACTION_UNANSWERED_JOIN_REQUEST:
       return t('Your request has been waiting two weeks. You can keep waiting, or find an open group to join now.')
+    case ACTION_ROLE_GRANTED:
+      return t('See who else holds it in {{groupName}}', { groupName: group?.name })
     default:
       return null
   }
@@ -308,7 +317,7 @@ function groupPostUrlOpts (group, groupSlug, homeRoute) {
   return { groupSlug, homeRoute }
 }
 
-export function urlForNotification ({ id, activity: { action, actor, post, comment, group, fundingRound, meta: { reasons }, otherGroup, track } }) {
+export function urlForNotification ({ id, activity: { action, actor, post, comment, group, fundingRound, meta: { reasons, roleId }, otherGroup, track } }) {
   const groupSlug = get('slug', group) ||
     // 2020-06-03 - LEJ
     // Some notifications (i.e. new comment and comment mention)
@@ -388,6 +397,8 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_DECLINED_JOIN_REQUEST:
     case ACTION_UNANSWERED_JOIN_REQUEST:
       return GROUP_EXPLORER_URL
+    case ACTION_ROLE_GRANTED:
+      return groupUrl(groupSlug, 'members') + (roleId ? `?r=${encodeURIComponent(roleId)}` : '')
   }
 }
 

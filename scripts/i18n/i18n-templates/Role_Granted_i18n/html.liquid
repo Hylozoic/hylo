@@ -1,0 +1,33 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+{% set granter_pill = actor_pill(granter_name, granter_avatar_url, granter_profile_url) %}
+{% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+
+<p>
+  {% set first_name_var = first_name %}
+  {% trans %}Hi {{first_name_var}},{% endtrans %}
+</p>
+
+<p>
+  {% set role_name_var = role_name|e %}
+  {% trans %}{{granter_pill}} gave you the {{role_name_var}} role in {{group_pill}}.{% endtrans %}
+</p>
+
+<div class='card center'>
+  <h3>{% if role_emoji %}{{role_emoji|e}} {% endif %}{{role_name|e}}</h3>
+  {% if role_description %}
+    <p>{{role_description|e}}</p>
+  {% endif %}
+</div>
+
+<a class='btn btn-blue' href="{{group_url}}" clicktracking="off">{% trans %}Go to the group{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

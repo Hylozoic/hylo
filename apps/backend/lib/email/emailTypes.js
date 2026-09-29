@@ -80,7 +80,8 @@ export const EMAIL_TYPES = {
   // D14: to someone who asked to join a group (they aren't a member yet)
   sendJoinRequestReceived: essential('your request to join a group arrived, and what happens next'),
   sendJoinRequestDeclined: essential('your request to join a group was not approved'),
-  sendJoinRequestUnanswered: bulk('settings_page', 'your request to join has had no answer for 14 days, with open groups to try')
+  sendJoinRequestUnanswered: bulk('settings_page', 'your request to join has had no answer for 14 days, with open groups to try'),
+  sendRoleGranted: bulk('group_post_email', 'a steward gave you a role or badge (D48)')
 }
 
 export const EMAIL_KINDS = ['essential', 'bulk']

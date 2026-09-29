@@ -849,6 +849,13 @@ msgstr "आप इंतज़ार कर सकते हैं: आपका
 msgid "Or join one of these open groups today:"
 msgstr "या आज ही इनमें से किसी खुले समूह में शामिल हों:"
 
+#, python-format
+msgid "%(granter_pill)s gave you the %(role_name_var)s role in %(group_pill)s."
+msgstr "%(granter_pill)s ने आपको %(group_pill)s में %(role_name_var)s की भूमिका दी।"
+
+msgid "Go to the group"
+msgstr "समूह पर जाएं"
+
 msgid "Introduce yourself to the group"
 msgstr "समूह से अपना परिचय दें"
 

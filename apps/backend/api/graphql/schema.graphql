@@ -608,6 +608,10 @@ type ActivityMeta {
   reasons: [String]
   # The type of reminder for this activity if it is a reminder (for funding rounds)
   reminderType: String
+  # roleGranted: the role or badge a steward gave the reader
+  roleId: ID
+  roleName: String
+  roleEmoji: String
 }
 
 # An activity that someone may want to be notified about

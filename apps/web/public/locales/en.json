@@ -1318,6 +1318,8 @@
   "Your request wasn't approved this time. There are other groups you can join.": "Your request wasn't approved this time. There are other groups you can join.",
   "No answer yet from <strong>{{groupName}}</strong>": "No answer yet from <strong>{{groupName}}</strong>",
   "Your request has been waiting two weeks. You can keep waiting, or find an open group to join now.": "Your request has been waiting two weeks. You can keep waiting, or find an open group to join now.",
+  "<strong>{{name}}</strong> gave you the <strong>{{roleName}}</strong> role": "<strong>{{name}}</strong> gave you the <strong>{{roleName}}</strong> role",
+  "See who else holds it in {{groupName}}": "See who else holds it in {{groupName}}",
   "New Message": "New Message",
   "New Message With": "New Message With",
   "New Password": "New Password",

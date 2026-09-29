@@ -100,6 +100,7 @@ exports.fr = {
   joinRequestReceivedSubject: (groupName) => `Votre demande pour rejoindre ${groupName} a été envoyée`,
   joinRequestDeclinedSubject: (groupName) => `À propos de votre demande pour rejoindre ${groupName}`,
   joinRequestUnansweredSubject: (groupName) => `Votre demande pour rejoindre ${groupName} attend toujours une réponse`,
+  roleGrantedSubject: ({ roleName, groupName }) => `Vous avez un nouveau rôle dans ${groupName} : ${roleName}`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

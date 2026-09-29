@@ -54,3 +54,23 @@ describe('notices to someone who asked to join (D14)', () => {
     expect(urlForNotification(n)).toEqual('/public/groups')
   })
 })
+
+describe('role granted (D48)', () => {
+  const steward = { id: '3', name: 'Sam Steward', avatarUrl: 'sam.png' }
+  const n = {
+    id: '101',
+    activity: {
+      action: 'roleGranted',
+      actor: steward,
+      group,
+      meta: { reasons: ['roleGranted'], roleId: '44', roleName: 'Host', roleEmoji: '👋' }
+    }
+  }
+
+  it('names who gave which role, and links to everyone who holds it', () => {
+    expect(titleForNotification(n, t)).toEqual('<strong>Sam Steward</strong> gave you the <strong>👋 Host</strong> role')
+    expect(bodyForNotification(n, t)).toEqual('See who else holds it in Seed Library')
+    expect(urlForNotification(n)).toEqual('/groups/seed-library/members?r=44')
+    expect(imageForNotification(n)).toEqual('sam.png')
+  })
+})

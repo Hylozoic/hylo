@@ -84,6 +84,9 @@ export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
                 reasons
                 phase
                 reminderType
+                roleId
+                roleName
+                roleEmoji
               }
               action
               unread

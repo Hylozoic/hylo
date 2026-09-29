@@ -1307,6 +1307,8 @@
   "Your request wasn't approved this time. There are other groups you can join.": "Tu solicitud no fue aprobada esta vez. Hay otros grupos a los que puedes unirte.",
   "No answer yet from <strong>{{groupName}}</strong>": "Aún no hay respuesta de <strong>{{groupName}}</strong>",
   "Your request has been waiting two weeks. You can keep waiting, or find an open group to join now.": "Tu solicitud lleva dos semanas esperando. Puedes seguir esperando o encontrar un grupo abierto al que unirte ahora.",
+  "<strong>{{name}}</strong> gave you the <strong>{{roleName}}</strong> role": "<strong>{{name}}</strong> te dio el rol <strong>{{roleName}}</strong>",
+  "See who else holds it in {{groupName}}": "Mira quién más lo tiene en {{groupName}}",
   "New Message": "Nuevo mensaje",
   "New Message With": "Nuevo mensaje con",
   "New Password": "Nueva contraseña",

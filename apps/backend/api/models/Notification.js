@@ -574,6 +574,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendDeclinedJoinRequestEmail()
       case 'unansweredJoinRequest':
         return this.sendUnansweredJoinRequestEmail()
+      case 'roleGranted':
+        return this.sendRoleGrantedEmail()
       default:
         // Must not throw: an unhandled reason would otherwise be retried until it ages out.
         sentry.captureException(new Error('No email is defined for this notification reason'), {
@@ -1388,6 +1390,45 @@ module.exports = bookshelf.Model.extend({
       url: Frontend.appendQueryString(Frontend.Route.group(suggestion) + '/about', clickthroughParams)
     }))
     return Email.sendJoinRequestUnanswered(options)
+  },
+
+  // D48: a steward gave the reader a role or badge by hand (mutations/role.js)
+  sendRoleGrantedEmail: async function () {
+    const actor = this.actor()
+    const reader = this.reader()
+    const activity = this.relations.activity
+    const meta = activity.get('meta') || {}
+    const locale = this.locale()
+    const group = await Group.find(activity.get('group_id'))
+    if (!group) throw new Error('no group in activity')
+    const role = meta.roleId ? await GroupRole.where({ id: meta.roleId }).fetch() : null
+    const roleName = role ? role.get('name') : meta.roleName
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'role_granted_email',
+      cti: reader.id,
+      ctcn: group.get('name')
+    }).toString()
+
+    return Email.sendRoleGranted({
+      email: reader.get('email'),
+      locale,
+      sender: { name: await senderNameForGroup(group, locale) },
+      data: {
+        subject: getLocaleStrings(locale).roleGrantedSubject({ roleName, groupName: group.get('name') }),
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        first_name: reader.get('first_name') || reader.get('name'),
+        granter_name: actor.get('name'),
+        granter_avatar_url: actor.get('avatar_url'),
+        granter_profile_url: Frontend.Route.profile(actor, group) + clickthroughParams,
+        group_name: group.get('name'),
+        group_avatar_url: group.get('avatar_url'),
+        group_url: Frontend.Route.groupHome(group) + clickthroughParams,
+        role_name: roleName,
+        role_emoji: role ? role.get('emoji') : meta.roleEmoji,
+        role_description: role ? role.get('description') : null
+      }
+    })
   },
 
   shouldBeBlocked: async function () {

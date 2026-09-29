@@ -100,6 +100,7 @@ exports.hi = {
   joinRequestReceivedSubject: (groupName) => `${groupName} में शामिल होने का आपका अनुरोध भेज दिया गया है`,
   joinRequestDeclinedSubject: (groupName) => `${groupName} में शामिल होने के आपके अनुरोध के बारे में`,
   joinRequestUnansweredSubject: (groupName) => `${groupName} में शामिल होने का आपका अनुरोध अभी भी जवाब का इंतज़ार कर रहा है`,
+  roleGrantedSubject: ({ roleName, groupName }) => `${groupName} में आपकी नई भूमिका: ${roleName}`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

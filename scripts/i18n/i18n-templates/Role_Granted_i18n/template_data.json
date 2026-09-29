@@ -1,0 +1,14 @@
+{
+  "subject": "You have a new role in Seed Library: Host",
+  "first_name": "Alex",
+  "granter_name": "Sam Steward",
+  "granter_avatar_url": "https://www.hylo.com/default-user-avatar.png",
+  "granter_profile_url": "https://hylo.com/groups/seed-library/members/1",
+  "group_name": "Seed Library",
+  "group_avatar_url": "https://www.hylo.com/default-group-avatar.png",
+  "group_url": "https://hylo.com/groups/seed-library/all",
+  "role_name": "Host",
+  "role_emoji": "👋",
+  "role_description": "Hosts are responsible for cultivating a good atmosphere by welcoming and orienting new members.",
+  "email_settings_url": "https://hylo.com/notifications"
+}

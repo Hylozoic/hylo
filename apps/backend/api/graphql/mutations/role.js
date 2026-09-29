@@ -13,6 +13,24 @@ async function assertNotSpace (groupId) {
   }
 }
 
+/**
+ * D48: tells a member, in-app and by email, that a steward gave them a role or badge.
+ * Only addRoleToMember calls this, for a grant made by hand to someone else. Automatic
+ * grants (the implicit Member role, track completion roles, roles attached to an
+ * invitation, the creator's Administrator role) assign roles elsewhere and never notify.
+ */
+async function notifyRoleGranted ({ stewardId, personId, roleId, groupId }) {
+  const role = await GroupRole.where({ id: roleId }).fetch()
+  if (!role || role.get('active') === false) return
+  return Activity.saveForReasons([{
+    actor_id: stewardId,
+    reader_id: personId,
+    group_id: groupId,
+    reason: Activity.Reason.RoleGranted,
+    meta: { roleId: String(role.id), roleName: role.get('name'), roleEmoji: role.get('emoji') || null }
+  }])
+}
+
 export async function addGroupRole ({ groupId, color, name, description, emoji, userId }) {
   if (!userId) throw new GraphQLError('No userId passed into function')
 
@@ -78,12 +96,20 @@ export async function addRoleToMember ({ userId, roleId, personId, groupId }) {
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       await GroupRole.assertAssignableRoleIds([roleId])
-      return MemberGroupRole.forge({
+      const alreadyHeld = await MemberGroupRole.query(q => {
+        q.where({ group_role_id: roleId, user_id: personId, group_id: groupId })
+        q.whereRaw('active IS NOT FALSE')
+      }).fetch()
+      const savedRole = await MemberGroupRole.forge({
         group_role_id: roleId,
         user_id: personId,
         active: true,
         group_id: groupId
-      }).save().then((savedRole) => savedRole)
+      }).save()
+      if (!alreadyHeld && String(personId) !== String(userId)) {
+        await notifyRoleGranted({ stewardId: userId, personId, roleId, groupId })
+      }
+      return savedRole
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to add role to member')
     }

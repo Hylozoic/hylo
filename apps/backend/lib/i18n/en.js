@@ -100,6 +100,7 @@ exports.en = {
   joinRequestReceivedSubject: (groupName) => `Your request to join ${groupName} was sent`,
   joinRequestDeclinedSubject: (groupName) => `About your request to join ${groupName}`,
   joinRequestUnansweredSubject: (groupName) => `Your request to join ${groupName} is still waiting`,
+  roleGrantedSubject: ({ roleName, groupName }) => `You have a new role in ${groupName}: ${roleName}`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

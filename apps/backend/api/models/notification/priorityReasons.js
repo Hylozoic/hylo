@@ -35,5 +35,7 @@ export const PRIORITY_REASONS = [
   // D14: to the person who asked to join. Named so no earlier label is a prefix of them
   'acknowledgedJoinRequest',
   'declinedJoinRequest',
-  'unansweredJoinRequest'
+  'unansweredJoinRequest',
+  // D48: a steward gave you a role or badge
+  'roleGranted'
 ]

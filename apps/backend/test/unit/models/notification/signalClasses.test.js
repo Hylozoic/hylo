@@ -81,7 +81,9 @@ const TODAY = {
   // D14: to someone who asked to join, who isn't a member (rules/nonMemberRequester)
   acknowledgedJoinRequest: ['inApp', 'email'],
   declinedJoinRequest: ['inApp', 'email'],
-  unansweredJoinRequest: ['inApp', 'email']
+  unansweredJoinRequest: ['inApp', 'email'],
+  // D48
+  roleGranted: ['email', 'inApp']
 }
 
 // Reasons whose media don't depend on a group membership's email and push toggles

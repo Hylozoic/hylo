@@ -849,6 +849,13 @@ msgstr "Você pode continuar esperando: seu pedido continua aberto, e avisaremos
 msgid "Or join one of these open groups today:"
 msgstr "Ou participe hoje de um destes grupos abertos:"
 
+#, python-format
+msgid "%(granter_pill)s gave you the %(role_name_var)s role in %(group_pill)s."
+msgstr "%(granter_pill)s deu a você a função %(role_name_var)s em %(group_pill)s."
+
+msgid "Go to the group"
+msgstr "Ir para o grupo"
+
 msgid "Introduce yourself to the group"
 msgstr "Apresente-se ao grupo"
 

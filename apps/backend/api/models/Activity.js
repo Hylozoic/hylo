@@ -161,7 +161,8 @@ module.exports = bookshelf.Model.extend({
     FundingRoundReminder: 'fundingRoundReminder', // Reminder for funding round deadline
     AcknowledgedJoinRequest: 'acknowledgedJoinRequest', // your request to join was received (D14)
     DeclinedJoinRequest: 'declinedJoinRequest', // your request to join was not approved (D14)
-    UnansweredJoinRequest: 'unansweredJoinRequest' // your request has had no answer for 14 days (D14)
+    UnansweredJoinRequest: 'unansweredJoinRequest', // your request has had no answer for 14 days (D14)
+    RoleGranted: 'roleGranted' // a steward gave you a role or badge (D48)
   },
 
   find: function (id, options) {

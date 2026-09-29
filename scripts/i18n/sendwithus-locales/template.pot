@@ -951,6 +951,13 @@ msgstr ""
 msgid "Or join one of these open groups today:"
 msgstr ""
 
+#, python-format
+msgid "%(granter_pill)s gave you the %(role_name_var)s role in %(group_pill)s."
+msgstr ""
+
+msgid "Go to the group"
+msgstr ""
+
 msgid "Introduce yourself to the group"
 msgstr ""
 
