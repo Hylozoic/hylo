@@ -225,8 +225,7 @@ function DeleteSettingsTab ({ group }) {
 }
 
 DeleteSettingsTab.propTypes = {
-  group: PropTypes.object,
-  deleteGroup: PropTypes.func
+  group: PropTypes.object
 }
 
 export default DeleteSettingsTab
