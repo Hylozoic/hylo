@@ -5,6 +5,7 @@ import factories from '../../setup/factories'
 const migration = require('../../../migrations/20261011000000_flag_weekly_digest_notice')
 
 const KEY = 'weekly_digest_notice_pending'
+const FLAGGED_AT = 'weekly_digest_notice_flagged_at'
 
 describe('migration 20261011000000_flag_weekly_digest_notice', () => {
   let group, space, closedGroup
@@ -51,13 +52,19 @@ describe('migration 20261011000000_flag_weekly_digest_notice', () => {
     }
     expect(await flagged()).to.deep.equal(expected)
     expect((await settingsOf(users.weekly)).locale).to.equal('en-US')
+    // When they were flagged, so the line is only offered for a while
+    const flaggedAt = (await settingsOf(users.weekly))[FLAGGED_AT]
+    expect(new Date(flaggedAt).getTime()).to.be.closeTo(Date.now(), 5 * 60 * 1000)
+    expect(await settingsOf(users.daily)).not.to.have.property(FLAGGED_AT)
 
     await migration.up(bookshelf.knex)
     expect(await flagged()).to.deep.equal(expected)
+    expect((await settingsOf(users.weekly))[FLAGGED_AT]).to.equal(flaggedAt)
 
     await migration.down(bookshelf.knex)
     for (const user of Object.values(users)) {
       expect(await settingsOf(user)).not.to.have.property(KEY)
+      expect(await settingsOf(user)).not.to.have.property(FLAGGED_AT)
     }
     expect((await settingsOf(users.weekly)).locale).to.equal('en-US')
   })

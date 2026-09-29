@@ -348,7 +348,9 @@ describe('digest content', () => {
       nextId += 1
       return { id: nextId, title: `Post ${nextId}`, details: '', user: { id: author.id, name: 'Post Author' }, comments: [], url: `https://www.hylo.com/post/${nextId}` }
     }
-    const flaggedRecipient = () => factories.user({ settings: { locale: 'en-US', weekly_digest_notice_pending: true } }).save()
+    const flaggedRecipient = ({ locale = 'en-US', flaggedAt = new Date() } = {}) => factories.user({
+      settings: { locale, weekly_digest_notice_pending: true, weekly_digest_notice_flagged_at: flaggedAt.toISOString() }
+    }).save()
     const flagOf = async user => (await User.find(user.id)).get('settings').weekly_digest_notice_pending
 
     let sent
@@ -400,6 +402,13 @@ describe('digest content', () => {
       expect(await flagOf(member)).to.equal(true)
     })
 
+    it('stops offering the line six weeks after members were flagged', async () => {
+      const member = await flaggedRecipient({ flaggedAt: new Date(Date.now() - 43 * 24 * HOUR) })
+      mockSend(true)
+      await sendToUser(member, 'weekly', digest({ discussions: [fresh()] }))
+      expect(sent[0].weekly_digest_notice).to.equal(null)
+    })
+
     it('adds the line to the weekly digest that covers all of someone\'s groups', async () => {
       const member = await flaggedRecipient()
       mockSend(true)
@@ -411,7 +420,7 @@ describe('digest content', () => {
     })
 
     it('is translated', async () => {
-      const member = await factories.user({ settings: { locale: 'es', weekly_digest_notice_pending: true } }).save()
+      const member = await flaggedRecipient({ locale: 'es' })
       const result = await personalizeData(member, 'weekly', digest({ discussions: [fresh()] }))
       expect(result.weekly_digest_notice).to.match(/resúmenes semanales/)
     })

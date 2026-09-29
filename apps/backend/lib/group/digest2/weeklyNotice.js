@@ -6,20 +6,34 @@
 // digest this process builds for them claims the line; the others go without it. The
 // flag is set to false only once that digest has been sent. If the send fails, the
 // claim is released and a later weekly digest carries the line instead.
+//
+// The line only makes sense soon after the fix, so it is offered for six weeks from
+// when the migration flagged someone (WEEKLY_NOTICE_FLAGGED_AT_SETTING). Someone whose
+// weekly digests stay empty that long, or who switches to weekly later, never sees it.
 import { getLocaleStrings } from '../../i18n/locales'
 
 export const WEEKLY_NOTICE_SETTING = 'weekly_digest_notice_pending'
+export const WEEKLY_NOTICE_FLAGGED_AT_SETTING = 'weekly_digest_notice_flagged_at'
+export const WEEKLY_NOTICE_VALID_DAYS = 42
+
+const DAY = 24 * 60 * 60 * 1000
 
 const claimed = new Set()
 
-const isFlagged = user => (user.get('settings') || {})[WEEKLY_NOTICE_SETTING] === true
+const isFlagged = (user, now = new Date()) => {
+  const settings = user.get('settings') || {}
+  if (settings[WEEKLY_NOTICE_SETTING] !== true) return false
+  const flaggedAt = new Date(settings[WEEKLY_NOTICE_FLAGGED_AT_SETTING]).getTime()
+  if (Number.isNaN(flaggedAt)) return false
+  return now.getTime() - flaggedAt < WEEKLY_NOTICE_VALID_DAYS * DAY
+}
 
 /**
  * The translated line for this person's weekly digest, or null. Claims it, so call
  * settleWeeklyDigestNotice after the send.
  */
-export function claimWeeklyDigestNotice (user, type) {
-  if (type !== 'weekly' || !user || !isFlagged(user)) return null
+export function claimWeeklyDigestNotice (user, type, now = new Date()) {
+  if (type !== 'weekly' || !user || !isFlagged(user, now)) return null
   const key = String(user.id)
   if (claimed.has(key)) return null
   claimed.add(key)
