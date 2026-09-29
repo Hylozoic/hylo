@@ -3,6 +3,7 @@ import mixpanel from 'mixpanel-browser'
 import { getAuthenticated } from '../selectors/getSignupState'
 import getMe from '../selectors/getMe'
 import { getCookieConsent } from 'util/cookieConsent'
+import { identifyAnalytics } from 'util/analytics'
 import { isSandboxMode } from 'sandbox/isSandbox'
 
 export default function mixpanelMiddleware (store) {
@@ -30,7 +31,7 @@ export default function mixpanelMiddleware (store) {
         type
       const analyticsData = isObject(analytics) ? omit('eventName', analytics) : {}
 
-      if (isLoggedIn) mixpanel.identify(getMe(state).id)
+      if (isLoggedIn) identifyAnalytics(getMe(state).id)
 
       mixpanel.track(trackingEventName, analyticsData)
     }
