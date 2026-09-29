@@ -342,8 +342,18 @@ describe('PostEditor', () => {
       // Still offline: the composer can't fetch any draft, and opens on the text anyway
       mockGraphqlServer.use(graphql.query('FetchDraft', () => HttpResponse.error()))
       mockLocation({ pathname: '/groups/test-group', search: '?create=post&newPostType=discussion' })
-      render(<PostEditor {...baseProps} />, { wrapper: testProviders() })
+      saveDraft.mockClear()
+      const reopened = render(<PostEditor {...baseProps} />, { wrapper: testProviders() })
       expect(await screen.findByDisplayValue('Typed just before sending', {}, { timeout: 10000 })).toBeInTheDocument()
+      // ...and tries again to keep it as the draft
+      await waitFor(() => expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.stringContaining('Typed just before sending')
+      })), { timeout: 5000 })
+
+      // While saves keep failing the composer keeps a save scheduled, and an unmount leaves
+      // that timer running. Let it go out here, not during a later test.
+      reopened.unmount()
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 2000)) })
     }, 30000)
 
     it('keeps no draft and shows nothing when the person discarded the post while it was being sent', async () => {
