@@ -39,6 +39,23 @@ test.describe('Composer and sharing', () => {
     await expect(page.getByText(text).first()).toBeVisible(uiTimeout)
   })
 
+  test('on Android, the app prompt stays under an open composer', async ({ page }) => {
+    test.skip(test.info().project.name !== 'mobile-chrome', 'the prompt only shows in Android browsers')
+    // The saved session has the prompt dismissed; bring it back for this page
+    await page.addInitScript(() => window.localStorage.removeItem('hylo:appInstallPrompt:dismissedAt'))
+    await page.goto(`/groups/${GROUP_SLUG}/all?create=post&newPostType=discussion`)
+    await waitPastRootSessionLoading(page)
+    const modal = page.locator('#create-modal-content')
+    await expect(modal).toBeVisible(uiTimeout)
+    await expect(page.getByTestId('app-install-prompt')).toBeVisible(uiTimeout)
+
+    await modal.locator('.PostEditorContent .ProseMirror').click()
+    await page.keyboard.type('Checking the Post button')
+    // A trial click fails when anything covers the button
+    await modal.getByTestId('post-editor-submit').click({ trial: true })
+    await page.screenshot({ path: 'e2e/screenshots/composer-over-app-prompt.png' })
+  })
+
   test('Enter sends a chat message on desktop', async ({ page }) => {
     test.skip(test.info().project.name !== 'chromium', 'desktop keyboard behaviour')
     await page.goto(`/groups/${GROUP_SLUG}/chat`)
