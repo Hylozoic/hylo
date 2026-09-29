@@ -5,7 +5,7 @@ import path from 'path'
 import express from 'express'
 import { http as mswHttp, passthrough } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
-import { SITEMAP_ROUTES, handleSitemap, sitemapCache, sitemapFileForPath } from './sitemapRoute'
+import { SITEMAP_ROUTES, handleSitemap, indexListsPart, sitemapCache, sitemapFileForPath } from './sitemapRoute'
 
 const publicDir = path.join(__dirname, '../../public')
 
@@ -63,6 +63,15 @@ describe('robots.txt', () => {
   })
 })
 
+describe('indexListsPart', () => {
+  it('matches a part by its full file name only', () => {
+    const index = '<sitemap><loc>https://www.example.org/sitemaps/sitemap-12.xml</loc></sitemap>'
+    expect(indexListsPart(index, 'sitemap-12.xml')).toBe(true)
+    expect(indexListsPart(index, 'sitemap-2.xml')).toBe(false)
+    expect(indexListsPart(null, 'sitemap-1.xml')).toBe(false)
+  })
+})
+
 describe('sitemapFileForPath', () => {
   it('maps the index and numbered parts to their stored names', () => {
     expect(sitemapFileForPath('/sitemap.xml')).toBe('sitemap.xml')
@@ -111,18 +120,59 @@ describe('/sitemap.xml', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1)
   })
 
-  it('serves numbered parts of a split sitemap', async () => {
-    global.fetch.mockResolvedValue({ ok: true, text: async () => '<urlset />' })
+  const INDEX_XML = [
+    '<sitemapindex>',
+    '<sitemap><loc>https://www.example.org/sitemaps/sitemap-1.xml</loc></sitemap>',
+    '<sitemap><loc>https://www.example.org/sitemaps/sitemap-2.xml</loc></sitemap>',
+    '</sitemapindex>'
+  ].join('')
+
+  function storedFiles (files) {
+    global.fetch.mockImplementation(async url => {
+      const name = url.split('/').pop()
+      return name in files
+        ? { ok: true, text: async () => files[name] }
+        : { ok: false, status: 403, text: async () => '' }
+    })
+  }
+
+  it('serves numbered parts that the index lists', async () => {
+    storedFiles({ 'sitemap.xml': INDEX_XML, 'sitemap-2.xml': '<urlset>two</urlset>' })
 
     const res = await get(server, '/sitemaps/sitemap-2.xml')
     expect(res.status).toBe(200)
-    expect(global.fetch.mock.calls[0][0]).toBe('https://uploads.example/prefix/sitemaps/sitemap-2.xml')
+    expect(res.body).toBe('<urlset>two</urlset>')
+    expect(global.fetch.mock.calls.map(([url]) => url)).toEqual([
+      'https://uploads.example/prefix/sitemaps/sitemap.xml',
+      'https://uploads.example/prefix/sitemaps/sitemap-2.xml'
+    ])
   })
 
-  it('is not found when no sitemap has been stored', async () => {
-    global.fetch.mockResolvedValue({ ok: false, status: 403, text: async () => '' })
+  it('does not serve a part the current index no longer lists', async () => {
+    storedFiles({ 'sitemap.xml': INDEX_XML, 'sitemap-3.xml': '<urlset>left over</urlset>' })
+
+    const res = await get(server, '/sitemaps/sitemap-3.xml')
+    expect(res.status).toBe(404)
+    expect(global.fetch.mock.calls.map(([url]) => url)).toEqual(['https://uploads.example/prefix/sitemaps/sitemap.xml'])
+
+    await get(server, '/sitemaps/sitemap-99.xml')
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('serves no parts when the sitemap fits in one file', async () => {
+    storedFiles({ 'sitemap.xml': '<urlset><url><loc>https://www.example.org/post/1</loc></url></urlset>' })
+    const res = await get(server, '/sitemaps/sitemap-1.xml')
+    expect(res.status).toBe(404)
+  })
+
+  it('is not found when no sitemap has been stored, and does not ask storage again for a while', async () => {
+    storedFiles({})
     const res = await get(server, '/sitemap.xml')
     expect(res.status).toBe(404)
+
+    await get(server, '/sitemap.xml')
+    await get(server, '/sitemaps/sitemap-1.xml')
+    expect(global.fetch).toHaveBeenCalledTimes(1)
   })
 
   it('is not found when the sitemap source is not configured', async () => {
