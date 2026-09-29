@@ -99,3 +99,69 @@ export function declineJoinRequest (joinRequestId, groupId, requestCreatedAt) {
     }
   }
 }
+
+// Blocking removed people from rejoining (D60)
+export const FETCH_BLOCKED_FROM_REJOINING = `${MODULE_NAME}/FETCH_BLOCKED_FROM_REJOINING`
+export const BAN_FROM_GROUP = `${MODULE_NAME}/BAN_FROM_GROUP`
+export const LIFT_GROUP_BAN = `${MODULE_NAME}/LIFT_GROUP_BAN`
+
+/** The people removed from a group and blocked from rejoining it, for its stewards. */
+export function fetchBlockedFromRejoining (groupId) {
+  return {
+    type: FETCH_BLOCKED_FROM_REJOINING,
+    graphql: {
+      query: `query BlockedFromRejoining ($id: ID) {
+        group(id: $id) {
+          id
+          blockedFromRejoining {
+            id
+            createdAt
+            person {
+              id
+              name
+              avatarUrl
+            }
+            createdBy {
+              id
+              name
+            }
+          }
+        }
+      }`,
+      variables: { id: groupId }
+    },
+    meta: { groupId }
+  }
+}
+
+/** Block someone already removed from a group from rejoining it. */
+export function banFromGroup (personId, groupId) {
+  return {
+    type: BAN_FROM_GROUP,
+    graphql: {
+      query: `mutation BanFromGroup ($personId: ID, $groupId: ID) {
+        banFromGroup(personId: $personId, groupId: $groupId) {
+          success
+        }
+      }`,
+      variables: { personId, groupId }
+    },
+    meta: { personId, groupId }
+  }
+}
+
+/** Let someone blocked from rejoining a group come back through its usual routes. */
+export function liftGroupBan (personId, groupId) {
+  return {
+    type: LIFT_GROUP_BAN,
+    graphql: {
+      query: `mutation LiftGroupBan ($personId: ID, $groupId: ID) {
+        liftGroupBan(personId: $personId, groupId: $groupId) {
+          success
+        }
+      }`,
+      variables: { personId, groupId }
+    },
+    meta: { personId, groupId }
+  }
+}

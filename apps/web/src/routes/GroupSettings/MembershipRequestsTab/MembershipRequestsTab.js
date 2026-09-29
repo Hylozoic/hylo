@@ -14,6 +14,7 @@ import presentGroup from 'store/presenters/presentGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { formatLocalizedDate } from 'util/dateFormat'
 import { fetchGroupSettings } from '../GroupSettings.store'
+import BlockedFromRejoining from './BlockedFromRejoining'
 import {
   acceptJoinRequest,
   declineJoinRequest,
@@ -90,6 +91,7 @@ export default function MembershipRequestsTab ({
         />}
       {!joinRequests.length &&
         <NoRequests group={group} handleViewMembers={handleViewMembers} />}
+      <BlockedFromRejoining group={group} />
       {/* DEPRECATED: Now always show this message */}
       {/* {!isWebView() && ( */}
       <div className='flex flex-col sm:flex-row items-center gap-4'>

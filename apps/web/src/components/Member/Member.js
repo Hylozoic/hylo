@@ -3,6 +3,7 @@ import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
+import { toast } from 'sonner'
 import { messagePersonUrl, personUrl } from '@hylo/navigation'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
@@ -10,7 +11,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import useAppearance from 'hooks/useAppearance'
 import usePillRowClamp from 'hooks/usePillRowClamp'
 import { Check, EllipsisVertical, MapPin, MessageCircle, Trash2 } from 'lucide-react'
-import { RESP_REMOVE_MEMBERS } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_REMOVE_MEMBERS } from 'store/constants'
+import { regenerateAccessCode } from 'routes/GroupSettings/GroupSettings.store'
+import { banFromGroup } from 'routes/GroupSettings/MembershipRequestsTab/MembershipRequestsTab.store'
 import { cn, bgImageStyle, parseApiDate, isRecentlyActive } from 'util/index'
 import { formatLocalizedDate } from 'util/dateFormat'
 import getMe from 'store/selectors/getMe'
@@ -135,12 +138,44 @@ function Member ({
   const rolesClamp = usePillRowClamp(layout === 'row' ? rowRoles.length : 0, 1, rolesExpanded)
 
   const [confirmingRemove, setConfirmingRemove] = useState(false)
+  // 'Also block from rejoining' (D60), off each time the dialog opens; groups only, as a block on a group covers its spaces
+  const [blockFromRejoining, setBlockFromRejoining] = useState(false)
   const canRemove = Boolean(removeMember) && currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)
+  const canBlock = group?.type !== 'space'
+  const canResetJoinLink = canBlock && currentUserResponsibilities.includes(RESP_ADD_MEMBERS)
 
-  const confirmRemove = useCallback(() => {
+  const openRemoveDialog = useCallback(() => {
+    setBlockFromRejoining(false)
+    setConfirmingRemove(true)
+  }, [])
+
+  // The member leaves the list as soon as they are removed, so what follows is told in toasts
+  const confirmRemove = useCallback(async () => {
+    const block = canBlock && blockFromRejoining
     setConfirmingRemove(false)
-    removeMember(member.id)
-  }, [removeMember, member.id])
+    const result = await removeMember(member.id)
+    if (result?.error) return
+    if (block) {
+      const blocked = await Promise.resolve(dispatch(banFromGroup(member.id, group.id)))
+        .catch(error => ({ error: true, payload: error }))
+      if (blocked?.error) {
+        toast.error(t("{{name}} was removed, but couldn't be blocked from rejoining", { name: member.name }))
+      }
+    }
+    // Offer to reset the join link, which the person removed may still have
+    if (canResetJoinLink) {
+      toast(t('{{name}} was removed', { name: member.name }), {
+        description: t('Anyone with the current join link can still use it. Reset it so the old link stops working.'),
+        duration: 15000,
+        action: {
+          label: t('Reset join link'),
+          onClick: () => Promise.resolve(dispatch(regenerateAccessCode(group.id)))
+            .then(() => toast.success(t('The join link was reset')))
+            .catch(() => toast.error(t('There was an error, please try again.')))
+        }
+      })
+    }
+  }, [blockFromRejoining, canBlock, canResetJoinLink, dispatch, group?.id, member.id, member.name, removeMember, t])
 
   const removeDropdown = (onPhoto) => canRemove && (
     <Dropdown
@@ -157,7 +192,7 @@ function Member ({
           <EllipsisVertical className='w-4 h-4' />
         </span>
       }
-      items={[{ icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: () => setConfirmingRemove(true), red: true }]}
+      items={[{ icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: openRemoveDialog, red: true }]}
     />
   )
 
@@ -178,6 +213,27 @@ function Member ({
             <span>{t('from the group. Are you sure?')}</span>
           </div>
         </DialogDescription>
+        {canBlock && (
+          <div className='flex items-start gap-2 text-sm text-foreground'>
+            <input
+              id={`block-from-rejoining-${id}`}
+              type='checkbox'
+              checked={blockFromRejoining}
+              onChange={event => setBlockFromRejoining(event.target.checked)}
+              aria-describedby={`block-from-rejoining-${id}-hint`}
+              className='mt-0.5 h-4 w-4 shrink-0 rounded border-foreground/30 cursor-pointer'
+              data-testid='block-from-rejoining'
+            />
+            <div>
+              <label htmlFor={`block-from-rejoining-${id}`} className='font-medium cursor-pointer select-none'>
+                {t('Also block from rejoining')}
+              </label>
+              <p id={`block-from-rejoining-${id}-hint`} className='m-0 text-foreground/60'>
+                {t("They won't be able to come back through the join link, an invitation or a request until a steward lifts the block.")}
+              </p>
+            </div>
+          </div>
+        )}
         <DialogFooter>
           <button
             type='button'
