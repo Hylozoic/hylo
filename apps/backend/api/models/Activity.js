@@ -1,26 +1,5 @@
-import { values, omit, filter, find, includes, isEmpty, get } from 'lodash'
-import { EMAIL_REASONS } from './notification/emailReasons'
-
-const isNewPost = activity => {
-  const reasons = activity.get('meta').reasons
-  return filter(reasons, reason => reason.match(/^newPost/)).length > 0
-}
-
-const isMention = activity => {
-  const reasons = activity.get('meta').reasons
-  return filter(reasons, reason => reason.match(/^mention/)).length > 0
-}
-
-const isAnnouncement = activity => {
-  const reasons = activity.get('meta').reasons
-  return filter(reasons, reason => reason.match(/^announcement/)).length > 0
-}
-
-const isChat = activity => {
-  const reasons = activity.get('meta').reasons
-  const t = filter(reasons, reason => reason.match(/^chat/)).length > 0
-  return t
-}
+import { values, omit, get, includes } from 'lodash'
+import { notificationMedia } from './notification/rules'
 
 const mergeByReader = activities => {
   const fields = ['actor_id', 'group_id', 'other_group_id']
@@ -290,82 +269,9 @@ module.exports = bookshelf.Model.extend({
     return []
   },
 
-  generateNotificationMedia: async function (activity) {
-    const reasons = activity.get('meta').reasons || []
-    const reason = reasons[0]
-    const skipPostLoad = [
-      this.Reason.ApprovedJoinRequest,
-      this.Reason.JoinRequest,
-      this.Reason.GroupInvitation
-    ].includes(reason)
-    if (!skipPostLoad) await activity.load('post.groups')
-
-    // Invitees are not members yet, so skip membership-based email.
-    // Invitation.send already emails them; in-app (and push) are for existing Hylo users.
-    if (reason === this.Reason.GroupInvitation) {
-      return [Notification.MEDIUM.InApp, Notification.MEDIUM.Push]
-    }
-
-    // TODO: rename 'notifications' to 'media'
-    const notifications = []
-    const groups = Activity.groupIds(activity)
-
-    const user = activity.relations.reader
-
-    const memberships = await user.memberships().fetch({ withRelated: 'group' })
-
-    const relevantMemberships = filter(memberships.models, mem =>
-      includes(groups, mem.related('group').id))
-
-    // Spaces have no channel settings of their own in the UI; they follow the parent group's
-    const channelSetting = (mem, key) => {
-      const group = mem.related('group')
-      const parentId = group.get('type') === 'space' && group.get('parent_id')
-      const parentMembership = parentId &&
-        find(memberships.models, m => String(m.related('group').id) === String(parentId))
-      return (parentMembership || mem).getSetting(key)
-    }
-
-    const membershipsPermitting = key =>
-      filter(relevantMemberships, mem => channelSetting(mem, key))
-
-    let emailable = membershipsPermitting('sendEmail')
-    const pushable = membershipsPermitting('sendPushNotifications')
-
-    // Send notifications if not just about a new post, or notifications for all new posts are on, or notifications for important posts are on and its an announcement or mention
-    let sendNotification = true
-    if (isChat(activity)) {
-      emailable = false // XXX: we don't send emails for chats, they go out in an hourly digest
-    }
-
-    if (isChat(activity) || isNewPost(activity)) {
-      // Chat rooms are GroupViews now; use the same membership postNotifications setting as posts
-      const newPostsSetting = relevantMemberships.reduce((acc, mem) => {
-        const setting = mem.getSetting('postNotifications')
-        if (setting === 'all') return 'all'
-        if (setting === 'important' && acc !== 'all') return 'important'
-        return acc
-      }, 'none')
-
-      sendNotification = newPostsSetting === 'all' || (newPostsSetting === 'important' && (isAnnouncement(activity) || isMention(activity)))
-    }
-
-    const hasEmail = EMAIL_REASONS.has(Notification.priorityReason(reasons))
-
-    if (!isEmpty(emailable) && sendNotification && hasEmail) {
-      // TODO: make sure email shows its from the first group that has sendEmail set to true, or maybe show all groups on it?
-      notifications.push(Notification.MEDIUM.Email)
-    }
-
-    if (!isEmpty(pushable) && sendNotification) {
-      notifications.push(Notification.MEDIUM.Push)
-    }
-
-    if (sendNotification) {
-      notifications.push(Notification.MEDIUM.InApp)
-    }
-
-    return notifications
+  // See notification/rules for the phases that decide email, push and in-app.
+  generateNotificationMedia: function (activity) {
+    return notificationMedia(activity)
   },
 
   createWithNotifications: function (attributes, trx) {
