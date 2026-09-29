@@ -19,6 +19,22 @@ describe('space mutations', () => {
 
   after(async () => setup.clearDb())
 
+  describe('createSpace geoShape', () => {
+    it('stores a GeoJSON boundary on the new space', async () => {
+      const polygon = { type: 'Polygon', coordinates: [[[-122.5, 37.7], [-122.4, 37.7], [-122.4, 37.8], [-122.5, 37.7]]] }
+      const space = await createSpace(administrator.id, {
+        parentGroupId: parentGroup.id,
+        name: 'Shaped Space',
+        geoShape: JSON.stringify(polygon)
+      }, {})
+
+      const saved = await Group.find(space.id)
+      expect(saved.get('geo_shape').type).to.equal('Polygon')
+      expect(saved.get('geo_shape').coordinates).to.deep.equal(polygon.coordinates)
+      await deleteSpace(administrator.id, space.id, {})
+    })
+  })
+
   describe('createSpace slug', () => {
     it('stores {parentSlug}-{localSlug} to avoid collisions across groups', async () => {
       const space = await createSpace(administrator.id, {
