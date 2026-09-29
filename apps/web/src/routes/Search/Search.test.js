@@ -68,6 +68,7 @@ jest.mock('./Search.store', () => {
     getHasMoreSearchResults: jest.fn(() => false),
     getHasFetchedSearchResults: jest.fn(() => true),
     getSearchError: jest.fn(() => null),
+    getSearchGroupsError: jest.fn(() => null),
     formatSearchErrorMessage: jest.fn(() => null),
     // Expose a way to update mock results that maintains the cache
     __setMockResults: (newResults) => {
@@ -87,6 +88,9 @@ const {
   fetchSearchResults: mockFetchSearchResults,
   fetchSearchGroups: mockFetchSearchGroups,
   getHasMoreSearchResults: mockGetHasMoreSearchResults,
+  getHasFetchedSearchGroups: mockGetHasFetchedSearchGroups,
+  getSearchGroupsError: mockGetSearchGroupsError,
+  formatSearchErrorMessage: mockFormatSearchErrorMessage,
   __setMockResults,
   __setMockGroups
 } = jest.requireMock('./Search.store')
@@ -116,6 +120,9 @@ beforeEach(() => {
   mockFetchSearchResults.mockClear()
   mockFetchSearchGroups.mockClear()
   mockGetHasMoreSearchResults.mockClear()
+  mockGetHasFetchedSearchGroups.mockImplementation(() => true)
+  mockGetSearchGroupsError.mockImplementation(() => null)
+  mockFormatSearchErrorMessage.mockImplementation(() => null)
   trackAnalyticsEvent.mockClear()
 })
 
@@ -374,5 +381,32 @@ describe('Search', () => {
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith('Search Result Clicked', { type: 'Person', tab: 'all' })
     expect(trackAnalyticsEvent).toHaveBeenCalledWith('Search Result Clicked', { type: 'Group', tab: 'all' })
+  })
+
+  it('still shows the other results and the empty state when the group search fails', () => {
+    mockGetHasFetchedSearchGroups.mockImplementation(() => false)
+    mockGetSearchGroupsError.mockImplementation(() => ({ message: 'Server error' }))
+    __setMockResults([])
+    searchFor('garden')
+
+    render(<Search />, { wrapper: testProviders() })
+
+    expect(screen.getByText('No results for this search')).toBeInTheDocument()
+    expect(screen.getByTestId('search-explorer-link')).toBeInTheDocument()
+    // A partial result is not recorded as a finished search
+    expect(trackAnalyticsEvent).not.toHaveBeenCalledWith('Search Performed', expect.anything())
+  })
+
+  it('shows an error on the Groups tab when the group search fails', () => {
+    mockGetHasFetchedSearchGroups.mockImplementation(() => false)
+    mockGetSearchGroupsError.mockImplementation(() => ({ message: 'Server error' }))
+    mockFormatSearchErrorMessage.mockImplementation(error => error ? 'Group search failed' : null)
+    searchFor('garden')
+
+    render(<Search />, { wrapper: testProviders() })
+    fireEvent.click(screen.getByText('Groups', { selector: 'span' }))
+
+    expect(screen.getByText('Group search failed')).toBeInTheDocument()
+    expect(screen.queryByText('No results for this search')).not.toBeInTheDocument()
   })
 })

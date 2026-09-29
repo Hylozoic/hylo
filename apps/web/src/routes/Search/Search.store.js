@@ -40,7 +40,22 @@ export function formatSearchErrorMessage (error, t) {
     genericMessage
 }
 
+// Group search errors are keyed by the term only, like its results
+function groupsErrorKey (search) {
+  return buildKey(FETCH_SEARCH_GROUPS, { search })
+}
+
 export default function reducer (state = defaultState, action) {
+  if (action.type === FETCH_SEARCH_GROUPS + '_PENDING' || action.type === FETCH_SEARCH_GROUPS) {
+    const key = groupsErrorKey(getQueryVariables(action).search)
+    if (action.type === FETCH_SEARCH_GROUPS && action.error) {
+      return { ...state, [key]: action.payload }
+    }
+    if (!state[key]) return state
+    const { [key]: _, ...rest } = state
+    return rest
+  }
+
   if (action.type === FETCH_SEARCH + '_PENDING') {
     const key = buildKey(FETCH_SEARCH, getQueryVariables(action))
     if (!state[key]) return state
@@ -243,4 +258,9 @@ export function getHasFetchedSearchResults (state, props) {
 export function getSearchError (state, props) {
   const key = buildKey(FETCH_SEARCH, props)
   return state.Search?.[key]
+}
+
+/** The error from the last failed group search for this term, if any. */
+export function getSearchGroupsError (state, props) {
+  return state.Search?.[groupsErrorKey(props?.search)]
 }

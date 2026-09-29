@@ -29,6 +29,7 @@ import {
   getHasFetchedSearchResults,
   getHasFetchedSearchGroups,
   getSearchError,
+  getSearchGroupsError,
   formatSearchErrorMessage
 } from './Search.store'
 import { groupUrl, personUrl } from '@hylo/navigation'
@@ -84,19 +85,25 @@ export default function Search (props) {
   const hasFetchedGroups = useSelector(state => getHasFetchedSearchGroups(state, groupQueryProps))
   const hasMoreGroups = useSelector(state => getHasMoreSearchGroups(state, groupQueryProps))
   const groupsPending = useSelector(state => !!state.pending[FETCH_SEARCH_GROUPS])
+  const groupsError = useSelector(state => getSearchGroupsError(state, groupQueryProps))
+  // A failed group search counts as finished, so text results and the empty state still show
+  const groupsFailed = showGroups && !groupsPending && !!groupsError
+  const groupsTabError = filter === GROUPS_TAB && groupsFailed
   const currentUser = useSelector(getMe)
   const memberGroupIds = useMemo(
     () => new Set((currentUser?.memberships?.toModelArray?.() || []).map(m => m.group?.id)),
     [currentUser]
   )
   const textLoading = showTextResults && (pending || !hasFetched)
-  const groupsLoading = showGroups && (groupsPending || !hasFetchedGroups)
+  const groupsLoading = showGroups && !groupsFailed && (groupsPending || !hasFetchedGroups)
   const shownGroups = !showGroups || !searchTermReady ? [] : filter === GROUPS_TAB ? groups : groups.slice(0, ALL_TAB_GROUP_COUNT)
   const shownTextResults = showTextResults ? searchResults : []
   const resultCount = shownTextResults.length + shownGroups.length
   const showLoading = searchTermReady && !searchError && (!groupScopeReady || textLoading || groupsLoading)
-  const showEmptyState = searchTermReady && groupScopeReady && !textLoading && !groupsLoading && !searchError && resultCount === 0
-  const showErrorState = searchTermReady && groupScopeReady && showTextResults && !pending && searchError && resultCount === 0
+  const showEmptyState = searchTermReady && groupScopeReady && !textLoading && !groupsLoading && !searchError && !groupsTabError && resultCount === 0
+  const showErrorState = searchTermReady && groupScopeReady && resultCount === 0 &&
+    ((showTextResults && !pending && !!searchError) || groupsTabError)
+  const errorStateMessage = searchErrorMessage || (groupsTabError ? formatSearchErrorMessage(groupsError, t) : null)
   const inputRef = useRef(null)
   const requestedOffsetRef = useRef(null)
   const trackedSearchRef = useRef(null)
@@ -171,7 +178,7 @@ export default function Search (props) {
 
   // One event per search once its results are in. The term itself is never sent.
   useEffect(() => {
-    if (!searchTermReady || !groupScopeReady || textLoading || groupsLoading || searchError) return
+    if (!searchTermReady || !groupScopeReady || textLoading || groupsLoading || searchError || groupsFailed) return
     const term = searchForInput.trim()
     const key = JSON.stringify([term, filter, groupSlug])
     if (trackedSearchRef.current === key) return
@@ -183,7 +190,7 @@ export default function Search (props) {
       zeroResults: resultCount === 0,
       scope: groupSlug ? 'group' : 'all'
     }))
-  }, [dispatch, searchTermReady, groupScopeReady, textLoading, groupsLoading, searchError, searchForInput, filter, groupSlug, resultCount])
+  }, [dispatch, searchTermReady, groupScopeReady, textLoading, groupsLoading, searchError, groupsFailed, searchForInput, filter, groupSlug, resultCount])
 
   const trackResultClick = useCallback(type => {
     dispatch(trackAnalyticsEvent(AnalyticsEvents.SEARCH_RESULT_CLICKED, { type, tab: filter }))
@@ -301,7 +308,7 @@ export default function Search (props) {
           {showErrorState && (
             <SearchStatus
               imageSrc={puzzledAxolotl}
-              message={searchErrorMessage}
+              message={errorStateMessage}
               variant='error'
             />
           )}
