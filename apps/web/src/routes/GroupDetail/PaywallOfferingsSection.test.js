@@ -88,4 +88,18 @@ describe('PaywallOfferingsSection', () => {
 
     expect(await screen.findByText('Price: €15.00')).toBeInTheDocument()
   })
+
+  it('shows a sliding-scale range in the offering currency, without repeating the currency code', async () => {
+    const slidingOffering = { ...offering, accessGrants: { groupIds: ['1'], slidingScale: { enabled: true, minimum: 1, maximum: 2 } } }
+    mockDispatch.mockImplementation(action => {
+      if (action.type === 'TEST_FETCH_OFFERINGS') {
+        return Promise.resolve({ payload: { data: { publicStripeOfferings: { offerings: [slidingOffering] } } } })
+      }
+      return Promise.resolve({ payload: { data: { group: { id: '1', paywallPreview: null } } } })
+    })
+    render(<PaywallOfferingsSection group={group} />)
+
+    expect(await screen.findByText('Pay €15.00 - €30.00 (your choice)')).toBeInTheDocument()
+    expect(screen.queryByText(/EUR/)).not.toBeInTheDocument()
+  })
 })

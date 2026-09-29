@@ -1477,6 +1477,8 @@
   "Pause submissions": "Pause submissions",
   "Pay at least {{min}} {{currency}} (your choice)": "Pay at least {{min}} {{currency}} (your choice)",
   "Pay {{min}} - {{max}} {{currency}} (your choice)": "Pay {{min}} - {{max}} {{currency}} (your choice)",
+  "Pay {{min}} - {{max}} (your choice)": "Pay {{min}} - {{max}} (your choice)",
+  "Pay at least {{min}} (your choice)": "Pay at least {{min}} (your choice)",
   "Payment": "Payment",
   "Payment Type": "Payment Type",
   "Payments Account": "Payments Account",

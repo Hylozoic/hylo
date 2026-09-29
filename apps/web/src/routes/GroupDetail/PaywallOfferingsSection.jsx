@@ -330,16 +330,14 @@ function OfferingCard ({ offering, group, isSpace, checkoutLoading, onPurchase, 
 
     const minAmount = formatPrice(offering.priceInCents * minQuantity, currencyCode)
     if (maxQuantity != null) {
-      return t('Pay {{min}} - {{max}} {{currency}} (your choice)', {
+      return t('Pay {{min}} - {{max}} (your choice)', {
         min: minAmount,
-        max: formatPrice(offering.priceInCents * maxQuantity, currencyCode),
-        currency: currencyCode
+        max: formatPrice(offering.priceInCents * maxQuantity, currencyCode)
       })
     }
 
-    return t('Pay at least {{min}} {{currency}} (your choice)', {
-      min: minAmount,
-      currency: currencyCode
+    return t('Pay at least {{min}} (your choice)', {
+      min: minAmount
     })
   }, [offering?.priceInCents, offering?.accessGrants, offering?.currency, t])
 

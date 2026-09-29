@@ -1465,6 +1465,8 @@
   "Pause submissions": "Pausar envíos",
   "Pay at least {{min}} {{currency}} (your choice)": "Paga al menos {{min}} {{currency}} (tu elección)",
   "Pay {{min}} - {{max}} {{currency}} (your choice)": "Paga {{min}} - {{max}} {{currency}} (tu elección)",
+  "Pay {{min}} - {{max}} (your choice)": "Paga {{min}} - {{max}} (tu elección)",
+  "Pay at least {{min}} (your choice)": "Paga al menos {{min}} (tu elección)",
   "Payment": "Pago",
   "Payment Type": "Tipo de Pago",
   "Payments Account": "Cuenta de Pagos",

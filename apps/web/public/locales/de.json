@@ -1432,6 +1432,8 @@
   "Pause submissions": "Einreichungen pausieren",
   "Pay at least {{min}} {{currency}} (your choice)": "Zahle mindestens {{min}} {{currency}} (du entscheidest)",
   "Pay {{min}} - {{max}} {{currency}} (your choice)": "Zahle {{min}} - {{max}} {{currency}} (du entscheidest)",
+  "Pay {{min}} - {{max}} (your choice)": "Zahle {{min}} - {{max}} (du entscheidest)",
+  "Pay at least {{min}} (your choice)": "Zahle mindestens {{min}} (du entscheidest)",
   "Payment": "Zahlung",
   "Payment Type": "Zahlungstyp",
   "Payments Account": "Zahlungskonto",

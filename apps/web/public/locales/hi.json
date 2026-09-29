@@ -1433,6 +1433,8 @@
   "Pause submissions": "प्रस्तावों को रोकें",
   "Pay at least {{min}} {{currency}} (your choice)": "आपकी पसंद के अनुसार कम से कम {{min}} {{currency}} का भुगतान करें",
   "Pay {{min}} - {{max}} {{currency}} (your choice)": "आपकी पसंद के अनुसार {{currency}} के लिए {{min}} - {{max}} भुगतान करें",
+  "Pay {{min}} - {{max}} (your choice)": "आपकी पसंद के अनुसार {{min}} - {{max}} का भुगतान करें",
+  "Pay at least {{min}} (your choice)": "आपकी पसंद के अनुसार कम से कम {{min}} का भुगतान करें",
   "Payment": "भुगतान",
   "Payment Type": "भुगतान प्रकार",
   "Payments Account": "भुगतान खाता",
