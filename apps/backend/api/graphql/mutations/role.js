@@ -13,15 +13,30 @@ async function assertNotSpace (groupId) {
   }
 }
 
+// A role given again this soon after the last notice about it (for example after
+// being taken away by mistake) doesn't notify again
+const ROLE_NOTICE_REPEAT_DAYS = 7
+
+async function recentlyNotified ({ personId, groupId, roleId }) {
+  const since = new Date(Date.now() - ROLE_NOTICE_REPEAT_DAYS * 24 * 60 * 60 * 1000)
+  const row = await bookshelf.knex('activities')
+    .where({ reader_id: personId, group_id: groupId })
+    .where('created_at', '>', since)
+    .whereRaw("meta->'reasons' \\? ?", [Activity.Reason.RoleGranted])
+    .whereRaw("meta->>'roleId' = ?", [String(roleId)])
+    .first('id')
+  return !!row
+}
+
 /**
  * D48: tells a member, in-app and by email, that a steward gave them a role or badge.
  * Only addRoleToMember calls this, for a grant made by hand to someone else. Automatic
  * grants (the implicit Member role, track completion roles, roles attached to an
  * invitation, the creator's Administrator role) assign roles elsewhere and never notify.
  */
-async function notifyRoleGranted ({ stewardId, personId, roleId, groupId }) {
-  const role = await GroupRole.where({ id: roleId }).fetch()
-  if (!role || role.get('active') === false) return
+async function notifyRoleGranted ({ stewardId, personId, role, groupId }) {
+  if (role.get('active') === false) return
+  if (await recentlyNotified({ personId, groupId, roleId: role.id })) return
   return Activity.saveForReasons([{
     actor_id: stewardId,
     reader_id: personId,
@@ -96,6 +111,14 @@ export async function addRoleToMember ({ userId, roleId, personId, groupId }) {
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       await GroupRole.assertAssignableRoleIds([roleId])
+      // Only this group's own roles, and only to people who belong to it
+      const role = await GroupRole.where({ id: roleId }).fetch()
+      if (!role || String(role.get('group_id')) !== String(groupId)) {
+        throw new GraphQLError('Role not found')
+      }
+      if (!await GroupMembership.hasActiveMembership(personId, groupId)) {
+        throw new GraphQLError('Only members of the group can be given a role')
+      }
       const alreadyHeld = await MemberGroupRole.query(q => {
         q.where({ group_role_id: roleId, user_id: personId, group_id: groupId })
         q.whereRaw('active IS NOT FALSE')
@@ -107,7 +130,7 @@ export async function addRoleToMember ({ userId, roleId, personId, groupId }) {
         group_id: groupId
       }).save()
       if (!alreadyHeld && String(personId) !== String(userId)) {
-        await notifyRoleGranted({ stewardId: userId, personId, roleId, groupId })
+        await notifyRoleGranted({ stewardId: userId, personId, role, groupId })
       }
       return savedRole
     } else {

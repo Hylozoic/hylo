@@ -2,7 +2,7 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { mockify, unspyify } from '../../../test/setup/helpers'
-import { addGroupRole, addRoleToMember } from './role'
+import { addGroupRole, addRoleToMember, removeRoleFromMember } from './role'
 
 async function roleNotices (readerId) {
   const activities = await Activity.query(q => {
@@ -54,6 +54,36 @@ describe('role granted notice (D48)', () => {
     const notices = await roleNotices(other.id)
     expect(notices).to.have.length(1)
     expect(notices[0].activity.get('meta').roleName).to.equal('Host')
+  })
+
+  it('refuses a role for someone outside the group, or a role from another group, and tells nobody', async () => {
+    const outsider = await factories.user().save()
+    const badge = await addGroupRole({ groupId: group.id, name: 'Seed Saver', emoji: '🌻', userId: steward.id })
+    await expect(addRoleToMember({ userId: steward.id, roleId: badge.id, personId: outsider.id, groupId: group.id }))
+      .to.be.rejectedWith('Only members of the group can be given a role')
+    expect(await MemberGroupRole.where({ user_id: outsider.id }).fetch()).to.not.exist
+    expect(await roleNotices(outsider.id)).to.be.empty
+
+    const otherGroup = await factories.group().save()
+    const otherSteward = await factories.user().save()
+    await otherSteward.joinGroup(otherGroup, { assignAdministrator: true })
+    const otherRole = await addGroupRole({ groupId: otherGroup.id, name: 'Elsewhere', emoji: '🧭', userId: otherSteward.id })
+    const bystander = await factories.user().save()
+    await bystander.joinGroup(group)
+    await expect(addRoleToMember({ userId: steward.id, roleId: otherRole.id, personId: bystander.id, groupId: group.id }))
+      .to.be.rejectedWith('Role not found')
+    expect(await MemberGroupRole.where({ user_id: bystander.id, group_role_id: otherRole.id }).fetch()).to.not.exist
+    expect(await roleNotices(bystander.id)).to.be.empty
+  })
+
+  it('does not notify again when a role is taken away and given back soon after', async () => {
+    const person = await factories.user().save()
+    await person.joinGroup(group)
+    const badge = await addGroupRole({ groupId: group.id, name: 'Composter', emoji: '🪱', userId: steward.id })
+    await addRoleToMember({ userId: steward.id, roleId: badge.id, personId: person.id, groupId: group.id })
+    await removeRoleFromMember({ userId: steward.id, roleId: badge.id, personId: person.id, groupId: group.id })
+    await addRoleToMember({ userId: steward.id, roleId: badge.id, personId: person.id, groupId: group.id })
+    expect(await roleNotices(person.id)).to.have.length(1)
   })
 
   it('does not notify a steward who gives a role to themselves', async () => {
