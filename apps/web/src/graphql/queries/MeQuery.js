@@ -57,6 +57,7 @@ export default gql`
       colorScheme
       dmNotifications
       commentNotifications
+      unifiedEmailDigest
       locale
       mapBaseLayer
       globalNavStyle

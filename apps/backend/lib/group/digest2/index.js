@@ -2,6 +2,7 @@ import { compact, merge, startCase } from 'lodash'
 import sampleData from './sampleData.json'
 import formatData from './formatData'
 import personalizeData from './personalizeData'
+import { mergeDigestData } from './mergeData'
 import {
   defaultTimeRange,
   getPostsAndComments,
@@ -13,6 +14,12 @@ import sentry from '../../sentry'
 
 const DIGEST_TEMPLATE_ID = 'tem_t7rmGfJKvqXrvmrVWJjjWkg4'
 const SAVED_SEARCH_TEMPLATE_ID = 'tem_yfgPbhVHbRHYpy6Dc3hgKjcX'
+
+// Each group load fans out into several relation queries, and the noon cron can
+// run the daily and weekly digests at the same time. Stay under the knex pool
+// (max 30) so those jobs do not time out waiting for a connection.
+const DIGEST_GROUP_CONCURRENCY = 2
+const DIGEST_USER_CONCURRENCY = 5
 
 const timePeriod = type => {
   switch (type) {
@@ -54,6 +61,8 @@ export const sendToUser = (user, type, data, opts = {}) => {
   if (data.search) {
     senderName = data.context === 'all' ? 'All My Groups' : data.context === 'public' ? 'Public' : data.group_name
     senderName += ' Saved Search'
+  } else if (data.unified) {
+    senderName = type === 'weekly' ? 'Hylo Weekly Digest' : 'Hylo Daily Digest'
   } else {
     senderName = `${data.group_name} ${startCase(type)} Digest`
   }
@@ -73,26 +82,50 @@ export const sendToUser = (user, type, data, opts = {}) => {
     })
 }
 
+// One failing recipient must not stop the rest of the group's digest
+const sendToEach = async (users, type, data, opts, groupId) => {
+  let sent = 0
+  for (const user of users) {
+    try {
+      if (await sendToUser(user, type, data, opts) !== false) sent += 1
+    } catch (err) {
+      sails.log.error(`digest2: error sending ${type} digest for group ${groupId} to user ${user.id}: ${err.message}`, err.stack)
+      sentry.error(err, null, { groupId, userId: user.id, type })
+    }
+  }
+  return sent
+}
+
 export const sendDigest = (id, type, opts = {}) => {
   return prepareDigestData(id, type, opts).then(data =>
     shouldSendData(data, id)
       .then(ok => ok && getRecipients(id, type)
-        .then(async users => {
-          let sent = 0
-          for (const user of users) {
-            try {
-              if (await sendToUser(user, type, data, opts) !== false) sent += 1
-            } catch (err) {
-              sails.log.error(`digest2: error sending ${type} digest for group ${id} to user ${user.id}: ${err.message}`, err.stack)
-              sentry.error(err, null, { groupId: id, userId: user.id, type })
-            }
-          }
-          return sent
-        })))
+        .then(users => sendToEach(users, type, data, opts, id))))
 }
 
-export const sendAllDigests = (type, opts = {}) => {
-  if (opts.groupIds && opts.groupIds.length === 0) return Promise.resolve([])
+/** True when this person asked for one digest per frequency instead of one per group. */
+const wantsUnifiedDigest = user => user.get('settings')?.unified_email_digest === true
+
+/**
+ * Send one digest covering every group in `datasets` for this frequency.
+ */
+export const sendUnifiedToUser = (user, type, datasets, opts = {}) => {
+  const merged = mergeDigestData(datasets)
+  if (!merged) return Promise.resolve(false)
+  const data = merge(merged, {
+    unified: true,
+    group_id: null,
+    group_name: 'Hylo',
+    group_avatar_url: null,
+    group_slug: null,
+    group_url: Frontend.Route.root(),
+    time_period: timePeriod(type)
+  })
+  return sendToUser(user, type, data, opts)
+}
+
+export const sendAllDigests = async (type, opts = {}) => {
+  if (opts.groupIds && opts.groupIds.length === 0) return []
 
   let query = bookshelf.knex('groups')
     .where({ active: true })
@@ -102,17 +135,47 @@ export const sendAllDigests = (type, opts = {}) => {
   if (opts.groupIds) {
     query = query.whereIn('id', opts.groupIds)
   }
-  return query
-    .pluck('id')
-    .then(ids => Promise.map(ids, id =>
-      sendDigest(id, type, opts)
-        .then(count => count && [id, count])
-        .catch(err => {
-          sails.log.error(`digest2: error sending ${type} digests for group ${id}: ${err.message}`, err.stack)
-          sentry.error(err, null, { groupId: id, type })
-          return null
-        }))
-      .then(compact))
+
+  const ids = await query.pluck('id')
+  const unifiedByUserId = new Map()
+
+  // A failure in one group (or for one person) is logged and skipped so the rest still go out
+  const results = await Promise.map(ids, async id => {
+    try {
+      const data = await prepareDigestData(id, type, opts)
+      if (!data || !(await shouldSendData(data, id))) return null
+
+      const users = await getRecipients(id, type)
+      const regular = []
+      users.forEach(user => {
+        if (wantsUnifiedDigest(user)) {
+          const bucket = unifiedByUserId.get(user.id) || { user, datasets: [] }
+          bucket.datasets.push(data)
+          unifiedByUserId.set(user.id, bucket)
+        } else {
+          regular.push(user)
+        }
+      })
+
+      const sent = await sendToEach(regular, type, data, opts, id)
+      return sent ? [id, sent] : null
+    } catch (err) {
+      sails.log.error(`digest2: error sending ${type} digests for group ${id}: ${err.message}`, err.stack)
+      sentry.error(err, null, { groupId: id, type })
+      return null
+    }
+  }, { concurrency: DIGEST_GROUP_CONCURRENCY })
+
+  await Promise.map([...unifiedByUserId.values()], async ({ user, datasets }) => {
+    try {
+      await sendUnifiedToUser(user, type, datasets, opts)
+    } catch (err) {
+      sails.log.error(`digest2: error sending unified ${type} digest to user ${user.id}: ${err.message}`, err.stack)
+      sentry.error(err, null, { userId: user.id, type })
+    }
+  }, { concurrency: DIGEST_USER_CONCURRENCY })
+
+  return compact(results)
 }
 
 export const sendSampleData = address =>
