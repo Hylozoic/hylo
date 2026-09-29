@@ -145,6 +145,27 @@ describe('paid content and track events (D62)', () => {
       expect(events(AnalyticsEvents.ACCESS_GRANTED)).to.have.length(0)
     })
 
+    it('follows up once when both grant paths finish at the same moment', async () => {
+      const { afterCheckoutGrant } = require(root('lib/paidContent/afterCheckoutGrant'))
+      const checkoutSession = session(accepted, monthly, { mode: 'subscription', subscription: 'sub_same_moment' })
+      // What each path gets back when neither found the other's access records
+      const grant = {
+        granted: true,
+        userId: String(accepted.id),
+        groupId: String(group.id),
+        offering: monthly,
+        accessRecords: [],
+        stripeSubscriptionId: 'sub_same_moment'
+      }
+      await Promise.all([afterCheckoutGrant({ grant, session: checkoutSession }), afterCheckoutGrant({ grant, session: checkoutSession })])
+
+      expect(queued.filter(q => q.methodName === 'sendNewSubscriberAdminNotification')).to.have.length(1)
+      expect(sentTo(AnalyticsEvents.ACCESS_GRANTED)).to.deep.equal([String(accepted.id)])
+      const logs = await bookshelf.knex('stripe_logs').where({ log_type: 'checkout_granted', external_id: checkoutSession.id })
+      expect(logs).to.have.length(1)
+      expect(logs[0].metadata).to.deep.equal({ offering_id: String(monthly.id), mode: 'subscription' })
+    })
+
     it('tells the group\'s Administrators about a new subscriber, once, even when the success page granted first', async () => {
       const checkoutSession = session(rejected, monthly, { mode: 'subscription', subscription: 'sub_new_subscriber' })
       mockify(MutationStripeService, 'getCheckoutSession', async () => checkoutSession)

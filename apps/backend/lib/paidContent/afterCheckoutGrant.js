@@ -1,10 +1,12 @@
-/* global Group, User, Responsibility, Frontend, Queue */
+/* global bookshelf, Group, User, Responsibility, Frontend, Queue */
 // D62: what follows a new checkout grant, whichever path granted it first (the
 // checkout.session.completed webhook or the success page's fulfillStripeCheckoutSession).
 // - An "Access Granted" server event, only for buyers who accept analytics.
 // - For a subscription, a "new subscriber" email to the selling group's Administrators,
 //   matching the cancellation notice they already get.
-// A replay (grant.already) does neither again.
+// A replay (grant.already) does neither again. When both paths grant at the same moment,
+// each can find no earlier access records, so a stripe_logs row per session (unique on
+// log_type and external_id) decides which one follows up.
 import { AnalyticsEvents } from '@hylo/shared'
 import { trackServerEvent } from '../analytics/trackServerEvent'
 import { normalizeLocaleToFull } from '../localeHelpers'
@@ -12,6 +14,37 @@ import { normalizeLocaleToFull } from '../localeHelpers'
 const SUBSCRIPTION_PERIODS = { day: 'daily', month: 'monthly', season: 'quarterly', annual: 'annual' }
 
 export const subscriptionPeriodFor = duration => SUBSCRIPTION_PERIODS[duration] || duration || null
+
+// One stripe_logs row per granted checkout session. Keeps no customer details.
+export const CHECKOUT_GRANTED_LOG_TYPE = 'checkout_granted'
+
+/**
+ * Records the grant for this session. Resolves to true for the one caller that records
+ * it first, false for any other. If it can't be recorded, follows up anyway.
+ */
+export async function claimCheckoutFollowUp ({ grant, session }) {
+  if (!session?.id) return true
+  try {
+    const rows = await bookshelf.knex('stripe_logs')
+      .insert({
+        group_id: grant.groupId,
+        content_access_id: grant.accessRecords?.[0]?.id || null,
+        log_type: CHECKOUT_GRANTED_LOG_TYPE,
+        external_id: session.id,
+        amount: session.amount_total ?? null,
+        currency: session.currency || null,
+        status: session.payment_status || null,
+        metadata: { offering_id: String(grant.offering.id), mode: session.mode || null }
+      })
+      .onConflict(['log_type', 'external_id'])
+      .ignore()
+      .returning('id')
+    return rows.length > 0
+  } catch (err) {
+    console.error('Error recording the checkout grant follow-up:', err)
+    return true
+  }
+}
 
 const formatPrice = (cents, currency) => {
   // Required lazily: StripeService needs a Stripe key when it loads
@@ -63,6 +96,7 @@ export async function queueNewSubscriberNotice ({ userId, groupId, offering, sub
  */
 export async function afterCheckoutGrant ({ grant, session }) {
   if (!grant?.granted || grant.already) return
+  if (!(await claimCheckoutFollowUp({ grant, session }))) return
   const { userId, groupId, offering, stripeSubscriptionId } = grant
   const isSubscription = session?.mode === 'subscription' && !!stripeSubscriptionId
 
