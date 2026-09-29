@@ -298,15 +298,17 @@ describe('GroupRole', () => {
         await MemberGroupRole.forge({ user_id: moderatorUser.id, group_id: policyGroup.id, group_role_id: roles.moderator.id, active: true }).save()
       })
 
-      it('is limited under stewards and roles, and comes from Invite Members only while member invitations are on', async () => {
+      it('is limited under stewards and roles, and none while member invitations are off', async () => {
         await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })
         expect(await GroupMembership.inviteAccess(moderatorUser.id, policyGroup.id)).to.equal('limited')
         await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', roleIds: [roles.greeter.id] })
         expect(await GroupMembership.inviteAccess(moderatorUser.id, policyGroup.id)).to.equal('limited')
 
+        await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })
         await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+          expect(await GroupMembership.inviteAccess(moderatorUser.id, policyGroup.id)).to.equal(null)
           await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })
-          expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.moderator.id])
+          expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([])
           expect(await GroupMembership.inviteAccess(moderatorUser.id, policyGroup.id)).to.equal(null)
         })
       })
@@ -429,10 +431,26 @@ describe('GroupRole', () => {
           .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
         expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.moderator.id, roles.greeter.id].sort((a, b) => a - b))
 
+        // Stewards links no role while member invitations are off, not even Moderator
         const policy = await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })
         expect(policy).to.deep.equal({ mode: 'stewards', roleIds: [] })
-        expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.moderator.id])
+        expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([])
       })
+    })
+
+    it("shows no Invite Members on a new group's Moderator role while member invitations are switched off", async () => {
+      const responsibilityTitles = async role => (await role.responsibilities().fetch()).map(r => r.get('title'))
+
+      const off = await withFeatureFlag('MEMBER_INVITES', 'off', () =>
+        Group.create(user.id, { name: 'Moderator Off', slug: `moderator-off-${Date.now()}` }))
+      const offModerator = await GroupRole.findSystemRole(off.id, 'Moderator')
+      expect(await responsibilityTitles(offModerator)).to.not.include(Responsibility.constants.RESP_INVITE_MEMBERS)
+      expect(await inviteMembersLinks(off.id)).to.deep.equal([])
+      expect(await GroupRole.getInvitePolicy(off.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+
+      const on = await Group.create(user.id, { name: 'Moderator On', slug: `moderator-on-${Date.now()}`, invite_policy: { mode: 'stewards' } })
+      const onModerator = await GroupRole.findSystemRole(on.id, 'Moderator')
+      expect(await responsibilityTitles(onModerator)).to.include(Responsibility.constants.RESP_INVITE_MEMBERS)
     })
 
     it('rejects a new group with an everyone or roles policy while member invitations are switched off', async () => {

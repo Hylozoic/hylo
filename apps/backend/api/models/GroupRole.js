@@ -16,6 +16,8 @@ const MEMBER_ROLE = {
 // the system Invite Members responsibility:
 // everyone = the Member role, stewards = the Moderator role (Administrators and
 // Hosts invite through Add Members), roles = the Moderator role and the chosen roles.
+// While member invitations are switched off, stewards links no role at all, so
+// nobody sees Invite Members on the Moderator role before it does anything.
 const InvitePolicy = {
   EVERYONE: 'everyone',
   STEWARDS: 'stewards',
@@ -416,7 +418,9 @@ module.exports = bookshelf.Model.extend({
    * and from systemRoleNames (for a group being created whose role ids the caller
    * does not know yet), and must be this group's active system or custom roles.
    * A group whose Moderator role is missing or deactivated links no Moderator.
-   * 'everyone' and 'roles' are refused unless memberInvitesEnabled().
+   * 'everyone' and 'roles' are refused unless memberInvitesEnabled(), and while
+   * it is off 'stewards' links no role (the Moderator link is added when member
+   * invitations are switched on; see migrations/scripts/convertInvitePolicies.js).
    * Returns the resulting policy.
    */
   setInvitePolicy: async function (groupId, { mode, roleIds, systemRoleNames } = {}, { transacting } = {}) {
@@ -449,7 +453,7 @@ module.exports = bookshelf.Model.extend({
       const chosen = mode === InvitePolicy.ROLES
         ? await resolveInvitePolicyRoleIds(group.id, { roleIds, systemRoleNames }, transacting)
         : []
-      const moderatorId = await activeModeratorRoleId(group.id, transacting)
+      const moderatorId = GroupRole.memberInvitesEnabled() ? await activeModeratorRoleId(group.id, transacting) : null
       targetRoleIds = [...new Set([moderatorId, ...chosen].filter(Boolean).map(Number))]
     }
 

@@ -1,7 +1,10 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../setup'
+import { withFeatureFlag } from '../../setup/helpers'
+import { isFeatureEnabled, MEMBER_INVITES } from '../../../lib/featureFlags'
 
 const migration = require('../../../migrations/20261003000000_invite_policy_stewards_moderators_and_open_groups')
+const { convertInvitePolicies, memberInvitesOn } = require('../../../migrations/scripts/convertInvitePolicies')
 
 const ROLLBACK = new Error('rollback')
 const OPEN = 2
@@ -12,7 +15,31 @@ describe('migration 20261003000000_invite_policy_stewards_moderators_and_open_gr
   before(() => setup.clearDb())
   after(() => setup.clearDb())
 
-  it('links Member in Open groups and Moderator in Restricted and Closed groups still on stewards, re-runs cleanly and reverses only its own links', async () => {
+  it('reads member invitations as switched on exactly when the server does', async () => {
+    const keys = ['FEATURE_FLAG_MEMBER_INVITES', 'SENTRY_ENV', 'NODE_ENV']
+    const saved = keys.map(key => process.env[key])
+    try {
+      for (const flag of [undefined, 'on', 'off', 'true', 'false', ' On ', 'nonsense']) {
+        for (const sentryEnv of [undefined, 'production', 'staging']) {
+          for (const nodeEnv of ['test', 'production', 'development', undefined]) {
+            const values = [flag, sentryEnv, nodeEnv]
+            keys.forEach((key, i) => {
+              if (values[i] === undefined) delete process.env[key]
+              else process.env[key] = values[i]
+            })
+            expect(memberInvitesOn(), JSON.stringify(values)).to.equal(isFeatureEnabled(MEMBER_INVITES))
+          }
+        }
+      }
+    } finally {
+      keys.forEach((key, i) => {
+        if (saved[i] === undefined) delete process.env[key]
+        else process.env[key] = saved[i]
+      })
+    }
+  })
+
+  it('links Member in Open groups and Moderator in Restricted and Closed groups still on stewards, only once member invitations are on, re-runs cleanly and reverses only its own links', async () => {
     await bookshelf.knex.transaction(async trx => {
       const now = new Date()
       const inviteMembersId = (await trx('responsibilities').where({ title: 'Invite Members', type: 'system' }).first('id')).id
@@ -61,7 +88,16 @@ describe('migration 20261003000000_invite_policy_stewards_moderators_and_open_gr
       // Spaces have no invite policy
       const space = await insertGroup({ slug: 'migr-space', type: 'space', parent_id: open, accessibility: OPEN })
 
-      await migration.up(trx)
+      // With member invitations switched off, the migration only prepares the tracking table
+      await withFeatureFlag('MEMBER_INVITES', 'off', () => migration.up(trx))
+      expect(await trx.schema.hasTable('invite_policy_migration_links')).to.be.true
+      for (const groupId of [open, restricted, closed, olderOpen, space]) {
+        expect(await linkedRoleIds(groupId)).to.deep.equal([])
+      }
+      expect(await trx('groups_roles').where({ group_id: olderOpen, type: 'member' }).first('id')).to.not.exist
+
+      // The script run when they are switched on does the conversion
+      await convertInvitePolicies(trx)
 
       const olderMember = await trx('groups_roles').where({ group_id: olderOpen, type: 'member' }).first('id')
       const afterUp = {
@@ -83,7 +119,8 @@ describe('migration 20261003000000_invite_policy_stewards_moderators_and_open_gr
         space: []
       })
 
-      await migration.up(trx)
+      await convertInvitePolicies(trx)
+      await withFeatureFlag('MEMBER_INVITES', 'on', () => migration.up(trx))
       for (const [name, groupId] of Object.entries({ open, restricted, closed, customised, everyone, olderOpen, space })) {
         expect(await linkedRoleIds(groupId), name).to.deep.equal(afterUp[name])
       }
@@ -96,6 +133,13 @@ describe('migration 20261003000000_invite_policy_stewards_moderators_and_open_gr
       expect(await linkedRoleIds(olderOpen)).to.deep.equal([])
       expect(await linkedRoleIds(customised)).to.deep.equal([gardener])
       expect(await linkedRoleIds(everyone)).to.deep.equal([everyoneRoles.member])
+
+      // Where member invitations are already on, the migration converts by itself
+      await withFeatureFlag('MEMBER_INVITES', 'on', () => migration.up(trx))
+      expect(await linkedRoleIds(open)).to.deep.equal([openRoles.member])
+      expect(await linkedRoleIds(restricted)).to.deep.equal([restrictedRoles.moderator])
+      await migration.down(trx)
+      expect(await linkedRoleIds(open)).to.deep.equal([])
 
       throw ROLLBACK
     }).catch(err => {
