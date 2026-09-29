@@ -98,9 +98,16 @@ describe('track mutations', () => {
     })
 
     it('deletes when user can manage tracks', async () => {
+      // In its own space, as in the app: deleting archives the track's group, and an
+      // archived top-level group would make the spaces the later tests use read-only
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `track-space-delete-${Date.now()}`
+      }).save()
       const track = await createTrack(trackManager.id, {
         name: 'Trash me',
-        groupId: group.id
+        groupId: space.id
       })
       await deleteTrack(trackManager.id, track.id)
       const gone = await Track.find(track.id)
