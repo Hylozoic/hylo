@@ -23,7 +23,7 @@ const normalizeEmail = (email) => {
  */
 const findUserByEmail = (email) => User.query(q => q.whereRaw('lower(email) = ?', email)).fetch()
 
-export const sendEmailVerification = async (_, { email: providedEmail }, context) => {
+export const sendEmailVerification = async (_, { email: providedEmail, acquisitionSource }, context) => {
   try {
     const email = normalizeEmail(providedEmail)
     if (!email) return { success: false, error: 'Invalid email address' }
@@ -35,7 +35,8 @@ export const sendEmailVerification = async (_, { email: providedEmail }, context
     let user = await findUserByEmail(email)
 
     if (!user) {
-      user = await User.create({ email, active: false })
+      // The first-touch source is kept only on an account this creates
+      user = await User.create({ email, active: false, acquisitionSource })
     }
 
     const { code, token } = await UserVerificationCode.create(email)

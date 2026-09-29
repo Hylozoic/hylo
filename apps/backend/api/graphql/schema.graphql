@@ -3638,8 +3638,9 @@ type Mutation {
   saveDraft(type: String!, data: String!, postId: ID, groupId: ID, topicId: ID, messageThreadId: ID, postType: String, isEdit: Boolean, navigateTo: String): Draft
   # Save a post to your saved posts list
   savePost(postId: ID): Post
-  # When a new person signs up, send them an email to verify their email address so they can finish registering
-  sendEmailVerification(email: String!): GenericResult,
+  # When a new person signs up, send them an email to verify their email address so they can finish registering.
+  # acquisitionSource is where they first came from; it is kept only when this creates their account.
+  sendEmailVerification(email: String!, acquisitionSource: AcquisitionSourceInput): GenericResult,
   # Send a password reset email
   sendPasswordReset(email: String!): GenericResult,
   # set options for a proposal
@@ -3994,6 +3995,18 @@ type OfferingSubscribersQuerySet {
   pageSize: Int
   # Total number of pages
   totalPages: Int
+}
+
+# Where a new person first came from, sent at signup and kept on the account it creates
+input AcquisitionSourceInput {
+  # Host name of the external site that linked to Hylo
+  referrer: String
+  # The link's utm_source, utm_medium and utm_campaign tags
+  utmSource: String
+  utmMedium: String
+  utmCampaign: String
+  # 'invite' for a join or invitation link, 'sandbox_demo' for a signup from the demo
+  channel: String
 }
 
 # An Affilation with an organization added to a User profile

@@ -326,3 +326,48 @@ describe('SessionController', function () {
     })
   })
 })
+
+describe('SessionController and the first-touch acquisition source', () => {
+  const googleProfile = email => ({ id: `google-${email}`, email, name: 'New Person' })
+
+  it('keeps a cleaned source in the session when a web sign-in starts', () => {
+    const req = factories.mock.request()
+    req.params = {
+      returnDomain: 'http://localhost:3000',
+      authContext: 'login',
+      acquisitionSource: JSON.stringify({ referrer: 'https://news.example.org/a?b=c', utmSource: 'x'.repeat(100), channel: 'bogus', email: 'dropped' })
+    }
+    const next = spy(() => {})
+    SessionController.setSessionFromParams(next)(req, {})
+    expect(req.session.acquisitionSource).to.deep.equal({ referrer: 'news.example.org', utm_source: 'x'.repeat(64) })
+    expect(req.session.authContext).to.equal('login')
+    expect(next).to.have.been.called()
+  })
+
+  it('clears an earlier source when the new sign-in sends none', () => {
+    const req = factories.mock.request()
+    req.session.acquisitionSource = { channel: 'invite' }
+    SessionController.setSessionFromParams(() => {})(req, {})
+    expect(req.session.acquisitionSource).to.equal(undefined)
+  })
+
+  it('stores the source on an account the sign-in creates, and uses it once', async () => {
+    const req = factories.mock.request()
+    req.get = () => undefined
+    req.session.acquisitionSource = { utm_source: 'newsletter', channel: 'invite' }
+    const user = await SessionController.upsertUser(req, 'google', googleProfile(`oauth-new-${Date.now()}@example.com`))
+    await user.refresh()
+    expect(user.get('acquisition_source')).to.deep.equal({ utm_source: 'newsletter', channel: 'invite' })
+    expect(req.session.acquisitionSource).to.equal(undefined)
+  })
+
+  it('never changes the source of an existing account', async () => {
+    const existing = await User.create({ email: `oauth-existing-${Date.now()}@example.com`, name: 'Existing', acquisitionSource: { channel: 'sandbox_demo' } })
+    const req = factories.mock.request()
+    req.get = () => undefined
+    req.session.acquisitionSource = { utm_source: 'later' }
+    await SessionController.upsertUser(req, 'google', googleProfile(existing.get('email')))
+    await existing.refresh()
+    expect(existing.get('acquisition_source')).to.deep.equal({ channel: 'sandbox_demo' })
+  })
+})

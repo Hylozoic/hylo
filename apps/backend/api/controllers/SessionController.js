@@ -7,6 +7,7 @@ import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { mintTokensForUser } from '../services/OIDCTokens'
 import { authenticateWithRateLimit } from '../../lib/rateLimit'
 import { trackServerEvent, requestPlatform, ServerAnalyticsEvents } from '../../lib/analytics/trackServerEvent'
+import { sanitizeAcquisitionSource } from '../../lib/acquisitionSource'
 
 const sentry = require('../../lib/sentry')
 
@@ -82,6 +83,10 @@ const ensureUserNameFromProfile = async (user, profile) => {
 // a cookie (the native app authenticates with the minted bearer token, and a stray
 // server session cookie would leak into the WebView jar and desync auth).
 const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
+  // Saved by setSessionFromParams at the start of a web sign-in; used once
+  const acquisitionSource = req.session?.acquisitionSource
+  if (req.session) delete req.session.acquisitionSource
+
   return findUser(service, profile.email, profile.id)
     .then(async (user) => {
       if (user) {
@@ -101,7 +106,8 @@ const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
       const attrs = {
         email: profile.email,
         account: { type: service, profile },
-        email_validated: true // When using oAuth email is already verified
+        email_validated: true, // When using oAuth email is already verified
+        acquisitionSource
       }
       const profileName = typeof profile?.name === 'string' ? profile.name.trim() : ''
       if (profileName) attrs.name = profileName
@@ -204,6 +210,10 @@ const finishOAuth = function (strategy, req, res, next) {
 const setSessionFromParams = fn => (req, res) => {
   req.session.returnDomain = req.param('returnDomain')
   req.session.authContext = req.param('authContext')
+  // Where a new person first came from, kept if this sign-in creates their account
+  const acquisitionSource = sanitizeAcquisitionSource(req.param('acquisitionSource'))
+  if (acquisitionSource) req.session.acquisitionSource = acquisitionSource
+  else delete req.session.acquisitionSource
   return fn(req, res)
 }
 
@@ -426,5 +436,7 @@ module.exports = {
 
   // these are here for testing
   findUser,
-  upsertLinkedAccount
+  setSessionFromParams,
+  upsertLinkedAccount,
+  upsertUser
 }

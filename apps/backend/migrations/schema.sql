@@ -2544,7 +2544,8 @@ CREATE TABLE public.users (
     contact_email character varying(255),
     contact_phone character varying(255),
     last_active_at timestamp with time zone,
-    calendar_token character varying(255)
+    calendar_token character varying(255),
+    acquisition_source jsonb
 );
 
 

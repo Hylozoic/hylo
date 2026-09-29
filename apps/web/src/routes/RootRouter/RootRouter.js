@@ -29,6 +29,7 @@ import {
 import { isSandboxMode } from 'sandbox/isSandbox'
 import { initAnalytics } from 'util/analytics'
 import useEmailClickthrough from 'hooks/useEmailClickthrough'
+import { captureAcquisitionSource } from 'util/acquisitionSource'
 import usePageViewTracking from 'hooks/usePageViewTracking'
 
 initAnalytics()
@@ -127,6 +128,9 @@ export default function RootRouter () {
   )
   const navigate = useNavigate()
   const { pathname } = useLocation()
+
+  // Keeps where this visitor first came from, before a redirect can drop the query string
+  useEffect(() => { captureAcquisitionSource() }, [])
 
   // Records an email link's click and removes its tags before anything else reads the address
   useEmailClickthrough()

@@ -1,5 +1,6 @@
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
+import { acquisitionSourceInput } from 'util/acquisitionSource'
 
 export const MODULE_NAME = 'Signup'
 export const REGISTER = `${MODULE_NAME}/REGISTER`
@@ -7,20 +8,22 @@ export const SEND_EMAIL_VERIFICATION = `${MODULE_NAME}/SEND_EMAIL_VERIFICATION`
 export const VERIFY_EMAIL = `${MODULE_NAME}/VERIFY_EMAIL`
 export const CHECK_REGISTRATION_STATUS = `${MODULE_NAME}/CHECK_REGISTRATION_STATUS`
 
-export function sendEmailVerification (email) {
+// The first-touch source goes along so a new account keeps it (util/acquisitionSource)
+export function sendEmailVerification (email, acquisitionSource = acquisitionSourceInput()) {
   return {
     type: SEND_EMAIL_VERIFICATION,
     graphql: {
       query: `
-        mutation SendEmailVerification ($email: String!) {
-          sendEmailVerification(email: $email) {
+        mutation SendEmailVerification ($email: String!, $acquisitionSource: AcquisitionSourceInput) {
+          sendEmailVerification(email: $email, acquisitionSource: $acquisitionSource) {
             success
             error
           }
         }
       `,
       variables: {
-        email
+        email,
+        acquisitionSource
       }
     },
     meta: {
