@@ -6,9 +6,9 @@ import orm from 'store/models'
 import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import NoPosts from './index'
 
-function providers ({ member = true, acceptedPostTypes } = {}) {
+function providers ({ member = true, acceptedPostTypes, settings = {} } = {}) {
   const session = orm.mutableSession(orm.getEmptyState())
-  session.Me.create({ id: '1', name: 'Test User' })
+  session.Me.create({ id: '1', name: 'Test User', settings })
   session.Group.create({ id: '7', name: 'Quiet Group', slug: 'quiet-group', acceptedPostTypes })
   if (member) session.Membership.create({ id: 'm7', person: '1', group: '7' })
   return AllTheProviders({ orm: session.state })
@@ -93,6 +93,37 @@ describe('NoPosts', () => {
 
       atRoute()
       render(<NoPosts message="Couldn't load posts" actionLabel='Try Again' onAction={jest.fn()} />, { wrapper: providers() })
+      expect(screen.queryByRole('button', { name: 'Introduce yourself' })).not.toBeInTheDocument()
+    })
+
+    it('leaves streams narrowed by a saved filter alone, since the group may have posts', () => {
+      atRoute()
+      const savedType = render(emptyStream, { wrapper: providers({ settings: { streamPostType: 'request' } }) })
+      expect(screen.queryByRole('button', { name: 'Introduce yourself' })).not.toBeInTheDocument()
+      savedType.unmount()
+
+      const activeOnly = render(emptyStream, { wrapper: providers({ settings: { activePostsOnly: true } }) })
+      expect(screen.queryByRole('button', { name: 'Introduce yourself' })).not.toBeInTheDocument()
+      activeOnly.unmount()
+
+      atRoute({ search: '?activeOnly=false' })
+      const allPosts = render(emptyStream, { wrapper: providers({ settings: { activePostsOnly: true } }) })
+      expect(screen.getByRole('button', { name: 'Introduce yourself' })).toBeInTheDocument()
+      allPosts.unmount()
+
+      atRoute({ view: 'discussions' })
+      render(emptyStream, { wrapper: providers({ settings: { streamPostType: 'request' } }) })
+      expect(screen.getByRole('button', { name: 'Introduce yourself' })).toBeInTheDocument()
+    })
+
+    it('follows the stream when it says whether to offer an introduction', () => {
+      atRoute({ view: 'events' })
+      const offered = render(<NoPosts message='Nothing here yet' offerIntroduction />, { wrapper: providers() })
+      expect(screen.getByRole('button', { name: 'Introduce yourself' })).toBeInTheDocument()
+      offered.unmount()
+
+      atRoute()
+      render(<NoPosts {...emptyStream.props} offerIntroduction={false} />, { wrapper: providers() })
       expect(screen.queryByRole('button', { name: 'Introduce yourself' })).not.toBeInTheDocument()
     })
   })

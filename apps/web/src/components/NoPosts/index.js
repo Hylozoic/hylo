@@ -7,34 +7,53 @@ import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import useIntroducePrompt from 'hooks/useIntroducePrompt'
 import useRouteParams from 'hooks/useRouteParams'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getMe from 'store/selectors/getMe'
 
 const actionClasses = 'mt-3 border-2 border-foreground/20 rounded-lg px-4 py-2 text-foreground/70 font-medium transition-colors hover:text-foreground hover:border-foreground/40'
 
 // A group's own stream: its home, All posts or Discussions, with no search,
-// topic or type filter narrowing it
+// topic, type or active-only filter narrowing it
 const GROUP_STREAM_VIEWS = ['', 'stream', 'discussions']
+
+/**
+ * True when the stream shows everything in the group. Follows the stream's
+ * own filters: the URL's, then the ones the person saved (a saved post type
+ * or "only active"). Discussions shows discussions whatever type is saved.
+ */
+function useIsUnfilteredGroupStream () {
+  const routeParams = useRouteParams()
+  const savedFilters = useSelector(state => getMe(state)?.settings)
+  const view = routeParams.view || ''
+  if (routeParams.context !== 'groups' || !GROUP_STREAM_VIEWS.includes(view)) return false
+  if (routeParams.search || routeParams.topicName) return false
+  const postType = routeParams.t || savedFilters?.streamPostType
+  if (view !== 'discussions' && postType && postType !== 'all') return false
+  const activeOnly = routeParams.activeOnly ? routeParams.activeOnly === 'true' : !!savedFilters?.activePostsOnly
+  return !activeOnly
+}
 
 /**
  * "Introduce yourself" for a group whose stream is empty: shown to members
  * next to the stream's own create button (so never for load errors or the
- * no-groups state), and only where the group takes discussions.
+ * no-groups state), and only where the group takes discussions. The stream
+ * can say so itself with offerIntroduction; otherwise it is worked out here.
  */
-function useEmptyGroupIntroduction ({ actionLabel, onAction }) {
+function useEmptyGroupIntroduction ({ actionLabel, onAction, offerIntroduction }) {
   const { t } = useTranslation()
-  const routeParams = useRouteParams()
   const groupSlug = useEffectiveGroupSlug()
   const group = useSelector(state => groupSlug ? getGroupForSlug(state, groupSlug) : null)
   const { canIntroduce, openIntroduction } = useIntroducePrompt(group, { entry: 'empty_state' })
-  const isUnfilteredGroupStream = routeParams.context === 'groups' &&
-    GROUP_STREAM_VIEWS.includes(routeParams.view || '') &&
-    !routeParams.search && !routeParams.t && !routeParams.topicName
+  const isUnfilteredGroupStream = useIsUnfilteredGroupStream()
   const offersCreate = !!onAction && actionLabel === t('Create something')
-  return canIntroduce && isUnfilteredGroupStream && offersCreate ? openIntroduction : null
+  const offered = typeof offerIntroduction === 'boolean'
+    ? offerIntroduction
+    : isUnfilteredGroupStream && offersCreate
+  return canIntroduce && offered ? openIntroduction : null
 }
 
-const NoPosts = ({ message, className, icon, actionLabel, onAction, secondaryActionLabel, onSecondaryAction }) => {
+const NoPosts = ({ message, className, icon, actionLabel, onAction, secondaryActionLabel, onSecondaryAction, offerIntroduction }) => {
   const { t } = useTranslation()
-  const introduceYourself = useEmptyGroupIntroduction({ actionLabel, onAction })
+  const introduceYourself = useEmptyGroupIntroduction({ actionLabel, onAction, offerIntroduction })
   const tMessage = message || t('Nothing to see here')
   return (
     // col-span-full so this centres across the whole stream: the grid view modes
