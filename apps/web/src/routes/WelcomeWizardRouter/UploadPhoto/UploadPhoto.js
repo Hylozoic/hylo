@@ -14,6 +14,38 @@ import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import { UPLOAD_ATTACHMENT } from 'store/constants'
 
+/**
+ * The round profile photo with its upload button, as the welcome wizard shows it.
+ * Also used by ProfileNudge, which asks for a photo later.
+ */
+export function ProfilePhotoPicker ({ currentUser, avatarUrl, onUploaded }) {
+  const uploadImagePending = useSelector(state => state.pending[UPLOAD_ATTACHMENT])
+  return (
+    <div className='border-3 border-dashed border-primary/50 w-40 h-40 rounded-full p-2'>
+      <UploadAttachmentButton
+        type='userAvatar'
+        id={currentUser.id}
+        onSuccess={({ url }) => onUploaded(url)}
+      >
+        <div className='relative w-[140px] h-[140px]'>
+          <div
+            className='w-full h-full rounded-full bg-center bg-cover cursor-pointer'
+            style={bgImageStyle(avatarUrl)}
+          />
+          <span
+            data-testid='upload-photo-button'
+            className='absolute bottom-1 right-1 flex items-center justify-center w-9 h-9 rounded-full bg-selected/50 text-foreground shadow-md border-2 border-card cursor-pointer'
+          >
+            {uploadImagePending
+              ? <Loader2 className='w-5 h-5 animate-spin' />
+              : <ImageUp className='w-5 h-5' />}
+          </span>
+        </div>
+      </UploadAttachmentButton>
+    </div>
+  )
+}
+
 function UploadPhoto () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -59,28 +91,11 @@ function UploadPhoto () {
         <span className='absolute top-4 right-4 text-xs text-muted-foreground'>{t('STEP 1/3')}</span>
         <div className='flex-1 flex flex-col justify-center'>
           <div className='flex justify-center items-center'>
-            <div className='border-3 border-dashed border-primary/50 w-40 h-40 rounded-full p-2'>
-              <UploadAttachmentButton
-                type='userAvatar'
-                id={currentUser.id}
-                onSuccess={({ url }) => updateSettingDirectly('avatarUrl')(url)}
-              >
-                <div className='relative w-[140px] h-[140px]'>
-                  <div
-                    className='w-full h-full rounded-full bg-center bg-cover cursor-pointer'
-                    style={bgImageStyle(currentAvatarUrl)}
-                  />
-                  <span
-                    data-testid='upload-photo-button'
-                    className='absolute bottom-1 right-1 flex items-center justify-center w-9 h-9 rounded-full bg-selected/50 text-foreground shadow-md border-2 border-card cursor-pointer'
-                  >
-                    {uploadImagePending
-                      ? <Loader2 className='w-5 h-5 animate-spin' />
-                      : <ImageUp className='w-5 h-5' />}
-                  </span>
-                </div>
-              </UploadAttachmentButton>
-            </div>
+            <ProfilePhotoPicker
+              currentUser={currentUser}
+              avatarUrl={currentAvatarUrl}
+              onUploaded={updateSettingDirectly('avatarUrl')}
+            />
           </div>
           <div className='text-center mt-6'>
             <h3 className='text-xl font-bold text-foreground mb-2'>{t('Upload a profile image')}</h3>

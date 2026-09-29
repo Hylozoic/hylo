@@ -3274,6 +3274,8 @@ type UserSettings {
   toursSeen: [String]
   # How each guided tour ended for this person, by tour: 'completed' or 'dismissed'
   toursOutcome: JSON
+  # Asking for a photo and location after the first post, for someone who skipped those steps because they signed up from an invitation: 'pending' until then, then 'dismissed' or 'done'
+  profileNudge: String
   # Display mode preference: auto, light, or dark
   colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
@@ -4952,6 +4954,8 @@ input UserSettingsInput {
   toursSeen: [String]
   # How each guided tour ended for this person, by tour: 'completed' or 'dismissed'
   toursOutcome: JSON
+  # Asking for a photo and location after the first post, for someone who skipped those steps because they signed up from an invitation: 'pending' until then, then 'dismissed' or 'done'
+  profileNudge: String
   # Display mode preference: auto, light, or dark
   colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
