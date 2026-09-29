@@ -39,6 +39,7 @@ import {
   reinviteAll as reinviteAllAction
 } from './InviteSettingsTab.store'
 
+import InviteNoteField from './InviteNoteField'
 import MemberInviteLinkCard from './MemberInviteLinkCard'
 import PendingSubmissionsList from './PendingSubmissionsList'
 
@@ -92,7 +93,7 @@ function InviteSettingsTab (props) {
   const parentName = parentGroup?.name || parentGroupFromStore?.name
 
   const regenerateAccessCode = useCallback(() => dispatch(regenerateAccessCodeAction(group.id)), [dispatch, group.id])
-  const createInvitations = useCallback((emails, groupRoleId, userIds) => dispatch(createInvitationsAction(group.id, emails, groupRoleId, userIds)), [dispatch, group.id])
+  const createInvitations = useCallback((emails, groupRoleId, userIds, note) => dispatch(createInvitationsAction(group.id, emails, groupRoleId, userIds, note)), [dispatch, group.id])
   const expireInvitation = useCallback((invitationToken) => dispatch(expireInvitationAction(invitationToken)), [dispatch])
   const resendInvitation = useCallback((invitationToken) => dispatch(resendInvitationAction(invitationToken)), [dispatch])
   const reinviteAll = useCallback(() => dispatch(reinviteAllAction(group.id)), [dispatch, group.id])
@@ -104,6 +105,7 @@ function InviteSettingsTab (props) {
   const [copiedInviteLink, setCopiedInviteLink] = useState(false)
   const [reset, setReset] = useState(false)
   const [emails, setEmails] = useState('')
+  const [note, setNote] = useState('')
   const [selectedRoleId, setSelectedRoleId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -264,7 +266,7 @@ function InviteSettingsTab (props) {
       groupRoleId = parseInt(selectedRoleId, 10)
     }
 
-    createInvitations(emailList, groupRoleId, userIds)
+    createInvitations(emailList, groupRoleId, userIds, note.trim())
       .then(res => {
         sendingRef.current = false
         if (!res?.payload?.data?.createInvitation) return
@@ -292,6 +294,7 @@ function InviteSettingsTab (props) {
           })
         }
         setEmails(badEmails.join('\n'))
+        if (numGood > 0) setNote('')
         setErrorMessage(errorMessage)
         setSuccessMessage(successMessage)
         setSelectedRoleId('')
@@ -574,6 +577,7 @@ function InviteSettingsTab (props) {
           disabled={pendingCreate}
           onChange={(event) => setEmails(event.target.value)}
         />
+        <InviteNoteField value={note} onChange={setNote} disabled={pendingCreate} />
         {!limited && (
           <>
             <div className='mt-4 mb-2'>{t('Assign a role to invitees (optional):')}</div>

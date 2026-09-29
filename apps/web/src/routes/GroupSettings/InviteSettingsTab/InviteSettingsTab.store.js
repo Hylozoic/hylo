@@ -35,7 +35,7 @@ export default function reducer (state = defaultState, action) {
   }
 }
 
-export function createInvitations (groupId, emails, groupRoleId = null, userIds = []) {
+export function createInvitations (groupId, emails, groupRoleId = null, userIds = [], note = '') {
   return {
     type: CREATE_INVITATIONS,
     graphql: {
@@ -56,7 +56,8 @@ export function createInvitations (groupId, emails, groupRoleId = null, userIds 
         data: {
           emails,
           userIds,
-          groupRoleId
+          groupRoleId,
+          ...(note ? { note } : {})
         }
       }
     },

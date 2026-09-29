@@ -4318,6 +4318,8 @@ input InviteInput {
   assignAdministrator: Boolean
   # Group role ID to assign when the invitation is used
   groupRoleId: ID
+  # An optional personal note, shown quoted in the invitation email: plain text (any HTML is removed), cut to 300 characters
+  note: String
 }
 
 # Who can invite new people to a group

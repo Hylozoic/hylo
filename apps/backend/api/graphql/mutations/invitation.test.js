@@ -34,6 +34,25 @@ describe('invitation mutation', () => {
       })
   })
 
+  it('createInvitation adds a personal note as plain text, cut to 300 characters, quoted after the message', async () => {
+    const email = `note-${Date.now()}@test.com`
+    const note = '<b>Come</b> garden with us & bring <script>alert("x")</script> friends <3\r\n\r\n\r\n' + 'x'.repeat(400)
+    const ret = await createInvitation(user.id, group.id, { emails: [email], note })
+    const message = (await Invitation.find(ret.invitations[0].id)).get('message')
+
+    const [standard, quoted] = message.split('<blockquote class="invitation-note">')
+    expect(standard).to.include(group.get('name'))
+    expect(quoted).to.match(/^Come garden with us &amp; bring alert\(&quot;x&quot;\) friends 3<br><br>x+<\/blockquote>$/)
+    const noteText = quoted.replace('</blockquote>', '').replace(/<br>/g, '\n').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
+    expect(Array.from(noteText)).to.have.lengthOf(300)
+    expect(message).to.not.match(/<b>|<script/)
+  })
+
+  it('createInvitation stores only the standard message without a note', async () => {
+    const ret = await createInvitation(user.id, group.id, { emails: [`no-note-${Date.now()}@test.com`], note: ' <p> </p> ' })
+    expect((await Invitation.find(ret.invitations[0].id)).get('message')).to.not.include('invitation-note')
+  })
+
   it('createInvitation rejects the Member role', async () => {
     const memberRole = await GroupRole.findMemberRole(group.id)
     const email = `member-role-${Date.now()}@test.com`
@@ -172,6 +191,17 @@ describe('member invitations', () => {
       const invitations = await invitesBy(member.id, group.id)
       expect(invitations.map(i => [i.get('email'), i.get('inviter_access')])).to.deep.equal([[neighbour.get('email').toLowerCase(), 'limited']])
       expect(queuedInvitationIds()).to.deep.equal([])
+    })
+
+    it("puts a member's personal note in their invitations as plain text", async () => {
+      const group = await createGroup()
+      const member = await createMember(group)
+      const [email] = addresses('member-note', 1)
+
+      await createInvitation(member.id, group.id, { emails: [email], note: 'See you <i>there</i>! {soon}' })
+
+      const [invitation] = await invitesBy(member.id, group.id)
+      expect(invitation.get('message')).to.include('<blockquote class="invitation-note">See you there! &#123;soon&#125;</blockquote>')
     })
 
     it('takes at most 10 different valid addresses at a time', async () => {

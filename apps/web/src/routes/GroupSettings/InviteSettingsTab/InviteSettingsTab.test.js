@@ -198,6 +198,7 @@ describe('InviteSettingsTab with limited invite access', () => {
     expect(screen.getByText('Enter up to 10 email addresses at a time, separated by commas or new lines')).toBeInTheDocument()
     expect(screen.getByText('Group stewards can see the email addresses you invite.')).toBeInTheDocument()
     expect(screen.getByText('Invites left today: 7')).toBeInTheDocument()
+    expect(screen.getByLabelText('Add a personal note (optional)')).toBeInTheDocument()
     expect(screen.getByText('Your pending invites')).toBeInTheDocument()
     expect(screen.getByText('second@example.com')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Cancel' })).toHaveLength(2)
@@ -532,6 +533,28 @@ describe('InviteSettingsTab with full invite access', () => {
     expect(peopleVariables.excludeGroupId).toBe('1')
     // One in the pending invites list, and the other Pat Lee in the picker
     expect(screen.getAllByText('Pat Lee')).toHaveLength(2)
+  })
+
+  it('sends an optional personal note, at most 300 characters, and clears it once sent', async () => {
+    const requests = mockCreateInvitation(() => HttpResponse.json({
+      data: { createInvitation: { invitations: [{ id: '41', email: 'one@example.com', createdAt: null, lastSentAt: null, error: null, status: null }] } }
+    }))
+    const group = { id: '1', name: 'Go Team', slug: 'goteam' }
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Group.create(group)
+    render(<InviteSettingsTab group={group} />, null, AllTheProviders({ orm: ormSession.state, pending: {} }))
+
+    const noteField = screen.getByLabelText('Add a personal note (optional)')
+    fireEvent.change(noteField, { target: { value: 'y'.repeat(320) } })
+    expect(noteField.value).toHaveLength(300)
+    expect(screen.getByText('Plain text, shown in the invitation email. 0 characters left.')).toBeInTheDocument()
+    fireEvent.change(noteField, { target: { value: ' Come garden with us ' } })
+    enterEmails('one@example.com')
+    fireEvent.click(screen.getByRole('button', { name: /Send Invite/i }))
+
+    expect(await screen.findByText('Sent 1 invite')).toBeInTheDocument()
+    expect(requests[0].data).toEqual({ emails: ['one@example.com'], userIds: [], groupRoleId: null, note: 'Come garden with us' })
+    expect(noteField.value).toBe('')
   })
 
   it('asks only the usual question before Resend All when no member sent an invitation', () => {

@@ -178,6 +178,52 @@ async function addressesAlreadyInGroup (groupId, emails, transacting) {
   return new Set(members.concat(invited).map(row => row.email))
 }
 
+// A personal note on an invitation is plain text of at most this many characters
+const INVITE_NOTE_MAX_LENGTH = 300
+
+/**
+ * The personal note someone added to their invitations as plain text: any HTML
+ * tags and angle brackets removed, spaces tidied, and cut to
+ * INVITE_NOTE_MAX_LENGTH characters. Empty when there is none.
+ */
+function sanitizeInviteNote (note) {
+  if (typeof note !== 'string') return ''
+  const text = note
+    .replace(/<(br|\/p|\/div|\/li|\/h[1-6])\b[^>]*>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>]/g, '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(line => line.replace(/[^\S\n]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+  return Array.from(text).slice(0, INVITE_NOTE_MAX_LENGTH).join('').trim()
+}
+
+const escapeHtml = text => text
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+
+/**
+ * The HTML message stored on an invitation and shown in its email: the
+ * standard message, then the sender's personal note, if any, as a quote.
+ * Braces in the note are written as HTML entities, because the email
+ * template fills placeholders in the message.
+ */
+function invitationMessage (message, note) {
+  const html = TextHelpers.markdown(message, { disableAutolinking: true })
+  const text = sanitizeInviteNote(note)
+  if (!text) return html
+  const quoted = escapeHtml(text)
+    .replace(/{/g, '&#123;')
+    .replace(/}/g, '&#125;')
+    .replace(/\n/g, '<br>')
+  return `${html}<blockquote class="invitation-note">${quoted}</blockquote>`
+}
+
 // How long a member's "Your pending invites" list keeps what they submitted, sent
 // or not: until after both automatic reminders (4 and 13 days after sending)
 const SUBMISSION_LIST_DAYS = 14
@@ -227,7 +273,7 @@ async function peopleSharingAGroup (senderId, userIds) {
  * result does not say which. People picked from the
  * search get an in-app notification only, never an email.
  */
-async function createLimitedInvitations ({ sessionUserId, groupId, emails = [], userIds = [], subject, message }) {
+async function createLimitedInvitations ({ sessionUserId, groupId, emails = [], userIds = [], subject, message, note }) {
   const results = []
   const addresses = []
   for (const entry of emails || []) {
@@ -284,7 +330,7 @@ async function createLimitedInvitations ({ sessionUserId, groupId, emails = [], 
         userId: sessionUserId,
         groupId,
         subject,
-        message: TextHelpers.markdown(message, { disableAutolinking: true }),
+        message: invitationMessage(message, note),
         inviterAccess: Invitation.InviterAccess.LIMITED
       }, { transacting })
     }
@@ -404,6 +450,10 @@ module.exports = {
 
   SUBMISSION_LIST_DAYS,
 
+  INVITE_NOTE_MAX_LENGTH,
+
+  sanitizeInviteNote,
+
   /**
    * What this person submitted with limited invite access in the last
    * SUBMISSION_LIST_DAYS days and has not cancelled: the address they typed, or
@@ -485,11 +535,12 @@ module.exports = {
    * @param userIds {String[]} list of userIds
    * @param emails {String[]} list of emails
    * @param message
+   * @param note {String} optional personal note from the sender, shown quoted in the email (plain text, cut to 300 characters)
    * @param assignAdministrator {Boolean} invite as Administrator (defaults: false)
    * @param subject
    * @param groupRoleId {Number} group role ID to assign when invitation is used
    */
-  create: ({ sessionUserId, groupId, tagName, userIds, emails = [], message, assignAdministrator = false, subject, groupRoleId }) => {
+  create: ({ sessionUserId, groupId, tagName, userIds, emails = [], message, note, assignAdministrator = false, subject, groupRoleId }) => {
     return Promise.join(
       userIds && User.query(q => q.whereIn('id', userIds)).fetchAll(),
       Group.find(groupId),
@@ -520,7 +571,7 @@ module.exports = {
           if (tag) {
             opts.tagId = tag.id
           } else {
-            opts.message = TextHelpers.markdown(message, { disableAutolinking: true })
+            opts.message = invitationMessage(message, note)
             // TODO: are we still using this, alongside the groupRoleId?
             opts.assignAdministrator = assignAdministrator
             opts.subject = subject
@@ -560,8 +611,8 @@ module.exports = {
    * @returns {Object[]} { email, status: 'sent' } or { email, error: 'invalid' } for each address,
    *   and { userId, status: 'sent' } or { userId, error: 'invalid' } for each person
    */
-  createLimited: ({ sessionUserId, groupId, emails, userIds, subject, message }) =>
-    createLimitedInvitations({ sessionUserId, groupId, emails, userIds, subject, message }),
+  createLimited: ({ sessionUserId, groupId, emails, userIds, subject, message, note }) =>
+    createLimitedInvitations({ sessionUserId, groupId, emails, userIds, subject, message, note }),
 
   /**
    * Invite people picked from the people search, from someone with limited

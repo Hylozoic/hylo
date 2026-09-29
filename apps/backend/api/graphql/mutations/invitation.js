@@ -24,6 +24,7 @@ async function createLimitedInvitations (userId, group, data, localeStrings) {
     emails: data.emails,
     userIds: data.userIds,
     message: localeStrings.createInvitationMessage(group.get('name')),
+    note: data.note,
     subject: localeStrings.createInvitationSubject(group.get('name'))
   })
   return { invitations }
@@ -72,6 +73,7 @@ export async function createInvitation (userId, groupId, data) {
         emails: data.emails,
         userIds: data.userIds,
         message: localeStrings.createInvitationMessage(group.get('name')),
+        note: data.note,
         assignAdministrator: data.assignAdministrator || false,
         groupRoleId: data.groupRoleId ? parseInt(data.groupRoleId, 10) : null,
         subject: localeStrings.createInvitationSubject(group.get('name'))
