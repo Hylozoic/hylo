@@ -13,21 +13,45 @@ import {
  * "Your pending invites" for someone with limited invite access: every address they typed
  * and every person they picked, with when they did, shown the same way whether or not an
  * invitation went out. Cancel takes a row off the list (and cancels its invitation, if any).
- * reloadKey changes after each send so the list shows what was just submitted.
+ * reloadKey changes after each send so the list shows what was just submitted. Rows load a
+ * page at a time, with "Show more" for older ones.
  */
 export default function PendingSubmissionsList ({ groupId, reloadKey }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const [items, setItems] = useState([])
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const fetchPage = useCallback(async offset => {
+    const result = await dispatch(fetchInvitationSubmissions(groupId, { offset }))
+    return result?.payload?.data?.group?.myInvitationSubmissions
+  }, [dispatch, groupId])
 
   // A failed load leaves the list as it was
   const load = useCallback(async () => {
     try {
-      const result = await dispatch(fetchInvitationSubmissions(groupId))
-      const submissions = result?.payload?.data?.group?.myInvitationSubmissions?.items
-      if (submissions) setItems(submissions)
+      const page = await fetchPage(0)
+      if (page?.items) {
+        setItems(page.items)
+        setHasMore(!!page.hasMore)
+      }
     } catch {}
-  }, [dispatch, groupId])
+  }, [fetchPage])
+
+  // Cancelled rows are gone on the server too, so the rows shown are the offset of the next page
+  const loadMore = useCallback(async () => {
+    setLoadingMore(true)
+    try {
+      const page = await fetchPage(items.length)
+      if (page?.items) {
+        setItems(previous => [...previous, ...page.items.filter(item => !previous.some(shown => shown.id === item.id))])
+        setHasMore(!!page.hasMore)
+      }
+    } catch {} finally {
+      setLoadingMore(false)
+    }
+  }, [fetchPage, items.length])
 
   useEffect(() => {
     if (groupId) load()
@@ -65,6 +89,16 @@ export default function PendingSubmissionsList ({ groupId, reloadKey }) {
           </li>
         ))}
       </ul>
+      {hasMore && (
+        <button
+          type='button'
+          className='self-center bg-foreground/10 rounded-lg px-3 py-1 hover:bg-selected/50 transition-all disabled:opacity-50'
+          onClick={loadMore}
+          disabled={loadingMore}
+        >
+          {t('Show more')}
+        </button>
+      )}
     </div>
   )
 }

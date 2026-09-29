@@ -145,7 +145,9 @@ describe('InviteSettingsTab with limited invite access', () => {
         }
         if (query.includes('myInvitationSubmissions')) {
           record('myInvitationSubmissions')
-          return HttpResponse.json({ data: { group: { id: '1', myInvitationSubmissions: { total: submissions.length, hasMore: false, items: submissions } } } })
+          const { first = 20, offset = 0 } = variables
+          const items = submissions.slice(offset, offset + first)
+          return HttpResponse.json({ data: { group: { id: '1', myInvitationSubmissions: { total: submissions.length, hasMore: offset + first < submissions.length, items } } } })
         }
         if (query.includes('cancelInvitationSubmission')) {
           record('cancelInvitationSubmission')
@@ -307,6 +309,29 @@ describe('InviteSettingsTab with limited invite access', () => {
     expect(operations.cancelInvitationSubmission).toEqual([{ submissionId: '32' }])
     expect(screen.queryByText('second@example.com')).not.toBeInTheDocument()
     expect(screen.getByText('first@example.com')).toBeInTheDocument()
+  })
+
+  it('shows older rows a page at a time, so every row can be seen and cancelled', async () => {
+    submissions = Array.from({ length: 52 }, (_, index) => ({
+      id: String(100 + index),
+      email: `person${index}@example.com`,
+      createdAt: '2026-09-20T10:00:00.000Z',
+      person: null
+    }))
+    const operations = mockLimited()
+    renderLimited()
+
+    expect(await screen.findByText('person49@example.com')).toBeInTheDocument()
+    expect(screen.queryByText('person50@example.com')).not.toBeInTheDocument()
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Cancel' }))[0])
+    await waitFor(() => expect(operations.cancelInvitationSubmission).toHaveLength(1))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+
+    expect(await screen.findByText('person51@example.com')).toBeInTheDocument()
+    expect(operations.myInvitationSubmissions[1]).toMatchObject({ first: 50, offset: 49 })
+    expect(screen.getAllByRole('button', { name: 'Cancel' })).toHaveLength(51)
+    expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument()
   })
 
   it('reloads the list after sending, so the new addresses show', async () => {

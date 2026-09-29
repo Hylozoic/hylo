@@ -108,18 +108,20 @@ export function fetchPendingInvitations (groupId) {
   }
 }
 
+export const INVITATION_SUBMISSIONS_PAGE_SIZE = 50
+
 /**
  * With limited invite access: the addresses and people this person invited to the group lately,
- * shown the same way whether or not an invitation went out.
+ * shown the same way whether or not an invitation went out, newest first, a page at a time.
  */
-export function fetchInvitationSubmissions (groupId) {
+export function fetchInvitationSubmissions (groupId, { first = INVITATION_SUBMISSIONS_PAGE_SIZE, offset = 0 } = {}) {
   return {
     type: FETCH_INVITATION_SUBMISSIONS,
     graphql: {
-      query: `query ($id: ID) {
+      query: `query ($id: ID, $first: Int, $offset: Int) {
         group (id: $id) {
           id
-          myInvitationSubmissions (first: 50) {
+          myInvitationSubmissions (first: $first, offset: $offset) {
             total
             hasMore
             items {
@@ -135,7 +137,7 @@ export function fetchInvitationSubmissions (groupId) {
           }
         }
       }`,
-      variables: { id: groupId }
+      variables: { id: groupId, first, offset }
     }
   }
 }
