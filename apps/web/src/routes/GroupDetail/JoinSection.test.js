@@ -326,4 +326,12 @@ describe('SignedOutJoinPrompt', () => {
     renderPrompt({ invitationRequiresApproval: true })
     expect(screen.getByText('Stewards review every request to join this group.')).toBeInTheDocument()
   })
+
+  it("leaves an invitation that didn't check valid out of signup and login", async () => {
+    const user = userEvent.setup()
+    renderPrompt({ invitedBy: null, keepInvitation: false, returnToPath: '/groups/garden/about?token=expired-token&tab=info' })
+    expect(screen.getByTestId('signed-out-log-in')).toHaveAttribute('href', `/login?returnToUrl=${encodeURIComponent('/groups/garden/about?tab=info')}`)
+    await user.click(screen.getByRole('button', { name: 'Sign up to join Garden Club' }))
+    expect(await screen.findByText('Signup page /groups/garden/about?tab=info newcomer@example.com')).toBeInTheDocument()
+  })
 })

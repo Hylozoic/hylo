@@ -566,6 +566,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     invitedBy={invitedBy}
                     invitationEmail={invitationEmail || location.state?.email}
                     invitationRequiresApproval={invitationRequiresApproval}
+                    keepInvitation={!invitationChecked || invitationValid}
                     returnToPath={location.pathname + (location.search || '')}
                   />)
                 : isMember

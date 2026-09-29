@@ -12,6 +12,7 @@ import SuggestedSkills from 'components/SuggestedSkills'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import { DEFAULT_AVATAR, DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, accessibilityString, accessibilityDescription, visibilityIcon, visibilityString, visibilityDescription } from 'store/models/Group'
 import { cn, inIframe } from 'util/index'
+import { withoutInviteParams } from 'util/returnToPath'
 import { groupUrl, groupDetailUrl } from '@hylo/navigation'
 import PaywallOfferingsSection from './PaywallOfferingsSection'
 
@@ -203,12 +204,15 @@ export function InvitedByBanner ({ invitedBy, sponsored = false }) {
 /**
  * For someone not signed in: who invited them, then Sign up and Log in, both of
  * which bring them back to this page with their invitation afterwards. Sign up
- * starts with the invited email address filled in.
+ * starts with the invited email address filled in. keepInvitation is false once
+ * the invitation checked invalid: they come back to the page without it.
  */
-export function SignedOutJoinPrompt ({ group, invitedBy, invitationEmail, invitationRequiresApproval, returnToPath }) {
+export function SignedOutJoinPrompt ({ group, invitedBy, invitationEmail, invitationRequiresApproval, keepInvitation = true, returnToPath: pagePath }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  // An invitation that didn't check valid isn't carried into signup or login
+  const returnToPath = keepInvitation ? pagePath : withoutInviteParams(pagePath)
 
   const signUp = useCallback(event => {
     event.preventDefault()
