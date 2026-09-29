@@ -27,6 +27,7 @@ import { sendGroupClosedEmails } from './group/deletion'
 import expireForPolicyChange, { invitePolicyNarrowed } from './invitation/expireForPolicyChange'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import { groupRoom, userRoom, pushToSockets } from '../services/Websockets'
+import { sendTrackEnrolledEvents } from './track/events'
 const { createGroupScope } = require('../../lib/scopes')
 
 export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
@@ -926,6 +927,8 @@ module.exports = bookshelf.Model.extend(merge({
 
     if (trackId) {
       await increment('tracks', 'num_people_enrolled', trackId)
+      // Consent-gated server event, one per learner (D62)
+      await sendTrackEnrolledEvents(memberships.models, { trackId, groupId: this.get('parent_id') || this.id })
       if (notify) {
         await this.notifyTrackEnrollment(trackId, memberships.map(m => m.get('user_id')), { transacting })
       }

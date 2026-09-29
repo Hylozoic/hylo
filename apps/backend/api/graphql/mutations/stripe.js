@@ -13,6 +13,9 @@ import { validateOfferingDurationForAccessGrants } from '../../../lib/offeringAc
 import StripeService from '../../services/StripeService'
 import { extractOfferingPresentationFields, getSlidingScaleFromOffering, parseJsonObject, plainTextOfferingDescription } from '../../../lib/stripeOfferingMetadata'
 import { grantCheckoutSessionAccess } from '../../../lib/grantCheckoutSessionAccess'
+import { AnalyticsEvents } from '@hylo/shared'
+import { trackServerEvent } from '../../../lib/analytics/trackServerEvent'
+import { afterCheckoutGrant } from '../../../lib/paidContent/afterCheckoutGrant'
 
 function assertValidOfferingDurationForAccessGrants (accessGrants, duration) {
   const error = validateOfferingDurationForAccessGrants(accessGrants, duration)
@@ -560,7 +563,7 @@ module.exports = {
     successUrl,
     cancelUrl,
     metadata
-  }) => {
+  }, { req } = {}) => {
     try {
       // Require authenticated user to prevent orphaned transactions; IF YOU WANT TO CHANGE THIS...
       // please don't remove this condiitonal; instead have a new param that overrides it. This needs to be the default. Allowing transactions to non-users is open to massive abuse
@@ -724,6 +727,15 @@ module.exports = {
         }
       })
 
+      // Consent-gated server event; the request's consent cookie counts too (D62)
+      await trackServerEvent(userId, AnalyticsEvents.CHECKOUT_STARTED, {
+        groupId: String(groupId),
+        offeringId: String(offeringId),
+        trackId: offering.get('track_id') ? String(offering.get('track_id')) : null,
+        mode: checkoutMode,
+        slidingScale: !!isSlidingScaleEnabled
+      }, { req })
+
       return {
         sessionId: checkoutSession.id,
         url: checkoutSession.url,
@@ -859,6 +871,9 @@ module.exports = {
       if (!grant.granted) {
         throw new GraphQLError(`Could not grant access: ${grant.reason || 'unknown'}`)
       }
+
+      // Access Granted event, and the new subscriber notice to Administrators (D62)
+      await afterCheckoutGrant({ grant, session })
 
       return {
         success: true,

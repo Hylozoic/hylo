@@ -917,7 +917,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateStripeOffering: (root, { offeringId, name, description, priceInCents, currency, accessGrants, renewalPolicy, duration, publishStatus }, context) => updateStripeOffering(context.currentUserId, { offeringId, name, description, priceInCents, currency, accessGrants, renewalPolicy, duration, publishStatus }),
 
-    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }),
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }, { req: context.req }),
 
     checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
 

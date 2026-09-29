@@ -73,6 +73,7 @@ export const EMAIL_TYPES = {
   sendRefundProcessed: essential('refund receipt'),
   sendSubscriptionCancelled: essential('subscription cancelled'),
   sendSubscriptionCancelledAdminNotification: essential('subscription cancelled, to admins'),
+  sendNewSubscriberAdminNotification: bulk('settings_page', 'new subscriber, to admins (D62)'),
   sendAccessExpired: essential('paid access ended'),
   sendTrackAccessPurchased: essential('track purchase receipt'),
   sendMessageDigest: bulk('dm_email', 'direct message digest'),

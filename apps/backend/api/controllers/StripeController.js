@@ -19,6 +19,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 const Email = require('../services/Email')
 const { normalizeLocaleToFull } = require('../../lib/localeHelpers')
+const { AnalyticsEvents } = require('@hylo/shared')
+const { trackServerEvent } = require('../../lib/analytics/trackServerEvent')
+const { afterCheckoutGrant } = require('../../lib/paidContent/afterCheckoutGrant')
 
 // Dispute rate thresholds matching Stripe's own early-warning and critical levels
 const DISPUTE_RATE_WARNING_THRESHOLD = 0.0075 // 0.75% — Stripe early warning
@@ -30,7 +33,9 @@ const STRIPE_LOG_TYPES = {
   REFUND: 'refund',
   DISPUTE: 'dispute',
   ALERT: 'alert',
-  ASYNC_PAYMENT_FAILED: 'async_payment_failed'
+  ASYNC_PAYMENT_FAILED: 'async_payment_failed',
+  // A checkout left unfinished until Stripe expired it (D62). Never stores the customer's email.
+  CHECKOUT_EXPIRED: 'checkout_expired'
 }
 
 function shouldBypassStripeWebhookSignatureCheck () {
@@ -703,6 +708,10 @@ module.exports = {
           await handlers.handleCheckoutSessionAsyncPaymentFailed(event)
           break
 
+        case 'checkout.session.expired':
+          await handlers.handleCheckoutSessionExpired(event)
+          break
+
         case 'product.updated':
           await handlers.handleProductUpdated(event)
           break
@@ -853,6 +862,9 @@ module.exports = {
       if (process.env.NODE_ENV === 'development') {
         console.log(`${grant.already ? 'Reused' : 'Created'} ${accessRecords.length} content access records for user ${userId}`)
       }
+
+      // Access Granted event, and the new subscriber notice to Administrators (D62)
+      await afterCheckoutGrant({ grant, session })
 
       // Transfer platform contribution to Hylo if the customer added the optional line item
       let donationAmount = 0
@@ -1185,7 +1197,7 @@ module.exports = {
         console.error('Error queueing purchase confirmation email:', emailError)
       }
 
-      // TODO STRIPE: Send notification to group admins
+      // Administrators hear about new subscribers from afterCheckoutGrant above (D62)
     } catch (error) {
       console.error('Error handling checkout.session.completed:', error)
       throw error
@@ -1218,6 +1230,37 @@ module.exports = {
       })
     } catch (error) {
       console.error('Error handling checkout.session.async_payment_failed:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle checkout.session.expired webhook events (D62).
+   * Logs a checkout that was started and never finished, for the selling group, so
+   * abandoned checkouts can be counted. Stores no customer details; nothing is emailed.
+   */
+  handleCheckoutSessionExpired: async function (event) {
+    try {
+      const session = event.data.object
+      const connectedResult = await findGroupForConnectedAccount(event.account)
+      if (!connectedResult) return
+
+      const { stripeAccountRow, group } = connectedResult
+      await insertStripeLog({
+        group_id: group.id,
+        stripe_account_id: stripeAccountRow.id,
+        log_type: STRIPE_LOG_TYPES.CHECKOUT_EXPIRED,
+        external_id: session.id,
+        amount: session.amount_total,
+        currency: session.currency || 'usd',
+        status: session.status || null,
+        metadata: {
+          offering_id: session.metadata?.offeringId || null,
+          mode: session.mode || null
+        }
+      })
+    } catch (error) {
+      console.error('Error handling checkout.session.expired:', error)
       throw error
     }
   },
@@ -1612,6 +1655,15 @@ module.exports = {
         console.log(`Expired ${accessRecords.length} access records for deleted subscription ${subscription.id}`)
       }
 
+      // Consent-gated server event (D62)
+      const cancelledAccess = accessRecords.at(0)
+      await trackServerEvent(cancelledAccess.get('user_id'), AnalyticsEvents.SUBSCRIPTION_CANCELLED, {
+        groupId: String(cancelledAccess.get('granted_by_group_id')),
+        offeringId: cancelledAccess.get('product_id') ? String(cancelledAccess.get('product_id')) : null,
+        trackId: cancelledAccess.get('track_id') ? String(cancelledAccess.get('track_id')) : null,
+        reason: subscription.cancellation_details?.reason || null
+      })
+
       // Send Subscription Cancelled email
       try {
         const firstAccess = accessRecords.at(0)
@@ -1914,6 +1966,15 @@ module.exports = {
         console.log(`Extended ${accessRecords.length} access records for subscription ${subscriptionId} until ${newExpiresAt.toISOString()}`)
       }
 
+      // Consent-gated server event (D62)
+      const renewedAccess = accessRecords.at(0)
+      await trackServerEvent(renewedAccess.get('user_id'), AnalyticsEvents.SUBSCRIPTION_RENEWED, {
+        groupId: String(renewedAccess.get('granted_by_group_id')),
+        offeringId: renewedAccess.get('product_id') ? String(renewedAccess.get('product_id')) : null,
+        trackId: renewedAccess.get('track_id') ? String(renewedAccess.get('track_id')) : null,
+        billingReason: invoice.billing_reason || null
+      })
+
       // Send Subscription Renewed email
       try {
         const firstAccess = accessRecords.at(0)
@@ -2114,6 +2175,15 @@ module.exports = {
       }))
 
       console.warn(`Payment failed for subscription ${subscriptionId} affecting ${accessRecords.length} access records. Stripe will retry payment.`)
+
+      // Consent-gated server event (D62)
+      const failedAccess = accessRecords.at(0)
+      await trackServerEvent(failedAccess.get('user_id'), AnalyticsEvents.PAYMENT_FAILED, {
+        groupId: String(failedAccess.get('granted_by_group_id')),
+        offeringId: failedAccess.get('product_id') ? String(failedAccess.get('product_id')) : null,
+        trackId: failedAccess.get('track_id') ? String(failedAccess.get('track_id')) : null,
+        attemptCount: invoice.attempt_count || null
+      })
 
       // Send Payment Failed email
       try {

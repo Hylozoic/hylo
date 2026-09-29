@@ -22,6 +22,7 @@ import ProjectMixin from './project/mixin'
 import EventMixin, { eventClassMethods } from './event/mixin'
 import { defaultTimezone, wherePostedInGroups } from '../../lib/group/digest2/util'
 import { publishPostUpdate } from '../../lib/postSubscriptionPublisher'
+import { sendTrackCompletedEvent } from './track/events'
 
 init({ data })
 
@@ -1159,7 +1160,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   // Check if completing this action completed its track for the user
   checkCompletedTrack: async function ({ userId, postId }) {
-    return bookshelf.transaction(async trx => {
+    const completed = await bookshelf.transaction(async trx => {
       const post = await Post.find(postId, { transacting: trx })
       if (!post || post.get('type') !== 'action') return
 
@@ -1254,7 +1255,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
         reader_id: userId,
         track_id: track.id
       }], trx)
+
+      return { trackId: track.id, groupId: notifyGroupId }
     })
+
+    // Consent-gated server event, once the completion is saved (D62)
+    if (completed) await sendTrackCompletedEvent(userId, completed)
   },
 
   // TODO: remove, unused (??)
