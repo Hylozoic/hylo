@@ -248,6 +248,29 @@ msgstr "Recordatorios próximos"
 msgid "Ending Soon"
 msgstr "Termina pronto"
 
+msgid "Open requests"
+msgstr "Solicitudes abiertas"
+
+msgid "Nobody has replied to these yet. Can you help?"
+msgstr "Nadie ha respondido a estas todavía. ¿Puedes ayudar?"
+
+#, python-format
+msgid "by %(post_user_name)s"
+msgstr "de %(post_user_name)s"
+
+#, python-format
+msgid "in %(groups_label)s"
+msgstr "en %(groups_label)s"
+
+msgid "Your request:"
+msgstr "Tu solicitud:"
+
+msgid "Still needed"
+msgstr "Todavía lo necesito"
+
+msgid "It's been met"
+msgstr "Ya se resolvió"
+
 msgid "All Topics"
 msgstr "Todos los temas"
 
@@ -1101,6 +1124,20 @@ msgstr "Contactar usuario"
 msgid "Subscription Cancelled: %(offering_name)s in %(group_name)s"
 msgstr "Suscripción cancelada: %(offering_name)s en %(group_name)s"
 
+#, python-format
+msgid "New subscriber: %(offering_name)s in %(group_name)s"
+msgstr "Nueva suscripción: %(offering_name)s en %(group_name)s"
+
+#, python-format
+msgid "Someone new has subscribed in %(group_name_var)s."
+msgstr "Alguien nuevo se ha suscrito en %(group_name_var)s."
+
+msgid "Subscriber:"
+msgstr "Suscriptor:"
+
+msgid "Subscribed:"
+msgstr "Fecha de suscripción:"
+
 msgid "Your subscription to"
 msgstr "Tu suscripción a"
 
@@ -1195,6 +1232,31 @@ msgstr "ha completado el track:"
 #, python-format
 msgid "Track %(track_name)s completed by %(completer_name)s"
 msgstr "Track %(track_name)s completado por %(completer_name)s"
+
+#, python-format
+msgid "Pick up where you left off in %(track_name_var)s"
+msgstr "Continúa donde lo dejaste en %(track_name_var)s"
+
+#, python-format
+msgid "Hi %(learner_name_var)s,"
+msgstr "Hola %(learner_name_var)s,"
+
+#, python-format
+msgid "You've completed %(actions_completed_var)s of %(total_actions_var)s in %(track_name_var)s. Ready for the next one?"
+msgstr "Has completado %(actions_completed_var)s de %(total_actions_var)s en %(track_name_var)s. ¿Seguimos con el siguiente?"
+
+#, python-format
+msgid "Next: %(next_action_title_var)s"
+msgstr "Siguiente: %(next_action_title_var)s"
+
+msgid "Continue the track →"
+msgstr "Continuar el track →"
+
+msgid "You'll get at most two reminders for this track."
+msgstr "Recibirás como máximo dos recordatorios para este track."
+
+msgid "Email settings"
+msgstr "Configuración de correo"
 
 #, python-format
 msgid "%(enrollee_pill)s has enrolled in the track: "

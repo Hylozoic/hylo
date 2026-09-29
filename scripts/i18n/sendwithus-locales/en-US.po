@@ -248,6 +248,29 @@ msgstr "Upcoming Reminders"
 msgid "Ending Soon"
 msgstr "Ending Soon"
 
+msgid "Open requests"
+msgstr "Open requests"
+
+msgid "Nobody has replied to these yet. Can you help?"
+msgstr "Nobody has replied to these yet. Can you help?"
+
+#, python-format
+msgid "by %(post_user_name)s"
+msgstr "by %(post_user_name)s"
+
+#, python-format
+msgid "in %(groups_label)s"
+msgstr "in %(groups_label)s"
+
+msgid "Your request:"
+msgstr "Your request:"
+
+msgid "Still needed"
+msgstr "Still needed"
+
+msgid "It's been met"
+msgstr "It's been met"
+
 msgid "All Topics"
 msgstr "All Topics"
 
@@ -1146,6 +1169,20 @@ msgstr "Contact User"
 msgid "Subscription Cancelled: %(offering_name)s in %(group_name)s"
 msgstr "Subscription Cancelled: %(offering_name)s in %(group_name)s"
 
+#, python-format
+msgid "New subscriber: %(offering_name)s in %(group_name)s"
+msgstr "New subscriber: %(offering_name)s in %(group_name)s"
+
+#, python-format
+msgid "Someone new has subscribed in %(group_name_var)s."
+msgstr "Someone new has subscribed in %(group_name_var)s."
+
+msgid "Subscriber:"
+msgstr "Subscriber:"
+
+msgid "Subscribed:"
+msgstr "Subscribed:"
+
 msgid "Your subscription to"
 msgstr "Your subscription to"
 
@@ -1247,6 +1284,31 @@ msgstr "has completed the track:"
 #, python-format
 msgid "Track %(track_name)s completed by %(completer_name)s"
 msgstr "Track %(track_name)s completed by %(completer_name)s"
+
+#, python-format
+msgid "Pick up where you left off in %(track_name_var)s"
+msgstr "Pick up where you left off in %(track_name_var)s"
+
+#, python-format
+msgid "Hi %(learner_name_var)s,"
+msgstr "Hi %(learner_name_var)s,"
+
+#, python-format
+msgid "You've completed %(actions_completed_var)s of %(total_actions_var)s in %(track_name_var)s. Ready for the next one?"
+msgstr "You've completed %(actions_completed_var)s of %(total_actions_var)s in %(track_name_var)s. Ready for the next one?"
+
+#, python-format
+msgid "Next: %(next_action_title_var)s"
+msgstr "Next: %(next_action_title_var)s"
+
+msgid "Continue the track →"
+msgstr "Continue the track →"
+
+msgid "You'll get at most two reminders for this track."
+msgstr "You'll get at most two reminders for this track."
+
+msgid "Email settings"
+msgstr "Email settings"
 
 #, python-format
 msgid "%(enrollee_pill)s has enrolled in the track: "
