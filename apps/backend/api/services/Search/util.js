@@ -294,6 +294,28 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   }
 })
 
+// "Recently active" counts posts in this many days
+export const RECENT_ACTIVITY_WINDOW_DAYS = 30
+
+// System notices, not something a member posted
+const NON_ACTIVITY_POST_TYPES = ['welcome', 'chat_activity']
+
+/**
+ * CTE body counting each group's posts in the recent-activity window.
+ * Limited to the window so it reads only recent posts (posts_created_at_index).
+ */
+export function recentActivitySql (windowDays = RECENT_ACTIVITY_WINDOW_DAYS) {
+  return bookshelf.knex.raw(`
+    SELECT gp.group_id, count(*)::int AS recent_post_count
+    FROM posts p
+    JOIN groups_posts gp ON gp.post_id = p.id
+    WHERE p.created_at >= now() - make_interval(days => ?)
+      AND p.active = true
+      AND p.type NOT IN (${NON_ACTIVITY_POST_TYPES.map(() => '?').join(', ')})
+    GROUP BY gp.group_id
+  `, [windowDays, ...NON_ACTIVITY_POST_TYPES])
+}
+
 export const filterAndSortGroups = curry((opts, q) => {
   const { search, sortBy = 'name', boundingBox, order } = opts
 
@@ -317,6 +339,16 @@ export const filterAndSortGroups = curry((opts, q) => {
       SELECT group_id, COUNT(group_id) as size from group_memberships GROUP BY group_id
     `))
     q.join('member_count', 'groups.id', '=', 'member_count.group_id')
+  }
+
+  if (sortBy === 'recent') {
+    // Most posts in the window first; groups with none follow, then by name
+    q.with('recent_activity', recentActivitySql())
+    q.leftJoin('recent_activity', 'groups.id', 'recent_activity.group_id')
+    q.orderByRaw('coalesce(recent_activity.recent_post_count, 0) desc')
+    q.orderByRaw('lower(groups.name) asc')
+    q.orderBy('groups.id', 'asc')
+    return
   }
 
   q.orderBy(sortBy || 'name', order || sortBy === 'size' ? 'desc' : 'asc')

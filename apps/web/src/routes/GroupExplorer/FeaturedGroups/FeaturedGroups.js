@@ -9,9 +9,13 @@ import Button from 'components/ui/button'
 import { Info, DollarSign } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { fetchGroups } from 'store/actions/fetchGroups'
+import { SORT_RECENT } from 'hooks/useEnsureSearchedGroups'
 import Loading from 'components/Loading'
 import Tooltip from 'components/Tooltip'
 import useRouteParams from 'hooks/useRouteParams'
+
+// Without a curated list (VITE_FEATURED_GROUP_IDS), show this many of the most recently active listed groups
+export const FALLBACK_GROUP_COUNT = 6
 
 export default function FeaturedGroups ({ groupIds = [] }) {
   const { t } = useTranslation()
@@ -19,21 +23,23 @@ export default function FeaturedGroups ({ groupIds = [] }) {
   const routeParams = useRouteParams()
   const [groups, setGroups] = useState([])
   const [pending, setPending] = useState(true)
+  const curated = groupIds.length > 0
 
   useEffect(() => {
-    if (!groupIds.length) {
-      setPending(false)
-      return
-    }
+    const request = curated
+      ? fetchGroups({ groupIds, allowedInPublic: true, pageSize: groupIds.length })
+      : fetchGroups({ sortBy: SORT_RECENT, allowedInPublic: true, pageSize: FALLBACK_GROUP_COUNT })
 
-    dispatch(fetchGroups({
-      groupIds,
-      allowedInPublic: true,
-      pageSize: groupIds.length
-    }))
+    dispatch(request)
       .then(response => {
+        const items = response?.payload?.data?.groups?.items || []
+        if (!curated) {
+          setGroups(items)
+          setPending(false)
+          return
+        }
         // Create a map of id to group for efficient lookup
-        const groupMap = (response?.payload?.data?.groups?.items || []).reduce((acc, group) => {
+        const groupMap = items.reduce((acc, group) => {
           acc[group.id] = group
           return acc
         }, {})
@@ -56,24 +62,28 @@ export default function FeaturedGroups ({ groupIds = [] }) {
   return (
     <div className='w-full overflow-hidden mb-4 rounded-lg inset-shadow-lg bg-background py-4 px-0 relative'>
       <div className='flex items-center justify-between'>
-        <h2 className='mt-0 font-bold ml-4 text-sm'>{t('Featured Groups')}</h2>
-        <div className='relative group mr-4 w-6 h-6 flex items-center justify-center' data-tooltip-id='featured-groups-info'>
-          <Link to={groupDetailUrl('building-hylo', routeParams)}>
-            <Info
-              className='w-4 h-4 text-foreground/60'
-            />
-          </Link>
-        </div>
-        <Tooltip
-          id='featured-groups-info'
-          delay={150}
-          position='bottom'
-          content={() => (
-            <div className='text-xs'>
-              {t('To recommend a group to be featured, join building Hylo')}
+        <h2 className='mt-0 font-bold ml-4 text-sm'>{curated ? t('Featured Groups') : t('Recently active groups')}</h2>
+        {curated && (
+          <>
+            <div className='relative group mr-4 w-6 h-6 flex items-center justify-center' data-tooltip-id='featured-groups-info'>
+              <Link to={groupDetailUrl('building-hylo', routeParams)}>
+                <Info
+                  className='w-4 h-4 text-foreground/60'
+                />
+              </Link>
             </div>
-          )}
-        />
+            <Tooltip
+              id='featured-groups-info'
+              delay={150}
+              position='bottom'
+              content={() => (
+                <div className='text-xs'>
+                  {t('To recommend a group to be featured, join building Hylo')}
+                </div>
+              )}
+            />
+          </>
+        )}
       </div>
       <div className='absolute top-0 right-0 h-full bg-gradient-to-l from-black/20 to-transparent w-[30px] z-10' />
       <div className='absolute top-0 left-0 h-full bg-gradient-to-r from-black/20 to-transparent w-[30px] z-10' />

@@ -1,6 +1,17 @@
 import { DateTime } from 'luxon'
 import { expectEqualQuery } from '../../setup/helpers'
 import setup from '../../setup'
+import factories from '../../setup/factories'
+import { RECENT_ACTIVITY_WINDOW_DAYS } from '../../../api/services/Search/util'
+
+const DAY = 24 * 60 * 60 * 1000
+
+async function addGroupPost (group, user, daysAgo, attrs = {}) {
+  const createdAt = new Date(Date.now() - daysAgo * DAY)
+  const post = await factories.post({ user_id: user.id, type: 'discussion', created_at: createdAt, updated_at: createdAt, ...attrs }).save()
+  await bookshelf.knex('groups_posts').insert({ group_id: group.id, post_id: post.id })
+  return post
+}
 
 describe('Search', function () {
   describe('.forPosts', function () {
@@ -141,6 +152,42 @@ describe('Search', function () {
         sort: 'size',
       }).query().toString()
       expect(query).to.contain('SELECT group_id, COUNT(group_id) as size from group_memberships GROUP BY group_id')
+    })
+
+    describe('sorted by recent activity', () => {
+      let busy, lively, quiet, dormant
+
+      before(async () => {
+        const author = await factories.user().save()
+        busy = await factories.group({ name: 'Zinnia Growers' }).save()
+        lively = await factories.group({ name: 'Yarrow Circle' }).save()
+        quiet = await factories.group({ name: 'Aster Friends' }).save()
+        dormant = await factories.group({ name: 'Bramble Club' }).save()
+
+        await addGroupPost(busy, author, 1)
+        await addGroupPost(busy, author, 5)
+        await addGroupPost(lively, author, 10)
+        // Welcome posts, removed posts and posts before the window don't count
+        await addGroupPost(lively, author, 0, { type: 'welcome' })
+        await addGroupPost(quiet, author, 2, { active: false })
+        await addGroupPost(dormant, author, RECENT_ACTIVITY_WINDOW_DAYS + 3)
+        await addGroupPost(dormant, author, RECENT_ACTIVITY_WINDOW_DAYS + 30)
+      })
+
+      it('puts groups with the most posts in the window first, then the rest by name', async () => {
+        const groups = await Search.forGroups({
+          sort: 'recent',
+          groupIds: [dormant.id, quiet.id, lively.id, busy.id],
+          limit: 10
+        }).fetchAll()
+        expect(groups.map(g => g.get('name'))).to.deep.equal(['Zinnia Growers', 'Yarrow Circle', 'Aster Friends', 'Bramble Club'])
+      })
+
+      it('counts posts only inside the window', () => {
+        const query = Search.forGroups({ limit: 10, sort: 'recent' }).query().toString()
+        expect(query).to.contain(`make_interval(days => ${RECENT_ACTIVITY_WINDOW_DAYS})`)
+        expect(query).to.contain('left join "recent_activity"')
+      })
     })
   })
 
