@@ -706,8 +706,8 @@ module.exports = bookshelf.Model.extend({
 
   /**
    * Where the access-expired email's renew link goes: the offering page when the access came
-   * from a product (sold by the granting group), otherwise the space or group the access was
-   * for, never its parent group.
+   * from a product (sold by the granting group) that can still be bought, otherwise the space
+   * or group the access was for, never its parent group.
    * @param {ContentAccess} access - with product, group and grantedByGroup loaded when available
    * @returns {Promise<String>}
    */
@@ -717,7 +717,10 @@ module.exports = bookshelf.Model.extend({
       ? access.relations.grantedByGroup
       : await Group.find(access.get('granted_by_group_id'))
 
-    if (product?.id && grantedByGroup) {
+    // Only an offering that can still be bought (listed or unlisted); a retired one falls back
+    const buyable = [StripeProduct.PublishStatus.PUBLISHED, StripeProduct.PublishStatus.UNLISTED]
+      .includes(product?.get('publish_status'))
+    if (product?.id && buyable && grantedByGroup) {
       return Frontend.Route.offering(grantedByGroup, product)
     }
 

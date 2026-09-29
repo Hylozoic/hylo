@@ -57,6 +57,19 @@ describe('ContentAccess renew link', () => {
     expect(renewUrl).to.match(new RegExp(`/groups/renew-parent/offerings/${product.id}$`))
   })
 
+  it('opens the space itself when the offering was archived or unpublished', async () => {
+    const access = await expiredAccess({ group_id: space.id, product_id: product.id })
+
+    await product.save({ publish_status: StripeProduct.PublishStatus.ARCHIVED }, { patch: true })
+    expect(await ContentAccess.renewUrl(await loadForEmail(access))).to.match(/\/groups\/renew-parent\/spaces\/workshop$/)
+
+    await product.save({ publish_status: StripeProduct.PublishStatus.UNPUBLISHED }, { patch: true })
+    expect(await ContentAccess.renewUrl(await loadForEmail(access))).to.match(/\/groups\/renew-parent\/spaces\/workshop$/)
+
+    await product.save({ publish_status: StripeProduct.PublishStatus.UNLISTED }, { patch: true })
+    expect(await ContentAccess.renewUrl(await loadForEmail(access))).to.equal(Frontend.Route.offering(group, product))
+  })
+
   it('opens the space itself, under its parent, when a space access has no product', async () => {
     const access = await expiredAccess({ group_id: space.id, access_type: ContentAccess.Type.ADMIN_GRANT })
 
