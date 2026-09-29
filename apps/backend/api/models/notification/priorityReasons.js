@@ -27,9 +27,13 @@ export const PRIORITY_REASONS = [
   'groupPeerGroupInviteAccepted',
   'groupPeerGroupInvite',
   'memberJoinedGroup',
+  // Before 'trackCompleted', which would otherwise match it as a prefix
+  'trackCompletedLearner',
   'trackCompleted',
   'trackEnrollment',
   'fundingRoundNewSubmission',
   'fundingRoundPhaseTransition',
-  'fundingRoundReminder'
+  'fundingRoundReminder',
+  'openRequestNudge',
+  'trackReminder'
 ]

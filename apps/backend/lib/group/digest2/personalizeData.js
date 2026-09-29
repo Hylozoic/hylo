@@ -3,13 +3,64 @@ import { includes, filter, get } from 'lodash/fp'
 import { getLocaleStrings } from '../../i18n/locales'
 import { aggregateChatRooms, shouldSendData } from './util'
 import { applyUnifiedGroupLabels } from './mergeData'
+import { dropSeenContent } from './dedupe'
+import { claimWeeklyDigestNotice } from './weeklyNotice'
+import { OPEN_REQUESTS_PER_DIGEST } from './openRequests'
 import * as cheerio from 'cheerio'
 
-const generateSubjectLine = (data, type, locale) => {
+// Post sections in the order the digest template shows them
+const HIGHLIGHT_POST_KEYS = ['discussions', 'events', 'offers', 'requests', 'resources', 'projects', 'proposals']
+const SUBJECT_TITLE_MAX = 60
+const PREHEADER_MAX = 140
+
+const ENTITIES = { '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&#x27;': "'" }
+const stripTags = text => text.replace(/<[^>]*>/g, ' ')
+
+/** Post text as one plain line: no HTML, no entities, no line breaks. */
+export const plainText = html => stripTags(
+  stripTags(String(html || '')).replace(/&(nbsp|amp|lt|gt|quot|#39|#x27);/g, entity => ENTITIES[entity])
+).replace(/\s+/g, ' ').trim()
+
+/** Shortens plain text at a word where it can, never splitting an emoji, and adds an ellipsis. */
+export const truncatePlain = (text, max) => {
+  const chars = Array.from(text || '')
+  if (chars.length <= max) return text || ''
+  let cut = chars.slice(0, max - 1).join('')
+  const space = cut.lastIndexOf(' ')
+  if (space > cut.length * 0.6) cut = cut.slice(0, space)
+  return cut.trimEnd() + '…'
+}
+
+/**
+ * The digest's top post (the first titled post in template order, new posts before
+ * posts with new comments) and how many other posts it has. Read after dedupe, so it never
+ * names a post the email no longer contains.
+ */
+export const digestHighlights = data => {
+  const posts = [
+    ...HIGHLIGHT_POST_KEYS.flatMap(key => data[key] || []),
+    ...(data.posts_with_new_comments || [])
+  ]
+  const top = posts.find(post => plainText(post?.title))
+  const ids = new Set(posts.map(post => String(post?.id)))
+  return { top, others: top ? ids.size - 1 : ids.size, posts }
+}
+
+// D40: the subject is the top post's title plus "+N more in <group>", falling back to
+// the fixed subject when there is no titled post (chats or reminders only).
+const generateSubjectLine = (data, content, type, locale) => {
   const L = getLocaleStrings(locale)
   if (data.search) {
     // Saved search
     return L.newSavedSearchResults(data.search.get('name'))
+  }
+
+  const { top, others } = digestHighlights(content)
+  if (top) {
+    const title = truncatePlain(plainText(top.title), SUBJECT_TITLE_MAX)
+    return data.unified
+      ? L.emailDigestUnifiedTopPostSubject({ title, count: others })
+      : L.emailDigestTopPostSubject({ title, count: others, groupName: data.group_name })
   }
 
   if (data.unified) {
@@ -26,6 +77,19 @@ const generateSubjectLine = (data, type, locale) => {
   }
 }
 
+// The preview line inboxes show after the subject: the top post's text, or else the
+// titles of the next posts.
+const generatePreheader = content => {
+  const { top, posts } = digestHighlights(content)
+  const text = top && plainText(top.details)
+  if (text) return truncatePlain(text, PREHEADER_MAX)
+  const titles = posts
+    .filter(post => post !== top)
+    .map(post => plainText(post?.title))
+    .filter(Boolean)
+  return truncatePlain(titles.join(' · '), PREHEADER_MAX)
+}
+
 const CONTENT_KEYS = [
   'discussions',
   'requests',
@@ -37,11 +101,12 @@ const CONTENT_KEYS = [
   'chats',
   'posts_with_new_comments',
   'upcoming',
-  'ending'
+  'ending',
+  'open_requests'
 ]
 
 const getPosts = data =>
-  flatten(values(pick(data, 'requests', 'offers', 'resources', 'discussions', 'projects', 'events', 'proposals', 'posts_with_new_comments', 'upcoming', 'ending')))
+  flatten(values(pick(data, 'requests', 'offers', 'resources', 'discussions', 'projects', 'events', 'proposals', 'posts_with_new_comments', 'upcoming', 'ending', 'open_requests')))
 
 const addParamsToLinks = (text, params) => {
   if (!text) return
@@ -118,7 +183,7 @@ const filterMyAndBlockedUserData = async (userId, data) => {
   for (const post of clonedData.posts_with_new_comments || []) {
     // Filter out comments by blocked user or the user themselves
     post.comments = filter(comment => !includes(get('user.id', comment), blockedUserIds.concat(userId)), post.comments)
-    // TODO: filter out comments that have alraedy been seen? Unfortunatly we arent tracking last read post time very well right now.
+    // Comments older than the member's last read of the post are dropped by dedupe.js
   }
 
   const allItems = CONTENT_KEYS.flatMap(key => clonedData[key] || [])
@@ -132,8 +197,9 @@ const filterMyAndBlockedUserData = async (userId, data) => {
       // Filter out all posts by blocked users
       if (includes(get('user.id', object), blockedUserIds)) return null
 
-      // Filter out posts by the user themselves except for posts with new comments, upcoming, and ending reminders
-      if (!['posts_with_new_comments', 'upcoming', 'ending'].includes(key) && parseInt(object.user.id) === parseInt(userId)) return null
+      // Filter out posts by the user themselves except for posts with new comments, upcoming and ending
+      // reminders, and open requests (the author answers their own there)
+      if (!['posts_with_new_comments', 'upcoming', 'ending', 'open_requests'].includes(key) && parseInt(object.user.id) === parseInt(userId)) return null
 
       // Drop posts/chats from spaces the recipient is not a member of.
       // A copy that was also posted in a parent group stays (visible_via_parent).
@@ -199,9 +265,17 @@ const personalizeData = async (user, type, data, opts = {}) => {
   // Don't show me content I created or created by blocked users
   const filteredData = await filterMyAndBlockedUserData(user.id, data)
 
+  // Leave out posts they already got by email or have read, and comments they have seen (D39).
+  // Not for saved-search emails: those list what matches the search, and their
+  // last_post_id only moves on when one is sent.
+  if (!data.search) await dropSeenContent(user.id, filteredData)
+
   // Check again after filtering to make sure we're not sending empty digests
   if (!(await shouldSendData(filteredData, user.id))) {
     return null
+  }
+  if (filteredData.open_requests) {
+    filteredData.open_requests = filteredData.open_requests.slice(0, OPEN_REQUESTS_PER_DIGEST)
   }
   filteredData.num_sections = Object.keys(filteredData).filter(k => Array.isArray(filteredData[k]) && filteredData[k].length > 0).length
 
@@ -212,6 +286,8 @@ const personalizeData = async (user, type, data, opts = {}) => {
   stripDigestInternals(filteredData)
 
   const locale = user.getLocale()
+  // One line about the weekly-digest mix-up, in the next weekly digest only (D73)
+  const weeklyDigestNotice = data.search || opts.dryRun ? null : claimWeeklyDigestNotice(user, type)
   const contextName = data.unified ? 'Hylo' : data.group_name
   const clickthroughParams = '?' + new URLSearchParams({
     ctt: 'digest_email',
@@ -227,6 +303,14 @@ const personalizeData = async (user, type, data, opts = {}) => {
     }
   })
 
+  // The author of an open request can answer in one tap: still needed, or met (D58)
+  ;(filteredData.open_requests || []).forEach(post => {
+    if (String(post.user?.id) !== String(user.id)) return
+    post.is_own = true
+    post.still_needed_url = Frontend.appendQueryString(post.url, 'action=still-needed')
+    post.met_url = Frontend.appendQueryString(post.url, 'action=met')
+  })
+
   ;(filteredData.chat_rooms || []).forEach(room => {
     if (room.url) {
       room.url = Frontend.appendQueryString(room.url, clickthroughParams)
@@ -234,7 +318,9 @@ const personalizeData = async (user, type, data, opts = {}) => {
   })
 
   return Promise.props(merge(filteredData, {
-    subject: generateSubjectLine(data, type, locale),
+    subject: generateSubjectLine(data, filteredData, type, locale),
+    preheader: data.search ? '' : generatePreheader(filteredData),
+    weekly_digest_notice: weeklyDigestNotice,
     unified: !!data.unified,
     group_url: Frontend.appendQueryString(filteredData.group_url, clickthroughParams),
     recipient: {

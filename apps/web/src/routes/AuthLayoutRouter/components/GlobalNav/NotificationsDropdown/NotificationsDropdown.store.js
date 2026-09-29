@@ -72,6 +72,7 @@ export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
                 id
                 space {
                   name
+                  slug
                 }
               }
               fundingRound {

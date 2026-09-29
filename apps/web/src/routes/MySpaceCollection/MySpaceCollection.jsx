@@ -1,17 +1,20 @@
 import { BadgeDollarSign, Shapes } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
+import TrackProgressBar from 'components/TrackProgressBar'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchMySpaceMemberships from 'store/actions/fetchMySpaceMemberships'
+import { fetchMyTrackProgress } from 'store/actions/trackActions'
 import { FETCH_MY_SPACE_MEMBERSHIPS } from 'store/constants'
 import { GROUP_TYPES } from 'store/models/Group'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
+import { trackProgressBySpaceId } from 'util/trackProgress'
 
 import { SpaceViewCard } from 'routes/AuthLayoutRouter/components/ContextMenu/GroupViewCard'
 import ViewsGridSkeleton from 'routes/AuthLayoutRouter/components/ContextMenu/ViewsGridSkeleton'
@@ -77,6 +80,17 @@ export default function MySpaceCollection ({ kind }) {
     dispatch(fetchMySpaceMemberships())
   }, [dispatch])
 
+  // "N of M completed" under each track card (D33)
+  const [progressBySpaceId, setProgressBySpaceId] = useState({})
+  useEffect(() => {
+    if (!isTrack) return
+    let cancelled = false
+    Promise.resolve(dispatch(fetchMyTrackProgress()))
+      .then(result => { if (!cancelled) setProgressBySpaceId(trackProgressBySpaceId(result?.payload?.data)) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [dispatch, isTrack])
+
   useEffect(() => {
     setHeaderDetails({
       title,
@@ -106,14 +120,24 @@ export default function MySpaceCollection ({ kind }) {
             ? <p className='text-sm text-foreground/40'>{emptyMessage}</p>
             : (
               <div className='flex flex-wrap gap-3'>
-                {spaces.map(space => (
-                  <SpaceViewCard
-                    key={space.id}
-                    space={space}
-                    onOpen={handleOpenSpace}
-                    onOpenAbout={handleOpenSpaceAbout}
-                  />
-                ))}
+                {spaces.map(space => {
+                  const progress = isTrack ? progressBySpaceId[String(space.id)] : null
+                  const card = (
+                    <SpaceViewCard
+                      key={space.id}
+                      space={space}
+                      onOpen={handleOpenSpace}
+                      onOpenAbout={handleOpenSpaceAbout}
+                    />
+                  )
+                  if (!progress?.total) return card
+                  return (
+                    <div key={space.id} className='flex flex-col gap-1.5 w-[calc(50%-0.375rem)] sm:w-[168px] [&>*:first-child]:w-full'>
+                      {card}
+                      <TrackProgressBar completed={progress.completed} total={progress.total} />
+                    </div>
+                  )
+                })}
               </div>
               )}
     </div>

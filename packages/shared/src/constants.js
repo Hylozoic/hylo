@@ -71,7 +71,14 @@ export const AnalyticsEvents = {
   // New group setup checklist in the group menu
   GROUP_SETUP_CHECKLIST_SHOWN: 'Group Setup Checklist Shown',
   GROUP_SETUP_CHECKLIST_ITEM_CLICKED: 'Group Setup Checklist Item Clicked',
-  GROUP_SETUP_CHECKLIST_DISMISSED: 'Group Setup Checklist Dismissed'
+  GROUP_SETUP_CHECKLIST_DISMISSED: 'Group Setup Checklist Dismissed',
+  // Paid content, sent from the server for people who accept analytics (D62). Tracks use
+  // TRACK_ENROLLED and TRACK_COMPLETED above. { groupId, offeringId, trackId, mode, ... }
+  CHECKOUT_STARTED: 'Checkout Started',
+  ACCESS_GRANTED: 'Access Granted',
+  SUBSCRIPTION_CANCELLED: 'Subscription Cancelled',
+  SUBSCRIPTION_RENEWED: 'Subscription Renewed',
+  PAYMENT_FAILED: 'Payment Failed'
 }
 
 // CustomEvent dispatched in the WebView when Android hardware back is pressed.

@@ -1,12 +1,15 @@
-import { Pencil, PartyPopper } from 'lucide-react'
+import { ArrowRight, Pencil, PartyPopper } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { postUrl } from '@hylo/navigation'
 import { TextHelpers } from '@hylo/shared'
 import { formatUserDatePair } from 'util/dateFormat'
 import { FileManager } from 'components/AttachmentManager/FileManager'
 import CardFileAttachments from 'components/CardFileAttachments'
 import ClickCatcher from 'components/ClickCatcher'
+import TrackCompletionSuggestions from 'components/TrackCompletionSuggestions/TrackCompletionSuggestions'
 import HyloHTML from 'components/HyloHTML'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
@@ -22,6 +25,7 @@ import { fetchTrack } from 'store/actions/trackActions'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import getTrack from 'store/selectors/getTrack'
+import { nextIncompleteAction } from 'util/trackProgress'
 
 /** Role objects from a group's embedded groupRoles list. */
 function roleItems (group) {
@@ -74,6 +78,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const routeParams = useRouteParams()
+  const navigate = useNavigate()
   const [completionResponse, setCompletionResponse] = useState(post.completionResponse || [])
   const [showTrackCompletionDialog, setShowTrackCompletionDialog] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -111,6 +116,10 @@ export default function ActionCompletionSection ({ post, currentUser }) {
 
   const isTrackCompleteAfterThisPost = allTrackActionsComplete(trackActions, post.id) ||
     (fetchedTrack?.numActions === 1)
+  // After an action is done, hand off to the next one (D33)
+  const nextAction = post.completedAt && !isTrackCompleteAfterThisPost
+    ? nextIncompleteAction(trackActions, post.id)
+    : null
 
   useEffect(() => {
     if (completedOnMountRef.current) return
@@ -284,7 +293,14 @@ export default function ActionCompletionSection ({ post, currentUser }) {
         <div className='mb-1'>
           <p>{t('You completed this {{actionDescriptor}} {{date}}.', { date: completedAt, actionDescriptor: currentTrack?.actionDescriptor })} {alreadyCompletedMessage}</p>
           {completionResponse?.length > 0 && completionResponseText}
-          <Button variant='outline' onClick={() => setIsEditing(true)}><Pencil className='w-4 h-4 cursor-pointer' /> Edit Response</Button>
+          <div className='flex flex-row flex-wrap gap-2'>
+            <Button variant='outline' onClick={() => setIsEditing(true)}><Pencil className='w-4 h-4 cursor-pointer' /> Edit Response</Button>
+            {nextAction && (
+              <Button onClick={() => navigate(postUrl(nextAction.id, routeParams))} data-testid='next-action'>
+                {t('Next: {{title}}', { title: nextAction.title })} <ArrowRight className='w-4 h-4' />
+              </Button>
+            )}
+          </div>
         </div>
       )}
       {(!post.completedAt || isEditing) && (
@@ -314,6 +330,12 @@ export default function ActionCompletionSection ({ post, currentUser }) {
                   <div className='rounded-md bg-selected/50 shadow-xl border-2 border-selected/80 px-2 py-1 bg-selected'>{completionRole.emoji} {completionRole.name}</div>
                 </div>
               )}
+              <TrackCompletionSuggestions
+                className='mt-4'
+                parentGroup={parentGroup || (currentGroup?.parentId ? { id: currentGroup.parentId, slug: routeParams.groupSlug } : null)}
+                space={currentGroup}
+                onNavigate={() => setShowTrackCompletionDialog(false)}
+              />
             </Dialog.Content>
           </Dialog.Overlay>
         </Dialog.Portal>

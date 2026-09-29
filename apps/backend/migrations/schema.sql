@@ -5447,6 +5447,13 @@ ALTER TABLE ONLY public.zapier_triggers
 
 
 --
+-- Name: activities_post_id_reader_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX activities_post_id_reader_id_index ON public.activities USING btree (post_id, reader_id) WHERE (post_id IS NOT NULL);
+
+
+--
 -- Name: blocked_users_blocked_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6082,6 +6089,13 @@ CREATE UNIQUE INDEX member_invite_links_one_active ON public.member_invite_links
 --
 
 CREATE INDEX member_invite_links_user_id_index ON public.member_invite_links USING btree (user_id);
+
+
+--
+-- Name: notifications_activity_id_email_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX notifications_activity_id_email_index ON public.notifications USING btree (activity_id) WHERE (medium = 2);
 
 
 --

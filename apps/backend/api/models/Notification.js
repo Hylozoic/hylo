@@ -79,7 +79,10 @@ const TYPE = {
   TrackEnrollment: 'trackEnrollment',
   FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
   FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
-  FundingRoundReminder: 'fundingRoundReminder' // Reminder for funding round deadline
+  FundingRoundReminder: 'fundingRoundReminder', // Reminder for funding round deadline
+  OpenRequestNudge: 'openRequestNudge', // your request or offer has had no reply (D58)
+  TrackCompletedLearner: 'trackCompletedLearner', // you completed a track (D63)
+  TrackReminder: 'trackReminder' // a nudge to continue a track you enrolled in (D63)
 }
 
 const MEDIUM = {
@@ -218,6 +221,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendFundingRoundPhaseTransitionPush()
       case 'fundingRoundReminder':
         return this.sendFundingRoundReminderPush()
+      case 'openRequestNudge':
+        return this.sendOpenRequestNudgePush()
       default:
         return Promise.resolve()
     }
@@ -256,6 +261,17 @@ module.exports = bookshelf.Model.extend({
         const alertText = PushNotification.textForContribution(contribution, version, locale)
         return this.reader().sendPushNotification(alertText, path)
       })
+  },
+
+  // Opens the post with ?nudge=open-request, where the author can answer in one tap (D58)
+  sendOpenRequestNudgePush: async function () {
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group, 'nudge=open-request'))
+    const alertText = PushNotification.textForOpenRequestNudge(post, locale)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendTrackCompletedPush: async function () {
@@ -569,6 +585,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendFundingRoundPhaseTransitionEmail()
       case 'fundingRoundReminder':
         return this.sendFundingRoundReminderEmail()
+      case 'trackReminder':
+        return this.sendTrackReminderEmail()
       default:
         // Must not throw: an unhandled reason would otherwise be retried until it ages out.
         sentry.captureException(new Error('No email is defined for this notification reason'), {
@@ -1140,6 +1158,47 @@ module.exports = bookshelf.Model.extend({
         completer_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
         track_name: trackName,
         track_url: Frontend.Route.track(track) + clickthroughParams
+      }
+    })
+  },
+
+  // A learner who has been idle in a track: their progress and their next action (D63).
+  // Skipped (and marked sent) until the SendWithUs template exists.
+  sendTrackReminderEmail: async function () {
+    if (!Email.hasTrackReminderTemplate()) return EMAIL_SKIPPED
+    const reader = this.reader()
+    const track = this.track()
+    const nextAction = this.relations.activity.relations.post
+    const locale = this.locale()
+    const space = await track.group().fetch({ withRelated: ['parentGroup'] })
+    if (!space) return EMAIL_SKIPPED
+    const membership = await GroupMembership.forPair(reader.id, space).fetch()
+    const settings = (membership && membership.get('settings')) || {}
+    const totalActions = track.get('num_actions') || 0
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'track_reminder_email',
+      cti: reader.id,
+      ctcn: space.get('name')
+    }).toString()
+    const actionsUrl = Frontend.Route.space(space, 'track-actions')
+    const nextActionUrl = nextAction?.id ? Frontend.Route.space(space, `track-actions/post/${nextAction.id}`) : actionsUrl
+
+    return Email.sendTrackReminderEmail({
+      email: reader.get('email'),
+      locale,
+      sender: { name: getLocaleStrings(locale).theTeamAtHylo },
+      data: {
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        learner_name: reader.get('name'),
+        track_name: space.get('name'),
+        track_url: actionsUrl + clickthroughParams,
+        group_name: space.relations.parentGroup?.get('name') || space.get('name'),
+        next_action_title: nextAction?.id ? nextAction.summary() : null,
+        next_action_url: nextActionUrl + clickthroughParams,
+        actions_completed: Math.min(Number(settings.actionsCompleted) || 0, totalActions),
+        total_actions: totalActions,
+        reminder_number: this.relations.activity.get('meta')?.reminderNumber || 1
       }
     })
   },

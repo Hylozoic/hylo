@@ -3,6 +3,8 @@ import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { spyify, unspyify } from '../../../test/setup/helpers'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
+import { createRequestHandler } from '../index'
+import { createSpace } from './spaces'
 import {
   createTrack,
   deleteTrack,
@@ -194,6 +196,150 @@ describe('track mutations', () => {
       expect(membership).to.equal(null)
       const inactive = await GroupMembership.forPair(member.id, space, { includeInactive: true }).fetch()
       expect(inactive.get('active')).to.equal(false)
+    })
+  })
+  describe('learner progress and completion (D63)', () => {
+    let space, track, actions, learner, second
+
+    // Runs a document through the real schema, as the given user
+    const run = async (userId, document) => {
+      const { executionResult } = await createRequestHandler().inject({
+        document,
+        serverContext: { req: { session: { userId } } }
+      })
+      return executionResult
+    }
+
+    before(async () => {
+      learner = await factories.user().save()
+      second = await factories.user().save()
+      await learner.joinGroup(group)
+      await second.joinGroup(group)
+      space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `track-space-progress-${Date.now()}`,
+        name: 'Composting basics'
+      }).save()
+      await Group.setupSpaceViews(space.id, [], ['track-actions', 'members'])
+      track = await createTrack(trackManager.id, { groupId: space.id })
+      actions = []
+      for (const name of ['Watch the intro', 'Build a bin']) {
+        const action = await factories.post({ type: 'action', user_id: trackManager.id, name }).save()
+        await action.groups().attach([space.id])
+        await Track.addPost(action, await Track.find(track.id))
+        actions.push(action)
+      }
+      await enrollInTrack(learner.id, track.id)
+      await enrollInTrack(second.id, track.id)
+    })
+
+    const complete = async (user, action) => {
+      await action.complete(user.id, JSON.stringify(['done']))
+      await Post.checkCompletedTrack({ userId: user.id, postId: action.id })
+    }
+    const settingsOf = async user => (await GroupMembership.forPair(user.id, space.id).fetch()).get('settings')
+    const learnerNotices = user => bookshelf.knex('activities')
+      .where({ reader_id: user.id })
+      .whereRaw('meta -> \'reasons\' @> ?::jsonb', [JSON.stringify(['trackCompletedLearner'])])
+
+    it('records progress on the enrollment as actions are completed', async () => {
+      await complete(learner, actions[0])
+      const settings = await settingsOf(learner)
+      expect(settings.actionsCompleted).to.equal(1)
+      expect(new Date(settings.lastActionAt).getTime()).to.be.closeTo(Date.now(), 60000)
+      expect(settings.completedAt).to.be.undefined
+      expect(await learnerNotices(learner)).to.have.length(0)
+    })
+
+    it('tells the learner, in the app only, when they complete the track', async () => {
+      await complete(learner, actions[1])
+      const settings = await settingsOf(learner)
+      expect(settings.actionsCompleted).to.equal(2)
+      expect(settings.completedAt).to.be.a('string')
+
+      const notices = await learnerNotices(learner)
+      expect(notices).to.have.length(1)
+      expect(String(notices[0].track_id)).to.equal(String(track.id))
+      const media = await bookshelf.knex('notifications').where({ activity_id: notices[0].id }).pluck('medium')
+      expect(media).to.deep.equal([Notification.MEDIUM.InApp])
+
+      // Stewards are still told as before
+      const stewardNotices = await bookshelf.knex('activities')
+        .where({ reader_id: trackManager.id })
+        .whereRaw('meta -> \'reasons\' @> ?::jsonb', [JSON.stringify(['trackCompleted'])])
+      expect(stewardNotices.length).to.be.at.least(1)
+    })
+
+    const progressQuery = ({ completed } = {}) => `{
+      track(id: "${track.id}") {
+        enrolledUsers(${completed == null ? '' : `completed: ${completed}, `}first: 50) {
+          total
+          items { id actionsCompleted lastActionAt completedAt }
+        }
+      }
+    }`
+    const byId = result => Object.fromEntries(result.data.track.enrolledUsers.items.map(item => [item.id, item]))
+
+    it('shows every learner\'s progress to the track\'s stewards', async () => {
+      const result = await run(trackManager.id, progressQuery())
+      expect(result.errors).to.be.undefined
+      const people = byId(result)
+      expect(people[learner.id].actionsCompleted).to.equal(2)
+      expect(people[learner.id].lastActionAt).to.be.a('string')
+      expect(people[second.id].actionsCompleted).to.equal(0)
+      expect(people[second.id].lastActionAt).to.equal(null)
+    })
+
+    it('shows a learner only their own progress', async () => {
+      const result = await run(second.id, progressQuery())
+      expect(result.errors).to.be.undefined
+      const people = byId(result)
+      expect(people[second.id].actionsCompleted).to.equal(0)
+      expect(people[learner.id].actionsCompleted).to.equal(null)
+      expect(people[learner.id].lastActionAt).to.equal(null)
+    })
+
+    it('lets stewards list only the learners who have not finished', async () => {
+      const notFinished = await run(trackManager.id, progressQuery({ completed: false }))
+      expect(notFinished.errors).to.be.undefined
+      expect(notFinished.data.track.enrolledUsers.items.map(item => item.id)).to.deep.equal([String(second.id)])
+      expect(notFinished.data.track.enrolledUsers.total).to.equal(1)
+
+      const finished = await run(trackManager.id, progressQuery({ completed: true }))
+      expect(finished.data.track.enrolledUsers.items.map(item => item.id)).to.deep.equal([String(learner.id)])
+    })
+
+    it('leaves whoever created the track space out of its learners, when asked', async () => {
+      const createdSpace = await createSpace(trackManager.id, {
+        parentGroupId: group.id,
+        name: 'Seed saving',
+        viewTypes: ['track-actions', 'members']
+      }, {})
+      const createdTrack = await createTrack(trackManager.id, { groupId: createdSpace.id })
+      await enrollInTrack(second.id, createdTrack.id)
+      const query = learnersOnly => `{
+        track(id: "${createdTrack.id}") {
+          enrolledUsers(${learnersOnly ? 'learnersOnly: true, ' : ''}first: 50) { total items { id } }
+        }
+      }`
+      const ids = result => result.data.track.enrolledUsers.items.map(item => item.id).sort()
+
+      const everyone = await run(trackManager.id, query(false))
+      expect(everyone.errors).to.be.undefined
+      expect(ids(everyone)).to.deep.equal([String(trackManager.id), String(second.id)].sort())
+
+      const learners = await run(trackManager.id, query(true))
+      expect(learners.errors).to.be.undefined
+      expect(ids(learners)).to.deep.equal([String(second.id)])
+      expect(learners.data.track.enrolledUsers.total).to.equal(1)
+
+      // A creator whose membership has no recorded join source is still left out
+      await bookshelf.knex.raw(
+        'UPDATE group_memberships SET settings = settings - \'joinSource\' WHERE group_id = ? AND user_id = ?',
+        [createdSpace.id, trackManager.id]
+      )
+      expect(ids(await run(trackManager.id, query(true)))).to.deep.equal([String(second.id)])
     })
   })
 })

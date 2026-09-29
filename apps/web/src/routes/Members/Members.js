@@ -40,6 +40,7 @@ import { CENTER_COLUMN_ID } from 'util/scrolling'
 import orm from 'store/models'
 
 import classes from './Members.module.scss'
+import TrackProgressPanel from './TrackProgressPanel'
 
 /** Parent group when the current group is a space; otherwise the group itself. */
 const getRolesSourceGroup = ormCreateSelector(
@@ -493,6 +494,7 @@ function Members (props) {
               )}
             </div>
           )}
+          {canSeeTrackCompletion && <TrackProgressPanel trackId={trackId} />}
           {canSeeJoinAnswers && (
             <div className='flex items-center gap-2'>
               <SwitchStyled

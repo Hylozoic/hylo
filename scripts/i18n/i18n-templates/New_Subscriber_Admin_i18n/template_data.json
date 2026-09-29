@@ -1,0 +1,14 @@
+{
+  "admin_name": "Admin User",
+  "user_name": "Jamie Rivers",
+  "user_profile_url": "https://www.hylo.com/members/123",
+  "offering_name": "Monthly Membership",
+  "group_name": "Garden Club",
+  "group_url": "https://www.hylo.com/groups/garden-club",
+  "group_avatar_url": "https://www.hylo.com/default-group-avatar.png",
+  "subscribed_at": "October 1, 2026",
+  "subscription_amount": "$10.00",
+  "subscription_period": "monthly",
+  "view_content_access_url": "https://www.hylo.com/groups/garden-club/settings/paid-content/access",
+  "contact_user_url": "https://www.hylo.com/members/123/message"
+}

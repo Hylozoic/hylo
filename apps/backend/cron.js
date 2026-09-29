@@ -68,6 +68,12 @@ const daily = now => {
     return count
   }))
 
+  // One nudge to authors of requests and offers nobody has answered after about 3 days (D58)
+  tasks.push(require('./api/models/post/openRequestNudge').sendOpenRequestNudges().then(count => sails.log.debug(`Sent ${count} open request nudges`)).catch(err => sails.log.error('Open request nudges failed', err)))
+
+  // Reminders to learners idle in a track for 7 and 21 days, at most two per enrollment (D63)
+  tasks.push(require('./api/models/track/reminders').sendTrackReminders().then(count => sails.log.debug(`Sent ${count} track reminders`)).catch(err => sails.log.error('Track reminders failed', err)))
+
   return tasks
 }
 

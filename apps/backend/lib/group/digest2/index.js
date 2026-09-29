@@ -12,6 +12,8 @@ import {
 import { senderNameViaHylo } from '../../email/senderNameViaHylo'
 import { getLocaleStrings } from '../../i18n/locales'
 import { lastSeenAt } from '../../../api/models/notification/rules/inactiveReader'
+import { settleWeeklyDigestNotice } from './weeklyNotice'
+import { openRequestsForDigest } from './openRequests'
 import sentry from '../../sentry'
 
 const DIGEST_TEMPLATE_ID = 'tem_t7rmGfJKvqXrvmrVWJjjWkg4'
@@ -46,6 +48,7 @@ export const prepareDigestData = async (id, type, opts = {}) => {
   })
   const data = await getPostsAndComments(group, startTime, endTime, type, spaces)
   if (!data) return false
+  data.openRequests = await openRequestsForDigest(group, spaces, startTime)
   const formattedData = await formatData(group, data)
   return merge({
     group_id: group.id,
@@ -111,14 +114,15 @@ export const sendToUser = (user, type, data, opts = {}) => {
       const emailData = slowedNotice
         ? { ...data, slowed_notice: getLocaleStrings(locale).emailDigestSlowedNotice() }
         : data
-      const result = await Email.sendSimpleEmail(user.get('email'), templateId, emailData, {
+      // Clears the weekly-digest notice once the digest carrying it has gone out (D73)
+      const result = await settleWeeklyDigestNotice(user, data, () => Email.sendSimpleEmail(user.get('email'), templateId, emailData, {
         sender: {
           name: senderNameViaHylo(senderName, locale),
           reply_to: 'DoNotReply@hylo.com'
         },
         version: 'Spaces',
         unsubscribe
-      }, locale)
+      }, locale))
       if (slowedNotice && result && result !== Email.SKIPPED) {
         slowedNoticeSent = true
         await recordSlowedNotice(user)
