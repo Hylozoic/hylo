@@ -337,10 +337,14 @@ export function EventDateStack ({ start }) {
   )
 }
 
-/** Card for a GroupView on the one-column grid, themed by its postType color. */
+/**
+ * Card for a GroupView on the one-column grid, themed by its postType color.
+ * Pass `fill` when a wrapper carries CARD_SIZE_CLASS (the card then fills it).
+ */
 function GroupViewCard ({
   view,
   isEditing,
+  fill = false,
   onOpen,
   onOpenAbout,
   group = null,
@@ -524,7 +528,7 @@ function GroupViewCard ({
         isEditing && 'cursor-[inherit]',
         // The wrapper owns the footprint; fill it rather than sizing against a
         // parent that is sizing itself to this card.
-        isEditing && CARD_FILL_CLASS
+        (isEditing || fill) && CARD_FILL_CLASS
       )}
       style={{
         background: onPhoto ? cardNeutralBg(effectiveColorScheme) : cardGradient(col, effectiveColorScheme),

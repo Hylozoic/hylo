@@ -60,6 +60,7 @@ import {
   cardHoverShadow,
   cardRestShadow,
   CARD_CLASS,
+  CARD_SIZE_CLASS,
   CARD_FADE_CLASS,
   CARD_TITLE_CLASS,
   CARD_TILE_CLASS,
@@ -280,13 +281,15 @@ function ViewsGrid ({ sections, group, spaceGroup, onOpen, t, footer = null }) {
         if (section.type === 'separator') {
           return <SeparatorSection key={section.view.id || `sep-${index}`} />
         }
-        // My Home cards with nothing behind them stay, greyed out
+        // My Home cards with nothing behind them stay, greyed out. The wrapper
+        // takes the card's footprint (the card's phone width is a percentage
+        // of its parent) and the card fills it.
         return (
           <div key={`grid-${index}`} className='flex flex-wrap gap-3'>
             {section.views.map(view => view.isEmpty
               ? (
-                <div key={view.id} className={EMPTY_MENU_ITEM_CLASS} title={t('Nothing here yet')} data-empty='true'>
-                  <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} onOpen={onOpen} />
+                <div key={view.id} className={cn(CARD_SIZE_CLASS, EMPTY_MENU_ITEM_CLASS)} title={t('Nothing here yet')} data-empty='true'>
+                  <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} onOpen={onOpen} fill />
                 </div>
                 )
               : (
@@ -883,7 +886,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                       <Users className='w-3.5 h-3.5' />
                       {(spaceGroup || group)?.memberCount || 0}
                     </Link>
-                    <span className='inline-flex' data-tour='group-invite'>
+                    <span className='inline-flex empty:hidden' data-tour='group-invite'>
                       <InviteMembersDialog
                         group={spaceGroup || group}
                         parentGroup={spaceGroup ? group : null}
