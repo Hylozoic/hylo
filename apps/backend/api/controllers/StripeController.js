@@ -1779,7 +1779,10 @@ module.exports = {
 
               // Send email to each admin individually
               await Promise.all(admins.models.map(async (adminMembership) => {
-                const admin = adminMembership.relations.user || await User.find(adminMembership.get('user_id'))
+                // membersWithResponsibilities returns the people themselves
+                const admin = adminMembership instanceof User
+                  ? adminMembership
+                  : adminMembership.relations.user || await User.find(adminMembership.get('user_id'))
                 if (!admin) return
 
                 const adminLocale = admin.getLocale()

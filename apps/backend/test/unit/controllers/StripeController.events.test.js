@@ -217,6 +217,26 @@ describe('paid content and track events (D62)', () => {
     }
   })
 
+  describe('the cancellation notice the new subscriber notice matches', () => {
+    it('reaches the group\'s Administrators', async () => {
+      await ContentAccess.create({
+        user_id: accepted.id,
+        granted_by_group_id: group.id,
+        group_id: group.id,
+        product_id: monthly.id,
+        access_type: ContentAccess.Type.STRIPE_PURCHASE,
+        stripe_session_id: 'cs_cancel_notice',
+        stripe_subscription_id: 'sub_cancel_notice',
+        status: ContentAccess.Status.ACTIVE
+      })
+      await StripeController.handleSubscriptionDeleted({ data: { object: { id: 'sub_cancel_notice' } } })
+
+      const notices = queued.filter(q => q.methodName === 'sendSubscriptionCancelledAdminNotification')
+      expect(notices.map(q => q.data.email)).to.deep.equal([steward.get('email')])
+      expect(notices[0].data.data.admin_name).to.equal('Group Steward')
+    })
+  })
+
   describe('checkout.session.expired', () => {
     it('logs the unfinished checkout for the selling group without the customer\'s email', async () => {
       global.__stripeWebhookConstructEvent = () => ({
