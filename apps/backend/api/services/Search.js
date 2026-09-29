@@ -2,11 +2,16 @@ import forUsers from './Search/forUsers'
 import forPosts from './Search/forPosts'
 import forModerationActions from './Search/forModerationActions'
 import { countTotal } from '../../lib/util/knex'
-import { filterAndSortGroups } from './Search/util'
+import { filterAndSortGroups, recentActivitySql } from './Search/util'
 import { transform } from 'lodash'
 import { isNil } from 'lodash/fp'
 
+// Recommended groups within this distance of the person come first
+const RECOMMENDED_NEARBY_RADIUS_KM = 150
+
 module.exports = {
+  RECOMMENDED_NEARBY_RADIUS_KM,
+
   forPosts,
 
   forUsers,
@@ -165,6 +170,46 @@ module.exports = {
       if (!opts.nearCoord && !opts.sort === 'size') { // Because they are using CTEs and WITH statements, queries ordered by size or nearness don't like this group-by statement
         qb.groupBy('groups.id')
       }
+    })
+  },
+
+  /**
+   * Live, open groups to suggest to someone who isn't in them yet: listed in the
+   * Group Explorer, Public, Open, active, top-level, with posts in the last
+   * RECENT_ACTIVITY_WINDOW_DAYS days, and joinable in one step (no paywall and no
+   * prerequisite groups). When the person has a location, groups within
+   * RECOMMENDED_NEARBY_RADIUS_KM come first; then the most recently active,
+   * then the nearest.
+   */
+  recommendedGroups: function ({ userId, limit = 4 }) {
+    const knex = bookshelf.knex
+    const groupCenter = '(SELECT gl.center::geography FROM locations gl WHERE gl.id = groups.location_id)'
+    const viewerCenter = '(SELECT vl.center::geography FROM users vu JOIN locations vl ON vl.id = vu.location_id WHERE vu.id = ?)'
+    const distance = `ST_Distance(${groupCenter}, ${viewerCenter})`
+
+    return Group.query(qb => {
+      qb.with('recent_activity', recentActivitySql())
+      qb.join('recent_activity', 'groups.id', 'recent_activity.group_id')
+      qb.select('groups.*')
+      qb.where('groups.active', true)
+      qb.where('groups.visibility', Group.Visibility.PUBLIC)
+      qb.where('groups.accessibility', Group.Accessibility.OPEN)
+      qb.where('groups.allow_in_public', true)
+      qb.whereRaw('groups.paywall IS NOT TRUE')
+      Group.excludeSpaces(qb)
+      qb.whereNotIn('groups.id', Group.selectIdsForMember(userId))
+      qb.whereNotExists(function () {
+        this.select(knex.raw(1))
+          .from('group_relationships')
+          .whereRaw('group_relationships.child_group_id = groups.id')
+          .where('group_relationships.active', true)
+          .whereRaw("(group_relationships.settings->>'isPrerequisite') = 'true'")
+      })
+      qb.orderByRaw(`(${distance} <= ?) IS TRUE DESC`, [userId, RECOMMENDED_NEARBY_RADIUS_KM * 1000])
+      qb.orderBy('recent_activity.recent_post_count', 'desc')
+      qb.orderByRaw(`${distance} ASC NULLS LAST`, [userId])
+      qb.orderBy('groups.id', 'asc')
+      qb.limit(limit)
     })
   },
 

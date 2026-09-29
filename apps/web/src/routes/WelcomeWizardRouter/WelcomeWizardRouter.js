@@ -3,6 +3,7 @@ import React, { useRef } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { CSSTransition } from 'react-transition-group'
 import AddLocation from './AddLocation'
+import RecommendedGroups from './RecommendedGroups'
 import UploadPhoto from './UploadPhoto'
 import WelcomeExplore from './WelcomeExplore'
 import classes from './WelcomeWizard.module.scss'
@@ -22,6 +23,7 @@ export default function WelcomeWizardRouter () {
           <Routes>
             <Route path='upload-photo' element={<UploadPhoto />} />
             <Route path='add-location' element={<AddLocation />} />
+            <Route path='recommended-groups' element={<RecommendedGroups />} />
             <Route path='explore' element={<WelcomeExplore />} />
             <Route path='' element={<Navigate to='/welcome/upload-photo' replace />} />
           </Routes>

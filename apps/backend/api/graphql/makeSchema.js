@@ -596,6 +596,13 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
         discoverableBy: context.currentUserId
       }).fetchAll()
       return presentQuerySet(groups.models, { first, offset })
+    },
+    recommendedGroups: async (root, { first = 4 }, context) => {
+      const groups = await Search.recommendedGroups({
+        userId: context.currentUserId,
+        limit: Math.max(1, Math.min(first, 20))
+      }).fetchAll()
+      return groups.models
     }
   }
 }

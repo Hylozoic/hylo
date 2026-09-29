@@ -1,7 +1,7 @@
 import React from 'react'
 import userEvent from '@testing-library/user-event'
 import orm from 'store/models'
-import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import AddLocation from './AddLocation'
 
@@ -45,4 +45,15 @@ describe('AddLocation', () => {
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith('Welcome Wizard Step Skipped', { step: 'add-location' })
   })
+
+  it('suggests groups to join next when there is no invitation or page to return to', async () => {
+    const user = userEvent.setup()
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Me.create({ id: '1', name: 'Test User', settings: { signupInProgress: true } })
+    render(<AddLocation />, { wrapper: AllTheProviders({ orm: ormSession.state }) })
+
+    await user.click(screen.getByText('Next: Welcome to Hylo!'))
+
+    await waitFor(() => expect(window.location.pathname).toBe('/welcome/recommended-groups'), { timeout: 10000 })
+  }, 30000)
 })

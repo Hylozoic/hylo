@@ -496,6 +496,12 @@ type Query {
     # For pagination, return groups after this offset
     offset: Int
   ): GroupQuerySet
+
+  # A few live, open groups to suggest to the current user, who isn't in them yet: listed in the Group Explorer, Public, Open and recently active, nearest first when the user has a location
+  recommendedGroups(
+    # Number of groups to return (at most 20)
+    first: Int
+  ): [Group]
 }
 
 union Update = Message | MessageThread | Notification

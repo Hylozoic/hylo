@@ -36,7 +36,9 @@ export const AnalyticsEvents = {
   SIGNUP_AGREEMENTS_ACCEPTED: 'Signup Agreements Accepted',
   SIGNUP_EMAIL_VERIFICATION_FAILED: 'Email Verification Failed',
   WELCOME_WIZARD_STEP_SKIPPED: 'Welcome Wizard Step Skipped',
-  WELCOME_WIZARD_STEP_VIEWED: 'Welcome Wizard Step Viewed'
+  WELCOME_WIZARD_STEP_VIEWED: 'Welcome Wizard Step Viewed',
+  // Joined a group from the recommended groups step after signup: { groupId, position, hasLocation }
+  RECOMMENDED_GROUP_JOINED: 'Recommended Group Joined'
 }
 
 // CustomEvent dispatched in the WebView when Android hardware back is pressed.

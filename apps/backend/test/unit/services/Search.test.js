@@ -340,4 +340,75 @@ describe('Search', function () {
       expect(names(members)).to.deep.equal(['Zed Nearby', 'Yan Faraway', 'Abe Nowhere'])
     })
   })
+
+  describe('.recommendedGroups', () => {
+    let author, newcomer, localNewcomer, member
+
+    const place = (lng, lat) => new Location({ center: { lng, lat }, full_text: `${lat}, ${lng}` }).save()
+
+    async function listedGroup (name, attrs = {}, { posts = 1, daysAgo = 2, location } = {}) {
+      const group = await factories.group({
+        name,
+        visibility: 2,
+        accessibility: 2,
+        allow_in_public: true,
+        location_id: location ? location.id : null,
+        ...attrs
+      }).save()
+      for (let i = 0; i < posts; i++) {
+        await addGroupPost(group, author, daysAgo)
+      }
+      return group
+    }
+
+    before(async () => {
+      await setup.clearDb()
+      author = await factories.user().save()
+      newcomer = await factories.user().save()
+      const home = await place(-122.48, 48.75)
+      localNewcomer = await factories.user({ location_id: home.id }).save()
+      member = await factories.user().save()
+
+      await listedGroup('Busy Far Away', {}, { posts: 3, location: await place(2.35, 48.85) })
+      await listedGroup('Quiet Nearby', {}, { posts: 1, location: await place(-122.3, 48.6) })
+
+      await listedGroup('Not Listed', { allow_in_public: false }, { posts: 5 })
+      await listedGroup('Asks To Join', { accessibility: 1 }, { posts: 5 })
+      await listedGroup('Not Public', { visibility: 1 }, { posts: 5 })
+      await listedGroup('Closed Down', { active: false }, { posts: 5 })
+      await listedGroup('A Space', { type: 'space' }, { posts: 5 })
+      await listedGroup('Paid', { paywall: true }, { posts: 5 })
+      await listedGroup('Gone Quiet', {}, { posts: 5, daysAgo: RECENT_ACTIVITY_WINDOW_DAYS + 10 })
+      const joined = await listedGroup('Already In', {}, { posts: 5 })
+      await joined.addMembers([newcomer.id, localNewcomer.id, member.id])
+      const needsPrereq = await listedGroup('Needs Another Group', {}, { posts: 5 })
+      const prereq = await factories.group({ name: 'Prerequisite' }).save()
+      await bookshelf.knex('group_relationships').insert({
+        parent_group_id: prereq.id,
+        child_group_id: needsPrereq.id,
+        active: true,
+        relationship_type: 0,
+        settings: { isPrerequisite: true },
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+    })
+
+    const names = groups => groups.map(g => g.get('name'))
+
+    it('suggests only listed, Public, Open, active groups with recent posts that the person can join in one step', async () => {
+      const groups = await Search.recommendedGroups({ userId: newcomer.id, limit: 10 }).fetchAll()
+      expect(names(groups)).to.deep.equal(['Busy Far Away', 'Quiet Nearby'])
+    })
+
+    it('puts nearby groups first when the person has a location', async () => {
+      const groups = await Search.recommendedGroups({ userId: localNewcomer.id, limit: 10 }).fetchAll()
+      expect(names(groups)).to.deep.equal(['Quiet Nearby', 'Busy Far Away'])
+    })
+
+    it('returns at most the requested number of groups', async () => {
+      const groups = await Search.recommendedGroups({ userId: newcomer.id, limit: 1 }).fetchAll()
+      expect(names(groups)).to.deep.equal(['Busy Far Away'])
+    })
+  })
 })
