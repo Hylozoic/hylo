@@ -1748,7 +1748,8 @@ CREATE TABLE public.join_requests (
     status integer,
     group_id bigint NOT NULL,
     processed_by_id bigint,
-    invitation_id bigint
+    invitation_id bigint,
+    member_invite_link_id bigint
 );
 
 
@@ -1966,6 +1967,39 @@ CREATE TABLE public.media (
     comment_id bigint,
     "position" integer DEFAULT 0
 );
+
+
+--
+-- Name: member_invite_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.member_invite_links (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    code character varying(32) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    revoked_at timestamp with time zone
+);
+
+
+--
+-- Name: member_invite_links_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.member_invite_links_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: member_invite_links_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.member_invite_links_id_seq OWNED BY public.member_invite_links.id;
 
 
 --
@@ -3877,6 +3911,13 @@ ALTER TABLE ONLY public.locations ALTER COLUMN id SET DEFAULT nextval('public.lo
 
 
 --
+-- Name: member_invite_links id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.member_invite_links ALTER COLUMN id SET DEFAULT nextval('public.member_invite_links_id_seq'::regclass);
+
+
+--
 -- Name: moderation_actions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4569,6 +4610,14 @@ ALTER TABLE ONLY public.link_previews
 
 ALTER TABLE ONLY public.locations
     ADD CONSTRAINT locations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: member_invite_links member_invite_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.member_invite_links
+    ADD CONSTRAINT member_invite_links_pkey PRIMARY KEY (id);
 
 
 --
@@ -5630,10 +5679,38 @@ CREATE INDEX join_requests_invitation_id_index ON public.join_requests USING btr
 
 
 --
+-- Name: join_requests_member_invite_link_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX join_requests_member_invite_link_id_index ON public.join_requests USING btree (member_invite_link_id) WHERE (member_invite_link_id IS NOT NULL);
+
+
+--
 -- Name: location_center_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX location_center_idx ON public.locations USING gist (center);
+
+
+--
+-- Name: member_invite_links_code_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX member_invite_links_code_unique ON public.member_invite_links USING btree (lower((code)::text));
+
+
+--
+-- Name: member_invite_links_one_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX member_invite_links_one_active ON public.member_invite_links USING btree (group_id, user_id) WHERE (revoked_at IS NULL);
+
+
+--
+-- Name: member_invite_links_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX member_invite_links_user_id_index ON public.member_invite_links USING btree (user_id);
 
 
 --
@@ -6773,6 +6850,14 @@ ALTER TABLE ONLY public.join_requests
 
 
 --
+-- Name: join_requests join_requests_member_invite_link_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.join_requests
+    ADD CONSTRAINT join_requests_member_invite_link_id_foreign FOREIGN KEY (member_invite_link_id) REFERENCES public.member_invite_links(id) ON DELETE SET NULL;
+
+
+--
 -- Name: join_requests join_requests_processed_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6794,6 +6879,22 @@ ALTER TABLE ONLY public.join_requests
 
 ALTER TABLE ONLY public.media
     ADD CONSTRAINT media_comment_id_foreign FOREIGN KEY (comment_id) REFERENCES public.comments(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: member_invite_links member_invite_links_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.member_invite_links
+    ADD CONSTRAINT member_invite_links_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: member_invite_links member_invite_links_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.member_invite_links
+    ADD CONSTRAINT member_invite_links_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

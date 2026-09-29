@@ -2,6 +2,7 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
+import InvitationService from '../../services/InvitationService'
 import {
   createJoinRequest,
   acceptJoinRequest,
@@ -303,6 +304,90 @@ describe('join_request mutations', () => {
       expect(invitation.get('used_by_id')).to.be.null
       await expect(createJoinRequest(requester.id, restricted.id, [], invitation.get('token')))
         .to.be.rejectedWith('This invitation cannot be used to request to join this group')
+    })
+  })
+
+  describe("requests from members' personal invite links", () => {
+    let restricted, otherGroup, admin, owner, link
+
+    const ledgerTotal = async userId => {
+      const row = await bookshelf.knex('invitation_sends').where({ user_id: userId }).sum('recipients as total').first()
+      return Number(row.total || 0)
+    }
+    const noRequestFrom = async requester =>
+      expect(await JoinRequest.where({ user_id: requester.id, group_id: restricted.id }).fetch()).to.not.exist
+
+    before(async () => {
+      restricted = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+      otherGroup = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+      admin = await factories.user().save()
+      owner = await factories.user({ name: 'Link Owner' }).save()
+      await admin.joinGroup(restricted, { assignAdministrator: true })
+      await owner.joinGroup(restricted)
+      await GroupRole.setInvitePolicy(restricted.id, { mode: 'everyone' })
+      link = await MemberInviteLink.findOrCreate({ groupId: restricted.id, userId: owner.id })
+    })
+
+    it('records the link, counts the person toward its owner\'s day, and says who invited them', async () => {
+      const requester = await factories.user().save()
+      const before = await ledgerTotal(owner.id)
+      const { request } = await createJoinRequest(requester.id, restricted.id, [], null, link.get('code'))
+
+      expect(request.get('member_invite_link_id')).to.equal(link.id)
+      expect(request.get('invitation_id')).to.be.null
+      expect(await ledgerTotal(owner.id)).to.equal(before + 1)
+      expect(String(await request.sponsorId())).to.equal(String(owner.id))
+      const shown = await InvitationService.memberLinkSender(await request.memberInviteLink().fetch())
+      expect(shown).to.deep.equal({ id: owner.id, name: 'Link Owner', avatarUrl: owner.get('avatar_url') || null })
+    })
+
+    it('adds the link to a request the person already made, counting them once', async () => {
+      const requester = await factories.user().save()
+      const first = await createJoinRequest(requester.id, restricted.id, [])
+      const before = await ledgerTotal(owner.id)
+      const second = await createJoinRequest(requester.id, restricted.id, [], null, link.get('code'))
+      expect(second.request.id).to.equal(first.request.id)
+      expect((await JoinRequest.find(first.request.id)).get('member_invite_link_id')).to.equal(link.id)
+      await createJoinRequest(requester.id, restricted.id, [], null, link.get('code'))
+      expect(await ledgerTotal(owner.id)).to.equal(before + 1)
+    })
+
+    it('refuses a code that is not a usable member link to this group', async () => {
+      const otherOwner = await factories.user().save()
+      await otherOwner.joinGroup(otherGroup)
+      await GroupRole.setInvitePolicy(otherGroup.id, { mode: 'everyone' })
+      const otherGroupLink = await MemberInviteLink.findOrCreate({ groupId: otherGroup.id, userId: otherOwner.id })
+      const resetOwner = await factories.user().save()
+      await resetOwner.joinGroup(restricted)
+      const oldLink = await MemberInviteLink.findOrCreate({ groupId: restricted.id, userId: resetOwner.id })
+      await MemberInviteLink.reset({ groupId: restricted.id, userId: resetOwner.id })
+
+      for (const code of ['not-a-code', otherGroupLink.get('code'), oldLink.get('code'), restricted.get('access_code')]) {
+        const requester = await factories.user().save()
+        await expect(createJoinRequest(requester.id, restricted.id, [], null, code))
+          .to.be.rejectedWith('This invitation cannot be used to request to join this group')
+        await noRequestFrom(requester)
+      }
+    })
+
+    it('asks nobody in while the owner\'s allowance is used up', async () => {
+      const busyOwner = await factories.user().save()
+      await busyOwner.joinGroup(restricted)
+      const busyLink = await MemberInviteLink.findOrCreate({ groupId: restricted.id, userId: busyOwner.id })
+      await bookshelf.knex('invitation_sends').insert({ user_id: busyOwner.id, group_id: restricted.id, recipients: InvitationSend.LIMITS.perInviterPerDay })
+      const requester = await factories.user().save()
+      await expect(createJoinRequest(requester.id, restricted.id, [], null, busyLink.get('code')))
+        .to.be.rejectedWith(InvitationService.MEMBER_LINK_TRY_LATER)
+      await noRequestFrom(requester)
+    })
+
+    it('records who invited the person when a steward welcomes them', async () => {
+      const requester = await factories.user().save()
+      const { request } = await createJoinRequest(requester.id, restricted.id, [], null, link.get('code'))
+      await acceptJoinRequest(admin.id, request.id)
+      const membership = await GroupMembership.forPair(requester.id, restricted.id).fetch()
+      expect(membership.getSetting('joinSource')).to.equal('join_request')
+      expect(String(membership.getSetting('invitedById'))).to.equal(String(owner.id))
     })
   })
 

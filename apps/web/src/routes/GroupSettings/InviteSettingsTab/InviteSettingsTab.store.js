@@ -154,6 +154,61 @@ export function cancelInvitationSubmission (submissionId) {
   }
 }
 
+export const FETCH_MY_INVITE_LINK = `${MODULE_NAME}/FETCH_MY_INVITE_LINK`
+export const CREATE_MEMBER_INVITE_LINK = `${MODULE_NAME}/CREATE_MEMBER_INVITE_LINK`
+export const RESET_MEMBER_INVITE_LINK = `${MODULE_NAME}/RESET_MEMBER_INVITE_LINK`
+
+/** With limited invite access: this person's personal invite link to the group, if they have made one. */
+export function fetchMyInviteLink (groupId) {
+  return {
+    type: FETCH_MY_INVITE_LINK,
+    graphql: {
+      query: `query ($id: ID) {
+        group (id: $id) {
+          id
+          myInviteLink {
+            path
+            createdAt
+          }
+        }
+      }`,
+      variables: { id: groupId }
+    }
+  }
+}
+
+/** Make this person's personal invite link to the group (or get the one they have). */
+export function createMemberInviteLink (groupId) {
+  return {
+    type: CREATE_MEMBER_INVITE_LINK,
+    graphql: {
+      query: `mutation ($groupId: ID) {
+        createMemberInviteLink(groupId: $groupId) {
+          path
+          createdAt
+        }
+      }`,
+      variables: { groupId }
+    }
+  }
+}
+
+/** Stop this person's personal invite link working and make a new one. */
+export function resetMemberInviteLink (groupId) {
+  return {
+    type: RESET_MEMBER_INVITE_LINK,
+    graphql: {
+      query: `mutation ($groupId: ID) {
+        resetMemberInviteLink(groupId: $groupId) {
+          path
+          createdAt
+        }
+      }`,
+      variables: { groupId }
+    }
+  }
+}
+
 export const INVITEABLE_PEOPLE_PAGE_SIZE = 15
 
 /**

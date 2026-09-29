@@ -2,7 +2,7 @@
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { mockify, unspyify, withFeatureFlag } from '../../../test/setup/helpers'
-import { createInvitation, expireInvitation, reinviteAll, resendInvitation, useInvitation } from './invitation'
+import { createInvitation, createMemberInviteLink, expireInvitation, reinviteAll, resendInvitation, resetMemberInviteLink, useInvitation } from './invitation'
 
 const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
 const NO_PERMISSION = "You don't have permission to create an invitation for this group"
@@ -263,6 +263,36 @@ describe('member invitations', () => {
       expect(invitation.id).to.exist
       expect((await Invitation.find(invitation.id)).get('inviter_access')).to.equal('full')
       expect(await ledgerTotal({ user_id: admin.id, group_id: group.id })).to.equal(0)
+    })
+  })
+
+  describe('personal invite links', () => {
+    it('gives members with limited invite access one link, which Reset replaces', async () => {
+      const group = await createGroup()
+      const member = await createMember(group)
+
+      const link = await createMemberInviteLink(member.id, group.id)
+      expect(link.path).to.match(new RegExp(`^/groups/${group.get('slug')}/join/[A-Za-z0-9]{16}$`))
+      expect(await createMemberInviteLink(member.id, group.id)).to.deep.equal(link)
+
+      const reset = await resetMemberInviteLink(member.id, group.id)
+      expect(reset.path).to.not.equal(link.path)
+      expect(await createMemberInviteLink(member.id, group.id)).to.deep.equal(reset)
+      expect(link.path).to.not.include(group.get('access_code'))
+    })
+
+    it('gives no link to stewards, to members who cannot invite, or while member invitations are off', async () => {
+      const group = await createGroup('stewards')
+      const member = await createMember(group)
+      const noLink = "You don't have permission to create an invite link for this group"
+      await expect(createMemberInviteLink(member.id, group.id)).to.be.rejectedWith(noLink)
+      await expect(createMemberInviteLink(admin.id, group.id)).to.be.rejectedWith(noLink)
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        await expect(createMemberInviteLink(member.id, group.id)).to.be.rejectedWith(noLink)
+        await expect(resetMemberInviteLink(member.id, group.id)).to.be.rejectedWith(noLink)
+      })
+      expect(await MemberInviteLink.findActive({ groupId: group.id, userId: member.id })).to.not.exist
     })
   })
 

@@ -89,6 +89,29 @@ export function expireInvitation (userId, invitationId) {
     .then(() => ({ success: true }))
 }
 
+// The group whose personal invite link this person may have: one they can invite people to with limited access
+async function memberInviteLinkGroup (userId, groupId) {
+  const group = groupId && await Group.find(groupId)
+  if (!group || await GroupMembership.inviteAccess(userId, group) !== GroupMembership.InviteAccess.LIMITED) {
+    throw new GraphQLError("You don't have permission to create an invite link for this group")
+  }
+  return group
+}
+
+const inviteLinkResult = (link, group) => ({ path: link.path(group), createdAt: link.get('created_at') })
+
+/** This person's personal invite link to the group, made now if they have none. */
+export async function createMemberInviteLink (userId, groupId) {
+  const group = await memberInviteLinkGroup(userId, groupId)
+  return inviteLinkResult(await MemberInviteLink.findOrCreate({ groupId: group.id, userId }), group)
+}
+
+/** Stop this person's personal invite link to the group working, and make a new one. */
+export async function resetMemberInviteLink (userId, groupId) {
+  const group = await memberInviteLinkGroup(userId, groupId)
+  return inviteLinkResult(await MemberInviteLink.reset({ groupId: group.id, userId }), group)
+}
+
 /**
  * Take one of the addresses or people this person submitted with limited invite access
  * off their list, cancelling its invitation if one is still pending.

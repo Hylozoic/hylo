@@ -1175,6 +1175,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
           return GroupRole.findMemberRole(g.id)
         },
         myInviteAccess: g => userId ? GroupMembership.inviteAccess(userId, g) : null,
+        myInviteLink: async g => {
+          if (!userId || await GroupMembership.inviteAccess(userId, g) !== GroupMembership.InviteAccess.LIMITED) {
+            return null
+          }
+          const link = await MemberInviteLink.findActive({ groupId: g.id, userId })
+          return link ? { path: link.path(g), createdAt: link.get('created_at') } : null
+        },
         myInviteAllowance: async g => {
           if (!userId || await GroupMembership.inviteAccess(userId, g) !== GroupMembership.InviteAccess.LIMITED) {
             return null
@@ -1475,7 +1482,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         invitedBy: async jr => {
           const invitation = jr.get('invitation_id') && await jr.invitation().fetch()
-          return invitation ? InvitationService.invitationSender(invitation) : null
+          if (invitation) return InvitationService.invitationSender(invitation)
+          const memberInviteLink = jr.get('member_invite_link_id') && await jr.memberInviteLink().fetch()
+          return memberInviteLink ? InvitationService.memberLinkSender(memberInviteLink) : null
         },
         questionAnswers: jr => jr.questionAnswers().fetch()
       },

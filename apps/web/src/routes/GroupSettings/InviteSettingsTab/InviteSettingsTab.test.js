@@ -243,6 +243,59 @@ describe('InviteSettingsTab with limited invite access', () => {
     expect(screen.queryByText('Share a Join Link')).not.toBeInTheDocument()
   })
 
+  describe('personal invite link', () => {
+    const linkResponse = (field, path) => () => HttpResponse.json({ data: { [field]: { path, createdAt: '2026-09-22T10:00:00.000Z' } } })
+
+    it('makes the link when asked, then copies it and reports a member link copy', async () => {
+      const operations = mockLimited({
+        myInviteLink: () => HttpResponse.json({ data: { group: { id: '1', myInviteLink: null } } }),
+        createMemberInviteLink: linkResponse('createMemberInviteLink', '/groups/goteam/join/MemberCode12345')
+      })
+      renderLimited()
+
+      expect(await screen.findByText('Your personal invite link')).toBeInTheDocument()
+      expect(screen.getByText('People who use your link ask to join, and a steward reviews their request.')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Create my invite link' }))
+
+      expect(await screen.findByText(`${window.location.origin}/groups/goteam/join/MemberCode12345`)).toBeInTheDocument()
+      expect(operations.createMemberInviteLink).toEqual([{ groupId: '1' }])
+      fireEvent.click(screen.getByText('Copy'))
+      expect(trackAnalyticsEvent).toHaveBeenCalledWith('Invite Link Copied', { groupId: '1', kind: 'member' })
+    })
+
+    it('shows the link the member already has and replaces it on Reset', async () => {
+      const confirmSpy = jest.spyOn(window, 'confirm').mockImplementation(() => true)
+      mockLimited({
+        myInviteLink: () => HttpResponse.json({ data: { group: { id: '1', myInviteLink: { path: '/groups/goteam/join/OldCode123456789', createdAt: null } } } }),
+        resetMemberInviteLink: linkResponse('resetMemberInviteLink', '/groups/goteam/join/NewCode123456789')
+      })
+      renderLimited({ accessibility: GROUP_ACCESSIBILITY.Open })
+
+      expect(await screen.findByText(`${window.location.origin}/groups/goteam/join/OldCode123456789`)).toBeInTheDocument()
+      expect(screen.getByText('People who use your link join right away.')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Reset Link' }))
+
+      expect(await screen.findByText(`${window.location.origin}/groups/goteam/join/NewCode123456789`)).toBeInTheDocument()
+      expect(confirmSpy).toHaveBeenCalledWith("Are you sure you want to reset your invite link? The current link won't work anymore.")
+      confirmSpy.mockRestore()
+    })
+
+    it('is not shown while member invitations are switched off on the web', async () => {
+      const saved = process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
+      process.env.VITE_FEATURE_FLAG_MEMBER_INVITES = 'off'
+      try {
+        const operations = mockLimited()
+        renderLimited()
+        await waitFor(() => expect(operations.myInvitationSubmissions).toHaveLength(1))
+        expect(screen.queryByText('Your personal invite link')).not.toBeInTheDocument()
+        expect(operations.myInviteLink).toBeUndefined()
+      } finally {
+        if (saved === undefined) delete process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
+        else process.env.VITE_FEATURE_FLAG_MEMBER_INVITES = saved
+      }
+    })
+  })
+
   it('cancels one of the rows this person submitted', async () => {
     const operations = mockLimited()
     renderLimited()

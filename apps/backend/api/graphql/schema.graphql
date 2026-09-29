@@ -695,8 +695,12 @@ type CheckInvitationResult {
   groupRole: GroupRole
   # True for an invitation from a member to a group where a steward approves new people: the person requests to join (with the invitation token) instead of joining
   requiresApproval: Boolean
-  # Who sent a member invitation (null for other invitations)
+  # Who sent a member invitation, or whose personal invite link this is (null for other invitations)
   invitedBy: InvitationSender
+  # True when the code is a member's personal invite link rather than the group's join link
+  isMemberLink: Boolean
+  # True for a member's personal invite link that has been used as often as it can be today: nobody can join or ask to join through it until later
+  tryLater: Boolean
 }
 
 # A comment on a post
@@ -854,6 +858,8 @@ type Group {
   myInviteAccess: String
   # With 'limited' invite access: how many more email addresses the current user can invite to this group today. Null otherwise
   myInviteAllowance: Int
+  # With 'limited' invite access: the current user's personal invite link to this group, if they have made one. Null otherwise
+  myInviteLink: MemberInviteLink
   # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
   openJoinRequestCount: Int
   # Count of active (unresolved) moderation actions in this group
@@ -1664,6 +1670,13 @@ type InvitationQuerySet {
   total: Int
   hasMore: Boolean
   items: [Invitation]
+}
+
+# A member's personal invite link to a group. Everyone who joins or asks to join through it counts toward the member's invitations for the day
+type MemberInviteLink {
+  # The link's path, like a group join link: /groups/<slug>/join/<code>
+  path: String
+  createdAt: Date
 }
 
 # An address someone with 'limited' invite access typed, or a person they picked, when they sent invitations
@@ -3481,8 +3494,12 @@ type Mutation {
 
   # Invite email addresses and/or existing people to join a Group. With 'limited' invite access: email addresses, and people who share a group with the sender while the member people picker is switched on (in-app notification only), up to 10 at a time and within the daily allowance (fails with 'invite-limit' otherwise)
   createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
-  # Ask to join a Group. invitationToken: a member's invitation to this group, so stewards see who invited the person (otherwise a pending member invitation to the person's email address is used)
-  createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput], invitationToken: String): CreatedRequest
+  # Ask to join a Group. invitationToken: a member's invitation to this group, so stewards see who invited the person (otherwise a pending member invitation to the person's email address is used). accessCode: the code of a member's personal invite link to this group, for the same reason (fails with 'invite-try-later' while it has been used as often as it can be today)
+  createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput], invitationToken: String, accessCode: String): CreatedRequest
+  # With 'limited' invite access: your personal invite link to this group, made now if you have none
+  createMemberInviteLink(groupId: ID): MemberInviteLink
+  # With 'limited' invite access: stop your personal invite link to this group working and make a new one
+  resetMemberInviteLink(groupId: ID): MemberInviteLink
   # Send a direct message
   createMessage(data: MessageInput): Message
   # Create a new moderation action

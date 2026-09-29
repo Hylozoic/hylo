@@ -148,6 +148,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const [invitationRole, setInvitationRole] = useState(null)
   const [invitationRequiresApproval, setInvitationRequiresApproval] = useState(false)
   const [invitedBy, setInvitedBy] = useState(null)
+  const [isMemberLink, setIsMemberLink] = useState(false)
+  const [invitationTryLater, setInvitationTryLater] = useState(false)
   const [invitationChecked, setInvitationChecked] = useState(false)
   const [linkedSpaceName, setLinkedSpaceName] = useState(null)
   const [linkedSpaceSlug, setLinkedSpaceSlug] = useState(null)
@@ -165,9 +167,14 @@ function GroupDetail ({ forCurrentGroup = false }) {
       if (checkResult?.groupRole) {
         setInvitationRole(checkResult.groupRole)
       }
-      if (invitationToken && checkResult?.requiresApproval) {
+      // A member's invitation, or their personal invite link, to a group where stewards approve new people
+      if ((invitationToken || checkResult?.isMemberLink) && checkResult?.requiresApproval) {
         setInvitationRequiresApproval(true)
         setInvitedBy(checkResult.invitedBy || null)
+      }
+      if (checkResult?.isMemberLink) {
+        setIsMemberLink(true)
+        setInvitationTryLater(!!checkResult.tryLater)
       }
       if (checkResult?.isSpace && checkResult?.parentGroupSlug === slug) {
         setLinkedSpaceName(checkResult.groupName)
@@ -200,7 +207,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
       questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })),
       accessCode,
       invitationToken,
-      true // acceptAgreements - user accepted during join flow
+      true, // acceptAgreements - user accepted during join flow
+      isMemberLink
     ))
     if (isWebView()) {
       sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
@@ -212,26 +220,32 @@ function GroupDetail ({ forCurrentGroup = false }) {
     } else {
       navigate(groupUrl(group.slug))
     }
-  }, [dispatch, group, accessCode, invitationToken, linkedSpaceSlug, linkedSpaceId])
+  }, [dispatch, group, accessCode, invitationToken, isMemberLink, linkedSpaceSlug, linkedSpaceId])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
     const sponsorToken = invitationRequiresApproval ? invitationToken : undefined
+    const sponsorCode = invitationRequiresApproval && isMemberLink && !invitationToken ? accessCode : undefined
     const request = dispatch(createJoinRequest(
       groupId,
       questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })),
-      sponsorToken
+      sponsorToken,
+      sponsorCode
     ))
-    if (sponsorToken) {
-      // The invitation stopped being usable after the page loaded (used, cancelled or its sender left):
-      // drop it so the page offers whatever the group allows without it
-      request.catch(() => {
-        window.alert(t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'))
+    if (sponsorToken || sponsorCode) {
+      // The invitation stopped being usable after the page loaded (used, cancelled, its sender left,
+      // or their invite link reached its daily limit): drop it so the page offers whatever the group
+      // allows without it
+      request.catch(error => {
+        window.alert(error?.message === 'invite-try-later'
+          ? t("This invite link can't be used right now. Please try again later.")
+          : t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'))
         setInvitationRequiresApproval(false)
         setInvitedBy(null)
+        setIsMemberLink(false)
         navigate(location.pathname, { replace: true })
       })
     }
-  }, [dispatch, invitationRequiresApproval, invitationToken, location.pathname, navigate, t])
+  }, [accessCode, dispatch, invitationRequiresApproval, invitationToken, isMemberLink, location.pathname, navigate, t])
 
   const updateMySettings = useCallback(changes => {
     if (!group?.id) return
@@ -508,6 +522,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                   invitationRequiresApproval={invitationRequiresApproval}
                   invitationRole={invitationRole}
                   invitationToken={invitationToken}
+                  invitationTryLater={invitationTryLater}
                   invitedBy={invitedBy}
                   joinGroup={joinGroupHandler}
                   linkedSpaceName={linkedSpaceName}
@@ -541,6 +556,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                         invitationRequiresApproval={invitationRequiresApproval}
                         invitationRole={invitationRole}
                         invitationToken={invitationToken}
+                        invitationTryLater={invitationTryLater}
                         invitedBy={invitedBy}
                         joinGroup={joinGroupHandler}
                         linkedSpaceName={linkedSpaceName}

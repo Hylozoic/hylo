@@ -70,6 +70,78 @@ async function invitationSender (invitation) {
     : null
 }
 
+/** Who owns a member's personal invite link, shown the same way as the sender of an invitation. */
+async function memberLinkSender (link) {
+  const owner = await User.find(link.get('user_id'))
+  return owner
+    ? { id: owner.id, name: owner.get('name'), avatarUrl: owner.get('avatar_url') }
+    : null
+}
+
+// Error for a member's invite link that has been used as often as it can be today
+const MEMBER_LINK_TRY_LATER = 'invite-try-later'
+
+/**
+ * The member's personal invite link with this code and its group, while it can
+ * be used: member invitations are switched on, the link has not been revoked,
+ * its group is an active top-level group, and its owner can still invite
+ * people to that group. Otherwise null.
+ */
+async function usableMemberLink (code) {
+  if (!code || typeof code !== 'string' || !GroupRole.memberInvitesEnabled()) return null
+  const link = await MemberInviteLink.findByCode(code)
+  if (!link || link.isRevoked()) return null
+  const group = await Group.where({ id: link.get('group_id'), active: true }).fetch()
+  if (!group || group.get('parent_id') || group.get('type') === 'space') return null
+  if (!await GroupMembership.inviteAccess(link.get('user_id'), group)) return null
+  return { link, group }
+}
+
+/**
+ * Count one person toward the daily invitation allowance of an invite link's
+ * owner and group, or fail with MEMBER_LINK_TRY_LATER when either is used up.
+ */
+async function spendMemberLinkAllowance (link) {
+  const counted = await InvitationSend.spend({ userId: link.get('user_id'), groupId: link.get('group_id') })
+  if (!counted) throw new GraphQLError(MEMBER_LINK_TRY_LATER)
+}
+
+/**
+ * The public checkInvitation result for a member's personal invite link: who
+ * invited the person, whether a steward approves their request to join
+ * (anything but an Open group), and whether it can't be used until the daily
+ * allowance frees up.
+ */
+async function memberLinkResult ({ link, group }) {
+  const remaining = await InvitationSend.remainingAllowance({ userId: link.get('user_id'), groupId: group.id })
+  return invitationResultForGroup(group, {
+    isMemberLink: true,
+    requiresApproval: group.get('accessibility') !== Group.Accessibility.OPEN,
+    invitedBy: await memberLinkSender(link),
+    tryLater: remaining < 1
+  })
+}
+
+/**
+ * Join through a member's personal invite link: someone already in the group
+ * keeps their membership, an Open group whose prerequisite groups they have
+ * joined takes them in (counted toward the owner's allowance), and anywhere
+ * else they ask to join from the group's about page.
+ */
+async function useMemberLink (userId, { link, group }) {
+  const existing = await GroupMembership.forPair(userId, group.id).fetch()
+  if (existing) return existing
+  const canJoinDirectly = group.get('accessibility') === Group.Accessibility.OPEN &&
+    await group.numPrerequisitesLeft(userId) === 0
+  if (!canJoinDirectly) return { requiresApproval: true, groupSlug: group.get('slug') }
+  await spendMemberLinkAllowance(link)
+  const user = await User.find(userId)
+  return user.joinGroup(group, {
+    joinSource: GroupMembership.JoinSource.MEMBER_LINK,
+    invitedById: link.get('user_id')
+  })
+}
+
 /**
  * Sends an in-app notification to an existing Hylo user invited by user id.
  */
@@ -246,6 +318,14 @@ module.exports = {
   preApproves,
 
   invitationSender,
+
+  memberLinkSender,
+
+  MEMBER_LINK_TRY_LATER,
+
+  usableMemberLink,
+
+  spendMemberLinkAllowance,
 
   checkPermission: (userId, invitationId) => {
     return Invitation.find(invitationId, { withRelated: 'group' })
@@ -529,16 +609,19 @@ module.exports = {
    * For a member invitation, also who sent it and whether a steward has to
    * approve the person's request to join, which the group's accessibility at
    * the time of the check decides.
+   * The code of a member's personal invite link is checked the same way, after
+   * the group join link codes.
    * @param token {String} invitation token from email invite
    * @param accessCode {String} access code from invite link
-   * @returns {Object} { valid, groupId, groupSlug, groupName, isSpace, parentGroupSlug, email, groupRole, requiresApproval, invitedBy }
+   * @returns {Object} { valid, groupId, groupSlug, groupName, isSpace, parentGroupSlug, email, groupRole, requiresApproval, invitedBy, isMemberLink, tryLater }
    */
   check: async (token, accessCode) => {
     if (accessCode) {
       // Invalid / unknown codes must return { valid: false } — plain .fetch() rejects when no row (Bookshelf).
       const group = await Group.queryByAccessCode(accessCode).fetch({ require: false })
-      if (!group) return { valid: false }
-      return invitationResultForGroup(group)
+      if (group) return invitationResultForGroup(group)
+      const memberLink = await usableMemberLink(accessCode)
+      return memberLink ? memberLinkResult(memberLink) : { valid: false }
     }
     if (token) {
       const invitation = await Invitation.where({
@@ -577,18 +660,25 @@ module.exports = {
   },
 
   /**
-   * Join the group with a join link code or an invitation token.
-   * @returns the membership or, for a member invitation the person cannot join
-   *   with directly, { requiresApproval: true, groupSlug } without joining:
-   *   either a steward has to approve new people, and the person can request to
-   *   join with the token, or the group has prerequisite groups the person has
-   *   not joined yet, which its about page lists.
+   * Join the group with a join link code, a member's personal invite link code
+   * or an invitation token.
+   * @returns the membership or, for a member invitation or invite link the
+   *   person cannot join with directly, { requiresApproval: true, groupSlug }
+   *   without joining: either a steward has to approve new people, and the
+   *   person can request to join with the token or code, or the group has
+   *   prerequisite groups the person has not joined yet, which its about page
+   *   lists. Fails with MEMBER_LINK_TRY_LATER while an invite link has been
+   *   used as often as it can be today.
    */
   async use (userId, token, accessCode) {
     const user = await User.find(userId)
     if (accessCode) {
-      const group = await Group.queryByAccessCode(accessCode).fetch()
-      if (!group) throw new Error('Invalid access code')
+      const group = await Group.queryByAccessCode(accessCode).fetch({ require: false })
+      if (!group) {
+        const memberLink = await usableMemberLink(accessCode)
+        if (!memberLink) throw new Error('Invalid access code')
+        return useMemberLink(userId, memberLink)
+      }
 
       // TODO STRIPE: We need to think through how invite links will be impacted by paywall
       const existingMembership = await GroupMembership.forPair(user, group, { includeInactive: true }).fetch()

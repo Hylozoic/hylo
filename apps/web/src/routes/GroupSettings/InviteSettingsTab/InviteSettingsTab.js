@@ -39,6 +39,7 @@ import {
   reinviteAll as reinviteAllAction
 } from './InviteSettingsTab.store'
 
+import MemberInviteLinkCard from './MemberInviteLinkCard'
 import PendingSubmissionsList from './PendingSubmissionsList'
 
 import classes from './InviteSettingsTab.module.scss'
@@ -57,7 +58,8 @@ const parseEmailList = emails =>
 /**
  * Invite page. With 'full' invite access (Add Members) it shows the join link, people search,
  * email invites with an optional role, and every pending invite. With 'limited' access it shows
- * only personal email invites, the daily allowance, and the invites this person sent.
+ * the person's own invite link, personal email invites, the daily allowance, and what this person
+ * invited lately.
  */
 function InviteSettingsTab (props) {
   const { group, inModal = false, parentGroup, inviteAccess = INVITE_ACCESS.full } = props
@@ -430,6 +432,8 @@ function InviteSettingsTab (props) {
           </div>
         </div>
       )}
+
+      {limited && memberInvitesEnabled && <MemberInviteLinkCard group={group} needsApproval={needsApproval} />}
 
       {!limited && (
         <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>

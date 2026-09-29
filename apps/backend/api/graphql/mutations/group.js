@@ -102,8 +102,12 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   if (accessCode || invitationToken) {
     inviteCheck = await InvitationService.check(invitationToken, accessCode)
   }
+  // A member's personal invite link lets people join its Open group directly, like a member invitation
+  const memberLink = inviteCheck?.valid && inviteCheck.isMemberLink ? await InvitationService.usableMemberLink(accessCode) : null
   const checkedInvitation = inviteCheck?.valid && !accessCode ? await Invitation.find(invitationToken) : null
-  const inviteApproves = !!inviteCheck?.valid && (!!accessCode || await InvitationService.preApproves(checkedInvitation, group))
+  const inviteApproves = !!inviteCheck?.valid && (memberLink
+    ? !inviteCheck.requiresApproval
+    : (!!accessCode || await InvitationService.preApproves(checkedInvitation, group)))
   const inviteIsForThisGroup = inviteApproves && inviteCheck.groupSlug === group.get('slug')
   const inviteIsForChildSpace = inviteApproves && inviteCheck.parentGroupSlug === group.get('slug')
   const hasValidInvitation = inviteIsForThisGroup || inviteIsForChildSpace
@@ -126,6 +130,10 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   const joinAttribution = hasValidInvitation
     ? await GroupMembership.inviteJoinAttribution({ accessCode, invitationToken })
     : { joinSource: GroupMembership.JoinSource.OPEN }
+  // Each person who joins through a member's invite link counts toward that member's invitations for the day
+  if (memberLink && hasValidInvitation && !(await GroupMembership.forPair(userId, group.id).fetch())) {
+    await InvitationService.spendMemberLinkAllowance(memberLink.link)
+  }
   const membership = await user.joinGroup(group, { questionAnswers, fromInvitation: hasValidInvitation, ...joinAttribution })
 
   // Record agreement acceptance if user accepted agreements during join flow.

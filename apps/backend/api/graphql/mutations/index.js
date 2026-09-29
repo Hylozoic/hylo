@@ -75,8 +75,10 @@ export {
 export {
   cancelInvitationSubmission,
   createInvitation,
+  createMemberInviteLink,
   expireInvitation,
   resendInvitation,
+  resetMemberInviteLink,
   reinviteAll,
   useInvitation
 } from './invitation'
