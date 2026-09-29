@@ -229,8 +229,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return type ? relation.query({ where: { type } }) : relation
   },
 
+  // Reports about the post itself; reports about one of its comments are left out
   moderationActions: function () {
-    return this.hasMany(ModerationAction)
+    return this.hasMany(ModerationAction).query(q => q.whereNull('moderation_actions.comment_id'))
   },
 
   postMemberships: function () {
