@@ -194,6 +194,7 @@ import {
   membershipChangeInvoicePreview
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
+import { explorerReviewList, reviewExplorerGroup } from './mutations/explorerReview'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -583,7 +584,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       }
       const banners = await SiteBanner.all()
       return banners.toModelArray ? banners.toModelArray() : banners
-    }
+    },
+    explorerReviewList: (root, args, context) => explorerReviewList(context.currentUserId)
   }
 }
 
@@ -949,7 +951,9 @@ export function makeMutations ({ fetchOne }) {
 
     deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
 
-    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id)
+    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    reviewExplorerGroup: (root, { groupId, decision }, context) => reviewExplorerGroup(context.currentUserId, groupId, decision)
   }
 }
 

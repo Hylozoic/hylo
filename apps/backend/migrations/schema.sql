@@ -1458,7 +1458,10 @@ CREATE TABLE public.groups (
     icon character varying(255),
     track_id bigint,
     funding_round_id bigint,
-    status character varying(255) DEFAULT 'published'::character varying NOT NULL
+    status character varying(255) DEFAULT 'published'::character varying NOT NULL,
+    explorer_status character varying(32),
+    explorer_reviewed_at timestamp with time zone,
+    explorer_reviewed_by_id bigint
 );
 
 
@@ -5305,6 +5308,13 @@ CREATE INDEX groups_visibility_active_index ON public.groups USING btree (visibi
 
 
 --
+-- Name: groups_explorer_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX groups_explorer_status_index ON public.groups USING btree (explorer_status) WHERE (explorer_status IS NOT NULL);
+
+
+--
 -- Name: groups_type_status_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5604,6 +5614,13 @@ CREATE INDEX posts_proposal_status_index ON public.posts USING btree (proposal_s
 --
 
 CREATE INDEX public_posts_idx ON public.posts USING btree (is_public);
+
+
+--
+-- Name: posts_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX posts_created_at_index ON public.posts USING btree (created_at);
 
 
 --
@@ -6552,6 +6569,14 @@ ALTER TABLE ONLY public.groups_agreements
 
 ALTER TABLE ONLY public.groups
     ADD CONSTRAINT groups_created_by_id_foreign FOREIGN KEY (created_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: groups groups_explorer_reviewed_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_explorer_reviewed_by_id_foreign FOREIGN KEY (explorer_reviewed_by_id) REFERENCES public.users(id);
 
 
 --

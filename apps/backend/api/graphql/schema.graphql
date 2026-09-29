@@ -483,6 +483,9 @@ type Query {
 
   # All site banners, past and present (admin only)
   allSiteBanners: [SiteBanner]
+
+  # Public groups waiting for a decision about the Group Explorer (admin only)
+  explorerReviewList: ExplorerReviewList
 }
 
 union Update = Message | MessageThread | Notification
@@ -3189,6 +3192,37 @@ input SiteBannerInput {
   showToNewUsers: Boolean
 }
 
+# A Public group in the Group Explorer review list, with its quality signals (admin only)
+type ExplorerReviewGroup {
+  id: ID
+  name: String
+  slug: String
+  avatarUrl: String
+  description: String
+  createdAt: Date
+  # pending, approved, denied, keep_or_unlist, kept or unlisted
+  status: String
+  # Whether the group is listed in the Group Explorer
+  allowInPublic: Boolean
+  # Active members
+  memberCount: Int
+  # Posts in the last activityWindowDays days
+  recentPostCount: Int
+  lastPostAt: Date
+  # Whether the group passes the bar: minMembers or more members and a post in the activity window
+  meetsBar: Boolean
+}
+
+# The Group Explorer review list (admin only)
+type ExplorerReviewList {
+  # New Public groups waiting for Approve or Deny
+  pending: [ExplorerReviewGroup]
+  # Listed groups that no longer pass the bar, waiting for Keep or Unlist
+  keepOrUnlist: [ExplorerReviewGroup]
+  minMembers: Int
+  activityWindowDays: Int
+}
+
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type ProposalOptionQuerySet {
   total: Int
@@ -3734,6 +3768,8 @@ type Mutation {
   deleteSiteBanner(id: ID!): Boolean
   # Dismiss a site banner for the current user
   dismissSiteBanner(id: ID!): Boolean
+  # Decide whether a Public group appears in the Group Explorer: 'approve', 'deny', 'keep' or 'unlist' (admin only)
+  reviewExplorerGroup(groupId: ID!, decision: String!): ExplorerReviewGroup
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
