@@ -226,6 +226,28 @@ describe('SocketListener.store.ormSessionReducer', () => {
     expect(session.Me.first().newNotificationCount).toBe(3)
   })
 
+  it('drops the notice a grouped notification replaces, and keeps the badge as it was', () => {
+    session.Me.create({ id: '77', newNotificationCount: 2 })
+    session.Activity.create({ id: '10', unread: true })
+    session.Notification.create({ id: '100', activity: '10' })
+    session.Activity.create({ id: '11', unread: true })
+    session.Notification.create({ id: '101', activity: '11' })
+
+    ormSessionReducer(session, {
+      type: RECEIVE_NOTIFICATION,
+      payload: {
+        data: {
+          notification: { id: '102', activity: { id: '12', meta: { actorCount: 2, replaces: ['10'] } } }
+        }
+      }
+    })
+
+    expect(session.Notification.idExists('100')).toBe(false)
+    expect(session.Activity.idExists('10')).toBe(false)
+    expect(session.Notification.idExists('101')).toBe(true)
+    expect(session.Me.first().newNotificationCount).toBe(2)
+  })
+
   it('sets openJoinRequestCount from RECEIVE_OPEN_JOIN_REQUEST_COUNT', () => {
     session.Group.create({
       id: 'space-1',

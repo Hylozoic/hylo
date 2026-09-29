@@ -10,6 +10,7 @@ import {
   removeActivities,
   sentNoticeKeys
 } from '../../../../api/models/notification/grouping'
+import { markActivityRead } from '../../../../api/graphql/mutations/index'
 
 const relations = [
   'activity',
@@ -94,6 +95,23 @@ describe('notification/grouping', () => {
       expect(inApp.length).to.equal(1)
       const allInApp = await Notification.where({ user_id: author.id, medium: Notification.MEDIUM.InApp }).fetchAll()
       expect(allInApp.length).to.equal(1)
+    })
+
+    it('names the activity it replaced, so an open web app can drop it', async () => {
+      await Activity.saveForReasons([reactionBy(fans[0])])
+      const [first] = await activitiesFor()
+      expect(first.get('meta').replaces).to.not.exist
+
+      await Activity.saveForReasons([reactionBy(fans[1])])
+      const [second] = await activitiesFor()
+      expect(second.get('meta').replaces).to.deep.equal([String(first.id)])
+    })
+
+    it('lets an open bell mark the replaced notice read without an error', async () => {
+      await Activity.saveForReasons([reactionBy(fans[0])])
+      const [first] = await activitiesFor()
+      await Activity.saveForReasons([reactionBy(fans[1])])
+      expect(await markActivityRead(author.id, first.id)).to.not.exist
     })
 
     it('adds nothing when the same person reacts again', async () => {
@@ -230,6 +248,26 @@ describe('notification/grouping', () => {
       expect(await Activity.where({ id: activity.id }).fetch()).to.not.exist
       expect((await notificationsFor(activity)).length).to.equal(0)
       expect(await newNotificationCount(author.id)).to.equal(1)
+    })
+
+    it('takes back each reader\'s own count, in one pass for many readers', async () => {
+      const readers = [author, ...fans]
+      const activities = []
+      for (const [i, reader] of readers.entries()) {
+        await User.query().where({ id: reader.id }).update({ new_notification_count: 5 })
+        for (let n = 0; n <= i; n++) {
+          const activity = await new Activity({ reader_id: reader.id, actor_id: fans[0].id, post_id: post.id, meta: { reasons: ['newPost'] } }).save()
+          await new Notification({ activity_id: activity.id, medium: Notification.MEDIUM.InApp, user_id: reader.id, sent_at: new Date() }).save()
+          activities.push(activity)
+        }
+      }
+
+      await bookshelf.transaction(trx => removeActivities(activities.map(a => a.id), trx))
+
+      for (const [i, reader] of readers.entries()) {
+        expect(await newNotificationCount(reader.id)).to.equal(5 - (i + 1))
+      }
+      expect((await Activity.where('id', 'in', activities.map(a => a.id)).fetchAll()).length).to.equal(0)
     })
 
     it('never takes the count below zero, and leaves it alone for read notices', async () => {

@@ -307,7 +307,8 @@ export async function updateTopicFollow (userId, { id, data }) {
 export function markActivityRead (userId, activityid) {
   return Activity.find(activityid)
     .then(a => {
-      if (a.get('reader_id') !== userId) return
+      // A grouped notice may have been replaced by a newer one for the same item
+      if (!a || a.get('reader_id') !== userId) return
       return a.save({ unread: false })
     })
 }

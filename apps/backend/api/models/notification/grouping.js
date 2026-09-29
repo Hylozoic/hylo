@@ -9,7 +9,8 @@
 //   activity with the same key. The new row carries every actor so far
 //   (meta.actorIds, latest first, and meta.actorCount); the older row and its
 //   notifications are removed, so the bell and the unread count show one notice.
-//   An actor already counted for that reader and item adds nothing.
+//   An actor already counted for that reader and item adds nothing. meta.replaces
+//   names the removed activities, so an open web app can drop them from the bell.
 //
 //   Other keyed notices (reminders, closing soon, results): the key only lets a job
 //   tell that it already sent that notice (see sentNoticeKeys).
@@ -38,11 +39,11 @@ const withTransaction = (query, transacting) => transacting ? query.transacting(
 
 // Deletes activities and their notifications. An unread activity whose in-app
 // notification was already sent was counted in the reader's new_notification_count,
-// so that count goes down with it (never below zero).
+// so that count goes down with it (never below zero), for every reader in one statement.
 export async function removeActivities (ids, transacting) {
   if (!ids || ids.length === 0) return
   const knex = bookshelf.knex
-  const counted = await withTransaction(knex('notifications')
+  const counted = knex('notifications')
     .join('activities', 'activities.id', 'notifications.activity_id')
     .whereIn('notifications.activity_id', ids)
     .where('notifications.medium', Notification.MEDIUM.InApp)
@@ -50,15 +51,12 @@ export async function removeActivities (ids, transacting) {
     .where('activities.unread', true)
     .groupBy('notifications.user_id')
     .select('notifications.user_id')
-    .count('* as count'), transacting)
-
-  for (const row of counted) {
-    await withTransaction(knex('users')
-      .where('id', row.user_id)
-      .update({
-        new_notification_count: knex.raw('GREATEST(COALESCE(new_notification_count, 0) - ?, 0)', [Number(row.count)])
-      }), transacting)
-  }
+    .count('* as count')
+  await withTransaction(knex.raw(
+    `UPDATE users
+    SET new_notification_count = GREATEST(COALESCE(users.new_notification_count, 0) - counted.count, 0)
+    FROM ? AS counted
+    WHERE users.id = counted.user_id`, [counted]), transacting)
 
   await Notification.where('activity_id', 'in', ids).destroy({ transacting, require: false })
   await Activity.where('id', 'in', ids).destroy({ transacting, require: false })
@@ -100,7 +98,9 @@ async function supersede (attributes, transacting) {
       ...attributes.meta,
       actorIds,
       actorCount: actorIds.length,
-      ...(lastPushAt ? { lastPushAt: lastPushAt.toISOString() } : {})
+      ...(lastPushAt ? { lastPushAt: lastPushAt.toISOString() } : {}),
+      // An open web app drops these from the bell instead of adding to its badge
+      ...(unread.length > 0 ? { replaces: unread.map(activity => String(activity.id)) } : {})
     }
   }
 }
@@ -152,11 +152,11 @@ export async function recordGroupedPush (notification) {
 
 // The keys among `keys` that some activity already carries, for jobs that send a
 // notice once (reminders, closing soon).
-export async function sentNoticeKeys (keys) {
+export async function sentNoticeKeys (keys, transacting) {
   if (!keys || keys.length === 0) return new Set()
-  const rows = await bookshelf.knex('activities')
+  const rows = await withTransaction(bookshelf.knex('activities')
     .whereIn('group_key', keys)
-    .distinct('group_key')
+    .distinct('group_key'), transacting)
   return new Set(rows.map(row => row.group_key))
 }
 
