@@ -102,11 +102,13 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   if (accessCode || invitationToken) {
     inviteCheck = await InvitationService.check(invitationToken, accessCode)
   }
-  // A member's personal invite link lets people join its Open group directly, like a member invitation
-  const memberLink = inviteCheck?.valid && inviteCheck.isMemberLink ? await InvitationService.usableMemberLink(accessCode) : null
+  // A member's personal invite link lets people join its Open group directly, like a member invitation.
+  // A member link that stopped being usable since it was checked approves nothing.
+  const isMemberLink = !!inviteCheck?.valid && !!inviteCheck.isMemberLink
+  const memberLink = isMemberLink ? await InvitationService.usableMemberLink(accessCode) : null
   const checkedInvitation = inviteCheck?.valid && !accessCode ? await Invitation.find(invitationToken) : null
-  const inviteApproves = !!inviteCheck?.valid && (memberLink
-    ? !inviteCheck.requiresApproval
+  const inviteApproves = !!inviteCheck?.valid && (isMemberLink
+    ? !!memberLink && !inviteCheck.requiresApproval
     : (!!accessCode || await InvitationService.preApproves(checkedInvitation, group)))
   const inviteIsForThisGroup = inviteApproves && inviteCheck.groupSlug === group.get('slug')
   const inviteIsForChildSpace = inviteApproves && inviteCheck.parentGroupSlug === group.get('slug')

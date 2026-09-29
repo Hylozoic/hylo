@@ -101,12 +101,13 @@ module.exports = bookshelf.Model.extend({
 
   /**
    * Revoke the active links of these members to this group, or, without
-   * userIds, of every member of it.
+   * userIds, of every member of it, or, without groupId, of these members to
+   * every group (when they leave Hylo).
    */
   revoke: function ({ groupId, userIds }, { transacting } = {}) {
-    let query = bookshelf.knex('member_invite_links')
-      .where('group_id', groupId)
-      .whereNull('revoked_at')
+    if (!groupId && !userIds) throw new Error('MemberInviteLink.revoke needs a groupId or userIds')
+    let query = bookshelf.knex('member_invite_links').whereNull('revoked_at')
+    if (groupId) query = query.where('group_id', groupId)
     if (userIds) query = query.whereIn('user_id', userIds)
     return withTransaction(query.update({ revoked_at: new Date() }), transacting)
   },

@@ -470,6 +470,40 @@ describe('InvitationService', () => {
       expect(await InvitationService.check(null, link.get('code'))).to.deep.equal({ valid: false })
     })
 
+    it('stops working for good when its owner deactivates their account', async () => {
+      const owner = await factories.user().save()
+      await owner.joinGroup(open)
+      await owner.joinGroup(restricted)
+      const links = [
+        await MemberInviteLink.findOrCreate({ groupId: open.id, userId: owner.id }),
+        await MemberInviteLink.findOrCreate({ groupId: restricted.id, userId: owner.id })
+      ]
+      mockify(Queue, 'classMethod', () => Promise.resolve())
+      try {
+        await owner.deactivate('session')
+      } finally {
+        unspyify(Queue, 'classMethod')
+      }
+      await owner.reactivate()
+      for (const link of links) {
+        await link.refresh()
+        expect(link.get('revoked_at')).to.exist
+        expect(await InvitationService.check(null, link.get('code'))).to.deep.equal({ valid: false })
+      }
+      expect(await MemberInviteLink.findActive({ groupId: open.id, userId: openOwner.id })).to.exist
+    })
+
+    it('lets nobody into a Restricted group if the link stops working while they join', async () => {
+      const person = await factories.user().save()
+      mockify(InvitationService, 'usableMemberLink', () => Promise.resolve(null))
+      try {
+        await expect(joinGroup(restricted.id, person.id, [], restrictedLink.get('code'))).to.be.rejectedWith('You do not have permission to do that')
+      } finally {
+        unspyify(InvitationService, 'usableMemberLink')
+      }
+      expect(await memberOf(person, restricted)).to.not.exist
+    })
+
     it('stops working when its owner can no longer invite people, and stays revoked after', async () => {
       const policyGroup = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
       const owner = await factories.user().save()
