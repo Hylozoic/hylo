@@ -133,21 +133,20 @@ describe('PostCompletion', () => {
       expect(screen.queryByTestId('who-helped-dialog')).not.toBeInTheDocument()
     })
 
-    it('marks the request met from ?action=met once, drops the param and asks who helped', async () => {
+    it('asks who helped from ?action=met, leaving the fulfill and the param to PostDetail', async () => {
       mockHelperQueries()
       mockSearch = '?action=met&ctt=open_request_nudge'
       const fulfillPost = jest.fn()
       render(<PostCompletion postId='91' isFulfilled={false} type='request' fulfillPost={fulfillPost} unfulfillPost={jest.fn()} />)
 
       expect(await screen.findByTestId('who-helped-dialog')).toBeInTheDocument()
-      expect(fulfillPost).toHaveBeenCalledTimes(1)
-      expect(mockNavigate).toHaveBeenCalledWith(
-        { pathname: '/groups/garden/post/91', search: '?ctt=open_request_nudge' },
-        { replace: true, state: undefined }
-      )
+      // PostDetail's ?action=met handler marks it met once; a second fulfill here would
+      // tell followers twice
+      expect(fulfillPost).not.toHaveBeenCalled()
+      expect(mockNavigate).not.toHaveBeenCalled()
     })
 
-    it('does not mark an already met request again from ?action=met', async () => {
+    it('asks who helped from ?action=met on a request that is already met, without marking it again', async () => {
       mockHelperQueries()
       mockSearch = '?action=met'
       const fulfillPost = jest.fn()
