@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test'
  */
 async function showBootLoader (page) {
   await page.addInitScript(() => {
-    Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false, configurable: true })
+    Object.defineProperty(window.Navigator.prototype, 'webdriver', { get: () => false, configurable: true })
   })
 }
 
