@@ -1,6 +1,17 @@
 import { DateTime } from 'luxon'
 import { expectEqualQuery } from '../../setup/helpers'
 import setup from '../../setup'
+import factories from '../../setup/factories'
+import { RECENT_ACTIVITY_WINDOW_DAYS, filterAndSortUsers } from '../../../api/services/Search/util'
+
+const DAY = 24 * 60 * 60 * 1000
+
+async function addGroupPost (group, user, daysAgo, attrs = {}) {
+  const createdAt = new Date(Date.now() - daysAgo * DAY)
+  const post = await factories.post({ user_id: user.id, type: 'discussion', created_at: createdAt, updated_at: createdAt, ...attrs }).save()
+  await bookshelf.knex('groups_posts').insert({ group_id: group.id, post_id: post.id })
+  return post
+}
 
 describe('Search', function () {
   describe('.forPosts', function () {
@@ -142,6 +153,76 @@ describe('Search', function () {
       }).query().toString()
       expect(query).to.contain('SELECT group_id, COUNT(group_id) as size from group_memberships GROUP BY group_id')
     })
+
+    describe('for the main search', () => {
+      let viewer, mine, child, peer
+
+      before(async () => {
+        viewer = await factories.user().save()
+        mine = await factories.group({ name: 'Walnut Mine', visibility: 1 }).save()
+        await factories.group({ name: 'Walnut Listed', visibility: 2, allow_in_public: true }).save()
+        await factories.group({ name: 'Walnut Unlisted', visibility: 2, allow_in_public: false }).save()
+        child = await factories.group({ name: 'Walnut Child', visibility: 1 }).save()
+        const hiddenChild = await factories.group({ name: 'Walnut Hidden', visibility: 0 }).save()
+        peer = await factories.group({ name: 'Walnut Peer', visibility: 1 }).save()
+        await factories.group({ name: 'Walnut Stranger', visibility: 1 }).save()
+        await factories.group({ name: 'Walnut Gone', visibility: 2, allow_in_public: true, active: false }).save()
+        await factories.group({ name: 'Walnut Space', visibility: 2, allow_in_public: true, type: 'space', parent_id: mine.id }).save()
+        await mine.addMembers([viewer.id])
+        const now = new Date()
+        await bookshelf.knex('group_relationships').insert([
+          { parent_group_id: mine.id, child_group_id: child.id, active: true, relationship_type: 0, created_at: now, updated_at: now },
+          { parent_group_id: mine.id, child_group_id: hiddenChild.id, active: true, relationship_type: 0, created_at: now, updated_at: now },
+          { parent_group_id: peer.id, child_group_id: mine.id, active: true, relationship_type: 1, created_at: now, updated_at: now }
+        ])
+      })
+
+      it("finds the viewer's groups, listed Public groups and related groups that aren't hidden", async () => {
+        const groups = await Search.forGroups({ term: 'walnut', discoverableBy: viewer.id, sort: 'recent', limit: 20 }).fetchAll()
+        expect(groups.map(g => g.get('name')).sort()).to.deep.equal(['Walnut Child', 'Walnut Listed', 'Walnut Mine', 'Walnut Peer'])
+      })
+
+      it('matches the search term', async () => {
+        const groups = await Search.forGroups({ term: 'listed', discoverableBy: viewer.id, sort: 'recent', limit: 20 }).fetchAll()
+        expect(groups.map(g => g.get('name'))).to.deep.equal(['Walnut Listed'])
+      })
+    })
+
+    describe('sorted by recent activity', () => {
+      let busy, lively, quiet, dormant
+
+      before(async () => {
+        const author = await factories.user().save()
+        busy = await factories.group({ name: 'Zinnia Growers' }).save()
+        lively = await factories.group({ name: 'Yarrow Circle' }).save()
+        quiet = await factories.group({ name: 'Aster Friends' }).save()
+        dormant = await factories.group({ name: 'Bramble Club' }).save()
+
+        await addGroupPost(busy, author, 1)
+        await addGroupPost(busy, author, 5)
+        await addGroupPost(lively, author, 10)
+        // Welcome posts, removed posts and posts before the window don't count
+        await addGroupPost(lively, author, 0, { type: 'welcome' })
+        await addGroupPost(quiet, author, 2, { active: false })
+        await addGroupPost(dormant, author, RECENT_ACTIVITY_WINDOW_DAYS + 3)
+        await addGroupPost(dormant, author, RECENT_ACTIVITY_WINDOW_DAYS + 30)
+      })
+
+      it('puts groups with the most posts in the window first, then the rest by name', async () => {
+        const groups = await Search.forGroups({
+          sort: 'recent',
+          groupIds: [dormant.id, quiet.id, lively.id, busy.id],
+          limit: 10
+        }).fetchAll()
+        expect(groups.map(g => g.get('name'))).to.deep.equal(['Zinnia Growers', 'Yarrow Circle', 'Aster Friends', 'Bramble Club'])
+      })
+
+      it('counts posts only inside the window', () => {
+        const query = Search.forGroups({ limit: 10, sort: 'recent' }).query().toString()
+        expect(query).to.contain(`make_interval(days => ${RECENT_ACTIVITY_WINDOW_DAYS})`)
+        expect(query).to.contain('left join "recent_activity"')
+      })
+    })
   })
 
   describe('.forUsers', () => {
@@ -212,6 +293,122 @@ describe('Search', function () {
         }).fetchAll()
         expect(users.length).to.equal(0)
       })
+    })
+  })
+
+  describe('.forUsers sorted by distance', () => {
+    let viewer, placeless, near, far, homeless, group, otherGroup
+
+    const place = (lng, lat) => new Location({ center: { lng, lat }, full_text: `${lat}, ${lng}` }).save()
+
+    before(async () => {
+      const home = await place(-122.48, 48.75)
+      viewer = await factories.user({ name: 'Viewer Person', location_id: home.id }).save()
+      placeless = await factories.user({ name: 'Placeless Viewer' }).save()
+      near = await factories.user({ name: 'Zed Nearby', location_id: (await place(-122.5, 48.8)).id }).save()
+      far = await factories.user({ name: 'Yan Faraway', location_id: (await place(2.35, 48.85)).id }).save()
+      homeless = await factories.user({ name: 'Abe Nowhere' }).save()
+      group = await factories.group().save()
+      otherGroup = await factories.group().save()
+      await group.addMembers([near.id, far.id, homeless.id])
+      await otherGroup.addMembers([near.id, far.id, homeless.id])
+    })
+
+    const names = users => users.map(u => u.get('name'))
+
+    it('puts the nearest people first and people without a location last', async () => {
+      const users = await Search.forUsers({ sort: 'location', currentUserId: viewer.id, groups: [group.id] }).fetchAll()
+      expect(names(users)).to.deep.equal(['Zed Nearby', 'Yan Faraway', 'Abe Nowhere'])
+    })
+
+    it('works across several groups', async () => {
+      const users = await Search.forUsers({ sort: 'location', currentUserId: viewer.id, groups: [group.id, otherGroup.id] }).fetchAll()
+      expect(names(users)).to.deep.equal(['Zed Nearby', 'Yan Faraway', 'Abe Nowhere'])
+    })
+
+    it('falls back to name order when the viewer has no location', async () => {
+      const users = await Search.forUsers({ sort: 'location', currentUserId: placeless.id, groups: [group.id] }).fetchAll()
+      expect(names(users)).to.deep.equal(['Abe Nowhere', 'Yan Faraway', 'Zed Nearby'])
+    })
+
+    it('sorts a group\'s members by distance to the viewer', async () => {
+      // As the GraphQL members field runs it: the filter, then pagination's total column
+      const members = await group.members().query(q => {
+        filterAndSortUsers({ sortBy: 'location', viewerId: viewer.id })(q)
+        q.select(bookshelf.knex.raw('users.*, count(*) over () as __total'))
+      }).fetch()
+      expect(names(members)).to.deep.equal(['Zed Nearby', 'Yan Faraway', 'Abe Nowhere'])
+    })
+  })
+
+  describe('.recommendedGroups', () => {
+    let author, newcomer, localNewcomer, member
+
+    const place = (lng, lat) => new Location({ center: { lng, lat }, full_text: `${lat}, ${lng}` }).save()
+
+    async function listedGroup (name, attrs = {}, { posts = 1, daysAgo = 2, location } = {}) {
+      const group = await factories.group({
+        name,
+        visibility: 2,
+        accessibility: 2,
+        allow_in_public: true,
+        location_id: location ? location.id : null,
+        ...attrs
+      }).save()
+      for (let i = 0; i < posts; i++) {
+        await addGroupPost(group, author, daysAgo)
+      }
+      return group
+    }
+
+    before(async () => {
+      await setup.clearDb()
+      author = await factories.user().save()
+      newcomer = await factories.user().save()
+      const home = await place(-122.48, 48.75)
+      localNewcomer = await factories.user({ location_id: home.id }).save()
+      member = await factories.user().save()
+
+      await listedGroup('Busy Far Away', {}, { posts: 3, location: await place(2.35, 48.85) })
+      await listedGroup('Quiet Nearby', {}, { posts: 1, location: await place(-122.3, 48.6) })
+
+      await listedGroup('Not Listed', { allow_in_public: false }, { posts: 5 })
+      await listedGroup('Asks To Join', { accessibility: 1 }, { posts: 5 })
+      await listedGroup('Not Public', { visibility: 1 }, { posts: 5 })
+      await listedGroup('Closed Down', { active: false }, { posts: 5 })
+      await listedGroup('A Space', { type: 'space' }, { posts: 5 })
+      await listedGroup('Paid', { paywall: true }, { posts: 5 })
+      await listedGroup('Gone Quiet', {}, { posts: 5, daysAgo: RECENT_ACTIVITY_WINDOW_DAYS + 10 })
+      const joined = await listedGroup('Already In', {}, { posts: 5 })
+      await joined.addMembers([newcomer.id, localNewcomer.id, member.id])
+      const needsPrereq = await listedGroup('Needs Another Group', {}, { posts: 5 })
+      const prereq = await factories.group({ name: 'Prerequisite' }).save()
+      await bookshelf.knex('group_relationships').insert({
+        parent_group_id: prereq.id,
+        child_group_id: needsPrereq.id,
+        active: true,
+        relationship_type: 0,
+        settings: { isPrerequisite: true },
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+    })
+
+    const names = groups => groups.map(g => g.get('name'))
+
+    it('suggests only listed, Public, Open, active groups with recent posts that the person can join in one step', async () => {
+      const groups = await Search.recommendedGroups({ userId: newcomer.id, limit: 10 }).fetchAll()
+      expect(names(groups)).to.deep.equal(['Busy Far Away', 'Quiet Nearby'])
+    })
+
+    it('puts nearby groups first when the person has a location', async () => {
+      const groups = await Search.recommendedGroups({ userId: localNewcomer.id, limit: 10 }).fetchAll()
+      expect(names(groups)).to.deep.equal(['Quiet Nearby', 'Busy Far Away'])
+    })
+
+    it('returns at most the requested number of groups', async () => {
+      const groups = await Search.recommendedGroups({ userId: newcomer.id, limit: 1 }).fetchAll()
+      expect(names(groups)).to.deep.equal(['Busy Far Away'])
     })
   })
 })

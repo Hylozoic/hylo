@@ -6,6 +6,7 @@ import { merge, reduce } from 'lodash'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { recordEmailClick } from './mutations/emailClick'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
+import { PAGINATION_TOTAL_COLUMN_NAME } from '../../lib/graphql-bookshelf-bridge/util/applyPagination'
 import {
   saveDraft,
   deleteDraft,
@@ -210,6 +211,7 @@ import {
   restoreDeletedGroup,
   unarchiveGroup
 } from './mutations/group'
+import { explorerReviewList, reviewExplorerGroup } from './mutations/explorerReview'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -601,7 +603,29 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     orphanedGroups: (root, { first, offset }, context) => orphanedGroups(context.currentUserId, { first, offset }),
     orphanedGroupMembers: (root, { groupId, search }, context) => orphanedGroupMembers(context.currentUserId, { groupId, search }),
     mySoleAdministratorGroups: (root, args, context) => mySoleAdministratorGroups(context.currentUserId),
-    deletedGroups: (root, args, context) => deletedGroups(context.currentUserId)
+    deletedGroups: (root, args, context) => deletedGroups(context.currentUserId),
+    explorerReviewList: (root, args, context) => explorerReviewList(context.currentUserId),
+    searchGroups: async (root, { term, first = 20, offset = 0 }, context) => {
+      const limit = Math.max(1, Math.min(first || 20, 50))
+      const start = Math.max(0, offset || 0)
+      if (!term || term.trim().length < 2) return presentQuerySet([], { first: limit, offset: start, total: 0 })
+      const groups = await Search.forGroups({
+        term: term.trim(),
+        limit,
+        offset: start,
+        sort: 'recent',
+        discoverableBy: context.currentUserId,
+        totalColumnName: PAGINATION_TOTAL_COLUMN_NAME
+      }).fetchAll()
+      return presentQuerySet(groups.models, { first: limit, offset: start })
+    },
+    recommendedGroups: async (root, { first = 4 }, context) => {
+      const groups = await Search.recommendedGroups({
+        userId: context.currentUserId,
+        limit: Math.max(1, Math.min(first, 20))
+      }).fetchAll()
+      return groups.models
+    }
   }
 }
 
@@ -984,7 +1008,9 @@ export function makeMutations ({ fetchOne }) {
 
     archiveGroup: (root, { groupId }, context) => archiveGroup(context.currentUserId, groupId, context),
 
-    unarchiveGroup: (root, { groupId }, context) => unarchiveGroup(context.currentUserId, groupId, context)
+    unarchiveGroup: (root, { groupId }, context) => unarchiveGroup(context.currentUserId, groupId, context),
+
+    reviewExplorerGroup: (root, { groupId, decision }, context) => reviewExplorerGroup(context.currentUserId, groupId, decision)
   }
 }
 

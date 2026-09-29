@@ -1,9 +1,10 @@
-import { get, intersection, debounce } from 'lodash/fp'
+import { debounce } from 'lodash/fp'
+import { AnalyticsEvents } from '@hylo/shared'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
-import { useLocation, Routes, Route } from 'react-router-dom'
+import { Link, useLocation, Routes, Route } from 'react-router-dom'
 import TextInput from 'components/TextInput'
 import Icon from 'components/Icon'
 import ScrollListener from 'components/ScrollListener'
@@ -17,17 +18,27 @@ import PostDialog from 'components/PostDialog'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import {
   fetchSearchResults,
+  fetchSearchGroups,
   FETCH_SEARCH,
+  FETCH_SEARCH_GROUPS,
   getSearchResults,
+  getSearchGroups,
+  getSearchGroupsTotal,
   getHasMoreSearchResults,
+  getHasMoreSearchGroups,
   getHasFetchedSearchResults,
+  getHasFetchedSearchGroups,
   getSearchError,
+  getSearchGroupsError,
   formatSearchErrorMessage
 } from './Search.store'
-import { personUrl } from '@hylo/navigation'
+import { groupUrl, personUrl } from '@hylo/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getMe from 'store/selectors/getMe'
+import { DEFAULT_AVATAR } from 'store/models/Group'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { cn } from 'util/index'
 import { heyAxolotl, puzzledAxolotl } from 'util/assets'
@@ -36,6 +47,14 @@ import { CENTER_COLUMN_ID } from 'util/scrolling'
 import classes from './Search.module.scss'
 
 const MIN_SEARCH_TERM_LENGTH = 2
+// Groups shown above the other results on the All tab
+const ALL_TAB_GROUP_COUNT = 3
+const GROUPS_TAB = 'group'
+
+/** The Group Explorer, starting with this search term. */
+export function groupExplorerSearchUrl (term) {
+  return `/public/groups?search=${encodeURIComponent(term.trim())}`
+}
 
 export default function Search (props) {
   const dispatch = useDispatch()
@@ -50,18 +69,44 @@ export default function Search (props) {
   const [filter, setFilter] = useState('all')
   const searchTermReady = searchForInput.trim().length >= MIN_SEARCH_TERM_LENGTH
   const groupScopeReady = !groupSlug || !!groupIds
+  // Searching inside one group only looks at that group's content
+  const showGroups = !groupSlug && (filter === 'all' || filter === GROUPS_TAB)
+  const showTextResults = filter !== GROUPS_TAB
   const queryResultProps = { search: searchForInput, type: filter, groupIds }
+  const groupQueryProps = { search: searchForInput }
   const searchResults = useSelector(state => getSearchResults(state, queryResultProps))
   const hasFetched = useSelector(state => getHasFetchedSearchResults(state, queryResultProps))
   const hasMore = useSelector(state => getHasMoreSearchResults(state, queryResultProps))
   const searchError = useSelector(state => getSearchError(state, queryResultProps))
   const searchErrorMessage = searchError ? formatSearchErrorMessage(searchError, t) : null
   const pending = useSelector(state => !!state.pending[FETCH_SEARCH])
-  const showLoading = searchTermReady && !searchError && (!groupScopeReady || pending || !hasFetched)
-  const showEmptyState = searchTermReady && groupScopeReady && hasFetched && !pending && !searchError && searchResults.length === 0
-  const showErrorState = searchTermReady && groupScopeReady && !pending && searchError && searchResults.length === 0
+  const groups = useSelector(state => getSearchGroups(state, groupQueryProps))
+  const groupsTotal = useSelector(state => getSearchGroupsTotal(state, groupQueryProps))
+  const hasFetchedGroups = useSelector(state => getHasFetchedSearchGroups(state, groupQueryProps))
+  const hasMoreGroups = useSelector(state => getHasMoreSearchGroups(state, groupQueryProps))
+  const groupsPending = useSelector(state => !!state.pending[FETCH_SEARCH_GROUPS])
+  const groupsError = useSelector(state => getSearchGroupsError(state, groupQueryProps))
+  // A failed group search counts as finished, so text results and the empty state still show
+  const groupsFailed = showGroups && !groupsPending && !!groupsError
+  const groupsTabError = filter === GROUPS_TAB && groupsFailed
+  const currentUser = useSelector(getMe)
+  const memberGroupIds = useMemo(
+    () => new Set((currentUser?.memberships?.toModelArray?.() || []).map(m => m.group?.id)),
+    [currentUser]
+  )
+  const textLoading = showTextResults && (pending || !hasFetched)
+  const groupsLoading = showGroups && !groupsFailed && (groupsPending || !hasFetchedGroups)
+  const shownGroups = !showGroups || !searchTermReady ? [] : filter === GROUPS_TAB ? groups : groups.slice(0, ALL_TAB_GROUP_COUNT)
+  const shownTextResults = showTextResults ? searchResults : []
+  const resultCount = shownTextResults.length + shownGroups.length
+  const showLoading = searchTermReady && !searchError && (!groupScopeReady || textLoading || groupsLoading)
+  const showEmptyState = searchTermReady && groupScopeReady && !textLoading && !groupsLoading && !searchError && !groupsTabError && resultCount === 0
+  const showErrorState = searchTermReady && groupScopeReady && resultCount === 0 &&
+    ((showTextResults && !pending && !!searchError) || groupsTabError)
+  const errorStateMessage = searchErrorMessage || (groupsTabError ? formatSearchErrorMessage(groupsError, t) : null)
   const inputRef = useRef(null)
   const requestedOffsetRef = useRef(null)
+  const trackedSearchRef = useRef(null)
 
   const showPerson = useCallback(personId => dispatch(push(personUrl(personId))), [dispatch])
 
@@ -77,35 +122,79 @@ export default function Search (props) {
     }),
     [dispatch]
   )
+  const fetchSearchGroupsDebounced = useCallback(
+    debounce(500, (opts) => {
+      return dispatch(fetchSearchGroups(opts))
+    }),
+    [dispatch]
+  )
 
   const fetchSearchResultsAction = useCallback(() => {
-    if (!searchTermReady || !groupScopeReady) return
+    if (!searchTermReady || !groupScopeReady || !showTextResults) return
     requestedOffsetRef.current = null
     return fetchSearchResultsDebounced({ search: searchForInput, filter, groupIds })
-  }, [fetchSearchResultsDebounced, searchForInput, filter, groupIds, searchTermReady, groupScopeReady])
+  }, [fetchSearchResultsDebounced, searchForInput, filter, groupIds, searchTermReady, groupScopeReady, showTextResults])
+
+  const fetchSearchGroupsAction = useCallback(() => {
+    if (!searchTermReady || !showGroups) return
+    if (filter === GROUPS_TAB) requestedOffsetRef.current = null
+    return fetchSearchGroupsDebounced({ search: searchForInput })
+  }, [fetchSearchGroupsDebounced, searchForInput, searchTermReady, showGroups, filter])
 
   const fetchMoreSearchResults = useCallback(() => {
+    if (filter === GROUPS_TAB) {
+      if (!searchTermReady || !hasMoreGroups || groupsPending) return
+      const offset = groups.length
+      if (requestedOffsetRef.current === `group-${offset}`) return
+      requestedOffsetRef.current = `group-${offset}`
+      dispatch(fetchSearchGroups({ search: searchForInput, offset }))
+      return
+    }
     if (!searchTermReady || !groupScopeReady || !hasMore || pending) return
     const offset = searchResults.length
     if (requestedOffsetRef.current === offset) return
     requestedOffsetRef.current = offset
     dispatch(fetchSearchResults({ search: searchForInput, filter, offset, groupIds }))
-  }, [dispatch, searchTermReady, groupScopeReady, hasMore, pending, searchResults.length, searchForInput, filter, groupIds])
+  }, [dispatch, searchTermReady, groupScopeReady, hasMore, pending, searchResults.length, searchForInput, filter, groupIds, hasMoreGroups, groupsPending, groups.length])
 
   useEffect(() => {
     fetchSearchResultsAction()
   }, [fetchSearchResultsAction])
 
+  useEffect(() => {
+    fetchSearchGroupsAction()
+  }, [fetchSearchGroupsAction])
+
   // Person cards are short, so a people-heavy All page often never overflows.
   // ScrollListener only fires after a scroll, so keep fetching until the list fills the column.
   useLayoutEffect(() => {
-    if (!searchTermReady || pending || !hasFetched || !hasMore || searchError) return
+    if (!searchTermReady || !showTextResults || pending || !hasFetched || !hasMore || searchError) return
     const el = document.getElementById(CENTER_COLUMN_ID)
     if (!el) return
     if (el.scrollHeight <= el.clientHeight + 250) {
       fetchMoreSearchResults()
     }
-  }, [searchTermReady, pending, hasFetched, hasMore, searchError, searchResults.length, fetchMoreSearchResults])
+  }, [searchTermReady, showTextResults, pending, hasFetched, hasMore, searchError, searchResults.length, fetchMoreSearchResults])
+
+  // One event per search once its results are in. The term itself is never sent.
+  useEffect(() => {
+    if (!searchTermReady || !groupScopeReady || textLoading || groupsLoading || searchError || groupsFailed) return
+    const term = searchForInput.trim()
+    const key = JSON.stringify([term, filter, groupSlug])
+    if (trackedSearchRef.current === key) return
+    trackedSearchRef.current = key
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.SEARCH_PERFORMED, {
+      tab: filter,
+      termLength: term.length,
+      resultCount,
+      zeroResults: resultCount === 0,
+      scope: groupSlug ? 'group' : 'all'
+    }))
+  }, [dispatch, searchTermReady, groupScopeReady, textLoading, groupsLoading, searchError, groupsFailed, searchForInput, filter, groupSlug, resultCount])
+
+  const trackResultClick = useCallback(type => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.SEARCH_RESULT_CLICKED, { type, tab: filter }))
+  }, [dispatch, filter])
 
   const handleClearGroup = useCallback(() => {
     dispatch(changeQuerystringParam(location, 'groupSlug', null, null, false))
@@ -121,7 +210,7 @@ export default function Search (props) {
             inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full min-w-[300px] sm:min-w-[375px] max-w-[750px] bg-input rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
             inputRef={inputRef}
             value={searchForInput}
-            placeholder={t('Search for people, posts and comments')}
+            placeholder={t('Search for groups, people, posts and comments')}
             autoFocus
             onChange={event => {
               const { value } = event.target
@@ -179,20 +268,47 @@ export default function Search (props) {
             <Icon name='Ex' className='inline-block cursor-pointer pl-2' onClick={handleClearGroup} />
           </span>
         )}
-        <TabBar setSearchFilter={setFilter} filter={filter} />
+        <TabBar setSearchFilter={setFilter} filter={filter} showGroupsTab={!groupSlug} />
         <div className='w-full'>
-          {groupScopeReady && searchResults.map(sr =>
+          {shownGroups.length > 0 && (
+            <div className={cn({ 'mb-2': filter === 'all' })} data-testid='search-groups'>
+              {filter === 'all' && (
+                <div className='flex items-center justify-between mb-2 px-1'>
+                  <h3 className='m-0 text-sm font-bold text-foreground/70'>{t('Groups')}</h3>
+                  {groupsTotal > ALL_TAB_GROUP_COUNT && (
+                    <button
+                      type='button'
+                      className='text-sm text-foreground/70 hover:text-foreground underline'
+                      onClick={() => setFilter(GROUPS_TAB)}
+                    >
+                      {t('See all {{count}} groups', { count: groupsTotal })}
+                    </button>
+                  )}
+                </div>
+              )}
+              {shownGroups.map(group => (
+                <GroupResult
+                  key={group.id}
+                  group={group}
+                  isMember={memberGroupIds.has(group.id)}
+                  onOpen={() => trackResultClick('Group')}
+                />
+              ))}
+            </div>
+          )}
+          {groupScopeReady && shownTextResults.map(sr =>
             <SearchResult
               key={sr.id}
               searchResult={sr}
               term={searchForInput}
               showPerson={showPerson}
               childPost={!groupSlug}
+              onOpen={trackResultClick}
             />)}
           {showErrorState && (
             <SearchStatus
               imageSrc={puzzledAxolotl}
-              message={searchErrorMessage}
+              message={errorStateMessage}
               variant='error'
             />
           )}
@@ -201,6 +317,15 @@ export default function Search (props) {
               imageSrc={heyAxolotl}
               message={t('No results for this search')}
               subtitle={t('Try searching with different keywords')}
+              action={(
+                <Link
+                  to={groupExplorerSearchUrl(searchForInput)}
+                  className='mt-4 inline-block rounded-lg border-2 border-foreground/20 px-3 py-2 text-sm text-foreground hover:border-foreground/50'
+                  data-testid='search-explorer-link'
+                >
+                  {t('Look for groups in the Group Explorer')}
+                </Link>
+              )}
             />
           )}
           {searchErrorMessage && searchResults.length > 0 && (
@@ -220,10 +345,11 @@ export default function Search (props) {
   )
 }
 
-function TabBar ({ filter, setSearchFilter }) {
+function TabBar ({ filter, setSearchFilter, showGroupsTab }) {
   const { t } = useTranslation()
   const tabs = [
     { id: 'all', label: t('All') },
+    ...(showGroupsTab ? [{ id: GROUPS_TAB, label: t('Groups') }] : []),
     { id: 'post', label: t('Posts') },
     { id: 'comment', label: t('Comments') },
     { id: 'person', label: t('People') }
@@ -244,7 +370,7 @@ function TabBar ({ filter, setSearchFilter }) {
   )
 }
 
-function SearchStatus ({ imageSrc, message, subtitle, variant = 'empty' }) {
+function SearchStatus ({ imageSrc, message, subtitle, action, variant = 'empty' }) {
   return (
     <div className='flex flex-col items-center justify-center py-10 px-4 text-center'>
       <img
@@ -260,7 +386,30 @@ function SearchStatus ({ imageSrc, message, subtitle, variant = 'empty' }) {
           {subtitle}
         </p>
       )}
+      {action}
     </div>
+  )
+}
+
+function GroupResult ({ group, isMember, onOpen }) {
+  const { t } = useTranslation()
+  return (
+    <Link
+      to={isMember ? groupUrl(group.slug) : groupUrl(group.slug, 'about')}
+      onClick={onOpen}
+      className='rounded-xl p-2 flex gap-3 items-center transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 relative hover:z-50 hover:scale-105 duration-400 text-foreground hover:text-foreground'
+      data-testid='search-group-result'
+    >
+      <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} size='48px' square />
+      <div className='min-w-0 flex-1'>
+        <div className='text-lg font-bold truncate'>{group.name}</div>
+        <div className='text-sm text-foreground/50 truncate'>
+          {t('{{count}} members', { count: group.memberCount || 0 })}
+          {group.location ? ` · ${group.location}` : ''}
+        </div>
+        {group.description && <div className='text-sm text-foreground/70 line-clamp-1'>{group.description}</div>}
+      </div>
+    </Link>
   )
 }
 
@@ -268,7 +417,8 @@ function SearchResult ({
   searchResult,
   term = '',
   showPerson,
-  childPost
+  childPost,
+  onOpen = () => {}
 }) {
   const { type, content } = searchResult
   if (!content) {
@@ -276,8 +426,9 @@ function SearchResult ({
     return null
   }
 
+  // Highlighting stays off; the search term still picks out a matching skill on person cards
   const highlightProps = {
-    terms: [], // term.split(' '),
+    terms: [],
     highlightClassName: classes.highlight
   }
 
@@ -287,6 +438,7 @@ function SearchResult ({
       component = (
         <PersonCard
           person={content}
+          term={term}
           showPerson={showPerson}
           highlightProps={highlightProps}
         />
@@ -313,20 +465,34 @@ function SearchResult ({
       break
   }
   if (!component) return null
+  // Capture phase, so the event is recorded before the card navigates away
   return (
-    <div>
+    <div onClickCapture={() => onOpen(type)}>
       {component}
     </div>
   )
 }
 
-function PersonCard ({ person, showPerson, highlightProps }) {
+/**
+ * The first of a person's skills that the search matched: a search word starts
+ * one of the words in the skill's name, as full-text search matches prefixes.
+ */
+export function matchingSkill (skills = [], term = '') {
+  const words = String(term).toLowerCase().split(/\s+/)
+    .map(word => word.replace(/[^\p{L}\p{N}]/gu, ''))
+    .filter(Boolean)
+  if (words.length === 0) return null
+  const skill = skills.find(s => {
+    const parts = String(s?.name || '').toLowerCase().split(/[\s-]+/)
+    return words.some(word => parts.some(part => part.startsWith(word)))
+  })
+  return skill ? skill.name : null
+}
+
+function PersonCard ({ person, term, showPerson, highlightProps }) {
   if (!person) return null
 
-  const matchingSkill = get('0', intersection(
-    person.skills.map(s => s.name.toLowerCase()),
-    highlightProps.terms.map(t => t.toLowerCase())
-  ))
+  const skill = matchingSkill(person.skills, term)
 
   return (
     <div
@@ -340,7 +506,7 @@ function PersonCard ({ person, showPerson, highlightProps }) {
         </Highlight>
         <div className='text-sm text-foreground/50'>{person.location}</div>
       </div>
-      {matchingSkill && <Pill label={matchingSkill} className={classes.personSkill} small />}
+      {skill && <Pill label={skill} className={classes.personSkill} small />}
     </div>
   )
 }

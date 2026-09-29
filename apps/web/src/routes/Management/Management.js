@@ -6,6 +6,7 @@ import StripeAnalytics from './StripeAnalytics/StripeAnalytics'
 import SiteBanners from './SiteBanners/SiteBanners'
 import OrphanedGroups from './OrphanedGroups/OrphanedGroups'
 import DeletedGroups from './DeletedGroups/DeletedGroups'
+import ExplorerReview from './ExplorerReview/ExplorerReview'
 
 export default function Management () {
   return (
@@ -18,6 +19,7 @@ export default function Management () {
           <Route path='site/banners' element={<SiteBanners />} />
           <Route path='groups/without-administrator' element={<OrphanedGroups />} />
           <Route path='groups/deleted' element={<DeletedGroups />} />
+          <Route path='site/new-public-groups' element={<ExplorerReview />} />
           <Route path='' element={<Navigate to='staging/email-testers' replace />} />
         </Routes>
       </div>

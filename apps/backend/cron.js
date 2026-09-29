@@ -41,6 +41,17 @@ const daily = now => {
   sails.log.debug('Sending expired access notifications')
   tasks.push(ContentAccess.sendExpiredAccessNotifications().then(count => sails.log.debug(`Sent ${count} expired access notification emails`)))
 
+  sails.log.debug('Building the sitemap of listed Public groups and their public posts')
+  /* global Sitemap */
+  tasks.push(Sitemap.generate()
+    .then(count => sails.log.debug(`Sitemap lists ${count} URLs`))
+    .catch(err => {
+      // The sitemap is optional; a failure here must not stop the other daily tasks
+      sails.log.error('Sitemap build failed; continuing daily tasks', err)
+      sentry.error(err)
+      return 0
+    }))
+
   sails.log.debug('Cleaning up expired OIDC payloads')
   tasks.push(OIDCAdapter.cleanupExpired().then(count => {
     sails.log.debug(`Removed ${count} expired OIDC payloads`)

@@ -1593,7 +1593,10 @@ CREATE TABLE public.groups (
     icon character varying(255),
     track_id bigint,
     funding_round_id bigint,
-    status character varying(255) DEFAULT 'published'::character varying NOT NULL
+    status character varying(255) DEFAULT 'published'::character varying NOT NULL,
+    explorer_status character varying(32),
+    explorer_reviewed_at timestamp with time zone,
+    explorer_reviewed_by_id bigint
 );
 
 
@@ -4398,7 +4401,7 @@ UNION
     COALESCE(( SELECT max(gm.created_at) AS max
            FROM public.group_memberships gm
           WHERE ((gm.user_id = u.id) AND (gm.active = true))), u.last_active_at, u.updated_at, u.created_at) AS sort_ts,
-    ((setweight(to_tsvector('english'::regconfig, (u.name)::text), 'A'::"char") || setweight(to_tsvector('english'::regconfig, COALESCE(string_agg(replace((s.name)::text, '-'::text, ' '::text), ' '::text), ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(u.bio, ''::text)), 'C'::"char")) AS document
+    ((((setweight(to_tsvector('english'::regconfig, (u.name)::text), 'A'::"char") || setweight(to_tsvector('english'::regconfig, COALESCE(string_agg(replace((s.name)::text, '-'::text, ' '::text), ' '::text), ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(u.bio, ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, (COALESCE(u.location, ''::character varying))::text), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, (COALESCE(u.tagline, ''::character varying))::text), 'C'::"char")) AS document
    FROM ((public.users u
      LEFT JOIN public.skills_users su ON (((u.id = su.user_id) AND (su.type = 0))))
      LEFT JOIN public.skills s ON ((su.skill_id = s.id)))
@@ -5710,6 +5713,13 @@ CREATE INDEX groups_visibility_active_index ON public.groups USING btree (visibi
 
 
 --
+-- Name: groups_explorer_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX groups_explorer_status_index ON public.groups USING btree (explorer_status) WHERE (explorer_status IS NOT NULL);
+
+
+--
 -- Name: groups_type_status_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6051,6 +6061,13 @@ CREATE INDEX posts_proposal_status_index ON public.posts USING btree (proposal_s
 --
 
 CREATE INDEX public_posts_idx ON public.posts USING btree (is_public);
+
+
+--
+-- Name: posts_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX posts_created_at_index ON public.posts USING btree (created_at);
 
 
 --
@@ -7039,6 +7056,14 @@ ALTER TABLE ONLY public.groups_agreements
 
 ALTER TABLE ONLY public.groups
     ADD CONSTRAINT groups_created_by_id_foreign FOREIGN KEY (created_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: groups groups_explorer_reviewed_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_explorer_reviewed_by_id_foreign FOREIGN KEY (explorer_reviewed_by_id) REFERENCES public.users(id);
 
 
 --

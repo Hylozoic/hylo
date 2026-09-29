@@ -2,7 +2,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { createSelector } from 'reselect'
 import orm from 'store/models'
 import { isEmpty, includes, get } from 'lodash/fp'
-import { buildKey, makeGetQueryResults } from 'store/reducers/queryResults'
+import { buildKey, makeGetQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
 import postFieldsFragment from '@graphql/fragments/postFieldsFragment'
 import presentPost from 'store/presenters/presentPost'
 import presentComment from 'store/presenters/presentComment'
@@ -40,7 +40,22 @@ export function formatSearchErrorMessage (error, t) {
     genericMessage
 }
 
+// Group search errors are keyed by the term only, like its results
+function groupsErrorKey (search) {
+  return buildKey(FETCH_SEARCH_GROUPS, { search })
+}
+
 export default function reducer (state = defaultState, action) {
+  if (action.type === FETCH_SEARCH_GROUPS + '_PENDING' || action.type === FETCH_SEARCH_GROUPS) {
+    const key = groupsErrorKey(getQueryVariables(action).search)
+    if (action.type === FETCH_SEARCH_GROUPS && action.error) {
+      return { ...state, [key]: action.payload }
+    }
+    if (!state[key]) return state
+    const { [key]: _, ...rest } = state
+    return rest
+  }
+
   if (action.type === FETCH_SEARCH + '_PENDING') {
     const key = buildKey(FETCH_SEARCH, getQueryVariables(action))
     if (!state[key]) return state
@@ -65,6 +80,8 @@ export default function reducer (state = defaultState, action) {
 export const SET_SEARCH_TERM = `${MODULE_NAME}/SET_SEARCH_TERM`
 export const SET_SEARCH_FILTER = `${MODULE_NAME}/SET_SEARCH_FILTER`
 export const FETCH_SEARCH = `${MODULE_NAME}/FETCH_SEARCH`
+export const FETCH_SEARCH_GROUPS = `${MODULE_NAME}/FETCH_SEARCH_GROUPS`
+export const SEARCH_GROUPS_PAGE_SIZE = 20
 
 // Actions
 
@@ -137,9 +154,59 @@ export function fetchSearchResults ({ search, offset = 0, filter, query = search
   }
 }
 
+const searchGroupsQuery =
+`query SearchGroups ($search: String, $first: Int, $offset: Int) {
+  searchGroups(term: $search, first: $first, offset: $offset) {
+    total
+    hasMore
+    items {
+      id
+      name
+      slug
+      avatarUrl
+      description
+      location
+      memberCount
+    }
+  }
+}`
+
+/**
+ * Groups for the main search: the viewer's groups, Public groups listed in the
+ * Group Explorer and related groups. Results are keyed by the search term only.
+ */
+export function fetchSearchGroups ({ search, offset = 0, first = SEARCH_GROUPS_PAGE_SIZE }) {
+  return {
+    type: FETCH_SEARCH_GROUPS,
+    graphql: {
+      query: searchGroupsQuery,
+      variables: { search, first, offset }
+    },
+    meta: {
+      extractModel: 'Group',
+      extractQueryResults: {
+        getItems: get('payload.data.searchGroups'),
+        getRouteParams: ({ meta }) => ({ search: meta.graphql.variables.search }),
+        replace: offset === 0
+      }
+    }
+  }
+}
+
 // Selectors
 
 const getSearchResultResults = makeGetQueryResults(FETCH_SEARCH)
+const getSearchGroupResults = makeGetQueryResults(FETCH_SEARCH_GROUPS)
+
+export const getSearchGroups = makeQueryResultsModelSelector(getSearchGroupResults, 'Group', group => group.ref)
+
+export const getSearchGroupsTotal = createSelector(getSearchGroupResults, get('total'))
+
+export const getHasMoreSearchGroups = createSelector(getSearchGroupResults, get('hasMore'))
+
+export function getHasFetchedSearchGroups (state, props) {
+  return getSearchGroupResults(state, props) != null
+}
 
 export function presentSearchResult (searchResult, session) {
   const contentRaw = searchResult.getContent(session)
@@ -191,4 +258,9 @@ export function getHasFetchedSearchResults (state, props) {
 export function getSearchError (state, props) {
   const key = buildKey(FETCH_SEARCH, props)
   return state.Search?.[key]
+}
+
+/** The error from the last failed group search for this term, if any. */
+export function getSearchGroupsError (state, props) {
+  return state.Search?.[groupsErrorKey(props?.search)]
 }

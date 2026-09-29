@@ -6,8 +6,8 @@ import FeaturedGroups from './FeaturedGroups'
 import GroupSearch from './GroupSearch'
 import { ALL_VIEW } from 'util/constants'
 
-// Get featured group IDs from environment variable or fallback to default list
-const FEATURED_GROUP_IDS = import.meta.env.VITE_FEATURED_GROUP_IDS?.split(',') || []
+// Curated featured group IDs; when unset, FeaturedGroups shows the most recently active listed groups
+const FEATURED_GROUP_IDS = (import.meta.env.VITE_FEATURED_GROUP_IDS || '').split(',').map(id => id.trim()).filter(Boolean)
 
 export default function GroupExplorer ({
   currentUser,
