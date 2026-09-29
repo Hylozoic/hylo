@@ -31,4 +31,20 @@ describe('GroupMenuHeader', () => {
     expect(screen.getByText('Spacebase')).toBeInTheDocument()
     expect(screen.getByTestId('group-header')).toBeInTheDocument()
   })
+
+  // The member welcome tour's invite step anchors on [data-tour="group-invite"]
+  // and is skipped when that anchor has nothing in it
+  describe('invite tour anchor', () => {
+    const inviteAnchor = container => container.querySelector('[data-tour="group-invite"]')
+
+    it('holds the Invite button for a member with limited invite access', () => {
+      const { container } = render(<GroupMenuHeader group={{ ...group, id: '5', myInviteAccess: 'limited' }} />)
+      expect(inviteAnchor(container).querySelector('button')).toBeInTheDocument()
+    })
+
+    it('is empty for a member who cannot invite', () => {
+      const { container } = render(<GroupMenuHeader group={{ ...group, id: '5', myInviteAccess: null }} />)
+      expect(inviteAnchor(container)).toBeEmptyDOMElement()
+    })
+  })
 })
