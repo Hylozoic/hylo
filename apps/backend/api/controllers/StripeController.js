@@ -2144,12 +2144,15 @@ module.exports = {
   },
 
   /**
-   * Handle charge.refunded webhook events
-   * Revokes access and cancels any associated subscriptions when a payment is fully refunded
+   * Handle charge.refunded webhook events.
    *
-   * Note: This handles refunds initiated directly through Stripe dashboard.
-   * Refunds initiated through our refundContentAccess mutation will also trigger this,
-   * but the access records will already be marked as refunded.
+   * A refund gives the money back and never changes access: removing someone's access means
+   * removing them from the group. For a one-time purchase, found through its checkout session,
+   * a full refund is recorded on the access rows and the member gets one refund email per
+   * refunded charge. Partial refunds are only logged.
+   *
+   * Refunds made with Hylo's Refund button also arrive here. That button records the refund
+   * and emails the member itself, so its marker keeps this handler from emailing again.
    */
   handleChargeRefunded: async function (event) {
     try {
@@ -2195,52 +2198,32 @@ module.exports = {
         return
       }
 
-      // refundContentAccess marks its record REFUNDED and emails the member itself
-      const refundedThroughHylo = accessRecords.some(access => access.get('status') === ContentAccess.Status.REFUNDED)
-      const newlyRefunded = []
-      // Stripe also sends charge.refunded for partial refunds. Those leave access in place and are only logged below.
-      const recordsToRefund = charge.refunded ? accessRecords : []
+      // Stripe also sends charge.refunded for partial refunds. Those are only logged below.
+      const isFullRefund = !!charge.refunded
+      // Hylo's Refund button (and a replay of this event) has already recorded this refund
+      // and emailed the member
+      const alreadyRecorded = accessRecords.some(access => ContentAccess.hasRecordedRefund(access, charge.id))
+      const newlyRecorded = []
 
-      // Revoke/refund all associated access records
-      // Skip records that are already refunded (e.g., from our mutation)
-      await Promise.all(recordsToRefund.map(async (access) => {
-        const currentStatus = access.get('status')
-
-        // Skip if already refunded or revoked (our mutation already handled this)
-        if (currentStatus === ContentAccess.Status.REFUNDED || currentStatus === ContentAccess.Status.REVOKED) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`Access ${access.id} already ${currentStatus}, skipping webhook processing`)
-          }
-          return
+      if (isFullRefund) {
+        for (const access of accessRecords) {
+          if (ContentAccess.hasRecordedRefund(access, charge.id)) continue
+          await ContentAccess.recordRefund(access, {
+            amount: charge.amount_refunded,
+            chargeId: charge.id,
+            source: 'stripe_webhook'
+          })
+          newlyRecorded.push(access)
         }
-
-        const reason = charge.refund?.reason || 'Payment refunded via Stripe'
-
-        // Use the revoke method which handles subscription cancellation
-        await ContentAccess.revoke(access.id, null, reason)
-
-        // Update status to REFUNDED and add metadata with refund details
-        const metadata = access.get('metadata') || {}
-        metadata.refunded_at = new Date().toISOString()
-        metadata.refund_amount = charge.amount_refunded
-        metadata.refund_reason = reason
-        metadata.refund_charge_id = charge.id
-        metadata.refund_source = 'stripe_webhook'
-
-        await access.save({
-          status: ContentAccess.Status.REFUNDED,
-          metadata
-        }, { patch: true })
-        newlyRefunded.push(access)
-      }))
+      }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Processed ${accessRecords.length} access records for refunded charge ${charge.id}`)
+        console.log(`Recorded the refund of charge ${charge.id} on ${newlyRecorded.length} of ${accessRecords.length} access records`)
       }
 
       // One purchase can create several access records, so send one email per refunded charge.
-      if (newlyRefunded.length > 0 && !refundedThroughHylo) {
-        await ContentAccess.sendRefundProcessedEmail(newlyRefunded[0], {
+      if (newlyRecorded.length > 0 && !alreadyRecorded) {
+        await ContentAccess.sendRefundProcessedEmail(newlyRecorded[0], {
           amount: charge.amount_refunded,
           currency: charge.currency
         })
@@ -2261,7 +2244,7 @@ module.exports = {
           amount: charge.amount_refunded || charge.amount,
           currency: charge.currency || 'usd',
           reason: charge.refunds?.data?.[0]?.reason || null,
-          metadata: {}
+          metadata: { matched_by: 'checkout_session', full_refund: isFullRefund }
         })
       }
     } catch (error) {

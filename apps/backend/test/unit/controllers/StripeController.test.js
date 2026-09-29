@@ -404,7 +404,7 @@ describe('subscription email links', () => {
 })
 
 describe('StripeController.handleChargeRefunded', () => {
-  let StripeController, stripeClient, originalRetrieve, originalList, sessionListCalls, user, group, product, sentEmails
+  let StripeController, StripeService, stripeClient, originalRetrieve, originalList, sessionListCalls, user, group, product, sentEmails
 
   const chargeRefundedEvent = {
     id: 'evt_charge_refunded',
@@ -432,8 +432,17 @@ describe('StripeController.handleChargeRefunded', () => {
     ...attrs
   })
 
+  const reload = access => ContentAccess.where({ id: access.id }).fetch()
+  const refundLogs = () => bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_refunded' })
+
+  const connectGroup = async (externalId) => {
+    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: externalId }).save()
+    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+  }
+
   before(() => {
     StripeController = require(root('api/controllers/StripeController'))
+    StripeService = require(root('api/services/StripeService'))
     stripeClient = require('stripe')()
   })
 
@@ -468,23 +477,41 @@ describe('StripeController.handleChargeRefunded', () => {
       if (className === 'Email' && methodName === 'sendRefundProcessed') sentEmails.push(data)
       return Promise.resolve()
     })
+    mockify(ContentAccess, 'revoke', async () => { throw new Error('a refund must not revoke access') })
+    mockify(StripeService, 'cancelSubscription', async () => { throw new Error('a refund must not cancel the subscription') })
   })
 
   afterEach(() => {
     stripeClient.paymentIntents.retrieve = originalRetrieve
     stripeClient.checkout.sessions.list = originalList
     unspyify(Queue, 'classMethod')
+    unspyify(ContentAccess, 'revoke')
+    unspyify(StripeService, 'cancelSubscription')
   })
 
-  it('emails the member once for a refund issued from the Stripe dashboard', async () => {
+  it('keeps access for a full refund issued from the Stripe dashboard, records it and emails the member once', async () => {
+    await connectGroup('acct_full')
     const groupAccess = await purchase()
     const roleAccess = await purchase({ metadata: { accessType: 'role' } })
 
-    await StripeController.handleChargeRefunded(chargeRefundedEvent)
+    await StripeController.handleChargeRefunded({ ...chargeRefundedEvent, account: 'acct_full' })
 
-    expect(sessionListCalls).to.deep.equal([{ params: { payment_intent: 'pi_refunded', limit: 1 }, options: {} }])
-    expect((await ContentAccess.where({ id: groupAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
-    expect((await ContentAccess.where({ id: roleAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect(sessionListCalls).to.deep.equal([{ params: { payment_intent: 'pi_refunded', limit: 1 }, options: { stripeAccount: 'acct_full' } }])
+    for (const access of [groupAccess, roleAccess]) {
+      const refreshed = await reload(access)
+      expect(refreshed.get('status')).to.equal(ContentAccess.Status.ACTIVE)
+      expect(refreshed.get('metadata')).to.include({
+        refund_amount: 1500,
+        refund_charge_id: 'ch_refunded',
+        refund_source: 'stripe_webhook'
+      })
+      expect(refreshed.get('metadata').refunded_at).to.be.a('string')
+      expect(refreshed.get('metadata').revokedAt).to.equal(undefined)
+    }
+    expect((await reload(roleAccess)).get('metadata').accessType).to.equal('role')
+    expect(ContentAccess.revoke).to.not.have.been.called()
+    expect(StripeService.cancelSubscription).to.not.have.been.called()
+
     expect(sentEmails).to.have.length(1)
     expect(sentEmails[0].email).to.equal(user.get('email'))
     expect(sentEmails[0].locale).to.equal('fr-FR')
@@ -495,30 +522,54 @@ describe('StripeController.handleChargeRefunded', () => {
       currency: 'USD',
       refund_reason: null
     })
+
+    const logs = await refundLogs()
+    expect(logs).to.have.length(1)
+    expect(String(logs[0].group_id)).to.equal(String(group.id))
+    expect(String(logs[0].content_access_id)).to.equal(String(groupAccess.id))
+    expect(Number(logs[0].amount)).to.equal(1500)
   })
 
-  it('sends nothing when the refund was made through Hylo, which already emailed the member', async () => {
-    await purchase({ status: ContentAccess.Status.REFUNDED })
+  it('sends nothing more when the same refund event is handled again', async () => {
+    await connectGroup('acct_replay')
+    const access = await purchase()
+    const event = { ...chargeRefundedEvent, account: 'acct_replay' }
+
+    await StripeController.handleChargeRefunded(event)
+    const firstMetadata = (await reload(access)).get('metadata')
+    await StripeController.handleChargeRefunded(event)
+
+    expect(sentEmails).to.have.length(1)
+    expect((await reload(access)).get('metadata').refunded_at).to.equal(firstMetadata.refunded_at)
+    expect(await refundLogs()).to.have.length(1)
+  })
+
+  it('sends nothing when Hylo\'s Refund button already recorded and emailed this refund', async () => {
+    const access = await purchase({
+      metadata: {
+        refundId: 're_button',
+        refund_charge_id: 'ch_refunded',
+        refunded_at: new Date().toISOString(),
+        refund_source: 'hylo_refund_button'
+      }
+    })
+
+    await StripeController.handleChargeRefunded(chargeRefundedEvent)
+
+    const refreshed = await reload(access)
+    expect(refreshed.get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    expect(refreshed.get('metadata').refund_source).to.equal('hylo_refund_button')
+    expect(sentEmails).to.have.length(0)
+  })
+
+  it('sends nothing for a purchase the earlier Refund button marked refunded, and leaves the other rows active', async () => {
+    await purchase({ status: ContentAccess.Status.REFUNDED, metadata: { refundId: 're_old_button' } })
     const otherAccess = await purchase()
 
     await StripeController.handleChargeRefunded(chargeRefundedEvent)
 
-    expect((await ContentAccess.where({ id: otherAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect((await reload(otherAccess)).get('status')).to.equal(ContentAccess.Status.ACTIVE)
     expect(sentEmails).to.have.length(0)
-  })
-
-  it('looks the session up on the connected account and logs the refund for its group', async () => {
-    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_refunded' }).save()
-    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
-    const access = await purchase()
-
-    await StripeController.handleChargeRefunded({ ...chargeRefundedEvent, account: 'acct_refunded' })
-
-    expect(sessionListCalls[0].options).to.deep.equal({ stripeAccount: 'acct_refunded' })
-    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
-    const log = await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_refunded' }).first()
-    expect(String(log.group_id)).to.equal(String(group.id))
-    expect(Number(log.amount)).to.equal(1500)
   })
 
   it('does nothing when no checkout session matches the payment intent', async () => {
@@ -529,13 +580,12 @@ describe('StripeController.handleChargeRefunded', () => {
       data: { object: { ...chargeRefundedEvent.data.object, payment_intent: 'pi_subscription_invoice' } }
     })
 
-    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    expect((await reload(access)).get('status')).to.equal(ContentAccess.Status.ACTIVE)
     expect(sentEmails).to.have.length(0)
   })
 
   it('keeps access and sends nothing for a partial refund, but still logs it', async () => {
-    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_partial' }).save()
-    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+    await connectGroup('acct_partial')
     const access = await purchase()
 
     await StripeController.handleChargeRefunded({
@@ -544,9 +594,12 @@ describe('StripeController.handleChargeRefunded', () => {
       data: { object: { ...chargeRefundedEvent.data.object, amount_refunded: 500, refunded: false } }
     })
 
-    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    const refreshed = await reload(access)
+    expect(refreshed.get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    expect(refreshed.get('metadata').refunded_at).to.equal(undefined)
     expect(sentEmails).to.have.length(0)
-    const log = await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_refunded' }).first()
-    expect(Number(log.amount)).to.equal(500)
+    const logs = await refundLogs()
+    expect(logs).to.have.length(1)
+    expect(Number(logs[0].amount)).to.equal(500)
   })
 })
