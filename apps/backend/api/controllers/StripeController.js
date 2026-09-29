@@ -29,7 +29,8 @@ const ALERT_COOLDOWN_HOURS = 24
 const STRIPE_LOG_TYPES = {
   REFUND: 'refund',
   DISPUTE: 'dispute',
-  ALERT: 'alert'
+  ALERT: 'alert',
+  ASYNC_PAYMENT_FAILED: 'async_payment_failed'
 }
 
 function shouldBypassStripeWebhookSignatureCheck () {
@@ -669,8 +670,15 @@ module.exports = {
           await handlers.handleAccountUpdated(event)
           break
 
+        // A delayed payment (such as a bank debit) completes the session unpaid;
+        // access is granted when the payment succeeds, through the same path
         case 'checkout.session.completed':
+        case 'checkout.session.async_payment_succeeded':
           await handlers.handleCheckoutSessionCompleted(event)
+          break
+
+        case 'checkout.session.async_payment_failed':
+          await handlers.handleCheckoutSessionAsyncPaymentFailed(event)
           break
 
         case 'product.updated':
@@ -790,8 +798,9 @@ module.exports = {
   },
 
   /**
-   * Handle checkout.session.completed webhook events
-   * Grants access to content when checkout completes successfully
+   * Handle checkout.session.completed and checkout.session.async_payment_succeeded webhook events
+   * Grants access to content when checkout completes successfully (for a delayed payment,
+   * when the payment succeeds)
    */
   handleCheckoutSessionCompleted: async function (event) {
     try {
@@ -1135,6 +1144,36 @@ module.exports = {
       // TODO STRIPE: Send notification to group admins
     } catch (error) {
       console.error('Error handling checkout.session.completed:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle checkout.session.async_payment_failed webhook events.
+   * A delayed payment (such as a bank debit) failed after checkout completed unpaid, so no
+   * access was granted. Logs it for the selling group; nothing is granted.
+   */
+  handleCheckoutSessionAsyncPaymentFailed: async function (event) {
+    try {
+      const session = event.data.object
+      console.warn(`Delayed payment failed for checkout session ${session.id}`)
+
+      const connectedResult = await findGroupForConnectedAccount(event.account)
+      if (!connectedResult) return
+
+      const { stripeAccountRow, group } = connectedResult
+      await insertStripeLog({
+        group_id: group.id,
+        stripe_account_id: stripeAccountRow.id,
+        log_type: STRIPE_LOG_TYPES.ASYNC_PAYMENT_FAILED,
+        external_id: session.id,
+        amount: session.amount_total,
+        currency: session.currency || 'usd',
+        status: session.payment_status || null,
+        metadata: { offering_id: session.metadata?.offeringId || null }
+      })
+    } catch (error) {
+      console.error('Error handling checkout.session.async_payment_failed:', error)
       throw error
     }
   },

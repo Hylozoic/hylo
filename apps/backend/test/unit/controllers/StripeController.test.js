@@ -403,6 +403,99 @@ describe('subscription email links', () => {
   })
 })
 
+describe('StripeController delayed checkout payments', () => {
+  let StripeController, user, group, product, req, res
+
+  const sessionFor = (attrs = {}) => ({
+    id: 'cs_delayed',
+    mode: 'payment',
+    payment_status: 'paid',
+    created: Math.floor(Date.now() / 1000),
+    amount_total: 1500,
+    currency: 'usd',
+    metadata: { userId: String(user.id), groupId: String(group.id), offeringId: String(product.id) },
+    ...attrs
+  })
+
+  const accessRows = () => ContentAccess.where({ stripe_session_id: 'cs_delayed' }).fetchAll()
+
+  before(() => {
+    StripeController = require(root('api/controllers/StripeController'))
+  })
+
+  beforeEach(async () => {
+    await setup.clearDb()
+    user = await factories.user().save()
+    group = await factories.group().save()
+    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_delayed' }).save()
+    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+    product = await StripeProduct.create({
+      group_id: group.id,
+      stripe_product_id: 'prod_delayed',
+      stripe_price_id: 'price_delayed',
+      name: 'Season Pass',
+      description: 'season',
+      price_in_cents: 1500,
+      currency: 'usd',
+      renewal_policy: 'manual',
+      duration: 'season',
+      access_grants: { groupIds: [group.id] },
+      publish_status: 'published'
+    })
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+    req = factories.mock.request()
+    res = factories.mock.response()
+    req.body = Buffer.from('fake-body')
+    req.headers['stripe-signature'] = 'sig_test'
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
+  })
+
+  afterEach(() => {
+    unspyify(Queue, 'classMethod')
+    delete global.__stripeWebhookConstructEvent
+  })
+
+  it('grants nothing when checkout completes before a delayed payment clears', async () => {
+    await StripeController.handleCheckoutSessionCompleted({ account: 'acct_delayed', data: { object: sessionFor({ payment_status: 'unpaid' }) } })
+
+    expect((await accessRows()).length).to.equal(0)
+  })
+
+  it('grants access when the delayed payment succeeds', async () => {
+    global.__stripeWebhookConstructEvent = () => ({
+      id: 'evt_async_succeeded',
+      type: 'checkout.session.async_payment_succeeded',
+      account: 'acct_delayed',
+      data: { object: sessionFor() }
+    })
+
+    await StripeController.webhook(req, res)
+
+    expect(res.body.received).to.equal(true)
+    const rows = await accessRows()
+    expect(rows.length).to.equal(1)
+    expect(rows.first().get('status')).to.equal(ContentAccess.Status.ACTIVE)
+  })
+
+  it('logs a failed delayed payment and grants nothing', async () => {
+    global.__stripeWebhookConstructEvent = () => ({
+      id: 'evt_async_failed',
+      type: 'checkout.session.async_payment_failed',
+      account: 'acct_delayed',
+      data: { object: sessionFor({ payment_status: 'unpaid' }) }
+    })
+
+    await StripeController.webhook(req, res)
+
+    expect(res.body.received).to.equal(true)
+    expect((await accessRows()).length).to.equal(0)
+    const logs = await bookshelf.knex('stripe_logs').where({ log_type: 'async_payment_failed', external_id: 'cs_delayed' })
+    expect(logs).to.have.length(1)
+    expect(String(logs[0].group_id)).to.equal(String(group.id))
+    expect(logs[0].metadata).to.deep.equal({ offering_id: String(product.id) })
+  })
+})
+
 describe('StripeController.handleChargeRefunded', () => {
   let StripeController, StripeService, stripeClient, originalRetrieve, originalList, sessionListCalls, user, group, product, sentEmails
 

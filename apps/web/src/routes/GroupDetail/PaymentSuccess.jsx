@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import Button from 'components/ui/button'
-import { CheckCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, Clock, Loader2 } from 'lucide-react'
 import { groupUrl, spaceUrl } from '@hylo/navigation'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fulfillStripeCheckoutSession from 'store/actions/fulfillStripeCheckoutSession'
@@ -15,6 +15,9 @@ const PAYMENT_SUCCESS_REDIRECT_MS = 5000
  *
  * Displays a success message after a user completes a Stripe checkout
  * and redirects them to the group or space they purchased access to.
+ * When access could not be granted yet (for example a bank payment that is
+ * still processing), it says the payment was received and offers a retry
+ * and a link to My Transactions instead of claiming success.
  */
 export default function PaymentSuccess () {
   const { t } = useTranslation()
@@ -24,6 +27,8 @@ export default function PaymentSuccess () {
   const [searchParams] = useSearchParams()
   const [redirecting, setRedirecting] = useState(false)
   const [ready, setReady] = useState(false)
+  const [fulfillmentFailed, setFulfillmentFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   const sessionId = searchParams.get('session_id')
   const offeringId = searchParams.get('offering_id')
@@ -40,29 +45,46 @@ export default function PaymentSuccess () {
     let cancelled = false
 
     async function fulfillAccess () {
+      let failed = false
       if (sessionId) {
         try {
           await dispatch(fulfillStripeCheckoutSession(sessionId, offeringId))
-          await dispatch(fetchForCurrentUser())
         } catch (error) {
           console.error('Error fulfilling checkout session:', error)
+          failed = true
+        }
+        if (!failed) {
+          try {
+            await dispatch(fetchForCurrentUser())
+          } catch (error) {
+            console.error('Error refreshing the current user after checkout:', error)
+          }
         }
       }
-      if (!cancelled) setReady(true)
+      if (!cancelled) {
+        setFulfillmentFailed(failed)
+        setReady(true)
+      }
     }
 
     fulfillAccess()
     return () => { cancelled = true }
-  }, [dispatch, sessionId, offeringId])
+  }, [dispatch, sessionId, offeringId, attempt])
 
   useEffect(() => {
-    if (!ready || !destination || destination === '/') return undefined
+    if (!ready || fulfillmentFailed || !destination || destination === '/') return undefined
     const timer = setTimeout(() => {
       setRedirecting(true)
       navigate(destination)
     }, PAYMENT_SUCCESS_REDIRECT_MS)
     return () => clearTimeout(timer)
-  }, [ready, destination, navigate])
+  }, [ready, fulfillmentFailed, destination, navigate])
+
+  const handleRetry = () => {
+    setReady(false)
+    setFulfillmentFailed(false)
+    setAttempt(current => current + 1)
+  }
 
   const handleReturn = () => {
     if (!destination || destination === '/') return
@@ -77,6 +99,28 @@ export default function PaymentSuccess () {
           <Loader2 className='w-16 h-16 mx-auto mb-4 animate-spin text-foreground/50' />
           <h2 className='text-2xl font-bold mb-2'>{t('Payment Successful!')}</h2>
           <p className='text-foreground/70'>{t('Granting access...')}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (fulfillmentFailed) {
+    return (
+      <div className='max-w-2xl mx-auto p-6'>
+        <div className='bg-card p-8 rounded-lg text-center shadow-xl border-2 border-foreground/20' role='status'>
+          <Clock className='w-16 h-16 mx-auto mb-4 text-foreground/50' />
+          <h2 className='text-2xl font-bold mb-2'>{t("Payment received, we're finishing setting up your access")}</h2>
+          <p className='text-foreground/70 mb-6'>
+            {t('This can take a few minutes. Try again shortly, or check My Transactions to see your purchase.')}
+          </p>
+          <div className='flex flex-col sm:flex-row gap-4 justify-center items-center'>
+            <Button onClick={handleRetry} className='min-w-[200px]'>
+              {t('Try Again')}
+            </Button>
+            <Link to='/my/transactions' className='text-accent hover:underline'>
+              {t('My Transactions')}
+            </Link>
+          </div>
         </div>
       </div>
     )
