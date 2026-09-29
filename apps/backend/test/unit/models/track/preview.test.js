@@ -3,6 +3,7 @@ const root = require('root-path')
 const setup = require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
 const { paywallPreview, previewPostTitles } = require(root('api/models/track/preview'))
+const { createRequestHandler } = require(root('api/graphql/index'))
 /* global bookshelf, Group, GroupView, Post, Track */
 
 describe('paywall preview', () => {
@@ -78,6 +79,51 @@ describe('paywall preview', () => {
     }
 
     expect(await previewPostTitles(group)).to.have.length(5)
+  })
+
+  describe('through GraphQL', () => {
+    let handler
+
+    const queryPreview = async (viewer, targetGroup) => {
+      const req = factories.mock.request()
+      req.url = '/noo/graphql'
+      req.method = 'POST'
+      req.headers = { 'Content-Type': 'application/json' }
+      req.session = { userId: viewer.id, destroy: () => {} }
+      req.user = viewer
+      const { executionResult } = await handler.inject({
+        document: `{ group(id: "${targetGroup.id}") { paywallPreview { postTitles actionTitles numActions numPeopleCompleted } } }`,
+        serverContext: { req, res: factories.mock.response() }
+      })
+      return executionResult
+    }
+
+    before(() => {
+      handler = createRequestHandler()
+    })
+
+    it('returns only titles to someone who has not bought access', async () => {
+      await addPost(group, { name: 'Planting schedule' })
+
+      const result = await queryPreview(outsider, group)
+
+      expect(result.errors).to.equal(undefined)
+      expect(result.data.group.paywallPreview).to.deep.equal({
+        postTitles: ['Planting schedule'],
+        actionTitles: [],
+        numActions: null,
+        numPeopleCompleted: null
+      })
+    })
+
+    it('returns nothing when the steward turned the preview off', async () => {
+      await addPost(group, { name: 'Planting schedule' })
+      await group.save({ settings: { ...group.get('settings'), show_paywall_preview: false } }, { patch: true })
+
+      const result = await queryPreview(outsider, group)
+
+      expect(result.data.group.paywallPreview).to.equal(null)
+    })
   })
 
   describe('for a track space', () => {
