@@ -570,6 +570,20 @@ describe('makeQueryResultsModelSelector', () => {
     expect(models.map(m => m.id)).toEqual([5, 2, 3])
     expect(models[0].creator.name).toEqual('The Creator')
   })
+
+  it('resolves string ids against numeric models and skips missing ids', () => {
+    const stringState = {
+      orm: session.state,
+      queryResults: {
+        [buildKey(ACTION_NAME)]: {
+          ids: ['5', '2', '99', '5']
+        }
+      }
+    }
+    const modelSelector = makeQueryResultsModelSelector(resultsSelector, 'Post')
+    const models = modelSelector(stringState)
+    expect(models.map(m => m.id)).toEqual([5, 2])
+  })
 })
 
 describe('CREATE_MODERATION_ACTION optimistic query results', () => {
