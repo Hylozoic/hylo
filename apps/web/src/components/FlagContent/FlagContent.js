@@ -50,16 +50,12 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
 
     if (!isExplanationOptional() && isEmpty(trim(explanation))) {
       setHighlightRequired(true)
-      updateSelected(selectedCategory)
+      updateSelected(selectedCategory, true)
     } else if (isStaffReport) {
+      // A failed request rejects the dispatch, so the error toast lives in catch
       dispatch(reportToStaff(selectedCategory, trim(explanation), linkData))
-        .then(result => {
-          if (result?.error || result?.payload?.errors) {
-            toast.error(t('Something went wrong sending your report. Please try again.'))
-          } else {
-            toast.success(t('Thanks. Your report went to the Hylo team.'))
-          }
-        })
+        .then(() => toast.success(t('Thanks. Your report went to the Hylo team.')))
+        .catch(() => toast.error(t('Something went wrong sending your report. Please try again.')))
       closeModal()
       return true
     } else {
@@ -71,10 +67,10 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
     return false
   }
 
-  const updateSelected = (selectedCategory) => {
+  const updateSelected = (selectedCategory, showRequired = highlightRequired) => {
     setSelectedCategory(selectedCategory)
 
-    const required = !isExplanationOptional(selectedCategory) && highlightRequired
+    const required = !isExplanationOptional(selectedCategory) && showRequired
       ? ` ${t('(explanation required)')}`
       : ''
     const newSubtitle = t('Why was this {{type}} \'{{selectedCategory}}\'{{required}}?', {

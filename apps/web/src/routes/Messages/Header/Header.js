@@ -188,19 +188,19 @@ export function ThreadActionsMenu ({ threadId, otherParticipants = [] }) {
 
   const handleBlock = useCallback(person => {
     if (!window.confirm(t('blockInConversationConfirm', { name: person.name }))) return
-    dispatch(blockUser(person.id)).then(result => {
-      if (result?.error) return
-      toast.success(t('You blocked {{name}}', { name: person.name }))
-      goToNextThread()
-    })
+    dispatch(blockUser(person.id))
+      .then(() => {
+        toast.success(t('You blocked {{name}}', { name: person.name }))
+        goToNextThread()
+      })
+      .catch(() => toast.error(t('Something went wrong. Please try again.')))
   }, [dispatch, goToNextThread, t])
 
   const handleLeave = useCallback(() => {
     if (!window.confirm(t('leaveConversationConfirm'))) return
-    dispatch(leaveMessageThread(threadId)).then(result => {
-      if (result?.error) return
-      goToNextThread()
-    })
+    dispatch(leaveMessageThread(threadId))
+      .then(() => goToNextThread())
+      .catch(() => toast.error(t('Something went wrong. Please try again.')))
   }, [dispatch, goToNextThread, t, threadId])
 
   // In a one-to-one conversation the report is about the other person

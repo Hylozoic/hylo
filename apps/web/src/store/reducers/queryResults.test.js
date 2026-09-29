@@ -13,6 +13,8 @@ import {
   CREATE_MODERATION_ACTION_PENDING,
   FETCH_MODERATION_ACTIONS,
   FETCH_POSTS,
+  FETCH_THREADS,
+  LEAVE_MESSAGE_THREAD,
   REMOVE_POST_PENDING,
   REORDER_VIEW_POST_PENDING
 } from 'store/constants'
@@ -219,6 +221,30 @@ describe('queryResults reducer', () => {
     expect(newState[key1].ids).toEqual(['11'])
     expect(newState[key2].ids).toEqual(['11'])
     expect(newState[key3].ids).toEqual(['18', '11'])
+  })
+})
+
+describe('LEAVE_MESSAGE_THREAD', () => {
+  it('drops the conversation from every inbox list, and leaves other lists alone', () => {
+    const inboxKey = buildKey(FETCH_THREADS, {})
+    const mutedKey = buildKey(FETCH_THREADS, { muted: true })
+    const postsKey = buildKey(FETCH_POSTS, { context: 'groups', slug: 'foo' })
+    const state = {
+      [inboxKey]: { ids: ['7', '8'], total: 2, hasMore: false },
+      [mutedKey]: { ids: ['8'], total: 1, hasMore: false },
+      [postsKey]: { ids: ['8'], hasMore: false }
+    }
+    const newState = queryResults(state, { type: LEAVE_MESSAGE_THREAD, meta: { messageThreadId: '8' } })
+    expect(newState[inboxKey]).toEqual({ ids: ['7'], total: 1, hasMore: false })
+    expect(newState[mutedKey]).toEqual({ ids: [], total: 0, hasMore: false })
+    expect(newState[postsKey]).toBe(state[postsKey])
+  })
+
+  it('keeps the conversation when leaving failed', () => {
+    const inboxKey = buildKey(FETCH_THREADS, {})
+    const state = { [inboxKey]: { ids: ['7', '8'], total: 2 } }
+    const newState = queryResults(state, { type: LEAVE_MESSAGE_THREAD, error: true, meta: { messageThreadId: '8' } })
+    expect(newState).toBe(state)
   })
 })
 
