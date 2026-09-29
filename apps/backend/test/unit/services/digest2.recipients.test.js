@@ -1,7 +1,7 @@
 // Who gets a group's email digest: members who are away (D9) and the emailed settings
 // page's unsubscribe choices (D35)
 import { getRecipients } from '../../../lib/group/digest2/util'
-import { sendToUser } from '../../../lib/group/digest2'
+import { sendAllDigests, sendToUser } from '../../../lib/group/digest2'
 import setup from '../../setup'
 import factories from '../../setup/factories'
 import { mockify, unspyify } from '../../setup/helpers'
@@ -114,6 +114,88 @@ describe('digest2 getRecipients delivery', () => {
         await sendToUser(user, 'weekly', digestData())
         expect(sends[0]).not.to.have.property('slowed_notice')
       })
+
+      it('says it in only one of two digests sent at the same time', async () => {
+        const away = await member({ last_active_at: daysAgo(45) })
+        const second = await factories.group().save()
+        await second.addMembers([away.id], { settings: { sendEmail: true, digestFrequency: 'daily' } })
+        const [first] = await getRecipients(group.id, 'weekly')
+        const [other] = await getRecipients(second.id, 'weekly')
+
+        await Promise.all([
+          sendToUser(first, 'weekly', digestData()),
+          sendToUser(other, 'weekly', { ...digestData(), group_id: second.id })
+        ])
+        expect(sends).to.have.length(2)
+        expect(sends.filter(data => data.slowed_notice)).to.have.length(1)
+      })
+
+      it('says it in the next digest when a send fails', async () => {
+        const away = await member({ last_active_at: daysAgo(45) })
+        const [user] = (await getRecipients(group.id, 'weekly')).filter(u => String(u.id) === String(away.id))
+        unspyify(Email, 'sendSimpleEmail')
+        mockify(Email, 'sendSimpleEmail', (address, templateId, data) => { sends.push(data); return Promise.resolve(sends.length > 1 ? { success: true } : false) })
+
+        await sendToUser(user, 'weekly', digestData())
+        await sendToUser(user, 'weekly', digestData())
+        expect(sends[0].slowed_notice).to.match(/weekly digest/)
+        expect(sends[1].slowed_notice).to.match(/weekly digest/)
+      })
+    })
+  })
+
+  describe('what a one-click unsubscribe from a digest switches off (D34)', () => {
+    let calls
+
+    beforeEach(() => {
+      calls = []
+      mockify(Email, 'sendSimpleEmail', (address, templateId, data, extraOptions) => {
+        calls.push({ address, data, extraOptions })
+        return Promise.resolve({ success: true })
+      })
+    })
+
+    afterEach(() => unspyify(Email, 'sendSimpleEmail'))
+
+    const posts = () => ({ discussions: [{ id: 1, title: 'Hello', user: { id: 0, name: 'Someone' } }] })
+
+    it("a group's digest names the group", async () => {
+      const user = await member()
+      await sendToUser(user, 'daily', { group_id: group.id, group_name: 'Orchard', ...posts() })
+      expect(calls[0].extraOptions.unsubscribe).to.deep.equal({ groupId: group.id })
+    })
+
+    it('the unified digest names its frequency', async () => {
+      const user = await member()
+      await sendToUser(user, 'daily', { unified: true, group_id: null, group_name: 'Hylo', ...posts() })
+      expect(calls[0].extraOptions.unsubscribe).to.deep.equal({ frequency: 'daily' })
+    })
+
+    it('a saved search links to the settings page', async () => {
+      const user = await member()
+      await sendToUser(user, 'daily', { search: { get: () => 'Seeds' }, context: 'groups', group_name: 'Orchard', ...posts() })
+      expect(calls[0].extraOptions.unsubscribe).to.deep.equal({ descriptor: 'settings_page' })
+    })
+
+    it('a weekly unified digest that carries a daily group slowed for being away covers it too (D9)', async () => {
+      const author = await factories.user().save()
+      const reader = await factories.user({ settings: { unified_email_digest: true }, last_active_at: daysAgo(45) }).save()
+      const weeklyGroup = await factories.group().save()
+      await group.addMembers([author.id])
+      await group.addMembers([reader.id], { settings: { sendEmail: true, digestFrequency: 'daily' } })
+      await weeklyGroup.addMembers([reader.id], { settings: { sendEmail: true, digestFrequency: 'weekly' } })
+      for (const target of [group, weeklyGroup]) {
+        const post = await factories.post({ user_id: author.id, type: 'discussion', created_at: daysAgo(2) }).save()
+        await target.posts().attach(post)
+      }
+
+      await sendAllDigests('weekly', { groupIds: [group.id, weeklyGroup.id] })
+
+      const toReader = calls.filter(call => call.address === reader.get('email'))
+      expect(toReader).to.have.length(1)
+      expect(toReader[0].data.unified).to.equal(true)
+      expect(toReader[0].data.slowed_notice).to.match(/weekly digest/)
+      expect(toReader[0].extraOptions.unsubscribe).to.deep.equal({ frequency: 'weekly', slowedDaily: true })
     })
   })
 

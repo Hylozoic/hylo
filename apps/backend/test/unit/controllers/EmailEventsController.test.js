@@ -162,8 +162,15 @@ describe('EmailEventsController', () => {
     })
 
     it('read the tags the provider reports', () => {
-      expect(tagsFrom(['hylo_type:sendSimpleEmail', 'hylo_frequency:weekly', 'other'])).to.deep.equal({ sender: 'sendSimpleEmail', groupId: null, frequency: 'weekly' })
-      expect(tagsFrom(undefined)).to.deep.equal({ sender: null, groupId: null, frequency: null })
+      expect(tagsFrom(['hylo_type:sendSimpleEmail', 'hylo_frequency:weekly', 'other'])).to.deep.equal({ sender: 'sendSimpleEmail', groupId: null, frequency: 'weekly', slowedDaily: false })
+      expect(tagsFrom(['hylo_type:sendSimpleEmail', 'hylo_frequency:weekly', 'hylo_slowed_daily']).slowedDaily).to.equal(true)
+      expect(tagsFrom(undefined)).to.deep.equal({ sender: null, groupId: null, frequency: null, slowedDaily: false })
+    })
+
+    it("a weekly unified digest's complaint also stops daily groups it carried for someone away (D9)", async () => {
+      await receive([{ event: 'spamreport', email: user.get('email'), category: ['hylo_type:sendSimpleEmail', 'hylo_frequency:weekly', 'hylo_slowed_daily'] }])
+
+      expect((await membershipSettings()).digestFrequency).to.equal('never')
     })
   })
 

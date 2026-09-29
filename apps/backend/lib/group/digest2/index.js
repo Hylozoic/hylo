@@ -89,12 +89,19 @@ export const sendToUser = (user, type, data, opts = {}) => {
 
   // What a one-click unsubscribe from this digest turns off (D34): that group's digest,
   // or for the unified digest every group on this frequency; a saved search links to
-  // the settings page
+  // the settings page. A weekly unified digest to someone whose daily digest was slowed
+  // down for being away also carries their daily groups, so its one-click covers those.
   const unsubscribe = data.search
     ? { descriptor: 'settings_page' }
-    : data.unified ? { frequency: type } : { groupId: data.group_id }
+    : data.unified
+      ? { frequency: type, ...(type === 'weekly' && user.digestSlowed ? { slowedDaily: true } : {}) }
+      : { groupId: data.group_id }
 
+  // Claimed before sending, so digests from two groups sent at the same time can't
+  // both carry it; released again if this one doesn't go out
   const slowedNotice = !data.search && owesSlowedNotice(user, type)
+  if (slowedNotice) slowedNoticeSentTo.add(String(user.id))
+  let slowedNoticeSent = false
 
   return personalizeData(user, type, data, opts)
     .then(async data => {
@@ -113,10 +120,13 @@ export const sendToUser = (user, type, data, opts = {}) => {
         unsubscribe
       }, locale)
       if (slowedNotice && result && result !== Email.SKIPPED) {
-        slowedNoticeSentTo.add(String(user.id))
+        slowedNoticeSent = true
         await recordSlowedNotice(user)
       }
       return result
+    })
+    .finally(() => {
+      if (slowedNotice && !slowedNoticeSent) slowedNoticeSentTo.delete(String(user.id))
     })
 }
 
@@ -190,6 +200,8 @@ export const sendAllDigests = async (type, opts = {}) => {
         if (wantsUnifiedDigest(user)) {
           const bucket = unifiedByUserId.get(user.id) || { user, datasets: [] }
           bucket.datasets.push(data)
+          // Slowed down in any group: the weekly unified digest carries that group too
+          if (user.digestSlowed) bucket.user.digestSlowed = true
           unifiedByUserId.set(user.id, bucket)
         } else {
           regular.push(user)

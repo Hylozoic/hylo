@@ -4,7 +4,7 @@ import { format } from 'util'
 import { normalizeLocaleToFull } from '../../lib/localeHelpers'
 import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 import { emailTypeFor } from '../../lib/email/emailTypes'
-import { confirmPageUrl, createUnsubscribeToken, oneClickUrl } from '../../lib/email/unsubscribeToken'
+import { SLOWED_DAILY_TAG, confirmPageUrl, createUnsubscribeToken, oneClickUrl } from '../../lib/email/unsubscribeToken'
 import { scopeAllowsBulkEmail, unsubscribeScopeOf } from '../models/notification/rules/unsubscribeScope'
 import sentry from '../../lib/sentry'
 
@@ -74,7 +74,8 @@ function emailTags (senderName, context) {
   return [
     senderName && `hylo_type:${senderName}`,
     context?.groupId && `hylo_group:${context.groupId}`,
-    context?.frequency && `hylo_frequency:${context.frequency}`
+    context?.frequency && `hylo_frequency:${context.frequency}`,
+    context?.slowedDaily && context?.frequency === 'weekly' && SLOWED_DAILY_TAG
   ].filter(Boolean)
 }
 
@@ -88,7 +89,8 @@ function addUnsubscribe (emailOpts, { senderName, type, recipient, context }) {
     sender: senderName,
     descriptor,
     groupId: descriptor === 'settings_page' ? null : context?.groupId,
-    frequency: context?.frequency
+    frequency: context?.frequency,
+    slowedDaily: context?.slowedDaily
   })
   if (!token) return
   emailOpts.headers = { ...emailOpts.headers, 'List-Unsubscribe': `<${oneClickUrl(token)}>` }
@@ -101,6 +103,8 @@ function addUnsubscribe (emailOpts, { senderName, type, recipient, context }) {
 // Every send goes through here. `context` (optional, never sent to SendWithUs):
 //   groupId     the group the email is about, for a one-click that applies to a group
 //   frequency   'daily' or 'weekly', for the unified digest's one-click
+//   slowedDaily a weekly unified digest that also carries groups whose daily digest was
+//               slowed down for being away (D9), so its one-click covers those too
 //   descriptor  overrides the sender's unsubscribe descriptor for this send
 //   direct      this send carries a direct signal although its sender usually doesn't
 //               (an announcement that mentions the reader), so it still reaches people

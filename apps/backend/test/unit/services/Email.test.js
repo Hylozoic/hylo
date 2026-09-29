@@ -167,7 +167,8 @@ describe('Email', function () {
         sender: 'sendPostNotification',
         descriptor: 'group_post_email',
         groupId: '42',
-        frequency: null
+        frequency: null,
+        slowedDaily: false
       })
       expect(sentBody.email_data.unsubscribe_url).to.match(/\/email\/unsubscribe\?token=/)
     })
@@ -186,6 +187,15 @@ describe('Email', function () {
       const token = tokenIn(sentBody.headers['List-Unsubscribe'])
       expect(token.descriptor).to.equal('group_digest')
       expect(token.frequency).to.equal('weekly')
+      expect(token.slowedDaily).to.equal(false)
+    })
+
+    it('marks a weekly unified digest that also carries daily groups slowed for being away (D9)', async () => {
+      captureSend()
+      await Email.sendSimpleEmail(member.get('email'), 'tem_t7rmGfJKvqXrvmrVWJjjWkg4', {}, { version: 'Spaces', unsubscribe: { frequency: 'weekly', slowedDaily: true } })
+
+      expect(tokenIn(sentBody.headers['List-Unsubscribe']).slowedDaily).to.equal(true)
+      expect(sentBody.tags).to.deep.equal(['hylo_type:sendSimpleEmail', 'hylo_frequency:weekly', 'hylo_slowed_daily'])
     })
 
     it('links email with no single switch to the confirmation page, without one-click', async () => {

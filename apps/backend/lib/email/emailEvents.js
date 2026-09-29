@@ -17,6 +17,7 @@
 // which can quote the address).
 import { uniq } from 'lodash'
 import { emailTypeFor } from './emailTypes'
+import { SLOWED_DAILY_TAG } from './unsubscribeToken'
 import applyUnsubscribe from './applyUnsubscribe'
 import { UNSUBSCRIBE_SCOPE, UNSUBSCRIBE_SCOPE_SETTING, unsubscribeScopeOf } from '../../api/models/notification/rules/unsubscribeScope'
 
@@ -35,7 +36,8 @@ export function tagsFrom (category) {
   return {
     sender: valueOf('hylo_type:'),
     groupId: valueOf('hylo_group:'),
-    frequency: ['daily', 'weekly'].includes(frequency) ? frequency : null
+    frequency: ['daily', 'weekly'].includes(frequency) ? frequency : null,
+    slowedDaily: frequency === 'weekly' && tags.includes(SLOWED_DAILY_TAG)
   }
 }
 
@@ -48,13 +50,13 @@ async function handleComplaint (email, event) {
   const user = await User.query(q => q.whereIn('email', addressesFor(email))).fetch()
   if (!user) return false
 
-  const { sender, groupId, frequency } = tagsFrom(event.category)
+  const { sender, groupId, frequency, slowedDaily } = tagsFrom(event.category)
   const type = sender ? emailTypeFor(sender) : null
   // A complaint about essential email (a receipt, a password reset) changes no setting
   if (type?.kind === 'essential') return false
 
   if (type?.unsubscribe && type.unsubscribe !== 'settings_page') {
-    const result = await applyUnsubscribe(user, { descriptor: type.unsubscribe, groupId, frequency })
+    const result = await applyUnsubscribe(user, { descriptor: type.unsubscribe, groupId, frequency, slowedDaily })
     if (result.applied) return true
   }
 

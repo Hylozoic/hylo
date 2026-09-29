@@ -60,6 +60,32 @@ describe('UnsubscribeController', () => {
       expect(user.get('settings').unified_email_digest).to.equal(true)
     })
 
+    it('a weekly unified digest that carried daily groups slowed for being away turns those off too (D9)', async () => {
+      await user.addSetting({ unified_email_digest: true }, true)
+      withToken({ sender: 'sendSimpleEmail', descriptor: 'group_digest', frequency: 'weekly', slowedDaily: true })
+      await UnsubscribeController.describe(req, res)
+      expect(res.body.done).to.equal(false)
+
+      res = factories.mock.response()
+      await UnsubscribeController.unsubscribe(req, res)
+
+      expect((await membershipSettings(other.id)).digestFrequency).to.equal('never')
+      expect((await membershipSettings(group.id)).digestFrequency).to.equal('never')
+      expect((await membershipSettings(space.id)).digestFrequency).to.equal('never')
+
+      res = factories.mock.response()
+      await UnsubscribeController.describe(req, res)
+      expect(res.body.done).to.equal(true)
+    })
+
+    it('a weekly unified digest to someone not slowed down leaves daily groups alone', async () => {
+      await user.addSetting({ unified_email_digest: true }, true)
+      await post({ sender: 'sendSimpleEmail', descriptor: 'group_digest', frequency: 'weekly' })
+
+      expect((await membershipSettings(other.id)).digestFrequency).to.equal('never')
+      expect((await membershipSettings(group.id)).digestFrequency).to.equal('daily')
+    })
+
     it("a post notification's one-click turns off that group's email", async () => {
       await post({ sender: 'sendPostNotification', descriptor: 'group_post_email', groupId: group.id })
 

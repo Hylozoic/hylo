@@ -9,6 +9,9 @@
 //                              membership on that digest's frequency becomes Never: the
 //                              person asked to stop that email, and switching the unified
 //                              digest off would send them one digest per group instead.
+//                              A weekly unified digest that also carried daily groups
+//                              slowed down for being away (slowedDaily, D9) covers those
+//                              daily memberships too.
 //   group_post_email           that group's email (membership sendEmail), for a space its
 //                              parent group's
 //   comment_email              comment email (comment_notifications: both -> push, email -> none)
@@ -42,11 +45,15 @@ async function setMembershipSetting (userId, groupId, key, value) {
   return { applied: true, changed: true, groupId: membership.get('group_id') }
 }
 
+// The digest frequencies a unified digest's one-click covers
+const unifiedFrequencies = ({ frequency, slowedDaily }) =>
+  slowedDaily && frequency === 'weekly' ? ['weekly', 'daily'] : [frequency]
+
 async function setEveryMembership (userId, key, value, onlyWhere = null) {
   const query = bookshelf.knex('group_memberships')
     .where({ user_id: userId, active: true })
     .whereRaw('coalesce(settings->>?, \'\') <> ?', [key, String(value)])
-  if (onlyWhere) query.whereRaw('settings->>? = ?', [onlyWhere.key, onlyWhere.value])
+  if (onlyWhere) query.whereIn(bookshelf.knex.raw('settings->>?', [onlyWhere.key]), onlyWhere.values)
   const count = await query.update({ settings: bookshelf.knex.raw('settings || ?::jsonb', [JSON.stringify({ [key]: value })]) })
   return { applied: true, changed: count > 0 }
 }
@@ -60,7 +67,7 @@ async function turnOffUserEmailSetting (user, key) {
 }
 
 // The current state, without changing anything: whether this unsubscribe is already in effect
-export async function isAlreadyUnsubscribed (user, { descriptor, groupId, frequency }) {
+export async function isAlreadyUnsubscribed (user, { descriptor, groupId, frequency, slowedDaily }) {
   const [kind, key] = (descriptor || '').split(':')
   switch (kind) {
     case 'group_digest': {
@@ -71,7 +78,7 @@ export async function isAlreadyUnsubscribed (user, { descriptor, groupId, freque
       if (!frequency) return false
       const onFrequency = await bookshelf.knex('group_memberships')
         .where({ user_id: user.id, active: true })
-        .whereRaw('settings->>? = ?', ['digestFrequency', frequency])
+        .whereIn(bookshelf.knex.raw('settings->>\'digestFrequency\''), unifiedFrequencies({ frequency, slowedDaily }))
         .count('id as count')
       return Number(onFrequency[0].count) === 0
     }
@@ -92,13 +99,14 @@ export async function isAlreadyUnsubscribed (user, { descriptor, groupId, freque
   }
 }
 
-export default async function applyUnsubscribe (user, { descriptor, groupId, frequency }) {
+export default async function applyUnsubscribe (user, { descriptor, groupId, frequency, slowedDaily }) {
   const [kind, key] = (descriptor || '').split(':')
   switch (kind) {
     case 'group_digest':
       if (groupId) return setMembershipSetting(user.id, groupId, 'digestFrequency', 'never')
       if (frequency) {
-        return setEveryMembership(user.id, 'digestFrequency', 'never', { key: 'digestFrequency', value: frequency })
+        return setEveryMembership(user.id, 'digestFrequency', 'never',
+          { key: 'digestFrequency', values: unifiedFrequencies({ frequency, slowedDaily }) })
       }
       return { applied: false, changed: false }
     case 'group_post_email':

@@ -14,9 +14,14 @@ export const UNSUBSCRIBE_TOKEN_DAYS = 60
 
 const FREQUENCIES = ['daily', 'weekly']
 
+// A weekly unified digest can also carry the groups whose daily digest was slowed down
+// for being away (D9). Its token (claim sd) and its tag say so, so that unsubscribing
+// from it, or reporting it as spam, also covers those daily groups.
+export const SLOWED_DAILY_TAG = 'hylo_slowed_daily'
+
 const baseUrl = () => `${process.env.PROTOCOL}://${process.env.DOMAIN}`
 
-export function createUnsubscribeToken ({ userId, sender, descriptor, groupId, frequency }) {
+export function createUnsubscribeToken ({ userId, sender, descriptor, groupId, frequency, slowedDaily }) {
   if (!userId || !isValidUnsubscribe(descriptor)) return null
   const claims = {
     action: UNSUBSCRIBE_ACTION,
@@ -26,11 +31,12 @@ export function createUnsubscribeToken ({ userId, sender, descriptor, groupId, f
   if (sender) claims.et = sender
   if (groupId) claims.gid = String(groupId)
   if (FREQUENCIES.includes(frequency)) claims.freq = frequency
+  if (slowedDaily && frequency === 'weekly') claims.sd = 1
   return generateHyloJWT(String(userId), claims)
 }
 
-// { userId, sender, descriptor, groupId, frequency }, or null for a token that is
-// missing, tampered with, expired or made for something else
+// { userId, sender, descriptor, groupId, frequency, slowedDaily }, or null for a token
+// that is missing, tampered with, expired or made for something else
 export function readUnsubscribeToken (token) {
   if (!token || typeof token !== 'string') return null
   let claims
@@ -45,7 +51,8 @@ export function readUnsubscribeToken (token) {
     sender: claims.et || null,
     descriptor: claims.ud,
     groupId: claims.gid || null,
-    frequency: FREQUENCIES.includes(claims.freq) ? claims.freq : null
+    frequency: FREQUENCIES.includes(claims.freq) ? claims.freq : null,
+    slowedDaily: claims.sd === 1 && claims.freq === 'weekly'
   }
 }
 

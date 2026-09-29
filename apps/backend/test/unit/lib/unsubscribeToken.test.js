@@ -18,7 +18,8 @@ describe('unsubscribeToken', () => {
       sender: 'sendSimpleEmail',
       descriptor: 'group_digest',
       groupId: '5',
-      frequency: null
+      frequency: null,
+      slowedDaily: false
     })
   })
 
@@ -26,6 +27,15 @@ describe('unsubscribeToken', () => {
     const token = createUnsubscribeToken({ userId: 17, descriptor: 'group_digest', frequency: 'weekly' })
     expect(readUnsubscribeToken(token).frequency).to.equal('weekly')
     expect(readUnsubscribeToken(token).groupId).to.equal(null)
+    expect(readUnsubscribeToken(token).slowedDaily).to.equal(false)
+  })
+
+  it('says when a weekly unified digest also carried daily groups slowed for being away', () => {
+    const weekly = createUnsubscribeToken({ userId: 17, descriptor: 'group_digest', frequency: 'weekly', slowedDaily: true })
+    expect(readUnsubscribeToken(weekly).slowedDaily).to.equal(true)
+
+    const daily = createUnsubscribeToken({ userId: 17, descriptor: 'group_digest', frequency: 'daily', slowedDaily: true })
+    expect(readUnsubscribeToken(daily).slowedDaily).to.equal(false)
   })
 
   it('accepts a named membership setting', () => {
