@@ -120,6 +120,7 @@ export default gql`
         sendEmail
         sendPushNotifications
         showJoinForm
+        setupChecklistDismissedAt
       }
       group {
         id

@@ -36,7 +36,11 @@ export const AnalyticsEvents = {
   SIGNUP_AGREEMENTS_ACCEPTED: 'Signup Agreements Accepted',
   SIGNUP_EMAIL_VERIFICATION_FAILED: 'Email Verification Failed',
   WELCOME_WIZARD_STEP_SKIPPED: 'Welcome Wizard Step Skipped',
-  WELCOME_WIZARD_STEP_VIEWED: 'Welcome Wizard Step Viewed'
+  WELCOME_WIZARD_STEP_VIEWED: 'Welcome Wizard Step Viewed',
+  // New group setup checklist in the group menu
+  GROUP_SETUP_CHECKLIST_SHOWN: 'Group Setup Checklist Shown',
+  GROUP_SETUP_CHECKLIST_ITEM_CLICKED: 'Group Setup Checklist Item Clicked',
+  GROUP_SETUP_CHECKLIST_DISMISSED: 'Group Setup Checklist Dismissed'
 }
 
 // CustomEvent dispatched in the WebView when Android hardware back is pressed.

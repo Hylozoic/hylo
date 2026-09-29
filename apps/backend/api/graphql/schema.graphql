@@ -1286,6 +1286,9 @@ type Group {
     # Sort by 'created_at', 'expires_at', 'user_name'
     sortBy: String
   ): ContentAccessQuerySet
+
+  # Progress on this new group's setup checklist (invite people, a welcome post, a first event). Only the group's Administrators see it; null for everyone else
+  setupChecklist: GroupSetupChecklist
 }
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type FundingRoundQuerySet {
@@ -1652,6 +1655,22 @@ type InvitationQuerySet {
   total: Int
   hasMore: Boolean
   items: [Invitation]
+}
+
+# Progress on a new group's setup checklist, shown to its founder in the group menu
+type GroupSetupChecklist {
+  # Whether the person asking created the group
+  isCreator: Boolean
+  # Whether anyone other than the founder is a member
+  hasOtherMembers: Boolean
+  # Whether anyone other than the founder has posted
+  hasPostByOthers: Boolean
+  # Whether the founder has written a post (other than chat)
+  hasCreatorPost: Boolean
+  # Whether the group has an event
+  hasEvent: Boolean
+  # Whether an invitation to join has been sent
+  hasInvitation: Boolean
 }
 
 # Who can invite new people to a group. Roles with Add Members can always invite
@@ -2043,6 +2062,8 @@ type MembershipSettings {
   showJoinForm: Boolean
   # Whether the user wants to get mobile app push notifications from this group
   sendPushNotifications: Boolean
+  # When the group's founder dismissed its setup checklist
+  setupChecklistDismissedAt: Date
 }
 
 # A direct message sent in a specific thread
@@ -4370,6 +4391,8 @@ input MembershipSettingsInput {
   showJoinForm: Boolean
   # Whether to mobile push notifications for this Group
   sendPushNotifications: Boolean
+  # When the group's founder dismissed its setup checklist
+  setupChecklistDismissedAt: Date
 }
 
 # Data for updating a message in a direct message thread

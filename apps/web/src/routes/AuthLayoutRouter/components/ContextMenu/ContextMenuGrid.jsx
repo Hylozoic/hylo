@@ -40,6 +40,7 @@ import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import { createGroupView, deleteGroupView, deleteSpace, archiveSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { canHardDeleteView, isMenuViewVisible } from 'store/models/GroupView'
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import SetupChecklist from 'components/SetupChecklist/SetupChecklist'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
@@ -964,6 +965,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               )
             : (
               <div className='flex flex-col gap-6' data-tour={isGroupRootMenu ? 'group-menu' : undefined}>
+                {isGroupRootMenu && <SetupChecklist group={group} className='max-w-md' />}
                 {!isContextMode && menuGroup?.id && viewsLoading
                   ? <ViewsGridSkeleton />
                   : (

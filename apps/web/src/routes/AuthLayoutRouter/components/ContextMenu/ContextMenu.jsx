@@ -23,6 +23,7 @@ import {
 } from '@hylo/navigation'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import SetupChecklist from 'components/SetupChecklist/SetupChecklist'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CurrentlyActiveMembers, { MENU_ACTIVE_MAX } from 'components/CurrentlyActiveMembers'
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
@@ -1220,15 +1221,20 @@ export default function ContextMenu (props) {
               )
             : menuViews.length > 0
               ? (
-                <GroupViewList
-                  groupViews={menuViews}
-                  group={group}
-                  groupSlug={groupSlug}
-                  spaceSlug={spaceSlug}
-                  isEditing={isEditing}
-                  onOpenSettings={setSettingsView}
-                  canAdminister={canAdminister}
-                />
+                <>
+                  {isGroupContext && group?.id && !isEditing && (
+                    <SetupChecklist group={group} className='mx-1.5 mt-1.5' />
+                  )}
+                  <GroupViewList
+                    groupViews={menuViews}
+                    group={group}
+                    groupSlug={groupSlug}
+                    spaceSlug={spaceSlug}
+                    isEditing={isEditing}
+                    onOpenSettings={setSettingsView}
+                    canAdminister={canAdminister}
+                  />
+                </>
                 )
               : groupViewsLoading
                 ? (

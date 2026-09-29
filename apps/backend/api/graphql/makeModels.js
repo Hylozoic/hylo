@@ -22,6 +22,7 @@ import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
 import InvitationService from '../services/InvitationService'
 import { hasFundingRounds, hasSavedSearches, hasTracks, hasTransactions } from './meHasAny'
+import { groupSetupChecklistFor } from './groupSetupChecklist'
 import {
   filterAndSortContentAccess,
   filterAndSortPosts,
@@ -1260,6 +1261,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
+        // New group setup checklist progress, for Administrators only
+        setupChecklist: g => groupSetupChecklistFor(g, userId),
         // XXX: Flag for translation
         typeDescriptor: g => g.get('type_descriptor') || (g.get('type') ? startCase(g.get('type')) : 'Group'),
         typeDescriptorPlural: g => g.get('type_descriptor_plural') || (g.get('type') ? pluralize(startCase(g.get('type'))) : 'Groups')
