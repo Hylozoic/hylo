@@ -69,6 +69,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
 import { spaceRowBadgeCount, viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
+import { EMPTY_MENU_ITEM_CLASS, markEmptyMyHomeViews } from 'util/myHomeMenu'
 
 import classes from './ContextMenu.module.scss'
 
@@ -503,6 +504,10 @@ function GroupViewMenuItem ({
     )
   }
 
+  // My Home items with nothing in them (no tracks, no purchases…) stay in the
+  // menu, greyed out, so people can still see what exists
+  const isEmptyItem = Boolean(presentedView.isEmpty) && !isRowActive
+
   return (
     <li className='list-none'>
       <MenuLink
@@ -510,10 +515,13 @@ function GroupViewMenuItem ({
         externalLink={externalHref}
         isActive={false}
         badgeCount={chatBadgeCount}
+        title={isEmptyItem ? t('Nothing here yet') : undefined}
+        data-empty={isEmptyItem ? 'true' : undefined}
         className={cn(
           GROUP_VIEW_MENU_ITEM_CLASS,
           'group relative overflow-hidden',
-          isRowActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]'
+          isRowActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]',
+          isEmptyItem && EMPTY_MENU_ITEM_CLASS
         )}
         style={{
           // Hover border: view color at 20%. Selected: full strength.
@@ -532,6 +540,7 @@ function GroupViewMenuItem ({
         >
           <GroupViewIcon view={presentedView} />
           <TruncatedText className='truncate flex-1' text={displayNameForView(presentedView, t, { spaceGroup })} />
+          {isEmptyItem && <span className='sr-only'>{t('Nothing here yet')}</span>}
           {showUnreadDot && <UnreadDot />}
         </span>
       </MenuLink>
@@ -675,13 +684,18 @@ export default function ContextMenu (props) {
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [dispatch])
 
+  const hasTracks = currentUser?.hasTracks
+  const hasFundingRounds = currentUser?.hasFundingRounds
+  const hasTransactions = currentUser?.hasTransactions
+  const hasSavedSearches = currentUser?.hasSavedSearches
   const staticMenuViews = useMemo(() => {
-    return getStaticMenuViews({
+    const views = getStaticMenuViews({
       isPublicContext,
       isMyContext: isMyContext || isAllContext,
       profileUrl
     })
-  }, [isPublicContext, isMyContext, isAllContext, profileUrl])
+    return markEmptyMyHomeViews(views, { hasTracks, hasFundingRounds, hasTransactions, hasSavedSearches })
+  }, [isPublicContext, isMyContext, isAllContext, profileUrl, hasTracks, hasFundingRounds, hasTransactions, hasSavedSearches])
 
   const fetchedGroupViews = useGroupViews(group)
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))

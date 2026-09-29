@@ -78,6 +78,7 @@ import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
 import { useGroupTour } from 'tours/groupTours'
 import { TOUR_LAYOUT_GRID } from 'tours/layouts'
+import { EMPTY_MENU_ITEM_CLASS, markEmptyMyHomeViews } from 'util/myHomeMenu'
 
 /** Synthetic views so steward-alert and More Spaces cards share the icon wallpaper of real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
@@ -280,15 +281,22 @@ function ViewsGrid ({ sections, group, spaceGroup, onOpen, t, footer = null }) {
         }
         return (
           <div key={`grid-${index}`} className='flex flex-wrap gap-3'>
-            {section.views.map(view => (
-              <GroupViewCard
-                key={view.id}
-                view={view}
-                group={group}
-                spaceGroup={spaceGroup}
-                onOpen={onOpen}
-              />
-            ))}
+            {section.views.map(view => view.isEmpty
+              ? (
+                // My Home cards with nothing behind them stay, greyed out
+                <div key={view.id} className={EMPTY_MENU_ITEM_CLASS} title={t('Nothing here yet')} data-empty='true'>
+                  <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} onOpen={onOpen} />
+                </div>
+                )
+              : (
+                <GroupViewCard
+                  key={view.id}
+                  view={view}
+                  group={group}
+                  spaceGroup={spaceGroup}
+                  onOpen={onOpen}
+                />
+                ))}
           </div>
         )
       })}
@@ -704,11 +712,11 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const visibleViews = useMemo(() => {
     if (isContextMode) {
       const profileUrl = personUrl(currentUser?.id)
-      return getStaticMenuViews({
+      return markEmptyMyHomeViews(getStaticMenuViews({
         isPublicContext: context === 'public',
         isMyContext: context === 'my' || context === 'all',
         profileUrl
-      }) || []
+      }) || [], currentUser)
     }
     const views = filterSpaceViewsForMenuVisibility(
       (groupViews || []).filter(view => isMenuViewVisible(view, menuGroup?.acceptedPostTypes)),
@@ -718,7 +726,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       return [...views, MANAGE_ROUND_VIEW]
     }
     return views
-  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
+  }, [isContextMode, context, currentUser?.id, currentUser?.hasTracks, currentUser?.hasFundingRounds, currentUser?.hasTransactions, currentUser?.hasSavedSearches, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
 
   const sections = useMemo(() => partitionViewsIntoSections(visibleViews), [visibleViews])
 

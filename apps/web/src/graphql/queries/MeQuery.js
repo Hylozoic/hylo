@@ -51,6 +51,11 @@ export default gql`
     intercomHash
     hasStripeAccount
     rsvpCalendarUrl
+    # My Home menu greys out these items when they're empty
+    hasTracks
+    hasFundingRounds
+    hasTransactions
+    hasSavedSearches
     settings {
       alreadySeenTour
       toursSeen

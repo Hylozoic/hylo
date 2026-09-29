@@ -377,9 +377,11 @@ export default function ViewContent (props) {
     return params
   }, [activePostsOnly, calendarFetchMonthKey, isCalendarViewMode, childPostInclusion, context, streamViewConfig, group?.id, groupSlug, postTypeFilter, search, showChatActivity, sortBy, timeframe, topic?.id, topicName, view])
 
+  // The cross-group feed goes by one name everywhere: All My Groups
+  const allViewName = context === 'all' ? t('All My Groups') : t('view-all')
   let name = presentedGroupView
     ? displayNameForView(presentedGroupView, t)
-    : (view === 'all' ? t('view-all') : (systemView?.name || t('view-all')))
+    : (view === 'all' ? allViewName : (systemView?.name || t('view-all')))
   let icon = presentedGroupView?.lucideIcon
     ? <GroupViewIcon view={presentedGroupView} className='w-5 h-5' />
     : systemView?.lucideIcon

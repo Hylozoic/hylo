@@ -1927,6 +1927,15 @@ type Me {
 
   # Cookie consent preferences for the current user
   cookieConsentPreferences: CookieConsent
+
+  # Whether I'm a member of any active track space (My Tracks has something in it)
+  hasTracks: Boolean
+  # Whether I'm a member of any active funding round space (My Funding Rounds has something in it)
+  hasFundingRounds: Boolean
+  # Whether I've made any purchase (My Transactions has something in it)
+  hasTransactions: Boolean
+  # Whether I have any saved searches
+  hasSavedSearches: Boolean
 }
 
 # A user's group membership

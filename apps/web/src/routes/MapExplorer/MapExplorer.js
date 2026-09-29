@@ -834,7 +834,7 @@ function MapExplorer (props) {
   return (
     <div className={cn(classes.container, { [classes.noUser]: !currentUser, [classes.withoutNav]: withoutNav })}>
       <Helmet>
-        <title>Map | {group ? `${group.name} | ` : context === 'public' ? 'Public | ' : ' All My Groups | '}Hylo</title>
+        <title>Map | {group ? `${group.name} | ` : context === 'public' ? 'Public | ' : `${t('All My Groups')} | `}Hylo</title>
       </Helmet>
 
       {/* isolate: the deck.gl overlay lives in a Mapbox control (z-index 2). Without a

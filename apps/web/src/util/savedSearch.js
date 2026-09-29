@@ -40,7 +40,7 @@ export function formatParamPreview (search) {
   const contextDetails = {
     groups: group ? parsegroup(group) : '',
     public: 'Public Groups',
-    all: 'All Groups'
+    all: 'All My Groups'
   }
   return `${contextDetails[context]} • ${parsePostTypes(postTypes)}`
 }
