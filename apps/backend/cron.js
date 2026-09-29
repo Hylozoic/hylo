@@ -66,6 +66,9 @@ const daily = now => {
     return count
   }))
 
+  // D49 experiment: nudge stewards about newcomers' first posts with no response after a day
+  tasks.push(require('./api/models/post/firstPostNudge').runDaily().then(({ found, nudged, control }) => sails.log.debug(`First posts without a response: ${found} (${nudged} nudged, ${control} control)`)).catch(err => sails.log.error('First-post nudge failed', err)))
+
   // D38: on Mondays, "N people joined this week, say hi" to recently active members
   if (now.weekday === 1) {
     tasks.push(require('./api/models/group/newcomerBatch').runWeekly().then(({ groups, notices }) => sails.log.debug(`Sent ${notices} new-member notices in ${groups} groups`)).catch(err => sails.log.error('New-member notices failed', err)))

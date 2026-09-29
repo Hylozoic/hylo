@@ -94,3 +94,23 @@ describe('weekly new members (D38)', () => {
     expect(imageForNotification(notice(3))).toEqual('group.png')
   })
 })
+
+describe('first post with no response (D49)', () => {
+  const n = {
+    id: '103',
+    activity: {
+      action: 'firstPostUnanswered',
+      actor: { id: '8', name: 'Nia Newcomer', avatarUrl: 'nia.png' },
+      group,
+      post: { id: '55', title: 'Hello from the orchard', groups: [] },
+      meta: { reasons: ['firstPostUnanswered'] }
+    }
+  }
+
+  it('names the newcomer and the post, and links to the post', () => {
+    expect(titleForNotification(n, t)).toEqual('<strong>Nia Newcomer</strong> is new to Seed Library and their first post has no replies yet')
+    expect(bodyForNotification(n, t)).toEqual('A reply or a reaction can help them feel welcome: "Hello from the orchard"')
+    expect(urlForNotification(n)).toContain('/post/55')
+    expect(imageForNotification(n)).toEqual('nia.png')
+  })
+})

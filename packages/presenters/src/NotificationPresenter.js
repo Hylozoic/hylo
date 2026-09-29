@@ -85,6 +85,8 @@ export const ACTION_UNANSWERED_JOIN_REQUEST = 'unansweredJoinRequest'
 export const ACTION_ROLE_GRANTED = 'roleGranted'
 // D38: weekly, people joined your group
 export const ACTION_NEW_MEMBERS_JOINED = 'newMembersJoined'
+// D49: a newcomer's first post has no response yet (to stewards)
+export const ACTION_FIRST_POST_UNANSWERED = 'firstPostUnanswered'
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -193,6 +195,8 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> gave you the <strong>{{roleName}}</strong> role', { name, roleName: roleLabel(notification.activity.meta) })
     case ACTION_NEW_MEMBERS_JOINED:
       return t('newMembersJoinedTitle', { count: notification.activity.meta?.newMemberCount || 1, groupName: group?.name })
+    case ACTION_FIRST_POST_UNANSWERED:
+      return t('<strong>{{name}}</strong> is new to {{groupName}} and their first post has no replies yet', { name, groupName: group?.name })
     default:
       return null
   }
@@ -301,6 +305,8 @@ export function bodyForNotification (notification, t) {
       return t('See who else holds it in {{groupName}}', { groupName: group?.name })
     case ACTION_NEW_MEMBERS_JOINED:
       return t('Say hi and help them feel welcome.')
+    case ACTION_FIRST_POST_UNANSWERED:
+      return t('A reply or a reaction can help them feel welcome: "{{postSummary}}"', { postSummary })
     default:
       return null
   }
@@ -408,6 +414,8 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_NEW_MEMBERS_JOINED:
       // Members sorted by join date, newest first
       return groupUrl(groupSlug, 'members') + '?s=join'
+    case ACTION_FIRST_POST_UNANSWERED:
+      return primaryPostUrl(post, postOpts)
   }
 }
 

@@ -39,5 +39,7 @@ export const PRIORITY_REASONS = [
   // D48: a steward gave you a role or badge
   'roleGranted',
   // D38: weekly "N people joined, say hi" (group/newcomerBatch.js)
-  'newMembersJoined'
+  'newMembersJoined',
+  // D49 experiment: a newcomer's first post has no response (post/firstPostNudge.js)
+  'firstPostUnanswered'
 ]

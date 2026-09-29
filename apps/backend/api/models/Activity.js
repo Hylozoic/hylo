@@ -163,7 +163,8 @@ module.exports = bookshelf.Model.extend({
     DeclinedJoinRequest: 'declinedJoinRequest', // your request to join was not approved (D14)
     UnansweredJoinRequest: 'unansweredJoinRequest', // your request has had no answer for 14 days (D14)
     RoleGranted: 'roleGranted', // a steward gave you a role or badge (D48)
-    NewMembersJoined: 'newMembersJoined' // weekly: people joined your group, say hi (D38)
+    NewMembersJoined: 'newMembersJoined', // weekly: people joined your group, say hi (D38)
+    FirstPostUnanswered: 'firstPostUnanswered' // a newcomer's first post has no response yet (D49)
   },
 
   find: function (id, options) {

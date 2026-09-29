@@ -1323,6 +1323,8 @@
   "newMembersJoinedTitle_one": "<strong>{{count}}</strong> person joined <strong>{{groupName}}</strong> this week",
   "newMembersJoinedTitle_other": "<strong>{{count}}</strong> people joined <strong>{{groupName}}</strong> this week",
   "Say hi and help them feel welcome.": "Say hi and help them feel welcome.",
+  "<strong>{{name}}</strong> is new to {{groupName}} and their first post has no replies yet": "<strong>{{name}}</strong> is new to {{groupName}} and their first post has no replies yet",
+  "A reply or a reaction can help them feel welcome: \"{{postSummary}}\"": "A reply or a reaction can help them feel welcome: \"{{postSummary}}\"",
   "New Message": "New Message",
   "New Message With": "New Message With",
   "New Password": "New Password",

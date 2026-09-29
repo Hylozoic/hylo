@@ -1284,6 +1284,8 @@
   "newMembersJoinedTitle_one": "इस हफ़्ते <strong>{{count}}</strong> व्यक्ति <strong>{{groupName}}</strong> में शामिल हुआ",
   "newMembersJoinedTitle_other": "इस हफ़्ते <strong>{{count}}</strong> लोग <strong>{{groupName}}</strong> में शामिल हुए",
   "Say hi and help them feel welcome.": "नमस्ते कहें और उन्हें स्वागत महसूस कराएं।",
+  "<strong>{{name}}</strong> is new to {{groupName}} and their first post has no replies yet": "<strong>{{name}}</strong> {{groupName}} में नए हैं और उनकी पहली पोस्ट पर अभी तक कोई जवाब नहीं आया है",
+  "A reply or a reaction can help them feel welcome: \"{{postSummary}}\"": "एक जवाब या प्रतिक्रिया उन्हें स्वागत महसूस करा सकती है: \"{{postSummary}}\"",
   "New Message": "नया संदेश",
   "New Message With": "नया संदेश के साथ",
   "New Password": "नया पासवर्ड",

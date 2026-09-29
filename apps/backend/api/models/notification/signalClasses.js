@@ -95,7 +95,9 @@ export const REASON_SIGNALS = {
   // D48: in-app and email, no push
   roleGranted: { class: OPERATIONAL, channels: [IN_APP, EMAIL] },
   // D38: in-app only, no push or email
-  newMembersJoined: { class: AMBIENT, channels: [IN_APP] }
+  newMembersJoined: { class: AMBIENT, channels: [IN_APP] },
+  // D49: an in-app nudge to stewards, no push or email
+  firstPostUnanswered: { class: OPERATIONAL, channels: [IN_APP] }
 }
 
 // A reason with no line (or no priority reason at all) keeps every channel, as before.
