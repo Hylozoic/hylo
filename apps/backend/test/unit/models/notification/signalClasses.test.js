@@ -84,6 +84,23 @@ const TODAY = {
   trackReminder: ['email', 'inApp']
 }
 
+// Reasons added since the class table, with the channels their cards decided
+// (activity-notices: D15, D27, D44, D45, D46, D57)
+Object.assign(TODAY, {
+  reaction: ['push', 'inApp'],
+  eventRsvp: ['push', 'inApp'],
+  proposalVote: ['inApp'],
+  proposalClosingSoon: ['push', 'inApp'],
+  proposalClosed: ['push', 'inApp'],
+  proposalOutcome: ['push', 'inApp'],
+  voteReset: ['push', 'inApp'],
+  eventReminder: ['email', 'push'],
+  eventNudge: ['inApp'],
+  projectJoined: ['push', 'inApp'],
+  requestHelped: ['push', 'inApp'],
+  requestMet: ['inApp']
+})
+
 describe('signalClasses', () => {
   it('gives every priority reason a class', () => {
     for (const reason of PRIORITY_REASONS) {
@@ -164,7 +181,7 @@ describe('signalClasses', () => {
         results[reason] = names(await Activity.generateNotificationMedia(activityFor([reason], off)))
       }
       expect(results).to.deep.equal(mapValues(TODAY, (media, reason) =>
-        reason === 'groupInvitation' ? media : ['inApp']))
+        reason === 'groupInvitation' ? media : media.filter(medium => medium === 'inApp')))
     })
   })
 })

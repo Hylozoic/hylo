@@ -87,6 +87,8 @@ const hourly = now => {
       })
   ]
   tasks.push(require('./api/models/invitation/stalledSignupReminder').sendStalledSignupReminders().then(count => sails.log.debug(`Sent ${count} stalled signup reminders`)).catch(err => sails.log.error('Stalled signup reminders failed', err)))
+  // D44: reminders about a day before events, and nudges to unanswered invitees
+  tasks.push(require('./api/models/event/reminders').sendEventReminders().then(({ events, reminded, nudged }) => sails.log.debug(`Event reminders: ${events} events, ${reminded} reminded, ${nudged} nudged`)).catch(err => sails.log.error('Event reminders failed', err)))
 
   switch (now.hour) {
     case 12:
@@ -117,7 +119,11 @@ const every10minutes = now => {
     Notification.sendUnsent(),
     Comment.sendDigests().then(count => sails.log.debug(`Sent ${count} comment/message digests`)),
     Group.updateAllMemberCounts(),
-    Post.updateProposalStatuses(),
+    // D46: proposals whose voting just ended, and ones closing soon (post/proposalNotices)
+    Post.updateProposalStatuses()
+      .then(completedIds => require('./api/models/post/proposalNotices').sendProposalNotices({ completedIds }))
+      .then(({ closed, closingSoon }) => sails.log.debug(`Sent ${closed} proposal closed and ${closingSoon} closing soon notices`))
+      .catch(err => sails.log.error('Proposal notices failed', err)),
     FundingRound.checkPhaseTransitions().then(count => sails.log.debug(`Sent ${count} funding round phase transition notifications`))
   ]
 }

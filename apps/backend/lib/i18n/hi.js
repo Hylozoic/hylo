@@ -117,6 +117,29 @@ exports.hi = {
   textForTrackCompleted: ({ actor, trackName }) => `ट्रैक पूर्ण: "${trackName}" ${actor.get('name')} द्वारा पूर्ण किया गया`,
   textForTrackEnrollment: ({ actor, trackName }) => `ट्रैक नामांकन: "${trackName}" में ${actor.get('name')} ने नामांकन लिया`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} ने ${groupName} में प्रस्ताव: "${postName}" के विकल्प बदल दिए। वोट रीसेट हो गए हैं`,
+  textForReaction: ({ person, others, postName, onComment }) => {
+    const who = others > 0 ? `${person} और ${others} ${others === 1 ? 'अन्य' : 'अन्य लोगों'}` : person
+    return onComment ? `${who} ने "${postName}" पर आपकी टिप्पणी पर प्रतिक्रिया दी` : `${who} ने आपकी पोस्ट "${postName}" पर प्रतिक्रिया दी`
+  },
+  textForEventRsvp: ({ person, others, postName, response }) => {
+    if (others > 0) return `${person} और ${others} ${others === 1 ? 'अन्य' : 'अन्य लोगों'} ने आपके इवेंट "${postName}" का जवाब दिया`
+    return response === 'interested' ? `${person} आपके इवेंट "${postName}" में रुचि रखते हैं` : `${person} आपके इवेंट "${postName}" में आ रहे हैं`
+  },
+  textForProposalClosingSoon: ({ postName }) => `"${postName}" पर मतदान जल्द बंद होगा। आपने अभी तक वोट नहीं दिया है`,
+  textForProposalClosed: ({ postName, winningOption, tie, forAuthor }) => {
+    const result = winningOption ? `: ${winningOption}` : tie ? ': बराबरी' : ''
+    return forAuthor
+      ? `आपके प्रस्ताव "${postName}" पर मतदान बंद हो गया${result}। वोट देने वालों के लिए परिणाम दर्ज करें`
+      : `"${postName}" पर मतदान बंद हो गया${result}`
+  },
+  textForProposalOutcome: ({ person, postName, outcome }) => `${person} ने "${postName}" का परिणाम दर्ज किया: ${outcome}`,
+  textForEventReminder: ({ postName, date }) => `रिमाइंडर: "${postName}" जल्द ही है, ${date}`,
+  textForProjectJoined: ({ person, postName }) => `${person} आपके प्रोजेक्ट "${postName}" में शामिल हुए`,
+  textForRequestHelped: ({ person, postName }) => `${person} ने "${postName}" को पूरा बताया और कहा कि आपने मदद की। धन्यवाद!`,
+  fundingRoundResultText: ({ results = [], total, tokenType, hidden }) => {
+    if (hidden) return 'संचालक परिणामों के बारे में आपसे संपर्क करेंगे।'
+    return results.map(({ title, tokens, rank }) => `आपके सबमिशन "${title}" को ${tokens} ${tokenType || 'वोट'} मिले और यह ${total} में से ${rank} स्थान पर रहा।`).join(' ')
+  },
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} ने "${fundingRoundTitle}" के लिए "${post.summary()}" जमा किया`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

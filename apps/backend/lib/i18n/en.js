@@ -117,6 +117,29 @@ exports.en = {
   textForTrackCompleted: ({ actor, trackName }) => `Track completed: "${trackName}" was completed by ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, trackName }) => `Track enrollment: "${trackName}" was enrolled in by ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} changed the options for proposal: "${postName}" in ${groupName}. This has reset the votes`,
+  textForReaction: ({ person, others, postName, onComment }) => {
+    const who = others > 0 ? `${person} and ${others} ${others === 1 ? 'other' : 'others'}` : person
+    return onComment ? `${who} reacted to your comment on "${postName}"` : `${who} reacted to your post "${postName}"`
+  },
+  textForEventRsvp: ({ person, others, postName, response }) => {
+    if (others > 0) return `${person} and ${others} ${others === 1 ? 'other' : 'others'} responded to your event "${postName}"`
+    return response === 'interested' ? `${person} is interested in your event "${postName}"` : `${person} is going to your event "${postName}"`
+  },
+  textForProposalClosingSoon: ({ postName }) => `Voting closes soon on "${postName}". You haven't voted yet`,
+  textForProposalClosed: ({ postName, winningOption, tie, forAuthor }) => {
+    const result = winningOption ? `: ${winningOption}` : tie ? ': a tie' : ''
+    return forAuthor
+      ? `Voting closed on your proposal "${postName}"${result}. Record the outcome for your voters`
+      : `Voting closed on "${postName}"${result}`
+  },
+  textForProposalOutcome: ({ person, postName, outcome }) => `${person} recorded the outcome of "${postName}": ${outcome}`,
+  textForEventReminder: ({ postName, date }) => `Reminder: "${postName}" is coming up, ${date}`,
+  textForProjectJoined: ({ person, postName }) => `${person} joined your project "${postName}"`,
+  textForRequestHelped: ({ person, postName }) => `${person} marked "${postName}" as met and says you helped. Thank you!`,
+  fundingRoundResultText: ({ results = [], total, tokenType, hidden }) => {
+    if (hidden) return 'The stewards will follow up with the results.'
+    return results.map(({ title, tokens, rank }) => `Your submission "${title}" received ${tokens} ${tokenType || 'votes'} and ranked ${rank} of ${total}.`).join(' ')
+  },
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} submitted "${post.summary()}" to "${fundingRoundTitle}"`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

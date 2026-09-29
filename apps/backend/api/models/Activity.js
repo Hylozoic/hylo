@@ -1,5 +1,6 @@
 import { values, omit, get, includes } from 'lodash'
 import { notificationMedia } from './notification/rules'
+import { isGroupedKey, removeActivities, saveGrouped } from './notification/grouping'
 
 const mergeByReader = activities => {
   const fields = ['actor_id', 'group_id', 'other_group_id']
@@ -22,16 +23,12 @@ const mergeByReader = activities => {
   return values(merged)
 }
 
+// removeActivities also takes back what the removed notices added to the readers'
+// new_notification_count.
 const removeForRelation = (model) => (id, trx) => {
-  const trxOpt = { transacting: trx, require: false }
-  return Activity.where(`${model}_id`, id).query()
-    .pluck('id').transacting(trx)
-    .then(ids => {
-      // TODO: New Activity count needs to be decremented
-      // if inApp medium is used-- see User#decNewNotificationCount
-      return Notification.where('activity_id', 'in', ids).destroy(trxOpt)
-        .then(() => Activity.where('id', 'in', ids).destroy(trxOpt))
-    })
+  const query = Activity.where(`${model}_id`, id).query().pluck('id')
+  return (trx ? query.transacting(trx) : query)
+    .then(ids => removeActivities(ids, trx))
 }
 
 module.exports = bookshelf.Model.extend({
@@ -161,7 +158,19 @@ module.exports = bookshelf.Model.extend({
     FundingRoundReminder: 'fundingRoundReminder', // Reminder for funding round deadline
     OpenRequestNudge: 'openRequestNudge', // a request or offer has had no reply for a few days (D58)
     TrackCompletedLearner: 'trackCompletedLearner', // you completed a track (D63)
-    TrackReminder: 'trackReminder' // you haven't done anything in a track for a while (D63)
+    TrackReminder: 'trackReminder', // you haven't done anything in a track for a while (D63)
+    Reaction: 'reaction', // someone reacted to your post or comment (grouped, D15)
+    EventRsvp: 'eventRsvp', // someone is going to or interested in your event (grouped, D45)
+    ProposalVote: 'proposalVote', // someone voted on your proposal (grouped, in-app only, D46)
+    ProposalClosingSoon: 'proposalClosingSoon', // voting closes soon and you haven't voted (D46)
+    ProposalClosed: 'proposalClosed', // voting closed on a proposal you voted on or wrote (D46)
+    ProposalOutcome: 'proposalOutcome', // the author recorded the outcome of a proposal you voted on (D46)
+    VoteReset: 'voteReset', // the author changed a proposal's options, which reset your vote
+    EventReminder: 'eventReminder', // an event you're going to or interested in starts in about a day (D44)
+    EventNudge: 'eventNudge', // an event you were invited to and haven't answered starts in about a day (D44)
+    ProjectJoined: 'projectJoined', // someone joined your project (D57)
+    RequestHelped: 'requestHelped', // the author of a request said you helped (D27)
+    RequestMet: 'requestMet' // a request you follow was marked met (D27)
   },
 
   find: function (id, options) {
@@ -285,6 +294,8 @@ module.exports = bookshelf.Model.extend({
   },
 
   createWithNotifications: function (attributes, trx) {
+    // Social feedback notices group per reader and item (notification/grouping)
+    if (isGroupedKey(attributes.group_key)) return saveGrouped(attributes, trx)
     return new Activity(Object.assign({ created_at: new Date() }, attributes))
       .save({}, { transacting: trx })
       .tap(activity => activity.createNotifications(trx))

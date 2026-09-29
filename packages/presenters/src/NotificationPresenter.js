@@ -74,6 +74,25 @@ export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
 export const ACTION_OPEN_REQUEST_NUDGE = 'openRequestNudge'
 export const ACTION_TRACK_COMPLETED_LEARNER = 'trackCompletedLearner'
 export const ACTION_TRACK_REMINDER = 'trackReminder'
+export const ACTION_REACTION = 'reaction'
+export const ACTION_EVENT_RSVP = 'eventRsvp'
+export const ACTION_PROPOSAL_VOTE = 'proposalVote'
+export const ACTION_PROPOSAL_CLOSING_SOON = 'proposalClosingSoon'
+export const ACTION_PROPOSAL_CLOSED = 'proposalClosed'
+export const ACTION_PROPOSAL_OUTCOME = 'proposalOutcome'
+export const ACTION_VOTE_RESET = 'voteReset'
+export const ACTION_EVENT_NUDGE = 'eventNudge'
+export const ACTION_PROJECT_JOINED = 'projectJoined'
+export const ACTION_REQUEST_HELPED = 'requestHelped'
+export const ACTION_REQUEST_MET = 'requestMet'
+// Older notices for helpers used this reason
+export const ACTION_NEW_CONTRIBUTION = 'newContribution'
+
+// How many other people a grouped notice counts ("Sam and 3 others reacted")
+export function othersCount (activity) {
+  const count = Number(activity?.meta?.actorCount) || 1
+  return Math.max(count - 1, 0)
+}
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -180,9 +199,66 @@ export function titleForNotification (notification, t) {
       return t('You completed <strong>{{trackName}}</strong>!', { trackName: track?.space?.name })
     case ACTION_TRACK_REMINDER:
       return t('Pick up where you left off in <strong>{{trackName}}</strong>', { trackName: track?.space?.name })
+    case ACTION_REACTION: {
+      const count = othersCount(notification.activity)
+      if (notification.activity.comment) {
+        return count > 0
+          ? t('<strong>{{name}}</strong> and {{count}} others reacted to your comment', { name, count })
+          : t('<strong>{{name}}</strong> reacted to your comment', { name })
+      }
+      return count > 0
+        ? t('<strong>{{name}}</strong> and {{count}} others reacted to your post', { name, count })
+        : t('<strong>{{name}}</strong> reacted to your post', { name })
+    }
+    case ACTION_EVENT_RSVP: {
+      const count = othersCount(notification.activity)
+      if (count > 0) return t('<strong>{{name}}</strong> and {{count}} others responded to your event', { name, count })
+      return notification.activity.meta?.response === 'interested'
+        ? t('<strong>{{name}}</strong> is interested in your event', { name })
+        : t('<strong>{{name}}</strong> is going to your event', { name })
+    }
+    case ACTION_PROPOSAL_VOTE: {
+      const count = othersCount(notification.activity)
+      return count > 0
+        ? t('<strong>{{name}}</strong> and {{count}} others voted on your proposal', { name, count })
+        : t('<strong>{{name}}</strong> voted on your proposal', { name })
+    }
+    case ACTION_PROPOSAL_CLOSING_SOON:
+      return t('Voting closes soon on <strong>{{postSummary}}</strong>', { postSummary })
+    case ACTION_PROPOSAL_CLOSED:
+      return notification.activity.meta?.forAuthor
+        ? t('Voting closed on your proposal <strong>{{postSummary}}</strong>', { postSummary })
+        : t('Voting closed on <strong>{{postSummary}}</strong>', { postSummary })
+    case ACTION_PROPOSAL_OUTCOME:
+      return t('<strong>{{name}}</strong> recorded the outcome of <strong>{{postSummary}}</strong>', { name, postSummary })
+    case ACTION_VOTE_RESET:
+      return t('<strong>{{name}}</strong> changed the options on <strong>{{postSummary}}</strong>', { name, postSummary })
+    case ACTION_EVENT_NUDGE:
+      return t('Are you going to <strong>{{postSummary}}</strong>?', { postSummary })
+    case ACTION_PROJECT_JOINED:
+      return t('<strong>{{name}}</strong> joined your project', { name })
+    case ACTION_REQUEST_HELPED:
+    case ACTION_NEW_CONTRIBUTION:
+      return t('<strong>{{name}}</strong> says you helped with their request', { name })
+    case ACTION_REQUEST_MET:
+      return t('Request met: <strong>{{postSummary}}</strong>', { postSummary })
     default:
       return null
   }
+}
+
+// A submitter's own result when a funding round completes (D77), or null
+function fundingRoundResultBody (meta, t) {
+  if (meta?.resultsHidden) return t('Voting has closed. The stewards will follow up with the results.')
+  const results = meta?.submissionResults || []
+  if (results.length === 0) return null
+  return results.map(({ title, tokens, rank }) => t('Your submission "{{title}}" received {{tokens}} {{tokenType}} and ranked {{rank}} of {{total}}.', {
+    title,
+    tokens,
+    rank,
+    total: meta.submissionCount,
+    tokenType: meta.tokenType || t('votes')
+  })).join(' ')
 }
 
 export function bodyForNotification (notification, t) {
@@ -258,7 +334,7 @@ export function bodyForNotification (notification, t) {
         case 'voting':
           return t('Voting is now open')
         case 'completed':
-          return t('Voting has closed and the round has ended')
+          return fundingRoundResultBody(notification.activity.meta, t) || t('Voting has closed and the round has ended')
       }
       break
     }
@@ -286,6 +362,31 @@ export function bodyForNotification (notification, t) {
       return t('Congratulations! See what to explore next.')
     case ACTION_TRACK_REMINDER:
       return postSummary ? t('Next: {{title}}', { title: postSummary }) : null
+    case ACTION_REACTION:
+      return t('"<strong>{{postSummary}}</strong>"', { postSummary: comment ? truncateHTML(comment.text) : postSummary })
+    case ACTION_EVENT_RSVP:
+    case ACTION_PROPOSAL_VOTE:
+    case ACTION_PROJECT_JOINED:
+    case ACTION_REQUEST_HELPED:
+    case ACTION_NEW_CONTRIBUTION:
+      return t('"<strong>{{postSummary}}</strong>"', { postSummary })
+    case ACTION_REQUEST_MET:
+      return t('<strong>{{name}}</strong> marked it as met', { name })
+    case ACTION_PROPOSAL_CLOSING_SOON:
+      return t("You haven't voted yet")
+    case ACTION_PROPOSAL_CLOSED: {
+      const { winningOption, tie, forAuthor } = notification.activity.meta || {}
+      const result = winningOption
+        ? t('Result: <strong>{{option}}</strong>.', { option: winningOption })
+        : tie ? t('The vote ended in a tie.') : t('No one voted.')
+      return forAuthor ? `${result} ${t('Record the outcome for your voters.')}` : result
+    }
+    case ACTION_PROPOSAL_OUTCOME:
+      return t('"<strong>{{postSummary}}</strong>"', { postSummary: notification.activity.meta?.outcome })
+    case ACTION_VOTE_RESET:
+      return t('Your vote was reset. You can vote again.')
+    case ACTION_EVENT_NUDGE:
+      return t("It starts in about a day, and you haven't answered <strong>{{name}}</strong>'s invitation yet", { name })
     default:
       return null
   }
@@ -391,6 +492,22 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
       const tab = action === ACTION_TRACK_REMINDER && post?.id ? `track-actions/post/${post.id}` : 'track-actions'
       return trackUrl(track.id, { groupSlug, space: track.space, tab })
     }
+    case ACTION_REACTION:
+      return comment
+        ? primaryPostUrl(post, { commentId: comment.id, ...postOpts })
+        : primaryPostUrl(post, postOpts)
+    case ACTION_EVENT_RSVP:
+    case ACTION_PROPOSAL_VOTE:
+    case ACTION_PROPOSAL_CLOSING_SOON:
+    case ACTION_PROPOSAL_CLOSED:
+    case ACTION_PROPOSAL_OUTCOME:
+    case ACTION_VOTE_RESET:
+    case ACTION_EVENT_NUDGE:
+    case ACTION_PROJECT_JOINED:
+    case ACTION_REQUEST_HELPED:
+    case ACTION_NEW_CONTRIBUTION:
+    case ACTION_REQUEST_MET:
+      return primaryPostUrl(post, postOpts)
   }
 }
 

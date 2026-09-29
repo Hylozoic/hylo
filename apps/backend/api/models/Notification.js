@@ -10,6 +10,8 @@ import { PRIORITY_REASONS } from './notification/priorityReasons'
 import { pushGroupingFor } from './notification/pushGrouping'
 import { isReplyToReader } from './notification/signalClasses'
 import { mentionsReader } from './notification/rules/unsubscribeScope'
+import { isGroupedPushThrottled, recordGroupedPush } from './notification/grouping'
+import { DateTimeHelpers } from '@hylo/shared'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -141,8 +143,11 @@ module.exports = bookshelf.Model.extend({
     // A send that reports `false` throws so sendUnsent records failed_at and retries it.
     switch (this.get('medium')) {
       case MEDIUM.Push:
+        // One grouped push per item per hour for social feedback (notification/grouping)
+        if (await isGroupedPushThrottled(this)) return this.destroy()
         if (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || (await User.isTester(userId))) {
           if (await this.sendPush() === false) throw new Error('Push notification was not delivered')
+          await recordGroupedPush(this)
         }
         break
       case MEDIUM.Email:
@@ -156,10 +161,12 @@ module.exports = bookshelf.Model.extend({
         break
       }
     }
+    // require: false because a grouped notice (notification/grouping) may have replaced
+    // this row while it was being sent
     await this.save({
       sent_at: (new Date()).toISOString(),
       processing_started_at: null
-    }, { patch: true })
+    }, { patch: true, require: false })
     return Promise.resolve()
   },
 
@@ -214,7 +221,7 @@ module.exports = bookshelf.Model.extend({
       case 'postUnfulfilled':
         return this.sendPostModeratedFulfillmentPush()
       case 'voteReset':
-        return this.sendPostPush('voteReset')
+        return this.sendVoteResetPush()
       case 'fundingRoundNewSubmission':
         return this.sendFundingRoundNewSubmissionPush()
       case 'fundingRoundPhaseTransition':
@@ -223,9 +230,126 @@ module.exports = bookshelf.Model.extend({
         return this.sendFundingRoundReminderPush()
       case 'openRequestNudge':
         return this.sendOpenRequestNudgePush()
+      case 'reaction':
+      case 'eventRsvp':
+      case 'projectJoined':
+      case 'requestHelped':
+        return this.sendSocialFeedbackPush()
+      case 'proposalClosingSoon':
+      case 'proposalClosed':
+      case 'proposalOutcome':
+        return this.sendProposalPush()
+      case 'eventReminder':
+        return this.sendEventReminderPush()
       default:
         return Promise.resolve()
     }
+  },
+
+  // D44 (event/reminders): the time is shown in the event's own timezone
+  eventReminderDate: function (post, locale) {
+    return DateTimeHelpers.formatDatePair({
+      start: post.get('start_time'),
+      end: post.get('end_time'),
+      timezone: post.get('timezone'),
+      locale
+    })
+  },
+
+  sendEventReminderPush: async function () {
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const alertText = PushNotification.textForEventReminder(post, this.eventReminderDate(post, locale), locale)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
+  },
+
+  sendEventReminderEmail: async function () {
+    // Nothing is sent until the reminder template is uploaded and named (Email.js)
+    if (!Email.eventReminderTemplateId()) return EMAIL_SKIPPED
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const response = this.relations.activity.get('meta')?.response
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'event_reminder_email',
+      cti: reader.id,
+      ...(group ? { ctcn: group.get('name') } : {})
+    }).toString()
+
+    return Email.sendEventReminderEmail({
+      email: reader.get('email'),
+      locale,
+      ...(group ? { sender: { name: await senderNameForGroup(group, locale) } } : {}),
+      data: {
+        date: this.eventReminderDate(post, locale),
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        event_address: post.get('location') || '',
+        event_name: post.title(),
+        event_url: Frontend.Route.post(post, group, clickthroughParams),
+        going: response === EventInvitation.RESPONSE.YES,
+        group_name: group ? group.get('name') : '',
+        meeting_link: post.get('meeting_link') || '',
+        response: response || null,
+        user_name: reader.get('name')
+      }
+    })
+  },
+
+  sendVoteResetPush: async function () {
+    const post = this.post()
+    const reader = this.reader()
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const alertText = PushNotification.textForVoteReset(post, group, this.actor(), this.locale())
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
+  },
+
+  // Proposal notices (post/proposalNotices): closing soon, closed and outcome recorded
+  sendProposalPush: async function () {
+    const activity = this.relations.activity
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await groupForNotificationForUser(post, activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const reason = Notification.priorityReason(activity.get('meta').reasons)
+    const alertText = PushNotification.textForProposalNotice(reason, {
+      actor: this.actor(),
+      post,
+      meta: activity.get('meta')
+    }, locale)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
+  },
+
+  // Grouped social feedback (notification/grouping): the text counts everyone so far,
+  // and a later push for the same item replaces this one in the tray.
+  sendSocialFeedbackPush: async function () {
+    const activity = this.relations.activity
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const comment = activity.get('comment_id') ? this.comment() : null
+    const group = await groupForNotificationForUser(post, activity, reader.id)
+    const path = routeToPath(comment
+      ? Frontend.Route.comment({ comment, group, post })
+      : Frontend.Route.post(post, group))
+    const reason = Notification.priorityReason(activity.get('meta').reasons)
+    const alertText = PushNotification.textForSocialFeedback(reason, {
+      actor: this.actor(),
+      count: activity.get('meta').actorCount,
+      post,
+      comment,
+      meta: activity.get('meta')
+    }, locale)
+    return reader.sendPushNotification(alertText, path, {
+      ...pushGroupingFor(group),
+      collapseKey: activity.get('group_key')
+    })
   },
 
   sendApprovedJoinRequestPush: function () {
@@ -587,6 +711,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendFundingRoundReminderEmail()
       case 'trackReminder':
         return this.sendTrackReminderEmail()
+      case 'eventReminder':
+        return this.sendEventReminderEmail()
       default:
         // Must not throw: an unhandled reason would otherwise be retried until it ages out.
         sentry.captureException(new Error('No email is defined for this notification reason'), {
@@ -1278,7 +1404,7 @@ module.exports = bookshelf.Model.extend({
     const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const meta = this.relations.activity.get('meta')
     const phase = meta.phase
-    const alertText = PushNotification.textForFundingRoundPhaseTransition(group.get('name'), phase, locale)
+    const alertText = PushNotification.textForFundingRoundPhaseTransition(group.get('name'), phase, locale, meta)
     return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
@@ -1329,11 +1455,15 @@ module.exports = bookshelf.Model.extend({
           : L.fundingRoundTransitionButtonText({ phase: 'viewRound' })
         data.transition_text = L.fundingRoundTransitionText({ phase: 'voting' })
         break
-      case 'completed':
+      case 'completed': {
         data.action_url = Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams
         data.button_text = L.fundingRoundTransitionButtonText({ phase: 'completed' })
         data.transition_text = L.fundingRoundTransitionText({ phase: 'completed' })
+        // A submitter's own result (D77); the shared template shows it only when set
+        const resultText = PushNotification.fundingRoundResultText(meta, locale)
+        if (resultText) data.result_text = resultText
         break
+      }
     }
 
     return Email.sendFundingRoundPhaseTransitionEmail({
@@ -1541,7 +1671,7 @@ module.exports = bookshelf.Model.extend({
             console.error('Error sending notification', err, n.attributes)
             sentry.error(err, null, { notification: n.attributes })
             if (n.get('medium') === MEDIUM.Push) pushFailed = true
-            return n.save({ failed_at: new Date(), processing_started_at: null }, { patch: true })
+            return n.save({ failed_at: new Date(), processing_started_at: null }, { patch: true, require: false })
           })
         )
         // Retry a failed push inside its window rather than waiting for the 10-minute cron.

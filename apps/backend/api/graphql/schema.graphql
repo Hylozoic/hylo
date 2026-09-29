@@ -608,6 +608,33 @@ type ActivityMeta {
   reasons: [String]
   # The type of reminder for this activity if it is a reminder (for funding rounds)
   reminderType: String
+  # How many people a grouped notice counts ("Sam and 3 others reacted"), including the actor
+  actorCount: Int
+  # For an RSVP notice, the latest answer: 'yes' (going) or 'interested'
+  response: String
+  # For a proposal that closed: the option with the most votes, or whether it was a tie
+  winningOption: String
+  tie: Boolean
+  # The notice goes to the proposal's author (asking them to record the outcome)
+  forAuthor: Boolean
+  # The outcome the author recorded for a proposal
+  outcome: String
+  # When a funding round completes, the reader's own submissions and how they did
+  submissionResults: [ActivitySubmissionResult]
+  # How many submissions the round had
+  submissionCount: Int
+  # The round's name for its tokens, when it has one
+  tokenType: String
+  # The round hides its final results: the stewards will follow up
+  resultsHidden: Boolean
+}
+
+# One submission's result in a completed funding round, for its submitter
+type ActivitySubmissionResult {
+  postId: ID
+  title: String
+  tokens: Int
+  rank: Int
 }
 
 # An activity that someone may want to be notified about
@@ -3817,7 +3844,8 @@ type Mutation {
   # Get notified about new comments on a post
   followPost(postId: ID): Post
   # Mark one of your posts as fulfilled or completed
-  fulfillPost(postId: ID): GenericResult
+  # Marks a post met. On a request, its author may name who helped (people who commented)
+  fulfillPost(postId: ID, contributorIds: [ID]): GenericResult
   # The author's answer to the nudge about a request or offer with no replies: 'still_needed' or 'met'
   answerOpenRequestNudge(postId: ID!, answer: String!): GenericResult
   # Invite a group to join one of your groups as a child of it. Only a group steward can call this.

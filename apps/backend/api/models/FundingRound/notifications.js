@@ -3,23 +3,80 @@
 import { DateTime } from 'luxon'
 
 /**
+ * Each submission's result when a round ends (D77): the tokens it received and its
+ * rank among the round's submissions (ties share a rank). Tokens are counted as the
+ * round's results show them (every allocation to the submission).
+ */
+export const submissionResults = async (round) => {
+  const rows = await bookshelf.knex('groups_posts')
+    .join('posts', 'posts.id', 'groups_posts.post_id')
+    .leftJoin('posts_users', 'posts_users.post_id', 'posts.id')
+    .where('groups_posts.group_id', round.get('group_id'))
+    .where('posts.type', 'submission')
+    .where('posts.active', true)
+    .groupBy('posts.id', 'posts.user_id', 'posts.name')
+    .select('posts.id', 'posts.user_id', 'posts.name')
+    .select(bookshelf.knex.raw('COALESCE(SUM(posts_users.tokens_allocated_to), 0) AS tokens'))
+  const results = rows.map(row => ({
+    postId: String(row.id),
+    userId: String(row.user_id),
+    title: row.name || '',
+    tokens: Number(row.tokens) || 0
+  }))
+  return results.map(result => ({
+    ...result,
+    rank: 1 + results.filter(other => other.tokens > result.tokens).length
+  }))
+}
+
+// What a submitter is told about their own submissions when the round completes. When
+// the round hides its final results from participants, they hear that the stewards
+// will follow up instead, with no numbers.
+const resultMetaFor = (round, results, submitterId) => {
+  const own = results.filter(result => result.userId === String(submitterId))
+  if (own.length === 0) return {}
+  if (round.get('hide_final_results_from_participants')) return { resultsHidden: true }
+  return {
+    submissionResults: own.map(({ postId, title, tokens, rank }) => ({ postId, title, tokens, rank })),
+    submissionCount: results.length,
+    tokenType: round.get('token_type') || null
+  }
+}
+
+/**
  * Check for phase transitions and send notifications
  */
 export const sendPhaseTransitionNotifications = async ({ roundId, phase }) => {
   const round = await FundingRound.find(roundId)
   if (!round) return
   const participants = await round.users().fetch()
-  const activities = participants.map(user => ({
+  const completed = phase === FundingRound.PHASES.COMPLETED
+  const results = completed ? await submissionResults(round) : []
+  // Submitters hear their own result even if they have left the round
+  const readerIds = [...new Set([
+    ...participants.map(user => String(user.id)),
+    ...results.map(result => result.userId)
+  ])]
+  const activities = readerIds.map(readerId => ({
     reason: 'fundingRoundPhaseTransition:' + phase,
-    reader_id: user.id,
+    reader_id: readerId,
     group_id: round.get('group_id'),
     funding_round_id: round.id,
-    meta: { phase }
+    meta: { phase, ...(completed ? resultMetaFor(round, results, readerId) : {}) }
   }))
   if (activities.length > 0) {
     await Activity.saveForReasons(activities)
   }
   return activities.length
+}
+
+// Voting reminders go only to participants who still have tokens to allocate (D77)
+const participantIdsWithTokensLeft = async (round) => {
+  const ids = await bookshelf.knex('group_memberships')
+    .where({ group_id: round.get('group_id'), active: true })
+    .whereRaw("COALESCE((settings->>'tokensRemaining')::numeric, 0) > 0")
+    .pluck('user_id')
+  return new Set(ids.map(String))
 }
 
 /**
@@ -180,13 +237,16 @@ export const sendReminderNotifications = async () => {
           .map(({ user }) => user)
       }
 
-      const activities = participants.map(user => ({
-        reason: 'fundingRoundReminder',
-        reader_id: user.id,
-        group_id: round.get('group_id'),
-        funding_round_id: round.id,
-        meta: { reminderType: 'votingClosing3Days' }
-      }))
+      const withTokensLeft = await participantIdsWithTokensLeft(round)
+      const activities = participants
+        .filter(user => withTokensLeft.has(String(user.id)))
+        .map(user => ({
+          reason: 'fundingRoundReminder',
+          reader_id: user.id,
+          group_id: round.get('group_id'),
+          funding_round_id: round.id,
+          meta: { reminderType: 'votingClosing3Days' }
+        }))
 
       if (activities.length > 0) {
         await Activity.saveForReasons(activities)
@@ -205,8 +265,6 @@ export const sendReminderNotifications = async () => {
     q.where('groups.active', true)
   }).fetchAll({ withRelated: ['group', 'users'] })
 
-  console.log('votingClosing1Day', votingClosing1Day.models.length)
-
   for (const round of votingClosing1Day.models) {
     // Check if we've already sent a 1-day reminder
     const existingReminder = await Activity.query(q => {
@@ -214,8 +272,6 @@ export const sendReminderNotifications = async () => {
       q.where('meta', '@>', JSON.stringify({ reminderType: 'votingClosing1Day' }))
       q.where('created_at', '>', now.minus({ hours: 12 }).toJSDate())
     }).fetch()
-
-    console.log('existingReminder', existingReminder)
 
     if (!existingReminder) {
       let participants = await round.users().fetch()
@@ -234,15 +290,16 @@ export const sendReminderNotifications = async () => {
           .map(({ user }) => user)
       }
 
-      console.log('participants', participants.length)
-
-      const activities = participants.map(user => ({
-        reason: 'fundingRoundReminder',
-        reader_id: user.id,
-        group_id: round.get('group_id'),
-        funding_round_id: round.id,
-        meta: { reminderType: 'votingClosing1Day' }
-      }))
+      const withTokensLeft = await participantIdsWithTokensLeft(round)
+      const activities = participants
+        .filter(user => withTokensLeft.has(String(user.id)))
+        .map(user => ({
+          reason: 'fundingRoundReminder',
+          reader_id: user.id,
+          group_id: round.get('group_id'),
+          funding_round_id: round.id,
+          meta: { reminderType: 'votingClosing1Day' }
+        }))
 
       if (activities.length > 0) {
         await Activity.saveForReasons(activities)

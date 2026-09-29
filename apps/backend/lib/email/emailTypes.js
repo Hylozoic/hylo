@@ -93,7 +93,8 @@ export const EMAIL_TYPES = {
   sendAccountClosed: essential('your account was deactivated or deleted (D70)'),
   sendGroupClosed: bulk('settings_page', 'a group you were in was closed'),
   sendStalledSignupReminder: bulk('settings_page', 'reminder to finish signing up'),
-  sendWinbackEmail: bulk('settings_page', 'one email after 180 days away (D9)')
+  sendWinbackEmail: bulk('settings_page', 'one email after 180 days away (D9)'),
+  sendEventReminderEmail: bulk('group_post_email', 'reminder a day before an event you are going to or interested in (D44)')
 }
 
 export const EMAIL_KINDS = ['essential', 'bulk']
