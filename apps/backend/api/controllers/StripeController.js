@@ -192,6 +192,29 @@ async function insertStripeLog (row) {
   }
 }
 
+/**
+ * Writes the REFUND log row for a charge, or updates it when the charge was already logged
+ * (a partial refund followed by refunding the rest), so the row shows the latest amount.
+ *
+ * @param {object} row - stripe_logs row keyed by the charge id in external_id
+ */
+async function upsertRefundLog (row) {
+  const existing = await bookshelf.knex('stripe_logs')
+    .where({ log_type: STRIPE_LOG_TYPES.REFUND, external_id: row.external_id })
+    .first()
+  if (!existing) return insertStripeLog(row)
+
+  await bookshelf.knex('stripe_logs')
+    .where({ id: existing.id })
+    .update({
+      amount: row.amount,
+      reason: row.reason || existing.reason || null,
+      content_access_id: existing.content_access_id || row.content_access_id || null,
+      metadata: { ...(existing.metadata || {}), ...(row.metadata || {}) },
+      updated_at: new Date()
+    })
+}
+
 async function upsertDisputeLog ({ groupId, stripeAccountId, dispute }) {
   const existing = await bookshelf.knex('stripe_logs')
     .where({ log_type: STRIPE_LOG_TYPES.DISPUTE, external_id: dispute.id })
@@ -2336,7 +2359,7 @@ module.exports = {
       if (connectedResult) {
         const { stripeAccountRow, group } = connectedResult
         const primaryAccess = accessRecords[0]
-        await insertStripeLog({
+        await upsertRefundLog({
           group_id: group.id,
           stripe_account_id: stripeAccountRow.id,
           log_type: STRIPE_LOG_TYPES.REFUND,

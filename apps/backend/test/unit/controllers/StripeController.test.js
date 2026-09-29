@@ -860,4 +860,25 @@ describe('StripeController.handleChargeRefunded', () => {
     expect(logs).to.have.length(1)
     expect(Number(logs[0].amount)).to.equal(500)
   })
+
+  it('updates the log when the rest of a partly refunded charge is refunded', async () => {
+    await connectGroup('acct_partial_then_full')
+    const access = await purchase()
+    const refundOf = (amountRefunded, refunded) => StripeController.handleChargeRefunded({
+      ...chargeRefundedEvent,
+      account: 'acct_partial_then_full',
+      data: { object: { ...chargeRefundedEvent.data.object, amount_refunded: amountRefunded, refunded } }
+    })
+
+    await refundOf(500, false)
+    await refundOf(1500, true)
+
+    expect((await reload(access)).get('refunded_amount')).to.equal(1500)
+    expect(sentEmails).to.have.length(1)
+    const logs = await refundLogs()
+    expect(logs).to.have.length(1)
+    expect(Number(logs[0].amount)).to.equal(1500)
+    expect(logs[0].metadata).to.include({ matched_by: 'checkout_session', full_refund: true })
+    expect(String(logs[0].content_access_id)).to.equal(String(access.id))
+  })
 })
