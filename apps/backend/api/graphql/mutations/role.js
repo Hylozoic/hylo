@@ -1,4 +1,6 @@
 import { GraphQLError } from 'graphql'
+import { assertKeepsAdministrator } from '../../models/group/administrators'
+import expireForPolicyChange from '../../models/invitation/expireForPolicyChange'
 
 /**
  * Reject role mutations targeting a space — roles are only edited on the parent group.
@@ -41,6 +43,9 @@ export async function updateGroupRole ({ groupRoleId, color, name, description, 
         if (!groupRole) throw new GraphQLError('Role not found')
         if (groupRole.get('type') === GroupRole.TYPE_MEMBER) throw new GraphQLError(GroupRole.MEMBER_ROLE_LOCKED_ERROR)
         const verifiedActiveParam = (active == null) ? groupRole.get('active') : active
+        if (verifiedActiveParam === false && groupRole.get('active')) {
+          await assertKeepsAdministrator(groupRole.get('group_id'), { excludeRoleId: groupRole.id, transacting })
+        }
         const updatedAttributes = {
           color: color || groupRole.get('color'),
           name: name || groupRole.get('name'),
@@ -49,7 +54,13 @@ export async function updateGroupRole ({ groupRoleId, color, name, description, 
           active: verifiedActiveParam
         }
 
-        return groupRole.save(updatedAttributes, { transacting }).then((savedGroupRole) => savedGroupRole)
+        const wasActive = groupRole.get('active')
+        const savedGroupRole = await groupRole.save(updatedAttributes, { transacting })
+        // People who could only invite through this role no longer vouch for their pending invitations
+        if (wasActive && verifiedActiveParam === false) {
+          await expireForPolicyChange(groupRole.get('group_id'), { transacting })
+        }
+        return savedGroupRole
       })
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to update a group role')
@@ -94,6 +105,9 @@ export async function removeRoleFromMember ({ userId, roleId, personId, groupId 
           .andWhere('group_role_id', roleId)
           .andWhere('group_id', groupId)
       }).fetch()
+      if (role) {
+        await assertKeepsAdministrator(groupId, { excludeAssignment: { userId: personId, roleId: role.get('group_role_id') } })
+      }
       return role.destroy()
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to remove role from member')

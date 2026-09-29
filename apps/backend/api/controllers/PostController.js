@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import RedisPubSub from '../services/RedisPubSub'
 import { includes } from 'lodash'
 import createPost from '../models/post/createPost'
+import { isArchived } from '../models/group/archive'
 import { joinRoom, leaveRoom } from '../services/Websockets'
 
 const PostController = {
@@ -43,6 +44,12 @@ const PostController = {
             res.redirect(Frontend.Route.root() + `?notification=${encodeURIComponent(message)}&error=1`)
             return true
           }
+          return isArchived(g).then(archived => {
+            if (!archived) return
+            const message = 'Your post was not created. That group is archived.'
+            res.redirect(Frontend.Route.root() + `?notification=${encodeURIComponent(message)}&error=1`)
+            return true
+          })
         }))
       .then(stop => stop || createPost(userId, attributes)
         .then(post => res.redirect(Frontend.Route.post(post, group))))

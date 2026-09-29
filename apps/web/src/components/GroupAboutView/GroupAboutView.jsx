@@ -11,7 +11,7 @@ import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import RoundImage from 'components/RoundImage'
 import Button from 'components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
+import SoleAdminLeaveDialog from 'components/SoleAdminLeaveDialog/SoleAdminLeaveDialog'
 import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store'
@@ -530,22 +530,19 @@ export default function GroupAboutView ({
           )}
 
       {/* Sibling dialog so the Leave confirm isn't trapped inside a modal shell */}
-      <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-        <DialogContent className='!z-[1200]'>
-          <DialogHeader>
-            <DialogTitle>{isSpace ? t('Leave Space') : t('Leave {{name}}', { name: group.name })}</DialogTitle>
-            <DialogDescription className='text-foreground/70'>
-              {isSpace
-                ? t('Are you sure you want to leave {{group_name}}? You will no longer have access to this space\'s content.', { group_name: group.name })
-                : t('Are you sure you want to leave {{group_name}}?', { group_name: group.name })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className='flex gap-2 mt-4'>
-            <Button variant='outline' onClick={() => setShowLeaveDialog(false)}>{t('Cancel')}</Button>
-            <Button variant='destructive' onClick={handleConfirmLeave}>{isSpace ? t('Leave Space') : t('Leave Group')}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SoleAdminLeaveDialog
+        open={showLeaveDialog}
+        onOpenChange={setShowLeaveDialog}
+        group={group}
+        isSpace={isSpace}
+        contentClassName='!z-[1200]'
+        title={isSpace ? t('Leave Space') : t('Leave {{name}}', { name: group.name })}
+        description={isSpace
+          ? t('Are you sure you want to leave {{group_name}}? You will no longer have access to this space\'s content.', { group_name: group.name })
+          : t('Are you sure you want to leave {{group_name}}?', { group_name: group.name })}
+        confirmLabel={isSpace ? t('Leave Space') : t('Leave Group')}
+        onConfirm={handleConfirmLeave}
+      />
     </div>
   )
 }

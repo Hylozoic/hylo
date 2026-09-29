@@ -56,7 +56,9 @@ describe('GroupRole', () => {
     })
 
     it('is created by Group.create', async () => {
-      const created = await Group.create(user.id, { name: 'Member Role Group', slug: `member-role-${Date.now()}` })
+      // With member invitations off, a new group starts on stewards, so nothing is linked to the Member role
+      const created = await withFeatureFlag('MEMBER_INVITES', 'off', () =>
+        Group.create(user.id, { name: 'Member Role Group', slug: `member-role-${Date.now()}` }))
       const memberRole = await GroupRole.findMemberRole(created.id)
       expect(memberRole).to.exist
       expect(memberRole.get('type')).to.equal(GroupRole.TYPE_MEMBER)
@@ -238,30 +240,78 @@ describe('GroupRole', () => {
       expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.member.id])
     })
 
-    it('links exactly the chosen roles for roles', async () => {
+    it('links the Moderator role and the chosen roles for roles', async () => {
+      const expected = [roles.moderator.id, roles.greeter.id].sort((a, b) => a - b)
       await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'everyone' })
       let policy = await GroupRole.setInvitePolicy(policyGroup.id, {
         mode: 'roles',
         roleIds: [String(roles.greeter.id)],
         systemRoleNames: ['Moderator']
       })
-
-      const expected = [roles.moderator.id, roles.greeter.id].sort((a, b) => a - b)
       expect(policy).to.deep.equal({ mode: 'roles', roleIds: expected })
       expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal(expected)
 
       policy = await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', roleIds: [roles.greeter.id] })
-      expect(policy).to.deep.equal({ mode: 'roles', roleIds: [roles.greeter.id] })
-      expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.greeter.id])
+      expect(policy).to.deep.equal({ mode: 'roles', roleIds: expected })
+      expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal(expected)
     })
 
-    it('unlinks every role for stewards', async () => {
+    it('links only the Moderator role for stewards', async () => {
       await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', roleIds: [roles.moderator.id, roles.greeter.id] })
       await GroupRoleResponsibility.forge({ group_role_id: roles.member.id, responsibility_id: inviteMembersId }).save()
 
       const policy = await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })
       expect(policy).to.deep.equal({ mode: 'stewards', roleIds: [] })
-      expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([])
+      expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.moderator.id])
+    })
+
+    it('round-trips each mode', async () => {
+      for (const [input, expected] of [
+        [{ mode: 'everyone' }, { mode: 'everyone', roleIds: [] }],
+        [{ mode: 'stewards' }, { mode: 'stewards', roleIds: [] }],
+        [{ mode: 'roles', roleIds: [roles.greeter.id] }, { mode: 'roles', roleIds: [roles.moderator.id, roles.greeter.id].sort((a, b) => a - b) }],
+        [{ mode: 'roles', systemRoleNames: ['Moderator'] }, { mode: 'stewards', roleIds: [] }],
+        [{ mode: 'roles', roleIds: [roles.host.id] }, { mode: 'stewards', roleIds: [] }]
+      ]) {
+        expect(await GroupRole.setInvitePolicy(policyGroup.id, input), JSON.stringify(input)).to.deep.equal(expected)
+        expect(await GroupRole.getInvitePolicy(policyGroup.id), JSON.stringify(input)).to.deep.equal(expected)
+      }
+    })
+
+    it('links no Moderator when the group has no active Moderator role', async () => {
+      await roles.moderator.save({ active: false }, { patch: true })
+      try {
+        expect(await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })).to.deep.equal({ mode: 'stewards', roleIds: [] })
+        expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([])
+        expect(await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', roleIds: [roles.greeter.id] })).to.deep.equal({ mode: 'roles', roleIds: [roles.greeter.id] })
+      } finally {
+        await roles.moderator.save({ active: true }, { patch: true })
+      }
+    })
+
+    describe("a Moderator's invite access", () => {
+      let moderatorUser
+
+      before(async () => {
+        moderatorUser = await factories.user().save()
+        await moderatorUser.joinGroup(policyGroup)
+        await MemberGroupRole.forge({ user_id: moderatorUser.id, group_id: policyGroup.id, group_role_id: roles.moderator.id, active: true }).save()
+      })
+
+      it('is limited under stewards and roles, and none while member invitations are off', async () => {
+        await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })
+        expect(await GroupMembership.inviteAccess(moderatorUser.id, policyGroup.id)).to.equal('limited')
+        await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', roleIds: [roles.greeter.id] })
+        expect(await GroupMembership.inviteAccess(moderatorUser.id, policyGroup.id)).to.equal('limited')
+
+        await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })
+        await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+          expect(await GroupMembership.inviteAccess(moderatorUser.id, policyGroup.id)).to.equal(null)
+          await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })
+          expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([])
+          expect(await GroupMembership.inviteAccess(moderatorUser.id, policyGroup.id)).to.equal(null)
+        })
+      })
     })
 
     it('leaves other responsibilities and other groups alone', async () => {
@@ -291,7 +341,7 @@ describe('GroupRole', () => {
       await expect(GroupRole.setInvitePolicy(policyGroup.id, {}))
         .to.be.rejectedWith('Unknown invite policy mode')
 
-      expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.greeter.id])
+      expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.moderator.id, roles.greeter.id].sort((a, b) => a - b))
     })
 
     it('rejects spaces and missing groups', async () => {
@@ -328,7 +378,7 @@ describe('GroupRole', () => {
       expect(await inviteMembersLinks(olderGroup.id)).to.deep.equal([memberRole.id])
     })
 
-    it('resolves systemRoleNames when a group is created', async () => {
+    it('resolves systemRoleNames when a group is created, reading Moderators alone as stewards', async () => {
       const created = await Group.create(user.id, {
         name: 'Moderators Invite',
         slug: `moderators-invite-${Date.now()}`,
@@ -336,15 +386,19 @@ describe('GroupRole', () => {
       })
       const moderator = await GroupRole.findSystemRole(created.id, 'Moderator')
 
-      expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'roles', roleIds: [moderator.id] })
+      expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      expect(await inviteMembersLinks(created.id)).to.deep.equal([moderator.id])
     })
 
-    it('reads roles that also hold Add Members as stewards', async () => {
+    it('reads the Moderator role and roles that also hold Add Members as stewards', async () => {
       let policy = await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', roleIds: [roles.host.id] })
       expect(policy).to.deep.equal({ mode: 'stewards', roleIds: [] })
 
       policy = await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', systemRoleNames: ['Administrator', 'Moderator'] })
-      expect(policy).to.deep.equal({ mode: 'roles', roleIds: [roles.administrator.id, roles.moderator.id].sort((a, b) => a - b) })
+      expect(policy).to.deep.equal({ mode: 'stewards', roleIds: [] })
+
+      policy = await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', roleIds: [roles.greeter.id], systemRoleNames: ['Administrator'] })
+      expect(policy).to.deep.equal({ mode: 'roles', roleIds: [roles.administrator.id, roles.moderator.id, roles.greeter.id].sort((a, b) => a - b) })
     })
 
     it('ignores inactive roles', async () => {
@@ -360,7 +414,7 @@ describe('GroupRole', () => {
 
     it('reports roles for a custom role given Invite Members in Roles & Badges', async () => {
       await GroupRoleResponsibility.forge({ group_role_id: roles.greeter.id, responsibility_id: inviteMembersId }).save()
-      expect(await GroupRole.getInvitePolicy(policyGroup.id)).to.deep.equal({ mode: 'roles', roleIds: [roles.greeter.id] })
+      expect(await GroupRole.getInvitePolicy(policyGroup.id)).to.deep.equal({ mode: 'roles', roleIds: [roles.moderator.id, roles.greeter.id].sort((a, b) => a - b) })
     })
 
     it('only sets stewards while member invitations are switched off, and changes nothing else', async () => {
@@ -375,12 +429,28 @@ describe('GroupRole', () => {
         await expect(bookshelf.transaction(transacting =>
           GroupRole.setInvitePolicy(policyGroup.id, { mode: 'everyone' }, { transacting })))
           .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
-        expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.greeter.id])
+        expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([roles.moderator.id, roles.greeter.id].sort((a, b) => a - b))
 
+        // Stewards links no role while member invitations are off, not even Moderator
         const policy = await GroupRole.setInvitePolicy(policyGroup.id, { mode: 'stewards' })
         expect(policy).to.deep.equal({ mode: 'stewards', roleIds: [] })
         expect(await inviteMembersLinks(policyGroup.id)).to.deep.equal([])
       })
+    })
+
+    it("shows no Invite Members on a new group's Moderator role while member invitations are switched off", async () => {
+      const responsibilityTitles = async role => (await role.responsibilities().fetch()).map(r => r.get('title'))
+
+      const off = await withFeatureFlag('MEMBER_INVITES', 'off', () =>
+        Group.create(user.id, { name: 'Moderator Off', slug: `moderator-off-${Date.now()}` }))
+      const offModerator = await GroupRole.findSystemRole(off.id, 'Moderator')
+      expect(await responsibilityTitles(offModerator)).to.not.include(Responsibility.constants.RESP_INVITE_MEMBERS)
+      expect(await inviteMembersLinks(off.id)).to.deep.equal([])
+      expect(await GroupRole.getInvitePolicy(off.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+
+      const on = await Group.create(user.id, { name: 'Moderator On', slug: `moderator-on-${Date.now()}`, invite_policy: { mode: 'stewards' } })
+      const onModerator = await GroupRole.findSystemRole(on.id, 'Moderator')
+      expect(await responsibilityTitles(onModerator)).to.include(Responsibility.constants.RESP_INVITE_MEMBERS)
     })
 
     it('rejects a new group with an everyone or roles policy while member invitations are switched off', async () => {
@@ -393,6 +463,19 @@ describe('GroupRole', () => {
         }
 
         const created = await Group.create(user.id, { name: 'Switched Off Stewards', slug: `switched-off-stewards-${Date.now()}` })
+        expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+    })
+
+    it('gives a new group with no chosen policy everyone while member invitations are on, and stewards while off', async () => {
+      await withFeatureFlag('MEMBER_INVITES', 'on', async () => {
+        expect(GroupRole.defaultNewGroupInvitePolicy()).to.deep.equal({ mode: 'everyone' })
+        const created = await Group.create(user.id, { name: 'Default On', slug: `default-on-${Date.now()}` })
+        expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+      })
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        expect(GroupRole.defaultNewGroupInvitePolicy()).to.deep.equal({ mode: 'stewards' })
+        const created = await Group.create(user.id, { name: 'Default Off', slug: `default-off-${Date.now()}` })
         expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
       })
     })
@@ -413,8 +496,8 @@ describe('GroupRole', () => {
         GroupRole.setInvitePolicy(policyGroup.id, { mode: 'roles', roleIds: [roles.moderator.id] })
       ])
       const links = await inviteMembersLinks(policyGroup.id)
-      expect(links).to.have.lengthOf(1)
-      expect([[roles.greeter.id], [roles.member.id], [roles.moderator.id]]).to.deep.include(links)
+      const withModerator = [roles.moderator.id, roles.greeter.id].sort((a, b) => a - b)
+      expect([withModerator, [roles.member.id], [roles.moderator.id]]).to.deep.include(links)
     })
   })
 })

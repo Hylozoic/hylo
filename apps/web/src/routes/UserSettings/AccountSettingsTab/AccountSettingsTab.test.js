@@ -1,5 +1,7 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { graphql, HttpResponse } from 'msw'
+import { render, screen, fireEvent, waitFor, within } from 'util/testing/reactTestingLibraryExtended'
+import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import AccountSettingsTab from './AccountSettingsTab'
 
 describe('AccountSettingsTab', () => {
@@ -68,5 +70,98 @@ describe('AccountSettingsTab', () => {
     confirmPasswordInput.blur()
 
     expect(screen.getByText('Passwords don\'t match')).toBeInTheDocument()
+  })
+
+  describe('the groups you are the only Administrator of', () => {
+    const soleGroups = [
+      { id: '5', name: 'Seed Library', slug: 'seed-library', avatarUrl: null },
+      { id: '6', name: 'Tool Share', slug: 'tool-share', avatarUrl: null }
+    ]
+
+    beforeEach(() => {
+      mockGraphqlServer.use(
+        graphql.query('MySoleAdministratorGroups', () => HttpResponse.json({ data: { mySoleAdministratorGroups: soleGroups } }))
+      )
+    })
+
+    it('lists them in the deactivate dialog, with a way to choose someone to take over, without blocking', async () => {
+      const deactivateMe = jest.fn(() => Promise.resolve())
+      render(
+        <AccountSettingsTab currentUser={{ id: '1', email: 'test@example.com' }} updateUserSettings={jest.fn()} setConfirm={jest.fn()} deactivateMe={deactivateMe} logout={jest.fn()} />
+      )
+
+      fireEvent.click(screen.getByText('Deactivate Account'))
+      const warning = await screen.findByTestId('sole-administrator-warning')
+      expect(within(warning).getByText("You're the only Administrator of these groups")).toBeInTheDocument()
+      expect(within(warning).getByText('Seed Library')).toBeInTheDocument()
+      expect(within(warning).getByText('Tool Share')).toBeInTheDocument()
+      expect(within(warning).getAllByRole('link', { name: 'Choose a new Administrator' })[0])
+        .toHaveAttribute('href', '/groups/seed-library/settings/roles')
+
+      fireEvent.click(screen.getByText('Deactivate my account'))
+      expect(deactivateMe).toHaveBeenCalled()
+    })
+
+    it('lists them in the delete dialog too', async () => {
+      render(
+        <AccountSettingsTab currentUser={{ id: '1', email: 'test@example.com' }} updateUserSettings={jest.fn()} setConfirm={jest.fn()} deleteMe={jest.fn(() => Promise.resolve())} logout={jest.fn()} />
+      )
+
+      fireEvent.click(screen.getByText('Delete Account'))
+      const warning = await screen.findByTestId('sole-administrator-warning')
+      expect(within(warning).getByText('Seed Library')).toBeInTheDocument()
+    })
+
+    it('shows nothing when there are none', async () => {
+      mockGraphqlServer.use(
+        graphql.query('MySoleAdministratorGroups', () => HttpResponse.json({ data: { mySoleAdministratorGroups: [] } }))
+      )
+      render(
+        <AccountSettingsTab currentUser={{ id: '1', email: 'test@example.com' }} updateUserSettings={jest.fn()} setConfirm={jest.fn()} />
+      )
+
+      fireEvent.click(screen.getByText('Delete Account'))
+      await screen.findByText('Delete my account')
+      await new Promise(resolve => setTimeout(resolve, 50))
+      expect(screen.queryByTestId('sole-administrator-warning')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('why someone is leaving', () => {
+    beforeEach(() => {
+      mockGraphqlServer.use(
+        graphql.query('MySoleAdministratorGroups', () => HttpResponse.json({ data: { mySoleAdministratorGroups: [] } }))
+      )
+    })
+
+    it('asks one optional question, points "too many emails" to notification settings, and sends the answer', async () => {
+      const deactivateMe = jest.fn(() => Promise.resolve())
+      render(
+        <AccountSettingsTab currentUser={{ id: '1', email: 'test@example.com' }} updateUserSettings={jest.fn()} setConfirm={jest.fn()} deactivateMe={deactivateMe} logout={jest.fn()} />
+      )
+
+      fireEvent.click(screen.getByText('Deactivate Account'))
+      const question = await screen.findByTestId('exit-reason')
+      expect(within(question).getByText('Why are you leaving? (optional)')).toBeInTheDocument()
+      expect(screen.queryByTestId('exit-reason-emails')).not.toBeInTheDocument()
+
+      fireEvent.click(within(question).getByLabelText('I get too many emails'))
+      expect(within(question).getByRole('link', { name: 'Change your notification settings' })).toHaveAttribute('href', '/my/notifications')
+
+      fireEvent.click(screen.getByText('Deactivate my account'))
+      expect(deactivateMe).toHaveBeenCalledWith({ reason: 'too_many_emails' })
+    })
+
+    it('lets people delete without answering', async () => {
+      const deleteMe = jest.fn(() => Promise.resolve())
+      render(
+        <AccountSettingsTab currentUser={{ id: '1', email: 'test@example.com' }} updateUserSettings={jest.fn()} setConfirm={jest.fn()} deleteMe={deleteMe} logout={jest.fn()} />
+      )
+
+      fireEvent.click(screen.getByText('Delete Account'))
+      await screen.findByTestId('exit-reason')
+      fireEvent.click(screen.getByText('Delete my account'))
+      expect(deleteMe).toHaveBeenCalledWith({ reason: null })
+    })
   })
 })

@@ -12,7 +12,7 @@ jest.mock('store/actions/trackAnalyticsEvent', () => {
 })
 
 const WHO_CAN_ADD = 'Who can add new members?'
-const STEWARDS = 'Administrators and Hosts (anyone who can add members)'
+const STEWARDS = 'Stewards (Administrators, Moderators and Hosts)'
 const CLOSED_WITH_MEMBER_INVITES = 'Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.'
 const CLOSED_WITHOUT_MEMBER_INVITES = 'Nobody can request to join. Members arrive only when a steward invites them directly or shares an invite link.'
 
@@ -50,13 +50,18 @@ function render (ui, me = {}) {
   return renderWithProviders(ui, null, AllTheProviders({ orm: session.state }))
 }
 
+const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+// Options may list their explanation after the title, so match on the title
 function choose (settingLabel, optionTitle) {
   fireEvent.click(screen.getByRole('button', { name: settingLabel }))
-  fireEvent.click(screen.getByRole('button', { name: optionTitle }))
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${escapeRegExp(optionTitle)}`) }))
 }
 
-async function createNamedGroup () {
+async function createNamedGroup ({ visibility = 'Visible to related groups', accessibility = 'By request, with approval' } = {}) {
   fireEvent.change(screen.getByPlaceholderText('Name your group'), { target: { value: 'Seed Library' } })
+  if (visibility) choose('Who can see this group?', visibility)
+  if (accessibility) choose('Who can join this group?', accessibility)
   const submit = screen.getByRole('button', { name: /Create Group/ })
   await waitFor(() => expect(submit).toBeEnabled())
   fireEvent.click(submit)
@@ -79,57 +84,55 @@ describe('CreateGroupForm "Who can add new members?"', () => {
     }
   })
 
-  it('starts on Administrators and Hosts and offers everyone and specific roles', () => {
+  it('starts on Everyone in the group and offers stewards, but not specific roles', () => {
     mockGraphql()
     render(<CreateGroupForm />)
 
     expect(screen.getByText(WHO_CAN_ADD)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: WHO_CAN_ADD })).toHaveTextContent('Everyone in the group')
+
+    fireEvent.click(screen.getByRole('button', { name: WHO_CAN_ADD }))
+    expect(screen.getByRole('button', { name: STEWARDS })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Specific roles' })).not.toBeInTheDocument()
+  })
+
+  it('sends the Everyone default when nothing else is chosen', async () => {
+    const requests = mockGraphql()
+    render(<CreateGroupForm />)
+
+    await createNamedGroup()
+
+    await waitFor(() => expect(requests).toHaveLength(1))
+    expect(requests[0].invitePolicy).toEqual({ mode: 'everyone' })
+  })
+
+  it('offers everyone again after choosing stewards', () => {
+    mockGraphql()
+    render(<CreateGroupForm />)
+
+    choose(WHO_CAN_ADD, STEWARDS)
     expect(screen.getByRole('button', { name: WHO_CAN_ADD })).toHaveTextContent(STEWARDS)
 
     fireEvent.click(screen.getByRole('button', { name: WHO_CAN_ADD }))
     expect(screen.getByRole('button', { name: 'Everyone in the group' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Specific roles' })).toBeInTheDocument()
   })
 
-  it('lets specific roles add Moderators, with Administrators and Hosts locked on', () => {
+  it('adds the approval sentence only once a joining rule that needs it is chosen', () => {
     mockGraphql()
     render(<CreateGroupForm />)
 
-    choose(WHO_CAN_ADD, 'Specific roles')
+    choose(WHO_CAN_ADD, STEWARDS)
+    expect(screen.getByText('Administrators, Moderators and Hosts can invite people.')).toBeInTheDocument()
 
-    const administrator = screen.getByRole('checkbox', { name: '🪄 Administrator' })
-    const host = screen.getByRole('checkbox', { name: '👋 Host' })
-    const moderator = screen.getByRole('checkbox', { name: '⚖️ Moderator' })
-    expect(administrator).toBeDisabled()
-    expect(administrator).toHaveAttribute('aria-checked', 'true')
-    expect(host).toBeDisabled()
-    expect(host).toHaveAttribute('aria-checked', 'true')
-    expect(moderator).toBeEnabled()
-    expect(moderator).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByText('Create custom roles later in Roles & Badges')).toBeInTheDocument()
-
-    fireEvent.click(moderator)
-    expect(moderator).toHaveAttribute('aria-checked', 'false')
+    choose('Who can join this group?', 'By request, with approval')
+    expect(screen.getByText('Administrators, Moderators and Hosts can invite people. A steward approves each person a Moderator invites before they join.')).toBeInTheDocument()
   })
 
-  it('sends the chosen policy in createGroup', async () => {
+  it('sends stewards', async () => {
     const requests = mockGraphql()
     render(<CreateGroupForm />)
 
-    choose(WHO_CAN_ADD, 'Specific roles')
-    await createNamedGroup()
-
-    await waitFor(() => expect(requests).toHaveLength(1))
-    expect(requests[0].invitePolicy).toEqual({ mode: 'roles', systemRoleNames: ['Moderator'] })
-    await waitFor(() => expect(trackAnalyticsEvent).toHaveBeenCalledWith('Group Invite Policy Set', { mode: 'roles', surface: 'create' }))
-  })
-
-  it('sends stewards when specific roles adds no one', async () => {
-    const requests = mockGraphql()
-    render(<CreateGroupForm />)
-
-    choose(WHO_CAN_ADD, 'Specific roles')
-    fireEvent.click(screen.getByRole('checkbox', { name: '⚖️ Moderator' }))
+    choose(WHO_CAN_ADD, STEWARDS)
     await createNamedGroup()
 
     await waitFor(() => expect(requests).toHaveLength(1))
@@ -141,6 +144,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
     const requests = mockGraphql()
     render(<CreateGroupForm />)
 
+    choose(WHO_CAN_ADD, STEWARDS)
     choose(WHO_CAN_ADD, 'Everyone in the group')
     await createNamedGroup()
 
@@ -155,7 +159,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
     const onClose = jest.fn()
     render(<CreateGroupForm ref={ref} onClose={onClose} />)
 
-    choose(WHO_CAN_ADD, 'Everyone in the group')
+    choose(WHO_CAN_ADD, STEWARDS)
     act(() => ref.current.requestClose())
 
     expect(onClose).not.toHaveBeenCalled()
@@ -198,7 +202,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
       expect(screen.getByText(CLOSED_WITHOUT_MEMBER_INVITES)).toBeInTheDocument()
       expect(screen.queryByText(CLOSED_WITH_MEMBER_INVITES)).not.toBeInTheDocument()
 
-      await createNamedGroup()
+      await createNamedGroup({ accessibility: null })
       await waitFor(() => expect(requests).toHaveLength(1))
       expect(requests[0]).not.toHaveProperty('invitePolicy')
       expect(trackAnalyticsEvent).not.toHaveBeenCalledWith('Group Invite Policy Set', expect.anything())
@@ -215,5 +219,69 @@ describe('CreateGroupForm "Who can add new members?"', () => {
     await createNamedGroup()
     await waitFor(() => expect(requests).toHaveLength(1))
     expect(requests[0]).not.toHaveProperty('invitePolicy')
+  })
+})
+
+describe('CreateGroupForm visibility and joining', () => {
+  it('preselects neither, and keeps Create disabled with a note naming what is missing until both are chosen', async () => {
+    const requests = mockGraphql()
+    render(<CreateGroupForm />)
+
+    fireEvent.change(screen.getByPlaceholderText('Name your group'), { target: { value: 'Seed Library' } })
+    const submit = screen.getByRole('button', { name: /Create Group/ })
+    expect(screen.getByRole('button', { name: 'Who can see this group?' })).toHaveTextContent('Choose who can see it')
+    expect(screen.getByRole('button', { name: 'Who can join this group?' })).toHaveTextContent('Choose how people join')
+    expect(screen.getByTestId('create-group-missing-choices')).toHaveTextContent('Choose who can see this group and who can join it.')
+    expect(submit).toBeDisabled()
+
+    choose('Who can see this group?', 'Anyone can find and see')
+    expect(screen.getByTestId('create-group-missing-choices')).toHaveTextContent('Choose who can join this group.')
+    expect(submit).toBeDisabled()
+
+    choose('Who can join this group?', 'Anyone can join instantly')
+    expect(screen.queryByTestId('create-group-missing-choices')).not.toBeInTheDocument()
+    await waitFor(() => expect(submit).toBeEnabled())
+
+    fireEvent.click(submit)
+    await waitFor(() => expect(requests).toHaveLength(1))
+    expect(requests[0]).toMatchObject({ visibility: 2, accessibility: 2 })
+  })
+
+  it('names visibility alone when only joining is chosen', () => {
+    mockGraphql()
+    render(<CreateGroupForm />)
+
+    choose('Who can join this group?', 'By invitation only')
+    expect(screen.getByTestId('create-group-missing-choices')).toHaveTextContent('Choose who can see this group.')
+  })
+
+  it('explains each option in the list', () => {
+    mockGraphql()
+    render(<CreateGroupForm />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Who can see this group?' }))
+    expect(screen.getByText('This group will be exposed to search engines.')).toBeInTheDocument()
+  })
+
+  it('says Public groups are reviewed before they appear in the Group Explorer, instead of linking the commons form', () => {
+    mockGraphql()
+    render(<CreateGroupForm />)
+
+    expect(screen.queryByTestId('public-group-review-note')).not.toBeInTheDocument()
+    choose('Who can see this group?', 'Anyone can find and see')
+    expect(screen.getByTestId('public-group-review-note')).toHaveTextContent('Public groups are reviewed before they appear in the Group Explorer.')
+    expect(screen.queryByText('Allow-in-Commons form')).not.toBeInTheDocument()
+  })
+
+  it('counts a chosen visibility as entered data', () => {
+    mockGraphql()
+    const ref = createRef()
+    const onClose = jest.fn()
+    render(<CreateGroupForm ref={ref} onClose={onClose} />)
+
+    choose('Who can see this group?', 'Members only')
+    act(() => ref.current.requestClose())
+
+    expect(onClose).not.toHaveBeenCalled()
   })
 })

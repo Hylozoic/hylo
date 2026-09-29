@@ -3,6 +3,7 @@ import { isEmpty } from 'lodash'
 import { flow, filter, map, includes } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import createComment from '../models/comment/createComment'
+import { archivedGroupIds } from '../models/group/archive'
 import Busboy from 'busboy'
 import { PassThrough } from 'stream'
 import { isValidInboundEmailSignature } from '../../lib/inboundEmailSignature'
@@ -58,12 +59,15 @@ module.exports = {
           const text = Comment.cleanEmailText(user, emailBody, {
             useMarkdown: !post.isThread()
           })
-          return createComment(replyData.userId, { text, post, created_from: 'email' })
-            .then(() => trackServerEvent(replyData.userId, ServerAnalyticsEvents.COMMENT_ADDED_BY_EMAIL, {
-              postId: post.id,
-              groupId: group ? [group.id] : []
-            }))
-            .then(() => res.ok({}), res.serverError)
+          // An archived group is read-only. Answer without an error so the email isn't sent again.
+          return archivedGroupIds(post.relations.groups.pluck('id')).then(archived => archived.length > 0
+            ? res.status(200).send({ message: 'The group is archived, no comment created.' })
+            : createComment(replyData.userId, { text, post, created_from: 'email' })
+              .then(() => trackServerEvent(replyData.userId, ServerAnalyticsEvents.COMMENT_ADDED_BY_EMAIL, {
+                postId: post.id,
+                groupId: group ? [group.id] : []
+              }))
+              .then(() => res.ok({}), res.serverError))
         })
     }
 
@@ -130,10 +134,15 @@ module.exports = {
       .then(group => Promise.map(postIds, id => {
         if (isEmpty(replyText(id))) return
         return Post.find(id, { withRelated: ['groups'] })
-          .then(post => {
+          .then(async post => {
             if (!post || !includes(groupId, post.relations.groups.pluck('id'))) {
               failures = true
               return Promise.resolve()
+            }
+            // Archived groups are read-only
+            if ((await archivedGroupIds(post.relations.groups.pluck('id'))).length > 0) {
+              failures = true
+              return
             }
 
             if (post && (new Date() - post.get('created_at') < 5 * 60000)) return

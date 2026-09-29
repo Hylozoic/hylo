@@ -21,14 +21,7 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import Button from 'components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from 'components/ui/dialog'
+import SoleAdminLeaveDialog from 'components/SoleAdminLeaveDialog/SoleAdminLeaveDialog'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
@@ -575,29 +568,21 @@ function GroupDetail ({ forCurrentGroup = false }) {
           onClose={() => setShowSpaceSettings(false)}
         />
       )}
-      <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t(isSpace ? 'Leave Space' : 'Leave Group')}</DialogTitle>
-            <DialogDescription className='text-foreground/70'>
-              {t(
-                isSpace
-                  ? 'Are you sure you want to leave {{group_name}}? You will no longer have access to this space\'s content.'
-                  : 'Are you sure you want to leave {{group_name}}? You will no longer have access to this group\'s content.',
-                { group_name: group.name }
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className='flex gap-2 mt-4'>
-            <Button variant='outline' onClick={() => setShowLeaveDialog(false)}>
-              {t('Cancel')}
-            </Button>
-            <Button variant='destructive' onClick={handleConfirmLeave}>
-              {t(isSpace ? 'Leave Space' : 'Leave Group')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SoleAdminLeaveDialog
+        open={showLeaveDialog}
+        onOpenChange={setShowLeaveDialog}
+        group={group}
+        isSpace={isSpace}
+        title={t(isSpace ? 'Leave Space' : 'Leave Group')}
+        description={t(
+          isSpace
+            ? 'Are you sure you want to leave {{group_name}}? You will no longer have access to this space\'s content.'
+            : 'Are you sure you want to leave {{group_name}}? You will no longer have access to this group\'s content.',
+          { group_name: group.name }
+        )}
+        confirmLabel={t(isSpace ? 'Leave Space' : 'Leave Group')}
+        onConfirm={handleConfirmLeave}
+      />
       <Tooltip
         backgroundColor='rgba(35, 65, 91, 1.0)'
         effect='solid'

@@ -24,10 +24,8 @@ import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import { WebViewMessageTypes } from '@hylo/shared'
-import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import { allGroupsUrl, groupUrl, spaceHomeUrl } from '@hylo/navigation'
+import { groupUrl, spaceHomeUrl } from '@hylo/navigation'
 import presentGroup from 'store/presenters/presentGroup'
 import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -35,7 +33,6 @@ import { getParentGroups } from 'store/selectors/getGroupRelationships'
 import getMe from 'store/selectors/getMe'
 import {
   FETCH_GROUP_SETTINGS,
-  deleteGroup,
   fetchGroupSettings,
   updateGroupSettings
 } from './GroupSettings.store'
@@ -92,21 +89,6 @@ export default function GroupSettings () {
   const fetchGroupSettingsAction = () => slug && dispatch(fetchGroupSettings(slug))
   const fetchLocationAction = (location) => dispatch(fetchLocation(location))
   const updateGroupSettingsAction = changes => group && dispatch(updateGroupSettings(group.id, changes))
-  const deleteGroupAction = () => {
-    if (group) {
-      dispatch(deleteGroup(group.id)).then(({ error }) => {
-        if (!error) {
-          if (isLegacyWebView()) {
-            sendMessageToWebView(WebViewMessageTypes.GROUP_DELETED, {
-              groupSlug: group.slug,
-              groupId: group.id
-            })
-          }
-          window.location = allGroupsUrl()
-        }
-      })
-    }
-  }
 
   useEffect(() => {
     group && fetchGroupSettingsAction()
@@ -241,7 +223,7 @@ export default function GroupSettings () {
   const deleteSettings = {
     name: t('Delete'),
     path: 'delete',
-    component: <DeleteSettingsTab group={group} deleteGroup={deleteGroupAction} />
+    component: <DeleteSettingsTab group={group} />
   }
 
   return (

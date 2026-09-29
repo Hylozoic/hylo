@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import factories from '../../../test/setup/factories'
-import { withFeatureFlag } from '../../../test/setup/helpers'
+import { mockify, unspyify, withFeatureFlag } from '../../../test/setup/helpers'
 
 import {
   addMember,
@@ -16,9 +16,18 @@ import {
   deletePeerRelationship,
   acceptGroupRelationshipInvite,
   cancelGroupRelationshipInvite,
-  rejectGroupRelationshipInvite
+  rejectGroupRelationshipInvite,
+  handOffAdministrator,
+  archiveGroup,
+  unarchiveGroup,
+  deletedGroups,
+  restoreDeletedGroup
 } from './group'
-import { addSuggestedSkillToGroup, removeSuggestedSkillFromGroup } from './index'
+import { addSuggestedSkillToGroup, leaveGroup, removeSuggestedSkillFromGroup } from './index'
+import { createPost, updatePost } from './post'
+import { createComment } from './comment'
+import { createJoinRequest } from './join_request'
+import { createSpace } from './spaces'
 
 describe('mutations/group', () => {
   describe('moderation', () => {
@@ -60,6 +69,43 @@ describe('mutations/group', () => {
         const roles = await MemberGroupRole.where({ user_id: user2.id, group_id: group.id }).fetchAll()
         expect(roles.length).to.equal(0)
         expect(await GroupMembership.hasResponsibility(user2.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.false
+      })
+    })
+
+    describe('keeping an Administrator', () => {
+      let soloGroup, administrator, moderator
+
+      beforeEach(async () => {
+        administrator = await factories.user().save()
+        moderator = await factories.user().save()
+        soloGroup = await factories.group().save()
+        await administrator.joinGroup(soloGroup, { assignAdministrator: true })
+        await moderator.joinGroup(soloGroup)
+        const moderatorRole = await GroupRole.findSystemRole(soloGroup.id, 'Moderator')
+        await MemberGroupRole.forge({ user_id: moderator.id, group_id: soloGroup.id, group_role_id: moderatorRole.id, active: true }).save()
+      })
+
+      it('stops a Moderator removing the only Administrator', async () => {
+        await expect(removeMember(moderator.id, administrator.id, soloGroup.id))
+          .to.be.rejectedWith('A group must keep at least one Administrator')
+        expect(await GroupMembership.hasActiveMembership(administrator.id, soloGroup.id)).to.be.true
+      })
+
+      it('lets an Administrator be removed when another remains', async () => {
+        const second = await factories.user().save()
+        await second.joinGroup(soloGroup, { assignAdministrator: true })
+        await removeMember(moderator.id, administrator.id, soloGroup.id)
+        expect(await GroupMembership.hasActiveMembership(administrator.id, soloGroup.id)).to.be.false
+      })
+
+      it('never stops the only Administrator leaving', async () => {
+        await leaveGroup(administrator.id, soloGroup.id)
+        expect(await GroupMembership.hasActiveMembership(administrator.id, soloGroup.id)).to.be.false
+      })
+
+      it('never stops the only Administrator removing themselves', async () => {
+        await removeMember(administrator.id, administrator.id, soloGroup.id)
+        expect(await GroupMembership.hasActiveMembership(administrator.id, soloGroup.id)).to.be.false
       })
     })
 
@@ -677,9 +723,9 @@ describe('mutations/group', () => {
         const everyone = await createGroup(administrator.id, { name: 'Everyone Invites', slug: uniqueSlug('everyone'), invitePolicy: { mode: 'everyone' } })
         expect(await GroupRole.getInvitePolicy(everyone.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
 
+        // Moderators are stewards, so choosing only them is the same as stewards
         const roles = await createGroup(administrator.id, { name: 'Moderators Invite', slug: uniqueSlug('roles'), invitePolicy: { mode: 'roles', systemRoleNames: ['Moderator'] } })
-        const moderator = await GroupRole.findSystemRole(roles.id, 'Moderator')
-        expect(await GroupRole.getInvitePolicy(roles.id)).to.deep.equal({ mode: 'roles', roleIds: [moderator.id] })
+        expect(await GroupRole.getInvitePolicy(roles.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
 
         const stewards = await createGroup(administrator.id, { name: 'Stewards Invite', slug: uniqueSlug('stewards'), invitePolicy: { mode: 'stewards' } })
         expect(await GroupRole.getInvitePolicy(stewards.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
@@ -707,23 +753,28 @@ describe('mutations/group', () => {
         })
       })
 
-      it('uses DEFAULT_NEW_GROUP_INVITE_POLICY when no policy is given', async () => {
-        const defaultPolicy = GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY
-        const created = await createGroup(administrator.id, { name: 'Default Policy', slug: uniqueSlug('default') })
-        expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: defaultPolicy.mode, roleIds: [] })
+      it('defaults to everyone while member invitations are on, and to stewards while they are off', async () => {
+        await withFeatureFlag('MEMBER_INVITES', 'on', async () => {
+          const created = await createGroup(administrator.id, { name: 'Default Policy', slug: uniqueSlug('default') })
+          expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+        })
 
-        GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY = { mode: 'everyone' }
-        try {
-          const flipped = await createGroup(administrator.id, { name: 'Flipped Default', slug: uniqueSlug('flipped') })
-          expect(await GroupRole.getInvitePolicy(flipped.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
-        } finally {
-          GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY = defaultPolicy
-        }
+        await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+          const created = await createGroup(administrator.id, { name: 'Default Policy Off', slug: uniqueSlug('default-off') })
+          expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY.mode, roleIds: [] })
+          expect(GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY.mode).to.equal('stewards')
+        })
+      })
+
+      it('keeps Protected visibility and Restricted joining for callers that send neither', async () => {
+        const created = await createGroup(administrator.id, { name: 'Server Defaults', slug: uniqueSlug('server-defaults') })
+        expect(created.get('visibility')).to.equal(Group.Visibility.PROTECTED)
+        expect(created.get('accessibility')).to.equal(Group.Accessibility.RESTRICTED)
       })
     })
 
     describe('updateGroup', () => {
-      let group, moderatorRole
+      let group, moderatorRole, greeterRole
 
       before(async () => {
         group = await factories.group().save()
@@ -733,6 +784,7 @@ describe('mutations/group', () => {
         const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
         await MemberGroupRole.forge({ user_id: host.id, group_id: group.id, group_role_id: hostRole.id, active: true }).save()
         moderatorRole = await GroupRole.findSystemRole(group.id, 'Moderator')
+        greeterRole = await GroupRole.forge({ group_id: group.id, name: 'Greeter', emoji: '🙌', type: GroupRole.TYPE_CUSTOM, active: true }).save()
       })
 
       afterEach(() => GroupRole.setInvitePolicy(group.id, { mode: 'stewards' }))
@@ -741,8 +793,8 @@ describe('mutations/group', () => {
         await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'everyone' } })
         expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
 
-        await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'roles', roleIds: [String(moderatorRole.id)] } })
-        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'roles', roleIds: [moderatorRole.id] })
+        await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'roles', roleIds: [String(greeterRole.id)] } })
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'roles', roleIds: [moderatorRole.id, greeterRole.id] })
 
         await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'stewards' } })
         expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
@@ -787,6 +839,69 @@ describe('mutations/group', () => {
         expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
       })
 
+      describe('tightening it', () => {
+        let moderator
+        const pendingFrom = async sender => (await Invitation.where({ group_id: group.id, invited_by_id: sender.id }).fetchAll())
+          .models.filter(invitation => !invitation.isExpired() && !invitation.isUsed()).length
+        const invite = (sender, suffix) => Invitation.create({
+          userId: sender.id,
+          groupId: group.id,
+          email: `tighten-${suffix}-${Date.now()}@example.com`,
+          inviterAccess: Invitation.InviterAccess.LIMITED
+        })
+
+        before(async () => {
+          moderator = await factories.user().save()
+          await moderator.joinGroup(group)
+          await MemberGroupRole.forge({ user_id: moderator.id, group_id: group.id, group_role_id: moderatorRole.id, active: true }).save()
+        })
+
+        it('expires the pending invitations of members who can no longer invite, and keeps the rest', async () => {
+          await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+          await invite(member, 'member')
+          await invite(moderator, 'moderator')
+          const fullInvite = await Invitation.create({ userId: administrator.id, groupId: group.id, email: `tighten-admin-${Date.now()}@example.com` })
+
+          await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'stewards' } })
+
+          expect(await pendingFrom(member)).to.equal(0)
+          expect(await pendingFrom(moderator)).to.equal(1)
+          await fullInvite.refresh()
+          expect(fullInvite.isExpired()).to.be.false
+        })
+
+        it('expires the invitations of a role taken out of specific roles', async () => {
+          const greeter = await factories.user().save()
+          await greeter.joinGroup(group)
+          await MemberGroupRole.forge({ user_id: greeter.id, group_id: group.id, group_role_id: greeterRole.id, active: true }).save()
+          const keeperRole = await GroupRole.forge({ group_id: group.id, name: 'Keeper', emoji: '🗝️', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+          const keeper = await factories.user().save()
+          await keeper.joinGroup(group)
+          await MemberGroupRole.forge({ user_id: keeper.id, group_id: group.id, group_role_id: keeperRole.id, active: true }).save()
+
+          await GroupRole.setInvitePolicy(group.id, { mode: 'roles', roleIds: [greeterRole.id, keeperRole.id] })
+          await invite(greeter, 'greeter')
+          await invite(keeper, 'keeper')
+
+          await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'roles', roleIds: [String(keeperRole.id)] } })
+
+          expect(await pendingFrom(greeter)).to.equal(0)
+          expect(await pendingFrom(keeper)).to.equal(1)
+        })
+
+        it('expires nothing while member invitations are switched off', async () => {
+          await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+          const straggler = await factories.user().save()
+          await straggler.joinGroup(group)
+          await invite(straggler, 'straggler')
+
+          await withFeatureFlag('MEMBER_INVITES', 'off', () =>
+            updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'stewards' } }))
+
+          expect(await pendingFrom(straggler)).to.equal(1)
+        })
+      })
+
       it('does not let limited access regenerate the join link', async () => {
         await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
         expect(await GroupMembership.inviteAccess(member.id, group.id)).to.equal('limited')
@@ -795,6 +910,205 @@ describe('mutations/group', () => {
         await expect(regenerateAccessCode(member.id, group.id))
           .to.be.rejectedWith("You don't have the right responsibilities for this group")
         expect((await Group.find(group.id)).get('access_code')).to.equal(code)
+      })
+    })
+  })
+
+  describe('closing a group', () => {
+    const ARCHIVED = 'This group is archived and read-only'
+    let administrator, member, outsider, group
+
+    beforeEach(async () => {
+      administrator = await factories.user().save()
+      member = await factories.user().save()
+      outsider = await factories.user().save()
+      group = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+      await administrator.joinGroup(group, { assignAdministrator: true })
+      await member.joinGroup(group)
+    })
+
+    describe('handOffAdministrator', () => {
+      it('lets an Administrator make another member an Administrator', async () => {
+        expect(await handOffAdministrator(administrator.id, group.id, member.id)).to.deep.equal({ success: true })
+        expect(await GroupMembership.hasResponsibility(member.id, group.id, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
+      })
+
+      it('refuses people who are not active members, and members who are not Administrators', async () => {
+        await expect(handOffAdministrator(administrator.id, group.id, outsider.id))
+          .to.be.rejectedWith('Only an active member of this group can become its Administrator')
+        await expect(handOffAdministrator(member.id, group.id, member.id))
+          .to.be.rejectedWith("You don't have the right responsibilities for this group")
+      })
+    })
+
+    describe('archiving', () => {
+      it('blocks posts, chat, comments, joins, join requests, new members and new spaces, and Administrators can open it again', async () => {
+        const post = await factories.post({ user_id: member.id, type: 'discussion' }).save()
+        await post.groups().attach(group.id)
+
+        await expect(archiveGroup(member.id, group.id)).to.be.rejectedWith("You don't have the right responsibilities for this group")
+        await archiveGroup(administrator.id, group.id)
+        expect((await Group.find(group.id)).get('status')).to.equal(Group.Status.ARCHIVED)
+
+        await expect(createPost(member.id, { title: 'Hello', type: 'discussion', groupIds: [group.id] })).to.be.rejectedWith(ARCHIVED)
+        await expect(createPost(member.id, { details: '<p>hi</p>', type: 'chat', groupIds: [group.id], topicNames: ['general'] })).to.be.rejectedWith(ARCHIVED)
+        await expect(updatePost(member.id, { id: post.id, data: { title: 'Edited' } })).to.be.rejectedWith(ARCHIVED)
+        await expect(createComment(member.id, { postId: post.id, text: 'hi' }, {})).to.be.rejectedWith(ARCHIVED)
+        await expect(joinGroup(group.id, outsider.id, [], null, null, false, {})).to.be.rejectedWith(ARCHIVED)
+        await expect(createJoinRequest(outsider.id, group.id, [])).to.be.rejectedWith(ARCHIVED)
+        await expect(group.addMembers([outsider.id])).to.be.rejectedWith(ARCHIVED)
+        await expect(createSpace(administrator.id, { parentGroupId: group.id, name: 'Late Space' }, {})).to.be.rejectedWith(ARCHIVED)
+
+        // Members keep reading
+        expect(await GroupMembership.hasActiveMembership(member.id, group.id)).to.be.true
+
+        await expect(unarchiveGroup(member.id, group.id)).to.be.rejectedWith("You don't have the right responsibilities for this group")
+        await unarchiveGroup(administrator.id, group.id)
+        expect((await Group.find(group.id)).get('status')).to.equal(Group.Status.PUBLISHED)
+        await joinGroup(group.id, outsider.id, [], null, null, false, {})
+        expect(await GroupMembership.hasActiveMembership(outsider.id, group.id)).to.be.true
+      })
+
+      it('is only for top-level groups', async () => {
+        const space = await factories.group({ type: 'space', parent_id: group.id }).save()
+        await expect(archiveGroup(administrator.id, space.id)).to.be.rejectedWith('Only a top-level group can be handed off or archived')
+      })
+    })
+
+    describe('deleting', () => {
+      let queued
+
+      beforeEach(() => {
+        queued = []
+        mockify(Queue, 'classMethod', (cls, method, data) => {
+          queued.push([cls, method, data])
+          return Promise.resolve()
+        })
+      })
+
+      afterEach(() => unspyify(Queue, 'classMethod'))
+
+      it('asks for the name of a larger group, records the deletion and queues the notice to members', async () => {
+        await bookshelf.knex('groups').where({ id: group.id }).update({ num_members: 11 })
+
+        await expect(deleteGroup(administrator.id, group.id)).to.be.rejectedWith("Type the group's name to delete it")
+        await expect(deleteGroup(administrator.id, group.id, { confirmName: 'Not the name' })).to.be.rejectedWith("Type the group's name to delete it")
+        expect((await Group.find(group.id)).get('active')).to.be.true
+
+        await deleteGroup(administrator.id, group.id, { confirmName: `  ${group.get('name').toUpperCase()} ` })
+
+        expect((await Group.find(group.id)).get('active')).to.be.false
+        expect(await GroupMembership.hasActiveMembership(member.id, group.id)).to.be.false
+        const notice = queued.find(([cls, method]) => cls === 'Group' && method === 'sendGroupClosedEmails')
+        expect(notice[2]).to.deep.equal({ groupId: group.id, userIds: [member.id], closedById: administrator.id })
+        const record = await bookshelf.knex('group_deletions').where({ group_id: group.id }).first()
+        expect(record).to.exist
+      })
+
+      it('does not ask for the name of a small group', async () => {
+        await deleteGroup(administrator.id, group.id)
+        expect((await Group.find(group.id)).get('active')).to.be.false
+      })
+
+      it('sends the notice to each member in their language', async () => {
+        const sent = []
+        mockify(Email, 'sendGroupClosed', opts => { sent.push(opts); return Promise.resolve(true) })
+        try {
+          await member.save({ settings: { ...member.get('settings'), locale: 'es' } }, { patch: true })
+          expect(await Group.sendGroupClosedEmails({ groupId: group.id, userIds: [member.id], closedById: administrator.id })).to.equal(1)
+          expect(sent).to.have.length(1)
+          expect(sent[0].email).to.equal(member.get('email'))
+          expect(sent[0].locale).to.equal('es-ES')
+          expect(sent[0].data).to.include({ group_name: group.get('name'), closed_by_name: administrator.get('name') })
+        } finally {
+          unspyify(Email, 'sendGroupClosed')
+        }
+      })
+    })
+
+    describe('restoring a deleted group', () => {
+      let staff, savedAdmins
+
+      beforeEach(async () => {
+        staff = await factories.user().save()
+        savedAdmins = process.env.HYLO_ADMINS
+        process.env.HYLO_ADMINS = String(staff.id)
+      })
+
+      afterEach(() => {
+        if (savedAdmins === undefined) delete process.env.HYLO_ADMINS
+        else process.env.HYLO_ADMINS = savedAdmins
+      })
+
+      it('brings back exactly the memberships, spaces and roles it had, once, within 30 days', async () => {
+        const space = await factories.group({ type: 'space', parent_id: group.id }).save()
+        await member.joinGroup(space)
+        const leaver = await factories.user().save()
+        await leaver.joinGroup(group)
+        await leaver.leaveGroup(group)
+
+        await deleteGroup(administrator.id, group.id)
+        const [record] = (await deletedGroups(staff.id)).filter(row => String(row.groupId) === String(group.id))
+        expect(record.memberCount).to.equal(2)
+
+        await expect(deletedGroups(member.id)).to.be.rejectedWith('Unauthorized: Admin access required')
+        await expect(restoreDeletedGroup(member.id, record.id)).to.be.rejectedWith('Unauthorized: Admin access required')
+
+        expect(await restoreDeletedGroup(staff.id, record.id)).to.deep.equal({ success: true })
+
+        const restored = await Group.find(group.id)
+        expect(restored.get('active')).to.be.true
+        expect(restored.get('num_members')).to.equal(2)
+        expect(await GroupMembership.hasActiveMembership(member.id, group.id)).to.be.true
+        expect(await GroupMembership.hasActiveMembership(member.id, space.id)).to.be.true
+        expect(await GroupMembership.hasActiveMembership(leaver.id, group.id)).to.be.false
+        expect(await GroupMembership.hasResponsibility(administrator.id, group.id, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
+
+        await expect(restoreDeletedGroup(staff.id, record.id)).to.be.rejectedWith('This group has already been restored')
+      })
+
+      it('leaves out accounts closed since, keeps menu positions and publishes a Murmurations profile again', async () => {
+        const closer = await factories.user().save()
+        await closer.joinGroup(group)
+        const moderatorRole = await GroupRole.findSystemRole(group.id, 'Moderator')
+        await MemberGroupRole.forge({ user_id: closer.id, group_id: group.id, group_role_id: moderatorRole.id, active: true }).save()
+        await bookshelf.knex('group_memberships').where({ user_id: member.id, group_id: group.id }).update({ nav_order: 3 })
+        await group.save({ visibility: Group.Visibility.PUBLIC, settings: { ...group.get('settings'), publish_murmurations_profile: true } }, { patch: true })
+
+        await deleteGroup(administrator.id, group.id)
+        const record = await bookshelf.knex('group_deletions').where({ group_id: group.id }).first()
+
+        // The account is closed before staff restore the group
+        await bookshelf.knex('group_memberships_group_roles').where({ user_id: closer.id }).del()
+        await closer.save({ active: false }, { patch: true })
+
+        const queued = []
+        mockify(Queue, 'classMethod', (cls, method, data) => {
+          queued.push([cls, method, data])
+          return Promise.resolve()
+        })
+        try {
+          await restoreDeletedGroup(staff.id, record.id)
+        } finally {
+          unspyify(Queue, 'classMethod')
+        }
+
+        expect(await GroupMembership.hasActiveMembership(member.id, group.id)).to.be.true
+        expect(await GroupMembership.hasActiveMembership(closer.id, group.id)).to.be.false
+        expect(await bookshelf.knex('group_memberships_group_roles').where({ user_id: closer.id, group_id: group.id }).first()).to.not.exist
+        const navOrder = await bookshelf.knex('group_memberships').where({ user_id: member.id, group_id: group.id }).first('nav_order')
+        expect(navOrder.nav_order).to.equal(3)
+        expect(queued).to.deep.include(['Group', 'publishToMurmurations', { groupId: group.id }])
+      })
+
+      it('is refused after 30 days', async () => {
+        await deleteGroup(administrator.id, group.id)
+        const record = await bookshelf.knex('group_deletions').where({ group_id: group.id }).first()
+        await bookshelf.knex('group_deletions').where({ id: record.id }).update({ restorable_until: new Date(Date.now() - 1000) })
+
+        expect((await deletedGroups(staff.id)).map(row => String(row.id))).to.not.include(String(record.id))
+        await expect(restoreDeletedGroup(staff.id, record.id)).to.be.rejectedWith('Deleted groups can only be restored for 30 days')
+        expect((await Group.find(group.id)).get('active')).to.be.false
       })
     })
   })
