@@ -79,6 +79,8 @@ const hourly = now => {
       })
   ]
   tasks.push(require('./api/models/invitation/stalledSignupReminder').sendStalledSignupReminders().then(count => sails.log.debug(`Sent ${count} stalled signup reminders`)).catch(err => sails.log.error('Stalled signup reminders failed', err)))
+  // D44: reminders about a day before events, and nudges to unanswered invitees
+  tasks.push(require('./api/models/event/reminders').sendEventReminders().then(({ events, reminded, nudged }) => sails.log.debug(`Event reminders: ${events} events, ${reminded} reminded, ${nudged} nudged`)).catch(err => sails.log.error('Event reminders failed', err)))
 
   switch (now.hour) {
     case 12:

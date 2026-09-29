@@ -362,6 +362,15 @@ Profile: ${opts.actorProfileUrl}
   // One reminder to someone who started signing up and stopped (api/models/invitation/stalledSignupReminder.js).
   // The template is named by STALLED_SIGNUP_REMINDER_TEMPLATE_ID.
   sendStalledSignupReminder: ({ email, data, locale }) =>
-    sendSimpleEmail(email, process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID, data, {}, normalizeLocaleToFull(locale))
+    sendSimpleEmail(email, process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID, data, {}, normalizeLocaleToFull(locale)),
+
+  // About a day before an event, to people going or interested (api/models/event/reminders.js).
+  // The template (scripts/i18n/i18n-templates/Event_Reminder_i18n) is named by
+  // EVENT_REMINDER_TEMPLATE_ID; until it is set, Notification#sendEventReminderEmail skips it.
+  eventReminderTemplateId: () => process.env.EVENT_REMINDER_TEMPLATE_ID || null,
+
+  sendEventReminderEmail: opts => process.env.EVENT_REMINDER_TEMPLATE_ID
+    ? sendEmailWithOptions(process.env.EVENT_REMINDER_TEMPLATE_ID, opts)
+    : Promise.resolve(false)
 
 }

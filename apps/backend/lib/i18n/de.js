@@ -126,6 +126,7 @@ exports.de = {
       : `Die Abstimmung über „${postName}“ ist beendet${result}`
   },
   textForProposalOutcome: ({ person, postName, outcome }) => `${person} hat das Ergebnis von „${postName}“ festgehalten: ${outcome}`,
+  textForEventReminder: ({ postName, date }) => `Erinnerung: „${postName}“ steht bevor, ${date}`,
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} hat „${post.summary()}“ für „${fundingRoundTitle}“ eingereicht`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

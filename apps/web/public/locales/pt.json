@@ -70,6 +70,8 @@
   "<strong>{{name}}</strong> recorded the outcome of <strong>{{postSummary}}</strong>": "<strong>{{name}}</strong> registrou o resultado de <strong>{{postSummary}}</strong>",
   "<strong>{{name}}</strong> changed the options on <strong>{{postSummary}}</strong>": "<strong>{{name}}</strong> alterou as opções de <strong>{{postSummary}}</strong>",
   "Your vote was reset. You can vote again.": "Seu voto foi zerado. Você pode votar de novo.",
+  "Are you going to <strong>{{postSummary}}</strong>?": "Você vai a <strong>{{postSummary}}</strong>?",
+  "It starts in about a day, and you haven't answered <strong>{{name}}</strong>'s invitation yet": "Começa em cerca de um dia, e você ainda não respondeu ao convite de <strong>{{name}}</strong>",
   "<strong>{{name}}</strong> submitted ": "<strong>{{name}}</strong> enviou",
   "<strong>{{name}}</strong> wrote: \"{{text}}\"": "<strong>{{name}}</strong> escreveu: \"{{text}}\"",
   "A": "A",

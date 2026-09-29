@@ -76,7 +76,8 @@ export const EMAIL_TYPES = {
   sendTrackAccessPurchased: essential('track purchase receipt'),
   sendMessageDigest: bulk('dm_email', 'direct message digest'),
   sendCommentDigest: bulk('comment_email', 'comment digest, including "You were mentioned in"'),
-  sendChatDigest: bulk('group_digest', 'hourly chat digest (D72)')
+  sendChatDigest: bulk('group_digest', 'hourly chat digest (D72)'),
+  sendEventReminderEmail: bulk('group_post_email', 'reminder a day before an event you are going to or interested in (D44)')
 }
 
 export const EMAIL_KINDS = ['essential', 'bulk']

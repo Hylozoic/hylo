@@ -10,6 +10,8 @@ import { PRIORITY_REASONS } from './notification/priorityReasons'
 import { pushGroupingFor } from './notification/pushGrouping'
 import { isReplyToReader } from './notification/signalClasses'
 import { isGroupedPushThrottled, recordGroupedPush } from './notification/grouping'
+import { DateTimeHelpers } from '@hylo/shared'
+import { formatEventLocationForEmail } from './event/mixin'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -228,9 +230,64 @@ module.exports = bookshelf.Model.extend({
       case 'proposalClosed':
       case 'proposalOutcome':
         return this.sendProposalPush()
+      case 'eventReminder':
+        return this.sendEventReminderPush()
       default:
         return Promise.resolve()
     }
+  },
+
+  // D44 (event/reminders): the time is shown in the event's own timezone
+  eventReminderDate: function (post, locale) {
+    return DateTimeHelpers.formatDatePair({
+      start: post.get('start_time'),
+      end: post.get('end_time'),
+      timezone: post.get('timezone'),
+      locale
+    })
+  },
+
+  sendEventReminderPush: async function () {
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const alertText = PushNotification.textForEventReminder(post, this.eventReminderDate(post, locale), locale)
+    return reader.sendPushNotification(alertText, path, pushGroupingFor(group))
+  },
+
+  sendEventReminderEmail: async function () {
+    // Nothing is sent until the reminder template is uploaded and named (Email.js)
+    if (!Email.eventReminderTemplateId()) return EMAIL_SKIPPED
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const response = this.relations.activity.get('meta')?.response
+    const group = await groupForNotificationForUser(post, this.relations.activity, reader.id)
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'event_reminder_email',
+      cti: reader.id,
+      ...(group ? { ctcn: group.get('name') } : {})
+    }).toString()
+
+    return Email.sendEventReminderEmail({
+      email: reader.get('email'),
+      locale,
+      ...(group ? { sender: { name: await senderNameForGroup(group, locale) } } : {}),
+      data: {
+        date: this.eventReminderDate(post, locale),
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        event_location: formatEventLocationForEmail(post.get('location'), post.get('meeting_link')),
+        event_name: post.title(),
+        event_url: Frontend.Route.post(post, group, clickthroughParams),
+        going: response === EventInvitation.RESPONSE.YES,
+        group_name: group ? group.get('name') : '',
+        response: response || null,
+        user_name: reader.get('name')
+      }
+    })
   },
 
   // Proposal notices (post/proposalNotices): closing soon, closed and outcome recorded
@@ -622,6 +679,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendFundingRoundPhaseTransitionEmail()
       case 'fundingRoundReminder':
         return this.sendFundingRoundReminderEmail()
+      case 'eventReminder':
+        return this.sendEventReminderEmail()
       default:
         // Must not throw: an unhandled reason would otherwise be retried until it ages out.
         sentry.captureException(new Error('No email is defined for this notification reason'), {

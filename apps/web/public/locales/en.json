@@ -71,6 +71,8 @@
   "<strong>{{name}}</strong> recorded the outcome of <strong>{{postSummary}}</strong>": "<strong>{{name}}</strong> recorded the outcome of <strong>{{postSummary}}</strong>",
   "<strong>{{name}}</strong> changed the options on <strong>{{postSummary}}</strong>": "<strong>{{name}}</strong> changed the options on <strong>{{postSummary}}</strong>",
   "Your vote was reset. You can vote again.": "Your vote was reset. You can vote again.",
+  "Are you going to <strong>{{postSummary}}</strong>?": "Are you going to <strong>{{postSummary}}</strong>?",
+  "It starts in about a day, and you haven't answered <strong>{{name}}</strong>'s invitation yet": "It starts in about a day, and you haven't answered <strong>{{name}}</strong>'s invitation yet",
   "<strong>{{name}}</strong> submitted ": "<strong>{{name}}</strong> submitted ",
   "<strong>{{name}}</strong> wrote: \"{{text}}\"": "<strong>{{name}}</strong> wrote: \"{{text}}\"",
   "A": "A",

@@ -89,7 +89,9 @@ Object.assign(TODAY, {
   proposalClosingSoon: ['push', 'inApp'],
   proposalClosed: ['push', 'inApp'],
   proposalOutcome: ['push', 'inApp'],
-  voteReset: ['push', 'inApp']
+  voteReset: ['push', 'inApp'],
+  eventReminder: ['email', 'push'],
+  eventNudge: ['inApp']
 })
 
 describe('signalClasses', () => {

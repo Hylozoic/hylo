@@ -20,7 +20,7 @@ function buildCalLocationAndDescription ({ physicalLocation, meetingLink, baseDe
   return { location, description }
 }
 
-function formatEventLocationForEmail (location, meetingLink) {
+export function formatEventLocationForEmail (location, meetingLink) {
   const physical = location || ''
   const link = meetingLink || ''
   if (physical && link) return `${physical}\nJoin online: ${link}`

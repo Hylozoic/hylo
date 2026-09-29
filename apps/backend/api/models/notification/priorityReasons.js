@@ -38,5 +38,7 @@ export const PRIORITY_REASONS = [
   'proposalClosingSoon',
   'proposalClosed',
   'proposalOutcome',
-  'voteReset'
+  'voteReset',
+  'eventReminder',
+  'eventNudge'
 ]

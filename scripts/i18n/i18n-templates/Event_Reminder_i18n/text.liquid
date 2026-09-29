@@ -1,0 +1,14 @@
+{% set user_name_var = user_name %}{% trans %}Hi {{user_name_var}},{% endtrans %}
+
+{% if going %}{% trans %}A reminder that you're going to this event:{% endtrans %}{% else %}{% trans %}A reminder that you're interested in this event:{% endtrans %}{% endif %}
+
+{{event_name}}
+{{date}}
+{% if event_location %}{{event_location}}
+{% endif %}{% if group_name %}{% set group_name_var = group_name %}{% trans %}in {{group_name_var}}{% endtrans %}
+{% endif %}
+{% trans %}See the event{% endtrans %}: {{event_url}}
+
+{% trans %}Plans changed? You can update your answer on the event page.{% endtrans %}
+
+{%if email_settings_url %}{% set email_settings_url_var = email_settings_url %}{% trans %}Email settings [ {{email_settings_url_var}} ]{% endtrans %}{% endif %}

@@ -162,7 +162,9 @@ module.exports = bookshelf.Model.extend({
     ProposalClosingSoon: 'proposalClosingSoon', // voting closes soon and you haven't voted (D46)
     ProposalClosed: 'proposalClosed', // voting closed on a proposal you voted on or wrote (D46)
     ProposalOutcome: 'proposalOutcome', // the author recorded the outcome of a proposal you voted on (D46)
-    VoteReset: 'voteReset' // the author changed a proposal's options, which reset your vote
+    VoteReset: 'voteReset', // the author changed a proposal's options, which reset your vote
+    EventReminder: 'eventReminder', // an event you're going to or interested in starts in about a day (D44)
+    EventNudge: 'eventNudge' // an event you were invited to and haven't answered starts in about a day (D44)
   },
 
   find: function (id, options) {

@@ -78,6 +78,7 @@ export const ACTION_PROPOSAL_CLOSING_SOON = 'proposalClosingSoon'
 export const ACTION_PROPOSAL_CLOSED = 'proposalClosed'
 export const ACTION_PROPOSAL_OUTCOME = 'proposalOutcome'
 export const ACTION_VOTE_RESET = 'voteReset'
+export const ACTION_EVENT_NUDGE = 'eventNudge'
 
 // How many other people a grouped notice counts ("Sam and 3 others reacted")
 export function othersCount (activity) {
@@ -216,6 +217,8 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> recorded the outcome of <strong>{{postSummary}}</strong>', { name, postSummary })
     case ACTION_VOTE_RESET:
       return t('<strong>{{name}}</strong> changed the options on <strong>{{postSummary}}</strong>', { name, postSummary })
+    case ACTION_EVENT_NUDGE:
+      return t('Are you going to <strong>{{postSummary}}</strong>?', { postSummary })
     default:
       return null
   }
@@ -332,6 +335,8 @@ export function bodyForNotification (notification, t) {
       return t('"<strong>{{postSummary}}</strong>"', { postSummary: notification.activity.meta?.outcome })
     case ACTION_VOTE_RESET:
       return t('Your vote was reset. You can vote again.')
+    case ACTION_EVENT_NUDGE:
+      return t("It starts in about a day, and you haven't answered <strong>{{name}}</strong>'s invitation yet", { name })
     default:
       return null
   }
@@ -434,6 +439,7 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_PROPOSAL_CLOSED:
     case ACTION_PROPOSAL_OUTCOME:
     case ACTION_VOTE_RESET:
+    case ACTION_EVENT_NUDGE:
       return primaryPostUrl(post, postOpts)
   }
 }

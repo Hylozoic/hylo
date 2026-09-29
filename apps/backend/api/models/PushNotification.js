@@ -241,6 +241,10 @@ module.exports = bookshelf.Model.extend({
     }
   },
 
+  textForEventReminder: function (post, date, locale) {
+    return getLocaleStrings(locale).textForEventReminder({ postName: firstLine(decode(post.summary())), date })
+  },
+
   textForProposalNotice: function (reason, { actor, post, meta = {} }, locale) {
     const L = getLocaleStrings(locale)
     const postName = firstLine(decode(post.summary()))
