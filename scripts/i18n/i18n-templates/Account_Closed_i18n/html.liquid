@@ -1,0 +1,31 @@
+
+{% snippet "header_redesign" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+<p>
+  {% set first_name_var = first_name %}
+  {% trans %}Hi {{first_name_var}},{% endtrans %}
+</p>
+
+{% if variant == 'deleted' %}
+  <p>{% trans %}Your Hylo account has been deleted, as you asked. Your profile and details are gone, and the content of your posts and comments has been removed.{% endtrans %}</p>
+  <p>{% trans %}If you want to come back to Hylo one day, you are welcome to create a new account.{% endtrans %}</p>
+{% else %}
+  <p>{% trans %}Your Hylo account has been deactivated, as you asked. You won't get notifications, and your profile won't show up in groups or searches. Your posts and comments stay as they are.{% endtrans %}</p>
+  <p>{% trans %}Changed your mind? Log in again at any time to reactivate your account.{% endtrans %}</p>
+  {% if login_url %}
+    <a class='btn btn-blue' href="{{login_url}}" clicktracking="off">{% trans %}Log in to Hylo →{% endtrans %}</a>
+  {% endif %}
+{% endif %}
+
+<p>{% trans %}If you didn't ask for this, contact the Hylo team right away.{% endtrans %}</p>
+
+<p>{% trans %}The Hylo Team{% endtrans %}</p>
+
+{% snippet "footer_redesign" %}

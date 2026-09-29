@@ -126,4 +126,42 @@ describe('AccountSettingsTab', () => {
       expect(screen.queryByTestId('sole-administrator-warning')).not.toBeInTheDocument()
     })
   })
+
+  describe('why someone is leaving', () => {
+    beforeEach(() => {
+      mockGraphqlServer.use(
+        graphql.query('MySoleAdministratorGroups', () => HttpResponse.json({ data: { mySoleAdministratorGroups: [] } }))
+      )
+    })
+
+    it('asks one optional question, points "too many emails" to notification settings, and sends the answer', async () => {
+      const deactivateMe = jest.fn(() => Promise.resolve())
+      render(
+        <AccountSettingsTab currentUser={{ id: '1', email: 'test@example.com' }} updateUserSettings={jest.fn()} setConfirm={jest.fn()} deactivateMe={deactivateMe} logout={jest.fn()} />
+      )
+
+      fireEvent.click(screen.getByText('Deactivate Account'))
+      const question = await screen.findByTestId('exit-reason')
+      expect(within(question).getByText('Why are you leaving? (optional)')).toBeInTheDocument()
+      expect(screen.queryByTestId('exit-reason-emails')).not.toBeInTheDocument()
+
+      fireEvent.click(within(question).getByLabelText('I get too many emails'))
+      expect(within(question).getByRole('link', { name: 'Change your notification settings' })).toHaveAttribute('href', '/my/notifications')
+
+      fireEvent.click(screen.getByText('Deactivate my account'))
+      expect(deactivateMe).toHaveBeenCalledWith({ reason: 'too_many_emails' })
+    })
+
+    it('lets people delete without answering', async () => {
+      const deleteMe = jest.fn(() => Promise.resolve())
+      render(
+        <AccountSettingsTab currentUser={{ id: '1', email: 'test@example.com' }} updateUserSettings={jest.fn()} setConfirm={jest.fn()} deleteMe={deleteMe} logout={jest.fn()} />
+      )
+
+      fireEvent.click(screen.getByText('Delete Account'))
+      await screen.findByTestId('exit-reason')
+      fireEvent.click(screen.getByText('Delete my account'))
+      expect(deleteMe).toHaveBeenCalledWith({ reason: null })
+    })
+  })
 })

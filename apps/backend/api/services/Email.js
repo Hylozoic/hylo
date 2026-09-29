@@ -92,6 +92,10 @@ const sendTransactionalEmailWithOptions = emailWithOptionsSender(transactionalOp
 // is uploaded; until then the notice is skipped (the sender resolves false).
 const GROUP_CLOSED_TEMPLATE_ID = null
 
+// Set to the SendWithUs template id once scripts/i18n/i18n-templates/Account_Closed_i18n
+// is uploaded; until then the confirmation is skipped (the sender resolves false).
+const ACCOUNT_CLOSED_TEMPLATE_ID = null
+
 module.exports = {
   sendSimpleEmail,
 
@@ -298,6 +302,12 @@ Profile: ${opts.actorProfileUrl}
   // Tells a member that a group they were in has been closed (deleted) by its steward
   sendGroupClosed: opts => GROUP_CLOSED_TEMPLATE_ID
     ? sendEmailWithOptions(GROUP_CLOSED_TEMPLATE_ID, opts)
+    : Promise.resolve(false),
+
+  // Confirms a deactivated or deleted account (data.variant: 'deactivated' or 'deleted').
+  // An account email: sent without the bulk header. Takes { email, locale, data }.
+  sendAccountClosed: opts => ACCOUNT_CLOSED_TEMPLATE_ID
+    ? sendTransactionalEmailWithOptions(ACCOUNT_CLOSED_TEMPLATE_ID, opts)
     : Promise.resolve(false),
 
   sendMessageDigest: opts =>

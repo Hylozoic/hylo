@@ -214,6 +214,40 @@ CREATE FUNCTION public.compute_user_scopes_from_role() RETURNS trigger
 
 
 --
+-- Name: account_exit_reasons; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.account_exit_reasons (
+    id bigint NOT NULL,
+    kind character varying(16) NOT NULL,
+    reason character varying(64) NOT NULL,
+    user_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT account_exit_reasons_deleted_has_no_user CHECK ((((kind)::text <> 'deleted'::text) OR (user_id IS NULL))),
+    CONSTRAINT account_exit_reasons_kind_check CHECK (((kind)::text = ANY ((ARRAY['deactivated'::character varying, 'deleted'::character varying])::text[])))
+);
+
+
+--
+-- Name: account_exit_reasons_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.account_exit_reasons_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: account_exit_reasons_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.account_exit_reasons_id_seq OWNED BY public.account_exit_reasons.id;
+
+
+--
 -- Name: activities; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3608,6 +3642,13 @@ ALTER SEQUENCE public.zapier_triggers_id_seq OWNED BY public.zapier_triggers.id;
 
 
 --
+-- Name: account_exit_reasons id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account_exit_reasons ALTER COLUMN id SET DEFAULT nextval('public.account_exit_reasons_id_seq'::regclass);
+
+
+--
 -- Name: activities id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4172,6 +4213,14 @@ UNION
      JOIN public.users u ON ((u.id = c.user_id)))
   WHERE ((c.active = true) AND (u.active = true))
   WITH NO DATA;
+
+
+--
+-- Name: account_exit_reasons account_exit_reasons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account_exit_reasons
+    ADD CONSTRAINT account_exit_reasons_pkey PRIMARY KEY (id);
 
 
 --
@@ -5821,6 +5870,14 @@ CREATE TRIGGER group_role_assignment_user_scopes_delete AFTER DELETE ON public.g
 --
 
 CREATE TRIGGER group_role_assignment_user_scopes_sync AFTER INSERT OR UPDATE ON public.group_memberships_group_roles FOR EACH ROW EXECUTE FUNCTION public.compute_user_scopes_from_role();
+
+
+--
+-- Name: account_exit_reasons account_exit_reasons_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account_exit_reasons
+    ADD CONSTRAINT account_exit_reasons_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --

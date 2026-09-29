@@ -3536,10 +3536,10 @@ type Mutation {
   createTrack(data: TrackInput): Track
   # Add a new Zapier trigger (called by Zapier)
   createZapierTrigger(groupIds: [ID], targetUrl: String, type: String, params: JSON): ZapierTrigger
-  # Used by current logged in user to deactivate their account
-  deactivateMe(id: ID): GenericResult
-  # Used by current logged in user to delete their account permanently
-  deleteMe: GenericResult
+  # Used by current logged in user to deactivate their account. reason (optional): too_many_emails, not_useful, group_ended, privacy or other
+  deactivateMe(id: ID, reason: String): GenericResult
+  # Used by current logged in user to delete their account permanently. reason (optional): too_many_emails, not_useful, group_ended, privacy or other
+  deleteMe(reason: String): GenericResult
   # For group host to decline someone's request to join their Group
   declineJoinRequest(joinRequestId: ID): JoinRequest
   # Delete an Affiliation from your profile
