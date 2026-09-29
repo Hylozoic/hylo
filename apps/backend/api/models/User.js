@@ -342,6 +342,7 @@ module.exports = bookshelf.Model.extend(merge({
     DELETE FROM join_requests WHERE user_id = ${this.id};
     DELETE FROM skills_users WHERE user_id = ${this.id};
     DELETE FROM posts_about_users WHERE user_id = ${this.id};
+    UPDATE email_clicks SET user_id = NULL WHERE user_id = ${this.id};
 
     DELETE FROM tag_follows WHERE user_id = ${this.id};
     DELETE FROM user_external_data WHERE user_id = ${this.id};
@@ -352,6 +353,7 @@ module.exports = bookshelf.Model.extend(merge({
     UPDATE users SET
     active = false,
     settings = NULL,
+    acquisition_source = NULL,
     name = 'Deleted User',
     avatar_url = NULL,
     bio = NULL,
