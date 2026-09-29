@@ -689,6 +689,34 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * Where the access-expired email's renew link goes: the offering page when the access came
+   * from a product (sold by the granting group), otherwise the space or group the access was
+   * for, never its parent group.
+   * @param {ContentAccess} access - with product, group and grantedByGroup loaded when available
+   * @returns {Promise<String>}
+   */
+  renewUrl: async function (access) {
+    const product = access.relations.product
+    const grantedByGroup = access.relations.grantedByGroup?.id
+      ? access.relations.grantedByGroup
+      : await Group.find(access.get('granted_by_group_id'))
+
+    if (product?.id && grantedByGroup) {
+      return Frontend.Route.offering(grantedByGroup, product)
+    }
+
+    const accessGroup = access.relations.group?.id
+      ? access.relations.group
+      : (access.get('group_id') ? await Group.find(access.get('group_id')) : null)
+    const target = accessGroup || grantedByGroup
+    if (target && target.get('type') === 'space') {
+      await target.load('parentGroup')
+      return Frontend.Route.space(target, '')
+    }
+    return Frontend.Route.group(target)
+  },
+
+  /**
    * Send expired access notification emails
    * Called by daily cron job
    * @returns {Promise<Number>} Number of notifications sent
@@ -809,7 +837,7 @@ module.exports = bookshelf.Model.extend({
           group_name: group.get('name'),
           group_url: Frontend.Route.group(group),
           expired_at: expiredAtFormatted,
-          renew_url: Frontend.Route.group(group),
+          renew_url: await this.renewUrl(access),
           available_offerings: availableOfferings,
           group_avatar_url: group.get('avatar_url')
         }
