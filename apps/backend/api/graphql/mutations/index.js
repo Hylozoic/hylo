@@ -73,6 +73,7 @@ export {
   updatePeerRelationship
 } from './group'
 export {
+  cancelInvitationSubmission,
   createInvitation,
   expireInvitation,
   resendInvitation,

@@ -1244,15 +1244,19 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!userId) return 0
           return ModerationAction.where({ group_id: g.id, status: 'active' }).count().then(Number)
         },
+        // With limited invite access this is empty: myInvitationSubmissions lists what the person sent
         pendingInvitations: async (g, { first }) => {
           const inviteAccess = userId ? await GroupMembership.inviteAccess(userId, g) : null
           if (inviteAccess === GroupMembership.InviteAccess.FULL) {
             return InvitationService.find({ groupId: g.id, pendingOnly: true, limit: first })
           }
-          if (inviteAccess === GroupMembership.InviteAccess.LIMITED) {
-            return InvitationService.findOwnLimited({ groupId: g.id, userId, limit: first })
-          }
           return { total: 0, items: [] }
+        },
+        myInvitationSubmissions: async (g, { first, offset }) => {
+          if (!userId || await GroupMembership.inviteAccess(userId, g) !== GroupMembership.InviteAccess.LIMITED) {
+            return { total: 0, hasMore: false, items: [] }
+          }
+          return InvitationService.findOwnLimited({ groupId: g.id, userId, limit: first, offset })
         },
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),

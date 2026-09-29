@@ -1670,6 +1670,42 @@ ALTER SEQUENCE public.invitation_sends_id_seq OWNED BY public.invitation_sends.i
 
 
 --
+-- Name: invitation_submissions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invitation_submissions (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    email text,
+    invitee_id bigint,
+    invitation_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    hidden_at timestamp with time zone,
+    CONSTRAINT invitation_submissions_email_or_invitee CHECK (((email IS NOT NULL) OR (invitee_id IS NOT NULL)))
+);
+
+
+--
+-- Name: invitation_submissions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.invitation_submissions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: invitation_submissions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.invitation_submissions_id_seq OWNED BY public.invitation_submissions.id;
+
+
+--
 -- Name: invite_request_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -3806,6 +3842,13 @@ ALTER TABLE ONLY public.invitation_sends ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: invitation_submissions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions ALTER COLUMN id SET DEFAULT nextval('public.invitation_submissions_id_seq'::regclass);
+
+
+--
 -- Name: join_requests id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4470,6 +4513,14 @@ ALTER TABLE ONLY public.groups_tags
 
 ALTER TABLE ONLY public.invitation_sends
     ADD CONSTRAINT invitation_sends_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invitation_submissions invitation_submissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions
+    ADD CONSTRAINT invitation_submissions_pkey PRIMARY KEY (id);
 
 
 --
@@ -5464,6 +5515,13 @@ CREATE INDEX invitation_sends_group_id_created_at_index ON public.invitation_sen
 --
 
 CREATE INDEX invitation_sends_user_id_created_at_index ON public.invitation_sends USING btree (user_id, created_at);
+
+
+--
+-- Name: invitation_submissions_user_id_group_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX invitation_submissions_user_id_group_id_created_at_index ON public.invitation_submissions USING btree (user_id, group_id, created_at);
 
 
 --
@@ -6648,6 +6706,38 @@ ALTER TABLE ONLY public.invitation_sends
 
 ALTER TABLE ONLY public.invitation_sends
     ADD CONSTRAINT invitation_sends_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: invitation_submissions invitation_submissions_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions
+    ADD CONSTRAINT invitation_submissions_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: invitation_submissions invitation_submissions_invitation_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions
+    ADD CONSTRAINT invitation_submissions_invitation_id_foreign FOREIGN KEY (invitation_id) REFERENCES public.group_invites(id) ON DELETE SET NULL;
+
+
+--
+-- Name: invitation_submissions invitation_submissions_invitee_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions
+    ADD CONSTRAINT invitation_submissions_invitee_id_foreign FOREIGN KEY (invitee_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: invitation_submissions invitation_submissions_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions
+    ADD CONSTRAINT invitation_submissions_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

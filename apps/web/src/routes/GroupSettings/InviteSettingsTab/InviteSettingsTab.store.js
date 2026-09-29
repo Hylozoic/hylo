@@ -17,6 +17,9 @@ export const RESEND_INVITATION_PENDING = `${MODULE_NAME}/RESEND_INVITATION_PENDI
 export const REINVITE_ALL = `${MODULE_NAME}/REINVITE_ALL`
 export const REINVITE_ALL_PENDING = `${MODULE_NAME}/REINVITE_ALL_PENDING`
 
+export const FETCH_INVITATION_SUBMISSIONS = `${MODULE_NAME}/FETCH_INVITATION_SUBMISSIONS`
+export const CANCEL_INVITATION_SUBMISSION = `${MODULE_NAME}/CANCEL_INVITATION_SUBMISSION`
+
 export const ALLOW_GROUP_INVITES = `${MODULE_NAME}/ALLOW_GROUP_INVITES`
 export const DISALLOW_GROUP_INVITES = `${MODULE_NAME}/DISALLOW_GROUP_INVITES`
 
@@ -101,6 +104,53 @@ export function fetchPendingInvitations (groupId) {
     meta: {
       extractModel: 'Group'
     }
+  }
+}
+
+/**
+ * With limited invite access: the addresses and people this person invited to the group lately,
+ * shown the same way whether or not an invitation went out.
+ */
+export function fetchInvitationSubmissions (groupId) {
+  return {
+    type: FETCH_INVITATION_SUBMISSIONS,
+    graphql: {
+      query: `query ($id: ID) {
+        group (id: $id) {
+          id
+          myInvitationSubmissions (first: 50) {
+            total
+            hasMore
+            items {
+              id
+              email
+              createdAt
+              person {
+                id
+                name
+                avatarUrl
+              }
+            }
+          }
+        }
+      }`,
+      variables: { id: groupId }
+    }
+  }
+}
+
+export function cancelInvitationSubmission (submissionId) {
+  return {
+    type: CANCEL_INVITATION_SUBMISSION,
+    graphql: {
+      query: `mutation ($submissionId: ID) {
+        cancelInvitationSubmission(submissionId: $submissionId) {
+          success
+        }
+      }`,
+      variables: { submissionId }
+    },
+    meta: { submissionId }
   }
 }
 

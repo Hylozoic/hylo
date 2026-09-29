@@ -1113,7 +1113,7 @@ type Group {
     description: String
   ): GroupRelationshipQuerySet
 
-  # Pending invitations to people to join this group. With 'limited' invite access, only the ones the current user sent
+  # Pending invitations to people to join this group, for those with 'full' invite access (empty otherwise)
   pendingInvitations(
     # For pagination, return results after this ID
     cursor: ID,
@@ -1122,6 +1122,14 @@ type Group {
     # Determines sort order, either 'ASC' or 'DESC'
     order: String
   ): InvitationQuerySet
+
+  # With 'limited' invite access: the addresses and people the current user invited to this group in the last 14 days and has not cancelled, newest first, shown the same way whether or not an invitation went out (empty otherwise)
+  myInvitationSubmissions(
+    # Number of submissions to return
+    first: Int,
+    # For pagination, return results after this many
+    offset: Int
+  ): InvitationSubmissionQuerySet
 
   # Groups that must be joined before someone can join this group
   prerequisiteGroups(
@@ -1656,6 +1664,22 @@ type InvitationQuerySet {
   total: Int
   hasMore: Boolean
   items: [Invitation]
+}
+
+# An address someone with 'limited' invite access typed, or a person they picked, when they sent invitations
+type InvitationSubmission {
+  id: ID
+  # The address they typed (null for a person they picked)
+  email: String
+  # The person they picked from the people search (null for an address)
+  person: InvitationSender
+  createdAt: Date
+}
+
+type InvitationSubmissionQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [InvitationSubmission]
 }
 
 # Who can invite new people to a group. Roles with Add Members can always invite
@@ -3523,6 +3547,8 @@ type Mutation {
   enrollInTrack(trackId: ID): Track
   # Set an invitation to join a group as expired. Allowed for the invitee, anyone who can add members, and the sender of an invitation sent with 'limited' access
   expireInvitation(invitationId: ID): GenericResult
+  # With 'limited' invite access: take one of your invitation submissions off your list and cancel its invitation if it is still pending
+  cancelInvitationSubmission(submissionId: ID): GenericResult
   # Look for a link preview of a URL, or if not found create one
   findOrCreateLinkPreviewByUrl(data: LinkPreviewInput): LinkPreview
   # Look for a geocoded location object or if not found create one from the location data

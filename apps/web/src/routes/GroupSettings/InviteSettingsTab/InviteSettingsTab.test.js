@@ -103,11 +103,45 @@ describe('InviteSettingsTab with limited invite access', () => {
     groupRoles: { items: [{ id: '5', name: 'Host', active: true }] }
   }
 
+  let submissions, operations
+
+  // Answers the member's invitation submissions, their cancellation and any extra operations
+  // given by a word in their query; everything else gets empty data
+  function mockLimited (extra = {}) {
+    operations = {}
+    mockGraphqlServer.use(
+      graphql.operation(({ query, variables }) => {
+        const record = key => { (operations[key] = operations[key] || []).push(variables) }
+        const extraKey = Object.keys(extra).find(key => query.includes(key))
+        if (extraKey) {
+          record(extraKey)
+          return extra[extraKey](variables)
+        }
+        if (query.includes('myInvitationSubmissions')) {
+          record('myInvitationSubmissions')
+          return HttpResponse.json({ data: { group: { id: '1', myInvitationSubmissions: { total: submissions.length, hasMore: false, items: submissions } } } })
+        }
+        if (query.includes('cancelInvitationSubmission')) {
+          record('cancelInvitationSubmission')
+          submissions = submissions.filter(item => item.id !== variables.submissionId)
+          return HttpResponse.json({ data: { cancelInvitationSubmission: { success: true } } })
+        }
+        return HttpResponse.json({ data: {} })
+      })
+    )
+    return operations
+  }
+
+  beforeEach(() => {
+    submissions = [
+      { id: '32', email: 'second@example.com', createdAt: '2026-09-21T10:00:00.000Z', person: null },
+      { id: '31', email: 'first@example.com', createdAt: '2026-09-20T10:00:00.000Z', person: null }
+    ]
+  })
+
   function providers (group) {
     const ormSession = orm.mutableSession(orm.getEmptyState())
     ormSession.Group.create(group)
-    ormSession.Invitation.create({ id: '31', email: 'first@example.com', group: group.id, createdAt: '2026-09-20T10:00:00.000Z', lastSentAt: '2026-09-20T10:00:00.000Z' })
-    ormSession.Invitation.create({ id: '32', email: 'second@example.com', group: group.id, createdAt: '2026-09-21T10:00:00.000Z', lastSentAt: '2026-09-21T10:00:00.000Z' })
     ormSession.Me.create({ id: '10', name: 'Tester', groupRoles: { items: [] } })
     return AllTheProviders({ orm: ormSession.state, pending: {} })
   }
@@ -117,11 +151,13 @@ describe('InviteSettingsTab with limited invite access', () => {
     return render(<InviteSettingsTab group={group} inviteAccess='limited' inModal />, null, providers(group))
   }
 
-  it('shows only personal email invites, the allowance and the invites this person sent', () => {
+  it('shows only personal email invites, the allowance and what this person submitted', async () => {
+    mockLimited()
     renderLimited()
 
+    expect(await screen.findByText('first@example.com')).toBeInTheDocument()
     expect(screen.queryByText('Share a Join Link')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Generate a Link|Reset Link/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Generate a Link/i })).not.toBeInTheDocument()
     expect(screen.queryByText('Invite people on Hylo')).not.toBeInTheDocument()
     expect(screen.queryByPlaceholderText('Search people...')).not.toBeInTheDocument()
     expect(screen.queryByText('Assign a role to invitees (optional):')).not.toBeInTheDocument()
@@ -137,9 +173,26 @@ describe('InviteSettingsTab with limited invite access', () => {
     expect(screen.getByText('Group stewards can see the email addresses you invite.')).toBeInTheDocument()
     expect(screen.getByText('Invites left today: 7')).toBeInTheDocument()
     expect(screen.getByText('Your pending invites')).toBeInTheDocument()
-    expect(screen.getByText('first@example.com')).toBeInTheDocument()
     expect(screen.getByText('second@example.com')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Cancel' })).toHaveLength(2)
+  })
+
+  it('shows people picked from the search by name, like every other row', async () => {
+    submissions = [{ id: '33', email: null, createdAt: '2026-09-22T10:00:00.000Z', person: { id: '60', name: 'Robin Park', avatarUrl: null } }]
+    mockLimited()
+    renderLimited()
+
+    expect(await screen.findByText('Robin Park')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Cancel' })).toHaveLength(1)
+  })
+
+  it('shows no list when nothing was submitted lately', async () => {
+    submissions = []
+    const operations = mockLimited()
+    renderLimited()
+
+    await waitFor(() => expect(operations.myInvitationSubmissions).toHaveLength(1))
+    expect(screen.queryByText('Your pending invites')).not.toBeInTheDocument()
   })
 
   it('explains the approval step in Restricted and Closed groups only', () => {
@@ -164,12 +217,34 @@ describe('InviteSettingsTab with limited invite access', () => {
     expect(screen.queryByText('Share a Join Link')).not.toBeInTheDocument()
   })
 
-  it('cancels one of the invites this person sent', async () => {
+  it('cancels one of the rows this person submitted', async () => {
+    const operations = mockLimited()
     renderLimited()
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Cancel' })[0])
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Cancel' }))[0])
 
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Cancel' })).toHaveLength(1))
+    expect(operations.cancelInvitationSubmission).toEqual([{ submissionId: '32' }])
+    expect(screen.queryByText('second@example.com')).not.toBeInTheDocument()
+    expect(screen.getByText('first@example.com')).toBeInTheDocument()
+  })
+
+  it('reloads the list after sending, so the new addresses show', async () => {
+    const operations = mockLimited({
+      createInvitation: () => {
+        submissions = [{ id: '40', email: 'new@example.com', createdAt: '2026-09-23T10:00:00.000Z', person: null }, ...submissions]
+        return HttpResponse.json({ data: { createInvitation: { invitations: [{ id: null, email: 'new@example.com', createdAt: null, lastSentAt: null, error: null, status: 'sent' }] } } })
+      }
+    })
+    renderLimited()
+    await screen.findByText('first@example.com')
+
+    enterEmails('new@example.com')
+    fireEvent.click(screen.getByRole('button', { name: /Send Invite/i }))
+
+    await waitFor(() => expect(operations.myInvitationSubmissions).toHaveLength(2))
+    await waitFor(() => expect(screen.getAllByRole('listitem').map(item => item.textContent).join(' ')).toContain('new@example.com'))
+    expect(screen.getAllByRole('button', { name: 'Cancel' })).toHaveLength(3)
   })
 
   it('sends email addresses only and shows the same success message for every sent address', async () => {

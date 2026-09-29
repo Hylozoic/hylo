@@ -89,6 +89,15 @@ export function expireInvitation (userId, invitationId) {
     .then(() => ({ success: true }))
 }
 
+/**
+ * Take one of the addresses or people this person submitted with limited invite access
+ * off their list, cancelling its invitation if one is still pending.
+ */
+export async function cancelInvitationSubmission (userId, submissionId) {
+  if (!userId) throw new GraphQLError("You don't have permission to modify this invitation")
+  return InvitationService.cancelSubmission({ userId, submissionId })
+}
+
 export function resendInvitation (userId, invitationId) {
   return InvitationService.checkPermission(userId, invitationId)
     .then(ok => {

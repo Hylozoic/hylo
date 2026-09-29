@@ -497,6 +497,106 @@ describe('InvitationService', () => {
     after(() => unspyify(Queue, 'classMethod'))
   })
 
+  describe("a member's list of what they submitted", () => {
+    let submitGroup, member, existing, otherSender, invitedByOther
+
+    const list = (opts = {}) => InvitationService.findOwnLimited({ groupId: submitGroup.id, userId: member.id, ...opts })
+    const pending = email => Invitation.query(q => {
+      q.where({ group_id: submitGroup.id, email })
+      q.whereNull('used_by_id')
+      q.whereNull('expired_by_id')
+    }).fetch()
+
+    before(async () => {
+      mockify(Queue, 'classMethod', () => Promise.resolve())
+      submitGroup = await factories.group().save()
+      member = await factories.user({ email: 'submitter@member-submissions.com' }).save()
+      existing = await factories.user({ email: 'existing@member-submissions.com' }).save()
+      otherSender = await factories.user().save()
+      await member.joinGroup(submitGroup)
+      await existing.joinGroup(submitGroup)
+      invitedByOther = 'invited@member-submissions.com'
+      await Invitation.create({ userId: otherSender.id, groupId: submitGroup.id, email: invitedByOther })
+      await InvitationService.createLimited({
+        sessionUserId: member.id,
+        groupId: submitGroup.id,
+        emails: ['fresh@member-submissions.com', 'EXISTING@member-submissions.com', invitedByOther, member.get('email'), 'not-an-email'],
+        subject: 'Join us',
+        message: 'Come along'
+      })
+    })
+
+    after(() => unspyify(Queue, 'classMethod'))
+
+    it('shows every valid address the same way, whether or not an invitation went out', async () => {
+      const { total, items } = await list()
+      expect(total).to.equal(4)
+      expect(items.map(item => item.email).sort()).to.deep.equal([
+        'existing@member-submissions.com',
+        'fresh@member-submissions.com',
+        'invited@member-submissions.com',
+        'submitter@member-submissions.com'
+      ])
+      for (const item of items) {
+        expect(Object.keys(item).sort()).to.deep.equal(['createdAt', 'email', 'id', 'person'])
+        expect(item.person).to.be.null
+        expect(item.createdAt).to.be.an.instanceof(Date)
+      }
+      expect(await pending('fresh@member-submissions.com')).to.exist
+      expect((await list({ limit: 2 })).items).to.have.lengthOf(2)
+      expect((await InvitationService.findOwnLimited({ groupId: submitGroup.id, userId: otherSender.id })).total).to.equal(0)
+    })
+
+    it('keeps a row until it ages out, on the same day for sent and skipped addresses, even after its invitation is used', async () => {
+      const invitation = await pending('fresh@member-submissions.com')
+      await invitation.save({ used_by_id: existing.id, used_at: new Date() }, { patch: true })
+      expect((await list()).total).to.equal(4)
+
+      const days = n => new Date(Date.now() - n * 24 * 60 * 60 * 1000)
+      await bookshelf.knex('invitation_submissions').where({ user_id: member.id, group_id: submitGroup.id })
+        .update({ created_at: days(InvitationService.SUBMISSION_LIST_DAYS - 1) })
+      expect((await list()).total).to.equal(4)
+      await bookshelf.knex('invitation_submissions').where({ user_id: member.id, group_id: submitGroup.id })
+        .update({ created_at: days(InvitationService.SUBMISSION_LIST_DAYS + 1) })
+      expect((await list()).total).to.equal(0)
+      await bookshelf.knex('invitation_submissions').where({ user_id: member.id, group_id: submitGroup.id })
+        .update({ created_at: new Date() })
+    })
+
+    it('cancels a row the same way whether or not it has an invitation, and cancels a pending invitation', async () => {
+      await InvitationService.createLimited({ sessionUserId: member.id, groupId: submitGroup.id, emails: ['second@member-submissions.com'] })
+      const { items } = await list()
+      const sent = items.find(item => item.email === 'second@member-submissions.com')
+      const skipped = items.find(item => item.email === 'existing@member-submissions.com')
+
+      await expect(InvitationService.cancelSubmission({ userId: otherSender.id, submissionId: sent.id })).to.be.rejectedWith('not found')
+      expect(await InvitationService.cancelSubmission({ userId: member.id, submissionId: sent.id })).to.deep.equal({ success: true })
+      expect(await InvitationService.cancelSubmission({ userId: member.id, submissionId: skipped.id })).to.deep.equal({ success: true })
+      await expect(InvitationService.cancelSubmission({ userId: member.id, submissionId: skipped.id })).to.be.rejectedWith('not found')
+      await expect(InvitationService.cancelSubmission({ userId: member.id, submissionId: 'abc' })).to.be.rejectedWith('not found')
+
+      expect(await pending('second@member-submissions.com')).to.not.exist
+      const expired = await Invitation.where({ group_id: submitGroup.id, email: 'second@member-submissions.com' }).fetch()
+      expect(expired.get('expired_by_id')).to.equal(member.id)
+      expect(await pending(invitedByOther)).to.exist
+      const remaining = (await list()).items.map(item => item.email)
+      expect(remaining).to.not.include.members(['second@member-submissions.com', 'existing@member-submissions.com'])
+      expect(remaining).to.have.lengthOf(3)
+    })
+
+    it('lists people picked from the people search by name, with no email address', async () => {
+      const neighbourhood = await factories.group().save()
+      const neighbour = await factories.user({ name: 'Picked Neighbour' }).save()
+      await member.joinGroup(neighbourhood)
+      await neighbour.joinGroup(neighbourhood)
+      await InvitationService.createLimitedForUsers({ sessionUserId: member.id, groupId: submitGroup.id, userIds: [neighbour.id] })
+
+      const [newest] = (await list()).items
+      expect(newest.email).to.be.null
+      expect(newest.person).to.deep.equal({ id: neighbour.id, name: 'Picked Neighbour', avatarUrl: neighbour.get('avatar_url') || null })
+    })
+  })
+
   describe('pending invitation lists', () => {
     let listGroup, admin, member, other, memberInvitations
 
@@ -538,18 +638,10 @@ describe('InvitationService', () => {
       expect(firstTwo.items).to.have.lengthOf(2)
     })
 
-    it('gives a member only the pending invitations they sent as a member, without looking up names', async () => {
+    it('lists nothing for a member from invitations alone: their list comes from what they submitted', async () => {
       const { total, items } = await InvitationService.findOwnLimited({ groupId: listGroup.id, userId: member.id })
-      expect(total).to.equal(2)
-      expect(items.map(item => item.email)).to.deep.equal(['second@member-list.com', 'first@member-list.com'])
-      for (const item of items) {
-        expect(Object.keys(item).sort()).to.deep.equal(['created_at', 'creator', 'email', 'id', 'last_sent_at'])
-        expect((await item.creator().fetch()).id).to.equal(member.id)
-      }
-
-      const limited = await InvitationService.findOwnLimited({ groupId: listGroup.id, userId: member.id, limit: 1 })
-      expect(limited.total).to.equal(2)
-      expect(limited.items.map(item => item.id)).to.deep.equal([memberInvitations[1].id])
+      expect(total).to.equal(0)
+      expect(items).to.deep.equal([])
     })
 
     it('lets the sender of a member invitation cancel it, as well as the invitee and stewards', async () => {

@@ -27,6 +27,7 @@ import {
   archiveSpace,
   blockUser,
   cancelGroupRelationshipInvite,
+  cancelInvitationSubmission,
   cancelJoinRequest,
   clearModerationAction,
   completePost,
@@ -768,6 +769,8 @@ export function makeMutations ({ fetchOne }) {
     enrollInTrack: (root, { trackId }, context) => enrollInTrack(context.currentUserId, trackId),
 
     expireInvitation: (root, { invitationId }, context) => expireInvitation(context.currentUserId, invitationId),
+
+    cancelInvitationSubmission: (root, { submissionId }, context) => cancelInvitationSubmission(context.currentUserId, submissionId),
 
     findOrCreateThread: (root, { data }, context) => findOrCreateThread(context.currentUserId, data.participantIds),
 

@@ -39,6 +39,8 @@ import {
   reinviteAll as reinviteAllAction
 } from './InviteSettingsTab.store'
 
+import PendingSubmissionsList from './PendingSubmissionsList'
+
 import classes from './InviteSettingsTab.module.scss'
 
 const { bool, object, oneOf } = PropTypes
@@ -107,6 +109,7 @@ function InviteSettingsTab (props) {
   const [selectedPeople, setSelectedPeople] = useState([])
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [hasMorePeople, setHasMorePeople] = useState(false)
+  const [submissionsReloadKey, setSubmissionsReloadKey] = useState(0)
   const sendingRef = useRef(false)
   const pendingInvitesTransitionRef = useRef(null)
   const peopleSearchRef = useRef('')
@@ -295,6 +298,7 @@ function InviteSettingsTab (props) {
           setPeople(prev => prev.filter(p => !userIds.includes(p.id)))
         }
         dispatch(fetchPendingInvitations(group.id))
+        if (limited) setSubmissionsReloadKey(key => key + 1)
       })
       .catch(error => {
         sendingRef.current = false
@@ -646,28 +650,7 @@ function InviteSettingsTab (props) {
         </div>
       )}
 
-      {limited && hasPendingInvites && (
-        <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
-          <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Your pending invites')}</h2>
-          <div className='flex flex-col gap-1'>
-            {pendingInvites.map(invite => (
-              <div className='w-full flex items-center justify-between gap-2 bg-card rounded-lg px-2 py-1.5' key={invite.id}>
-                <div className='flex-1 min-w-0'>
-                  <span className='block truncate'>{invite.email}</span>
-                  <span className='text-foreground/50 text-sm'>{TextHelpers.humanDate(invite.lastSentAt || invite.createdAt)}</span>
-                </div>
-                <button
-                  type='button'
-                  className='shrink-0 bg-foreground/10 rounded-lg p-1 hover:bg-selected/50 transition-all'
-                  onClick={() => expireOnClick(invite.id)}
-                >
-                  {t('Cancel')}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {limited && <PendingSubmissionsList groupId={group.id} reloadKey={submissionsReloadKey} />}
     </div>
   )
 }

@@ -106,6 +106,21 @@ async function addressesAlreadyInGroup (groupId, emails, transacting) {
   return new Set(members.concat(invited).map(row => row.email))
 }
 
+// How long a member's "Your pending invites" list keeps what they submitted, sent
+// or not: until after both automatic reminders (4 and 13 days after sending)
+const SUBMISSION_LIST_DAYS = 14
+
+/**
+ * Record an address someone with limited invite access typed, or a person they
+ * picked, whether or not an invitation was created for it, so their list of
+ * pending invites shows every one in the same way.
+ */
+function recordSubmission ({ userId, groupId, email = null, inviteeId = null, invitationId = null }, transacting) {
+  return bookshelf.knex('invitation_submissions')
+    .insert({ user_id: userId, group_id: groupId, email, invitee_id: inviteeId, invitation_id: invitationId, created_at: new Date() })
+    .transacting(transacting)
+}
+
 /**
  * Which of these people share an active group with the sender, as a map from
  * their id to their lowercased email address: the only people someone with
@@ -202,11 +217,13 @@ async function createLimitedInvitations ({ sessionUserId, groupId, emails = [], 
     for (const email of addresses) {
       const invitation = await invite(email)
       if (invitation) emailInvitations.push(invitation)
+      await recordSubmission({ userId: sessionUserId, groupId, email, invitationId: invitation?.id }, transacting)
     }
     const personInvitations = []
     for (const id of people) {
       const invitation = blocked.has(id) ? null : await invite(reachable.get(id))
       if (invitation) personInvitations.push({ inviteeId: id, invitation })
+      await recordSubmission({ userId: sessionUserId, groupId, inviteeId: id, invitationId: invitation?.id }, transacting)
     }
     return { emailInvitations, personInvitations }
   })
@@ -301,27 +318,78 @@ module.exports = {
       }))
   },
 
+  SUBMISSION_LIST_DAYS,
+
   /**
-   * The pending invitations this person sent with limited access: the address
-   * they typed and when it was sent, without looking up who it belongs to.
+   * What this person submitted with limited invite access in the last
+   * SUBMISSION_LIST_DAYS days and has not cancelled: the address they typed, or
+   * the person they picked, and when. Every row looks the same whether or not
+   * an invitation was created or has been used since, and every row leaves the
+   * list on the same day, so the list never shows who was already in the group
+   * or invited.
    */
   findOwnLimited: async ({ groupId, userId, limit, offset }) => {
-    const invitations = await Invitation.query(qb => {
-      qb.select(bookshelf.knex.raw('group_invites.*, count(*) over () as total'))
-      qb.where({ group_id: groupId, invited_by_id: userId, inviter_access: Invitation.InviterAccess.LIMITED })
-      qb.whereNull('used_by_id')
-      qb.whereNull('expired_by_id')
-      qb.orderBy('created_at', 'desc')
-      qb.limit(limit || 20)
-      qb.offset(offset || 0)
-    }).fetchAll()
+    const rows = await bookshelf.knex('invitation_submissions')
+      .leftJoin('users as invitee', 'invitee.id', 'invitation_submissions.invitee_id')
+      .where({ 'invitation_submissions.group_id': groupId, 'invitation_submissions.user_id': userId })
+      .whereNull('invitation_submissions.hidden_at')
+      .whereRaw('invitation_submissions.created_at > now() - make_interval(days => ?)', [SUBMISSION_LIST_DAYS])
+      .orderBy('invitation_submissions.created_at', 'desc')
+      .orderBy('invitation_submissions.id', 'desc')
+      .limit(limit || 20)
+      .offset(offset || 0)
+      .select(
+        'invitation_submissions.id',
+        'invitation_submissions.email',
+        'invitation_submissions.created_at',
+        'invitee.id as invitee_id',
+        'invitee.name as invitee_name',
+        'invitee.avatar_url as invitee_avatar_url',
+        bookshelf.knex.raw('count(*) over () as total')
+      )
+    const total = rows.length > 0 ? Number(rows[0].total) : 0
     return {
-      total: invitations.length > 0 ? Number(invitations.first().get('total')) : 0,
-      items: invitations.map(i => ({
-        ...i.pick('id', 'email', 'created_at', 'last_sent_at'),
-        creator: () => i.creator()
+      total,
+      hasMore: (offset || 0) + rows.length < total,
+      items: rows.map(row => ({
+        id: row.id,
+        email: row.email,
+        createdAt: row.created_at,
+        person: row.invitee_id
+          ? { id: row.invitee_id, name: row.invitee_name, avatarUrl: row.invitee_avatar_url }
+          : null
       }))
     }
+  },
+
+  /**
+   * Take one of the things this person submitted off their list, and cancel
+   * the invitation created for it if it is still pending. It answers the same
+   * way whether or not there was an invitation.
+   */
+  cancelSubmission: async ({ userId, submissionId }) => {
+    if (!/^\d+$/.test(String(submissionId ?? ''))) throw new GraphQLError('not found')
+    return bookshelf.transaction(async transacting => {
+      const submission = await bookshelf.knex('invitation_submissions')
+        .where({ id: submissionId, user_id: userId })
+        .whereNull('hidden_at')
+        .first('id', 'invitation_id')
+        .transacting(transacting)
+      if (!submission) throw new GraphQLError('not found')
+      if (submission.invitation_id) {
+        await bookshelf.knex('group_invites')
+          .where({ id: submission.invitation_id, invited_by_id: userId })
+          .whereNull('used_by_id')
+          .whereNull('expired_by_id')
+          .update({ expired_by_id: userId, expired_at: new Date() })
+          .transacting(transacting)
+      }
+      await bookshelf.knex('invitation_submissions')
+        .where({ id: submission.id })
+        .update({ hidden_at: new Date() })
+        .transacting(transacting)
+      return { success: true }
+    })
   },
 
   /**
