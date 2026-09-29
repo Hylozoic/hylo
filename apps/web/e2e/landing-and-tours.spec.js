@@ -45,8 +45,9 @@ async function useTopBarLayout (page) {
 async function openTour (page, tourName) {
   await page.getByRole('button', { name: 'Help' }).first().click()
   await page.getByTestId('take-a-tour').click()
-  const item = page.getByRole('menuitem', { name: tourName })
-  await expect(item).toBeEnabled(uiTimeout)
+  // A pattern can name more than one tour; take the first one this view offers
+  const item = page.getByRole('menuitem', { name: tourName, disabled: false }).first()
+  await expect(item).toBeVisible(uiTimeout)
   await item.click()
   await expect(page.locator('.driver-popover')).toBeVisible(uiTimeout)
 }
