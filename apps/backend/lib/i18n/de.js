@@ -101,6 +101,7 @@ exports.de = {
   joinRequestDeclinedSubject: (groupName) => `Zu deiner Anfrage, ${groupName} beizutreten`,
   joinRequestUnansweredSubject: (groupName) => `Deine Anfrage, ${groupName} beizutreten, wartet noch auf Antwort`,
   roleGrantedSubject: ({ roleName, groupName }) => `Du hast eine neue Rolle in ${groupName}: ${roleName}`,
+  stewardWeeklySubject: (groupName) => `Diese Woche in ${groupName}, für Stewards`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

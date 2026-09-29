@@ -103,6 +103,7 @@ const JOIN_REQUEST_RECEIVED_TEMPLATE_ID = null // Join_Request_Received_i18n
 const JOIN_REQUEST_DECLINED_TEMPLATE_ID = null // Join_Request_Declined_i18n
 const JOIN_REQUEST_UNANSWERED_TEMPLATE_ID = null // Join_Request_Unanswered_i18n
 const ROLE_GRANTED_TEMPLATE_ID = null // Role_Granted_i18n
+const STEWARD_WEEKLY_TEMPLATE_ID = null // Steward_Weekly_i18n
 const templateNotUploaded = () => Promise.resolve(null)
 
 module.exports = {
@@ -388,6 +389,12 @@ Profile: ${opts.actorProfileUrl}
   // D48: a steward gave you a role or badge by hand
   sendRoleGranted: opts => ROLE_GRANTED_TEMPLATE_ID
     ? sendEmailWithOptions(ROLE_GRANTED_TEMPLATE_ID, opts)
+    : templateNotUploaded(),
+
+  // D13: the weekly summary for a group's Administrators, Moderators and Hosts
+  // (lib/group/stewardDigest.js). opts.unsubscribe is { userId, groupId }.
+  sendStewardWeekly: opts => STEWARD_WEEKLY_TEMPLATE_ID
+    ? sendEmailWithOptions(STEWARD_WEEKLY_TEMPLATE_ID, opts)
     : templateNotUploaded()
 
 }

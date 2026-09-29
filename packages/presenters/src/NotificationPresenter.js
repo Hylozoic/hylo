@@ -2,7 +2,7 @@ import { convert as convertHtmlToText } from 'html-to-text'
 import find from 'lodash/find.js'
 import get from 'lodash/fp/get.js'
 import truncText from 'trunc-text'
-import { primaryPostUrl, groupUrl, personUrl, trackUrl, fundingRoundUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
+import { primaryPostUrl, groupUrl, groupHomeUrl, personUrl, trackUrl, fundingRoundUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 
 // Used by web and electron. Once everyone is on URQL switch over to PostPresenter
 function presentPost (post) {
@@ -87,6 +87,8 @@ export const ACTION_ROLE_GRANTED = 'roleGranted'
 export const ACTION_NEW_MEMBERS_JOINED = 'newMembersJoined'
 // D49: a newcomer's first post has no response yet (to stewards)
 export const ACTION_FIRST_POST_UNANSWERED = 'firstPostUnanswered'
+// D13: a group you steward has had no posts for 30 days
+export const ACTION_GROUP_QUIET = 'groupQuiet'
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -197,6 +199,8 @@ export function titleForNotification (notification, t) {
       return t('newMembersJoinedTitle', { count: notification.activity.meta?.newMemberCount || 1, groupName: group?.name })
     case ACTION_FIRST_POST_UNANSWERED:
       return t('<strong>{{name}}</strong> is new to {{groupName}} and their first post has no replies yet', { name, groupName: group?.name })
+    case ACTION_GROUP_QUIET:
+      return t('<strong>{{groupName}}</strong> has had no posts for {{days}} days', { groupName: group?.name, days: notification.activity.meta?.quietDays || 30 })
     default:
       return null
   }
@@ -307,6 +311,8 @@ export function bodyForNotification (notification, t) {
       return t('Say hi and help them feel welcome.')
     case ACTION_FIRST_POST_UNANSWERED:
       return t('A reply or a reaction can help them feel welcome: "{{postSummary}}"', { postSummary })
+    case ACTION_GROUP_QUIET:
+      return t('A new post or a question can get people talking again.')
     default:
       return null
   }
@@ -416,6 +422,9 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
       return groupUrl(groupSlug, 'members') + '?s=join'
     case ACTION_FIRST_POST_UNANSWERED:
       return primaryPostUrl(post, postOpts)
+    case ACTION_GROUP_QUIET:
+      // Opens the post composer on the group's home
+      return `${groupHomeUrl({ group })}?create=post&newPostType=discussion`
   }
 }
 
@@ -426,6 +435,7 @@ export function imageForNotification (notification) {
     case ACTION_DECLINED_JOIN_REQUEST:
     case ACTION_UNANSWERED_JOIN_REQUEST:
     case ACTION_NEW_MEMBERS_JOINED:
+    case ACTION_GROUP_QUIET:
     case ACTION_MEMBER_JOINED_GROUP:
     case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
     case ACTION_FUNDING_ROUND_PHASE_TRANSITION:

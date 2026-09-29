@@ -1,0 +1,10 @@
+{
+  "templateId": null,
+  "templateName": "Steward_Weekly_i18n",
+  "locale": "en-US",
+  "tags": [
+    "i18n",
+    "i18n ready"
+  ],
+  "note": "Not uploaded yet. Upload with scripts/i18n/upload-new-template.js, then set STEWARD_WEEKLY_TEMPLATE_ID in apps/backend/api/services/Email.js. Sent as bulk; its one-click unsubscribe turns off the stewardDigest setting of that steward's membership."
+}

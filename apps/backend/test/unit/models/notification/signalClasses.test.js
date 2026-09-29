@@ -87,7 +87,9 @@ const TODAY = {
   // D38
   newMembersJoined: ['inApp'],
   // D49
-  firstPostUnanswered: ['inApp']
+  firstPostUnanswered: ['inApp'],
+  // D13
+  groupQuiet: ['inApp']
 }
 
 // Reasons whose media don't depend on a group membership's email and push toggles

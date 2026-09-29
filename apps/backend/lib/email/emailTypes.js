@@ -81,7 +81,9 @@ export const EMAIL_TYPES = {
   sendJoinRequestReceived: essential('your request to join a group arrived, and what happens next'),
   sendJoinRequestDeclined: essential('your request to join a group was not approved'),
   sendJoinRequestUnanswered: bulk('settings_page', 'your request to join has had no answer for 14 days, with open groups to try'),
-  sendRoleGranted: bulk('group_post_email', 'a steward gave you a role or badge (D48)')
+  sendRoleGranted: bulk('group_post_email', 'a steward gave you a role or badge (D48)'),
+  // One-click turns off that steward's weekly email for that group only
+  sendStewardWeekly: bulk('membership_setting:stewardDigest', 'weekly summary for Administrators, Moderators and Hosts (D13)')
 }
 
 export const EMAIL_KINDS = ['essential', 'bulk']

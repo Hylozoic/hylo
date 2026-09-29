@@ -114,3 +114,22 @@ describe('first post with no response (D49)', () => {
     expect(imageForNotification(n)).toEqual('nia.png')
   })
 })
+
+describe('group gone quiet (D13)', () => {
+  const n = {
+    id: '104',
+    activity: {
+      action: 'groupQuiet',
+      actor: { id: '3', name: 'Sam Steward', avatarUrl: 'sam.png' },
+      group: { ...group, homeRoute: '/stream' },
+      meta: { reasons: ['groupQuiet'], quietDays: 30 }
+    }
+  }
+
+  it('says how long the group has been quiet and opens the post composer', () => {
+    expect(titleForNotification(n, t)).toEqual('<strong>Seed Library</strong> has had no posts for 30 days')
+    expect(bodyForNotification(n, t)).toEqual('A new post or a question can get people talking again.')
+    expect(urlForNotification(n)).toEqual('/groups/seed-library/stream?create=post&newPostType=discussion')
+    expect(imageForNotification(n)).toEqual('group.png')
+  })
+})

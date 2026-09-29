@@ -614,6 +614,8 @@ type ActivityMeta {
   roleEmoji: String
   # newMembersJoined: how many people joined the group this week
   newMemberCount: Int
+  # groupQuiet: how many days the group has had no posts
+  quietDays: Int
 }
 
 # An activity that someone may want to be notified about
@@ -2173,6 +2175,8 @@ type MembershipSettings {
   sendPushNotifications: Boolean
   # When the group's founder dismissed its setup checklist
   setupChecklistDismissedAt: Date
+  # For Administrators, Moderators and Hosts: false turns off the weekly steward email
+  stewardDigest: Boolean
 }
 
 # A direct message sent in a specific thread
@@ -4683,6 +4687,8 @@ input MembershipSettingsInput {
   sendPushNotifications: Boolean
   # When the group's founder dismissed its setup checklist
   setupChecklistDismissedAt: Date
+  # For Administrators, Moderators and Hosts: false turns off the weekly steward email
+  stewardDigest: Boolean
 }
 
 # Data for updating a message in a direct message thread

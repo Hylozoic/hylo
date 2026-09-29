@@ -856,6 +856,69 @@ msgstr "%(granter_pill)s te dio el rol %(role_name_var)s en %(group_pill)s."
 msgid "Go to the group"
 msgstr "Ir al grupo"
 
+#, python-format
+msgid "Here is your week in %(group_pill)s, for its Administrators, Moderators and Hosts."
+msgstr "Esta es tu semana en %(group_pill)s, para sus personas administradoras, moderadoras y anfitrionas."
+
+#, python-format
+msgid "The group has been quiet for %(quiet_days_var)s days"
+msgstr "El grupo lleva %(quiet_days_var)s días en silencio"
+
+msgid "A new post or a question can get people talking again."
+msgstr "Una nueva publicación o una pregunta puede hacer que la gente vuelva a conversar."
+
+msgid "Write a post"
+msgstr "Escribir una publicación"
+
+#, python-format
+msgid "New members this week: %(new_member_count_var)s"
+msgstr "Nuevos miembros esta semana: %(new_member_count_var)s"
+
+msgid "Welcome them"
+msgstr "Dales la bienvenida"
+
+#, python-format
+msgid "Join requests waiting more than 3 days: %(waiting_request_count_var)s"
+msgstr "Solicitudes de unión que esperan más de 3 días: %(waiting_request_count_var)s"
+
+#, python-format
+msgid "waiting %(days_waiting_var)s days"
+msgstr "esperando %(days_waiting_var)s días"
+
+msgid "Answer requests"
+msgstr "Responder solicitudes"
+
+#, python-format
+msgid "Reports to review: %(open_report_count_var)s"
+msgstr "Reportes por revisar: %(open_report_count_var)s"
+
+#, python-format
+msgid "%(new_report_count_var)s new this week."
+msgstr "%(new_report_count_var)s nuevos esta semana."
+
+msgid "Open the moderation queue"
+msgstr "Abrir la cola de moderación"
+
+msgid "Newcomers' first posts with no replies yet"
+msgstr "Primeras publicaciones de recién llegados que aún no tienen respuestas"
+
+msgid "A reply or a reaction can help them feel welcome."
+msgstr "Una respuesta o una reacción puede ayudarles a sentirse bienvenidos."
+
+msgid "Activity"
+msgstr "Actividad"
+
+#, python-format
+msgid "Posts: %(posts_this_week_var)s this week, %(posts_last_week_var)s the week before."
+msgstr "Publicaciones: %(posts_this_week_var)s esta semana, %(posts_last_week_var)s la semana anterior."
+
+#, python-format
+msgid "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
+msgstr "Comentarios: %(comments_this_week_var)s esta semana, %(comments_last_week_var)s la semana anterior."
+
+msgid "Turn off this weekly email for this group"
+msgstr "Desactivar este correo semanal para este grupo"
+
 msgid "Introduce yourself to the group"
 msgstr "Preséntate al grupo"
 

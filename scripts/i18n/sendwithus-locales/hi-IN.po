@@ -856,6 +856,69 @@ msgstr "%(granter_pill)s ने आपको %(group_pill)s में %(role_nam
 msgid "Go to the group"
 msgstr "समूह पर जाएं"
 
+#, python-format
+msgid "Here is your week in %(group_pill)s, for its Administrators, Moderators and Hosts."
+msgstr "%(group_pill)s में आपका यह हफ़्ता, इसके व्यवस्थापकों, मॉडरेटरों और मेज़बानों के लिए।"
+
+#, python-format
+msgid "The group has been quiet for %(quiet_days_var)s days"
+msgstr "समूह %(quiet_days_var)s दिनों से शांत है"
+
+msgid "A new post or a question can get people talking again."
+msgstr "एक नई पोस्ट या कोई सवाल लोगों को फिर से बातचीत में ला सकता है।"
+
+msgid "Write a post"
+msgstr "पोस्ट लिखें"
+
+#, python-format
+msgid "New members this week: %(new_member_count_var)s"
+msgstr "इस हफ़्ते के नए सदस्य: %(new_member_count_var)s"
+
+msgid "Welcome them"
+msgstr "उनका स्वागत करें"
+
+#, python-format
+msgid "Join requests waiting more than 3 days: %(waiting_request_count_var)s"
+msgstr "3 दिनों से ज़्यादा से इंतज़ार कर रहे शामिल होने के अनुरोध: %(waiting_request_count_var)s"
+
+#, python-format
+msgid "waiting %(days_waiting_var)s days"
+msgstr "%(days_waiting_var)s दिनों से इंतज़ार में"
+
+msgid "Answer requests"
+msgstr "अनुरोधों का जवाब दें"
+
+#, python-format
+msgid "Reports to review: %(open_report_count_var)s"
+msgstr "समीक्षा के लिए रिपोर्ट: %(open_report_count_var)s"
+
+#, python-format
+msgid "%(new_report_count_var)s new this week."
+msgstr "इस हफ़्ते %(new_report_count_var)s नई।"
+
+msgid "Open the moderation queue"
+msgstr "मॉडरेशन कतार खोलें"
+
+msgid "Newcomers' first posts with no replies yet"
+msgstr "नए लोगों की पहली पोस्ट जिन पर अभी तक कोई जवाब नहीं आया"
+
+msgid "A reply or a reaction can help them feel welcome."
+msgstr "एक जवाब या प्रतिक्रिया उन्हें स्वागत महसूस करा सकती है।"
+
+msgid "Activity"
+msgstr "गतिविधि"
+
+#, python-format
+msgid "Posts: %(posts_this_week_var)s this week, %(posts_last_week_var)s the week before."
+msgstr "पोस्ट: इस हफ़्ते %(posts_this_week_var)s, पिछले हफ़्ते %(posts_last_week_var)s।"
+
+#, python-format
+msgid "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
+msgstr "टिप्पणियाँ: इस हफ़्ते %(comments_this_week_var)s, पिछले हफ़्ते %(comments_last_week_var)s।"
+
+msgid "Turn off this weekly email for this group"
+msgstr "इस समूह के लिए यह साप्ताहिक ईमेल बंद करें"
+
 msgid "Introduce yourself to the group"
 msgstr "समूह से अपना परिचय दें"
 

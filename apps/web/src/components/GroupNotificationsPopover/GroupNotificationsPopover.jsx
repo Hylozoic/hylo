@@ -35,6 +35,7 @@ export default function GroupNotificationsPopover ({ group, className = 'w-6 h-6
         <h3 className='text-base font-bold mb-3'>{t('Notification Settings for {{name}}', { name: group.name })}</h3>
         <GroupMembershipNotificationSettings
           id={membership.id}
+          groupId={group.id}
           settings={membership.settings}
           update={updateSettings}
           compact

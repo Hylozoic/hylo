@@ -958,6 +958,69 @@ msgstr ""
 msgid "Go to the group"
 msgstr ""
 
+#, python-format
+msgid "Here is your week in %(group_pill)s, for its Administrators, Moderators and Hosts."
+msgstr ""
+
+#, python-format
+msgid "The group has been quiet for %(quiet_days_var)s days"
+msgstr ""
+
+msgid "A new post or a question can get people talking again."
+msgstr ""
+
+msgid "Write a post"
+msgstr ""
+
+#, python-format
+msgid "New members this week: %(new_member_count_var)s"
+msgstr ""
+
+msgid "Welcome them"
+msgstr ""
+
+#, python-format
+msgid "Join requests waiting more than 3 days: %(waiting_request_count_var)s"
+msgstr ""
+
+#, python-format
+msgid "waiting %(days_waiting_var)s days"
+msgstr ""
+
+msgid "Answer requests"
+msgstr ""
+
+#, python-format
+msgid "Reports to review: %(open_report_count_var)s"
+msgstr ""
+
+#, python-format
+msgid "%(new_report_count_var)s new this week."
+msgstr ""
+
+msgid "Open the moderation queue"
+msgstr ""
+
+msgid "Newcomers' first posts with no replies yet"
+msgstr ""
+
+msgid "A reply or a reaction can help them feel welcome."
+msgstr ""
+
+msgid "Activity"
+msgstr ""
+
+#, python-format
+msgid "Posts: %(posts_this_week_var)s this week, %(posts_last_week_var)s the week before."
+msgstr ""
+
+#, python-format
+msgid "Comments: %(comments_this_week_var)s this week, %(comments_last_week_var)s the week before."
+msgstr ""
+
+msgid "Turn off this weekly email for this group"
+msgstr ""
+
 msgid "Introduce yourself to the group"
 msgstr ""
 

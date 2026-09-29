@@ -41,5 +41,7 @@ export const PRIORITY_REASONS = [
   // D38: weekly "N people joined, say hi" (group/newcomerBatch.js)
   'newMembersJoined',
   // D49 experiment: a newcomer's first post has no response (post/firstPostNudge.js)
-  'firstPostUnanswered'
+  'firstPostUnanswered',
+  // D13: no posts for 30 days, to stewards (lib/group/stewardDigest.js)
+  'groupQuiet'
 ]

@@ -66,6 +66,9 @@ const daily = now => {
     return count
   }))
 
+  // D13/D14: 14-day join request notes, quiet-group prompts and, on Mondays, the steward email
+  tasks.push(require('./lib/group/stewardDigest').runDaily({ now: now.toJSDate(), weekday: now.weekday }).then(({ unanswered, quiet, weekly }) => sails.log.debug(`Steward job: ${unanswered} unanswered join requests, ${quiet} quiet groups, ${weekly.emails} steward emails in ${weekly.groups} groups`)).catch(err => sails.log.error('Steward job failed', err)))
+
   // D49 experiment: nudge stewards about newcomers' first posts with no response after a day
   tasks.push(require('./api/models/post/firstPostNudge').runDaily().then(({ found, nudged, control }) => sails.log.debug(`First posts without a response: ${found} (${nudged} nudged, ${control} control)`)).catch(err => sails.log.error('First-post nudge failed', err)))
 

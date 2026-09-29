@@ -97,7 +97,9 @@ export const REASON_SIGNALS = {
   // D38: in-app only, no push or email
   newMembersJoined: { class: AMBIENT, channels: [IN_APP] },
   // D49: an in-app nudge to stewards, no push or email
-  firstPostUnanswered: { class: OPERATIONAL, channels: [IN_APP] }
+  firstPostUnanswered: { class: OPERATIONAL, channels: [IN_APP] },
+  // D13: in-app, plus a line in the weekly steward email
+  groupQuiet: { class: OPERATIONAL, channels: [IN_APP] }
 }
 
 // A reason with no line (or no priority reason at all) keeps every channel, as before.
