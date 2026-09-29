@@ -11,10 +11,10 @@ const EmailEventsController = require(root('api/controllers/EmailEventsControlle
 const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
 const PUBLIC_KEY = publicKey.export({ format: 'der', type: 'spki' }).toString('base64')
 
-function signedRequest (events, { sign = true, key = privateKey } = {}) {
+function signedRequest (events, { sign = true, key = privateKey, secondsAgo = 0 } = {}) {
   const req = factories.mock.request()
   const body = Buffer.from(JSON.stringify(events))
-  const timestamp = String(Math.floor(Date.now() / 1000))
+  const timestamp = String(Math.floor(Date.now() / 1000) - secondsAgo)
   req.body = body
   req.headers = sign
     ? {
@@ -67,6 +67,19 @@ describe('EmailEventsController', () => {
 
       expect(res.statusCode).to.equal(403)
       expect(user.get('email_undeliverable_at')).to.equal(null)
+    })
+
+    it('refuses an old signed batch sent again', async () => {
+      await receive([{ event: 'bounce', type: 'bounce', email: user.get('email') }], { secondsAgo: 60 * 60 })
+
+      expect(res.statusCode).to.equal(403)
+      expect(user.get('email_undeliverable_at')).to.equal(null)
+    })
+
+    it('accepts a batch signed a few minutes ago', async () => {
+      await receive([{ event: 'bounce', type: 'bounce', email: user.get('email') }], { secondsAgo: 3 * 60 })
+
+      expect(user.get('email_undeliverable_at')).to.be.an.instanceof(Date)
     })
 
     it('refuses everything when no key is configured', async () => {
