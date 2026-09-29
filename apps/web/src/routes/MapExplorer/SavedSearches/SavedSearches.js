@@ -73,7 +73,7 @@ const SavedSearch = ({ deleteSearch, viewSavedSearch, search }) => {
       <div className={cn(classes.row, classes.filters)} data-tooltip-content={formatParams(search)} data-tooltip-id='params'>
         <Icon name='Info' className={classes.info} />
         <span className={classes.savedFilters}>
-          <span>{formatParamPreview(search)}</span>
+          <span>{formatParamPreview(search, t)}</span>
           <Tooltip
             place='right'
             id='params'
