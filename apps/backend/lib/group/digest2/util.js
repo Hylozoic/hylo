@@ -1,6 +1,11 @@
 import { DateTime } from 'luxon'
 import { includes } from 'lodash'
 import { get, pick, some } from 'lodash/fp'
+import { UNSUBSCRIBE_SCOPE, UNSUBSCRIBE_SCOPE_SETTING } from '../../../api/models/notification/rules/unsubscribeScope'
+import { DORMANT_DAYS, INACTIVE_DAYS, daysAgo } from '../../../api/models/notification/rules/inactiveReader'
+
+// When a member was last seen (D9): their last activity, else when they signed up
+const LAST_SEEN = 'coalesce(users.last_active_at, users.created_at, now())'
 
 export const defaultTimezone = 'America/Los_Angeles'
 
@@ -178,16 +183,58 @@ export const getPostsAndComments = async (group, startTime, endTime, digestType,
   }
 }
 
+// Marks the weekly recipients who are here because their daily digest was slowed down
+// (user.digestSlowed), so the digest can say so once (lib/group/digest2/index.js)
+async function markSlowedDigests (groupId, recipients, inactiveSince) {
+  const awayIds = recipients
+    .filter(user => {
+      const seen = user.get('last_active_at') || user.get('created_at')
+      return seen && new Date(seen) <= inactiveSince
+    })
+    .map(user => user.id)
+  if (awayIds.length === 0) return
+  const dailyIds = (await bookshelf.knex('group_memberships')
+    .where({ group_id: groupId, active: true })
+    .whereIn('user_id', awayIds)
+    .whereRaw('settings->>\'digestFrequency\' = \'daily\'')
+    .pluck('user_id')).map(String)
+  recipients.forEach(user => {
+    if (dailyIds.includes(String(user.id))) user.digestSlowed = true
+  })
+}
+
 export async function getRecipients (groupId, type) {
   if (!includes(['daily', 'weekly'], type)) {
     throw new Error(`invalid recipient type: ${type}`)
   }
 
   const group = await Group.find(groupId)
+  const now = new Date()
+  const inactiveSince = daysAgo(INACTIVE_DAYS, now)
   const recipients = await group.members().query(q => {
-    q.whereRaw(`group_memberships.settings->>'digestFrequency' = '${type}'`)
+    // Members away 30 days or more get the weekly digest instead of the daily one, and
+    // members away 180 days or more get none (D9)
+    if (type === 'daily') {
+      q.whereRaw('group_memberships.settings->>\'digestFrequency\' = \'daily\'')
+      q.whereRaw(`${LAST_SEEN} > ?`, [inactiveSince])
+    } else {
+      q.where(function () {
+        this.whereRaw('group_memberships.settings->>\'digestFrequency\' = \'weekly\'')
+          .orWhere(function () {
+            this.whereRaw('group_memberships.settings->>\'digestFrequency\' = \'daily\'')
+              .whereRaw(`${LAST_SEEN} <= ?`, [inactiveSince])
+          })
+      })
+    }
+    q.whereRaw(`${LAST_SEEN} > ?`, [daysAgo(DORMANT_DAYS, now)])
     q.whereRaw('(group_memberships.settings->>\'sendEmail\')::boolean = true')
+    // 'Everything except direct' and 'everything' stop group digests (D35); 'no group
+    // emails' already turned sendEmail off, and 'digest only' keeps them
+    q.whereRaw(`coalesce(users.settings->>'${UNSUBSCRIBE_SCOPE_SETTING}', '') not in (?, ?)`,
+      [UNSUBSCRIBE_SCOPE.ALL_BUT_DIRECT, UNSUBSCRIBE_SCOPE.EVERYTHING])
   }).fetch().then(get('models'))
+
+  if (type === 'weekly') await markSlowedDigests(groupId, recipients, inactiveSince)
 
   if (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true') {
     return recipients

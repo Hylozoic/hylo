@@ -315,7 +315,13 @@ const runE2E = async () => {
   setupDatabase(backendEnv)
 
   let e2eNotificationJwt = ''
+  let e2eUnsubscribeJwt = ''
   if (e2eSeedProfile !== 'none') {
+    try {
+      e2eUnsubscribeJwt = runCapture('node', ['scripts/print-e2e-unsubscribe-jwt.js'], { cwd: backendRoot, env: backendEnv }).trim()
+    } catch (e) {
+      console.warn('[isolated-e2e] No unsubscribe JWT for E2E (set OIDC_KEYS in env like local backend).', e.message)
+    }
     try {
       e2eNotificationJwt = runCapture('node', ['scripts/print-e2e-notification-jwt.js'], {
         cwd: backendRoot,
@@ -341,7 +347,8 @@ const runE2E = async () => {
     E2E_FORWARD_BROWSER_LOGS: process.env.E2E_FORWARD_BROWSER_LOGS || '',
     /** Vite reads VITE_* from the environment; matches the backend's member invites flag */
     VITE_FEATURE_FLAG_MEMBER_INVITES: process.env.VITE_FEATURE_FLAG_MEMBER_INVITES || 'on',
-    ...(e2eNotificationJwt ? { E2E_NOTIFICATION_PAGE_JWT: e2eNotificationJwt } : {})
+    ...(e2eNotificationJwt ? { E2E_NOTIFICATION_PAGE_JWT: e2eNotificationJwt } : {}),
+    ...(e2eUnsubscribeJwt ? { E2E_UNSUBSCRIBE_JWT: e2eUnsubscribeJwt } : {})
   }
 
   console.log(

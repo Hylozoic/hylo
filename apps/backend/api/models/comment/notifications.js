@@ -7,6 +7,8 @@ import { senderNameForGroup } from '../../../lib/email/senderNameViaHylo'
 import RedisClient from '../../services/RedisClient'
 import sentry from '../../../lib/sentry'
 import { getLocaleStrings } from '../../../lib/i18n/locales'
+import { UNSUBSCRIBE_SCOPE, keepsOnlyDirect, unsubscribeScopeOf } from '../notification/rules/unsubscribeScope'
+import { isDormant } from '../notification/rules/inactiveReader'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
 
 export async function notifyAboutMessage ({ commentId }) {
@@ -117,6 +119,10 @@ function digestTimeZone (timeZone) {
 async function sendDigestForUser ({ post, comments, user }) {
   if (user.pivot.get('muted_at')) return
 
+  // 'Everything' stops comment and message digests (D35)
+  const scope = unsubscribeScopeOf(user)
+  if (scope === UNSUBSCRIBE_SCOPE.EVERYTHING) return
+
   // select comments not written by this user and newer than user's last
   // read time.
   let lastReadAt = user.pivot.get('last_read_at')
@@ -182,12 +188,21 @@ async function sendDigestForUser ({ post, comments, user }) {
       RichText.getUserMentions(text).includes(user.id)
 
     let digestComments = filtered
+    // One-click unsubscribe turns comment email off (D34). A digest of only mentions is
+    // sent with comment email already off, so it links to the settings page instead.
+    let unsubscribe
     if (!(await user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email))) {
+      unsubscribe = { descriptor: 'settings_page' }
       // A mention always reaches the person (D8): with comment email off, the digest
       // still carries the comments that mention them, on the post's group email toggle.
       digestComments = filtered.filter(comment => hasMention({ text: comment.text() }))
       if (digestComments.length === 0) return
       if (!(await mentionEmailAllowed(user, post))) return
+    } else if (keepsOnlyDirect(scope) || isDormant(user)) {
+      // 'Everything except direct' (D35), or away 180 days or more (D9): only comments
+      // that mention them or reply to them
+      digestComments = commentsSpeakingTo(user, post, filtered, hasMention)
+      if (digestComments.length === 0) return
     }
 
     const routeGroup = await post.groupForFrontendRouteForUser(user.id)
@@ -218,9 +233,17 @@ async function sendDigestForUser ({ post, comments, user }) {
       sender: {
         reply_to: Email.postReplyAddress(post.id, user.id),
         name: routeGroup ? await senderNameForGroup(routeGroup, locale) : getLocaleStrings(locale).theTeamAtHylo
-      }
+      },
+      unsubscribe
     })
   }
+}
+
+// The comments that mention this person or reply to them (D7's direct signals). Digests
+// carry top-level comments only (Post#comments), so a reply here is a comment on their post.
+function commentsSpeakingTo (user, post, comments, hasMention) {
+  const onTheirPost = String(post.get('user_id')) === String(user.id)
+  return comments.filter(comment => onTheirPost || hasMention({ text: comment.text() }))
 }
 
 // Whether a mention in a comment may be emailed: email notifications are on (or the

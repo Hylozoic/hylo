@@ -98,5 +98,17 @@ module.exports.policies = {
     checkoutSuccess: true,
     checkoutCancel: true,
     health: true
+  },
+
+  // Authorized by the signed token in each email's unsubscribe link
+  UnsubscribeController: {
+    show:        true,
+    describe:    true,
+    unsubscribe: true
+  },
+
+  // Authorized by the webhook's signature
+  EmailEventsController: {
+    receive: true
   }
 }

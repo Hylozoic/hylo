@@ -1,0 +1,11 @@
+{
+  "templateId": null,
+  "templateName": "Winback_i18n",
+  "versionName": "Initial Version",
+  "locale": "en-US",
+  "tags": [
+    "i18n",
+    "i18n ready"
+  ],
+  "note": "Not uploaded yet. Upload with scripts/i18n/upload-new-template.js, then set WINBACK_TEMPLATE_ID in apps/backend/api/services/Email.js. Sent once to a member who has been away 180 days (apps/backend/api/models/user/winback.js)."
+}

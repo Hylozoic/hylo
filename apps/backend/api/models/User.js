@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
-import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
+import { has, isEmpty, merge, omit, pick, intersectionBy, uniq } from 'lodash'
 import { safeFetch } from '../../lib/safeFetch'
 import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
@@ -342,6 +342,7 @@ module.exports = bookshelf.Model.extend(merge({
     DELETE FROM join_requests WHERE user_id = ${this.id};
     DELETE FROM skills_users WHERE user_id = ${this.id};
     DELETE FROM posts_about_users WHERE user_id = ${this.id};
+    UPDATE email_clicks SET user_id = NULL WHERE user_id = ${this.id};
 
     DELETE FROM tag_follows WHERE user_id = ${this.id};
     DELETE FROM user_external_data WHERE user_id = ${this.id};
@@ -352,6 +353,7 @@ module.exports = bookshelf.Model.extend(merge({
     UPDATE users SET
     active = false,
     settings = NULL,
+    acquisition_source = NULL,
     name = 'Deleted User',
     avatar_url = NULL,
     bio = NULL,
@@ -363,6 +365,8 @@ module.exports = bookshelf.Model.extend(merge({
     contact_email = NULL,
     contact_phone = NULL,
     email = '${uuidv4()}@hylo.com',
+    email_undeliverable_at = NULL,
+    email_undeliverable_reason = NULL,
     first_name = NULL,
     last_name = NULL,
     twitter_name = NULL,
@@ -542,6 +546,8 @@ module.exports = bookshelf.Model.extend(merge({
       await this.refresh({ transacting })
 
       this.setSanely(omit(whitelist, 'password'))
+      // A new address hasn't bounced (D36)
+      if (this.hasChanged('email')) this.set({ email_undeliverable_at: null, email_undeliverable_reason: null })
 
       if (changes.password) {
         await this.setPassword(changes.password, sessionId, { transacting })
@@ -599,6 +605,12 @@ module.exports = bookshelf.Model.extend(merge({
            (medium === Notification.MEDIUM.Push &&
             (setting === 'both' || setting === 'push') &&
             (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || isTester))
+  },
+
+  // The email provider reported this address as undeliverable (D36): non-essential email
+  // is skipped and the app asks the person to fix it
+  isEmailUndeliverable () {
+    return !!this.get('email_undeliverable_at')
   },
 
   disableAllNotifications () {
@@ -811,6 +823,17 @@ module.exports = bookshelf.Model.extend(merge({
       .transacting(transacting)
     if (excludeEmail) query = query.andWhere('email', '!=', excludeEmail)
     return query.then(rows => Number(rows[0].count) === 0)
+  },
+
+  // Marks the account with this address as undeliverable (D36). Returns how many were marked.
+  markEmailUndeliverable: function (email, reason) {
+    if (!email || typeof email !== 'string') return Promise.resolve(0)
+    return bookshelf.knex('users')
+      .whereIn('email', uniq([email, email.toLowerCase()]))
+      .update({
+        email_undeliverable_at: new Date(),
+        email_undeliverable_reason: String(reason || 'bounce').slice(0, 255)
+      })
   },
 
   incNewNotificationCount: function (id) {

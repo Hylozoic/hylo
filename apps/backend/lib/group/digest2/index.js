@@ -10,6 +10,8 @@ import {
   shouldSendData
 } from './util'
 import { senderNameViaHylo } from '../../email/senderNameViaHylo'
+import { getLocaleStrings } from '../../i18n/locales'
+import { lastSeenAt } from '../../../api/models/notification/rules/inactiveReader'
 import sentry from '../../sentry'
 
 const DIGEST_TEMPLATE_ID = 'tem_t7rmGfJKvqXrvmrVWJjjWkg4'
@@ -55,6 +57,24 @@ export const prepareDigestData = async (id, type, opts = {}) => {
   }, formattedData)
 }
 
+// The first weekly digest after someone's daily digest was slowed down for being away
+// (util.js marks them digestSlowed) says so, once per absence (D9). The template shows
+// slowed_notice when it is set.
+const SLOWED_NOTICE_SETTING = 'digest_slowed_notice_at'
+// Someone in several groups gets several weekly digests in one run; only one says it
+const slowedNoticeSentTo = new Set()
+
+function owesSlowedNotice (user, type) {
+  if (type !== 'weekly' || !user.digestSlowed || slowedNoticeSentTo.has(String(user.id))) return false
+  const noticedAt = user.get('settings')?.[SLOWED_NOTICE_SETTING]
+  const seen = lastSeenAt(user)
+  return !noticedAt || (seen && new Date(noticedAt) < seen)
+}
+
+const recordSlowedNotice = user => bookshelf.knex('users')
+  .where({ id: user.id })
+  .update({ settings: bookshelf.knex.raw('coalesce(settings, \'{}\'::jsonb) || ?::jsonb', [JSON.stringify({ [SLOWED_NOTICE_SETTING]: new Date().toISOString() })]) })
+
 export const sendToUser = (user, type, data, opts = {}) => {
   const templateId = data.search ? SAVED_SEARCH_TEMPLATE_ID : DIGEST_TEMPLATE_ID
   let senderName
@@ -67,18 +87,46 @@ export const sendToUser = (user, type, data, opts = {}) => {
     senderName = `${data.group_name} ${startCase(type)} Digest`
   }
 
+  // What a one-click unsubscribe from this digest turns off (D34): that group's digest,
+  // or for the unified digest every group on this frequency; a saved search links to
+  // the settings page. A weekly unified digest to someone whose daily digest was slowed
+  // down for being away also carries their daily groups, so its one-click covers those.
+  const unsubscribe = data.search
+    ? { descriptor: 'settings_page' }
+    : data.unified
+      ? { frequency: type, ...(type === 'weekly' && user.digestSlowed ? { slowedDaily: true } : {}) }
+      : { groupId: data.group_id }
+
+  // Claimed before sending, so digests from two groups sent at the same time can't
+  // both carry it; released again if this one doesn't go out
+  const slowedNotice = !data.search && owesSlowedNotice(user, type)
+  if (slowedNotice) slowedNoticeSentTo.add(String(user.id))
+  let slowedNoticeSent = false
+
   return personalizeData(user, type, data, opts)
-    .then(data => {
+    .then(async data => {
       if (!data) return false
       if (opts.dryRun) return true
       const locale = user.getLocale()
-      return Email.sendSimpleEmail(user.get('email'), templateId, data, {
+      const emailData = slowedNotice
+        ? { ...data, slowed_notice: getLocaleStrings(locale).emailDigestSlowedNotice() }
+        : data
+      const result = await Email.sendSimpleEmail(user.get('email'), templateId, emailData, {
         sender: {
           name: senderNameViaHylo(senderName, locale),
           reply_to: 'DoNotReply@hylo.com'
         },
-        version: 'Spaces'
+        version: 'Spaces',
+        unsubscribe
       }, locale)
+      if (slowedNotice && result && result !== Email.SKIPPED) {
+        slowedNoticeSent = true
+        await recordSlowedNotice(user)
+      }
+      return result
+    })
+    .finally(() => {
+      if (slowedNotice && !slowedNoticeSent) slowedNoticeSentTo.delete(String(user.id))
     })
 }
 
@@ -126,6 +174,7 @@ export const sendUnifiedToUser = (user, type, datasets, opts = {}) => {
 
 export const sendAllDigests = async (type, opts = {}) => {
   if (opts.groupIds && opts.groupIds.length === 0) return []
+  slowedNoticeSentTo.clear()
 
   let query = bookshelf.knex('groups')
     .where({ active: true })
@@ -151,6 +200,8 @@ export const sendAllDigests = async (type, opts = {}) => {
         if (wantsUnifiedDigest(user)) {
           const bucket = unifiedByUserId.get(user.id) || { user, datasets: [] }
           bucket.datasets.push(data)
+          // Slowed down in any group: the weekly unified digest carries that group too
+          if (user.digestSlowed) bucket.user.digestSlowed = true
           unifiedByUserId.set(user.id, bucket)
         } else {
           regular.push(user)

@@ -800,6 +800,34 @@ msgstr "Votre invitation à %(group_name_var)s vous attend"
 msgid "Finish signing up for Hylo"
 msgstr "Terminez votre inscription sur Hylo"
 
+# Winback template strings
+msgid "Here's what you've missed on Hylo"
+msgstr "Ce que vous avez manqué sur Hylo"
+
+msgid "It's been a while since you visited Hylo, so we've been sending you fewer emails. Here's what's been happening in your groups."
+msgstr "Cela fait un moment que vous n'êtes pas venu sur Hylo, alors nous vous avons envoyé moins d'e-mails. Voici ce qui s'est passé dans vos groupes."
+
+#, python-format
+msgid "New posts since your last visit: %(new_post_count_var)s"
+msgstr "Nouvelles publications depuis votre dernière visite : %(new_post_count_var)s"
+
+msgid "Catch up on Hylo →"
+msgstr "Rattrapez votre retard sur Hylo →"
+
+msgid "Direct messages and mentions still reach you by email."
+msgstr "Les messages directs et les mentions vous parviennent toujours par e-mail."
+
+msgid "Choose which emails you get"
+msgstr "Choisissez les e-mails que vous recevez"
+
+#, python-format
+msgid "Catch up on Hylo: %(home_url)s"
+msgstr "Rattrapez votre retard sur Hylo : %(home_url)s"
+
+#, python-format
+msgid "Choose which emails you get: %(email_settings_url)s"
+msgstr "Choisissez les e-mails que vous recevez : %(email_settings_url)s"
+
 #, python-format
 msgid "%(inviter_name)s"
 msgstr "%(inviter_name)s"

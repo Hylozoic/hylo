@@ -90,6 +90,9 @@ opts.jsonWebTokenOptions = {
   maxAge: '4h'
 }
 passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
+  // Only sign-in tokens sign someone in. Tokens made for one purpose carry an `action`
+  // and are accepted only where that purpose is handled.
+  if (jwt_payload.action) return done(null, false, 'Invalid link')
   User.find(jwt_payload.sub, {}, false).then(user => {
     if (user) {
       return done(null, user)

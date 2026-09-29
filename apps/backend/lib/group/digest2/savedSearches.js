@@ -1,6 +1,7 @@
 import { merge, pick } from 'lodash/fp'
 import { pluralize } from '../../util/normalize'
 import { sendToUser } from '../digest2'
+import { isDormant } from '../../../api/models/notification/rules/inactiveReader'
 
 const prepareDigestData = async (searchId) => {
   const search = await SavedSearch.where({ id: searchId }).fetch()
@@ -46,6 +47,8 @@ const shouldSendData = (data, membership, type) => {
 const sendDigest = async (searchId, type) => {
   return await prepareDigestData(searchId).then(async data => {
     const { lastPostId, membership, user } = data
+    // Members away 180 days or more get direct messages and mentions only (D9)
+    if (isDormant(user)) return
     if (shouldSendData(data, membership, type)) return merge(await sendToUser(user, type, data), { lastPostId })
   })
     .then(async (sent = {}) => {

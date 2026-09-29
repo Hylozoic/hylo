@@ -82,7 +82,8 @@ export const verifyEmail = (fetchOne) => async (_, { email: providedEmail, code:
 
     const user = await findUserByEmail(email)
 
-    await user.save({ email_validated: true })
+    // Verifying the address also shows it can receive email again (D36)
+    await user.save({ email_validated: true, email_undeliverable_at: null, email_undeliverable_reason: null })
 
     context.req.session.userId = user.id
 

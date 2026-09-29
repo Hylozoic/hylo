@@ -111,6 +111,15 @@ describe('UserController', function () {
         await UserController.getNotificationSettings(req, res)
         expect(res.statusCode).to.equal(403)
       })
+
+      it('returns the saved unsubscribe choice, or null', async () => {
+        await UserController.getNotificationSettings(req, res)
+        expect(res.body.unsubscribeScope).to.equal(null)
+
+        await user.addSetting({ email_unsubscribe_scope: 'digest_only' }, true)
+        await UserController.getNotificationSettings(req, res)
+        expect(res.body.unsubscribeScope).to.equal('digest_only')
+      })
     })
 
     describe('.updateNotificationSettings', () => {
@@ -166,15 +175,95 @@ describe('UserController', function () {
         expect(otherMembership.getSetting('digestFrequency')).to.equal('weekly')
       })
 
-      it('keeps unsubscribing from all limited to channels on memberships', async () => {
+      it("treats an older page's unsubscribeAll as 'everything except direct'", async () => {
         req.body = { unsubscribeAll: true }
         await UserController.updateNotificationSettings(req, res)
 
+        await user.refresh()
+        expect(user.get('settings').email_unsubscribe_scope).to.equal('all_but_direct')
+        expect(user.get('settings').dm_notifications).to.equal(undefined)
         const settings = await membershipSettings(group1.id)
-        expect(settings.sendEmail).to.equal(false)
-        expect(settings.sendPushNotifications).to.equal(false)
+        expect(settings.sendEmail).to.equal(true)
         expect(settings.digestFrequency).to.equal('weekly')
         expect(settings.postNotifications).to.equal('all')
+      })
+    })
+
+    describe('.updateNotificationSettings with an unsubscribe choice', () => {
+      beforeEach(async () => {
+        await user.addSetting({ dm_notifications: 'both', comment_notifications: 'both' }, true)
+        await GroupMembership.forPair(user.id, group1.id).fetch()
+          .then(m => m.addSetting({ sendPushNotifications: true }, true))
+      })
+
+      const choose = async unsubscribeScope => {
+        req.body = { unsubscribeScope }
+        await UserController.updateNotificationSettings(req, res)
+        await user.refresh()
+        return user.get('settings')
+      }
+
+      it("'digest_only' saves the choice and changes no other setting", async () => {
+        const settings = await choose('digest_only')
+
+        expect(res.body).to.deep.equal({ message: 'Notification settings updated' })
+        expect(settings.email_unsubscribe_scope).to.equal('digest_only')
+        expect(settings.dm_notifications).to.equal('both')
+        expect(settings.comment_notifications).to.equal('both')
+        const membership = await membershipSettings(group1.id)
+        expect(membership.sendEmail).to.equal(true)
+        expect(membership.digestFrequency).to.equal('weekly')
+      })
+
+      it("'no_group_emails' turns off every group's email and leaves push, direct messages and comments", async () => {
+        const settings = await choose('no_group_emails')
+
+        expect(settings.email_unsubscribe_scope).to.equal('no_group_emails')
+        expect(settings.dm_notifications).to.equal('both')
+        expect(settings.comment_notifications).to.equal('both')
+        for (const group of [group1, group2, space]) {
+          expect((await membershipSettings(group.id)).sendEmail).to.equal(false)
+        }
+        expect((await membershipSettings(group1.id)).sendPushNotifications).to.equal(true)
+      })
+
+      it("'all_but_direct' saves the choice without silencing direct messages or comments", async () => {
+        const settings = await choose('all_but_direct')
+
+        expect(settings.email_unsubscribe_scope).to.equal('all_but_direct')
+        expect(settings.dm_notifications).to.equal('both')
+        expect(settings.comment_notifications).to.equal('both')
+        const membership = await membershipSettings(group1.id)
+        expect(membership.sendEmail).to.equal(true)
+        expect(membership.sendPushNotifications).to.equal(true)
+      })
+
+      it("'everything' stops email and push everywhere, as unsubscribing from all did", async () => {
+        const settings = await choose('everything')
+
+        expect(settings.email_unsubscribe_scope).to.equal('everything')
+        expect(settings.dm_notifications).to.equal('none')
+        expect(settings.comment_notifications).to.equal('none')
+        const membership = await membershipSettings(group1.id)
+        expect(membership.sendEmail).to.equal(false)
+        expect(membership.sendPushNotifications).to.equal(false)
+        expect(membership.digestFrequency).to.equal('weekly')
+      })
+
+      it("'none' removes a saved choice", async () => {
+        await choose('digest_only')
+        const settings = await choose('none')
+
+        expect(settings).not.to.have.property('email_unsubscribe_scope')
+        expect(settings.dm_notifications).to.equal('both')
+      })
+
+      it('rejects an unknown choice without changing anything', async () => {
+        const settings = await choose('some_emails')
+
+        expect(res.statusCode).to.equal(400)
+        expect(settings).not.to.have.property('email_unsubscribe_scope')
+        expect((await membershipSettings(group1.id)).sendEmail).to.equal(true)
       })
     })
   })
