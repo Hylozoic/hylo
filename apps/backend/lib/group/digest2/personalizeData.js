@@ -6,11 +6,59 @@ import { applyUnifiedGroupLabels } from './mergeData'
 import { dropSeenContent } from './dedupe'
 import * as cheerio from 'cheerio'
 
-const generateSubjectLine = (data, type, locale) => {
+// Post sections in the order the digest template shows them
+const HIGHLIGHT_POST_KEYS = ['discussions', 'events', 'offers', 'requests', 'resources', 'projects', 'proposals']
+const SUBJECT_TITLE_MAX = 60
+const PREHEADER_MAX = 140
+
+const ENTITIES = { '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&#x27;': "'" }
+const stripTags = text => text.replace(/<[^>]*>/g, ' ')
+
+/** Post text as one plain line: no HTML, no entities, no line breaks. */
+export const plainText = html => stripTags(
+  stripTags(String(html || '')).replace(/&(nbsp|amp|lt|gt|quot|#39|#x27);/g, entity => ENTITIES[entity])
+).replace(/\s+/g, ' ').trim()
+
+/** Shortens plain text at a word where it can, never splitting an emoji, and adds an ellipsis. */
+export const truncatePlain = (text, max) => {
+  const chars = Array.from(text || '')
+  if (chars.length <= max) return text || ''
+  let cut = chars.slice(0, max - 1).join('')
+  const space = cut.lastIndexOf(' ')
+  if (space > cut.length * 0.6) cut = cut.slice(0, space)
+  return cut.trimEnd() + '…'
+}
+
+/**
+ * The digest's top post (the first titled post in template order, new posts before
+ * posts with new comments) and how many other posts it has. Read after dedupe, so it never
+ * names a post the email no longer contains.
+ */
+export const digestHighlights = data => {
+  const posts = [
+    ...HIGHLIGHT_POST_KEYS.flatMap(key => data[key] || []),
+    ...(data.posts_with_new_comments || [])
+  ]
+  const top = posts.find(post => plainText(post?.title))
+  const ids = new Set(posts.map(post => String(post?.id)))
+  return { top, others: top ? ids.size - 1 : ids.size, posts }
+}
+
+// D40: the subject is the top post's title plus "+N more in <group>", falling back to
+// the fixed subject when there is no titled post (chats or reminders only).
+const generateSubjectLine = (data, content, type, locale) => {
   const L = getLocaleStrings(locale)
   if (data.search) {
     // Saved search
     return L.newSavedSearchResults(data.search.get('name'))
+  }
+
+  const { top, others } = digestHighlights(content)
+  if (top) {
+    const title = truncatePlain(plainText(top.title), SUBJECT_TITLE_MAX)
+    return data.unified
+      ? L.emailDigestUnifiedTopPostSubject({ title, count: others })
+      : L.emailDigestTopPostSubject({ title, count: others, groupName: data.group_name })
   }
 
   if (data.unified) {
@@ -25,6 +73,19 @@ const generateSubjectLine = (data, type, locale) => {
   if (type === 'weekly') {
     return L.emailDigestWeeklySubject(data.group_name)
   }
+}
+
+// The preview line inboxes show after the subject: the top post's text, or else the
+// titles of the next posts.
+const generatePreheader = content => {
+  const { top, posts } = digestHighlights(content)
+  const text = top && plainText(top.details)
+  if (text) return truncatePlain(text, PREHEADER_MAX)
+  const titles = posts
+    .filter(post => post !== top)
+    .map(post => plainText(post?.title))
+    .filter(Boolean)
+  return truncatePlain(titles.join(' · '), PREHEADER_MAX)
 }
 
 const CONTENT_KEYS = [
@@ -238,7 +299,8 @@ const personalizeData = async (user, type, data, opts = {}) => {
   })
 
   return Promise.props(merge(filteredData, {
-    subject: generateSubjectLine(data, type, locale),
+    subject: generateSubjectLine(data, filteredData, type, locale),
+    preheader: data.search ? '' : generatePreheader(filteredData),
     unified: !!data.unified,
     group_url: Frontend.appendQueryString(filteredData.group_url, clickthroughParams),
     recipient: {

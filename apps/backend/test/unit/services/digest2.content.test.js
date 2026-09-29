@@ -216,4 +216,111 @@ describe('digest content', () => {
       expect(seen.emailedPostIds.size + seen.readPostIds.size + seen.seenCommentIds.size).to.equal(0)
     })
   })
+  describe('subject line and preview (D40)', () => {
+    let recipient
+    let nextId = 990000
+
+    before(async () => {
+      recipient = await newRecipient()
+    })
+
+    // Posts that were never emailed or read, so dedupe keeps them
+    const fake = (title, extra = {}) => {
+      nextId += 1
+      return {
+        id: nextId,
+        title,
+        details: '',
+        user: { id: author.id, name: 'Post Author' },
+        comments: [],
+        url: `https://www.hylo.com/groups/garden/post/${nextId}`,
+        ...extra
+      }
+    }
+
+    it('names the top post when it is the only one', async () => {
+      const result = await personalizeData(recipient, 'daily', digest({ discussions: [fake('Need a ladder')] }))
+      expect(result.subject).to.equal('Need a ladder in Garden Club')
+    })
+
+    it('adds how many more posts there are, counting each post once', async () => {
+      const shared = fake('Harvest party')
+      const result = await personalizeData(recipient, 'daily', digest({
+        discussions: [fake('Need a ladder'), shared],
+        offers: [fake('Spare seedlings', { type: 'offer' })],
+        posts_with_new_comments: [{ ...shared, comments: [{ id: 5, text: 'yes', user: { id: author.id } }], comment_count: 1 }]
+      }))
+      expect(result.subject).to.equal('Need a ladder +2 more in Garden Club')
+    })
+
+    it('uses "across your groups" in the one-email-for-all-groups digest', async () => {
+      const result = await personalizeData(recipient, 'weekly', {
+        ...digest({ requests: [fake('Rides to the market', { type: 'request' }), fake('Tools', { type: 'request' })] }),
+        unified: true,
+        group_name: 'Hylo',
+        group_id: null
+      })
+      expect(result.subject).to.equal('Rides to the market +1 more across your groups')
+    })
+
+    it('is translated into the recipient\'s language', async () => {
+      const german = await factories.user({ settings: { locale: 'de' } }).save()
+      const result = await personalizeData(german, 'daily', digest({ discussions: [fake('Leiter gesucht'), fake('Fest')] }))
+      expect(result.subject).to.equal('Leiter gesucht +1 weitere in Garden Club')
+    })
+
+    it('keeps HTML, entities and line breaks out of the subject and shortens long titles', async () => {
+      const long = 'A very long title about the community garden work day that goes on and on and on'
+      const tagged = await personalizeData(recipient, 'daily', digest({ discussions: [fake('<b>Big</b> &amp; bold\nplans <script>x</script>')] }))
+      expect(tagged.subject).to.equal('Big & bold plans x in Garden Club')
+
+      const shortened = await personalizeData(recipient, 'daily', digest({ discussions: [fake(long)] }))
+      const title = shortened.subject.replace(/ in Garden Club$/, '')
+      expect(Array.from(title).length).to.be.at.most(60)
+      expect(title.endsWith('…')).to.be.true
+      expect(long.startsWith(title.slice(0, -1))).to.be.true
+    })
+
+    it('never names a post the digest left out', async () => {
+      const emailed = await savePost({ name: 'Already emailed' })
+      const reader = await newRecipient()
+      await notified(reader, emailed)
+      const result = await personalizeData(reader, 'daily', digest({
+        discussions: [presented(emailed), fake('Still new')]
+      }))
+      expect(result.subject).to.equal('Still new in Garden Club')
+    })
+
+    it('keeps the fixed subject when there is no titled post', async () => {
+      const result = await personalizeData(recipient, 'daily', digest({
+        chats: [{
+          id: 991234,
+          type: 'chat',
+          title: '',
+          user: { id: author.id },
+          comments: [],
+          source_group_id: group.id,
+          source_group_name: 'Garden Club',
+          chat_url: 'https://www.hylo.com/groups/garden/chat'
+        }]
+      }))
+      expect(result.subject).to.equal('Your Garden Club Daily Digest')
+    })
+
+    it('adds a plain-text preview line from the top post', async () => {
+      const result = await personalizeData(recipient, 'daily', digest({
+        discussions: [fake('Need a ladder', { details: '<p>Does anyone have a <a href="https://www.hylo.com/x">ladder</a> I could borrow?</p><p>Thanks!</p>' })]
+      }))
+      expect(result.preheader).to.equal('Does anyone have a ladder I could borrow? Thanks!')
+    })
+
+    it('previews the next titles when the top post has no text', async () => {
+      const result = await personalizeData(recipient, 'daily', digest({
+        discussions: [fake('Need a ladder'), fake('Harvest party')],
+        events: [fake('Work day', { type: 'event' })]
+      }))
+      expect(result.subject).to.equal('Need a ladder +2 more in Garden Club')
+      expect(result.preheader).to.equal('Harvest party · Work day')
+    })
+  })
 })
