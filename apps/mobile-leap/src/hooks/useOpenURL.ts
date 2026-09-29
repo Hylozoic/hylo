@@ -17,11 +17,21 @@ export default function useOpenURL () {
   )
 }
 
+// hylo.com without www serves the same pages as www.hylo.com
+const APEX_HOST_URL = /^https:\/\/hylo\.com(?=[/?#]|$)/i
+
+/** Rewrites a https://hylo.com link to https://www.hylo.com so it matches the rest of routing. */
+export function normalizeApexHost (pathOrURL: string): string {
+  return pathOrURL.replace(APEX_HOST_URL, DEFAULT_APP_HOST)
+}
+
 export async function openURL (
-  providedPathOrURL: string,
+  rawPathOrURL: string,
   options: { openExternal?: boolean, reset?: boolean, replace?: boolean } = {},
   navigation: NavigationLike = navigationRef
 ) {
+  const providedPathOrURL = normalizeApexHost(rawPathOrURL)
+
   // Hylo-as-OIDC-provider and third-party OIDC flows must stay in the system browser
   if (shouldOpenHyloOidcInExternalBrowser(providedPathOrURL)) {
     const href = hyloUrlForExternalBrowser(providedPathOrURL)
