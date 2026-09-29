@@ -14,7 +14,8 @@ jest.mock('@/components/ui/select', () => {
     Select: ({ value, onValueChange, children }) =>
       React.createElement('select', { value, 'data-testid': 'reason-select', onChange: e => onValueChange(e.target.value) }, children),
     SelectTrigger: () => null,
-    SelectContent: ({ children }) => React.createElement(React.Fragment, null, children),
+    SelectContent: ({ className, children }) =>
+      React.createElement('optgroup', { label: 'reasons', className, 'data-testid': 'reason-options' }, children),
     SelectItem: ({ value, children }) => React.createElement('option', { value }, children)
   }
 })
@@ -44,6 +45,17 @@ describe('FlagContent', () => {
     await waitFor(() => {
       expect(mockOnClose).toHaveBeenCalled()
     })
+  })
+
+  it('opens the reason list above the dialog, not behind it', () => {
+    // SelectContent's own layer in components/ui/select.jsx, used when no class overrides it
+    const SELECT_CONTENT_Z = 1200
+    const zIndexOf = el => Number((el.getAttribute('class') || '').match(/\bz-\[(\d+)\]/)?.[1] || 0)
+    render(<FlagContent {...defaultProps} />)
+    const dialogZ = zIndexOf(screen.getByRole('heading', { name: 'Explanation for Flagging' }).closest('.fixed'))
+    const listZ = zIndexOf(screen.getByTestId('reason-options')) || SELECT_CONTENT_Z
+    expect(dialogZ).toBeGreaterThan(0)
+    expect(listZ).toBeGreaterThan(dialogZ)
   })
 
   it('disables submit until a reason is selected', () => {

@@ -121,7 +121,7 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
               <SelectTrigger className='w-full'>
                 {selectedCategory ? options.find(opt => opt.id === selectedCategory)?.label : t('Select a reason')}
               </SelectTrigger>
-              <SelectContent className='z-[1002]'>
+              <SelectContent>
                 {options.map(option => (
                   <SelectItem key={option.id} value={option.id}>
                     {option.label}
