@@ -5,6 +5,9 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { FETCH_GROUPS, SORT_NEAREST } from 'store/constants'
 
 const DEFAULT_PAGE_SIZE = 20
+
+// "Recently active": groups with the most posts in the last 30 days first
+export const SORT_RECENT = 'recent'
 const MIN_SEARCH_TERM_LENGTH = 2
 
 /**

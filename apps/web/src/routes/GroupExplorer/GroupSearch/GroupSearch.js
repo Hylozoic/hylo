@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
 import { useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -10,8 +11,9 @@ import ScrollListener from 'components/ScrollListener'
 import GroupCard from 'components/GroupCard'
 import useRouteParams from 'hooks/useRouteParams'
 import useDebounce from 'hooks/useDebounce'
-import useEnsureSearchedGroups from 'hooks/useEnsureSearchedGroups'
+import useEnsureSearchedGroups, { SORT_RECENT } from 'hooks/useEnsureSearchedGroups'
 import getMe from 'store/selectors/getMe'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { SORT_NAME, SORT_NEAREST, SORT_SIZE } from 'store/constants'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
 import { FARM_VIEW, FARM_TYPES, PRODUCT_CATEGORIES, MANAGEMENT_PLANS, FARM_CERTIFICATIONS } from 'util/constants'
@@ -28,8 +30,10 @@ export default function GroupSearch ({ viewFilter }) {
       }
     : null
   const membershipGroupIds = currentUser ? currentUser.memberships.toModelArray().map(membership => membership.group.id) : []
-  const [sortBy, setSortBy] = useState(SORT_NAME)
-  const [search, setSearch] = useState('')
+  const location = useLocation()
+  const [sortBy, setSortBy] = useState(SORT_RECENT)
+  // The main search links here with ?search= when nothing matched there
+  const [search, setSearch] = useState(() => getQuerystringParam('search', location) || '')
   const [offset, setOffset] = useState(0)
   const [filterToggle, setFilterToggle] = useState(false)
   const [groupType, setGroupType] = useState(null)
@@ -141,6 +145,7 @@ export default function GroupSearch ({ viewFilter }) {
 
 const sortOptions = (t, nearCoord) => {
   const options = [
+    { id: SORT_RECENT, label: t('Recently active') },
     { id: SORT_NAME, label: t('Group Name') },
     { id: SORT_SIZE, label: t('Member Count') }
   ]
