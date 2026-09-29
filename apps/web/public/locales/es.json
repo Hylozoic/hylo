@@ -625,6 +625,7 @@
   "Disable Self-Voting?": "¿Desactivar la autovotación?",
   "Disabling self-voting during the voting phase will return all tokens that participants allocated to their own submissions back to them. This action cannot be undone. Do you want to continue?": "Al deshabilitar la votación automática durante la fase de votación, se les devolverán todos los tokens que los participantes asignaron a sus propios envíos. \nEsta acción no se puede deshacer. \n¿Quieres continuar?",
   "Discard": "Descartar",
+  "Continue editing": "Seguir editando",
   "Discard Group": "Descartar grupo",
   "Discard Space": "Descartar espacio",
   "Discard this group?": "¿Descartar este grupo?",

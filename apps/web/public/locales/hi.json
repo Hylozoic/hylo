@@ -608,6 +608,7 @@
   "Disable Self-Voting?": "स्वयं-मतदान बंद करें?",
   "Disabling self-voting during the voting phase will return all tokens that participants allocated to their own submissions back to them. This action cannot be undone. Do you want to continue?": "मतदान चरण के दौरान आत्म-मतदान को अक्षम करने से सभी टोकन जो प्रतिभागियों ने अपनी स्वयं की प्रस्तुतियों के लिए आवंटित किए थे, उन्हें वापस कर दिए जाएंगे। यह क्रिया पूर्ववत नहीं की जा सकती। क्या आप जारी रखना चाहते हैं?",
   "Discard": "त्यागें",
+  "Continue editing": "संपादन जारी रखें",
   "Discard Group": "समूह त्यागें",
   "Discard Space": "स्पेस त्यागें",
   "Discard this group?": "यह समूह त्यागें?",

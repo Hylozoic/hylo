@@ -37,6 +37,8 @@ jest.mock('sonner', () => ({
   }
 }))
 
+jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn((eventName, data) => ({ type: 'TEST_TRACK_ANALYTICS_EVENT', eventName, data })))
+
 jest.mock('store/actions/draftActions', () => ({
   ...jest.requireActual('store/actions/draftActions'),
   saveDraft: jest.fn(() => ({ type: 'TEST_SAVE_DRAFT' }))
@@ -255,6 +257,12 @@ describe('PostEditor', () => {
       ))
       // Kept right away, not after the autosave delay
       expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ data: expect.stringContaining('Never sent') }))
+      expect(require('store/actions/trackAnalyticsEvent')).toHaveBeenCalledWith('Post Failed', {
+        postType: 'discussion',
+        editing: false,
+        editorOpen: false,
+        discarded: false
+      })
 
       await act(async () => { toast.error.mock.calls[0][1].action.onClick() })
       await waitFor(() => expect(`${window.location.pathname}${window.location.search}`).toBe('/groups/test-group?create=post&newPostType=discussion'))

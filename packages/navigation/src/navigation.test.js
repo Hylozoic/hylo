@@ -11,6 +11,8 @@ import {
   createModalUrl,
   createGroupModalUrl,
   createPostModalUrl,
+  introduceYourselfUrl,
+  stripComposeModalQueryParams,
   primaryPostUrl,
   messagePersonUrl,
   isPublicPath,
@@ -206,6 +208,25 @@ describe('createModalUrl', () => {
   it('accepts an explicit type', () => {
     expect(createModalUrl({ pathname: '/all/all', search: '' }, 'post', { newPostType: 'request' }))
       .toEqual('/all/all?newPostType=request&create=post')
+  })
+})
+
+describe('introduceYourselfUrl', () => {
+  it('opens a discussion prefilled with the introduction template', () => {
+    expect(introduceYourselfUrl({ pathname: '/groups/test/stream', search: '' }, { entry: 'welcome' }))
+      .toEqual('/groups/test/stream?newPostType=discussion&template=intro&composerEntry=welcome&create=post')
+  })
+
+  it('leaves out the entry when there is none', () => {
+    expect(introduceYourselfUrl({ pathname: '/groups/test', search: '' }))
+      .toEqual('/groups/test?newPostType=discussion&template=intro&create=post')
+  })
+})
+
+describe('stripComposeModalQueryParams', () => {
+  it('drops the composer template and entry along with the other compose params', () => {
+    expect(stripComposeModalQueryParams('/groups/test/stream?s=updated&newPostType=discussion&template=intro&composerEntry=welcome&create=post'))
+      .toEqual('/groups/test/stream?s=updated')
   })
 })
 

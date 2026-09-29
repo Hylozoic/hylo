@@ -1,8 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { CSSTransition } from 'react-transition-group'
 import { useTranslation } from 'react-i18next'
+import { AnalyticsEvents } from '@hylo/shared'
 import {
+  COMPOSER_ENTRY_PARAM,
+  COMPOSER_TEMPLATE_PARAM,
   CREATE_POST,
   CREATE_QUERY_PARAM,
   removeCreateEditModalFromUrl,
@@ -12,6 +16,7 @@ import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedD
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
 import useRouteParams from 'hooks/useRouteParams'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { useRegisterHardwareBackHandler } from 'util/hardwareBackHandler'
 import classes from './CreatePostModal.module.scss'
 
@@ -26,11 +31,25 @@ function isLegacyCreatePostPath (pathname) {
 }
 
 /**
+ * Where the composer was opened from: the entry named in the URL (new button,
+ * create menu, empty state, chat, welcome…), else a template link, else a
+ * link opened straight into the composer, else somewhere else in the app.
+ */
+export function composerEntryPoint (location) {
+  const params = new URLSearchParams(location.search)
+  if (params.get(COMPOSER_ENTRY_PARAM)) return params.get(COMPOSER_ENTRY_PARAM)
+  if (params.get(COMPOSER_TEMPLATE_PARAM)) return 'template'
+  if (location.key === 'default') return 'deep_link'
+  return 'other'
+}
+
+/**
  * Mounted once by AuthLayoutRouter. Opens for `?create=post` or `/post/:id/edit`
  * so new pages do not need their own create/edit overlay routes.
  */
 export default function CreatePostModal () {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const location = useLocation()
   const navigate = useNavigate()
   const routeParams = useRouteParams()
@@ -69,6 +88,26 @@ export default function CreatePostModal () {
     navigate(stripComposeModalQueryParams(closePathFromParam || fallback), { replace: true })
   }, [isEditing, location.pathname, location.search, navigate])
 
+  // Composer Opened, once each time the create window opens
+  const openTrackedRef = useRef(false)
+  useEffect(() => {
+    if (!isOpen || !isCreating) {
+      openTrackedRef.current = false
+      return
+    }
+    if (openTrackedRef.current) return
+    openTrackedRef.current = true
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.COMPOSER_OPENED, {
+      entryPoint: composerEntryPoint(location),
+      postType: querystringParams.get('newPostType') || null,
+      template: querystringParams.get(COMPOSER_TEMPLATE_PARAM) || null
+    }))
+  }, [isOpen, isCreating])
+
+  const trackAbandoned = useCallback(outcome => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.COMPOSER_ABANDONED, { outcome, editing: isEditing }))
+  }, [dispatch, isEditing])
+
   const confirmClose = useCallback(() => {
     if (isDirty) {
       setShowConfirmDialog(true)
@@ -80,15 +119,17 @@ export default function CreatePostModal () {
   // Discard also covers a post still being sent: if that save fails, it is
   // not brought back as a draft
   const handleDiscardDraft = useCallback(() => {
+    trackAbandoned('discard')
     postEditorRef.current?.discard()
     setIsDirty(false)
     closeModal()
-  }, [closeModal])
+  }, [closeModal, trackAbandoned])
 
   const handleSaveAndClose = useCallback(() => {
+    trackAbandoned('save_draft')
     setShowConfirmDialog(false)
     closeModal()
-  }, [closeModal])
+  }, [closeModal, trackAbandoned])
 
   const confirmCloseRef = useRef(confirmClose)
   confirmCloseRef.current = confirmClose

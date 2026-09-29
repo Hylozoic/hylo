@@ -4,7 +4,7 @@ import useTour from 'tours/useTour'
 import { POST_EDITOR_TOUR_ID, postEditorTourSteps } from 'tours/postEditorTour'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
-import { DateTimeHelpers } from '@hylo/shared'
+import { AnalyticsEvents, DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import React, { useCallback, useMemo, useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
@@ -81,6 +81,7 @@ import {
 } from 'store/constants'
 import createPost from 'store/actions/createPost'
 import updatePost from 'store/actions/updatePost'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import {
   addAttachment,
   attachmentsFromUrls,
@@ -1176,6 +1177,12 @@ function PostEditorInner ({
   const handleSaveFailed = useEventCallback((wasAnnouncement) => {
     isSubmittedRef.current = false
     isSubmittingRef.current = false
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_FAILED, {
+      postType: currentPost.type,
+      editing: isEditing,
+      editorOpen: mountedRef.current,
+      discarded: discardedRef.current
+    }))
     if (discardedRef.current) return
     setAnnouncementSelected(!!wasAnnouncement)
     const details = editorRef.current?.getHTML?.() ?? detailsHtmlRef.current ?? currentPost.details
