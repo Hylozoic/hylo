@@ -660,7 +660,8 @@ module.exports = bookshelf.Model.extend(merge({
   // (merge on top of existing settings).
   // joinSource (a GroupMembership.JoinSource), invitationId and invitedById are
   // recorded in settings on new and reactivated memberships only.
-  async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
+  // notify: false skips the track enrollment notice to stewards (bulk auto-add).
+  async addMembers (usersOrIds, attrs = {}, { transacting, notify = true } = {}) {
     const groupSettings = this.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
     const { assignAdministrator, joinSource, invitationId, invitedById, ...membershipAttrs } = attrs
@@ -737,6 +738,8 @@ module.exports = bookshelf.Model.extend(merge({
     // and NULL + n is NULL — the count could never self-heal through joins
     if (newUserIds.length > 0 || reactivatedUserIds.length > 0) {
       await this.save({ num_members: (this.get('num_members') || 0) + newUserIds.length + reactivatedUserIds.length }, { transacting })
+      // Track enrollment and funding-round participation, once, whichever way people joined
+      await this.settleJoin(newUserIds.concat(reactivatedUserIds), { transacting, notify })
     }
 
     Queue.classMethod('Group', 'afterAddMembers', {
@@ -878,6 +881,97 @@ module.exports = bookshelf.Model.extend(merge({
       if (transacting) query.transacting(transacting)
       await query
     })
+  },
+
+  /**
+   * Settle track enrollment / funding round participation for members joining this space:
+   * the counterpart of settleParticipation. addMembers calls it for new and reactivated
+   * members, so every join path counts exactly once (Track.enroll, FundingRound.join,
+   * joinSpace, a checkout grant, an invitation, and the bulk auto-add of parent members).
+   *
+   * Track space: counts the enrollment, starts a fresh enrollment period (clears an earlier
+   * completion, enrolled-at is now) and, with notify, tells the track's stewards.
+   * Funding round space: counts the participant, restarts joined-at, and gives a late joiner
+   * their tokens when the round allows late joiners, is in voting and they can vote.
+   */
+  async settleJoin (userIds, { transacting, notify = true } = {}) {
+    const trackId = this.get('track_id')
+    const fundingRoundId = this.get('funding_round_id')
+    if ((!trackId && !fundingRoundId) || !userIds || userIds.length === 0) return
+
+    const memberships = await GroupMembership.forIds(userIds, this.id, { multiple: true }).fetch({ transacting })
+    if (memberships.length === 0) return
+
+    const joinedAt = new Date()
+    await Promise.map(memberships.models, async membership => {
+      if (trackId) membership.removeSetting('completedAt')
+      await membership.save({ created_at: joinedAt, settings: membership.get('settings') }, { patch: true, transacting })
+    })
+
+    const increment = async (table, column, id) => {
+      const query = bookshelf.knex(table)
+        .where('id', id)
+        .update({ [column]: bookshelf.knex.raw('coalesce(??, 0) + ?', [column, memberships.length]) })
+      if (transacting) query.transacting(transacting)
+      await query
+    }
+
+    if (trackId) {
+      await increment('tracks', 'num_people_enrolled', trackId)
+      if (notify) {
+        await this.notifyTrackEnrollment(trackId, memberships.map(m => m.get('user_id')), { transacting })
+      }
+    }
+
+    if (fundingRoundId) {
+      await increment('funding_rounds', 'num_participants', fundingRoundId)
+      const round = await FundingRound.where({ id: fundingRoundId }).fetch({ transacting })
+      const canAllocateOnJoin = round &&
+        round.get('allow_late_joiners') &&
+        round.get('voting_method') === 'token_allocation_constant' &&
+        round.get('total_tokens') &&
+        await round.spaceStatus({ transacting }) === FundingRound.PHASES.VOTING
+      if (canAllocateOnJoin) {
+        // Late joiners only receive tokens when the round is already in voting
+        await Promise.map(memberships.models, async membership => {
+          if (!await round.canUserVote(membership.get('user_id'))) return
+          membership.addSetting({ tokensRemaining: round.get('total_tokens') })
+          await membership.save({ settings: membership.get('settings') }, { patch: true, transacting })
+        })
+      }
+    }
+  },
+
+  /**
+   * Tells the stewards of a track's group (the parent of the track space, where
+   * responsibilities live) that people enrolled.
+   */
+  async notifyTrackEnrollment (trackId, userIds, { transacting } = {}) {
+    const notifyGroupId = this.get('parent_id') || this.id
+    const notifyGroup = this.get('parent_id')
+      ? await Group.find(this.get('parent_id'), { transacting })
+      : this
+    if (!notifyGroup) return
+    const adminResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_ADMINISTRATION }).fetch({ transacting })
+    if (!adminResponsibility) return
+    const stewards = await notifyGroup.membersWithResponsibilities([adminResponsibility.id]).fetch({ transacting })
+    const stewardIds = stewards.pluck('id')
+    const activities = []
+    for (const userId of userIds) {
+      for (const stewardId of stewardIds) {
+        activities.push({
+          reason: 'trackEnrollment',
+          actor_id: userId,
+          group_id: notifyGroupId,
+          reader_id: stewardId,
+          track_id: trackId
+        })
+      }
+    }
+    if (activities.length > 0) {
+      // saveForReasons takes the transaction itself, not an options object
+      await Activity.saveForReasons(activities, transacting)
+    }
   },
 
   async toMurmurationsObject () {
@@ -1310,7 +1404,7 @@ module.exports = bookshelf.Model.extend(merge({
           joinQuestionsAnsweredAt: joinedAt,
           ...notificationSettings
         }
-      })
+      }, { notify: false })
     }
 
     await Group.ensureSpaceViewUsers(spaceId, toAdd)
