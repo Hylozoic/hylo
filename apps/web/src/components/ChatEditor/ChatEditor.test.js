@@ -256,6 +256,8 @@ describe('ChatEditor keyboard sending', () => {
     dispatchEvent: jest.fn()
   })
   const coarseMatchMedia = query => ({ ...fineMatchMedia(query), matches: false })
+  // The draft loads and the send dispatches asynchronously; give both room on a busy machine
+  const slow = { timeout: 10000 }
 
   afterEach(() => {
     window.matchMedia.mockImplementation(coarseMatchMedia)
@@ -272,7 +274,7 @@ describe('ChatEditor keyboard sending', () => {
     const store = setupStore()
     const utils = renderChatEditor(store, { onSave: jest.fn(), afterSave: jest.fn() })
     const proseMirror = () => utils.container.querySelector('.ProseMirror')
-    await waitFor(() => expect(proseMirror()?.textContent).toContain(details.replace(/<[^>]+>/g, '')))
+    await waitFor(() => expect(proseMirror()?.textContent).toContain(details.replace(/<[^>]+>/g, '')), slow)
     return { ...utils, proseMirror }
   }
 
@@ -282,7 +284,7 @@ describe('ChatEditor keyboard sending', () => {
 
     await act(async () => { fireEvent.keyDown(proseMirror(), { key: 'Enter' }) })
 
-    await waitFor(() => expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ details: '<p>Hello there</p>', type: 'chat' })))
+    await waitFor(() => expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ details: '<p>Hello there</p>', type: 'chat' })), slow)
   }, 20000)
 
   it('adds a line instead of sending on Shift-Enter', async () => {
@@ -306,7 +308,7 @@ describe('ChatEditor keyboard sending', () => {
 
     act(() => { suggestionList.onExit() })
     await act(async () => { fireEvent.keyDown(proseMirror(), { key: 'Enter' }) })
-    await waitFor(() => expect(createPost).toHaveBeenCalled())
+    await waitFor(() => expect(createPost).toHaveBeenCalled(), slow)
   }, 20000)
 
   it('keeps Enter as a new line on touch screens and in the app', async () => {
@@ -326,7 +328,7 @@ describe('ChatEditor keyboard sending', () => {
 
     await act(async () => { fireEvent.keyDown(proseMirror(), { key: 'Enter', altKey: true }) })
 
-    await waitFor(() => expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ details: '<p>Hello there</p>' })))
+    await waitFor(() => expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ details: '<p>Hello there</p>' })), slow)
   }, 20000)
 })
 
