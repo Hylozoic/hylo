@@ -21,6 +21,16 @@ describe('joinGroup', () => {
     })
   })
 
+  it("tracks joining through a member's personal invite link", () => {
+    const action = joinGroup('1', [], 'member-code', null, true, true)
+
+    expect(action.meta.analytics).toEqual({
+      eventName: 'Group Invitation Accepted',
+      groupId: '1',
+      method: 'member'
+    })
+  })
+
   it('does not track an invitation for an open join', () => {
     const action = joinGroup('1', [])
 
@@ -30,6 +40,12 @@ describe('joinGroup', () => {
 })
 
 describe('createJoinRequest', () => {
+  it("sends the code of the member's invite link the request comes from", () => {
+    const action = createJoinRequest('1', [], undefined, 'member-code')
+
+    expect(action.graphql.variables).toEqual({ groupId: '1', questionAnswers: [], invitationToken: undefined, accessCode: 'member-code' })
+  })
+
   it('tracks Join Request Created', () => {
     const action = createJoinRequest('1', [])
 

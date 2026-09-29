@@ -29,7 +29,7 @@ function providers () {
   return AllTheProviders({ orm: ormSession.state, pending: {} })
 }
 
-function mockInvitation ({ requiresApproval, invitedBy }) {
+function mockInvitation ({ requiresApproval, invitedBy, email = INVITEE_EMAIL, isMemberLink = false, tryLater = false }) {
   return graphql.query('CheckInvitation', () => HttpResponse.json({
     data: {
       checkInvitation: {
@@ -40,9 +40,11 @@ function mockInvitation ({ requiresApproval, invitedBy }) {
         isSpace: false,
         parentGroupSlug: null,
         parentGroupName: null,
-        email: INVITEE_EMAIL,
+        email,
         groupRole: null,
         requiresApproval,
+        isMemberLink,
+        tryLater,
         invitedBy
       }
     }
@@ -140,6 +142,96 @@ describe('GroupDetail with a member invitation', () => {
     await user.click(await screen.findByRole('button', { name: 'Join {{group.name}}' }))
 
     await waitFor(() => expect(joinVariables).toMatchObject({ groupId: group.id, invitationToken: 'member-token' }))
+    expect(requested).toBe(false)
+    expect(screen.queryByText('Stewards review every request to join this group.')).not.toBeInTheDocument()
+  })
+})
+
+describe("GroupDetail with a member's personal invite link", () => {
+  const MEMBER_CODE = 'MemberCode123456'
+  const adaMember = { id: '7', name: 'Ada Member', avatarUrl: null }
+
+  beforeEach(() => {
+    useLocation.mockReturnValue({ pathname: '/groups/garden/about', search: `?accessCode=${MEMBER_CODE}`, hash: '' })
+  })
+
+  it('sends the link code with the request to join, without a token, and shows it pending', async () => {
+    const user = userEvent.setup()
+    let requestVariables
+    mockGraphqlServer.use(
+      mockInvitation({ requiresApproval: true, invitedBy: adaMember, email: null, isMemberLink: true }),
+      graphql.mutation('CreateJoinRequest', ({ variables }) => {
+        requestVariables = variables
+        return HttpResponse.json({
+          data: {
+            createJoinRequest: {
+              request: { id: '9', user: { id: '10' }, group: { id: group.id }, createdAt: null, updatedAt: null, status: 0 }
+            }
+          }
+        })
+      })
+    )
+
+    render(<GroupDetail />, null, providers())
+
+    expect(await screen.findByText('Ada Member invited you')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Request Membership in {{group.name}}' }))
+
+    await waitFor(() => expect(requestVariables).toEqual({
+      groupId: group.id,
+      questionAnswers: [],
+      accessCode: MEMBER_CODE
+    }))
+    expect(await screen.findByText('Request to join pending')).toBeInTheDocument()
+  })
+
+  it('says to try again later when the link reached its daily limit after the page loaded', async () => {
+    const user = userEvent.setup()
+    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {})
+    const navigateMock = jest.fn()
+    jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(navigateMock)
+    mockGraphqlServer.use(
+      mockInvitation({ requiresApproval: true, invitedBy: adaMember, email: null, isMemberLink: true }),
+      graphql.mutation('CreateJoinRequest', () => HttpResponse.json({
+        errors: [{ message: 'invite-try-later' }],
+        data: { createJoinRequest: null }
+      }))
+    )
+
+    render(<GroupDetail />, null, providers())
+
+    await user.click(await screen.findByRole('button', { name: 'Request Membership in {{group.name}}' }))
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/groups/garden/about', { replace: true }))
+    expect(alertSpy).toHaveBeenCalledWith("This invite link can't be used right now. Please try again later.")
+    expect(screen.queryByText('Ada Member invited you')).not.toBeInTheDocument()
+  })
+})
+
+describe("GroupDetail with the group's join link", () => {
+  it('joins directly with the code and sends no request with it', async () => {
+    const user = userEvent.setup()
+    useLocation.mockReturnValue({ pathname: '/groups/garden/about', search: '?accessCode=groupcode', hash: '' })
+    let joinVariables
+    let requested = false
+    mockGraphqlServer.use(
+      mockInvitation({ requiresApproval: null, invitedBy: null, email: null }),
+      graphql.mutation('CreateJoinRequest', () => {
+        requested = true
+        return HttpResponse.json({ data: { createJoinRequest: null } })
+      }),
+      graphql.operation(({ query, variables }) => {
+        if (!query.includes('joinGroup(')) return
+        joinVariables = variables
+        return HttpResponse.json({ data: {} })
+      })
+    )
+
+    render(<GroupDetail />, null, providers())
+
+    await user.click(await screen.findByRole('button', { name: 'Join {{group.name}}' }))
+
+    await waitFor(() => expect(joinVariables).toMatchObject({ groupId: group.id, accessCode: 'groupcode' }))
     expect(requested).toBe(false)
     expect(screen.queryByText('Stewards review every request to join this group.')).not.toBeInTheDocument()
   })
