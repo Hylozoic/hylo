@@ -280,11 +280,11 @@ function ViewsGrid ({ sections, group, spaceGroup, onOpen, t, footer = null }) {
         if (section.type === 'separator') {
           return <SeparatorSection key={section.view.id || `sep-${index}`} />
         }
+        // My Home cards with nothing behind them stay, greyed out
         return (
           <div key={`grid-${index}`} className='flex flex-wrap gap-3'>
             {section.views.map(view => view.isEmpty
               ? (
-                // My Home cards with nothing behind them stay, greyed out
                 <div key={view.id} className={EMPTY_MENU_ITEM_CLASS} title={t('Nothing here yet')} data-empty='true'>
                   <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} onOpen={onOpen} />
                 </div>
