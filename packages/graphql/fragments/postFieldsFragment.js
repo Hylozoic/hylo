@@ -29,6 +29,7 @@ export const postFieldsFragment = gql`
     projectManagementLink
     myEventResponse
     savedAt
+    isFollowing
     commenters(first: 3) {
       id
       name

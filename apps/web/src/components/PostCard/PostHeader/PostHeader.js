@@ -1,6 +1,6 @@
 import { createSelector } from 'reselect'
 import { debounce, filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Pin, PinOff, Trash2, Library, LibraryBig } from 'lucide-react'
+import { Bell, BellOff, Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Pin, PinOff, Trash2, Library, LibraryBig } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import ReactDOM from 'react-dom'
@@ -35,6 +35,7 @@ import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import pinPostAction from 'store/actions/pinPost'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import { followPost, unfollowPost } from 'store/actions/followPost'
 import { cn } from 'util/index'
 import {
   unfulfillPost as unfulfillPostAction,
@@ -113,6 +114,7 @@ function PostHeader (props) {
     timezone,
     fulfilledAt,
     savedAt,
+    isFollowing,
     groups: postGroups = []
   } = post
 
@@ -261,6 +263,14 @@ function PostHeader (props) {
     }
   }, [unsavePostProp, id, dispatch])
 
+  // Following a post brings notifications of its new comments. Offered to
+  // signed-in people once we know whether they follow it; message threads
+  // have their own mute instead
+  const canFollow = !!currentUser && type !== 'thread' && typeof isFollowing === 'boolean'
+  const toggleFollow = useCallback(() => {
+    dispatch(isFollowing ? unfollowPost(id) : followPost(id))
+  }, [dispatch, id, isFollowing])
+
   // Typed locally and saved once typing pauses (or the field loses focus)
   const [proposalOutcomeInput, setProposalOutcomeInput] = useState(proposalOutcome || '')
   useEffect(() => {
@@ -356,6 +366,7 @@ function PostHeader (props) {
     { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
     { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
+    { icon: isFollowing ? <BellOff className='w-4 h-4 text-foreground' /> : <Bell className='w-4 h-4 text-foreground' />, label: isFollowing ? t('Unfollow post') : t('Follow post'), onClick: canFollow ? toggleFollow : undefined },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
     { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
     addToCollectionItem,

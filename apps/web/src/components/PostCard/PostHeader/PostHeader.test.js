@@ -14,6 +14,11 @@ jest.mock('./PostHeader.store', () => ({
 
 jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn(() => ({ type: 'TEST_TRACK_ANALYTICS_EVENT' })))
 
+jest.mock('store/actions/followPost', () => ({
+  followPost: jest.fn(postId => ({ type: 'TEST_FOLLOW_POST', meta: { postId } })),
+  unfollowPost: jest.fn(postId => ({ type: 'TEST_UNFOLLOW_POST', meta: { postId } }))
+}))
+
 jest.mock('luxon', () => ({
   __esModule: true,
   default: () => ({
@@ -202,5 +207,60 @@ describe('PostHeader copy link', () => {
 
     expect(navigator.clipboard.writeText).toHaveBeenCalled()
     expect(trackAnalyticsEvent).toHaveBeenCalledWith(AnalyticsEvents.POST_SHARED, expect.objectContaining({ postId: 1, source: 'copy_link' }))
+  })
+})
+
+describe('PostHeader follow control', () => {
+  const { followPost, unfollowPost } = require('store/actions/followPost')
+
+  function signedInAs (id = '555') {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Me.create({ id, name: 'Reader' })
+    return AllTheProviders({ orm: ormSession.state })
+  }
+
+  function openMenu () {
+    fireEvent.click(screen.getByTestId('post-header-more-icon'))
+  }
+
+  beforeEach(() => {
+    followPost.mockClear()
+    unfollowPost.mockClear()
+  })
+
+  it('offers to unfollow a post the reader follows', () => {
+    render(<PostHeader {...defaultProps} post={buildPost({ isFollowing: true })} />, { wrapper: signedInAs() })
+    openMenu()
+
+    fireEvent.click(screen.getByText('Unfollow post'))
+
+    expect(unfollowPost).toHaveBeenCalledWith(1)
+    expect(followPost).not.toHaveBeenCalled()
+  })
+
+  it('offers to follow a post the reader does not follow', () => {
+    render(<PostHeader {...defaultProps} post={buildPost({ isFollowing: false })} />, { wrapper: signedInAs() })
+    openMenu()
+
+    fireEvent.click(screen.getByText('Follow post'))
+
+    expect(followPost).toHaveBeenCalledWith(1)
+  })
+
+  it('is not offered to signed-out readers, on message threads, or before the state is known', () => {
+    const { unmount } = render(<PostHeader {...defaultProps} post={buildPost({ isFollowing: true })} />)
+    openMenu()
+    expect(screen.queryByText('Unfollow post')).not.toBeInTheDocument()
+    unmount()
+
+    const thread = render(<PostHeader {...defaultProps} post={buildPost({ type: 'thread', isFollowing: true })} />, { wrapper: signedInAs() })
+    openMenu()
+    expect(screen.queryByText('Unfollow post')).not.toBeInTheDocument()
+    thread.unmount()
+
+    render(<PostHeader {...defaultProps} post={buildPost()} />, { wrapper: signedInAs() })
+    openMenu()
+    expect(screen.queryByText('Follow post')).not.toBeInTheDocument()
+    expect(screen.queryByText('Unfollow post')).not.toBeInTheDocument()
   })
 })
