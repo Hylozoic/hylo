@@ -92,27 +92,50 @@ describe('group/newcomerBatch (weekly "N people joined, say hi")', () => {
     expect(due).to.not.include(String(newGroup.id))
   })
 
-  it('processes at most the capped number of groups, busiest first, inserting in batches', async () => {
-    const busy = await factories.group().save()
-    const quiet = await factories.group().save()
-    const readers = []
-    for (let i = 0; i < 3; i++) {
-      const reader = await factories.user().save()
-      await join(reader, busy, { daysAgo: 30, activeDaysAgo: 1 })
-      readers.push(reader)
-    }
-    for (let i = 0; i < 2; i++) await join(await factories.user().save(), busy, { daysAgo: 1, activeDaysAgo: 1 })
-    await join(await factories.user().save(), quiet, { daysAgo: 30, activeDaysAgo: 1 })
-    await join(await factories.user().save(), quiet, { daysAgo: 1, activeDaysAgo: 1 })
+  describe('the cap on groups per run', () => {
+    let busy, quiet, busyReaders, quietReader
 
-    const result = await runWeekly({ maxGroups: 1, batchSize: 2 })
-    expect(result).to.deep.equal({ groups: 1, notices: 3 })
-    for (const reader of readers) {
-      const notices = await noticesFor(reader.id)
+    before(async () => {
+      busy = await factories.group().save()
+      quiet = await factories.group().save()
+      busyReaders = []
+      for (let i = 0; i < 3; i++) {
+        const reader = await factories.user().save()
+        await join(reader, busy, { daysAgo: 30, activeDaysAgo: 1 })
+        busyReaders.push(reader)
+      }
+      for (let i = 0; i < 2; i++) await join(await factories.user().save(), busy, { daysAgo: 1, activeDaysAgo: 1 })
+      quietReader = await factories.user().save()
+      await join(quietReader, quiet, { daysAgo: 30, activeDaysAgo: 1 })
+      await join(await factories.user().save(), quiet, { daysAgo: 1, activeDaysAgo: 1 })
+    })
+
+    it('processes at most the capped number of groups, busiest first, inserting in batches', async () => {
+      const result = await runWeekly({ maxGroups: 1, batchSize: 2 })
+      expect(result).to.deep.equal({ groups: 1, notices: 3 })
+      for (const reader of busyReaders) {
+        const notices = await noticesFor(reader.id)
+        expect(notices).to.have.length(1)
+        expect(notices[0].activity.get('meta').newMemberCount).to.equal(2)
+      }
+      expect(await noticesFor(quietReader.id)).to.be.empty
+    })
+
+    it('serves a group the cap left out first the next week, ahead of busier groups', async () => {
+      // More people join both groups during the next week, more of them in the busy one
+      for (let i = 0; i < 2; i++) await join(await factories.user().save(), busy, { daysAgo: -6, activeDaysAgo: 1 })
+      await join(await factories.user().save(), quiet, { daysAgo: -6, activeDaysAgo: 1 })
+      const nextWeek = new Date(Date.now() + 7 * DAY)
+
+      const due = (await groupsWithNewMembers({ now: nextWeek })).map(row => row.groupId)
+      expect(due.indexOf(String(quiet.id))).to.be.below(due.indexOf(String(busy.id)))
+
+      const result = await runWeekly({ now: nextWeek, maxGroups: 1 })
+      expect(result.groups).to.equal(1)
+      const notices = await noticesFor(quietReader.id)
       expect(notices).to.have.length(1)
-      expect(notices[0].activity.get('meta').newMemberCount).to.equal(2)
-    }
-    // The quiet group waits for the next run
-    expect((await groupsWithNewMembers()).map(row => row.groupId)).to.include(String(quiet.id))
+      expect(notices[0].activity.get('meta').newMemberCount).to.equal(1)
+      for (const reader of busyReaders) expect(await noticesFor(reader.id)).to.have.length(1)
+    })
   })
 })
