@@ -10,8 +10,9 @@ import { GROUP_ACCESSIBILITY } from 'store/models/Group'
 import { groupRolesForPicker } from '@hylo/hooks/groupRoleHelpers'
 import { cn } from 'util/index'
 
-// Built-in roles whose fixed responsibilities include Add Members
-const ADD_MEMBERS_SYSTEM_ROLES = ['Administrator', 'Host']
+// Built-in steward roles, who can always invite: Administrators and Hosts
+// through Add Members, Moderators through Invite Members
+const ALWAYS_INVITE_SYSTEM_ROLES = ['Administrator', 'Moderator', 'Host']
 
 function invitePolicyOptions (needsApproval) {
   return [
@@ -26,30 +27,33 @@ function invitePolicyOptions (needsApproval) {
     {
       value: INVITE_POLICY.stewards,
       icon: ShieldCheck,
-      title: 'Administrators and Hosts (anyone who can add members)',
-      description: 'Only roles that include Add Members can invite people: Administrators, Hosts and any custom role you give it.'
+      title: 'Stewards (Administrators, Moderators and Hosts)',
+      description: needsApproval
+        ? 'Administrators, Moderators and Hosts can invite people. A steward approves each person a Moderator invites before they join.'
+        : 'Administrators, Moderators and Hosts can invite people.'
     },
     {
       value: INVITE_POLICY.roles,
       icon: UserCheck,
       title: 'Specific roles',
       description: needsApproval
-        ? 'Administrators and Hosts, and anyone in the roles you choose, can invite people. A steward approves each person the chosen roles invite before they join.'
-        : 'Administrators and Hosts, and anyone in the roles you choose, can invite people.'
+        ? 'Stewards, and anyone in the roles you choose, can invite people. A steward approves each person that Moderators and the chosen roles invite before they join.'
+        : 'Stewards, and anyone in the roles you choose, can invite people.'
     }
   ]
 }
 
 /**
  * The roles a group's "Specific roles" choice can list: its active roles, with
- * the ones that include Add Members locked on because they can always invite.
+ * the steward roles and any role that includes Add Members locked on because
+ * they can always invite.
  */
 export function invitePolicyRoles (groupRoles, selectedRoleIds = []) {
   const selected = new Set((selectedRoleIds || []).map(String))
   return groupRolesForPicker(groupRoles).map(role => ({
     id: role.id,
     label: role.label,
-    locked: (role.type === 'system' && ADD_MEMBERS_SYSTEM_ROLES.includes(role.name)) ||
+    locked: (role.type === 'system' && ALWAYS_INVITE_SYSTEM_ROLES.includes(role.name)) ||
       (role.responsibilities?.items || []).some(responsibility => responsibility.title === RESP_ADD_MEMBERS),
     checked: selected.has(role.id)
   }))
@@ -75,9 +79,9 @@ export function trackInvitePolicySet (mode, surface) {
 }
 
 /**
- * "Who can add new members?": everyone in the group, only roles with Add Members,
- * or those plus chosen roles. `roles` ({ id, label, locked, checked }) are listed
- * when specific roles are chosen.
+ * "Who can add new members?": everyone in the group, stewards (Administrators,
+ * Moderators and Hosts), or stewards plus chosen roles. `roles`
+ * ({ id, label, locked, checked }) are listed when specific roles are chosen.
  */
 export default function InvitePolicySelect ({ mode, onModeChange, roles = [], onToggleRole, accessibility, hint, popoverClassName }) {
   const { t } = useTranslation()

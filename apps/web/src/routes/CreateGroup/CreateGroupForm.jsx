@@ -207,10 +207,10 @@ const CLOSED_DESCRIPTION_WITH_MEMBER_INVITES = 'Nobody can request to join on th
 // Matches the server's DEFAULT_NEW_GROUP_INVITE_POLICY
 const DEFAULT_INVITE_POLICY_MODE = INVITE_POLICY.stewards
 
-// The built-in roles every new group gets. Administrators and Hosts include Add Members.
+// The built-in roles every new group gets. All three are stewards, who can always invite.
 const NEW_GROUP_INVITE_ROLES = [
   { id: 'Administrator', emoji: '🪄', locked: true },
-  { id: 'Moderator', emoji: '⚖️', locked: false },
+  { id: 'Moderator', emoji: '⚖️', locked: true },
   { id: 'Host', emoji: '👋', locked: true }
 ]
 
@@ -332,7 +332,6 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   const [visibility, setVisibility] = useState(GROUP_VISIBILITY.Protected)
   const [accessibility, setAccessibility] = useState(GROUP_ACCESSIBILITY.Restricted)
   const [invitePolicyMode, setInvitePolicyMode] = useState(DEFAULT_INVITE_POLICY_MODE)
-  const [moderatorsCanInvite, setModeratorsCanInvite] = useState(true)
   const [isNameFocused, setIsNameFocused] = useState(false)
   const [nameTouched, setNameTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -377,8 +376,8 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     id: role.id,
     label: `${role.emoji} ${t(role.id)}`,
     locked: role.locked,
-    checked: !role.locked && moderatorsCanInvite
-  })), [t, moderatorsCanInvite])
+    checked: false
+  })), [t])
 
   const slugFormatError = useMemo(() => {
     if (!slug) return name ? t('Please enter a URL slug') : false
@@ -937,7 +936,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
               mode={invitePolicyMode}
               onModeChange={setInvitePolicyMode}
               roles={newGroupInviteRoles}
-              onToggleRole={() => setModeratorsCanInvite(canInvite => !canInvite)}
+              onToggleRole={() => {}}
               accessibility={accessibility}
               hint={t('Create custom roles later in Roles & Badges')}
             />

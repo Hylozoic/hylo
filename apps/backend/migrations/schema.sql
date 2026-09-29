@@ -1670,6 +1670,16 @@ ALTER SEQUENCE public.invitation_sends_id_seq OWNED BY public.invitation_sends.i
 
 
 --
+-- Name: invite_policy_migration_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invite_policy_migration_links (
+    group_role_responsibility_id bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
 -- Name: invite_request_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -4470,6 +4480,14 @@ ALTER TABLE ONLY public.groups_tags
 
 ALTER TABLE ONLY public.invitation_sends
     ADD CONSTRAINT invitation_sends_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invite_policy_migration_links invite_policy_migration_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invite_policy_migration_links
+    ADD CONSTRAINT invite_policy_migration_links_pkey PRIMARY KEY (group_role_responsibility_id);
 
 
 --

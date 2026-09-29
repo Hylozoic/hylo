@@ -259,7 +259,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
       {memberInvitesEnabled && invitePolicy && (
         <SettingsSection>
           <h3 className='text-foreground font-bold mb-2'>{t('Who can add new members?')}</h3>
-          <p className='text-foreground/70 mb-4'>{t('Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.', { name })}</p>
+          <p className='text-foreground/70 mb-4'>{t('Choose who can invite people to join {{name}}. Administrators, Moderators and Hosts can always invite.', { name })}</p>
           <InvitePolicySelect
             mode={invitePolicy.mode}
             onModeChange={changeInvitePolicyMode}

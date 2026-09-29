@@ -100,20 +100,19 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
     renderTab()
 
     expect(screen.getByRole('heading', { name: WHO_CAN_ADD })).toBeInTheDocument()
-    expect(screen.getByText('Choose who can invite people to join Seed Library. Roles that include Add Members can always invite.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: WHO_CAN_ADD })).toHaveTextContent('Administrators and Hosts (anyone who can add members)')
+    expect(screen.getByText('Choose who can invite people to join Seed Library. Administrators, Moderators and Hosts can always invite.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: WHO_CAN_ADD })).toHaveTextContent('Stewards (Administrators, Moderators and Hosts)')
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
 
-  it('lists active roles for specific roles, with roles that include Add Members locked on', () => {
-    renderTab({ invitePolicy: { mode: 'roles', roleIds: ['13'] } })
+  it('lists active roles for specific roles, with stewards and roles that include Add Members locked on', () => {
+    renderTab({ invitePolicy: { mode: 'roles', roleIds: ['2', '13'] } })
 
-    for (const name of ['🪄 Administrator', '👋 Host', '🚪 Door Keeper']) {
+    for (const name of ['🪄 Administrator', '⚖️ Moderator', '👋 Host', '🚪 Door Keeper']) {
       const checkbox = screen.getByRole('checkbox', { name })
       expect(checkbox).toBeDisabled()
       expect(checkbox).toHaveAttribute('aria-checked', 'true')
     }
-    expect(screen.getByRole('checkbox', { name: '⚖️ Moderator' })).toHaveAttribute('aria-checked', 'false')
     expect(screen.getByRole('checkbox', { name: '🌱 Gardener' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.queryByRole('checkbox', { name: '💤 Retired' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Create or edit roles in Roles & Badges' })).toHaveAttribute('href', '/groups/seed-library/settings/roles')
@@ -123,13 +122,13 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
     const updateGroupSettings = renderTab()
 
     choose('Specific roles')
-    fireEvent.click(screen.getByRole('checkbox', { name: '⚖️ Moderator' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: '🌱 Gardener' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
 
     expect(updateGroupSettings).toHaveBeenCalledTimes(1)
     expect(updateGroupSettings.mock.calls[0][0]).toMatchObject({
       accessibility: GROUP_ACCESSIBILITY.Restricted,
-      invitePolicy: { mode: 'roles', roleIds: ['2'] }
+      invitePolicy: { mode: 'roles', roleIds: ['13'] }
     })
   })
 

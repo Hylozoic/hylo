@@ -12,7 +12,7 @@ jest.mock('store/actions/trackAnalyticsEvent', () => {
 })
 
 const WHO_CAN_ADD = 'Who can add new members?'
-const STEWARDS = 'Administrators and Hosts (anyone who can add members)'
+const STEWARDS = 'Stewards (Administrators, Moderators and Hosts)'
 const CLOSED_WITH_MEMBER_INVITES = 'Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.'
 const CLOSED_WITHOUT_MEMBER_INVITES = 'Nobody can request to join. Members arrive only when a steward invites them directly or shares an invite link.'
 
@@ -79,7 +79,7 @@ describe('CreateGroupForm "Who can add new members?"', () => {
     }
   })
 
-  it('starts on Administrators and Hosts and offers everyone and specific roles', () => {
+  it('starts on stewards and offers everyone and specific roles', () => {
     mockGraphql()
     render(<CreateGroupForm />)
 
@@ -91,45 +91,26 @@ describe('CreateGroupForm "Who can add new members?"', () => {
     expect(screen.getByRole('button', { name: 'Specific roles' })).toBeInTheDocument()
   })
 
-  it('lets specific roles add Moderators, with Administrators and Hosts locked on', () => {
+  it('lists Administrators, Moderators and Hosts under specific roles, all locked on', () => {
     mockGraphql()
     render(<CreateGroupForm />)
 
     choose(WHO_CAN_ADD, 'Specific roles')
 
-    const administrator = screen.getByRole('checkbox', { name: '🪄 Administrator' })
-    const host = screen.getByRole('checkbox', { name: '👋 Host' })
-    const moderator = screen.getByRole('checkbox', { name: '⚖️ Moderator' })
-    expect(administrator).toBeDisabled()
-    expect(administrator).toHaveAttribute('aria-checked', 'true')
-    expect(host).toBeDisabled()
-    expect(host).toHaveAttribute('aria-checked', 'true')
-    expect(moderator).toBeEnabled()
-    expect(moderator).toHaveAttribute('aria-checked', 'true')
+    for (const name of ['🪄 Administrator', '⚖️ Moderator', '👋 Host']) {
+      const role = screen.getByRole('checkbox', { name })
+      expect(role).toBeDisabled()
+      expect(role).toHaveAttribute('aria-checked', 'true')
+    }
+    expect(screen.getAllByText('Can always invite')).toHaveLength(3)
     expect(screen.getByText('Create custom roles later in Roles & Badges')).toBeInTheDocument()
-
-    fireEvent.click(moderator)
-    expect(moderator).toHaveAttribute('aria-checked', 'false')
   })
 
-  it('sends the chosen policy in createGroup', async () => {
+  it('sends stewards when specific roles adds no one beyond the stewards', async () => {
     const requests = mockGraphql()
     render(<CreateGroupForm />)
 
     choose(WHO_CAN_ADD, 'Specific roles')
-    await createNamedGroup()
-
-    await waitFor(() => expect(requests).toHaveLength(1))
-    expect(requests[0].invitePolicy).toEqual({ mode: 'roles', systemRoleNames: ['Moderator'] })
-    await waitFor(() => expect(trackAnalyticsEvent).toHaveBeenCalledWith('Group Invite Policy Set', { mode: 'roles', surface: 'create' }))
-  })
-
-  it('sends stewards when specific roles adds no one', async () => {
-    const requests = mockGraphql()
-    render(<CreateGroupForm />)
-
-    choose(WHO_CAN_ADD, 'Specific roles')
-    fireEvent.click(screen.getByRole('checkbox', { name: '⚖️ Moderator' }))
     await createNamedGroup()
 
     await waitFor(() => expect(requests).toHaveLength(1))

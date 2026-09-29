@@ -714,9 +714,9 @@ describe('mutations/group', () => {
         const everyone = await createGroup(administrator.id, { name: 'Everyone Invites', slug: uniqueSlug('everyone'), invitePolicy: { mode: 'everyone' } })
         expect(await GroupRole.getInvitePolicy(everyone.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
 
+        // Moderators are stewards, so choosing only them is the same as stewards
         const roles = await createGroup(administrator.id, { name: 'Moderators Invite', slug: uniqueSlug('roles'), invitePolicy: { mode: 'roles', systemRoleNames: ['Moderator'] } })
-        const moderator = await GroupRole.findSystemRole(roles.id, 'Moderator')
-        expect(await GroupRole.getInvitePolicy(roles.id)).to.deep.equal({ mode: 'roles', roleIds: [moderator.id] })
+        expect(await GroupRole.getInvitePolicy(roles.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
 
         const stewards = await createGroup(administrator.id, { name: 'Stewards Invite', slug: uniqueSlug('stewards'), invitePolicy: { mode: 'stewards' } })
         expect(await GroupRole.getInvitePolicy(stewards.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
@@ -760,7 +760,7 @@ describe('mutations/group', () => {
     })
 
     describe('updateGroup', () => {
-      let group, moderatorRole
+      let group, moderatorRole, greeterRole
 
       before(async () => {
         group = await factories.group().save()
@@ -770,6 +770,7 @@ describe('mutations/group', () => {
         const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
         await MemberGroupRole.forge({ user_id: host.id, group_id: group.id, group_role_id: hostRole.id, active: true }).save()
         moderatorRole = await GroupRole.findSystemRole(group.id, 'Moderator')
+        greeterRole = await GroupRole.forge({ group_id: group.id, name: 'Greeter', emoji: '🙌', type: GroupRole.TYPE_CUSTOM, active: true }).save()
       })
 
       afterEach(() => GroupRole.setInvitePolicy(group.id, { mode: 'stewards' }))
@@ -778,8 +779,8 @@ describe('mutations/group', () => {
         await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'everyone' } })
         expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
 
-        await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'roles', roleIds: [String(moderatorRole.id)] } })
-        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'roles', roleIds: [moderatorRole.id] })
+        await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'roles', roleIds: [String(greeterRole.id)] } })
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'roles', roleIds: [moderatorRole.id, greeterRole.id] })
 
         await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'stewards' } })
         expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
