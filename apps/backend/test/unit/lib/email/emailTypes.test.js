@@ -30,6 +30,10 @@ describe('emailTypes', () => {
     }
   })
 
+  it("never lets a mention email's one-click switch off the group's post email", () => {
+    expect(emailTypeFor('sendPostMentionNotification').unsubscribe).to.equal('settings_page')
+  })
+
   it('accepts a named membership setting as an unsubscribe', () => {
     expect(isValidUnsubscribe('membership_setting:sendEmail')).to.equal(true)
     expect(isValidUnsubscribe('membership_setting:')).to.equal(false)

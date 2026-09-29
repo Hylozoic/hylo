@@ -34,7 +34,10 @@ export const EMAIL_TYPES = {
   sendInvitation: essential('invitation to someone who is not a member yet'),
   sendTagInvitation: essential('unused invitation template'),
   sendPostNotification: bulk('group_post_email', 'new post or announcement'),
-  sendPostMentionNotification: bulk('group_post_email', 'mentioned in a post'),
+  // A mention is a direct signal (D7, D8): a one-click from it must not switch off the
+  // group's post email, which would also stop later mentions there. email-prefs-delivery
+  // decides the final switch.
+  sendPostMentionNotification: bulk('settings_page', 'mentioned in a post'),
   sendJoinRequestNotification: bulk('group_post_email', 'join request, to stewards'),
   sendApprovedJoinRequestNotification: bulk('group_post_email', 'your join request was approved'),
   sendMemberJoinedGroupNotification: bulk('group_post_email', 'new member, to stewards'),
