@@ -84,4 +84,47 @@ describe('ExplorerReview', () => {
     expect(within(section).getByRole('button', { name: 'Unlist' })).toBeInTheDocument()
     expect(screen.getByText('No groups are waiting for review.')).toBeInTheDocument()
   }, 30000)
+
+  it('shows only the error when the list cannot be loaded', async () => {
+    mockGraphqlServer.resetHandlers(
+      graphql.query('ExplorerReviewList', () => HttpResponse.json({
+        errors: [{ message: 'Unauthorized: Admin access required' }],
+        data: { explorerReviewList: null }
+      }))
+    )
+
+    render(<ExplorerReview />)
+
+    expect(await screen.findByRole('alert', {}, { timeout: 10000 })).toHaveTextContent('Something went wrong. Please try again.')
+    expect(screen.queryByText('No groups are waiting for review.')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('explorer-review-row')).not.toBeInTheDocument()
+  }, 30000)
+
+  it('drops a group that stopped being Public and says why', async () => {
+    mockGraphqlServer.resetHandlers(
+      graphql.query('ExplorerReviewList', () => HttpResponse.json({
+        data: {
+          explorerReviewList: {
+            minMembers: 3,
+            activityWindowDays: 90,
+            pending: [reviewGroup()],
+            keepOrUnlist: []
+          }
+        }
+      })),
+      graphql.mutation('ReviewExplorerGroup', () => HttpResponse.json({
+        errors: [{ message: 'Only Public groups can be listed in the Group Explorer', extensions: { code: 'GROUP_NOT_PUBLIC' } }],
+        data: { reviewExplorerGroup: null }
+      }))
+    )
+    const user = userEvent.setup()
+
+    render(<ExplorerReview />)
+
+    const row = (await screen.findByText('Garden Circle', {}, { timeout: 10000 })).closest('li')
+    await user.click(within(row).getByRole('button', { name: 'Approve' }))
+
+    expect(await screen.findByRole('alert', {}, { timeout: 10000 })).toHaveTextContent(/is no longer Public, so it was not listed/)
+    expect(screen.queryByTestId('explorer-review-row')).not.toBeInTheDocument()
+  }, 30000)
 })

@@ -178,6 +178,16 @@ describe('explorerReview', () => {
       expect(row.explorer_status).to.equal(ExplorerStatus.UNLISTED)
     })
 
+    it('approve and keep refuse a group that is no longer Public, and leave it unlisted', async () => {
+      const pending = await factories.group({ visibility: PROTECTED, explorer_status: ExplorerStatus.PENDING }).save()
+      await expect(reviewExplorerGroup(admin.id, pending.id, 'approve')).to.be.rejectedWith(/Only Public groups/)
+      expect((await explorerRow(pending.id)).allow_in_public).to.equal(false)
+
+      const listed = await factories.group({ visibility: PROTECTED, allow_in_public: false, explorer_status: ExplorerStatus.KEEP_OR_UNLIST }).save()
+      await expect(reviewExplorerGroup(admin.id, listed.id, 'keep')).to.be.rejectedWith(/Only Public groups/)
+      expect((await explorerRow(listed.id)).allow_in_public).to.equal(false)
+    })
+
     it('rejects an unknown decision', async () => {
       const group = await factories.group({ visibility: PUBLIC, explorer_status: ExplorerStatus.PENDING }).save()
       await expect(reviewExplorerGroup(admin.id, group.id, 'feature')).to.be.rejectedWith(/Unknown review decision/)

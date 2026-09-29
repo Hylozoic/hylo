@@ -11,6 +11,12 @@ import { cn } from 'util/index'
 
 export const FETCH_EXPLORER_REVIEW_LIST = 'ExplorerReview/FETCH_EXPLORER_REVIEW_LIST'
 export const REVIEW_EXPLORER_GROUP = 'ExplorerReview/REVIEW_EXPLORER_GROUP'
+// The backend's error code when Approve or Keep is used on a group that is no longer Public
+export const GROUP_NOT_PUBLIC = 'GROUP_NOT_PUBLIC'
+
+function isNotPublicError (error) {
+  return error?.extensions?.code === GROUP_NOT_PUBLIC
+}
 
 const reviewGroupFields = `
   id
@@ -46,7 +52,7 @@ export function reviewExplorerGroup (groupId, decision) {
   return {
     type: REVIEW_EXPLORER_GROUP,
     graphql: {
-      query: `mutation ReviewExplorerGroup ($groupId: ID!, $decision: String!) {
+      query: `mutation ReviewExplorerGroup ($groupId: ID!, $decision: ExplorerReviewDecision!) {
         reviewExplorerGroup(groupId: $groupId, decision: $decision) { id status }
       }`,
       variables: { groupId, decision }
@@ -79,15 +85,24 @@ export default function ExplorerReview () {
   const decide = useCallback(async (group, decision, section) => {
     setBusyId(group.id)
     setError(null)
+    const removeRow = () => setList(current => ({ ...current, [section]: current[section].filter(g => g.id !== group.id) }))
+    const showFailure = err => {
+      if (isNotPublicError(err)) {
+        removeRow()
+        setError(t('{{name}} is no longer Public, so it was not listed.', { name: group.name }))
+      } else {
+        setError(t('Something went wrong. Please try again.'))
+      }
+    }
     try {
       const result = await dispatch(reviewExplorerGroup(group.id, decision))
       if (result?.error || !result?.payload?.data?.reviewExplorerGroup) {
-        setError(t('Something went wrong. Please try again.'))
+        showFailure(result?.error ? result.payload : result?.payload?.errors?.[0])
         return
       }
-      setList(current => ({ ...current, [section]: current[section].filter(g => g.id !== group.id) }))
+      removeRow()
     } catch (e) {
-      setError(t('Something went wrong. Please try again.'))
+      showFailure(e)
     } finally {
       setBusyId(null)
     }
@@ -108,25 +123,26 @@ export default function ExplorerReview () {
       </p>
       {error && <p className='text-sm text-destructive mb-4' role='alert'>{error}</p>}
 
-      {pending.length === 0
-        ? <div className='text-foreground/50 p-4 border border-foreground/20 rounded-md mb-8'>{t('No groups are waiting for review.')}</div>
-        : (
-          <ul className='divide-y divide-foreground/10 border border-foreground/20 rounded-md mb-8'>
-            {pending.map(group => (
-              <ReviewRow
-                key={group.id}
-                group={group}
-                days={days}
-                busy={busyId === group.id}
-                recommendation={group.meetsBar ? t('Recommended: Approve') : t('Recommended: Deny')}
-                actions={[
-                  { label: t('Approve'), variant: 'default', handleClick: () => decide(group, 'approve', 'pending') },
-                  { label: t('Deny'), variant: 'secondary', handleClick: () => decide(group, 'deny', 'pending') }
-                ]}
-              />
-            ))}
-          </ul>
-          )}
+      {list && pending.length === 0 && (
+        <div className='text-foreground/50 p-4 border border-foreground/20 rounded-md mb-8'>{t('No groups are waiting for review.')}</div>
+      )}
+      {pending.length > 0 && (
+        <ul className='divide-y divide-foreground/10 border border-foreground/20 rounded-md mb-8'>
+          {pending.map(group => (
+            <ReviewRow
+              key={group.id}
+              group={group}
+              days={days}
+              busy={busyId === group.id}
+              recommendation={group.meetsBar ? t('Recommended: Approve') : t('Recommended: Deny')}
+              actions={[
+                { label: t('Approve'), variant: 'default', handleClick: () => decide(group, 'approve', 'pending') },
+                { label: t('Deny'), variant: 'secondary', handleClick: () => decide(group, 'deny', 'pending') }
+              ]}
+            />
+          ))}
+        </ul>
+      )}
 
       {keepOrUnlist.length > 0 && (
         <section data-testid='explorer-recheck'>

@@ -1267,6 +1267,7 @@
   "Posts in the last {{days}} days: {{count}}": "पिछले {{days}} दिनों में पोस्ट: {{count}}",
   "Last post {{date}}": "आख़िरी पोस्ट {{date}}",
   "No posts yet": "अभी कोई पोस्ट नहीं",
+  "{{name}} is no longer Public, so it was not listed.": "{{name}} अब सार्वजनिक नहीं है, इसलिए इसे सूची में नहीं जोड़ा गया।",
   "Something went wrong saving the banner": "बैनर सहेजने में कुछ गलत हो गया",
   "Sort, view mode, and post type filters carry over to every stream on your account.": "क्रम, देखने का तरीका और पोस्ट फ़िल्टर आपके खाते की हर स्ट्रीम पर लागू होते हैं।",
   "Spaces are places inside a group where people can gather, share information, and coordinate. Custom spaces can be shaped for any kind of coordination.": "स्पेस समूह के भीतर ऐसी जगहें हैं जहाँ लोग जुट सकते हैं, जानकारी साझा कर सकते हैं और तालमेल बिठा सकते हैं। कस्टम स्पेस किसी भी तरह के समन्वय के लिए ढाले जा सकते हैं।",

@@ -3239,6 +3239,14 @@ type ExplorerReviewList {
   activityWindowDays: Int
 }
 
+# A decision in the Group Explorer review list: approve or deny a pending group, keep or unlist a listed one
+enum ExplorerReviewDecision {
+  approve
+  deny
+  keep
+  unlist
+}
+
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type ProposalOptionQuerySet {
   total: Int
@@ -3784,8 +3792,8 @@ type Mutation {
   deleteSiteBanner(id: ID!): Boolean
   # Dismiss a site banner for the current user
   dismissSiteBanner(id: ID!): Boolean
-  # Decide whether a Public group appears in the Group Explorer: 'approve', 'deny', 'keep' or 'unlist' (admin only)
-  reviewExplorerGroup(groupId: ID!, decision: String!): ExplorerReviewGroup
+  # Decide whether a Public group appears in the Group Explorer (admin only). Approve and keep apply only to groups that are still Public
+  reviewExplorerGroup(groupId: ID!, decision: ExplorerReviewDecision!): ExplorerReviewGroup
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email

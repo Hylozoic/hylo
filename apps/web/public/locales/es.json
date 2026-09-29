@@ -1294,6 +1294,7 @@
   "Posts in the last {{days}} days: {{count}}": "Publicaciones en los últimos {{days}} días: {{count}}",
   "Last post {{date}}": "Última publicación el {{date}}",
   "No posts yet": "Aún no hay publicaciones",
+  "{{name}} is no longer Public, so it was not listed.": "{{name}} ya no es público, así que no se ha añadido a la lista.",
   "Something went wrong saving the banner": "Algo salió mal al guardar el aviso",
   "Sort, view mode, and post type filters carry over to every stream on your account.": "El orden, el modo de vista y los filtros se aplican a todos los streams de tu cuenta.",
   "Spaces are places inside a group where people can gather, share information, and coordinate. Custom spaces can be shaped for any kind of coordination.": "Los espacios son lugares dentro de un grupo donde la gente puede reunirse, compartir información y coordinarse. Los espacios personalizados se adaptan a cualquier tipo de coordinación.",

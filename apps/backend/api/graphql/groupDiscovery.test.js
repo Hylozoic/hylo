@@ -2,8 +2,10 @@
 import setup from '../../test/setup'
 import factories from '../../test/setup/factories'
 import { createRequestHandler } from './index'
+import { ExplorerStatus, GROUP_NOT_PUBLIC } from './mutations/explorerReview'
 
 const HIDDEN = 0
+const PROTECTED = 1
 const PUBLIC = 2
 
 // Runs a document through the real schema, as the given user
@@ -71,6 +73,30 @@ describe('group discovery through GraphQL', () => {
       const result = await run(handler, viewer.id, '{ searchGroups(term: "q") { total hasMore items { id } } }')
       expect(result.errors).to.be.undefined
       expect(result.data.searchGroups).to.deep.equal({ total: 0, hasMore: false, items: [] })
+    })
+  })
+
+  describe('reviewExplorerGroup', () => {
+    it('only accepts the four decisions', async () => {
+      const group = await factories.group({ visibility: PUBLIC, explorer_status: ExplorerStatus.PENDING }).save()
+      const result = await run(handler, admin.id, `mutation { reviewExplorerGroup(groupId: "${group.id}", decision: feature) { id } }`)
+      expect(result.errors[0].message).to.match(/ExplorerReviewDecision/)
+    })
+
+    it('will not list a group that is no longer Public', async () => {
+      const group = await factories.group({ visibility: PROTECTED, explorer_status: ExplorerStatus.PENDING }).save()
+      const result = await run(handler, admin.id, `mutation { reviewExplorerGroup(groupId: "${group.id}", decision: approve) { id status } }`)
+      expect(result.errors[0].extensions.code).to.equal(GROUP_NOT_PUBLIC)
+      const row = await bookshelf.knex('groups').where('id', group.id).first('allow_in_public', 'explorer_status')
+      expect(row.allow_in_public).to.equal(false)
+      expect(row.explorer_status).to.equal(ExplorerStatus.PENDING)
+    })
+
+    it('still lets an admin deny a group that is no longer Public', async () => {
+      const group = await factories.group({ visibility: PROTECTED, explorer_status: ExplorerStatus.PENDING }).save()
+      const result = await run(handler, admin.id, `mutation { reviewExplorerGroup(groupId: "${group.id}", decision: deny) { id status } }`)
+      expect(result.errors).to.be.undefined
+      expect(result.data.reviewExplorerGroup.status).to.equal(ExplorerStatus.DENIED)
     })
   })
 })

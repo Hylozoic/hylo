@@ -1306,6 +1306,7 @@
   "Posts in the last {{days}} days: {{count}}": "Posts in the last {{days}} days: {{count}}",
   "Last post {{date}}": "Last post {{date}}",
   "No posts yet": "No posts yet",
+  "{{name}} is no longer Public, so it was not listed.": "{{name}} is no longer Public, so it was not listed.",
   "Something went wrong saving the banner": "Something went wrong saving the banner",
   "Sort, view mode, and post type filters carry over to every stream on your account.": "Sort, view mode, and post type filters carry over to every stream on your account.",
   "Spaces are places inside a group where people can gather, share information, and coordinate. Custom spaces can be shaped for any kind of coordination.": "Spaces are places inside a group where people can gather, share information, and coordinate. Custom spaces can be shaped for any kind of coordination.",

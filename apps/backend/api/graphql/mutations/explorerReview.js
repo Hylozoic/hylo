@@ -38,6 +38,9 @@ const DECISIONS = {
   unlist: { status: ExplorerStatus.UNLISTED, allowInPublic: false }
 }
 
+// Error code when Approve or Keep is used on a group that is no longer Public
+export const GROUP_NOT_PUBLIC = 'GROUP_NOT_PUBLIC'
+
 const MAX_LISTED = 500
 const PUBLIC_VISIBILITY = 2
 
@@ -166,6 +169,7 @@ export async function explorerReviewList (userId) {
 
 /**
  * Approve, deny, keep or unlist a group (Hylo admins only).
+ * Approve and Keep list the group, so they only apply to groups that are still Public.
  * @param {string} decision one of approve, deny, keep, unlist
  */
 export async function reviewExplorerGroup (userId, groupId, decision) {
@@ -175,6 +179,13 @@ export async function reviewExplorerGroup (userId, groupId, decision) {
 
   const group = await Group.find(groupId)
   if (!group || !isTopLevel(group.get('type'))) throw new GraphQLError('Group not found')
+
+  // A steward may have changed who can see the group since the list was loaded
+  if (outcome.allowInPublic && Number(group.get('visibility')) !== PUBLIC_VISIBILITY) {
+    throw new GraphQLError('Only Public groups can be listed in the Group Explorer', {
+      extensions: { code: GROUP_NOT_PUBLIC }
+    })
+  }
 
   await bookshelf.knex('groups').where('id', group.id).update({
     allow_in_public: outcome.allowInPublic,
