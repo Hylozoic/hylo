@@ -807,6 +807,7 @@ module.exports = bookshelf.Model.extend(merge({
       )
       // Someone who has left no longer vouches for the people they invited as a member
       await Invitation.expirePendingLimited({ groupId: this.id, invitedByIds: userIds }, { transacting })
+      await MemberInviteLink.revoke({ groupId: this.id, userIds }, { transacting })
       const agreementsQuery = bookshelf.knex('users_groups_agreements')
         .whereIn('user_id', userIds)
         .where('group_id', this.id)

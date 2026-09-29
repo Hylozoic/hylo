@@ -843,6 +843,51 @@ msgid "Click this link to join me on Hylo: %(invite_link)s"
 msgstr ""
 
 #, python-format
+msgid "%(member_count_var)s people are already in %(group_name_var)s."
+msgstr ""
+
+#, python-format
+msgid "They shared %(recent_post_count_var)s posts in the last 30 days."
+msgstr ""
+
+msgid "Stop invitations to this address"
+msgstr ""
+
+#, python-format
+msgid "Stop invitations to this address: %(opt_out_url)s"
+msgstr ""
+
+#, python-format
+msgid "%(inviter_name_var)s invited you to join %(group_name_var)s on Hylo."
+msgstr ""
+
+#, python-format
+msgid "You were invited to join %(group_name_var)s on Hylo."
+msgstr ""
+
+msgid "You started signing up but didn't finish. Your invitation is still waiting for you."
+msgstr ""
+
+msgid "You started signing up for Hylo but didn't finish."
+msgstr ""
+
+msgid "It only takes a minute to pick up where you left off."
+msgstr ""
+
+msgid "Finish signing up"
+msgstr ""
+
+msgid "If you didn't mean to sign up, you can ignore this email. We won't send another."
+msgstr ""
+
+#, python-format
+msgid "Your invitation to %(group_name_var)s is waiting"
+msgstr ""
+
+msgid "Finish signing up for Hylo"
+msgstr ""
+
+#, python-format
 msgid "%(inviter_name)s"
 msgstr ""
 

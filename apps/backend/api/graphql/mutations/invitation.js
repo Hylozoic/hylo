@@ -4,8 +4,9 @@ import { getLocaleStrings } from '../../../lib/i18n/locales'
 import InvitationService from '../../services/InvitationService'
 
 /**
- * Personal email invitations from someone with limited invite access: no roles,
- * no existing Hylo people by id, and top-level groups only.
+ * Personal invitations from someone with limited invite access: no roles, top-level
+ * groups only, and existing Hylo people by id only while the member people picker
+ * is switched on.
  */
 async function createLimitedInvitations (userId, group, data, localeStrings) {
   if (group.get('type') === 'space' || group.get('parent_id')) {
@@ -14,14 +15,16 @@ async function createLimitedInvitations (userId, group, data, localeStrings) {
   if (data.groupRoleId || data.assignAdministrator) {
     throw new GraphQLError("You don't have permission to invite people with a role")
   }
-  if (!isEmpty(data.userIds)) {
+  if (!isEmpty(data.userIds) && !InvitationService.memberPickerEnabled()) {
     throw new GraphQLError('You can only invite people by email address')
   }
   const invitations = await InvitationService.createLimited({
     sessionUserId: userId,
     groupId: group.id,
     emails: data.emails,
+    userIds: data.userIds,
     message: localeStrings.createInvitationMessage(group.get('name')),
+    note: data.note,
     subject: localeStrings.createInvitationSubject(group.get('name'))
   })
   return { invitations }
@@ -70,6 +73,7 @@ export async function createInvitation (userId, groupId, data) {
         emails: data.emails,
         userIds: data.userIds,
         message: localeStrings.createInvitationMessage(group.get('name')),
+        note: data.note,
         assignAdministrator: data.assignAdministrator || false,
         groupRoleId: data.groupRoleId ? parseInt(data.groupRoleId, 10) : null,
         subject: localeStrings.createInvitationSubject(group.get('name'))
@@ -85,6 +89,38 @@ export function expireInvitation (userId, invitationId) {
     })
     .then(() => InvitationService.expire(userId, invitationId))
     .then(() => ({ success: true }))
+}
+
+// The group whose personal invite link this person may have: one they can invite people to with limited access
+async function memberInviteLinkGroup (userId, groupId) {
+  const group = groupId && await Group.find(groupId)
+  if (!group || await GroupMembership.inviteAccess(userId, group) !== GroupMembership.InviteAccess.LIMITED) {
+    throw new GraphQLError("You don't have permission to create an invite link for this group")
+  }
+  return group
+}
+
+const inviteLinkResult = (link, group) => ({ path: link.path(group), createdAt: link.get('created_at') })
+
+/** This person's personal invite link to the group, made now if they have none. */
+export async function createMemberInviteLink (userId, groupId) {
+  const group = await memberInviteLinkGroup(userId, groupId)
+  return inviteLinkResult(await MemberInviteLink.findOrCreate({ groupId: group.id, userId }), group)
+}
+
+/** Stop this person's personal invite link to the group working, and make a new one. */
+export async function resetMemberInviteLink (userId, groupId) {
+  const group = await memberInviteLinkGroup(userId, groupId)
+  return inviteLinkResult(await MemberInviteLink.reset({ groupId: group.id, userId }), group)
+}
+
+/**
+ * Take one of the addresses or people this person submitted with limited invite access
+ * off their list, cancelling its invitation if one is still pending.
+ */
+export async function cancelInvitationSubmission (userId, submissionId) {
+  if (!userId) throw new GraphQLError("You don't have permission to modify this invitation")
+  return InvitationService.cancelSubmission({ userId, submissionId })
 }
 
 export function resendInvitation (userId, invitationId) {

@@ -756,6 +756,51 @@ msgid "Click this link to join me on Hylo: %(invite_link)s"
 msgstr "Hylo पर मुझसे जुड़ने के लिए इस लिंक पर क्लिक करें: %(invite_link)s"
 
 #, python-format
+msgid "%(member_count_var)s people are already in %(group_name_var)s."
+msgstr "%(member_count_var)s लोग पहले से %(group_name_var)s में हैं।"
+
+#, python-format
+msgid "They shared %(recent_post_count_var)s posts in the last 30 days."
+msgstr "उन्होंने पिछले 30 दिनों में %(recent_post_count_var)s पोस्ट साझा कीं।"
+
+msgid "Stop invitations to this address"
+msgstr "इस पते पर निमंत्रण बंद करें"
+
+#, python-format
+msgid "Stop invitations to this address: %(opt_out_url)s"
+msgstr "इस पते पर निमंत्रण बंद करें: %(opt_out_url)s"
+
+#, python-format
+msgid "%(inviter_name_var)s invited you to join %(group_name_var)s on Hylo."
+msgstr "%(inviter_name_var)s ने आपको Hylo पर %(group_name_var)s से जुड़ने के लिए आमंत्रित किया।"
+
+#, python-format
+msgid "You were invited to join %(group_name_var)s on Hylo."
+msgstr "आपको Hylo पर %(group_name_var)s से जुड़ने के लिए आमंत्रित किया गया था।"
+
+msgid "You started signing up but didn't finish. Your invitation is still waiting for you."
+msgstr "आपने साइन अप करना शुरू किया था लेकिन पूरा नहीं किया। आपका निमंत्रण अब भी आपका इंतज़ार कर रहा है।"
+
+msgid "You started signing up for Hylo but didn't finish."
+msgstr "आपने Hylo पर साइन अप करना शुरू किया था लेकिन पूरा नहीं किया।"
+
+msgid "It only takes a minute to pick up where you left off."
+msgstr "जहाँ आपने छोड़ा था, वहीं से आगे बढ़ने में बस एक मिनट लगता है।"
+
+msgid "Finish signing up"
+msgstr "साइन अप पूरा करें"
+
+msgid "If you didn't mean to sign up, you can ignore this email. We won't send another."
+msgstr "अगर आप साइन अप नहीं करना चाहते थे, तो आप इस ईमेल को अनदेखा कर सकते हैं। हम दूसरा नहीं भेजेंगे।"
+
+#, python-format
+msgid "Your invitation to %(group_name_var)s is waiting"
+msgstr "%(group_name_var)s के लिए आपका निमंत्रण इंतज़ार कर रहा है"
+
+msgid "Finish signing up for Hylo"
+msgstr "Hylo पर अपना साइन अप पूरा करें"
+
+#, python-format
 msgid "%(inviter_name)s"
 msgstr "%(inviter_name)s"
 

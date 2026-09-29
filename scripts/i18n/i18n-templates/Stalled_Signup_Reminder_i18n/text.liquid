@@ -1,0 +1,9 @@
+{% if has_invitation %}{% set group_name_var = group_name %}{% trans %}You were invited to join {{group_name_var}} on Hylo.{% endtrans %}
+
+{% trans %}You started signing up but didn't finish. Your invitation is still waiting for you.{% endtrans %}{% else %}{% trans %}You started signing up for Hylo but didn't finish.{% endtrans %}
+
+{% trans %}It only takes a minute to pick up where you left off.{% endtrans %}{% endif %}
+
+{{continue_url}}
+
+{% trans %}If you didn't mean to sign up, you can ignore this email. We won't send another.{% endtrans %}

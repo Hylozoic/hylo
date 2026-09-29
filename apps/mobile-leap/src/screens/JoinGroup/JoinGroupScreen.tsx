@@ -52,6 +52,11 @@ export default function JoinGroupScreen () {
               await openURL(`/groups/${approvalGroupSlug}/about?token=${encodeURIComponent(token)}`)
               return
             }
+            // A member's personal invite link to a group whose stewards approve new people
+            if (approvalGroupSlug && accessCode) {
+              await openURL(`/groups/${approvalGroupSlug}/about?accessCode=${encodeURIComponent(accessCode)}`)
+              return
+            }
 
             const newMembership = data?.useInvitation?.membership
             const groupSlug = newMembership?.group?.slug

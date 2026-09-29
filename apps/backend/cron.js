@@ -60,6 +60,7 @@ const hourly = now => {
         return 0
       })
   ]
+  tasks.push(require('./api/models/invitation/stalledSignupReminder').sendStalledSignupReminders().then(count => sails.log.debug(`Sent ${count} stalled signup reminders`)).catch(err => sails.log.error('Stalled signup reminders failed', err)))
 
   switch (now.hour) {
     case 12:

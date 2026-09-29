@@ -184,14 +184,25 @@ function InvitedByBanner ({ invitedBy, t }) {
   )
 }
 
-export default function JoinSection ({ accessCode, currentUser, fullPage, group, groupsWithPendingRequests, invitationRequiresApproval, invitationRole, invitationToken, invitedBy, joinGroup, linkedSpaceName, requestToJoinGroup, routeParams, t }) {
+export default function JoinSection ({ accessCode, currentUser, fullPage, group, groupsWithPendingRequests, invitationRequiresApproval, invitationRole, invitationToken, invitationTryLater, invitedBy, joinGroup, linkedSpaceName, requestToJoinGroup, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
-  // A member's invitation to a Restricted or Closed group becomes a request to join that stewards review
-  const hasSponsoredRequest = !!(invitationToken && invitationRequiresApproval)
+  // A member's invitation or personal invite link to a Restricted or Closed group becomes a request to join that stewards review
+  const hasSponsoredRequest = !!((invitationToken || accessCode) && invitationRequiresApproval)
 
   // User arrived with a join link (accessCode) or a steward's email invite link (token) — pre-approved for Closed/Restricted
-  const hasJoinOrInviteLink = !!accessCode || (!!invitationToken && !hasSponsoredRequest)
+  const hasJoinOrInviteLink = (!!accessCode || !!invitationToken) && !hasSponsoredRequest
+
+  // A member's invite link that has been used as often as it can be today: nobody joins through it for now
+  if (invitationTryLater) {
+    return (
+      <div className={cn('JoinSection requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>
+        <div className='border-2 border-dashed border-foreground/20 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
+          <p className='m-0'>{t("This invite link can't be used right now. Please try again later.")}</p>
+        </div>
+      </div>
+    )
+  }
 
   const linkedSpaceNotice = linkedSpaceName
     ? (

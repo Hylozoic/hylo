@@ -27,6 +27,7 @@ import {
   archiveSpace,
   blockUser,
   cancelGroupRelationshipInvite,
+  cancelInvitationSubmission,
   cancelJoinRequest,
   clearModerationAction,
   completePost,
@@ -39,6 +40,7 @@ import {
   createGroupView,
   createInvitation,
   createJoinRequest,
+  createMemberInviteLink,
   createMessage,
   createModerationAction,
   createPost,
@@ -133,6 +135,7 @@ import {
   reorderViewPost,
   refundContentAccess,
   resendInvitation,
+  resetMemberInviteLink,
   respondToEvent,
   revokeContentAccess,
   savePost,
@@ -706,7 +709,11 @@ export function makeMutations ({ fetchOne }) {
 
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
 
-    createJoinRequest: (root, { groupId, questionAnswers, invitationToken }, context) => createJoinRequest(context.currentUserId, groupId, questionAnswers, invitationToken),
+    createJoinRequest: (root, { groupId, questionAnswers, invitationToken, accessCode }, context) => createJoinRequest(context.currentUserId, groupId, questionAnswers, invitationToken, accessCode),
+
+    createMemberInviteLink: (root, { groupId }, context) => createMemberInviteLink(context.currentUserId, groupId),
+
+    resetMemberInviteLink: (root, { groupId }, context) => resetMemberInviteLink(context.currentUserId, groupId),
 
     createMessage: (root, { data }, context) => createMessage(context.currentUserId, data, context),
 
@@ -767,6 +774,8 @@ export function makeMutations ({ fetchOne }) {
     enrollInTrack: (root, { trackId }, context) => enrollInTrack(context.currentUserId, trackId),
 
     expireInvitation: (root, { invitationId }, context) => expireInvitation(context.currentUserId, invitationId),
+
+    cancelInvitationSubmission: (root, { submissionId }, context) => cancelInvitationSubmission(context.currentUserId, submissionId),
 
     findOrCreateThread: (root, { data }, context) => findOrCreateThread(context.currentUserId, data.participantIds),
 

@@ -756,6 +756,51 @@ msgid "Click this link to join me on Hylo: %(invite_link)s"
 msgstr "Cliquez sur ce lien pour me rejoindre sur Hylo : %(invite_link)s"
 
 #, python-format
+msgid "%(member_count_var)s people are already in %(group_name_var)s."
+msgstr "%(member_count_var)s personnes font déjà partie de %(group_name_var)s."
+
+#, python-format
+msgid "They shared %(recent_post_count_var)s posts in the last 30 days."
+msgstr "Ils ont partagé %(recent_post_count_var)s publications ces 30 derniers jours."
+
+msgid "Stop invitations to this address"
+msgstr "Ne plus envoyer d'invitations à cette adresse"
+
+#, python-format
+msgid "Stop invitations to this address: %(opt_out_url)s"
+msgstr "Ne plus envoyer d'invitations à cette adresse : %(opt_out_url)s"
+
+#, python-format
+msgid "%(inviter_name_var)s invited you to join %(group_name_var)s on Hylo."
+msgstr "%(inviter_name_var)s vous a invité à rejoindre %(group_name_var)s sur Hylo."
+
+#, python-format
+msgid "You were invited to join %(group_name_var)s on Hylo."
+msgstr "Vous avez été invité à rejoindre %(group_name_var)s sur Hylo."
+
+msgid "You started signing up but didn't finish. Your invitation is still waiting for you."
+msgstr "Vous avez commencé à vous inscrire sans terminer. Votre invitation vous attend toujours."
+
+msgid "You started signing up for Hylo but didn't finish."
+msgstr "Vous avez commencé à vous inscrire sur Hylo sans terminer."
+
+msgid "It only takes a minute to pick up where you left off."
+msgstr "Il suffit d'une minute pour reprendre là où vous vous êtes arrêté."
+
+msgid "Finish signing up"
+msgstr "Terminer l'inscription"
+
+msgid "If you didn't mean to sign up, you can ignore this email. We won't send another."
+msgstr "Si vous ne vouliez pas vous inscrire, vous pouvez ignorer cet e-mail. Nous n'en enverrons pas d'autre."
+
+#, python-format
+msgid "Your invitation to %(group_name_var)s is waiting"
+msgstr "Votre invitation à %(group_name_var)s vous attend"
+
+msgid "Finish signing up for Hylo"
+msgstr "Terminez votre inscription sur Hylo"
+
+#, python-format
 msgid "%(inviter_name)s"
 msgstr "%(inviter_name)s"
 

@@ -468,3 +468,62 @@ it('tracks Invite Link Opened for a signed-out email invitation', async () => {
   expect(await screen.findByText('Signup page')).toBeInTheDocument()
   expect(trackAnalyticsEvent).toHaveBeenCalledWith('Invite Link Opened', { groupId: '3', method: 'token', signedIn: false })
 })
+
+it("sends a member's personal invite link to the about page with its code, and tracks it as a member link", async () => {
+  mockCheckInvitation({ valid: true, groupId: '4', groupSlug: 'other-group', isMemberLink: true, requiresApproval: true, tryLater: false })
+
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'member-link-code' })
+  jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/join-group', search: '' })
+  const navigateSpy = jest.spyOn(require('react-router-dom'), 'Navigate')
+
+  render(
+    <Routes>
+      <Route path='/join-group' element={<JoinGroup />} />
+      <Route path='/groups/other-group/about' element={<div>Other group about page</div>} />
+    </Routes>,
+    { wrapper: currentUserProvider(true) }
+  )
+
+  expect(await screen.findByText('Other group about page')).toBeInTheDocument()
+  expect(navigatePropsFor(navigateSpy)).toContainEqual(expect.objectContaining({ to: '/groups/other-group/about?accessCode=member-link-code' }))
+  expect(trackAnalyticsEvent).toHaveBeenCalledWith('Invite Link Opened', { groupId: '4', method: 'member', signedIn: true })
+})
+
+it("says to try again later, and goes nowhere, when a member's invite link has been used as often as it can be today", async () => {
+  mockCheckInvitation({ valid: true, groupId: '4', groupSlug: 'other-group', isMemberLink: true, requiresApproval: false, tryLater: true })
+
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'member-link-code' })
+  jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/join-group', search: '' })
+  const navigateSpy = jest.spyOn(require('react-router-dom'), 'Navigate')
+
+  render(
+    <Routes>
+      <Route path='/join-group' element={<JoinGroup />} />
+      <Route path='/signup' element={<div>Signup page</div>} />
+    </Routes>,
+    { wrapper: currentUserProvider(false) }
+  )
+
+  expect(await screen.findByText("This invite link can't be used right now")).toBeInTheDocument()
+  expect(screen.getByText('It has been used as many times as it can be today. Please try again later.')).toBeInTheDocument()
+  expect(navigateSpy).not.toHaveBeenCalled()
+  expect(toast.error).not.toHaveBeenCalled()
+})
+
+it("takes someone already in the group there even when a member's invite link can't be used right now", async () => {
+  mockCheckInvitation({ valid: true, groupId: '3', groupSlug: 'test-group', isMemberLink: true, requiresApproval: false, tryLater: true })
+
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ accessCode: 'member-link-code' })
+  jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/join-group', search: '' })
+
+  render(
+    <Routes>
+      <Route path='/join-group' element={<JoinGroup />} />
+      <Route path='/groups/test-group/about' element={<div>Test group about page</div>} />
+    </Routes>,
+    { wrapper: currentUserProvider(true) }
+  )
+
+  expect(await screen.findByText('Test group about page')).toBeInTheDocument()
+  expect(screen.queryByText("This invite link can't be used right now")).not.toBeInTheDocument()
+})

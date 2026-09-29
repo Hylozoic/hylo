@@ -25,6 +25,8 @@ export const AnalyticsEvents = {
   UNBLOCK_USER: 'User Un-Blocked',
   GROUP_WELCOME_COMPLETED: 'Group Welcome Completed',
   GROUP_WELCOME_PAGE_VIEWED: 'Group Welcome Page Viewed',
+  // { groupId, kind: 'join' (the group's join link) | 'public' (its public page) | 'member' (a member's personal invite link) }
+  INVITE_LINK_COPIED: 'Invite Link Copied',
   INVITE_LINK_OPENED: 'Invite Link Opened',
   JOIN_REQUEST_APPROVED: 'Join Request Approved',
   JOIN_REQUEST_CANCELED: 'Join Request Canceled',

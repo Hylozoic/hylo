@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { useLocation, Navigate, useParams } from 'react-router-dom'
+import { Link, useLocation, Navigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { every, isEmpty } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
@@ -53,7 +53,8 @@ function buildSpaceRedirectUrl (parentGroupSlug, spaceSlug) {
 
 /**
  * JoinGroup route component - validates invitation and redirects.
- * Group invites go to the about page so the user can review and join.
+ * Group invites (and members' personal invite links) go to the about page so the user can
+ * review and join; a member's link that can't be used until later says so instead.
  * Space invites auto-join when the user is already a parent-group member
  * and then open the space. Otherwise they go to the parent group's about page.
  */
@@ -62,6 +63,7 @@ export default function JoinGroup (props) {
   const signupComplete = useSelector(getSignupComplete)
   const myMemberships = useSelector(getMyMemberships)
   const [redirectTo, setRedirectTo] = useState()
+  const [tryLater, setTryLater] = useState(false)
   const { t } = useTranslation()
   const routeParams = useParams()
   const location = useLocation()
@@ -93,7 +95,7 @@ export default function JoinGroup (props) {
           throw new Error(t('Invalid invitation'))
         }
 
-        const { email, groupId, groupSlug, isSpace, parentGroupSlug } = checkResult
+        const { email, groupId, groupSlug, isSpace, parentGroupSlug, isMemberLink } = checkResult
 
         if (!groupSlug) {
           throw new Error(t('Could not determine group from invitation'))
@@ -101,9 +103,16 @@ export default function JoinGroup (props) {
 
         dispatch(trackAnalyticsEvent(AnalyticsEvents.INVITE_LINK_OPENED, {
           groupId,
-          method: invitationToken ? 'token' : 'code',
+          method: invitationToken ? 'token' : isMemberLink ? 'member' : 'code',
           signedIn: signupComplete
         }))
+
+        // A member's invite link whose daily allowance is used up: nobody joins through it for now
+        const isGroupMember = myMemberships.some(m => m.group?.slug === groupSlug)
+        if (checkResult.tryLater && !isGroupMember) {
+          setTryLater(true)
+          return
+        }
 
         const isParentMember = !!(parentGroupSlug && myMemberships.some(m => m.group?.slug === parentGroupSlug))
 
@@ -154,6 +163,16 @@ export default function JoinGroup (props) {
   }, [])
 
   if (redirectTo) return <Navigate to={redirectTo.to} state={redirectTo.state} replace />
+
+  if (tryLater) {
+    return (
+      <div className='flex flex-col items-center justify-center gap-4 min-h-[50vh] p-4 text-center text-foreground' data-testid='invite-try-later'>
+        <h1 className='text-xl font-bold m-0'>{t("This invite link can't be used right now")}</h1>
+        <p className='m-0 text-foreground/70 max-w-[480px]'>{t('It has been used as many times as it can be today. Please try again later.')}</p>
+        <Link to='/' className='text-accent underline hover:no-underline'>{t('Home')}</Link>
+      </div>
+    )
+  }
 
   return <><Loading /></>
 }

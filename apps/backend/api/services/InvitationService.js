@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import validator from 'validator'
 import { TextHelpers } from '@hylo/shared'
 import { get, isEmpty, map, merge } from 'lodash/fp'
+import { MEMBER_INVITE_PICKER, isFeatureEnabled } from '../../lib/featureFlags'
 
 /**
  * Builds the public checkInvitation payload for a group, including parent
@@ -69,6 +70,78 @@ async function invitationSender (invitation) {
     : null
 }
 
+/** Who owns a member's personal invite link, shown the same way as the sender of an invitation. */
+async function memberLinkSender (link) {
+  const owner = await User.find(link.get('user_id'))
+  return owner
+    ? { id: owner.id, name: owner.get('name'), avatarUrl: owner.get('avatar_url') }
+    : null
+}
+
+// Error for a member's invite link that has been used as often as it can be today
+const MEMBER_LINK_TRY_LATER = 'invite-try-later'
+
+/**
+ * The member's personal invite link with this code and its group, while it can
+ * be used: member invitations are switched on, the link has not been revoked,
+ * its group is an active top-level group, and its owner can still invite
+ * people to that group. Otherwise null.
+ */
+async function usableMemberLink (code) {
+  if (!code || typeof code !== 'string' || !GroupRole.memberInvitesEnabled()) return null
+  const link = await MemberInviteLink.findByCode(code)
+  if (!link || link.isRevoked()) return null
+  const group = await Group.where({ id: link.get('group_id'), active: true }).fetch()
+  if (!group || group.get('parent_id') || group.get('type') === 'space') return null
+  if (!await GroupMembership.inviteAccess(link.get('user_id'), group)) return null
+  return { link, group }
+}
+
+/**
+ * Count one person toward the daily invitation allowance of an invite link's
+ * owner and group, or fail with MEMBER_LINK_TRY_LATER when either is used up.
+ */
+async function spendMemberLinkAllowance (link) {
+  const counted = await InvitationSend.spend({ userId: link.get('user_id'), groupId: link.get('group_id') })
+  if (!counted) throw new GraphQLError(MEMBER_LINK_TRY_LATER)
+}
+
+/**
+ * The public checkInvitation result for a member's personal invite link: who
+ * invited the person, whether a steward approves their request to join
+ * (anything but an Open group), and whether it can't be used until the daily
+ * allowance frees up.
+ */
+async function memberLinkResult ({ link, group }) {
+  const remaining = await InvitationSend.remainingAllowance({ userId: link.get('user_id'), groupId: group.id })
+  return invitationResultForGroup(group, {
+    isMemberLink: true,
+    requiresApproval: group.get('accessibility') !== Group.Accessibility.OPEN,
+    invitedBy: await memberLinkSender(link),
+    tryLater: remaining < 1
+  })
+}
+
+/**
+ * Join through a member's personal invite link: someone already in the group
+ * keeps their membership, an Open group whose prerequisite groups they have
+ * joined takes them in (counted toward the owner's allowance), and anywhere
+ * else they ask to join from the group's about page.
+ */
+async function useMemberLink (userId, { link, group }) {
+  const existing = await GroupMembership.forPair(userId, group.id).fetch()
+  if (existing) return existing
+  const canJoinDirectly = group.get('accessibility') === Group.Accessibility.OPEN &&
+    await group.numPrerequisitesLeft(userId) === 0
+  if (!canJoinDirectly) return { requiresApproval: true, groupSlug: group.get('slug') }
+  await spendMemberLinkAllowance(link)
+  const user = await User.find(userId)
+  return user.joinGroup(group, {
+    joinSource: GroupMembership.JoinSource.MEMBER_LINK,
+    invitedById: link.get('user_id')
+  })
+}
+
 /**
  * Sends an in-app notification to an existing Hylo user invited by user id.
  */
@@ -105,10 +178,204 @@ async function addressesAlreadyInGroup (groupId, emails, transacting) {
   return new Set(members.concat(invited).map(row => row.email))
 }
 
+// A personal note on an invitation is plain text of at most this many characters
+const INVITE_NOTE_MAX_LENGTH = 300
+
+/**
+ * The personal note someone added to their invitations as plain text: any HTML
+ * tags and angle brackets removed, spaces tidied, and cut to
+ * INVITE_NOTE_MAX_LENGTH characters. Empty when there is none.
+ */
+function sanitizeInviteNote (note) {
+  if (typeof note !== 'string') return ''
+  const text = note
+    .replace(/<(br|\/p|\/div|\/li|\/h[1-6])\b[^>]*>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>]/g, '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(line => line.replace(/[^\S\n]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+  return Array.from(text).slice(0, INVITE_NOTE_MAX_LENGTH).join('').trim()
+}
+
+const escapeHtml = text => text
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+
+/**
+ * The HTML message stored on an invitation and shown in its email: the
+ * standard message, then the sender's personal note, if any, as a quote.
+ * Braces in the note are written as HTML entities, because the email
+ * template fills placeholders in the message.
+ */
+function invitationMessage (message, note) {
+  const html = TextHelpers.markdown(message, { disableAutolinking: true })
+  const text = sanitizeInviteNote(note)
+  if (!text) return html
+  const quoted = escapeHtml(text)
+    .replace(/{/g, '&#123;')
+    .replace(/}/g, '&#125;')
+    .replace(/\n/g, '<br>')
+  return `${html}<blockquote class="invitation-note">${quoted}</blockquote>`
+}
+
+// How long a member's "Your pending invites" list keeps what they submitted, sent
+// or not: until after both automatic reminders (4 and 13 days after sending)
+const SUBMISSION_LIST_DAYS = 14
+
+/**
+ * Record an address someone with limited invite access typed, or a person they
+ * picked, whether or not an invitation was created for it, so their list of
+ * pending invites shows every one in the same way.
+ */
+function recordSubmission ({ userId, groupId, email = null, inviteeId = null, invitationId = null }, transacting) {
+  return bookshelf.knex('invitation_submissions')
+    .insert({ user_id: userId, group_id: groupId, email, invitee_id: inviteeId, invitation_id: invitationId, created_at: new Date() })
+    .transacting(transacting)
+}
+
+/**
+ * Which of these people share an active group with the sender, as a map from
+ * their id to their lowercased email address: the only people someone with
+ * limited invite access can pick from the people search.
+ */
+async function peopleSharingAGroup (senderId, userIds) {
+  const rows = await bookshelf.knex('users')
+    .whereIn('users.id', userIds)
+    .where('users.active', true)
+    .whereNotNull('users.email')
+    .whereExists(function () {
+      this.select(bookshelf.knex.raw(1)).from('group_memberships as theirs')
+        .join('group_memberships as mine', 'mine.group_id', 'theirs.group_id')
+        .join('groups as shared', 'shared.id', 'theirs.group_id')
+        .whereRaw('theirs.user_id = users.id')
+        .where('theirs.active', true)
+        .where('mine.user_id', senderId)
+        .where('mine.active', true)
+        .where('shared.active', true)
+    })
+    .select('users.id', bookshelf.knex.raw('lower(users.email) as email'))
+  return new Map(rows.map(row => [String(row.id), row.email]))
+}
+
+/**
+ * Invitations from someone with limited invite access, to email addresses
+ * and to people picked from the people search. Every valid address and
+ * person counts toward the daily allowance and is reported as sent, but
+ * nothing is sent to the sender, to active members, to anyone who already has
+ * a pending invitation to the group, to an address that asked for no more
+ * invitations, or to someone the sender blocked or was blocked by, and the
+ * result does not say which. People picked from the
+ * search get an in-app notification only, never an email.
+ */
+async function createLimitedInvitations ({ sessionUserId, groupId, emails = [], userIds = [], subject, message, note }) {
+  const results = []
+  const addresses = []
+  for (const entry of emails || []) {
+    const typed = String(entry ?? '').trim()
+    if (!typed) continue
+    const email = typed.toLowerCase()
+    if (!validator.isEmail(email)) {
+      results.push({ email: typed, error: 'invalid' })
+    } else if (!addresses.includes(email)) {
+      addresses.push(email)
+      results.push({ email, status: 'sent' })
+    }
+  }
+  const pickedIds = []
+  for (const entry of userIds || []) {
+    const id = String(entry ?? '').trim()
+    if (id && !pickedIds.includes(id)) pickedIds.push(id)
+  }
+  if (addresses.length + pickedIds.length > InvitationSend.LIMITS.perSend) {
+    throw new GraphQLError(`You can invite up to ${InvitationSend.LIMITS.perSend} email addresses at a time`)
+  }
+
+  const reachable = pickedIds.length > 0 ? await peopleSharingAGroup(sessionUserId, pickedIds) : new Map()
+  for (const id of pickedIds) {
+    results.push(reachable.has(id) ? { userId: id, status: 'sent' } : { userId: id, error: 'invalid' })
+  }
+  const people = pickedIds.filter(id => reachable.has(id))
+  if (addresses.length + people.length === 0) return results
+
+  const inviter = await User.find(sessionUserId)
+  const blocked = new Set()
+  if (people.length > 0) {
+    const { rows } = await BlockedUser.blockedFor(sessionUserId)
+    rows.forEach(row => blocked.add(String(row.user_id)))
+  }
+  const { emailInvitations, personInvitations } = await bookshelf.transaction(async transacting => {
+    await InvitationSend.lockAllowance({ userId: sessionUserId, groupId }, { transacting })
+    const remaining = await InvitationSend.remainingAllowance({ userId: sessionUserId, groupId }, { transacting })
+    const counted = addresses.length + people.length
+    if (counted > remaining) throw new GraphQLError('invite-limit')
+    await InvitationSend.record({ userId: sessionUserId, groupId, recipients: counted }, { transacting })
+
+    const candidates = addresses.concat(people.map(id => reachable.get(id)))
+    const skipped = await addressesAlreadyInGroup(groupId, candidates, transacting)
+    skipped.add((inviter.get('email') || '').toLowerCase())
+    // Addresses that asked for no more invitations are left out like people already in the group
+    for (const email of await InvitationOptOut.optedOut(candidates, { transacting })) skipped.add(email)
+    // One invitation per address, whether it was typed or belongs to a picked person
+    const invite = async email => {
+      if (skipped.has(email)) return null
+      skipped.add(email)
+      return Invitation.create({
+        email,
+        userId: sessionUserId,
+        groupId,
+        subject,
+        message: invitationMessage(message, note),
+        inviterAccess: Invitation.InviterAccess.LIMITED
+      }, { transacting })
+    }
+
+    const emailInvitations = []
+    for (const email of addresses) {
+      const invitation = await invite(email)
+      if (invitation) emailInvitations.push(invitation)
+      await recordSubmission({ userId: sessionUserId, groupId, email, invitationId: invitation?.id }, transacting)
+    }
+    const personInvitations = []
+    for (const id of people) {
+      const invitation = blocked.has(id) ? null : await invite(reachable.get(id))
+      if (invitation) personInvitations.push({ inviteeId: id, invitation })
+      await recordSubmission({ userId: sessionUserId, groupId, inviteeId: id, invitationId: invitation?.id }, transacting)
+    }
+    return { emailInvitations, personInvitations }
+  })
+
+  await Promise.map(emailInvitations, invitation =>
+    Queue.classMethod('Invitation', 'createAndSend', { invitation })
+      .catch(err => console.error('Error queueing invitation email', err)))
+
+  if (personInvitations.length > 0) {
+    const group = await Group.find(groupId)
+    await Promise.map(personInvitations, ({ inviteeId }) =>
+      notifyExistingUser({ actorId: sessionUserId, invitee: { id: inviteeId }, group })
+        .catch(err => console.error('Error creating invitation notification', err)))
+  }
+
+  return results
+}
+
 module.exports = {
   preApproves,
 
   invitationSender,
+
+  memberLinkSender,
+
+  MEMBER_LINK_TRY_LATER,
+
+  usableMemberLink,
+
+  spendMemberLinkAllowance,
 
   checkPermission: (userId, invitationId) => {
     return Invitation.find(invitationId, { withRelated: 'group' })
@@ -181,58 +448,118 @@ module.exports = {
       }))
   },
 
+  SUBMISSION_LIST_DAYS,
+
+  INVITE_NOTE_MAX_LENGTH,
+
+  sanitizeInviteNote,
+
   /**
-   * The pending invitations this person sent with limited access: the address
-   * they typed and when it was sent, without looking up who it belongs to.
+   * What this person submitted with limited invite access in the last
+   * SUBMISSION_LIST_DAYS days and has not cancelled: the address they typed, or
+   * the person they picked, and when. Every row looks the same whether or not
+   * an invitation was created or has been used since, and every row leaves the
+   * list on the same day, so the list never shows who was already in the group
+   * or invited.
    */
   findOwnLimited: async ({ groupId, userId, limit, offset }) => {
-    const invitations = await Invitation.query(qb => {
-      qb.select(bookshelf.knex.raw('group_invites.*, count(*) over () as total'))
-      qb.where({ group_id: groupId, invited_by_id: userId, inviter_access: Invitation.InviterAccess.LIMITED })
-      qb.whereNull('used_by_id')
-      qb.whereNull('expired_by_id')
-      qb.orderBy('created_at', 'desc')
-      qb.limit(limit || 20)
-      qb.offset(offset || 0)
-    }).fetchAll()
+    const rows = await bookshelf.knex('invitation_submissions')
+      .leftJoin('users as invitee', 'invitee.id', 'invitation_submissions.invitee_id')
+      .where({ 'invitation_submissions.group_id': groupId, 'invitation_submissions.user_id': userId })
+      .whereNull('invitation_submissions.hidden_at')
+      .whereRaw('invitation_submissions.created_at > now() - make_interval(days => ?)', [SUBMISSION_LIST_DAYS])
+      .orderBy('invitation_submissions.created_at', 'desc')
+      .orderBy('invitation_submissions.id', 'desc')
+      .limit(limit || 20)
+      .offset(offset || 0)
+      .select(
+        'invitation_submissions.id',
+        'invitation_submissions.email',
+        'invitation_submissions.created_at',
+        'invitee.id as invitee_id',
+        'invitee.name as invitee_name',
+        'invitee.avatar_url as invitee_avatar_url',
+        bookshelf.knex.raw('count(*) over () as total')
+      )
+    const total = rows.length > 0 ? Number(rows[0].total) : 0
     return {
-      total: invitations.length > 0 ? Number(invitations.first().get('total')) : 0,
-      items: invitations.map(i => ({
-        ...i.pick('id', 'email', 'created_at', 'last_sent_at'),
-        creator: () => i.creator()
+      total,
+      hasMore: (offset || 0) + rows.length < total,
+      items: rows.map(row => ({
+        id: row.id,
+        email: row.email,
+        createdAt: row.created_at,
+        person: row.invitee_id
+          ? { id: row.invitee_id, name: row.invitee_name, avatarUrl: row.invitee_avatar_url }
+          : null
       }))
     }
   },
 
   /**
-   *
+   * Take one of the things this person submitted off their list, and cancel
+   * the invitation created for it if it is still pending. It answers the same
+   * way whether or not there was an invitation.
+   */
+  cancelSubmission: async ({ userId, submissionId }) => {
+    if (!/^\d+$/.test(String(submissionId ?? ''))) throw new GraphQLError('not found')
+    return bookshelf.transaction(async transacting => {
+      const submission = await bookshelf.knex('invitation_submissions')
+        .where({ id: submissionId, user_id: userId })
+        .whereNull('hidden_at')
+        .first('id', 'invitation_id')
+        .transacting(transacting)
+      if (!submission) throw new GraphQLError('not found')
+      if (submission.invitation_id) {
+        await bookshelf.knex('group_invites')
+          .where({ id: submission.invitation_id, invited_by_id: userId })
+          .whereNull('used_by_id')
+          .whereNull('expired_by_id')
+          .update({ expired_by_id: userId, expired_at: new Date() })
+          .transacting(transacting)
+      }
+      await bookshelf.knex('invitation_submissions')
+        .where({ id: submission.id })
+        .update({ hidden_at: new Date() })
+        .transacting(transacting)
+      return { success: true }
+    })
+  },
+
+  /**
+   * Invitations from someone with Add Members. Addresses that asked for no
+   * more invitations are left out without saying so.
    * @param sessionUserId
    * @param groupId
    * @param tagName {String}
    * @param userIds {String[]} list of userIds
    * @param emails {String[]} list of emails
    * @param message
+   * @param note {String} optional personal note from the sender, shown quoted in the email (plain text, cut to 300 characters)
    * @param assignAdministrator {Boolean} invite as Administrator (defaults: false)
    * @param subject
    * @param groupRoleId {Number} group role ID to assign when invitation is used
    */
-  create: ({ sessionUserId, groupId, tagName, userIds, emails = [], message, assignAdministrator = false, subject, groupRoleId }) => {
+  create: ({ sessionUserId, groupId, tagName, userIds, emails = [], message, note, assignAdministrator = false, subject, groupRoleId }) => {
     return Promise.join(
       userIds && User.query(q => q.whereIn('id', userIds)).fetchAll(),
       Group.find(groupId),
       tagName && Tag.find({ name: tagName }),
-      (users, group, tag) => {
+      async (users, group, tag) => {
         const invitedUsers = get('models', users) || []
         const usersByEmail = {}
         invitedUsers.forEach(u => {
           usersByEmail[u.get('email').toLowerCase()] = u
         })
         const concatenatedEmails = emails.concat(map(u => u.get('email'), invitedUsers))
+        const optedOut = await InvitationOptOut.optedOut(concatenatedEmails)
 
         return Promise.map(concatenatedEmails, email => {
           if (!validator.isEmail(email)) {
             return { email, error: 'not a valid email address' }
           }
+          // An address that asked for no more invitations gets none, without saying so
+          if (optedOut.has(email.trim().toLowerCase())) return { email }
 
           const opts = {
             email,
@@ -244,7 +571,7 @@ module.exports = {
           if (tag) {
             opts.tagId = tag.id
           } else {
-            opts.message = TextHelpers.markdown(message, { disableAutolinking: true })
+            opts.message = invitationMessage(message, note)
             // TODO: are we still using this, alongside the groupRoleId?
             opts.assignAdministrator = assignAdministrator
             opts.subject = subject
@@ -277,61 +604,27 @@ module.exports = {
   },
 
   /**
-   * Send personal email invitations from someone with limited invite access.
-   * Addresses are trimmed, lowercased and deduplicated. Every valid address
-   * counts toward the daily allowance and is reported as sent, but nothing is
-   * sent to the sender, to active members, or to anyone who already has a
-   * pending invitation to the group, and the result does not say which.
-   * @returns {Object[]} { email, status: 'sent' } or { email, error: 'invalid' } for each address
+   * Send personal email invitations from someone with limited invite access,
+   * and, with userIds, invite people they picked from the people search (see
+   * createLimitedInvitations). Addresses are trimmed, lowercased and
+   * deduplicated.
+   * @returns {Object[]} { email, status: 'sent' } or { email, error: 'invalid' } for each address,
+   *   and { userId, status: 'sent' } or { userId, error: 'invalid' } for each person
    */
-  createLimited: async ({ sessionUserId, groupId, emails, subject, message }) => {
-    const results = []
-    const addresses = []
-    for (const entry of emails || []) {
-      const typed = String(entry ?? '').trim()
-      if (!typed) continue
-      const email = typed.toLowerCase()
-      if (!validator.isEmail(email)) {
-        results.push({ email: typed, error: 'invalid' })
-      } else if (!addresses.includes(email)) {
-        addresses.push(email)
-        results.push({ email, status: 'sent' })
-      }
-    }
-    if (addresses.length > InvitationSend.LIMITS.perSend) {
-      throw new GraphQLError(`You can invite up to ${InvitationSend.LIMITS.perSend} email addresses at a time`)
-    }
-    if (addresses.length === 0) return results
+  createLimited: ({ sessionUserId, groupId, emails, userIds, subject, message, note }) =>
+    createLimitedInvitations({ sessionUserId, groupId, emails, userIds, subject, message, note }),
 
-    const inviter = await User.find(sessionUserId)
-    const invitations = await bookshelf.transaction(async transacting => {
-      await InvitationSend.lockAllowance({ userId: sessionUserId, groupId }, { transacting })
-      const remaining = await InvitationSend.remainingAllowance({ userId: sessionUserId, groupId }, { transacting })
-      if (addresses.length > remaining) throw new GraphQLError('invite-limit')
-      await InvitationSend.record({ userId: sessionUserId, groupId, recipients: addresses.length }, { transacting })
+  /**
+   * Invite people picked from the people search, from someone with limited
+   * invite access: only people who share an active group with them, within
+   * the same limits as email invitations, with an in-app notification and no
+   * email. Anyone already in the group or invited is left out without saying so.
+   */
+  createLimitedForUsers: ({ sessionUserId, groupId, userIds, subject, message }) =>
+    createLimitedInvitations({ sessionUserId, groupId, userIds, subject, message }),
 
-      const skipped = await addressesAlreadyInGroup(groupId, addresses, transacting)
-      skipped.add((inviter.get('email') || '').toLowerCase())
-      const created = []
-      for (const email of addresses.filter(address => !skipped.has(address))) {
-        created.push(await Invitation.create({
-          email,
-          userId: sessionUserId,
-          groupId,
-          subject,
-          message: TextHelpers.markdown(message, { disableAutolinking: true }),
-          inviterAccess: Invitation.InviterAccess.LIMITED
-        }, { transacting }))
-      }
-      return created
-    })
-
-    await Promise.map(invitations, invitation =>
-      Queue.classMethod('Invitation', 'createAndSend', { invitation })
-        .catch(err => console.error('Error queueing invitation email', err)))
-
-    return results
-  },
+  /** Whether people with limited invite access may pick people from the people search. */
+  memberPickerEnabled: () => GroupRole.memberInvitesEnabled() && isFeatureEnabled(MEMBER_INVITE_PICKER),
 
   /**
    *
@@ -375,16 +668,19 @@ module.exports = {
    * For a member invitation, also who sent it and whether a steward has to
    * approve the person's request to join, which the group's accessibility at
    * the time of the check decides.
+   * The code of a member's personal invite link is checked the same way, after
+   * the group join link codes.
    * @param token {String} invitation token from email invite
    * @param accessCode {String} access code from invite link
-   * @returns {Object} { valid, groupId, groupSlug, groupName, isSpace, parentGroupSlug, email, groupRole, requiresApproval, invitedBy }
+   * @returns {Object} { valid, groupId, groupSlug, groupName, isSpace, parentGroupSlug, email, groupRole, requiresApproval, invitedBy, isMemberLink, tryLater }
    */
   check: async (token, accessCode) => {
     if (accessCode) {
       // Invalid / unknown codes must return { valid: false } — plain .fetch() rejects when no row (Bookshelf).
       const group = await Group.queryByAccessCode(accessCode).fetch({ require: false })
-      if (!group) return { valid: false }
-      return invitationResultForGroup(group)
+      if (group) return invitationResultForGroup(group)
+      const memberLink = await usableMemberLink(accessCode)
+      return memberLink ? memberLinkResult(memberLink) : { valid: false }
     }
     if (token) {
       const invitation = await Invitation.where({
@@ -423,18 +719,25 @@ module.exports = {
   },
 
   /**
-   * Join the group with a join link code or an invitation token.
-   * @returns the membership or, for a member invitation the person cannot join
-   *   with directly, { requiresApproval: true, groupSlug } without joining:
-   *   either a steward has to approve new people, and the person can request to
-   *   join with the token, or the group has prerequisite groups the person has
-   *   not joined yet, which its about page lists.
+   * Join the group with a join link code, a member's personal invite link code
+   * or an invitation token.
+   * @returns the membership or, for a member invitation or invite link the
+   *   person cannot join with directly, { requiresApproval: true, groupSlug }
+   *   without joining: either a steward has to approve new people, and the
+   *   person can request to join with the token or code, or the group has
+   *   prerequisite groups the person has not joined yet, which its about page
+   *   lists. Fails with MEMBER_LINK_TRY_LATER while an invite link has been
+   *   used as often as it can be today.
    */
   async use (userId, token, accessCode) {
     const user = await User.find(userId)
     if (accessCode) {
-      const group = await Group.queryByAccessCode(accessCode).fetch()
-      if (!group) throw new Error('Invalid access code')
+      const group = await Group.queryByAccessCode(accessCode).fetch({ require: false })
+      if (!group) {
+        const memberLink = await usableMemberLink(accessCode)
+        if (!memberLink) throw new Error('Invalid access code')
+        return useMemberLink(userId, memberLink)
+      }
 
       // TODO STRIPE: We need to think through how invite links will be impacted by paywall
       const existingMembership = await GroupMembership.forPair(user, group, { includeInactive: true }).fetch()

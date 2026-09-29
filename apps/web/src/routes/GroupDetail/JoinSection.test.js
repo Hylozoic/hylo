@@ -154,3 +154,36 @@ describe('JoinSection without a member invitation', () => {
     expect(screen.queryByRole('button', { name: REQUEST_TEXT })).not.toBeInTheDocument()
   })
 })
+
+describe("JoinSection with a member's personal invite link", () => {
+  it('asks to join a Closed group, showing who invited the person', async () => {
+    const user = userEvent.setup()
+    const { joinGroup, requestToJoinGroup } = renderJoinSection({
+      accessibility: GROUP_ACCESSIBILITY.Closed,
+      accessCode: 'member-link-code',
+      invitationRequiresApproval: true,
+      invitedBy: sponsor
+    })
+
+    expect(screen.getByText('Ada Member invited you')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: JOIN_TEXT })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: REQUEST_TEXT }))
+
+    expect(requestToJoinGroup).toHaveBeenCalledWith('1', [])
+    expect(joinGroup).not.toHaveBeenCalled()
+  })
+
+  it('says to try again later, and offers no way in, once the link has been used as often as it can be today', () => {
+    renderJoinSection({
+      accessibility: GROUP_ACCESSIBILITY.Open,
+      accessCode: 'member-link-code',
+      invitationTryLater: true,
+      invitedBy: sponsor
+    })
+
+    expect(screen.getByText("This invite link can't be used right now. Please try again later.")).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: JOIN_TEXT })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: REQUEST_TEXT })).not.toBeInTheDocument()
+  })
+})

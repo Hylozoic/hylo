@@ -30,12 +30,33 @@ module.exports = bookshelf.Model.extend({
     return this.belongsTo(Invitation, 'invitation_id')
   },
 
+  // The member's personal invite link this request came from, if any
+  memberInviteLink: function () {
+    return this.belongsTo(MemberInviteLink, 'member_invite_link_id')
+  },
+
+  // Who invited the person: the sender of the member invitation or the owner of the invite link it came from
+  sponsorId: async function () {
+    if (this.get('member_invite_link_id')) {
+      const link = await bookshelf.knex('member_invite_links').where('id', this.get('member_invite_link_id')).first('user_id')
+      if (link) return link.user_id
+    }
+    if (this.get('invitation_id')) {
+      const invitation = await bookshelf.knex('group_invites').where('id', this.get('invitation_id')).first('invited_by_id')
+      if (invitation) return invitation.invited_by_id
+    }
+    return null
+  },
+
   accept: async function (moderatorId) {
     const user = await this.user().fetch()
     const group = await this.group().fetch()
     if (user && group) {
       const wasPending = this.get('status') === JoinRequest.STATUS.Pending
-      const membership = await user.joinGroup(group, { joinSource: GroupMembership.JoinSource.JOIN_REQUEST })
+      const membership = await user.joinGroup(group, {
+        joinSource: GroupMembership.JoinSource.JOIN_REQUEST,
+        invitedById: await this.sponsorId()
+      })
       // Requester already accepted agreements and answered questions when submitting.
       // Carry that through so the welcome modal does not re-ask after approval.
       if (membership) {
@@ -107,6 +128,7 @@ module.exports = bookshelf.Model.extend({
       group_id: opts.groupId,
       user_id: opts.userId,
       invitation_id: opts.invitationId || null,
+      member_invite_link_id: opts.memberInviteLinkId || null,
       created_at: new Date(),
       status: this.STATUS.Pending
     }).save()
