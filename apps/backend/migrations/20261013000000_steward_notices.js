@@ -5,9 +5,11 @@
  * their request has had no answer for 14 days, so they are told once.
  *
  * first_post_nudges: newcomers' first posts that had no comment or reaction after a
- * day, one row per post and group, with the newcomer's experiment arm. Treatment rows
- * have nudged_at set (Moderators and Hosts got an in-app nudge and the post is listed
- * in the weekly steward email); control rows are kept for the analysis.
+ * day, one row per post and group, with the newcomer's experiment arm and how many
+ * stewards the group had to tell (steward_count, in both arms, so the analysis can
+ * compare like with like). Treatment rows with stewards have nudged_at set (they got
+ * an in-app nudge and the post is listed in the weekly steward email); control rows
+ * are kept for the analysis.
  *
  * group_notice_marks: when a group last had one of the scheduled steward notices
  * (kind: newcomer_notice, steward_digest or quiet_prompt), so each goes out at most
@@ -26,6 +28,7 @@ exports.up = async function (knex) {
     table.bigInteger('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE')
     table.string('variant', 64).notNullable()
     table.timestamp('nudged_at', { useTz: true })
+    table.integer('steward_count')
     table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now())
     table.unique(['post_id', 'group_id'])
     table.index(['group_id', 'created_at'])

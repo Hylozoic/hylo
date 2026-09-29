@@ -948,6 +948,7 @@ CREATE TABLE public.first_post_nudges (
     user_id bigint NOT NULL,
     variant character varying(64) NOT NULL,
     nudged_at timestamp with time zone,
+    steward_count integer,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

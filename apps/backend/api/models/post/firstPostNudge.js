@@ -1,25 +1,32 @@
-/* global bookshelf, Activity */
+/* global bookshelf, Activity, sails */
 /*
   D49, run as an experiment: when a newcomer's first post in a group has had no
   comment and no reaction for a day, nudge the group's stewards (Administrators,
   Moderators and Hosts, group/stewardAudience.js) in-app, and list the post in the
   weekly steward email (lib/group/stewardDigest.js).
 
-  - A newcomer joined the group at most NEWCOMER_DAYS before posting, and didn't
-    create the group.
+  Being new is measured on the top-level group, since a space's members come from
+  its group: a long-time member who joins a space and posts there isn't new.
+  - A newcomer joined the top-level group at most NEWCOMER_DAYS before posting, and
+    didn't create it.
   - Their first post there is a feed post (not a chat, a chat notice, a direct message
-    or a welcome post) and has no earlier active feed post by them in that group.
+    or a welcome post) with no earlier active feed post by them in the group or any
+    of its spaces.
   - It is between MIN_AGE_HOURS and MAX_AGE_HOURS old, so a daily run sees each post
     once, and nobody else has commented on it or reacted to it.
+  - A post shared to the group and one of its spaces is counted once, under the group.
 
   Newcomers are bucketed with lib/experiments.js FIRST_POST_NUDGE. Every eligible post
-  gets one first_post_nudges row with the newcomer's arm; only the 'nudge' arm is
-  nudged (nudged_at set). The control arm's rows let the analysis compare whether
-  newcomers post a second time. The unique row per post and group means one nudge per
-  post, even when runs overlap.
+  gets one first_post_nudges row with the newcomer's arm and steward_count, how many
+  stewards the post's group has to tell. In the 'nudge' arm those stewards get the
+  notice and nudged_at is set; with no steward to tell, nudged_at stays empty. The
+  analysis compares the arms on rows with steward_count > 0, to see whether newcomers
+  post a second time. The unique row per post and group means one nudge per post,
+  even when runs overlap.
 */
 import { FIRST_POST_NUDGE, assign } from '../../../lib/experiments'
 import { stewardIds } from '../group/stewardAudience'
+import sentry from '../../../lib/sentry'
 
 export const REASON = 'firstPostUnanswered'
 export const NUDGE_VARIANT = 'nudge'
@@ -40,32 +47,39 @@ const feedPost = alias =>
  */
 export async function unansweredFirstPosts ({ now = new Date(), limit = MAX_POSTS_PER_RUN } = {}) {
   const { rows } = await bookshelf.knex.raw(`
-    SELECT p.id AS post_id, gp.group_id, p.user_id
-    FROM posts p
-    JOIN groups_posts gp ON gp.post_id = p.id
-    JOIN groups g ON g.id = gp.group_id AND g.active = true
-    JOIN group_memberships gm ON gm.group_id = gp.group_id AND gm.user_id = p.user_id AND gm.active = true
-    JOIN users u ON u.id = p.user_id AND u.active = true
-    WHERE ${feedPost('p')}
-      AND p.created_at <= ? AND p.created_at > ?
-      AND gm.created_at > p.created_at - (? * interval '1 day')
-      AND COALESCE(gm.settings->>'joinSource', '') <> 'creator'
-      AND NOT EXISTS (
-        SELECT 1 FROM posts earlier
-        JOIN groups_posts egp ON egp.post_id = earlier.id AND egp.group_id = gp.group_id
-        WHERE earlier.user_id = p.user_id AND ${feedPost('earlier')}
-          AND (earlier.created_at < p.created_at OR (earlier.created_at = p.created_at AND earlier.id < p.id))
-      )
-      AND NOT EXISTS (
-        SELECT 1 FROM comments c WHERE c.post_id = p.id AND c.active = true AND c.user_id <> p.user_id
-      )
-      AND NOT EXISTS (
-        SELECT 1 FROM reactions r WHERE r.entity_type = 'post' AND r.entity_id = p.id AND r.user_id <> p.user_id
-      )
-      AND NOT EXISTS (
-        SELECT 1 FROM first_post_nudges n WHERE n.post_id = p.id AND n.group_id = gp.group_id
-      )
-    ORDER BY p.created_at, p.id, gp.group_id
+    SELECT post_id, group_id, user_id FROM (
+      SELECT DISTINCT ON (p.id, root.id) p.id AS post_id, g.id AS group_id, p.user_id, p.created_at
+      FROM posts p
+      JOIN groups_posts gp ON gp.post_id = p.id
+      JOIN groups g ON g.id = gp.group_id AND g.active = true
+      JOIN groups root ON root.id = COALESCE(g.parent_id, g.id) AND root.active = true
+      JOIN group_memberships gm ON gm.group_id = root.id AND gm.user_id = p.user_id AND gm.active = true
+      JOIN users u ON u.id = p.user_id AND u.active = true
+      WHERE ${feedPost('p')}
+        AND p.created_at <= ? AND p.created_at > ?
+        AND gm.created_at > p.created_at - (? * interval '1 day')
+        AND COALESCE(gm.settings->>'joinSource', '') <> 'creator'
+        AND NOT EXISTS (
+          SELECT 1 FROM posts earlier
+          JOIN groups_posts egp ON egp.post_id = earlier.id
+          JOIN groups eg ON eg.id = egp.group_id AND (eg.id = root.id OR eg.parent_id = root.id)
+          WHERE earlier.user_id = p.user_id AND ${feedPost('earlier')}
+            AND (earlier.created_at < p.created_at OR (earlier.created_at = p.created_at AND earlier.id < p.id))
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM comments c WHERE c.post_id = p.id AND c.active = true AND c.user_id <> p.user_id
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM reactions r WHERE r.entity_type = 'post' AND r.entity_id = p.id AND r.user_id <> p.user_id
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM first_post_nudges n
+          JOIN groups ng ON ng.id = n.group_id
+          WHERE n.post_id = p.id AND COALESCE(ng.parent_id, ng.id) = root.id
+        )
+      ORDER BY p.id, root.id, (g.id = root.id) DESC, g.id
+    ) firsts
+    ORDER BY created_at, post_id, group_id
     LIMIT ?
   `, [
     new Date(now.getTime() - MIN_AGE_HOURS * HOUR_MS),
@@ -77,39 +91,47 @@ export async function unansweredFirstPosts ({ now = new Date(), limit = MAX_POST
 }
 
 // Records the post for this group once; false when it was already recorded
-async function record ({ postId, groupId, userId, variant, now }) {
+async function record ({ postId, groupId, userId, variant, stewardCount, nudgedAt, now }) {
   const { rows } = await bookshelf.knex.raw(`
-    INSERT INTO first_post_nudges (post_id, group_id, user_id, variant, nudged_at, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO first_post_nudges (post_id, group_id, user_id, variant, steward_count, nudged_at, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (post_id, group_id) DO NOTHING
     RETURNING id
-  `, [postId, groupId, userId, variant, variant === NUDGE_VARIANT ? now : null, now])
+  `, [postId, groupId, userId, variant, stewardCount, nudgedAt, now])
   return rows.length > 0
 }
 
 /**
- * The daily run (cron.js). Returns { found, nudged, control }.
+ * The daily run (cron.js). Returns { found, nudged, control }. One post that fails is
+ * logged and skipped, so it doesn't stop the rest.
  */
 export async function runDaily ({ now = new Date(), limit = MAX_POSTS_PER_RUN } = {}) {
   const posts = await unansweredFirstPosts({ now, limit })
   let nudged = 0
   let control = 0
   for (const { postId, groupId, userId } of posts) {
-    const variant = await assign(FIRST_POST_NUDGE, userId)
-    if (!await record({ postId, groupId, userId, variant, now })) continue
-    if (variant !== NUDGE_VARIANT) {
-      control += 1
-      continue
+    try {
+      const variant = await assign(FIRST_POST_NUDGE, userId)
+      const readers = await stewardIds(groupId, { excludeUserIds: [userId] })
+      const nudge = variant === NUDGE_VARIANT && readers.length > 0
+      if (!await record({ postId, groupId, userId, variant, stewardCount: readers.length, nudgedAt: nudge ? now : null, now })) continue
+      if (variant !== NUDGE_VARIANT) {
+        control += 1
+        continue
+      }
+      if (!nudge) continue
+      await Activity.saveForReasons(readers.map(readerId => ({
+        actor_id: userId,
+        reader_id: readerId,
+        post_id: postId,
+        group_id: groupId,
+        reason: REASON
+      })))
+      nudged += 1
+    } catch (err) {
+      sails.log.error(`First-post nudge failed for post ${postId} in group ${groupId}: ${err.message}`, err.stack)
+      sentry.captureException(err, { extra: { job: 'firstPostNudge', postId, groupId } })
     }
-    const readers = await stewardIds(groupId, { excludeUserIds: [userId] })
-    await Activity.saveForReasons(readers.map(readerId => ({
-      actor_id: userId,
-      reader_id: readerId,
-      post_id: postId,
-      group_id: groupId,
-      reason: REASON
-    })))
-    nudged += 1
   }
   return { found: posts.length, nudged, control }
 }

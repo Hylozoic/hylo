@@ -74,7 +74,7 @@ describe('post/firstPostNudge (D49 experiment)', () => {
 
     const posts = await found()
     expect(posts).to.include(String(due.id))
-    expect(posts).to.not.include.members([tooNew.id, tooOld.id, chat.id].map(String))
+    for (const post of [tooNew, tooOld, chat]) expect(posts).to.not.include(String(post.id))
   })
 
   it('skips posts that already had a comment or a reaction from someone else', async () => {
@@ -86,7 +86,7 @@ describe('post/firstPostNudge (D49 experiment)', () => {
     await factories.comment({ post_id: ownComment.id, user_id: ownComment.get('user_id') }).save()
 
     const posts = await found()
-    expect(posts).to.not.include.members([commented.id, reacted.id].map(String))
+    for (const post of [commented, reacted]) expect(posts).to.not.include(String(post.id))
     expect(posts).to.include(String(ownComment.id))
   })
 
@@ -97,7 +97,8 @@ describe('post/firstPostNudge (D49 experiment)', () => {
     const oldTimer = await newcomer(group, { joinedDaysAgo: 90 })
     const oldTimersPost = await postBy(oldTimer, group)
 
-    expect(await found()).to.not.include.members([second.id, oldTimersPost.id].map(String))
+    const posts = await found()
+    for (const post of [second, oldTimersPost]) expect(posts).to.not.include(String(post.id))
   })
 
   it('nudges Administrators, Moderators and Hosts in-app, once per post, and records it', async () => {
@@ -119,11 +120,13 @@ describe('post/firstPostNudge (D49 experiment)', () => {
 
     const row = await bookshelf.knex('first_post_nudges').where({ post_id: post.id, group_id: group.id }).first()
     expect(row.variant).to.equal('nudge')
+    expect(row.steward_count).to.equal(3)
     expect(row.nudged_at).to.exist
 
     // The control arm is recorded for the analysis but nobody is nudged
     const controlRow = await bookshelf.knex('first_post_nudges').where({ post_id: controlPost.id }).first()
     expect(controlRow.variant).to.equal('control')
+    expect(controlRow.steward_count).to.equal(3)
     expect(controlRow.nudged_at).to.equal(null)
     for (const steward of [administrator, moderator, host]) {
       expect(await nudgesFor(steward.id, controlPost.id)).to.be.empty
@@ -137,11 +140,66 @@ describe('post/firstPostNudge (D49 experiment)', () => {
   it('lists nudged posts that still have no response for the weekly steward email', async () => {
     const since = new Date(Date.now() - 7 * DAY)
     const listed = (await stillUnanswered([group.id], { since })).map(row => row.postId)
-    const nudgedRows = await bookshelf.knex('first_post_nudges').where({ group_id: group.id, variant: 'nudge' }).pluck('post_id')
+    const nudgedRows = await bookshelf.knex('first_post_nudges').where({ group_id: group.id, variant: 'nudge' }).whereNotNull('nudged_at').pluck('post_id')
     expect(listed).to.have.members(nudgedRows.map(String))
 
     const [answered] = nudgedRows
     await factories.comment({ post_id: answered, user_id: host.id }).save()
     expect((await stillUnanswered([group.id], { since })).map(row => row.postId)).to.not.include(String(answered))
+  })
+
+  describe('in a space', () => {
+    let space
+
+    before(async () => {
+      space = await factories.group({ type: 'space', parent_id: group.id, slug: `nudge-space-${Date.now()}` }).save()
+    })
+
+    it('measures being new on the top-level group, and counts a post shared to a space once', async () => {
+      // A long-time member of the group who posted there before and just joined the space
+      const oldTimer = await newcomer(group, { joinedDaysAgo: 400 })
+      await postBy(oldTimer, group, { hoursAgo: 24 * 100 })
+      await oldTimer.joinGroup(space)
+      const oldTimersSpacePost = await postBy(oldTimer, space)
+
+      // A newcomer to the group whose first post is in the space
+      const fresh = await newcomer(group)
+      await fresh.joinGroup(space)
+      const freshSpacePost = await postBy(fresh, space)
+
+      // A newcomer who posted in the space first, then in the group
+      const spaceFirst = await newcomer(group)
+      await spaceFirst.joinGroup(space)
+      await postBy(spaceFirst, space, { hoursAgo: 40 })
+      const laterGroupPost = await postBy(spaceFirst, group, { hoursAgo: 30 })
+
+      // A newcomer's first post shared to the group and the space
+      const sharer = await newcomer(group)
+      await sharer.joinGroup(space)
+      const shared = await postBy(sharer, group)
+      await bookshelf.knex('groups_posts').insert({ post_id: shared.id, group_id: space.id })
+
+      const rows = await unansweredFirstPosts()
+      const posts = rows.map(row => row.postId)
+      for (const post of [oldTimersSpacePost, laterGroupPost]) expect(posts).to.not.include(String(post.id))
+      expect(rows.filter(row => row.postId === String(freshSpacePost.id)).map(row => row.groupId)).to.deep.equal([String(space.id)])
+      expect(rows.filter(row => row.postId === String(shared.id)).map(row => row.groupId)).to.deep.equal([String(group.id)])
+    })
+
+    it('records a post whose space has no steward in it without nudging anyone or listing it', async () => {
+      await bookshelf.knex('first_post_nudges').del()
+      const author = await newcomer(group, { variant: 'nudge' })
+      await author.joinGroup(space)
+      const post = await postBy(author, space)
+
+      await runDaily()
+      const row = await bookshelf.knex('first_post_nudges').where({ post_id: post.id }).first()
+      expect(row).to.include({ variant: 'nudge', steward_count: 0, nudged_at: null })
+      for (const steward of [administrator, moderator, host]) {
+        expect(await nudgesFor(steward.id, post.id)).to.be.empty
+      }
+      const since = new Date(Date.now() - 7 * DAY)
+      expect((await stillUnanswered([space.id], { since })).map(r => r.postId)).to.not.include(String(post.id))
+    })
   })
 })
