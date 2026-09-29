@@ -80,6 +80,10 @@ export const ACTION_PROPOSAL_OUTCOME = 'proposalOutcome'
 export const ACTION_VOTE_RESET = 'voteReset'
 export const ACTION_EVENT_NUDGE = 'eventNudge'
 export const ACTION_PROJECT_JOINED = 'projectJoined'
+export const ACTION_REQUEST_HELPED = 'requestHelped'
+export const ACTION_REQUEST_MET = 'requestMet'
+// Older notices for helpers used this reason
+export const ACTION_NEW_CONTRIBUTION = 'newContribution'
 
 // How many other people a grouped notice counts ("Sam and 3 others reacted")
 export function othersCount (activity) {
@@ -222,6 +226,11 @@ export function titleForNotification (notification, t) {
       return t('Are you going to <strong>{{postSummary}}</strong>?', { postSummary })
     case ACTION_PROJECT_JOINED:
       return t('<strong>{{name}}</strong> joined your project', { name })
+    case ACTION_REQUEST_HELPED:
+    case ACTION_NEW_CONTRIBUTION:
+      return t('<strong>{{name}}</strong> says you helped with their request', { name })
+    case ACTION_REQUEST_MET:
+      return t('Request met: <strong>{{postSummary}}</strong>', { postSummary })
     default:
       return null
   }
@@ -325,7 +334,11 @@ export function bodyForNotification (notification, t) {
     case ACTION_EVENT_RSVP:
     case ACTION_PROPOSAL_VOTE:
     case ACTION_PROJECT_JOINED:
+    case ACTION_REQUEST_HELPED:
+    case ACTION_NEW_CONTRIBUTION:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary })
+    case ACTION_REQUEST_MET:
+      return t('<strong>{{name}}</strong> marked it as met', { name })
     case ACTION_PROPOSAL_CLOSING_SOON:
       return t("You haven't voted yet")
     case ACTION_PROPOSAL_CLOSED: {
@@ -445,6 +458,9 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_VOTE_RESET:
     case ACTION_EVENT_NUDGE:
     case ACTION_PROJECT_JOINED:
+    case ACTION_REQUEST_HELPED:
+    case ACTION_NEW_CONTRIBUTION:
+    case ACTION_REQUEST_MET:
       return primaryPostUrl(post, postOpts)
   }
 }

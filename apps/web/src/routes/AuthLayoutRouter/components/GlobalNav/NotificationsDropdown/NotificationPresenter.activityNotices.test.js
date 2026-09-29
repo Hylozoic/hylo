@@ -10,6 +10,8 @@ import {
   ACTION_PROPOSAL_OUTCOME,
   ACTION_PROPOSAL_VOTE,
   ACTION_REACTION,
+  ACTION_REQUEST_HELPED,
+  ACTION_REQUEST_MET,
   ACTION_VOTE_RESET,
   bodyForNotification,
   titleForNotification,
@@ -151,5 +153,24 @@ describe('project joins', () => {
     expect(titleForNotification(notification, t)).toBe('<strong>Sam</strong> joined your project')
     expect(bodyForNotification(notification, t)).toBe('"<strong>Seed swap on Saturday</strong>"')
     expect(urlForNotification(notification)).toMatch(/\/post\/10$/)
+  })
+})
+
+describe("'Who helped?' notices", () => {
+  it('thanks a helper, including on older notices', async () => {
+    const t = await translator('en')
+    for (const action of [ACTION_REQUEST_HELPED, 'newContribution']) {
+      const notification = notificationFor(action, { meta: { reasons: [action] } })
+      expect(titleForNotification(notification, t)).toBe('<strong>Sam</strong> says you helped with their request')
+      expect(bodyForNotification(notification, t)).toBe('"<strong>Seed swap on Saturday</strong>"')
+      expect(urlForNotification(notification)).toMatch(/\/post\/10$/)
+    }
+  })
+
+  it('tells followers a request was met', async () => {
+    const t = await translator('en')
+    const notification = notificationFor(ACTION_REQUEST_MET, { meta: { reasons: ['requestMet'] } })
+    expect(titleForNotification(notification, t)).toBe('Request met: <strong>Seed swap on Saturday</strong>')
+    expect(bodyForNotification(notification, t)).toBe('<strong>Sam</strong> marked it as met')
   })
 })

@@ -497,6 +497,7 @@ function PostHeader (props) {
       </div>
       {canBeCompleted && canCompletePost && expanded && (
         <PostCompletion
+          postId={id}
           type={type}
           startTime={startTime}
           endTime={endTime}

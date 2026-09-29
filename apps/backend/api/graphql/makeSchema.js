@@ -845,7 +845,7 @@ export function makeMutations ({ fetchOne }) {
 
     followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
 
-    fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
+    fulfillPost: (root, { postId, contributorIds }, context) => fulfillPost(context.currentUserId, postId, contributorIds),
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
 

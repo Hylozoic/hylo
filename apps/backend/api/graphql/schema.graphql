@@ -3819,7 +3819,8 @@ type Mutation {
   # Get notified about new comments on a post
   followPost(postId: ID): Post
   # Mark one of your posts as fulfilled or completed
-  fulfillPost(postId: ID): GenericResult
+  # Marks a post met. On a request, its author may name who helped (people who commented)
+  fulfillPost(postId: ID, contributorIds: [ID]): GenericResult
   # Invite a group to join one of your groups as a child of it. Only a group steward can call this.
   inviteGroupToJoinParent(parentId: ID, childId: ID): CreatedGroupRelationshipInvite
   # Invite a group to form a peer-to-peer relationship. Only a group steward can call this.

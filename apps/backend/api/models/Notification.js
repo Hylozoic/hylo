@@ -226,6 +226,7 @@ module.exports = bookshelf.Model.extend({
       case 'reaction':
       case 'eventRsvp':
       case 'projectJoined':
+      case 'requestHelped':
         return this.sendSocialFeedbackPush()
       case 'proposalClosingSoon':
       case 'proposalClosed':

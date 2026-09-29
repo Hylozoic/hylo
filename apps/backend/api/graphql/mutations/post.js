@@ -10,6 +10,7 @@ import {
 import { deletePostDraftForCreate } from './draft'
 import { assertPostWritable } from '../../models/group/archive'
 import { notifyProposalOutcome } from '../../models/post/proposalNotices'
+import { notifyRequestMet, removeRequestMetFor } from '../../models/post/fulfillPost'
 
 export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
@@ -63,14 +64,45 @@ export function updatePost (userId, { id, data }) {
     .then(validatedData => underlyingUpdatePost(userId, id, validatedData))
 }
 
-export async function fulfillPost (userId, postId) {
+// 'Who helped?' (D27): the author of a request may name helpers from the people who
+// commented on it, never themselves. Returns the ids to credit.
+async function validateHelpers (userId, post, contributorIds) {
+  const ids = [...new Set((contributorIds || []).map(String))]
+  if (ids.length === 0) return []
+  if (String(post.get('user_id')) !== String(userId)) {
+    throw new GraphQLError('Only the author can say who helped')
+  }
+  if (post.get('type') !== Post.Type.REQUEST) {
+    throw new GraphQLError('Only requests can name who helped')
+  }
+  if (ids.includes(String(post.get('user_id')))) {
+    throw new GraphQLError("You can't name yourself as a helper")
+  }
+  const commenterIds = (await bookshelf.knex('comments')
+    .where({ post_id: post.id, active: true })
+    .distinct('user_id')).map(row => String(row.user_id))
+  if (ids.some(id => !commenterIds.includes(id))) {
+    throw new GraphQLError('Helpers must be people who commented on this request')
+  }
+  return ids
+}
+
+// Calling this again on a met request only adds helpers.
+export async function fulfillPost (userId, postId, contributorIds) {
   const post = await Post.find(postId)
   await assertCanFulfillPost(userId, post)
+  const helperIds = await validateHelpers(userId, post, contributorIds)
   const isModeratorAction = post.get('user_id') !== userId
-  await post.fulfill()
+  const wasFulfilled = !!post.get('fulfilled_at')
+  await post.fulfill({ contributorIds: helperIds })
   Post.afterRelatedMutation(postId, { changeContext: 'completion' })
-  if (isModeratorAction) {
+  if (isModeratorAction && !wasFulfilled) {
     await notifyAuthorOfModeratorFulfillment({ post, actorId: userId, fulfilled: true })
+  }
+  if (wasFulfilled) {
+    await removeRequestMetFor({ post, userIds: helperIds })
+  } else {
+    await notifyRequestMet({ post, actorId: userId, helperIds })
   }
   return { success: true }
 }

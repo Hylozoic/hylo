@@ -572,3 +572,109 @@ describe('updateProposalOutcome notices (D46)', () => {
       .to.be.rejectedWith(/permission/)
   })
 })
+
+describe("fulfillPost: 'Who helped?' (D27)", () => {
+  let author, helper, otherCommenter, follower, mutedFollower, bystander, group, request
+
+  const activitiesWithReason = async (reason, where = {}) => (await Activity.query(q => {
+    q.where(where)
+    q.whereRaw("meta->'reasons' \\? ?", [reason])
+  }).fetchAll()).models
+
+  // Contribution.create queues the helper's notice; run the queued job here
+  const runQueuedContributionJobs = async () => {
+    const calls = Queue.classMethod.__spy.calls.filter(([className, method]) => className === 'Contribution' && method === 'createActivities')
+    for (const [, , data] of calls) await Contribution.createActivities(data)
+  }
+
+  const follow = (user, attrs = {}) => request.addFollowers([user.id], attrs)
+
+  before(async () => {
+    await setup.clearDb()
+    author = await factories.user({ name: 'Ada Author' }).save()
+    helper = await factories.user({ name: 'Sam Helper' }).save()
+    otherCommenter = await factories.user().save()
+    follower = await factories.user().save()
+    mutedFollower = await factories.user().save()
+    bystander = await factories.user().save()
+    group = await factories.group().save()
+    await group.addMembers([author, helper, otherCommenter, follower, mutedFollower, bystander])
+  })
+
+  beforeEach(async () => {
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+    request = await factories.post({ type: 'request', user_id: author.id, name: 'Need a ladder' }).save()
+    await request.groups().attach(group)
+    for (const user of [helper, otherCommenter]) {
+      await factories.comment({ post_id: request.id, user_id: user.id }).save()
+      await follow(user)
+    }
+    await follow(author)
+    await follow(follower)
+    await follow(mutedFollower, { muted_at: new Date() })
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('credits the helpers and tells them, in-app and by push', async () => {
+    await fulfillPost(author.id, request.id, [helper.id])
+    await runQueuedContributionJobs()
+
+    const contributions = await Contribution.where({ post_id: request.id }).fetchAll()
+    expect(contributions.pluck('user_id').map(String)).to.deep.equal([String(helper.id)])
+    const [notice] = await activitiesWithReason('requestHelped', { post_id: request.id })
+    expect(String(notice.get('reader_id'))).to.equal(String(helper.id))
+    expect(String(notice.get('actor_id'))).to.equal(String(author.id))
+    const media = (await Notification.where({ activity_id: notice.id }).fetchAll()).pluck('medium').sort()
+    expect(media).to.deep.equal([Notification.MEDIUM.InApp, Notification.MEDIUM.Push])
+  })
+
+  it('tells followers the request was met, in-app only, leaving out the author, helpers and muted followers', async () => {
+    await fulfillPost(author.id, request.id, [helper.id])
+
+    const notices = await activitiesWithReason('requestMet', { post_id: request.id })
+    expect(notices.map(a => String(a.get('reader_id'))).sort()).to.deep.equal([otherCommenter.id, follower.id].map(String).sort())
+    const media = (await Notification.where({ activity_id: notices[0].id }).fetchAll()).pluck('medium')
+    expect(media).to.deep.equal([Notification.MEDIUM.InApp])
+  })
+
+  it('adds helpers to a request that is already met, replacing their request met notice', async () => {
+    await fulfillPost(author.id, request.id)
+    expect((await activitiesWithReason('requestMet', { post_id: request.id, reader_id: otherCommenter.id })).length).to.equal(1)
+
+    await fulfillPost(author.id, request.id, [otherCommenter.id])
+    await runQueuedContributionJobs()
+    expect(await activitiesWithReason('requestMet', { post_id: request.id, reader_id: otherCommenter.id })).to.have.length(0)
+    expect(await activitiesWithReason('requestHelped', { post_id: request.id, reader_id: otherCommenter.id })).to.have.length(1)
+    expect(await activitiesWithReason('requestMet', { post_id: request.id })).to.have.length(2)
+  })
+
+  it('only accepts people who commented, never the author', async () => {
+    await expect(fulfillPost(author.id, request.id, [bystander.id])).to.be.rejectedWith(/commented/)
+    await expect(fulfillPost(author.id, request.id, [author.id])).to.be.rejectedWith(/yourself/)
+    await request.refresh()
+    expect(request.get('fulfilled_at')).to.not.exist
+  })
+
+  it('lets only the author name helpers, and only on requests', async () => {
+    const moderator = await factories.user().save()
+    await assignAdministrator(moderator, group)
+    await expect(fulfillPost(moderator.id, request.id, [helper.id])).to.be.rejectedWith(/Only the author/)
+
+    const offer = await factories.post({ type: 'offer', user_id: author.id }).save()
+    await offer.groups().attach(group)
+    await factories.comment({ post_id: offer.id, user_id: helper.id }).save()
+    await expect(fulfillPost(author.id, offer.id, [helper.id])).to.be.rejectedWith(/Only requests/)
+  })
+
+  it('reopening the request removes the helper and request met notices', async () => {
+    await User.query().where({ id: helper.id }).update({ new_notification_count: 0 })
+    await fulfillPost(author.id, request.id, [helper.id])
+    await runQueuedContributionJobs()
+
+    await unfulfillPost(author.id, request.id)
+    expect(await activitiesWithReason('requestHelped', { post_id: request.id })).to.have.length(0)
+    expect(await activitiesWithReason('requestMet', { post_id: request.id })).to.have.length(0)
+    expect(await Contribution.where({ post_id: request.id }).fetchAll()).to.have.length(0)
+  })
+})

@@ -130,6 +130,7 @@ exports.es = {
   textForProposalOutcome: ({ person, postName, outcome }) => `${person} registró el resultado de "${postName}": ${outcome}`,
   textForEventReminder: ({ postName, date }) => `Recordatorio: "${postName}" se acerca, ${date}`,
   textForProjectJoined: ({ person, postName }) => `${person} se unió a tu proyecto "${postName}"`,
+  textForRequestHelped: ({ person, postName }) => `${person} marcó "${postName}" como resuelta y dice que ayudaste. ¡Gracias!`,
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} presentó "${post.summary()}" a "${fundingRoundTitle}"`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

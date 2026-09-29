@@ -41,5 +41,7 @@ export const PRIORITY_REASONS = [
   'voteReset',
   'eventReminder',
   'eventNudge',
-  'projectJoined'
+  'projectJoined',
+  'requestHelped',
+  'requestMet'
 ]
