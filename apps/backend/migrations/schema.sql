@@ -1960,12 +1960,20 @@ CREATE TABLE public.moderation_actions (
     id integer NOT NULL,
     text text,
     reporter_id bigint NOT NULL,
-    post_id bigint NOT NULL,
+    post_id bigint,
     status text,
     anonymous text,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    group_id bigint
+    group_id bigint,
+    comment_id bigint,
+    reported_user_id bigint,
+    message_thread_id bigint,
+    queue character varying(16) DEFAULT 'group'::character varying NOT NULL,
+    category character varying(32),
+    resolved_by_id bigint,
+    resolved_at timestamp with time zone,
+    CONSTRAINT moderation_actions_queue_check CHECK (((queue)::text = ANY (ARRAY['group'::text, 'staff'::text])))
 );
 
 
@@ -5375,6 +5383,20 @@ CREATE INDEX idx_gvu_updated_at_unread ON public.group_views_users USING btree (
 
 
 --
+-- Name: moderation_actions_comment_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX moderation_actions_comment_id_index ON public.moderation_actions USING btree (comment_id) WHERE (comment_id IS NOT NULL);
+
+
+--
+-- Name: moderation_actions_staff_queue_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX moderation_actions_staff_queue_index ON public.moderation_actions USING btree (status, created_at) WHERE ((queue)::text = 'staff'::text);
+
+
+--
 -- Name: posts_notice_bucket_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6784,6 +6806,38 @@ ALTER TABLE ONLY public.moderation_actions
 
 ALTER TABLE ONLY public.moderation_actions
     ADD CONSTRAINT moderation_actions_reporter_id_foreign FOREIGN KEY (reporter_id) REFERENCES public.users(id);
+
+
+--
+-- Name: moderation_actions moderation_actions_comment_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.moderation_actions
+    ADD CONSTRAINT moderation_actions_comment_id_foreign FOREIGN KEY (comment_id) REFERENCES public.comments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: moderation_actions moderation_actions_message_thread_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.moderation_actions
+    ADD CONSTRAINT moderation_actions_message_thread_id_foreign FOREIGN KEY (message_thread_id) REFERENCES public.posts(id) ON DELETE SET NULL;
+
+
+--
+-- Name: moderation_actions moderation_actions_reported_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.moderation_actions
+    ADD CONSTRAINT moderation_actions_reported_user_id_foreign FOREIGN KEY (reported_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: moderation_actions moderation_actions_resolved_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.moderation_actions
+    ADD CONSTRAINT moderation_actions_resolved_by_id_foreign FOREIGN KEY (resolved_by_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --

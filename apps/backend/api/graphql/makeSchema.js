@@ -194,6 +194,8 @@ import {
   membershipChangeInvoicePreview
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
+import { leaveMessageThread } from './mutations/messageThread'
+import { reportToStaff, resolveStaffReport } from './mutations/moderation_actions'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -521,6 +523,13 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       return fetchOne('MessageThread', id)
     },
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
+    // Reports to Hylo staff about people and conversations, for Management
+    staffReports: async (root, { first = 20, offset = 0, status = 'active' }, context) => {
+      if (!(await Admin.isSuperAdmin(context.currentUserId))) {
+        throw new GraphQLError('Unauthorized: Admin access required')
+      }
+      return fetchMany('ModerationAction', { first, offset, queue: ModerationAction.QUEUE_STAFF, status })
+    },
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
       const notifications = await fetchMany('Notification', { first, offset, order })
       resetCount && await User.resetNewNotificationCount(context.currentUserId)
@@ -800,6 +809,12 @@ export function makeMutations ({ fetchOne }) {
     muteMessageThread: (root, { messageThreadId }, context) => muteMessageThread(context.currentUserId, messageThreadId),
 
     unmuteMessageThread: (root, { messageThreadId }, context) => unmuteMessageThread(context.currentUserId, messageThreadId),
+
+    leaveMessageThread: (root, { messageThreadId }, context) => leaveMessageThread(context.currentUserId, messageThreadId),
+
+    reportToStaff: (root, { data }, context) => reportToStaff({ userId: context.currentUserId, data }),
+
+    resolveStaffReport: (root, { id }, context) => resolveStaffReport({ userId: context.currentUserId, id }),
 
     leaveProject: (root, { id }, context) => leaveProject(id, context.currentUserId),
 

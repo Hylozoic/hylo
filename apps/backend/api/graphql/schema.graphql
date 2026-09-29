@@ -228,6 +228,14 @@ type Query {
 
   ): ModerationActionQuerySet
 
+  # Reports to Hylo staff about people and direct message conversations (super admins only)
+  staffReports(
+    first: Int,
+    offset: Int,
+    # 'active' (default) or 'resolved'
+    status: String
+  ): ModerationActionQuerySet
+
   # Get all drafts for the currently logged in user
   myDrafts: [Draft]
 
@@ -2119,6 +2127,22 @@ type ModerationAction {
   text: String
   createdAt: Date
   updatedAt: Date
+  # The comment, when the report is about one comment on the post
+  comment: Comment
+  commentId: ID
+  # 'group' for a group's moderation queue, 'staff' for a report to Hylo staff
+  queue: String
+  # Reason picked for a staff report: inappropriate, spam, offensive, abusive, illegal, safety or other
+  category: String
+  # The person a staff report is about
+  reportedUser: Person
+  # The direct message conversation a staff report is about
+  messageThreadId: ID
+  # Everyone who has been in the reported conversation
+  threadParticipants: [Person]
+  # Who resolved a staff report, and when
+  resolvedBy: Person
+  resolvedAt: Date
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -3556,6 +3580,12 @@ type Mutation {
   muteMessageThread(messageThreadId: ID): GenericResult
   # Unmute a direct message thread for the logged in user
   unmuteMessageThread(messageThreadId: ID): GenericResult
+  # Leave a direct message thread: it leaves your inbox and stops notifying you
+  leaveMessageThread(messageThreadId: ID): GenericResult
+  # Report a person or a direct message conversation to Hylo staff
+  reportToStaff(data: StaffReportInput): GenericResult
+  # Mark a staff report as resolved (super admins only)
+  resolveStaffReport(id: ID): GenericResult
   # Remove yourself as a member of a project Post
   leaveProject(id: ID): GenericResult
   # Leave a track
@@ -4384,9 +4414,20 @@ input MessageThreadInput {
 input ModerationActionInput {
   agreements: [ID]
   anonymous: Boolean
+  # Set to report one comment; postId may then be left out
+  commentId: ID
   groupId: ID
   platformAgreements: [ID]
   postId: ID
+  text: String
+}
+
+# A report to Hylo staff: about a person, a direct message conversation, or both
+input StaffReportInput {
+  reportedUserId: ID
+  messageThreadId: ID
+  # inappropriate, spam, offensive, abusive, illegal, safety or other
+  category: String
   text: String
 }
 
