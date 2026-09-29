@@ -97,8 +97,8 @@ export default function ManageNotifications (props) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value='none'>{t('No Posts')}</SelectItem>
-                    <SelectItem value='important'>{t('Announcements & Mentions only')}</SelectItem>
+                    <SelectItem value='none'>{t('No Posts (mentions still notify)')}</SelectItem>
+                    <SelectItem value='important'>{t('Important Posts (Announcements, Mentions & Replies)')}</SelectItem>
                     <SelectItem value='all'>{t('Every Post')}</SelectItem>
                     {postNotifications === 'mixed' && <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>}
                   </SelectContent>

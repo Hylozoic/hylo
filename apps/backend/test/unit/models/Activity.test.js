@@ -230,6 +230,53 @@ describe('Activity', function () {
     })
   })
 
+  describe('.generateNotificationMedia for mentions when postNotifications = none', () => {
+    const activityFor = (reasons, settings) => model({
+      meta: { reasons },
+      post_id: 1,
+      relations: {
+        post: { relations: { groups: [{ id: 1 }] } },
+        reader: mockUser([{ settings, relations: { group: { id: 1 } } }])
+      }
+    })
+
+    it('delivers a post mention in-app, by email and by push when the group allows both', async () => {
+      const settings = { sendEmail: true, sendPushNotifications: true, postNotifications: 'none' }
+      const actual = await Activity.generateNotificationMedia(activityFor(['mention', 'newPost: 1'], settings))
+      expect(actual).to.deep.equal([Notification.MEDIUM.Email, Notification.MEDIUM.Push, Notification.MEDIUM.InApp])
+    })
+
+    it('follows the group email and push toggles for a post mention', async () => {
+      const settings = { sendEmail: false, sendPushNotifications: true, postNotifications: 'none' }
+      const actual = await Activity.generateNotificationMedia(activityFor(['mention', 'newPost: 1'], settings))
+      expect(actual).to.deep.equal([Notification.MEDIUM.Push, Notification.MEDIUM.InApp])
+    })
+
+    it('delivers a chat mention by push and in-app, never by email', async () => {
+      const settings = { sendEmail: true, sendPushNotifications: true, postNotifications: 'none' }
+      const actual = await Activity.generateNotificationMedia(activityFor(['mention', 'chat'], settings))
+      expect(actual).to.deep.equal([Notification.MEDIUM.Push, Notification.MEDIUM.InApp])
+    })
+
+    it('still sends nothing for a plain new post', async () => {
+      const settings = { sendEmail: true, sendPushNotifications: true, postNotifications: 'none' }
+      const actual = await Activity.generateNotificationMedia(activityFor(['newPost: 1'], settings))
+      expect(actual).to.deep.equal([])
+    })
+
+    it('still sends nothing for a plain chat', async () => {
+      const settings = { sendEmail: true, sendPushNotifications: true, postNotifications: 'none' }
+      const actual = await Activity.generateNotificationMedia(activityFor(['chat'], settings))
+      expect(actual).to.deep.equal([])
+    })
+
+    it('still sends nothing for an announcement', async () => {
+      const settings = { sendEmail: true, sendPushNotifications: true, postNotifications: 'none' }
+      const actual = await Activity.generateNotificationMedia(activityFor(['newPost: 1', 'announcement: 1'], settings))
+      expect(actual).to.deep.equal([])
+    })
+  })
+
   describe('.generateNotificationMedia for a post in a space', () => {
     const parentGroup = { id: 1 }
     const space = { id: 2, type: 'space', parent_id: 1 }

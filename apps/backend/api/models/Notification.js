@@ -300,7 +300,9 @@ module.exports = bookshelf.Model.extend({
     const activity = this.relations.activity
     const locale = this.locale()
 
-    if (!(await reader.enabledNotification(TYPE.Comment, MEDIUM.Push))) {
+    // A mention always reaches the person (D8): this push row exists only when the post's
+    // group allows push, so the user-level comment setting governs plain comments only.
+    if (version !== 'mention' && !(await reader.enabledNotification(TYPE.Comment, MEDIUM.Push))) {
       return Promise.resolve()
     }
 

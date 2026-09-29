@@ -151,6 +151,25 @@ describe('Notification', function () {
       })
     })
 
+    describe('to a user with comment notifications turned off', () => {
+      beforeEach(() => reader.addSetting({ comment_notifications: 'none' }, true))
+      afterEach(() => reader.removeSetting('comment_notifications', true))
+
+      it('still sends the push for a mention in a comment', async () => {
+        const notification = await preloadNotification(activities.commentMention, Notification.MEDIUM.Push)
+        await notification.send()
+        const pns = await PushNotification.where({ user_id: reader.id }).fetchAll()
+        expect(pns.length).to.equal(1)
+      })
+
+      it('sends no push for a plain comment', async () => {
+        const notification = await preloadNotification(activities.newComment, Notification.MEDIUM.Push)
+        await notification.send()
+        const pns = await PushNotification.where({ user_id: reader.id }).fetchAll()
+        expect(pns.length).to.equal(0)
+      })
+    })
+
     describe('to a user with push notifications for comments enabled', () => {
       beforeEach(() => reader.addSetting({ comment_notifications: 'push' }, true))
       afterEach(() => reader.removeSetting('comment_notifications', true))

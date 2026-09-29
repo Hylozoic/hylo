@@ -62,7 +62,10 @@ export default function GroupMembershipNotificationSettings ({
         </div>
       )}
       <div className={rowClass}>
-        <span className={labelClass}>{t('Receive new post notifications for')}</span>
+        <span className={cn(labelClass, 'inline-flex items-center gap-1')}>
+          {t('Receive new post notifications for')}
+          <InfoButton content={t('Important means announcements, anything that mentions you, and new messages in a chat for a little while after you write there. In quieter groups every post counts as important. Mentions reach you even with No Posts.')} />
+        </span>
         <Select
           value={settings.postNotifications}
           onValueChange={value => update({ postNotifications: value })}
@@ -71,8 +74,8 @@ export default function GroupMembershipNotificationSettings ({
             <SelectValue />
           </SelectTrigger>
           <SelectContent className='!z-[300]'>
-            <SelectItem value='none' className={SELECT_ITEM_CLASS}>{t('No Posts')}</SelectItem>
-            <SelectItem value='important' className={SELECT_ITEM_CLASS}>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
+            <SelectItem value='none' className={SELECT_ITEM_CLASS}>{t('No Posts (mentions still notify)')}</SelectItem>
+            <SelectItem value='important' className={SELECT_ITEM_CLASS}>{t('Important Posts (Announcements, Mentions & Replies)')}</SelectItem>
             <SelectItem value='all' className={SELECT_ITEM_CLASS}>{t('Every Post')}</SelectItem>
             {showMixed && <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>}
           </SelectContent>

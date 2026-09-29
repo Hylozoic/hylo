@@ -13,12 +13,8 @@
 import { filter, find, includes, isEmpty } from 'lodash'
 import { EMAIL_REASONS } from '../emailReasons'
 import { CHANNEL, channelsForReason, classForActivity } from '../signalClasses'
-
-const hasReason = pattern => ctx => ctx.reasons.some(reason => pattern.test(reason))
-export const isNewPost = hasReason(/^newPost/)
-export const isMention = hasReason(/^mention/)
-export const isAnnouncement = hasReason(/^announcement/)
-export const isChat = hasReason(/^chat/)
+import { isChat, isNewPost } from './predicates'
+import { importantAnnouncement, mentionsAlwaysReachYou } from './directSignals'
 
 // Phase 1
 const groupInvitationOverride = ctx => {
@@ -61,12 +57,11 @@ export const CHANNEL_RULES = [
 // Phase 3: only posts and chats are gated by the reader's post setting
 // (Membership postNotifications: all / important / none).
 const everyPost = ctx => ctx.postSetting === 'all'
-const importantAnnouncementOrMention = ctx =>
-  ctx.postSetting === 'important' && (isAnnouncement(ctx) || isMention(ctx))
 
 export const GATE_PASSES = [
   everyPost,
-  importantAnnouncementOrMention
+  mentionsAlwaysReachYou,
+  importantAnnouncement
 ]
 
 const isGated = ctx => isChat(ctx) || isNewPost(ctx)
