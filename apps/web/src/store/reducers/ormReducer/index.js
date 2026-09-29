@@ -158,10 +158,6 @@ function adjustOpenJoinRequestCount (session, groupId, delta) {
   group.update({ openJoinRequestCount: Math.max(0, (group.openJoinRequestCount || 0) + delta) })
 }
 
-/**
- * Adjust the cached unresolved-flag count used by the Moderation menu badge.
- */
-
 /** The reported comment as the moderation queue shows it, before the server answers. */
 function optimisticReportedComment (session, commentId) {
   if (!session.Comment.idExists(commentId)) return { id: commentId }
@@ -174,6 +170,10 @@ function optimisticReportedComment (session, commentId) {
     creator: creator ? { id: creator.id, name: creator.name, avatarUrl: creator.avatarUrl } : null
   }
 }
+
+/**
+ * Adjust the cached unresolved-flag count used by the Moderation menu badge.
+ */
 function adjustOpenModerationActionCount (session, groupId, delta) {
   if (!groupId || !delta) return
   const group = session.Group.idExists(groupId) ? session.Group.withId(groupId) : null

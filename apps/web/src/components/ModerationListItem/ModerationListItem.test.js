@@ -35,6 +35,23 @@ describe('ModerationListItem', () => {
     expect(screen.getByText('On this post')).toBeInTheDocument()
   })
 
+  it('keeps the comment layout when the reported comment is no longer available', () => {
+    const action = { ...baseAction, commentId: '77', comment: null }
+    const session = orm.mutableSession(orm.getEmptyState())
+    session.Me.create({ id: '1', name: 'Moderator' })
+    render(<ModerationListItem moderationAction={action} group={{ id: '3', slug: 'g' }} handleClearModerationAction={() => {}} />, { wrapper: AllTheProviders({ orm: session.state }) })
+    expect(screen.getByTestId('moderation-comment-unavailable')).toHaveTextContent('This comment is not available')
+    expect(screen.getByText('On this post')).toBeInTheDocument()
+    expect(screen.queryByText('Reported content')).not.toBeInTheDocument()
+  })
+
+  it('links the reporter to their profile', () => {
+    render(<ModerationListItem moderationAction={baseAction} group={{ id: '3', slug: 'g' }} />, { wrapper: providers() })
+    const links = screen.getAllByRole('link').map(link => link.getAttribute('href'))
+    expect(links).toContain('/all/members/2')
+    expect(links.some(href => href && href.startsWith('/user/'))).toBe(false)
+  })
+
   it('shows only the post for a post report', () => {
     render(<ModerationListItem moderationAction={baseAction} group={{ id: '3', slug: 'g' }} />, { wrapper: providers() })
     expect(screen.queryByTestId('moderation-reported-comment')).not.toBeInTheDocument()

@@ -11,7 +11,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import Avatar from 'components/Avatar/Avatar'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import MultiSelect from 'components/MultiSelect/MultiSelect'
-import { groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
+import { groupUrl, localSpaceSlug, personUrl, spaceUrl } from '@hylo/navigation'
 import Button from 'components/ui/button'
 import PostListRow from 'components/PostListRow'
 import HyloHTML from 'components/HyloHTML/HyloHTML'
@@ -46,6 +46,7 @@ const ModerationListItem = ({
     agreements,
     anonymous,
     comment,
+    commentId,
     createdAt,
     post,
     reporter,
@@ -56,7 +57,10 @@ const ModerationListItem = ({
   const platformAgreementsIds = moderationAction.platformAgreements.map(agreement => agreement.id)
   const allPlatformAgreements = useSelector(getPlatformAgreements)
   const platformAgreements = allPlatformAgreements.filter(agreement => platformAgreementsIds.includes(agreement.id))
-  const reporterUrl = `/user/${reporter.id}`
+  const reporterUrl = personUrl(reporter.id)
+  // The comment itself can be missing (removed, or by someone the viewer blocked); it's still a comment report
+  const isCommentReport = Boolean(commentId || comment)
+  const commentVisible = Boolean(comment?.text)
   const groupAgreementsUrl = group ? groupUrl(group.slug) + `/group/${group.slug}` : ''
   const currentUserIsReporter = reporter.id === currentUser.id
 
@@ -107,25 +111,25 @@ const ModerationListItem = ({
           <p className='text-foreground/100'>{text}</p>
         </div>
 
-        {comment && (
+        {isCommentReport && (
           <div data-testid='moderation-reported-comment'>
             <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Reported comment')}</h3>
             <div className='rounded-lg p-3 border-2 border-foreground/10 bg-background/50'>
-              {comment.creator && (
+              {commentVisible && comment.creator && (
                 <div className='flex items-center gap-2 mb-2'>
-                  <Avatar avatarUrl={comment.creator.avatarUrl} url={`/user/${comment.creator.id}`} small />
+                  <Avatar avatarUrl={comment.creator.avatarUrl} url={personUrl(comment.creator.id)} small />
                   <span className='text-sm font-bold text-foreground'>{comment.creator.name}</span>
                 </div>
               )}
-              {comment.text
+              {commentVisible
                 ? <HyloHTML className='text-foreground/90 text-sm' html={comment.text} />
-                : <p className='text-foreground/50 text-sm'>{t('This comment has been removed')}</p>}
+                : <p className='text-foreground/50 text-sm' data-testid='moderation-comment-unavailable'>{t('This comment is not available')}</p>}
             </div>
           </div>
         )}
 
         <div>
-          <h3 className='text-foreground/50 text-center text-sm mb-2'>{comment ? t('On this post') : t('Reported content')}</h3>
+          <h3 className='text-foreground/50 text-center text-sm mb-2'>{isCommentReport ? t('On this post') : t('Reported content')}</h3>
           <div className='rounded-lg p-0 h-98 overflow-hidden shadow-xl border-2 border-foreground/10 border-b-0'>
             <PostListRow
               post={post}
@@ -174,7 +178,7 @@ const ModerationListItem = ({
             onClick={handleClearModerationAction}
             variant='outline'
           >
-            {t('Clear')} <span className='text-xs text-foreground/50'>{comment ? t('This will remove the report from the moderation queue.') : t('This will remove the report from the moderation queue, and remove the flag from the post.')}</span>
+            {t('Clear')} <span className='text-xs text-foreground/50'>{isCommentReport ? t('This will remove the report from the moderation queue.') : t('This will remove the report from the moderation queue, and remove the flag from the post.')}</span>
           </Button>
         </div>
       )}

@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { personUrl } from '@hylo/navigation'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { cn } from 'util/index'
@@ -57,7 +59,7 @@ export function resolveStaffReport (id) {
 function PersonLink ({ person }) {
   if (!person) return null
   return (
-    <Link to={`/user/${person.id}`} className='font-medium text-foreground hover:text-accent'>
+    <Link to={personUrl(person.id)} className='font-medium text-foreground hover:text-accent'>
       {person.name}
     </Link>
   )
@@ -77,6 +79,8 @@ export default function ReportQueue () {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [resolvingId, setResolvingId] = useState(null)
+  // Only the newest request may update the list, so switching tabs mid-load can't mix them up
+  const latestRequest = useRef(0)
 
   const categoryLabels = {
     inappropriate: t('Inappropriate Content'),
@@ -89,18 +93,22 @@ export default function ReportQueue () {
   }
 
   const load = useCallback(async (offset = 0) => {
+    const requestId = ++latestRequest.current
+    const isCurrent = () => requestId === latestRequest.current
     setLoading(true)
     setError(null)
+    if (offset === 0) setReports([])
     try {
       const result = await dispatch(fetchStaffReports({ status, offset }))
       const data = result?.payload?.data?.staffReports
       if (!data) throw new Error('no data')
+      if (!isCurrent()) return
       setReports(prev => offset === 0 ? data.items : prev.concat(data.items))
       setHasMore(!!data.hasMore)
     } catch (err) {
-      setError(t('Could not load reports'))
+      if (isCurrent()) setError(t('Could not load reports'))
     } finally {
-      setLoading(false)
+      if (isCurrent()) setLoading(false)
     }
   }, [dispatch, status, t])
 
@@ -111,12 +119,15 @@ export default function ReportQueue () {
     try {
       const result = await dispatch(resolveStaffReport(id))
       if (result?.payload?.data?.resolveStaffReport?.success) {
+        // Resolved reports leave the Open list, so the next page's offset (the list length) stays right
         setReports(prev => prev.filter(report => report.id !== id))
       }
+    } catch (err) {
+      toast.error(t('Something went wrong. Please try again.'))
     } finally {
       setResolvingId(null)
     }
-  }, [dispatch])
+  }, [dispatch, t])
 
   return (
     <div className='p-6 max-w-4xl mx-auto' data-testid='report-queue'>
