@@ -512,6 +512,56 @@ describe('Activity', function () {
     })
   })
 
+  describe('#createNotifications signal class for comment replies', () => {
+    const { READER_FILTERS } = require(root('api/models/notification/rules'))
+    let reader, replier, postAuthor, post, recordClass, seenClasses
+
+    before(async () => {
+      await setup.clearDb()
+      reader = await factories.user().save()
+      replier = await factories.user().save()
+      postAuthor = await factories.user().save()
+      const group = await factories.group().save()
+      post = await factories.post({ user_id: postAuthor.id }).save()
+      await group.posts().attach(post)
+      await reader.joinGroup(group)
+    })
+
+    beforeEach(() => {
+      seenClasses = []
+      recordClass = ctx => { seenClasses.push(ctx.signalClass) }
+      READER_FILTERS.push(recordClass)
+    })
+
+    afterEach(() => {
+      READER_FILTERS.splice(READER_FILTERS.indexOf(recordClass), 1)
+    })
+
+    const replyUnder = async parent => {
+      const reply = await factories.comment({ post_id: post.id, user_id: replier.id, comment_id: parent.id }).save()
+      return Activity.createWithNotifications({
+        post_id: post.id,
+        comment_id: reply.id,
+        parent_comment_id: parent.id,
+        reader_id: reader.id,
+        actor_id: replier.id,
+        meta: { reasons: ['newComment'] }
+      })
+    }
+
+    it("treats a reply under the reader's own comment as direct", async () => {
+      const parent = await factories.comment({ post_id: post.id, user_id: reader.id }).save()
+      await replyUnder(parent)
+      expect(seenClasses).to.deep.equal(['direct'])
+    })
+
+    it("treats a reply under someone else's comment as social", async () => {
+      const parent = await factories.comment({ post_id: post.id, user_id: postAuthor.id }).save()
+      await replyUnder(parent)
+      expect(seenClasses).to.deep.equal(['social'])
+    })
+  })
+
   describe('#forComment', function () {
     let comment
     before(function () {

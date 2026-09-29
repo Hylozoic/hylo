@@ -98,6 +98,10 @@ module.exports = bookshelf.Model.extend({
     if (this.get('comment_id')) {
       relations.splice(0, 0, 'comment', 'comment.post', 'comment.post.groups')
     }
+    // A reply under the reader's comment is a direct signal (signalClasses.isReplyToReader)
+    if (this.get('parent_comment_id')) {
+      relations.push('parentComment')
+    }
     if (this.get('group_id')) {
       relations.push('group')
     }
