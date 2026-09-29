@@ -1,7 +1,10 @@
 import React from 'react'
-import { screen } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { render } from 'util/testing/reactTestingLibraryExtended'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import MapExplorer from './MapExplorer'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn(() => ({ type: 'TRACK_ANALYTICS_EVENT' })))
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -126,5 +129,27 @@ describe('MapExplorer', () => {
     )
 
     expect(screen.queryByTestId('map-drawer')).not.toBeInTheDocument()
+  })
+
+  it('records turning a feature type off', () => {
+    render(
+      <MapExplorer {...defaultProps} />
+    )
+
+    fireEvent.click(screen.getByText(/Features:/))
+    fireEvent.click(screen.getByText('Discussions').previousSibling)
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Map Filter Changed', expect.objectContaining({ filter: 'feature_type', value: 'discussion', enabled: false }))
+  })
+
+  it('records turning a map layer on', () => {
+    render(
+      <MapExplorer {...defaultProps} />
+    )
+
+    fireEvent.click(screen.getByTestId('layers-selector-button'))
+    fireEvent.click(screen.getAllByText('Native Territories')[0].previousSibling)
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Map Filter Changed', expect.objectContaining({ filter: 'layer', value: 'native_territories', enabled: true }))
   })
 })

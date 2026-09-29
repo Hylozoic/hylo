@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
+import { AnalyticsEvents } from '@hylo/shared'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search, Waypoints } from 'lucide-react'
@@ -32,6 +33,7 @@ import getTrack from 'store/selectors/getTrack'
 import getFundingRound from 'store/selectors/getFundingRound'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { cn } from 'util/index'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
@@ -199,20 +201,35 @@ function Members (props) {
     ? Math.max(0, memberCount - (currentTrack.numPeopleCompleted || 0))
     : null
 
+  // Consent-gated; never includes the search text or who was filtered for
+  const trackFilter = useCallback((filterKind, { sort = sortBy, hasSearch = !!search } = {}) =>
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.MEMBER_DIRECTORY_FILTERED, { sort, filterKind, hasSearch })), [dispatch, sortBy, search])
+
   // Action creators
-  const changeSearch = useCallback(term =>
-    dispatch(changeQuerystringParam(location, 'q', term)), [location])
-  const changeSort = useCallback(sort =>
-    dispatch(changeQuerystringParam(location, 's', sort, 'name')), [location, dispatch])
-  const changeRoleFilter = useCallback(roleId =>
-    dispatch(changeQuerystringParam(location, 'r', roleId, null)), [location, dispatch])
-  const changeTrackCompletionFilter = useCallback(value =>
-    dispatch(changeQuerystringParam(location, 'tc', value, null)), [location, dispatch])
-  const changeFundingRoundCapabilityFilter = useCallback(value =>
-    dispatch(changeQuerystringParam(location, 'fr', value, null)), [location, dispatch])
+  const changeSearch = useCallback(term => {
+    trackFilter('search', { hasSearch: !!term })
+    return dispatch(changeQuerystringParam(location, 'q', term))
+  }, [location, trackFilter])
+  const changeSort = useCallback(sort => {
+    trackFilter('sort', { sort })
+    return dispatch(changeQuerystringParam(location, 's', sort, 'name'))
+  }, [location, dispatch, trackFilter])
+  const changeRoleFilter = useCallback(roleId => {
+    trackFilter('role')
+    return dispatch(changeQuerystringParam(location, 'r', roleId, null))
+  }, [location, dispatch, trackFilter])
+  const changeTrackCompletionFilter = useCallback(value => {
+    trackFilter('track')
+    return dispatch(changeQuerystringParam(location, 'tc', value, null))
+  }, [location, dispatch, trackFilter])
+  const changeFundingRoundCapabilityFilter = useCallback(value => {
+    trackFilter('funding_round')
+    return dispatch(changeQuerystringParam(location, 'fr', value, null))
+  }, [location, dispatch, trackFilter])
   const clearMemberFilters = useCallback(() => {
+    trackFilter('clear')
     dispatch(changeQuerystringParams(location, { r: null, tc: null, fr: null }))
-  }, [location, dispatch])
+  }, [location, dispatch, trackFilter])
   const removeMemberAction = useCallback((id) => {
     if (!group?.id) return
     // We pass slug and group.id because slug is needed to optimistically update the query results, which are based on slug

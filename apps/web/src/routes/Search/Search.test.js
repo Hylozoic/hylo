@@ -5,6 +5,9 @@ import { FETCH_SEARCH } from './Search.store'
 import orm from 'store/models'
 import { ViewHeaderContext } from 'contexts/ViewHeaderContext'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn(() => ({ type: 'TRACK_ANALYTICS_EVENT' })))
 // Mock debounce to execute immediately in tests
 jest.mock('lodash/fp', () => {
   const original = jest.requireActual('lodash/fp')
@@ -113,6 +116,7 @@ beforeEach(() => {
   mockFetchSearchResults.mockClear()
   mockFetchSearchGroups.mockClear()
   mockGetHasMoreSearchResults.mockClear()
+  trackAnalyticsEvent.mockClear()
 })
 
 afterEach(() => {
@@ -320,5 +324,55 @@ describe('Search', () => {
 
     expect(screen.getByText('No results for this search')).toBeInTheDocument()
     expect(screen.getByTestId('search-explorer-link')).toHaveAttribute('href', '/public/groups?search=garden%20club')
+  })
+
+  it('records a finished search without the search term', () => {
+    __setMockResults([{
+      id: '77',
+      type: 'Person',
+      content: { id: 77, name: 'Joe Person', avatarUrl: 'me.png', location: 'home', skills: [] }
+    }])
+    __setMockGroups([{ id: '5', name: 'Garden Circle', slug: 'garden-circle', memberCount: 12 }])
+    searchFor('garden club')
+
+    render(<Search />, { wrapper: testProviders() })
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Search Performed', {
+      tab: 'all',
+      termLength: 11,
+      resultCount: 2,
+      zeroResults: false,
+      scope: 'all'
+    })
+    const searchEvents = trackAnalyticsEvent.mock.calls.filter(([name]) => name === 'Search Performed')
+    expect(searchEvents).toHaveLength(1)
+    expect(JSON.stringify(searchEvents)).not.toContain('garden')
+  })
+
+  it('records an empty search as zero results', () => {
+    __setMockResults([])
+    __setMockGroups([])
+    searchFor('zzz')
+
+    render(<Search />, { wrapper: testProviders() })
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Search Performed', expect.objectContaining({ resultCount: 0, zeroResults: true }))
+  })
+
+  it('records which kind of result was opened', () => {
+    __setMockResults([{
+      id: '77',
+      type: 'Person',
+      content: { id: 77, name: 'Joe Person', avatarUrl: 'me.png', location: 'home', skills: [] }
+    }])
+    __setMockGroups([{ id: '5', name: 'Garden Circle', slug: 'garden-circle', memberCount: 12 }])
+    searchFor('garden')
+
+    render(<Search />, { wrapper: testProviders() })
+    fireEvent.click(screen.getByText('Joe Person'))
+    fireEvent.click(screen.getByText('Garden Circle'))
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Search Result Clicked', { type: 'Person', tab: 'all' })
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Search Result Clicked', { type: 'Group', tab: 'all' })
   })
 })

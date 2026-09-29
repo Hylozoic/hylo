@@ -38,7 +38,15 @@ export const AnalyticsEvents = {
   WELCOME_WIZARD_STEP_SKIPPED: 'Welcome Wizard Step Skipped',
   WELCOME_WIZARD_STEP_VIEWED: 'Welcome Wizard Step Viewed',
   // Joined a group from the recommended groups step after signup: { groupId, position, hasLocation }
-  RECOMMENDED_GROUP_JOINED: 'Recommended Group Joined'
+  RECOMMENDED_GROUP_JOINED: 'Recommended Group Joined',
+  // Main search once its results are in, never with the search term: { tab, termLength, resultCount, zeroResults, scope }
+  SEARCH_PERFORMED: 'Search Performed',
+  // A main search result was opened: { type: Person, Post, Comment or Group, tab }
+  SEARCH_RESULT_CLICKED: 'Search Result Clicked',
+  // Member Directory sort or filter changed: { sort, filterKind, hasSearch }
+  MEMBER_DIRECTORY_FILTERED: 'Member Directory Filtered',
+  // Map feature, layer or base layer changed: { filter, value, enabled, context }
+  MAP_FILTER_CHANGED: 'Map Filter Changed'
 }
 
 // CustomEvent dispatched in the WebView when Android hardware back is pressed.

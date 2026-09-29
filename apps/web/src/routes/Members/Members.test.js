@@ -2,7 +2,10 @@ import React from 'react'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import orm from 'store/models'
 import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import Members from './Members'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn(() => ({ type: 'TRACK_ANALYTICS_EVENT' })))
 
 let mockGroupSlug
 jest.mock('contexts/SpaceGroupContext', () => ({
@@ -128,5 +131,13 @@ describe('Members sort options', () => {
     fireEvent.click(screen.getByText(/Sort by/))
     expect(screen.getByText('Join Date')).toBeInTheDocument()
     expect(screen.queryByText('Distance')).not.toBeInTheDocument()
+  })
+
+  it('records a sort change without the search text', () => {
+    render(<Members />, null, providers({ withLocation: true }))
+    fireEvent.click(screen.getByText(/Sort by/))
+    fireEvent.click(screen.getByText('Join Date'))
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Member Directory Filtered', { sort: 'join', filterKind: 'sort', hasSearch: false })
   })
 })

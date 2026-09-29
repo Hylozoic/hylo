@@ -1,4 +1,5 @@
 import { debounce } from 'lodash/fp'
+import { AnalyticsEvents } from '@hylo/shared'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -36,6 +37,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { cn } from 'util/index'
 import { heyAxolotl, puzzledAxolotl } from 'util/assets'
@@ -97,6 +99,7 @@ export default function Search (props) {
   const showErrorState = searchTermReady && groupScopeReady && showTextResults && !pending && searchError && resultCount === 0
   const inputRef = useRef(null)
   const requestedOffsetRef = useRef(null)
+  const trackedSearchRef = useRef(null)
 
   const showPerson = useCallback(personId => dispatch(push(personUrl(personId))), [dispatch])
 
@@ -165,6 +168,26 @@ export default function Search (props) {
       fetchMoreSearchResults()
     }
   }, [searchTermReady, showTextResults, pending, hasFetched, hasMore, searchError, searchResults.length, fetchMoreSearchResults])
+
+  // One event per search once its results are in. The term itself is never sent.
+  useEffect(() => {
+    if (!searchTermReady || !groupScopeReady || textLoading || groupsLoading || searchError) return
+    const term = searchForInput.trim()
+    const key = JSON.stringify([term, filter, groupSlug])
+    if (trackedSearchRef.current === key) return
+    trackedSearchRef.current = key
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.SEARCH_PERFORMED, {
+      tab: filter,
+      termLength: term.length,
+      resultCount,
+      zeroResults: resultCount === 0,
+      scope: groupSlug ? 'group' : 'all'
+    }))
+  }, [dispatch, searchTermReady, groupScopeReady, textLoading, groupsLoading, searchError, searchForInput, filter, groupSlug, resultCount])
+
+  const trackResultClick = useCallback(type => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.SEARCH_RESULT_CLICKED, { type, tab: filter }))
+  }, [dispatch, filter])
 
   const handleClearGroup = useCallback(() => {
     dispatch(changeQuerystringParam(location, 'groupSlug', null, null, false))
@@ -261,6 +284,7 @@ export default function Search (props) {
                   key={group.id}
                   group={group}
                   isMember={memberGroupIds.has(group.id)}
+                  onOpen={() => trackResultClick('Group')}
                 />
               ))}
             </div>
@@ -272,6 +296,7 @@ export default function Search (props) {
               term={searchForInput}
               showPerson={showPerson}
               childPost={!groupSlug}
+              onOpen={trackResultClick}
             />)}
           {showErrorState && (
             <SearchStatus
@@ -359,11 +384,12 @@ function SearchStatus ({ imageSrc, message, subtitle, action, variant = 'empty' 
   )
 }
 
-function GroupResult ({ group, isMember }) {
+function GroupResult ({ group, isMember, onOpen }) {
   const { t } = useTranslation()
   return (
     <Link
       to={isMember ? groupUrl(group.slug) : groupUrl(group.slug, 'about')}
+      onClick={onOpen}
       className='rounded-xl p-2 flex gap-3 items-center transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 relative hover:z-50 hover:scale-105 duration-400 text-foreground hover:text-foreground'
       data-testid='search-group-result'
     >
@@ -384,7 +410,8 @@ function SearchResult ({
   searchResult,
   term = '',
   showPerson,
-  childPost
+  childPost,
+  onOpen = () => {}
 }) {
   const { type, content } = searchResult
   if (!content) {
@@ -431,8 +458,9 @@ function SearchResult ({
       break
   }
   if (!component) return null
+  // Capture phase, so the event is recorded before the card navigates away
   return (
-    <div>
+    <div onClickCapture={() => onOpen(type)}>
       {component}
     </div>
   )
