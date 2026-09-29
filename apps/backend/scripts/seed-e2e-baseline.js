@@ -229,7 +229,8 @@ async function insertMemberInviteGroup (client, {
   memberIds,
   everyoneCanInvite,
   now,
-  membershipSettings
+  membershipSettings,
+  accessibility = 1
 }) {
   const res = await client.query(
     `INSERT INTO groups (
@@ -237,9 +238,9 @@ async function insertMemberInviteGroup (client, {
       visibility, accessibility, created_by_id, settings, num_members, allow_in_public, home_route
     ) VALUES (
       true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
-      2, 1, $5, '{}'::jsonb, $6, true, '/all'
+      2, $7, $5, '{}'::jsonb, $6, true, '/all'
     ) RETURNING id`,
-    [now, name, slug, `Playwright E2E — member invitations (${slug})`, administratorId, memberIds.length + 1]
+    [now, name, slug, `Playwright E2E — member invitations (${slug})`, administratorId, memberIds.length + 1, accessibility]
   )
   const groupId = res.rows[0].id
   await client.query(
@@ -323,6 +324,18 @@ const E2E_MEMBER_INVITE_GROUPS = {
   requests: { slug: 'e2e-member-invite-requests', name: 'E2E Member Invite Requests', token: 'e2e-member-invite-request-001' }
 }
 const E2E_INVITEE_EMAIL = 'e2e.invitee@hylo.test'
+/**
+ * Groups where E2E Member A has a personal invite link (code): `e2e.user` joins the Open one,
+ * asks to join the Restricted one, finds the busy one's link used up for the day, and, as
+ * administrator of the requests one, sees who invited a requester who came through a link.
+ */
+const E2E_MEMBER_LINK_GROUPS = {
+  open: { slug: 'e2e-member-link-open', name: 'E2E Member Link Open', code: 'e2eMemberLinkOpen01', accessibility: 2 },
+  restricted: { slug: 'e2e-member-link-restricted', name: 'E2E Member Link Restricted', code: 'e2eMemberLinkRestr1', accessibility: 1 },
+  busy: { slug: 'e2e-member-link-busy', name: 'E2E Member Link Busy', code: 'e2eMemberLinkBusy01', accessibility: 2 },
+  requests: { slug: 'e2e-member-link-requests', name: 'E2E Member Link Requests', code: 'e2eMemberLinkReqs01', accessibility: 1 }
+}
+const E2E_LINK_INVITEE_EMAIL = 'e2e.link-invitee@hylo.test'
 
 const E2E_GROUP_SLUGS = [
   'e2e-public-group',
@@ -334,7 +347,8 @@ const E2E_GROUP_SLUGS = [
   E2E_ONE_COLUMN_SPACE_SLUG,
   ...E2E_JOIN_LINK_GROUPS.map((g) => g.slug),
   ...E2E_INVITE_LINK_GROUPS.map((g) => g.slug),
-  ...Object.values(E2E_MEMBER_INVITE_GROUPS).map((g) => g.slug)
+  ...Object.values(E2E_MEMBER_INVITE_GROUPS).map((g) => g.slug),
+  ...Object.values(E2E_MEMBER_LINK_GROUPS).map((g) => g.slug)
 ]
 
 const E2E_USER_EMAILS = [
@@ -344,6 +358,7 @@ const E2E_USER_EMAILS = [
   E2E_MEMBER_A_EMAIL,
   E2E_MEMBER_B_EMAIL,
   E2E_INVITEE_EMAIL,
+  E2E_LINK_INVITEE_EMAIL,
   'e2e.join-host@hylo.test'
 ].map((email) => email.toLowerCase())
 
@@ -1303,6 +1318,41 @@ async function main () {
       [inviteeRes.rows[0].id, requestsGroupId, requestInvitationId, now]
     )
     await client.query('UPDATE groups SET num_open_join_requests = 1 WHERE id = $1', [requestsGroupId])
+
+    // Member invite links (the member-invites flag is on in the isolated runner)
+    const memberLinkIds = {}
+    for (const [key, groupDef] of Object.entries(E2E_MEMBER_LINK_GROUPS)) {
+      const groupId = await insertMemberInviteGroup(client, {
+        ...groupDef,
+        administratorId: key === 'requests' ? userId : hostId,
+        memberIds: [memberAId],
+        everyoneCanInvite: true,
+        now,
+        membershipSettings
+      })
+      const linkRes = await client.query(
+        `INSERT INTO member_invite_links (group_id, user_id, code, created_at)
+         VALUES ($1, $2, $3, $4::timestamptz) RETURNING id`,
+        [groupId, memberAId, groupDef.code, now]
+      )
+      memberLinkIds[key] = { groupId, linkId: linkRes.rows[0].id }
+    }
+    await client.query(
+      'INSERT INTO invitation_sends (user_id, group_id, recipients) VALUES ($1, $2, 25)',
+      [memberAId, memberLinkIds.busy.groupId]
+    )
+    const linkInviteeRes = await client.query(
+      `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
+       VALUES ($1, $2, $3, $4, true, true, $5::timestamptz, $5::timestamptz, $6::jsonb)
+       RETURNING id`,
+      [E2E_LINK_INVITEE_EMAIL, 'E2E Link Invitee', 'E2E', 'Invitee', now, userSettings]
+    )
+    await client.query(
+      `INSERT INTO join_requests (user_id, group_id, status, member_invite_link_id, created_at, updated_at)
+       VALUES ($1, $2, 0, $3, $4::timestamptz, $4::timestamptz)`,
+      [linkInviteeRes.rows[0].id, memberLinkIds.requests.groupId, memberLinkIds.requests.linkId, now]
+    )
+    await client.query('UPDATE groups SET num_open_join_requests = 1 WHERE id = $1', [memberLinkIds.requests.groupId])
 
     await client.query(
       `INSERT INTO cookie_consents (consent_id, user_id, settings, version, created_at, updated_at, user_agent)
