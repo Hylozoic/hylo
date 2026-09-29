@@ -3116,5 +3116,10 @@
   "Rejoining...": "Beitritt...",
   "To rejoin this space, you need to be a member of its parent group first.": "Um diesem Space wieder beizutreten, musst du zuerst Mitglied seiner übergeordneten Gruppe sein.",
   "Go to {{name}} about page": "Zur Info-Seite von {{name}}",
-  "Your access may have expired. Refresh this page to check your options.": "Dein Zugriff ist möglicherweise abgelaufen. Aktualisiere diese Seite, um deine Optionen zu prüfen."
+  "Your access may have expired. Refresh this page to check your options.": "Dein Zugriff ist möglicherweise abgelaufen. Aktualisiere diese Seite, um deine Optionen zu prüfen.",
+  "Draw a boundary": "Grenze zeichnen",
+  "Boundary drawn. Use the pen to redraw it.": "Grenze gezeichnet. Verwenden Sie den Stift, um sie neu zu zeichnen.",
+  "Click the map to add points. Click the first point or press Enter to finish.": "Klicken Sie auf die Karte, um Punkte hinzuzufügen. Klicken Sie auf den ersten Punkt oder drücken Sie die Eingabetaste, um abzuschließen.",
+  "Remove boundary": "Grenze entfernen",
+  "The map could not be loaded in this browser.": "Die Karte konnte in diesem Browser nicht geladen werden."
 }
