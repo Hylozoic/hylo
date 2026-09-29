@@ -3090,6 +3090,8 @@ type UserSettings {
   alreadySeenTour: Boolean
   # Ids of in-app guided tours this person has completed or dismissed
   toursSeen: [String]
+  # How each guided tour ended for this person, by tour: 'completed' or 'dismissed'
+  toursOutcome: JSON
   # Display mode preference: auto, light, or dark
   colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
@@ -4601,6 +4603,8 @@ input UserSettingsInput {
   alreadySeenTour: Boolean
   # Ids of in-app guided tours this person has completed or dismissed
   toursSeen: [String]
+  # How each guided tour ended for this person, by tour: 'completed' or 'dismissed'
+  toursOutcome: JSON
   # Display mode preference: auto, light, or dark
   colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none

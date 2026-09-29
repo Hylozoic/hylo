@@ -2,10 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation } from 'react-router-dom'
 import { driver } from 'driver.js'
+import { AnalyticsEvents } from '@hylo/shared'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import 'driver.js/dist/driver.css'
 import './tours.css'
 import getMe from 'store/selectors/getMe'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import TourInvitation from './TourInvitation'
 
@@ -118,16 +120,40 @@ export function isAnchorVisible (element) {
   return element.contains(hit) || hit.contains(element)
 }
 
+export const TOUR_OUTCOME_COMPLETED = 'completed'
+export const TOUR_OUTCOME_DISMISSED = 'dismissed'
+
+/**
+ * The key a tour's outcome is stored under in the toursOutcome setting. The
+ * server stores setting keys in snake_case, so the tour id's dashes become
+ * underscores ('post-editor' is kept as post_editor).
+ */
+export function tourOutcomeKey (tourId) {
+  return String(tourId).replace(/[^a-zA-Z0-9]+/g, '_')
+}
+
+/**
+ * The navigation layout a tour runs in, reported with its analytics events:
+ * 'top-bar' for the tabs navigation, otherwise 'sidebar'.
+ */
+export function tourLayout (settings) {
+  return settings?.globalNavStyle === 'tabs' ? 'top-bar' : 'sidebar'
+}
+
 /**
  * Runs a tour's steps through the shared driver.js setup. Steps whose anchor
  * is absent or covered are dropped; with nothing left it returns null and
- * nothing happens. Callers own persistence via onDestroyed.
+ * nothing happens. Callers own persistence via onDestroyed, which learns
+ * whether the tour was finished (Done on the last step) and the step it
+ * ended on.
  */
 export function driveTour (steps, { onDestroyed } = {}) {
   clearSandboxOverlayResize()
   const presentSteps = steps.filter(step => !step.element || isAnchorVisible(document.querySelector(step.element)))
   if (presentSteps.length === 0) return null
   const keepSandboxBannerClear = isSandboxMode()
+  let completed = false
+  let lastStepIndex = 0
   tourActive = true
   const instance = driver({
     showProgress: presentSteps.length > 1,
@@ -143,13 +169,19 @@ export function driveTour (steps, { onDestroyed } = {}) {
       }
     },
     steps: presentSteps,
-    onHighlighted: () => {
+    onHighlighted: (element, step, opts) => {
+      if (typeof opts?.index === 'number') lastStepIndex = opts.index
       if (keepSandboxBannerClear) applySandboxBannerOverlayCutout()
+    },
+    // Done on the last step is the only way a tour counts as completed
+    onDoneClick: (element, step, opts) => {
+      completed = true
+      opts.driver.destroy()
     },
     onDestroyed: () => {
       clearSandboxOverlayResize()
       tourActive = false
-      if (onDestroyed) onDestroyed()
+      if (onDestroyed) onDestroyed({ completed, stepIndex: lastStepIndex, stepCount: presentSteps.length })
     }
   })
   if (keepSandboxBannerClear) {
@@ -178,7 +210,9 @@ export default function useTour ({
   // Extra gate the caller computes (right context, data loaded, …)
   enabled = true,
   // Selectors that block auto-start while present (e.g. an open welcome modal)
-  blockedBySelectors = []
+  blockedBySelectors = [],
+  // Layout name reported with the tour's analytics; defaults to the nav style
+  layout
 }) {
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
@@ -198,12 +232,27 @@ export default function useTour ({
   const toursSeenRef = useRef(toursSeen)
   useEffect(() => { toursSeenRef.current = toursSeen }, [toursSeen])
 
-  const markSeen = useCallback(() => {
+  // Analytics go through the usual consent check; the stored outcome below
+  // is kept whatever the person chose about analytics
+  const layoutRef = useRef()
+  layoutRef.current = layout || tourLayout(currentUser?.settings)
+  const trackTour = useCallback((eventName, { stepIndex = null, stepCount, via } = {}) => {
+    dispatch(trackAnalyticsEvent(eventName, {
+      tourId: id,
+      stepIndex,
+      layout: layoutRef.current,
+      ...(stepCount != null ? { stepCount } : {}),
+      ...(via ? { via } : {})
+    }))
+  }, [dispatch, id])
+
+  // Seen (so it never offers itself again) and how it ended: completed or dismissed
+  const markSeen = useCallback((outcome) => {
     if (isTourTestMode()) return
     const seenNow = toursSeenRef.current
-    if (!seenNow.includes(id)) {
-      dispatch(updateUserSettings({ settings: { toursSeen: [...seenNow, id] } }))
-    }
+    const settings = { toursOutcome: { [tourOutcomeKey(id)]: outcome } }
+    if (!seenNow.includes(id)) settings.toursSeen = [...seenNow, id]
+    dispatch(updateUserSettings({ settings }))
   }, [dispatch, id])
 
   const startTour = useCallback(() => {
@@ -213,15 +262,17 @@ export default function useTour ({
     }
     const instance = driveTour(steps, {
       // Closing early counts as seen: a dismissed tour must never chase the user
-      onDestroyed: () => {
+      onDestroyed: ({ completed, stepIndex, stepCount }) => {
         driverRef.current = null
-        markSeen()
+        const outcome = completed ? TOUR_OUTCOME_COMPLETED : TOUR_OUTCOME_DISMISSED
+        trackTour(completed ? AnalyticsEvents.TOUR_COMPLETED : AnalyticsEvents.TOUR_DISMISSED, { stepIndex, stepCount })
+        markSeen(outcome)
       }
     })
     if (!instance) return false
     driverRef.current = instance
     return true
-  }, [markSeen, steps])
+  }, [markSeen, steps, trackTour])
 
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteClosing, setInviteClosing] = useState(false)
@@ -250,13 +301,15 @@ export default function useTour ({
 
   const acceptInvite = useCallback(() => {
     closeInvite()
+    trackTour(AnalyticsEvents.TOUR_ACCEPTED, { stepIndex: 0 })
     startTour()
-  }, [closeInvite, startTour])
+  }, [closeInvite, startTour, trackTour])
 
   const declineInvite = useCallback(() => {
     closeInvite()
-    markSeen()
-  }, [closeInvite, markSeen])
+    trackTour(AnalyticsEvents.TOUR_DISMISSED)
+    markSeen(TOUR_OUTCOME_DISMISSED)
+  }, [closeInvite, markSeen, trackTour])
 
   const timeoutInvite = useCallback(() => {
     closeInvite()
@@ -291,10 +344,13 @@ export default function useTour ({
         if (clearToStart() && anchorsAvailable()) {
           inviteActive = true
           setInviteOpen(true)
+          trackTour(AnalyticsEvents.TOUR_OFFERED, { via: 'invitation' })
         } else {
           timer = setTimeout(attempt, 1000)
         }
-      } else if (!(clearToStart() && startTour())) {
+      } else if (clearToStart() && startTour()) {
+        trackTour(AnalyticsEvents.TOUR_OFFERED, { stepIndex: 0, via: 'auto' })
+      } else {
         timer = setTimeout(attempt, 1000)
       }
     }
@@ -309,7 +365,7 @@ export default function useTour ({
       clearInterval(poll)
       clearTimeout(timer)
     }
-  }, [autoStart, enabled, seen, !!currentUser, signupInProgress, startTour, autoStartDelay, mode, id, testMode])
+  }, [autoStart, enabled, seen, !!currentUser, signupInProgress, startTour, trackTour, autoStartDelay, mode, id, testMode])
 
   useEffect(() => {
     return () => {

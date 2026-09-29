@@ -36,7 +36,16 @@ export const AnalyticsEvents = {
   SIGNUP_AGREEMENTS_ACCEPTED: 'Signup Agreements Accepted',
   SIGNUP_EMAIL_VERIFICATION_FAILED: 'Email Verification Failed',
   WELCOME_WIZARD_STEP_SKIPPED: 'Welcome Wizard Step Skipped',
-  WELCOME_WIZARD_STEP_VIEWED: 'Welcome Wizard Step Viewed'
+  WELCOME_WIZARD_STEP_VIEWED: 'Welcome Wizard Step Viewed',
+  // Guided tours: { tourId, stepIndex, layout }
+  TOUR_OFFERED: 'Tour Offered',
+  TOUR_ACCEPTED: 'Tour Accepted',
+  TOUR_DISMISSED: 'Tour Dismissed',
+  TOUR_COMPLETED: 'Tour Completed',
+  // Post composer
+  COMPOSER_OPENED: 'Composer Opened',
+  COMPOSER_ABANDONED: 'Composer Abandoned',
+  POST_FAILED: 'Post Failed'
 }
 
 // CustomEvent dispatched in the WebView when Android hardware back is pressed.
