@@ -54,7 +54,9 @@ import {
 import BadgedIcon from 'components/BadgedIcon'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
-import { getMyGroupsWithChildren, isSpaceGroup } from 'store/selectors/getMyGroups'
+import PinnedSpace from './PinnedSpace'
+import { DEFAULT_AVATAR } from 'store/models/Group'
+import { getMyGlobalNavItems } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
 import isWebView, { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
@@ -65,6 +67,7 @@ import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGrou
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
 import { createGroupModalUrl, createPostModalUrl, newMessageUrl, personUrl, myHomeLandingUrl } from '@hylo/navigation'
+import { spaceEntryUrl } from 'routes/AuthLayoutRouter/components/ContextMenu/groupViewMenuUrl'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import {
   LOCALE_DE,
@@ -108,6 +111,12 @@ function isTouchActivatorEvent (event) {
 
 // Sortable wrapper for GlobalNavItem
 function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered, groupRefsMap }) {
+  const hasCustomSpaceAvatar = Boolean(
+    group.navItemType === 'space' &&
+    group.avatarUrl &&
+    group.avatarUrl !== DEFAULT_AVATAR &&
+    !group.avatarUrl.endsWith('/default-group-avatar.svg')
+  )
   const {
     attributes,
     listeners,
@@ -146,14 +155,22 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
     >
       <GlobalNavItem
         badgeCount={group.newPostCount ? '-' : 0}
-        img={group.avatarUrl}
+        img={group.navItemType === 'space' ? (hasCustomSpaceAvatar ? group.avatarUrl : null) : group.avatarUrl}
         tooltip={group.name}
-        url={`/groups/${group.slug}`}
+        url={group.navItemType === 'space' ? spaceEntryUrl(group.parentSlug, group) : `/groups/${group.slug}`}
         className={isVisible}
         showTooltip={isContainerHovered}
         childGroups={group.childGroups}
+        navItemType={group.navItemType}
+        parentSlug={group.parentSlug}
+        slug={group.slug}
+        dataTestId={`global-nav-${group.navItemType}-${group.id}`}
         isPinned
-      />
+      >
+        {group.navItemType === 'space' && !hasCustomSpaceAvatar && (
+          <PinnedSpace space={group} parentGroup={group.parentGroup} />
+        )}
+      </GlobalNavItem>
     </div>
   )
 }
@@ -536,19 +553,18 @@ export default function GlobalNav (props) {
   const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
   const stackGroups = currentUser?.settings?.stackGroups === true
-  const rawGroups = useSelector(getMyGroupsWithChildren)
-  // When stacking is off, flatten: every group renders as its own item with no subgroup stack.
-  // Spaces never appear in GlobalNav — they live under their parent group's menu.
-  const sortedGroups = useMemo(
-    () => {
-      const groups = stackGroups ? rawGroups : rawGroups.map(group => ({ ...group, childGroups: [] }))
-      return groups.filter(group => !isSpaceGroup(group))
-    },
-    [rawGroups, stackGroups]
+  const rawNavItems = useSelector(getMyGlobalNavItems)
+  // When stacking is off, flatten group submenus. Pinned spaces are already
+  // individual navigation destinations, while unpinned spaces stay nested.
+  const navItems = useMemo(
+    () => stackGroups
+      ? rawNavItems
+      : rawNavItems.map(item => item.navItemType === 'space' ? item : { ...item, childGroups: [] }),
+    [rawNavItems, stackGroups]
   )
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
-  const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder != null), [sortedGroups])
-  const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder == null), [sortedGroups])
+  const pinnedNavItems = useMemo(() => navItems.filter(item => item.navOrder != null), [navItems])
+  const unpinnedGroups = useMemo(() => navItems.filter(item => item.navOrder == null), [navItems])
   const compactLayout = isCompactLayoutDevice()
   // The store links only go anywhere on a phone or tablet, so don't offer the
   // download at all on desktop
@@ -703,7 +719,7 @@ export default function GlobalNav (props) {
       resizeObserver.disconnect()
       window.removeEventListener('resize', checkOverflow)
     }
-  }, [sortedGroups.length])
+  }, [navItems.length])
 
   // Add effect to handle scroll position updates for tooltips
   useEffect(() => {
@@ -727,8 +743,8 @@ export default function GlobalNav (props) {
 
   // Track groups that have badges (new posts)
   const groupsWithBadges = useMemo(() => {
-    return sortedGroups.filter(group => group.newPostCount > 0)
-  }, [sortedGroups])
+    return navItems.filter(item => item.newPostCount > 0)
+  }, [navItems])
 
   // Calculate how many badged groups are hidden below the fold
   const calculateHiddenBadges = useCallback(() => {
@@ -972,7 +988,7 @@ export default function GlobalNav (props) {
   const openPinnedGroupContextMenu = (groupId, clientX, clientY) => {
     const node = groupRefsMap.current.get(groupId)
     if (!node) return
-    node.dispatchEvent(new MouseEvent('contextmenu', {
+    node.dispatchEvent(new window.MouseEvent('contextmenu', {
       bubbles: true,
       cancelable: true,
       view: window,
@@ -989,16 +1005,16 @@ export default function GlobalNav (props) {
     const { active, over, delta, activatorEvent } = event
 
     if (active && over && active.id !== over.id) {
-      const oldIndex = pinnedGroups.findIndex(group => group.id === active.id)
-      const newIndex = pinnedGroups.findIndex(group => group.id === over.id)
+      const oldIndex = pinnedNavItems.findIndex(item => item.id === active.id)
+      const newIndex = pinnedNavItems.findIndex(item => item.id === over.id)
 
       if (oldIndex !== -1 && newIndex !== -1) {
         // Use arrayMove to calculate the new order
-        const newOrder = arrayMove(pinnedGroups, oldIndex, newIndex)
+        const newOrder = arrayMove(pinnedNavItems, oldIndex, newIndex)
 
         // Find the moved group in the new order and get its new position
-        const movedGroup = newOrder.find(group => group.id === active.id)
-        const newNavOrder = newOrder.indexOf(movedGroup)
+        const movedItem = newOrder.find(item => item.id === active.id)
+        const newNavOrder = newOrder.indexOf(movedItem)
 
         // Only update the moved group's navOrder - backend will handle updating others
         dispatch(updateGroupNavOrder(active.id, newNavOrder))
@@ -1103,17 +1119,17 @@ export default function GlobalNav (props) {
           </GlobalNavItem>
         )}
 
-        {/* Pinned Groups Section - Sortable */}
+        {/* Pinned groups and spaces share one sortable section. */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={pinnedGroups.map(group => group.id)}
+            items={pinnedNavItems.map(item => item.id)}
             strategy={verticalListSortingStrategy}
           >
-            {pinnedGroups.map((group, pinnedIndex) => (
+            {pinnedNavItems.map((group, pinnedIndex) => (
               <RightClickMenu key={group.id}>
                 <RightClickMenuTrigger onPointerDownCapture={handlePinnedTriggerPointerDownCapture}>
                   <SortableGlobalNavItem
@@ -1134,12 +1150,12 @@ export default function GlobalNav (props) {
           </SortableContext>
         </DndContext>
 
-        {/* Add a divider between pinned and unpinned groups */}
-        {pinnedGroups.length > 0 && <div className='rounded-lg bg-background/50 dark:bg-foreground/20 w-full mb-4 p-[2px]' />}
+        {/* Add a divider between pinned destinations and unpinned groups */}
+        {pinnedNavItems.length > 0 && <div className='rounded-lg bg-background/50 dark:bg-foreground/20 w-full mb-4 p-[2px]' />}
 
         {/* Non-pinned Groups Section */}
         {unpinnedGroups.map((group, unpinnedIndex) => {
-          const actualIndex = pinnedGroups.length + unpinnedIndex
+          const actualIndex = pinnedNavItems.length + unpinnedIndex
           return (
             <div
               key={group.id}

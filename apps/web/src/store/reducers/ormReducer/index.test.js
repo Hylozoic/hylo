@@ -16,6 +16,7 @@ import {
   MARK_ALL_ACTIVITIES_READ_PENDING,
   TOGGLE_GROUP_TOPIC_SUBSCRIBE_PENDING,
   UPDATE_COMMENT_PENDING,
+  UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
   UPDATE_POST_PENDING,
   REACT_ON_POST_PENDING,
   REMOVE_POST_PENDING
@@ -961,6 +962,52 @@ describe('on CLEAR_MODERATION_ACTION_PENDING', () => {
     })
     const newSession = orm.session(newState)
     expect(newSession.Group.withId('g1').openModerationActionCount).toEqual(2)
+  })
+})
+
+describe('on UPDATE_MEMBERSHIP_NAV_ORDER_PENDING', () => {
+  function createSession () {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: '1' })
+    session.Person.create({ id: me.id, name: 'Me' })
+    const parent = session.Group.create({ id: 'parent', name: 'Parent', slug: 'parent' })
+    const space = session.Group.create({ id: 'space', name: 'Space', slug: 'parent-space', type: 'space', parentId: parent.id })
+    const other = session.Group.create({ id: 'other', name: 'Other', slug: 'other' })
+    return { session, me, parent, space, other }
+  }
+
+  it('pins a space into the existing group order', () => {
+    const { session, me, parent, space, other } = createSession()
+    session.Membership.create({ id: 'm-parent', group: parent.id, person: me.id, navOrder: 0 })
+    session.Membership.create({ id: 'm-space', group: space.id, person: me.id, navOrder: null })
+    session.Membership.create({ id: 'm-other', group: other.id, person: me.id, navOrder: 1 })
+
+    const nextState = ormReducer(session.state, {
+      type: UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
+      meta: { groupId: space.id, navOrder: 0 }
+    })
+    const nextSession = orm.session(nextState)
+
+    expect(nextSession.Membership.withId('m-space').navOrder).toEqual(0)
+    expect(nextSession.Membership.withId('m-parent').navOrder).toEqual(1)
+    expect(nextSession.Membership.withId('m-other').navOrder).toEqual(2)
+  })
+
+  it('reorders a pinned space with groups in the same sequence', () => {
+    const { session, me, parent, space, other } = createSession()
+    session.Membership.create({ id: 'm-parent', group: parent.id, person: me.id, navOrder: 0 })
+    session.Membership.create({ id: 'm-space', group: space.id, person: me.id, navOrder: 1 })
+    session.Membership.create({ id: 'm-other', group: other.id, person: me.id, navOrder: 2 })
+
+    const nextState = ormReducer(session.state, {
+      type: UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
+      meta: { groupId: space.id, navOrder: 2 }
+    })
+    const nextSession = orm.session(nextState)
+
+    expect(nextSession.Membership.withId('m-parent').navOrder).toEqual(0)
+    expect(nextSession.Membership.withId('m-other').navOrder).toEqual(1)
+    expect(nextSession.Membership.withId('m-space').navOrder).toEqual(2)
   })
 })
 
