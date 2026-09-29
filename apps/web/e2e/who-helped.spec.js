@@ -1,4 +1,6 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test'
+import fs from 'fs'
+import path from 'path'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 import { PUBLIC_GROUP_SLUG } from './helpers/invitationLinksSeed.js'
 
@@ -11,12 +13,17 @@ import { PUBLIC_GROUP_SLUG } from './helpers/invitationLinksSeed.js'
  * The other people are the seeded session-mutate and track-viewer users (see
  * scripts/seed-e2e-baseline.js), who share e2e-public-group with the e2e user. They
  * comment and react through the API from their own signed-in request contexts.
- * Screenshots land in test-results for the PR.
+ * Screenshots land in e2e/screenshots/, named per project.
  */
 
 test.describe.configure({ timeout: 180000 })
 
 const uiTimeout = { timeout: 60000 }
+const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
+const shot = (testInfo, name) => {
+  fs.mkdirSync(screenshotDir, { recursive: true })
+  return path.resolve(screenshotDir, `${testInfo.project.name}-${name}.png`)
+}
 const OTHERS = [
   { email: 'e2e.session-mutate@hylo.test', password: 'e2e-password-123' },
   { email: 'e2e.track-viewer@hylo.test', password: 'e2e-password-123' }
@@ -80,7 +87,7 @@ test('marking a request met asks who helped', async ({ page, request }, testInfo
   await expect(dialog).toBeVisible(uiTimeout)
   await expect(dialog.getByRole('heading', { name: 'Who helped?' })).toBeVisible()
   await dialog.getByRole('checkbox', { name: helper.name }).click()
-  await page.screenshot({ path: testInfo.outputPath('who-helped-picker.png'), animations: 'disabled' })
+  await page.screenshot({ path: shot(testInfo, 'who-helped-picker'), animations: 'disabled' })
 
   await page.getByTestId('who-helped-save').click()
   await expect(dialog).toBeHidden(uiTimeout)
@@ -99,7 +106,7 @@ test('?action=met marks the request met once and asks who helped', async ({ page
   const dialog = page.getByTestId('who-helped-dialog')
   await expect(dialog).toBeVisible(uiTimeout)
   await expect(page).not.toHaveURL(/action=met/)
-  await page.screenshot({ path: testInfo.outputPath('who-helped-from-link.png'), animations: 'disabled' })
+  await page.screenshot({ path: shot(testInfo, 'who-helped-from-link'), animations: 'disabled' })
 
   await page.getByTestId('who-helped-skip').click()
   await expect(dialog).toBeHidden(uiTimeout)
@@ -130,5 +137,5 @@ test('reactions to your post group into one notice in the bell', async ({ page, 
   const shown = await grouped.first().waitFor({ state: 'visible', timeout: 30000 }).then(() => true, () => false)
   test.skip(!shown, 'the e2e user is in the control arm of the reaction_notices experiment')
 
-  await page.screenshot({ path: testInfo.outputPath('grouped-reaction-notice.png'), animations: 'disabled' })
+  await page.screenshot({ path: shot(testInfo, 'grouped-reaction-notice'), animations: 'disabled' })
 })
