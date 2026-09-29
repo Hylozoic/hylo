@@ -314,7 +314,7 @@ function PostHeader (props) {
 
   const copyLink = () => {
     navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${postUrl}`)
-    dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_SHARED, { postId: id, type, source: 'copy_link' }))
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_SHARED, { postId: id, type, source: 'copy_link', surface: 'menu' }))
   }
 
   const creatorUrl = personUrl(creator.id, routeParams.groupSlug)

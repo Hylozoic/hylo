@@ -5,6 +5,7 @@ import EmojiRow from 'components/EmojiRow'
 import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import PeopleInfo from '../PeopleInfo'
+import ShareButton from 'components/ShareButton'
 import Tooltip from 'components/Tooltip'
 import { CURRENT_USER_PROP_TYPES } from 'store/models/Me'
 
@@ -34,6 +35,9 @@ class PostFooter extends React.PureComponent {
     } = this.props
 
     const tooltipId = 'postfooter-tt-' + postId
+    // Posts and events that exist on the server; not chat messages
+    const sharePostId = postId || post.id
+    const canShare = !!sharePostId && /^\d+$/.test(String(sharePostId)) && post.type !== 'chat'
 
     return (
       <div onClick={onClick} className={cn('w-full text-foreground flex flex-wrap p-1 justify-between items-center', { [classes.constrained]: constrained }, { 'flex-col justify-start items-start gap-2': mapDrawer }, className)} data-testid='post-footer'>
@@ -44,8 +48,13 @@ class PostFooter extends React.PureComponent {
           onRemoveReaction={onRemoveReaction}
         />
 
-        <div className='bg-darkening/5 rounded-lg py-2 mb-1 mr-1 px-2 items-center justify-center flex'>
-          <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} small />
+        <div className='flex items-center gap-1'>
+          {canShare && (
+            <ShareButton postId={sharePostId} postType={post.type} title={post.title} />
+          )}
+          <div className='bg-darkening/5 rounded-lg py-2 mb-1 mr-1 px-2 items-center justify-center flex'>
+            <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} small />
+          </div>
         </div>
         <Tooltip
           delay={550}
