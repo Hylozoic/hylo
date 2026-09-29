@@ -8,6 +8,7 @@ import {
   notifyAuthorOfModeratorFulfillment
 } from '../../models/post/postFulfillmentPermissions'
 import { deletePostDraftForCreate } from './draft'
+import { assertPostWritable } from '../../models/group/archive'
 
 export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
@@ -23,6 +24,7 @@ export async function completePost (userId, postId, completionResponse) {
 
 export function createPost (userId, data) {
   return convertGraphqlPostData(data)
+    .tap(convertedData => assertPostWritable({ groupIds: convertedData.group_ids }))
     .tap(convertedData => validatePostData(userId, convertedData))
     .then(async validatedData => {
       const createdPost = await underlyingCreatePost(userId, validatedData)
@@ -55,6 +57,7 @@ export function deletePost (userId, postId) {
 
 export function updatePost (userId, { id, data }) {
   return convertGraphqlPostData(data)
+    .tap(convertedData => assertPostWritable({ groupIds: convertedData.group_ids, postId: id }))
     .tap(convertedData => validatePostData(userId, convertedData))
     .then(validatedData => underlyingUpdatePost(userId, id, validatedData))
 }

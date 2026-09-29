@@ -5,6 +5,15 @@ import { joinSpace } from './spaces'
 import convertGraphqlData from './convertGraphqlData'
 import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
 import { assertKeepsAdministrator } from '../../models/group/administrators'
+import { assertWritable } from '../../models/group/archive'
+import {
+  assertDeleteConfirmed,
+  groupClosedRecipientIds,
+  queueGroupClosedEmails,
+  recordGroupDeletion,
+  restorableDeletions,
+  restoreGroupDeletion
+} from '../../models/group/deletion'
 import {
   publishGroupUpdate,
   publishGroupMembershipUpdate,
@@ -33,10 +42,22 @@ export async function createGroup (userId, data) {
   return Group.create(userId, convertGraphqlData(data))
 }
 
-export async function deleteGroup (userId, groupId) {
-  await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+/**
+ * Delete a group. Larger groups need their name typed as confirmName. The
+ * memberships are recorded first so Hylo staff can restore the group, and the
+ * members are told it was closed.
+ */
+export async function deleteGroup (userId, groupId, { confirmName } = {}) {
+  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+  assertDeleteConfirmed(group, confirmName)
 
-  await Group.deactivate(groupId)
+  let recipientIds = []
+  await bookshelf.transaction(async transacting => {
+    recipientIds = await groupClosedRecipientIds(group, userId, { transacting })
+    await recordGroupDeletion(group, userId, { transacting })
+    await Group.deactivate(group.id, { transacting })
+  })
+  await queueGroupClosedEmails({ groupId: group.id, userIds: recipientIds, closedById: userId })
   return { success: true }
 }
 
@@ -96,6 +117,7 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   if (!user) throw new GraphQLError(`User id ${userId} not found`)
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLError(`Group id ${groupId} not found`)
+  await assertWritable(group)
 
   // Check if user has a valid invitation for pre-approved join. A space invite
   // also authorizes joining that space's parent group.
@@ -447,4 +469,62 @@ export async function deletePeerRelationship (userId, relationshipId, opts = {})
   })
 
   return { success: true }
+}
+
+// Closing a group: hand off, archive or delete (restored by staff)
+
+async function getStewardedTopLevelGroup (userId, groupId) {
+  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+  if (group.get('parent_id') || group.get('type') === 'space') {
+    throw new GraphQLError('Only a top-level group can be handed off or archived')
+  }
+  return group
+}
+
+/**
+ * Make another active member an Administrator of a group you administer, so
+ * someone can look after it when you step back.
+ */
+export async function handOffAdministrator (userId, groupId, personId) {
+  const group = await getStewardedTopLevelGroup(userId, groupId)
+  const person = personId && await User.find(personId)
+  const isMember = person && person.get('active') && await GroupMembership.hasActiveMembership(person.id, group.id)
+  if (!isMember) throw new GraphQLError('Only an active member of this group can become its Administrator')
+  await GroupMembership.assignAdministratorRole(person.id, group.id)
+  return { success: true }
+}
+
+/**
+ * Make a top-level group read-only: members can still read it, but nothing new
+ * can be posted, joined or created in it until an Administrator opens it again.
+ */
+export async function archiveGroup (userId, groupId, context) {
+  const group = await getStewardedTopLevelGroup(userId, groupId)
+  await group.save({ status: Group.Status.ARCHIVED }, { patch: true })
+  publishAsync(publishGroupUpdate, context, group.id, group)
+  return group
+}
+
+export async function unarchiveGroup (userId, groupId, context) {
+  const group = await getStewardedTopLevelGroup(userId, groupId)
+  await group.save({ status: Group.Status.PUBLISHED }, { patch: true })
+  publishAsync(publishGroupUpdate, context, group.id, group)
+  return group
+}
+
+/**
+ * Hylo staff: deleted groups that can still be restored.
+ */
+export async function deletedGroups (userId) {
+  if (!(await Admin.isSuperAdmin(userId))) throw new GraphQLError('Unauthorized: Admin access required')
+  return restorableDeletions()
+}
+
+/**
+ * Hylo staff: restore a deleted group and exactly the memberships it had.
+ */
+export async function restoreDeletedGroup (userId, deletionId) {
+  if (!(await Admin.isSuperAdmin(userId))) throw new GraphQLError('Unauthorized: Admin access required')
+  const { success } = await restoreGroupDeletion(deletionId, userId)
+  return { success }
 }

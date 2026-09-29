@@ -56,6 +56,17 @@ export default function ManagementContextMenu () {
                         {t('Groups without an Administrator')}
                       </MenuLink>
                     </li>
+                    <li>
+                      <MenuLink
+                        to='/management/groups/deleted'
+                        className={cn(
+                          'text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100',
+                          { 'border-secondary': location.pathname === '/management/groups/deleted' }
+                        )}
+                      >
+                        {t('Deleted groups')}
+                      </MenuLink>
+                    </li>
                   </ul>
                 </div>
               </li>

@@ -200,6 +200,13 @@ import {
   orphanedGroupMembers,
   orphanedGroups
 } from './mutations/orphanedGroups'
+import {
+  archiveGroup,
+  deletedGroups,
+  handOffAdministrator,
+  restoreDeletedGroup,
+  unarchiveGroup
+} from './mutations/group'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -592,7 +599,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     },
     orphanedGroups: (root, { first, offset }, context) => orphanedGroups(context.currentUserId, { first, offset }),
     orphanedGroupMembers: (root, { groupId, search }, context) => orphanedGroupMembers(context.currentUserId, { groupId, search }),
-    mySoleAdministratorGroups: (root, args, context) => mySoleAdministratorGroups(context.currentUserId)
+    mySoleAdministratorGroups: (root, args, context) => mySoleAdministratorGroups(context.currentUserId),
+    deletedGroups: (root, args, context) => deletedGroups(context.currentUserId)
   }
 }
 
@@ -748,7 +756,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteFundingRound: (root, { id }, context) => deleteFundingRound(context.currentUserId, id),
 
-    deleteGroup: (root, { id }, context) => deleteGroup(context.currentUserId, id),
+    deleteGroup: (root, { id, confirmName }, context) => deleteGroup(context.currentUserId, id, { confirmName }),
 
     deleteGroupRelationship: (root, { parentId, childId }, context) => deleteGroupRelationship(context.currentUserId, parentId, childId, context),
 
@@ -960,7 +968,15 @@ export function makeMutations ({ fetchOne }) {
 
     dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
 
-    assignOrphanedGroupAdministrator: (root, { groupId, personId }, context) => assignOrphanedGroupAdministrator(context.currentUserId, { groupId, personId })
+    assignOrphanedGroupAdministrator: (root, { groupId, personId }, context) => assignOrphanedGroupAdministrator(context.currentUserId, { groupId, personId }),
+
+    restoreDeletedGroup: (root, { id }, context) => restoreDeletedGroup(context.currentUserId, id),
+
+    handOffAdministrator: (root, { groupId, personId }, context) => handOffAdministrator(context.currentUserId, groupId, personId),
+
+    archiveGroup: (root, { groupId }, context) => archiveGroup(context.currentUserId, groupId, context),
+
+    unarchiveGroup: (root, { groupId }, context) => unarchiveGroup(context.currentUserId, groupId, context)
   }
 }
 

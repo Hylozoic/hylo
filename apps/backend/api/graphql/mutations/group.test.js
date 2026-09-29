@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import factories from '../../../test/setup/factories'
-import { withFeatureFlag } from '../../../test/setup/helpers'
+import { mockify, unspyify, withFeatureFlag } from '../../../test/setup/helpers'
 
 import {
   addMember,
@@ -16,9 +16,18 @@ import {
   deletePeerRelationship,
   acceptGroupRelationshipInvite,
   cancelGroupRelationshipInvite,
-  rejectGroupRelationshipInvite
+  rejectGroupRelationshipInvite,
+  handOffAdministrator,
+  archiveGroup,
+  unarchiveGroup,
+  deletedGroups,
+  restoreDeletedGroup
 } from './group'
 import { addSuggestedSkillToGroup, leaveGroup, removeSuggestedSkillFromGroup } from './index'
+import { createPost, updatePost } from './post'
+import { createComment } from './comment'
+import { createJoinRequest } from './join_request'
+import { createSpace } from './spaces'
 
 describe('mutations/group', () => {
   describe('moderation', () => {
@@ -901,6 +910,171 @@ describe('mutations/group', () => {
         await expect(regenerateAccessCode(member.id, group.id))
           .to.be.rejectedWith("You don't have the right responsibilities for this group")
         expect((await Group.find(group.id)).get('access_code')).to.equal(code)
+      })
+    })
+  })
+
+  describe('closing a group', () => {
+    const ARCHIVED = 'This group is archived and read-only'
+    let administrator, member, outsider, group
+
+    beforeEach(async () => {
+      administrator = await factories.user().save()
+      member = await factories.user().save()
+      outsider = await factories.user().save()
+      group = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+      await administrator.joinGroup(group, { assignAdministrator: true })
+      await member.joinGroup(group)
+    })
+
+    describe('handOffAdministrator', () => {
+      it('lets an Administrator make another member an Administrator', async () => {
+        expect(await handOffAdministrator(administrator.id, group.id, member.id)).to.deep.equal({ success: true })
+        expect(await GroupMembership.hasResponsibility(member.id, group.id, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
+      })
+
+      it('refuses people who are not active members, and members who are not Administrators', async () => {
+        await expect(handOffAdministrator(administrator.id, group.id, outsider.id))
+          .to.be.rejectedWith('Only an active member of this group can become its Administrator')
+        await expect(handOffAdministrator(member.id, group.id, member.id))
+          .to.be.rejectedWith("You don't have the right responsibilities for this group")
+      })
+    })
+
+    describe('archiving', () => {
+      it('blocks posts, chat, comments, joins, join requests, new members and new spaces, and Administrators can open it again', async () => {
+        const post = await factories.post({ user_id: member.id, type: 'discussion' }).save()
+        await post.groups().attach(group.id)
+
+        await expect(archiveGroup(member.id, group.id)).to.be.rejectedWith("You don't have the right responsibilities for this group")
+        await archiveGroup(administrator.id, group.id)
+        expect((await Group.find(group.id)).get('status')).to.equal(Group.Status.ARCHIVED)
+
+        await expect(createPost(member.id, { title: 'Hello', type: 'discussion', groupIds: [group.id] })).to.be.rejectedWith(ARCHIVED)
+        await expect(createPost(member.id, { details: '<p>hi</p>', type: 'chat', groupIds: [group.id], topicNames: ['general'] })).to.be.rejectedWith(ARCHIVED)
+        await expect(updatePost(member.id, { id: post.id, data: { title: 'Edited' } })).to.be.rejectedWith(ARCHIVED)
+        await expect(createComment(member.id, { postId: post.id, text: 'hi' }, {})).to.be.rejectedWith(ARCHIVED)
+        await expect(joinGroup(group.id, outsider.id, [], null, null, false, {})).to.be.rejectedWith(ARCHIVED)
+        await expect(createJoinRequest(outsider.id, group.id, [])).to.be.rejectedWith(ARCHIVED)
+        await expect(group.addMembers([outsider.id])).to.be.rejectedWith(ARCHIVED)
+        await expect(createSpace(administrator.id, { parentGroupId: group.id, name: 'Late Space' }, {})).to.be.rejectedWith(ARCHIVED)
+
+        // Members keep reading
+        expect(await GroupMembership.hasActiveMembership(member.id, group.id)).to.be.true
+
+        await expect(unarchiveGroup(member.id, group.id)).to.be.rejectedWith("You don't have the right responsibilities for this group")
+        await unarchiveGroup(administrator.id, group.id)
+        expect((await Group.find(group.id)).get('status')).to.equal(Group.Status.PUBLISHED)
+        await joinGroup(group.id, outsider.id, [], null, null, false, {})
+        expect(await GroupMembership.hasActiveMembership(outsider.id, group.id)).to.be.true
+      })
+
+      it('is only for top-level groups', async () => {
+        const space = await factories.group({ type: 'space', parent_id: group.id }).save()
+        await expect(archiveGroup(administrator.id, space.id)).to.be.rejectedWith('Only a top-level group can be handed off or archived')
+      })
+    })
+
+    describe('deleting', () => {
+      let queued
+
+      beforeEach(() => {
+        queued = []
+        mockify(Queue, 'classMethod', (cls, method, data) => {
+          queued.push([cls, method, data])
+          return Promise.resolve()
+        })
+      })
+
+      afterEach(() => unspyify(Queue, 'classMethod'))
+
+      it('asks for the name of a larger group, records the deletion and queues the notice to members', async () => {
+        await bookshelf.knex('groups').where({ id: group.id }).update({ num_members: 11 })
+
+        await expect(deleteGroup(administrator.id, group.id)).to.be.rejectedWith("Type the group's name to delete it")
+        await expect(deleteGroup(administrator.id, group.id, { confirmName: 'Not the name' })).to.be.rejectedWith("Type the group's name to delete it")
+        expect((await Group.find(group.id)).get('active')).to.be.true
+
+        await deleteGroup(administrator.id, group.id, { confirmName: `  ${group.get('name').toUpperCase()} ` })
+
+        expect((await Group.find(group.id)).get('active')).to.be.false
+        expect(await GroupMembership.hasActiveMembership(member.id, group.id)).to.be.false
+        const notice = queued.find(([cls, method]) => cls === 'Group' && method === 'sendGroupClosedEmails')
+        expect(notice[2]).to.deep.equal({ groupId: group.id, userIds: [member.id], closedById: administrator.id })
+        const record = await bookshelf.knex('group_deletions').where({ group_id: group.id }).first()
+        expect(record).to.exist
+      })
+
+      it('does not ask for the name of a small group', async () => {
+        await deleteGroup(administrator.id, group.id)
+        expect((await Group.find(group.id)).get('active')).to.be.false
+      })
+
+      it('sends the notice to each member in their language', async () => {
+        const sent = []
+        mockify(Email, 'sendGroupClosed', opts => { sent.push(opts); return Promise.resolve(true) })
+        try {
+          await member.save({ settings: { ...member.get('settings'), locale: 'es' } }, { patch: true })
+          expect(await Group.sendGroupClosedEmails({ groupId: group.id, userIds: [member.id], closedById: administrator.id })).to.equal(1)
+          expect(sent).to.have.length(1)
+          expect(sent[0].email).to.equal(member.get('email'))
+          expect(sent[0].locale).to.equal('es-ES')
+          expect(sent[0].data).to.include({ group_name: group.get('name'), closed_by_name: administrator.get('name') })
+        } finally {
+          unspyify(Email, 'sendGroupClosed')
+        }
+      })
+    })
+
+    describe('restoring a deleted group', () => {
+      let staff, savedAdmins
+
+      beforeEach(async () => {
+        staff = await factories.user().save()
+        savedAdmins = process.env.HYLO_ADMINS
+        process.env.HYLO_ADMINS = String(staff.id)
+      })
+
+      afterEach(() => {
+        if (savedAdmins === undefined) delete process.env.HYLO_ADMINS
+        else process.env.HYLO_ADMINS = savedAdmins
+      })
+
+      it('brings back exactly the memberships, spaces and roles it had, once, within 30 days', async () => {
+        const space = await factories.group({ type: 'space', parent_id: group.id }).save()
+        await member.joinGroup(space)
+        const leaver = await factories.user().save()
+        await leaver.joinGroup(group)
+        await leaver.leaveGroup(group)
+
+        await deleteGroup(administrator.id, group.id)
+        const [record] = (await deletedGroups(staff.id)).filter(row => String(row.groupId) === String(group.id))
+        expect(record.memberCount).to.equal(2)
+
+        await expect(deletedGroups(member.id)).to.be.rejectedWith('Unauthorized: Admin access required')
+        await expect(restoreDeletedGroup(member.id, record.id)).to.be.rejectedWith('Unauthorized: Admin access required')
+
+        expect(await restoreDeletedGroup(staff.id, record.id)).to.deep.equal({ success: true })
+
+        const restored = await Group.find(group.id)
+        expect(restored.get('active')).to.be.true
+        expect(restored.get('num_members')).to.equal(2)
+        expect(await GroupMembership.hasActiveMembership(member.id, group.id)).to.be.true
+        expect(await GroupMembership.hasActiveMembership(member.id, space.id)).to.be.true
+        expect(await GroupMembership.hasActiveMembership(leaver.id, group.id)).to.be.false
+        expect(await GroupMembership.hasResponsibility(administrator.id, group.id, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
+
+        await expect(restoreDeletedGroup(staff.id, record.id)).to.be.rejectedWith('This group has already been restored')
+      })
+
+      it('is refused after 30 days', async () => {
+        await deleteGroup(administrator.id, group.id)
+        const record = await bookshelf.knex('group_deletions').where({ group_id: group.id }).first()
+        await bookshelf.knex('group_deletions').where({ id: record.id }).update({ restorable_until: new Date(Date.now() - 1000) })
+
+        expect((await deletedGroups(staff.id)).map(row => String(row.id))).to.not.include(String(record.id))
+        await expect(restoreDeletedGroup(staff.id, record.id)).to.be.rejectedWith('Deleted groups can only be restored for 30 days')
+        expect((await Group.find(group.id)).get('active')).to.be.false
       })
     })
   })

@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql'
+import { assertWritable } from '../../models/group/archive'
 
 /**
  * The member invitation a join request comes from: the one whose token the
@@ -27,6 +28,7 @@ async function sponsoringInvitation (userId, groupId, invitationToken) {
 
 export async function createJoinRequest (userId, groupId, questionAnswers = [], invitationToken) {
   if (groupId && userId) {
+    await assertWritable(groupId)
     const invitation = await sponsoringInvitation(userId, groupId, invitationToken)
     const pendingRequest = await JoinRequest.where({ user_id: userId, group_id: groupId, status: JoinRequest.STATUS.Pending }).fetch()
     if (pendingRequest) {

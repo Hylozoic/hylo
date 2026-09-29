@@ -88,6 +88,10 @@ const emailWithOptionsSender = baseOptions => curry((templateId, opts) => {
 const sendEmailWithOptions = emailWithOptionsSender(bulkOptions)
 const sendTransactionalEmailWithOptions = emailWithOptionsSender(transactionalOptions)
 
+// Set to the SendWithUs template id once scripts/i18n/i18n-templates/Group_Closed_i18n
+// is uploaded; until then the notice is skipped (the sender resolves false).
+const GROUP_CLOSED_TEMPLATE_ID = null
+
 module.exports = {
   sendSimpleEmail,
 
@@ -290,6 +294,11 @@ Profile: ${opts.actorProfileUrl}
   sendSubscriptionCancelledAdminNotification: sendEmailWithOptions('tem_9ySxcvxKGKBXFQHJm4vS8cDC'),
   sendAccessExpired: sendEmailWithOptions('tem_HVKwWYTMDbhWvvd3TGxtMkMG'),
   sendTrackAccessPurchased: sendTransactionalEmailWithOptions('tem_T63TXtFjmyqhyrw8yfp6YwH8'),
+
+  // Tells a member that a group they were in has been closed (deleted) by its steward
+  sendGroupClosed: opts => GROUP_CLOSED_TEMPLATE_ID
+    ? sendEmailWithOptions(GROUP_CLOSED_TEMPLATE_ID, opts)
+    : Promise.resolve(false),
 
   sendMessageDigest: opts =>
     sendEmailWithOptions('tem_y8HpjwxFSxC9jRqwfVpPxY8d', opts),

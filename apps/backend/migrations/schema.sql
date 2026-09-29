@@ -996,6 +996,43 @@ ALTER SEQUENCE public.group_connections_id_seq OWNED BY public.group_relationshi
 
 
 --
+-- Name: group_deletions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_deletions (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    deleted_by_id bigint,
+    memberships jsonb DEFAULT '[]'::jsonb NOT NULL,
+    role_assignments jsonb DEFAULT '[]'::jsonb NOT NULL,
+    accepted_agreement_ids jsonb DEFAULT '[]'::jsonb NOT NULL,
+    restorable_until timestamp with time zone NOT NULL,
+    restored_at timestamp with time zone,
+    restored_by_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: group_deletions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_deletions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_deletions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_deletions_id_seq OWNED BY public.group_deletions.id;
+
+
+--
 -- Name: group_extensions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3676,6 +3713,13 @@ ALTER TABLE ONLY public.funding_rounds ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
+-- Name: group_deletions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_deletions ALTER COLUMN id SET DEFAULT nextval('public.group_deletions_id_seq'::regclass);
+
+
+--
 -- Name: group_extensions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4304,6 +4348,14 @@ ALTER TABLE ONLY public.group_relationships
 
 ALTER TABLE ONLY public.group_relationships
     ADD CONSTRAINT group_connections_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_deletions group_deletions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_deletions
+    ADD CONSTRAINT group_deletions_pkey PRIMARY KEY (id);
 
 
 --
@@ -5187,6 +5239,13 @@ CREATE INDEX email_enabled_testers_user_id_index ON public.email_enabled_testers
 --
 
 CREATE INDEX funding_rounds_group_id_index ON public.funding_rounds USING btree (group_id);
+
+
+--
+-- Name: group_deletions_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_deletions_group_id_index ON public.group_deletions USING btree (group_id);
 
 
 --
@@ -6298,6 +6357,30 @@ ALTER TABLE ONLY public.group_relationships
 
 ALTER TABLE ONLY public.group_relationships
     ADD CONSTRAINT group_connections_parent_group_id_foreign FOREIGN KEY (parent_group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_deletions group_deletions_deleted_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_deletions
+    ADD CONSTRAINT group_deletions_deleted_by_id_foreign FOREIGN KEY (deleted_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_deletions group_deletions_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_deletions
+    ADD CONSTRAINT group_deletions_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_deletions group_deletions_restored_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_deletions
+    ADD CONSTRAINT group_deletions_restored_by_id_foreign FOREIGN KEY (restored_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --

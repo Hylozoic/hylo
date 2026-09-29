@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 
 export const FETCH_MY_SOLE_ADMINISTRATOR_GROUPS = 'FETCH_MY_SOLE_ADMINISTRATOR_GROUPS'
+export const HAND_OFF_ADMINISTRATOR = 'HAND_OFF_ADMINISTRATOR'
 
 export function fetchMySoleAdministratorGroups () {
   return {
@@ -15,6 +16,24 @@ export function fetchMySoleAdministratorGroups () {
           avatarUrl
         }
       }`
+    }
+  }
+}
+
+/**
+ * Make another member an Administrator of a group the current user administers.
+ */
+export function handOffAdministrator (groupId, personId) {
+  return {
+    type: HAND_OFF_ADMINISTRATOR,
+    graphql: {
+      query: `mutation HandOffAdministrator ($groupId: ID!, $personId: ID!) {
+        handOffAdministrator(groupId: $groupId, personId: $personId) {
+          success
+          error
+        }
+      }`,
+      variables: { groupId, personId }
     }
   }
 }

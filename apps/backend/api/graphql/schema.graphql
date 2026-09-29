@@ -492,6 +492,9 @@ type Query {
 
   # Groups where the current user is the only active Administrator
   mySoleAdministratorGroups: [SoleAdministratorGroup]
+
+  # Deleted groups that can still be restored (admin only)
+  deletedGroups: [DeletedGroup]
 }
 
 union Update = Message | MessageThread | Notification
@@ -3218,6 +3221,20 @@ type StaffGroupMember {
   roleName: String
 }
 
+# A deleted group that Hylo staff can still restore (admin only)
+type DeletedGroup {
+  id: ID
+  groupId: ID
+  name: String
+  slug: String
+  avatarUrl: String
+  deletedAt: Date
+  restorableUntil: Date
+  deletedByName: String
+  # Members of the group itself when it was deleted
+  memberCount: Int
+}
+
 # A group the current user is the only active Administrator of
 type SoleAdministratorGroup {
   id: ID
@@ -3533,8 +3550,8 @@ type Mutation {
   deleteDraft(id: ID!): GenericResult
   # Delete a funding round
   deleteFundingRound(id: ID): GenericResult
-  # Delete a group that you are a steward of
-  deleteGroup(id: ID): GenericResult
+  # Delete a group that you are a steward of. Groups with more than a few members need their name typed as confirmName.
+  deleteGroup(id: ID, confirmName: String): GenericResult
   # Remove the relationship between two groups if you are a steward of one of them
   deleteGroupRelationship(parentId: ID, childId: ID, relationshipType: Int): GenericResult
   # Remove a peer-to-peer relationship between two groups by relationship ID. Only a group steward can call this.
@@ -3782,6 +3799,14 @@ type Mutation {
   dismissSiteBanner(id: ID!): Boolean
   # Make an active member the Administrator of a group that has none (admin only)
   assignOrphanedGroupAdministrator(groupId: ID!, personId: ID!): GenericResult
+  # Restore a deleted group, within 30 days, with exactly the memberships it had (admin only)
+  restoreDeletedGroup(id: ID!): GenericResult
+  # Make another active member an Administrator of a group you administer
+  handOffAdministrator(groupId: ID!, personId: ID!): GenericResult
+  # Make a top-level group you administer read-only
+  archiveGroup(groupId: ID!): Group
+  # Open an archived top-level group you administer again
+  unarchiveGroup(groupId: ID!): Group
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
