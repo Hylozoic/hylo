@@ -1,6 +1,7 @@
 import path from 'path'
 import nock from 'nock'
 import { dependencyOf, mockify, unspyify } from '../../setup/helpers'
+import { emailTypeFor } from '../../../lib/email/emailTypes'
 require(require('root-path')('test/setup'))
 
 const SENDWITHUS_SEND_PATH = '/api/v1_0/send'
@@ -92,6 +93,31 @@ describe('Email', function () {
         captureSend()
         await Email[send]({ email: 'member@example.com', data: {}, locale: 'en' })
         expect(sentBody.headers, send).to.deep.equal({ 'X-Auto-Response-Suppress': 'All' })
+      }
+    })
+
+    it('sends payment-failed and renewal-reminder emails without Precedence: bulk (D84)', async () => {
+      for (const send of ['sendPaymentFailed', 'sendSubscriptionRenewalReminder']) {
+        captureSend()
+        await Email[send]({ email: 'member@example.com', data: {}, locale: 'en' })
+        expect(sentBody.headers, send).to.deep.equal({ 'X-Auto-Response-Suppress': 'All' })
+      }
+    })
+
+    it('marks the payment-failed and renewal reminders essential and the other paid-content notices bulk (D84)', () => {
+      for (const send of ['sendPaymentFailed', 'sendSubscriptionRenewalReminder']) {
+        expect(emailTypeFor(send).kind, send).to.equal('essential')
+      }
+      for (const send of ['sendSubscriptionCancelled', 'sendSubscriptionCancelledAdminNotification', 'sendAccessGranted', 'sendAccessExpired']) {
+        expect(emailTypeFor(send).kind, send).to.equal('bulk')
+      }
+    })
+
+    it('keeps cancellation and access notices bulk (D84)', async () => {
+      for (const send of ['sendSubscriptionCancelled', 'sendSubscriptionCancelledAdminNotification', 'sendAccessGranted', 'sendAccessExpired']) {
+        captureSend()
+        await Email[send]({ email: 'member@example.com', data: {}, locale: 'en' })
+        expect(sentBody.headers.Precedence, send).to.equal('bulk')
       }
     })
 

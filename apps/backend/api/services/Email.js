@@ -287,12 +287,15 @@ Profile: ${opts.actorProfileUrl}
     })
   },
 
-  // Paid content email templates
+  // Paid content email templates. Receipts, and the payment-failed and renewal-reminder
+  // emails about the member's own money, are transactional (D84); a later trial-ending
+  // reminder follows the renewal reminder. Cancellation, access granted and access
+  // expired notices stay bulk, as does a steward's new-subscriber notice (D62).
   sendPurchaseConfirmation: sendTransactionalEmailWithOptions('tem_9gQQRW8XgygjQpGGxQKYGdMS'),
   sendAccessGranted: sendEmailWithOptions('tem_jfBqFPmhPP9jjfgSPB87YpDV'),
-  sendSubscriptionRenewalReminder: sendEmailWithOptions('tem_DrD9kmkKTkTCxTM7PhpW4jKf'),
+  sendSubscriptionRenewalReminder: sendTransactionalEmailWithOptions('tem_DrD9kmkKTkTCxTM7PhpW4jKf'),
   sendSubscriptionRenewed: sendTransactionalEmailWithOptions('tem_gvBCMVVxrCbt8S9cK98kYP9Q'),
-  sendPaymentFailed: sendEmailWithOptions('tem_YCXQrSjjqj8VqJWjhqHw66mF'),
+  sendPaymentFailed: sendTransactionalEmailWithOptions('tem_YCXQrSjjqj8VqJWjhqHw66mF'),
   sendRefundProcessed: sendTransactionalEmailWithOptions('tem_qKY6tQFyBcyBXry9wm8yvbxJ'),
   sendSubscriptionCancelled: sendEmailWithOptions('tem_XfXjrYGdvDrPK4Sjprq7FtbS'),
   sendSubscriptionCancelledAdminNotification: sendEmailWithOptions('tem_9ySxcvxKGKBXFQHJm4vS8cDC'),

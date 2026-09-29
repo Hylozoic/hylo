@@ -71,14 +71,18 @@ export const EMAIL_TYPES = {
   sendStripeAlertEmail: essential('payment account alert'),
   sendNewStripeConnectedAccountAdminNotification: essential('payment account connected, to admins'),
   sendPurchaseConfirmation: essential('purchase receipt'),
-  sendAccessGranted: essential('you were given access to paid content'),
+  // D84: only receipts and the payment-failed and renewal reminders are essential; the
+  // other paid-content notices are bulk, with no single switch to turn off
+  sendAccessGranted: bulk('settings_page', 'you were given access to paid content'),
+  // D84: transactional and essential, as a later trial-ending reminder (D65) will be
   sendSubscriptionRenewalReminder: essential('subscription renewal reminder (D84)'),
   sendSubscriptionRenewed: essential('subscription renewal receipt'),
   sendPaymentFailed: essential('payment failed (D84)'),
   sendRefundProcessed: essential('refund receipt'),
-  sendSubscriptionCancelled: essential('subscription cancelled'),
-  sendSubscriptionCancelledAdminNotification: essential('subscription cancelled, to admins'),
-  sendAccessExpired: essential('paid access ended'),
+  sendSubscriptionCancelled: bulk('settings_page', 'subscription cancelled (D84)'),
+  // A steward's new-subscriber notice (D62) will be bulk like this one
+  sendSubscriptionCancelledAdminNotification: bulk('settings_page', 'subscription cancelled, to admins (D84)'),
+  sendAccessExpired: bulk('settings_page', 'paid access ended (D84)'),
   sendTrackAccessPurchased: essential('track purchase receipt'),
   sendMessageDigest: bulkDirect('dm_email', 'direct message digest'),
   // Narrowed to mentions and replies for readers who chose everything except direct
