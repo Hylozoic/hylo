@@ -1239,16 +1239,14 @@ function OfferingListItem ({ offering, onEdit, group, childSpaces = [], isEditin
 
     const minAmount = formatPrice(offering.priceInCents * minQuantity, currencyCode)
     if (maxQuantity != null) {
-      return t('Pay {{min}} - {{max}} {{currency}} (your choice)', {
+      return t('Pay {{min}} - {{max}} (your choice)', {
         min: minAmount,
-        max: formatPrice(offering.priceInCents * maxQuantity, currencyCode),
-        currency: currencyCode
+        max: formatPrice(offering.priceInCents * maxQuantity, currencyCode)
       })
     }
 
-    return t('Pay at least {{min}} {{currency}} (your choice)', {
-      min: minAmount,
-      currency: currencyCode
+    return t('Pay at least {{min}} (your choice)', {
+      min: minAmount
     })
   }, [accessGrants.slidingScale, accessGrants.sliding_scale, offering.priceInCents, offering.currency, t])
 
