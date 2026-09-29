@@ -7,7 +7,9 @@
 //                      the reader's group toggles
 //   3. GATE_PASSES     a post or chat reaches the reader only when one pass says so;
 //                      every other signal goes through
-//   4. READER_FILTERS  per-reader narrowing after the gate
+//   4. READER_FILTERS  per-reader narrowing after the gate. These also narrow what an
+//                      override returns, so the reader's unsubscribe choice and the
+//                      quieter delivery for members who are away apply to every notice.
 //
 // To add a rule, write a module in this folder and add one line to its phase.
 import { filter, find, includes, isEmpty } from 'lodash'
@@ -128,6 +130,22 @@ const MEDIUM_FOR_CHANNEL = () => [
   [CHANNEL.IN_APP, Notification.MEDIUM.InApp]
 ]
 
+// Runs the reader filters over an override's media, keeping the override's order
+function filterOverride (activity, reasons, media) {
+  const reason = Notification.priorityReason(reasons)
+  const channelFor = new Map(MEDIUM_FOR_CHANNEL().map(([channel, medium]) => [medium, channel]))
+  const ctx = {
+    activity,
+    reasons,
+    reason,
+    reader: activity.relations.reader,
+    signalClass: classForActivity(activity, reason),
+    channels: new Set(media.map(medium => channelFor.get(medium)))
+  }
+  for (const readerFilter of READER_FILTERS) readerFilter(ctx)
+  return media.filter(medium => ctx.channels.has(channelFor.get(medium)))
+}
+
 export async function notificationMedia (activity) {
   const reasons = activity.get('meta').reasons || []
   const skipPostLoad = ['approvedJoinRequest', 'joinRequest', 'groupInvitation'].includes(reasons[0])
@@ -135,7 +153,7 @@ export async function notificationMedia (activity) {
 
   for (const override of OVERRIDES) {
     const media = override({ activity, reasons })
-    if (media) return media
+    if (media) return filterOverride(activity, reasons, media)
   }
 
   const ctx = await buildContext(activity)

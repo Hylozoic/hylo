@@ -211,6 +211,27 @@ describe('notification reader filters', () => {
       })
     })
 
+    describe('a group invitation, which skips the channel rules', () => {
+      const invitation = reader => model({ meta: { reasons: ['groupInvitation'] }, group_id: 1, relations: { group: { id: 1 }, reader } })
+      const readerWith = attrs => mockReader([], attrs)
+
+      it('still pushes without a choice', async () => {
+        expect(await media(invitation(readerWith({})))).to.deep.equal([Notification.MEDIUM.InApp, Notification.MEDIUM.Push])
+      })
+
+      it("is in-app only for someone who chose 'everything' or 'everything except direct'", async () => {
+        for (const scope of ['everything', 'all_but_direct']) {
+          const reader = readerWith({ settings: { email_unsubscribe_scope: scope } })
+          expect(await media(invitation(reader)), scope).to.deep.equal([Notification.MEDIUM.InApp])
+        }
+      })
+
+      it('is in-app only for someone away 180 days or more (D9)', async () => {
+        const reader = readerWith({ last_active_at: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000) })
+        expect(await media(invitation(reader))).to.deep.equal([Notification.MEDIUM.InApp])
+      })
+    })
+
     describe('bulk email outside notifications (Email.js)', () => {
       it('never stops essential email', () => {
         for (const scope of ['digest_only', 'no_group_emails', 'all_but_direct', 'everything']) {
