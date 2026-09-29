@@ -9,6 +9,7 @@ const Promise = require('bluebird')
 const { red } = require('chalk')
 const savedSearches = require('./lib/group/digest2/savedSearches')
 const OIDCAdapter = require('./api/services/oidc/KnexAdapter')
+const { countOrphanedGroups } = require('./api/models/group/administrators')
 
 const sendAndLogDigests = type =>
   digest2.sendAllDigests(type)
@@ -43,6 +44,12 @@ const daily = now => {
   sails.log.debug('Cleaning up expired OIDC payloads')
   tasks.push(OIDCAdapter.cleanupExpired().then(count => {
     sails.log.debug(`Removed ${count} expired OIDC payloads`)
+    return count
+  }))
+
+  // Staff assign an Administrator from Management > Groups without an Administrator
+  tasks.push(countOrphanedGroups().then(count => {
+    sails.log.info(`metric groups_without_administrator=${count}`)
     return count
   }))
 

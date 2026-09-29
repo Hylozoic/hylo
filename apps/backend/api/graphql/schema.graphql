@@ -483,6 +483,15 @@ type Query {
 
   # All site banners, past and present (admin only)
   allSiteBanners: [SiteBanner]
+
+  # Active groups that still have members but no active Administrator (admin only)
+  orphanedGroups(first: Int, offset: Int): OrphanedGroupList
+
+  # Active members of a group, for choosing its next Administrator (admin only)
+  orphanedGroupMembers(groupId: ID!, search: String): [StaffGroupMember]
+
+  # Groups where the current user is the only active Administrator
+  mySoleAdministratorGroups: [SoleAdministratorGroup]
 }
 
 union Update = Message | MessageThread | Notification
@@ -3180,6 +3189,43 @@ type SiteBanner {
   dismissedCount: Int
 }
 
+# A group that has members but no active Administrator (admin only)
+type OrphanedGroup {
+  id: ID
+  name: String
+  slug: String
+  avatarUrl: String
+  createdAt: Date
+  memberCount: Int
+  # When its most recent post was made
+  lastActivityAt: Date
+  # Its Moderators and Hosts, who could take over as Administrator
+  candidates: [StaffGroupMember]
+}
+
+type OrphanedGroupList {
+  total: Int
+  hasMore: Boolean
+  items: [OrphanedGroup]
+}
+
+# A member of a group as Hylo staff see it in Management
+type StaffGroupMember {
+  id: ID
+  name: String
+  avatarUrl: String
+  # One of their active roles in the group, if any
+  roleName: String
+}
+
+# A group the current user is the only active Administrator of
+type SoleAdministratorGroup {
+  id: ID
+  name: String
+  slug: String
+  avatarUrl: String
+}
+
 input SiteBannerInput {
   title: String
   text: String
@@ -3734,6 +3780,8 @@ type Mutation {
   deleteSiteBanner(id: ID!): Boolean
   # Dismiss a site banner for the current user
   dismissSiteBanner(id: ID!): Boolean
+  # Make an active member the Administrator of a group that has none (admin only)
+  assignOrphanedGroupAdministrator(groupId: ID!, personId: ID!): GenericResult
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email

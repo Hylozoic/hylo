@@ -194,6 +194,12 @@ import {
   membershipChangeInvoicePreview
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
+import {
+  assignOrphanedGroupAdministrator,
+  mySoleAdministratorGroups,
+  orphanedGroupMembers,
+  orphanedGroups
+} from './mutations/orphanedGroups'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -583,7 +589,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       }
       const banners = await SiteBanner.all()
       return banners.toModelArray ? banners.toModelArray() : banners
-    }
+    },
+    orphanedGroups: (root, { first, offset }, context) => orphanedGroups(context.currentUserId, { first, offset }),
+    orphanedGroupMembers: (root, { groupId, search }, context) => orphanedGroupMembers(context.currentUserId, { groupId, search }),
+    mySoleAdministratorGroups: (root, args, context) => mySoleAdministratorGroups(context.currentUserId)
   }
 }
 
@@ -949,7 +958,9 @@ export function makeMutations ({ fetchOne }) {
 
     deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
 
-    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id)
+    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    assignOrphanedGroupAdministrator: (root, { groupId, personId }, context) => assignOrphanedGroupAdministrator(context.currentUserId, { groupId, personId })
   }
 }
 

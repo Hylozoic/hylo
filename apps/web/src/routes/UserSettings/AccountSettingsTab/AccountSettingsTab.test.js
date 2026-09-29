@@ -1,5 +1,7 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { graphql, HttpResponse } from 'msw'
+import { render, screen, fireEvent, waitFor, within } from 'util/testing/reactTestingLibraryExtended'
+import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import AccountSettingsTab from './AccountSettingsTab'
 
 describe('AccountSettingsTab', () => {
@@ -68,5 +70,60 @@ describe('AccountSettingsTab', () => {
     confirmPasswordInput.blur()
 
     expect(screen.getByText('Passwords don\'t match')).toBeInTheDocument()
+  })
+
+  describe('the groups you are the only Administrator of', () => {
+    const soleGroups = [
+      { id: '5', name: 'Seed Library', slug: 'seed-library', avatarUrl: null },
+      { id: '6', name: 'Tool Share', slug: 'tool-share', avatarUrl: null }
+    ]
+
+    beforeEach(() => {
+      mockGraphqlServer.use(
+        graphql.query('MySoleAdministratorGroups', () => HttpResponse.json({ data: { mySoleAdministratorGroups: soleGroups } }))
+      )
+    })
+
+    it('lists them in the deactivate dialog, with a way to choose someone to take over, without blocking', async () => {
+      const deactivateMe = jest.fn(() => Promise.resolve())
+      render(
+        <AccountSettingsTab currentUser={{ id: '1', email: 'test@example.com' }} updateUserSettings={jest.fn()} setConfirm={jest.fn()} deactivateMe={deactivateMe} logout={jest.fn()} />
+      )
+
+      fireEvent.click(screen.getByText('Deactivate Account'))
+      const warning = await screen.findByTestId('sole-administrator-warning')
+      expect(within(warning).getByText("You're the only Administrator of these groups")).toBeInTheDocument()
+      expect(within(warning).getByText('Seed Library')).toBeInTheDocument()
+      expect(within(warning).getByText('Tool Share')).toBeInTheDocument()
+      expect(within(warning).getAllByRole('link', { name: 'Choose a new Administrator' })[0])
+        .toHaveAttribute('href', '/groups/seed-library/settings/roles')
+
+      fireEvent.click(screen.getByText('Deactivate my account'))
+      expect(deactivateMe).toHaveBeenCalled()
+    })
+
+    it('lists them in the delete dialog too', async () => {
+      render(
+        <AccountSettingsTab currentUser={{ id: '1', email: 'test@example.com' }} updateUserSettings={jest.fn()} setConfirm={jest.fn()} deleteMe={jest.fn(() => Promise.resolve())} logout={jest.fn()} />
+      )
+
+      fireEvent.click(screen.getByText('Delete Account'))
+      const warning = await screen.findByTestId('sole-administrator-warning')
+      expect(within(warning).getByText('Seed Library')).toBeInTheDocument()
+    })
+
+    it('shows nothing when there are none', async () => {
+      mockGraphqlServer.use(
+        graphql.query('MySoleAdministratorGroups', () => HttpResponse.json({ data: { mySoleAdministratorGroups: [] } }))
+      )
+      render(
+        <AccountSettingsTab currentUser={{ id: '1', email: 'test@example.com' }} updateUserSettings={jest.fn()} setConfirm={jest.fn()} />
+      )
+
+      fireEvent.click(screen.getByText('Delete Account'))
+      await screen.findByText('Delete my account')
+      await new Promise(resolve => setTimeout(resolve, 50))
+      expect(screen.queryByTestId('sole-administrator-warning')).not.toBeInTheDocument()
+    })
   })
 })
