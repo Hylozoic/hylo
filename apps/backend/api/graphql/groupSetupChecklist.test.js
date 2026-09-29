@@ -81,6 +81,15 @@ describe('Group setupChecklist', () => {
     expect(checklist).to.include({ hasOtherMembers: false, hasPostByOthers: false })
   })
 
+  it('ticks only the event item when the founder posts an event', async () => {
+    const founder = await factories.user().save()
+    const group = await Group.create(founder.id, { name: 'Checklist Event', slug: `checklist-event-${founder.id}` })
+
+    await postIn(group, founder, 'event')
+
+    expect(await checklistAs(founder, group)).to.include({ hasEvent: true, hasCreatorPost: false })
+  })
+
   it('reports when someone else joins and posts', async () => {
     const founder = await factories.user().save()
     const member = await factories.user().save()

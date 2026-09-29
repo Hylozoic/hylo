@@ -1665,7 +1665,7 @@ type GroupSetupChecklist {
   hasOtherMembers: Boolean
   # Whether anyone other than the founder has posted
   hasPostByOthers: Boolean
-  # Whether the founder has written a post (other than chat)
+  # Whether the founder has written a post (not chat or an event)
   hasCreatorPost: Boolean
   # Whether the group has an event
   hasEvent: Boolean

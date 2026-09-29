@@ -7,8 +7,8 @@
 
 // System rows that aren't anyone posting
 const NOTICE_POST_TYPES = ['chat_activity']
-// A chat message isn't a welcome post
-const NOT_A_WELCOME_POST = ['chat', 'chat_activity']
+// A chat message isn't a welcome post, and an event ticks its own item
+const NOT_A_WELCOME_POST = ['chat', 'chat_activity', 'event']
 
 function exists (query) {
   return query.select(bookshelf.knex.raw('1')).first().then(row => Boolean(row))
