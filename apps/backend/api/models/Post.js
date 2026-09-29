@@ -1255,14 +1255,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
           }))
           .then(promises => promises.length))),
 
-  // TODO: does this work?
-  notifySlack: ({ postId }) =>
-    Post.find(postId, { withRelated: ['groups', 'user', 'relatedUsers'] })
-      .then(post => {
-        if (!post || Post.isNoticeType(post.get('type'))) return
-        const slackCommunities = post.relations.groups.filter(g => g.get('slack_hook_url'))
-        return Promise.map(slackCommunities, g => Group.notifySlack(g.id, post))
-      }),
+  // The Slack new-post webhook is retired. This stays for one release so jobs
+  // queued before the deploy finish quietly; remove it in the release after.
+  notifySlack: () => Promise.resolve(),
 
   updateProposalStatuses: async () => {
     return bookshelf.knex.raw(

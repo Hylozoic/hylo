@@ -4131,12 +4131,6 @@ input GroupInput {
   settings: GroupSettingsInput
   # The default home view for the group: CHAT (general chat), MAP (map view), or STREAM (post stream)
   homeView: String
-  # NOT USED RIGHT NOW. For Slack integratiom
-  slackHookUrl: String
-  # NOT USED RIGHT NOW. For Slack integratiom
-  slackTeam: String
-  # NOT USED RIGHT NOW. For Slack integratiom
-  slackConfigureUrl: String
   # Unique URL slug
   slug: String
   # Word used to describe any steward of this group (someone with a Common Role). Defaults to "Steward"

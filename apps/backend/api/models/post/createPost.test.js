@@ -302,6 +302,44 @@ describe('createPost title fallback', () => {
   })
 })
 
+describe('createPost and the retired Slack webhook', () => {
+  let user, group
+
+  before(() =>
+    setup.clearDb()
+      .then(() => Promise.props({
+        u: new User({ name: 'U1', email: 'slack@b.c', active: true }).save(),
+        g: new Group({ slug: 'slack-group', name: 'Slack Group', slack_hook_url: 'https://hooks.example.com/services/T0/B0/X' }).save()
+      }))
+      .then(props => {
+        user = props.u
+        group = props.g
+        return user.joinGroup(group)
+      })
+  )
+
+  beforeEach(() => {
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('no longer queues a Slack notice for a new post, even in a group with a hook', async () => {
+    await createPost(user.id, {
+      name: 'Hello',
+      type: Post.Type.DISCUSSION,
+      group_ids: [group.id]
+    })
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'createActivities')
+    expect(Queue.classMethod).not.to.have.been.called.with('Post', 'notifySlack')
+  })
+
+  it('lets Slack jobs queued before the change finish without doing anything', async () => {
+    const post = await createPost(user.id, { name: 'Queued', type: Post.Type.DISCUSSION, group_ids: [group.id] })
+    await Post.notifySlack({ postId: post.id })
+  })
+})
+
 describe('createPost imageUrls', () => {
   let user, group
   const hostedUrl = 'https://cdn.hylo.com/evo-uploads/user/1/post/new/hosted.png'

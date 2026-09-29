@@ -1,4 +1,4 @@
-/* global GroupToGroupJoinQuestion, Location, Slack, FundingRound */
+/* global GroupToGroupJoinQuestion, Location, FundingRound */
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
@@ -1788,15 +1788,6 @@ module.exports = bookshelf.Model.extend(merge({
           },
           locale: userLocale
         })
-      })
-  },
-
-  notifySlack: function (groupId, post) {
-    return Group.find(groupId)
-      .then(group => {
-        if (!group || !group.get('slack_hook_url')) return
-        const slackMessage = Slack.textForNewPost(post, group)
-        return Slack.send(slackMessage, group.get('slack_hook_url'))
       })
   },
 
