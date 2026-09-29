@@ -1155,130 +1155,6 @@ async function main () {
     await assignAdministratorRole(client, hostId, stewardsGroupId, stewardsRoles.Administrator, now)
     await assignAdministratorRole(client, extraMemberIds[0], stewardsGroupId, stewardsRoles.Host, now)
 
-    /**
-     * Learner progress (apps/web/e2e/track-progress-steward.spec.js, D63): the main user is the
-     * Administrator of E2E Track Progress and set up its free, published track E2E Progress
-     * Track, which has three actions. E2E Member A has done the first and E2E Member B all three,
-     * recorded on their track-space memberships as Post.checkCompletedTrack does. That runs as a
-     * queued job, and the isolated E2E stack runs no job worker, so a run can't record progress.
-     */
-    const trackProgressGroupRes = await client.query(
-      `INSERT INTO groups (
-        active, created_at, updated_at, name, slug, description,
-        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, home_route
-      ) VALUES (
-        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
-        1, 1, $5, '{}'::jsonb, 3, false, '/all'
-      ) RETURNING id`,
-      [now, 'E2E Track Progress', E2E_TRACK_PROGRESS_GROUP_SLUG, 'E2E: a track with learners part way through', userId]
-    )
-    const trackProgressGroupId = trackProgressGroupRes.rows[0].id
-    await client.query(
-      `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
-       VALUES
-         ($1, 'all', 0, $2::timestamptz, $2::timestamptz),
-         ($1, 'members', 1, $2::timestamptz, $2::timestamptz)`,
-      [trackProgressGroupId, now]
-    )
-    const trackProgressRoles = await setupSystemRolesForGroup(client, trackProgressGroupId, now)
-    for (const memberId of [userId, ...extraMemberIds]) {
-      await client.query(
-        `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
-         VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
-        [trackProgressGroupId, memberId, now, membershipSettings]
-      )
-    }
-    await assignAdministratorRole(client, userId, trackProgressGroupId, trackProgressRoles.Administrator, now)
-
-    const progressSpaceRes = await client.query(
-      `INSERT INTO groups (
-        name, slug, type, parent_id, visibility, accessibility, created_by_id,
-        created_at, updated_at, settings, active, home_route, num_members, status
-      ) VALUES (
-        'E2E Progress Track', $1, 'space', $2, 1, 1, $3,
-        $4::timestamptz, $4::timestamptz, '{}'::jsonb, true, '/track-actions', 3, 'published'
-      ) RETURNING id`,
-      [E2E_TRACK_PROGRESS_SPACE_SLUG, trackProgressGroupId, userId, now]
-    )
-    const progressSpaceId = progressSpaceRes.rows[0].id
-    const progressTrackRes = await client.query(
-      `INSERT INTO tracks (
-        access_controlled, action_descriptor, action_descriptor_plural, group_id, created_at, updated_at,
-        settings, num_actions, num_people_enrolled, num_people_completed
-      ) VALUES (
-        false, 'Action', 'Actions', $1, $2::timestamptz, $2::timestamptz, '{}'::jsonb, $3, 2, 1
-      ) RETURNING id`,
-      [progressSpaceId, now, E2E_TRACK_PROGRESS_ACTIONS.length]
-    )
-    await client.query('UPDATE groups SET track_id = $1 WHERE id = $2', [progressTrackRes.rows[0].id, progressSpaceId])
-    const progressViewsRes = await client.query(
-      `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
-       VALUES
-         ($1, 'track-actions', 0, $2::timestamptz, $2::timestamptz),
-         ($1, 'members', 1, $2::timestamptz, $2::timestamptz)
-       RETURNING id, type`,
-      [progressSpaceId, now]
-    )
-    const progressActionsViewId = progressViewsRes.rows.find((row) => row.type === 'track-actions').id
-    await client.query(
-      `INSERT INTO group_views (group_id, type, "order", linked_group_id, name, created_at, updated_at)
-       VALUES ($1, 'space', 2, $2, 'E2E Progress Track', $3::timestamptz, $3::timestamptz)`,
-      [trackProgressGroupId, progressSpaceId, now]
-    )
-
-    const progressActionIds = []
-    for (const [order, title] of E2E_TRACK_PROGRESS_ACTIONS.entries()) {
-      const actionRes = await client.query(
-        `INSERT INTO posts (
-          name, description, type, created_at, updated_at, user_id, active, visibility, is_public,
-          completion_action, completion_action_settings
-        ) VALUES (
-          $1, '<p>E2E track action</p>', 'action', $2::timestamptz, $2::timestamptz, $3, true, 0, false,
-          'button', '{}'::jsonb
-        ) RETURNING id`,
-        [title, now, userId]
-      )
-      const actionId = actionRes.rows[0].id
-      progressActionIds.push(actionId)
-      await client.query('INSERT INTO groups_posts (group_id, post_id) VALUES ($1, $2)', [progressSpaceId, actionId])
-      await client.query(
-        `INSERT INTO collections_posts (post_id, user_id, "order", view_id, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5::timestamptz, $5::timestamptz)`,
-        [actionId, userId, order, progressActionsViewId, now]
-      )
-    }
-
-    // The main user set the space up, so they are a member but not a learner
-    const progressMembers = [
-      { memberId: userId, settings: { joinSource: 'creator' }, done: [] },
-      { memberId: extraMemberIds[0], settings: { joinSource: 'track', actionsCompleted: 1, lastActionAt: now }, done: progressActionIds.slice(0, 1) },
-      {
-        memberId: extraMemberIds[1],
-        settings: { joinSource: 'track', actionsCompleted: progressActionIds.length, lastActionAt: now, completedAt: now },
-        done: progressActionIds
-      }
-    ]
-    for (const { memberId, settings, done } of progressMembers) {
-      await client.query(
-        `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
-         VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
-        [progressSpaceId, memberId, now, JSON.stringify({ ...JSON.parse(membershipSettings), ...settings })]
-      )
-      for (const actionId of done) {
-        await client.query(
-          `INSERT INTO posts_users (user_id, post_id, completed_at, created_at, updated_at)
-           VALUES ($1, $2, $3::timestamptz, $3::timestamptz, $3::timestamptz)`,
-          [memberId, actionId, now]
-        )
-      }
-    }
-    await client.query(
-      `UPDATE posts SET num_people_completed = (
-         SELECT count(*) FROM posts_users pu WHERE pu.post_id = posts.id AND pu.completed_at IS NOT NULL
-       ) WHERE id = ANY($1::bigint[])`,
-      [progressActionIds]
-    )
-
     const postMultiPublicRes = await client.query(
       `INSERT INTO posts (name, description, type, created_at, updated_at, user_id, active, visibility, is_public)
        VALUES ($1, $2, 'discussion', $3::timestamptz, $3::timestamptz, $4, true, 0, true)
@@ -1550,6 +1426,131 @@ async function main () {
       [linkInviteeRes.rows[0].id, memberLinkIds.requests.groupId, memberLinkIds.requests.linkId, now]
     )
     await client.query('UPDATE groups SET num_open_join_requests = 1 WHERE id = $1', [memberLinkIds.requests.groupId])
+
+    /**
+     * Learner progress (apps/web/e2e/track-progress-steward.spec.js, D63), seeded last so the
+     * posts above keep the ids specs use. The main user is the Administrator of E2E Track
+     * Progress and set up its free, published track E2E Progress Track, which has three actions.
+     * E2E Member A has done the first and E2E Member B all three, recorded on their track-space
+     * memberships as Post.checkCompletedTrack does. That runs as a queued job, and the isolated
+     * E2E stack runs no job worker, so a run can't record progress.
+     */
+    const trackProgressGroupRes = await client.query(
+      `INSERT INTO groups (
+        active, created_at, updated_at, name, slug, description,
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, home_route
+      ) VALUES (
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        1, 1, $5, '{}'::jsonb, 3, false, '/all'
+      ) RETURNING id`,
+      [now, 'E2E Track Progress', E2E_TRACK_PROGRESS_GROUP_SLUG, 'E2E: a track with learners part way through', userId]
+    )
+    const trackProgressGroupId = trackProgressGroupRes.rows[0].id
+    await client.query(
+      `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
+       VALUES
+         ($1, 'all', 0, $2::timestamptz, $2::timestamptz),
+         ($1, 'members', 1, $2::timestamptz, $2::timestamptz)`,
+      [trackProgressGroupId, now]
+    )
+    const trackProgressRoles = await setupSystemRolesForGroup(client, trackProgressGroupId, now)
+    for (const memberId of [userId, ...extraMemberIds]) {
+      await client.query(
+        `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+         VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+        [trackProgressGroupId, memberId, now, membershipSettings]
+      )
+    }
+    await assignAdministratorRole(client, userId, trackProgressGroupId, trackProgressRoles.Administrator, now)
+
+    const progressSpaceRes = await client.query(
+      `INSERT INTO groups (
+        name, slug, type, parent_id, visibility, accessibility, created_by_id,
+        created_at, updated_at, settings, active, home_route, num_members, status
+      ) VALUES (
+        'E2E Progress Track', $1, 'space', $2, 1, 1, $3,
+        $4::timestamptz, $4::timestamptz, '{}'::jsonb, true, '/track-actions', 3, 'published'
+      ) RETURNING id`,
+      [E2E_TRACK_PROGRESS_SPACE_SLUG, trackProgressGroupId, userId, now]
+    )
+    const progressSpaceId = progressSpaceRes.rows[0].id
+    const progressTrackRes = await client.query(
+      `INSERT INTO tracks (
+        access_controlled, action_descriptor, action_descriptor_plural, group_id, created_at, updated_at,
+        settings, num_actions, num_people_enrolled, num_people_completed
+      ) VALUES (
+        false, 'Action', 'Actions', $1, $2::timestamptz, $2::timestamptz, '{}'::jsonb, $3, 2, 1
+      ) RETURNING id`,
+      [progressSpaceId, now, E2E_TRACK_PROGRESS_ACTIONS.length]
+    )
+    await client.query('UPDATE groups SET track_id = $1 WHERE id = $2', [progressTrackRes.rows[0].id, progressSpaceId])
+    const progressViewsRes = await client.query(
+      `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
+       VALUES
+         ($1, 'track-actions', 0, $2::timestamptz, $2::timestamptz),
+         ($1, 'members', 1, $2::timestamptz, $2::timestamptz)
+       RETURNING id, type`,
+      [progressSpaceId, now]
+    )
+    const progressActionsViewId = progressViewsRes.rows.find((row) => row.type === 'track-actions').id
+    await client.query(
+      `INSERT INTO group_views (group_id, type, "order", linked_group_id, name, created_at, updated_at)
+       VALUES ($1, 'space', 2, $2, 'E2E Progress Track', $3::timestamptz, $3::timestamptz)`,
+      [trackProgressGroupId, progressSpaceId, now]
+    )
+
+    const progressActionIds = []
+    for (const [order, title] of E2E_TRACK_PROGRESS_ACTIONS.entries()) {
+      const actionRes = await client.query(
+        `INSERT INTO posts (
+          name, description, type, created_at, updated_at, user_id, active, visibility, is_public,
+          completion_action, completion_action_settings
+        ) VALUES (
+          $1, '<p>E2E track action</p>', 'action', $2::timestamptz, $2::timestamptz, $3, true, 0, false,
+          'button', '{}'::jsonb
+        ) RETURNING id`,
+        [title, now, userId]
+      )
+      const actionId = actionRes.rows[0].id
+      progressActionIds.push(actionId)
+      await client.query('INSERT INTO groups_posts (group_id, post_id) VALUES ($1, $2)', [progressSpaceId, actionId])
+      await client.query(
+        `INSERT INTO collections_posts (post_id, user_id, "order", view_id, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5::timestamptz, $5::timestamptz)`,
+        [actionId, userId, order, progressActionsViewId, now]
+      )
+    }
+
+    // The main user set the space up, so they are a member but not a learner
+    const progressMembers = [
+      { memberId: userId, settings: { joinSource: 'creator' }, done: [] },
+      { memberId: extraMemberIds[0], settings: { joinSource: 'track', actionsCompleted: 1, lastActionAt: now }, done: progressActionIds.slice(0, 1) },
+      {
+        memberId: extraMemberIds[1],
+        settings: { joinSource: 'track', actionsCompleted: progressActionIds.length, lastActionAt: now, completedAt: now },
+        done: progressActionIds
+      }
+    ]
+    for (const { memberId, settings, done } of progressMembers) {
+      await client.query(
+        `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+         VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+        [progressSpaceId, memberId, now, JSON.stringify({ ...JSON.parse(membershipSettings), ...settings })]
+      )
+      for (const actionId of done) {
+        await client.query(
+          `INSERT INTO posts_users (user_id, post_id, completed_at, created_at, updated_at)
+           VALUES ($1, $2, $3::timestamptz, $3::timestamptz, $3::timestamptz)`,
+          [memberId, actionId, now]
+        )
+      }
+    }
+    await client.query(
+      `UPDATE posts SET num_people_completed = (
+         SELECT count(*) FROM posts_users pu WHERE pu.post_id = posts.id AND pu.completed_at IS NOT NULL
+       ) WHERE id = ANY($1::bigint[])`,
+      [progressActionIds]
+    )
 
     await client.query(
       `INSERT INTO cookie_consents (consent_id, user_id, settings, version, created_at, updated_at, user_agent)
