@@ -282,6 +282,34 @@ async function markStripeWebhookProcessed (eventId) {
   }
 }
 
+/**
+ * Finds the subscription a refunded charge paid for, for charges no checkout session matches
+ * (subscription renewals, and the first charge of a subscription checkout). The pinned API
+ * version links a payment intent to its invoice only through invoice payments, which this
+ * stripe-node version has no resource for, so it is read with a raw request.
+ *
+ * @param {string} paymentIntentId
+ * @param {{ stripeAccount?: string }} requestOptions - Connect account header
+ * @returns {Promise<string|null>} Stripe subscription id, or null when none is found
+ */
+async function findSubscriptionIdForPaymentIntent (paymentIntentId, requestOptions) {
+  const query = new URLSearchParams({
+    'payment[type]': 'payment_intent',
+    'payment[payment_intent]': paymentIntentId,
+    limit: '1',
+    'expand[]': 'data.invoice'
+  })
+  const invoicePayments = await stripe.rawRequest('GET', `/v1/invoice_payments?${query.toString()}`, null, requestOptions)
+  let invoice = invoicePayments?.data?.[0]?.invoice
+  if (!invoice) return null
+  if (typeof invoice === 'string') {
+    invoice = await stripe.invoices.retrieve(invoice, {}, requestOptions)
+  }
+  const subscription = invoice?.parent?.subscription_details?.subscription || invoice?.subscription
+  if (!subscription) return null
+  return typeof subscription === 'string' ? subscription : subscription.id || null
+}
+
 const SCHEDULED_CHANGE_MODES = new Set([
   'scheduled_period_end'
 ])
@@ -2151,6 +2179,11 @@ module.exports = {
    * a full refund is recorded on the access rows and the member gets one refund email per
    * refunded charge. Partial refunds are only logged.
    *
+   * A subscription charge has no checkout session to match, so it is resolved to its
+   * subscription through the invoice it paid. A full refund is recorded on the subscription's
+   * access rows and logged; no email is sent, and the subscription is not cancelled (future
+   * payments stop only when a steward chooses that in Hylo's refund dialog).
+   *
    * Refunds made with Hylo's Refund button also arrive here. That button records the refund
    * and emails the member itself, so its marker keeps this handler from emailing again.
    */
@@ -2181,19 +2214,29 @@ module.exports = {
       const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntentId, limit: 1 }, retrieveOptions)
       const sessionId = sessions?.data?.[0]?.id
 
-      if (!sessionId) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No checkout session found for payment intent ${paymentIntentId}`)
+      let accessRecords = []
+      let matchedBy = null
+      let subscriptionId = null
+      if (sessionId) {
+        // Find content access records associated with this session
+        accessRecords = (await ContentAccess.forStripeSession(sessionId)).models
+        matchedBy = 'checkout_session'
+      } else {
+        try {
+          subscriptionId = await findSubscriptionIdForPaymentIntent(paymentIntentId, retrieveOptions)
+        } catch (lookupError) {
+          // The refund itself went through; leave it unmatched rather than fail the webhook
+          console.error(`Could not look up the invoice for refunded charge ${charge.id}:`, lookupError.message)
         }
-        return
+        if (subscriptionId) {
+          accessRecords = (await ContentAccess.findBySubscriptionId(subscriptionId)).models
+          matchedBy = 'subscription'
+        }
       }
-
-      // Find content access records associated with this session
-      const accessRecords = (await ContentAccess.forStripeSession(sessionId)).models
 
       if (!accessRecords || accessRecords.length === 0) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`No content access records found for session ${sessionId}`)
+          console.log(`No content access records found for refunded charge ${charge.id}`)
         }
         return
       }
@@ -2222,7 +2265,8 @@ module.exports = {
       }
 
       // One purchase can create several access records, so send one email per refunded charge.
-      if (newlyRecorded.length > 0 && !alreadyRecorded) {
+      // Subscription refunds from the Stripe dashboard are recorded and logged only.
+      if (matchedBy === 'checkout_session' && newlyRecorded.length > 0 && !alreadyRecorded) {
         await ContentAccess.sendRefundProcessedEmail(newlyRecorded[0], {
           amount: charge.amount_refunded,
           currency: charge.currency
@@ -2244,7 +2288,11 @@ module.exports = {
           amount: charge.amount_refunded || charge.amount,
           currency: charge.currency || 'usd',
           reason: charge.refunds?.data?.[0]?.reason || null,
-          metadata: { matched_by: 'checkout_session', full_refund: isFullRefund }
+          metadata: {
+            matched_by: matchedBy,
+            full_refund: isFullRefund,
+            ...(subscriptionId ? { stripe_subscription_id: subscriptionId } : {})
+          }
         })
       }
     } catch (error) {

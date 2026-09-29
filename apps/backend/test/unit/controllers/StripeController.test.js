@@ -574,13 +574,97 @@ describe('StripeController.handleChargeRefunded', () => {
     expect(sentEmails).to.have.length(0)
   })
 
-  it('does nothing when no checkout session matches the payment intent', async () => {
+  describe('for a subscription charge', () => {
+    let rawRequests, invoicePaymentsFor, subscriptionAccess
+
+    const renewalRefundEvent = {
+      ...chargeRefundedEvent,
+      id: 'evt_renewal_refunded',
+      account: 'acct_renewal',
+      data: { object: { ...chargeRefundedEvent.data.object, id: 'ch_renewal', payment_intent: 'pi_renewal' } }
+    }
+
+    beforeEach(async () => {
+      await connectGroup('acct_renewal')
+      subscriptionAccess = await purchase({ stripe_session_id: 'cs_subscription', stripe_subscription_id: 'sub_renewal' })
+      rawRequests = []
+      invoicePaymentsFor = {
+        pi_renewal: { data: [{ invoice: { id: 'in_renewal', parent: { subscription_details: { subscription: 'sub_renewal' } } } }] }
+      }
+      stripeClient.rawRequest = async (method, path, params, options) => {
+        rawRequests.push({ method, path, params, options })
+        const paymentIntent = new URL(path, 'https://api.stripe.com').searchParams.get('payment[payment_intent]')
+        return invoicePaymentsFor[paymentIntent] || { data: [] }
+      }
+    })
+
+    afterEach(() => {
+      delete stripeClient.rawRequest
+    })
+
+    it('matches a renewal refund through its invoice, records and logs it, and leaves access and the subscription alone', async () => {
+      await StripeController.handleChargeRefunded(renewalRefundEvent)
+
+      expect(rawRequests).to.have.length(1)
+      expect(rawRequests[0].method).to.equal('GET')
+      const params = new URL(rawRequests[0].path, 'https://api.stripe.com').searchParams
+      expect(params.get('payment[type]')).to.equal('payment_intent')
+      expect(params.get('payment[payment_intent]')).to.equal('pi_renewal')
+      expect(rawRequests[0].options).to.deep.equal({ stripeAccount: 'acct_renewal' })
+
+      const refreshed = await reload(subscriptionAccess)
+      expect(refreshed.get('status')).to.equal(ContentAccess.Status.ACTIVE)
+      expect(refreshed.get('refunded_amount')).to.equal(1500)
+      expect(refreshed.get('metadata').refund_charge_id).to.equal('ch_renewal')
+      expect(ContentAccess.revoke).to.not.have.been.called()
+      expect(StripeService.cancelSubscription).to.not.have.been.called()
+      expect(sentEmails).to.have.length(0)
+
+      const logs = await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_renewal' })
+      expect(logs).to.have.length(1)
+      expect(String(logs[0].content_access_id)).to.equal(String(subscriptionAccess.id))
+      expect(logs[0].metadata).to.include({ matched_by: 'subscription', stripe_subscription_id: 'sub_renewal' })
+    })
+
+    it('reads the subscription from an older invoice shape too', async () => {
+      invoicePaymentsFor.pi_renewal = { data: [{ invoice: { id: 'in_renewal', subscription: 'sub_renewal' } }] }
+
+      await StripeController.handleChargeRefunded(renewalRefundEvent)
+
+      expect(await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_renewal' })).to.have.length(1)
+    })
+
+    it('logs nothing and does not throw when the charge matches no purchase', async () => {
+      const access = await purchase()
+
+      await StripeController.handleChargeRefunded({
+        ...renewalRefundEvent,
+        data: { object: { ...renewalRefundEvent.data.object, id: 'ch_unknown', payment_intent: 'pi_unknown' } }
+      })
+
+      expect((await reload(access)).get('status')).to.equal(ContentAccess.Status.ACTIVE)
+      expect(sentEmails).to.have.length(0)
+      expect(await bookshelf.knex('stripe_logs').where({ log_type: 'refund' })).to.have.length(0)
+    })
+
+    it('does not throw when the invoice lookup fails', async () => {
+      stripeClient.rawRequest = async () => { throw new Error('lookup failed') }
+
+      await StripeController.handleChargeRefunded(renewalRefundEvent)
+
+      expect(await bookshelf.knex('stripe_logs').where({ log_type: 'refund' })).to.have.length(0)
+    })
+  })
+
+  it('does nothing when no checkout session or invoice matches the payment intent', async () => {
     const access = await purchase()
+    stripeClient.rawRequest = async () => ({ data: [] })
 
     await StripeController.handleChargeRefunded({
       ...chargeRefundedEvent,
       data: { object: { ...chargeRefundedEvent.data.object, payment_intent: 'pi_subscription_invoice' } }
     })
+    delete stripeClient.rawRequest
 
     expect((await reload(access)).get('status')).to.equal(ContentAccess.Status.ACTIVE)
     expect(sentEmails).to.have.length(0)
