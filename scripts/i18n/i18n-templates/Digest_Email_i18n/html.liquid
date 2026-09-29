@@ -53,6 +53,7 @@
   {% if resources|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
   {% if projects|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
   {% if proposals|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
+  {% if open_requests|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
   {% if upcoming|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
   {% if ending|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
 
@@ -67,6 +68,7 @@
       {% if resources|length > 0 %}{{ sep }}<a href='#Resources'>{% trans %}Resources{% endtrans %}</a>{% set sep = ', ' %}{% endif %}
       {% if projects|length > 0 %}{{ sep }}<a href='#Projects'>{% trans %}Projects{% endtrans %}</a>{% set sep = ', ' %}{% endif %}
       {% if proposals|length > 0 %}{{ sep }}<a href='#Proposals'>{% trans %}Proposals{% endtrans %}</a>{% set sep = ', ' %}{% endif %}
+      {% if open_requests|length > 0 %}{{ sep }}<a href='#open-requests'>{% trans %}Open requests{% endtrans %}</a>{% set sep = ', ' %}{% endif %}
       {% if upcoming|length > 0 %}{{ sep }}<a href='#upcoming'>{% trans %}Upcoming Reminders{% endtrans %}</a>{% set sep = ', ' %}{% endif %}
       {% if ending|length > 0 %}{{ sep }}<a href='#ending'>{% trans %}Ending Soon{% endtrans %}</a>{% endif %}
     </p>
