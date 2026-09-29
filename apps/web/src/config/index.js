@@ -37,9 +37,6 @@ export const google = {
   key: import.meta.env.VITE_GOOGLE_BROWSER_KEY,
   clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID
 }
-export const segment = {
-  writeKey: import.meta.env.VITE_SEGMENT_KEY
-}
 export const intercom = {
   appId: import.meta.env.VITE_INTERCOM_APP_ID
 }
@@ -72,7 +69,6 @@ const config = {
   slack,
   s3,
   google,
-  segment,
   featureFlags,
   intercom,
   mixpanel,

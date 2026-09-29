@@ -1,6 +1,7 @@
 import { get } from 'lodash/fp'
 import qs from 'query-string'
 import { LOGIN } from 'store/constants'
+import { acquisitionSourceInput } from 'util/acquisitionSource'
 
 export default function loginWithService (name) {
   return {
@@ -52,6 +53,9 @@ function openPopup (service) {
     returnDomain: window.location.origin,
     authContext
   }
+  // Kept on the account only if this sign-in creates it
+  const acquisitionSource = acquisitionSourceInput()
+  if (acquisitionSource) params.acquisitionSource = JSON.stringify(acquisitionSource)
 
   return window.open(
     `/noo/login/${service}?${qs.stringify(params)}`,

@@ -97,6 +97,10 @@ export const CookieConsentProvider = ({ children }) => {
         throw new Error('Failed to set cookie')
       }
 
+      // A choice made now, so rejecting analytics also deletes the Mixpanel
+      // profile; the cookieData effect below then finds nothing left to change
+      applyAnalyticsConsent(newCookieData, { explicit: true })
+
       // Update state
       setCookieData(newCookieData)
       setShowPreferencesPanel(false)

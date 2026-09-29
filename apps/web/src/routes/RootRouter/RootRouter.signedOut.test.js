@@ -38,15 +38,15 @@ function mockSignedOutReader ({ publicPost }) {
 }
 
 describe('RootRouter signed out', () => {
-  it('keeps the query string when a group post link sends the reader to log in', async () => {
+  it('keeps the query string, minus the email tags, when a group post link sends the reader to log in', async () => {
     mockSignedOutReader({ publicPost: false })
 
     render(<RootRouter />, {
-      wrapper: AllTheProviders({}, ['/groups/foo/all/post/91?action=unfollow&ctt=x'])
+      wrapper: AllTheProviders({}, ['/groups/foo/all/post/91?action=unfollow&ctt=x&cti=5&ctcn=Foo'])
     })
 
     expect(await screen.findByTestId('non-auth-location')).toHaveTextContent(
-      '/login?returnToUrl=%2Fpost%2F91%3Faction%3Dunfollow%26ctt%3Dx'
+      /^\/login\?returnToUrl=%2Fpost%2F91%3Faction%3Dunfollow$/
     )
   })
 

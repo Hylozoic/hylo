@@ -235,7 +235,6 @@ describe('User', function () {
   })
 
   describe('.create', function () {
-    const catPic = 'http://i.imgur.com/Kwe1K7k.jpg'
     let group
 
     before(function () {
@@ -310,42 +309,6 @@ describe('User', function () {
             LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
               expect(account).to.exist
               expect(account.get('provider_key')).to.equal('google')
-              expect(account.get('provider_user_id')).to.equal('foo')
-            }),
-            GroupMembership.forPair(user, group).fetch()
-              .then(membership => expect(membership).to.exist)
-          )
-        })
-    })
-
-    it('works with linkedin', function () {
-      return User.create({
-        name: 'Linked In User',
-        email: 'foo4@bar.com',
-        account: {
-          type: 'linkedin',
-          profile: {
-            id: 'foo',
-            photos: [{value: catPic}],
-            _json: {
-              publicProfileUrl: 'https://www.linkedin.com/in/foobar'
-            }
-          }
-        }
-      })
-        .then(async (user) => {
-          await group.addMembers([user.id])
-
-          expect(user.id).to.exist
-          expect(user.get('active')).to.be.true
-          expect(user.get('name')).to.equal('Linked In User')
-          expect(user.get('linkedin_url')).to.equal('https://www.linkedin.com/in/foobar')
-          expect(user.get('avatar_url')).to.equal(catPic)
-
-          return Promise.join(
-            LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
-              expect(account).to.exist
-              expect(account.get('provider_key')).to.equal('linkedin')
               expect(account.get('provider_user_id')).to.equal('foo')
             }),
             GroupMembership.forPair(user, group).fetch()

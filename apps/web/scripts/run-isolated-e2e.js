@@ -301,8 +301,6 @@ const runE2E = async () => {
     /** Sails cluster in development can fork workers that fight for the same port (EADDRINUSE). */
     WEB_CONCURRENCY: '1',
     HEROKU_AVAILABLE_PARALLELISM: '1',
-    /** Skip Segment (api/services/Analytics.js); isolated API has no SEGMENT_KEY. */
-    DISABLE_SEGMENT: '1',
     STRIPE_WEBHOOK_BYPASS_SIGNATURE: 'true',
     /**
      * StripeService loads Stripe at require time; CI has no repo secret by default.

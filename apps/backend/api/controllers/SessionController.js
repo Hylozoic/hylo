@@ -6,6 +6,8 @@ import { Validators } from '@hylo/shared'
 import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { mintTokensForUser } from '../services/OIDCTokens'
 import { authenticateWithRateLimit } from '../../lib/rateLimit'
+import { trackServerEvent, requestPlatform, ServerAnalyticsEvents } from '../../lib/analytics/trackServerEvent'
+import { sanitizeAcquisitionSource } from '../../lib/acquisitionSource'
 
 const sentry = require('../../lib/sentry')
 
@@ -81,6 +83,10 @@ const ensureUserNameFromProfile = async (user, profile) => {
 // a cookie (the native app authenticates with the minted bearer token, and a stray
 // server session cookie would leak into the WebView jar and desync auth).
 const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
+  // Saved by setSessionFromParams at the start of a web sign-in; used once
+  const acquisitionSource = req.session?.acquisitionSource
+  if (req.session) delete req.session.acquisitionSource
+
   return findUser(service, profile.email, profile.id)
     .then(async (user) => {
       if (user) {
@@ -100,13 +106,14 @@ const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
       const attrs = {
         email: profile.email,
         account: { type: service, profile },
-        email_validated: true // When using oAuth email is already verified
+        email_validated: true, // When using oAuth email is already verified
+        acquisitionSource
       }
       const profileName = typeof profile?.name === 'string' ? profile.name.trim() : ''
       if (profileName) attrs.name = profileName
 
       const newUser = await User.create(attrs)
-      await Analytics.trackSignup(newUser.id, req)
+      await trackServerEvent(newUser.id, ServerAnalyticsEvents.SIGNUP_SUCCESS, { platform: requestPlatform(req) }, { req })
       if (tokenAuth) {
         await recordTokenLogin(newUser)
       } else {
@@ -138,14 +145,7 @@ const upsertLinkedAccount = (req, service, profile) => {
 }
 
 const finishOAuth = function (strategy, req, res, next) {
-  let provider = strategy
-  if (strategy === 'facebook-token') {
-    provider = 'facebook'
-  } else if (strategy === 'google-token') {
-    provider = 'google'
-  } else if (strategy === 'linkedin-token') {
-    provider = 'linkedin'
-  }
+  const provider = strategy === 'google-token' ? 'google' : strategy
 
   return new Promise((resolve, reject) => {
     const respond = error => {
@@ -203,6 +203,10 @@ const finishOAuth = function (strategy, req, res, next) {
 const setSessionFromParams = fn => (req, res) => {
   req.session.returnDomain = req.param('returnDomain')
   req.session.authContext = req.param('authContext')
+  // Where a new person first came from, kept if this sign-in creates their account
+  const acquisitionSource = sanitizeAcquisitionSource(req.param('acquisitionSource'))
+  if (acquisitionSource) req.session.acquisitionSource = acquisitionSource
+  else delete req.session.acquisitionSource
   return fn(req, res)
 }
 
@@ -322,35 +326,8 @@ module.exports = {
     return finishOAuth('google', req, res, next)
   },
 
-  startFacebookOAuth: setSessionFromParams(function (req, res) {
-    passport.authenticate('facebook', {
-      display: 'popup',
-      scope: ['email', 'public_profile']
-    })(req, res)
-  }),
-
-  finishFacebookOAuth: function (req, res, next) {
-    return finishOAuth('facebook', req, res, next)
-  },
-
-  finishFacebookTokenOAuth: function (req, res, next) {
-    return finishOAuth('facebook-token', req, res, next)
-  },
-
   finishGoogleTokenOAuth: function (req, res, next) {
     return finishOAuth('google-token', req, res, next)
-  },
-
-  startLinkedinOAuth: setSessionFromParams(function (req, res) {
-    passport.authenticate('linkedin')(req, res)
-  }),
-
-  finishLinkedinOauth: function (req, res, next) {
-    return finishOAuth('linkedin', req, res, next)
-  },
-
-  finishLinkedinTokenOauth: function (req, res, next) {
-    return finishOAuth('linkedin-token', req, res, next)
   },
 
   destroy: function (req, res) {
@@ -425,5 +402,7 @@ module.exports = {
 
   // these are here for testing
   findUser,
-  upsertLinkedAccount
+  setSessionFromParams,
+  upsertLinkedAccount,
+  upsertUser
 }

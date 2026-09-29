@@ -15,6 +15,12 @@ export default function checkLogin () {
             emailValidated
             hasRegistered
             name
+            cookieConsentPreferences {
+              id
+              settings
+              version
+              updatedAt
+            }
             settings {
               alreadySeenTour
               toursSeen
