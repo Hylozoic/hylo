@@ -69,7 +69,21 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover' // Updated to match Stripe's expected version
 })
 
+// Hylo's share of a one-time payment, taken as a fixed application fee
+const ONE_TIME_APPLICATION_FEE_RATE = 0.07
+
 module.exports = {
+
+  /**
+   * Hylo's application fee for a one-time payment of this amount
+   *
+   * @param {Number} amount - Amount in the smallest currency unit
+   * @returns {Number} Fee in the smallest currency unit, never more than the amount
+   */
+  applicationFeeForAmount (amount) {
+    const safeAmount = Math.max(0, Math.round(amount || 0))
+    return Math.min(safeAmount, Math.round(safeAmount * ONE_TIME_APPLICATION_FEE_RATE))
+  },
 
   /**
    * Ensures the Hylo platform contribution product and $1 unit price exist in Stripe.
@@ -828,6 +842,7 @@ module.exports = {
    * @param {String} params.cancelUrl - URL to redirect on cancel
    * @param {String} params.mode - Checkout mode: 'payment' or 'subscription'
    * @param {Object} params.metadata - Optional metadata to attach
+   * @param {String} [params.customerEmail] - The signed-in buyer's email, pre-filled on the checkout page
    * @returns {Promise<Object>} Checkout session with url to redirect customer
    */
   async createCheckoutSession ({
@@ -840,7 +855,8 @@ module.exports = {
     cancelUrl,
     mode = 'payment',
     metadata = {},
-    locale = 'en'
+    locale = 'en',
+    customerEmail = null
   }) {
     try {
       // Validate required parameters
@@ -886,7 +902,13 @@ module.exports = {
         mode,
         success_url: successUrl,
         cancel_url: cancelUrl,
-        metadata
+        metadata,
+        // Stewards create promotion codes in their own Stripe dashboard
+        allow_promotion_codes: true
+      }
+
+      if (customerEmail) {
+        sessionConfig.customer_email = customerEmail
       }
 
       // Add optional platform contribution to checkout session
@@ -1703,6 +1725,52 @@ module.exports = {
       console.error('Error transferring platform contribution:', error)
       throw new Error(`Failed to transfer platform contribution: ${error.message}`)
     }
+  },
+
+  /**
+   * Keeps Hylo's fee on a one-time payment at its share of what the buyer actually paid.
+   *
+   * The application fee is fixed when the checkout session is created, from the undiscounted
+   * price. A promotion code applied at checkout lowers the payment, so this refunds the part
+   * of the fee above Hylo's share of the amount paid. Safe to call more than once: it counts
+   * what was already refunded.
+   *
+   * @param {Object} params
+   * @param {String} params.accountId - The connected account the payment was made on
+   * @param {String} params.paymentIntentId - The payment intent of the checkout session
+   * @param {Number} params.paidAmount - What the buyer paid for the offering (without any platform contribution), in the smallest currency unit
+   * @returns {Promise<Number>} The amount of fee refunded (0 when nothing was above the share)
+   */
+  async refundApplicationFeeAboveShare ({ accountId, paymentIntentId, paidAmount }) {
+    if (!accountId || !paymentIntentId) return 0
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ['latest_charge']
+    }, {
+      stripeAccount: accountId
+    })
+    const charge = paymentIntent?.latest_charge
+    const applicationFeeId = typeof charge?.application_fee === 'string'
+      ? charge.application_fee
+      : charge?.application_fee?.id
+    if (!applicationFeeId) return 0
+
+    // Application fees on direct charges live on the platform account
+    const applicationFee = await stripe.applicationFees.retrieve(applicationFeeId)
+    const keptFee = (applicationFee.amount || 0) - (applicationFee.amount_refunded || 0)
+    const excess = keptFee - this.applicationFeeForAmount(paidAmount)
+    if (excess <= 0) return 0
+
+    await stripe.applicationFees.createRefund(applicationFeeId, {
+      amount: excess,
+      metadata: { reason: 'promotion_code', payment_intent: paymentIntentId }
+    })
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Refunded ${excess} of application fee ${applicationFeeId} after a promotion code`)
+    }
+
+    return excess
   },
 
   /**

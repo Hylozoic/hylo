@@ -834,6 +834,8 @@ module.exports = {
 
       // Transfer platform contribution to Hylo if the customer added the optional line item
       let donationAmount = 0
+      // What the buyer paid for the offering itself, after any promotion code
+      let offeringAmountPaid = null
       try {
         // Get the group to find the connected account ID first
         const group = await Group.find(groupId)
@@ -864,12 +866,19 @@ module.exports = {
 
             // Sum platform contribution line items (one-time and recurring)
             if (fullSession.line_items?.data) {
+              offeringAmountPaid = 0
               for (const lineItem of fullSession.line_items.data) {
                 const productName = lineItem.price?.product?.name || lineItem.description || ''
                 const isPlatformContribution = isHyloPlatformContributionLineItem(productName)
+                // amount_total is what was paid for the line, after any promotion code
+                const lineAmountPaid = lineItem.amount_total ?? ((lineItem.price?.unit_amount || 0) * (lineItem.quantity || 0))
+
+                if (!isPlatformContribution) {
+                  offeringAmountPaid += lineAmountPaid
+                }
 
                 if (isPlatformContribution) {
-                  const itemDonationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)
+                  const itemDonationAmount = lineAmountPaid
                   donationAmount += itemDonationAmount
 
                   if (process.env.NODE_ENV === 'development') {
@@ -901,6 +910,21 @@ module.exports = {
       } catch (donationError) {
         // Log error but don't fail the entire webhook - contribution transfer can be retried
         console.error('Error processing platform contribution transfer:', donationError)
+      }
+
+      // A promotion code lowers what the buyer pays, but a one-time payment's application fee
+      // was fixed from the undiscounted price: refund the part of it above Hylo's share
+      if (session.mode === 'payment' && session.payment_intent && connectOpts.stripeAccount &&
+        (session.total_details?.amount_discount || 0) > 0) {
+        try {
+          await StripeService.refundApplicationFeeAboveShare({
+            accountId: connectOpts.stripeAccount,
+            paymentIntentId: session.payment_intent,
+            paidAmount: offeringAmountPaid ?? Math.max(0, (session.amount_total || 0) - donationAmount)
+          })
+        } catch (feeError) {
+          console.error('Error refunding the application fee above Hylo\'s share:', feeError)
+        }
       }
 
       // Send purchase confirmation email to user

@@ -477,6 +477,49 @@ describe('StripeController delayed checkout payments', () => {
     expect(rows.first().get('status')).to.equal(ContentAccess.Status.ACTIVE)
   })
 
+  describe('with a promotion code', () => {
+    let StripeService, stripeClient, originalSessionRetrieve, feeRefundCalls
+
+    beforeEach(() => {
+      StripeService = require(root('api/services/StripeService'))
+      stripeClient = require('stripe')()
+      originalSessionRetrieve = stripeClient.checkout.sessions.retrieve
+      stripeClient.checkout.sessions.retrieve = async () => ({
+        line_items: {
+          data: [{ description: 'Season Pass', quantity: 1, amount_total: 500, price: { unit_amount: 10000, product: { name: 'Season Pass' } } }]
+        }
+      })
+      feeRefundCalls = []
+      mockify(StripeService, 'refundApplicationFeeAboveShare', async params => {
+        feeRefundCalls.push(params)
+        return 665
+      })
+    })
+
+    afterEach(() => {
+      stripeClient.checkout.sessions.retrieve = originalSessionRetrieve
+      unspyify(StripeService, 'refundApplicationFeeAboveShare')
+    })
+
+    it('refunds the part of the application fee above Hylo\'s share of what was paid', async () => {
+      await StripeController.handleCheckoutSessionCompleted({
+        account: 'acct_delayed',
+        data: { object: sessionFor({ amount_total: 500, payment_intent: 'pi_promo', total_details: { amount_discount: 9500 } }) }
+      })
+
+      expect(feeRefundCalls).to.deep.equal([{ accountId: 'acct_delayed', paymentIntentId: 'pi_promo', paidAmount: 500 }])
+    })
+
+    it('leaves the fee alone when no discount was applied', async () => {
+      await StripeController.handleCheckoutSessionCompleted({
+        account: 'acct_delayed',
+        data: { object: sessionFor({ payment_intent: 'pi_full_price', total_details: { amount_discount: 0 } }) }
+      })
+
+      expect(feeRefundCalls).to.have.length(0)
+    })
+  })
+
   it('logs a failed delayed payment and grants nothing', async () => {
     global.__stripeWebhookConstructEvent = () => ({
       id: 'evt_async_failed',
