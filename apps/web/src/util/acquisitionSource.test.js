@@ -69,8 +69,8 @@ describe('captureAcquisitionSource', () => {
   })
 
   it('keeps working when storage is unavailable', () => {
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
-    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
+    jest.spyOn(window.Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
+    jest.spyOn(window.Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
     expect(() => captureAcquisitionSource(at('/signup?utm_source=x'))).not.toThrow()
     expect(() => markSandboxSignup()).not.toThrow()
     expect(readAcquisitionSource()).toBeNull()
