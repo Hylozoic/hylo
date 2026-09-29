@@ -57,10 +57,6 @@ export const isDirectSignal = ctx =>
 export const keepsOnlyDirect = scope =>
   scope === UNSUBSCRIBE_SCOPE.ALL_BUT_DIRECT || scope === UNSUBSCRIBE_SCOPE.EVERYTHING
 
-// Scopes that stop group digests (daily, weekly and unified) and hourly chat digests.
-// no_group_emails stops them through each membership's sendEmail instead.
-export const stopsGroupDigests = keepsOnlyDirect
-
 // Reader filter (notification/rules READER_FILTERS)
 export function unsubscribeScopeFilter (ctx) {
   const scope = unsubscribeScopeOf(ctx.reader)

@@ -613,11 +613,6 @@ module.exports = bookshelf.Model.extend(merge({
     return !!this.get('email_undeliverable_at')
   },
 
-  clearEmailUndeliverable ({ transacting } = {}) {
-    if (!this.get('email_undeliverable_at') && !this.get('email_undeliverable_reason')) return Promise.resolve(this)
-    return this.save({ email_undeliverable_at: null, email_undeliverable_reason: null }, { patch: true, transacting })
-  },
-
   disableAllNotifications () {
     // TODO: turn off notifictions for all groups? or do we have a user level setting too?
     return this.addSetting({

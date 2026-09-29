@@ -92,6 +92,25 @@ describe('comment digests and unsubscribe choices', () => {
     expect(sentTo(reader)).not.to.exist
   })
 
+  describe('what its one-click unsubscribe switches off (D34)', () => {
+    it('a comment digest turns comment email off, its sender line in emailTypes', async () => {
+      await Comment.sendDigests()
+
+      expect(sentTo(reader).data.comments).to.have.length(3)
+      expect(sentTo(reader).unsubscribe).to.equal(undefined)
+    })
+
+    it('a digest of only mentions, sent with comment email off, links to the settings page', async () => {
+      await reader.addSetting({ comment_notifications: 'push' }, true)
+      await comments[1].save({ text: mention(reader) }, { patch: true })
+
+      await Comment.sendDigests()
+
+      expect(sentTo(reader).data.comments.map(c => c.id)).to.deep.equal([comments[1].id])
+      expect(sentTo(reader).unsubscribe).to.deep.equal({ descriptor: 'settings_page' })
+    })
+  })
+
   describe('members who are away (D9)', () => {
     const DAY = 24 * 60 * 60 * 1000
 
