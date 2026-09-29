@@ -3586,6 +3586,8 @@ type Mutation {
   reactivateMe(id: ID): GenericResult
   # Record a click through on a moderated post
   recordClickthrough(postId: ID): GenericResult
+  # Record a click on a link in a Hylo email: the kind of email (the link's ctt tag), and the signed-in person if any
+  recordEmailClick(emailType: String!): GenericResult
   # Regenerate the invite URL used to invite people to a Group. Only a group Host can call this.
   regenerateAccessCode(groupId: ID): Group
   # DEPRECATED: register a new mobile device to the current logged in user account

@@ -28,6 +28,7 @@ import {
 } from 'util/webView'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import { initAnalytics } from 'util/analytics'
+import useEmailClickthrough from 'hooks/useEmailClickthrough'
 
 initAnalytics()
 
@@ -125,6 +126,9 @@ export default function RootRouter () {
   )
   const navigate = useNavigate()
   const { pathname } = useLocation()
+
+  // Records an email link's click and removes its tags before anything else reads the address
+  useEmailClickthrough()
 
   // This should be the only place we check for a session from the API. The
   // authSession reducer records Authenticated/Anonymous from CHECK_LOGIN, so the

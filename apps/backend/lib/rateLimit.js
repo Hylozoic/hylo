@@ -14,7 +14,9 @@ const LIMITS = {
   verifyCode: { ip: { max: 50, window: 60 * MINUTE }, email: { max: 10, window: 60 * MINUTE } },
   // Every request, since each one sends an email
   sendPasswordReset: { ip: { max: 50, window: 60 * MINUTE }, email: { max: 5, window: 60 * MINUTE } },
-  sendEmailVerification: { ip: { max: 50, window: 60 * MINUTE }, email: { max: 5, window: 60 * MINUTE } }
+  sendEmailVerification: { ip: { max: 50, window: 60 * MINUTE }, email: { max: 5, window: 60 * MINUTE } },
+  // Every request, since anyone can record an email click
+  recordEmailClick: { ip: { max: 120, window: 60 * MINUTE } }
 }
 
 /**
