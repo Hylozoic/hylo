@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'c
 import { Switch } from 'components/ui/switch'
 import { internalPathname } from 'components/ClickCatcher/ClickCatcher'
 import { normalizeUserLinkHref } from 'util/url'
+import { cn } from 'util/index'
 import {
   fetchAllSiteBanners,
   createSiteBanner,
@@ -26,7 +27,48 @@ const TYPE_OPTIONS = [
   { value: 'alert', label: 'Alert' }
 ]
 
-const EMPTY_DRAFT = { id: null, status: 'draft', title: '', type: 'info', actionText: '', actionUrl: '', showToNewUsers: false }
+// English is the banner's own text and the fallback; the others are translations
+const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'de', label: 'German' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'fr', label: 'French' },
+  { code: 'hi', label: 'Hindi' },
+  { code: 'pt', label: 'Portuguese' }
+]
+const TRANSLATION_CODES = LANGUAGES.map(l => l.code).filter(code => code !== 'en')
+
+const EMPTY_DRAFT = { id: null, status: 'draft', title: '', text: '', type: 'info', actionText: '', actionUrl: '', showToNewUsers: false, translations: {}, lang: 'en' }
+
+// Stored translations use action_text; the form uses actionText
+function translationsFromBanner (stored = {}) {
+  const result = {}
+  TRANSLATION_CODES.forEach(code => {
+    const entry = stored?.[code]
+    if (entry) result[code] = { title: entry.title || '', text: entry.text || '', actionText: entry.action_text || '' }
+  })
+  return result
+}
+
+function translationsForSave (translations = {}) {
+  const result = {}
+  TRANSLATION_CODES.forEach(code => {
+    const entry = translations[code]
+    if (!entry) return
+    const clean = {}
+    if (entry.title?.trim()) clean.title = entry.title.trim()
+    if (entry.text?.trim()) clean.text = entry.text
+    if (entry.actionText?.trim()) clean.actionText = entry.actionText.trim()
+    if (Object.keys(clean).length) result[code] = clean
+  })
+  return result
+}
+
+/** Share of people who handled the banner by using its button, as a whole percentage. */
+export function clickThroughRate (clicked = 0, dismissed = 0) {
+  const total = (clicked || 0) + (dismissed || 0)
+  return total > 0 ? Math.round((clicked / total) * 100) : 0
+}
 
 function statusOf (banner) {
   if (banner.unpublishedAt) return 'unpublished'
@@ -66,6 +108,32 @@ export default function SiteBanners () {
     editorRef.current?.clearContent()
   }, [])
 
+  // The editor shows one language at a time; this reads what's in it now
+  const editorHTML = () => (editorRef.current && !editorRef.current.isEmpty()) ? editorRef.current.getHTML() : ''
+
+  // Store the editor's text under a language, returning the updated draft
+  const withEditorText = (d, lang) => lang === 'en'
+    ? { ...d, text: editorHTML() }
+    : { ...d, translations: { ...d.translations, [lang]: { ...(d.translations[lang] || {}), text: editorHTML() } } }
+
+  const switchLanguage = useCallback((next) => {
+    if (next === draft.lang) return
+    const saved = withEditorText(draft, draft.lang)
+    const nextText = next === 'en' ? saved.text : (saved.translations[next]?.text || '')
+    setDraft({ ...saved, lang: next })
+    if (nextText) editorRef.current?.setContent(nextText)
+    else editorRef.current?.clearContent()
+  }, [draft])
+
+  // Title and button text for the language being edited
+  const current = draft.lang === 'en'
+    ? { title: draft.title, actionText: draft.actionText }
+    : { title: draft.translations[draft.lang]?.title || '', actionText: draft.translations[draft.lang]?.actionText || '' }
+
+  const setCurrentField = (field, value) => setDraft(d => d.lang === 'en'
+    ? { ...d, [field]: value }
+    : { ...d, translations: { ...d.translations, [d.lang]: { ...(d.translations[d.lang] || {}), [field]: value } } })
+
   const actionHint = draft.actionUrl
     ? (internalPathname(normalizeUserLinkHref(draft.actionUrl), origin())
         ? t('Opens in Hylo: {{path}}', { path: internalPathname(normalizeUserLinkHref(draft.actionUrl), origin()) })
@@ -73,12 +141,13 @@ export default function SiteBanners () {
     : null
 
   const handleSave = useCallback(async (publish) => {
-    const text = editorRef.current?.getHTML()
-    if (!text || editorRef.current?.isEmpty()) {
+    const latest = withEditorText(draft, draft.lang)
+    const text = latest.text
+    if (!text) {
       setError(t('Please write a message for the banner'))
       return
     }
-    if (!!draft.actionText !== !!draft.actionUrl) {
+    if (!!latest.actionText !== !!latest.actionUrl) {
       setError(t('Action Button Text and Action Button URL must be set together'))
       return
     }
@@ -87,12 +156,13 @@ export default function SiteBanners () {
     setSaving(true)
     try {
       const data = {
-        title: draft.title || null,
+        title: latest.title || null,
         text,
-        type: draft.type,
-        actionText: draft.actionText || null,
-        actionUrl: draft.actionUrl || null,
-        showToNewUsers: !!draft.showToNewUsers
+        type: latest.type,
+        actionText: latest.actionText || null,
+        actionUrl: latest.actionUrl || null,
+        showToNewUsers: !!latest.showToNewUsers,
+        translations: translationsForSave(latest.translations)
       }
       const result = draft.id
         ? await dispatch(updateSiteBanner(draft.id, data))
@@ -116,7 +186,18 @@ export default function SiteBanners () {
   }, [dispatch, draft, loadBanners, resetDraft, t])
 
   const handleEdit = useCallback((banner) => {
-    setDraft({ id: banner.id, status: statusOf(banner), title: banner.title || '', type: banner.type, actionText: banner.actionText || '', actionUrl: banner.actionUrl || '', showToNewUsers: !!banner.showToNewUsers })
+    setDraft({
+      id: banner.id,
+      status: statusOf(banner),
+      title: banner.title || '',
+      text: banner.text || '',
+      type: banner.type,
+      actionText: banner.actionText || '',
+      actionUrl: banner.actionUrl || '',
+      showToNewUsers: !!banner.showToNewUsers,
+      translations: translationsFromBanner(banner.translations),
+      lang: 'en'
+    })
     editorRef.current?.setContent(banner.text)
   }, [])
 
@@ -151,11 +232,41 @@ export default function SiteBanners () {
         <h2 className='text-lg font-semibold mb-4'>{draft.id ? t('Edit Banner') : t('New Banner')}</h2>
 
         <div className='mb-4'>
+          <label className='block text-sm font-medium mb-1'>{t('Language')}</label>
+          <div className='flex flex-wrap gap-2' role='tablist' data-testid='banner-languages'>
+            {LANGUAGES.map(language => {
+              const hasText = language.code === 'en'
+                ? true
+                : !!(draft.translations[language.code]?.title || draft.translations[language.code]?.text || draft.translations[language.code]?.actionText)
+              return (
+                <button
+                  key={language.code}
+                  type='button'
+                  role='tab'
+                  aria-selected={draft.lang === language.code}
+                  onClick={() => switchLanguage(language.code)}
+                  className={cn(
+                    'px-3 py-1 rounded-md border-2 text-sm transition-all',
+                    draft.lang === language.code ? 'border-secondary text-foreground' : 'border-foreground/20 text-foreground/60 hover:border-foreground/50',
+                    !hasText && 'border-dashed'
+                  )}
+                >
+                  {t(language.label)}
+                </button>
+              )
+            })}
+          </div>
+          {draft.lang !== 'en' && (
+            <p className='text-xs text-foreground/50 mt-1'>{t('Leave a field blank to show the English text in this language.')}</p>
+          )}
+        </div>
+
+        <div className='mb-4'>
           <label className='block text-sm font-medium mb-1'>{t('Title')}</label>
           <Input
-            value={draft.title}
-            onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
-            placeholder={t('Optional')}
+            value={current.title}
+            onChange={e => setCurrentField('title', e.target.value)}
+            placeholder={draft.lang === 'en' ? t('Optional') : (draft.title || t('Optional'))}
           />
         </div>
 
@@ -184,9 +295,9 @@ export default function SiteBanners () {
           <div>
             <label className='block text-sm font-medium mb-1'>{t('Action Button Text')}</label>
             <Input
-              value={draft.actionText}
-              onChange={e => setDraft(d => ({ ...d, actionText: e.target.value }))}
-              placeholder={t('e.g. Learn more')}
+              value={current.actionText}
+              onChange={e => setCurrentField('actionText', e.target.value)}
+              placeholder={draft.lang === 'en' ? t('e.g. Learn more') : (draft.actionText || t('e.g. Learn more'))}
             />
           </div>
           <div>
@@ -271,9 +382,23 @@ export default function SiteBanners () {
                         <p className='text-xs text-foreground/50'>
                           {statusLabel(banner)}
                           {banner.creator?.name && ` · ${t('by')} ${banner.creator.name}`}
-                          {typeof banner.dismissedCount === 'number' && banner.publishedAt && ` · ${t('{{count}} dismissed', { count: banner.dismissedCount })}`}
                           {banner.showToNewUsers ? ` · ${t('Shown to new users')}` : ''}
                         </p>
+                        {banner.publishedAt && typeof banner.dismissedCount === 'number' && (
+                          <p className='text-xs text-foreground/70 mt-1' data-testid='banner-stats'>
+                            {t('{{count}} dismissed', { count: banner.dismissedCount })}
+                            {banner.actionText && typeof banner.clickedCount === 'number' && (
+                              ` · ${t('{{count}} clicked', { count: banner.clickedCount })} · ${t('{{percent}}% click-through', { percent: clickThroughRate(banner.clickedCount, banner.dismissedCount) })}`
+                            )}
+                          </p>
+                        )}
+                        {Object.keys(banner.translations || {}).length > 0 && (
+                          <p className='text-xs text-foreground/50 mt-1'>
+                            {t('Translated into: {{languages}}', {
+                              languages: LANGUAGES.filter(l => banner.translations[l.code]).map(l => t(l.label)).join(', ')
+                            })}
+                          </p>
+                        )}
                       </div>
                       <div className='flex gap-2 shrink-0'>
                         {!banner.publishedAt && (

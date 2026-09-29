@@ -228,6 +228,14 @@ type Query {
 
   ): ModerationActionQuerySet
 
+  # Reports to Hylo staff about people and direct message conversations (super admins only)
+  staffReports(
+    first: Int,
+    offset: Int,
+    # 'active' (default) or 'resolved'
+    status: String
+  ): ModerationActionQuerySet
+
   # Get all drafts for the currently logged in user
   myDrafts: [Draft]
 
@@ -322,6 +330,10 @@ type Query {
 
   # Query for a Post by ID
   post(id: ID): Post
+
+  # For signed-out visitors: whether a post they can't see exists, and a group it's
+  # in when that group's About page is already public. Reveals nothing else.
+  postTeaser(id: ID): PostTeaser
 
   # Query for a set of Posts
   posts(
@@ -2240,6 +2252,22 @@ type ModerationAction {
   text: String
   createdAt: Date
   updatedAt: Date
+  # The comment, when the report is about one comment on the post
+  comment: Comment
+  commentId: ID
+  # 'group' for a group's moderation queue, 'staff' for a report to Hylo staff
+  queue: String
+  # Reason picked for a staff report: inappropriate, spam, offensive, abusive, illegal, safety or other
+  category: String
+  # The person a staff report is about
+  reportedUser: Person
+  # The direct message conversation a staff report is about
+  messageThreadId: ID
+  # Everyone who has been in the reported conversation
+  threadParticipants: [Person]
+  # Who resolved a staff report, and when
+  resolvedBy: Person
+  resolvedAt: Date
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -2612,6 +2640,19 @@ type PostQuerySet {
   total: Int
   hasMore: Boolean
   items: [Post]
+}
+
+# What a signed-out visitor may know about a post they can't see
+type PostTeaser {
+  exists: Boolean
+  # Only set for a group whose About page is already public
+  group: PostTeaserGroup
+}
+
+type PostTeaserGroup {
+  name: String
+  slug: String
+  avatarUrl: String
 }
 
 # The relationship between a Post and a Group
@@ -3307,8 +3348,13 @@ type SiteBanner {
   unpublishedAt: Date
   createdAt: Date
   updatedAt: Date
-  # Number of users who have dismissed this banner (admin only)
+  # Number of users who closed this banner without using its action button (admin only)
   dismissedCount: Int
+  # Number of users who used this banner's action button (admin only)
+  clickedCount: Int
+  # Per-language text: { "de": { "title": "...", "text": "...", "action_text": "..." }, ... }.
+  # title, text and actionText above are English, or the viewer's language in siteBanners
+  translations: JSON
 }
 
 # A group that has members but no active Administrator (admin only)
@@ -3369,6 +3415,8 @@ input SiteBannerInput {
   actionText: String
   actionUrl: String
   showToNewUsers: Boolean
+  # Per-language text for de, es, fr, hi and pt: { "de": { "title", "text", "actionText" } }
+  translations: JSON
 }
 
 # A Public group in the Group Explorer review list, with its quality signals (admin only)
@@ -3786,6 +3834,12 @@ type Mutation {
   muteMessageThread(messageThreadId: ID): GenericResult
   # Unmute a direct message thread for the logged in user
   unmuteMessageThread(messageThreadId: ID): GenericResult
+  # Leave a direct message thread: it leaves your inbox and stops notifying you
+  leaveMessageThread(messageThreadId: ID): GenericResult
+  # Report a person or a direct message conversation to Hylo staff
+  reportToStaff(data: StaffReportInput): GenericResult
+  # Mark a staff report as resolved (super admins only)
+  resolveStaffReport(id: ID): GenericResult
   # Remove yourself as a member of a project Post
   leaveProject(id: ID): GenericResult
   # Leave a track
@@ -3980,6 +4034,8 @@ type Mutation {
   unarchiveGroup(groupId: ID!): Group
   # Decide whether a Public group appears in the Group Explorer (admin only). Approve and keep apply only to groups that are still Public
   reviewExplorerGroup(groupId: ID!, decision: ExplorerReviewDecision!): ExplorerReviewGroup
+  # Record that the current user used a site banner's action button; also hides it for them
+  clickSiteBanner(id: ID!): Boolean
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
@@ -4644,9 +4700,20 @@ input MessageThreadInput {
 input ModerationActionInput {
   agreements: [ID]
   anonymous: Boolean
+  # Set to report one comment; postId may then be left out
+  commentId: ID
   groupId: ID
   platformAgreements: [ID]
   postId: ID
+  text: String
+}
+
+# A report to Hylo staff: about a person, a direct message conversation, or both
+input StaffReportInput {
+  reportedUserId: ID
+  messageThreadId: ID
+  # inappropriate, spam, offensive, abusive, illegal, safety or other
+  category: String
   text: String
 }
 

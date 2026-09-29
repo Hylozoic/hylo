@@ -1,5 +1,5 @@
 import { filter, isFunction } from 'lodash'
-import { Pencil, Trash2, X } from 'lucide-react'
+import { Flag, Pencil, Trash2, X } from 'lucide-react'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -15,6 +15,7 @@ import Button from 'components/Button'
 import BadgeEmoji from 'components/BadgeEmoji'
 import ClickCatcher from 'components/ClickCatcher'
 import Dropdown from 'components/Dropdown'
+import FlagContent from 'components/FlagContent/FlagContent'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
@@ -129,6 +130,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const bioRef = useRef(null)
 
   const [confirmingRemove, setConfirmingRemove] = useState(false)
+  const [reporting, setReporting] = useState(false)
 
   const { setHeaderDetails } = useViewHeader()
   const postOverlayOpen = /\/post\/\d+/.test(location.pathname)
@@ -263,6 +265,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const actionDropdownItems = [
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
     { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl },
+    { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Report to Hylo'), onClick: () => setReporting(true), hide: isCurrentUser || isAxolotl },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: () => setConfirmingRemove(true), hide: isCurrentUser || isAxolotl || !canRemove }
   ]
   const {
@@ -302,6 +305,13 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             <ActionButtons items={actionButtonsItems} />
             <ActionDropdown items={actionDropdownItems} />
           </div>
+          {reporting && (
+            <FlagContent
+              type={t('person')}
+              linkData={{ id: personId, type: 'member' }}
+              onClose={() => setReporting(false)}
+            />
+          )}
           {canRemove && (
             <Dialog open={confirmingRemove} onOpenChange={setConfirmingRemove}>
               <DialogContent className='max-w-md'>

@@ -21,6 +21,8 @@ export const DEFAULT_APP_HOST = 'https://www.hylo.com'
 
 export const prefixes = [
   DEFAULT_APP_HOST,
+  // iOS delivers hylo.com links (no www) too; see applinks in app.config.ts
+  'https://hylo.com',
   'https://staging.hylo.com',
   'hyloapp://www.hylo.com',
   'hyloapp://staging.hylo.com',

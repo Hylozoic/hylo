@@ -219,4 +219,28 @@ describe('MemberProfile', () => {
       expect(screen.queryByText('Remove member from group')).not.toBeInTheDocument()
     })
   })
+  describe('report action', () => {
+    beforeEach(() => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ personId: '46816' })
+      jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/members/46816', search: '' })
+    })
+
+    it("offers Report to Hylo on someone else's profile and opens the staff report form", async () => {
+      render(<MemberProfile />, { wrapper: testWrapperViewingOtherMember(false) })
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: denormalized.data.person.name })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getAllByTestId('dropdown-toggle')[0])
+      fireEvent.click(screen.getByText('Report to Hylo'))
+      expect(await screen.findByTestId('staff-report-explainer')).toBeInTheDocument()
+    })
+
+    it("doesn't offer Report on your own profile", async () => {
+      render(<MemberProfile />, { wrapper: testWrapper() })
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: denormalized.data.person.name })).toBeInTheDocument()
+      })
+      expect(screen.queryByText('Report to Hylo')).not.toBeInTheDocument()
+    })
+  })
 })

@@ -158,6 +158,19 @@ function adjustOpenJoinRequestCount (session, groupId, delta) {
   group.update({ openJoinRequestCount: Math.max(0, (group.openJoinRequestCount || 0) + delta) })
 }
 
+/** The reported comment as the moderation queue shows it, before the server answers. */
+function optimisticReportedComment (session, commentId) {
+  if (!session.Comment.idExists(commentId)) return { id: commentId }
+  const comment = session.Comment.withId(commentId)
+  const creator = comment.creator
+  return {
+    id: comment.id,
+    text: comment.text,
+    createdAt: comment.createdAt,
+    creator: creator ? { id: creator.id, name: creator.name, avatarUrl: creator.avatarUrl } : null
+  }
+}
+
 /**
  * Adjust the cached unresolved-flag count used by the Moderation menu badge.
  */
@@ -531,7 +544,8 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case CREATE_MODERATION_ACTION_PENDING: {
       if (meta.data) {
         post = Post.withId(meta?.data?.postId)
-        if (post) {
+        // A comment report doesn't flag the whole post
+        if (post && !meta.data.commentId) {
           const flaggedGroups = post.flaggedGroups
           if (flaggedGroups) post.flaggedGroups.push(meta?.data?.groupId)
           const moderationActions = post.moderationActions
@@ -549,6 +563,8 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           session.ModerationAction.create({
             id: meta.tempId,
             postId: meta.data.postId,
+            commentId: meta.data.commentId,
+            comment: meta.data.commentId ? optimisticReportedComment(session, meta.data.commentId) : null,
             groupId: meta.data.groupId,
             status: 'active',
             text: meta.data.text,

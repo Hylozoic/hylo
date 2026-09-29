@@ -16,3 +16,28 @@ export default function checkIsPostPublic (postId) {
     meta: { extractModel: 'Post' }
   }
 }
+
+/**
+ * For a signed-out visitor to a post they can't see: whether it exists and,
+ * when one of its groups has a public About page, that group's name, slug and avatar.
+ */
+export function fetchPostTeaser (postId) {
+  return {
+    type: 'FETCH_POST_TEASER',
+    graphql: {
+      query: gql`
+        query PostTeaser ($id: ID) {
+          postTeaser (id: $id) {
+            exists
+            group {
+              name
+              slug
+              avatarUrl
+            }
+          }
+        }
+      `,
+      variables: { id: postId }
+    }
+  }
+}

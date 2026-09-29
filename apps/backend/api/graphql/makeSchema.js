@@ -212,6 +212,10 @@ import {
   unarchiveGroup
 } from './mutations/group'
 import { explorerReviewList, reviewExplorerGroup } from './mutations/explorerReview'
+import { leaveMessageThread } from './mutations/messageThread'
+import { reportToStaff, resolveStaffReport } from './mutations/moderation_actions'
+import postTeaser from './queries/postTeaser'
+import { clickSiteBanner } from './mutations/siteBanners'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -453,6 +457,7 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
     groups: (root, args) => fetchMany('Group', Object.assign(args, { visibility: Group.Visibility.PUBLIC })),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
+    postTeaser: (root, { id }) => postTeaser(id),
     posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true })),
     publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
     publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId })
@@ -537,6 +542,13 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       return fetchOne('MessageThread', id)
     },
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
+    // Reports to Hylo staff about people and conversations, for Management
+    staffReports: async (root, { first = 20, offset = 0, status = 'active' }, context) => {
+      if (!(await Admin.isSuperAdmin(context.currentUserId))) {
+        throw new GraphQLError('Unauthorized: Admin access required')
+      }
+      return fetchMany('ModerationAction', { first, offset, queue: ModerationAction.QUEUE_STAFF, status })
+    },
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
       const notifications = await fetchMany('Notification', { first, offset, order })
       resetCount && await User.resetNewNotificationCount(context.currentUserId)
@@ -591,7 +603,12 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     },
     siteBanners: async (root, args, context) => {
       const banners = await SiteBanner.activeForUser(context.currentUserId)
-      return banners.toModelArray ? banners.toModelArray() : banners
+      const viewer = context.currentUserId ? await User.find(context.currentUserId) : null
+      const locale = viewer ? viewer.getLocale() : null
+      const models = banners.toModelArray ? banners.toModelArray() : banners
+      // Viewers see the banner in their language, falling back to English
+      models.forEach(banner => { banner.displayLocale = locale })
+      return models
     },
     allSiteBanners: async (root, args, context) => {
       if (!(await Admin.isSuperAdmin(context.currentUserId))) {
@@ -850,6 +867,12 @@ export function makeMutations ({ fetchOne }) {
 
     unmuteMessageThread: (root, { messageThreadId }, context) => unmuteMessageThread(context.currentUserId, messageThreadId),
 
+    leaveMessageThread: (root, { messageThreadId }, context) => leaveMessageThread(context.currentUserId, messageThreadId),
+
+    reportToStaff: (root, { data }, context) => reportToStaff({ userId: context.currentUserId, data }),
+
+    resolveStaffReport: (root, { id }, context) => resolveStaffReport({ userId: context.currentUserId, id }),
+
     leaveProject: (root, { id }, context) => leaveProject(id, context.currentUserId),
 
     leaveTrack: (root, { trackId }, context) => leaveTrack(context.currentUserId, trackId),
@@ -1010,7 +1033,9 @@ export function makeMutations ({ fetchOne }) {
 
     unarchiveGroup: (root, { groupId }, context) => unarchiveGroup(context.currentUserId, groupId, context),
 
-    reviewExplorerGroup: (root, { groupId, decision }, context) => reviewExplorerGroup(context.currentUserId, groupId, decision)
+    reviewExplorerGroup: (root, { groupId, decision }, context) => reviewExplorerGroup(context.currentUserId, groupId, decision),
+
+    clickSiteBanner: (root, { id }, context) => clickSiteBanner(context.currentUserId, id)
   }
 }
 

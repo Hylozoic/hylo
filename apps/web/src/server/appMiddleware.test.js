@@ -68,5 +68,39 @@ describe('appMiddleware', () => {
     expect(global.fetch).not.toHaveBeenCalled()
     expect(html).toContain('<meta property="og:title" content="Hylo" />')
     expect(html).toContain('<meta property="og:image" content="https://hylo.com/hylo-merkaba.png" />')
+    expect(html).toContain('<meta property="og:description" content="Hylo is the prosocial coordination platform for purpose-driven groups" />')
+  })
+
+  it("doesn't put the default description on a group page", async () => {
+    global.fetch.mockResolvedValue(graphqlResponse({
+      group: { name: 'Garden Club', description: 'We grow food.', visibility: 2 }
+    }))
+
+    const html = await render('/groups/garden-club')
+
+    expect(html).toContain('<meta property="og:description" content="We grow food." />')
+    expect(html).not.toContain('prosocial coordination platform')
+  })
+
+  describe('iOS Smart App Banner', () => {
+    it('opens the current page in the app', async () => {
+      const html = await render('/login')
+      expect(html).toContain('<meta name="apple-itunes-app" content="app-id=1002185140, app-argument=https://hylo.com/login" />')
+      expect(count(html, 'name="apple-itunes-app"')).toBe(1)
+    })
+
+    it('is on post and group pages too', async () => {
+      global.fetch.mockResolvedValue(graphqlResponse({
+        group: { name: 'Garden Club', description: 'We grow food.', visibility: 2 }
+      }))
+      const html = await render('/groups/garden-club')
+      expect(html).toContain('app-argument=https://hylo.com/groups/garden-club"')
+    })
+
+    it('escapes the page URL', async () => {
+      const html = await render('/groups/x/join/abc?a="b"&c=<d>,e')
+      expect(html).toContain('app-argument=https://hylo.com/groups/x/join/abc?a=&quot;b&quot;&amp;c=&lt;d&gt;%2Ce"')
+      expect(html).not.toContain('a="b"')
+    })
   })
 })

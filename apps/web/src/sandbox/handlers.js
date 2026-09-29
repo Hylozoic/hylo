@@ -287,6 +287,10 @@ function handleMutation (operationName, rootField, variables, seed) {
       }
     case 'findOrCreateLinkPreviewByUrl':
       return { data: { findOrCreateLinkPreviewByUrl: null } }
+    // Boolean results: banners have nothing to record in the demo
+    case 'dismissSiteBanner':
+    case 'clickSiteBanner':
+      return { data: { [rootField]: true } }
     case 'createInvitation':
       return {
         data: {

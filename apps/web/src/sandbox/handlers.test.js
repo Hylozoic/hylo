@@ -230,6 +230,16 @@ describe('sandbox GraphQL handlers', () => {
     expect(result.data.siteBanners).toEqual([])
   })
 
+  it('answers banner clicks and dismissals with true', () => {
+    for (const field of ['clickSiteBanner', 'dismissSiteBanner']) {
+      const result = handleGraphql({
+        query: `mutation ($id: ID!) { ${field}(id: $id) }`,
+        variables: { id: '1' }
+      }, seed)
+      expect(result.data[field]).toBe(true)
+    }
+  })
+
   it('updates toursSeen on me via updateMe', () => {
     const result = handleGraphql({
       query: 'mutation ($changes: MeInput) { updateMe(changes: $changes) { id settings { toursSeen } } }',

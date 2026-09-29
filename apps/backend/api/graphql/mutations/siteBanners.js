@@ -36,6 +36,7 @@ function whitelistData (data = {}) {
   if ('actionText' in data) whitelist.action_text = data.actionText || null
   if ('actionUrl' in data) whitelist.action_url = normalizeAndValidateActionUrl(data.actionUrl)
   if ('showToNewUsers' in data) whitelist.show_to_new_users = !!data.showToNewUsers
+  if ('translations' in data) whitelist.translations = SiteBanner.sanitizeTranslations(data.translations)
 
   if (!!whitelist.action_text !== !!whitelist.action_url) {
     throw new GraphQLError('Action Button Text and Action Button URL must be set together')
@@ -105,5 +106,16 @@ export async function dismissSiteBanner (userId, id) {
   if (!userId) throw new GraphQLError('You must be logged in to dismiss a banner')
 
   await SiteBanner.dismiss(id, userId)
+  return true
+}
+
+// The action button was used: record the click, which also hides the banner for them
+export async function clickSiteBanner (userId, id) {
+  if (!userId) throw new GraphQLError('You must be logged in to use a banner')
+
+  const banner = await SiteBanner.find(id)
+  if (!banner || !banner.get('published_at')) throw new GraphQLError('Site banner not found')
+
+  await SiteBanner.click(banner.id, userId)
   return true
 }

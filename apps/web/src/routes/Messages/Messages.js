@@ -8,6 +8,7 @@ import { get, isEmpty } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import { getSocket, sendIsTyping } from 'client/websockets'
 import { push } from 'redux-first-history'
+import { toast } from 'sonner'
 import { messageThreadUrl } from '@hylo/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
@@ -28,6 +29,7 @@ import { isMobileDevice, isPhoneDevice } from 'util/mobile'
 import MessagesMobile from './MessagesMobile'
 import { canAddThreadParticipant } from './messageThreadLimits'
 import MutedThreadNotice from './MutedThreadNotice'
+import ConversationEndedNotice, { isConversationEnded } from './ConversationEndedNotice'
 
 import {
   createMessage,
@@ -269,7 +271,9 @@ const Messages = () => {
   }
 
   const sendForExisting = (messageBody, attachments) => {
-    createMessageAction(messageThreadId, messageBody, false, attachments).then(() => focusForm())
+    createMessageAction(messageThreadId, messageBody, false, attachments)
+      .then(() => focusForm())
+      .catch(() => toast.error(t("Your message wasn't sent. Please try again.")))
   }
 
   const sendNewMessage = async (messageBody, attachments) => {
@@ -458,18 +462,24 @@ const Messages = () => {
               <PeopleTyping postId={messageThreadId} className='w-full max-w-[var(--dm-stream-width,9999px)] pl-16 py-1 flex-shrink-0 px-3' />
             </div>
             <div className='flex-shrink-0 pb-3 w-full'>
-              {messageThread?.isMuted && <MutedThreadNotice />}
-              <MessageForm
-                disabled={!messageThreadId && participants.length === 0}
-                onSubmit={sendMessage}
-                onFocus={() => setPeopleSelectorOpen(false)}
-                currentUser={currentUser}
-                ref={formRef}
-                updateMessageText={updateMessageTextAction}
-                messageText={messageText}
-                sendIsTyping={status => isRealThread && sendIsTyping(messageThreadId, status)}
-                pending={messageCreatePending}
-              />
+              {!forNewThread && isConversationEnded(messageThread, currentUser)
+                ? <ConversationEndedNotice />
+                : (
+                  <>
+                    {messageThread?.isMuted && <MutedThreadNotice />}
+                    <MessageForm
+                      disabled={!messageThreadId && participants.length === 0}
+                      onSubmit={sendMessage}
+                      onFocus={() => setPeopleSelectorOpen(false)}
+                      currentUser={currentUser}
+                      ref={formRef}
+                      updateMessageText={updateMessageTextAction}
+                      messageText={messageText}
+                      sendIsTyping={status => isRealThread && sendIsTyping(messageThreadId, status)}
+                      pending={messageCreatePending}
+                    />
+                  </>
+                  )}
             </div>
           </div>
           {socket && isRealThread && <SocketSubscriber type='post' id={messageThreadId} />}

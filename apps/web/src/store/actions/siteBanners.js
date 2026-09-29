@@ -7,7 +7,8 @@ import {
   PUBLISH_SITE_BANNER,
   UNPUBLISH_SITE_BANNER,
   DELETE_SITE_BANNER,
-  DISMISS_SITE_BANNER
+  DISMISS_SITE_BANNER,
+  CLICK_SITE_BANNER
 } from 'store/constants'
 
 const siteBannerFields = `
@@ -28,6 +29,8 @@ const siteBannerFields = `
     avatarUrl
   }
   dismissedCount
+  clickedCount
+  translations
 `
 
 export function fetchSiteBanners () {
@@ -163,6 +166,21 @@ export function dismissSiteBanner (id) {
       query: `
         mutation ($id: ID!) {
           dismissSiteBanner(id: $id)
+        }
+      `,
+      variables: { id }
+    }
+  }
+}
+
+// The banner's action button was used: counted as a click, and hides the banner like a dismissal
+export function clickSiteBanner (id) {
+  return {
+    type: CLICK_SITE_BANNER,
+    graphql: {
+      query: `
+        mutation ($id: ID!) {
+          clickSiteBanner(id: $id)
         }
       `,
       variables: { id }

@@ -1,5 +1,8 @@
 import LRU from 'lru-cache'
+import { readFileSync } from 'fs'
+import root from 'root-path'
 import * as TextHelpers from '@hylo/shared/TextHelpers'
+import { APP_STORE_APP_ID } from '../util/mobile.js'
 import {
   buildMetaTagHtml,
   escapeHtmlAttr,
@@ -162,8 +165,62 @@ export async function withGroupMetaTags (html, req, opts = {}) {
   }
 }
 
+// The web app's languages; the default preview description is read from their locale files
+export const PREVIEW_LOCALES = ['en', 'de', 'es', 'fr', 'hi', 'pt']
+export const DEFAULT_DESCRIPTION_KEY = 'hyloDefaultDescription'
+const LOCALE_DIRS = ['public/locales', 'dist/locales']
+const defaultDescriptions = {}
+
+/**
+ * Picks the preview language from an Accept-Language header, by quality then
+ * order, matching on the primary subtag (fr-CA reads as fr). English when none match.
+ */
+export function localeFromAcceptLanguage (header) {
+  const ranked = String(header || '')
+    .split(',')
+    .map((part, index) => {
+      const [tag, ...params] = part.trim().split(';')
+      const qParam = params.map(p => p.trim()).find(p => p.startsWith('q='))
+      const q = qParam ? Number(qParam.slice(2)) : 1
+      return { lang: tag.trim().toLowerCase().split('-')[0], q: Number.isFinite(q) ? q : 0, index }
+    })
+    .filter(entry => entry.lang && entry.q > 0)
+    .sort((a, b) => b.q - a.q || a.index - b.index)
+  const match = ranked.find(entry => PREVIEW_LOCALES.includes(entry.lang))
+  return match ? match.lang : 'en'
+}
+
+function readLocaleString (locale, key) {
+  for (const dir of LOCALE_DIRS) {
+    try {
+      const strings = JSON.parse(readFileSync(root(`${dir}/${locale}.json`), { encoding: 'utf-8' }))
+      if (strings[key]) return strings[key]
+    } catch (e) {
+      // try the next place the locale files may live
+    }
+  }
+  return null
+}
+
+/** The homepage line used as the default link preview description, in the given language. */
+export function defaultPreviewDescription (locale, { readString = readLocaleString } = {}) {
+  const lang = PREVIEW_LOCALES.includes(locale) ? locale : 'en'
+  if (!(lang in defaultDescriptions)) {
+    defaultDescriptions[lang] = readString(lang, DEFAULT_DESCRIPTION_KEY) ||
+      (lang === 'en' ? null : defaultPreviewDescription('en', { readString }))
+  }
+  return defaultDescriptions[lang]
+}
+
+/** Forget cached descriptions; for tests. */
+export function resetDefaultPreviewDescriptions () {
+  Object.keys(defaultDescriptions).forEach(key => { delete defaultDescriptions[key] })
+}
+
+const acceptLanguage = req => req.get?.('accept-language') || req.headers?.['accept-language'] || ''
+
 /** Adds Hylo's own preview tags to any page that did not get more specific ones. */
-export function withDefaultMetaTags (html, req) {
+export function withDefaultMetaTags (html, req, opts = {}) {
   if (!html || /property="og:title"/.test(html)) return html
   const imageUrl = escapeHtmlAttr(`${requestOrigin(req)}${DEFAULT_IMAGE_PATH}`)
   const tags = [
@@ -174,5 +231,26 @@ export function withDefaultMetaTags (html, req) {
     `<meta property="og:image" content="${imageUrl}" />`,
     '<meta name="twitter:card" content="summary" />'
   ]
+  const description = defaultPreviewDescription(localeFromAcceptLanguage(acceptLanguage(req)), opts)
+  if (description) {
+    const safeDescription = escapeHtmlAttr(description)
+    if (!/name="description"/.test(html)) tags.push(`<meta name="description" content="${safeDescription}" />`)
+    tags.push(`<meta property="og:description" content="${safeDescription}" />`)
+    tags.push(`<meta name="twitter:description" content="${safeDescription}" />`)
+  }
   return injectPostMetaTagsIntoHtml(html, tags.join('\n    '))
+}
+
+/**
+ * iOS Smart App Banner: Safari offers the Hylo app, and opening it lands on the
+ * page the person is on (app-argument is this page's absolute URL).
+ */
+export function withAppBannerMetaTag (html, req) {
+  if (!html || /name="apple-itunes-app"/.test(html)) return html
+  const path = req.originalUrl || req.url || '/'
+  // A comma would end the app-argument value early, so it is percent-encoded
+  const pageUrl = `${requestOrigin(req)}${path}`.replace(/,/g, '%2C')
+  const content = escapeHtmlAttr(`app-id=${APP_STORE_APP_ID}, app-argument=${pageUrl}`)
+  const tag = `<meta name="apple-itunes-app" content="${content}" />`
+  return html.includes('</head>') ? html.replace('</head>', `    ${tag}\n  </head>`) : html
 }

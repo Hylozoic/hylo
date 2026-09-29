@@ -5,7 +5,10 @@ import {
   fetchGroupMeta,
   withGroupMetaTags,
   withDefaultMetaTags,
-  groupMetaCache
+  groupMetaCache,
+  localeFromAcceptLanguage,
+  defaultPreviewDescription,
+  resetDefaultPreviewDescriptions
 } from './groupMetaTags'
 
 const HTML = '<html><head><title>Hylo</title></head><body></body></html>'
@@ -204,5 +207,83 @@ describe('withDefaultMetaTags', () => {
   it('leaves a page that already has preview tags alone', () => {
     const tagged = '<html><head><meta property="og:title" content="Garden Club" /></head></html>'
     expect(withDefaultMetaTags(tagged, request('/groups/garden-club'))).toBe(tagged)
+  })
+
+  describe('description', () => {
+    const EN = 'Hylo is the prosocial coordination platform for purpose-driven groups'
+    const withLanguage = (header) => ({
+      ...request('/my/posts'),
+      get: name => ({ host: 'hylo.com', 'accept-language': header })[name]
+    })
+
+    beforeEach(() => resetDefaultPreviewDescriptions())
+    afterAll(() => resetDefaultPreviewDescriptions())
+
+    it('carries the homepage line in English by default', () => {
+      const result = withDefaultMetaTags(HTML, request('/my/posts'))
+      expect(result).toContain(`<meta name="description" content="${EN}" />`)
+      expect(result).toContain(`<meta property="og:description" content="${EN}" />`)
+      expect(result).toContain(`<meta name="twitter:description" content="${EN}" />`)
+    })
+
+    it('uses the language the request asks for', () => {
+      const result = withDefaultMetaTags(HTML, withLanguage('es-MX,es;q=0.9,en;q=0.5'))
+      expect(result).toContain('<meta property="og:description" content="Hylo es la plataforma de coordinación prosocial para grupos con propósito" />')
+    })
+
+    it('falls back to English for a language Hylo does not have', () => {
+      const result = withDefaultMetaTags(HTML, withLanguage('ja-JP'))
+      expect(result).toContain(`<meta property="og:description" content="${EN}" />`)
+    })
+
+    it('escapes the description', () => {
+      const readString = () => 'Groups "that" <care> & share'
+      const result = withDefaultMetaTags(HTML, request('/my/posts'), { readString })
+      expect(result).toContain('<meta property="og:description" content="Groups &quot;that&quot; &lt;care&gt; &amp; share" />')
+    })
+
+    it("isn't added when the page has more specific preview tags", () => {
+      const tagged = '<html><head><meta property="og:title" content="Garden Club" /><meta name="description" content="Grow food" /></head></html>'
+      const result = withDefaultMetaTags(tagged, request('/groups/garden-club'))
+      expect(result).toBe(tagged)
+      expect(result).not.toContain(EN)
+    })
+
+    it('leaves out the description when no locale file has it', () => {
+      const result = withDefaultMetaTags(HTML, request('/my/posts'), { readString: () => null })
+      expect(result).not.toContain('og:description')
+      expect(result).toContain('<meta property="og:title" content="Hylo" />')
+    })
+  })
+})
+
+describe('localeFromAcceptLanguage', () => {
+  it('reads the preferred supported language by quality and order', () => {
+    expect(localeFromAcceptLanguage('fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5')).toBe('fr')
+    expect(localeFromAcceptLanguage('ja;q=1, pt-BR;q=0.8, de;q=0.9')).toBe('de')
+    expect(localeFromAcceptLanguage('hi-IN')).toBe('hi')
+  })
+
+  it('falls back to English', () => {
+    expect(localeFromAcceptLanguage('')).toBe('en')
+    expect(localeFromAcceptLanguage(undefined)).toBe('en')
+    expect(localeFromAcceptLanguage('ja, zh;q=0.5')).toBe('en')
+    expect(localeFromAcceptLanguage('de;q=0')).toBe('en')
+  })
+})
+
+describe('defaultPreviewDescription', () => {
+  beforeEach(() => resetDefaultPreviewDescriptions())
+  afterAll(() => resetDefaultPreviewDescriptions())
+
+  it('has the line in all six languages', () => {
+    for (const locale of ['en', 'de', 'es', 'fr', 'hi', 'pt']) {
+      expect(defaultPreviewDescription(locale)).toMatch(/Hylo/)
+    }
+  })
+
+  it('falls back to English when a language is missing the line', () => {
+    const readString = (locale) => locale === 'en' ? 'English line' : null
+    expect(defaultPreviewDescription('de', { readString })).toBe('English line')
   })
 })
