@@ -585,7 +585,18 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       const banners = await SiteBanner.all()
       return banners.toModelArray ? banners.toModelArray() : banners
     },
-    explorerReviewList: (root, args, context) => explorerReviewList(context.currentUserId)
+    explorerReviewList: (root, args, context) => explorerReviewList(context.currentUserId),
+    searchGroups: async (root, { term, first = 20, offset = 0 }, context) => {
+      if (!term || term.trim().length < 2) return presentQuerySet([], { first, offset, total: 0 })
+      const groups = await Search.forGroups({
+        term: term.trim(),
+        limit: first,
+        offset,
+        sort: 'recent',
+        discoverableBy: context.currentUserId
+      }).fetchAll()
+      return presentQuerySet(groups.models, { first, offset })
+    }
   }
 }
 

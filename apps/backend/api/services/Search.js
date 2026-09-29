@@ -83,6 +83,28 @@ module.exports = {
         qb.whereIn('groups.id', selectIdsForMember)
       }
 
+      if (opts.discoverableBy) {
+        // Main search: groups the viewer is in, Public groups listed in the Explorer,
+        // and groups related to theirs (parents, children, peers) that aren't hidden
+        const memberGroupIds = Group.selectIdsForMember(opts.discoverableBy)
+        qb.where('groups.active', true)
+        qb.where(q2 => {
+          q2.whereIn('groups.id', memberGroupIds)
+          q2.orWhere(q3 => {
+            q3.where('groups.visibility', Group.Visibility.PUBLIC)
+            q3.where('groups.allow_in_public', true)
+          })
+          q2.orWhere(q4 => {
+            q4.whereNot('groups.visibility', Group.Visibility.HIDDEN)
+            q4.where(q5 => {
+              q5.whereIn('groups.id', GroupRelationship.parentIdsFor(memberGroupIds))
+                .orWhereIn('groups.id', GroupRelationship.childIdsFor(memberGroupIds))
+                .orWhereIn('groups.id', GroupRelationship.peerIdsFor(memberGroupIds))
+            })
+          })
+        })
+      }
+
       if (opts.parentSlugs) {
         // Child groups via group_relationships, plus spaces via groups.parent_id
         // (spaces are not modeled as relationship children — see Group.spaces / spec §3.4)

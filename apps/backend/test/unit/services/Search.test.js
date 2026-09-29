@@ -154,6 +154,40 @@ describe('Search', function () {
       expect(query).to.contain('SELECT group_id, COUNT(group_id) as size from group_memberships GROUP BY group_id')
     })
 
+    describe('for the main search', () => {
+      let viewer, mine, listed, child, peer
+
+      before(async () => {
+        viewer = await factories.user().save()
+        mine = await factories.group({ name: 'Walnut Mine', visibility: 1 }).save()
+        listed = await factories.group({ name: 'Walnut Listed', visibility: 2, allow_in_public: true }).save()
+        await factories.group({ name: 'Walnut Unlisted', visibility: 2, allow_in_public: false }).save()
+        child = await factories.group({ name: 'Walnut Child', visibility: 1 }).save()
+        const hiddenChild = await factories.group({ name: 'Walnut Hidden', visibility: 0 }).save()
+        peer = await factories.group({ name: 'Walnut Peer', visibility: 1 }).save()
+        await factories.group({ name: 'Walnut Stranger', visibility: 1 }).save()
+        await factories.group({ name: 'Walnut Gone', visibility: 2, allow_in_public: true, active: false }).save()
+        await factories.group({ name: 'Walnut Space', visibility: 2, allow_in_public: true, type: 'space', parent_id: mine.id }).save()
+        await mine.addMembers([viewer.id])
+        const now = new Date()
+        await bookshelf.knex('group_relationships').insert([
+          { parent_group_id: mine.id, child_group_id: child.id, active: true, relationship_type: 0, created_at: now, updated_at: now },
+          { parent_group_id: mine.id, child_group_id: hiddenChild.id, active: true, relationship_type: 0, created_at: now, updated_at: now },
+          { parent_group_id: peer.id, child_group_id: mine.id, active: true, relationship_type: 1, created_at: now, updated_at: now }
+        ])
+      })
+
+      it("finds the viewer's groups, listed Public groups and related groups that aren't hidden", async () => {
+        const groups = await Search.forGroups({ term: 'walnut', discoverableBy: viewer.id, sort: 'recent', limit: 20 }).fetchAll()
+        expect(groups.map(g => g.get('name')).sort()).to.deep.equal(['Walnut Child', 'Walnut Listed', 'Walnut Mine', 'Walnut Peer'])
+      })
+
+      it('matches the search term', async () => {
+        const groups = await Search.forGroups({ term: 'listed', discoverableBy: viewer.id, sort: 'recent', limit: 20 }).fetchAll()
+        expect(groups.map(g => g.get('name'))).to.deep.equal(['Walnut Listed'])
+      })
+    })
+
     describe('sorted by recent activity', () => {
       let busy, lively, quiet, dormant
 

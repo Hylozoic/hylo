@@ -2,7 +2,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { createSelector } from 'reselect'
 import orm from 'store/models'
 import { isEmpty, includes, get } from 'lodash/fp'
-import { buildKey, makeGetQueryResults } from 'store/reducers/queryResults'
+import { buildKey, makeGetQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
 import postFieldsFragment from '@graphql/fragments/postFieldsFragment'
 import presentPost from 'store/presenters/presentPost'
 import presentComment from 'store/presenters/presentComment'
@@ -65,6 +65,8 @@ export default function reducer (state = defaultState, action) {
 export const SET_SEARCH_TERM = `${MODULE_NAME}/SET_SEARCH_TERM`
 export const SET_SEARCH_FILTER = `${MODULE_NAME}/SET_SEARCH_FILTER`
 export const FETCH_SEARCH = `${MODULE_NAME}/FETCH_SEARCH`
+export const FETCH_SEARCH_GROUPS = `${MODULE_NAME}/FETCH_SEARCH_GROUPS`
+export const SEARCH_GROUPS_PAGE_SIZE = 20
 
 // Actions
 
@@ -137,9 +139,59 @@ export function fetchSearchResults ({ search, offset = 0, filter, query = search
   }
 }
 
+const searchGroupsQuery =
+`query SearchGroups ($search: String, $first: Int, $offset: Int) {
+  searchGroups(term: $search, first: $first, offset: $offset) {
+    total
+    hasMore
+    items {
+      id
+      name
+      slug
+      avatarUrl
+      description
+      location
+      memberCount
+    }
+  }
+}`
+
+/**
+ * Groups for the main search: the viewer's groups, Public groups listed in the
+ * Group Explorer and related groups. Results are keyed by the search term only.
+ */
+export function fetchSearchGroups ({ search, offset = 0, first = SEARCH_GROUPS_PAGE_SIZE }) {
+  return {
+    type: FETCH_SEARCH_GROUPS,
+    graphql: {
+      query: searchGroupsQuery,
+      variables: { search, first, offset }
+    },
+    meta: {
+      extractModel: 'Group',
+      extractQueryResults: {
+        getItems: get('payload.data.searchGroups'),
+        getRouteParams: ({ meta }) => ({ search: meta.graphql.variables.search }),
+        replace: offset === 0
+      }
+    }
+  }
+}
+
 // Selectors
 
 const getSearchResultResults = makeGetQueryResults(FETCH_SEARCH)
+const getSearchGroupResults = makeGetQueryResults(FETCH_SEARCH_GROUPS)
+
+export const getSearchGroups = makeQueryResultsModelSelector(getSearchGroupResults, 'Group', group => group.ref)
+
+export const getSearchGroupsTotal = createSelector(getSearchGroupResults, get('total'))
+
+export const getHasMoreSearchGroups = createSelector(getSearchGroupResults, get('hasMore'))
+
+export function getHasFetchedSearchGroups (state, props) {
+  return getSearchGroupResults(state, props) != null
+}
 
 export function presentSearchResult (searchResult, session) {
   const contentRaw = searchResult.getContent(session)

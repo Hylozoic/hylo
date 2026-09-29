@@ -486,6 +486,16 @@ type Query {
 
   # Public groups waiting for a decision about the Group Explorer (admin only)
   explorerReviewList: ExplorerReviewList
+
+  # Groups for the main search: groups you're in, Public groups listed in the Group Explorer, and non-hidden groups related to yours, most recently active first
+  searchGroups(
+    # Search text, matched against the group name, description and location (2 or more characters)
+    term: String,
+    # Number of groups to return
+    first: Int,
+    # For pagination, return groups after this offset
+    offset: Int
+  ): GroupQuerySet
 }
 
 union Update = Message | MessageThread | Notification

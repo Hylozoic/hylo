@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Search from './Search'
 import { FETCH_SEARCH } from './Search.store'
 import orm from 'store/models'
@@ -31,7 +31,9 @@ jest.mock('./Search.store', () => {
   ]
 
   let currentMockResults = defaultMockResults
+  let currentMockGroups = []
   const selectorCache = new Map()
+  const groupSelectorCache = new Map()
 
   // Create a selector that implements memoization
   const getSearchResults = jest.fn((state, props = {}) => {
@@ -42,10 +44,24 @@ jest.mock('./Search.store', () => {
     return selectorCache.get(cacheKey)
   })
 
+  const getSearchGroups = jest.fn((state, props = {}) => {
+    const cacheKey = JSON.stringify(props)
+    if (!groupSelectorCache.has(cacheKey)) {
+      groupSelectorCache.set(cacheKey, currentMockGroups)
+    }
+    return groupSelectorCache.get(cacheKey)
+  })
+
   return {
     getSearchResults,
-    fetchSearchResults: jest.fn(),
+    getSearchGroups,
+    getSearchGroupsTotal: jest.fn(() => currentMockGroups.length),
+    getHasMoreSearchGroups: jest.fn(() => false),
+    getHasFetchedSearchGroups: jest.fn(() => true),
+    fetchSearchResults: jest.fn(() => ({ type: 'FETCH_SEARCH_MOCK' })),
+    fetchSearchGroups: jest.fn(() => ({ type: 'FETCH_SEARCH_GROUPS_MOCK' })),
     FETCH_SEARCH: 'FETCH_SEARCH',
+    FETCH_SEARCH_GROUPS: 'FETCH_SEARCH_GROUPS',
     getHasMoreSearchResults: jest.fn(() => false),
     getHasFetchedSearchResults: jest.fn(() => true),
     getSearchError: jest.fn(() => null),
@@ -54,6 +70,10 @@ jest.mock('./Search.store', () => {
     __setMockResults: (newResults) => {
       currentMockResults = newResults
       selectorCache.clear() // Clear cache when results change
+    },
+    __setMockGroups: (newGroups) => {
+      currentMockGroups = newGroups
+      groupSelectorCache.clear()
     }
   }
 })
@@ -62,8 +82,10 @@ jest.mock('./Search.store', () => {
 const {
   getSearchResults: mockGetSearchResults,
   fetchSearchResults: mockFetchSearchResults,
+  fetchSearchGroups: mockFetchSearchGroups,
   getHasMoreSearchResults: mockGetHasMoreSearchResults,
-  __setMockResults
+  __setMockResults,
+  __setMockGroups
 } = jest.requireMock('./Search.store')
 
 // Reset mocks before each test
@@ -86,15 +108,23 @@ beforeEach(() => {
       }
     }
   ])
+  __setMockGroups([])
   mockGetSearchResults.mockClear()
   mockFetchSearchResults.mockClear()
+  mockFetchSearchGroups.mockClear()
   mockGetHasMoreSearchResults.mockClear()
 })
 
 afterEach(() => {
   const centerColumn = document.getElementById(CENTER_COLUMN_ID)
   if (centerColumn) centerColumn.remove()
+  require('react-router-dom').useLocation.mockReturnValue({ pathname: '', search: '' })
 })
+
+// react-router-dom's useLocation is mocked for every test (config/jest/beforeTestEnvSetup.js)
+function searchFor (term) {
+  require('react-router-dom').useLocation.mockReturnValue({ pathname: '/search', search: `?t=${encodeURIComponent(term)}` })
+}
 
 function testProviders (mockResults = []) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
@@ -231,5 +261,52 @@ describe('Search', () => {
     fireEvent.click(screen.getByText('Joe Person'))
     // This test needs a proper assertion for navigation
     // You might need to mock the push function and verify it was called
+  })
+
+  it('shows matching groups first on the All tab', async () => {
+    __setMockResults([{
+      id: '77',
+      type: 'Person',
+      content: { id: 77, name: 'Joe Person', avatarUrl: 'me.png', location: 'home', skills: [] }
+    }])
+    __setMockGroups([{ id: '5', name: 'Garden Circle', slug: 'garden-circle', memberCount: 12, description: 'We grow things' }])
+
+    searchFor('garden')
+    render(<Search />, { wrapper: testProviders() })
+
+    const group = screen.getByText('Garden Circle')
+    const person = screen.getByText('Joe Person')
+    expect(group.compareDocumentPosition(person) & window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByText('Groups', { selector: 'h3' })).toBeInTheDocument()
+    expect(group.closest('a')).toHaveAttribute('href', '/groups/garden-circle/about')
+    // Fetches are debounced
+    await waitFor(() => expect(mockFetchSearchGroups).toHaveBeenCalledWith({ search: 'garden' }), { timeout: 5000 })
+  }, 30000)
+
+  it('has a Groups tab that shows only groups', () => {
+    __setMockResults([{
+      id: '77',
+      type: 'Person',
+      content: { id: 77, name: 'Joe Person', avatarUrl: 'me.png', location: 'home', skills: [] }
+    }])
+    __setMockGroups([{ id: '5', name: 'Garden Circle', slug: 'garden-circle', memberCount: 12 }])
+
+    searchFor('garden')
+    render(<Search />, { wrapper: testProviders() })
+    fireEvent.click(screen.getByText('Groups', { selector: 'span' }))
+
+    expect(screen.getByText('Garden Circle')).toBeInTheDocument()
+    expect(screen.queryByText('Joe Person')).not.toBeInTheDocument()
+  })
+
+  it('links the empty state to the Group Explorer with the search term', () => {
+    __setMockResults([])
+    __setMockGroups([])
+
+    searchFor('garden club')
+    render(<Search />, { wrapper: testProviders() })
+
+    expect(screen.getByText('No results for this search')).toBeInTheDocument()
+    expect(screen.getByTestId('search-explorer-link')).toHaveAttribute('href', '/public/groups?search=garden%20club')
   })
 })
