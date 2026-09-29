@@ -82,6 +82,36 @@ export function identifyAnalytics (userId) {
   identifiedUserId = userId
 }
 
+/**
+ * Mixpanel adds the previous page's full address ($referrer) and the first
+ * address it saw in this browser ($initial_referrer) to every event. Page
+ * Viewed keeps only their host, like $referring_domain, so it never carries an
+ * address. '$direct' (no referrer) is kept as it is.
+ */
+export function pageViewReferrers () {
+  let initialReferrer
+  try {
+    initialReferrer = initialized ? mixpanel.get_property('$initial_referrer') : undefined
+  } catch (e) {
+    initialReferrer = undefined
+  }
+  return {
+    $referrer: hostOf(document.referrer),
+    $initial_referrer: initialReferrer === '$direct' ? initialReferrer : hostOf(initialReferrer)
+  }
+}
+
+// undefined leaves Mixpanel's own value, which is empty then; an address that
+// can't be read becomes '' so the address itself isn't sent
+function hostOf (address) {
+  if (!address) return undefined
+  try {
+    return new URL(address).host
+  } catch (e) {
+    return ''
+  }
+}
+
 // Callers re-run on a new choice before CookieConsentProvider's effect applies
 // it, and an SDK that is still opted out silently drops their calls
 function applyChoiceAndCheck (choice) {

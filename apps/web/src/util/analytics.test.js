@@ -239,3 +239,42 @@ describe('when the choice changes before CookieConsentProvider applies it', () =
     expect(sent).toEqual([])
   })
 })
+
+describe('pageViewReferrers', () => {
+  function setReferrer (value) {
+    Object.defineProperty(document, 'referrer', { value, configurable: true })
+  }
+
+  afterEach(() => setReferrer(''))
+
+  it('keeps only the host of the previous and the first address', () => {
+    const { analytics, mixpanel } = load()
+    analytics.initAnalytics()
+    setReferrer('https://hylo.example/groups/garden-club/post/123?token=abc')
+    mixpanel.get_property.mockImplementation(key => key === '$initial_referrer' ? 'https://search.example/?q=garden+club' : undefined)
+
+    expect(analytics.pageViewReferrers()).toEqual({ $referrer: 'hylo.example', $initial_referrer: 'search.example' })
+  })
+
+  it("leaves Mixpanel's own values when there is no referrer, and keeps $direct", () => {
+    const { analytics, mixpanel } = load()
+    analytics.initAnalytics()
+    mixpanel.get_property.mockReturnValue('$direct')
+
+    expect(analytics.pageViewReferrers()).toEqual({ $referrer: undefined, $initial_referrer: '$direct' })
+  })
+
+  it('blanks an address that cannot be read', () => {
+    const { analytics, mixpanel } = load()
+    analytics.initAnalytics()
+    mixpanel.get_property.mockReturnValue('not an address')
+
+    expect(analytics.pageViewReferrers().$initial_referrer).toBe('')
+  })
+
+  it('does not ask Mixpanel before it is initialized', () => {
+    const { analytics, mixpanel } = load()
+    expect(analytics.pageViewReferrers()).toEqual({ $referrer: undefined, $initial_referrer: undefined })
+    expect(mixpanel.get_property).not.toHaveBeenCalled()
+  })
+})

@@ -84,6 +84,20 @@ describe('usePageViewTracking', () => {
     expect(JSON.stringify(mixpanel.track.mock.calls)).not.toMatch(/garden-club|123|abc/)
   })
 
+  it('sends only the host of the page before', async () => {
+    Object.defineProperty(document, 'referrer', { value: 'http://localhost/groups/garden-club/post/123', configurable: true })
+    try {
+      renderAt('/groups/garden-club/stream')
+      await settle()
+    } finally {
+      Object.defineProperty(document, 'referrer', { value: '', configurable: true })
+    }
+
+    expect(pageViews()).toHaveLength(1)
+    expect(pageViews()[0][1].$referrer).toBe('localhost')
+    expect(JSON.stringify(mixpanel.track.mock.calls)).not.toMatch(/garden-club|123/)
+  })
+
   it('sends nothing when analytics were rejected', async () => {
     getCookieConsent.mockReturnValue({ analytics: false, support: true })
     renderAt('/groups/garden-club/stream')

@@ -8,7 +8,7 @@ import { getAuthenticated } from 'store/selectors/getSignupState'
 import getMe from 'store/selectors/getMe'
 import { hasEmailClickParams } from 'hooks/useEmailClickthrough'
 import { getCookieConsent } from 'util/cookieConsent'
-import { resolveAnalyticsChoice } from 'util/analytics'
+import { pageViewReferrers, resolveAnalyticsChoice } from 'util/analytics'
 import routePattern from 'util/routePattern'
 
 // A page shown for less than this (a redirect on the way somewhere) isn't counted
@@ -26,8 +26,8 @@ const getMyCookieConsentPreferences = state => getMe(state)?.cookieConsentPrefer
  * signed-in person; while a signed-in person's analytics choice is still
  * unknown (no cookie in this browser, and their account's choice not loaded
  * yet); and while an email link's tags are still in the address, because
- * useEmailClickthrough removes them first. Mixpanel adds the page's address to
- * every event, so $current_url is set to the pattern too.
+ * useEmailClickthrough removes them first. Mixpanel adds addresses to every
+ * event, so $current_url is set to the pattern and the referrers to their host.
  */
 export default function usePageViewTracking () {
   const dispatch = useDispatch()
@@ -51,7 +51,8 @@ export default function usePageViewTracking () {
       const route = routePattern(pathname)
       dispatch(trackAnalyticsEvent(AnalyticsEvents.PAGE_VIEWED, {
         route,
-        $current_url: `${window.location.origin}${route}`
+        $current_url: `${window.location.origin}${route}`,
+        ...pageViewReferrers()
       }))
     }, PAGE_VIEW_SETTLE_MS)
 
