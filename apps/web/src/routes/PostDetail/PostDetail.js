@@ -34,6 +34,7 @@ import PostPeopleDialog from 'components/PostPeopleDialog'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import fetchPost from 'store/actions/fetchPost'
+import answerOpenRequestNudge from 'store/actions/answerOpenRequestNudge'
 import { followPost, unfollowPost } from 'store/actions/followPost'
 import joinProject from 'store/actions/joinProject'
 import leaveProject from 'store/actions/leaveProject'
@@ -60,6 +61,18 @@ import { getPostTypeIcon } from 'store/models/Post'
 import { DETAIL_COLUMN_ID, CENTER_COLUMN_ID, position } from 'util/scrolling'
 
 import ActionCompletionSection from './ActionCompletionSection'
+import OpenRequestPrompt from './OpenRequestPrompt'
+import { fulfillPost } from 'components/PostCard/PostHeader/PostHeader.store'
+import {
+  OPEN_REQUEST_ANSWERS,
+  OPEN_REQUEST_NUDGE_PARAM,
+  OPEN_REQUEST_NUDGE_VALUE,
+  OPEN_REQUEST_POST_TYPES,
+  POST_ACTION_PARAM,
+  POST_ACTIONS,
+  locationWith,
+  locationWithout
+} from './postActionParams'
 
 import classes from './PostDetail.module.scss'
 import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
@@ -163,15 +176,13 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   }, [loadPost])
 
   // Post emails link here with ?action=unfollow
-  const unfollowRequested = getQuerystringParam('action', location) === 'unfollow'
+  const postAction = getQuerystringParam(POST_ACTION_PARAM, location)
+  const unfollowRequested = postAction === POST_ACTIONS.UNFOLLOW
   const unfollowHandled = useRef(false)
   useEffect(() => {
     if (!unfollowRequested || !postId || !currentUser || unfollowHandled.current) return
     unfollowHandled.current = true
-    const params = new URLSearchParams(location.search)
-    params.delete('action')
-    const search = params.toString()
-    navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true, state: location.state })
+    navigate(locationWithout(location, [POST_ACTION_PARAM]), { replace: true, state: location.state })
     const undo = () => dispatch(followPost(postId))
       .catch(() => toast.error(t("Couldn't turn notifications for this post back on")))
     dispatch(unfollowPost(postId))
@@ -182,6 +193,39 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       })
       .catch(() => toast.error(t("Couldn't turn off notifications for this post")))
   }, [unfollowRequested, postId, currentUser])
+
+  // The open request nudge and digest link here with ?action=still-needed or ?action=met
+  // (D58). Only the author's answer counts; either way the param is removed once.
+  const openRequestAction = OPEN_REQUEST_ANSWERS[postAction] ? postAction : null
+  const openRequestActionHandled = useRef(false)
+  const isOpenRequestAuthor = Boolean(post && currentUser && OPEN_REQUEST_POST_TYPES.includes(post.type) &&
+    String(post.creator?.id) === String(currentUser.id))
+  useEffect(() => {
+    if (!openRequestAction || !post || !currentUser || openRequestActionHandled.current) return
+    openRequestActionHandled.current = true
+    navigate(locationWithout(location, [POST_ACTION_PARAM, OPEN_REQUEST_NUDGE_PARAM]), { replace: true, state: location.state })
+    if (!isOpenRequestAuthor) return
+    const recordAnswer = () => dispatch(answerOpenRequestNudge(postId, OPEN_REQUEST_ANSWERS[openRequestAction]))
+    if (openRequestAction === POST_ACTIONS.MET) {
+      // The same fulfill as the post's own Mark as met; recording the answer is best effort
+      Promise.resolve(post.fulfilledAt ? null : dispatch(fulfillPost(postId)))
+        .then(() => {
+          toast(t('Marked as met. Thanks for letting everyone know!'))
+          return recordAnswer()
+        })
+        .catch(() => toast.error(t("Couldn't update this post")))
+    } else {
+      recordAnswer()
+        .then(() => toast(t('Thanks! It stays open so people can still help.')))
+        .catch(() => toast.error(t("Couldn't update this post")))
+    }
+  }, [openRequestAction, postId, !!post, currentUser])
+
+  const showOpenRequestPrompt = isOpenRequestAuthor && !post?.fulfilledAt && !openRequestAction &&
+    getQuerystringParam(OPEN_REQUEST_NUDGE_PARAM, location) === OPEN_REQUEST_NUDGE_VALUE
+  const answerOpenRequest = useCallback(action => {
+    navigate(locationWith(location, POST_ACTION_PARAM, action), { replace: true, state: location.state })
+  }, [navigate, location])
 
   useEffect(() => {
     if (!post) return
@@ -699,6 +743,9 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               flagCover={false}
               {...post}
             />
+          )}
+          {showOpenRequestPrompt && (
+            <OpenRequestPrompt postType={post.type} onAnswer={answerOpenRequest} />
           )}
           {isProject && currentUser && (
             <div className='flex flex-col gap-2 p-2 sm:p-4'>

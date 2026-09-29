@@ -71,6 +71,7 @@ export const ACTION_FUNDING_ROUND_PHASE_TRANSITION = 'fundingRoundPhaseTransitio
 export const ACTION_FUNDING_ROUND_REMINDER = 'fundingRoundReminder'
 export const ACTION_POST_FULFILLED = 'postFulfilled'
 export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
+export const ACTION_OPEN_REQUEST_NUDGE = 'openRequestNudge'
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -169,6 +170,10 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> closed your post', { name })
     case ACTION_POST_UNFULFILLED:
       return t('<strong>{{name}}</strong> reopened your post', { name })
+    case ACTION_OPEN_REQUEST_NUDGE:
+      return post?.type === 'offer'
+        ? t('Nobody has replied to your offer yet')
+        : t('Nobody has replied to your request yet')
     default:
       return null
   }
@@ -267,6 +272,10 @@ export function bodyForNotification (notification, t) {
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary })
+    case ACTION_OPEN_REQUEST_NUDGE:
+      return post?.type === 'offer'
+        ? t('"<strong>{{postSummary}}</strong>": still available, or taken?', { postSummary })
+        : t('"<strong>{{postSummary}}</strong>": still needed, or met?', { postSummary })
     default:
       return null
   }
@@ -359,6 +368,11 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
       return primaryPostUrl(post, postOpts)
+    case ACTION_OPEN_REQUEST_NUDGE: {
+      // The post page asks the author whether it's still needed (D58)
+      const url = primaryPostUrl(post, postOpts)
+      return `${url}${url.includes('?') ? '&' : '?'}nudge=open-request`
+    }
   }
 }
 
