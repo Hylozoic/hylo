@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon'
 import { includes } from 'lodash'
 import { get, pick, some } from 'lodash/fp'
+import { UNSUBSCRIBE_SCOPE, UNSUBSCRIBE_SCOPE_SETTING } from '../../../api/models/notification/rules/unsubscribeScope'
 
 export const defaultTimezone = 'America/Los_Angeles'
 
@@ -187,6 +188,10 @@ export async function getRecipients (groupId, type) {
   const recipients = await group.members().query(q => {
     q.whereRaw(`group_memberships.settings->>'digestFrequency' = '${type}'`)
     q.whereRaw('(group_memberships.settings->>\'sendEmail\')::boolean = true')
+    // 'Everything except direct' and 'everything' stop group digests (D35); 'no group
+    // emails' already turned sendEmail off, and 'digest only' keeps them
+    q.whereRaw(`coalesce(users.settings->>'${UNSUBSCRIBE_SCOPE_SETTING}', '') not in (?, ?)`,
+      [UNSUBSCRIBE_SCOPE.ALL_BUT_DIRECT, UNSUBSCRIBE_SCOPE.EVERYTHING])
   }).fetch().then(get('models'))
 
   if (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true') {

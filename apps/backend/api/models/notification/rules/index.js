@@ -16,6 +16,7 @@ import { CHANNEL, channelsForReason, classForActivity } from '../signalClasses'
 import { isChat, isNewPost } from './predicates'
 import { importantAnnouncement, mentionsAlwaysReachYou } from './directSignals'
 import { conversationPasses, quietGroupPasses } from './adaptiveImportant'
+import { unsubscribeScopeFilter } from './unsubscribeScope'
 
 // Phase 1
 const groupInvitationOverride = ctx => {
@@ -70,7 +71,9 @@ export const GATE_PASSES = [
 const isGated = ctx => isChat(ctx) || isNewPost(ctx)
 
 // Phase 4
-export const READER_FILTERS = []
+export const READER_FILTERS = [
+  unsubscribeScopeFilter
+]
 
 // The reader's strongest post setting across the memberships this activity touches.
 function strongestPostSetting (memberships) {

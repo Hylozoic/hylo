@@ -4,6 +4,7 @@
 import RedisClient from '../services/RedisClient'
 import { normalizeLocaleToFull } from '../../lib/localeHelpers'
 import { ensureGroupParent, groupDisplayNameWithParent, senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
+import { UNSUBSCRIBE_SCOPE, keepsOnlyDirect, unsubscribeScopeOf } from './notification/rules/unsubscribeScope'
 
 // See docs/spaces-and-views-engineering-spec.md section 2.6 / 3.2
 
@@ -167,7 +168,8 @@ module.exports = bookshelf.Model.extend({
    * Sends one email per chat view (parent group chat and each space chat).
    * Uses membership postNotifications: all = every chat, important = mentions
    * (and announcements), none = skip digest. An email digest set to Never stops the
-   * chat digest too (D72).
+   * chat digest too (D72). Under 'everything except direct' (D35) only chats that
+   * mention the person are sent.
    */
   sendDigests: async function () {
     const redisClient = RedisClient.create()
@@ -219,6 +221,11 @@ module.exports = bookshelf.Model.extend({
           const postNotifications = membership.getSetting('postNotifications')
           if (postNotifications !== 'all' && postNotifications !== 'important') continue
 
+          // 'Everything except direct' keeps only chats that mention them (D35)
+          const scope = unsubscribeScopeOf(user)
+          if (scope === UNSUBSCRIBE_SCOPE.EVERYTHING) continue
+          const mentionsOnly = keepsOnlyDirect(scope)
+
           const settings = Object.assign({}, viewUser.get('settings') || {})
           const lastReadPostId = Number(viewUser.get('last_read_post_id')) || 0
           const lastDigestPostId = Number(settings.lastChatDigestPostId) || 0
@@ -256,7 +263,10 @@ module.exports = bookshelf.Model.extend({
             }
           })
 
-          if (postNotifications === 'important') {
+          if (mentionsOnly) {
+            postData = postData.filter(p => p.mentionedMe)
+            if (postData.length === 0) continue
+          } else if (postNotifications === 'important') {
             postData = postData.filter(p => p.mentionedMe || p.announcement)
             if (postData.length === 0) continue
           }

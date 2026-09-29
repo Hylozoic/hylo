@@ -18,11 +18,17 @@
 //   membership_setting:<key>   a named membership setting, e.g. membership_setting:sendEmail
 //   settings_page              no single switch; links to the notification settings page
 //
+// direct (bulk only) marks email that carries direct signals (D7: direct messages,
+// mentions, replies to you, event invitations). It still reaches people who chose
+// "everything except direct" on the emailed settings page (D35); other bulk email
+// doesn't (notification/rules/unsubscribeScope.js).
+//
 // Senders added by other packages are classified by email-prefs-delivery when they
 // report them, so a sender missing from this table is not an error here.
 
 const essential = note => ({ kind: 'essential', unsubscribe: null, note })
 const bulk = (unsubscribe, note) => ({ kind: 'bulk', unsubscribe, note })
+const bulkDirect = (unsubscribe, note) => ({ kind: 'bulk', unsubscribe, note, direct: true })
 
 export const EMAIL_TYPES = {
   sendSimpleEmail: bulk('group_digest', 'group and saved-search digests (lib/group/digest2); also a legacy import welcome'),
@@ -37,13 +43,13 @@ export const EMAIL_TYPES = {
   // A mention is a direct signal (D7, D8): a one-click from it must not switch off the
   // group's post email, which would also stop later mentions there. email-prefs-delivery
   // decides the final switch.
-  sendPostMentionNotification: bulk('settings_page', 'mentioned in a post'),
+  sendPostMentionNotification: bulkDirect('settings_page', 'mentioned in a post'),
   sendJoinRequestNotification: bulk('group_post_email', 'join request, to stewards'),
   sendApprovedJoinRequestNotification: bulk('group_post_email', 'your join request was approved'),
   sendMemberJoinedGroupNotification: bulk('group_post_email', 'new member, to stewards'),
   sendDonationToEmail: essential('receipt for your contribution'),
   sendDonationFromEmail: essential('someone contributed to your project'),
-  sendEventInvitationEmail: bulk('group_post_email', 'invited to an event'),
+  sendEventInvitationEmail: bulkDirect('group_post_email', 'invited to an event'),
   sendEventRsvpEmail: essential('calendar invite for an event you responded to'),
   sendEventRsvpUpdateEmail: essential('calendar update for an event you responded to'),
   sendEventRsvpCancelEmail: essential('calendar cancellation for an event you responded to'),
@@ -74,9 +80,11 @@ export const EMAIL_TYPES = {
   sendSubscriptionCancelledAdminNotification: essential('subscription cancelled, to admins'),
   sendAccessExpired: essential('paid access ended'),
   sendTrackAccessPurchased: essential('track purchase receipt'),
-  sendMessageDigest: bulk('dm_email', 'direct message digest'),
-  sendCommentDigest: bulk('comment_email', 'comment digest, including "You were mentioned in"'),
-  sendChatDigest: bulk('group_digest', 'hourly chat digest (D72)')
+  sendMessageDigest: bulkDirect('dm_email', 'direct message digest'),
+  // Narrowed to mentions and replies for readers who chose everything except direct
+  sendCommentDigest: bulkDirect('comment_email', 'comment digest, including "You were mentioned in"'),
+  // Narrowed to mentions for readers who chose everything except direct
+  sendChatDigest: bulkDirect('group_digest', 'hourly chat digest (D72)')
 }
 
 export const EMAIL_KINDS = ['essential', 'bulk']

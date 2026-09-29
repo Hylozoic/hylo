@@ -7,6 +7,7 @@ import { senderNameForGroup } from '../../../lib/email/senderNameViaHylo'
 import RedisClient from '../../services/RedisClient'
 import sentry from '../../../lib/sentry'
 import { getLocaleStrings } from '../../../lib/i18n/locales'
+import { UNSUBSCRIBE_SCOPE, keepsOnlyDirect, unsubscribeScopeOf } from '../notification/rules/unsubscribeScope'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
 
 export async function notifyAboutMessage ({ commentId }) {
@@ -117,6 +118,10 @@ function digestTimeZone (timeZone) {
 async function sendDigestForUser ({ post, comments, user }) {
   if (user.pivot.get('muted_at')) return
 
+  // 'Everything' stops comment and message digests (D35)
+  const scope = unsubscribeScopeOf(user)
+  if (scope === UNSUBSCRIBE_SCOPE.EVERYTHING) return
+
   // select comments not written by this user and newer than user's last
   // read time.
   let lastReadAt = user.pivot.get('last_read_at')
@@ -188,6 +193,10 @@ async function sendDigestForUser ({ post, comments, user }) {
       digestComments = filtered.filter(comment => hasMention({ text: comment.text() }))
       if (digestComments.length === 0) return
       if (!(await mentionEmailAllowed(user, post))) return
+    } else if (keepsOnlyDirect(scope)) {
+      // 'Everything except direct' (D35): only comments that mention them or reply to them
+      digestComments = commentsSpeakingTo(user, post, filtered, hasMention)
+      if (digestComments.length === 0) return
     }
 
     const routeGroup = await post.groupForFrontendRouteForUser(user.id)
@@ -221,6 +230,13 @@ async function sendDigestForUser ({ post, comments, user }) {
       }
     })
   }
+}
+
+// The comments that mention this person or reply to them (D7's direct signals). Digests
+// carry top-level comments only (Post#comments), so a reply here is a comment on their post.
+function commentsSpeakingTo (user, post, comments, hasMention) {
+  const onTheirPost = String(post.get('user_id')) === String(user.id)
+  return comments.filter(comment => onTheirPost || hasMention({ text: comment.text() }))
 }
 
 // Whether a mention in a comment may be emailed: email notifications are on (or the
