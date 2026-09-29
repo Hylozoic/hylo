@@ -510,6 +510,41 @@ describe('StripeController delayed checkout payments', () => {
       expect(feeRefundCalls).to.deep.equal([{ accountId: 'acct_delayed', paymentIntentId: 'pi_promo', paidAmount: 500 }])
     })
 
+    describe('and a Hylo contribution', () => {
+      let transferCalls
+
+      beforeEach(() => {
+        stripeClient.checkout.sessions.retrieve = async () => ({
+          line_items: {
+            data: [
+              { description: 'Season Pass', quantity: 1, amount_total: 5000, price: { unit_amount: 10000, product: { name: 'Season Pass' } } },
+              { description: 'Hylo Platform Contribution', quantity: 1, amount_total: 500, price: { unit_amount: 1000, product: { name: 'Hylo Platform Contribution' } } }
+            ]
+          }
+        })
+        transferCalls = []
+        mockify(StripeService, 'transferContributionToPlatform', async params => {
+          transferCalls.push(params)
+          return {}
+        })
+      })
+
+      afterEach(() => {
+        unspyify(StripeService, 'transferContributionToPlatform')
+      })
+
+      it('counts only what was paid for the offering, and transfers only what was paid for the contribution', async () => {
+        await StripeController.handleCheckoutSessionCompleted({
+          account: 'acct_delayed',
+          data: { object: sessionFor({ amount_total: 5600, payment_intent: 'pi_promo_contribution', total_details: { amount_discount: 5500 } }) }
+        })
+
+        expect(feeRefundCalls).to.deep.equal([{ accountId: 'acct_delayed', paymentIntentId: 'pi_promo_contribution', paidAmount: 5000 }])
+        expect(transferCalls).to.have.length(1)
+        expect(transferCalls[0]).to.include({ connectedAccountId: 'acct_delayed', paymentIntentId: 'pi_promo_contribution', donationAmount: 500 })
+      })
+    })
+
     it('leaves the fee alone when no discount was applied', async () => {
       await StripeController.handleCheckoutSessionCompleted({
         account: 'acct_delayed',
