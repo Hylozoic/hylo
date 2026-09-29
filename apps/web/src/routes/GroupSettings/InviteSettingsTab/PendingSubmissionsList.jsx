@@ -20,10 +20,13 @@ export default function PendingSubmissionsList ({ groupId, reloadKey }) {
   const { t } = useTranslation()
   const [items, setItems] = useState([])
 
+  // A failed load leaves the list as it was
   const load = useCallback(async () => {
-    const result = await dispatch(fetchInvitationSubmissions(groupId))
-    const submissions = result?.payload?.data?.group?.myInvitationSubmissions?.items
-    if (submissions) setItems(submissions)
+    try {
+      const result = await dispatch(fetchInvitationSubmissions(groupId))
+      const submissions = result?.payload?.data?.group?.myInvitationSubmissions?.items
+      if (submissions) setItems(submissions)
+    } catch {}
   }, [dispatch, groupId])
 
   useEffect(() => {
