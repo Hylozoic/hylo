@@ -117,6 +117,25 @@ describe('Comment', () => {
     expect(screen.getByTestId('Save')).toBeInTheDocument()
   })
 
+  describe('Report', () => {
+    const otherPersonsComment = {
+      ...props.comment,
+      creator: { id: '7', name: 'Someone Else', avatarUrl: 'bar.jpg' }
+    }
+
+    it("isn't offered on your own comment", () => {
+      render(<Comment {...props} />, { wrapper: testProviders() })
+      expect(screen.queryByTestId('Report')).not.toBeInTheDocument()
+    })
+
+    it("is offered on someone else's comment and opens the report form", async () => {
+      render(<Comment {...props} comment={otherPersonsComment} />, { wrapper: testProviders() })
+      const report = screen.getByRole('button', { name: 'Report comment' })
+      fireEvent.click(report)
+      expect(await screen.findByText('Explanation for Flagging')).toBeInTheDocument()
+    })
+  })
+
   describe('handleEditComment', () => {
     it('shows edit form when edit button is clicked', async () => {
       render(<Comment {...props} />, { wrapper: testProviders() })

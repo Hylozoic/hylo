@@ -14,10 +14,11 @@ import MultiSelect from 'components/MultiSelect/MultiSelect'
 import { groupUrl, localSpaceSlug, spaceUrl } from '@hylo/navigation'
 import Button from 'components/ui/button'
 import PostListRow from 'components/PostListRow'
+import HyloHTML from 'components/HyloHTML/HyloHTML'
 import { cn } from 'util/index'
 import { format } from 'date-fns'
 
-/** Renders a flagged post in the moderation queue, including its source space when viewed from a parent group. */
+/** Renders a flagged post or comment in the moderation queue, including its source space when viewed from a parent group. */
 const ModerationListItem = ({
   moderationAction,
   handleClearModerationAction,
@@ -44,6 +45,7 @@ const ModerationListItem = ({
   const {
     agreements,
     anonymous,
+    comment,
     createdAt,
     post,
     reporter,
@@ -105,8 +107,25 @@ const ModerationListItem = ({
           <p className='text-foreground/100'>{text}</p>
         </div>
 
+        {comment && (
+          <div data-testid='moderation-reported-comment'>
+            <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Reported comment')}</h3>
+            <div className='rounded-lg p-3 border-2 border-foreground/10 bg-background/50'>
+              {comment.creator && (
+                <div className='flex items-center gap-2 mb-2'>
+                  <Avatar avatarUrl={comment.creator.avatarUrl} url={`/user/${comment.creator.id}`} small />
+                  <span className='text-sm font-bold text-foreground'>{comment.creator.name}</span>
+                </div>
+              )}
+              {comment.text
+                ? <HyloHTML className='text-foreground/90 text-sm' html={comment.text} />
+                : <p className='text-foreground/50 text-sm'>{t('This comment has been removed')}</p>}
+            </div>
+          </div>
+        )}
+
         <div>
-          <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Reported content')}</h3>
+          <h3 className='text-foreground/50 text-center text-sm mb-2'>{comment ? t('On this post') : t('Reported content')}</h3>
           <div className='rounded-lg p-0 h-98 overflow-hidden shadow-xl border-2 border-foreground/10 border-b-0'>
             <PostListRow
               post={post}
@@ -155,7 +174,7 @@ const ModerationListItem = ({
             onClick={handleClearModerationAction}
             variant='outline'
           >
-            {t('Clear')} <span className='text-xs text-foreground/50'>{t('This will remove the report from the moderation queue, and remove the flag from the post.')}</span>
+            {t('Clear')} <span className='text-xs text-foreground/50'>{comment ? t('This will remove the report from the moderation queue.') : t('This will remove the report from the moderation queue, and remove the flag from the post.')}</span>
           </Button>
         </div>
       )}

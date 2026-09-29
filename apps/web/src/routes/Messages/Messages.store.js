@@ -12,6 +12,7 @@ import {
   MARK_THREAD_UNREAD,
   MUTE_MESSAGE_THREAD,
   UNMUTE_MESSAGE_THREAD,
+  LEAVE_MESSAGE_THREAD,
   CREATE_MESSAGE,
   FIND_OR_CREATE_THREAD
 } from 'store/constants'
@@ -258,6 +259,24 @@ export function unmuteMessageThread (messageThreadId) {
     type: UNMUTE_MESSAGE_THREAD,
     graphql: {
       query: UnmuteMessageThreadMutation,
+      variables: { messageThreadId }
+    },
+    meta: {
+      messageThreadId
+    }
+  }
+}
+
+/** Leave a conversation: it drops out of the inbox and stops notifying the viewer. */
+export function leaveMessageThread (messageThreadId) {
+  return {
+    type: LEAVE_MESSAGE_THREAD,
+    graphql: {
+      query: `mutation ($messageThreadId: ID) {
+        leaveMessageThread(messageThreadId: $messageThreadId) {
+          success
+        }
+      }`,
       variables: { messageThreadId }
     },
     meta: {

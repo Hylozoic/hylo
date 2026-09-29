@@ -97,9 +97,20 @@ export function fetchModerationActions ({ slug, offset, sortBy, first = 20 }) {
           items {
             id
             postId
+            commentId
             groupId
             status
             createdAt
+            comment {
+              id
+              text
+              createdAt
+              creator {
+                id
+                name
+                avatarUrl
+              }
+            }
             group {
               id
               name

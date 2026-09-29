@@ -1,6 +1,7 @@
 import { cn } from 'util/index'
-import { Check, Pencil, Trash2, X } from 'lucide-react'
+import { Check, Flag, Pencil, Trash2, X } from 'lucide-react'
 import React, { useCallback } from 'react'
+import ReactDOM from 'react-dom'
 import { Link, useParams } from 'react-router-dom'
 import { filter, isFunction, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +14,8 @@ import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
 import CommentForm from '../CommentForm'
 import EmojiRow from 'components/EmojiRow'
+import FlagContent from 'components/FlagContent'
+import FlagGroupContent from 'components/FlagGroupContent'
 import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML/HyloHTML'
 import Icon from 'components/Icon'
@@ -59,6 +62,7 @@ function Comment ({
   const [editing, setEditing] = React.useState(false)
   const [showActions, setShowActions] = React.useState(false)
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = React.useState(false)
+  const [reporting, setReporting] = React.useState(false)
 
   const currentUser = useSelector(state => getMe(state))
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
@@ -153,8 +157,11 @@ function Comment ({
     {},
     { icon: <Pencil className='w-5 h-5 text-foreground' />, id: 'Edit', label: t('Edit'), onClick: isCreator && handleEditComment },
     { icon: <Trash2 className='w-5 h-5 text-destructive' />, id: 'Delete', label: t('Delete'), onClick: isCreator ? () => deleteCommentWithConfirm(comment.id, t('Are you sure you want to delete this comment')) : null, red: true },
-    { icon: <Trash2 className='w-5 h-5 text-destructive' />, id: 'Remove', label: t('Remove'), onClick: !isCreator && canModerate ? () => deleteCommentWithConfirm(comment.id, t('Are you sure you want to remove this comment?')) : null, red: true }
+    { icon: <Trash2 className='w-5 h-5 text-destructive' />, id: 'Remove', label: t('Remove'), onClick: !isCreator && canModerate ? () => deleteCommentWithConfirm(comment.id, t('Are you sure you want to remove this comment?')) : null, red: true },
+    { icon: <Flag className='w-5 h-5 text-foreground' />, id: 'Report', label: t('Report comment'), onClick: currentUser && !isCreator ? () => { setShowActions(false); setReporting(true) } : null }
   ])
+  // Comment reports go to the moderation queue of the group being viewed, or else the post's first group
+  const reportGroupSlug = group?.slug || post?.groups?.[0]?.slug
 
   return (
     <div
@@ -234,6 +241,24 @@ function Comment ({
             />
           </div>
         </div>
+      )}
+      {reporting && ReactDOM.createPortal(
+        reportGroupSlug
+          ? (
+            <FlagGroupContent
+              type='comment'
+              linkData={{ id: post?.id, commentId: comment.id, slug: reportGroupSlug, type: 'comment' }}
+              onClose={() => setReporting(false)}
+            />
+            )
+          : (
+            <FlagContent
+              type='comment'
+              linkData={{ id: comment.id, type: 'comment' }}
+              onClose={() => setReporting(false)}
+            />
+            ),
+        document.body
       )}
       {!editing && (
         <>

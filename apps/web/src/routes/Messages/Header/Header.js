@@ -1,10 +1,27 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { filter, get } from 'lodash/fp'
+import { Ban, Flag, LogOut, MoreHorizontal } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { useDispatch, useStore } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import { messageThreadUrl, newMessageUrl } from '@hylo/navigation'
+import FlagContent from 'components/FlagContent/FlagContent'
 import Icon from 'components/Icon'
 import ProfileCardDialog from 'components/ProfileCardDialog/ProfileCardDialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from 'components/ui/dropdown-menu'
+import blockUser from 'store/actions/blockUser'
 import { others } from 'store/models/MessageThread'
+import { AXOLOTL_ID } from 'store/models/Person'
 import { cn } from 'util/index'
 import MuteThreadButton from '../MuteThreadButton'
+import { getMostRecentThreadId, leaveMessageThread } from '../Messages.store'
 
 const MEASURE_GAP = 8 // gap-2 = 0.5rem = 8px
 const OTHERS_RESERVE = 100 // reserve space for "N others ▼" pill
@@ -143,6 +160,91 @@ export default function Header ({ currentUser, messageThread, pending, threadId 
           className='flex-shrink-0 ml-2'
         />
       )}
+      {threadId && threadId !== 'new' && (
+        <ThreadActionsMenu
+          threadId={threadId}
+          otherParticipants={otherParticipants}
+        />
+      )}
     </div>
+  )
+}
+
+/**
+ * Safety actions for a conversation, in this order: Block (the fastest relief),
+ * Report to Hylo staff, then Leave conversation.
+ */
+export function ThreadActionsMenu ({ threadId, otherParticipants = [] }) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const store = useStore()
+  const navigate = useNavigate()
+  const [reporting, setReporting] = useState(false)
+
+  const goToNextThread = useCallback(() => {
+    const nextThreadId = getMostRecentThreadId(store.getState(), { excludeId: threadId })
+    navigate(nextThreadId ? messageThreadUrl(nextThreadId) : newMessageUrl(), { replace: true })
+  }, [navigate, store, threadId])
+
+  const handleBlock = useCallback(person => {
+    if (!window.confirm(t('blockInConversationConfirm', { name: person.name }))) return
+    dispatch(blockUser(person.id)).then(result => {
+      if (result?.error) return
+      toast.success(t('You blocked {{name}}', { name: person.name }))
+      goToNextThread()
+    })
+  }, [dispatch, goToNextThread, t])
+
+  const handleLeave = useCallback(() => {
+    if (!window.confirm(t('leaveConversationConfirm'))) return
+    dispatch(leaveMessageThread(threadId)).then(result => {
+      if (result?.error) return
+      goToNextThread()
+    })
+  }, [dispatch, goToNextThread, t, threadId])
+
+  // In a one-to-one conversation the report is about the other person
+  const reportedUserId = otherParticipants.length === 1 ? otherParticipants[0].id : undefined
+  const blockable = otherParticipants.filter(person => String(person.id) !== String(AXOLOTL_ID))
+
+  return (
+    <>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type='button'
+            aria-label={t('Conversation options')}
+            data-testid='thread-actions-trigger'
+            className='flex-shrink-0 ml-2 flex items-center justify-center w-7 h-7 rounded-lg transition-all scale-100 hover:scale-105 bg-darkening/20 hover:bg-selected/80 text-foreground/60 hover:text-foreground'
+          >
+            <MoreHorizontal className='w-4 h-4' />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align='end' className='min-w-[200px]' data-testid='thread-actions-menu'>
+          {blockable.map(person => (
+            <DropdownMenuItem key={person.id} onClick={() => handleBlock(person)} className='flex items-center gap-2' data-testid='thread-action-block'>
+              <Ban className='w-4 h-4 text-destructive' />
+              <span>{t('Block {{name}}', { name: person.name })}</span>
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuItem onClick={() => setReporting(true)} className='flex items-center gap-2' data-testid='thread-action-report'>
+            <Flag className='w-4 h-4' />
+            <span>{t('Report to Hylo')}</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleLeave} className='flex items-center gap-2' data-testid='thread-action-leave'>
+            <LogOut className='w-4 h-4' />
+            <span>{t('Leave conversation')}</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {reporting && (
+        <FlagContent
+          type={t('conversation')}
+          linkData={{ id: threadId, type: 'thread', reportedUserId }}
+          onClose={() => setReporting(false)}
+        />
+      )}
+    </>
   )
 }
