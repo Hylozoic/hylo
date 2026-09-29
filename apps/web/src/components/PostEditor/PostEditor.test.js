@@ -221,6 +221,77 @@ describe('PostEditor', () => {
       expect(title.length).toBeLessThanOrEqual(80)
     }, 20000)
 
+    it('keeps a new post as a draft and offers to open it when sending fails after the editor has closed', async () => {
+      const createPost = require('store/actions/createPost')
+      const { saveDraft } = require('store/actions/draftActions')
+      const { toast } = require('sonner')
+      toast.error.mockClear()
+      saveDraft.mockClear()
+      let rejectSave
+      createPost.mockImplementationOnce(() => ({
+        type: 'TEST_CREATE_POST',
+        payload: new Promise((resolve, reject) => { rejectSave = reject })
+      }))
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockLocation({ pathname: '/groups/test-group', search: '?create=post' })
+      mockGraphqlServer.use(draftResponse({ title: 'Never sent' }))
+      const editorRef = React.createRef()
+
+      const { unmount } = render(
+        <PostEditor {...baseProps} ref={editorRef} />,
+        { wrapper: testProviders() }
+      )
+      await screen.findByDisplayValue('Never sent')
+      await act(async () => { editorRef.current.submit() })
+      await waitFor(() => expect(createPost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Never sent' })))
+      saveDraft.mockClear()
+
+      unmount()
+      await act(async () => { rejectSave(new Error('offline')) })
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
+        'Your post wasn\'t sent!',
+        expect.objectContaining({ action: expect.objectContaining({ label: 'View Draft' }) })
+      ))
+      // Kept right away, not after the autosave delay
+      expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ data: expect.stringContaining('Never sent') }))
+
+      await act(async () => { toast.error.mock.calls[0][1].action.onClick() })
+      await waitFor(() => expect(`${window.location.pathname}${window.location.search}`).toBe('/groups/test-group?create=post&newPostType=discussion'))
+    }, 20000)
+
+    it('keeps no draft and shows nothing when the person discarded the post while it was being sent', async () => {
+      const createPost = require('store/actions/createPost')
+      const { saveDraft } = require('store/actions/draftActions')
+      const { toast } = require('sonner')
+      toast.error.mockClear()
+      let rejectSave
+      createPost.mockImplementationOnce(() => ({
+        type: 'TEST_CREATE_POST',
+        payload: new Promise((resolve, reject) => { rejectSave = reject })
+      }))
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockGraphqlServer.use(draftResponse({ title: 'Changed my mind' }))
+      const editorRef = React.createRef()
+
+      const { unmount } = render(
+        <PostEditor {...baseProps} ref={editorRef} />,
+        { wrapper: testProviders() }
+      )
+      await screen.findByDisplayValue('Changed my mind')
+      await act(async () => { editorRef.current.submit() })
+      await waitFor(() => expect(createPost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Changed my mind' })))
+
+      await act(async () => { editorRef.current.discard() })
+      unmount()
+      saveDraft.mockClear()
+      await act(async () => { rejectSave(new Error('offline')) })
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 2000)) })
+
+      expect(toast.error).not.toHaveBeenCalled()
+      expect(saveDraft).not.toHaveBeenCalled()
+    }, 20000)
+
     it('restores attachments from a saved draft and saves changes to them', async () => {
       const { saveDraft } = require('store/actions/draftActions')
       saveDraft.mockClear()
@@ -353,7 +424,7 @@ describe('PostEditor', () => {
       expect(updatePost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Test Post, edited' }))
     }, 20000)
 
-    it('reports a failure that arrives after the editor has closed without offering a retry, and keeps the draft', async () => {
+    it('keeps the changes as a draft and offers to open them when saving fails after the editor has closed', async () => {
       const updatePost = require('store/actions/updatePost')
       const { saveDraft } = require('store/actions/draftActions')
       const { toast } = require('sonner')
@@ -365,6 +436,7 @@ describe('PostEditor', () => {
         payload: new Promise((resolve, reject) => { rejectSave = reject })
       }))
       jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      mockLocation({ pathname: '/groups/test-group/post/1/edit', search: '' })
       const editorRef = React.createRef()
 
       const { unmount } = render(
@@ -378,11 +450,16 @@ describe('PostEditor', () => {
       unmount()
       await act(async () => { rejectSave(new Error('offline')) })
 
-      await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Your changes couldn\'t be saved'))
-      expect(toast.error.mock.calls[0]).toHaveLength(1)
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
+        'Your changes couldn\'t be saved',
+        expect.objectContaining({ action: expect.objectContaining({ label: 'View Draft' }) })
+      ))
       await waitFor(() => {
         expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ data: expect.stringContaining('Test Post') }))
-      }, { timeout: 4000 })
+      })
+
+      await act(async () => { toast.error.mock.calls[0][1].action.onClick() })
+      await waitFor(() => expect(window.location.pathname).toBe('/groups/test-group/post/1/edit'))
     }, 20000)
   })
 })

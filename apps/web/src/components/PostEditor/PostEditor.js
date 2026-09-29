@@ -260,7 +260,7 @@ function PostEditorInner ({
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
-  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, cancelPendingSave, clearDraft } = useDraft({
+  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, flushSaveDraft, cancelPendingSave, clearDraft } = useDraft({
     type: 'post',
     postId: editing ? editingPostId : undefined,
     groupId: currentGroup?.id,
@@ -308,6 +308,8 @@ function PostEditorInner ({
   const isSubmittingRef = useRef(false)
   const saveFailedToastIdRef = useRef(null)
   const mountedRef = useRef(false)
+  /** Set when the person chose Discard in the close dialog; a save still in flight then leaves nothing behind. */
+  const discardedRef = useRef(false)
   /**
    * Latest editor HTML. Kept in a ref so typing does not write into React state on every keystroke.
    * null means not hydrated yet — draft effect falls back to currentPost.details.
@@ -1151,22 +1153,48 @@ function PostEditorInner ({
   // }
 
   /**
+   * Where "View Draft" reopens a post whose save failed after its editor closed:
+   * the composer at the same place, for the same post type, which loads the draft.
+   */
+  const viewDraftPath = useCallback(() => {
+    try {
+      const url = new URL(navigateToForDraft, window.location.origin)
+      if (!editing) url.searchParams.set('newPostType', createPostType)
+      return `${url.pathname}${url.search}`
+    } catch {
+      return navigateToForDraft
+    }
+  }, [createPostType, editing, navigateToForDraft])
+
+  /**
    * Keeps the post in the editor after a failed create/update, turns draft
    * autosave back on (re-queueing the draft) and offers a retry. If the editor
-   * has closed while saving, the draft is still re-queued but there is nothing
-   * left to retry from.
+   * has closed while saving, the post is kept as a draft straight away and the
+   * toast offers to open it. If the person chose Discard while it was saving,
+   * nothing is kept and nothing is shown.
    */
   const handleSaveFailed = useEventCallback((wasAnnouncement) => {
     isSubmittedRef.current = false
     isSubmittingRef.current = false
+    if (discardedRef.current) return
     setAnnouncementSelected(!!wasAnnouncement)
     const details = editorRef.current?.getHTML?.() ?? detailsHtmlRef.current ?? currentPost.details
-    saveDraftJSON(buildPostDraftPayload(withDraftAttachments({ ...currentPost, details })))
-    const message = isEditing ? t('Your changes couldn\'t be saved') : t('Your post couldn\'t be sent')
+    const draftPayload = buildPostDraftPayload(withDraftAttachments({ ...currentPost, details }))
     if (!mountedRef.current) {
-      toast.error(message)
+      const draftSaved = hasPostDraftPayloadContent(draftPayload)
+        ? flushSaveDraft(JSON.stringify(draftPayload), { force: true })
+        : Promise.resolve()
+      const path = viewDraftPath()
+      toast.error(isEditing ? t('Your changes couldn\'t be saved') : t('Your post wasn\'t sent!'), {
+        action: {
+          label: t('View Draft'),
+          onClick: () => { draftSaved.finally(() => navigate(path)) }
+        }
+      })
       return
     }
+    saveDraftJSON(draftPayload)
+    const message = isEditing ? t('Your changes couldn\'t be saved') : t('Your post couldn\'t be sent')
     saveFailedToastIdRef.current = toast.error(message, {
       action: { label: t('Try Again'), onClick: () => doSave() }
     })
@@ -1341,7 +1369,13 @@ function PostEditorInner ({
   // Allow parents (e.g. CreatePostModal) to trigger save/reset flows without duplicating editor logic
   useImperativeHandle(ref, () => ({
     submit: () => doSave(),
-    resetToInitial: () => reset()
+    resetToInitial: () => reset(),
+    // Discard from the close dialog: clear everything, including what a save
+    // still in flight would otherwise put back if it fails
+    discard: () => {
+      discardedRef.current = true
+      reset()
+    }
   }))
 
   const buttonLabel = useCallback(() => {

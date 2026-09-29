@@ -77,8 +77,10 @@ export default function CreatePostModal () {
     }
   }, [closeModal, isDirty])
 
+  // Discard also covers a post still being sent: if that save fails, it is
+  // not brought back as a draft
   const handleDiscardDraft = useCallback(() => {
-    postEditorRef.current?.resetToInitial()
+    postEditorRef.current?.discard()
     setIsDirty(false)
     closeModal()
   }, [closeModal])
