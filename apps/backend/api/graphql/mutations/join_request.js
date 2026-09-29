@@ -39,6 +39,20 @@ async function sponsoringMemberLink (groupId, accessCode) {
   return memberLink.link
 }
 
+/**
+ * Count a request through a member's invite link toward its owner's and the group's
+ * day, except for someone already in the group or someone who already asked through
+ * the same link in the last day (for example, after cancelling their request).
+ */
+async function spendForLinkRequest (userId, groupId, link) {
+  if (await GroupMembership.forPair(userId, groupId).fetch()) return
+  const askedToday = await bookshelf.knex('join_requests')
+    .where({ user_id: userId, group_id: groupId, member_invite_link_id: link.id })
+    .whereRaw("created_at > now() - interval '24 hours'")
+    .first('id')
+  if (!askedToday) await InvitationService.spendMemberLinkAllowance(link)
+}
+
 export async function createJoinRequest (userId, groupId, questionAnswers = [], invitationToken, accessCode) {
   if (groupId && userId) {
     const memberLink = accessCode ? await sponsoringMemberLink(groupId, accessCode) : null
@@ -49,12 +63,12 @@ export async function createJoinRequest (userId, groupId, questionAnswers = [], 
       if (invitation && !sponsored(pendingRequest)) {
         await pendingRequest.save({ invitation_id: invitation.id }, { patch: true })
       } else if (memberLink && !sponsored(pendingRequest)) {
-        await InvitationService.spendMemberLinkAllowance(memberLink)
+        await spendForLinkRequest(userId, groupId, memberLink)
         await pendingRequest.save({ member_invite_link_id: memberLink.id }, { patch: true })
       }
       return { request: pendingRequest }
     }
-    if (memberLink) await InvitationService.spendMemberLinkAllowance(memberLink)
+    if (memberLink) await spendForLinkRequest(userId, groupId, memberLink)
     // If there's an existing processed request then let's leave it and create a new one
     // Maybe they left the group and want back in? Or maybe initial request was rejected
     return JoinRequest.create({

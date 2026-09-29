@@ -352,6 +352,25 @@ describe('join_request mutations', () => {
       expect(await ledgerTotal(owner.id)).to.equal(before + 1)
     })
 
+    it('counts someone who cancels and asks again through the same link only once a day', async () => {
+      const requester = await factories.user().save()
+      const before = await ledgerTotal(owner.id)
+      const first = await createJoinRequest(requester.id, restricted.id, [], null, link.get('code'))
+      await cancelJoinRequest(requester.id, first.request.id)
+      const second = await createJoinRequest(requester.id, restricted.id, [], null, link.get('code'))
+      expect(second.request.id).to.not.equal(first.request.id)
+      expect(second.request.get('member_invite_link_id')).to.equal(link.id)
+      expect(await ledgerTotal(owner.id)).to.equal(before + 1)
+    })
+
+    it('does not count someone who is already in the group', async () => {
+      const member = await factories.user().save()
+      await member.joinGroup(restricted)
+      const before = await ledgerTotal(owner.id)
+      await createJoinRequest(member.id, restricted.id, [], null, link.get('code'))
+      expect(await ledgerTotal(owner.id)).to.equal(before)
+    })
+
     it('refuses a code that is not a usable member link to this group', async () => {
       const otherOwner = await factories.user().save()
       await otherOwner.joinGroup(otherGroup)
