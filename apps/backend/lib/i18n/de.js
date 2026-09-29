@@ -22,6 +22,8 @@ exports.de = {
   emailDigestWeeklySubject: (name) => `Dein wöchentlicher Überblick für ${name}`,
   emailDigestUnifiedDailySubject: () => 'Dein täglicher Hylo-Überblick',
   emailDigestUnifiedWeeklySubject: () => 'Dein wöchentlicher Hylo-Überblick',
+  // D9: in the first weekly digest after a daily digest was slowed down for being away
+  emailDigestSlowedNotice: () => 'Solange du weg warst, haben wir deine E-Mails auf eine wöchentliche Zusammenfassung reduziert. Besuche Hylo jederzeit, dann bekommst du deine tägliche Zusammenfassung wieder.',
   emailSenderViaHyloSuffix: () => ' (über Hylo)',
   groupCreatedNotifySubject: (name) => `Neue Hylo-Gruppe erstellt: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {

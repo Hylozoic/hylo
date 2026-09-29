@@ -10,6 +10,8 @@ import {
   shouldSendData
 } from './util'
 import { senderNameViaHylo } from '../../email/senderNameViaHylo'
+import { getLocaleStrings } from '../../i18n/locales'
+import { lastSeenAt } from '../../../api/models/notification/rules/inactiveReader'
 import sentry from '../../sentry'
 
 const DIGEST_TEMPLATE_ID = 'tem_t7rmGfJKvqXrvmrVWJjjWkg4'
@@ -55,6 +57,24 @@ export const prepareDigestData = async (id, type, opts = {}) => {
   }, formattedData)
 }
 
+// The first weekly digest after someone's daily digest was slowed down for being away
+// (util.js marks them digestSlowed) says so, once per absence (D9). The template shows
+// slowed_notice when it is set.
+const SLOWED_NOTICE_SETTING = 'digest_slowed_notice_at'
+// Someone in several groups gets several weekly digests in one run; only one says it
+const slowedNoticeSentTo = new Set()
+
+function owesSlowedNotice (user, type) {
+  if (type !== 'weekly' || !user.digestSlowed || slowedNoticeSentTo.has(String(user.id))) return false
+  const noticedAt = user.get('settings')?.[SLOWED_NOTICE_SETTING]
+  const seen = lastSeenAt(user)
+  return !noticedAt || (seen && new Date(noticedAt) < seen)
+}
+
+const recordSlowedNotice = user => bookshelf.knex('users')
+  .where({ id: user.id })
+  .update({ settings: bookshelf.knex.raw('coalesce(settings, \'{}\'::jsonb) || ?::jsonb', [JSON.stringify({ [SLOWED_NOTICE_SETTING]: new Date().toISOString() })]) })
+
 export const sendToUser = (user, type, data, opts = {}) => {
   const templateId = data.search ? SAVED_SEARCH_TEMPLATE_ID : DIGEST_TEMPLATE_ID
   let senderName
@@ -74,12 +94,17 @@ export const sendToUser = (user, type, data, opts = {}) => {
     ? { descriptor: 'settings_page' }
     : data.unified ? { frequency: type } : { groupId: data.group_id }
 
+  const slowedNotice = !data.search && owesSlowedNotice(user, type)
+
   return personalizeData(user, type, data, opts)
-    .then(data => {
+    .then(async data => {
       if (!data) return false
       if (opts.dryRun) return true
       const locale = user.getLocale()
-      return Email.sendSimpleEmail(user.get('email'), templateId, data, {
+      const emailData = slowedNotice
+        ? { ...data, slowed_notice: getLocaleStrings(locale).emailDigestSlowedNotice() }
+        : data
+      const result = await Email.sendSimpleEmail(user.get('email'), templateId, emailData, {
         sender: {
           name: senderNameViaHylo(senderName, locale),
           reply_to: 'DoNotReply@hylo.com'
@@ -87,6 +112,11 @@ export const sendToUser = (user, type, data, opts = {}) => {
         version: 'Spaces',
         unsubscribe
       }, locale)
+      if (slowedNotice && result && result !== Email.SKIPPED) {
+        slowedNoticeSentTo.add(String(user.id))
+        await recordSlowedNotice(user)
+      }
+      return result
     })
 }
 
@@ -134,6 +164,7 @@ export const sendUnifiedToUser = (user, type, datasets, opts = {}) => {
 
 export const sendAllDigests = async (type, opts = {}) => {
   if (opts.groupIds && opts.groupIds.length === 0) return []
+  slowedNoticeSentTo.clear()
 
   let query = bookshelf.knex('groups')
     .where({ active: true })

@@ -17,6 +17,7 @@ import { isChat, isNewPost } from './predicates'
 import { importantAnnouncement, mentionsAlwaysReachYou } from './directSignals'
 import { conversationPasses, quietGroupPasses } from './adaptiveImportant'
 import { unsubscribeScopeFilter } from './unsubscribeScope'
+import { inactiveReaderFilter } from './inactiveReader'
 
 // Phase 1
 const groupInvitationOverride = ctx => {
@@ -72,7 +73,8 @@ const isGated = ctx => isChat(ctx) || isNewPost(ctx)
 
 // Phase 4
 export const READER_FILTERS = [
-  unsubscribeScopeFilter
+  unsubscribeScopeFilter,
+  inactiveReaderFilter
 ]
 
 // The reader's strongest post setting across the memberships this activity touches.

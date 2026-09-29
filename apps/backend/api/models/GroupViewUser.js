@@ -5,6 +5,7 @@ import RedisClient from '../services/RedisClient'
 import { normalizeLocaleToFull } from '../../lib/localeHelpers'
 import { ensureGroupParent, groupDisplayNameWithParent, senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 import { UNSUBSCRIBE_SCOPE, keepsOnlyDirect, unsubscribeScopeOf } from './notification/rules/unsubscribeScope'
+import { isInactive } from './notification/rules/inactiveReader'
 
 // See docs/spaces-and-views-engineering-spec.md section 2.6 / 3.2
 
@@ -168,8 +169,8 @@ module.exports = bookshelf.Model.extend({
    * Sends one email per chat view (parent group chat and each space chat).
    * Uses membership postNotifications: all = every chat, important = mentions
    * (and announcements), none = skip digest. An email digest set to Never stops the
-   * chat digest too (D72). Under 'everything except direct' (D35) only chats that
-   * mention the person are sent.
+   * chat digest too (D72). Under 'everything except direct' (D35), and for members
+   * away 30 days or more (D9), only chats that mention the person are sent.
    */
   sendDigests: async function () {
     const redisClient = RedisClient.create()
@@ -221,10 +222,11 @@ module.exports = bookshelf.Model.extend({
           const postNotifications = membership.getSetting('postNotifications')
           if (postNotifications !== 'all' && postNotifications !== 'important') continue
 
-          // 'Everything except direct' keeps only chats that mention them (D35)
+          // 'Everything except direct' keeps only chats that mention them (D35), and so
+          // does being away 30 days or more: mentions still reach them (D9)
           const scope = unsubscribeScopeOf(user)
           if (scope === UNSUBSCRIBE_SCOPE.EVERYTHING) continue
-          const mentionsOnly = keepsOnlyDirect(scope)
+          const mentionsOnly = keepsOnlyDirect(scope) || isInactive(user)
 
           const settings = Object.assign({}, viewUser.get('settings') || {})
           const lastReadPostId = Number(viewUser.get('last_read_post_id')) || 0

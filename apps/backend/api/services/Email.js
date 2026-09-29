@@ -189,6 +189,11 @@ const GROUP_CLOSED_TEMPLATE_ID = null
 // is uploaded; until then the confirmation is skipped (the sender resolves false).
 const ACCOUNT_CLOSED_TEMPLATE_ID = null
 
+// Set to the SendWithUs template id once scripts/i18n/i18n-templates/Winback_i18n is
+// uploaded; until then no win-back email is sent and nobody is marked as having had one
+// (api/models/user/winback.js).
+const WINBACK_TEMPLATE_ID = null
+
 const senders = {
   sendSimpleEmail,
 
@@ -458,7 +463,15 @@ Profile: ${opts.actorProfileUrl}
   // One reminder to someone who started signing up and stopped (api/models/invitation/stalledSignupReminder.js).
   // The template is named by STALLED_SIGNUP_REMINDER_TEMPLATE_ID.
   sendStalledSignupReminder: ({ email, data, locale }) =>
-    sendSimpleEmail(email, process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID, data, {}, normalizeLocaleToFull(locale))
+    sendSimpleEmail(email, process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID, data, {}, normalizeLocaleToFull(locale)),
+
+  // One email to a member who has been away 180 days (D9). Takes { email, locale, data }:
+  // first_name, home_url, email_settings_url, groups [{ name, url, new_post_count }]
+  sendWinbackEmail: opts => WINBACK_TEMPLATE_ID
+    ? sendEmailWithOptions(WINBACK_TEMPLATE_ID, opts)
+    : Promise.resolve(false),
+
+  winbackTemplateReady: () => !!WINBACK_TEMPLATE_ID
 
 }
 

@@ -22,6 +22,8 @@ exports.en = {
   emailDigestWeeklySubject: (name) => `Your ${name} Weekly Digest`,
   emailDigestUnifiedDailySubject: () => 'Your Hylo Daily Digest',
   emailDigestUnifiedWeeklySubject: () => 'Your Hylo Weekly Digest',
+  // D9: in the first weekly digest after a daily digest was slowed down for being away
+  emailDigestSlowedNotice: () => 'We\'ve slowed your email to one weekly digest while you\'ve been away. Visit Hylo any time to get your daily digest back.',
   emailSenderViaHyloSuffix: () => ' (via Hylo)',
   groupCreatedNotifySubject: (name) => `New Hylo Group Created: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {

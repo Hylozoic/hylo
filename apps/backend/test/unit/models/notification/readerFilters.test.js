@@ -9,6 +9,7 @@ import {
   unsubscribeScopeOf
 } from '../../../../api/models/notification/rules/unsubscribeScope'
 import { CHANNEL, SIGNAL_CLASS } from '../../../../api/models/notification/signalClasses'
+import { daysAway, inactiveReaderFilter, lastSeenAt } from '../../../../api/models/notification/rules/inactiveReader'
 import { emailTypeFor } from '../../../../lib/email/emailTypes'
 const root = require('root-path')
 require(root('test/setup'))
@@ -78,8 +79,58 @@ describe('notification reader filters', () => {
     process.env.PUSH_NOTIFICATIONS_ENABLED = originalPush
   })
 
-  it('runs the unsubscribe choices in the reader filters phase', () => {
+  it('runs the unsubscribe choices and the inactivity throttle in the reader filters phase', () => {
     expect(READER_FILTERS).to.include(unsubscribeScopeFilter)
+    expect(READER_FILTERS).to.include(inactiveReaderFilter)
+  })
+
+  describe('members who are away (D9)', () => {
+    const DAY = 24 * 60 * 60 * 1000
+    const away = days => ({ last_active_at: new Date(Date.now() - days * DAY), created_at: new Date(Date.now() - 900 * DAY) })
+    const readerAway = (days, attrs = {}) =>
+      mockReader([{ settings: everyChannel, relations: { group: { id: 1 } } }], { ...away(days), ...attrs })
+    let all
+    before(() => { all = [Notification.MEDIUM.Email, Notification.MEDIUM.Push, Notification.MEDIUM.InApp] })
+
+    function groupActivity (reasons, reader) {
+      return model({ meta: { reasons }, group_id: 1, relations: { group: { id: 1 }, reader } })
+    }
+
+    it('keeps every channel for someone active in the last 30 days', async () => {
+      expect(await media(postActivity(['newPost: 1'], readerAway(29)))).to.have.members(all)
+    })
+
+    it('after 30 days, a new post, topic post, announcement or chat is in-app only', async () => {
+      for (const reasons of [['newPost: 1'], ['tag: garden'], ['newPost: 1', 'announcement'], ['chat']]) {
+        expect(await media(postActivity(reasons, readerAway(31))), reasons.join()).to.deep.equal([Notification.MEDIUM.InApp])
+      }
+    })
+
+    it('after 30 days, a mention still emails and pushes', async () => {
+      expect(await media(postActivity(['mention'], readerAway(45)))).to.have.members(all)
+    })
+
+    it('between 30 and 180 days, other notices keep their channels', async () => {
+      expect(await media(groupActivity(['joinRequest'], readerAway(90)))).to.have.members(all)
+    })
+
+    it('after 180 days, only direct signals leave the app', async () => {
+      expect(await media(groupActivity(['joinRequest'], readerAway(200)))).to.deep.equal([Notification.MEDIUM.InApp])
+      expect(await media(postActivity(['mention'], readerAway(200)))).to.have.members(all)
+    })
+
+    it('falls back to when they signed up when they were never active', async () => {
+      const neverActive = readerAway(0, { last_active_at: null, created_at: new Date(Date.now() - 40 * DAY) })
+      expect(await media(postActivity(['newPost: 1'], neverActive))).to.deep.equal([Notification.MEDIUM.InApp])
+
+      const newcomer = readerAway(0, { last_active_at: null, created_at: new Date(Date.now() - 2 * DAY) })
+      expect(await media(postActivity(['newPost: 1'], newcomer))).to.have.members(all)
+    })
+
+    it('treats someone with no dates at all as active', () => {
+      expect(lastSeenAt({ get: () => null })).to.equal(null)
+      expect(daysAway({ get: () => null })).to.equal(0)
+    })
   })
 
   describe('unsubscribe choices (D35)', () => {

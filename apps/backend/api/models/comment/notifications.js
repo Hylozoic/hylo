@@ -8,6 +8,7 @@ import RedisClient from '../../services/RedisClient'
 import sentry from '../../../lib/sentry'
 import { getLocaleStrings } from '../../../lib/i18n/locales'
 import { UNSUBSCRIBE_SCOPE, keepsOnlyDirect, unsubscribeScopeOf } from '../notification/rules/unsubscribeScope'
+import { isDormant } from '../notification/rules/inactiveReader'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
 
 export async function notifyAboutMessage ({ commentId }) {
@@ -197,8 +198,9 @@ async function sendDigestForUser ({ post, comments, user }) {
       digestComments = filtered.filter(comment => hasMention({ text: comment.text() }))
       if (digestComments.length === 0) return
       if (!(await mentionEmailAllowed(user, post))) return
-    } else if (keepsOnlyDirect(scope)) {
-      // 'Everything except direct' (D35): only comments that mention them or reply to them
+    } else if (keepsOnlyDirect(scope) || isDormant(user)) {
+      // 'Everything except direct' (D35), or away 180 days or more (D9): only comments
+      // that mention them or reply to them
       digestComments = commentsSpeakingTo(user, post, filtered, hasMention)
       if (digestComments.length === 0) return
     }

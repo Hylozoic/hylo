@@ -91,7 +91,8 @@ export const EMAIL_TYPES = {
   sendChatDigest: bulkDirect('group_digest', 'hourly chat digest (D72)'),
   sendAccountClosed: essential('your account was deactivated or deleted (D70)'),
   sendGroupClosed: bulk('settings_page', 'a group you were in was closed'),
-  sendStalledSignupReminder: bulk('settings_page', 'reminder to finish signing up')
+  sendStalledSignupReminder: bulk('settings_page', 'reminder to finish signing up'),
+  sendWinbackEmail: bulk('settings_page', 'one email after 180 days away (D9)')
 }
 
 export const EMAIL_KINDS = ['essential', 'bulk']

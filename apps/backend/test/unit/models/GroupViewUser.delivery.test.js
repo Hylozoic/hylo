@@ -1,4 +1,5 @@
 // Who gets the hourly chat digest: the emailed settings page's unsubscribe choices (D35)
+// and members who are away (D9); and what its one-click unsubscribe switches off (D34)
 import RedisClient from '../../../api/services/RedisClient'
 import setup from '../../setup'
 import factories from '../../setup/factories'
@@ -34,6 +35,45 @@ describe('GroupViewUser.sendDigests delivery', () => {
   afterEach(() => {
     process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
     unspyify(Email, 'sendChatDigest')
+  })
+
+  it("names the chat's group for its one-click unsubscribe", async () => {
+    await addChat()
+
+    expect(await GroupViewUser.sendDigests()).to.equal(1)
+    expect(Object.keys(sends[0].unsubscribe)).to.deep.equal(['groupId'])
+    expect(String(sends[0].unsubscribe.groupId)).to.equal(String(group.id))
+  })
+
+  describe('members who are away (D9)', () => {
+    const DAY = 24 * 60 * 60 * 1000
+
+    for (const days of [31, 200]) {
+      it(`after ${days} days, sends only chats that mention them`, async () => {
+        await reader.save({ last_active_at: new Date(Date.now() - days * DAY) }, { patch: true })
+        await addChat()
+        const mentioning = await addChat(mention(reader))
+
+        expect(await GroupViewUser.sendDigests()).to.equal(1)
+        expect(sends[0].data.posts.map(p => p.id)).to.deep.equal([mentioning.id])
+      })
+    }
+
+    it('after 30 days, sends nothing without a mention', async () => {
+      await reader.save({ last_active_at: new Date(Date.now() - 45 * DAY) }, { patch: true })
+      await addChat()
+
+      expect(await GroupViewUser.sendDigests()).to.equal(0)
+    })
+
+    it('keeps every chat for someone active in the last 30 days', async () => {
+      await reader.save({ last_active_at: new Date(Date.now() - 20 * DAY) }, { patch: true })
+      await addChat()
+      await addChat()
+
+      expect(await GroupViewUser.sendDigests()).to.equal(1)
+      expect(sends[0].data.posts).to.have.length(2)
+    })
   })
 
   describe('unsubscribe choices', () => {

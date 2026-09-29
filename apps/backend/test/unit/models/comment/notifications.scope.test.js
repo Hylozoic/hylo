@@ -1,4 +1,5 @@
-// Comment and message digests under the emailed settings page's unsubscribe choices (D35)
+// Comment and message digests under the emailed settings page's unsubscribe choices (D35),
+// and for members away 180 days or more (D9)
 import { times } from 'lodash'
 import RedisClient from '../../../../api/services/RedisClient'
 import setup from '../../../setup'
@@ -89,6 +90,44 @@ describe('comment digests and unsubscribe choices', () => {
     await Comment.sendDigests()
 
     expect(sentTo(reader)).not.to.exist
+  })
+
+  describe('members who are away (D9)', () => {
+    const DAY = 24 * 60 * 60 * 1000
+
+    it('after 180 days, keeps only comments that mention them', async () => {
+      await reader.save({ last_active_at: new Date(Date.now() - 200 * DAY) }, { patch: true })
+      await comments[1].save({ text: mention(reader) }, { patch: true })
+
+      await Comment.sendDigests()
+
+      expect(sentTo(reader).data.comments.map(c => c.id)).to.deep.equal([comments[1].id])
+    })
+
+    it('after 180 days, still sends the post author comments on their post', async () => {
+      await author.save({ last_active_at: new Date(Date.now() - 200 * DAY) }, { patch: true })
+
+      await Comment.sendDigests()
+
+      expect(sentTo(author).data.comments.map(c => c.id)).to.deep.equal([comments[3].id])
+    })
+
+    it('between 30 and 180 days, comment digests are unchanged', async () => {
+      await reader.save({ last_active_at: new Date(Date.now() - 90 * DAY) }, { patch: true })
+
+      await Comment.sendDigests()
+
+      expect(sentTo(reader).data.comments).to.have.length(3)
+    })
+
+    it('after 180 days, direct messages still arrive', async () => {
+      await post.save({ type: Post.Type.THREAD }, { patch: true })
+      await reader.save({ last_active_at: new Date(Date.now() - 200 * DAY) }, { patch: true })
+
+      await Comment.sendDigests()
+
+      expect(sentTo(reader).data.messages).to.have.length(3)
+    })
   })
 
   describe('in a message thread', () => {

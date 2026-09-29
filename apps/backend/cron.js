@@ -60,6 +60,8 @@ const daily = now => {
 
   tasks.push(require('./api/models/group/activityBenchmark').runDaily().then(({ line, marked }) => sails.log.debug(`Marked ${marked} groups quiet or busy (line: ${line} feed posts in 28 days)`)).catch(err => sails.log.error('Quiet-group benchmark failed', err)))
 
+  tasks.push(require('./api/models/user/winback').sendWinbackEmails().then(count => sails.log.debug(`Sent ${count} win-back emails`)).catch(err => sails.log.error('Win-back emails failed', err)))
+
   // Staff assign an Administrator from Management > Groups without an Administrator
   tasks.push(countOrphanedGroups().then(count => {
     sails.log.info(`metric groups_without_administrator=${count}`)
