@@ -37,5 +37,7 @@ export const PRIORITY_REASONS = [
   'declinedJoinRequest',
   'unansweredJoinRequest',
   // D48: a steward gave you a role or badge
-  'roleGranted'
+  'roleGranted',
+  // D38: weekly "N people joined, say hi" (group/newcomerBatch.js)
+  'newMembersJoined'
 ]

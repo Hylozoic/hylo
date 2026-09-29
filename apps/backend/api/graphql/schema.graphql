@@ -612,6 +612,8 @@ type ActivityMeta {
   roleId: ID
   roleName: String
   roleEmoji: String
+  # newMembersJoined: how many people joined the group this week
+  newMemberCount: Int
 }
 
 # An activity that someone may want to be notified about

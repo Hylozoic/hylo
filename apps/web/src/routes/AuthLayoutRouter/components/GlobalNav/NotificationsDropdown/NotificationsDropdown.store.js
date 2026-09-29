@@ -87,6 +87,7 @@ export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
                 roleId
                 roleName
                 roleEmoji
+                newMemberCount
               }
               action
               unread

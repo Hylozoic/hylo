@@ -83,7 +83,9 @@ const TODAY = {
   declinedJoinRequest: ['inApp', 'email'],
   unansweredJoinRequest: ['inApp', 'email'],
   // D48
-  roleGranted: ['email', 'inApp']
+  roleGranted: ['email', 'inApp'],
+  // D38
+  newMembersJoined: ['inApp']
 }
 
 // Reasons whose media don't depend on a group membership's email and push toggles

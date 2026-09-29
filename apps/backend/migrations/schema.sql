@@ -1342,6 +1342,37 @@ ALTER SEQUENCE public.group_memberships_id_seq OWNED BY public.group_memberships
 
 
 --
+-- Name: group_notice_marks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_notice_marks (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    kind character varying(64) NOT NULL,
+    sent_at timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: group_notice_marks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_notice_marks_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_notice_marks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_notice_marks_id_seq OWNED BY public.group_notice_marks.id;
+
+
+--
 -- Name: group_relationship_invites; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4048,6 +4079,13 @@ ALTER TABLE ONLY public.group_memberships_group_roles ALTER COLUMN id SET DEFAUL
 
 
 --
+-- Name: group_notice_marks id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_notice_marks ALTER COLUMN id SET DEFAULT nextval('public.group_notice_marks_id_seq'::regclass);
+
+
+--
 -- Name: group_relationship_invites id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4750,6 +4788,22 @@ ALTER TABLE ONLY public.group_memberships
 
 ALTER TABLE ONLY public.group_memberships
     ADD CONSTRAINT group_memberships_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_notice_marks group_notice_marks_group_id_kind_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_notice_marks
+    ADD CONSTRAINT group_notice_marks_group_id_kind_unique UNIQUE (group_id, kind);
+
+
+--
+-- Name: group_notice_marks group_notice_marks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_notice_marks
+    ADD CONSTRAINT group_notice_marks_pkey PRIMARY KEY (id);
 
 
 --
@@ -7001,6 +7055,14 @@ ALTER TABLE ONLY public.group_memberships
 
 ALTER TABLE ONLY public.group_memberships
     ADD CONSTRAINT group_memberships_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: group_notice_marks group_notice_marks_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_notice_marks
+    ADD CONSTRAINT group_notice_marks_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
 
 
 --

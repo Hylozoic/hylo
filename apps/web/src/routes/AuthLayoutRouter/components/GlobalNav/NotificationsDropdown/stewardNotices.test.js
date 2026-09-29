@@ -74,3 +74,23 @@ describe('role granted (D48)', () => {
     expect(imageForNotification(n)).toEqual('sam.png')
   })
 })
+
+describe('weekly new members (D38)', () => {
+  const notice = count => ({
+    id: '102',
+    activity: {
+      action: 'newMembersJoined',
+      actor,
+      group,
+      meta: { reasons: ['newMembersJoined'], newMemberCount: count }
+    }
+  })
+
+  it('counts the week\'s new members and links to the members list by join date', () => {
+    expect(titleForNotification(notice(3), t)).toEqual('<strong>3</strong> people joined <strong>Seed Library</strong> this week')
+    expect(titleForNotification(notice(1), t)).toEqual('<strong>1</strong> person joined <strong>Seed Library</strong> this week')
+    expect(bodyForNotification(notice(3), t)).toEqual('Say hi and help them feel welcome.')
+    expect(urlForNotification(notice(3))).toEqual('/groups/seed-library/members?s=join')
+    expect(imageForNotification(notice(3))).toEqual('group.png')
+  })
+})

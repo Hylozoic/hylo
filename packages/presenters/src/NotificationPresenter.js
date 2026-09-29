@@ -83,6 +83,8 @@ export const ACTION_DECLINED_JOIN_REQUEST = 'declinedJoinRequest'
 export const ACTION_UNANSWERED_JOIN_REQUEST = 'unansweredJoinRequest'
 // D48: a steward gave you a role or badge
 export const ACTION_ROLE_GRANTED = 'roleGranted'
+// D38: weekly, people joined your group
+export const ACTION_NEW_MEMBERS_JOINED = 'newMembersJoined'
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -189,6 +191,8 @@ export function titleForNotification (notification, t) {
       return t('No answer yet from <strong>{{groupName}}</strong>', { groupName: group?.name })
     case ACTION_ROLE_GRANTED:
       return t('<strong>{{name}}</strong> gave you the <strong>{{roleName}}</strong> role', { name, roleName: roleLabel(notification.activity.meta) })
+    case ACTION_NEW_MEMBERS_JOINED:
+      return t('newMembersJoinedTitle', { count: notification.activity.meta?.newMemberCount || 1, groupName: group?.name })
     default:
       return null
   }
@@ -295,6 +299,8 @@ export function bodyForNotification (notification, t) {
       return t('Your request has been waiting two weeks. You can keep waiting, or find an open group to join now.')
     case ACTION_ROLE_GRANTED:
       return t('See who else holds it in {{groupName}}', { groupName: group?.name })
+    case ACTION_NEW_MEMBERS_JOINED:
+      return t('Say hi and help them feel welcome.')
     default:
       return null
   }
@@ -399,6 +405,9 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
       return GROUP_EXPLORER_URL
     case ACTION_ROLE_GRANTED:
       return groupUrl(groupSlug, 'members') + (roleId ? `?r=${encodeURIComponent(roleId)}` : '')
+    case ACTION_NEW_MEMBERS_JOINED:
+      // Members sorted by join date, newest first
+      return groupUrl(groupSlug, 'members') + '?s=join'
   }
 }
 
@@ -408,6 +417,7 @@ export function imageForNotification (notification) {
     case ACTION_ACKNOWLEDGED_JOIN_REQUEST:
     case ACTION_DECLINED_JOIN_REQUEST:
     case ACTION_UNANSWERED_JOIN_REQUEST:
+    case ACTION_NEW_MEMBERS_JOINED:
     case ACTION_MEMBER_JOINED_GROUP:
     case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
     case ACTION_FUNDING_ROUND_PHASE_TRANSITION:

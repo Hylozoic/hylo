@@ -8,6 +8,10 @@
  * day, one row per post and group, with the newcomer's experiment arm. Treatment rows
  * have nudged_at set (Moderators and Hosts got an in-app nudge and the post is listed
  * in the weekly steward email); control rows are kept for the analysis.
+ *
+ * group_notice_marks: when a group last had one of the scheduled steward notices
+ * (kind: newcomer_notice, steward_digest or quiet_prompt), so each goes out at most
+ * once per period. Kept out of groups.settings, which a stale Group#save can overwrite.
  */
 
 exports.up = async function (knex) {
@@ -26,9 +30,18 @@ exports.up = async function (knex) {
     table.unique(['post_id', 'group_id'])
     table.index(['group_id', 'created_at'])
   })
+
+  await knex.schema.createTable('group_notice_marks', table => {
+    table.bigIncrements('id').primary()
+    table.bigInteger('group_id').notNullable().references('id').inTable('groups').onDelete('CASCADE')
+    table.string('kind', 64).notNullable()
+    table.timestamp('sent_at', { useTz: true }).notNullable()
+    table.unique(['group_id', 'kind'])
+  })
 }
 
 exports.down = async function (knex) {
+  await knex.schema.dropTableIfExists('group_notice_marks')
   await knex.schema.dropTableIfExists('first_post_nudges')
   await knex.schema.alterTable('join_requests', table => {
     table.dropColumn('unanswered_notified_at')

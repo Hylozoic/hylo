@@ -66,6 +66,11 @@ const daily = now => {
     return count
   }))
 
+  // D38: on Mondays, "N people joined this week, say hi" to recently active members
+  if (now.weekday === 1) {
+    tasks.push(require('./api/models/group/newcomerBatch').runWeekly().then(({ groups, notices }) => sails.log.debug(`Sent ${notices} new-member notices in ${groups} groups`)).catch(err => sails.log.error('New-member notices failed', err)))
+  }
+
   return tasks
 }
 
