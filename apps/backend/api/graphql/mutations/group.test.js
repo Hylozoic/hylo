@@ -18,7 +18,7 @@ import {
   cancelGroupRelationshipInvite,
   rejectGroupRelationshipInvite
 } from './group'
-import { addSuggestedSkillToGroup, removeSuggestedSkillFromGroup } from './index'
+import { addSuggestedSkillToGroup, leaveGroup, removeSuggestedSkillFromGroup } from './index'
 
 describe('mutations/group', () => {
   describe('moderation', () => {
@@ -60,6 +60,43 @@ describe('mutations/group', () => {
         const roles = await MemberGroupRole.where({ user_id: user2.id, group_id: group.id }).fetchAll()
         expect(roles.length).to.equal(0)
         expect(await GroupMembership.hasResponsibility(user2.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.false
+      })
+    })
+
+    describe('keeping an Administrator', () => {
+      let soloGroup, administrator, moderator
+
+      beforeEach(async () => {
+        administrator = await factories.user().save()
+        moderator = await factories.user().save()
+        soloGroup = await factories.group().save()
+        await administrator.joinGroup(soloGroup, { assignAdministrator: true })
+        await moderator.joinGroup(soloGroup)
+        const moderatorRole = await GroupRole.findSystemRole(soloGroup.id, 'Moderator')
+        await MemberGroupRole.forge({ user_id: moderator.id, group_id: soloGroup.id, group_role_id: moderatorRole.id, active: true }).save()
+      })
+
+      it('stops a Moderator removing the only Administrator', async () => {
+        await expect(removeMember(moderator.id, administrator.id, soloGroup.id))
+          .to.be.rejectedWith('A group must keep at least one Administrator')
+        expect(await GroupMembership.hasActiveMembership(administrator.id, soloGroup.id)).to.be.true
+      })
+
+      it('lets an Administrator be removed when another remains', async () => {
+        const second = await factories.user().save()
+        await second.joinGroup(soloGroup, { assignAdministrator: true })
+        await removeMember(moderator.id, administrator.id, soloGroup.id)
+        expect(await GroupMembership.hasActiveMembership(administrator.id, soloGroup.id)).to.be.false
+      })
+
+      it('never stops the only Administrator leaving', async () => {
+        await leaveGroup(administrator.id, soloGroup.id)
+        expect(await GroupMembership.hasActiveMembership(administrator.id, soloGroup.id)).to.be.false
+      })
+
+      it('never stops the only Administrator removing themselves', async () => {
+        await removeMember(administrator.id, administrator.id, soloGroup.id)
+        expect(await GroupMembership.hasActiveMembership(administrator.id, soloGroup.id)).to.be.false
       })
     })
 

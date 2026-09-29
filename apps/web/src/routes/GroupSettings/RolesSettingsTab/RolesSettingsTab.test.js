@@ -218,6 +218,28 @@ describe('RoleList', () => {
     expect(screen.queryByTestId('role-details-error')).not.toBeInTheDocument()
   })
 
+  it('keeps the holder and says why when the group would be left without an Administrator', async () => {
+    mockGraphqlServer.use(
+      graphql.query('fetchGroupRoleDetails', () => HttpResponse.json(holders)),
+      graphql.operation(() => HttpResponse.json({
+        errors: [{ message: 'A group must keep at least one Administrator' }],
+        data: { removeRoleFromMember: null }
+      }))
+    )
+    const confirm = jest.spyOn(window, 'confirm').mockImplementation(() => true)
+    const alert = jest.spyOn(window, 'alert').mockImplementation(() => {})
+
+    render(<RoleList {...roleListProps} />, { wrapper: AllTheProviders() })
+
+    expect(await screen.findByText('Ada Admin')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByText('Remove')[0])
+
+    await waitFor(() => expect(alert).toHaveBeenCalledWith('A group must keep at least one Administrator'))
+    expect(screen.getByText('Ada Admin')).toBeInTheDocument()
+    confirm.mockRestore()
+    alert.mockRestore()
+  })
+
   it('says when the role holders could not be loaded, and loads them on Try Again', async () => {
     let calls = 0
     mockGraphqlServer.use(

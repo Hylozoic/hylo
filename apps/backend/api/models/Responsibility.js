@@ -150,7 +150,7 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * System responsibilities held by members of a group/space.
+   * System responsibilities held by members of a group/space who have active accounts.
    * Spaces resolve role assignments against the parent group.
    */
   async fetchForGroup (groupId) {
@@ -162,7 +162,9 @@ module.exports = bookshelf.Model.extend({
       FROM responsibilities r
       JOIN group_roles_responsibilities gr ON r.id = gr.responsibility_id
       JOIN group_memberships_group_roles m ON gr.group_role_id = m.group_role_id
-      WHERE r.type = 'system' AND m.group_id = ${roleScopeId};`
+      JOIN users u ON u.id = m.user_id AND u.active = true
+      WHERE r.type = 'system' AND m.group_id = ?;`,
+      [roleScopeId]
     ).then(resp => resp.rows)
   },
 

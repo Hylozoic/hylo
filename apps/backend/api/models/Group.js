@@ -20,6 +20,7 @@ import { groupFilter } from '../graphql/filters'
 import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
+import * as administrators from './group/administrators'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import { groupRoom, userRoom, pushToSockets } from '../services/Websockets'
 const { createGroupScope } = require('../../lib/scopes')
@@ -1664,6 +1665,9 @@ module.exports = bookshelf.Model.extend(merge({
   findActive (key, opts = {}) {
     return this.find(key, merge({ active: true }, opts))
   },
+
+  // Active Administrators of a top-level group; see group/administrators.js for the exclusions
+  countActiveAdministrators (groupId, opts = {}) { return administrators.countActiveAdministrators(groupId, opts) },
 
   /**
    * Check if a user has a responsibility that grants full access to group content

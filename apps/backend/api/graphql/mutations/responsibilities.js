@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql'
+import { assertKeepsAdministrator } from '../../models/group/administrators'
 
 /**
  * Reject responsibility mutations targeting a space — edit on the parent group instead.
@@ -111,6 +112,10 @@ export async function removeResponsibilityFromRole ({ userId, roleResponsibility
       })
         .fetch()
       await GroupRole.assertAssignableRoleIds([roleResponsibility?.get('group_role_id')])
+      const role = roleResponsibility && await GroupRole.where({ id: roleResponsibility.get('group_role_id') }).fetch()
+      if (role) {
+        await assertKeepsAdministrator(role.get('group_id'), { excludeRoleResponsibilityId: roleResponsibility.id })
+      }
       return roleResponsibility.destroy()
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to remove responsibility from role')

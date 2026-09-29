@@ -34,6 +34,28 @@ describe('responsibilities mutations', () => {
     await setup.clearDb()
   })
 
+  describe('keeping an Administrator', () => {
+    it('refuses to remove Administration from the only role that gives it, until another Administrator exists', async () => {
+      const keeperGroup = await factories.group().save()
+      const keeper = await factories.user().save()
+      await keeper.joinGroup(keeperGroup)
+      await GroupRole.setupSystemRoles(keeperGroup.id)
+      const keeperRole = await GroupRole.forge({ group_id: keeperGroup.id, name: 'Keeper', emoji: '🗝️', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+      const administrationId = await Responsibility.systemId(Responsibility.constants.RESP_ADMINISTRATION)
+      const link = await GroupRoleResponsibility.forge({ group_role_id: keeperRole.id, responsibility_id: administrationId }).save()
+      await MemberGroupRole.forge({ user_id: keeper.id, group_id: keeperGroup.id, group_role_id: keeperRole.id, active: true }).save()
+
+      await expect(removeResponsibilityFromRole({ groupId: keeperGroup.id, roleResponsibilityId: link.id, userId: keeper.id }))
+        .to.be.rejectedWith('A group must keep at least one Administrator')
+      expect(await GroupRoleResponsibility.where({ id: link.id }).fetch()).to.exist
+
+      const administratorRole = await GroupRole.findSystemRole(keeperGroup.id, 'Administrator')
+      await MemberGroupRole.forge({ user_id: keeper.id, group_id: keeperGroup.id, group_role_id: administratorRole.id, active: true }).save()
+      await removeResponsibilityFromRole({ groupId: keeperGroup.id, roleResponsibilityId: link.id, userId: keeper.id })
+      expect(await GroupRoleResponsibility.where({ id: link.id }).fetch()).to.be.null
+    })
+  })
+
   describe('custom responsibility titles', () => {
     it('rejects the title of any built-in responsibility, ignoring case and spaces', async () => {
       for (const title of ['Invite Members', ' invite members ', 'ADMINISTRATION', 'add Members']) {

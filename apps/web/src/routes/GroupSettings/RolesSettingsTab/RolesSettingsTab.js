@@ -49,6 +49,17 @@ const emptyRole = {
   active: ''
 }
 
+const LAST_ADMINISTRATOR_ERROR = 'A group must keep at least one Administrator'
+
+// Tells the steward why a role change was refused. Takes the dispatch result or
+// the error it rejected with, and returns true when the change failed.
+function reportRoleChangeError (result, t) {
+  const error = result instanceof Error ? result : (result?.error ? result.payload : null)
+  if (!error) return false
+  window.alert(error?.message === LAST_ADMINISTRATOR_ERROR ? t(LAST_ADMINISTRATOR_ERROR) : t('There was an error, please try again.'))
+  return true
+}
+
 const validateRole = ({ name, emoji }) => {
   if (name.length < 3) return false
   if (emoji === '') return false
@@ -118,10 +129,11 @@ function RolesSettingsTab ({ group, slug }) {
     const role = roles[i]
     if (window.confirm(`${t('Are you sure you want to ')}${role.active ? t('deactivate') : t('reactivate')} ${t('this role/badge?')}`)) {
       dispatch(updateGroupRole({ active: !role.active, groupId: group?.id, groupRoleId: role.id })).then((response) => {
+        if (reportRoleChangeError(response, t)) return
         const saved = response.payload.data.updateGroupRole
         setRolesOverride(prev => (prev ?? customRolesFromGroup).map((r, idx) => idx === i ? { ...saved } : r))
         if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
-      })
+      }).catch(error => reportRoleChangeError(error, t))
     }
   }
 
@@ -556,15 +568,17 @@ function RoleList ({
   }
 
   const handleRemoveRoleFromMember = (id) => {
-    dispatch(removeRoleFromMember({ personId: id, groupId: group.id, roleId })).then(() => {
+    dispatch(removeRoleFromMember({ personId: id, groupId: group.id, roleId })).then((response) => {
+      if (reportRoleChangeError(response, t)) return
       setMembersForRole(membersForRole.filter(member => member.id !== id))
-    })
+    }).catch(error => reportRoleChangeError(error, t))
   }
 
   const handleRemoveResponsibilityFromRole = (id) => {
-    dispatch(removeResponsibilityFromRole({ roleResponsibilityId: id, groupId: group.id })).then(() => {
+    dispatch(removeResponsibilityFromRole({ roleResponsibilityId: id, groupId: group.id })).then((response) => {
+      if (reportRoleChangeError(response, t)) return
       setResponsibilitiesForRole(responsibilitiesForRole.filter(responsibility => responsibility.id !== id))
-    })
+    }).catch(error => reportRoleChangeError(error, t))
   }
 
   const handleAddResponsibilityToRole = ({ responsibilityId, roleId, groupId, responsibility }) => {

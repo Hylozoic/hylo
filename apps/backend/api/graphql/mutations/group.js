@@ -4,6 +4,7 @@ import InvitationService from '../../services/InvitationService'
 import { joinSpace } from './spaces'
 import convertGraphqlData from './convertGraphqlData'
 import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
+import { assertKeepsAdministrator } from '../../models/group/administrators'
 import {
   publishGroupUpdate,
   publishGroupMembershipUpdate,
@@ -166,6 +167,10 @@ export async function regenerateAccessCode (userId, groupId) {
 export async function removeMember (loggedInUserId, userIdToRemove, groupId, context) {
   const group = await getStewardedGroup(loggedInUserId, groupId, Responsibility.constants.RESP_REMOVE_MEMBERS)
   const memberToRemove = await User.find(userIdToRemove)
+  // Someone leaving on their own is never blocked; the daily check finds groups left without an Administrator
+  if (String(loggedInUserId) !== String(userIdToRemove)) {
+    await assertKeepsAdministrator(group.id, { excludeUserId: userIdToRemove })
+  }
 
   await GroupService.removeMember(userIdToRemove, groupId)
 
