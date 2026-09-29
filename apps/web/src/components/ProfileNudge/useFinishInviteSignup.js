@@ -36,11 +36,12 @@ export default function useFinishInviteSignup (shouldFinish, { ready = true } = 
     if (!shouldFinish || !ready || startedRef.current) return
     startedRef.current = true
     setFinishing(true)
-    SKIPPED_WELCOME_STEPS.forEach(step =>
-      dispatch(trackAnalyticsEvent(AnalyticsEvents.WELCOME_WIZARD_STEP_SKIPPED, { step, reason: 'invite' })))
     Promise.resolve(dispatch(updateUserSettings({ settings: { signupInProgress: false, profileNudge: PROFILE_NUDGE_PENDING } })))
       .then(result => {
         if (result?.error) return
+        // Only once the steps are really skipped: if the update fails, the person goes through the wizard
+        SKIPPED_WELCOME_STEPS.forEach(step =>
+          dispatch(trackAnalyticsEvent(AnalyticsEvents.WELCOME_WIZARD_STEP_SKIPPED, { step, reason: 'invite' })))
         dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_COMPLETE))
         setFinished(true)
       })

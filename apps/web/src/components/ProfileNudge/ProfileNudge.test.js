@@ -1,11 +1,14 @@
 import React from 'react'
 import userEvent from '@testing-library/user-event'
 import { graphql, HttpResponse } from 'msw'
+import { toast } from 'sonner'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import ProfileNudge from './ProfileNudge'
 import { isMissingPhotoOrLocation } from './profileNudgeState'
+
+jest.mock('sonner', () => ({ toast: { error: jest.fn() } }))
 
 const PLACEHOLDER = 'https://www.gravatar.com/avatar/abc?d=mm&s=140'
 const TITLE = 'Help people recognize you'
@@ -50,6 +53,23 @@ describe('ProfileNudge', () => {
     await new Promise(resolve => setTimeout(resolve, 1500))
     expect(screen.queryByText(TITLE)).not.toBeInTheDocument()
     expect(settingsChanges).toHaveLength(1)
+  })
+
+  it('says so when the answer could not be saved', async () => {
+    const user = userEvent.setup()
+    toast.error.mockClear()
+    mockGraphqlServer.use(
+      graphql.operation(({ query }) => {
+        if (!query.includes('updateMe(')) return
+        return HttpResponse.json({ errors: [{ message: 'Something went wrong' }] })
+      })
+    )
+    render(<ProfileNudge />, null, providers({ posts: [{ id: '16', creator: '1', type: 'discussion' }] }))
+
+    await user.click(await screen.findByTestId('profile-nudge-not-now', {}, { timeout: 3000 }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('There was an error, please try again.'))
+    expect(screen.queryByText(TITLE)).not.toBeInTheDocument()
   })
 
   it('also counts a chat message as a first post', async () => {

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
+import { toast } from 'sonner'
 import Button from 'components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
 import { ensureLocationIdIfCoordinate, fetchLocation as fetchLocationAction } from 'components/LocationInput/LocationInput.store'
@@ -54,11 +55,17 @@ export default function ProfileNudge () {
 
   const fetchLocation = useCallback(loc => dispatch(fetchLocationAction(loc)), [dispatch])
 
+  // If saving the answer fails, the ask stays pending on the server and can come back after a reload
   const answer = useCallback(async (outcome, changes = {}) => {
     answeredRef.current = true
     setOpen(false)
-    await dispatch(updateUserSettings({ ...changes, settings: { profileNudge: outcome } }))
-  }, [dispatch])
+    try {
+      const result = await dispatch(updateUserSettings({ ...changes, settings: { profileNudge: outcome } }))
+      if (result?.error) throw result.payload
+    } catch (error) {
+      toast.error(t('There was an error, please try again.'))
+    }
+  }, [dispatch, t])
 
   const dismiss = useCallback(() => answer(PROFILE_NUDGE_DISMISSED), [answer])
 
@@ -67,10 +74,15 @@ export default function ProfileNudge () {
     if (avatarUrl) changes.avatarUrl = avatarUrl
     if (location?.trim() && location !== currentUser?.location) {
       changes.location = location
-      changes.locationId = await ensureLocationIdIfCoordinate({ fetchLocation, location, locationId })
+      try {
+        changes.locationId = await ensureLocationIdIfCoordinate({ fetchLocation, location, locationId })
+      } catch (error) {
+        toast.error(t('There was an error, please try again.'))
+        return
+      }
     }
     return answer(PROFILE_NUDGE_DONE, changes)
-  }, [answer, avatarUrl, currentUser?.location, fetchLocation, location, locationId])
+  }, [answer, avatarUrl, currentUser?.location, fetchLocation, location, locationId, t])
 
   if (!currentUser || !pending) return null
 
