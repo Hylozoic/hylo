@@ -3055,7 +3055,7 @@
   "Incorrect email or password.": "ईमेल या पासवर्ड गलत है।",
   "If you signed up with Google, log in with Google instead.": "अगर आपने Google से साइन अप किया था, तो Google से लॉग इन करें।",
   "Too many attempts. Please wait a few minutes and try again.": "बहुत अधिक प्रयास। कृपया कुछ मिनट प्रतीक्षा करें और फिर से प्रयास करें।",
-  "Draw a boundary": "सीमा बनाएं",
+  "Draw boundary": "सीमा बनाएं",
   "Boundary drawn. Use the pen to redraw it.": "सीमा बन गई। इसे दोबारा बनाने के लिए पेन का उपयोग करें।",
   "Click the map to add points. Click the first point or press Enter to finish.": "बिंदु जोड़ने के लिए मानचित्र पर क्लिक करें। समाप्त करने के लिए पहले बिंदु पर क्लिक करें या Enter दबाएं।",
   "Remove boundary": "सीमा हटाएं",
