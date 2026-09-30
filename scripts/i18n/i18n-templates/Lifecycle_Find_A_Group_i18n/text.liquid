@@ -1,0 +1,15 @@
+{% set first_name_var = first_name %}{% trans %}Hi {{first_name_var}},{% endtrans %}
+
+{% trans %}You haven't joined a group on Hylo yet. Groups are where people meet, plan and help each other.{% endtrans %}
+{% if suggested_groups %}
+{% trans %}Here are a few open groups you can join today:{% endtrans %}
+{% for suggestion in suggested_groups %}
+{{suggestion.name}} {{suggestion.url}}
+{% endfor %}{% endif %}
+{% trans %}Explore groups: {{explore_url}}{% endtrans %}
+
+{% trans %}Were you invited to a group? Open the invitation email and follow its link to join.{% endtrans %}
+
+{% trans %}Choose which emails you get: {{email_settings_url}}{% endtrans %}
+
+{% trans %}The Hylo Team{% endtrans %}

@@ -226,6 +226,12 @@ const ROLE_GRANTED_TEMPLATE_ID = null // Role_Granted_i18n
 const STEWARD_WEEKLY_TEMPLATE_ID = null // Steward_Weekly_i18n
 const templateNotUploaded = () => Promise.resolve(null)
 
+// D12 lifecycle emails (api/models/user/lifecycleEmails.js). Set each to its SendWithUs
+// template id once the template in scripts/i18n/i18n-templates is uploaded. Until then
+// that email is not sent, and nobody is bucketed into the holdout or marked for it.
+const LIFECYCLE_FIND_GROUP_TEMPLATE_ID = null // Lifecycle_Find_A_Group_i18n
+const LIFECYCLE_INTRODUCE_TEMPLATE_ID = null // Lifecycle_Introduce_Yourself_i18n
+
 const senders = {
   sendSimpleEmail,
 
@@ -544,7 +550,27 @@ Profile: ${opts.actorProfileUrl}
   // (lib/group/stewardDigest.js). opts.unsubscribe is { userId, groupId }.
   sendStewardWeekly: opts => STEWARD_WEEKLY_TEMPLATE_ID
     ? sendEmailWithOptions(STEWARD_WEEKLY_TEMPLATE_ID, opts)
-    : templateNotUploaded()
+    : templateNotUploaded(),
+
+  // D12: day 2 after signing up, to someone in no group yet. Takes { email, locale, data }:
+  // subject, first_name, explore_url, email_settings_url,
+  // suggested_groups [{ name, avatar_url, member_count, url }]
+  sendLifecycleFindGroupEmail: opts => LIFECYCLE_FIND_GROUP_TEMPLATE_ID
+    ? sendEmailWithOptions(LIFECYCLE_FIND_GROUP_TEMPLATE_ID, opts)
+    : templateNotUploaded(),
+
+  // D12: day 3, to a member who hasn't posted in their group. Takes { email, locale, data }:
+  // subject, first_name, group_name, group_avatar_url, group_url, introduce_url,
+  // email_settings_url
+  sendLifecycleIntroduceEmail: opts => LIFECYCLE_INTRODUCE_TEMPLATE_ID
+    ? sendEmailWithOptions(LIFECYCLE_INTRODUCE_TEMPLATE_ID, opts)
+    : templateNotUploaded(),
+
+  // Which lifecycle emails can go out: their templates are uploaded
+  lifecycleTemplatesReady: () => ({
+    findGroup: !!LIFECYCLE_FIND_GROUP_TEMPLATE_ID,
+    introduce: !!LIFECYCLE_INTRODUCE_TEMPLATE_ID
+  })
 
 }
 

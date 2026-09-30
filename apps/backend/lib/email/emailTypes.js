@@ -101,7 +101,10 @@ export const EMAIL_TYPES = {
   sendJoinRequestUnanswered: bulk('settings_page', 'your request to join has had no answer for 14 days, with open groups to try'),
   sendRoleGranted: bulk('group_post_email', 'a steward gave you a role or badge (D48)'),
   // One-click turns off that steward's weekly email for that group only
-  sendStewardWeekly: bulk('membership_setting:stewardDigest', 'weekly summary for Administrators, Moderators and Hosts (D13)')
+  sendStewardWeekly: bulk('membership_setting:stewardDigest', 'weekly summary for Administrators, Moderators and Hosts (D13)'),
+  // D12: once each, in a new member's first days (api/models/user/lifecycleEmails.js)
+  sendLifecycleFindGroupEmail: bulk('settings_page', 'day 2 after signup, to someone in no group: find a group (D12)'),
+  sendLifecycleIntroduceEmail: bulk('settings_page', "day 3, to a member who hasn't posted: introduce yourself (D12)")
 }
 
 export const EMAIL_KINDS = ['essential', 'bulk']

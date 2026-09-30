@@ -1,0 +1,34 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+<p>
+  {% set first_name_var = first_name %}
+  {% trans %}Hi {{first_name_var}},{% endtrans %}
+</p>
+
+<p>{% trans %}You haven't joined a group on Hylo yet. Groups are where people meet, plan and help each other.{% endtrans %}</p>
+
+{% if suggested_groups %}
+  <p>{% trans %}Here are a few open groups you can join today:{% endtrans %}</p>
+  {% for suggestion in suggested_groups %}
+    {% set suggestion_pill = actor_pill(suggestion.name, suggestion.avatar_url, suggestion.url) %}
+    <div class='card'>{{suggestion_pill}}</div>
+  {% endfor %}
+{% endif %}
+
+<a class='btn btn-blue' href="{{explore_url}}" clicktracking="off">{% trans %}Explore groups{% endtrans %}</a>
+
+<p>{% trans %}Were you invited to a group? Open the invitation email and follow its link to join.{% endtrans %}</p>
+
+<p><a href='{{email_settings_url}}'>{% trans %}Choose which emails you get{% endtrans %}</a></p>
+
+<p>{% trans %}The Hylo Team{% endtrans %}</p>
+
+{% snippet "footer_redesign" %}

@@ -15,6 +15,7 @@ import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
 import { sanitizeAcquisitionSource } from '../../lib/acquisitionSource'
 import { isValidTimezone } from '../../lib/group/digest2/localMorning'
+import { SIGNUP_COMPLETED_SETTING } from './user/lifecycleEmails'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -542,7 +543,10 @@ module.exports = bookshelf.Model.extend(merge({
       // existing data, e.g. when updating settings
       await this.refresh({ transacting })
 
+      // When signup was finished, the first time (lifecycle emails, D12)
+      const finishingSignup = changes.settings?.signup_in_progress === false && !this.getSetting(SIGNUP_COMPLETED_SETTING)
       this.setSanely(omit(whitelist, 'password'))
+      if (finishingSignup) this.addSetting({ [SIGNUP_COMPLETED_SETTING]: new Date().toISOString() })
       // A new address hasn't bounced (D36)
       if (this.hasChanged('email')) this.set({ email_undeliverable_at: null, email_undeliverable_reason: null })
 

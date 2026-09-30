@@ -109,6 +109,8 @@ exports.fr = {
   joinRequestUnansweredSubject: (groupName) => `Votre demande pour rejoindre ${groupName} attend toujours une réponse`,
   roleGrantedSubject: ({ roleName, groupName }) => `Vous avez un nouveau rôle dans ${groupName} : ${roleName}`,
   stewardWeeklySubject: (groupName) => `Cette semaine dans ${groupName}, pour les responsables`,
+  lifecycleFindGroupSubject: () => 'Trouvez un groupe sur Hylo',
+  lifecycleIntroduceSubject: (groupName) => `Présentez-vous dans ${groupName}`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

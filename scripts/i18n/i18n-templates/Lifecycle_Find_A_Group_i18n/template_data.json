@@ -1,0 +1,20 @@
+{
+  "subject": "Find a group to join on Hylo",
+  "first_name": "Alex",
+  "explore_url": "https://hylo.com/public/groups?ctt=lifecycle_find_group_email",
+  "email_settings_url": "https://hylo.com/notifications?expand=account",
+  "suggested_groups": [
+    {
+      "name": "Neighborhood Gardeners",
+      "avatar_url": "https://www.hylo.com/default-group-avatar.png",
+      "member_count": 42,
+      "url": "https://hylo.com/groups/neighborhood-gardeners/about"
+    },
+    {
+      "name": "Tool Library",
+      "avatar_url": "https://www.hylo.com/default-group-avatar.png",
+      "member_count": 18,
+      "url": "https://hylo.com/groups/tool-library/about"
+    }
+  ]
+}
