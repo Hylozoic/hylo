@@ -22,8 +22,14 @@ const uiTimeout = { timeout: 60000 }
 const GROUP = 'e2e-public-group'
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots', 'theme-contrast')
 
-// Applies a theme the way the app does (src/util/appearance.js), without saving it
+// Applies a theme the way the app does (src/util/appearance.js), without saving it.
+// The seeded person's appearance follows the system, so switching the emulated system
+// scheme first lets the app's own light/dark state follow too; parts drawn from that
+// state, such as the selected menu row, would otherwise stay light in dark screenshots.
 async function applyTheme (page, name, mode) {
+  await page.emulateMedia({ colorScheme: mode })
+  await page.waitForFunction(mode => document.documentElement.classList.contains(mode), mode, { timeout: 5000 })
+    .catch(() => {})
   await page.evaluate(({ colors, mode }) => {
     Object.entries(colors).forEach(([key, value]) => document.documentElement.style.setProperty(`--${key}`, value))
     document.documentElement.classList.remove('light', 'dark')
