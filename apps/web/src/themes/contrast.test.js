@@ -1,8 +1,9 @@
 // WCAG contrast of the secondary-text colour (D75): foreground-muted must be at least
-// 4.5:1 against every surface text sits on, in every theme and mode
+// 4.5:1 against every surface text sits on, in every theme and mode. The context menu
+// background is also under headers, sticky tabs and menus.
 import { themes } from './index'
 
-const SURFACES = ['background', 'midground', 'card']
+const SURFACES = ['background', 'midground', 'card', 'context-menu-background']
 const AA = 4.5
 
 const parseHsl = value => {
