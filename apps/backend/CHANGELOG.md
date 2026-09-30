@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
+### Fixed
+- When auto adding people to a space give them same notification settings as they have in parent group
+- Crash when using older Hylo app
+
 ## [7.1.0] - 2026-09-25
 
 ### Changed
