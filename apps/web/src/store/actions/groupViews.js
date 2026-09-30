@@ -436,6 +436,11 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           icon
           status
           active
+          location
+          locationObject {
+            id
+            fullText
+          }
           settings {
             agreementsLastUpdatedAt
             allowGroupInvites
