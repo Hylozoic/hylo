@@ -37,6 +37,12 @@ function mockSignedOutReader ({ publicPost }) {
   )
 }
 
+// Each test waits for the session check, the route's lazy loaded code and, for a post,
+// the public-post check. The first test to load that code can take over findBy's
+// default 1 second on a busy machine. This stays under Jest's 5 second test timeout,
+// so a real failure still reports the page it found.
+const ROUTE_LOAD = { timeout: 4000 }
+
 describe('RootRouter signed out', () => {
   it('keeps the query string, minus the email tags, when a group post link sends the reader to log in', async () => {
     mockSignedOutReader({ publicPost: false })
@@ -45,7 +51,7 @@ describe('RootRouter signed out', () => {
       wrapper: AllTheProviders({}, ['/groups/foo/all/post/91?action=unfollow&ctt=x&cti=5&ctcn=Foo'])
     })
 
-    expect(await screen.findByTestId('non-auth-location')).toHaveTextContent(
+    expect(await screen.findByTestId('non-auth-location', {}, ROUTE_LOAD)).toHaveTextContent(
       /^\/login\?returnToUrl=%2Fpost%2F91%3Faction%3Dunfollow$/
     )
   })
@@ -57,7 +63,7 @@ describe('RootRouter signed out', () => {
       wrapper: AllTheProviders({}, ['/groups/foo/topics/bar/post/91?action=unfollow'])
     })
 
-    expect(await screen.findByTestId('non-auth-location')).toHaveTextContent(
+    expect(await screen.findByTestId('non-auth-location', {}, ROUTE_LOAD)).toHaveTextContent(
       '/login?returnToUrl=%2Fpost%2F91%3Faction%3Dunfollow'
     )
   })
@@ -69,7 +75,7 @@ describe('RootRouter signed out', () => {
       wrapper: AllTheProviders({}, ['/groups/foo/all/post/91?ctt=x'])
     })
 
-    expect(await screen.findByTestId('public-post-detail')).toBeInTheDocument()
+    expect(await screen.findByTestId('public-post-detail', {}, ROUTE_LOAD)).toBeInTheDocument()
     expect(screen.queryByTestId('non-auth-location')).not.toBeInTheDocument()
   })
 })
