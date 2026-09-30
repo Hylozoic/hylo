@@ -11,9 +11,10 @@
 //
 // People are bucketed into LIFECYCLE_EMAILS_HOLDOUT (lib/experiments.js) the first time
 // they are eligible for either email, and the holdout gets neither. Each email goes out
-// at most once: its users.settings marker is written before it is sent. Only people who
-// finished signing up in the last few days are considered, so nobody who signed up
-// before this shipped is emailed, and a missed daily run still catches up. People who
+// at most once: its users.settings marker is written before it is sent. Only people with
+// a signup_completed_at in the last few days are considered. That is written when a
+// signup in progress is finished, so nobody who finished signing up before this shipped
+// is emailed, and a missed daily run still catches up. People who
 // chose "everything except direct" or "everything" (D35), and addresses the email
 // provider reported undeliverable (D36), are left out; Email.js checks both again. Each
 // email is in the recipient's language. Nothing is sent, and nobody is bucketed, for an
@@ -44,7 +45,7 @@ const BATCH_SIZE = 500
 const SUGGESTED_GROUPS = 3
 const DAY = 24 * 60 * 60 * 1000
 
-const SIGNED_UP_AT = `coalesce((users.settings->>'${SIGNUP_COMPLETED_SETTING}')::timestamptz, users.created_at)`
+const SIGNED_UP_AT = `(users.settings->>'${SIGNUP_COMPLETED_SETTING}')::timestamptz`
 
 const setSetting = (userId, values) => bookshelf.knex('users')
   .where({ id: userId })

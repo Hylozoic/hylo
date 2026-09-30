@@ -49,6 +49,14 @@ describe('User lifecycle email', () => {
       await user.refresh()
       expect(user.getSetting(SIGNUP_COMPLETED_SETTING)).to.equal(finishedAt)
     })
+
+    it('does not record it for an account that had already finished signing up', async () => {
+      // For example an older account going through the welcome steps again
+      const user = await factories.user({ settings: { signup_in_progress: false } }).save()
+      await user.validateAndSave(null, { settings: { signup_in_progress: false } })
+      await user.refresh()
+      expect(user.getSetting(SIGNUP_COMPLETED_SETTING)).to.be.undefined
+    })
   })
 
   describe('day-2 and day-3 emails (D12)', () => {
@@ -90,12 +98,15 @@ describe('User lifecycle email', () => {
       const tooLate = await newcomer(2 + 3)
       const inAGroup = await newcomer(2.5)
       await group.addMembers([inAGroup.id])
+      // Finished signing up before this shipped, so there is no finish time
+      const olderAccount = await factories.user({ settings: { signup_in_progress: false }, created_at: new Date(Date.now() - 2.5 * 24 * 60 * 60 * 1000) }).save()
 
       expect(await sendLifecycleEmails()).to.deep.equal({ findGroup: 1, introduce: 0 })
       expect(sentTo(findGroup, due)).to.have.length(1)
       expect(sentTo(findGroup, tooSoon)).to.have.length(0)
       expect(sentTo(findGroup, tooLate)).to.have.length(0)
       expect(sentTo(findGroup, inAGroup)).to.have.length(0)
+      expect(sentTo(findGroup, olderAccount)).to.have.length(0)
       const { data } = sentTo(findGroup, due)[0]
       expect(data.subject).to.equal('Find a group to join on Hylo')
       expect(data.explore_url).to.match(/\/public\/groups\?ctt=lifecycle_find_group_email&cti=/)

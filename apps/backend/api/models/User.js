@@ -543,8 +543,11 @@ module.exports = bookshelf.Model.extend(merge({
       // existing data, e.g. when updating settings
       await this.refresh({ transacting })
 
-      // When signup was finished, the first time (lifecycle emails, D12)
-      const finishingSignup = changes.settings?.signup_in_progress === false && !this.getSetting(SIGNUP_COMPLETED_SETTING)
+      // When signup was finished, the first time (lifecycle emails, D12). Only an update
+      // that ends a signup in progress counts, not an older account sending false again.
+      const finishingSignup = changes.settings?.signup_in_progress === false &&
+        this.getSetting('signup_in_progress') === true &&
+        !this.getSetting(SIGNUP_COMPLETED_SETTING)
       this.setSanely(omit(whitelist, 'password'))
       if (finishingSignup) this.addSetting({ [SIGNUP_COMPLETED_SETTING]: new Date().toISOString() })
       // A new address hasn't bounced (D36)
