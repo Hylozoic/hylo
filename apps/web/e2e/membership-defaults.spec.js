@@ -55,6 +55,7 @@ test('a steward sets the post notifications new members start with', async ({ pa
   const next = current === IMPORTANT ? EVERY_POST : IMPORTANT
   await chooseDefault(page, current, next)
   await openSettings(page)
+  await page.getByText(NEW_MEMBER_LABEL).scrollIntoViewIfNeeded()
   await expect(page.getByText(next, { exact: true }).first()).toBeVisible(uiTimeout)
   await capture(page, 'settings-after')
 
