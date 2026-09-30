@@ -127,6 +127,11 @@ module.exports = {
       return url('/groups/%s', getSlug(group))
     },
 
+    // The Group Explorer: Public, listed groups anyone can find and join
+    groupExplorer: function () {
+      return url('/public/groups')
+    },
+
     /**
      * URL for a group's configured home view (`home_route`).
      * Spaces use Route.space so they land under the parent group.

@@ -82,7 +82,7 @@ export default function LinkPreview ({ loading, featured: providedFeatured, ...p
             <button
               type='button'
               onClick={onClose}
-              className='shrink-0 text-foreground/50 hover:text-foreground'
+              className='shrink-0 text-foreground-muted hover:text-foreground'
               aria-label={t('Remove')}
             >
               <X className='w-4 h-4' />
@@ -92,7 +92,7 @@ export default function LinkPreview ({ loading, featured: providedFeatured, ...p
             <div className='text-xs line-clamp-2'>{description}</div>
           )}
           {domain && (
-            <div className='text-xs text-foreground/50'>{domain}</div>
+            <div className='text-xs text-foreground-muted'>{domain}</div>
           )}
         </div>
       </div>

@@ -65,6 +65,7 @@ import {
 import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
+import EmailOffNotice from 'components/EmailOffNotice/EmailOffNotice'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
 import SpaceSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/SpaceSettingsModal'
 
@@ -524,6 +525,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                   update={updateMySettings}
                 />
                 )}
+            <EmailOffNotice membershipSettings={isMember.settings} className='mt-3' />
           </div>
         )}
         {isMember && isAboutCurrentGroup && (

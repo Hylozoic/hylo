@@ -65,13 +65,13 @@ function ItemRow ({ item, label, onClick, ...rest }) {
       <span
         className={cn(
           'w-5 h-5 shrink-0 rounded-full grid place-items-center border-2',
-          item.done ? 'bg-selected border-selected text-white' : 'border-foreground/30 text-foreground/50'
+          item.done ? 'bg-selected border-selected text-white' : 'border-foreground/30 text-foreground-muted'
         )}
         aria-hidden='true'
       >
         {item.done ? <Check className='w-3 h-3' /> : <Icon className='w-3 h-3' />}
       </span>
-      <span className={cn('flex-1', item.done && 'text-foreground/60 line-through')}>{label}</span>
+      <span className={cn('flex-1', item.done && 'text-foreground-muted line-through')}>{label}</span>
       {item.done && <span className='sr-only'>{t('Done')}</span>}
     </button>
   )
@@ -147,13 +147,13 @@ export default function SetupChecklist ({ group, className }) {
       <div className='flex items-start justify-between gap-2 mb-1'>
         <div className='min-w-0'>
           <h3 id='setup-checklist-title' className='m-0 text-sm font-bold text-foreground'>{t('Get your group started')}</h3>
-          <p className='m-0 mt-0.5 text-xs text-foreground/60'>{t('{{done}} of {{total}} done', { done: doneCount, total: items.length })}</p>
+          <p className='m-0 mt-0.5 text-xs text-foreground-muted'>{t('{{done}} of {{total}} done', { done: doneCount, total: items.length })}</p>
         </div>
         <button
           type='button'
           onClick={dismiss}
           aria-label={t('Dismiss setup checklist')}
-          className='shrink-0 p-1 rounded-md text-foreground/50 hover:text-foreground hover:bg-foreground/10'
+          className='shrink-0 p-1 rounded-md text-foreground-muted hover:text-foreground hover:bg-foreground/10'
           data-testid='setup-checklist-dismiss'
         >
           <X className='w-4 h-4' />

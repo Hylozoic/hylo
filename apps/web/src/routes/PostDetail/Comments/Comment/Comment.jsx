@@ -177,7 +177,7 @@ function Comment ({
           <Link to={profileUrl} className='text-sm font-bold ml-2 text-foreground'>{creator.name}</Link>
         </div>
         <div>
-          <span className='text-xs text-foreground/50 pl-2' data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('D t ZZZZ')}>
+          <span className='text-xs text-foreground-muted pl-2' data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('D t ZZZZ')}>
             {timestamp}
           </span>
           {(editedTimestamp) && (

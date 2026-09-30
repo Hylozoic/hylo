@@ -48,7 +48,7 @@ export default function CommentCard ({
                 </div>
               </Highlight>
             </div>
-            <span className='text-foreground/50 text-2xs whitespace-nowrap'>{timestamp}</span>
+            <span className='text-foreground-muted text-2xs whitespace-nowrap'>{timestamp}</span>
           </div>
         </div>
         {attachments && attachments.length > 0 && (

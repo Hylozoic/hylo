@@ -89,7 +89,7 @@ export default function DeletedGroups () {
       {error && <p className='text-sm text-destructive' role='alert'>{error}</p>}
       {loading && <Loading />}
       {!loading && !error && groups.length === 0 && (
-        <p className='text-foreground/50 p-4 border border-foreground/20 rounded-md'>{t('No deleted groups can be restored right now.')}</p>
+        <p className='text-foreground-muted p-4 border border-foreground/20 rounded-md'>{t('No deleted groups can be restored right now.')}</p>
       )}
       {groups.length > 0 && (
         <ul className='list-none p-0 m-0 flex flex-col gap-3'>
@@ -97,7 +97,7 @@ export default function DeletedGroups () {
             <li key={deleted.id} className='border border-foreground/20 rounded-md p-4 flex items-start justify-between gap-3' data-testid='deleted-group'>
               <div className='min-w-0'>
                 <div className='font-semibold text-foreground'>{deleted.name}</div>
-                <div className='text-sm text-foreground/60'>
+                <div className='text-sm text-foreground-muted'>
                   {t('Deleted {{date}} by {{name}}', { date: formatDate(deleted.deletedAt), name: deleted.deletedByName || t('Unknown') })}
                   {' · '}
                   {t('Members: {{count}}', { count: deleted.memberCount })}

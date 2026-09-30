@@ -247,7 +247,7 @@ export default function SiteBanners () {
                   onClick={() => switchLanguage(language.code)}
                   className={cn(
                     'px-3 py-1 rounded-md border-2 text-sm transition-all',
-                    draft.lang === language.code ? 'border-secondary text-foreground' : 'border-foreground/20 text-foreground/60 hover:border-foreground/50',
+                    draft.lang === language.code ? 'border-secondary text-foreground' : 'border-foreground/20 text-foreground-muted hover:border-foreground/50',
                     !hasText && 'border-dashed'
                   )}
                 >
@@ -257,7 +257,7 @@ export default function SiteBanners () {
             })}
           </div>
           {draft.lang !== 'en' && (
-            <p className='text-xs text-foreground/50 mt-1'>{t('Leave a field blank to show the English text in this language.')}</p>
+            <p className='text-xs text-foreground-muted mt-1'>{t('Leave a field blank to show the English text in this language.')}</p>
           )}
         </div>
 
@@ -307,14 +307,14 @@ export default function SiteBanners () {
               onChange={e => setDraft(d => ({ ...d, actionUrl: e.target.value }))}
               placeholder='https://... or /groups/...'
             />
-            {actionHint && <p className='text-xs text-foreground/50 mt-1'>{actionHint}</p>}
+            {actionHint && <p className='text-xs text-foreground-muted mt-1'>{actionHint}</p>}
           </div>
         </div>
 
         <div className='flex items-center justify-between gap-4 mb-4'>
           <div className='space-y-1'>
             <label className='block text-sm font-medium'>{t('Show to new users')}</label>
-            <p className='text-xs text-foreground/50'>
+            <p className='text-xs text-foreground-muted'>
               {t('People who join Hylo after this banner is published will also see it.')}
             </p>
           </div>
@@ -365,7 +365,7 @@ export default function SiteBanners () {
         {loading
           ? <Loading />
           : banners.length === 0
-            ? <div className='text-foreground/50 p-4 border border-foreground/20 rounded-md'>{t('No banners yet.')}</div>
+            ? <div className='text-foreground-muted p-4 border border-foreground/20 rounded-md'>{t('No banners yet.')}</div>
             : (
               <ul className='divide-y divide-foreground/10 border border-foreground/20 rounded-md'>
                 {banners.map(banner => (
@@ -375,11 +375,11 @@ export default function SiteBanners () {
                         {banner.title && <p className='font-bold mb-1'>{banner.title}</p>}
                         <HyloHTML className='text-sm mb-1' html={banner.text} />
                         {banner.actionText && (
-                          <p className='text-xs text-foreground/50 mb-1'>
+                          <p className='text-xs text-foreground-muted mb-1'>
                             {t('Button')}: {banner.actionText} &rarr; {banner.actionUrl}
                           </p>
                         )}
-                        <p className='text-xs text-foreground/50'>
+                        <p className='text-xs text-foreground-muted'>
                           {statusLabel(banner)}
                           {banner.creator?.name && ` · ${t('by')} ${banner.creator.name}`}
                           {banner.showToNewUsers ? ` · ${t('Shown to new users')}` : ''}
@@ -393,7 +393,7 @@ export default function SiteBanners () {
                           </p>
                         )}
                         {Object.keys(banner.translations || {}).length > 0 && (
-                          <p className='text-xs text-foreground/50 mt-1'>
+                          <p className='text-xs text-foreground-muted mt-1'>
                             {t('Translated into: {{languages}}', {
                               languages: LANGUAGES.filter(l => banner.translations[l.code]).map(l => t(l.label)).join(', ')
                             })}

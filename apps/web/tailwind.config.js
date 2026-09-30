@@ -124,6 +124,8 @@ export default {
         background: 'hsl(var(--background) / <alpha-value>)',
         midground: 'hsl(var(--midground) / <alpha-value>)',
         foreground: 'hsl(var(--foreground) / <alpha-value>)',
+        // Secondary text at 4.5:1 or better in every theme (D75): text-foreground-muted
+        'foreground-muted': 'hsl(var(--foreground-muted) / <alpha-value>)',
         focus: 'hsl(var(--focus) / <alpha-value>)',
         selected: 'hsl(var(--selected) / <alpha-value>)',
         card: {

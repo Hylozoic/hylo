@@ -116,7 +116,7 @@ export function FlagCover ({ post, groupId, onView }) {
         </span>
         <div className='min-w-0 text-left'>
           <div className='text-xs font-semibold text-foreground/80 truncate'>{t('clickthroughExplainer')}</div>
-          <div className='text-xs text-foreground/60 truncate'>{reasons}</div>
+          <div className='text-xs text-foreground-muted truncate'>{reasons}</div>
         </div>
         <button
           type='button'

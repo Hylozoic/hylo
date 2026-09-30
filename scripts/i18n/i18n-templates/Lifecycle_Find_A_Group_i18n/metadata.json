@@ -1,0 +1,11 @@
+{
+  "templateId": null,
+  "templateName": "Lifecycle_Find_A_Group_i18n",
+  "versionName": "Initial Version",
+  "locale": "en-US",
+  "tags": [
+    "i18n",
+    "i18n ready"
+  ],
+  "note": "Not uploaded yet. Upload with scripts/i18n/upload-new-template.js, then set LIFECYCLE_FIND_GROUP_TEMPLATE_ID in apps/backend/api/services/Email.js. Sent once, on day 2 after signup, to someone in no group (apps/backend/api/models/user/lifecycleEmails.js, D12). The subject comes from the backend (lifecycleFindGroupSubject)."
+}

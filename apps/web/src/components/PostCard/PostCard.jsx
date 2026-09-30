@@ -238,7 +238,7 @@ export default function PostCard (props) {
           <div className='flex items-center gap-1 text-sm flex-1 justify-between'>
             <div className='flex items-center gap-1'>
               <span onClick={showCreator} className='font-bold text-base cursor-pointer hover:underline'>{post.creator?.name}</span>
-              <span className='text-foreground/50'>{t('created a')}</span>
+              <span className='text-foreground-muted'>{t('created a')}</span>
               <div className='flex items-center border-2 border-foreground/20 rounded text-xs gap-1 capitalize px-1 py-0.5 text-foreground/70 mr-4'>
                 <Icon name={getTypeIcon(postType)} />
                 <span className='text-foreground/70'>{postTypeName}</span>
@@ -250,7 +250,7 @@ export default function PostCard (props) {
               )}
             </div>
 
-            <span className='text-foreground/50'>{post.createdTimestamp}</span>
+            <span className='text-foreground-muted'>{post.createdTimestamp}</span>
           </div>
           {isFlagged && (
             <Link

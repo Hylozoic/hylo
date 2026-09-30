@@ -8,6 +8,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import checkLogin from 'store/actions/checkLogin'
 import login from 'store/actions/login'
 import loginWithService from 'store/actions/loginWithService'
+import { syncTimezone } from 'util/timezone'
 import TextInput from 'components/TextInput'
 import GoogleButton from 'components/GoogleButton'
 import NeedHelpLink from 'components/NeedHelpLink/NeedHelpLink'
@@ -63,6 +64,9 @@ export default function Login (props) {
         if (!me) {
           setError(DEFAULT_LOGIN_ERROR)
         }
+
+        // Digests go out in the person's local morning (D41)
+        syncTimezone(dispatch, me)
       },
       () => {
         // Storage access was denied.
@@ -93,6 +97,7 @@ export default function Login (props) {
           if (!me) {
             setError(t('Sign-in with {{service}} completed but your session could not be established. Please try again or use email/password.', { service }))
           }
+          syncTimezone(dispatch, me)
         } catch (error) {
           setError(error.message)
         }

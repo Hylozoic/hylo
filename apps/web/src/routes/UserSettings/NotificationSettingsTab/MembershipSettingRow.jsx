@@ -47,7 +47,7 @@ export default function MembershipSettingsRow ({
           />
           {spaceMemberships.length > 0 && (
             <div className='mt-2 border-t-2 border-foreground/20 pt-1'>
-              <div className='text-xs text-foreground/50 pt-2 pb-1'>{t('Spaces')}</div>
+              <div className='text-xs text-foreground-muted pt-2 pb-1'>{t('Spaces')}</div>
               {spaceMemberships.map(spaceMembership => (
                 <div
                   key={spaceMembership.id}

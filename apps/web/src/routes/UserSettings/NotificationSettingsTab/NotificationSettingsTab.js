@@ -182,7 +182,7 @@ function NotificationSettingsTab ({
   return (
     <div>
       <div>
-        <div className='text-sm text-foreground/50 mb-2'>{t('Global notifications')}</div>
+        <div className='text-sm text-foreground-muted mb-2'>{t('Global notifications')}</div>
         <div className='bg-card/100 rounded-lg p-4 shadow-lg'>
           <div className='border-b-2 border-foreground/20 mb-2 py-2'>
             <SettingsToggles
@@ -229,7 +229,7 @@ function NotificationSettingsTab ({
             />
           </div>
         </div>
-        <div className='text-sm text-foreground/50 mb-2 mt-4'>{t('Default group notifications')}</div>
+        <div className='text-sm text-foreground-muted mb-2 mt-4'>{t('Default group notifications')}</div>
         <div className='bg-card/100 rounded-lg p-4 shadow-lg mb-4'>
           <div className='flex items-center text-sm text-foreground/80 mb-2'>
             <span>{t('These settings apply to all groups. Toggling related group settings will turn off these default settings.')}</span>
@@ -244,7 +244,7 @@ function NotificationSettingsTab ({
         </div>
         {hasGroupRows && (
           <div>
-            <div className='text-sm text-foreground/50 mb-2'>{t('Group-specific notifications')}</div>
+            <div className='text-sm text-foreground-muted mb-2'>{t('Group-specific notifications')}</div>
             {parentMemberships.map(membership => {
               const spaceMemberships = spacesByParentId[String(membership.group.id)] || []
               const open = String(membership.group.id) === String(jumpToGroupId) ||

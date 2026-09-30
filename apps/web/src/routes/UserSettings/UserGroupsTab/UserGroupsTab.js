@@ -166,7 +166,7 @@ export function AddAffiliation ({ close, save }) {
     <div className='bg-card rounded-lg shadow-xl p-4'>
       <div className='flex justify-between items-center mb-4 border-b pb-2'>
         <h3 className='text-lg font-bold text-foreground'>{t('Add new affiliation')}</h3>
-        <button onClick={close} className='text-foreground/60 hover:text-foreground text-xl'>&times;</button>
+        <button onClick={close} className='text-foreground-muted hover:text-foreground text-xl'>&times;</button>
       </div>
 
       <div className='space-y-4'>
@@ -178,7 +178,7 @@ export function AddAffiliation ({ close, save }) {
             value={role}
             className='w-full p-2 rounded-md bg-background border-2 border-foreground/20 focus:border-foreground/40 outline-none'
           />
-          <div className='absolute right-2 top-2 text-xs text-foreground/60'>{role.length}/{CHAR_LIMIT}</div>
+          <div className='absolute right-2 top-2 text-xs text-foreground-muted'>{role.length}/{CHAR_LIMIT}</div>
         </div>
 
         <Dropdown
@@ -204,7 +204,7 @@ export function AddAffiliation ({ close, save }) {
             value={orgName}
             className='w-full p-2 rounded-md bg-background border-2 border-foreground/20 focus:border-foreground/40 outline-none'
           />
-          <div className='absolute right-2 top-2 text-xs text-foreground/60'>{orgName.length}/{CHAR_LIMIT}</div>
+          <div className='absolute right-2 top-2 text-xs text-foreground-muted'>{orgName.length}/{CHAR_LIMIT}</div>
         </div>
 
         <div>
@@ -222,7 +222,7 @@ export function AddAffiliation ({ close, save }) {
             'w-full p-2 rounded-md transition-all duration-300',
             canSave
               ? 'bg-selected text-foreground hover:bg-selected/90 hover:scale-102'
-              : 'bg-foreground/20 text-foreground/50 cursor-not-allowed'
+              : 'bg-foreground/20 text-foreground-muted cursor-not-allowed'
           )}
           onClick={canSave ? () => save({ role, preposition, orgName, url }) : undefined}
         >

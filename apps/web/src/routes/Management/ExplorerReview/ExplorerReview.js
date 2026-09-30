@@ -118,13 +118,13 @@ export default function ExplorerReview () {
   return (
     <div className='p-6 max-w-4xl mx-auto' data-testid='explorer-review'>
       <h1 className='text-2xl font-bold mb-2'>{t('New public groups')}</h1>
-      <p className='text-sm text-foreground/60 mb-6'>
+      <p className='text-sm text-foreground-muted mb-6'>
         {t('Approved groups appear in the Group Explorer. The recommendation uses a bar of {{minMembers}} or more members and a post in the last {{days}} days.', { minMembers, days })}
       </p>
       {error && <p className='text-sm text-destructive mb-4' role='alert'>{error}</p>}
 
       {list && pending.length === 0 && (
-        <div className='text-foreground/50 p-4 border border-foreground/20 rounded-md mb-8'>{t('No groups are waiting for review.')}</div>
+        <div className='text-foreground-muted p-4 border border-foreground/20 rounded-md mb-8'>{t('No groups are waiting for review.')}</div>
       )}
       {pending.length > 0 && (
         <ul className='divide-y divide-foreground/10 border border-foreground/20 rounded-md mb-8'>
@@ -147,7 +147,7 @@ export default function ExplorerReview () {
       {keepOrUnlist.length > 0 && (
         <section data-testid='explorer-recheck'>
           <h2 className='text-lg font-semibold mb-2'>{t('Listed groups to recheck')}</h2>
-          <p className='text-sm text-foreground/60 mb-4'>
+          <p className='text-sm text-foreground-muted mb-4'>
             {t('These groups are listed in the Group Explorer but no longer pass the bar. Keep them listed or unlist them.')}
           </p>
           <ul className='divide-y divide-foreground/10 border border-foreground/20 rounded-md'>
@@ -181,7 +181,7 @@ function ReviewRow ({ group, days, busy, recommendation, actions }) {
       <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} size='40px' square />
       <div className='min-w-0 flex-1'>
         <Link to={groupUrl(group.slug, 'about')} className='font-bold text-foreground hover:underline'>{group.name}</Link>
-        <p className='text-xs text-foreground/60 mt-1'>
+        <p className='text-xs text-foreground-muted mt-1'>
           {t('Created {{date}}', { date: formatDate(group.createdAt) })}
           {' · '}
           {t('Members: {{count}}', { count: group.memberCount })}

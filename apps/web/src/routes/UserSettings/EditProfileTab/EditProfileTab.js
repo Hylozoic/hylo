@@ -212,7 +212,7 @@ function EditProfileTab ({
 
       <div className='space-y-6'>
         <div>
-          <label className='text-sm text-foreground/50 block mb-2'>{t('Banner and Avatar Images')}</label>
+          <label className='text-sm text-foreground-muted block mb-2'>{t('Banner and Avatar Images')}</label>
           <div className='relative'>
             <UploadAttachmentButton
               type='userBanner'
@@ -317,7 +317,7 @@ function EditProfileTab ({
           </div>
 
           <div className='border-t border-foreground/10 pt-6'>
-            <label className='text-sm font-medium text-foreground/50 mb-4 block'>{t('Social Accounts')}</label>
+            <label className='text-sm font-medium text-foreground-muted mb-4 block'>{t('Social Accounts')}</label>
             <div className='space-y-4'>
               <SocialControl
                 label='Facebook'
@@ -380,7 +380,7 @@ function EditProfileTab ({
 
       <div className='hidden lg:block sticky bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t border-foreground/10 p-4 rounded-lg shadow-xl mt-4'>
         <div className='max-w-3xl mx-auto flex items-center justify-between'>
-          <span className={cn('text-sm transition-colors', changed ? 'text-accent' : 'text-foreground/50')}>
+          <span className={cn('text-sm transition-colors', changed ? 'text-accent' : 'text-foreground-muted')}>
             {changed ? t('Changes not saved') : t('Current settings up to date')}
           </span>
           <Button

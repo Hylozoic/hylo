@@ -309,8 +309,8 @@ function MemberRoleCard ({ memberRole, group, availableResponsibilities = [] }) 
             ))}
           </div>
           )
-        : <p className='text-foreground/50 text-sm m-0'>{t('No responsibilities')}</p>}
-      <p className='text-foreground/60 text-xs mt-3 mb-0'>{t("You can give everyone this group's own responsibilities. Built-in ones stay with the roles that hold them.")}</p>
+        : <p className='text-foreground-muted text-sm m-0'>{t('No responsibilities')}</p>}
+      <p className='text-foreground-muted text-xs mt-3 mb-0'>{t("You can give everyone this group's own responsibilities. Built-in ones stay with the roles that hold them.")}</p>
       {linksLoaded && (
         <AddResponsibilityToRoleSection
           handleAddResponsibilityToRole={handleAdd}
@@ -669,7 +669,7 @@ function RoleList ({
       <div className='p-2'>
         <h4>{t('Members')}</h4>
         {detailsStatus === 'loading' && (
-          <p className='text-foreground/60 text-sm m-0' data-testid='role-details-loading'>{t('Loading...')}</p>
+          <p className='text-foreground-muted text-sm m-0' data-testid='role-details-loading'>{t('Loading...')}</p>
         )}
         {detailsStatus === 'error' && (
           <div className='flex flex-wrap items-center gap-2 text-sm' role='alert' data-testid='role-details-error'>

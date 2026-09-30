@@ -112,7 +112,7 @@ function ManageInvitesTab () {
             />
           )}
           {pendingGroupInvites.length === 0 && (
-            <div className='text-foreground/50 flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
+            <div className='text-foreground-muted flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
               <CircleOff className='w-16 h-16 text-foreground/50' />
               <span>{t('No active invitations to join new groups')}</span>
             </div>
@@ -132,7 +132,7 @@ function ManageInvitesTab () {
             />
           )}
           {pendingSpaceInvites.length === 0 && (
-            <div className='text-foreground/50 flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
+            <div className='text-foreground-muted flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
               <CircleOff className='w-16 h-16 text-foreground/50' />
               <span>{t('No active invitations to join spaces')}</span>
             </div>
@@ -151,7 +151,7 @@ function ManageInvitesTab () {
             />
           )}
           {pendingJoinRequests.length === 0 && (
-            <div className='text-foreground/50 flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
+            <div className='text-foreground-muted flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
               <CircleOff className='w-16 h-16 text-foreground/50' />
               <span>{t('No active requests to join groups')}</span>
             </div>
@@ -170,7 +170,7 @@ function ManageInvitesTab () {
             />
           )}
           {pendingSpaceJoinRequests.length === 0 && (
-            <div className='text-foreground/50 flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
+            <div className='text-foreground-muted flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
               <CircleOff className='w-16 h-16 text-foreground/50' />
               <span>{t('No active requests to join spaces')}</span>
             </div>
@@ -188,7 +188,7 @@ function ManageInvitesTab () {
             />
           )}
           {rejectedJoinRequests.length === 0 && (
-            <div className='text-foreground/50 flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
+            <div className='text-foreground-muted flex flex-col items-center justify-center gap-4 p-4 border-2 border-foreground/10 bg-card/20 rounded-lg'>
               <CircleOff className='w-16 h-16 text-foreground/50' />
               <span>{t('You have not declined any invitations or requests')}</span>
             </div>
@@ -225,7 +225,7 @@ function GroupInvite ({ acceptInvite, declineInvite, invite }) {
           </div>
         </div>
         <div className='flex items-center justify-between border-t-2 border-foreground/10 pt-3'>
-          <span className='text-sm text-foreground/50'>
+          <span className='text-sm text-foreground-muted'>
             {t('Sent')} {formatLocalizedDate(createdAt, { style: 'short' })}
           </span>
           <div className='flex items-center gap-3'>
@@ -265,7 +265,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
           <GroupButton group={group} />
         </div>
         <div className='flex items-center justify-between border-t-2 border-foreground/10 pt-3'>
-          <span className='text-sm text-foreground/50'>
+          <span className='text-sm text-foreground-muted'>
             {t('You requested to join')} {formatLocalizedDate(createdAt, { style: 'short' })}
           </span>
           {joinRequest.status === JOIN_REQUEST_STATUS.Pending && (
@@ -280,7 +280,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
             <span className='text-destructive'>{t('Declined')}</span>
           )}
           {joinRequest.status === JOIN_REQUEST_STATUS.Canceled && (
-            <span className='text-foreground/50'>{t('Canceled')}</span>
+            <span className='text-foreground-muted'>{t('Canceled')}</span>
           )}
         </div>
       </div>

@@ -433,14 +433,14 @@ function PostHeader (props) {
                 </Link>
                 {/* Where a child post lives, under the author — replaces the tab that floated above the card */}
                 {childGroupLabel && (
-                  <span className='text-xs text-foreground/50 truncate leading-tight'>{childGroupLabel}</span>
+                  <span className='text-xs text-foreground-muted truncate leading-tight'>{childGroupLabel}</span>
                 )}
               </div>
             </Highlight>
             {/* Wraps rather than clips: on phones the badge drops to the next
                 line instead of getting cropped by the header's overflow-hidden */}
             <div className='flex items-center flex-wrap gap-y-1 ml-2'>
-              <span className='text-foreground/50 text-2xs whitespace-nowrap mr-3' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
+              <span className='text-foreground-muted text-2xs whitespace-nowrap mr-3' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
                 {createdTimestamp}
               </span>
               {/* Phones keep just the gold pin square; the label returns at xs */}

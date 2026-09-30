@@ -66,6 +66,32 @@ describe('GroupSettingsTab', () => {
     })))
   })
 
+  it("sets the post notifications new members start with, defaulting to 'Important'", async () => {
+    const updateGroupSettings = jest.fn()
+    renderComponent({
+      group: { ...group, location: '', settings: {} },
+      currentUser: {},
+      updateGroupSettings
+    })
+    expect(screen.getByText('When a new member joins this group, they are notified about:')).toBeInTheDocument()
+    expect(screen.queryByText('Every Post')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Important Posts (Announcements, Mentions & Replies)'))
+    fireEvent.click(await screen.findByText('Every Post'))
+    await waitFor(() => expect(screen.queryByText('Important Posts (Announcements, Mentions & Replies)')).not.toBeInTheDocument())
+    fireEvent.click(screen.getByText('Save Changes'))
+
+    await waitFor(() => expect(updateGroupSettings).toHaveBeenCalledWith(expect.objectContaining({
+      settings: expect.objectContaining({ defaultPostNotifications: 'all' })
+    })))
+  })
+
+  it('shows the saved default for post notifications', () => {
+    renderComponent({ group: { ...group, location: '', settings: { defaultPostNotifications: 'all' } }, currentUser: {} })
+    expect(screen.getByText('Every Post')).toBeInTheDocument()
+    expect(screen.queryByText('Important Posts (Announcements, Mentions & Replies)')).not.toBeInTheDocument()
+  })
+
   it('updates state and button when changes are made', () => {
     renderComponent()
 

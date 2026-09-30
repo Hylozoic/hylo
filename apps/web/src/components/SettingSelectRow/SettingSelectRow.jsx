@@ -34,7 +34,7 @@ export default function SettingSelectRow ({ value, onChange, options, label, pop
       <div
         className={cn(
           'w-9 h-9 shrink-0 rounded-full flex items-center justify-center',
-          selected ? 'bg-selected/20 text-selected' : 'border-2 border-dashed border-foreground/30 text-foreground/50'
+          selected ? 'bg-selected/20 text-selected' : 'border-2 border-dashed border-foreground/30 text-foreground-muted'
         )}
       >
         <SelectedIcon className='w-[18px] h-[18px]' />
@@ -47,7 +47,7 @@ export default function SettingSelectRow ({ value, onChange, options, label, pop
               aria-label={t(label)}
               className={cn(
                 '-ml-2 inline-flex items-center gap-2 rounded-md px-2 py-0.5 text-[15px] font-bold transition-colors',
-                selected ? 'text-foreground' : 'text-foreground/60',
+                selected ? 'text-foreground' : 'text-foreground-muted',
                 open ? 'bg-foreground/10' : 'hover:bg-foreground/5'
               )}
             >
@@ -85,7 +85,7 @@ export default function SettingSelectRow ({ value, onChange, options, label, pop
                     ? (
                       <span className='flex flex-col min-w-0'>
                         <span className='text-sm font-semibold'>{t(option.title)}</span>
-                        <span className='text-xs font-normal text-foreground/60'>{t(option.description)}</span>
+                        <span className='text-xs font-normal text-foreground-muted'>{t(option.description)}</span>
                       </span>
                       )
                     : <span className='text-sm font-semibold'>{t(option.title)}</span>}
@@ -110,7 +110,7 @@ export default function SettingSelectRow ({ value, onChange, options, label, pop
             })}
           </PopoverContent>
         </Popover>
-        {description && <p className='text-[13px] leading-snug text-foreground/60 mt-0.5 mb-0'>{t(description)}</p>}
+        {description && <p className='text-[13px] leading-snug text-foreground-muted mt-0.5 mb-0'>{t(description)}</p>}
       </div>
     </div>
   )

@@ -33,7 +33,7 @@ export default function PostTypeSelect ({ allowedPostTypes, className, includeCh
             <span className='flex flex-col'>
               <span>{t(type)}</span>
               {POST_TYPES[type]?.description && (
-                <span className='text-xs text-foreground/60' data-testid={`post-type-description-${type}`}>
+                <span className='text-xs text-foreground-muted' data-testid={`post-type-description-${type}`}>
                   {t(POST_TYPES[type].description)}
                 </span>
               )}

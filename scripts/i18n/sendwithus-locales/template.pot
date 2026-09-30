@@ -938,6 +938,38 @@ msgstr ""
 msgid "Choose which emails you get: %(email_settings_url)s"
 msgstr ""
 
+# Lifecycle email template strings (D12)
+msgid "You haven't joined a group on Hylo yet. Groups are where people meet, plan and help each other."
+msgstr ""
+
+msgid "Here are a few open groups you can join today:"
+msgstr ""
+
+msgid "Were you invited to a group? Open the invitation email and follow its link to join."
+msgstr ""
+
+#, python-format
+msgid "Explore groups: %(explore_url)s"
+msgstr ""
+
+#, python-format
+msgid "Welcome to %(group_pill)s! Say hello so the group can get to know you: what brought you here, and what you'd like to share or learn."
+msgstr ""
+
+msgid "Introduce yourself"
+msgstr ""
+
+msgid "We'll start your post for you. It only takes a minute."
+msgstr ""
+
+#, python-format
+msgid "Welcome to %(group_name_var)s! Say hello so the group can get to know you: what brought you here, and what you'd like to share or learn."
+msgstr ""
+
+#, python-format
+msgid "Introduce yourself: %(introduce_url)s"
+msgstr ""
+
 #, python-format
 msgid "%(inviter_name)s"
 msgstr ""

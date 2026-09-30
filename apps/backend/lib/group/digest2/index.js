@@ -1,4 +1,4 @@
-import { compact, merge, startCase } from 'lodash'
+import { compact, groupBy, merge, startCase } from 'lodash'
 import sampleData from './sampleData.json'
 import formatData from './formatData'
 import personalizeData from './personalizeData'
@@ -14,6 +14,7 @@ import { getLocaleStrings } from '../../i18n/locales'
 import { lastSeenAt } from '../../../api/models/notification/rules/inactiveReader'
 import { settleWeeklyDigestNotice } from './weeklyNotice'
 import { openRequestsForDigest } from './openRequests'
+import { claimSlot, dueTimezones, groupIdsWithDueMembers, markSlots, releaseSlot } from './localMorning'
 import sentry from '../../sentry'
 
 const DIGEST_TEMPLATE_ID = 'tem_t7rmGfJKvqXrvmrVWJjjWkg4'
@@ -78,7 +79,25 @@ const recordSlowedNotice = user => bookshelf.knex('users')
   .where({ id: user.id })
   .update({ settings: bookshelf.knex.raw('coalesce(settings, \'{}\'::jsonb) || ?::jsonb', [JSON.stringify({ [SLOWED_NOTICE_SETTING]: new Date().toISOString() })]) })
 
-export const sendToUser = (user, type, data, opts = {}) => {
+// How one digest to one person went: sent, nothing left to send after personalizing,
+// skipped by Email.js (unsubscribe choice or undeliverable address), failed, or a dry run
+export const DIGEST_OUTCOME = {
+  SENT: 'sent',
+  NOTHING: 'nothing',
+  SKIPPED: 'skipped',
+  FAILED: 'failed',
+  DRY_RUN: 'dry_run'
+}
+
+const outcomeOfSend = result => result === false
+  ? DIGEST_OUTCOME.FAILED
+  : result === Email.SKIPPED ? DIGEST_OUTCOME.SKIPPED : DIGEST_OUTCOME.SENT
+
+export const sendToUser = (user, type, data, opts = {}) =>
+  deliverDigest(user, type, data, opts).then(({ result }) => result)
+
+// sendToUser, also saying how it went ({ outcome, result })
+export const deliverDigest = (user, type, data, opts = {}) => {
   const templateId = data.search ? SAVED_SEARCH_TEMPLATE_ID : DIGEST_TEMPLATE_ID
   let senderName
   if (data.search) {
@@ -108,8 +127,8 @@ export const sendToUser = (user, type, data, opts = {}) => {
 
   return personalizeData(user, type, data, opts)
     .then(async data => {
-      if (!data) return false
-      if (opts.dryRun) return true
+      if (!data) return { outcome: DIGEST_OUTCOME.NOTHING, result: false }
+      if (opts.dryRun) return { outcome: DIGEST_OUTCOME.DRY_RUN, result: true }
       const locale = user.getLocale()
       const emailData = slowedNotice
         ? { ...data, slowed_notice: getLocaleStrings(locale).emailDigestSlowedNotice() }
@@ -127,7 +146,7 @@ export const sendToUser = (user, type, data, opts = {}) => {
         slowedNoticeSent = true
         await recordSlowedNotice(user)
       }
-      return result
+      return { outcome: outcomeOfSend(result), result }
     })
     .finally(() => {
       if (slowedNotice && !slowedNoticeSent) slowedNoticeSentTo.delete(String(user.id))
@@ -161,9 +180,12 @@ const wantsUnifiedDigest = user => user.get('settings')?.unified_email_digest ==
 /**
  * Send one digest covering every group in `datasets` for this frequency.
  */
-export const sendUnifiedToUser = (user, type, datasets, opts = {}) => {
+export const sendUnifiedToUser = (user, type, datasets, opts = {}) =>
+  deliverUnifiedDigest(user, type, datasets, opts).then(({ result }) => result)
+
+const deliverUnifiedDigest = (user, type, datasets, opts = {}) => {
   const merged = mergeDigestData(datasets)
-  if (!merged) return Promise.resolve(false)
+  if (!merged) return Promise.resolve({ outcome: DIGEST_OUTCOME.NOTHING, result: false })
   const data = merge(merged, {
     unified: true,
     group_id: null,
@@ -173,12 +195,16 @@ export const sendUnifiedToUser = (user, type, datasets, opts = {}) => {
     group_url: Frontend.Route.root(),
     time_period: timePeriod(type)
   })
-  return sendToUser(user, type, data, opts)
+  return deliverDigest(user, type, data, opts)
 }
 
+// Sends every group's digest of this type. With opts.at (the hourly cron's run time),
+// sends only to members whose local-morning slot has come round (D41, localMorning.js);
+// without it, to every recipient for the default window or opts.startTime/endTime.
 export const sendAllDigests = async (type, opts = {}) => {
   if (opts.groupIds && opts.groupIds.length === 0) return []
   slowedNoticeSentTo.clear()
+  if (opts.at) return sendScheduledDigests(type, opts)
 
   let query = bookshelf.knex('groups')
     .where({ active: true })
@@ -227,6 +253,102 @@ export const sendAllDigests = async (type, opts = {}) => {
     } catch (err) {
       sails.log.error(`digest2: error sending unified ${type} digest to user ${user.id}: ${err.message}`, err.stack)
       sentry.error(err, null, { userId: user.id, type })
+    }
+  }, { concurrency: DIGEST_USER_CONCURRENCY })
+
+  return compact(results)
+}
+
+// One digest each, for members whose slot is due. The slot is claimed first, so a second
+// run can't send it again, and given back if the send fails, so a later run retries.
+const sendScheduledToEach = async (users, type, data, opts, groupId) => {
+  let sent = 0
+  for (const user of users) {
+    if (!opts.dryRun && !(await claimSlot(groupId, user.id, type, user.digestSlot))) continue
+    try {
+      const { outcome } = await deliverDigest(user, type, data, opts)
+      if (outcome === DIGEST_OUTCOME.FAILED && !opts.dryRun) {
+        await releaseSlot(groupId, user.id, type, user.digestSlot, user.digestSentFor)
+      }
+      if (outcome === DIGEST_OUTCOME.SENT || outcome === DIGEST_OUTCOME.DRY_RUN) sent += 1
+    } catch (err) {
+      if (!opts.dryRun) await releaseSlot(groupId, user.id, type, user.digestSlot, user.digestSentFor)
+      sails.log.error(`digest2: error sending ${type} digest for group ${groupId} to user ${user.id}: ${err.message}`, err.stack)
+      sentry.error(err, null, { groupId, userId: user.id, type })
+    }
+  }
+  return sent
+}
+
+// A unified digest to one member: claims each group's slot, sends what it could claim,
+// and gives the claims back if the send fails
+const sendScheduledUnified = async ({ user, datasets }, type, opts) => {
+  const claimed = []
+  for (const data of datasets) {
+    if (opts.dryRun || await claimSlot(data.group_id, user.id, type, user.digestSlot)) claimed.push(data)
+  }
+  if (claimed.length === 0) return
+  const release = () => opts.dryRun
+    ? null
+    : Promise.all(claimed.map(data => releaseSlot(data.group_id, user.id, type, user.digestSlot, user.digestSentForByGroup?.[String(data.group_id)])))
+  try {
+    const { outcome } = await deliverUnifiedDigest(user, type, claimed, opts)
+    if (outcome === DIGEST_OUTCOME.FAILED) await release()
+  } catch (err) {
+    await release()
+    throw err
+  }
+}
+
+// D41: one hourly run. Only groups with a member whose slot is due are prepared, once
+// for each distinct window among those members (on most days there is one).
+const sendScheduledDigests = async (type, opts) => {
+  const at = opts.at
+  const timezones = await dueTimezones(type, at)
+  const ids = await groupIdsWithDueMembers(type, timezones, opts.groupIds)
+  const unifiedByUserId = new Map()
+
+  const results = await Promise.map(ids, async id => {
+    try {
+      const users = await getRecipients(id, type, { at, timezones })
+      if (users.length === 0) return null
+      let sent = 0
+      for (const windowUsers of Object.values(groupBy(users, user => user.digestWindowKey))) {
+        const [startTime, endTime] = windowUsers[0].digestWindow
+        const data = await prepareDigestData(id, type, { ...opts, startTime, endTime })
+        if (!data || !(await shouldSendData(data, id))) {
+          // Nothing in this group for them today: done for this slot
+          if (!opts.dryRun) await markSlots(id, type, windowUsers.map(user => ({ userId: user.id, slot: user.digestSlot })))
+          continue
+        }
+        const regular = []
+        windowUsers.forEach(user => {
+          if (wantsUnifiedDigest(user)) {
+            const bucket = unifiedByUserId.get(user.id) || { user, datasets: [] }
+            bucket.datasets.push(data)
+            bucket.user.digestSentForByGroup = { ...bucket.user.digestSentForByGroup, [String(id)]: user.digestSentFor }
+            if (user.digestSlowed) bucket.user.digestSlowed = true
+            unifiedByUserId.set(user.id, bucket)
+          } else {
+            regular.push(user)
+          }
+        })
+        sent += await sendScheduledToEach(regular, type, data, opts, id)
+      }
+      return sent ? [id, sent] : null
+    } catch (err) {
+      sails.log.error(`digest2: error sending ${type} digests for group ${id}: ${err.message}`, err.stack)
+      sentry.error(err, null, { groupId: id, type })
+      return null
+    }
+  }, { concurrency: DIGEST_GROUP_CONCURRENCY })
+
+  await Promise.map([...unifiedByUserId.values()], async bucket => {
+    try {
+      await sendScheduledUnified(bucket, type, opts)
+    } catch (err) {
+      sails.log.error(`digest2: error sending unified ${type} digest to user ${bucket.user.id}: ${err.message}`, err.stack)
+      sentry.error(err, null, { userId: bucket.user.id, type })
     }
   }, { concurrency: DIGEST_USER_CONCURRENCY })
 

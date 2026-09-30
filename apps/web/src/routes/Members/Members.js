@@ -348,7 +348,7 @@ function Members (props) {
               title={t('Search')}
               data-testid='members-search-button'
               className={cn(
-                'sm:hidden shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border-2 border-foreground/20 text-foreground/60 transition-colors hover:text-foreground',
+                'sm:hidden shrink-0 flex items-center justify-center w-10 h-10 rounded-lg border-2 border-foreground/20 text-foreground-muted transition-colors hover:text-foreground',
                 mobileSearchOpen && 'hidden'
               )}
             >
@@ -393,7 +393,7 @@ function Members (props) {
                 onClick={() => setDisplayMode('card')}
                 aria-label={t('Cards')}
                 title={t('Cards')}
-                className={cn('px-2.5 py-[10px] transition-colors', displayMode === 'card' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
+                className={cn('px-2.5 py-[10px] transition-colors', displayMode === 'card' ? 'bg-selected text-foreground' : 'text-foreground-muted hover:text-foreground hover:bg-foreground/5')}
               >
                 <LayoutGrid className='w-4 h-4' />
               </button>
@@ -402,7 +402,7 @@ function Members (props) {
                 onClick={() => setDisplayMode('list')}
                 aria-label={t('List')}
                 title={t('List')}
-                className={cn('px-2.5 py-[10px] transition-colors', displayMode === 'list' ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
+                className={cn('px-2.5 py-[10px] transition-colors', displayMode === 'list' ? 'bg-selected text-foreground' : 'text-foreground-muted hover:text-foreground hover:bg-foreground/5')}
               >
                 <List className='w-4 h-4' />
               </button>
@@ -416,7 +416,7 @@ function Members (props) {
               data-testid='skill-map-toggle'
               className={cn(
                 'flex items-center gap-1.5 rounded-lg border-2 border-foreground/20 px-2.5 py-[10px] text-sm leading-4 transition-colors',
-                showSkillMap ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
+                showSkillMap ? 'bg-selected text-foreground' : 'text-foreground-muted hover:text-foreground hover:bg-foreground/5'
               )}
             >
               <Waypoints className='w-4 h-4' />
@@ -536,12 +536,12 @@ function Members (props) {
             ))}
         </MasonryGrid>
         {!isLoading && members.length === 0 && (
-          <div className='py-12 text-center text-sm text-foreground/60'>
+          <div className='py-12 text-center text-sm text-foreground-muted'>
             {t('No results for this search')}
           </div>
         )}
         {!isLoading && members.length > 0 && !search && !groupRoleIds && trackCompleted == null && !fundingRoundCapability && Boolean(memberCount) && (
-          <div className='py-4 text-center text-xs text-foreground/50'>
+          <div className='py-4 text-center text-xs text-foreground-muted'>
             {t('Showing {{count}} of {{total}} members', { count: Math.min(members.length, memberCount), total: memberCount })}
           </div>
         )}
@@ -577,7 +577,7 @@ function RolePill ({ active, onClick, count, children }) {
         'inline-flex items-center rounded-full border-2 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap transition-colors',
         active
           ? 'bg-selected border-selected text-foreground'
-          : 'border-foreground/20 text-foreground/60 hover:text-foreground hover:border-foreground/40'
+          : 'border-foreground/20 text-foreground-muted hover:text-foreground hover:border-foreground/40'
       )}
     >
       {children}
@@ -585,7 +585,7 @@ function RolePill ({ active, onClick, count, children }) {
         <span
           className={cn(
             'ml-1.5 inline-grid place-items-center min-w-[18px] px-1 py-px rounded-full text-[10px] font-bold tabular-nums',
-            active ? 'bg-background/60 text-foreground' : 'bg-foreground/10 text-foreground/60'
+            active ? 'bg-background/60 text-foreground' : 'bg-foreground/10 text-foreground-muted'
           )}
         >
           {count}

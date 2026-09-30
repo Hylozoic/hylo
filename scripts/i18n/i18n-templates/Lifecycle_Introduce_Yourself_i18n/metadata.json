@@ -1,0 +1,11 @@
+{
+  "templateId": null,
+  "templateName": "Lifecycle_Introduce_Yourself_i18n",
+  "versionName": "Initial Version",
+  "locale": "en-US",
+  "tags": [
+    "i18n",
+    "i18n ready"
+  ],
+  "note": "Not uploaded yet. Upload with scripts/i18n/upload-new-template.js, then set LIFECYCLE_INTRODUCE_TEMPLATE_ID in apps/backend/api/services/Email.js. Sent once, on day 3 after signup, to a member who hasn't posted in their group (apps/backend/api/models/user/lifecycleEmails.js, D12). The subject comes from the backend (lifecycleIntroduceSubject)."
+}

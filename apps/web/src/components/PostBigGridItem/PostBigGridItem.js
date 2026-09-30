@@ -188,13 +188,13 @@ export default function PostBigGridItem ({
         <div className='flex items-start gap-3 mb-2 shrink-0'>
           {isEvent && <EventDate {...post} />}
           <div className='flex-1 min-w-0'>
-            <div className='flex items-center gap-2 text-xs text-foreground/60 min-w-0'>
+            <div className='flex items-center gap-2 text-xs text-foreground-muted min-w-0'>
               <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
               <span className='font-bold text-foreground truncate'>{creator.name}</span>
               <span className='flex-shrink-0'>{createdTimestampShort}</span>
             </div>
             {groupLabel && (
-              <div className='text-xs text-foreground/50 truncate'>{groupLabel}</div>
+              <div className='text-xs text-foreground-muted truncate'>{groupLabel}</div>
             )}
             <h3 className='flex items-center text-foreground font-bold text-lg line-clamp-2 mb-1 mt-0 leading-tight'>
               {pinnedInView && <Pin className='w-4 h-4 mr-1 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />}
@@ -205,7 +205,7 @@ export default function PostBigGridItem ({
         </div>
 
         {/* Details text */}
-        <p className='text-foreground/60 text-sm flex-1 line-clamp-[8] mb-2 mt-0'>
+        <p className='text-foreground-muted text-sm flex-1 line-clamp-[8] mb-2 mt-0'>
           {TextHelpers.presentHTMLToText(details, { truncate: 400 })}
         </p>
 

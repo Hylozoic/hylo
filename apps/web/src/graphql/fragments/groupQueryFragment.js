@@ -34,6 +34,7 @@ export default function groupQueryFragment () {
       askGroupToGroupJoinQuestions
       askJoinQuestions
       defaultDigestFrequency
+      defaultPostNotifications
       hideExtensionData
       locationDisplayPrecision
       publicMemberDirectory

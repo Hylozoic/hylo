@@ -262,7 +262,7 @@ export default function SpaceCollection ({ group, parentGroup }) {
                           className={cn(
                             CARD_CLASS,
                             cardChrome(effectiveColorScheme === 'dark'),
-                            'border-dashed border-foreground/30 hover:border-foreground/50 bg-transparent items-center justify-center text-foreground/60 hover:text-foreground'
+                            'border-dashed border-foreground/30 hover:border-foreground/50 bg-transparent items-center justify-center text-foreground-muted hover:text-foreground'
                           )}
                         >
                           <Plus className='w-6 h-6' />
@@ -302,7 +302,7 @@ export default function SpaceCollection ({ group, parentGroup }) {
             onClick={() => setShowPicker(true)}
             className={cn(
               CARD_CLASS,
-              'border-dashed border-foreground/30 hover:border-foreground/50 bg-transparent items-center justify-center text-foreground/60 hover:text-foreground'
+              'border-dashed border-foreground/30 hover:border-foreground/50 bg-transparent items-center justify-center text-foreground-muted hover:text-foreground'
             )}
           >
             <Plus className='w-6 h-6' />

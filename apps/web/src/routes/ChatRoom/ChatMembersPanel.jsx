@@ -271,7 +271,7 @@ export default function ChatMembersPanel ({ group, latestPost }) {
           <button
             type='button'
             onClick={close}
-            className='w-7 h-7 grid place-items-center rounded-md text-foreground/60 hover:text-foreground hover:bg-foreground/10 transition-colors'
+            className='w-7 h-7 grid place-items-center rounded-md text-foreground-muted hover:text-foreground hover:bg-foreground/10 transition-colors'
             aria-label={t('Close')}
           >
             <X className='w-4 h-4' />
@@ -315,7 +315,7 @@ export default function ChatMembersPanel ({ group, latestPost }) {
               <div className='min-w-0 flex-1'>
                 <div className='text-sm font-bold text-foreground truncate'>{person.name}</div>
                 {(person.tagline || person.location) && (
-                  <div className='text-xs text-foreground/50 truncate'>{person.tagline || person.location}</div>
+                  <div className='text-xs text-foreground-muted truncate'>{person.tagline || person.location}</div>
                 )}
               </div>
               <Tooltip>
@@ -325,7 +325,7 @@ export default function ChatMembersPanel ({ group, latestPost }) {
                     onClick={(e) => openDM(e, person)}
                     // Hidden-until-hover only where hover exists — on touch there is
                     // no hover to reveal it, so the button stays visible
-                    className='shrink-0 w-7 h-7 grid place-items-center rounded-md text-foreground/50 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:!opacity-100 hover:text-foreground hover:bg-foreground/10 transition-all'
+                    className='shrink-0 w-7 h-7 grid place-items-center rounded-md text-foreground-muted [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:!opacity-100 hover:text-foreground hover:bg-foreground/10 transition-all'
                     aria-label={t('Message Member')}
                   >
                     <MessageCircle className='w-4 h-4' />

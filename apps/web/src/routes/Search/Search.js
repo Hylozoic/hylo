@@ -382,7 +382,7 @@ function SearchStatus ({ imageSrc, message, subtitle, action, variant = 'empty' 
         {message}
       </p>
       {subtitle && (
-        <p className='text-sm text-foreground/60 mt-2 max-w-md'>
+        <p className='text-sm text-foreground-muted mt-2 max-w-md'>
           {subtitle}
         </p>
       )}
@@ -403,7 +403,7 @@ function GroupResult ({ group, isMember, onOpen }) {
       <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} size='48px' square />
       <div className='min-w-0 flex-1'>
         <div className='text-lg font-bold truncate'>{group.name}</div>
-        <div className='text-sm text-foreground/50 truncate'>
+        <div className='text-sm text-foreground-muted truncate'>
           {t('{{count}} members', { count: group.memberCount || 0 })}
           {group.location ? ` · ${group.location}` : ''}
         </div>
@@ -504,7 +504,7 @@ function PersonCard ({ person, term, showPerson, highlightProps }) {
         <Highlight {...highlightProps}>
           <div className='text-lg font-bold text-base'>{person.name}</div>
         </Highlight>
-        <div className='text-sm text-foreground/50'>{person.location}</div>
+        <div className='text-sm text-foreground-muted'>{person.location}</div>
       </div>
       {skill && <Pill label={skill} className={classes.personSkill} small />}
     </div>

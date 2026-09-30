@@ -109,6 +109,8 @@ exports.hi = {
   joinRequestUnansweredSubject: (groupName) => `${groupName} में शामिल होने का आपका अनुरोध अभी भी जवाब का इंतज़ार कर रहा है`,
   roleGrantedSubject: ({ roleName, groupName }) => `${groupName} में आपकी नई भूमिका: ${roleName}`,
   stewardWeeklySubject: (groupName) => `${groupName} में यह हफ़्ता, संचालकों के लिए`,
+  lifecycleFindGroupSubject: () => 'Hylo पर जुड़ने के लिए एक समूह खोजें',
+  lifecycleIntroduceSubject: (groupName) => `${groupName} में अपना परिचय दें`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

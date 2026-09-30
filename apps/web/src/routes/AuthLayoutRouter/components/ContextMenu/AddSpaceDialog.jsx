@@ -846,7 +846,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
                 {!hideHomePickerCopy && (
                   <div className='min-w-0'>
                     <span className={FIELD_LABEL_CLASS}>{t("Choose your space's home")}</span>
-                    <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your space. You can change this later by editing the space menu.')}</p>
+                    <p className='text-xs text-foreground-muted mt-0.5 mb-0'>{t('Set the default view members see when they enter your space. You can change this later by editing the space menu.')}</p>
                   </div>
                 )}
                 {!showMenuEditor && (
@@ -884,7 +884,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
                     acceptedPostTypes={postTypes}
                     onOrderedRowsChange={setOrderedRows}
                     label={t("These are the menu your members use. The one at the top is your space's home.")}
-                    labelClassName='text-xs text-foreground/60'
+                    labelClassName='text-xs text-foreground-muted'
                   />
                 </AdvancedSection>
                 )

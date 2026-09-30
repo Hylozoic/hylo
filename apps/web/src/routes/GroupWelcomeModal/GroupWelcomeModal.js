@@ -16,6 +16,7 @@ import { fetchGroupWelcomeData } from './GroupWelcomeModal.store'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import Button from 'components/ui/button'
 import ClickCatcher from 'components/ClickCatcher'
+import EmailOffNotice from 'components/EmailOffNotice/EmailOffNotice'
 import HyloHTML from 'components/HyloHTML'
 import RoundImage from 'components/RoundImage'
 import SuggestedSkills from 'components/SuggestedSkills'
@@ -280,6 +281,7 @@ export default function GroupWelcomeModal (props) {
               )}
             </div>
             <div className='w-full p-4'>
+              <EmailOffNotice membershipSettings={currentMembership.settings} className='mb-2' />
               {page === 2 && hasFirstPage && (
                 <Button
                   className={classes.previousButton}
