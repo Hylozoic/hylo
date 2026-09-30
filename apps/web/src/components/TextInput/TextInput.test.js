@@ -41,6 +41,15 @@ describe('TextInput', () => {
     }))
   })
 
+  it('clears the named field, so a form keyed by field name empties the right one', () => {
+    const onChange = jest.fn()
+    render(<TextInput onChange={onChange} name='email' value='someone@example.com' />)
+
+    fireEvent.click(screen.getByRole('button'))
+
+    expect(onChange).toHaveBeenCalledWith({ target: { name: 'email', value: '' } })
+  })
+
   it('renders loading indicator when loading prop is true', () => {
     render(<TextInput onChange={() => {}} value='' loading />)
 
