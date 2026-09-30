@@ -72,11 +72,19 @@ test('the About page says when email from the group is off, with a link to chang
   await expect(page.getByRole('heading', { name: 'Notification Settings for E2E Public Group' })).toBeVisible(uiTimeout)
 
   const emailSwitch = page.locator('[id$="-email-notifications"]').first()
+  const notice = page.getByTestId('email-off-notice')
   await expect(emailSwitch).toBeVisible(uiTimeout)
   const wasOn = (await emailSwitch.getAttribute('aria-checked')) === 'true'
-  if (wasOn) await emailSwitch.click()
+  // The seeded membership has no email setting saved, which the switch shows as off
+  // and the line doesn't count as a choice, so switch email on first, as a member would
+  if (!wasOn) {
+    await emailSwitch.click()
+    await expect(emailSwitch).toHaveAttribute('aria-checked', 'true', uiTimeout)
+  }
+  await expect(notice).toHaveCount(0, uiTimeout)
 
-  const notice = page.getByTestId('email-off-notice')
+  await emailSwitch.click()
+  await expect(emailSwitch).toHaveAttribute('aria-checked', 'false', uiTimeout)
   await expect(notice).toContainText('Email from this group is off.', uiTimeout)
   await expect(notice.getByRole('link', { name: 'Change email settings' })).toHaveAttribute('href', '/my/notifications')
   await notice.scrollIntoViewIfNeeded()
