@@ -85,6 +85,49 @@ it('shows group if the group exists', async () => {
   })
 })
 
+it('shows retained paid access in the former member About surface', async () => {
+  const group = {
+    id: '1',
+    slug: 'test-group',
+    name: 'Test Group',
+    paywall: true,
+    hasValidScope: true,
+    currentUserMembershipActive: false,
+    accessibility: 1,
+    visibility: 1,
+    memberCount: 4,
+    stewards: [],
+    members: [],
+    agreements: []
+  }
+  const me = {
+    id: '1',
+    name: 'Test User',
+    hasRegistered: true,
+    emailValidated: true,
+    settings: { signupInProgress: false, alreadySeenTour: true },
+    memberships: []
+  }
+
+  useParamsMocked.mockReturnValue({ context: 'groups', groupSlug: 'test-group' })
+  useLocationMocked.mockReturnValue({ pathname: '/groups/test-group/about', search: '' })
+  mockGraphqlServer.use(
+    graphql.query('MeQuery', () => HttpResponse.json({ data: { me } })),
+    graphql.query('FetchForGroup', () => HttpResponse.json({ data: { group } })),
+    graphql.query('GroupDetailsQuery', () => HttpResponse.json({ data: { group } })),
+    ...defaultGraphqlHandlers()
+  )
+
+  render(
+    <AuthLayoutRouter />,
+    { wrapper: testWrapper({}, ['/groups/test-group/about']) }
+  )
+
+  await waitForElementToBeRemoved(screen.queryByTestId('loading-screen'))
+  expect(await screen.findByText('You are not currently a member of Test Group, but your access is still valid. Rejoin to participate again.')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Rejoin Test Group' })).toBeInTheDocument()
+})
+
 it('shows NotFound if the group does not exist', async () => {
   const me = {
     id: '1',

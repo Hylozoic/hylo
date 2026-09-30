@@ -88,7 +88,7 @@ export {
 export {
   findOrCreateLocation
 } from './location'
-export { updateAllMemberships, updateMembership } from './membership'
+export { rejoinGroup, updateAllMemberships, updateMembership } from './membership'
 export { registerDevice } from './mobile'
 export {
   completePost,

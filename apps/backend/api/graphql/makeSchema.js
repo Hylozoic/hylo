@@ -6,6 +6,7 @@ import { merge, reduce } from 'lodash'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import mixpanel from '../../lib/mixpanel'
+import { createGroupScope } from '../../lib/scopes'
 import {
   saveDraft,
   deleteDraft,
@@ -111,6 +112,7 @@ import {
   processStripeToken,
   reactOn,
   reactivateUser,
+  rejoinGroup,
   recordClickthrough,
   recordStripePurchase,
   regenerateAccessCode,
@@ -455,6 +457,37 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       return fetchMany('ContentAccess', args)
     },
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
+    retainedAccessAbout: async (root, { slug }, context) => {
+      const userId = context.currentUserId
+      if (!userId) return null
+
+      const group = await Group.findActive(slug)
+      if (!group || !group.get('paywall') || [Group.Status.DRAFT, Group.Status.ARCHIVED].includes(group.get('status'))) return null
+
+      const membership = await GroupMembership.forPair(userId, group, { includeInactive: true }).fetch()
+      if (!membership || membership.get('active')) return null
+      if (!await UserScope.canAccess(userId, createGroupScope(group.id))) return null
+
+      const parentId = group.get('parent_id')
+      const parent = parentId ? await Group.findActive(parentId) : null
+      const hasActiveParentMembership = !parentId || Boolean(parent && await GroupMembership.forPair(userId, parent).fetch())
+
+      return {
+        id: group.id,
+        name: group.get('name'),
+        slug: group.get('slug'),
+        type: group.get('type'),
+        description: group.get('description'),
+        purpose: group.get('purpose'),
+        avatarUrl: group.get('avatar_url'),
+        bannerUrl: group.get('banner_url'),
+        homeRoute: group.get('home_route'),
+        hasActiveParentMembership,
+        parentGroupName: parent?.get('name') || null,
+        parentGroupSlug: parent?.get('slug') || null
+      }
+    },
+
     group: async (root, { id, slug, updateLastViewed, accessCode, invitationToken }, context) => {
       let group
       // If invitation credentials are provided, validate and bypass visibility filter
@@ -788,6 +821,8 @@ export function makeMutations ({ fetchOne }) {
     joinGroup: (root, { groupId, questionAnswers, accessCode, invitationToken, acceptAgreements }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, accessCode, invitationToken, acceptAgreements, context),
 
     joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
+
+    rejoinGroup: (root, { groupId }, context) => rejoinGroup(context.currentUserId, groupId),
 
     leaveFundingRound: (root, { id }, context) => leaveFundingRound(context.currentUserId, id),
 

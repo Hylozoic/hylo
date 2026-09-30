@@ -24,7 +24,6 @@ import GlobalNav from './components/GlobalNav'
 import ContextMenuGrid from './components/ContextMenu/ContextMenuGrid'
 import MoreSpacesPage from './components/ContextMenu/MoreSpacesPage'
 import TopNav from './components/TopNav'
-import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
@@ -45,13 +44,14 @@ import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
+import { isRetainedAccessGroup } from 'store/models/Group'
 import { getSignupInProgress } from 'store/selectors/getSignupState'
 import { getLastViewedGroupPath } from 'store/selectors/getLastViewedGroup'
 import { isSpaceGroup } from 'store/selectors/getMyGroups'
 import orm from 'store/models'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
-  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, localSpaceSlug, postUrl, spaceUrl
+  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, localSpaceSlug, postUrl, spaceUrl, storedSpaceSlug
 } from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import {
@@ -64,6 +64,7 @@ import CreateGroup from 'routes/CreateGroup'
 import CreateGroupModal from 'routes/CreateGroup/CreateGroupModal'
 import GroupAboutPage from 'routes/GroupAboutPage'
 import GroupDetail from 'routes/GroupDetail'
+import RetainedAccessAbout from 'routes/RetainedAccessAbout/RetainedAccessAbout'
 import PaymentSuccess from 'routes/GroupDetail/PaymentSuccess'
 import PaymentFailure from 'routes/GroupDetail/PaymentFailure'
 import GroupSettings from 'routes/GroupSettings'
@@ -190,6 +191,7 @@ export default function AuthLayoutRouter (props) {
   const dispatch = useDispatch()
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
+  const currentGroupHasRetainedAccess = isRetainedAccessGroup(currentGroup)
   const groupViews = useGroupViews(currentGroup)
   const onWelcomePath = Boolean(
     currentGroupSlug &&
@@ -867,7 +869,11 @@ export default function AuthLayoutRouter (props) {
   const groupInviteBypass =
     !!getQuerystringParam('accessCode', location) || !!getQuerystringParam('token', location)
   if (currentGroupSlug && !currentGroup && !currentGroupLoading && !groupInviteBypass) {
-    return <NotFound />
+    const retainedGroupSlug = pathMatchParams?.spaceSlug
+      ? storedSpaceSlug(currentGroupSlug, pathMatchParams.spaceSlug)
+      : currentGroupSlug
+    const fallbackUrl = pathMatchParams?.spaceSlug ? `/groups/${currentGroupSlug}/about` : null
+    return <RetainedAccessAbout slug={retainedGroupSlug} fallbackUrl={fallbackUrl} />
   }
 
   // Spaces (`type = space`) opened as `/groups/:spaceSlug` nest under their parent.
@@ -1091,8 +1097,10 @@ export default function AuthLayoutRouter (props) {
                        instead of a bare spinner. */
                     currentGroupLoading && !paramPostId && !groupInviteBypass
                       ? <RouteBootstrapSkeleton />
-                      : currentGroupSlug && !currentGroupMembership
-                        ? <GroupDetail context='groups' group={currentGroup} />
+                      : currentGroupSlug && !currentGroupMembership && !pathMatchParams?.spaceSlug
+                        ? currentGroupHasRetainedAccess && location.pathname !== `/groups/${currentGroupSlug}/about`
+                          ? <Navigate to={`/groups/${currentGroupSlug}/about${location.search}`} replace />
+                          : <GroupDetail context='groups' group={currentGroup} />
                         : (
                           <Routes>
                             <Route path='spaces/:spaceSlug/*' element={<SpaceContent parentGroup={currentGroup} isOneColumnGroup={isOneColumnGroup} />} />

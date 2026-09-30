@@ -736,3 +736,62 @@ describe('Notification', function () {
   //   })
   // })
 })
+
+describe('former group member notifications', () => {
+  async function groupMentionActivity (reader, actor, group) {
+    const post = await factories.post({ user_id: actor.id }).save()
+    await group.posts().attach(post)
+    const activity = await Activity.forge({
+      reader_id: reader.id,
+      actor_id: actor.id,
+      post_id: post.id,
+      meta: { reasons: ['mention'] }
+    }).save()
+    await activity.load(['reader', 'post', 'post.groups'])
+    return activity
+  }
+
+  it('does not create notification media for a former group member', async () => {
+    const reader = await factories.user().save()
+    const actor = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([reader, actor])
+    await group.removeMembers([reader])
+    const activity = await groupMentionActivity(reader, actor, group)
+
+    expect(await Activity.generateNotificationMedia(activity)).to.deep.equal([])
+  })
+
+  it('blocks queued group-post notifications after the reader leaves', async () => {
+    const reader = await factories.user().save()
+    const actor = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([reader, actor])
+    const activity = await groupMentionActivity(reader, actor, group)
+    const notification = await Notification.forge({
+      user_id: reader.id,
+      activity_id: activity.id,
+      medium: Notification.MEDIUM.InApp
+    }).save()
+    await group.removeMembers([reader])
+    await notification.load(['activity', 'activity.post', 'activity.post.groups'])
+
+    expect(await notification.shouldBeBlocked()).to.equal(true)
+  })
+
+  it('keeps active members eligible for group-post notifications', async () => {
+    const reader = await factories.user().save()
+    const actor = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([reader, actor])
+    const activity = await groupMentionActivity(reader, actor, group)
+    const notification = await Notification.forge({
+      user_id: reader.id,
+      activity_id: activity.id,
+      medium: Notification.MEDIUM.InApp
+    }).save()
+    await notification.load(['activity', 'activity.post', 'activity.post.groups'])
+
+    expect(await notification.shouldBeBlocked()).to.equal(false)
+  })
+})

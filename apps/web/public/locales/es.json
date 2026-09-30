@@ -3062,5 +3062,12 @@
   "Selected space": "Espacio seleccionado",
   "Incorrect email or password.": "Correo electrónico o contraseña incorrectos.",
   "If you signed up with Google, log in with Google instead.": "Si te registraste con Google, inicia sesión con Google.",
-  "Too many attempts. Please wait a few minutes and try again.": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo."
+  "Too many attempts. Please wait a few minutes and try again.": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+  "You still have access to {{name}}": "Aún tienes acceso a {{name}}",
+  "You are not currently a member of {{name}}, but your access is still valid. Rejoin to participate again.": "Actualmente no eres miembro de {{name}}, pero tu acceso sigue vigente. Vuelve a unirte para participar de nuevo.",
+  "Rejoin {{name}}": "Volver a unirte a {{name}}",
+  "Rejoining...": "Volviendo a unirte...",
+  "To rejoin this space, you need to be a member of its parent group first.": "Para volver a unirte a este espacio, primero debes ser miembro de su grupo principal.",
+  "Go to {{name}} about page": "Ir a la página Acerca de {{name}}",
+  "Your access may have expired. Refresh this page to check your options.": "Es posible que tu acceso haya caducado. Actualiza esta página para consultar tus opciones."
 }
