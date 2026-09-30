@@ -515,7 +515,7 @@ export default function GroupAboutView ({
                     compact
                     postsOnly={isSpace}
                   />
-                  <EmailOffNotice membershipSettings={membership.settings} className='mt-3' />
+                  {!isSpace && <EmailOffNotice membershipSettings={membership.settings} className='mt-3' />}
                 </AboutCard>
               )}
               {activeTab === 'settings' && isSpace && (

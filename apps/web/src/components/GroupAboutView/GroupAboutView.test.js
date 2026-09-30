@@ -49,6 +49,19 @@ describe('GroupAboutView notification settings tab', () => {
     expect(screen.getByRole('link', { name: 'Change email settings' })).toHaveAttribute('href', '/my/notifications')
   })
 
+  it("leaves the line to the parent group in a space, whose email follows the group's", async () => {
+    const settings = { sendEmail: false, sendPushNotifications: true, postNotifications: 'important', digestFrequency: 'daily' }
+    render(
+      <GroupAboutView group={testGroup} isSpace tab='notifications' onTabChange={() => {}} />,
+      {},
+      providersWithMembership(settings)
+    )
+
+    await screen.findByText('Notification Settings for Test Group')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(screen.queryByTestId('email-off-notice')).toBeNull()
+  })
+
   it('says nothing while email from the group is on', async () => {
     const settings = { sendEmail: true, sendPushNotifications: true, postNotifications: 'important', digestFrequency: 'daily' }
     render(
