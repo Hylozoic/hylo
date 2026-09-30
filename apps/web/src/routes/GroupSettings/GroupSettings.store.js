@@ -17,7 +17,9 @@ const GROUP_SETTINGS_INPUT_FIELDS = [
   'showSuggestedSkills',
   'showWelcomePage',
   'showPostNoticesInChat',
-  'autoAddMembers'
+  'autoAddMembers',
+  'showPaywallPreview',
+  'introTemplate'
 ]
 
 export const DELETE_GROUP = `${MODULE_NAME}/DELETE_GROUP`

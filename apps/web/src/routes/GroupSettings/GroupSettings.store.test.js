@@ -21,4 +21,10 @@ describe('updateGroupSettings', () => {
     expect(query).toContain('invitePolicy { mode roleIds }')
     expect(query).toContain('memberRole { id responsibilities { items { id title description } } }')
   })
+
+  it('keeps the preview switch and the introduction template when saving settings', () => {
+    const action = updateGroupSettings('1', { settings: { introTemplate: 'Say hello', showPaywallPreview: false, agreementsLastUpdatedAt: 'now' } })
+
+    expect(action.graphql.variables.changes.settings).toEqual({ introTemplate: 'Say hello', showPaywallPreview: false })
+  })
 })
