@@ -26,6 +26,9 @@ describe('migration 20261015000000_backfill_notification_settings', () => {
       expect(migration.autoAddPatch({ postNotifications: 'all', sendEmail: null }, null))
         .to.deep.equal({ digestFrequency: 'daily', sendEmail: true, sendPushNotifications: true })
       expect(migration.autoAddPatch(JOIN_DEFAULTS, null)).to.deep.equal({})
+      // The space's default digest, as a new auto-added member gets
+      expect(migration.autoAddPatch({}, null, { default_digest_frequency: 'weekly' }))
+        .to.deep.equal({ postNotifications: 'important', digestFrequency: 'weekly', sendEmail: true, sendPushNotifications: true })
     })
 
     it('reads less-email choices, leaving the old unsubscribe-all and scoped choices to their scope', () => {
@@ -33,6 +36,16 @@ describe('migration 20261015000000_backfill_notification_settings', () => {
       expect(migration.lessEmailChoices({ digest_frequency: 'daily', post_notifications: 'none' })).to.deep.equal({ postNotifications: 'none' })
       expect(migration.lessEmailChoices(LEGACY_UNSUBSCRIBE_ALL)).to.deep.equal({})
       expect(migration.lessEmailChoices({ digest_frequency: 'never', email_unsubscribe_scope: 'all_but_direct' })).to.deep.equal({})
+    })
+
+    it('switches memberships back on only when every one is off', () => {
+      const off = { id: 1, settings: { ...JOIN_DEFAULTS, sendEmail: false, sendPushNotifications: false } }
+      const on = { id: 2, settings: JOIN_DEFAULTS }
+      const emailOnly = { id: 3, settings: { ...JOIN_DEFAULTS, sendEmail: false } }
+      expect(migration.membershipsBackOn([off, { ...off, id: 4 }])).to.have.length(2)
+      expect(migration.membershipsBackOn([off, on])).to.deep.equal([])
+      expect(migration.membershipsBackOn([off, emailOnly])).to.deep.equal([])
+      expect(migration.membershipsBackOn([])).to.deep.equal([])
     })
 
     it('only lowers a membership', () => {
@@ -59,6 +72,7 @@ describe('migration 20261015000000_backfill_notification_settings', () => {
       const weeklyGroup = await factories.group({ settings: { default_digest_frequency: 'weekly' } }).save()
       const autoAddSpace = await factories.group({ type: 'space', parent_id: parent.id, settings: { auto_add_members: true } }).save()
       const plainSpace = await factories.group({ type: 'space', parent_id: parent.id }).save()
+      const weeklyAutoAddSpace = await factories.group({ type: 'space', parent_id: parent.id, settings: { auto_add_members: true, default_digest_frequency: 'weekly' } }).save()
 
       // (a) auto-added space members
       users.quietParent = await factories.user().save()
@@ -67,6 +81,7 @@ describe('migration 20261015000000_backfill_notification_settings', () => {
       users.noParent = await factories.user().save()
       ids.autoAddedNoParent = await membership(users.noParent, autoAddSpace, { showJoinForm: false })
       ids.autoAddedPartly = await membership(users.noParent, plainSpace, { joinSource: 'auto_add', postNotifications: 'all', sendEmail: false })
+      ids.autoAddedWeeklySpace = await membership(users.noParent, weeklyAutoAddSpace, { joinSource: 'auto_add' })
       users.joinedSpaceThemselves = await factories.user().save()
       ids.ownSpaceMembership = await membership(users.joinedSpaceThemselves, plainSpace, { showJoinForm: false })
 
@@ -78,9 +93,18 @@ describe('migration 20261015000000_backfill_notification_settings', () => {
       users.dailyAll = await factories.user({ settings: { digest_frequency: 'daily', post_notifications: 'all' } }).save()
       ids.defaultsKept = await membership(users.dailyAll, parent, JOIN_DEFAULTS)
 
-      // (c) the old "Unsubscribe from all"
+      // (c) the old "Unsubscribe from all", which also switched every membership off.
+      // This person joined a group since (on), so their memberships stay as they are.
+      const SWITCHED_OFF = { ...JOIN_DEFAULTS, sendEmail: false, sendPushNotifications: false }
       users.unsubscribedAll = await factories.user({ settings: { ...LEGACY_UNSUBSCRIBE_ALL, locale: 'es' } }).save()
       ids.unsubscribedAllMembership = await membership(users.unsubscribedAll, parent, JOIN_DEFAULTS)
+      ids.unsubscribedAllOffMembership = await membership(users.unsubscribedAll, weeklyGroup, SWITCHED_OFF)
+      // Every membership still off, including one they left and an auto-added space
+      // membership that (a) fills from its parent first
+      users.unsubscribedAllOff = await factories.user({ settings: LEGACY_UNSUBSCRIBE_ALL }).save()
+      ids.allOffParent = await membership(users.unsubscribedAllOff, parent, SWITCHED_OFF)
+      ids.allOffLeft = await membership(users.unsubscribedAllOff, weeklyGroup, { ...SWITCHED_OFF, digestFrequency: 'weekly' }, { active: false })
+      ids.allOffSpace = await membership(users.unsubscribedAllOff, autoAddSpace, { joinSource: 'auto_add' })
       users.everything = await factories.user({ settings: { ...LEGACY_UNSUBSCRIBE_ALL, email_unsubscribe_scope: 'everything' } }).save()
 
       initial = await snapshot()
@@ -102,6 +126,7 @@ describe('migration 20261015000000_backfill_notification_settings', () => {
       })
       expect(after.autoAddedNoParent).to.deep.equal({ showJoinForm: false, postNotifications: 'important', digestFrequency: 'daily', sendEmail: true, sendPushNotifications: true })
       expect(after.autoAddedPartly).to.deep.equal({ joinSource: 'auto_add', postNotifications: 'all', sendEmail: false, digestFrequency: 'daily', sendPushNotifications: true })
+      expect(after.autoAddedWeeklySpace).to.deep.equal({ joinSource: 'auto_add', postNotifications: 'important', digestFrequency: 'weekly', sendEmail: true, sendPushNotifications: true })
       expect(after.ownSpaceMembership).to.deep.equal(initial.ownSpaceMembership)
 
       // (b)
@@ -116,6 +141,13 @@ describe('migration 20261015000000_backfill_notification_settings', () => {
         ...LEGACY_UNSUBSCRIBE_ALL, locale: 'es', dm_notifications: 'both', comment_notifications: 'both', email_unsubscribe_scope: 'all_but_direct'
       })
       expect(after.unsubscribedAllMembership).to.deep.equal(JOIN_DEFAULTS)
+      expect(after.unsubscribedAllOffMembership).to.deep.equal(initial.unsubscribedAllOffMembership)
+      expect(after['user:unsubscribedAllOff']).to.deep.equal({
+        ...initial['user:unsubscribedAllOff'], dm_notifications: 'both', comment_notifications: 'both', email_unsubscribe_scope: 'all_but_direct'
+      })
+      expect(after.allOffParent).to.deep.equal(JOIN_DEFAULTS)
+      expect(after.allOffLeft).to.deep.equal({ ...JOIN_DEFAULTS, digestFrequency: 'weekly' })
+      expect(after.allOffSpace).to.deep.equal({ joinSource: 'auto_add', ...JOIN_DEFAULTS })
       expect(after['user:everything']).to.deep.equal(initial['user:everything'])
 
       await migration.up(bookshelf.knex)
