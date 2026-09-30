@@ -3053,5 +3053,10 @@
   "Selected space": "Espace sélectionné",
   "Incorrect email or password.": "Adresse e-mail ou mot de passe incorrect.",
   "If you signed up with Google, log in with Google instead.": "Si vous vous êtes inscrit avec Google, connectez-vous plutôt avec Google.",
-  "Too many attempts. Please wait a few minutes and try again.": "Trop de tentatives. Veuillez patienter quelques minutes et réessayer."
+  "Too many attempts. Please wait a few minutes and try again.": "Trop de tentatives. Veuillez patienter quelques minutes et réessayer.",
+  "Draw boundary": "Tracer la limite",
+  "Boundary drawn. Use the pen to redraw it.": "Limite dessinée. Utilisez le crayon pour la redessiner.",
+  "Click the map to add points. Click the first point or press Enter to finish.": "Cliquez sur la carte pour ajouter des points. Cliquez sur le premier point ou appuyez sur Entrée pour terminer.",
+  "Remove boundary": "Supprimer la limite",
+  "The map could not be loaded in this browser.": "La carte n'a pas pu être chargée dans ce navigateur."
 }

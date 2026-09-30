@@ -3051,5 +3051,10 @@
   "Selected space": "Selected space",
   "Incorrect email or password.": "Incorrect email or password.",
   "If you signed up with Google, log in with Google instead.": "If you signed up with Google, log in with Google instead.",
-  "Too many attempts. Please wait a few minutes and try again.": "Too many attempts. Please wait a few minutes and try again."
+  "Too many attempts. Please wait a few minutes and try again.": "Too many attempts. Please wait a few minutes and try again.",
+  "Draw boundary": "Draw boundary",
+  "Boundary drawn. Use the pen to redraw it.": "Boundary drawn. Use the pen to redraw it.",
+  "Click the map to add points. Click the first point or press Enter to finish.": "Click the map to add points. Click the first point or press Enter to finish.",
+  "Remove boundary": "Remove boundary",
+  "The map could not be loaded in this browser.": "The map could not be loaded in this browser."
 }
