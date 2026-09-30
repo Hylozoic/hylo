@@ -31,6 +31,7 @@ export default function login (email, password) {
                 streamSortBy
                 streamPostType
                 theme
+                timezone
               }
             }
             error

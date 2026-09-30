@@ -3362,6 +3362,8 @@ type UserSettings {
   theme: String
   # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
   unifiedEmailDigest: Boolean
+  # IANA timezone reported by this person's browser (for example Europe/Berlin), so email digests arrive in their local morning
+  timezone: String
 }
 
 type Draft {
@@ -5047,4 +5049,6 @@ input UserSettingsInput {
   theme: String
   # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
   unifiedEmailDigest: Boolean
+  # IANA timezone reported by this person's browser (for example Europe/Berlin), so email digests arrive in their local morning
+  timezone: String
 }

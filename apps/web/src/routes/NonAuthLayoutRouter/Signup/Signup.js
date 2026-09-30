@@ -7,6 +7,7 @@ import { Helmet } from 'react-helmet'
 import { checkForStorageAccess, formatError } from '../util'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import checkLogin from 'store/actions/checkLogin'
+import { syncTimezone } from 'util/timezone'
 import { sendEmailVerification as sendEmailVerificationAction } from './Signup.store'
 import loginWithService from 'store/actions/loginWithService'
 import GoogleButton from 'components/GoogleButton'
@@ -43,7 +44,9 @@ export default function Signup (props) {
 
           // Required for Me data to be available to cause switch to auth'd
           // layout (i.e. AuthLayoutRouter)
-          dispatch(checkLogin())
+          const action = await dispatch(checkLogin())
+          // Digests go out in the person's local morning (D41)
+          syncTimezone(dispatch, action?.payload?.data?.me)
         } catch (error) {
           setError(error.message)
         }

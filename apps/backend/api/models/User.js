@@ -14,6 +14,7 @@ import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
 import { sanitizeAcquisitionSource } from '../../lib/acquisitionSource'
+import { isValidTimezone } from '../../lib/group/digest2/localMorning'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -445,7 +446,7 @@ module.exports = bookshelf.Model.extend(merge({
       }
     })
 
-    if (attrs.settings) this.addSetting(attrs.settings)
+    if (attrs.settings) this.addSetting(User.sanitizeSettings(attrs.settings))
 
     return this.set(saneAttrs)
   },
@@ -687,6 +688,13 @@ module.exports = bookshelf.Model.extend(merge({
 
 }, HasSettings), {
   AXOLOTL_ID: '13986',
+
+  // Settings as they may be saved. A timezone (from the person's browser, D41) is kept
+  // only when it is an IANA name luxon knows, so digest scheduling can rely on it.
+  sanitizeSettings (settings) {
+    if (!settings || !has(settings, 'timezone') || isValidTimezone(settings.timezone)) return settings
+    return omit(settings, 'timezone')
+  },
 
   // One message for every failure, so login can't be used to find out which emails have accounts.
   // Clients match on this exact string.

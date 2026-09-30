@@ -38,6 +38,7 @@ export default function checkLogin () {
               streamSortBy
               streamPostType
               theme
+              timezone
             }
           }
         }
