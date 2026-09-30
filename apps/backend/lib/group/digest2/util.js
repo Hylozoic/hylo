@@ -223,7 +223,7 @@ async function dueForSchedule (groupId, type, recipients, { at, timezones }) {
     if (!slot) return false
     const lastSentFor = sentFor[String(user.id)] || null
     if (!isDue(type, slot, lastSentFor, at)) return false
-    const window = windowFor(type, slot)
+    const window = windowFor(type, slot, lastSentFor)
     user.digestSlot = slot
     user.digestSentFor = lastSentFor
     user.digestWindow = window

@@ -4,6 +4,7 @@
 import { DateTime } from 'luxon'
 import {
   CATCH_UP_HOURS,
+  MIN_GAP_HOURS,
   SLOT_SETTING,
   isDue,
   isValidTimezone,
@@ -77,7 +78,7 @@ describe('digest2 local-morning schedule', () => {
           for (let at = utc('2026-10-15T00:05:00'); at < utc('2026-11-15T00:00:00'); at = at.plus({ hours: 1 })) {
             const slot = latestSlot(type, zone, at)
             if (isDue(type, slot, sentFor, at)) {
-              windows.push(windowFor(type, slot))
+              windows.push(windowFor(type, slot, sentFor))
               sentFor = slot.toUTC().toISO()
             }
           }
@@ -87,6 +88,55 @@ describe('digest2 local-morning schedule', () => {
           }
         }
       }
+    })
+
+    it('leaves no gap and no overlap when the member changes timezone', () => {
+      // Hourly runs over six weeks; the member starts with no timezone (noon Pacific),
+      // then their browser reports one after another, at different times of day
+      const changes = [
+        [utc('2026-10-01T00:00:00'), null],
+        [utc('2026-10-03T21:30:00'), 'Europe/Berlin'],
+        [utc('2026-10-06T09:00:00'), 'America/New_York'],
+        [utc('2026-10-09T02:00:00'), 'Asia/Tokyo'],
+        [utc('2026-10-12T14:00:00'), 'Europe/London'],
+        [utc('2026-10-14T03:00:00'), 'Asia/Kolkata'],
+        [utc('2026-10-17T20:00:00'), null],
+        [utc('2026-10-19T19:30:00'), 'Australia/Sydney'],
+        [utc('2026-10-24T04:00:00'), 'America/Los_Angeles'],
+        [utc('2026-10-29T10:00:00'), 'Pacific/Auckland'],
+        [utc('2026-11-03T12:00:00'), 'Europe/Berlin']
+      ]
+      const zoneAt = at => changes.filter(([from]) => from <= at).pop()[1]
+      for (const type of ['daily', 'weekly']) {
+        let sentFor = null
+        const windows = []
+        for (let at = utc('2026-10-01T00:05:00'); at < utc('2026-11-12T00:00:00'); at = at.plus({ hours: 1 })) {
+          const slot = latestSlot(type, zoneAt(at), at)
+          if (isDue(type, slot, sentFor, at)) {
+            windows.push(windowFor(type, slot, sentFor))
+            sentFor = slot.toUTC().toISO()
+          }
+        }
+        expect(windows.length, type).to.be.above(type === 'daily' ? 30 : 4)
+        for (let i = 1; i < windows.length; i++) {
+          const [start, end] = windows[i]
+          expect(start.toMillis(), `${type} #${i}`).to.equal(windows[i - 1][1].toMillis())
+          expect(end.toMillis() - start.toMillis(), `${type} #${i}`).to.be.at.least(MIN_GAP_HOURS[type] * HOUR)
+        }
+      }
+    })
+
+    it('starts where the last digest ended when that was within two days (or weeks)', () => {
+      const slot = utc('2026-09-30T06:00:00')
+      // Last sent at noon Pacific, 11 hours before
+      expect(windowFor('daily', slot, '2026-09-29T19:00:00.000Z')[0].toUTC().toISO()).to.equal('2026-09-29T19:00:00.000Z')
+      // A whole day missed beyond the catch-up is covered by the next digest
+      expect(windowFor('daily', slot, '2026-09-28T06:00:00.000Z')[0].toUTC().toISO()).to.equal('2026-09-28T06:00:00.000Z')
+      // Longer ago, or nothing sent: the day before
+      expect(windowFor('daily', slot, '2026-09-27T06:00:00.000Z')[0].toUTC().toISO()).to.equal('2026-09-29T06:00:00.000Z')
+      expect(windowFor('daily', slot, null)[0].toUTC().toISO()).to.equal('2026-09-29T06:00:00.000Z')
+      expect(windowFor('weekly', slot, '2026-09-22T19:00:00.000Z')[0].toUTC().toISO()).to.equal('2026-09-22T19:00:00.000Z')
+      expect(windowFor('weekly', slot, '2026-09-10T06:00:00.000Z')[0].toUTC().toISO()).to.equal('2026-09-23T06:00:00.000Z')
     })
   })
 
@@ -109,10 +159,17 @@ describe('digest2 local-morning schedule', () => {
       expect(isDue('daily', slot, slot.toISO(), slot.plus({ minutes: 5 }))).to.be.false
     })
 
-    it('skips a day already covered after the member changed timezone', () => {
+    it('skips a slot only hours after the last digest, and the next one covers it', () => {
       // Sent at 08:00 Berlin; the member then set New York, whose 08:00 is 6 hours later
       const newYorkSlot = utc('2026-09-29T12:00:00')
       expect(isDue('daily', newYorkSlot, slot.toISO(), newYorkSlot.plus({ minutes: 5 }))).to.be.false
+      const nextNewYorkSlot = utc('2026-09-30T12:00:00')
+      expect(isDue('daily', nextNewYorkSlot, slot.toISO(), nextNewYorkSlot.plus({ minutes: 5 }))).to.be.true
+      expect(windowFor('daily', nextNewYorkSlot, slot.toISO())[0].toMillis()).to.equal(slot.toMillis())
+      // Going the other way, Berlin's 08:00 comes 18 hours after New York's: sent, from there
+      const berlinSlot = utc('2026-09-30T06:00:00')
+      expect(isDue('daily', berlinSlot, newYorkSlot.toISO(), berlinSlot.plus({ minutes: 5 }))).to.be.true
+      expect(windowFor('daily', berlinSlot, newYorkSlot.toISO())[0].toMillis()).to.equal(newYorkSlot.toMillis())
     })
   })
 
@@ -234,6 +291,25 @@ describe('digest2 local-morning schedule', () => {
       await sendAllDigests('daily', { at: at.plus({ hours: 1 }).toJSDate() })
       expect(sentTo(berlin)).to.have.length(1)
       expect(await markerOf(berlin)).to.equal('2026-09-30T06:00:00.000Z')
+    })
+
+    it('covers the time since the last digest after the member first saves a timezone', async () => {
+      // Their last digest went out at noon Pacific (19:00 UTC). Tokyo's 08:00 comes four
+      // hours later, which is skipped; the next day's digest starts at that noon.
+      const tokyo = await member('Asia/Tokyo')
+      await bookshelf.knex.raw('UPDATE group_memberships SET settings = settings || ?::jsonb WHERE user_id = ? AND group_id = ?',
+        [JSON.stringify({ [SLOT_SETTING.daily]: '2026-09-29T19:00:00.000Z' }), tokyo.id, group.id])
+      await post(group, utc('2026-09-29T18:00:00')) // in the noon Pacific digest already
+      const afterNoon = await post(group, utc('2026-09-29T21:00:00'))
+      const nextDay = await post(group, utc('2026-09-30T20:00:00'))
+
+      await sendAllDigests('daily', { at: utc('2026-09-29T23:10:00').toJSDate() })
+      expect(sentTo(tokyo)).to.have.length(0)
+
+      await sendAllDigests('daily', { at: utc('2026-09-30T23:10:00').toJSDate() })
+      expect(sentTo(tokyo)).to.have.length(1)
+      expect(sentTo(tokyo)[0].data.discussions.map(d => String(d.id)).sort()).to.deep.equal([String(afterNoon.id), String(nextDay.id)].sort())
+      expect(await markerOf(tokyo)).to.equal('2026-09-30T23:00:00.000Z')
     })
 
     it('sends the weekly digest on the local Wednesday, covering the week before', async () => {

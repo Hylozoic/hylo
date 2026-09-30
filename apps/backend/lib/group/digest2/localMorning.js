@@ -5,16 +5,19 @@
 // members whose scheduled send (their "slot") has just come round: 08:00 in the
 // timezone their browser reported (users.settings.timezone), every day for daily
 // digests and on their local Wednesday for weekly ones. Members with no timezone keep
-// the old noon Pacific send. Each member's digest covers the day (or week) before their
-// slot, counted in their own timezone, so consecutive digests neither overlap nor leave
-// a gap, including across daylight saving changes.
+// the old noon Pacific send. Each member's digest starts where their last one ended (the
+// slot it was sent for) and runs to this slot, so consecutive digests neither overlap
+// nor leave a gap, across daylight saving changes and when their timezone changes. With
+// no digest in the two days (or two weeks) before, it covers the day (or week) before
+// the slot, counted in their own timezone.
 //
 // A per-membership marker (group_memberships.settings.dailyDigestSentFor /
 // weeklyDigestSentFor, the slot it was sent for) is claimed before a digest goes out and
 // released if the send fails. A second run in the same hour can't send it again, and a
-// failed or missed hour is caught up by the next runs, for up to CATCH_UP_HOURS. Someone
-// this has never sent to is only due in the hour of their slot, so switching from the
-// old noon run never sends a second digest on the same day.
+// failed or missed hour is caught up by the next runs, for up to CATCH_UP_HOURS; after
+// that, the member's next digest covers the missed day too. Someone this has never sent
+// to is only due in the hour of their slot, so switching from the old noon run never
+// sends a second digest on the same day.
 //
 // Saved-search digests are not part of this: they still go out at noon Pacific.
 import { DateTime, IANAZone } from 'luxon'
@@ -60,15 +63,30 @@ export function latestSlot (type, timezone, at) {
   return slot
 }
 
-// The time range a digest sent for this slot covers: the local day (or week) before it
-export function windowFor (type, slot) {
-  return [type === 'weekly' ? slot.minus({ weeks: 1 }) : slot.minus({ days: 1 }), slot]
+const period = type => type === 'weekly' ? { weeks: 1 } : { days: 1 }
+const twoPeriods = type => type === 'weekly' ? { weeks: 2 } : { days: 2 }
+
+// The time range a digest sent for this slot covers. It starts where the member's last
+// digest of this kind ended (sentFor, the slot that one was sent for, an ISO string or
+// null) when that was less than two days (or two weeks) before, so a skipped slot
+// after a timezone change, or a day missed beyond the catch-up, is covered too.
+// Otherwise it is the local day (or week) before the slot.
+export function windowFor (type, slot, sentFor = null) {
+  if (sentFor) {
+    const last = DateTime.fromISO(sentFor, { zone: slot.zone })
+    if (last.isValid && last < slot && last >= slot.minus(twoPeriods(type))) return [last, slot]
+  }
+  return [slot.minus(period(type)), slot]
 }
 
-// Slots in one timezone are at least 23 hours (or 6 days 23 hours) apart. A smaller gap
-// means the member's timezone changed since their last digest, which then covered
-// most of this one's window already.
-const MIN_GAP_HOURS = { daily: 20, weekly: 6 * 24 }
+// Slots in one timezone are at least 23 hours (or 6 days 23 hours) apart, so a smaller
+// gap means the member's timezone changed since their last digest. Under these, the
+// slot is skipped and the next digest starts where the last one ended (windowFor).
+// Daily: after a move east the last digest went out that same night, so waking up to a
+// second one a few hours later isn't useful. Weekly: no second weekly digest within a
+// few days; timezone changes move the slot by at most about a day, so any value from
+// two to five days behaves the same.
+export const MIN_GAP_HOURS = { daily: 8, weekly: 3 * 24 }
 
 // Whether a member whose latest slot is `slot` is due in the run at `at`, given the slot
 // their last digest of this kind was sent for (sentFor, an ISO string or null)
