@@ -1,7 +1,8 @@
 // Theme definitions for Hylo
 // foreground-muted is the colour for secondary text (meta lines, hints, timestamps):
-// tuned per theme and mode to at least 4.5:1 against background, midground and card
-// (WCAG AA, D75), which foreground at 50 or 60 percent opacity doesn't reach.
+// tuned per theme and mode to at least 4.5:1 against background, midground, card and
+// the context menu background (WCAG AA, D75), which foreground at 50 or 60 percent
+// opacity doesn't reach.
 // src/themes/contrast.test.js checks every theme.
 export const baseTheme = {
   // Light mode reads as warm paper: every neutral shares a warm hue (~30-42) so
@@ -312,7 +313,7 @@ export const blossomTheme = {
     'context-menu-background': '280 35% 90%',
     midground: '270 30% 97%',
     foreground: '270 25% 12%',
-    'foreground-muted': '270 20% 45%',
+    'foreground-muted': '270 20% 44%',
     primary: '270 30% 95%',
     secondary: '240 45% 60%',
     accent: '35 95% 60%',
@@ -355,7 +356,7 @@ export const fallTheme = {
     'context-menu-background': '22 60% 82%',
     midground: '25 52% 94%',
     foreground: '12 35% 12%',
-    'foreground-muted': '12 20% 41%',
+    'foreground-muted': '12 20% 36%',
     primary: '35 50% 93%',
     secondary: '25 58% 45%',
     accent: '15 90% 50%',
@@ -398,7 +399,7 @@ export const stoneTheme = {
     'context-menu-background': '0 0% 84%',
     midground: '0 0% 96%',
     foreground: '0 0% 10%',
-    'foreground-muted': '0 0% 40%',
+    'foreground-muted': '0 0% 36%',
     primary: '0 0% 94%',
     secondary: '0 0% 50%',
     accent: '10 55% 60%',
