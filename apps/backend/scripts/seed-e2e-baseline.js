@@ -394,6 +394,11 @@ async function clearPreviousE2eBaseline (client) {
     [E2E_USER_EMAILS]
   )
   await client.query(
+    `DELETE FROM experiment_assignments
+     WHERE subject_type = 'user' AND subject_id IN (SELECT id FROM users WHERE lower(email) = ANY($1::text[]))`,
+    [E2E_USER_EMAILS]
+  )
+  await client.query(
     `DELETE FROM skills_users
      WHERE user_id IN (SELECT id FROM users WHERE lower(email) = ANY($1::text[]))
         OR skill_id IN (SELECT id FROM skills WHERE name = ANY($2::text[]))`,
@@ -1550,6 +1555,15 @@ async function main () {
          SELECT count(*) FROM posts_users pu WHERE pu.post_id = posts.id AND pu.completed_at IS NOT NULL
        ) WHERE id = ANY($1::bigint[])`,
       [progressActionIds]
+    )
+
+    // who-helped.spec.js checks that reactions to the main user's post group into one notice.
+    // Reaction notices run as an experiment (D15, lib/experiments.js) and the main user's id can
+    // hash to its control arm, so they are assigned the notices arm; a stored assignment wins.
+    await client.query(
+      `INSERT INTO experiment_assignments (experiment, subject_type, subject_id, variant, assigned_at)
+       VALUES ('reaction_notices', 'user', $1, 'notices', $2::timestamptz)`,
+      [userId, now]
     )
 
     await client.query(
