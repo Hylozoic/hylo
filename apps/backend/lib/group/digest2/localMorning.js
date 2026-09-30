@@ -80,8 +80,9 @@ export function windowFor (type, slot, sentFor = null) {
 }
 
 // Slots in one timezone are at least 23 hours (or 6 days 23 hours) apart, so a smaller
-// gap means the member's timezone changed since their last digest. Under these, the
-// slot is skipped and the next digest starts where the last one ended (windowFor).
+// gap means the member's timezone changed since their last digest. When the gap is
+// below these, the slot is skipped and the next digest starts where the last one ended
+// (windowFor).
 // Daily: after a move east the last digest went out that same night, so waking up to a
 // second one a few hours later isn't useful. Weekly: no second weekly digest within a
 // few days; timezone changes move the slot by at most about a day, so any value from
