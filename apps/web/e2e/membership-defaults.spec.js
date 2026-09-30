@@ -5,8 +5,8 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
 
 /**
  * D1 and D11: a steward sets the post notifications new members start with, and a
- * member whose email from the group is off sees that said on the About page, with a
- * link to change it. Joining with a saved 'less email' choice is covered by the backend
+ * member whose email from the group is off sees that said on the About page's
+ * Notification Settings tab, with a link to change it. Joining with a saved 'less email' choice is covered by the backend
  * tests (Group.membershipDefaults, User.joinGroup) and the GroupWelcomeModal test.
  * Requires the E2E seed: e2e.user is an Administrator of e2e-public-group.
  * Screenshots go to e2e/screenshots.
@@ -65,9 +65,10 @@ test('a steward sets the post notifications new members start with', async ({ pa
 test('the About page says when email from the group is off, with a link to change it', async ({ page }) => {
   test.skip(test.info().project.name !== 'chromium', 'desktop-only screenshots')
 
-  await page.goto(`/groups/${GROUP}/about`)
+  // A member's About page keeps their settings for the group on its Notification Settings tab
+  await page.goto(`/groups/${GROUP}/about/notifications`)
   await waitPastRootSessionLoading(page)
-  await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
+  await expect(page.getByRole('heading', { name: 'Notification Settings for E2E Public Group' })).toBeVisible(uiTimeout)
 
   const emailSwitch = page.locator('[id$="-email-notifications"]').first()
   await expect(emailSwitch).toBeVisible(uiTimeout)
