@@ -1,7 +1,7 @@
 // Theme definitions for Hylo
 // foreground-muted is the colour for secondary text (meta lines, hints, timestamps):
 // tuned per theme and mode to at least 4.5:1 against background, midground and card
-// (WCAG AA, D75), which faded foreground (text-foreground/50 or /60) doesn't reach.
+// (WCAG AA, D75), which foreground at 50 or 60 percent opacity doesn't reach.
 // src/themes/contrast.test.js checks every theme.
 export const baseTheme = {
   // Light mode reads as warm paper: every neutral shares a warm hue (~30-42) so
