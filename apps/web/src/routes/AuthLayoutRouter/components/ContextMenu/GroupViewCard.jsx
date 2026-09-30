@@ -52,7 +52,7 @@ import {
 
 // cursor-pointer is explicit because the toolbar can sit inside a drag handle,
 // where it would otherwise inherit the grab cursor.
-const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground/60 hover:text-foreground pointer-events-auto cursor-pointer'
+const CARD_ACTION_BTN = 'p-1.5 rounded-md bg-background/90 text-foreground-muted hover:text-foreground pointer-events-auto cursor-pointer'
 
 /**
  * Members count or Join pill in the upper-left of a space card.
@@ -67,7 +67,7 @@ export function SpaceCardMembershipPill ({ isMember, memberCount, lightSurfaceLa
       className={cn(
         'absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1',
         lightSurfaceLabels
-          ? 'bg-black/10 text-foreground/60'
+          ? 'bg-black/10 text-foreground-muted'
           : 'bg-black/30 text-white/90 backdrop-blur-sm'
       )}
       aria-label={isMember ? t('{{count}} Members', { count: memberCount }) : t('Join')}
@@ -100,7 +100,7 @@ export function SpaceCardAboutButton ({ onOpenAbout, space, lightSurfaceLabels }
       className={cn(
         'p-1 rounded-md backdrop-blur-sm transition-colors',
         lightSurfaceLabels
-          ? 'text-foreground/50 hover:text-foreground bg-black/10 hover:bg-black/20'
+          ? 'text-foreground-muted hover:text-foreground bg-black/10 hover:bg-black/20'
           : 'text-white/70 hover:text-white bg-black/25 hover:bg-black/45'
       )}
       aria-label={t('About')}
@@ -310,7 +310,7 @@ export const AddCard = React.forwardRef(function AddCard ({ onClick, label, clas
       onClick={onClick}
       className={cn(
         CARD_CLASS,
-        'border-2 border-dashed border-foreground/[0.12] hover:border-foreground/30 bg-transparent shadow-none hover:shadow-none items-center justify-center gap-2 text-foreground/50 hover:text-foreground/80',
+        'border-2 border-dashed border-foreground/[0.12] hover:border-foreground/30 bg-transparent shadow-none hover:shadow-none items-center justify-center gap-2 text-foreground-muted hover:text-foreground/80',
         className
       )}
       {...props}
@@ -716,10 +716,10 @@ export function SpaceViewCard ({
         <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>
           <TruncatedText as='h3' className={cn(CARD_TITLE_CLASS, onLightSurface ? 'text-foreground' : 'text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]')} text={space.name} />
           {(space.isDraft || space.status === 'draft') && (
-            <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Draft')}</span>
+            <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground-muted' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Draft')}</span>
           )}
           {space.status === 'archived' && (
-            <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground/60' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Archived')}</span>
+            <span className={cn('text-[10.5px] font-semibold mt-1', onLightSurface ? 'text-foreground-muted' : 'text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]')}>{t('Archived')}</span>
           )}
         </div>
       </div>

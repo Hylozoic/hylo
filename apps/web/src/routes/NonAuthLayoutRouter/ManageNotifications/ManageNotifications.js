@@ -153,7 +153,7 @@ export default function ManageNotifications (props) {
                   </SelectContent>
                 </Select>
                 {!unsubscribedFromEverything && (
-                  <p className='text-xs text-foreground/60 mt-1 mb-0'>
+                  <p className='text-xs text-foreground-muted mt-1 mb-0'>
                     {t('Comments that mention you still notify you, by email and push where your group settings allow.')}
                   </p>
                 )}
@@ -202,7 +202,7 @@ export default function ManageNotifications (props) {
 
               <section className='mt-8 pt-6 border-t border-foreground/20' aria-labelledby='unsubscribe-heading' data-testid='unsubscribe-choices'>
                 <h2 id='unsubscribe-heading' className='text-base font-bold m-0 mb-1'>{t('Unsubscribe')}</h2>
-                <p className='text-xs text-foreground/60 mt-0 mb-3'>{t('Account, security and payment emails always reach you.')}</p>
+                <p className='text-xs text-foreground-muted mt-0 mb-3'>{t('Account, security and payment emails always reach you.')}</p>
                 {savedScopeOption && (
                   <p className='text-sm mt-0 mb-3' data-testid='saved-unsubscribe-scope'>
                     {t('You unsubscribed from: {{choice}}', { choice: savedScopeOption.label })}
@@ -214,7 +214,7 @@ export default function ManageNotifications (props) {
                       <RadioGroupItem value={option.id} id={`unsubscribe-${option.id}`} className='mt-0.5 shrink-0' />
                       <Label htmlFor={`unsubscribe-${option.id}`} className={cn('cursor-pointer font-normal leading-snug', styles.unsubscribeAllLabel)}>
                         <span className='block font-bold'>{option.label}</span>
-                        <span className='block text-xs text-foreground/60'>{option.description}</span>
+                        <span className='block text-xs text-foreground-muted'>{option.description}</span>
                       </Label>
                     </div>
                   ))}

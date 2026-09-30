@@ -112,7 +112,7 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
           )}
           {websiteUrl && (
             <>
-              <div className='mt-4 text-[10.5px] font-bold uppercase tracking-widest text-foreground/50'>{t('Website')}</div>
+              <div className='mt-4 text-[10.5px] font-bold uppercase tracking-widest text-foreground-muted'>{t('Website')}</div>
               {/* The design's segmented link row: open + copy share one control */}
               <div className='inline-flex items-stretch mt-2 rounded-lg border border-foreground/20 bg-background/40 overflow-hidden max-w-full'>
                 <a
@@ -129,7 +129,7 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
                   target='_blank'
                   rel='noreferrer'
                   title={t('Open in a new tab')}
-                  className='grid place-items-center w-9 border-l border-foreground/15 text-foreground/60 hover:text-foreground'
+                  className='grid place-items-center w-9 border-l border-foreground/15 text-foreground-muted hover:text-foreground'
                 >
                   <ExternalLink className='w-3.5 h-3.5' />
                 </a>
@@ -137,7 +137,7 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
                   type='button'
                   onClick={copyWebsite}
                   title={urlCopied ? t('Copied') : t('Copy link')}
-                  className={cn('grid place-items-center w-9 border-l border-foreground/15 hover:text-foreground', urlCopied ? 'text-selected' : 'text-foreground/60')}
+                  className={cn('grid place-items-center w-9 border-l border-foreground/15 hover:text-foreground', urlCopied ? 'text-selected' : 'text-foreground-muted')}
                 >
                   {urlCopied ? <Check className='w-3.5 h-3.5' /> : <Copy className='w-3.5 h-3.5' />}
                 </button>
@@ -449,7 +449,7 @@ export default function GroupAboutView ({
                   'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg whitespace-nowrap text-[13px] font-semibold border-2 transition-colors',
                   on
                     ? 'bg-selected/20 border-selected/50 text-foreground'
-                    : 'border-transparent text-foreground/60 hover:text-foreground hover:bg-foreground/5'
+                    : 'border-transparent text-foreground-muted hover:text-foreground hover:bg-foreground/5'
                 )}
               >
                 <TabIcon className='w-4 h-4' />

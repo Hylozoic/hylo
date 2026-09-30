@@ -27,7 +27,7 @@ export default function InviteNoteField ({ value, onChange, disabled = false }) 
         disabled={disabled}
         onChange={event => onChange(event.target.value.slice(0, INVITE_NOTE_MAX_LENGTH))}
       />
-      <span className='text-sm text-foreground/50' aria-live='polite'>
+      <span className='text-sm text-foreground-muted' aria-live='polite'>
         {t('Plain text, shown in the invitation email. {{remaining}} characters left.', { remaining })}
       </span>
     </div>

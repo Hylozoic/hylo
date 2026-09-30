@@ -19,7 +19,7 @@ export default function BlockFromRejoiningOption ({ id, checked, onChange }) {
         <label htmlFor={`block-from-rejoining-${id}`} className='font-medium cursor-pointer select-none'>
           {t('Also block from rejoining')}
         </label>
-        <p id={`block-from-rejoining-${id}-hint`} className='m-0 text-foreground/60'>
+        <p id={`block-from-rejoining-${id}-hint`} className='m-0 text-foreground-muted'>
           {t("They won't be able to come back through the join link, an invitation or a request until a steward lifts the block.")}
         </p>
       </div>

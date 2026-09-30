@@ -203,7 +203,7 @@ export default function PeopleSelector (props) {
         </div>
       </div>
       {maxParticipantsReached && (
-        <p className='text-xs text-foreground/60 mt-1 px-2'>
+        <p className='text-xs text-foreground-muted mt-1 px-2'>
           {t('Group messages are limited to {{count}} people', { count: MAX_MESSAGE_THREAD_PARTICIPANTS })}
         </p>
       )}

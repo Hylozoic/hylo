@@ -590,7 +590,7 @@ function ChatEditorInner ({
             <PopoverTrigger asChild>
               <button
                 type='button'
-                className='p-1.5 shrink-0 text-foreground/50 hover:text-foreground transition-colors'
+                className='p-1.5 shrink-0 text-foreground-muted hover:text-foreground transition-colors'
                 aria-label={t('Add attachment')}
                 data-testid='chat-attach-button'
               >

@@ -83,7 +83,7 @@ export default function MemberInviteLinkCard ({ group, needsApproval }) {
               ? t('People who use your link ask to join, and a steward reviews their request.')
               : t('People who use your link join right away.')}
           </strong>{' '}
-          <span className='text-foreground/50'>{t('Everyone who uses it counts toward your invites for the day.')}</span>
+          <span className='text-foreground-muted'>{t('Everyone who uses it counts toward your invites for the day.')}</span>
         </div>
       </div>
       {path

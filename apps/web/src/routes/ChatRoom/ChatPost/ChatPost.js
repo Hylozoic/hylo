@@ -426,7 +426,7 @@ export default function ChatPost ({
                   <Pin className='w-3.5 h-3.5 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />
                 )}
               </div>
-              <div className='text-xs text-foreground/50'>
+              <div className='text-xs text-foreground-muted'>
                 {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('t')}
                 {editedAt && <span>&nbsp;({t('edited')} {DateTimeHelpers.toDateTime(editedAt, { locale: getLocaleFromLocalStorage() }).toFormat('t')})</span>}
               </div>

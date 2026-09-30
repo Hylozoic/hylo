@@ -73,7 +73,7 @@ function PersonRow ({ person, onChoose, disabled }) {
           ? <img src={person.avatarUrl} alt='' className='w-6 h-6 rounded-full shrink-0' />
           : <span className='w-6 h-6 rounded-full bg-foreground/20 shrink-0' />}
         <span className='truncate text-foreground'>{person.name}</span>
-        {person.roleName && <span className='text-xs text-foreground/50 shrink-0'>{t(person.roleName)}</span>}
+        {person.roleName && <span className='text-xs text-foreground-muted shrink-0'>{t(person.roleName)}</span>}
       </span>
       <Button variant='outline' size='sm' disabled={disabled} onClick={() => onChoose(person)}>
         {t('Make Administrator')}
@@ -125,7 +125,7 @@ function OrphanedGroupCard ({ group, onAssigned }) {
       <div className='flex items-start justify-between gap-3'>
         <div className='min-w-0'>
           <Link to={groupUrl(group.slug)} className='font-semibold text-foreground hover:underline'>{group.name}</Link>
-          <div className='text-sm text-foreground/60'>
+          <div className='text-sm text-foreground-muted'>
             {t('Members: {{count}}', { count: group.memberCount })}
             {' · '}
             {lastActivity ? t('Last post: {{date}}', { date: lastActivity }) : t('No posts yet')}
@@ -143,7 +143,7 @@ function OrphanedGroupCard ({ group, onAssigned }) {
             ))}
           </ul>
           )
-        : <p className='text-sm text-foreground/50 m-0'>{t('None')}</p>}
+        : <p className='text-sm text-foreground-muted m-0'>{t('None')}</p>}
 
       <h3 className='text-sm font-semibold mt-3 mb-1'>{t('Find another member')}</h3>
       <Input
@@ -210,11 +210,11 @@ export default function OrphanedGroups () {
       {notice && <p className='text-sm text-foreground bg-selected/20 rounded-md p-3' role='status'>{notice}</p>}
       {error && <p className='text-sm text-destructive' role='alert'>{error}</p>}
       {!loading && !error && groups.length === 0 && (
-        <p className='text-foreground/50 p-4 border border-foreground/20 rounded-md'>{t('No groups are missing an Administrator.')}</p>
+        <p className='text-foreground-muted p-4 border border-foreground/20 rounded-md'>{t('No groups are missing an Administrator.')}</p>
       )}
       {groups.length > 0 && (
         <>
-          <p className='text-sm text-foreground/60'>{t('Showing {{shown}} of {{total}}', { shown: groups.length, total })}</p>
+          <p className='text-sm text-foreground-muted'>{t('Showing {{shown}} of {{total}}', { shown: groups.length, total })}</p>
           <ul className='list-none p-0 m-0 flex flex-col gap-3'>
             {groups.map(group => <OrphanedGroupCard key={group.id} group={group} onAssigned={handleAssigned} />)}
           </ul>

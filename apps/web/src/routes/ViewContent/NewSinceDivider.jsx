@@ -37,7 +37,7 @@ export function newSinceDividerIndex (posts, baseline, sortBy) {
 export default function NewSinceDivider () {
   const { t } = useTranslation()
   return (
-    <div className='flex items-center gap-3 my-3 px-1 text-xs font-semibold uppercase tracking-wide text-foreground/60' role='separator' aria-label={t('New since your last visit')} data-testid='new-since-divider'>
+    <div className='flex items-center gap-3 my-3 px-1 text-xs font-semibold uppercase tracking-wide text-foreground-muted' role='separator' aria-label={t('New since your last visit')} data-testid='new-since-divider'>
       <span className='h-px flex-1 bg-foreground/20' />
       <span className='inline-flex items-center gap-1'>
         <ArrowUp className='w-3.5 h-3.5' aria-hidden='true' />

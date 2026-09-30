@@ -56,7 +56,7 @@ function MemberMeta ({ enrolledAt, onPhoto = false, compact = false }) {
       'flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5',
       onPhoto
         ? 'text-[10px] text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]'
-        : compact ? 'text-[10px] text-foreground/50' : 'text-xs text-foreground/50'
+        : compact ? 'text-[10px] text-foreground-muted' : 'text-xs text-foreground-muted'
     )}
     >
       <span>{t('Join Date')}: {joinDate}</span>
@@ -164,7 +164,7 @@ function Member ({
           'w-8 h-8 grid place-items-center rounded-lg border transition-all',
           onPhoto
             ? 'bg-black/40 border-white/25 text-white/80 hover:bg-black/60 hover:border-white/50 hover:text-white'
-            : 'bg-foreground/5 border-foreground/20 text-foreground/60 hover:bg-foreground/10 hover:border-foreground/40 hover:text-foreground'
+            : 'bg-foreground/5 border-foreground/20 text-foreground-muted hover:bg-foreground/10 hover:border-foreground/40 hover:text-foreground'
         )}
         >
           <EllipsisVertical className='w-4 h-4' />
@@ -302,7 +302,7 @@ function Member ({
               {location && (
                 <div className={cn(
                   'line-clamp-1 flex items-center gap-0.5 max-w-full',
-                  onPhoto ? 'text-[10px] text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]' : 'text-[10px] text-foreground/60'
+                  onPhoto ? 'text-[10px] text-white/70 [text-shadow:0_1px_4px_rgba(0,0,0,0.6)]' : 'text-[10px] text-foreground-muted'
                 )}
                 >
                   <MapPin className='w-2.5 h-2.5 shrink-0' />
@@ -333,7 +333,7 @@ function Member ({
         'shrink-0 w-8 h-8 grid place-items-center rounded-lg border transition-all',
         onPhoto
           ? 'bg-black/40 border-white/25 text-white/80 hover:bg-selected/80 hover:border-selected hover:text-white'
-          : 'bg-foreground/5 border-foreground/20 text-foreground/60 hover:bg-selected/20 hover:border-selected hover:text-foreground'
+          : 'bg-foreground/5 border-foreground/20 text-foreground-muted hover:bg-selected/20 hover:border-selected hover:text-foreground'
       )}
       aria-label={t('Message Member')}
       title={t('Message Member')}
@@ -345,7 +345,7 @@ function Member ({
   const trackBlock = showTrackCompletion && (
     trackCompletedAt
       ? <div className='text-xs text-selected flex items-center gap-1'><Check className='w-3 h-3' /> {t('Completed {{date}}', { date: formatLocalizedDate(trackCompletedAt, { style: 'short' }) })}</div>
-      : <div className='text-xs text-foreground/50'>{t('Not yet completed')}</div>
+      : <div className='text-xs text-foreground-muted'>{t('Not yet completed')}</div>
   )
 
   const fundingRoundBlock = showFundingRoundRoles && (
@@ -390,7 +390,7 @@ function Member ({
                     <button
                       type='button'
                       onClick={e => { e.stopPropagation(); setRolesExpanded(true) }}
-                      className='text-xs text-foreground/50 hover:text-foreground whitespace-nowrap transition-colors'
+                      className='text-xs text-foreground-muted hover:text-foreground whitespace-nowrap transition-colors'
                     >
                       {t('({{count}} more...)', { count: rowRoles.length - rolesClamp.visibleCount })}
                     </button>
@@ -398,12 +398,12 @@ function Member ({
                 </div>
                 )
               : location && (
-                <div className='flex items-center gap-1 text-xs text-foreground/50 min-w-0'>
+                <div className='flex items-center gap-1 text-xs text-foreground-muted min-w-0'>
                   <MapPin className='w-3 h-3 shrink-0' /><span className='truncate'>{location}</span>
                 </div>
               )}
           </div>
-          {joinedShort && <span className='hidden sm:block text-xs text-foreground/50 whitespace-nowrap shrink-0'>{joinedShort}</span>}
+          {joinedShort && <span className='hidden sm:block text-xs text-foreground-muted whitespace-nowrap shrink-0'>{joinedShort}</span>}
           {messageButton(false)}
           {canRemove && <div onClick={e => e.stopPropagation()}>{removeDropdown(false)}</div>}
         </div>
@@ -494,7 +494,7 @@ function Member ({
       )}
       {joinedShort && (
         <div className='px-4 pb-3'>
-          <div className='border-t border-foreground/10 pt-2.5 flex items-center gap-2 text-xs text-foreground/50'>
+          <div className='border-t border-foreground/10 pt-2.5 flex items-center gap-2 text-xs text-foreground-muted'>
             <span className='ml-auto'>{t('Joined {{date}}', { date: joinedShort })}</span>
           </div>
         </div>

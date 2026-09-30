@@ -192,7 +192,7 @@ export default function CurrentlyActiveMembers ({
             group={group}
             parentGroup={parentGroup}
             alwaysVisible
-            triggerClassName='text-foreground/50 hover:text-foreground'
+            triggerClassName='text-foreground-muted hover:text-foreground'
           />
         </div>
       )}

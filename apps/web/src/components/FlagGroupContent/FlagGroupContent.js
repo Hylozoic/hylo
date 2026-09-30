@@ -149,7 +149,7 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
                 href={groupAgreementsUrl}
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit block hover:scale-105 transition-all'
+                className='text-foreground-muted hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit block hover:scale-105 transition-all'
               >
                 {t('View group agreements')}
               </a>
@@ -162,7 +162,7 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
               href={agreementsURL}
               target='_blank'
               rel='noopener noreferrer'
-              className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit block hover:scale-105 transition-all'
+              className='text-foreground-muted hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit block hover:scale-105 transition-all'
             >
               {t('View platform agreements')}
             </a>

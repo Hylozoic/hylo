@@ -72,7 +72,7 @@ export default function ShareButton ({ postId, postType, title, className }) {
     <button
       type='button'
       onClick={handleClick}
-      className={cn('flex items-center gap-1 rounded-lg px-2 py-2 mb-1 text-xs text-foreground/60 hover:text-foreground hover:bg-darkening/10 transition-colors', className)}
+      className={cn('flex items-center gap-1 rounded-lg px-2 py-2 mb-1 text-xs text-foreground-muted hover:text-foreground hover:bg-darkening/10 transition-colors', className)}
       aria-label={t('Share')}
       data-testid='post-share-button'
     >

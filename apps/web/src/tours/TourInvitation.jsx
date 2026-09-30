@@ -115,7 +115,7 @@ export default function TourInvitation ({ message, onAccept, onDecline, onTimeou
                 type='button'
                 data-testid='tour-invite-decline'
                 onClick={onDecline}
-                className='shrink-0 whitespace-nowrap text-sm text-foreground/60 hover:text-foreground px-1.5 py-1.5 transition-colors'
+                className='shrink-0 whitespace-nowrap text-sm text-foreground-muted hover:text-foreground px-1.5 py-1.5 transition-colors'
               >
                 {t('No thanks')}
               </button>

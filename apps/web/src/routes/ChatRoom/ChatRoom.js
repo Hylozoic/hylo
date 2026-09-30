@@ -1032,7 +1032,7 @@ export default function ChatRoom (props) {
           the list nudges up, which reads as activity. Padding inside the
           scroller stays off-limits (skews Virtuoso's atBottom check, which
           pinned the phone one message shy of the bottom). */}
-      <PeopleTyping groupId={group?.id} hideWhenEmpty className='w-full px-3 sm:px-5 py-1 text-xs text-foreground/50' />
+      <PeopleTyping groupId={group?.id} hideWhenEmpty className='w-full px-3 sm:px-5 py-1 text-xs text-foreground-muted' />
       {/* Composer floats with margins matching the message gutter (left edge = avatar edge).
           Subtle gradient settles the pane into a darker hue beneath the input. */}
       <div className='ChatBoxContainer w-full shrink-0 px-3 sm:px-5 pb-3 sm:pb-5 pt-0 bg-gradient-to-b from-transparent to-darkening/[0.05] dark:to-darkening/25'>
@@ -1115,7 +1115,7 @@ const StickyFooter = ({ context }) => {
         )}
         {showJumpButton && (
           <button
-            className='relative flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:text-foreground'
+            className='relative flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground-muted hover:text-foreground'
             onClick={() => {
               // Ensure the newest posts are loaded before scrolling
               Promise.resolve(context.loadToLatest?.())

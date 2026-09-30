@@ -127,7 +127,7 @@ function PaidSpaceAccessSection ({ parentGroup, spaceId }) {
       <div>
         <div className='text-sm font-medium text-foreground mb-1'>{t('Offerings that include this space')}</div>
         {loading && (
-          <p className='text-sm text-foreground/60'>{t('Loading...')}</p>
+          <p className='text-sm text-foreground-muted'>{t('Loading...')}</p>
         )}
         {!loading && spaceOfferings.length > 0 && (
           <ul className='flex flex-col gap-1.5'>
@@ -138,7 +138,7 @@ function PaidSpaceAccessSection ({ parentGroup, spaceId }) {
               >
                 <span className='truncate'>{offering.name}</span>
                 {offering.publishStatus && offering.publishStatus !== 'published' && (
-                  <span className='shrink-0 text-xs text-foreground/50 capitalize'>
+                  <span className='shrink-0 text-xs text-foreground-muted capitalize'>
                     {offering.publishStatus}
                   </span>
                 )}

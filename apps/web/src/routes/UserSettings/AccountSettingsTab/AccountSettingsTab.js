@@ -278,7 +278,7 @@ function AccountSettingsTab ({
       <div className='flex items-center justify-between pt-4 mt-6'>
         <span className={cn(
           'text-sm',
-          canSaveValue ? 'text-accent' : 'text-foreground/50'
+          canSaveValue ? 'text-accent' : 'text-foreground-muted'
         )}
         >
           {canSaveValue ? 'Changes not saved' : 'Current settings up to date'}

@@ -270,7 +270,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           type='location'
         />
         <div className='mb-5'>
-          <label className='w-full text-foreground/50 text-sm mb-2 block'>{t('Display location')}</label>
+          <label className='w-full text-foreground-muted text-sm mb-2 block'>{t('Display location')}</label>
           <Dropdown
             id='group-settings-location-display-precision-dropdown'
             className='bg-darkening/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2 text-base'

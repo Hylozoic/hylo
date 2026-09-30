@@ -139,7 +139,7 @@ export default function ActionsBar ({
 
       <div className='flex items-center gap-2'>
         {!isMobile.any && (
-          <label className='text-xs italic text-foreground/50'>
+          <label className='text-xs italic text-foreground-muted'>
             {isEditing
               ? t(navigator.platform.includes('Mac') ? 'Option-Enter to save' : 'Alt-Enter to save')
               : t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}

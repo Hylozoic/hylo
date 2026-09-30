@@ -106,7 +106,7 @@ function SpaceMapCard ({ space, parentSlug }) {
       </div>
       <div className='min-w-0 flex-1'>
         <div className='text-sm font-semibold text-foreground truncate'>{space.name}</div>
-        <div className='text-xs text-foreground/50'>{t('Space')}</div>
+        <div className='text-xs text-foreground-muted'>{t('Space')}</div>
       </div>
     </Link>
   )
@@ -146,7 +146,7 @@ function MapPostRow ({ post, routeParams }) {
         >
           {t(type.label || post.type)}
         </span>
-        <span className='text-[10px] text-foreground/50 shrink-0'>{DateTimeHelpers.humanDate(post.createdAt, true)}</span>
+        <span className='text-[10px] text-foreground-muted shrink-0'>{DateTimeHelpers.humanDate(post.createdAt, true)}</span>
       </div>
       <div className='text-base font-bold text-foreground leading-tight'>{post.title}</div>
       {firstImage && (
@@ -163,7 +163,7 @@ function MapPostRow ({ post, routeParams }) {
           </div>
           )
         : (
-          <div className='flex items-center gap-3 mt-1.5 text-[10px] font-semibold text-foreground/50 empty:hidden'>
+          <div className='flex items-center gap-3 mt-1.5 text-[10px] font-semibold text-foreground-muted empty:hidden'>
             {post.commentersTotal > 0 && (
               <span className='inline-flex items-center gap-1'><MessageCircle className='w-3 h-3' />{post.commentersTotal}</span>
             )}
@@ -320,17 +320,17 @@ function MapDrawer ({
               >
                 <currentLens.icon className='w-3.5 h-3.5' />
                 <span className='text-[11.5px] font-bold'>{currentLens.label}</span>
-                <span className='text-[11px] font-bold text-foreground/50 tabular-nums'>{currentLens.count}</span>
+                <span className='text-[11px] font-bold text-foreground-muted tabular-nums'>{currentLens.count}</span>
                 <ChevronDown className='w-3 h-3 text-foreground/50' />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='start' className='min-w-[184px]'>
-              <DropdownMenuLabel className='text-[9.5px] font-bold uppercase tracking-widest text-foreground/50'>{t('Show on map')}</DropdownMenuLabel>
+              <DropdownMenuLabel className='text-[9.5px] font-bold uppercase tracking-widest text-foreground-muted'>{t('Show on map')}</DropdownMenuLabel>
               {lenses.map(l => (
                 <DropdownMenuItem key={l.id} onClick={() => setLens(l.id)} className='flex items-center gap-2.5'>
                   <l.icon className='w-4 h-4 text-foreground/60' />
                   <span className='flex-1 text-sm font-semibold'>{l.label}</span>
-                  <span className='text-xs font-bold text-foreground/50 tabular-nums'>{l.count}</span>
+                  <span className='text-xs font-bold text-foreground-muted tabular-nums'>{l.count}</span>
                   <span className='w-3.5 flex justify-center'>{l.id === lens && <Check className='w-3.5 h-3.5' />}</span>
                 </DropdownMenuItem>
               ))}
@@ -349,7 +349,7 @@ function MapDrawer ({
                     'w-7 h-7 rounded-md border-2 grid place-items-center transition-all',
                     childPostInclusion === 'yes'
                       ? 'bg-selected/20 border-selected text-foreground'
-                      : 'bg-background border-foreground/20 text-foreground/50 hover:text-foreground hover:border-foreground/50'
+                      : 'bg-background border-foreground/20 text-foreground-muted hover:text-foreground hover:border-foreground/50'
                   )}
                 >
                   <Icon name='Subgroup' />

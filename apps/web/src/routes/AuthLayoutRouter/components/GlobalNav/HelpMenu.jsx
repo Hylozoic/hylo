@@ -121,7 +121,7 @@ export default function HelpMenu ({
               <span>{t('Take a tour')} ({availableTourIds.size})</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className='z-[200] bg-card'>
-              <DropdownMenuLabel className='text-foreground/60 font-normal'>{t('Tours for this view')}</DropdownMenuLabel>
+              <DropdownMenuLabel className='text-foreground-muted font-normal'>{t('Tours for this view')}</DropdownMenuLabel>
               {allTours.map(tour => (
                 <DropdownMenuItem
                   key={tour.id}

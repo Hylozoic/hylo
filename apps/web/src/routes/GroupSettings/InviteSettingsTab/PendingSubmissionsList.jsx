@@ -77,7 +77,7 @@ export default function PendingSubmissionsList ({ groupId, reloadKey }) {
             {item.person && <Avatar avatarUrl={item.person.avatarUrl} small className='shrink-0' />}
             <div className='flex-1 min-w-0'>
               <span className='block truncate'>{item.person ? item.person.name : item.email}</span>
-              <span className='text-foreground/50 text-sm'>{TextHelpers.humanDate(item.createdAt)}</span>
+              <span className='text-foreground-muted text-sm'>{TextHelpers.humanDate(item.createdAt)}</span>
             </div>
             <button
               type='button'

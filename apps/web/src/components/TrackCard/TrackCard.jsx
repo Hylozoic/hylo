@@ -62,7 +62,7 @@ function TrackCard ({ track }) {
                 />
               </>
             )}
-            <span className='text-xs text-foreground/60 ml-2'>{numActions} {actionDescriptorPlural}</span>
+            <span className='text-xs text-foreground-muted ml-2'>{numActions} {actionDescriptorPlural}</span>
             {isDraft && <span className='text-xs text-accent ml-2'>{t('Draft')}</span>}
           </Link>
           {canEdit && <CopyPlus className='hover:scale-125 transition-all w-6 h-6 cursor-pointer text-foreground mr-2' onClick={handleDuplicateTrack} />}

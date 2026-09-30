@@ -262,7 +262,7 @@ export function PaywallPreview ({ preview }) {
 
   return (
     <div className='rounded-lg border border-foreground/10 bg-background/40 px-3 py-2.5 mb-4' data-testid='paywall-preview'>
-      <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50 mb-1'>{t('A look inside')}</div>
+      <div className='text-[10px] font-bold uppercase tracking-wider text-foreground-muted mb-1'>{t('A look inside')}</div>
       {isTrack && (
         <p className='text-sm text-foreground/70 mb-2'>
           {t('paywallPreviewActions', { count: preview.numActions })}
@@ -355,7 +355,7 @@ function OfferingCard ({ offering, group, isSpace, checkoutLoading, onPurchase, 
               {stripHtml(offering.description)}
             </div>
           )}
-          <div className='flex items-center gap-4 text-sm text-foreground/60'>
+          <div className='flex items-center gap-4 text-sm text-foreground-muted'>
             {slidingScaleDisplay && (
               <span>{slidingScaleDisplay}</span>
             )}
