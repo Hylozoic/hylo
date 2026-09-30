@@ -27,6 +27,11 @@ import { assertWritable } from './group/archive'
 import { sendGroupClosedEmails } from './group/deletion'
 import expireForPolicyChange, { invitePolicyNarrowed } from './invitation/expireForPolicyChange'
 import notifyInviterOfJoin from './invitation/invitationAccepted'
+import {
+  DEFAULT_POST_NOTIFICATIONS,
+  missingNotificationSettings,
+  newMembershipNotificationSettings
+} from './group/membershipDefaults'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import { groupRoom, userRoom, pushToSockets } from '../services/Websockets'
 import { sendTrackEnrolledEvents } from './track/events'
@@ -40,13 +45,12 @@ export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'nav_order'
 ]
 
-// Notification prefs to copy from a parent membership onto an auto-added space membership.
-// addMembers replaces its default settings when callers pass settings, so these must be included.
-// Missing keys fall back to the same defaults a normal join would get.
+// Notification prefs to copy from a parent membership onto an auto-added space membership
+// (D10). Missing keys fall back to 'important' and the usual defaults.
 function notificationSettingsFromMembership (membership) {
   const settings = (membership && membership.get('settings')) || {}
   return {
-    postNotifications: settings.postNotifications != null ? settings.postNotifications : 'all',
+    postNotifications: settings.postNotifications != null ? settings.postNotifications : DEFAULT_POST_NOTIFICATIONS,
     digestFrequency: settings.digestFrequency || 'daily',
     sendEmail: settings.sendEmail !== false,
     sendPushNotifications: settings.sendPushNotifications !== false
@@ -672,10 +676,15 @@ module.exports = bookshelf.Model.extend(merge({
   // joinSource (a GroupMembership.JoinSource), invitationId and invitedById are
   // recorded in settings on new and reactivated memberships only.
   // notify: false skips the track enrollment notice to stewards (bulk auto-add).
+  //
+  // Notification settings (D1, D10, D11): a new membership starts on the group's
+  // defaults ('important' unless a steward chose 'all', and the default digest), with
+  // the caller's settings merged on top and the person's saved less-email choices
+  // applied last (group/membershipDefaults.js). Members who are already here keep
+  // their notification settings; a returning member only gets the keys their old
+  // membership is missing. Settings a caller passes still apply to everyone.
   async addMembers (usersOrIds, attrs = {}, { transacting, notify = true } = {}) {
     await assertWritable(this, { transacting })
-    const groupSettings = this.get('settings') || {}
-    const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
     const { assignAdministrator, joinSource, invitationId, invitedById, ...membershipAttrs } = attrs
     // Nulls on a reactivated membership clear the attribution left from its earlier join
     const joinAttribution = {
@@ -684,20 +693,9 @@ module.exports = bookshelf.Model.extend(merge({
       invitedById: invitedById || null
     }
 
-    const updatedAttribs = Object.assign(
-      {},
-      {
-        active: true,
-        settings: {
-          postNotifications: 'all',
-          digestFrequency: defaultDigestFrequency,
-          sendEmail: true,
-          sendPushNotifications: true,
-          lastReadAt: membershipAttrs.lastReadAt || null
-        }
-      },
-      pick(omitBy(membershipAttrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
-    )
+    const { settings: callerSettings = {}, ...otherAttrs } = pick(omitBy(membershipAttrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
+    const lastReadAt = membershipAttrs.lastReadAt || null
+    const updatedAttribs = { active: true, ...otherAttrs, settings: { lastReadAt, ...callerSettings } }
 
     // Normalize to strings: pg bigint ids are strings, but callers (e.g. Stripe
     // checkout grant) often pass parseInt numbers. lodash difference is strict,
@@ -706,13 +704,32 @@ module.exports = bookshelf.Model.extend(merge({
     const userIds = usersOrIds.map(x => String(x instanceof User ? x.id : x))
     const existingMemberships = await this.memberships(true)
       .query(q => q.whereIn('user_id', userIds)).fetch({ transacting })
-    const reactivatedUserIds = existingMemberships.filter(m => !m.get('active')).map(m => String(m.get('user_id')))
+    const reactivatedMemberships = existingMemberships.filter(m => !m.get('active'))
+    const reactivatedUserIds = reactivatedMemberships.map(m => String(m.get('user_id')))
     const existingUserIds = existingMemberships.pluck('user_id').map(id => String(id))
     const newUserIds = difference(userIds, existingUserIds)
+
+    // Saved less-email choices of the people getting a new or returning membership (D11)
+    const userSettingsById = {}
+    const joiningIds = newUserIds.concat(reactivatedUserIds)
+    if (joiningIds.length > 0) {
+      const usersQuery = bookshelf.knex('users').whereIn('id', joiningIds).select('id', 'settings')
+      if (transacting) usersQuery.transacting(transacting)
+      for (const row of await usersQuery) userSettingsById[String(row.id)] = row.settings || {}
+    }
+
     const updatedMemberships = await this.updateMembers(difference(existingUserIds, reactivatedUserIds), updatedAttribs, { transacting })
-    if (reactivatedUserIds.length > 0) {
-      const reactivatedAttribs = { ...updatedAttribs, settings: { ...updatedAttribs.settings, ...joinAttribution } }
-      updatedMemberships.push(...await this.updateMembers(reactivatedUserIds, reactivatedAttribs, { transacting }))
+    for (const membership of reactivatedMemberships) {
+      const userId = String(membership.get('user_id'))
+      const reactivatedAttribs = {
+        ...updatedAttribs,
+        settings: {
+          ...missingNotificationSettings(membership.get('settings'), this, userSettingsById[userId]),
+          ...updatedAttribs.settings,
+          ...joinAttribution
+        }
+      }
+      updatedMemberships.push(...await this.updateMembers([userId], reactivatedAttribs, { transacting }))
     }
 
     const newMemberships = []
@@ -729,6 +746,7 @@ module.exports = bookshelf.Model.extend(merge({
             joinQuestionsAnsweredAt: id === this.get('created_by_id') ? new Date() : null,
             showJoinForm: id !== this.get('created_by_id'),
             ...updatedAttribs.settings,
+            ...newMembershipNotificationSettings(this, userSettingsById[id], callerSettings),
             ...omitBy(joinAttribution, isNull)
           }
         }), { transacting })
@@ -1423,7 +1441,9 @@ module.exports = bookshelf.Model.extend(merge({
 
     const usersBySettings = {}
     for (const userId of toAdd) {
-      const notificationSettings = notificationSettingsByUserId[String(userId)] || notificationSettingsFromMembership(null)
+      // Without a parent membership, addMembers gives the space's defaults ('important'
+      // unless a steward chose otherwise) and applies the person's less-email choices
+      const notificationSettings = notificationSettingsByUserId[String(userId)] || {}
       const key = JSON.stringify(notificationSettings)
       if (!usersBySettings[key]) usersBySettings[key] = { notificationSettings, userIds: [] }
       usersBySettings[key].userIds.push(userId)

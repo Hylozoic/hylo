@@ -1572,6 +1572,8 @@ type GroupSettings {
   showPaywallPreview: Boolean
   # Text a member's post starts with when they choose Introduce yourself; empty means the standard translated introduction
   introTemplate: String
+  # Post notifications a new member starts with: important (the default) or all. Existing members keep their own.
+  defaultPostNotifications: String
 }
 
 # What people can see of a paid group or space before they buy: titles and counts only
@@ -4595,6 +4597,8 @@ input GroupSettingsInput {
   showPaywallPreview: Boolean
   # Text a member's post starts with when they choose Introduce yourself; empty means the standard translated introduction
   introTemplate: String
+  # Post notifications a new member starts with: important (the default) or all. Existing members keep their own.
+  defaultPostNotifications: String
 }
 
 # Input for creating Stripe offerings

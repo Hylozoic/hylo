@@ -36,6 +36,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       askGroupToGroupJoinQuestions
       askJoinQuestions
       defaultDigestFrequency
+      defaultPostNotifications
       hideExtensionData
       locationDisplayPrecision
       publicMemberDirectory

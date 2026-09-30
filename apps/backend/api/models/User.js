@@ -386,10 +386,10 @@ module.exports = bookshelf.Model.extend(merge({
     return normalizeLocaleToFull(this.getSetting('locale') || 'en-US')
   },
 
+  // A new membership gets the group's default notification settings and the person's
+  // saved less-email choices from Group.addMembers (D1, D11); someone already in the
+  // group, or coming back to it, keeps their own
   joinGroup: async function (group, { assignAdministrator = false, fromInvitation = false, questionAnswers = [], joinSource, invitationId, invitedById, transacting = null } = {}) {
-    const groupSettings = group.get('settings') || {}
-    const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
-
     const memberships = await group.addMembers([this.id],
       {
         assignAdministrator,
@@ -399,10 +399,6 @@ module.exports = bookshelf.Model.extend(merge({
         settings: {
           // Set joinQuestionsAnsweredAt if user answered questions during the join flow
           joinQuestionsAnsweredAt: questionAnswers.length > 0 ? new Date() : null,
-          postNotifications: 'all',
-          digestFrequency: defaultDigestFrequency,
-          sendEmail: true,
-          sendPushNotifications: true,
           showJoinForm: true,
           lastReadAt: null
         }

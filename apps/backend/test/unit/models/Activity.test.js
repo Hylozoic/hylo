@@ -487,8 +487,9 @@ describe('Activity', function () {
     })
 
     it('creates in-app and email for new posts ', () => {
+      // A reader on 'all' (new memberships start on 'important', D1)
       return fixtures.g1.addMembers([fixtures.u1.id], {
-        settings: { sendPushNotifications: true, sendEmail: true }
+        settings: { sendPushNotifications: true, sendEmail: true, postNotifications: 'all' }
       })
         .then(() => Activity.createWithNotifications({
           post_id: fixtures.p1.id,

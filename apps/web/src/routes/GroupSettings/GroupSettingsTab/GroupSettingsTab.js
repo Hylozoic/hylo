@@ -39,6 +39,12 @@ import general from '../GroupSettings.module.scss'
 
 const { object, func } = PropTypes
 
+// Post notifications a new member starts with (D1); existing members keep their own
+const DEFAULT_POST_NOTIFICATIONS = {
+  important: 'Important Posts (Announcements, Mentions & Replies)',
+  all: 'Every Post'
+}
+
 function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, updateGroupSettings }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
@@ -196,7 +202,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     aboutVideoUri, acceptedPostTypes, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
   } = edits
 
-  const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', locationDisplayPrecision, showSuggestedSkills, showWelcomePage } = settings
+  const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', defaultPostNotifications: defaultPostNotificationsSetting = 'important', locationDisplayPrecision, showSuggestedSkills, showWelcomePage } = settings
   const welcomeShownToNewMembers = !!(welcomeView && showWelcomePage !== false)
   const editableMapLocation = group?.locationObject || currentUser.locationObject
 
@@ -401,6 +407,24 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
             items={Object.keys(DEFAULT_DIGEST_FREQUENCY).map(value => ({
               label: t(DEFAULT_DIGEST_FREQUENCY[value]),
               onClick: () => updateSettingDirectly('settings.defaultDigestFrequency')(value)
+            }))}
+          />
+        </div>
+        <p className='text-foreground/70 text-sm mb-1'>{t('When a new member joins this group, they are notified about:')}</p>
+        <p className='text-foreground/70 text-xs mb-4'>{t('defaultPostNotificationsHelp')}</p>
+        <div className='mb-5'>
+          <Dropdown
+            id='group-settings-default-post-notifications-dropdown'
+            className='bg-darkening/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2 text-base'
+            toggleChildren={(
+              <span className='text-base w-full flex justify-between'>
+                {t(DEFAULT_POST_NOTIFICATIONS[defaultPostNotificationsSetting] || DEFAULT_POST_NOTIFICATIONS.important)}
+                <Icon name='ArrowDown' />
+              </span>
+            )}
+            items={Object.keys(DEFAULT_POST_NOTIFICATIONS).map(value => ({
+              label: t(DEFAULT_POST_NOTIFICATIONS[value]),
+              onClick: () => updateSettingDirectly('settings.defaultPostNotifications')(value)
             }))}
           />
         </div>

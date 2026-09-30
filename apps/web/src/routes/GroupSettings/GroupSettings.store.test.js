@@ -27,4 +27,12 @@ describe('updateGroupSettings', () => {
 
     expect(action.graphql.variables.changes.settings).toEqual({ introTemplate: 'Say hello', showPaywallPreview: false })
   })
+
+  it('sends the post notifications new members start with (D1)', () => {
+    const action = updateGroupSettings('1', { settings: { defaultPostNotifications: 'all' } })
+
+    expect(action.graphql.variables.changes.settings).toEqual({ defaultPostNotifications: 'all' })
+    expect(compact(action.graphql.query)).toContain('defaultPostNotifications')
+    expect(compact(fetchGroupSettings('seed-library').graphql.query)).toContain('defaultPostNotifications')
+  })
 })

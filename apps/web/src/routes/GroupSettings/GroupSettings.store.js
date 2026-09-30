@@ -19,7 +19,8 @@ const GROUP_SETTINGS_INPUT_FIELDS = [
   'showPostNoticesInChat',
   'autoAddMembers',
   'showPaywallPreview',
-  'introTemplate'
+  'introTemplate',
+  'defaultPostNotifications'
 ]
 
 export const DELETE_GROUP = `${MODULE_NAME}/DELETE_GROUP`
@@ -100,6 +101,7 @@ export function fetchGroupSettings (slug) {
             autoAddMembers
             showPaywallPreview
             introTemplate
+            defaultPostNotifications
           }
           type
           parentId
@@ -314,6 +316,7 @@ export function updateGroupSettings (id, changes) {
             layout
             autoAddMembers
             introTemplate
+            defaultPostNotifications
           }
           agreements {
             items {
