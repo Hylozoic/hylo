@@ -981,6 +981,8 @@ module.exports = bookshelf.Model.extend(merge({
       const initialGroup = memberships?.models[0]?.relations?.group
       Email.sendWelcomeEmail({
         email: user.get('email'),
+        // In the person's language (the template has a version for each locale)
+        locale: user.getLocale(),
         data: {
           member_name: user.get('name'),
           group_name: initialGroup?.get('name'),
