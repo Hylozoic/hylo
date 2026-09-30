@@ -10,6 +10,13 @@ const isMention = activity => {
   return filter(reasons, reason => reason.match(/^mention/)).length > 0
 }
 
+// TODO: Remove this unused helper after confirming no legacy activity path needs it.
+/* eslint-disable-next-line no-unused-vars */
+const isJustNewPost = activity => {
+  const reasons = activity.get('meta').reasons
+  return reasons.every(reason => reason.match(/^newPost/))
+}
+
 const isAnnouncement = activity => {
   const reasons = activity.get('meta').reasons
   return filter(reasons, reason => reason.match(/^announcement/)).length > 0
@@ -18,6 +25,14 @@ const isAnnouncement = activity => {
 const isChat = activity => {
   const reasons = activity.get('meta').reasons
   const t = filter(reasons, reason => reason.match(/^chat/)).length > 0
+  return t
+}
+
+// TODO: Remove this unused helper after confirming tag activity handling no longer needs it.
+/* eslint-disable-next-line no-unused-vars */
+const isTopic = activity => {
+  const reasons = activity.get('meta').reasons
+  const t = filter(reasons, reason => reason.match(/^tag/)).length > 0
   return t
 }
 
