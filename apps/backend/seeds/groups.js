@@ -82,19 +82,6 @@ exports.seed = function (knex, Promise) {
   }
 
   const now = new Date().toISOString()
-  const initialWidgets = `
-    INSERT INTO "public"."widgets"("id","name","created_at") VALUES
-      (1,E'text_block','${now}'),
-      (2,E'announcements','${now}'),
-      (3,E'active_members','${now}'),
-      (4,E'requests_offers','${now}'),
-      (5,E'posts','${now}'),
-      (6,E'community_topics','${now}'),
-      (7,E'events','${now}'),
-      (8,E'project_activity','${now}'),
-      (9,E'group_affiliations','${now}'),
-      (10,E'map','${now}');`
-
   const axolotlUser = {
     email: 'edward+axolotl@hylo.com',
     name: 'Hylo the Axolotl',
@@ -133,7 +120,6 @@ exports.seed = function (knex, Promise) {
     .then(() => knex('tag_follows').del())
     .then(() => knex('linked_account').del())
     .then(() => knex('group_memberships').del())
-    .then(() => knex('group_widgets').del())
     .then(() => knex('posts_users').del())
     .then(() => knex('posts').del())
     .then(async () => {
@@ -148,10 +134,6 @@ exports.seed = function (knex, Promise) {
       insertedResponsibilities.forEach(r => { responsibilityByName[r.title] = r.id })
 
       await seedSystemRolesForGroup(knex, 1, responsibilityByName, now)
-
-      await knex('widgets').del()
-      await knex.raw('ALTER SEQUENCE widgets_id_seq RESTART WITH 1')
-      await knex.raw(initialWidgets)
 
       await knex('users').del()
       await knex.raw('ALTER SEQUENCE users_seq RESTART WITH 1')

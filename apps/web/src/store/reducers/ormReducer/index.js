@@ -64,7 +64,6 @@ import {
   MUTE_MESSAGE_THREAD,
   UNMUTE_MESSAGE_THREAD,
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
-  UPDATE_WIDGET,
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
   UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
@@ -1476,11 +1475,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         }
       }
       me.update(changes)
-      break
-    }
-
-    case UPDATE_WIDGET: {
-      clearCacheFor(Group, payload.data.updateWidget.group.id)
       break
     }
 

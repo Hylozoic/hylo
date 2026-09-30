@@ -14,7 +14,7 @@ export const REMOVE_MEMBER = 'REMOVE_MEMBER'
 export const REMOVE_MEMBER_PENDING = REMOVE_MEMBER + '_PENDING'
 
 export const groupMembersQuery = `
-query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String, $groupRoleId: ID, $trackCompleted: Boolean, $fundingRoundCapability: String) {
+query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String, $groupRoleIds: [ID], $trackCompleted: Boolean, $fundingRoundCapability: String) {
   group (slug: $slug) {
     id
     name
@@ -37,7 +37,7 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
         }
       }
     }
-    members (first: $first, sortBy: $sortBy, order: $order, offset: $offset, search: $search, groupRoleId: $groupRoleId, trackCompleted: $trackCompleted, fundingRoundCapability: $fundingRoundCapability) {
+    members (first: $first, sortBy: $sortBy, order: $order, offset: $offset, search: $search, groupRoleIds: $groupRoleIds, trackCompleted: $trackCompleted, fundingRoundCapability: $fundingRoundCapability) {
       items {
         id
         name
@@ -118,7 +118,7 @@ query FetchGroupMembersForGraph ($slug: String, $first: Int) {
 export function fetchRoleMemberCounts ({ slug, roleIds }) {
   const safeIds = (roleIds || []).filter(id => /^\d+$/.test(String(id)))
   const fields = safeIds
-    .map(id => `r${id}: members (first: 1, groupRoleId: "${id}") { total }`)
+    .map(id => `r${id}: members (first: 1, groupRoleIds: ["${id}"]) { total }`)
     .join('\n    ')
   return {
     type: FETCH_ROLE_MEMBER_COUNTS,
@@ -222,19 +222,19 @@ function defaultOrderForSort (sortBy) {
   return 'asc'
 }
 
-export function getMemberQueryProps ({ slug, search, sortBy, groupRoleId, trackCompleted, fundingRoundCapability }) {
+export function getMemberQueryProps ({ slug, search, sortBy, groupRoleIds, trackCompleted, fundingRoundCapability }) {
   return {
     slug,
     search,
     sortBy,
-    groupRoleId: groupRoleId || null,
+    groupRoleIds: groupRoleIds?.length ? groupRoleIds : null,
     trackCompleted: typeof trackCompleted === 'boolean' ? trackCompleted : null,
     fundingRoundCapability: fundingRoundCapability || null,
     order: defaultOrderForSort(sortBy)
   }
 }
 
-export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, search, groupRoleId, trackCompleted, fundingRoundCapability, first = 20 }) {
+export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability, first = 20 }) {
   return {
     type: FETCH_MEMBERS,
     graphql: {
@@ -247,7 +247,7 @@ export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, searc
         sortBy,
         order: order || defaultOrderForSort(sortBy),
         search,
-        groupRoleId: groupRoleId || null,
+        groupRoleIds: groupRoleIds?.length ? groupRoleIds : null,
         trackCompleted: typeof trackCompleted === 'boolean' ? trackCompleted : null,
         fundingRoundCapability: fundingRoundCapability || null
       }
@@ -283,8 +283,8 @@ export function removeMember (personId, groupId, slug) {
   }
 }
 // I don't know why there is this duplication (see fetchGroupMembers). Not taking the time to refactor.
-export function fetchMembers ({ slug, groupId, sortBy, offset, search, groupRoleId, trackCompleted, fundingRoundCapability }) {
-  return fetchGroupMembers({ slug, groupId, sortBy, offset, search, groupRoleId, trackCompleted, fundingRoundCapability })
+export function fetchMembers ({ slug, groupId, sortBy, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability }) {
+  return fetchGroupMembers({ slug, groupId, sortBy, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability })
 }
 
 export default function reducer (state = {}, action) {

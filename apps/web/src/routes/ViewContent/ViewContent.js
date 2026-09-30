@@ -621,7 +621,7 @@ export default function ViewContent (props) {
     prevPathWasCreateRef.current = isCreatePath
   }, [location.pathname, location.search, isCalendarViewMode, dispatch, fetchPostsParam, fetchPostsFrom])
 
-  const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
+  const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY
   // Calendar view applies on both `/events` (default) and `/stream?v=calendar`.
   // Default new-post type to event in calendar mode; `/events` list view uses COMMON_VIEWS postTypes.
   const postTypesForPrompt = useMemo(() => {

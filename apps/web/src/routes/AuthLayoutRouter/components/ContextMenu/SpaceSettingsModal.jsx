@@ -39,6 +39,7 @@ import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
 import AutoAddMembersSetting from './AutoAddMembersSetting'
 import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
+import { spaceLocation } from './spaceLocation'
 
 function toDateOrNull (value) {
   if (!value) return null
@@ -175,11 +176,12 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const passedSpace = spaceProp || view?.linkedGroup
-  const spaceFromStore = useSelector(state => {
+  const spaceModel = useSelector(state => {
     const slug = passedSpace?.slug
     if (!slug) return null
-    return getGroupForSlug(state, slug)?.ref || null
+    return getGroupForSlug(state, slug) || null
   })
+  const spaceFromStore = spaceModel?.ref || null
   const parentFromStore = useSelector(state => {
     const slug = parentGroupProp?.slug
     if (!slug) return null
@@ -219,7 +221,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [bannerUrl, setBannerUrl] = useState(space?.bannerUrl || '')
   const [purpose, setPurpose] = useState(space?.purpose || '')
   const [description, setDescription] = useState(space?.description || '')
-  const [locationObject, setLocationObject] = useState(space?.locationObject || null)
+  const [locationObject, setLocationObject] = useState(() => spaceLocation(spaceModel))
   const [postTypes, setPostTypes] = useState(space?.acceptedPostTypes || [])
   const [access, setAccess] = useState(() => accessValueForSpace({
     visibility: space?.visibility,
@@ -236,7 +238,11 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
-  const [openAdvanced, setOpenAdvanced] = useState(() => new Set())
+  const [openAdvanced, setOpenAdvanced] = useState(() => {
+    const open = new Set()
+    if (spaceLocation(spaceModel)?.fullText) open.add('location')
+    return open
+  })
   const [justRevealed, setJustRevealed] = useState(null)
   // Welcome edits only save if the panel was ever opened
   const [welcomeTouched, setWelcomeTouched] = useState(false)
@@ -521,6 +527,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           locationObject={locationObject}
           location={locationObject?.fullText || ''}
           onChange={setLocationObject}
+          inputPosition='bottom'
           className={INPUT_CLASS}
         />
       )
@@ -630,8 +637,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
 
         <SpaceIconRow value={icon} onChange={setIcon} />
 
-        <div className='grid grid-cols-1 sm:grid-cols-[1.35fr_1fr] gap-3 items-start'>
-          <div className='flex flex-col gap-1'>
+        <div className='grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_16rem] gap-3 items-start'>
+          <div className='flex flex-col gap-1 min-w-0'>
             <div className='h-5 flex items-center'>
               <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
             </div>

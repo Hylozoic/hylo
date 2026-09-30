@@ -22,7 +22,7 @@ const VIEW_TYPE_TO_ICON_NAME = {
 
 /**
  * Defaults for built-in / system GroupView types (labels, icons, stream filters).
- * Shared by web ViewContent and packages (e.g. useStreamQueryVariables).
+ * Shared by web ViewContent and the view menu.
  */
 export const COMMON_VIEWS = {
   all: {
