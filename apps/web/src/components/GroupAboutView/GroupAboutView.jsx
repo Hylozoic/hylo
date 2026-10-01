@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 
 import ClickCatcher from 'components/ClickCatcher'
+import EmailOffNotice from 'components/EmailOffNotice/EmailOffNotice'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
@@ -514,6 +515,7 @@ export default function GroupAboutView ({
                     compact
                     postsOnly={isSpace}
                   />
+                  {!isSpace && <EmailOffNotice membershipSettings={membership.settings} className='mt-3' />}
                 </AboutCard>
               )}
               {activeTab === 'settings' && isSpace && (

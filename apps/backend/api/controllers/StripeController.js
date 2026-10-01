@@ -22,6 +22,7 @@ const { normalizeLocaleToFull } = require('../../lib/localeHelpers')
 const { AnalyticsEvents } = require('@hylo/shared')
 const { trackServerEvent } = require('../../lib/analytics/trackServerEvent')
 const { afterCheckoutGrant } = require('../../lib/paidContent/afterCheckoutGrant')
+const { locales } = require('../../lib/i18n/locales')
 
 // Dispute rate thresholds matching Stripe's own early-warning and critical levels
 const DISPUTE_RATE_WARNING_THRESHOLD = 0.0075 // 0.75% — Stripe early warning
@@ -42,15 +43,26 @@ function shouldBypassStripeWebhookSignatureCheck () {
   return process.env.STRIPE_WEBHOOK_BYPASS_SIGNATURE === 'true'
 }
 
+// The contribution product is renamed to the language of the checkout that last set it up
+const CONTRIBUTION_PRODUCT_NAMES = Object.values(locales)
+  .map(strings => strings.stripeContributionProductName && strings.stripeContributionProductName())
+  .filter(Boolean)
+  .map(name => name.toLowerCase())
+
 /**
- * Detects optional Hylo platform contribution line items (matches current and legacy Stripe product names).
+ * Detects optional Hylo platform contribution line items: by the metadata StripeService puts on the
+ * contribution price and product, else by the product's current (any language) or legacy name.
  *
  * @param {String} productName - Product name from Stripe line item
+ * @param {Object} [price] - The line item's price, when Stripe included it
  * @returns {Boolean}
  */
-function isHyloPlatformContributionLineItem (productName) {
+function isHyloPlatformContributionLineItem (productName, price) {
+  if (price?.metadata?.hylo_donation_price === 'true') return true
+  if (price?.product?.metadata?.hylo_donation_product === 'true') return true
   const n = (productName || '').toLowerCase()
   return (
+    CONTRIBUTION_PRODUCT_NAMES.some(name => n.includes(name)) ||
     n.includes('hylo platform donation') ||
     n.includes('donation to hylo') ||
     n.includes('hylo platform contribution') ||
@@ -902,7 +914,7 @@ module.exports = {
               offeringAmountPaid = 0
               for (const lineItem of fullSession.line_items.data) {
                 const productName = lineItem.price?.product?.name || lineItem.description || ''
-                const isPlatformContribution = isHyloPlatformContributionLineItem(productName)
+                const isPlatformContribution = isHyloPlatformContributionLineItem(productName, lineItem.price)
                 // amount_total is what was paid for the line, after any promotion code
                 const lineAmountPaid = lineItem.amount_total ?? ((lineItem.price?.unit_amount || 0) * (lineItem.quantity || 0))
 
@@ -2096,7 +2108,7 @@ module.exports = {
                 if (fullInvoice.lines?.data) {
                   for (const lineItem of fullInvoice.lines.data) {
                     const productName = lineItem.price?.product?.name || lineItem.description || ''
-                    const isPlatformContribution = isHyloPlatformContributionLineItem(productName)
+                    const isPlatformContribution = isHyloPlatformContributionLineItem(productName, lineItem.price)
 
                     if (isPlatformContribution) {
                       const itemDonationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)

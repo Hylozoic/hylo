@@ -758,8 +758,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
 
           <SpaceIconRow value={icon} onChange={setIcon} />
 
-          <div className='grid grid-cols-1 sm:grid-cols-[1.35fr_1fr] gap-3 items-start'>
-            <div className='flex flex-col gap-1'>
+          <div className='grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_16rem] gap-3 items-start'>
+            <div className='flex flex-col gap-1 min-w-0'>
               <div className='h-5 flex items-center'>
                 <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
               </div>

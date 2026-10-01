@@ -7,8 +7,53 @@ import { SLUG_MAX_LENGTH, slugValidatorRegex } from 'routes/CreateGroup/slug'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
 import InfoButton from 'components/ui/info'
 import { cn } from 'util/index'
+import { fitSpaceUrl } from './fitSpaceUrl'
 
 const SLUG_CHECK_DEBOUNCE = 300
+
+/** Preview of the space URL. Keeps hylo.com and the end of the path, ellipsizing the middle when the line is too narrow. */
+function SpaceUrlPreview ({ parentSlug, slug }) {
+  const ref = useRef(null)
+  const fullUrl = `hylo.com/groups/${parentSlug || '…'}/spaces/${slug || '…'}`
+  const [fittedUrl, setFittedUrl] = useState(fullUrl)
+  const [sourceUrl, setSourceUrl] = useState(fullUrl)
+  if (sourceUrl !== fullUrl) {
+    setSourceUrl(fullUrl)
+    setFittedUrl(fullUrl)
+  }
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+
+    const probe = document.createElement('span')
+    probe.setAttribute('aria-hidden', 'true')
+    probe.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;pointer-events:none'
+    document.body.appendChild(probe)
+
+    const measure = (value) => {
+      probe.style.font = getComputedStyle(el).font
+      probe.textContent = value
+      return probe.offsetWidth
+    }
+
+    const fit = () => setFittedUrl(fitSpaceUrl(fullUrl, el.clientWidth, measure))
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(el)
+
+    return () => {
+      observer.disconnect()
+      probe.remove()
+    }
+  }, [fullUrl])
+
+  return (
+    <span ref={ref} title={fullUrl} className='block min-w-0 max-w-full truncate text-xs text-foreground-muted'>
+      {fittedUrl}
+    </span>
+  )
+}
 
 /** Handle editor for a space — the same UX as the group creation modal's Handle field.
  * Shows and edits only the local portion; uniqueness uses `{parentSlug}-{localSlug}`. */
@@ -54,7 +99,7 @@ export default function SpaceSlugField ({ parentSlug, value, onChange, currentSt
   }
 
   return (
-    <div className='flex flex-col gap-1'>
+    <div className='flex flex-col gap-1 min-w-0 w-full sm:max-w-64'>
       <div className='h-5 flex items-center gap-1.5'>
         <label htmlFor='spaceSlug' className={FIELD_LABEL_CLASS}>{t('Handle')}</label>
         <InfoButton
@@ -82,9 +127,7 @@ export default function SpaceSlugField ({ parentSlug, value, onChange, currentSt
       {error
         ? <span className='text-error text-xs'>{error}</span>
         : (
-          <span className='text-xs text-foreground-muted truncate'>
-            hylo.com/groups/{parentSlug || '…'}/spaces/{value || '…'}
-          </span>
+          <SpaceUrlPreview parentSlug={parentSlug} slug={value} />
           )}
     </div>
   )

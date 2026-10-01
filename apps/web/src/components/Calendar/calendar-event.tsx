@@ -1,7 +1,6 @@
 import React from 'react'
 import { useCalendarContext } from 'components/Calendar/calendar-context'
 import { Interval } from 'luxon'
-import { motion, MotionConfig, AnimatePresence } from 'framer-motion'
 import Tooltip from 'components/Tooltip'
 import { DateTimeHelpers } from '@hylo/shared'
 import useViewPostDetails from 'hooks/useViewPostDetails'
@@ -60,8 +59,7 @@ export default function CalendarEvent ({
   day
 }) {
   const { t } = useTranslation()
-  const { events, date } =
-    useCalendarContext()
+  const { events } = useCalendarContext()
   const style = month ? {} : calculateEventPosition(event, events, day)
   const locale = getLocaleFromLocalStorage()
   const { primary, secondary, eventTimezoneLabel, userTimezoneLabel } = DateTimeHelpers.formatEventTimeDisplay({
@@ -76,87 +74,50 @@ export default function CalendarEvent ({
 
   const viewPostDetails = useViewPostDetails()
 
-  // Generate a unique key that includes the current month to prevent animation conflicts
-  const isEventInCurrentMonth = DateTimeHelpers.isSameMonth(event.start, date)
-  const animationKey = `${event.id}-${
-    isEventInCurrentMonth ? 'current' : 'adjacent'
-  }`
-
+  // Month view mounts one chip per day. Do not give them a shared layoutId:
+  // Framer Motion shows only one element per id (the last day), then springs
+  // the earlier days back into place.
   return (
-    <MotionConfig reducedMotion='user'>
-      <AnimatePresence mode='wait'>
-        <motion.div
+    <>
+      <div
+        className={cn(
+          classes[event.type],
+          'cursor-pointer border',
+          month && event.multiday && DateTimeHelpers.isSameDay(event.start, day) && 'rounded-l-md border-r-0',
+          month && event.multiday && DateTimeHelpers.isSameDay(event.end, day) && 'rounded-r-md border-l-0 mr-1',
+          month && event.multiday && !DateTimeHelpers.isSameDay(event.start, day) && !DateTimeHelpers.isSameDay(event.end, day) && 'border-l-0 border-r-0',
+          month && !event.multiday && 'rounded-md mr-1',
+          !month && 'absolute',
+          className
+        )}
+        style={style}
+        onClick={(e) => {
+          e.stopPropagation()
+          viewPostDetails(event)
+        }}
+        data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}
+      >
+        <div
           className={cn(
-            classes[event.type],
-            'cursor-pointer transition-all duration-300 border',
-            month && event.multiday && DateTimeHelpers.isSameDay(event.start, day) && 'rounded-l-md border-r-0',
-            month && event.multiday && DateTimeHelpers.isSameDay(event.end, day) && 'rounded-r-md border-l-0 mr-1',
-            month && event.multiday && !DateTimeHelpers.isSameDay(event.start, day) && !DateTimeHelpers.isSameDay(event.end, day) && 'border-l-0 border-r-0',
-            month && !event.multiday && 'rounded-md mr-1',
-            !month && 'absolute',
-            className
+            'flex flex-col w-full',
+            // Note: at this time, css for arrow is same as arrow-start
+            month && event.multiday && DateTimeHelpers.isSameDay(event.start, day) && 'arrow-start p-0',
+            month && event.multiday && !DateTimeHelpers.isSameDay(event.start, day) && !DateTimeHelpers.isSameDay(event.end, day) && 'arrow p-0',
+            month && event.multiday && DateTimeHelpers.isSameDay(event.end, day) && 'arrow-end p-0',
+            month && event.multiday && event.type,
+            month && 'flex-row items-center justify-between pl-1'
           )}
-          style={style}
-          onClick={(e) => {
-            e.stopPropagation()
-            viewPostDetails(event)
-          }}
-          data-tooltip-id={`title-tip-${event.id}`} data-tooltip-html={toolTipTitle}
-          initial={{
-            opacity: 0,
-            y: -3,
-            scale: 0.98
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-            scale: 1
-          }}
-          exit={{
-            opacity: 0,
-            scale: 0.98,
-            transition: {
-              duration: 0.15,
-              ease: 'easeOut'
-            }
-          }}
-          transition={{
-            duration: 0.2,
-            ease: [0.25, 0.1, 0.25, 1],
-            opacity: {
-              duration: 0.2,
-              ease: 'linear'
-            },
-            layout: {
-              duration: 0.2,
-              ease: 'easeOut'
-            }
-          }}
-          layoutId={`event-${animationKey}-${month ? 'month' : 'day'}`}
         >
-          <motion.div
-            className={cn(
-              'flex flex-col w-full',
-              // Note: at this time, css for arrow is same as arrow-start
-              month && event.multiday && DateTimeHelpers.isSameDay(event.start, day) && 'arrow-start p-0',
-              month && event.multiday && !DateTimeHelpers.isSameDay(event.start, day) && !DateTimeHelpers.isSameDay(event.end, day) && 'arrow p-0',
-              month && event.multiday && DateTimeHelpers.isSameDay(event.end, day) && 'arrow-end p-0',
-              month && event.multiday && event.type,
-              month && 'flex-row items-center justify-between pl-1'
-            )}
-            layout='position'
-          >
-            <p className={cn(month && 'truncate text-xs', 'm-0')}>
-              {event.title}
-            </p>
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
+          <p className={cn(month && 'truncate text-xs', 'm-0')}>
+            {event.title}
+          </p>
+        </div>
+      </div>
       <Tooltip
         delay={550}
         id={`title-tip-${event.id}`}
         position='right'
       />
-    </MotionConfig>
+    </>
   )
 }

@@ -543,6 +543,45 @@ describe('StripeController delayed checkout payments', () => {
         expect(transferCalls).to.have.length(1)
         expect(transferCalls[0]).to.include({ connectedAccountId: 'acct_delayed', paymentIntentId: 'pi_promo_contribution', donationAmount: 500 })
       })
+
+      it('recognizes the contribution by its current name in any language', async () => {
+        stripeClient.checkout.sessions.retrieve = async () => ({
+          line_items: {
+            data: [
+              { description: 'Season Pass', quantity: 1, amount_total: 5000, price: { unit_amount: 10000, product: 'prod_pass' } },
+              { description: 'Wähle deinen Hylo-Beitrag', quantity: 5, amount_total: 500, price: { unit_amount: 100, product: 'prod_contribution' } }
+            ]
+          }
+        })
+
+        await StripeController.handleCheckoutSessionCompleted({
+          account: 'acct_delayed',
+          data: { object: sessionFor({ amount_total: 5500, payment_intent: 'pi_promo_named', total_details: { amount_discount: 5000 } }) }
+        })
+
+        expect(feeRefundCalls).to.deep.equal([{ accountId: 'acct_delayed', paymentIntentId: 'pi_promo_named', paidAmount: 5000 }])
+        expect(transferCalls).to.have.length(1)
+        expect(transferCalls[0]).to.include({ donationAmount: 500 })
+      })
+
+      it('recognizes the contribution by its price metadata whatever it is called', async () => {
+        stripeClient.checkout.sessions.retrieve = async () => ({
+          line_items: {
+            data: [
+              { description: 'Season Pass', quantity: 1, amount_total: 5000, price: { unit_amount: 10000, product: 'prod_pass' } },
+              { description: 'Renamed by someone', quantity: 3, amount_total: 300, price: { unit_amount: 100, product: 'prod_contribution', metadata: { hylo_donation_price: 'true' } } }
+            ]
+          }
+        })
+
+        await StripeController.handleCheckoutSessionCompleted({
+          account: 'acct_delayed',
+          data: { object: sessionFor({ amount_total: 5300, payment_intent: 'pi_promo_meta', total_details: { amount_discount: 5000 } }) }
+        })
+
+        expect(feeRefundCalls).to.deep.equal([{ accountId: 'acct_delayed', paymentIntentId: 'pi_promo_meta', paidAmount: 5000 }])
+        expect(transferCalls[0]).to.include({ donationAmount: 300 })
+      })
     })
 
     it('leaves the fee alone when no discount was applied', async () => {
