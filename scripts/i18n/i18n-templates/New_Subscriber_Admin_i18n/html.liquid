@@ -1,0 +1,28 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set admin_name_var = admin_name %}
+  {% trans %}Hi {{admin_name_var}}{% endtrans %},
+</p>
+
+<p>
+  {% set group_name_var = group_name %}
+  {% trans %}Someone new has subscribed in {{group_name_var}}.{% endtrans %}
+</p>
+
+<p><strong>{% trans %}Subscriber:{% endtrans %}</strong> <a href="{{user_profile_url}}">{{user_name}}</a></p>
+<p><strong>{% trans %}Offering:{% endtrans %}</strong> {{offering_name}}</p>
+<p><strong>{% trans %}Subscribed:{% endtrans %}</strong> {{subscribed_at}}</p>
+
+{% if subscription_period %}
+  <p><strong>{% trans %}Amount:{% endtrans %}</strong> {{subscription_amount}} {% trans %}per{% endtrans %} {{subscription_period}}</p>
+{% else %}
+  <p><strong>{% trans %}Amount:{% endtrans %}</strong> {{subscription_amount}}</p>
+{% endif %}
+
+<p>
+<a class='btn btn-blue' href="{{view_content_access_url}}" clicktracking="off">{% trans %}View Content Access{% endtrans %}</a>
+</p>
+<a class='btn btn-blue' href="{{contact_user_url}}" clicktracking="off">{% trans %}Welcome Them!{% endtrans %}</a>
+
+{% snippet 'footer_redesign' %}

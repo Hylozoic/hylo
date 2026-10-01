@@ -2311,6 +2311,10 @@ type Person {
   contactPhone: String
   # When loading through a track: membership created_at (join space = enroll)
   enrolledAt: Date
+  # When loading through a track: how many of its actions they have completed. Only for them and the track's stewards
+  actionsCompleted: Int
+  # When loading through a track: when they last completed one of its actions. Only for them and the track's stewards
+  lastActionAt: Date
   # The URL to this person's Facebook profile
   facebookUrl: String
   # False for new users who have not completed the registration process
@@ -2916,8 +2920,9 @@ type Track {
   deactivatedAt: Date
   # Whether the current user has completed this track
   didComplete: Boolean
-  # The users enrolled in this track
-  enrolledUsers: PersonQuerySet
+  # The users enrolled in this track; completed narrows it to those who have (true) or haven't (false) finished,
+  # and learnersOnly leaves out whoever set up the track's space (its creator), who is a member without enrolling
+  enrolledUsers(first: Int, offset: Int, completed: Boolean, learnersOnly: Boolean): PersonQuerySet
   # The total number of groups this track is a part of
   groupsTotal: Int
   # Whether the current user is enrolled in this track
@@ -3813,6 +3818,8 @@ type Mutation {
   followPost(postId: ID): Post
   # Mark one of your posts as fulfilled or completed
   fulfillPost(postId: ID): GenericResult
+  # The author's answer to the nudge about a request or offer with no replies: 'still_needed' or 'met'
+  answerOpenRequestNudge(postId: ID!, answer: String!): GenericResult
   # Invite a group to join one of your groups as a child of it. Only a group steward can call this.
   inviteGroupToJoinParent(parentId: ID, childId: ID): CreatedGroupRelationshipInvite
   # Invite a group to form a peer-to-peer relationship. Only a group steward can call this.

@@ -1050,7 +1050,8 @@ describe('unified email digest', () => {
         expect(result).to.deep.equal([[daily.id, 1]])
         expect(readerCalls).to.have.length(1)
         expect(readerCalls[0][2].unified).to.equal(true)
-        expect(readerCalls[0][2].subject).to.equal('Your Hylo Daily Digest')
+        // The newest post leads the subject (D40)
+        expect(readerCalls[0][2].subject).to.equal('Garden post +1 more across your groups')
         expect(readerCalls[0][2].discussions.map(post => post.title).sort()).to.deep.equal(['Garden post', 'Shared post'])
 
         const sharedSent = readerCalls[0][2].discussions.find(post => post.title === 'Shared post')

@@ -71,6 +71,9 @@ export const ACTION_FUNDING_ROUND_PHASE_TRANSITION = 'fundingRoundPhaseTransitio
 export const ACTION_FUNDING_ROUND_REMINDER = 'fundingRoundReminder'
 export const ACTION_POST_FULFILLED = 'postFulfilled'
 export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
+export const ACTION_OPEN_REQUEST_NUDGE = 'openRequestNudge'
+export const ACTION_TRACK_COMPLETED_LEARNER = 'trackCompletedLearner'
+export const ACTION_TRACK_REMINDER = 'trackReminder'
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -169,6 +172,14 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> closed your post', { name })
     case ACTION_POST_UNFULFILLED:
       return t('<strong>{{name}}</strong> reopened your post', { name })
+    case ACTION_OPEN_REQUEST_NUDGE:
+      return post?.type === 'offer'
+        ? t('Nobody has replied to your offer yet')
+        : t('Nobody has replied to your request yet')
+    case ACTION_TRACK_COMPLETED_LEARNER:
+      return t('You completed <strong>{{trackName}}</strong>!', { trackName: track?.space?.name })
+    case ACTION_TRACK_REMINDER:
+      return t('Pick up where you left off in <strong>{{trackName}}</strong>', { trackName: track?.space?.name })
     default:
       return null
   }
@@ -267,6 +278,14 @@ export function bodyForNotification (notification, t) {
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary })
+    case ACTION_OPEN_REQUEST_NUDGE:
+      return post?.type === 'offer'
+        ? t('"<strong>{{postSummary}}</strong>": still available, or taken?', { postSummary })
+        : t('"<strong>{{postSummary}}</strong>": still needed, or met?', { postSummary })
+    case ACTION_TRACK_COMPLETED_LEARNER:
+      return t('Congratulations! See what to explore next.')
+    case ACTION_TRACK_REMINDER:
+      return postSummary ? t('Next: {{title}}', { title: postSummary }) : null
     default:
       return null
   }
@@ -359,6 +378,19 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
       return primaryPostUrl(post, postOpts)
+    case ACTION_OPEN_REQUEST_NUDGE: {
+      // The post page asks the author whether it's still needed (D58)
+      const url = primaryPostUrl(post, postOpts)
+      return `${url}${url.includes('?') ? '&' : '?'}nudge=open-request`
+    }
+    // The track's actions, where a finished track shows its completion screen, or the
+    // next action for a reminder (D63). groupSlug is the parent group here.
+    case ACTION_TRACK_COMPLETED_LEARNER:
+    case ACTION_TRACK_REMINDER: {
+      if (!groupSlug || !track?.space?.slug) return '/my/tracks'
+      const tab = action === ACTION_TRACK_REMINDER && post?.id ? `track-actions/post/${post.id}` : 'track-actions'
+      return trackUrl(track.id, { groupSlug, space: track.space, tab })
+    }
   }
 }
 

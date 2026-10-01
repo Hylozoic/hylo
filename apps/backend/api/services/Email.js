@@ -208,6 +208,14 @@ const ACCOUNT_CLOSED_TEMPLATE_ID = null
 // (api/models/user/winback.js).
 const WINBACK_TEMPLATE_ID = null
 
+// Set to the SendWithUs template id once scripts/i18n/i18n-templates/Track_Reminder_i18n
+// is uploaded; until then track reminders go in the app only (D63).
+const TRACK_REMINDER_TEMPLATE_ID = null
+
+// Set to the SendWithUs template id once scripts/i18n/i18n-templates/New_Subscriber_Admin_i18n
+// is uploaded; until then the notice to Administrators is skipped (D62).
+const NEW_SUBSCRIBER_ADMIN_TEMPLATE_ID = null
+
 const senders = {
   sendSimpleEmail,
 
@@ -270,6 +278,11 @@ const senders = {
   sendExportUserAccount: sendEmailWithOptions('tem_qRkBwBC4MVwqww87gDgRdHSG'),
   sendTrackCompletedEmail: sendEmailWithOptions('tem_G69qyjJ6xVHxMJMqcwp98dfF'),
   sendTrackEnrollmentEmail: sendEmailWithOptions('tem_tFrcKvJvTRVYMbDYSrTHwVfV'),
+  // A learner idle in a track: their next action (D63). Resolves false until the template exists.
+  sendTrackReminderEmail: opts => TRACK_REMINDER_TEMPLATE_ID
+    ? sendEmailWithOptions(TRACK_REMINDER_TEMPLATE_ID, opts)
+    : Promise.resolve(false),
+  hasTrackReminderTemplate: () => Boolean(TRACK_REMINDER_TEMPLATE_ID),
   sendWelcomeEmail: sendEmailWithOptions('tem_jkdjbcSVK9cmGvwXbtX9PQbJ'),
   sendGroupCreatedEmail: sendEmailWithOptions('tem_7dHq84ct6mJS847pTVJK6b4P'),
   sendFundingRoundNewSubmissionEmail: sendEmailWithOptions('tem_dMt4Dwm493JvYdXGWBpTxxR7'),
@@ -411,6 +424,10 @@ Profile: ${opts.actorProfileUrl}
   sendRefundProcessed: sendTransactionalEmailWithOptions('tem_qKY6tQFyBcyBXry9wm8yvbxJ'),
   sendSubscriptionCancelled: sendEmailWithOptions('tem_XfXjrYGdvDrPK4Sjprq7FtbS'),
   sendSubscriptionCancelledAdminNotification: sendEmailWithOptions('tem_9ySxcvxKGKBXFQHJm4vS8cDC'),
+  // Tells a group's Administrators someone subscribed (D62). Resolves false until the template exists.
+  sendNewSubscriberAdminNotification: opts => NEW_SUBSCRIBER_ADMIN_TEMPLATE_ID
+    ? sendEmailWithOptions(NEW_SUBSCRIBER_ADMIN_TEMPLATE_ID, opts)
+    : Promise.resolve(false),
   sendAccessExpired: sendEmailWithOptions('tem_HVKwWYTMDbhWvvd3TGxtMkMG'),
   sendTrackAccessPurchased: sendTransactionalEmailWithOptions('tem_T63TXtFjmyqhyrw8yfp6YwH8'),
 

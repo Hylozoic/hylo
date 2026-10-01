@@ -5,6 +5,7 @@ import { join } from 'path'
 import { merge, reduce } from 'lodash'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { recordEmailClick } from './mutations/emailClick'
+import { answerOpenRequestNudge } from './mutations/openRequestNudge'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import { PAGINATION_TOTAL_COLUMN_NAME } from '../../lib/graphql-bookshelf-bridge/util/applyPagination'
 import {
@@ -847,6 +848,8 @@ export function makeMutations ({ fetchOne }) {
 
     fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
 
+    answerOpenRequestNudge: (root, { postId, answer }, context) => answerOpenRequestNudge(context.currentUserId, { postId, answer }),
+
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
 
     invitePeerRelationship: (root, { fromGroupId, toGroupId, description }, context) => invitePeerRelationship(context.currentUserId, fromGroupId, toGroupId, description, context),
@@ -914,7 +917,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateStripeOffering: (root, { offeringId, name, description, priceInCents, currency, accessGrants, renewalPolicy, duration, publishStatus }, context) => updateStripeOffering(context.currentUserId, { offeringId, name, description, priceInCents, currency, accessGrants, renewalPolicy, duration, publishStatus }),
 
-    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }),
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }, { req: context.req }),
 
     checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
 

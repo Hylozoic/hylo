@@ -22,6 +22,7 @@ import ProjectMixin from './project/mixin'
 import EventMixin, { eventClassMethods } from './event/mixin'
 import { defaultTimezone, wherePostedInGroups } from '../../lib/group/digest2/util'
 import { publishPostUpdate } from '../../lib/postSubscriptionPublisher'
+import { sendTrackCompletedEvent } from './track/events'
 
 init({ data })
 
@@ -1159,7 +1160,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   // Check if completing this action completed its track for the user
   checkCompletedTrack: async function ({ userId, postId }) {
-    return bookshelf.transaction(async trx => {
+    const completed = await bookshelf.transaction(async trx => {
       const post = await Post.find(postId, { transacting: trx })
       if (!post || post.get('type') !== 'action') return
 
@@ -1186,19 +1187,25 @@ module.exports = bookshelf.Model.extend(Object.assign({
       const actionPostIds = trackActions.map(a => a.id)
       if (actionPostIds.length === 0) return
 
-      const completedActionsCount = await PostUser.query(q => {
+      const completedActionsCount = parseInt(await PostUser.query(q => {
         q.where('user_id', userId)
         q.whereIn('post_id', actionPostIds)
         q.whereNotNull('completed_at')
-      }).count({ transacting: trx })
+      }).count({ transacting: trx }))
 
-      if (parseInt(completedActionsCount) !== trackActions.length) return
-
+      // Only enrolled learners (active space members) make progress or complete
       const membership = await GroupMembership.forPair(userId, spaceGroup).fetch({ transacting: trx })
-      if (!membership || !membership.get('active') || membership.get('settings')?.completedAt) {
-        // Don't complete unless enrolled (active space member), and don't complete again
-        return
-      }
+      if (!membership || !membership.get('active')) return
+
+      // Progress on the enrollment, for stewards and the idle reminders (D63)
+      membership.addSetting({
+        actionsCompleted: Math.min(completedActionsCount, trackActions.length),
+        lastActionAt: new Date().toISOString()
+      })
+      await membership.save({ settings: membership.get('settings') }, { patch: true, transacting: trx })
+
+      // Don't complete until every action is done, and don't complete again
+      if (completedActionsCount !== trackActions.length || membership.get('settings')?.completedAt) return
 
       membership.addSetting({ completedAt: new Date().toISOString() })
       await membership.save({ settings: membership.get('settings') }, { patch: true, transacting: trx })
@@ -1238,7 +1245,22 @@ module.exports = bookshelf.Model.extend(Object.assign({
         }))
         await Activity.saveForReasons(activities, { transacting: trx })
       }
+
+      // The learner hears about it too, with a link to the track's completion screen (D63).
+      // Saved on its own so it stays separate when the learner is also a steward.
+      await Activity.saveForReasons([{
+        reason: 'trackCompletedLearner',
+        actor_id: userId,
+        group_id: notifyGroupId,
+        reader_id: userId,
+        track_id: track.id
+      }], trx)
+
+      return { trackId: track.id, groupId: notifyGroupId }
     })
+
+    // Consent-gated server event, once the completion is saved (D62)
+    if (completed) await sendTrackCompletedEvent(userId, completed)
   },
 
   // TODO: remove, unused (??)

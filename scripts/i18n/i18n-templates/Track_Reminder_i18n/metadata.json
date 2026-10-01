@@ -1,0 +1,10 @@
+{
+  "templateId": null,
+  "templateName": "Track_Reminder_i18n",
+  "locale": "en-US",
+  "tags": [
+    "i18n",
+    "i18n ready"
+  ],
+  "note": "Not uploaded yet. Upload with scripts/i18n/upload-new-template.js, then set TRACK_REMINDER_TEMPLATE_ID in apps/backend/api/services/Email.js."
+}

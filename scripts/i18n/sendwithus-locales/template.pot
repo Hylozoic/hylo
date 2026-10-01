@@ -250,6 +250,29 @@ msgstr ""
 msgid "Ending Soon"
 msgstr ""
 
+msgid "Open requests"
+msgstr ""
+
+msgid "Nobody has replied to these yet. Can you help?"
+msgstr ""
+
+#, python-format
+msgid "by %(post_user_name)s"
+msgstr ""
+
+#, python-format
+msgid "in %(groups_label)s"
+msgstr ""
+
+msgid "Your request:"
+msgstr ""
+
+msgid "Still needed"
+msgstr ""
+
+msgid "It's been met"
+msgstr ""
+
 msgid "All Topics"
 msgstr ""
 
@@ -1237,6 +1260,20 @@ msgid "Subscription Cancelled: %(offering_name)s in %(group_name)s"
 msgstr ""
 
 #, python-format
+msgid "New subscriber: %(offering_name)s in %(group_name)s"
+msgstr ""
+
+#, python-format
+msgid "Someone new has subscribed in %(group_name_var)s."
+msgstr ""
+
+msgid "Subscriber:"
+msgstr ""
+
+msgid "Subscribed:"
+msgstr ""
+
+#, python-format
 msgid "Hi %(admin_name_var)s"
 msgstr ""
 
@@ -1323,6 +1360,31 @@ msgstr ""
 
 #, python-format
 msgid "Track %(track_name)s completed by %(completer_name)s"
+msgstr ""
+
+#, python-format
+msgid "Pick up where you left off in %(track_name_var)s"
+msgstr ""
+
+#, python-format
+msgid "Hi %(learner_name_var)s,"
+msgstr ""
+
+#, python-format
+msgid "You've completed %(actions_completed_var)s of %(total_actions_var)s in %(track_name_var)s. Ready for the next one?"
+msgstr ""
+
+#, python-format
+msgid "Next: %(next_action_title_var)s"
+msgstr ""
+
+msgid "Continue the track →"
+msgstr ""
+
+msgid "You'll get at most two reminders for this track."
+msgstr ""
+
+msgid "Email settings"
 msgstr ""
 
 #, python-format

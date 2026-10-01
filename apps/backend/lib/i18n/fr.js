@@ -24,6 +24,9 @@ exports.fr = {
   emailDigestUnifiedWeeklySubject: () => 'Votre résumé hebdomadaire Hylo',
   // D9: in the first weekly digest after a daily digest was slowed down for being away
   emailDigestSlowedNotice: () => 'Pendant votre absence, nous avons réduit vos e-mails à un résumé hebdomadaire. Revenez sur Hylo quand vous voulez pour retrouver votre résumé quotidien.',
+  emailDigestTopPostSubject: ({ title, count, groupName }) => count > 0 ? `${title} +${count} autres dans ${groupName}` : `${title} dans ${groupName}`,
+  emailDigestUnifiedTopPostSubject: ({ title, count }) => count > 0 ? `${title} +${count} autres dans vos groupes` : title,
+  emailDigestWeeklyMixupNotice: () => "Désolés pour l'interruption : jusqu'en août, les résumés hebdomadaires comme celui-ci étaient envoyés par erreur une fois par mois. C'est corrigé, et vous recevrez désormais ce résumé chaque semaine.",
   emailSenderViaHyloSuffix: () => ' (via Hylo)',
   groupCreatedNotifySubject: (name) => `Nouveau groupe Hylo créé : ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
@@ -107,6 +110,9 @@ exports.fr = {
     return `${actor.get('name')} a fermé votre publication « ${postName} »`
   },
   textForPostMention: ({ person, postName }) => `${person} vous a mentionné·e : ${postName}`,
+  textForOpenRequestNudge: ({ postName, type }) => type === 'offer'
+    ? `Pas encore de réponse à votre offre « ${postName} ». Est-elle toujours disponible ?`
+    : `Pas encore de réponse à votre demande « ${postName} ». En avez-vous toujours besoin ?`,
   textForPost: ({ firstTag, person, postName }) => `${person} : ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `Parcours terminé : « ${trackName} » complété par ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, trackName }) => `Inscription au parcours : « ${trackName} » par ${actor.get('name')}`,

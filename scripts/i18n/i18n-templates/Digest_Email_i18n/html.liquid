@@ -53,6 +53,7 @@
   {% if resources|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
   {% if projects|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
   {% if proposals|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
+  {% if open_requests|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
   {% if upcoming|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
   {% if ending|length > 0 %}{% set jump_count = jump_count + 1 %}{% endif %}
 
@@ -67,11 +68,18 @@
       {% if resources|length > 0 %}{{ sep }}<a href='#Resources'>{% trans %}Resources{% endtrans %}</a>{% set sep = ', ' %}{% endif %}
       {% if projects|length > 0 %}{{ sep }}<a href='#Projects'>{% trans %}Projects{% endtrans %}</a>{% set sep = ', ' %}{% endif %}
       {% if proposals|length > 0 %}{{ sep }}<a href='#Proposals'>{% trans %}Proposals{% endtrans %}</a>{% set sep = ', ' %}{% endif %}
+      {% if open_requests|length > 0 %}{{ sep }}<a href='#open-requests'>{% trans %}Open requests{% endtrans %}</a>{% set sep = ', ' %}{% endif %}
       {% if upcoming|length > 0 %}{{ sep }}<a href='#upcoming'>{% trans %}Upcoming Reminders{% endtrans %}</a>{% set sep = ', ' %}{% endif %}
       {% if ending|length > 0 %}{{ sep }}<a href='#ending'>{% trans %}Ending Soon{% endtrans %}</a>{% endif %}
     </p>
   {% endif %}
 </div>
+
+{% if weekly_digest_notice %}
+<div class='section'>
+  <p class='weekly-digest-notice' style='margin: 0; padding: 10px 12px; border-radius: 6px; background-color: #f1f5f9;'>{{ weekly_digest_notice }}</p>
+</div>
+{% endif %}
 
 {% if posts_with_new_comments|length > 0 or chat_rooms|length > 0 %}
 <div class='section'>
@@ -122,6 +130,35 @@
 {{posts_section('Resources', resources)}}
 {{posts_section('Projects', projects)}}
 {{posts_section('Proposals', proposals)}}
+
+{% if open_requests|length > 0 %}
+<div class='section'>
+  <span id='open-requests'></span>
+  <h3 class='section-title'>{% trans %}Open requests{% endtrans %}</h3>
+  <p style='margin-top: 0;'>{% trans %}Nobody has replied to these yet. Can you help?{% endtrans %}</p>
+  {% for post in open_requests %}
+    <div class='card post-headline'>
+      {{post_icon(post.type)}} <span><a href='{{post.url}}'>{{post.title}}</a>
+        {% set post_user_name = post.user.name %}
+        <span class='space-label'>{% trans %}by {{post_user_name}}{% endtrans %}</span>
+        {% if post.groups_label %}
+          {% set groups_label = post.groups_label %}
+          <span class='space-label'>{% trans %}in {{groups_label}}{% endtrans %}</span>
+        {% else %}
+          {{ space_label(post) }}
+        {% endif %}
+      </span>
+      {% if post.is_own %}
+        <div style='margin-top: 6px;'>
+          {% trans %}Your request:{% endtrans %}
+          <a href='{{post.still_needed_url}}'>{% trans %}Still needed{% endtrans %}</a> &middot;
+          <a href='{{post.met_url}}'>{% trans %}It's been met{% endtrans %}</a>
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 {% if upcoming|length > 0 %}
 <div class='section'>

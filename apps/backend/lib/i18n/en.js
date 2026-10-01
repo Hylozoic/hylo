@@ -24,6 +24,9 @@ exports.en = {
   emailDigestUnifiedWeeklySubject: () => 'Your Hylo Weekly Digest',
   // D9: in the first weekly digest after a daily digest was slowed down for being away
   emailDigestSlowedNotice: () => 'We\'ve slowed your email to one weekly digest while you\'ve been away. Visit Hylo any time to get your daily digest back.',
+  emailDigestTopPostSubject: ({ title, count, groupName }) => count > 0 ? `${title} +${count} more in ${groupName}` : `${title} in ${groupName}`,
+  emailDigestUnifiedTopPostSubject: ({ title, count }) => count > 0 ? `${title} +${count} more across your groups` : title,
+  emailDigestWeeklyMixupNotice: () => "Sorry for the gap: until August, weekly digests like this one were sent monthly by mistake. That's fixed, and you'll now get this digest every week.",
   emailSenderViaHyloSuffix: () => ' (via Hylo)',
   groupCreatedNotifySubject: (name) => `New Hylo Group Created: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
@@ -107,6 +110,9 @@ exports.en = {
     return `${actor.get('name')} closed your post "${postName}"`
   },
   textForPostMention: ({ person, postName }) => `${person} mentioned you: ${postName}`,
+  textForOpenRequestNudge: ({ postName, type }) => type === 'offer'
+    ? `No replies yet to your offer "${postName}". Is it still available?`
+    : `No replies yet to your request "${postName}". Is it still needed?`,
   textForPost: ({ firstTag, person, postName }) => `${person}: ${postName}${firstTag ? ` #${firstTag}` : ''}`,
   textForTrackCompleted: ({ actor, trackName }) => `Track completed: "${trackName}" was completed by ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, trackName }) => `Track enrollment: "${trackName}" was enrolled in by ${actor.get('name')}`,

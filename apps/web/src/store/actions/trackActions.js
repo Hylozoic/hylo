@@ -11,6 +11,10 @@ export const LEAVE_TRACK = `${MODULE_NAME}/LEAVE_TRACK`
 export const LEAVE_TRACK_PENDING = `${MODULE_NAME}/LEAVE_TRACK_PENDING`
 export const UPDATE_TRACK = `${MODULE_NAME}/UPDATE_TRACK`
 export const UPDATE_TRACK_PENDING = `${MODULE_NAME}/UPDATE_TRACK_PENDING`
+export const FETCH_TRACK_SUGGESTIONS = `${MODULE_NAME}/FETCH_TRACK_SUGGESTIONS`
+export const FETCH_MY_TRACK_PROGRESS = `${MODULE_NAME}/FETCH_MY_TRACK_PROGRESS`
+export const FETCH_TRACK_LEARNER_PROGRESS = `${MODULE_NAME}/FETCH_TRACK_LEARNER_PROGRESS`
+export const LEARNER_PROGRESS_PAGE_SIZE = 200
 
 export const PostFieldsFragment = `
   id
@@ -347,6 +351,122 @@ export function duplicateTrack (trackId) {
     },
     meta: {
       extractModel: 'Track'
+    }
+  }
+}
+
+/**
+ * The parent group's other track spaces, for the suggestions on a track's completion
+ * screen (D33). Read from the response; nothing is added to the store.
+ */
+export function fetchTrackSuggestions (groupId) {
+  return {
+    type: FETCH_TRACK_SUGGESTIONS,
+    graphql: {
+      query: `
+        query FetchTrackSuggestions ($groupId: ID) {
+          group(id: $groupId) {
+            id
+            slug
+            spaces {
+              items {
+                id
+                name
+                slug
+                status
+                active
+                avatarUrl
+                track {
+                  id
+                  isEnrolled
+                  didComplete
+                  numActions
+                }
+              }
+            }
+          }
+        }
+      `,
+      variables: { groupId }
+    },
+    meta: { groupId }
+  }
+}
+
+/**
+ * The current user's progress in each track space they belong to, for the My Tracks
+ * cards (D33): the track's action count and their membership settings, which record
+ * actionsCompleted. Read from the response; nothing is added to the store.
+ */
+export function fetchMyTrackProgress () {
+  return {
+    type: FETCH_MY_TRACK_PROGRESS,
+    graphql: {
+      query: `
+        query FetchMyTrackProgress {
+          me {
+            id
+            memberships {
+              id
+              group {
+                id
+                track {
+                  id
+                  numActions
+                  didComplete
+                  userSettings
+                }
+              }
+            }
+          }
+        }
+      `
+    }
+  }
+}
+
+/**
+ * Each learner's progress in a track, for its stewards (D63). With completed: false,
+ * only those who haven't finished. Whoever created the track's space is left out
+ * (learnersOnly): they are a member without having enrolled. The people are added to
+ * the store so a group message can be started with them; the list itself is read from
+ * the response.
+ */
+export function fetchTrackLearnerProgress (trackId, { completed = null } = {}) {
+  return {
+    type: FETCH_TRACK_LEARNER_PROGRESS,
+    graphql: {
+      query: `
+        query FetchTrackLearnerProgress ($id: ID, $completed: Boolean, $first: Int) {
+          track(id: $id) {
+            id
+            numActions
+            enrolledUsers(completed: $completed, learnersOnly: true, first: $first) {
+              total
+              items {
+                id
+                name
+                avatarUrl
+                enrolledAt
+                completedAt
+                actionsCompleted
+                lastActionAt
+              }
+            }
+          }
+        }
+      `,
+      variables: { id: trackId, completed, first: LEARNER_PROGRESS_PAGE_SIZE }
+    },
+    meta: {
+      trackId,
+      extractModel: [
+        {
+          getRoot: data => (data?.track?.enrolledUsers?.items || []).map(({ id, name, avatarUrl }) => ({ id, name, avatarUrl })),
+          modelName: 'Person',
+          append: true
+        }
+      ]
     }
   }
 }

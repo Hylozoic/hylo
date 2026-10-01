@@ -1,0 +1,34 @@
+{% snippet "header_redesign" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+<p>
+  {% set learner_name_var = learner_name %}
+  {% trans %}Hi {{learner_name_var}},{% endtrans %}
+</p>
+
+<p>
+  {% set track_name_var = track_name %}
+  {% set actions_completed_var = actions_completed %}
+  {% set total_actions_var = total_actions %}
+  {% trans %}You've completed {{actions_completed_var}} of {{total_actions_var}} in {{track_name_var}}. Ready for the next one?{% endtrans %}
+</p>
+
+{% if next_action_title %}
+  {% set next_action_title_var = next_action_title %}
+  <p><strong>{% trans %}Next: {{next_action_title_var}}{% endtrans %}</strong></p>
+{% endif %}
+
+<a class='btn btn-blue' href="{{next_action_url}}" clicktracking="off">{% trans %}Continue the track →{% endtrans %}</a>
+
+<p style='margin-top: 24px; font-size: 13px;'>
+  {% trans %}You'll get at most two reminders for this track.{% endtrans %}
+  <a href="{{email_settings_url}}">{% trans %}Email settings{% endtrans %}</a>
+</p>
+
+{% snippet "footer_redesign" %}

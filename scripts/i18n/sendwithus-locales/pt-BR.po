@@ -248,6 +248,29 @@ msgstr "Lembretes próximos"
 msgid "Ending Soon"
 msgstr "Encerrando em breve"
 
+msgid "Open requests"
+msgstr "Pedidos em aberto"
+
+msgid "Nobody has replied to these yet. Can you help?"
+msgstr "Ninguém respondeu a estes ainda. Você pode ajudar?"
+
+#, python-format
+msgid "by %(post_user_name)s"
+msgstr "por %(post_user_name)s"
+
+#, python-format
+msgid "in %(groups_label)s"
+msgstr "em %(groups_label)s"
+
+msgid "Your request:"
+msgstr "Seu pedido:"
+
+msgid "Still needed"
+msgstr "Ainda preciso"
+
+msgid "It's been met"
+msgstr "Já foi atendido"
+
 msgid "All Topics"
 msgstr "Todos os tópicos"
 
@@ -1129,6 +1152,20 @@ msgstr "Contatar usuário"
 msgid "Subscription Cancelled: %(offering_name)s in %(group_name)s"
 msgstr "Assinatura cancelada: %(offering_name)s em %(group_name)s"
 
+#, python-format
+msgid "New subscriber: %(offering_name)s in %(group_name)s"
+msgstr "Nova assinatura: %(offering_name)s em %(group_name)s"
+
+#, python-format
+msgid "Someone new has subscribed in %(group_name_var)s."
+msgstr "Alguém novo fez uma assinatura em %(group_name_var)s."
+
+msgid "Subscriber:"
+msgstr "Assinante:"
+
+msgid "Subscribed:"
+msgstr "Data da assinatura:"
+
 msgid "Your subscription to"
 msgstr "Sua assinatura de"
 
@@ -1223,6 +1260,31 @@ msgstr "concluiu a trilha:"
 #, python-format
 msgid "Track %(track_name)s completed by %(completer_name)s"
 msgstr "Trilha %(track_name)s concluída por %(completer_name)s"
+
+#, python-format
+msgid "Pick up where you left off in %(track_name_var)s"
+msgstr "Continue de onde parou em %(track_name_var)s"
+
+#, python-format
+msgid "Hi %(learner_name_var)s,"
+msgstr "Olá %(learner_name_var)s,"
+
+#, python-format
+msgid "You've completed %(actions_completed_var)s of %(total_actions_var)s in %(track_name_var)s. Ready for the next one?"
+msgstr "Você concluiu %(actions_completed_var)s de %(total_actions_var)s em %(track_name_var)s. Vamos para o próximo?"
+
+#, python-format
+msgid "Next: %(next_action_title_var)s"
+msgstr "Próximo: %(next_action_title_var)s"
+
+msgid "Continue the track →"
+msgstr "Continuar a trilha →"
+
+msgid "You'll get at most two reminders for this track."
+msgstr "Você vai receber no máximo dois lembretes para esta trilha."
+
+msgid "Email settings"
+msgstr "Configurações de e-mail"
 
 #, python-format
 msgid "%(enrollee_pill)s has enrolled in the track: "

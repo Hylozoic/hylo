@@ -192,6 +192,109 @@ describe('PostDetail', () => {
     })
   })
 
+  describe('opened from the open request nudge or digest (D58)', () => {
+    const request = { ...post, type: 'request', title: 'Need a ladder', fulfilledAt: null }
+    let operations
+
+    const renderRequest = (creatorId = '1') => {
+      operations = []
+      mockGraphqlServer.use(
+        graphql.query('FetchPost', () => HttpResponse.json({
+          data: { post: { ...request, creator: { id: creatorId, name: 'Author' } } }
+        })),
+        graphql.mutation('AnswerOpenRequestNudge', ({ variables }) => {
+          operations.push(['answer', variables.answer])
+          return HttpResponse.json({ data: { answerOpenRequestNudge: { success: true } } })
+        }),
+        graphql.operation(({ query, variables }) => {
+          if (/fulfillPost/.test(query)) {
+            operations.push(['fulfill', variables.postId])
+            return HttpResponse.json({ data: { fulfillPost: { success: true } } })
+          }
+        })
+      )
+      const ormSession = orm.session(orm.getEmptyState())
+      ormSession.Me.create({ id: '1', name: 'Me' })
+      extractModelsForTest({ posts: [{ ...request, creator: { id: creatorId, name: 'Author' } }] }, 'Post', ormSession)
+      extractModelsForTest({ groups: [{ id: '109', slug: 'foo' }] }, 'Group', ormSession)
+      render(<PostDetail />, { wrapper: AllTheProviders({ orm: ormSession.state, pending: {} }) })
+    }
+
+    beforeEach(() => {
+      toast.mockClear()
+      toast.error.mockClear()
+      mockNavigate.mockClear()
+    })
+
+    afterEach(() => {
+      mockSearch = ''
+    })
+
+    it('records "still needed" once, keeps the post open and drops the params', async () => {
+      mockSearch = '?action=still-needed&nudge=open-request&ctt=digest_email'
+      renderRequest()
+
+      await waitFor(() => {
+        expect(toast).toHaveBeenCalledWith('Thanks! It stays open so people can still help.')
+      })
+      expect(operations).toEqual([['answer', 'still_needed']])
+      expect(mockNavigate).toHaveBeenCalledWith(
+        { pathname: '/group/foo/post/91', search: '?ctt=digest_email' },
+        { replace: true, state: undefined }
+      )
+      expect(mockNavigate).toHaveBeenCalledTimes(1)
+    })
+
+    it('marks the post as met through the usual fulfill, then records the answer', async () => {
+      mockSearch = '?action=met'
+      renderRequest()
+
+      await waitFor(() => {
+        expect(operations).toEqual([['fulfill', '91'], ['answer', 'met']])
+      })
+      expect(toast).toHaveBeenCalledWith('Marked as met. Thanks for letting everyone know!')
+      expect(mockNavigate).toHaveBeenCalledWith(
+        { pathname: '/group/foo/post/91', search: '' },
+        { replace: true, state: undefined }
+      )
+    })
+
+    it('only drops the param when someone other than the author follows the link', async () => {
+      mockSearch = '?action=met'
+      renderRequest('2')
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith(
+          { pathname: '/group/foo/post/91', search: '' },
+          { replace: true, state: undefined }
+        )
+      })
+      expect(operations).toEqual([])
+      expect(toast).not.toHaveBeenCalled()
+    })
+
+    it('asks the author whether it is still needed when the nudge opens the post', async () => {
+      mockSearch = '?nudge=open-request'
+      renderRequest()
+
+      const button = await screen.findByRole('button', { name: 'Still needed' })
+      expect(screen.getByText('Nobody has replied to your request yet. Is it still needed?')).toBeInTheDocument()
+      await act(async () => { button.click() })
+      expect(mockNavigate).toHaveBeenCalledWith(
+        { pathname: '/group/foo/post/91', search: '?nudge=open-request&action=still-needed' },
+        { replace: true, state: undefined }
+      )
+      expect(operations).toEqual([])
+    })
+
+    it('does not ask anyone but the author', async () => {
+      mockSearch = '?nudge=open-request'
+      renderRequest('2')
+      await screen.findByText('Need a ladder')
+      expect(screen.queryByTestId('open-request-prompt')).not.toBeInTheDocument()
+    })
+  })
+
   it('shows loading state when post is pending', () => {
     mockGraphqlServer.use(
       graphql.query('FetchPost', async () => {

@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate } from 'react-router-dom'
 import Tooltip from 'components/Tooltip'
+import TrackProgressBar from 'components/TrackProgressBar'
 import useRouteParams from 'hooks/useRouteParams'
 import { duplicateTrack } from 'store/actions/trackActions'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { trackUrl } from '@hylo/navigation'
+import { progressFromSettings } from 'util/trackProgress'
 
 /** Resolves the parent group slug for linking into a Track space. */
 function parentSlugForTrack (track, routeGroupSlug) {
@@ -41,7 +43,9 @@ function TrackCard ({ track }) {
     }
   }, [routeParams, parentSlug, track.space, track.id, dispatch, navigate, t])
 
-  const { actionDescriptorPlural, didComplete, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, accessControlled } = track
+  const { actionDescriptorPlural, didComplete, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, accessControlled, userSettings } = track
+  // The learner's own progress (D33); actionsCompleted is recorded on their enrollment
+  const progress = progressFromSettings(userSettings, numActions, didComplete)
 
   return (
     <div className='text-foreground hover:text-foreground/100'>
@@ -89,6 +93,9 @@ function TrackCard ({ track }) {
                 : null}
           </div>
         </Link>
+        {(isEnrolled || didComplete) && progress.total > 0 && (
+          <TrackProgressBar completed={progress.completed} total={progress.total} className='pt-2' />
+        )}
       </div>
       <Tooltip
         delay={0}

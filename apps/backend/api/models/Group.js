@@ -27,6 +27,7 @@ import { sendGroupClosedEmails } from './group/deletion'
 import expireForPolicyChange, { invitePolicyNarrowed } from './invitation/expireForPolicyChange'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import { groupRoom, userRoom, pushToSockets } from '../services/Websockets'
+import { sendTrackEnrolledEvents } from './track/events'
 const { createGroupScope } = require('../../lib/scopes')
 
 export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
@@ -911,7 +912,8 @@ module.exports = bookshelf.Model.extend(merge({
 
     const joinedAt = new Date()
     await Promise.map(memberships.models, async membership => {
-      if (trackId) membership.removeSetting('completedAt')
+      // A fresh enrollment also gets a fresh allowance of idle reminders (D63)
+      if (trackId) ['completedAt', 'trackRemindersSent', 'trackReminderLastAt'].forEach(key => membership.removeSetting(key))
       await membership.save({ created_at: joinedAt, settings: membership.get('settings') }, { patch: true, transacting })
     })
 
@@ -925,6 +927,8 @@ module.exports = bookshelf.Model.extend(merge({
 
     if (trackId) {
       await increment('tracks', 'num_people_enrolled', trackId)
+      // Consent-gated server event, one per learner (D62)
+      await sendTrackEnrolledEvents(memberships.models, { trackId, groupId: this.get('parent_id') || this.id })
       if (notify) {
         await this.notifyTrackEnrollment(trackId, memberships.map(m => m.get('user_id')), { transacting })
       }
