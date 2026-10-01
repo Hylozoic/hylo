@@ -30,13 +30,14 @@ export function historyIndexBackDelta ({ currentIndex, entryIndex, postOverlayOp
 /**
  * Where profile header-back goes when the profile was opened with no prior history.
  * Group profiles go to that group's home; other contexts go to their menu home.
+ * My Home goes to /all rather than /my: /my now opens My Profile for someone in
+ * no groups, so going "back" there would land on the same profile again.
  * @param {{ context?: string, groupSlug?: string }} opts
  * @returns {string}
  */
 export function profileDirectLoadBackPath ({ context, groupSlug } = {}) {
   if (context === 'groups' && groupSlug) return groupUrl(groupSlug)
   if (context === 'public') return '/public'
-  if (context === 'my') return '/my'
   return '/all'
 }
 

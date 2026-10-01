@@ -17,18 +17,18 @@ describe('TopicSupportComingSoon', () => {
     expect(screen.getByText(/In the meantime, click a topic/i)).toBeInTheDocument()
 
     // Check for the button
-    expect(screen.getByRole('button', { name: /Return to All Groups/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Return to All My Groups/i })).toBeInTheDocument()
 
     // Check for the image
     expect(screen.getByRole('img')).toBeInTheDocument()
   })
 
-  it('has a working link to the "All Groups" page', () => {
+  it('has a working link to the "All My Groups" page', () => {
     render(
       <TopicSupportComingSoon />
     )
 
-    const link = screen.getByRole('link', { name: /Return to All Groups/i })
+    const link = screen.getByRole('link', { name: /Return to All My Groups/i })
     expect(link).toHaveAttribute('href', '/all')
   })
 })

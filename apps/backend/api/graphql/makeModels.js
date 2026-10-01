@@ -22,6 +22,8 @@ import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
 import InvitationService from '../services/InvitationService'
 import { paywallPreview } from '../models/track/preview'
+import { hasFundingRounds, hasSavedSearches, hasTracks, hasTransactions } from './meHasAny'
+import { groupSetupChecklistFor } from './groupSetupChecklist'
 import {
   filterAndSortContentAccess,
   filterAndSortPosts,
@@ -354,7 +356,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // Never expose null names to clients — they call .split() etc.
         name: p => p.get('name') || '',
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
-        settings: u => mapKeys(camelCase, u.get('settings'))
+        settings: u => mapKeys(camelCase, u.get('settings')),
+        // My Home menu: items with nothing in them are greyed out
+        hasTracks: u => hasTracks(u.id),
+        hasFundingRounds: u => hasFundingRounds(u.id),
+        hasTransactions: u => hasTransactions(u.id),
+        hasSavedSearches: u => hasSavedSearches(u.id)
       }
     },
 
@@ -1269,6 +1276,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
+        // New group setup checklist progress, for Administrators only
+        setupChecklist: g => groupSetupChecklistFor(g, userId),
         // XXX: Flag for translation
         typeDescriptor: g => g.get('type_descriptor') || (g.get('type') ? startCase(g.get('type')) : 'Group'),
         typeDescriptorPlural: g => g.get('type_descriptor_plural') || (g.get('type') ? pluralize(startCase(g.get('type'))) : 'Groups'),

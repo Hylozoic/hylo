@@ -1,0 +1,60 @@
+# Web unit tests (Jest) and locale key checks on pull requests to dev.
+# Runs the same Jest suite as `cd apps/web && yarn test --watchAll=false`, which
+# includes src/i18n/localeParity.test.js, after checking that every locale has
+# the same keys and placeholders as en.json.
+name: Web unit tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'scripts/i18n/**'
+      - '.github/workflows/web-unit-tests.yml'
+
+concurrency:
+  group: web-unit-tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CI: true
+
+jobs:
+  jest:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5.0.1
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
+      - uses: actions/setup-node@v5.0.0
+        with:
+          node-version: '24'
+          cache: yarn
+          cache-dependency-path: yarn.lock
+
+      - name: Install monorepo dependencies
+        run: yarn install --immutable
+
+      - name: Build workspace packages (tests resolve @hylo/* from built packages)
+        run: yarn build-packages
+
+      - name: Check locale keys against en.json
+        run: node scripts/i18n/check-locale-keys.js apps/web/public/locales/en.json
+
+      - name: Run web unit tests
+        working-directory: apps/web
+        run: yarn test --watchAll=false

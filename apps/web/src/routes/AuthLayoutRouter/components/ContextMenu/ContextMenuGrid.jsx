@@ -40,6 +40,7 @@ import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import { createGroupView, deleteGroupView, deleteSpace, archiveSpace, setGroupViewHidden, updateGroupView } from 'store/actions/groupViews'
 import { canHardDeleteView, isMenuViewVisible } from 'store/models/GroupView'
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import SetupChecklist from 'components/SetupChecklist/SetupChecklist'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CardIconField from './CardIconField'
 import GroupViewIcon from './GroupViewIcon'
@@ -59,6 +60,7 @@ import {
   cardHoverShadow,
   cardRestShadow,
   CARD_CLASS,
+  CARD_SIZE_CLASS,
   CARD_FADE_CLASS,
   CARD_TITLE_CLASS,
   CARD_TILE_CLASS,
@@ -76,6 +78,9 @@ import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
+import { useGroupTour } from 'tours/groupTours'
+import { TOUR_LAYOUT_GRID } from 'tours/layouts'
+import { EMPTY_MENU_ITEM_CLASS, markEmptyMyHomeViews } from 'util/myHomeMenu'
 
 /** Synthetic views so steward-alert and More Spaces cards share the icon wallpaper of real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
@@ -276,17 +281,26 @@ function ViewsGrid ({ sections, group, spaceGroup, onOpen, t, footer = null }) {
         if (section.type === 'separator') {
           return <SeparatorSection key={section.view.id || `sep-${index}`} />
         }
+        // My Home cards with nothing behind them stay, greyed out. The wrapper
+        // takes the card's footprint (the card's phone width is a percentage
+        // of its parent) and the card fills it.
         return (
           <div key={`grid-${index}`} className='flex flex-wrap gap-3'>
-            {section.views.map(view => (
-              <GroupViewCard
-                key={view.id}
-                view={view}
-                group={group}
-                spaceGroup={spaceGroup}
-                onOpen={onOpen}
-              />
-            ))}
+            {section.views.map(view => view.isEmpty
+              ? (
+                <div key={view.id} className={cn(CARD_SIZE_CLASS, EMPTY_MENU_ITEM_CLASS)} title={t('Nothing here yet')} data-empty='true'>
+                  <GroupViewCard view={view} group={group} spaceGroup={spaceGroup} onOpen={onOpen} fill />
+                </div>
+                )
+              : (
+                <GroupViewCard
+                  key={view.id}
+                  view={view}
+                  group={group}
+                  spaceGroup={spaceGroup}
+                  onOpen={onOpen}
+                />
+                ))}
           </div>
         )
       })}
@@ -702,11 +716,11 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const visibleViews = useMemo(() => {
     if (isContextMode) {
       const profileUrl = personUrl(currentUser?.id)
-      return getStaticMenuViews({
+      return markEmptyMyHomeViews(getStaticMenuViews({
         isPublicContext: context === 'public',
         isMyContext: context === 'my' || context === 'all',
         profileUrl
-      }) || []
+      }) || [], currentUser)
     }
     const views = filterSpaceViewsForMenuVisibility(
       (groupViews || []).filter(view => isMenuViewVisible(view, menuGroup?.acceptedPostTypes)),
@@ -716,7 +730,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       return [...views, MANAGE_ROUND_VIEW]
     }
     return views
-  }, [isContextMode, context, currentUser?.id, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
+  }, [isContextMode, context, currentUser?.id, currentUser?.hasTracks, currentUser?.hasFundingRounds, currentUser?.hasTransactions, currentUser?.hasSavedSearches, groupViews, menuGroup?.acceptedPostTypes, spaceGroup?.fundingRound?.id, canAdminister, spaceVisibilityOpts])
 
   const sections = useMemo(() => partitionViewsIntoSections(visibleViews), [visibleViews])
 
@@ -776,8 +790,18 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     ? t('More Spaces')
     : (spaceGroup?.name || t('Space'))
 
+  // The group's first-visit tour, card-menu version: its anchors are the
+  // banner controls and the card grid on the group's root menu
+  const isGroupRootMenu = !isContextMode && !isNestedLevel && Boolean(group?.id)
+  const { invitation: groupTourInvitation } = useGroupTour({
+    group,
+    canAdminister,
+    enabled: isGroupRootMenu && !isEditing
+  })
+
   return (
-    <div className='ContextMenuGrid w-full h-full overflow-y-auto' id='context-menu-grid'>
+    <div className='ContextMenuGrid w-full h-full overflow-y-auto' id='context-menu-grid' data-tour-layout={TOUR_LAYOUT_GRID}>
+      {groupTourInvitation}
       {/* Space level mirrors the two-column takeover: ducked group header (back
           chevron) with the space's own banner header below it */}
       {isSpaceLevel && group && spaceGroup && (
@@ -803,13 +827,15 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
 
             {!isContextMode && (
               <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
-                <GroupNotificationsPopover group={group} />
+                <div className='inline-flex' data-tour='group-notifications'>
+                  <GroupNotificationsPopover group={group} />
+                </div>
 
                 {/* Members / invite / about sit under the name, matching GroupMenuHeader.
                     Top-right keeps settings, then search on the far right. */}
                 <div className='flex items-center gap-2'>
                   {canAdminister && (
-                    <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
+                    <button type='button' onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))} aria-label={t('Group Settings')} data-tour='group-settings'>
                       <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
                     </button>
                   )}
@@ -860,15 +886,18 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
                       <Users className='w-3.5 h-3.5' />
                       {(spaceGroup || group)?.memberCount || 0}
                     </Link>
-                    <InviteMembersDialog
-                      group={spaceGroup || group}
-                      parentGroup={spaceGroup ? group : null}
-                      alwaysVisible
-                      triggerLabel={t('Invite')}
-                      triggerClassName='rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:text-white hover:bg-white/25 hover:scale-100'
-                    />
+                    <span className='inline-flex empty:hidden' data-tour='group-invite'>
+                      <InviteMembersDialog
+                        group={spaceGroup || group}
+                        parentGroup={spaceGroup ? group : null}
+                        alwaysVisible
+                        triggerLabel={t('Invite')}
+                        triggerClassName='rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:text-white hover:bg-white/25 hover:scale-100'
+                      />
+                    </span>
                     <button
                       type='button'
+                      data-tour='group-about'
                       onClick={() => navigate(groupUrl((spaceGroup || group)?.slug || groupSlug, 'about', {}))}
                       className='inline-flex items-center gap-1 rounded-full bg-white/15 border border-white/25 px-2 py-0.5 text-white hover:bg-white/25 hover:text-white transition-colors'
                     >
@@ -938,7 +967,8 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
               </div>
               )
             : (
-              <div className='flex flex-col gap-6'>
+              <div className='flex flex-col gap-6' data-tour={isGroupRootMenu ? 'group-menu' : undefined}>
+                {isGroupRootMenu && <SetupChecklist group={group} className='max-w-md' />}
                 {!isContextMode && menuGroup?.id && viewsLoading
                   ? <ViewsGridSkeleton />
                   : (
@@ -1000,6 +1030,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
             <button
               type='button'
               onClick={toggleEditing}
+              data-tour={isGroupRootMenu ? 'edit-menu' : undefined}
               className='flex items-center gap-1.5 px-4 py-2 rounded-lg border-2 text-sm transition-all border-foreground/20 hover:border-foreground/40 text-foreground/60 hover:text-foreground/80'
             >
               <Pencil className='w-4 h-4' /> {t('Edit Menu')}

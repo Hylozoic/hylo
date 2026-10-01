@@ -7,7 +7,7 @@ import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import useTour from 'tours/useTour'
-import { GROUP_CREATOR_TOUR_ID, GROUP_WELCOME_TOUR_ID, groupCreatorTourSteps, groupWelcomeTourSteps } from 'tours/groupTours'
+import { useGroupTour } from 'tours/groupTours'
 import { MENU_EDIT_TOUR_ID, menuEditTourSteps } from 'tours/menuEditTour'
 
 import {
@@ -23,6 +23,7 @@ import {
 } from '@hylo/navigation'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import SetupChecklist from 'components/SetupChecklist/SetupChecklist'
 import GroupNotificationsPopover from 'components/GroupNotificationsPopover/GroupNotificationsPopover'
 import CurrentlyActiveMembers, { MENU_ACTIVE_MAX } from 'components/CurrentlyActiveMembers'
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
@@ -69,6 +70,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
 import { spaceRowBadgeCount, viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
+import { EMPTY_MENU_ITEM_CLASS, markEmptyMyHomeViews } from 'util/myHomeMenu'
 
 import classes from './ContextMenu.module.scss'
 
@@ -503,6 +505,10 @@ function GroupViewMenuItem ({
     )
   }
 
+  // My Home items with nothing in them (no tracks, no purchases…) stay in the
+  // menu, greyed out, so people can still see what exists
+  const isEmptyItem = Boolean(presentedView.isEmpty) && !isRowActive
+
   return (
     <li className='list-none'>
       <MenuLink
@@ -510,10 +516,13 @@ function GroupViewMenuItem ({
         externalLink={externalHref}
         isActive={false}
         badgeCount={chatBadgeCount}
+        title={isEmptyItem ? t('Nothing here yet') : undefined}
+        data-empty={isEmptyItem ? 'true' : undefined}
         className={cn(
           GROUP_VIEW_MENU_ITEM_CLASS,
           'group relative overflow-hidden',
-          isRowActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]'
+          isRowActive ? 'opacity-100 font-bold' : 'hover:border-[color:var(--row-border-hover)]',
+          isEmptyItem && EMPTY_MENU_ITEM_CLASS
         )}
         style={{
           // Hover border: view color at 20%. Selected: full strength.
@@ -532,6 +541,7 @@ function GroupViewMenuItem ({
         >
           <GroupViewIcon view={presentedView} />
           <TruncatedText className='truncate flex-1' text={displayNameForView(presentedView, t, { spaceGroup })} />
+          {isEmptyItem && <span className='sr-only'>{t('Nothing here yet')}</span>}
           {showUnreadDot && <UnreadDot />}
         </span>
       </MenuLink>
@@ -655,25 +665,13 @@ export default function ContextMenu (props) {
   )
   const profileUrl = personUrl(currentUser?.id, groupSlug)
 
-  // Guided first-visit tours, offered via a floating invitation: the creator
-  // of a brand-new group (sole member, administers) gets the steward tour;
-  // everyone else gets the member tour. Held until the group welcome modal
-  // (agreements / join questions) closes. Two-column only — the card grid
-  // renders none of these anchors.
-  const isNewlyCreatedGroup = canAdminister && group?.memberCount === 1
-  const groupTourSteps = useMemo(
-    () => isNewlyCreatedGroup ? groupCreatorTourSteps(t) : groupWelcomeTourSteps(t),
-    [isNewlyCreatedGroup, t]
-  )
-  const { invitation: groupTourInvitation } = useTour({
-    id: isNewlyCreatedGroup ? GROUP_CREATOR_TOUR_ID : GROUP_WELCOME_TOUR_ID,
-    steps: groupTourSteps,
-    autoStart: true,
-    inviteMessage: isNewlyCreatedGroup
-      ? t('Your group is ready — want a quick tour?')
-      : t('New here? Take a quick tour of this group.'),
-    enabled: isGroupContext && !!group?.id && !isOneColumnLayout && !isEditing,
-    blockedBySelectors: ['[data-testid="group-welcome-modal"]']
+  // Guided first-visit group tour (steward tour for a brand-new group's
+  // creator, member tour for everyone else). The card menu (ContextMenuGrid)
+  // runs its own copy for one-column groups.
+  const { invitation: groupTourInvitation } = useGroupTour({
+    group,
+    canAdminister,
+    enabled: isGroupContext && !isOneColumnLayout && !isEditing
   })
   const menuEditSteps = useMemo(() => menuEditTourSteps(t), [t])
   const { invitation: menuEditInvitation } = useTour({
@@ -687,13 +685,18 @@ export default function ContextMenu (props) {
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [dispatch])
 
+  const hasTracks = currentUser?.hasTracks
+  const hasFundingRounds = currentUser?.hasFundingRounds
+  const hasTransactions = currentUser?.hasTransactions
+  const hasSavedSearches = currentUser?.hasSavedSearches
   const staticMenuViews = useMemo(() => {
-    return getStaticMenuViews({
+    const views = getStaticMenuViews({
       isPublicContext,
       isMyContext: isMyContext || isAllContext,
       profileUrl
     })
-  }, [isPublicContext, isMyContext, isAllContext, profileUrl])
+    return markEmptyMyHomeViews(views, { hasTracks, hasFundingRounds, hasTransactions, hasSavedSearches })
+  }, [isPublicContext, isMyContext, isAllContext, profileUrl, hasTracks, hasFundingRounds, hasTransactions, hasSavedSearches])
 
   const fetchedGroupViews = useGroupViews(group)
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
@@ -1218,15 +1221,20 @@ export default function ContextMenu (props) {
               )
             : menuViews.length > 0
               ? (
-                <GroupViewList
-                  groupViews={menuViews}
-                  group={group}
-                  groupSlug={groupSlug}
-                  spaceSlug={spaceSlug}
-                  isEditing={isEditing}
-                  onOpenSettings={setSettingsView}
-                  canAdminister={canAdminister}
-                />
+                <>
+                  {isGroupContext && group?.id && !isEditing && (
+                    <SetupChecklist group={group} className='mx-1.5 mt-1.5' />
+                  )}
+                  <GroupViewList
+                    groupViews={menuViews}
+                    group={group}
+                    groupSlug={groupSlug}
+                    spaceSlug={spaceSlug}
+                    isEditing={isEditing}
+                    onOpenSettings={setSettingsView}
+                    canAdminister={canAdminister}
+                  />
+                </>
                 )
               : groupViewsLoading
                 ? (

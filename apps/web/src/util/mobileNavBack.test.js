@@ -26,4 +26,8 @@ describe('profileDirectLoadBackPath', () => {
   it('sends a directly opened all-context profile to All', () => {
     expect(profileDirectLoadBackPath({ context: 'all' })).toBe('/all')
   })
+
+  it('sends a directly opened My Home profile to All, not back to /my (which can open the same profile)', () => {
+    expect(profileDirectLoadBackPath({ context: 'my' })).toBe('/all')
+  })
 })

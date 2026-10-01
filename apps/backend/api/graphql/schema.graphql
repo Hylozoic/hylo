@@ -1338,6 +1338,9 @@ type Group {
   # For a paid group or space: what people can see before they buy (titles and counts only).
   # Null when the paywall is off, the steward turned the preview off, or the viewer can't see the group
   paywallPreview: PaywallPreview
+
+  # Progress on this new group's setup checklist (invite people, a welcome post, a first event). Only the group's Administrators see it; null for everyone else
+  setupChecklist: GroupSetupChecklist
 }
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type FundingRoundQuerySet {
@@ -1745,6 +1748,22 @@ type InvitationSubmissionQuerySet {
   items: [InvitationSubmission]
 }
 
+# Progress on a new group's setup checklist, shown to its founder in the group menu
+type GroupSetupChecklist {
+  # Whether the person asking created the group
+  isCreator: Boolean
+  # Whether anyone other than the founder is a member
+  hasOtherMembers: Boolean
+  # Whether anyone other than the founder has posted
+  hasPostByOthers: Boolean
+  # Whether the founder has written a post (not chat or an event)
+  hasCreatorPost: Boolean
+  # Whether the group has an event
+  hasEvent: Boolean
+  # Whether an invitation to join has been sent
+  hasInvitation: Boolean
+}
+
 # Who can invite new people to a group. Roles with Add Members can always invite
 type InvitePolicy {
   # 'everyone' (every member can send personal email invitations), 'stewards' (only roles with Add Members) or 'roles' (the roles in roleIds can too)
@@ -2018,6 +2037,15 @@ type Me {
 
   # Cookie consent preferences for the current user
   cookieConsentPreferences: CookieConsent
+
+  # Whether I'm a member of any active track space (My Tracks has something in it)
+  hasTracks: Boolean
+  # Whether I'm a member of any active funding round space (My Funding Rounds has something in it)
+  hasFundingRounds: Boolean
+  # Whether I've made any purchase (My Transactions has something in it)
+  hasTransactions: Boolean
+  # Whether I have any saved searches
+  hasSavedSearches: Boolean
 }
 
 # A user's group membership
@@ -2125,6 +2153,8 @@ type MembershipSettings {
   showJoinForm: Boolean
   # Whether the user wants to get mobile app push notifications from this group
   sendPushNotifications: Boolean
+  # When the group's founder dismissed its setup checklist
+  setupChecklistDismissedAt: Date
 }
 
 # A direct message sent in a specific thread
@@ -4589,6 +4619,8 @@ input MembershipSettingsInput {
   showJoinForm: Boolean
   # Whether to mobile push notifications for this Group
   sendPushNotifications: Boolean
+  # When the group's founder dismissed its setup checklist
+  setupChecklistDismissedAt: Date
 }
 
 # Data for updating a message in a direct message thread

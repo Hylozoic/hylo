@@ -35,12 +35,13 @@ export function formatParams (search) {
   ].filter(p => p.length).join('<br/>')
 }
 
-export function formatParamPreview (search) {
+// Pass the caller's `t` so the context names are translated
+export function formatParamPreview (search, t = key => key) {
   const { context, group, postTypes } = search
   const contextDetails = {
     groups: group ? parsegroup(group) : '',
-    public: 'Public Groups',
-    all: 'All Groups'
+    public: t('Public Groups'),
+    all: t('All My Groups')
   }
   return `${contextDetails[context]} • ${parsePostTypes(postTypes)}`
 }

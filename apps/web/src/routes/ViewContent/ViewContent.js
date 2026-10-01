@@ -83,6 +83,9 @@ import { getLocaleFromLocalStorage } from 'util/locale'
 import { STREAM_MAIN_COLUMN_CLASS } from 'util/mainContentColumn'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 import { shouldInheritUserStreamFilters } from './viewStreamFilters'
+import NewSinceDivider, { newSinceDividerIndex } from './NewSinceDivider'
+import { getTopLevelGroupCount, WHATS_NEW_MIN_GROUPS } from 'store/selectors/getLandingPath'
+import { useVisitBaseline } from 'util/lastVisit'
 
 const viewComponent = {
   cards: PostCard,
@@ -377,9 +380,11 @@ export default function ViewContent (props) {
     return params
   }, [activePostsOnly, calendarFetchMonthKey, isCalendarViewMode, childPostInclusion, context, streamViewConfig, group?.id, groupSlug, postTypeFilter, search, showChatActivity, sortBy, timeframe, topic?.id, topicName, view])
 
+  // The cross-group feed goes by one name everywhere: All My Groups
+  const allViewName = context === 'all' ? t('All My Groups') : t('view-all')
   let name = presentedGroupView
     ? displayNameForView(presentedGroupView, t)
-    : (view === 'all' ? t('view-all') : (systemView?.name || t('view-all')))
+    : (view === 'all' ? allViewName : (systemView?.name || t('view-all')))
   let icon = presentedGroupView?.lucideIcon
     ? <GroupViewIcon view={presentedGroupView} className='w-5 h-5' />
     : systemView?.lucideIcon
@@ -442,6 +447,16 @@ export default function ViewContent (props) {
     const topIds = new Set(top.map(p => String(p.id)))
     return [...top, ...posts.filter(p => !topIds.has(String(p.id)))]
   }, [isCalendarViewMode, pinnableView?.pinnedPostIds, pinnedPosts, posts, sortBy, streamViewConfig?.type])
+  // What's new: in All My Groups, people in 3+ groups see a divider where the
+  // posts from before their last visit begin
+  const topLevelGroupCount = useSelector(getTopLevelGroupCount)
+  const visitBaseline = useVisitBaseline(currentUser?.id)
+  const showsNewSince = context === 'all' && view === 'all' && !topicName && !search &&
+    topLevelGroupCount >= WHATS_NEW_MIN_GROUPS && (viewMode === 'cards' || viewMode === 'list')
+  const newSinceIndex = useMemo(
+    () => showsNewSince ? newSinceDividerIndex(streamPosts, visitBaseline, sortBy) : null,
+    [showsNewSince, streamPosts, visitBaseline, sortBy]
+  )
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const pending = useSelector(state => state.pending[FETCH_POSTS])
   const [fetchError, setFetchError] = useState(false)
@@ -816,6 +831,7 @@ export default function ViewContent (props) {
                   isGridView={isGridCollectionView}
                   onDragEnd={handleCollectionDragEnd}
                   streamPosts={streamPosts}
+                  newSinceIndex={newSinceIndex}
                   viewMode={viewMode}
                   showEmptyStream={showEmptyStream || showFetchError}
                   noPostsMessage={showFetchError ? t('Couldn\'t load posts') : noPostsMessage}
@@ -891,6 +907,7 @@ function CollectionPostsGrid ({
   isGridView,
   onDragEnd,
   streamPosts,
+  newSinceIndex = null,
   viewMode,
   showEmptyStream,
   noPostsMessage,
@@ -915,7 +932,7 @@ function CollectionPostsGrid ({
     showEmptyStream && 'flex-1 flex flex-col justify-center'
   )
 
-  const postItems = streamPosts.map(post => {
+  const postItems = streamPosts.map((post, index) => {
     const ViewComponent = post.type === 'chat_activity'
       ? ChatActivityCard
       : viewComponent[viewMode]
@@ -934,7 +951,12 @@ function CollectionPostsGrid ({
     )
 
     if (!canReorder) {
-      return <React.Fragment key={post.id}>{card}</React.Fragment>
+      return (
+        <React.Fragment key={post.id}>
+          {index === newSinceIndex && <NewSinceDivider />}
+          {card}
+        </React.Fragment>
+      )
     }
 
     return (
