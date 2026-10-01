@@ -83,7 +83,9 @@ const mockStripeService = {
 
   ensureSlidingScaleUnitPriceExists: async () => 'price_unit_test',
 
-  createCheckoutSession: async ({ accountId, priceId, quantity, applicationFeeAmount, successUrl, cancelUrl, metadata, adjustableQuantity }) => {
+  applicationFeeForAmount: amount => Math.round(amount * 0.07),
+
+  createCheckoutSession: async ({ accountId, priceId, quantity, applicationFeeAmount, successUrl, cancelUrl, metadata, adjustableQuantity, customerEmail }) => {
     lastCreateCheckoutSessionArgs = {
       accountId,
       priceId,
@@ -92,7 +94,8 @@ const mockStripeService = {
       successUrl,
       cancelUrl,
       metadata,
-      adjustableQuantity
+      adjustableQuantity,
+      customerEmail
     }
 
     return {
@@ -651,6 +654,20 @@ describe('Stripe Mutations', () => {
 
       expect(result.success).to.be.true
       expect(result.sessionId).to.equal('cs_test_123')
+    })
+
+    it('pre-fills the signed-in buyer\'s email and takes the one-time fee from the price', async () => {
+      lastCreateCheckoutSessionArgs = null
+
+      await createStripeCheckoutSession(user.id, {
+        groupId: group.id,
+        offeringId: testOffering.id,
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel'
+      })
+
+      expect(lastCreateCheckoutSessionArgs.customerEmail).to.equal(user.get('email'))
+      expect(lastCreateCheckoutSessionArgs.applicationFeeAmount).to.equal(140)
     })
 
     it('forwards adjustableQuantity to StripeService and uses minimum quantity', async () => {

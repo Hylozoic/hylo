@@ -363,6 +363,19 @@ export const filterAndSortGroups = curry((opts, q) => {
   q.orderBy(sortBy || 'name', order || sortBy === 'size' ? 'desc' : 'asc')
 })
 
+// A refund is recorded without changing access, so 'refunded' matches rows with a recorded
+// refund as well as rows the earlier Refund button set to the refunded status
+export const whereContentAccessStatus = (q, status) => {
+  if (status === 'refunded') {
+    q.where(qb => {
+      qb.whereNotNull('content_access.refunded_at')
+        .orWhere('content_access.status', 'refunded')
+    })
+  } else {
+    q.where('content_access.status', status)
+  }
+}
+
 export const filterAndSortContentAccess = curry((opts, q) => {
   const {
     groupIds,
@@ -395,7 +408,7 @@ export const filterAndSortContentAccess = curry((opts, q) => {
 
   // Filter by status
   if (status) {
-    q.where('content_access.status', status)
+    whereContentAccessStatus(q, status)
   }
 
   // Filter by offering ID

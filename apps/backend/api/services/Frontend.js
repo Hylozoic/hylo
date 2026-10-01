@@ -190,6 +190,15 @@ module.exports = {
       return url('/my/transactions')
     },
 
+    /**
+     * Public page for a paid offering, where it can be bought or renewed.
+     * @param {Group|string} sellingGroup - the group that sells the offering (or its slug)
+     * @param {StripeProduct|string|number} offering - the offering (or its id)
+     */
+    offering: function (sellingGroup, offering) {
+      return url(`/groups/${getSlug(sellingGroup)}/offerings/${getModelId(offering)}`)
+    },
+
     notificationsSettings: function (clickthroughParams, user) {
       const loginToken = user.generateJWT({
         exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 30), // 1 month expiration

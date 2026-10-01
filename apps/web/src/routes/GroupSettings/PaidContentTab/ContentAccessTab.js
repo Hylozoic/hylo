@@ -14,6 +14,8 @@ import { List, UserPlus, User, MoreVertical, Ban, RefreshCcw } from 'lucide-reac
 
 import Loading from 'components/Loading'
 import ItemSelector from 'components/ItemSelector'
+import Checkbox from 'components/ui/checkbox'
+import { Label } from 'components/ui/label'
 import { Switch } from 'components/ui/switch'
 import SettingsSection from '../SettingsSection'
 import {
@@ -413,7 +415,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
  */
 function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }) {
   const dispatch = useDispatch()
-  const { id, user, offering, track, group: accessGroup, groupRole, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd } = record
+  const { id, user, offering, track, group: accessGroup, groupRole, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd, stripeSubscriptionId, refundedAt, metadata } = record
 
   const role = groupRole
   const isParentGroupAccess = accessGroup?.id && parentGroupId && String(accessGroup.id) === String(parentGroupId)
@@ -421,10 +423,18 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
 
   const [showRevokeDialog, setShowRevokeDialog] = useState(false)
   const [showRefundDialog, setShowRefundDialog] = useState(false)
+  const [cancelFuturePayments, setCancelFuturePayments] = useState(false)
+  const [refundFailed, setRefundFailed] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const isActive = status === 'active'
   const isPurchase = accessType === 'stripe_purchase'
+  const isSubscription = !!stripeSubscriptionId
+  // A refund keeps access, so a refunded purchase stays active. Refund covers the most recent
+  // payment, so it is offered again only after a newer subscription payment.
+  const paidFrom = metadata?.subscription_period_start || createdAt
+  const latestPaymentRefunded = !!refundedAt && (!paidFrom || new Date(refundedAt) >= new Date(paidFrom))
+  const canRefund = isPurchase && !latestPaymentRefunded
 
   const getAccessTypeBadge = (type) => {
     if (type === 'stripe_purchase') {
@@ -466,14 +476,28 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
     }
   }
 
+  const handleRefundDialogChange = (open) => {
+    setShowRefundDialog(open)
+    if (!open) {
+      setCancelFuturePayments(false)
+      setRefundFailed(false)
+    }
+  }
+
   const handleRefund = async () => {
     setIsProcessing(true)
+    setRefundFailed(false)
     try {
-      await dispatch(refundContentAccess({ accessId: id, reason: 'Refunded by admin' }))
-      setShowRefundDialog(false)
+      await dispatch(refundContentAccess({
+        accessId: id,
+        reason: 'Refunded by admin',
+        cancelFuturePayments: isSubscription && cancelFuturePayments
+      }))
+      handleRefundDialogChange(false)
       if (onActionComplete) onActionComplete()
     } catch (error) {
       console.error('Failed to refund access:', error)
+      setRefundFailed(true)
     } finally {
       setIsProcessing(false)
     }
@@ -517,6 +541,9 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
           <div className='flex flex-wrap items-center gap-2 shrink-0'>
             {getAccessTypeBadge(accessType)}
             {getStatusBadge(status, subscriptionCancelAtPeriodEnd)}
+            {refundedAt && status !== 'refunded' && (
+              <span className='px-2 py-1 text-xs rounded bg-purple-500/20 text-purple-400'>{t('Refunded')}</span>
+            )}
             <div className='text-xs text-foreground/60'>
               {t('Granted')}: {formatDate(createdAt)}
             </div>
@@ -547,7 +574,7 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
                     <Ban className='w-4 h-4 mr-2' />
                     {t('Revoke Access')}
                   </DropdownMenuItem>
-                  {isPurchase && (
+                  {canRefund && (
                     <DropdownMenuItem
                       onClick={() => setShowRefundDialog(true)}
                       className='cursor-pointer text-orange-500 focus:text-orange-500'
@@ -599,17 +626,41 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
       </Dialog>
 
       {/* Refund Confirmation Dialog */}
-      <Dialog open={showRefundDialog} onOpenChange={setShowRefundDialog}>
+      <Dialog open={showRefundDialog} onOpenChange={handleRefundDialogChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('Refund Purchase')}</DialogTitle>
             <DialogDescription>
-              {t('This will revoke access for {{userName}}, cancel any active subscription, and issue a refund for the most recent payment. This action cannot be undone.', { userName: user?.name })}
+              {t('This will refund the most recent payment from {{userName}}. Their access stays in place. To remove their access, revoke it or remove them from the group.', { userName: user?.name })}
             </DialogDescription>
           </DialogHeader>
+          {isSubscription && (
+            <div className='flex items-start gap-3'>
+              <Checkbox
+                id={`refund-cancel-future-payments-${id}`}
+                checked={cancelFuturePayments}
+                disabled={isProcessing}
+                onCheckedChange={(checked) => setCancelFuturePayments(checked === true)}
+                className='mt-0.5'
+              />
+              <div>
+                <Label htmlFor={`refund-cancel-future-payments-${id}`} className='font-normal cursor-pointer'>
+                  {t('Also cancel future payments')}
+                </Label>
+                <p className='text-xs text-foreground/60 mt-1'>
+                  {t('The subscription ends when the period they have paid for is over, and their access ends then.')}
+                </p>
+              </div>
+            </div>
+          )}
+          {refundFailed && (
+            <p role='alert' className='text-sm text-destructive'>
+              {t('The refund could not be issued. Check this payment in your Stripe dashboard.')}
+            </p>
+          )}
           <DialogFooter>
             <button
-              onClick={() => setShowRefundDialog(false)}
+              onClick={() => handleRefundDialogChange(false)}
               disabled={isProcessing}
               className='px-4 py-2 bg-foreground/10 text-foreground rounded-md hover:bg-foreground/20 transition-colors disabled:opacity-50'
             >
@@ -951,4 +1002,5 @@ function GrantAccessForm ({ group, offerings, spaces, initialSpaceId, onSuccess,
   )
 }
 
+export { ContentAccessRecordItem }
 export default ContentAccessTab

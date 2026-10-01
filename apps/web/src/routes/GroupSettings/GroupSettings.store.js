@@ -96,6 +96,7 @@ export function fetchGroupSettings (slug) {
             showPostNoticesInChat
             layout
             autoAddMembers
+            showPaywallPreview
           }
           type
           parentId

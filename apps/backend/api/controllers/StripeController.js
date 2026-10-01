@@ -29,7 +29,8 @@ const ALERT_COOLDOWN_HOURS = 24
 const STRIPE_LOG_TYPES = {
   REFUND: 'refund',
   DISPUTE: 'dispute',
-  ALERT: 'alert'
+  ALERT: 'alert',
+  ASYNC_PAYMENT_FAILED: 'async_payment_failed'
 }
 
 function shouldBypassStripeWebhookSignatureCheck () {
@@ -191,6 +192,29 @@ async function insertStripeLog (row) {
   }
 }
 
+/**
+ * Writes the REFUND log row for a charge, or updates it when the charge was already logged
+ * (a partial refund followed by refunding the rest), so the row shows the latest amount.
+ *
+ * @param {object} row - stripe_logs row keyed by the charge id in external_id
+ */
+async function upsertRefundLog (row) {
+  const existing = await bookshelf.knex('stripe_logs')
+    .where({ log_type: STRIPE_LOG_TYPES.REFUND, external_id: row.external_id })
+    .first()
+  if (!existing) return insertStripeLog(row)
+
+  await bookshelf.knex('stripe_logs')
+    .where({ id: existing.id })
+    .update({
+      amount: row.amount,
+      reason: row.reason || existing.reason || null,
+      content_access_id: existing.content_access_id || row.content_access_id || null,
+      metadata: { ...(existing.metadata || {}), ...(row.metadata || {}) },
+      updated_at: new Date()
+    })
+}
+
 async function upsertDisputeLog ({ groupId, stripeAccountId, dispute }) {
   const existing = await bookshelf.knex('stripe_logs')
     .where({ log_type: STRIPE_LOG_TYPES.DISPUTE, external_id: dispute.id })
@@ -280,6 +304,34 @@ async function markStripeWebhookProcessed (eventId) {
     }
     throw e
   }
+}
+
+/**
+ * Finds the subscription a refunded charge paid for, for charges no checkout session matches
+ * (subscription renewals, and the first charge of a subscription checkout). The pinned API
+ * version links a payment intent to its invoice only through invoice payments, which this
+ * stripe-node version has no resource for, so it is read with a raw request.
+ *
+ * @param {string} paymentIntentId
+ * @param {{ stripeAccount?: string }} requestOptions - Connect account header
+ * @returns {Promise<string|null>} Stripe subscription id, or null when none is found
+ */
+async function findSubscriptionIdForPaymentIntent (paymentIntentId, requestOptions) {
+  const query = new URLSearchParams({
+    'payment[type]': 'payment_intent',
+    'payment[payment_intent]': paymentIntentId,
+    limit: '1',
+    'expand[]': 'data.invoice'
+  })
+  const invoicePayments = await stripe.rawRequest('GET', `/v1/invoice_payments?${query.toString()}`, null, requestOptions)
+  let invoice = invoicePayments?.data?.[0]?.invoice
+  if (!invoice) return null
+  if (typeof invoice === 'string') {
+    invoice = await stripe.invoices.retrieve(invoice, {}, requestOptions)
+  }
+  const subscription = invoice?.parent?.subscription_details?.subscription || invoice?.subscription
+  if (!subscription) return null
+  return typeof subscription === 'string' ? subscription : subscription.id || null
 }
 
 const SCHEDULED_CHANGE_MODES = new Set([
@@ -514,7 +566,6 @@ module.exports = {
         if (accountId && accountId.startsWith('acct_')) {
           return accountId
         }
-        const StripeAccount = bookshelf.model('StripeAccount')
         const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
         if (!stripeAccount) {
           throw new Error('Stripe account record not found')
@@ -641,8 +692,15 @@ module.exports = {
           await handlers.handleAccountUpdated(event)
           break
 
+        // A delayed payment (such as a bank debit) completes the session unpaid;
+        // access is granted when the payment succeeds, through the same path
         case 'checkout.session.completed':
+        case 'checkout.session.async_payment_succeeded':
           await handlers.handleCheckoutSessionCompleted(event)
+          break
+
+        case 'checkout.session.async_payment_failed':
+          await handlers.handleCheckoutSessionAsyncPaymentFailed(event)
           break
 
         case 'product.updated':
@@ -762,8 +820,9 @@ module.exports = {
   },
 
   /**
-   * Handle checkout.session.completed webhook events
-   * Grants access to content when checkout completes successfully
+   * Handle checkout.session.completed and checkout.session.async_payment_succeeded webhook events
+   * Grants access to content when checkout completes successfully (for a delayed payment,
+   * when the payment succeeds)
    */
   handleCheckoutSessionCompleted: async function (event) {
     try {
@@ -797,6 +856,8 @@ module.exports = {
 
       // Transfer platform contribution to Hylo if the customer added the optional line item
       let donationAmount = 0
+      // What the buyer paid for the offering itself, after any promotion code
+      let offeringAmountPaid = null
       try {
         // Get the group to find the connected account ID first
         const group = await Group.find(groupId)
@@ -808,7 +869,6 @@ module.exports = {
               if (accountId && accountId.startsWith('acct_')) {
                 return accountId
               }
-              const StripeAccount = bookshelf.model('StripeAccount')
               const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
               if (!stripeAccount) {
                 throw new Error('Stripe account record not found')
@@ -827,12 +887,19 @@ module.exports = {
 
             // Sum platform contribution line items (one-time and recurring)
             if (fullSession.line_items?.data) {
+              offeringAmountPaid = 0
               for (const lineItem of fullSession.line_items.data) {
                 const productName = lineItem.price?.product?.name || lineItem.description || ''
                 const isPlatformContribution = isHyloPlatformContributionLineItem(productName)
+                // amount_total is what was paid for the line, after any promotion code
+                const lineAmountPaid = lineItem.amount_total ?? ((lineItem.price?.unit_amount || 0) * (lineItem.quantity || 0))
+
+                if (!isPlatformContribution) {
+                  offeringAmountPaid += lineAmountPaid
+                }
 
                 if (isPlatformContribution) {
-                  const itemDonationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)
+                  const itemDonationAmount = lineAmountPaid
                   donationAmount += itemDonationAmount
 
                   if (process.env.NODE_ENV === 'development') {
@@ -864,6 +931,21 @@ module.exports = {
       } catch (donationError) {
         // Log error but don't fail the entire webhook - contribution transfer can be retried
         console.error('Error processing platform contribution transfer:', donationError)
+      }
+
+      // A promotion code lowers what the buyer pays, but a one-time payment's application fee
+      // was fixed from the undiscounted price: refund the part of it above Hylo's share
+      if (session.mode === 'payment' && session.payment_intent && connectOpts.stripeAccount &&
+        (session.total_details?.amount_discount || 0) > 0) {
+        try {
+          await StripeService.refundApplicationFeeAboveShare({
+            accountId: connectOpts.stripeAccount,
+            paymentIntentId: session.payment_intent,
+            paidAmount: offeringAmountPaid ?? Math.max(0, (session.amount_total || 0) - donationAmount)
+          })
+        } catch (feeError) {
+          console.error('Error refunding the application fee above Hylo\'s share:', feeError)
+        }
       }
 
       // Send purchase confirmation email to user
@@ -937,7 +1019,6 @@ module.exports = {
                   if (accountId && accountId.startsWith('acct_')) {
                     return accountId
                   }
-                  const StripeAccount = bookshelf.model('StripeAccount')
                   const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
                   if (!stripeAccount) {
                     throw new Error('Stripe account record not found')
@@ -1107,6 +1188,36 @@ module.exports = {
       // TODO STRIPE: Send notification to group admins
     } catch (error) {
       console.error('Error handling checkout.session.completed:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle checkout.session.async_payment_failed webhook events.
+   * A delayed payment (such as a bank debit) failed after checkout completed unpaid, so no
+   * access was granted. Logs it for the selling group; nothing is granted.
+   */
+  handleCheckoutSessionAsyncPaymentFailed: async function (event) {
+    try {
+      const session = event.data.object
+      console.warn(`Delayed payment failed for checkout session ${session.id}`)
+
+      const connectedResult = await findGroupForConnectedAccount(event.account)
+      if (!connectedResult) return
+
+      const { stripeAccountRow, group } = connectedResult
+      await insertStripeLog({
+        group_id: group.id,
+        stripe_account_id: stripeAccountRow.id,
+        log_type: STRIPE_LOG_TYPES.ASYNC_PAYMENT_FAILED,
+        external_id: session.id,
+        amount: session.amount_total,
+        currency: session.currency || 'usd',
+        status: session.payment_status || null,
+        metadata: { offering_id: session.metadata?.offeringId || null }
+      })
+    } catch (error) {
+      console.error('Error handling checkout.session.async_payment_failed:', error)
       throw error
     }
   },
@@ -1902,7 +2013,6 @@ module.exports = {
                   if (accountId && accountId.startsWith('acct_')) {
                     return accountId
                   }
-                  const StripeAccount = bookshelf.model('StripeAccount')
                   const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
                   if (!stripeAccount) {
                     throw new Error('Stripe account record not found')
@@ -2032,7 +2142,6 @@ module.exports = {
                 if (accountId && accountId.startsWith('acct_')) {
                   return accountId
                 }
-                const StripeAccount = bookshelf.model('StripeAccount')
                 const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
                 if (!stripeAccount) {
                   throw new Error('Stripe account record not found')
@@ -2144,12 +2253,20 @@ module.exports = {
   },
 
   /**
-   * Handle charge.refunded webhook events
-   * Revokes access and cancels any associated subscriptions when a payment is fully refunded
+   * Handle charge.refunded webhook events.
    *
-   * Note: This handles refunds initiated directly through Stripe dashboard.
-   * Refunds initiated through our refundContentAccess mutation will also trigger this,
-   * but the access records will already be marked as refunded.
+   * A refund gives the money back and never changes access: removing someone's access means
+   * removing them from the group. For a one-time purchase, found through its checkout session,
+   * a full refund is recorded on the access rows and the member gets one refund email per
+   * refunded charge. Partial refunds are only logged.
+   *
+   * A subscription charge has no checkout session to match, so it is resolved to its
+   * subscription through the invoice it paid. A full refund is recorded on the subscription's
+   * access rows and logged; no email is sent, and the subscription is not cancelled (future
+   * payments stop only when a steward chooses that in Hylo's refund dialog).
+   *
+   * Refunds made with Hylo's Refund button also arrive here. That button records the refund
+   * and emails the member itself, so its marker keeps this handler from emailing again.
    */
   handleChargeRefunded: async function (event) {
     try {
@@ -2178,69 +2295,60 @@ module.exports = {
       const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntentId, limit: 1 }, retrieveOptions)
       const sessionId = sessions?.data?.[0]?.id
 
-      if (!sessionId) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No checkout session found for payment intent ${paymentIntentId}`)
+      let accessRecords = []
+      let matchedBy = null
+      let subscriptionId = null
+      if (sessionId) {
+        // Find content access records associated with this session
+        accessRecords = (await ContentAccess.forStripeSession(sessionId)).models
+        matchedBy = 'checkout_session'
+      } else {
+        try {
+          subscriptionId = await findSubscriptionIdForPaymentIntent(paymentIntentId, retrieveOptions)
+        } catch (lookupError) {
+          // The refund itself went through; leave it unmatched rather than fail the webhook
+          console.error(`Could not look up the invoice for refunded charge ${charge.id}:`, lookupError.message)
         }
-        return
+        if (subscriptionId) {
+          accessRecords = (await ContentAccess.findBySubscriptionId(subscriptionId)).models
+          matchedBy = 'subscription'
+        }
       }
-
-      // Find content access records associated with this session
-      const accessRecords = (await ContentAccess.forStripeSession(sessionId)).models
 
       if (!accessRecords || accessRecords.length === 0) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`No content access records found for session ${sessionId}`)
+          console.log(`No content access records found for refunded charge ${charge.id}`)
         }
         return
       }
 
-      // refundContentAccess marks its record REFUNDED and emails the member itself
-      const refundedThroughHylo = accessRecords.some(access => access.get('status') === ContentAccess.Status.REFUNDED)
-      const newlyRefunded = []
-      // Stripe also sends charge.refunded for partial refunds. Those leave access in place and are only logged below.
-      const recordsToRefund = charge.refunded ? accessRecords : []
+      // Stripe also sends charge.refunded for partial refunds. Those are only logged below.
+      const isFullRefund = !!charge.refunded
+      // Hylo's Refund button (and a replay of this event) has already recorded this refund
+      // and emailed the member
+      const alreadyRecorded = accessRecords.some(access => ContentAccess.hasRecordedRefund(access, charge.id))
+      const newlyRecorded = []
 
-      // Revoke/refund all associated access records
-      // Skip records that are already refunded (e.g., from our mutation)
-      await Promise.all(recordsToRefund.map(async (access) => {
-        const currentStatus = access.get('status')
-
-        // Skip if already refunded or revoked (our mutation already handled this)
-        if (currentStatus === ContentAccess.Status.REFUNDED || currentStatus === ContentAccess.Status.REVOKED) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`Access ${access.id} already ${currentStatus}, skipping webhook processing`)
-          }
-          return
+      if (isFullRefund) {
+        for (const access of accessRecords) {
+          if (ContentAccess.hasRecordedRefund(access, charge.id)) continue
+          await ContentAccess.recordRefund(access, {
+            amount: charge.amount_refunded,
+            chargeId: charge.id,
+            source: 'stripe_webhook'
+          })
+          newlyRecorded.push(access)
         }
-
-        const reason = charge.refund?.reason || 'Payment refunded via Stripe'
-
-        // Use the revoke method which handles subscription cancellation
-        await ContentAccess.revoke(access.id, null, reason)
-
-        // Update status to REFUNDED and add metadata with refund details
-        const metadata = access.get('metadata') || {}
-        metadata.refunded_at = new Date().toISOString()
-        metadata.refund_amount = charge.amount_refunded
-        metadata.refund_reason = reason
-        metadata.refund_charge_id = charge.id
-        metadata.refund_source = 'stripe_webhook'
-
-        await access.save({
-          status: ContentAccess.Status.REFUNDED,
-          metadata
-        }, { patch: true })
-        newlyRefunded.push(access)
-      }))
+      }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Processed ${accessRecords.length} access records for refunded charge ${charge.id}`)
+        console.log(`Recorded the refund of charge ${charge.id} on ${newlyRecorded.length} of ${accessRecords.length} access records`)
       }
 
       // One purchase can create several access records, so send one email per refunded charge.
-      if (newlyRefunded.length > 0 && !refundedThroughHylo) {
-        await ContentAccess.sendRefundProcessedEmail(newlyRefunded[0], {
+      // Subscription refunds from the Stripe dashboard are recorded and logged only.
+      if (matchedBy === 'checkout_session' && newlyRecorded.length > 0 && !alreadyRecorded) {
+        await ContentAccess.sendRefundProcessedEmail(newlyRecorded[0], {
           amount: charge.amount_refunded,
           currency: charge.currency
         })
@@ -2251,7 +2359,7 @@ module.exports = {
       if (connectedResult) {
         const { stripeAccountRow, group } = connectedResult
         const primaryAccess = accessRecords[0]
-        await insertStripeLog({
+        await upsertRefundLog({
           group_id: group.id,
           stripe_account_id: stripeAccountRow.id,
           log_type: STRIPE_LOG_TYPES.REFUND,
@@ -2261,7 +2369,11 @@ module.exports = {
           amount: charge.amount_refunded || charge.amount,
           currency: charge.currency || 'usd',
           reason: charge.refunds?.data?.[0]?.reason || null,
-          metadata: {}
+          metadata: {
+            matched_by: matchedBy,
+            full_refund: isFullRefund,
+            ...(subscriptionId ? { stripe_subscription_id: subscriptionId } : {})
+          }
         })
       }
     } catch (error) {

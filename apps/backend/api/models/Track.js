@@ -1,4 +1,4 @@
-/* global bookshelf, Group, GroupMembership, GroupRole, GroupView, CollectionPost, Post, User, UserScope, Activity, Responsibility, RichText, Track */
+/* global bookshelf, Group, GroupMembership, GroupRole, GroupView, CollectionPost, Post, User, UserScope, RichText, Track */
 /* eslint-disable camelcase  */
 import { GraphQLError } from 'graphql'
 import HasSettings from './mixins/HasSettings' // TODO: does it have settings?
@@ -241,45 +241,15 @@ module.exports = bookshelf.Model.extend(Object.assign({
         throw new GraphQLError('Track is not published')
       }
 
-      let membership = await GroupMembership.forPair(userId, space, { includeInactive: true }).fetch({ transacting: trx })
+      const membership = await GroupMembership.forPair(userId, space, { includeInactive: true }).fetch({ transacting: trx })
       if (membership && membership.get('active')) {
         return membership
       }
 
-      const created = await space.addMembers([userId], { joinSource: GroupMembership.JoinSource.TRACK }, { transacting: trx })
-      membership = created[0] || await GroupMembership.forPair(userId, space).fetch({ transacting: trx })
-      // Fresh enrollment period: clear prior completion and reset created_at (enrolledAt)
-      membership.removeSetting('completedAt')
-      await membership.save({
-        created_at: new Date(),
-        settings: membership.get('settings')
-      }, { patch: true, transacting: trx })
-
-      await track.save({ num_people_enrolled: track.get('num_people_enrolled') + 1 }, { transacting: trx })
-
-      // Notify track managers on the parent group (responsibilities live there)
-      const notifyGroupId = space.get('parent_id') || space.id
-      const notifyGroup = space.get('parent_id')
-        ? await Group.find(space.get('parent_id'), { transacting: trx })
-        : space
-      if (!notifyGroup) {
-        return membership
-      }
-      const adminResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_ADMINISTRATION }).fetch({ transacting: trx })
-      if (!adminResponsibility) {
-        return membership
-      }
-      const stewards = await notifyGroup.membersWithResponsibilities([adminResponsibility.id]).fetch({ transacting: trx })
-      const stewardsIds = stewards.pluck('id')
-      const activities = stewardsIds.map(stewardId => ({
-        reason: 'trackEnrollment',
-        actor_id: userId,
-        group_id: notifyGroupId,
-        reader_id: stewardId,
-        track_id: track.id
-      }))
-      await Activity.saveForReasons(activities, { transacting: trx })
-      return membership
+      // Group.settleJoin (run by addMembers) counts the enrollment, starts a fresh enrollment
+      // period and tells the track's stewards
+      await space.addMembers([userId], { joinSource: GroupMembership.JoinSource.TRACK }, { transacting: trx })
+      return GroupMembership.forPair(userId, space).fetch({ transacting: trx })
     })
   },
 

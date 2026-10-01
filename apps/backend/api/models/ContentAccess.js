@@ -320,6 +320,71 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * Whether a refund of this charge is already recorded on the access row, so the member is
+   * emailed once per refunded charge. Recognises the marker written by recordRefund and rows
+   * the earlier Refund button marked with the refunded status.
+   * @param {ContentAccess} access
+   * @param {String} [chargeId] - The refunded charge; when given, a marker for another charge
+   *   (an earlier renewal of a subscription) does not count
+   * @returns {Boolean}
+   */
+  hasRecordedRefund: function (access, chargeId) {
+    if (access.get('status') === this.Status.REFUNDED) return true
+    const metadata = access.get('metadata') || {}
+    if (metadata.refund_charge_id) return !chargeId || metadata.refund_charge_id === chargeId
+    return !!(access.get('refunded_at') || metadata.refundId || metadata.refunded_at)
+  },
+
+  /**
+   * Whether the most recent payment for a purchase was already refunded: a refund was recorded
+   * during the period last paid for (for a one-time purchase, at any time after buying).
+   * Hylo's Refund covers the most recent payment, so it is not offered for the same payment twice.
+   * @param {ContentAccess} access
+   * @returns {Boolean}
+   */
+  latestPaymentRefunded: function (access) {
+    if (access.get('status') === this.Status.REFUNDED) return true
+    const metadata = access.get('metadata') || {}
+    const refundedAt = access.get('refunded_at') || metadata.refunded_at || metadata.refundedAt
+    if (!refundedAt) return false
+    const paidFrom = metadata.subscription_period_start || access.get('created_at')
+    return !paidFrom || new Date(refundedAt) >= new Date(paidFrom)
+  },
+
+  /**
+   * Records a refund on the access row (refunded_at, refunded_amount and refund details in
+   * metadata) without changing access: a refund gives the money back, and removing access
+   * means removing the person.
+   * @param {ContentAccess} access
+   * @param {Object} refund
+   * @param {Number} refund.amount - Amount refunded, in minor units
+   * @param {String} [refund.chargeId] - The refunded charge
+   * @param {String} [refund.source] - 'stripe_webhook' or 'hylo_refund_button'
+   * @param {String} [refund.reason]
+   * @param {Object} [extraMetadata] - Other metadata to merge in
+   * @param {Object} options - Options including transacting
+   * @returns {Promise<ContentAccess>}
+   */
+  recordRefund: async function (access, { amount, chargeId, source, reason } = {}, extraMetadata = {}, { transacting } = {}) {
+    const refundedAt = new Date()
+    const metadata = {
+      ...(access.get('metadata') || {}),
+      ...extraMetadata,
+      refunded_at: refundedAt.toISOString(),
+      refund_amount: amount
+    }
+    if (chargeId) metadata.refund_charge_id = chargeId
+    if (source) metadata.refund_source = source
+    if (reason) metadata.refund_reason = reason
+
+    return access.save({
+      refunded_at: refundedAt,
+      refunded_amount: Number.isInteger(amount) ? amount : null,
+      metadata
+    }, { patch: true, transacting })
+  },
+
+  /**
    * Queues the email telling the member that a purchase was refunded. Never throws,
    * so a refund that went through is not reported as failed because of the email.
    * Queued rather than sent here, so a send failure doesn't affect the request and the
@@ -640,6 +705,37 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * Where the access-expired email's renew link goes: the offering page when the access came
+   * from a product (sold by the granting group) that can still be bought, otherwise the space
+   * or group the access was for, never its parent group.
+   * @param {ContentAccess} access - with product, group and grantedByGroup loaded when available
+   * @returns {Promise<String>}
+   */
+  renewUrl: async function (access) {
+    const product = access.relations.product
+    const grantedByGroup = access.relations.grantedByGroup?.id
+      ? access.relations.grantedByGroup
+      : await Group.find(access.get('granted_by_group_id'))
+
+    // Only an offering that can still be bought (listed or unlisted); a retired one falls back
+    const buyable = [StripeProduct.PublishStatus.PUBLISHED, StripeProduct.PublishStatus.UNLISTED]
+      .includes(product?.get('publish_status'))
+    if (product?.id && buyable && grantedByGroup) {
+      return Frontend.Route.offering(grantedByGroup, product)
+    }
+
+    const accessGroup = access.relations.group?.id
+      ? access.relations.group
+      : (access.get('group_id') ? await Group.find(access.get('group_id')) : null)
+    const target = accessGroup || grantedByGroup
+    if (target && target.get('type') === 'space') {
+      await target.load('parentGroup')
+      return Frontend.Route.space(target, '')
+    }
+    return Frontend.Route.group(target)
+  },
+
+  /**
    * Send expired access notification emails
    * Called by daily cron job
    * @returns {Promise<Number>} Number of notifications sent
@@ -760,7 +856,7 @@ module.exports = bookshelf.Model.extend({
           group_name: group.get('name'),
           group_url: Frontend.Route.group(group),
           expired_at: expiredAtFormatted,
-          renew_url: Frontend.Route.group(group),
+          renew_url: await this.renewUrl(access),
           available_offerings: availableOfferings,
           group_avatar_url: group.get('avatar_url')
         }

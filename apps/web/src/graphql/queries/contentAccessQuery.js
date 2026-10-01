@@ -41,6 +41,9 @@ export default `
         subscriptionPeriodEnd
         subscriptionCancellationScheduledAt
         subscriptionCancelReason
+        stripeSubscriptionId
+        refundedAt
+        refundedAmount
         user {
           id
           name

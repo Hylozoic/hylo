@@ -469,7 +469,8 @@ describe('Group', function () {
         track_id: track.id,
         slug: `space-track-${Date.now()}`
       }).save()
-      await track.save({ group_id: space.id, num_people_enrolled: 2 }, { patch: true })
+      // One other enrollee; joining below counts this user too
+      await track.save({ group_id: space.id, num_people_enrolled: 1 }, { patch: true })
 
       const user = await factories.user().save()
       await group.addMembers([user.id])
@@ -497,7 +498,7 @@ describe('Group', function () {
       const round = await FundingRound.forge({
         group_id: space.id,
         voting_method: 'quadratic',
-        num_participants: 1,
+        num_participants: 0,
         created_at: new Date(),
         updated_at: new Date()
       }).save()
@@ -528,7 +529,7 @@ describe('Group', function () {
         track_id: track.id,
         slug: `space-track-twice-${Date.now()}`
       }).save()
-      await track.save({ group_id: space.id, num_people_enrolled: 1 }, { patch: true })
+      await track.save({ group_id: space.id, num_people_enrolled: 0 }, { patch: true })
 
       const user = await factories.user().save()
       await group.addMembers([user.id])
