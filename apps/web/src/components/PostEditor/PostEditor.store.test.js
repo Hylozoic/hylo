@@ -45,7 +45,6 @@ describe('PostEditor store', () => {
         expect(finalState).toMatchSnapshot()
       })
     })
-
     describe(`when ${REMOVE_LINK_PREVIEW}`, () => {
       const action = { type: REMOVE_LINK_PREVIEW }
       test('linkPreviewId is cleared and status set to "removed"', () => {
@@ -55,7 +54,6 @@ describe('PostEditor store', () => {
         expect(finalState).toMatchSnapshot()
       })
     })
-
     describe(`when ${CLEAR_LINK_PREVIEW}`, () => {
       const action = { type: CLEAR_LINK_PREVIEW }
       test('linkPreviewId is cleared and status set to "cleared"', () => {
@@ -65,7 +63,6 @@ describe('PostEditor store', () => {
         expect(finalState).toMatchSnapshot()
       })
     })
-
   })
 })
 

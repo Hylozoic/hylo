@@ -11,6 +11,7 @@ import { CookieConsentProvider } from 'contexts/CookieConsentContext'
 import CookiePreferencesPanel from 'components/CookiePreferencesPanel'
 import store, { history, sandboxBasename } from '../store'
 import RootRouter from 'routes/RootRouter'
+import RehydrationGate from 'components/RehydrationGate/RehydrationGate'
 import SandboxBanner from 'sandbox/SandboxBanner'
 import { Helmet } from 'react-helmet'
 import { cn } from 'util/index'
@@ -55,7 +56,9 @@ export default function App () {
                           <meta name='robots' content='noindex, nofollow' />
                         </Helmet>
                       )}
-                      <RootRouter />
+                      <RehydrationGate>
+                        <RootRouter />
+                      </RehydrationGate>
                       <CookiePreferencesPanel />
                     </Router>
                   </div>
