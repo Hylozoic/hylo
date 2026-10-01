@@ -2,10 +2,12 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
+import { AnalyticsEvents } from '@hylo/shared'
 import Button from 'components/ui/button'
 import Checkbox from 'components/ui/checkbox'
 import Icon from 'components/Icon'
 import logout from 'store/actions/logout'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { cn } from 'util/index'
 
 export default function Agreements () {
@@ -24,6 +26,7 @@ export default function Agreements () {
 
   const handleAccept = () => {
     if (accepted) {
+      dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_AGREEMENTS_ACCEPTED))
       // Navigate to finish registration
       navigate('/signup/finish')
     }

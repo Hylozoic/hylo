@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
 // import PropTypes from 'prop-types'
 import { useSelector, useDispatch } from 'react-redux'
+import { toast } from 'sonner'
 import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
 import { Bell, BellOff, Megaphone } from 'lucide-react'
 import Avatar from 'components/Avatar'
@@ -59,6 +60,7 @@ import { groupUrl, localSpaceSlug, personUrl, removeGroupFromUrl, spaceUrl } fro
 import joinSpace from 'store/actions/joinSpace'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import { INVALID_INVITE_TOAST_ID } from 'routes/JoinGroup/JoinGroup'
 
 import {
   createJoinRequest,
@@ -261,6 +263,13 @@ function GroupDetail ({ forCurrentGroup = false }) {
       }
     })
   }, [dispatch, group?.id, isSpace, navigate, routeParams.groupSlug, routeParams.spaceSlug])
+
+  const invalidInvite = Boolean(location.state?.invalidInvite)
+  useEffect(() => {
+    if (!invalidInvite) return
+    toast.error(t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'), { id: INVALID_INVITE_TOAST_ID })
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+  }, [invalidInvite])
 
   useEffect(() => {
     if (location.hash !== '#agreements') return

@@ -90,4 +90,27 @@ describe('mixpanelMiddleware', () => {
     mixpanelMiddlewareInstance(analyticsAction)
     expect(mixpanel.track).toHaveBeenCalledWith(actionType, eventData)
   })
+
+  test('does not track an action that errored', () => {
+    mixpanel.track.mockClear()
+    const next = jest.fn()
+    const store = { getState: () => ({}) }
+    const erroredAction = {
+      type: 'CREATE_POST',
+      error: true,
+      payload: new Error('Something went wrong'),
+      meta: {
+        analytics: { eventName: 'Post Created' }
+      }
+    }
+    mixpanelMiddleware(store)(next)(erroredAction)
+    expect(mixpanel.track).not.toHaveBeenCalled()
+    expect(next).toHaveBeenCalledWith(erroredAction)
+  })
+
+  test('does not track a pending action', () => {
+    mixpanel.track.mockClear()
+    mixpanelMiddlewareInstance({ type: 'CREATE_POST_PENDING', meta: { analytics: 'Post Created' } })
+    expect(mixpanel.track).not.toHaveBeenCalled()
+  })
 })
