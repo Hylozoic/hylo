@@ -19,6 +19,7 @@ export default function updateUserSettings (changes) {
               alreadySeenTour
               toursSeen
               toursOutcome
+              profileNudge
               colorScheme
               dmNotifications
               commentNotifications

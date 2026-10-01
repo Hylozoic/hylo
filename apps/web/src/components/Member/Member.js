@@ -27,6 +27,8 @@ import {
   CARD_CLASS,
   CARD_TITLE_CLASS
 } from 'routes/AuthLayoutRouter/components/ContextMenu/viewCardTheme'
+import BlockFromRejoiningOption from './BlockFromRejoiningOption'
+import useAfterRemoval from './useAfterRemoval'
 
 const { bool, object, string, shape } = PropTypes
 
@@ -135,12 +137,23 @@ function Member ({
   const rolesClamp = usePillRowClamp(layout === 'row' ? rowRoles.length : 0, 1, rolesExpanded)
 
   const [confirmingRemove, setConfirmingRemove] = useState(false)
+  // 'Also block from rejoining' (D60), off each time the dialog opens
+  const [blockFromRejoining, setBlockFromRejoining] = useState(false)
   const canRemove = Boolean(removeMember) && currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)
+  const { canBlock, afterRemoval } = useAfterRemoval(group, currentUserResponsibilities)
 
-  const confirmRemove = useCallback(() => {
+  const openRemoveDialog = useCallback(() => {
+    setBlockFromRejoining(false)
+    setConfirmingRemove(true)
+  }, [])
+
+  const confirmRemove = useCallback(async () => {
+    const block = blockFromRejoining
     setConfirmingRemove(false)
-    removeMember(member.id)
-  }, [removeMember, member.id])
+    const result = await removeMember(member.id)
+    if (result?.error) return
+    await afterRemoval({ member, block })
+  }, [afterRemoval, blockFromRejoining, member, removeMember])
 
   const removeDropdown = (onPhoto) => canRemove && (
     <Dropdown
@@ -157,7 +170,7 @@ function Member ({
           <EllipsisVertical className='w-4 h-4' />
         </span>
       }
-      items={[{ icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: () => setConfirmingRemove(true), red: true }]}
+      items={[{ icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: openRemoveDialog, red: true }]}
     />
   )
 
@@ -178,6 +191,9 @@ function Member ({
             <span>{t('from the group. Are you sure?')}</span>
           </div>
         </DialogDescription>
+        {canBlock && (
+          <BlockFromRejoiningOption id={id} checked={blockFromRejoining} onChange={setBlockFromRejoining} />
+        )}
         <DialogFooter>
           <button
             type='button'

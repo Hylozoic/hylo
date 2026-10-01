@@ -54,10 +54,15 @@ test.describe('Batch Q: baseline about visibility (unauthenticated)', () => {
 
 test.describe('Batch Q: join links (unauthenticated)', () => {
   for (const fixture of JOIN_LINK_FIXTURES) {
-    test(`GET /groups/:slug/join/:accessCode sends guest to signup for ${fixture.label}`, async ({ page }) => {
+    test(`GET /groups/:slug/join/:accessCode lands guest on the about page for ${fixture.label}`, async ({ page }) => {
       await page.goto(`/groups/${fixture.slug}/join/${fixture.accessCode}`, gotoOpts)
-      await expect(page).toHaveURL(/\/signup\/?/, routeTimeout)
+      await expect(page).toHaveURL(
+        new RegExp(`/groups/${fixture.slug}/about\\?accessCode=${fixture.accessCode}`),
+        routeTimeout
+      )
       await waitPastRootSessionLoading(page)
+      await expectGroupDetailAboutLoaded(page, uiTimeout)
+      await expectUnauthenticatedAboutJoinGate(page, fixture.groupName, uiTimeout)
     })
 
     test(`GET /groups/:slug/about?accessCode= grants visibility for ${fixture.label}`, async ({ page }) => {
@@ -93,10 +98,15 @@ test.describe('Batch Q: join links (unauthenticated)', () => {
 
 test.describe('Batch Q: invite links (unauthenticated)', () => {
   for (const fixture of INVITE_LINK_FIXTURES) {
-    test(`GET /h/use-invitation?token= sends guest to signup for ${fixture.label}`, async ({ page }) => {
+    test(`GET /h/use-invitation?token= lands guest on the about page for ${fixture.label}`, async ({ page }) => {
       await page.goto(`/h/use-invitation?token=${encodeURIComponent(fixture.token)}`, gotoOpts)
-      await expect(page).toHaveURL(/\/signup\/?/, routeTimeout)
+      await expect(page).toHaveURL(
+        new RegExp(`/groups/${fixture.slug}/about\\?token=${fixture.token}`),
+        routeTimeout
+      )
       await waitPastRootSessionLoading(page)
+      await expectGroupDetailAboutLoaded(page, uiTimeout)
+      await expectUnauthenticatedAboutJoinGate(page, fixture.groupName, uiTimeout)
     })
 
     test(`GET /groups/:slug/about?token= grants visibility for ${fixture.label}`, async ({ page }) => {

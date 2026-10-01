@@ -131,6 +131,7 @@ async function memberLinkResult ({ link, group }) {
 async function useMemberLink (userId, { link, group }) {
   const existing = await GroupMembership.forPair(userId, group.id).fetch()
   if (existing) return existing
+  await GroupBan.assertNotBanned(userId, group)
   const canJoinDirectly = group.get('accessibility') === Group.Accessibility.OPEN &&
     await group.numPrerequisitesLeft(userId) === 0
   if (!canJoinDirectly) return { requiresApproval: true, groupSlug: group.get('slug') }
@@ -665,9 +666,11 @@ module.exports = {
 
   /**
    * Check if an invitation is valid and return group information for redirect.
-   * For a member invitation, also who sent it and whether a steward has to
-   * approve the person's request to join, which the group's accessibility at
-   * the time of the check decides.
+   * For an email invitation, also who sent it (only their id, name and avatar,
+   * as the invitation email shows), and for a member invitation whether a
+   * steward has to approve the person's request to join, which the group's
+   * accessibility at the time of the check decides. The group's own join link
+   * names nobody.
    * The code of a member's personal invite link is checked the same way, after
    * the group join link codes.
    * @param token {String} invitation token from email invite
@@ -710,7 +713,8 @@ module.exports = {
               }
             : null,
           requiresApproval: fromMember && !(await preApproves(invitation, group)),
-          invitedBy: fromMember ? await invitationSender(invitation) : null
+          // The person holding the token was sent the invitation, which names who sent it
+          invitedBy: await invitationSender(invitation)
         })
       }
       return { valid: false }
@@ -727,7 +731,8 @@ module.exports = {
    *   person can request to join with the token or code, or the group has
    *   prerequisite groups the person has not joined yet, which its about page
    *   lists. Fails with MEMBER_LINK_TRY_LATER while an invite link has been
-   *   used as often as it can be today.
+   *   used as often as it can be today, and with GroupBan.BANNED_ERROR for
+   *   someone a steward blocked from rejoining the group.
    */
   async use (userId, token, accessCode) {
     const user = await User.find(userId)
@@ -744,6 +749,7 @@ module.exports = {
       if (existingMembership?.get('active')) {
         return existingMembership
       }
+      await GroupBan.assertNotBanned(userId, group)
       const memberships = await group.addMembers([userId], { joinSource: GroupMembership.JoinSource.INVITE_LINK })
       return memberships[0]
     }
@@ -752,10 +758,12 @@ module.exports = {
       const invitation = await Invitation.where({ token }).fetch()
       if (!invitation) throw new GraphQLError('not found')
       if (invitation.isExpired()) throw new GraphQLError('expired')
+      const group = await invitation.group().fetch()
+      const isMember = !!group && !!(await GroupMembership.forPair(userId, group.id).fetch())
+      if (group && !isMember) await GroupBan.assertNotBanned(userId, group)
       if (invitation.isLimited()) {
-        const group = await invitation.group().fetch()
         const canJoinDirectly = await preApproves(invitation, group) && await group.numPrerequisitesLeft(userId) === 0
-        if (!canJoinDirectly && !(await GroupMembership.forPair(userId, group.id).fetch())) {
+        if (!canJoinDirectly && !isMember) {
           return { requiresApproval: true, groupSlug: group.get('slug') }
         }
       }

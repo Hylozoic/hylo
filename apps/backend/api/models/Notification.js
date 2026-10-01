@@ -84,7 +84,8 @@ const TYPE = {
   FundingRoundReminder: 'fundingRoundReminder', // Reminder for funding round deadline
   OpenRequestNudge: 'openRequestNudge', // your request or offer has had no reply (D58)
   TrackCompletedLearner: 'trackCompletedLearner', // you completed a track (D63)
-  TrackReminder: 'trackReminder' // a nudge to continue a track you enrolled in (D63)
+  TrackReminder: 'trackReminder', // a nudge to continue a track you enrolled in (D63)
+  InvitationAccepted: 'invitationAccepted' // Someone joined through your invitation
 }
 
 const MEDIUM = {
@@ -241,6 +242,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendProposalPush()
       case 'eventReminder':
         return this.sendEventReminderPush()
+      case 'invitationAccepted':
+        return this.sendInvitationAcceptedPush()
       default:
         return Promise.resolve()
     }
@@ -651,6 +654,18 @@ module.exports = bookshelf.Model.extend({
       },
       locale
     })
+  },
+
+  // '<Name> joined <group>, say hi' to the person whose invitation they accepted, opening
+  // the new member's profile in the group so they can say hi
+  sendInvitationAcceptedPush: async function () {
+    const group = await this.relations.activity.group().fetch()
+    const actor = await this.relations.activity.actor().fetch()
+    if (!group || !actor) return Promise.resolve()
+    const locale = this.locale()
+    const path = routeToPath(Frontend.Route.profile(actor, group))
+    const alertText = PushNotification.textForInvitationAccepted(group, actor, locale)
+    return this.reader().sendPushNotification(alertText, path, pushGroupingFor(group))
   },
 
   sendMemberJoinedGroupPush: async function () {

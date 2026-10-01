@@ -24,7 +24,7 @@ import LoadFailed from 'components/LoadFailed'
 import { isTransientApiError } from 'store/middleware/apiMiddleware'
 import Button from 'components/ui/button'
 import SoleAdminLeaveDialog from 'components/SoleAdminLeaveDialog/SoleAdminLeaveDialog'
-import JoinSection from './JoinSection'
+import JoinSection, { SignedOutJoinPrompt } from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import checkInvitation from 'store/actions/checkInvitation'
@@ -50,7 +50,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
-import { cn, inIframe } from 'util/index'
+import { cn } from 'util/index'
 import { groupUrl, localSpaceSlug, personUrl, removeGroupFromUrl, spaceUrl } from '@hylo/navigation'
 import joinSpace from 'store/actions/joinSpace'
 import isWebView, { sendMessageToWebView } from 'util/webView'
@@ -72,6 +72,9 @@ import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
 
 const MAX_DETAILS_LENGTH = 144
+
+// The error every join route gives someone a steward removed and blocked from rejoining
+const BLOCKED_FROM_JOINING = "You can't join this group"
 
 /** Renders a steward row with role emoji pills (tooltips match Membership / MemberProfile). */
 function StewardWithRoles ({ personId, name, avatarUrl, groupId, groupSlug }) {
@@ -146,6 +149,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const [isMemberLink, setIsMemberLink] = useState(false)
   const [invitationTryLater, setInvitationTryLater] = useState(false)
   const [invitationChecked, setInvitationChecked] = useState(false)
+  const [invitationValid, setInvitationValid] = useState(false)
   const [linkedSpaceName, setLinkedSpaceName] = useState(null)
   const [linkedSpaceSlug, setLinkedSpaceSlug] = useState(null)
   const [linkedSpaceId, setLinkedSpaceId] = useState(null)
@@ -165,8 +169,10 @@ function GroupDetail ({ forCurrentGroup = false }) {
       // A member's invitation, or their personal invite link, to a group where stewards approve new people
       if ((invitationToken || checkResult?.isMemberLink) && checkResult?.requiresApproval) {
         setInvitationRequiresApproval(true)
-        setInvitedBy(checkResult.invitedBy || null)
       }
+      // Who sent an email invitation, or whose invite link this is (the group's own join link names nobody)
+      setInvitedBy(checkResult?.invitedBy || null)
+      setInvitationValid(!!checkResult?.valid)
       if (checkResult?.isMemberLink) {
         setIsMemberLink(true)
         setInvitationTryLater(!!checkResult.tryLater)
@@ -203,14 +209,21 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
   const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
     // Pass acceptAgreements: true since user can only reach this point after accepting all barriers
-    await dispatch(joinGroup(
-      groupId,
-      questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })),
-      accessCode,
-      invitationToken,
-      true, // acceptAgreements - user accepted during join flow
-      isMemberLink
-    ))
+    try {
+      await dispatch(joinGroup(
+        groupId,
+        questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })),
+        accessCode,
+        invitationToken,
+        true, // acceptAgreements - user accepted during join flow
+        isMemberLink
+      ))
+    } catch (error) {
+      toast.error(error?.message === BLOCKED_FROM_JOINING
+        ? t("You can't join this group")
+        : t('There was an error, please try again.'))
+      return
+    }
     if (isWebView()) {
       sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
     } else if (linkedSpaceSlug) {
@@ -221,7 +234,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
     } else {
       navigate(groupUrl(group.slug))
     }
-  }, [dispatch, group, accessCode, invitationToken, isMemberLink, linkedSpaceSlug, linkedSpaceId])
+  }, [dispatch, group, accessCode, invitationToken, isMemberLink, linkedSpaceSlug, linkedSpaceId, t])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
     const sponsorToken = invitationRequiresApproval ? invitationToken : undefined
@@ -232,20 +245,25 @@ function GroupDetail ({ forCurrentGroup = false }) {
       sponsorToken,
       sponsorCode
     ))
-    if (sponsorToken || sponsorCode) {
+    request?.catch?.(error => {
+      // Someone a steward blocked from rejoining can't ask to join either
+      if (error?.message === BLOCKED_FROM_JOINING) {
+        window.alert(t("You can't join this group"))
+        return
+      }
+      if (!sponsorToken && !sponsorCode) return
       // The invitation stopped being usable after the page loaded (used, cancelled, its sender left,
       // or their invite link reached its daily limit): drop it so the page offers whatever the group
       // allows without it
-      request.catch(error => {
-        window.alert(error?.message === 'invite-try-later'
-          ? t("This invite link can't be used right now. Please try again later.")
-          : t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'))
-        setInvitationRequiresApproval(false)
-        setInvitedBy(null)
-        setIsMemberLink(false)
-        navigate(location.pathname, { replace: true })
-      })
-    }
+      window.alert(error?.message === 'invite-try-later'
+        ? t("This invite link can't be used right now. Please try again later.")
+        : t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'))
+      setInvitationRequiresApproval(false)
+      setInvitedBy(null)
+      setInvitationValid(false)
+      setIsMemberLink(false)
+      navigate(location.pathname, { replace: true })
+    })
   }, [accessCode, dispatch, invitationRequiresApproval, invitationToken, isMemberLink, location.pathname, navigate, t])
 
   const updateMySettings = useCallback(changes => {
@@ -350,6 +368,13 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
+  // A valid invitation opens one combined join screen: the About, then the agreements and join
+  // questions already open with a single Join button, so the agreements aren't listed twice
+  const hasPrerequisites = group.prerequisiteGroups?.length > 0 || !!group.numPrerequisitesLeft
+  const waitingOnRequest = !!groupsWithPendingRequests[group.id] && invitationRequiresApproval
+  const combinedJoinScreen = !!currentUser && !isMember && !isAboutCurrentGroup && invitationValid &&
+    !invitationTryLater && !group.paywall && !hasPrerequisites && !waitingOnRequest
+
   return (
     <div className={cn('GroupDetail relative mx-auto', { 'w-full max-w-[750px] my-4': fullPage, 'w-screen-lg': !fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
       <Helmet>
@@ -443,7 +468,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
             roleGroupId={group.parentId || group.id}
           />
         )}
-        {group.agreements?.length > 0
+        {group.agreements?.length > 0 && !combinedJoinScreen
           ? (
             <div
               ref={agreementsSectionRef}
@@ -536,12 +561,14 @@ function GroupDetail ({ forCurrentGroup = false }) {
               </div>)
             : !currentUser
                 ? (
-                  <div className={g.signupButton}>
-                    <Link to={'/login?returnToUrl=' + location.pathname} target={inIframe() ? '_blank' : ''} className={g.requestButton}>
-                      {t('Signup or Login to connect with')}{' '}
-                      <span className={g.requestGroup}>{group.name}</span>
-                    </Link>
-                  </div>)
+                  <SignedOutJoinPrompt
+                    group={group}
+                    invitedBy={invitedBy}
+                    invitationEmail={invitationEmail || location.state?.email}
+                    invitationRequiresApproval={invitationRequiresApproval}
+                    keepInvitation={!invitationChecked || invitationValid}
+                    returnToPath={location.pathname + (location.search || '')}
+                  />)
                 : isMember
                   ? (
                     <div className={g.existingMember}>
@@ -553,6 +580,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                       <JoinSection
                         accessCode={accessCode}
                         currentUser={currentUser}
+                        expandJoinForm={combinedJoinScreen}
                         fullPage={fullPage}
                         group={group}
                         groupsWithPendingRequests={groupsWithPendingRequests}

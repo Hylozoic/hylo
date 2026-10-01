@@ -170,16 +170,18 @@ export async function expectGroupDetailAboutLoaded (page, opts = {}) {
 }
 
 /**
- * Logged-out about page: `GroupDetail` shows a login/signup link, not `JoinSection`, until the user authenticates.
+ * Logged-out about page: `GroupDetail` shows Sign up (keeping any invitation) and Log in, not
+ * `JoinSection`, until the user authenticates.
  * @param {import('@playwright/test').Page} page
  * @param {string} groupDisplayName - seeded `groups.name` (e.g. "E2E Public Group")
  * @param {{ timeout?: number }} [opts]
  */
 export async function expectUnauthenticatedAboutJoinGate (page, groupDisplayName, opts = {}) {
   const ui = { timeout: 60000, ...opts }
-  const gate = page.getByRole('link', { name: /Signup or Login to connect with/i })
+  const gate = page.getByTestId('signed-out-join')
   await expect(gate).toBeVisible(ui)
-  await expect(gate).toContainText(groupDisplayName, ui)
+  await expect(gate.getByRole('button', { name: `Sign up to join ${groupDisplayName}` })).toBeVisible(ui)
+  await expect(gate.getByTestId('signed-out-log-in')).toBeVisible(ui)
 }
 
 /**

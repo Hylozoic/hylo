@@ -773,7 +773,7 @@ type CheckInvitationResult {
   groupRole: GroupRole
   # True for an invitation from a member to a group where a steward approves new people: the person requests to join (with the invitation token) instead of joining
   requiresApproval: Boolean
-  # Who sent a member invitation, or whose personal invite link this is (null for other invitations)
+  # Who sent an email invitation, or whose personal invite link this is: only their id, name and avatar (null for the group's own join link)
   invitedBy: InvitationSender
   # True when the code is a member's personal invite link rather than the group's join link
   isMemberLink: Boolean
@@ -938,6 +938,8 @@ type Group {
   myInviteAllowance: Int
   # With 'limited' invite access: the current user's personal invite link to this group, if they have made one. Null otherwise
   myInviteLink: MemberInviteLink
+  # People removed from this group and blocked from rejoining it, while the block lasts, newest first. Empty for anyone who can't add or remove members
+  blockedFromRejoining: [GroupBan]
   # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
   openJoinRequestCount: Int
   # Count of active (unresolved) moderation actions in this group
@@ -1776,6 +1778,16 @@ type InvitationQuerySet {
 type MemberInviteLink {
   # The link's path, like a group join link: /groups/<slug>/join/<code>
   path: String
+  createdAt: Date
+}
+
+# Someone a steward removed from a group and blocked from rejoining it
+type GroupBan {
+  id: ID
+  # The person blocked: only their id, name and avatar
+  person: InvitationSender
+  # Who blocked them
+  createdBy: InvitationSender
   createdAt: Date
 }
 
@@ -3306,6 +3318,8 @@ type UserSettings {
   toursSeen: [String]
   # How each guided tour ended for this person, by tour: 'completed' or 'dismissed'
   toursOutcome: JSON
+  # Asking for a photo and location after the first post, for someone who skipped those steps because they signed up from an invitation: 'pending' until then, then 'dismissed' or 'done'
+  profileNudge: String
   # Display mode preference: auto, light, or dark
   colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
@@ -3933,8 +3947,12 @@ type Mutation {
   registerStripeAccount(authorizationCode: String): GenericResult
   # Reject a Group's invite or request to connect to one of your groups. Only a group steward can call this.
   rejectGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
-  # Remove a Person from a Group. Only a group Moderator can call this.
-  removeMember(personId: ID, groupId: ID): Group
+  # Remove a Person from a Group. Only a group Moderator can call this. With blockFromRejoining, they can't come back through a join link, an invite link, an invitation or a request until a steward lifts the block
+  removeMember(personId: ID, groupId: ID, blockFromRejoining: Boolean): Group
+  # Block someone who was in a group and no longer is from rejoining it. Only someone who can remove members can call this
+  banFromGroup(personId: ID, groupId: ID): GenericResult
+  # Let someone blocked from rejoining a group come back. Anyone who can add or remove members can call this
+  liftGroupBan(personId: ID, groupId: ID): GenericResult
   # Remove a Post from a group, by groupId or group slug
   removePost(postId: ID, slug: String, groupId: ID): GenericResult
   # Remove a group responsibility from a group
@@ -4987,6 +5005,8 @@ input UserSettingsInput {
   toursSeen: [String]
   # How each guided tour ended for this person, by tour: 'completed' or 'dismissed'
   toursOutcome: JSON
+  # Asking for a photo and location after the first post, for someone who skipped those steps because they signed up from an invitation: 'pending' until then, then 'dismissed' or 'done'
+  profileNudge: String
   # Display mode preference: auto, light, or dark
   colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none

@@ -287,9 +287,10 @@ describe('InvitationService', () => {
       expect((await InvitationService.check(token)).requiresApproval).to.be.true
     })
 
-    it('leaves the check for other invitations and join links as it was', async () => {
+    it('needs no approval for other invitations and join links, and names the sender of an email invitation only', async () => {
       const tokenCheck = await InvitationService.check((await stewardInvitation(restricted)).get('token'))
-      expect(tokenCheck).to.include({ valid: true, requiresApproval: false, invitedBy: null })
+      expect(tokenCheck).to.include({ valid: true, requiresApproval: false })
+      expect(tokenCheck.invitedBy).to.deep.equal({ id: inviter.id, name: inviter.get('name'), avatarUrl: inviter.get('avatar_url') || null })
       const codeCheck = await InvitationService.check(null, restricted.get('access_code'))
       expect(codeCheck).to.include({ valid: true, requiresApproval: false, invitedBy: null })
     })

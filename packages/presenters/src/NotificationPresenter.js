@@ -111,6 +111,8 @@ export const ACTION_NEW_MEMBERS_JOINED = 'newMembersJoined'
 export const ACTION_FIRST_POST_UNANSWERED = 'firstPostUnanswered'
 // D13: a group you steward has had no posts for 30 days
 export const ACTION_GROUP_QUIET = 'groupQuiet'
+// Someone joined a group through the reader's invitation (D47)
+export const ACTION_INVITATION_ACCEPTED = 'invitationAccepted'
 
 // Direct notifications (D7: someone speaking to you) plus approvals (D71). The web app
 // shows these as a toast; everything else only bumps the notification counter.
@@ -275,6 +277,8 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> is new to {{groupName}} and their first post has no replies yet', { name, groupName: group?.name })
     case ACTION_GROUP_QUIET:
       return t('<strong>{{groupName}}</strong> has had no posts for {{days}} days', { groupName: group?.name, days: notification.activity.meta?.quietDays || 30 })
+    case ACTION_INVITATION_ACCEPTED:
+      return t('Your invitation was accepted')
     default:
       return null
   }
@@ -434,6 +438,8 @@ export function bodyForNotification (notification, t) {
       return t('A reply or a reaction can help them feel welcome: "{{postSummary}}"', { postSummary })
     case ACTION_GROUP_QUIET:
       return t('A new post or a question can get people talking again.')
+    case ACTION_INVITATION_ACCEPTED:
+      return t('<strong>{{name}}</strong> joined {{groupName}}, say hi', { name, groupName: group?.name })
     default:
       return null
   }
@@ -508,6 +514,7 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
       return primaryPostUrl(post, postOpts)
     }
     case ACTION_MEMBER_JOINED_GROUP:
+    case ACTION_INVITATION_ACCEPTED:
       return personUrl(actor.id, groupSlug)
     case ACTION_TAG: {
       return primaryPostUrl(post, postOpts)

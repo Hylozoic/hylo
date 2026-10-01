@@ -93,7 +93,8 @@ const TODAY = {
   // D49
   firstPostUnanswered: ['inApp'],
   // D13
-  groupQuiet: ['inApp']
+  groupQuiet: ['inApp'],
+  invitationAccepted: ['push', 'inApp']
 }
 
 // Reasons added since the class table, with the channels their cards decided

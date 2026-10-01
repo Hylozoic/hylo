@@ -53,7 +53,8 @@ test.describe('signed-out pages after code-splitting', () => {
     await page.goto(`/groups/${fixture.slug}/join/${fixture.accessCode}`, gotoOpts)
     await waitPastRootSessionLoading(page)
     await expect(page.locator('body')).not.toContainText(/Something went wrong/i, uiTimeout)
-    await expect(page.locator('#email, h1, h2').first()).toBeVisible(uiTimeout)
+    // An invite link opens the group's about page first (D5)
+    await expectGroupDetailAboutLoaded(page)
   })
 
   test('a public post link settles on the post or on login', async ({ page }) => {

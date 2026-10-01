@@ -7,6 +7,7 @@ import { CHECK_INVITATION } from 'store/constants'
  *   requiresApproval: a member's invitation or personal invite link to a group where a steward approves new people, so the person requests to join with it instead of joining
  *   isMemberLink: the code is a member's personal invite link rather than the group's join link
  *   tryLater: a member's invite link that can't be used until its daily allowance frees up
+ *   invitedBy: who sent an email invitation (steward or member), or whose personal invite link it is; null for the group's own join link
  */
 export default function checkInvitation (inviteCodes) {
   const { invitationToken, accessCode } = inviteCodes

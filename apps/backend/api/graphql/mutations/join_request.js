@@ -57,6 +57,7 @@ async function spendForLinkRequest (userId, groupId, link) {
 export async function createJoinRequest (userId, groupId, questionAnswers = [], invitationToken, accessCode) {
   if (groupId && userId) {
     await assertWritable(groupId)
+    await GroupBan.assertNotBanned(userId, groupId)
     const memberLink = accessCode ? await sponsoringMemberLink(groupId, accessCode) : null
     const invitation = memberLink ? null : await sponsoringInvitation(userId, groupId, invitationToken)
     const pendingRequest = await JoinRequest.where({ user_id: userId, group_id: groupId, status: JoinRequest.STATUS.Pending }).fetch()
@@ -94,6 +95,10 @@ export async function acceptJoinRequest (userId, joinRequestId) {
   const joinRequest = await JoinRequest.find(joinRequestId)
   if (joinRequest) {
     if (await GroupMembership.hasResponsibility(userId, joinRequest.get('group_id'), Responsibility.constants.RESP_ADD_MEMBERS)) {
+      // Someone blocked from rejoining comes back in only once a steward lifts the block
+      if (await GroupBan.isBanned(joinRequest.get('user_id'), joinRequest.get('group_id'))) {
+        throw new GraphQLError(GroupBan.BANNED_REQUEST_ERROR)
+      }
       return joinRequest.accept(userId)
     } else {
       throw new GraphQLError('You do not have permission to accept a join request')

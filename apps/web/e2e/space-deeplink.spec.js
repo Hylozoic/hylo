@@ -30,7 +30,7 @@ test('deep link to a space in a two-column group resolves', async ({ page }) => 
   await expect(page).toHaveURL(/\/groups\/e2e-public-group\/spaces\/e2e-test-space(\/.*)?$/, { timeout: 30000 })
   await expect(page.locator('.SpaceMenuHeader')).toBeVisible({ timeout: 30000 })
   await expect(page.locator('.SpaceMenuHeader')).toContainText('E2E Test Space')
-  await expect(page.getByRole('link', { name: /Signup or Login/i })).toHaveCount(0)
+  await expect(page.getByTestId('signed-out-join')).toHaveCount(0)
 
   await page.screenshot({
     path: path.resolve(screenshotDir, 'space-deeplink-two-column.png')

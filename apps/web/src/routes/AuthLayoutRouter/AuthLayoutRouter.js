@@ -96,7 +96,10 @@ import Themes from 'routes/Themes'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
-import { isAtReturnToPath } from 'util/returnToPath'
+import { isAtReturnToPath, isInviteReturnPath } from 'util/returnToPath'
+import ProfileNudge from 'components/ProfileNudge/ProfileNudge'
+import useFinishInviteSignup from 'components/ProfileNudge/useFinishInviteSignup'
+import Loading from 'components/Loading'
 import Management from 'routes/Management'
 import SiteBanners from 'components/SiteBanners/SiteBanners'
 import AppInstallPrompt from 'components/AppInstallPrompt/AppInstallPrompt'
@@ -270,6 +273,8 @@ export default function AuthLayoutRouter (props) {
   const supportAllowed = cookieConsent?.support !== false
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
+  // Signing up from an invitation or join link skips the photo and location steps (D16)
+  const inviteSignup = useFinishInviteSignup(signupInProgress && isInviteReturnPath(returnToPath), { ready: !!currentUser })
 
   // Stable key for preload effect deps — getMyMemberships returns a new array reference on
   // every ORM update, which would otherwise reset the 4.5s timer indefinitely.
@@ -830,6 +835,12 @@ export default function AuthLayoutRouter (props) {
       }
     : { hideDefaultLauncher: true }
 
+  // Someone who signed up from an invitation goes straight back to it: wait here until the
+  // server confirms their signup is finished, then the redirect below takes them there
+  // (from the welcome wizard too, if they were in it)
+  if (inviteSignup.finishing) return <Loading type='fullscreen' />
+  if (inviteSignup.finished && returnToPath && isWelcomeContext) return <Navigate to={returnToPath} replace />
+
   // Only redirect to returnToPath when outside the welcome wizard. Inside the wizard,
   // the PENDING optimistic update sets signupInProgress=false before the server confirms,
   // which would cause a premature redirect followed by a race with fetchForCurrentUser.
@@ -1223,6 +1234,7 @@ export default function AuthLayoutRouter (props) {
         <CookieConsentLinker />
       </div>
       <CreateGroupModal />
+      <ProfileNudge />
       <Toaster
         position={compactLayout ? 'top-center' : 'bottom-left'}
         style={compactLayout ? {} : { left: '80px' }}

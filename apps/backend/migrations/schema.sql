@@ -1146,6 +1146,40 @@ ALTER SEQUENCE public.group_connections_id_seq OWNED BY public.group_relationshi
 
 
 --
+-- Name: group_bans; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_bans (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    created_by_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    lifted_at timestamp with time zone,
+    lifted_by_id bigint
+);
+
+
+--
+-- Name: group_bans_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_bans_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_bans_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_bans_id_seq OWNED BY public.group_bans.id;
+
+
+--
 -- Name: group_deletions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4055,6 +4089,13 @@ ALTER TABLE ONLY public.funding_rounds ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
+-- Name: group_bans id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_bans ALTER COLUMN id SET DEFAULT nextval('public.group_bans_id_seq'::regclass);
+
+
+--
 -- Name: group_deletions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4766,6 +4807,14 @@ ALTER TABLE ONLY public.group_relationships
 
 ALTER TABLE ONLY public.group_relationships
     ADD CONSTRAINT group_connections_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_bans group_bans_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_bans
+    ADD CONSTRAINT group_bans_pkey PRIMARY KEY (id);
 
 
 --
@@ -5747,6 +5796,20 @@ CREATE INDEX first_post_nudges_group_id_created_at_index ON public.first_post_nu
 --
 
 CREATE INDEX funding_rounds_group_id_index ON public.funding_rounds USING btree (group_id);
+
+
+--
+-- Name: group_bans_one_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX group_bans_one_active ON public.group_bans USING btree (group_id, user_id) WHERE (lifted_at IS NULL);
+
+
+--
+-- Name: group_bans_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_bans_user_id_index ON public.group_bans USING btree (user_id);
 
 
 --
@@ -6989,6 +7052,38 @@ ALTER TABLE ONLY public.group_relationships
 
 ALTER TABLE ONLY public.group_relationships
     ADD CONSTRAINT group_connections_parent_group_id_foreign FOREIGN KEY (parent_group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_bans group_bans_created_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_bans
+    ADD CONSTRAINT group_bans_created_by_id_foreign FOREIGN KEY (created_by_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: group_bans group_bans_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_bans
+    ADD CONSTRAINT group_bans_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: group_bans group_bans_lifted_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_bans
+    ADD CONSTRAINT group_bans_lifted_by_id_foreign FOREIGN KEY (lifted_by_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: group_bans group_bans_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_bans
+    ADD CONSTRAINT group_bans_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

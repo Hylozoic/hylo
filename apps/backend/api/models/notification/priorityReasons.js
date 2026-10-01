@@ -59,5 +59,6 @@ export const PRIORITY_REASONS = [
   // D49 experiment: a newcomer's first post has no response (post/firstPostNudge.js)
   'firstPostUnanswered',
   // D13: no posts for 30 days, to stewards (lib/group/stewardDigest.js)
-  'groupQuiet'
+  'groupQuiet',
+  'invitationAccepted'
 ]
