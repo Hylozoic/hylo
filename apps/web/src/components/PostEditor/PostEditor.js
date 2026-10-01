@@ -104,6 +104,9 @@ import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
 
+/** Chat, action, and submission are not limited by a group's acceptedPostTypes. */
+const UNRESTRICTED_POST_TYPES = ['action', 'chat', 'submission']
+
 /** First post type as shown in PostTypeSelect (POST_TYPES order), among allowed types. */
 function firstDropdownPostType (allowedPostTypes) {
   const dropdownOrder = Object.keys(POST_TYPES).filter(type => type !== 'action' && type !== 'chat')
@@ -114,6 +117,7 @@ function firstDropdownPostType (allowedPostTypes) {
 /** Returns true when a group/space accepts the given post type (null acceptedPostTypes = all). */
 function groupAcceptsPostType (group, postType) {
   if (!group || !postType) return false
+  if (UNRESTRICTED_POST_TYPES.includes(postType)) return true
   const types = normalizeAcceptedPostTypes(group.acceptedPostTypes)
   if (types == null) return true
   if (types.length === 0) return false
@@ -224,9 +228,10 @@ function PostEditorInner ({
     if (fromGroup == null) return fromView
     // Typed views (track-actions, funding-round-submissions) keep their post type even when
     // the space has empty acceptedPostTypes (track/FR spaces do not use stream post types).
+    // Submission, action, and chat stay available even when the space lists other types.
     if (fromView != null) {
       if (fromGroup.length === 0) return fromView
-      return fromView.filter(type => fromGroup.includes(type))
+      return fromView.filter(type => fromGroup.includes(type) || UNRESTRICTED_POST_TYPES.includes(type))
     }
     return fromGroup
   }, [editing, allowedPostTypesForView, currentGroup?.acceptedPostTypes])
@@ -249,6 +254,7 @@ function PostEditorInner ({
   const createPostType = (() => {
     const fallback = firstDropdownPostType(allowedPostTypes)
     if (!postType) return fallback
+    if (UNRESTRICTED_POST_TYPES.includes(postType)) return postType
     if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
     return postType
   })()
@@ -1197,7 +1203,7 @@ function PostEditorInner ({
         imageAttachments, // For optimistic display of the new post
         imageUrls,
         isAnonymousVote,
-        isPublic,
+        isPublic: type === 'submission' ? false : isPublic,
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
