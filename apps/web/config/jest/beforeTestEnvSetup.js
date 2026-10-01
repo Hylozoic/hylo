@@ -32,7 +32,7 @@ global.navigator.geolocation = mockGeolocation
 // Global Mocks
 jest.mock('react-use-intercom', () => ({
   IntercomProvider: ({ children }) => children,
-  useIntercom: () => ({ show: () => {} })
+  useIntercom: () => ({ show: () => {}, boot: () => {}, shutdown: () => {} })
 }))
 
 jest.mock('client/errorReporter', () => ({

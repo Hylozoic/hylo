@@ -1,77 +1,102 @@
 import React from 'react'
 import { graphql, HttpResponse } from 'msw'
-import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
+import { AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import RootRouter, { isNeutralRootSessionLoadingPath } from './RootRouter'
 
-jest.mock('react-router-dom', () => jest.requireActual('react-router-dom'))
+jest.mock('routes/AuthLayoutRouter', () => () => 'AuthLayoutRouter')
+jest.mock('routes/NonAuthLayoutRouter', () => () => 'NonAuthLayoutRouter')
+jest.mock('components/Skeleton/BootstrapShell', () => () => 'BootstrapShell')
 jest.mock('util/webView', () => ({
   __esModule: true,
   default: jest.fn(() => false),
+  isWebView: jest.fn(() => false),
+  isLegacyWebView: jest.fn(() => false),
+  getMobileAppVersion: jest.fn(() => ''),
+  sendMessageToWebView: jest.fn(),
   clearMobileWebViewUserLogout: jest.fn(),
-  isMobileWebViewUserLogoutInProgress: jest.fn(() => false),
-  sendMessageToWebView: jest.fn()
+  isMobileWebViewUserLogoutInProgress: jest.fn(() => false)
 }))
-jest.mock('routes/NonAuthLayoutRouter', () => {
-  const { useLocation } = jest.requireActual('react-router-dom')
-  return function MockNonAuthLayoutRouter () {
-    const location = useLocation()
-    return <div data-testid='non-auth-location'>{location.pathname + location.search}</div>
-  }
-})
-jest.mock('routes/PostDetail', () => () => <div data-testid='public-post-detail' />)
-jest.mock('routes/AuthLayoutRouter', () => () => <div />)
-jest.mock('routes/PublicLayoutRouter', () => () => <div />)
-jest.mock('routes/PublicLayoutRouter/PublicGroupDetail', () => () => <div />)
-jest.mock('routes/PublicLayoutRouter/PublicPageHeader', () => () => <div />)
-jest.mock('routes/OAuth/OAuthLayoutRouter', () => () => <div />)
-jest.mock('routes/JoinGroup', () => () => <div />)
-jest.mock('routes/OfferingDetails/OfferingDetails', () => () => <div />)
 
-function mockSignedOutReader ({ publicPost }) {
-  mockGraphqlServer.use(
-    graphql.query('CheckLogin', () => HttpResponse.json({ data: { me: null } })),
-    graphql.query('CheckIsPostPublic', () => HttpResponse.json({
-      data: { post: publicPost ? { id: '91' } : null }
-    }))
-  )
+function renderRootRouter () {
+  return render(<RootRouter />, { wrapper: AllTheProviders({}, ['/login']) })
 }
 
-describe('RootRouter signed out', () => {
-  it('keeps the query string when a group post link sends the reader to log in', async () => {
-    mockSignedOutReader({ publicPost: false })
+beforeEach(() => {
+  window.HyloBootLoader = { ready: jest.fn(), milestone: jest.fn() }
+  window.sessionStorage.clear()
+})
 
-    render(<RootRouter />, {
-      wrapper: AllTheProviders({}, ['/groups/foo/all/post/91?action=unfollow&ctt=x'])
+afterEach(() => {
+  delete window.HyloBootLoader
+})
+
+it('clears the stale-chunk reload flag and dismisses the boot loader once the session is known', async () => {
+  window.sessionStorage.setItem('vite-reload-attempted', '1')
+  mockGraphqlServer.use(
+    graphql.query('CheckLogin', () => HttpResponse.json({ data: { me: null } }))
+  )
+
+  renderRootRouter()
+
+  expect(await screen.findByText('NonAuthLayoutRouter')).toBeInTheDocument()
+  expect(window.sessionStorage.getItem('vite-reload-attempted')).toBeNull()
+  expect(window.HyloBootLoader.ready).toHaveBeenCalled()
+})
+
+it('shows a reconnecting notice on a server error and retries until the session is known', async () => {
+  let calls = 0
+  mockGraphqlServer.use(
+    graphql.query('CheckLogin', () => {
+      calls += 1
+      if (calls === 1) return new HttpResponse('Service Unavailable', { status: 503 })
+      return HttpResponse.json({ data: { me: null } })
     })
+  )
 
-    expect(await screen.findByTestId('non-auth-location')).toHaveTextContent(
-      '/login?returnToUrl=%2Fpost%2F91%3Faction%3Dunfollow%26ctt%3Dx'
-    )
-  })
+  renderRootRouter()
 
-  it('sends the reader to log in from an unfollow link on a public post', async () => {
-    mockSignedOutReader({ publicPost: true })
+  expect(await screen.findByText('Can\'t reach Hylo. Retrying…')).toBeInTheDocument()
+  expect(screen.queryByText('NonAuthLayoutRouter')).not.toBeInTheDocument()
+  expect(window.HyloBootLoader.ready).toHaveBeenCalled()
 
-    render(<RootRouter />, {
-      wrapper: AllTheProviders({}, ['/groups/foo/topics/bar/post/91?action=unfollow'])
+  expect(await screen.findByText('NonAuthLayoutRouter', {}, { timeout: 4000 })).toBeInTheDocument()
+  expect(calls).toBe(2)
+})
+
+it('retries right away from the reconnecting notice', async () => {
+  let calls = 0
+  mockGraphqlServer.use(
+    graphql.query('CheckLogin', () => {
+      calls += 1
+      if (calls === 1) return new HttpResponse('Bad Gateway', { status: 502 })
+      return HttpResponse.json({ data: { me: null } })
     })
+  )
 
-    expect(await screen.findByTestId('non-auth-location')).toHaveTextContent(
-      '/login?returnToUrl=%2Fpost%2F91%3Faction%3Dunfollow'
-    )
-  })
+  renderRootRouter()
 
-  it('shows a public post without asking the reader to log in', async () => {
-    mockSignedOutReader({ publicPost: true })
+  fireEvent.click(await screen.findByRole('button', { name: 'Try Again' }))
 
-    render(<RootRouter />, {
-      wrapper: AllTheProviders({}, ['/groups/foo/all/post/91?ctt=x'])
+  await waitFor(() => expect(calls).toBe(2), { timeout: 500 })
+  expect(await screen.findByText('NonAuthLayoutRouter')).toBeInTheDocument()
+})
+
+it('treats a signed-out response as anonymous without retrying', async () => {
+  let calls = 0
+  mockGraphqlServer.use(
+    graphql.query('CheckLogin', () => {
+      calls += 1
+      return HttpResponse.json({ data: { me: null } })
     })
+  )
 
-    expect(await screen.findByTestId('public-post-detail')).toBeInTheDocument()
-    expect(screen.queryByTestId('non-auth-location')).not.toBeInTheDocument()
-  })
+  renderRootRouter()
+
+  expect(await screen.findByText('NonAuthLayoutRouter')).toBeInTheDocument()
+  expect(screen.queryByTestId('root-reconnecting')).not.toBeInTheDocument()
+  await new Promise(resolve => setTimeout(resolve, 1200))
+  expect(calls).toBe(1)
 })
 
 describe('isNeutralRootSessionLoadingPath', () => {

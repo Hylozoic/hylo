@@ -1,7 +1,12 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render } from 'util/testing/reactTestingLibraryExtended'
 import SocketListener from './SocketListener'
 import { getSocket, setSocket } from 'client/websockets'
+import { refreshBadgeCounts } from 'util/badgeRefresh'
+
+jest.mock('util/badgeRefresh', () => ({
+  refreshBadgeCounts: jest.fn()
+}))
 
 let realSocket, mockSocket, listens
 
@@ -83,3 +88,34 @@ it.skip('unsubscribes and removes event handlers on unmount', () => {
 })
 
 // Add more specific tests as needed
+
+describe('on socket reconnect', () => {
+  let handlersByEvent
+
+  beforeEach(() => {
+    handlersByEvent = {}
+    setSocket({
+      post: jest.fn(),
+      on: jest.fn((event, handler) => { handlersByEvent[event] = handler }),
+      off: jest.fn()
+    })
+    refreshBadgeCounts.mockClear()
+  })
+
+  it('refetches the badge counts that pushes would have updated', () => {
+    render(<SocketListener />)
+
+    handlersByEvent.reconnect()
+
+    expect(refreshBadgeCounts).toHaveBeenCalledTimes(1)
+    expect(getSocket().post).toHaveBeenCalledWith(expect.stringContaining('/noo/user/subscribe'), expect.any(Function))
+  })
+
+  it('does not refetch on the first connect', () => {
+    render(<SocketListener />)
+
+    handlersByEvent.connect()
+
+    expect(refreshBadgeCounts).not.toHaveBeenCalled()
+  })
+})

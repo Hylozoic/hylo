@@ -17,6 +17,16 @@ import { cn } from 'util/index'
 import { baseUrl, myHomeLandingUrl, isMyHomeContext } from '@hylo/navigation'
 
 /**
+ * Enter and Space activate like a button. Going through click() also reaches
+ * the Popover trigger that opens a stack's submenu.
+ */
+function activateOnKey (event) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  event.currentTarget.click()
+}
+
+/**
  * GlobalNavItem component renders a navigation item with tooltip and hover animations
  * @param {ReactNode} children - Content to render inside the nav item
  * @param {string} className - Additional CSS classes
@@ -27,6 +37,7 @@ import { baseUrl, myHomeLandingUrl, isMyHomeContext } from '@hylo/navigation'
  * @param {boolean} showTooltip - Whether parent is triggering tooltip cascade
  * @param {number} index - Position in nav list for staggered animations
  * @param {Array} childGroups - Subgroups; when present the item shows a stack of avatars and opens a dropdown on click
+ * @param {boolean} isPinned - Rendered inside a sortable wrapper, which is then the keyboard stop instead of the tile
  */
 export default function GlobalNavItem ({
   children,
@@ -47,6 +58,8 @@ export default function GlobalNavItem ({
   const navigate = useNavigate()
   const routeParams = useRouteParams()
   const hasChildren = childGroups && childGroups.length > 0
+  // Items without a destination (Activity) sit inside their own trigger button
+  const focusable = (Boolean(url) || hasChildren) && !isPinned
   // A stack is selected when its parent group is active OR when one of its stacked subgroups is the active group.
   const selected = url === myHomeLandingUrl()
     ? isMyHomeContext(routeParams.context)
@@ -228,10 +241,12 @@ export default function GlobalNavItem ({
   const tile = (
     <div
       onClick={handleClick}
+      onKeyDown={focusable ? activateOnKey : undefined}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       className={cn(
-        'relative transition-all ease-in-out duration-250 overflow-visible',
+        'GlobalNavItemTile relative transition-all ease-in-out duration-250 overflow-visible',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         'flex flex-col items-center justify-center w-14 h-14 min-h-10',
         // Resting icons sat far enough back to read as disabled rather than merely
         // unselected; selection is carried by the ring and scale, not by dimming.
@@ -253,7 +268,9 @@ export default function GlobalNavItem ({
         userSelect: 'none',
         msUserSelect: 'none'
       }}
-      role='button'
+      role={focusable ? 'button' : undefined}
+      tabIndex={focusable ? 0 : undefined}
+      aria-label={focusable ? tooltip : undefined}
       data-tour={dataTour}
     >
       {hasChildren
@@ -378,7 +395,8 @@ export default function GlobalNavItem ({
             <div
               key={item.id}
               onClick={handleNavigateTo(item.to)}
-              className='flex items-center gap-2 cursor-pointer group/stacked min-w-0'
+              onKeyDown={activateOnKey}
+              className='flex items-center gap-2 cursor-pointer group/stacked min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
               role='button'
               tabIndex={0}
             >

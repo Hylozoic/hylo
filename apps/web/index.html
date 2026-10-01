@@ -64,11 +64,32 @@
         width: 0;
         background: #090B0A;
       }
+      #hylo-boot-help {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 40px;
+        text-align: center;
+        font: 15px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #090B0A;
+      }
+      #hylo-boot-help button {
+        font: inherit;
+        font-weight: 600;
+        color: inherit;
+        text-decoration: underline;
+        background: none;
+        border: 0;
+        padding: 0;
+        margin-left: 0.35em;
+        cursor: pointer;
+      }
       @media (prefers-color-scheme: dark) {
         #hylo-boot-loader {
           background: linear-gradient(152deg, #3A3A3A 0%, #2E2E2E 55%, #232323 100%);
         }
         #hylo-boot-progress { background: #FFFFFF; }
+        #hylo-boot-help { color: #FFFFFF; }
       }
     </style>
   </head>
@@ -259,10 +280,45 @@
       document.addEventListener('visibilitychange', function () {
         if (document.hidden && readyFlag) teardown()
       })
+      // If the app never reports ready (a failed request, a script that never
+      // arrives) the loader would otherwise stay up forever. This runs before
+      // the app's translations load, so it carries its own copy.
+      var HELP_AFTER_MS = 20000
+      var HELP_COPY = {
+        en: ['Having trouble?', 'Reload'],
+        es: ['¿Tienes problemas?', 'Recargar'],
+        fr: ['Un problème ?', 'Recharger'],
+        de: ['Probleme?', 'Neu laden'],
+        hi: ['कोई समस्या है?', 'फिर से लोड करें'],
+        pt: ['Está com problemas?', 'Recarregar']
+      }
+      function helpLanguage () {
+        var stored = null
+        try {
+          var match = document.cookie.match(/(?:^|; )hylo-i18n-lng=([^;]+)/)
+          stored = (match && decodeURIComponent(match[1])) || window.localStorage.getItem('hylo-i18n-lng')
+        } catch (e) {}
+        return String(stored || navigator.language || 'en').slice(0, 2).toLowerCase()
+      }
+      function showHelp () {
+        if (readyFlag || stopped) return
+        var copy = HELP_COPY[helpLanguage()] || HELP_COPY.en
+        var help = document.createElement('div')
+        help.id = 'hylo-boot-help'
+        help.appendChild(document.createTextNode(copy[0]))
+        var reload = document.createElement('button')
+        reload.type = 'button'
+        reload.textContent = copy[1]
+        reload.addEventListener('click', function () { window.location.reload() })
+        help.appendChild(reload)
+        host.appendChild(help)
+      }
+      var helpTimer = window.setTimeout(showHelp, HELP_AFTER_MS)
       window.requestAnimationFrame(frame)
       window.HyloBootLoader = {
         milestone: function (name) { reach(MILESTONE_INDEX[name] || 0) },
         ready: function () {
+          window.clearTimeout(helpTimer)
           reach(STEPS)
           readyFlag = true
           if (document.hidden) teardown()

@@ -1,9 +1,13 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link, useLocation } from 'react-router-dom'
 import { CircleCheckBig, Video } from 'lucide-react'
 import { DateTime } from 'luxon'
+import queryString from 'query-string'
 import { LocationHelpers } from '@hylo/shared'
+import { postUrl } from '@hylo/navigation'
 import Highlight from 'components/Highlight'
+import useRouteParams from 'hooks/useRouteParams'
 import { cn } from 'util/index'
 import Icon from 'components/Icon'
 import classes from './PostTitle.module.scss'
@@ -20,6 +24,11 @@ export default function PostTitle ({
   ...post
 }) {
   const { t } = useTranslation()
+  const routeParams = useRouteParams()
+  const { search } = useLocation()
+  // On a card (which passes onClick) the title is a real link to the post, so it
+  // can be reached and opened from the keyboard. The card ignores clicks on links.
+  const detailsUrl = onClick && post.id ? postUrl(post.id, routeParams, queryString.parse(search)) : null
 
   // Formatting location to display in stream view
   const generalLocation = LocationHelpers.generalLocationString(locationObject, location || '')
@@ -38,7 +47,9 @@ export default function PostTitle ({
       <>
         <div onClick={onClick} className={cn('flex items-center text-xl font-bold', { [classes.constrained]: constrained, 'mb-1': type !== 'event' }, 'hdr-headline')}>
           {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
-          {title}
+          {detailsUrl
+            ? <Link to={detailsUrl} className='text-inherit hover:text-inherit focus:text-inherit hover:no-underline'>{title}</Link>
+            : title}
         </div>
         {post.fulfilledAt && (
           <div className='flex items-center text-sm italic'>{t('Completed {{timestamp}}', { timestamp: DateTime.fromISO(post.fulfilledAt).toFormat('DD') })}</div>

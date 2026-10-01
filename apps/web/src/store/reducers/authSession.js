@@ -1,5 +1,6 @@
 import { CHECK_LOGIN, LOGIN, LOGOUT, UPDATE_USER_SETTINGS } from 'store/constants'
 import { REGISTER, VERIFY_EMAIL } from 'routes/NonAuthLayoutRouter/Signup/Signup.store'
+import { isTransientApiError } from 'store/middleware/apiMiddleware'
 
 export const AuthSessionStatus = {
   Unknown: 'unknown',
@@ -17,7 +18,10 @@ export const getInitialAuthSessionState = () => ({
   emailValidated: null,
   hasRegistered: null,
   signupInProgress: null,
-  checkedAt: null
+  checkedAt: null,
+  // Set when the session check failed for a network or server reason, which
+  // says nothing about whether the person is signed in; RootRouter retries
+  transientError: false
 })
 
 // Authenticated session derived from the `me` returned by an auth action.
@@ -27,7 +31,8 @@ const authenticatedSession = me => ({
   emailValidated: me.emailValidated ?? null,
   hasRegistered: me.hasRegistered ?? null,
   signupInProgress: me.settings?.signupInProgress ?? null,
-  checkedAt: Date.now()
+  checkedAt: Date.now(),
+  transientError: false
 })
 
 const anonymousSession = () => ({
@@ -36,7 +41,8 @@ const anonymousSession = () => ({
   emailValidated: null,
   hasRegistered: null,
   signupInProgress: null,
-  checkedAt: Date.now()
+  checkedAt: Date.now(),
+  transientError: false
 })
 
 export default function authSession (state = getInitialAuthSessionState(), action) {
@@ -97,6 +103,11 @@ export default function authSession (state = getInitialAuthSessionState(), actio
 
   if (action.type === CHECK_LOGIN) {
     if (action.error) {
+      if (isTransientApiError(action.payload)) {
+        return state.status === AuthSessionStatus.Unknown
+          ? { ...state, transientError: true }
+          : state
+      }
       return anonymousSession()
     }
 
