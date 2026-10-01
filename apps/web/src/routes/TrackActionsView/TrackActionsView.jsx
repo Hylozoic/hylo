@@ -27,7 +27,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getTrack from 'store/selectors/getTrack'
 import { addQuerystringToPath, createPostUrl } from '@hylo/navigation'
 import { cn } from 'util/index'
-import { trackProgress } from 'util/trackProgress'
+import { needsFullTrack, trackProgress } from 'util/trackProgress'
 
 import ActionSummary from './ActionSummary'
 
@@ -73,9 +73,10 @@ export default function TrackActionsView () {
   const fetchedTrack = useSelector(state => trackId ? getTrack(state, trackId) : null)
   const isEnrolled = Boolean(fetchedTrack?.isEnrolled)
   const progress = trackProgress(displayedPosts)
+  const loadFullTrack = needsFullTrack(fetchedTrack)
   useEffect(() => {
-    if (trackId && !fetchedTrack?.id) dispatch(fetchTrack(trackId))
-  }, [dispatch, trackId, fetchedTrack?.id])
+    if (trackId && loadFullTrack) dispatch(fetchTrack(trackId))
+  }, [dispatch, trackId, loadFullTrack])
 
   const groupViewsLoaded = group?.groupViews != null
 

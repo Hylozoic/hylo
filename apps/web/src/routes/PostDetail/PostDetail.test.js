@@ -196,12 +196,17 @@ describe('PostDetail', () => {
     const request = { ...post, type: 'request', title: 'Need a ladder', fulfilledAt: null }
     let operations
 
-    const renderRequest = (creatorId = '1') => {
+    // readDelay: the page's own read of the post answers that much later, and is recorded
+    const renderRequest = (creatorId = '1', { readDelay = 0 } = {}) => {
       operations = []
       mockGraphqlServer.use(
-        graphql.query('FetchPost', () => HttpResponse.json({
-          data: { post: { ...request, creator: { id: creatorId, name: 'Author' } } }
-        })),
+        graphql.query('FetchPost', async () => {
+          if (readDelay) {
+            operations.push(['read'])
+            await delay(readDelay)
+          }
+          return HttpResponse.json({ data: { post: { ...request, creator: { id: creatorId, name: 'Author' } } } })
+        }),
         graphql.mutation('AnswerOpenRequestNudge', ({ variables }) => {
           operations.push(['answer', variables.answer])
           return HttpResponse.json({ data: { answerOpenRequestNudge: { success: true } } })
@@ -257,6 +262,53 @@ describe('PostDetail', () => {
         { pathname: '/group/foo/post/91', search: '' },
         { replace: true, state: undefined }
       )
+    })
+
+    it('stays met when the link opens a request that has not loaded yet', async () => {
+      mockSearch = '?action=met'
+      operations = []
+      let fetches = 0
+      mockGraphqlServer.use(
+        graphql.query('FetchPost', async () => {
+          fetches++
+          // A second read, sent as the fulfill starts and answered after it, would undo it
+          if (fetches > 1) await delay(100)
+          return HttpResponse.json({ data: { post: { ...request, creator: { id: '1', name: 'Author' } } } })
+        }),
+        graphql.mutation('AnswerOpenRequestNudge', ({ variables }) => {
+          operations.push(['answer', variables.answer])
+          return HttpResponse.json({ data: { answerOpenRequestNudge: { success: true } } })
+        }),
+        graphql.operation(({ query, variables }) => {
+          if (/fulfillPost/.test(query)) {
+            operations.push(['fulfill', variables.postId])
+            return HttpResponse.json({ data: { fulfillPost: { success: true } } })
+          }
+        })
+      )
+      const ormSession = orm.session(orm.getEmptyState())
+      ormSession.Me.create({ id: '1', name: 'Me' })
+      extractModelsForTest({ groups: [{ id: '109', slug: 'foo' }] }, 'Group', ormSession)
+      render(<PostDetail />, { wrapper: AllTheProviders({ orm: ormSession.state, pending: {} }) })
+
+      await waitFor(() => {
+        expect(operations).toEqual([['fulfill', '91'], ['answer', 'met']])
+      })
+      await act(() => delay(200))
+      expect(fetches).toBe(1)
+      expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+    })
+
+    it('stays met when the link opens a request that was loaded before the page', async () => {
+      mockSearch = '?action=met'
+      // The page reads the post again as it opens, and that read answers after a fulfill would
+      renderRequest('1', { readDelay: 100 })
+
+      await waitFor(() => {
+        expect(operations).toEqual([['read'], ['fulfill', '91'], ['answer', 'met']])
+      })
+      await act(() => delay(200))
+      expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
     })
 
     it('only drops the param when someone other than the author follows the link', async () => {

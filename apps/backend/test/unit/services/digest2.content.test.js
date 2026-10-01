@@ -389,6 +389,20 @@ describe('digest content', () => {
       expect(await flagOf(member)).to.equal(false)
     })
 
+    it('keeps the flag when Email.js skips the digest, since it never reached them', async () => {
+      const member = await flaggedRecipient()
+      mockSend(Email.SKIPPED)
+      await sendToUser(member, 'weekly', digest({ discussions: [fresh()] }))
+      expect(sent[0].weekly_digest_notice).to.be.a('string')
+      expect(await flagOf(member)).to.equal(true)
+
+      unspyify(Email, 'sendSimpleEmail')
+      mockSend(true)
+      await sendToUser(member, 'weekly', digest({ discussions: [fresh()] }))
+      expect(sent[1].weekly_digest_notice).to.be.a('string')
+      expect(await flagOf(member)).to.equal(false)
+    })
+
     it('never adds the line to a daily digest, a dry run, or an unflagged member', async () => {
       const member = await flaggedRecipient()
       const other = await newRecipient()

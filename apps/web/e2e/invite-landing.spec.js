@@ -16,8 +16,8 @@ import { expectGroupDetailAboutLoaded } from './helpers/invitationLinksSeed.js'
  *
  * Seed (`apps/backend/scripts/seed-e2e-baseline.js`): E2E Join Host sent `e2e.user` the email
  * invitation to `e2e-invite-token-group`; `e2e.invite-signup@hylo.test` has just signed up
- * (signup_in_progress) and is in no group. Set PLATFORM_INVITE_LANDING_SCREENSHOTS to a directory
- * to save screenshots there.
+ * (signup_in_progress) and is in no group. Screenshots land in e2e/screenshots/, named per
+ * project; set PLATFORM_INVITE_LANDING_SCREENSHOTS to a directory to save them there instead.
  */
 
 test.describe.configure({ timeout: 180000 })
@@ -37,14 +37,13 @@ const JOIN_LINK = { slug: 'e2e-join-code-group', name: 'E2E Join Public Closed',
 const JUST_SIGNED_UP = { email: 'e2e.invite-signup@hylo.test', password: 'e2e-password-123' }
 
 /**
- * Saves a viewport screenshot when PLATFORM_INVITE_LANDING_SCREENSHOTS names a directory.
+ * Saves a viewport screenshot to e2e/screenshots, or to PLATFORM_INVITE_LANDING_SCREENSHOTS.
  * @param {import('@playwright/test').Page} page
  * @param {import('@playwright/test').TestInfo} testInfo
  * @param {string} name
  */
 async function capture (page, testInfo, name) {
-  const dir = process.env.PLATFORM_INVITE_LANDING_SCREENSHOTS
-  if (!dir) return
+  const dir = process.env.PLATFORM_INVITE_LANDING_SCREENSHOTS || path.resolve(import.meta.dirname, 'screenshots')
   fs.mkdirSync(dir, { recursive: true })
   await page.screenshot({ path: path.join(dir, `${testInfo.project.name}-${name}.png`), animations: 'disabled' })
 }

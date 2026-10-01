@@ -158,18 +158,23 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
   // Fetch post; include action-completion fields only for action posts.
   // Deep-linked actions may fetch twice: once without type, again once type is known.
+  // Other posts load again only when the fields asked for change, not when the type arrives.
+  const isAction = post?.type === 'action'
+  const withCompletionResponses = isAction && hasTracksResponsibility
+  // The read loadPost sent last, which ?action=met waits for (below)
+  const loadRequestRef = useRef(null)
   const loadPost = useCallback(() => {
     if (!postId) return
-    const isAction = post?.type === 'action'
     setLoadError(null)
     const request = dispatch(fetchPost(postId, {
       withCompletion: isAction,
-      withCompletionResponses: isAction && hasTracksResponsibility
+      withCompletionResponses
     }))
+    loadRequestRef.current = request
     if (request?.catch) {
       request.catch(error => setLoadError({ postId, transient: isTransientApiError(error) }))
     }
-  }, [dispatch, postId, post?.type, hasTracksResponsibility])
+  }, [dispatch, postId, isAction, withCompletionResponses])
 
   useEffect(() => {
     loadPost()
@@ -207,8 +212,11 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     if (!isOpenRequestAuthor) return
     const recordAnswer = () => dispatch(answerOpenRequestNudge(postId, OPEN_REQUEST_ANSWERS[openRequestAction]))
     if (openRequestAction === POST_ACTIONS.MET) {
-      // The same fulfill as the post's own Mark as met; recording the answer is best effort
-      Promise.resolve(post.fulfilledAt ? null : dispatch(fulfillPost(postId)))
+      // The same fulfill as the post's own Mark as met; recording the answer is best effort.
+      // It waits for the read this page sent as it opened, which would otherwise answer after
+      // the fulfill's optimistic update and show the post as still needed again.
+      Promise.resolve(loadRequestRef.current).catch(() => {})
+        .then(() => post.fulfilledAt ? null : dispatch(fulfillPost(postId)))
         .then(() => {
           toast(t('Marked as met. Thanks for letting everyone know!'))
           return recordAnswer()

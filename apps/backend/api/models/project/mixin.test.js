@@ -1,6 +1,5 @@
-import root from 'root-path'
-const setup = require(root('test/setup'))
-const factories = require(root('test/setup/factories'))
+import '../../../test/setup'
+import factories from '../../../test/setup/factories'
 
 describe('Project Mixin', () => {
   describe('addProjectMembers', () => {

@@ -34,6 +34,15 @@ export function nextIncompleteAction (actions, currentId) {
   return list.slice(index + 1).find(isOpen) || list.slice(0, Math.max(index, 0)).find(isOpen) || null
 }
 
+/**
+ * Whether a stored track still needs the full track query (fetchTrack), which brings the
+ * viewer's enrollment. A notification about the track can store it first with only a few
+ * fields, so having a record with its id isn't enough.
+ */
+export function needsFullTrack (track) {
+  return !track || track.isEnrolled === undefined
+}
+
 /** A track learner's own progress from their membership settings (actionsCompleted). */
 export function progressFromSettings (settings, numActions, didComplete) {
   const total = Number(numActions) || 0

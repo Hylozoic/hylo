@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import Button from 'components/ui/button'
 import Checkbox from 'components/ui/checkbox'
 import {
@@ -72,7 +72,6 @@ export default function PostCompletion ({ postId, type, isFulfilled, fulfillPost
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const location = useLocation()
-  const navigate = useNavigate()
   const me = useSelector(getMe)
   const [candidates, setCandidates] = useState([])
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -117,18 +116,14 @@ export default function PostCompletion ({ postId, type, isFulfilled, fulfillPost
     checked ? unfulfillPost() : markMet()
   }
 
-  // The author's open-request nudge links here with ?action=met (D58): mark the request
-  // met once, drop the param, then ask who helped
+  // The author's open-request nudge and digest link here with ?action=met (D58).
+  // PostDetail marks the request met, records the answer and drops the param (one
+  // fulfill, so followers get one 'request met'); this only asks who helped.
   const metRequested = getQuerystringParam('action', location) === 'met'
   const metHandled = useRef(false)
   useEffect(() => {
     if (!metRequested || metHandled.current || isModerator) return
     metHandled.current = true
-    const params = new URLSearchParams(location.search)
-    params.delete('action')
-    const search = params.toString()
-    navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true, state: location.state })
-    if (!isFulfilled) fulfillPost()
     if (asksWhoHelped) openPicker()
   }, [metRequested])
 
