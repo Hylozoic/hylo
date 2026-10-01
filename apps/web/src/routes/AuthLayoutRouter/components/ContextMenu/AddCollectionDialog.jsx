@@ -263,7 +263,7 @@ export default function AddCollectionDialog ({ group, view, onCancel, onCreated,
           {postSelectorGroup && (
             <div className='flex flex-col gap-1'>
               <label className='text-sm text-foreground/70'>{t('Posts')}</label>
-              <p className='text-xs text-foreground/50 mb-1'>
+              <p className='text-xs text-foreground-muted mb-1'>
                 <span>{posts.length}</span> <span>{t('posts in this collection')}</span>
               </p>
               {isLoadingPosts

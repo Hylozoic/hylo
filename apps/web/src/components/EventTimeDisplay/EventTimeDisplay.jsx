@@ -44,7 +44,7 @@ export default function EventTimeDisplay ({
 
   const primaryIncludesTimezone = eventTimezoneLabel && primary.includes(eventTimezoneLabel)
   const eventTimeLabel = showTimezoneLabel && !primaryIncludesTimezone && (
-    <span className={cn('text-foreground/50 text-[10px] leading-tight', timezoneLabelClassName)}>
+    <span className={cn('text-foreground-muted text-[10px] leading-tight', timezoneLabelClassName)}>
       {t('Event time ({{timezone}})', { timezone: eventTimezoneLabel })}
     </span>
   )
@@ -59,7 +59,7 @@ export default function EventTimeDisplay ({
       <div className={cn('flex flex-col gap-0.5', className)}>
         <span>{primary}</span>
         {eventTimeLabel}
-        <span className={cn('text-foreground/50 text-xs', secondaryClassName)}>
+        <span className={cn('text-foreground-muted text-xs', secondaryClassName)}>
           {secondaryTimeLabel}
         </span>
       </div>

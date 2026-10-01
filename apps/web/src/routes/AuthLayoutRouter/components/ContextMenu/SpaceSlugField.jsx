@@ -82,7 +82,7 @@ export default function SpaceSlugField ({ parentSlug, value, onChange, currentSt
       {error
         ? <span className='text-error text-xs'>{error}</span>
         : (
-          <span className='text-xs text-foreground/50 truncate'>
+          <span className='text-xs text-foreground-muted truncate'>
             hylo.com/groups/{parentSlug || '…'}/spaces/{value || '…'}
           </span>
           )}

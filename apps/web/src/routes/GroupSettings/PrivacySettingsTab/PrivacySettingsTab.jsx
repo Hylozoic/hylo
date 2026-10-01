@@ -348,7 +348,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
           : (
             <div className='bg-muted p-8 rounded-lg text-center'>
               <p className='text-foreground/70 mb-2'>{t('{{group.name}} is not a member any groups', { group })}</p>
-              <p className='text-sm text-foreground/50'>
+              <p className='text-sm text-foreground-muted'>
                 {t('A parent group is necessary to add as a prerequisite group. You may add parent groups if you are a Host of the group you wish to add, or if the group you wish to add has the Open access setting which allows any group to join it')}{' '}
                 <Link to={groupUrl(group.slug, 'settings/relationships')} className='text-accent hover:underline'>
                   {t('Related Groups settings')}

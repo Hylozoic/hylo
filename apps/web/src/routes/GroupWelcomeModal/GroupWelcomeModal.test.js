@@ -441,3 +441,40 @@ it('after joining on the combined invitation screen, shows only the purpose and 
   expect(screen.getByTestId('welcome-introduce-yourself')).toBeInTheDocument()
   reactRouterDom.useLocation.mockReturnValue({ pathname: '', search: '' })
 })
+
+it('says when email from the group is off, with a link to change it (D11)', async () => {
+  const testGroup = {
+    id: '7',
+    name: 'Quiet Inbox Group',
+    slug: 'quiet-inbox-group',
+    bannerUrl: 'anything',
+    purpose: 'Share seeds',
+    settings: {}
+  }
+  const testMembership = {
+    id: '7',
+    person: { id: '1' },
+    settings: { showJoinForm: true, sendEmail: false },
+    group: testGroup
+  }
+
+  function testProviders () {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    extractModelsForTest({ me: { id: '1', memberships: { items: [testMembership] } } }, 'Me', ormSession)
+    extractModelsForTest({ groups: [testGroup] }, 'Group', ormSession)
+    return AllTheProviders({ orm: ormSession.state })
+  }
+
+  mockGraphqlServer.use(
+    graphql.query('GroupWelcomeQuery', () => HttpResponse.json({
+      data: { group: { id: testGroup.id, settings: testGroup.settings } }
+    }))
+  )
+  jest.spyOn(reactRouterDom, 'useParams').mockReturnValue({ groupSlug: testGroup.slug })
+
+  render(<GroupWelcomeModal />, { wrapper: testProviders() })
+
+  await waitFor(() => expect(screen.getByTestId('group-welcome-modal')).toBeTruthy())
+  expect(screen.getByTestId('email-off-notice')).toHaveTextContent('Email from this group is off.')
+  expect(screen.getByRole('link', { name: 'Change email settings' })).toHaveAttribute('href', '/my/notifications')
+})

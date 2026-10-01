@@ -8,12 +8,19 @@ const digest2 = require('./lib/group/digest2')
 const Promise = require('bluebird')
 const { red } = require('chalk')
 const savedSearches = require('./lib/group/digest2/savedSearches')
+const { savedSearchDigestTypesAt } = require('./lib/group/digest2/localMorning')
 const OIDCAdapter = require('./api/services/oidc/KnexAdapter')
 const { countOrphanedGroups } = require('./api/models/group/administrators')
 
-const sendAndLogDigests = type =>
-  digest2.sendAllDigests(type)
-    .then(results => { sails.log.debug(`Sent digests for: ${results}`); return results })
+// D41: each hourly run sends to members whose local morning (or, without a timezone,
+// noon Pacific) has come round; the daily and weekly runs pick their own members
+const sendAndLogDigests = (type, now) =>
+  digest2.sendAllDigests(type, { at: now.toJSDate() })
+    .then(results => { sails.log.debug(`Sent ${type} digests for: ${results}`); return results })
+    .catch(err => {
+      sails.log.error(`${type} digest run failed; continuing hourly tasks`, err)
+      return []
+    })
 
 const sendSavedSearchDigests = userId =>
   savedSearches.sendAllDigests(userId)
@@ -61,6 +68,8 @@ const daily = now => {
   tasks.push(require('./api/models/group/activityBenchmark').runDaily().then(({ line, marked }) => sails.log.debug(`Marked ${marked} groups quiet or busy (line: ${line} feed posts in 28 days)`)).catch(err => sails.log.error('Quiet-group benchmark failed', err)))
 
   tasks.push(require('./api/models/user/winback').sendWinbackEmails().then(count => sails.log.debug(`Sent ${count} win-back emails`)).catch(err => sails.log.error('Win-back emails failed', err)))
+  // D12: day-2 'find a group' and day-3 'introduce yourself' emails to new members
+  tasks.push(require('./api/models/user/lifecycleEmails').sendLifecycleEmails({ now: now.toJSDate() }).then(({ findGroup, introduce }) => sails.log.debug(`Sent ${findGroup} find a group and ${introduce} introduce yourself emails`)).catch(err => sails.log.error('Lifecycle emails failed', err)))
 
   // Staff assign an Administrator from Management > Groups without an Administrator
   tasks.push(countOrphanedGroups().then(count => {
@@ -100,18 +109,16 @@ const hourly = now => {
   // D44: reminders about a day before events, and nudges to unanswered invitees
   tasks.push(require('./api/models/event/reminders').sendEventReminders().then(({ events, reminded, nudged }) => sails.log.debug(`Event reminders: ${events} events, ${reminded} reminded, ${nudged} nudged`)).catch(err => sails.log.error('Event reminders failed', err)))
 
+  sails.log.debug('Sending digests to members whose local morning has come round')
+  tasks.push(sendAndLogDigests('daily', now))
+  tasks.push(sendAndLogDigests('weekly', now))
+  // Saved-search digests stay at noon Pacific, weekly ones on Wednesday
+  for (const type of savedSearchDigestTypesAt(now)) {
+    sails.log.debug(`Sending ${type} saved search digests`)
+    tasks.push(sendSavedSearchDigests(type))
+  }
+
   switch (now.hour) {
-    case 12:
-      sails.log.debug('Sending daily digests')
-      tasks.push(sendAndLogDigests('daily'))
-      tasks.push(sendSavedSearchDigests('daily'))
-      // Luxon weekday: 1 = Monday ... 3 = Wednesday. (now.day is the day of month.)
-      if (now.weekday === 3) {
-        sails.log.debug('Sending weekly digests')
-        tasks.push(sendAndLogDigests('weekly'))
-        tasks.push(sendSavedSearchDigests('weekly'))
-      }
-      break
     case 13:
       sails.log.debug('Resending invites')
       tasks.push(resendInvites())

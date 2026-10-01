@@ -31,6 +31,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     layout
     autoAddMembers
     introTemplate
+    defaultPostNotifications
   }
   slug
   type

@@ -14,6 +14,8 @@ import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
 import { sanitizeAcquisitionSource } from '../../lib/acquisitionSource'
+import { isValidTimezone } from '../../lib/group/digest2/localMorning'
+import { SIGNUP_COMPLETED_SETTING } from './user/lifecycleEmails'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -386,10 +388,10 @@ module.exports = bookshelf.Model.extend(merge({
     return normalizeLocaleToFull(this.getSetting('locale') || 'en-US')
   },
 
+  // A new membership gets the group's default notification settings and the person's
+  // saved less-email choices from Group.addMembers (D1, D11); someone already in the
+  // group, or coming back to it, keeps their own
   joinGroup: async function (group, { assignAdministrator = false, fromInvitation = false, questionAnswers = [], joinSource, invitationId, invitedById, transacting = null } = {}) {
-    const groupSettings = group.get('settings') || {}
-    const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
-
     const memberships = await group.addMembers([this.id],
       {
         assignAdministrator,
@@ -399,10 +401,6 @@ module.exports = bookshelf.Model.extend(merge({
         settings: {
           // Set joinQuestionsAnsweredAt if user answered questions during the join flow
           joinQuestionsAnsweredAt: questionAnswers.length > 0 ? new Date() : null,
-          postNotifications: 'all',
-          digestFrequency: defaultDigestFrequency,
-          sendEmail: true,
-          sendPushNotifications: true,
           showJoinForm: true,
           lastReadAt: null
         }
@@ -449,7 +447,7 @@ module.exports = bookshelf.Model.extend(merge({
       }
     })
 
-    if (attrs.settings) this.addSetting(attrs.settings)
+    if (attrs.settings) this.addSetting(User.sanitizeSettings(attrs.settings))
 
     return this.set(saneAttrs)
   },
@@ -545,7 +543,13 @@ module.exports = bookshelf.Model.extend(merge({
       // existing data, e.g. when updating settings
       await this.refresh({ transacting })
 
+      // When signup was finished, the first time (lifecycle emails, D12). Only an update
+      // that ends a signup in progress counts, not an older account sending false again.
+      const finishingSignup = changes.settings?.signup_in_progress === false &&
+        this.getSetting('signup_in_progress') === true &&
+        !this.getSetting(SIGNUP_COMPLETED_SETTING)
       this.setSanely(omit(whitelist, 'password'))
+      if (finishingSignup) this.addSetting({ [SIGNUP_COMPLETED_SETTING]: new Date().toISOString() })
       // A new address hasn't bounced (D36)
       if (this.hasChanged('email')) this.set({ email_undeliverable_at: null, email_undeliverable_reason: null })
 
@@ -691,6 +695,13 @@ module.exports = bookshelf.Model.extend(merge({
 
 }, HasSettings), {
   AXOLOTL_ID: '13986',
+
+  // Settings as they may be saved. A timezone (from the person's browser, D41) is kept
+  // only when it is an IANA name luxon knows, so digest scheduling can rely on it.
+  sanitizeSettings (settings) {
+    if (!settings || !has(settings, 'timezone') || isValidTimezone(settings.timezone)) return settings
+    return omit(settings, 'timezone')
+  },
 
   // One message for every failure, so login can't be used to find out which emails have accounts.
   // Clients match on this exact string.
@@ -977,6 +988,8 @@ module.exports = bookshelf.Model.extend(merge({
       const initialGroup = memberships?.models[0]?.relations?.group
       Email.sendWelcomeEmail({
         email: user.get('email'),
+        // In the person's language (the template has a version for each locale)
+        locale: user.getLocale(),
         data: {
           member_name: user.get('name'),
           group_name: initialGroup?.get('name'),

@@ -17,7 +17,10 @@ const GROUP_SETTINGS_INPUT_FIELDS = [
   'showSuggestedSkills',
   'showWelcomePage',
   'showPostNoticesInChat',
-  'autoAddMembers'
+  'autoAddMembers',
+  'showPaywallPreview',
+  'introTemplate',
+  'defaultPostNotifications'
 ]
 
 export const DELETE_GROUP = `${MODULE_NAME}/DELETE_GROUP`
@@ -98,6 +101,7 @@ export function fetchGroupSettings (slug) {
             autoAddMembers
             showPaywallPreview
             introTemplate
+            defaultPostNotifications
           }
           type
           parentId
@@ -312,6 +316,7 @@ export function updateGroupSettings (id, changes) {
             layout
             autoAddMembers
             introTemplate
+            defaultPostNotifications
           }
           agreements {
             items {

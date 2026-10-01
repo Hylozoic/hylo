@@ -183,7 +183,7 @@ function JoinRequest ({ accept, decline, group, request }) {
           <div className='flex items-start justify-between gap-2'>
             <div className='font-medium text-foreground'>{user.name}</div>
             {createdAtLabel && (
-              <span className='text-xs text-foreground/50 whitespace-nowrap shrink-0'>{createdAtLabel}</span>
+              <span className='text-xs text-foreground-muted whitespace-nowrap shrink-0'>{createdAtLabel}</span>
             )}
           </div>
           {user.skills.items.length > 0
@@ -210,7 +210,7 @@ function JoinRequest ({ accept, decline, group, request }) {
             <h3 className='text-foreground font-medium'>{q.text}</h3>
             <p className='text-foreground/70'>
               {get('answer', questionAnswers.find(qa => qa.question.id === q.questionId)) ||
-                <i className='text-foreground/50'>{t('Not answered')}</i>}
+                <i className='text-foreground-muted'>{t('Not answered')}</i>}
             </p>
           </div>
         ))}

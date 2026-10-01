@@ -117,11 +117,11 @@ export default function InvitePolicySelect ({ mode, onModeChange, roles = [], on
                 <Label htmlFor={inputId} className={cn('font-normal', !role.locked && 'cursor-pointer')}>
                   {role.label}
                 </Label>
-                {role.locked && <span className='text-xs text-foreground/50'>{t('Can always invite')}</span>}
+                {role.locked && <span className='text-xs text-foreground-muted'>{t('Can always invite')}</span>}
               </div>
             )
           })}
-          {hint && <p className='text-xs text-foreground/60 m-0'>{hint}</p>}
+          {hint && <p className='text-xs text-foreground-muted m-0'>{hint}</p>}
         </div>
       )}
     </div>

@@ -109,6 +109,8 @@ exports.en = {
   joinRequestUnansweredSubject: (groupName) => `Your request to join ${groupName} is still waiting`,
   roleGrantedSubject: ({ roleName, groupName }) => `You have a new role in ${groupName}: ${roleName}`,
   stewardWeeklySubject: (groupName) => `This week in ${groupName}, for stewards`,
+  lifecycleFindGroupSubject: () => 'Find a group to join on Hylo',
+  lifecycleIntroduceSubject: (groupName) => `Introduce yourself in ${groupName}`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

@@ -92,7 +92,7 @@ export default function StripeAnalytics () {
   return (
     <div className='p-6 space-y-6'>
       <h1 className='text-2xl font-bold text-foreground'>Stripe Disputes & Refunds</h1>
-      <p className='text-sm text-foreground/60'>
+      <p className='text-sm text-foreground-muted'>
         Stripe flags accounts at <span className='font-medium text-yellow-500'>0.75%</span> (early warning) and{' '}
         <span className='font-medium text-red-500'>1.0%</span> (critical risk). Groups above either threshold may have
         received an alert email. Dispute rates are calculated over the last 90 days.
@@ -106,12 +106,12 @@ export default function StripeAnalytics () {
       </div>
 
       {groups.length === 0
-        ? <p className='text-foreground/60'>No groups with Stripe Connect accounts found.</p>
+        ? <p className='text-foreground-muted'>No groups with Stripe Connect accounts found.</p>
         : (
           <div className='overflow-x-auto'>
             <table className='w-full text-sm text-left border-collapse'>
               <thead>
-                <tr className='border-b border-foreground/10 text-foreground/50 text-xs uppercase'>
+                <tr className='border-b border-foreground/10 text-foreground-muted text-xs uppercase'>
                   <th className='py-2 pr-4'>Group</th>
                   <th className='py-2 pr-4 text-right'>Charges (90d)</th>
                   <th className='py-2 pr-4 text-right'>Disputes (90d)</th>
@@ -158,7 +158,7 @@ export default function StripeAnalytics () {
                       {g.open_disputes}
                     </td>
                     <td className='py-3 pr-4 text-right'>{g.refunds_90d}</td>
-                    <td className='py-3 text-xs text-foreground/50'>
+                    <td className='py-3 text-xs text-foreground-muted'>
                       {g.last_alert_at
                         ? (
                           <span title={g.last_alert_threshold}>
@@ -204,7 +204,7 @@ function PlatformStat ({ label, value, highlight }) {
   return (
     <div className='bg-card rounded-lg p-4 border border-foreground/10'>
       <div className={`text-2xl font-bold ${highlight ? 'text-yellow-500' : 'text-foreground'}`}>{value}</div>
-      <div className='text-xs text-foreground/50 mt-1'>{label}</div>
+      <div className='text-xs text-foreground-muted mt-1'>{label}</div>
     </div>
   )
 }

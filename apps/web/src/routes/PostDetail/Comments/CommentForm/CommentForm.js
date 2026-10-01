@@ -336,7 +336,7 @@ const CommentForm = forwardRef(function CommentForm ({
           <AttachmentManager type='comment' id='new' attachmentType='image' onUploadError={handleUploadError} />
         )}
       </div>
-      <p className='text-xs text-foreground/50 text-end'>
+      <p className='text-xs text-foreground-muted text-end'>
         {!isMobile.any && (navigator.platform.includes('Mac') ? t('Press Option-Enter to comment') : t('Press Alt-Enter to comment'))}
       </p>
     </>

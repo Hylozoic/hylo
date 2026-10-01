@@ -157,7 +157,7 @@ function SpaceMenuItemWithMore ({
   const spaceMoreCount = Number(resolvedSpaceGroup?.moreSpacesCount) || 0
   const spaceMoreBadge = spaceMoreCount > 0
     ? (
-      <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>
+      <span className='ml-auto shrink-0 text-xs leading-none text-foreground-muted bg-foreground/10 rounded-full px-1.5 py-1'>
         {spaceMoreCount}
       </span>
       )
@@ -225,7 +225,7 @@ function SpaceMenuItemWithMore ({
               isSpaceActive
                 ? (spaceBannerUrl
                     ? 'text-white/60 hover:text-white'
-                    : 'text-foreground/50 hover:text-foreground dark:text-white/60 dark:hover:text-white')
+                    : 'text-foreground-muted hover:text-foreground dark:text-white/60 dark:hover:text-white')
                 // Rides the same banner fade as the label beside it
                 : (spaceBannerUrl ? 'group-hover:text-white/60 hover:text-white' : null)
             )}
@@ -254,7 +254,7 @@ function SpaceMenuItemWithMore ({
                         ? 'bg-white/15 text-white/90'
                         : 'bg-foreground/10 text-foreground/70 dark:bg-white/15 dark:text-white/90')
                     : cn(
-                      'bg-foreground/10 text-foreground/50',
+                      'bg-foreground/10 text-foreground-muted',
                       spaceBannerUrl && 'group-hover:bg-white/15 group-hover:text-white/90'
                     )
                 )}
@@ -821,7 +821,7 @@ export default function ContextMenu (props) {
   )
   const moreSpacesBadge = moreSpacesCount > 0
     ? (
-      <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>
+      <span className='ml-auto shrink-0 text-xs leading-none text-foreground-muted bg-foreground/10 rounded-full px-1.5 py-1'>
         {moreSpacesCount}
       </span>
       )

@@ -1,0 +1,28 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+{% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+
+<p>
+  {% set first_name_var = first_name %}
+  {% trans %}Hi {{first_name_var}},{% endtrans %}
+</p>
+
+<p>{% trans %}Welcome to {{group_pill}}! Say hello so the group can get to know you: what brought you here, and what you'd like to share or learn.{% endtrans %}</p>
+
+<a class='btn btn-blue' href="{{introduce_url}}" clicktracking="off">{% trans %}Introduce yourself{% endtrans %}</a>
+
+<p>{% trans %}We'll start your post for you. It only takes a minute.{% endtrans %}</p>
+
+<p><a href='{{email_settings_url}}'>{% trans %}Choose which emails you get{% endtrans %}</a></p>
+
+<p>{% trans %}The Hylo Team{% endtrans %}</p>
+
+{% snippet "footer_redesign" %}

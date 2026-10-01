@@ -2452,6 +2452,18 @@ CREATE SEQUENCE public.notification_status_seq
 
 
 --
+-- Name: notification_settings_backfill; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notification_settings_backfill (
+    table_name character varying(255) NOT NULL,
+    row_id bigint NOT NULL,
+    previous jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
 -- Name: notifications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5135,6 +5147,14 @@ ALTER TABLE ONLY public.moderation_actions
 
 ALTER TABLE ONLY public.moderation_actions_platform_agreements
     ADD CONSTRAINT moderation_actions_platform_agreements_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: notification_settings_backfill notification_settings_backfill_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notification_settings_backfill
+    ADD CONSTRAINT notification_settings_backfill_pkey PRIMARY KEY (table_name, row_id);
 
 
 --

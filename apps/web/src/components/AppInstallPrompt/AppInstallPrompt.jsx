@@ -125,7 +125,7 @@ export default function AppInstallPrompt ({ userAgent }) {
           type='button'
           aria-label={t('Dismiss')}
           onClick={() => close(AnalyticsEvents.APP_INSTALL_PROMPT_DISMISSED)}
-          className='p-1 rounded-full text-foreground/60 hover:text-foreground shrink-0'
+          className='p-1 rounded-full text-foreground-muted hover:text-foreground shrink-0'
         >
           <X className='w-4 h-4' />
         </button>

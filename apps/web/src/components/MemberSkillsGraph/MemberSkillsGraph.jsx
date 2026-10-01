@@ -126,13 +126,13 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
       <div className='flex items-center justify-between bg-card rounded-t-xl border-b border-foreground/10 px-3 py-2'>
         <div className='min-w-0'>
           <h2 className='m-0 text-sm font-semibold text-foreground'>{t('Skill map')}</h2>
-          <p className={cn('m-0 text-xs text-foreground/60', loading && 'invisible')}>
+          <p className={cn('m-0 text-xs text-foreground-muted', loading && 'invisible')}>
             {t('{{memberCount}} members with {{skillCount}} skills', { memberCount: mappedMemberCount, skillCount: mappedSkillCount })}
           </p>
         </div>
         <div className={cn('flex items-center gap-2', loading && 'invisible')}>
           {/* Names the dropdown's meaning — a bare "2+ people" reads as a mystery */}
-          <span className='text-xs text-foreground/60 whitespace-nowrap'>{t('Skills with')}</span>
+          <span className='text-xs text-foreground-muted whitespace-nowrap'>{t('Skills with')}</span>
           <Dropdown
             id='skills-graph-threshold'
             alignRight
@@ -192,7 +192,7 @@ export default function MemberSkillsGraph ({ members, loading, slug, onSkillClic
         {(loading || building) && (
           <div className='absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-b-xl bg-card'>
             <Loading type='inline' />
-            <span className='text-sm text-foreground/60'>{t('Loading skills map')}</span>
+            <span className='text-sm text-foreground-muted'>{t('Loading skills map')}</span>
           </div>
         )}
         {!loading && !building && (

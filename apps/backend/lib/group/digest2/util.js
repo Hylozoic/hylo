@@ -3,6 +3,7 @@ import { includes } from 'lodash'
 import { get, pick, some } from 'lodash/fp'
 import { UNSUBSCRIBE_SCOPE, UNSUBSCRIBE_SCOPE_SETTING } from '../../../api/models/notification/rules/unsubscribeScope'
 import { DORMANT_DAYS, INACTIVE_DAYS, daysAgo } from '../../../api/models/notification/rules/inactiveReader'
+import { SLOT_SETTING, isDue, timezoneFilter, windowFor } from './localMorning'
 
 // When a member was last seen (D9): their last activity, else when they signed up
 const LAST_SEEN = 'coalesce(users.last_active_at, users.created_at, now())'
@@ -203,15 +204,45 @@ async function markSlowedDigests (groupId, recipients, inactiveSince) {
   })
 }
 
-export async function getRecipients (groupId, type) {
+// For an hourly run (D41): keeps the recipients whose local-morning slot is due, and
+// gives each their slot (digestSlot), the window their digest covers (digestWindow,
+// with a key to group by) and the slot their last one was sent for (digestSentFor)
+async function dueForSchedule (groupId, type, recipients, { at, timezones }) {
+  if (recipients.length === 0) return recipients
+  const key = SLOT_SETTING[type]
+  const rows = await bookshelf.knex('group_memberships')
+    .where('group_id', groupId)
+    .whereIn('user_id', recipients.map(user => user.id))
+    .select('user_id', bookshelf.knex.raw('settings->>? as sent_for', [key]))
+  const sentFor = {}
+  rows.forEach(row => { sentFor[String(row.user_id)] = row.sent_for || null })
+
+  return recipients.filter(user => {
+    const timezone = user.get('settings')?.timezone
+    const slot = timezones.get(timezone == null ? '' : String(timezone))
+    if (!slot) return false
+    const lastSentFor = sentFor[String(user.id)] || null
+    if (!isDue(type, slot, lastSentFor, at)) return false
+    const window = windowFor(type, slot, lastSentFor)
+    user.digestSlot = slot
+    user.digestSentFor = lastSentFor
+    user.digestWindow = window
+    user.digestWindowKey = window.map(time => time.toMillis()).join('-')
+    return true
+  })
+}
+
+// schedule (optional, for the hourly local-morning runs): { at, timezones } from
+// localMorning.dueTimezones; only members whose slot is due are returned
+export async function getRecipients (groupId, type, schedule = null) {
   if (!includes(['daily', 'weekly'], type)) {
     throw new Error(`invalid recipient type: ${type}`)
   }
 
   const group = await Group.find(groupId)
-  const now = new Date()
+  const now = schedule?.at ? new Date(schedule.at) : new Date()
   const inactiveSince = daysAgo(INACTIVE_DAYS, now)
-  const recipients = await group.members().query(q => {
+  let recipients = await group.members().query(q => {
     // Members away 30 days or more get the weekly digest instead of the daily one, and
     // members away 180 days or more get none (D9)
     if (type === 'daily') {
@@ -232,7 +263,13 @@ export async function getRecipients (groupId, type) {
     // emails' already turned sendEmail off, and 'digest only' keeps them
     q.whereRaw(`coalesce(users.settings->>'${UNSUBSCRIBE_SCOPE_SETTING}', '') not in (?, ?)`,
       [UNSUBSCRIBE_SCOPE.ALL_BUT_DIRECT, UNSUBSCRIBE_SCOPE.EVERYTHING])
+    if (schedule) {
+      const filter = timezoneFilter(schedule.timezones.keys())
+      q.whereRaw(filter.sql, filter.bindings)
+    }
   }).fetch().then(get('models'))
+
+  if (schedule) recipients = await dueForSchedule(groupId, type, recipients, schedule)
 
   if (type === 'weekly') await markSlowedDigests(groupId, recipients, inactiveSince)
 

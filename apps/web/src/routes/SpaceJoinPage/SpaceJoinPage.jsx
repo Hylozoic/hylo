@@ -249,7 +249,7 @@ export default function SpaceJoinPage () {
                 ? <BadgeDollarSign className='w-9 h-9 shrink-0 text-foreground/60' />
                 : <Icon name={accessibilityIcon(spaceGroup.accessibility)} className='shrink-0 text-foreground/60 text-4xl leading-none' />}
               <div className='min-w-0'>
-                <div className='text-[10px] font-bold uppercase tracking-wider text-foreground/50'>{t('Access')}</div>
+                <div className='text-[10px] font-bold uppercase tracking-wider text-foreground-muted'>{t('Access')}</div>
                 <div className='text-sm font-medium text-foreground'>{accessDescription}</div>
               </div>
             </div>
@@ -274,13 +274,13 @@ export default function SpaceJoinPage () {
                     )
                   : isRoleGated && hasJoinOrInviteLink
                     ? (
-                      <p className='text-sm text-foreground/60'>
+                      <p className='text-sm text-foreground-muted'>
                         {t('This invitation link requires you to have the {{roleNames}} role to join this space', { roleNames: requiredRoles.map(r => [r.emoji, r.name].filter(Boolean).join(' ')).join(', ') })}
                       </p>
                       )
                     : isRoleGated
                       ? (
-                        <p className='text-sm text-foreground/60'>
+                        <p className='text-sm text-foreground-muted'>
                           {t('You do not have a role needed to join this space')}
                         </p>
                         )
@@ -298,7 +298,7 @@ export default function SpaceJoinPage () {
                             </Button>
                             )
                         : (
-                          <p className='text-sm text-foreground/60'>
+                          <p className='text-sm text-foreground-muted'>
                             {t('This space is invite only. You need an invitation to join.')}
                           </p>
                           )}

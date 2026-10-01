@@ -111,7 +111,7 @@ class Pillbox extends Component {
             <Button
               variant='outline'
               onClick={addOnClick}
-              className='text-foreground/60 hover:text-foreground/100 b transition-colors p-2 border-2 border-foreground/20 rounded-lg'
+              className='text-foreground-muted hover:text-foreground/100 b transition-colors p-2 border-2 border-foreground/20 rounded-lg'
             >
               {addLabel}
             </Button>
@@ -131,7 +131,7 @@ class Pillbox extends Component {
                 onKeyDown={this.handleKeys}
               />
               <button
-                className='absolute right-2 top-1/2 -translate-y-1/2 text-foreground/60 hover:text-foreground/80 p-1'
+                className='absolute right-2 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground/80 p-1'
                 onClick={reset}
                 type='reset'
               >

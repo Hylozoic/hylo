@@ -119,7 +119,7 @@ export default function PostGridItem ({
           {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
           {title}
         </h3>
-        <p className='text-foreground/60 text-xs flex-1 mt-0 mb-0 overflow-hidden'>
+        <p className='text-foreground-muted text-xs flex-1 mt-0 mb-0 overflow-hidden'>
           {TextHelpers.presentHTMLToText(details, { truncate: 200 })}
         </p>
       </div>
@@ -129,7 +129,7 @@ export default function PostGridItem ({
         <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
         <span className={cn('truncate text-foreground font-bold min-w-0', groupLabel && 'shrink-0 max-w-[60%]')}>{creator.name}</span>
         {groupLabel && (
-          <span className='truncate text-foreground/60 min-w-0'>{groupLabel}</span>
+          <span className='truncate text-foreground-muted min-w-0'>{groupLabel}</span>
         )}
         <span className='text-foreground/70 ml-auto flex-shrink-0'>{createdTimestampShort}</span>
       </div>

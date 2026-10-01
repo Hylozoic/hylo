@@ -163,7 +163,18 @@ describe('Group', function () {
 
       const gm2 = await group.memberships()
         .query(q => q.where('user_id', u2.id)).fetchOne()
-      expect(gm2.get('settings')).to.deep.equal({ agreementsAcceptedAt: null, joinQuestionsAnsweredAt: null, showJoinForm: true, there: true })
+      // Caller settings are merged over the new-membership defaults (D1, D10)
+      expect(gm2.get('settings')).to.deep.equal({
+        agreementsAcceptedAt: null,
+        joinQuestionsAnsweredAt: null,
+        showJoinForm: true,
+        lastReadAt: null,
+        there: true,
+        postNotifications: 'important',
+        digestFrequency: 'daily',
+        sendEmail: true,
+        sendPushNotifications: true
+      })
       expect(await GroupMembership.hasResponsibility(u2.id, group, Responsibility.constants.RESP_ADMINISTRATION)).to.be.true
     })
 
@@ -221,6 +232,11 @@ describe('Group', function () {
           agreementsAcceptedAt: null,
           joinQuestionsAnsweredAt: null,
           showJoinForm: false,
+          lastReadAt: null,
+          postNotifications: 'important',
+          digestFrequency: 'daily',
+          sendEmail: true,
+          sendPushNotifications: true,
           joinSource: 'auto_add'
         })
       })
@@ -1049,7 +1065,8 @@ describe('Group', function () {
       const addedMembership = await GroupMembership.forPair(neverJoined, space).fetch()
       expect(addedMembership.get('active')).to.be.true
       expect(addedMembership.getSetting('joinSource')).to.equal('auto_add')
-      expect(addedMembership.getSetting('postNotifications')).to.equal('all')
+      // The parent membership started on 'important' (D1), which the space copies (D10)
+      expect(addedMembership.getSetting('postNotifications')).to.equal('important')
       expect(addedMembership.getSetting('digestFrequency')).to.equal('daily')
       expect(addedMembership.getSetting('sendEmail')).to.equal(true)
       expect(addedMembership.getSetting('sendPushNotifications')).to.equal(true)

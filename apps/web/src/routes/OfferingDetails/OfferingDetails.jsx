@@ -341,7 +341,7 @@ export default function OfferingDetails () {
                     </>
                     )}
               </Button>
-              <p className='text-xs text-foreground/60 mt-3 text-center'>
+              <p className='text-xs text-foreground-muted mt-3 text-center'>
                 {t('You\'ll have the option to add a contribution to Hylo during checkout')}
               </p>
             </div>

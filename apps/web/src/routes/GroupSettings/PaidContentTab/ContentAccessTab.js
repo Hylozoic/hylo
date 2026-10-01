@@ -544,7 +544,7 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
             {refundedAt && status !== 'refunded' && (
               <span className='px-2 py-1 text-xs rounded bg-purple-500/20 text-purple-400'>{t('Refunded')}</span>
             )}
-            <div className='text-xs text-foreground/60'>
+            <div className='text-xs text-foreground-muted'>
               {t('Granted')}: {formatDate(createdAt)}
             </div>
             {subscriptionCancelAtPeriodEnd && subscriptionPeriodEnd && (
@@ -553,7 +553,7 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
               </div>
             )}
             {!subscriptionCancelAtPeriodEnd && expiresAt && (
-              <div className='text-xs text-foreground/60'>
+              <div className='text-xs text-foreground-muted'>
                 {t('Expires')}: {formatDate(expiresAt)}
               </div>
             )}
@@ -591,7 +591,7 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
 
         {/* Granted By Info */}
         {grantedBy && (
-          <div className='mt-2 text-xs text-foreground/60 break-words [overflow-wrap:anywhere]'>
+          <div className='mt-2 text-xs text-foreground-muted break-words [overflow-wrap:anywhere]'>
             {t('Granted by')}: {grantedBy.name}
           </div>
         )}
@@ -647,7 +647,7 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
                 <Label htmlFor={`refund-cancel-future-payments-${id}`} className='font-normal cursor-pointer'>
                   {t('Also cancel future payments')}
                 </Label>
-                <p className='text-xs text-foreground/60 mt-1'>
+                <p className='text-xs text-foreground-muted mt-1'>
                   {t('The subscription ends when the period they have paid for is over, and their access ends then.')}
                 </p>
               </div>
@@ -963,7 +963,7 @@ function GrantAccessForm ({ group, offerings, spaces, initialSpaceId, onSuccess,
             ))}
           </select>
           {spaceOptions.length === 0 && (
-            <p className='mt-2 text-sm text-foreground/60'>
+            <p className='mt-2 text-sm text-foreground-muted'>
               {t('No spaces found in this group')}
             </p>
           )}

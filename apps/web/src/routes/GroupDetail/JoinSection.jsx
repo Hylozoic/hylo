@@ -42,7 +42,7 @@ function AgreementsBarrierBlock ({ agreements, acceptedAgreements, setAcceptedAg
   return (
     <div className='mb-4'>
       <h3 className='text-foreground font-bold mb-2'>{t('Agreements')}</h3>
-      <p className='text-foreground/60 text-sm mb-3'>{introText}</p>
+      <p className='text-foreground-muted text-sm mb-3'>{introText}</p>
       {agreements.map((agreement, index) => (
         <div
           key={agreement.id || index}
@@ -162,7 +162,7 @@ export function JoinBarriers ({ group, onBarriersStateChange, joinIntroCopy = fa
 
       {hasRequiredQuestions && (
         <div className='mb-4'>
-          <div className='text-foreground/60 font-medium text-base mb-2'>{questionsIntro}:</div>
+          <div className='text-foreground-muted font-medium text-base mb-2'>{questionsIntro}:</div>
           {questionAnswers.map((q, index) => (
             <div className='bg-input rounded-xl p-2 mb-4' key={index}>
               <h3>{q.text}</h3>
@@ -321,7 +321,7 @@ export default function JoinSection ({ accessCode, currentUser, expandJoinForm =
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
         ? (
           <div className='w-full mb-[100px] border border-dashed p-3 rounded bg-midground'>
-            <h4 className='text-center text-foreground/60 font-medium text-base leading-6'>
+            <h4 className='text-center text-foreground-muted font-medium text-base leading-6'>
               {group.prerequisiteGroups.length === 1
                 ? <span>{group.name}{' '}{t('is only accessible to members of')}{' '}{group.prerequisiteGroups.map(prereq => <span key={prereq.id}>{prereq.name}</span>)}</span>
                 : <span>{t('{{group.name}} is only accessible to members of the following groups:', { group })}</span>}

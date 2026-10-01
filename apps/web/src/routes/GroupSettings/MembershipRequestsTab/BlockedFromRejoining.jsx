@@ -60,7 +60,7 @@ export default function BlockedFromRejoining ({ group }) {
           <div className='flex-1 min-w-0'>
             <div className='font-medium text-foreground truncate'>{ban.person.name}</div>
             {ban.createdAt && (
-              <div className='text-xs text-foreground/50'>
+              <div className='text-xs text-foreground-muted'>
                 {t('Blocked {{date}}', { date: formatLocalizedDate(ban.createdAt, { style: 'short' }) })}
               </div>
             )}

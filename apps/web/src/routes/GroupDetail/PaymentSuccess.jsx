@@ -137,7 +137,7 @@ export default function PaymentSuccess () {
             : t('Thank you for your purchase. Your access to this group has been granted.')}
         </p>
         {sessionId && (
-          <p className='text-sm text-foreground/50 mb-6'>
+          <p className='text-sm text-foreground-muted mb-6'>
             {t('Session ID')}: {sessionId}
           </p>
         )}
@@ -159,7 +159,7 @@ export default function PaymentSuccess () {
                 )}
           </Button>
         </div>
-        <p className='text-xs text-foreground/50 mt-4'>
+        <p className='text-xs text-foreground-muted mt-4'>
           {t('You will be redirected automatically in a few seconds...')}
         </p>
       </div>

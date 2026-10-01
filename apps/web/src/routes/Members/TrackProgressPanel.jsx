@@ -75,7 +75,7 @@ export default function TrackProgressPanel ({ trackId }) {
                 type='button'
                 onClick={() => setFilter(value)}
                 aria-pressed={filter === value}
-                className={cn('px-2.5 py-1 transition-colors', filter === value ? 'bg-selected text-foreground' : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5')}
+                className={cn('px-2.5 py-1 transition-colors', filter === value ? 'bg-selected text-foreground' : 'text-foreground-muted hover:text-foreground hover:bg-foreground/5')}
               >
                 {label}
               </button>
@@ -85,11 +85,11 @@ export default function TrackProgressPanel ({ trackId }) {
       </div>
 
       {open && failed && (
-        <p className='text-sm text-foreground/60 m-0'>{t('There was an error, please try again.')}</p>
+        <p className='text-sm text-foreground-muted m-0'>{t('There was an error, please try again.')}</p>
       )}
       {open && !failed && !loaded && <Loading />}
       {open && loaded && learners.length === 0 && (
-        <p className='text-sm text-foreground/60 m-0'>
+        <p className='text-sm text-foreground-muted m-0'>
           {filter === FILTERS.NOT_FINISHED ? t('Everyone enrolled has finished this track.') : t('Nobody has enrolled yet.')}
         </p>
       )}
@@ -101,7 +101,7 @@ export default function TrackProgressPanel ({ trackId }) {
             ))}
           </ul>
           {data.total > learners.length && (
-            <p className='text-xs text-foreground/50 m-0'>{t('Showing {{count}} of {{total}}', { count: learners.length, total: data.total })}</p>
+            <p className='text-xs text-foreground-muted m-0'>{t('Showing {{count}} of {{total}}', { count: learners.length, total: data.total })}</p>
           )}
           {filter === FILTERS.NOT_FINISHED && recipients.length > 0 && (
             <div className='flex flex-col gap-1'>
@@ -109,7 +109,7 @@ export default function TrackProgressPanel ({ trackId }) {
                 <MessageCircle className='w-4 h-4' /> {t('Message these learners')}
               </Button>
               {truncated && (
-                <p className='text-xs text-foreground/50 m-0'>
+                <p className='text-xs text-foreground-muted m-0'>
                   {t('Group messages are limited to {{count}} people', { count: MAX_MESSAGE_THREAD_PARTICIPANTS })}
                 </p>
               )}
@@ -134,7 +134,7 @@ function LearnerRow ({ learner, numActions }) {
       <span className='text-xs text-foreground/70 whitespace-nowrap'>
         {t('{{completed}} of {{total}} completed', { completed: progress.completed, total: progress.total })}
       </span>
-      <span className='text-xs text-foreground/50 whitespace-nowrap hidden sm:inline'>
+      <span className='text-xs text-foreground-muted whitespace-nowrap hidden sm:inline'>
         {learner.completedAt
           ? t('Completed {{date}}', { date: formatLocalizedDate(learner.completedAt, { style: 'short' }) })
           : learner.lastActionAt

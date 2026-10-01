@@ -851,6 +851,38 @@ msgstr "Ponte al día en Hylo: %(home_url)s"
 msgid "Choose which emails you get: %(email_settings_url)s"
 msgstr "Elige qué correos recibes: %(email_settings_url)s"
 
+# Lifecycle email template strings (D12)
+msgid "You haven't joined a group on Hylo yet. Groups are where people meet, plan and help each other."
+msgstr "Todavía no te has unido a ningún grupo en Hylo. En los grupos la gente se encuentra, hace planes y se ayuda."
+
+msgid "Here are a few open groups you can join today:"
+msgstr "Aquí tienes algunos grupos abiertos a los que puedes unirte hoy:"
+
+msgid "Were you invited to a group? Open the invitation email and follow its link to join."
+msgstr "¿Te invitaron a un grupo? Abre el correo de invitación y sigue su enlace para unirte."
+
+#, python-format
+msgid "Explore groups: %(explore_url)s"
+msgstr "Explorar grupos: %(explore_url)s"
+
+#, python-format
+msgid "Welcome to %(group_pill)s! Say hello so the group can get to know you: what brought you here, and what you'd like to share or learn."
+msgstr "¡Te damos la bienvenida a %(group_pill)s! Saluda para que el grupo pueda conocerte: qué te trajo aquí y qué te gustaría compartir o aprender."
+
+msgid "Introduce yourself"
+msgstr "Preséntate"
+
+msgid "We'll start your post for you. It only takes a minute."
+msgstr "Empezaremos tu publicación por ti. Solo toma un minuto."
+
+#, python-format
+msgid "Welcome to %(group_name_var)s! Say hello so the group can get to know you: what brought you here, and what you'd like to share or learn."
+msgstr "¡Te damos la bienvenida a %(group_name_var)s! Saluda para que el grupo pueda conocerte: qué te trajo aquí y qué te gustaría compartir o aprender."
+
+#, python-format
+msgid "Introduce yourself: %(introduce_url)s"
+msgstr "Preséntate: %(introduce_url)s"
+
 #, python-format
 msgid "%(inviter_name)s"
 msgstr "%(inviter_name)s"

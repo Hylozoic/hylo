@@ -10,6 +10,7 @@ import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import NavigateWithParams from 'components/NavigateWithParams'
 import checkLogin from 'store/actions/checkLogin'
+import { syncTimezone } from 'util/timezone'
 import { getAuthorized } from 'store/selectors/getSignupState'
 import { getAuthSessionTransientError, getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import { isTransientApiError } from 'store/middleware/apiMiddleware'
@@ -169,6 +170,8 @@ export default function RootRouter () {
       const action = await dispatch(checkLogin())
       retryAttemptRef.current = 0
       const me = action?.payload?.data?.me
+      // Digests go out in the person's local morning (D41)
+      syncTimezone(dispatch, me)
       if (debugCheckLogin) {
         const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
         console.info('[Hylo checkLogin]', `${ms}ms`, {

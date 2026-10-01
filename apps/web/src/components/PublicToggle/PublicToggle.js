@@ -10,7 +10,7 @@ const PublicToggle = ({ isPublic = false, togglePublic, selectedGroups = [] }) =
   const allowedInTheCommons = selectedGroups.some(group => group.allowInPublic)
   return (
     <div className='flex flex-col gap-2'>
-      <div className={cn('w-full text-foreground/50 hover:text-foreground/100 text-xs cursor-pointer rounded', { [classes.postIsPublic]: isPublic })} onClick={togglePublic} role='button'>
+      <div className={cn('w-full text-foreground-muted hover:text-foreground/100 text-xs cursor-pointer rounded', { [classes.postIsPublic]: isPublic })} onClick={togglePublic} role='button'>
         <div className='w-full flex gap-2'>
           <SwitchStyled checked={isPublic} onChange={togglePublic} backgroundColor={isPublic ? 'hsl(var(--selected))' : 'hsl(var(--foreground))'} />
           <div>

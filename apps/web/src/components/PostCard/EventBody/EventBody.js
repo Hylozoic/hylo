@@ -41,7 +41,7 @@ function EventBody (props) {
           <div className='flex flex-row gap-5 items-center justify-start mb-4'>
             <EventDate {...event} />
             <div className='flex flex-col gap-0 min-w-0'>
-              <div className={cn('text-xs text-foreground/50 flex flex-row gap-2 items-center')} onClick={onClick}>
+              <div className={cn('text-xs text-foreground-muted flex flex-row gap-2 items-center')} onClick={onClick}>
                 {isHappeningNow && <div className='bg-selected/10 p-1 rounded-lg text-selected text-xs font-bold flex items-center justify-center inline-block px-2'>{t('Happening now!')}</div>}
                 {!isHappeningNow && isUpcoming && <div className='bg-accent/10 p-1 rounded-lg text-accent text-xs font-bold flex items-center justify-center inline-block px-2'>{t('Upcoming')}</div>}
                 <EventTimeDisplay
@@ -53,7 +53,7 @@ function EventBody (props) {
                   tooltipId={`event-time-${id}`}
                 />
                 {isPastEvent && (
-                  <span className={cn('text-sm text-foreground/50 ml-2 px-2 inline-block p-1 rounded-md bg-foreground/10 text-xs')}>{t('Event ended')}</span>
+                  <span className={cn('text-sm text-foreground-muted ml-2 px-2 inline-block p-1 rounded-md bg-foreground/10 text-xs')}>{t('Event ended')}</span>
                 )}
               </div>
               <PostTitle {...event} constrained={constrained} onClick={onClick} />

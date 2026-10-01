@@ -981,7 +981,7 @@ function MapExplorer (props) {
         })}
       >
         <div className='flex flex-col pb-2 border-b-2 border-foreground/20 mb-2'>
-          <span className='text-sm font-medium text-foreground/60'>{t('Base Layer')}</span>
+          <span className='text-sm font-medium text-foreground-muted'>{t('Base Layer')}</span>
           <Dropdown
             id='map-explorer-base-layer-dropdown'
             className={classes.layersDropdown}
@@ -1000,7 +1000,7 @@ function MapExplorer (props) {
         </div>
 
         <div>
-          <span className='text-sm gap-1 font-medium mb-2 text-foreground/60'>{t('Other Layers')}</span>
+          <span className='text-sm gap-1 font-medium mb-2 text-foreground-muted'>{t('Other Layers')}</span>
           <div className='flex flex-row gap-1'>
             <SwitchStyled
               backgroundColor='rgb(0, 163, 227)'

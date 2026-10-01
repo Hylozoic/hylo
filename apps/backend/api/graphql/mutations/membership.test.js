@@ -52,6 +52,7 @@ describe('membership.test', function () {
     expect(membership.getSetting('showJoinForm')).to.equal(false)
     expect(membership.getSetting('agreementsAcceptedAt')).to.equal('2020-01-01T00:00:00.000Z')
     expect(membership.getSetting('sendPushNotifications')).to.equal(true)
-    expect(membership.getSetting('postNotifications')).to.equal('all')
+    // New memberships start on 'important' (D1)
+    expect(membership.getSetting('postNotifications')).to.equal('important')
   })
 })

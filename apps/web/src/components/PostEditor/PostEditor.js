@@ -1603,7 +1603,7 @@ function PostEditorInner ({
       </div>
       {showSubmissionCriteria && (
         <div className='flex flex-col gap-2 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-xs text-foreground/80'>
-          <div className='text-xs uppercase tracking-wide text-foreground/60'>{t('Submission Criteria')}</div>
+          <div className='text-xs uppercase tracking-wide text-foreground-muted'>{t('Submission Criteria')}</div>
           <div
             ref={submissionCriteriaRef}
             className={cn(
@@ -1633,7 +1633,7 @@ function PostEditorInner ({
           data-tour='post-to'
           onClick={handleToFieldContainerClick}
         >
-          <div className='text-xs text-foreground/50 px-2'>{t('To')}</div>
+          <div className='text-xs text-foreground-muted px-2'>{t('To')}</div>
           <div className='border-foreground w-full min-w-0'>
             <ToField
               options={toOptions}
@@ -1650,7 +1650,7 @@ function PostEditorInner ({
         </div>
       )}
       <div className={cn('PostEditorTitle flex w-full items-center bg-input rounded p-1 transition-all border-2 border-transparent', { 'border-2 border-focus': titleFocused })}>
-        <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
+        <div className='text-xs text-foreground-muted px-2'>{t('Title')}</div>
         <input
           type='text'
           className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
@@ -1725,7 +1725,7 @@ function PostEditorInner ({
       </div>
       {currentPost.type === 'project' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className='text-xs text-foreground/50 w-[120px]'>{t('Project Members')}</div>
+          <div className='text-xs text-foreground-muted w-[120px]'>{t('Project Members')}</div>
           <div className='w-full'>
             <MemberSelector
               initialMembers={currentPost.members || []}
@@ -1759,7 +1759,7 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'proposal' && currentPost.proposalOptions.length === 0 && (
         <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2'>
-          <div className='text-xs text-foreground/50'>{t('Proposal template')}</div>
+          <div className='text-xs text-foreground-muted'>{t('Proposal template')}</div>
           <div>
             <Select
               onValueChange={(template) => handleUseTemplate(template)}
@@ -1786,7 +1786,7 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'proposal' && currentPost.proposalOptions && (
         <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2'>
-          <div className='text-xs text-foreground/50 w-[130px]'>
+          <div className='text-xs text-foreground-muted w-[130px]'>
             {t('Proposal options')}*
           </div>
           <div className='flex flex-col gap-2'>
@@ -1867,7 +1867,7 @@ function PostEditorInner ({
               </div>
             )}
             {currentPost.proposalOptions.length === 0 && (
-              <div className='flex items-center gap-2 text-foreground/50 text-xs'>
+              <div className='flex items-center gap-2 text-foreground-muted text-xs'>
                 <TriangleAlert className='h-5 w-5' />
                 <span>{t('Proposals require at least one option')}</span>
               </div>
@@ -1877,7 +1877,7 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'proposal' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className='text-xs text-foreground/50'>{t('Voting method')}</div>
+          <div className='text-xs text-foreground-muted'>{t('Voting method')}</div>
 
           <div>
             <Select
@@ -1901,7 +1901,7 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'proposal' && (
         <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2'>
-          <div className='text-xs text-foreground/50 w-[100px]'>{t('Quorum')} <Icon name='Info' className='text-xs' data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
+          <div className='text-xs text-foreground-muted w-[100px]'>{t('Quorum')} <Icon name='Info' className='text-xs' data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
           <SliderInput percentage={currentPost.quorum || 0} setPercentage={handleSetQuorum} />
           <ReactTooltip
             backgroundColor='rgba(35, 65, 91, 1.0)'
@@ -1926,7 +1926,7 @@ function PostEditorInner ({
       {canHaveTimes && (
         <>
           <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0'>
-            <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+            <div className='text-xs text-foreground-muted shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
             <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
               <DateTimePicker
                 hourCycle={hourCycle}
@@ -1936,7 +1936,7 @@ function PostEditorInner ({
                 onChange={handleStartTimeChange}
                 onMonthChange={() => {}}
               />
-              <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
+              <div className='text-xs text-foreground-muted shrink-0'>{t('to')}</div>
               <DateTimePicker
                 ref={endTimeRef}
                 hourCycle={hourCycle}
@@ -1949,7 +1949,7 @@ function PostEditorInner ({
             </div>
           </div>
           <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2'>
-            <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
+            <div className='text-xs text-foreground-muted shrink-0'>{t('Timezone')}</div>
             <TimezoneSelect
               className='border-none bg-transparent'
               value={eventTimezone}
@@ -1973,7 +1973,7 @@ function PostEditorInner ({
       )}
       {showLocation && (
         <div className={cn('flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2')}>
-          <div className='text-xs text-foreground/50'>{locationLabel}</div>
+          <div className='text-xs text-foreground-muted'>{locationLabel}</div>
           <LocationInput
             saveLocationToDB
             inputPosition='top'
@@ -1987,7 +1987,7 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'event' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className={cn('text-xs text-foreground/50 w-[100px]', { 'text-destructive': !!currentPost.meetingLink && !sanitizeURL(currentPost.meetingLink) })}>{t('Join link')}</div>
+          <div className={cn('text-xs text-foreground-muted w-[100px]', { 'text-destructive': !!currentPost.meetingLink && !sanitizeURL(currentPost.meetingLink) })}>{t('Join link')}</div>
           <input
             type='text'
             className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
@@ -2001,7 +2001,7 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'event' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2'>
-          <div className='text-xs text-foreground/50 w-[100px]'>{t('Invite People')}</div>
+          <div className='text-xs text-foreground-muted w-[100px]'>{t('Invite People')}</div>
           <div className='w-full'>
             <MemberSelector
               initialMembers={currentPost.eventInvitations || []}
@@ -2024,14 +2024,14 @@ function PostEditorInner ({
                 className='mr-[55px]'
               />
               {!currentPost.acceptContributions && (
-                <div className='text-[13px] leading-[19px] text-foreground/60'>
+                <div className='text-[13px] leading-[19px] text-foreground-muted'>
                   {t('If you turn Accept Contributions on, people will be able to send money to your Stripe connected account to support this project.')}
                 </div>
               )}
             </div>
           )}
           {!hasStripeAccount && (
-            <div className='w-full text-[13px] leading-[19px] text-foreground/60'>
+            <div className='w-full text-[13px] leading-[19px] text-foreground-muted'>
               {t(`To accept financial contributions for this project, you have
               to connect a Stripe account. Go to`)}
               <a href='/settings/payment'>{t('Settings')}</a>{' '}{t('to set it up.')}
@@ -2042,7 +2042,7 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'project' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className={cn('text-xs text-foreground/50 w-[100px]', { 'text-destructive': !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
+          <div className={cn('text-xs text-foreground-muted w-[100px]', { 'text-destructive': !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
           <div className='w-full'>
             <input
               type='text'
@@ -2057,7 +2057,7 @@ function PostEditorInner ({
       )}
       {currentPost.type === 'project' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className={cn('text-xs text-foreground/50 w-[160px]', { 'text-destructive': !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
+          <div className={cn('text-xs text-foreground-muted w-[160px]', { 'text-destructive': !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
           <div className='w-full'>
             <input
               type='text'
@@ -2072,7 +2072,7 @@ function PostEditorInner ({
       )}
       {(currentPost.type === 'project' || (currentPost.type === 'submission' && currentFundingRound?.requireBudget)) && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className='text-xs text-foreground/50 mr-2 whitespace-nowrap'>
+          <div className='text-xs text-foreground-muted mr-2 whitespace-nowrap'>
             {t('Budget Total')}
           </div>
           <div className='w-full'>

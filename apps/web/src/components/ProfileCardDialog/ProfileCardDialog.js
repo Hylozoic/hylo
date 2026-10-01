@@ -219,7 +219,7 @@ export default function ProfileCardDialog ({ personId, children, className }) {
                         <p className='text-foreground/70 text-sm text-center mt-1 mb-0'>{displayPerson.tagline}</p>
                       )}
                       {displayPerson.location && (
-                        <div className='flex items-center gap-1 text-foreground/50 text-xs mt-1'>
+                        <div className='flex items-center gap-1 text-foreground-muted text-xs mt-1'>
                           <MapPin className='w-3 h-3' />
                           <span>{displayPerson.location.replace(', United States', '')}</span>
                         </div>

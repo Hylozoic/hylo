@@ -17,7 +17,7 @@ function Info ({ label, value }) {
   if (value == null || value === '') return null
   return (
     <div className='border border-foreground/20 rounded-lg p-3'>
-      <div className='text-xs text-foreground/60 uppercase'>{label}</div>
+      <div className='text-xs text-foreground-muted uppercase'>{label}</div>
       <div className='text-base'>{value}</div>
     </div>
   )
@@ -148,11 +148,11 @@ export default function FundingRoundAboutInfo ({ fundingRoundId, roleGroupId }) 
 
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
         <div className='border border-foreground/20 rounded-lg p-3'>
-          <div className='text-xs text-foreground/60 uppercase mb-2'>{t('Who Can Submit')}</div>
+          <div className='text-xs text-foreground-muted uppercase mb-2'>{t('Who Can Submit')}</div>
           <RoleList roles={round.submitterRoles} t={t} />
         </div>
         <div className='border border-foreground/20 rounded-lg p-3'>
-          <div className='text-xs text-foreground/60 uppercase mb-2'>{t('Who Can Vote')}</div>
+          <div className='text-xs text-foreground-muted uppercase mb-2'>{t('Who Can Vote')}</div>
           <RoleList roles={round.voterRoles} t={t} />
         </div>
       </div>

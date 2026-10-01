@@ -373,6 +373,7 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
             askGroupToGroupJoinQuestions
             askJoinQuestions
             defaultDigestFrequency
+            defaultPostNotifications
             hideExtensionData
             locationDisplayPrecision
             publicMemberDirectory
@@ -441,6 +442,7 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
             askGroupToGroupJoinQuestions
             askJoinQuestions
             defaultDigestFrequency
+            defaultPostNotifications
             hideExtensionData
             locationDisplayPrecision
             publicMemberDirectory

@@ -215,7 +215,7 @@ export function ThreadActionsMenu ({ threadId, otherParticipants = [] }) {
             type='button'
             aria-label={t('Conversation options')}
             data-testid='thread-actions-trigger'
-            className='flex-shrink-0 ml-2 flex items-center justify-center w-7 h-7 rounded-lg transition-all scale-100 hover:scale-105 bg-darkening/20 hover:bg-selected/80 text-foreground/60 hover:text-foreground'
+            className='flex-shrink-0 ml-2 flex items-center justify-center w-7 h-7 rounded-lg transition-all scale-100 hover:scale-105 bg-darkening/20 hover:bg-selected/80 text-foreground-muted hover:text-foreground'
           >
             <MoreHorizontal className='w-4 h-4' />
           </button>

@@ -408,7 +408,7 @@ function InviteSettingsTab (props) {
         <div className='border-2 p-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-2 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
           <div className='text-foreground'>
             <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Public Group Link')}</h2>
-            <div className='text-sm'><strong>{t('Use this for people you don\'t know')}</strong> <span className='text-foreground/50'>{t('who you would like ask join questions to vet before they enter the group.')}</span></div>
+            <div className='text-sm'><strong>{t('Use this for people you don\'t know')}</strong> <span className='text-foreground-muted'>{t('who you would like ask join questions to vet before they enter the group.')}</span></div>
           </div>
           <div className='min-w-0 w-full overflow-hidden'>
             <CopyToClipboard text={`${window.location.origin}/groups/${group.slug}`} onCopy={onCopyPublicLink}>
@@ -447,7 +447,7 @@ function InviteSettingsTab (props) {
                 ? (
                   <>
                     <strong>{t('Use this link to invite people to the space.')}</strong>{' '}
-                    <span className='text-foreground/50'>
+                    <span className='text-foreground-muted'>
                       {t('If they are not a member of {{name}} they will be given the opportunity to join that first, so make sure you know and trust them.', { name: parentName || t('the group') })}
                     </span>
                   </>
@@ -455,7 +455,7 @@ function InviteSettingsTab (props) {
                 : (
                   <>
                     <strong>{t('Use this link to invite people you know and trust.')}</strong>{' '}
-                    <span className='text-foreground/50'>{t('They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.')}</span>
+                    <span className='text-foreground-muted'>{t('They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.')}</span>
                   </>
                   )}
             </div>
@@ -499,7 +499,7 @@ function InviteSettingsTab (props) {
             <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>
               {limited ? t('Invite people you know on Hylo') : t('Invite people on Hylo')}
             </h2>
-            <span className='text-sm text-foreground/50'>
+            <span className='text-sm text-foreground-muted'>
               {!limited && isRoleGated && (
                 <p className='text-sm text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2'>
                   {t('Only members with one of the required roles will actually be able to join the space.')}{' '}
@@ -547,7 +547,7 @@ function InviteSettingsTab (props) {
         {limited
           ? (
             <>
-              <span className='text-sm text-foreground/50'>
+              <span className='text-sm text-foreground-muted'>
                 {t('Each person you invite gets an email invitation to join {{name}}.', { name: group.name })}
               </span>
               {needsApproval && (
@@ -555,13 +555,13 @@ function InviteSettingsTab (props) {
                   {t('New members of this group need approval, so the people you invite will ask to join and a steward will review their request.')}
                 </p>
               )}
-              <p className='text-sm text-foreground/50'>{t('Group stewards can see the email addresses you invite.')}</p>
+              <p className='text-sm text-foreground-muted'>{t('Group stewards can see the email addresses you invite.')}</p>
               <p>{t('Enter up to {{max}} email addresses at a time, separated by commas or new lines', { max: LIMITED_INVITES_PER_SEND })}</p>
             </>
             )
           : (
             <>
-              <span className='text-sm text-foreground/50'>
+              <span className='text-sm text-foreground-muted'>
                 {isSpace
                   ? t('An invitation link will be sent to each email address to join this space. If they are not yet a member of {{name}} they will be asked to join that first.', { name: parentName || t('the group') })
                   : t('An invitation link will be sent to each email address. They will still be shown any required questions or agreements you may have set to join this group.')}
@@ -600,7 +600,7 @@ function InviteSettingsTab (props) {
           </>
         )}
         {limited && typeof inviteAllowance === 'number' && (
-          <p className='text-sm text-foreground/50'>{t('Invites left today: {{remaining}}', { remaining: inviteAllowance })}</p>
+          <p className='text-sm text-foreground-muted'>{t('Invites left today: {{remaining}}', { remaining: inviteAllowance })}</p>
         )}
         <div className={classes.sendInviteButton}>
           <div className={classes.sendInviteFeedback}>
@@ -643,10 +643,10 @@ function InviteSettingsTab (props) {
                   <div className='flex-1 min-w-0'>
                     <span className='block truncate'>
                       {invite.name
-                        ? <>{invite.name} <span className='text-foreground/50'>{invite.email}</span></>
+                        ? <>{invite.name} <span className='text-foreground-muted'>{invite.email}</span></>
                         : invite.email}
                     </span>
-                    <span className='text-foreground/50 text-sm'>
+                    <span className='text-foreground-muted text-sm'>
                       {TextHelpers.humanDate(invite.lastSentAt)}
                       {invite.inviterAccess === INVITE_ACCESS.limited && invite.creator?.name && (
                         <> · {t('Invited by {{name}}', { name: invite.creator.name })}</>

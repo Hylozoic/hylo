@@ -132,7 +132,7 @@ export default function ReportQueue () {
   return (
     <div className='p-6 max-w-4xl mx-auto' data-testid='report-queue'>
       <h1 className='text-2xl font-bold mb-2'>{t('Reports to Hylo')}</h1>
-      <p className='text-foreground/60 text-sm mb-6'>{t('reportQueueExplainer')}</p>
+      <p className='text-foreground-muted text-sm mb-6'>{t('reportQueueExplainer')}</p>
 
       <div className='flex gap-2 mb-6' role='tablist'>
         {['active', 'resolved'].map(tab => (
@@ -144,7 +144,7 @@ export default function ReportQueue () {
             onClick={() => setStatus(tab)}
             className={cn(
               'px-3 py-1 rounded-md border-2 text-sm transition-all',
-              status === tab ? 'border-secondary text-foreground' : 'border-foreground/20 text-foreground/60 hover:border-foreground/50'
+              status === tab ? 'border-secondary text-foreground' : 'border-foreground/20 text-foreground-muted hover:border-foreground/50'
             )}
           >
             {tab === 'active' ? t('Open') : t('Resolved')}
@@ -155,7 +155,7 @@ export default function ReportQueue () {
       {error && <div className='text-destructive mb-4'>{error}</div>}
 
       {!loading && !error && reports.length === 0 && (
-        <div className='text-foreground/50 p-4 border border-foreground/20 rounded-md'>
+        <div className='text-foreground-muted p-4 border border-foreground/20 rounded-md'>
           {status === 'active' ? t('No open reports') : t('No resolved reports')}
         </div>
       )}
@@ -177,13 +177,13 @@ export default function ReportQueue () {
             <div className='space-y-2 text-sm'>
               {report.reportedUser && (
                 <div>
-                  <span className='text-foreground/50'>{t('About')}: </span>
+                  <span className='text-foreground-muted'>{t('About')}: </span>
                   <PersonLink person={report.reportedUser} />
                 </div>
               )}
               {report.messageThreadId && report.threadParticipants?.length > 0 && (
                 <div>
-                  <span className='text-foreground/50'>{t('People in the conversation')}: </span>
+                  <span className='text-foreground-muted'>{t('People in the conversation')}: </span>
                   {report.threadParticipants.map((person, index) => (
                     <React.Fragment key={person.id}>
                       {index > 0 && ', '}
@@ -193,11 +193,11 @@ export default function ReportQueue () {
                 </div>
               )}
               <div>
-                <span className='text-foreground/50'>{t('What they said')}: </span>
+                <span className='text-foreground-muted'>{t('What they said')}: </span>
                 <span className='text-foreground whitespace-pre-wrap'>{report.text || t('No explanation given')}</span>
               </div>
               {report.status === 'resolved' && (
-                <div className='text-foreground/50'>
+                <div className='text-foreground-muted'>
                   {t('Resolved by {{name}}', { name: report.resolvedBy?.name || '' })}
                   {report.resolvedAt && ` · ${new Date(report.resolvedAt).toLocaleDateString()}`}
                 </div>

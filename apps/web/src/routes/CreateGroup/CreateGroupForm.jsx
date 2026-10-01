@@ -65,7 +65,7 @@ const GROUPS_SELECTOR_CLASS = cn(
   '[&_input]:!bg-input [&_input]:!px-3 [&_input]:!py-2.5 [&_input]:!text-sm'
 )
 
-const ADD_ROW_CLASS = 'flex items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-foreground/20 py-2 text-xs font-semibold text-foreground/60 hover:border-foreground/40 hover:text-foreground transition-all'
+const ADD_ROW_CLASS = 'flex items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-foreground/20 py-2 text-xs font-semibold text-foreground-muted hover:border-foreground/40 hover:text-foreground transition-all'
 
 // Parent groups read as a list of what's been added, with the search field appearing
 // only once you ask for it — otherwise an empty field sits there implying work to do.
@@ -92,7 +92,7 @@ function ParentGroupsEditor ({ options, selected, onChange }) {
 
   return (
     <div className='flex flex-col gap-2'>
-      <p className='text-xs text-foreground/60 mb-0'>{t('groupParentGroupHelpText')}</p>
+      <p className='text-xs text-foreground-muted mb-0'>{t('groupParentGroupHelpText')}</p>
 
       <div className='flex flex-wrap items-center gap-2'>
         {selected.map(group => (
@@ -103,7 +103,7 @@ function ParentGroupsEditor ({ options, selected, onChange }) {
               type='button'
               onClick={() => onChange(selected.filter(g => g.id !== group.id))}
               aria-label={t('Remove {{name}}', { name: group.name })}
-              className='text-foreground/50 hover:text-foreground transition-colors'
+              className='text-foreground-muted hover:text-foreground transition-colors'
             >
               <X className='w-3.5 h-3.5' />
             </button>
@@ -243,7 +243,7 @@ function AgreementsEditor ({ agreements, onChange }) {
             type='button'
             onClick={() => onChange(agreements.filter((a, i) => i !== index))}
             aria-label={t('Remove agreement')}
-            className='text-foreground/50 hover:text-foreground transition-colors mt-3'
+            className='text-foreground-muted hover:text-foreground transition-colors mt-3'
           >
             <X className='w-3.5 h-3.5' />
           </button>
@@ -264,7 +264,7 @@ function JoinQuestionsEditor ({ questions, onChange }) {
   const { t } = useTranslation()
   return (
     <div className='flex flex-col gap-2'>
-      <p className='text-xs text-foreground/60 mb-0'>{t('People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.')}</p>
+      <p className='text-xs text-foreground-muted mb-0'>{t('People requesting to join your group must answer these questions. You and other stewards will be able to see their answers before approving.')}</p>
       {questions.map((question, index) => (
         <div key={index} className='flex items-center gap-2'>
           <input
@@ -278,7 +278,7 @@ function JoinQuestionsEditor ({ questions, onChange }) {
             type='button'
             onClick={() => onChange(questions.filter((q, i) => i !== index))}
             aria-label={t('Remove question')}
-            className='text-foreground/50 hover:text-foreground transition-colors'
+            className='text-foreground-muted hover:text-foreground transition-colors'
           >
             <X className='w-3.5 h-3.5' />
           </button>
@@ -886,14 +886,14 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
             </div>
             {slugError
               ? <span className='text-error text-xs'>{slugError}</span>
-              : <span className='text-xs text-foreground/50 truncate'>hylo.com/groups/{slug || '…'}</span>}
+              : <span className='text-xs text-foreground-muted truncate'>hylo.com/groups/{slug || '…'}</span>}
           </div>
         </div>
 
         <div className='flex flex-col gap-1 mt-2'>
           <div className='h-5 flex items-center justify-between'>
             <label htmlFor='groupPurpose' className='text-xs font-bold text-foreground/80'>{t('Purpose')}</label>
-            <span className='text-xs text-foreground/50'>{purpose.length} / {PURPOSE_MAX_LENGTH}</span>
+            <span className='text-xs text-foreground-muted'>{purpose.length} / {PURPOSE_MAX_LENGTH}</span>
           </div>
           <textarea
             id='groupPurpose'
@@ -950,7 +950,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
           <div className='flex items-end justify-between gap-2 mb-2'>
             <div className='min-w-0'>
               <span className='text-xs font-bold text-foreground/80'>{t("Choose your group's home")}</span>
-              <p className='text-xs text-foreground/60 mt-0.5 mb-0'>{t('Set the default view members see when they enter your group. You can change this later by editing the group menu.')}</p>
+              <p className='text-xs text-foreground-muted mt-0.5 mb-0'>{t('Set the default view members see when they enter your group. You can change this later by editing the group menu.')}</p>
             </div>
             {!showMenuEditor && (
               <button
@@ -981,7 +981,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
                   onOrderedRowsChange={setOrderedRows}
                   homeViewType={homeViewType}
                   label={t("These are the menu your members use. The one at the top is your group's home.")}
-                  labelClassName='text-xs text-foreground/60'
+                  labelClassName='text-xs text-foreground-muted'
                 />
               </AdvancedSection>
               )
@@ -1031,7 +1031,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       <div className={cn('flex items-center justify-end gap-3', footerClassName)}>
         {submitError && <span className='text-error text-sm flex-1'>{submitError}</span>}
         {!submitError && missingChoices && (
-          <span className='text-foreground/60 text-sm flex-1' data-testid='create-group-missing-choices'>{t(missingChoices)}</span>
+          <span className='text-foreground-muted text-sm flex-1' data-testid='create-group-missing-choices'>{t(missingChoices)}</span>
         )}
         {onClose && (
           <Button variant='outline' onClick={requestClose} disabled={submitting}>
