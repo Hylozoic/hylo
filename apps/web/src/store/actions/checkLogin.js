@@ -21,6 +21,7 @@ export default function checkLogin () {
               colorScheme
               dmNotifications
               commentNotifications
+              unifiedEmailDigest
               globalNavStyle
               groupNavStyle
               rsvpCalendarSub
