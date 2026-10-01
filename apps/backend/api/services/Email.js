@@ -216,6 +216,16 @@ const TRACK_REMINDER_TEMPLATE_ID = null
 // is uploaded; until then the notice to Administrators is skipped (D62).
 const NEW_SUBSCRIBER_ADMIN_TEMPLATE_ID = null
 
+// Steward notices (D13, D14, D48). Set each to its SendWithUs template id once the
+// template in scripts/i18n/i18n-templates is uploaded. Until then these senders send
+// nothing and resolve null, so the notification is marked done rather than retried.
+const JOIN_REQUEST_RECEIVED_TEMPLATE_ID = null // Join_Request_Received_i18n
+const JOIN_REQUEST_DECLINED_TEMPLATE_ID = null // Join_Request_Declined_i18n
+const JOIN_REQUEST_UNANSWERED_TEMPLATE_ID = null // Join_Request_Unanswered_i18n
+const ROLE_GRANTED_TEMPLATE_ID = null // Role_Granted_i18n
+const STEWARD_WEEKLY_TEMPLATE_ID = null // Steward_Weekly_i18n
+const templateNotUploaded = () => Promise.resolve(null)
+
 const senders = {
   sendSimpleEmail,
 
@@ -511,7 +521,30 @@ Profile: ${opts.actorProfileUrl}
 
   sendEventReminderEmail: opts => process.env.EVENT_REMINDER_TEMPLATE_ID
     ? sendEmailWithOptions(process.env.EVENT_REMINDER_TEMPLATE_ID, opts)
-    : Promise.resolve(false)
+    : Promise.resolve(false),
+
+  // D14: to someone who asked to join a group. The acknowledgment and the decline
+  // answer the person's own request, so they go without the bulk header.
+  sendJoinRequestReceived: opts => JOIN_REQUEST_RECEIVED_TEMPLATE_ID
+    ? sendTransactionalEmailWithOptions(JOIN_REQUEST_RECEIVED_TEMPLATE_ID, opts)
+    : templateNotUploaded(),
+  sendJoinRequestDeclined: opts => JOIN_REQUEST_DECLINED_TEMPLATE_ID
+    ? sendTransactionalEmailWithOptions(JOIN_REQUEST_DECLINED_TEMPLATE_ID, opts)
+    : templateNotUploaded(),
+  sendJoinRequestUnanswered: opts => JOIN_REQUEST_UNANSWERED_TEMPLATE_ID
+    ? sendEmailWithOptions(JOIN_REQUEST_UNANSWERED_TEMPLATE_ID, opts)
+    : templateNotUploaded(),
+
+  // D48: a steward gave you a role or badge by hand
+  sendRoleGranted: opts => ROLE_GRANTED_TEMPLATE_ID
+    ? sendEmailWithOptions(ROLE_GRANTED_TEMPLATE_ID, opts)
+    : templateNotUploaded(),
+
+  // D13: the weekly summary for a group's Administrators, Moderators and Hosts
+  // (lib/group/stewardDigest.js). opts.unsubscribe is { userId, groupId }.
+  sendStewardWeekly: opts => STEWARD_WEEKLY_TEMPLATE_ID
+    ? sendEmailWithOptions(STEWARD_WEEKLY_TEMPLATE_ID, opts)
+    : templateNotUploaded()
 
 }
 

@@ -81,7 +81,19 @@ const TODAY = {
   // Added with their own channels: D58, D63
   openRequestNudge: ['push', 'inApp'],
   trackCompletedLearner: ['inApp'],
-  trackReminder: ['email', 'inApp']
+  trackReminder: ['email', 'inApp'],
+  // D14: to someone who asked to join, who isn't a member (rules/nonMemberRequester)
+  acknowledgedJoinRequest: ['inApp', 'email'],
+  declinedJoinRequest: ['inApp', 'email'],
+  unansweredJoinRequest: ['inApp', 'email'],
+  // D48
+  roleGranted: ['email', 'inApp'],
+  // D38
+  newMembersJoined: ['inApp'],
+  // D49
+  firstPostUnanswered: ['inApp'],
+  // D13
+  groupQuiet: ['inApp']
 }
 
 // Reasons added since the class table, with the channels their cards decided
@@ -100,6 +112,9 @@ Object.assign(TODAY, {
   requestHelped: ['push', 'inApp'],
   requestMet: ['inApp']
 })
+
+// Reasons whose media don't depend on a group membership's email and push toggles
+const MEMBERSHIP_INDEPENDENT = ['groupInvitation', 'acknowledgedJoinRequest', 'declinedJoinRequest', 'unansweredJoinRequest']
 
 describe('signalClasses', () => {
   it('gives every priority reason a class', () => {
@@ -181,7 +196,7 @@ describe('signalClasses', () => {
         results[reason] = names(await Activity.generateNotificationMedia(activityFor([reason], off)))
       }
       expect(results).to.deep.equal(mapValues(TODAY, (media, reason) =>
-        reason === 'groupInvitation' ? media : media.filter(medium => medium === 'inApp')))
+        MEMBERSHIP_INDEPENDENT.includes(reason) ? media : media.filter(medium => medium === 'inApp')))
     })
   })
 })

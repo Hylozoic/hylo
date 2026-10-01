@@ -1,0 +1,24 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+{% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+
+<p>
+  {% set first_name_var = first_name %}
+  {% trans %}Hi {{first_name_var}},{% endtrans %}
+</p>
+
+<p>{% trans %}Your request to join {{group_pill}} wasn't approved this time.{% endtrans %}</p>
+
+<p>{% trans %}Each group decides who joins in its own way. There are many other groups on Hylo you can join right away.{% endtrans %}</p>
+
+<a class='btn btn-blue' href="{{explore_url}}" clicktracking="off">{% trans %}Explore groups{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

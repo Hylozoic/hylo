@@ -1,7 +1,10 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSelector } from 'react-redux'
 import { cn } from 'util/index'
 import InfoButton from 'components/ui/info'
+import { Switch } from 'components/ui/switch'
+import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import {
   Select,
   SelectContent,
@@ -13,6 +16,17 @@ import SettingsToggles from 'routes/UserSettings/NotificationSettingsTab/Setting
 
 const SELECT_ITEM_CLASS = 'pl-2 pr-8 [&>span:first-child]:left-auto [&>span:first-child]:right-2'
 
+// The roles that make someone a steward, as the backend counts them (group/stewardAudience.js)
+export const STEWARD_ROLE_NAMES = ['Administrator', 'Coordinator', 'Moderator', 'Host']
+
+/** Whether the viewer holds the Administrator, Moderator or Host role in this group. */
+export function useIsSteward (groupId) {
+  return useSelector(state => groupId
+    ? getRolesForGroup(state, { groupId: String(groupId) })
+      .some(role => role.active !== false && STEWARD_ROLE_NAMES.includes(role.name))
+    : false)
+}
+
 /**
  * Shared notification settings for a group membership (or all-groups defaults):
  * receive-by channels, post notifications, and email digest.
@@ -21,6 +35,7 @@ const SELECT_ITEM_CLASS = 'pl-2 pr-8 [&>span:first-child]:left-auto [&>span:firs
  *
  * @param {boolean} compact - Tighter padding/text and stacked channel toggles (popover layout)
  * @param {boolean} postsOnly - Spaces only control post notifications; channel + digest are group settings
+ * @param {string} groupId - The group of this membership; its stewards also see the weekly steward email toggle
  */
 export default function GroupMembershipNotificationSettings ({
   id,
@@ -29,9 +44,11 @@ export default function GroupMembershipNotificationSettings ({
   compact = false,
   postsOnly = false,
   showMixed = false,
-  receiveByInfo
+  receiveByInfo,
+  groupId
 }) {
   const { t } = useTranslation()
+  const showStewardDigest = useIsSteward(groupId) && !postsOnly
   const labelClass = compact ? 'text-sm' : undefined
   const rowClass = cn(
     'flex items-center justify-between gap-2',
@@ -83,7 +100,7 @@ export default function GroupMembershipNotificationSettings ({
         </Select>
       </div>
       {!postsOnly && (
-        <div className={lastRowClass}>
+        <div className={showStewardDigest ? rowClass : lastRowClass}>
           <span className={labelClass}>{t('Receive an email digest summarizing group activity')}</span>
           <Select
             value={settings.digestFrequency}
@@ -99,6 +116,19 @@ export default function GroupMembershipNotificationSettings ({
               {showMixed && <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>}
             </SelectContent>
           </Select>
+        </div>
+      )}
+      {showStewardDigest && (
+        <div className={lastRowClass} data-testid='steward-digest-setting'>
+          <label htmlFor={`${id}-steward-digest`} className={cn(labelClass, 'inline-flex items-center gap-1')}>
+            {t('Weekly steward email')}
+            <InfoButton content={t("For Administrators, Moderators and Hosts: new members, join requests that are waiting, reports, this week's activity, and newcomers' first posts that have no replies yet.")} />
+          </label>
+          <Switch
+            id={`${id}-steward-digest`}
+            checked={settings.stewardDigest !== false}
+            onCheckedChange={value => update({ stewardDigest: value })}
+          />
         </div>
       )}
     </div>

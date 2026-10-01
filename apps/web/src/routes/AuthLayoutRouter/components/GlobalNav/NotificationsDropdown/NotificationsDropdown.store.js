@@ -100,6 +100,11 @@ export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
                 submissionCount
                 tokenType
                 resultsHidden
+                roleId
+                roleName
+                roleEmoji
+                newMemberCount
+                quietDays
               }
               action
               unread

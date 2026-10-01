@@ -81,13 +81,14 @@ export function OpportunityToCollaborate ({ group, opportunity }) {
     animal_welfare: t('Animal welfare')
   }
   const currentUser = useSelector(state => getMe(state))
-  const { navigate } = useNavigate()
+  const navigate = useNavigate()
   const prompt = t('Hi there {{groupName}}, I\'d like to talk about {{prompt}}.', { groupName: group.name, prompt: promptLookup[opportunity] })
+  // group.stewards is everyone holding the Administrator, Moderator or Host role
   const goToGroupStewardsMessage = useCallback(() => {
     navigate(
-      `${newMessageUrl()}?participants=${group.stewards.map(m => m.id).join(',')}&prompt=${encodeURIComponent(prompt)}`
+      `${newMessageUrl()}?participants=${(group.stewards || []).map(m => m.id).join(',')}&prompt=${encodeURIComponent(prompt)}`
     )
-  }, [group?.id, prompt])
+  }, [group?.id, group?.stewards, prompt])
   return (
     <div className={classes.collabItem} key={opportunity}>
       <Icon className={classes.collabIcon} blue name={determineIcon(opportunity)} />
@@ -101,6 +102,7 @@ export function OpportunityToCollaborate ({ group, opportunity }) {
           blue
           className={cn(classes.collabIcon, classes.cursorPointer)}
           onClick={goToGroupStewardsMessage}
+          dataTestId='message-stewards'
         />
       )}
     </div>

@@ -41,6 +41,7 @@ export default function MembershipSettingsRow ({
         <div className='mt-2'>
           <GroupMembershipNotificationSettings
             id={membership.id}
+            groupId={membership.group.id}
             settings={membership.settings}
             update={updateMembershipSettings}
           />

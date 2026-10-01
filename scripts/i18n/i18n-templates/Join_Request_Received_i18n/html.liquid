@@ -1,0 +1,26 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+{% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+
+<p>
+  {% set first_name_var = first_name %}
+  {% trans %}Hi {{first_name_var}},{% endtrans %}
+</p>
+
+<p>{% trans %}Your request to join {{group_pill}} was sent.{% endtrans %}</p>
+
+<p>{% trans %}The group's stewards look at each request themselves, so an answer can take a few days. We'll let you know by email and in Hylo as soon as they answer.{% endtrans %}</p>
+
+<a class='btn btn-blue' href="{{group_url}}" clicktracking="off">{% trans %}See the group{% endtrans %}</a>
+
+<p>{% trans %}While you wait, you can also find open groups to join right away.{% endtrans %} <a href="{{explore_url}}" clicktracking="off">{% trans %}Explore groups{% endtrans %}</a></p>
+
+{% snippet "footer_redesign" %}

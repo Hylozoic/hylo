@@ -73,6 +73,16 @@ const daily = now => {
 
   // Reminders to learners idle in a track for 7 and 21 days, at most two per enrollment (D63)
   tasks.push(require('./api/models/track/reminders').sendTrackReminders().then(count => sails.log.debug(`Sent ${count} track reminders`)).catch(err => sails.log.error('Track reminders failed', err)))
+  // D13/D14: 14-day join request notes, quiet-group prompts and, on Mondays, the steward email
+  tasks.push(require('./lib/group/stewardDigest').runDaily({ now: now.toJSDate(), weekday: now.weekday }).then(({ unanswered, quiet, weekly }) => sails.log.debug(`Steward job: ${unanswered} unanswered join requests, ${quiet} quiet groups, ${weekly.emails} steward emails in ${weekly.groups} groups`)).catch(err => sails.log.error('Steward job failed', err)))
+
+  // D49 experiment: nudge stewards about newcomers' first posts with no response after a day
+  tasks.push(require('./api/models/post/firstPostNudge').runDaily().then(({ found, nudged, control }) => sails.log.debug(`First posts without a response: ${found} (${nudged} nudged, ${control} control)`)).catch(err => sails.log.error('First-post nudge failed', err)))
+
+  // D38: on Mondays, "N people joined this week, say hi" to recently active members
+  if (now.weekday === 1) {
+    tasks.push(require('./api/models/group/newcomerBatch').runWeekly().then(({ groups, notices }) => sails.log.debug(`Sent ${notices} new-member notices in ${groups} groups`)).catch(err => sails.log.error('New-member notices failed', err)))
+  }
 
   return tasks
 }

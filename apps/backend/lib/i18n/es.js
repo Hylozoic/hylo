@@ -104,6 +104,11 @@ exports.es = {
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} invitó a tu grupo ${toGroup.get('name')} a formar una relación de pares con ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} aceptó la relación de pares entre ${fromGroup.get('name')} y ${toGroup.get('name')}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Un nuevo miembro se ha unido a ${group.get('name')}: ${actor.get('name')}`,
+  joinRequestReceivedSubject: (groupName) => `Enviamos tu solicitud para unirte a ${groupName}`,
+  joinRequestDeclinedSubject: (groupName) => `Sobre tu solicitud para unirte a ${groupName}`,
+  joinRequestUnansweredSubject: (groupName) => `Tu solicitud para unirte a ${groupName} sigue esperando respuesta`,
+  roleGrantedSubject: ({ roleName, groupName }) => `Tienes un nuevo rol en ${groupName}: ${roleName}`,
+  stewardWeeklySubject: (groupName) => `Esta semana en ${groupName}, para administradores`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

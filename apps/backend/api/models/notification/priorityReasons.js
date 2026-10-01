@@ -47,5 +47,17 @@ export const PRIORITY_REASONS = [
   'eventNudge',
   'projectJoined',
   'requestHelped',
-  'requestMet'
+  'requestMet',
+  // D14: to the person who asked to join. Named so no earlier label is a prefix of them
+  'acknowledgedJoinRequest',
+  'declinedJoinRequest',
+  'unansweredJoinRequest',
+  // D48: a steward gave you a role or badge
+  'roleGranted',
+  // D38: weekly "N people joined, say hi" (group/newcomerBatch.js)
+  'newMembersJoined',
+  // D49 experiment: a newcomer's first post has no response (post/firstPostNudge.js)
+  'firstPostUnanswered',
+  // D13: no posts for 30 days, to stewards (lib/group/stewardDigest.js)
+  'groupQuiet'
 ]
