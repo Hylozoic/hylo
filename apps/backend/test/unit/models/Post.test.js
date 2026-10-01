@@ -340,6 +340,67 @@ describe('Post', function () {
         })
     })
 
+    describe('for a chat in a live conversation', () => {
+      let room
+      const minutesAgo = minutes => new Date(Date.now() - minutes * 60000)
+      const chatIn = async (group, userId, createdAt, description) => {
+        const chat = await factories.post({
+          user_id: userId,
+          type: Post.Type.CHAT,
+          created_at: createdAt,
+          ...(description ? { description } : {})
+        }).save()
+        await chat.groups().attach(group.id)
+        return chat
+      }
+      const metaFor = async (post, userId) =>
+        (await Activity.where({ post_id: post.id, reader_id: userId }).fetch()).get('meta')
+
+      beforeEach(async () => {
+        room = await factories.group().save()
+        await u2.joinGroup(room)
+        await u3.joinGroup(room)
+      })
+
+      it('marks readers whose own last chat in the room is inside the window', async () => {
+        await chatIn(room, u2.id, minutesAgo(10))
+        await chatIn(room, u3.id, minutesAgo(30))
+        const chat = await chatIn(room, u.id, new Date())
+
+        await chat.createActivities()
+
+        expect(await metaFor(chat, u2.id)).to.deep.equal({ reasons: ['chat'], inConversation: true })
+        expect(await metaFor(chat, u3.id)).to.deep.equal({ reasons: ['chat'] })
+      })
+
+      it('keeps the mark when the reader is also mentioned', async () => {
+        await chatIn(room, u2.id, minutesAgo(5))
+        const mention = `<p>hi <a class="mention" data-type="mention" data-id="${u2.id}" data-label="u2">u2</a></p>`
+        const chat = await chatIn(room, u.id, new Date(), mention)
+
+        await chat.createActivities()
+
+        expect(await metaFor(chat, u2.id)).to.deep.equal({ reasons: ['mention', 'chat'], inConversation: true })
+      })
+
+      it('looks the conversation up with one query per chat', async () => {
+        await chatIn(room, u2.id, minutesAgo(5))
+        await chatIn(room, u3.id, minutesAgo(6))
+        const chat = await chatIn(room, u.id, new Date())
+        const windowQueries = []
+        const listener = data => {
+          if (/select distinct "groups_posts"."group_id", "posts"."user_id"/.test(data.sql)) windowQueries.push(data.sql)
+        }
+        bookshelf.knex.on('query', listener)
+        try {
+          await chat.createActivities()
+        } finally {
+          bookshelf.knex.removeListener('query', listener)
+        }
+        expect(windowQueries).to.have.length(1)
+      })
+    })
+
     it('creates an activity for a tag follower', () => {
       const post = factories.post({
         user_id: u.id

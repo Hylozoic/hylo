@@ -255,6 +255,42 @@ describe('Comment', () => {
         })
       })
 
+      describe('when the reader turned comment email off', () => {
+        const mentionU2 = () => `hello <a class="mention" data-id="${u2.get('id')}" data-label="buddy">buddy</a>!`
+
+        beforeEach(() => u2.addSetting({ comment_notifications: 'none' }, true))
+
+        it('still emails the comments that mention them when the group allows email', async () => {
+          await group.addMembers([u2.id], { settings: { sendEmail: true } })
+          await comments[1].save({ text: mentionU2() }, { patch: true })
+
+          await Comment.sendDigests()
+
+          const send2 = log.find(l => l.email === u2.get('email'))
+          expect(send2).to.exist
+          expect(send2.data.subject_prefix).to.match(/You were mentioned/)
+          expect(send2.data.comments.map(c => c.id)).to.deep.equal([comments[1].id])
+        })
+
+        it('sends nothing when the group has email off', async () => {
+          await group.addMembers([u2.id], { settings: { sendEmail: false } })
+          await comments[1].save({ text: mentionU2() }, { patch: true })
+
+          await Comment.sendDigests()
+
+          expect(log.find(l => l.email === u2.get('email'))).not.to.exist
+        })
+
+        it('sends nothing without a mention', async () => {
+          await group.addMembers([u2.id], { settings: { sendEmail: true } })
+
+          await Comment.sendDigests()
+
+          expect(log.find(l => l.email === u2.get('email'))).not.to.exist
+          expect(log.find(l => l.email === u1.get('email'))).to.exist
+        })
+      })
+
       it('translates the subject prefix and formats times for the recipient', async () => {
         await u2.addSetting({ locale: 'es' }, true)
         await post.save({ timezone: 'America/Mexico_City' }, { patch: true })

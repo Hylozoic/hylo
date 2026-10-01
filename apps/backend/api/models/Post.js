@@ -14,6 +14,7 @@ import { decrementNewPostCount } from './post/deletePost'
 import { incrementNewPostCount } from './post/createPost'
 import rehostAndAttachImages from './post/rehostAndAttachImages'
 import upsertChatActivityNoticeForPost from './post/upsertChatActivityNotice'
+import { conversationParticipants } from './notification/rules/adaptiveImportant'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -679,6 +680,15 @@ module.exports = bookshelf.Model.extend(Object.assign({
     if (this.get('type') === Post.Type.CHAT) {
       // Chat is a GroupView now, not a topic. Notify group/space members;
       // generateNotificationMedia applies postNotifications (all / important / none).
+      // Members who chatted in the room within the conversation window get this chat
+      // as important (notification/rules/adaptiveImportant).
+      const inConversation = new Set((await conversationParticipants({
+        postId: this.id,
+        authorId: this.get('user_id'),
+        groupIds: groups.map(group => group.id),
+        createdAt: this.get('created_at'),
+        trx
+      })).map(({ groupId, userId }) => `${groupId}:${userId}`))
       const members = await Promise.all(groups.map(async group => {
         const userIds = await group.members().fetch().then(u => u.pluck('id'))
         return userIds.map(userId => ({
@@ -686,7 +696,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
           post_id: this.id,
           actor_id: this.get('user_id'),
           group_id: group.id,
-          reason: 'chat'
+          reason: 'chat',
+          ...(inConversation.has(`${group.id}:${userId}`) ? { meta: { inConversation: true } } : {})
         }))
       }))
 

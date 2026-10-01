@@ -1,6 +1,7 @@
 import decode from 'ent/decode'
 import { TextHelpers } from '@hylo/shared'
 import { getLocaleStrings } from '../../lib/i18n/locales'
+import { firstLine } from './notification/pushGrouping'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'push_notifications',
@@ -10,7 +11,15 @@ module.exports = bookshelf.Model.extend({
     return this.belongsTo(User)
   },
 
-  send: async function (options) {
+  // grouping ({ heading, groupKey, collapseKey } from notification/pushGrouping) only
+  // shapes this delivery; it is not stored.
+  send: async function (options, grouping = {}) {
+    // Only the keys that are set, so pushes without grouping look as before
+    const groupingOpts = Object.fromEntries(Object.entries({
+      heading: grouping?.heading,
+      groupKey: grouping?.groupKey,
+      collapseKey: grouping?.collapseKey
+    }).filter(([, value]) => value))
     const alert = this.get('alert')
     const path = this.get('path')
     const badgeNo = this.get('badge_no')
@@ -32,7 +41,7 @@ module.exports = bookshelf.Model.extend({
 
     if (!disabled) {
       const result = await OneSignal.notify({
-        readerId, alert, path, badgeNo
+        readerId, alert, path, badgeNo, ...groupingOpts
       })
       if (result === false) return false
     }
@@ -71,10 +80,11 @@ module.exports = bookshelf.Model.extend({
       : getLocaleStrings(locale).textForComment({ person, blurb, postName })
   },
 
+  // The heading carries the group or space name (D42), so the body is 'Name: first line'
   textForPost: function (post, group, firstTag, version, locale) {
     const person = post.relations.user.get('name')
-    const postName = decode(post.summary())
-    const groupName = group.get('name')
+    const postName = firstLine(decode(post.summary()))
+    const groupName = group?.get('name')
 
     switch (version) {
       case 'chat':
@@ -90,8 +100,8 @@ module.exports = bookshelf.Model.extend({
 
   textForAnnouncement: function (post, group, locale) {
     const person = post.relations.user.get('name')
-    const postName = decode(post.summary())
-    const groupName = group.get('name')
+    const postName = firstLine(decode(post.summary()))
+    const groupName = group?.get('name')
 
     return getLocaleStrings(locale).textForAnnouncement({ groupName, person, postName })
   },

@@ -9,6 +9,11 @@ const notificationSentry = () => dependencyOf(
   path.resolve(__dirname, '../../../lib/sentry.js')
 )
 
+const notificationWebsockets = () => dependencyOf(
+  path.resolve(__dirname, '../../../api/models/Notification.js'),
+  path.resolve(__dirname, '../../../api/services/Websockets.js')
+)
+
 const destroyAllPushNotifications = () => {
   return PushNotification.fetchAll()
     .then(pns => pns.map(pn => pn.destroy()))
@@ -127,8 +132,44 @@ describe('Notification', function () {
         .then(pns => {
           expect(pns.length).to.equal(1)
           const pn = pns.first()
-          expect(pn.get('alert')).to.equal('Joe posted "My Post" in My Group')
+          expect(pn.get('alert')).to.equal('Joe: My Post')
         })
+    })
+
+    it('heads a post push with the group name and stacks it per group without collapsing', async () => {
+      const notification = await preloadNotification(activities.newPost, Notification.MEDIUM.Push)
+      await notification.send()
+      const opts = OneSignal.notify.__spy.calls[0][0]
+      expect(opts.heading).to.equal('My Group')
+      expect(opts.groupKey).to.equal(`group-${group.id}`)
+      expect(opts.collapseKey).to.equal(undefined)
+    })
+
+    it('collapses chat pushes per room with a stable key', async () => {
+      const chatActivity = {
+        post_id: post.id,
+        meta: { reasons: ['chat'] },
+        reader_id: reader.id,
+        actor_id: actor.id,
+        group_id: group.id
+      }
+      const first = await preloadNotification(chatActivity, Notification.MEDIUM.Push)
+      await first.send()
+      const second = await preloadNotification(chatActivity, Notification.MEDIUM.Push)
+      await second.send()
+      const [call1, call2] = OneSignal.notify.__spy.calls.map(call => call[0])
+      expect(call1.collapseKey).to.equal(`chat-${group.id}`)
+      expect(call2.collapseKey).to.equal(call1.collapseKey)
+      expect(call1.heading).to.equal('My Group')
+      expect(call1.alert).to.equal('Joe: My Post')
+    })
+
+    it('never collapses a mention push', async () => {
+      const notification = await preloadNotification({ ...activities.mention, group_id: group.id }, Notification.MEDIUM.Push)
+      await notification.send()
+      const opts = OneSignal.notify.__spy.calls[0][0]
+      expect(opts.collapseKey).to.equal(undefined)
+      expect(opts.heading).to.equal('My Group')
     })
 
     it('sends a push for a mention in a post', () => {
@@ -138,7 +179,7 @@ describe('Notification', function () {
         .then(pns => {
           expect(pns.length).to.equal(1)
           const pn = pns.first()
-          expect(pn.get('alert')).to.equal('Joe mentioned you in post "My Post" in My Group')
+          expect(pn.get('alert')).to.equal('Joe mentioned you: My Post')
         })
     })
 
@@ -148,6 +189,25 @@ describe('Notification', function () {
           .then(notification => notification.send())
           .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
           .then(pns => expect(pns.length).to.equal(0))
+      })
+    })
+
+    describe('to a user with comment notifications turned off', () => {
+      beforeEach(() => reader.addSetting({ comment_notifications: 'none' }, true))
+      afterEach(() => reader.removeSetting('comment_notifications', true))
+
+      it('still sends the push for a mention in a comment', async () => {
+        const notification = await preloadNotification(activities.commentMention, Notification.MEDIUM.Push)
+        await notification.send()
+        const pns = await PushNotification.where({ user_id: reader.id }).fetchAll()
+        expect(pns.length).to.equal(1)
+      })
+
+      it('sends no push for a plain comment', async () => {
+        const notification = await preloadNotification(activities.newComment, Notification.MEDIUM.Push)
+        await notification.send()
+        const pns = await PushNotification.where({ user_id: reader.id }).fetchAll()
+        expect(pns.length).to.equal(0)
       })
     })
 
@@ -516,6 +576,59 @@ describe('Notification', function () {
     })
   })
 
+  describe('#updateUserSocketRoom', () => {
+    let websockets
+
+    beforeEach(() => {
+      websockets = notificationWebsockets()
+      mockify(websockets, 'broadcast', () => {})
+    })
+
+    afterEach(() => unspyify(websockets, 'broadcast'))
+
+    // Loads the same relations as sendUnsent, including the parent comment
+    const payloadFor = async activityAttrs => {
+      const saved = await new Activity(activityAttrs).save()
+      const notification = await new Notification({ activity_id: saved.id, medium: Notification.MEDIUM.InApp }).save()
+      await notification.load([...relations, 'activity.parentComment'])
+      await notification.updateUserSocketRoom(reader.id)
+      return websockets.broadcast.__spy.calls[0][2]
+    }
+
+    it('marks a comment on the reader\'s own post as a reply to them', async () => {
+      const ownPost = await factories.post({ name: 'Reader post', user_id: reader.id }).save()
+      const reply = await new Comment({ text: 'nice', user_id: actor.id, post_id: ownPost.id }).save()
+      const payload = await payloadFor({
+        post_id: ownPost.id,
+        comment_id: reply.id,
+        meta: { reasons: ['newComment'] },
+        reader_id: reader.id,
+        actor_id: actor.id
+      })
+      expect(payload.activity.action).to.equal('newComment')
+      expect(payload.activity.replyToYou).to.equal(true)
+    })
+
+    it('marks a reply under the reader\'s comment as a reply to them', async () => {
+      const readerComment = await new Comment({ text: 'first', user_id: reader.id, post_id: post.id }).save()
+      const reply = await new Comment({ text: 'reply', user_id: actor.id, post_id: post.id, comment_id: readerComment.id }).save()
+      const payload = await payloadFor({
+        post_id: post.id,
+        comment_id: reply.id,
+        parent_comment_id: readerComment.id,
+        meta: { reasons: ['newComment'] },
+        reader_id: reader.id,
+        actor_id: actor.id
+      })
+      expect(payload.activity.replyToYou).to.equal(true)
+    })
+
+    it('does not mark other comments on a followed post', async () => {
+      const payload = await payloadFor({ ...activities.newComment, post_id: post.id })
+      expect(payload.activity.replyToYou).to.equal(false)
+    })
+  })
+
   describe('.sendUnsent', () => {
     let originalEmailNotificationsEnabled
 
@@ -579,14 +692,41 @@ describe('Notification', function () {
 
     const minutesAgo = minutes => new Date(Date.now() - minutes * 60000)
 
-    const unsentNotification = async timestamps => {
+    const unsentNotification = async (timestamps, medium = Notification.MEDIUM.Email) => {
       const notification = await new Notification({
         activity_id: activity.id,
-        medium: Notification.MEDIUM.Email
+        medium
       }).save()
       await bookshelf.knex('notifications').where({ id: notification.id }).update(timestamps)
       return Number(notification.id)
     }
+    const unsentPush = timestamps => unsentNotification(timestamps, Notification.MEDIUM.Push)
+
+    it('retries a push that failed 3 minutes ago inside its window', async () => {
+      const id = await unsentPush({ created_at: minutesAgo(5), failed_at: minutesAgo(3) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([id])
+    })
+
+    it('waits a short interval before retrying a failed push', async () => {
+      await unsentPush({ created_at: minutesAgo(2), failed_at: minutesAgo(1) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([])
+    })
+
+    it('does not claim a push created 20 minutes ago', async () => {
+      await unsentPush({ created_at: minutesAgo(20) })
+      await unsentPush({ created_at: minutesAgo(20), failed_at: minutesAgo(10) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([])
+    })
+
+    it('keeps the hourly retry for an email that failed 3 minutes ago', async () => {
+      await unsentNotification({ created_at: minutesAgo(5), failed_at: minutesAgo(3) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([])
+    })
+
+    it('still claims an email created 20 minutes ago', async () => {
+      const id = await unsentNotification({ created_at: minutesAgo(20) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([id])
+    })
 
     it('reclaims a failed notification an hour after it failed', async () => {
       const id = await unsentNotification({ created_at: minutesAgo(180), failed_at: minutesAgo(120) })
@@ -623,6 +763,35 @@ describe('Notification', function () {
     afterEach(() => {
       process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
       unspyify(Email, 'sendApprovedJoinRequestNotification')
+    })
+
+    it('queues a short retry when a push fails', async () => {
+      mockify(OneSignal, 'notify', () => Promise.resolve(false))
+      mockify(Queue, 'classMethod', () => Promise.resolve())
+      try {
+        const notification = await preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Push)
+
+        await Notification.sendUnsent()
+
+        const reloaded = await Notification.find(notification.id)
+        expect(reloaded.get('failed_at')).not.to.equal(null)
+        expect(Queue.classMethod).to.have.been.called.with('Notification', 'sendUnsent', {}, (Notification.PUSH_RETRY_INTERVAL_MINUTES * 60 + 15) * 1000)
+      } finally {
+        unspyify(OneSignal, 'notify')
+        unspyify(Queue, 'classMethod')
+      }
+    })
+
+    it('does not queue a push retry when only an email fails', async () => {
+      mockify(Email, 'sendApprovedJoinRequestNotification', () => Promise.resolve(false))
+      mockify(Queue, 'classMethod', () => Promise.resolve())
+      try {
+        await preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Email)
+        await Notification.sendUnsent()
+        expect(Queue.classMethod).not.to.have.been.called()
+      } finally {
+        unspyify(Queue, 'classMethod')
+      }
     })
 
     it('sends a notification that failed more than an hour ago', async () => {

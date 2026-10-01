@@ -469,8 +469,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
                   value={isMember.settings.postNotifications}
                   onChange={value => updateMySettings({ postNotifications: value })}
                   options={[
-                    { value: 'none', label: t('Mute'), icon: BellOff, description: t("You won't hear about new posts in this space.") },
-                    { value: 'important', label: t('Important'), icon: Megaphone, description: t('Only announcements and posts that mention you.') },
+                    { value: 'none', label: t('Mute'), icon: BellOff, description: t("You won't hear about new posts in this space, except ones that mention you.") },
+                    { value: 'important', label: t('Important'), icon: Megaphone, description: t("Announcements, mentions and replies in chats you're part of. Every post while the space is quiet.") },
                     { value: 'all', label: t('All'), icon: Bell, description: t('Every new post in this space.') }
                   ]}
                 />

@@ -113,5 +113,55 @@ describe('GroupViewUser', () => {
       const sent = await GroupViewUser.sendDigests()
       expect(sent).to.equal(1)
     })
+
+    it("is skipped when the parent group's email digest is Never", async () => {
+      await parent.addMembers([reader.id], { settings: { sendEmail: true, postNotifications: 'all', digestFrequency: 'never' } })
+      await space.addMembers([reader.id], { settings: { sendEmail: true, postNotifications: 'all', digestFrequency: 'daily' } })
+
+      const sent = await GroupViewUser.sendDigests()
+      expect(sent).to.equal(0)
+      expect(Email.sendChatDigest).not.to.have.been.called()
+    })
+  })
+
+  describe('.sendDigests and the email digest setting', () => {
+    let group, reader, originalEmailNotificationsEnabled
+
+    beforeEach(async () => {
+      await setup.clearDb()
+      originalEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+      mockify(Email, 'sendChatDigest', () => Promise.resolve(true))
+      await (await RedisClient.create()).del('ChatRoom.digests.lastSentAt')
+
+      group = await factories.group({ name: 'Orchard' }).save()
+      reader = await factories.user().save()
+      const author = await factories.user().save()
+
+      const chat = await GroupView.forge({ group_id: group.id, type: GroupView.Type.CHAT, name: 'Chat', order: 0 }).save()
+      const post = await factories.post({ type: Post.Type.CHAT, user_id: author.id }).save()
+      await group.posts().attach(post)
+      await GroupViewUser.forge({ view_id: chat.id, user_id: reader.id, new_post_count: 1 }).save()
+    })
+
+    afterEach(() => {
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
+      unspyify(Email, 'sendChatDigest')
+    })
+
+    it('sends no chat digest when the email digest is Never', async () => {
+      await group.addMembers([reader.id], { settings: { sendEmail: true, postNotifications: 'all', digestFrequency: 'never' } })
+
+      expect(await GroupViewUser.sendDigests()).to.equal(0)
+      expect(Email.sendChatDigest).not.to.have.been.called()
+    })
+
+    for (const digestFrequency of ['daily', 'weekly']) {
+      it(`still sends the chat digest when the email digest is ${digestFrequency}`, async () => {
+        await group.addMembers([reader.id], { settings: { sendEmail: true, postNotifications: 'all', digestFrequency } })
+
+        expect(await GroupViewUser.sendDigests()).to.equal(1)
+      })
+    }
   })
 })
