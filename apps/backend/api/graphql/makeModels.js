@@ -675,6 +675,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         details: p => p.details(userId),
         fundingRound: p => p.fundingRounds().fetchOne(),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
+        isFollowing: async p => {
+          if (!userId) return false
+          const postUser = await PostUser.find(p.id, userId)
+          return !!(postUser && postUser.get('active') && postUser.get('following'))
+        },
         localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],
         myEventResponse: p =>

@@ -1,4 +1,4 @@
-/* global bookshelf, Group, GroupView, User, GroupMembership, Post, Email, Frontend, RichText, sails */
+/* global bookshelf, GroupView, User, GroupMembership, Post, Email, Frontend, RichText, sails */
 /* eslint-disable camelcase */
 
 import RedisClient from '../services/RedisClient'
@@ -139,6 +139,18 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * Spaces have no channel settings of their own in the UI, so a space membership
+   * follows the parent group membership's sendEmail when there is one.
+   */
+  emailEnabledFor: async function (membership, group) {
+    if (group.get('type') === 'space' && group.get('parent_id')) {
+      const parentMembership = await GroupMembership.forPair(membership.get('user_id'), group.get('parent_id')).fetch()
+      if (parentMembership) return !!parentMembership.getSetting('sendEmail')
+    }
+    return !!membership.getSetting('sendEmail')
+  },
+
+  /**
    * Hourly email digests for chat views with unread chat posts.
    * Sends one email per chat view (parent group chat and each space chat).
    * Uses membership postNotifications: all = every chat, important = mentions
@@ -187,7 +199,8 @@ module.exports = bookshelf.Model.extend({
           if (process.env.EMAIL_NOTIFICATIONS_ENABLED !== 'true' && !(await User.isTester(userId))) continue
 
           const membership = await GroupMembership.forPair(userId, groupId).fetch()
-          if (!membership || !membership.get('active') || !membership.getSetting('sendEmail')) continue
+          if (!membership || !membership.get('active')) continue
+          if (!(await GroupViewUser.emailEnabledFor(membership, group))) continue
 
           const postNotifications = membership.getSetting('postNotifications')
           if (postNotifications !== 'all' && postNotifications !== 'important') continue
