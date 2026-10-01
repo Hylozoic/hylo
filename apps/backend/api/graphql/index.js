@@ -19,6 +19,18 @@ const graphqlRequestStore = new AsyncLocalStorage()
  */
 function maskAndLogGraphqlError (error, message, isDev) {
   const result = maskError(error, message, isDev)
+  if (result?.message !== message) {
+    const store = graphqlRequestStore.getStore() || {}
+    const path = Array.isArray(error?.path) ? error.path.join('.') : error?.path
+    sails.log.warn('[graphql] client-visible error:', {
+      operationName: store.operationName,
+      message: result?.message,
+      code: result?.extensions?.code,
+      path,
+      locations: error?.locations?.map(({ line, column }) => ({ line, column }))
+    })
+  }
+
   if (result?.message === message) {
     const original = error?.originalError instanceof Error
       ? error.originalError
