@@ -108,14 +108,16 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
       const getCookieAsync = async () => {
         try {
           const fromToken = await sessionCookieFromToken()
-          authLog('HyloWebView cookie bridge:', fromToken ? 'token→session ✓' : 'no native token — cannot load WebView')
-          if (fromToken) {
-            await ensureWebViewCookies()
-            setCookie(fromToken)
-          } else {
-            setCookie(null)
-            setIsLoading(false)
-          }
+          authLog('HyloWebView cookie bridge:', fromToken ? 'token→session ✓' : 'no token, falling back to stored cookie')
+          const newCookie = fromToken || await getSessionCookie()
+          authLog('HyloWebView final cookie:', newCookie ? `found (${newCookie.slice(0, 30)}…)` : 'none — WebView will not load')
+          authHandshakeEvent('WebView cookie bridge', {
+            fromToken: !!fromToken,
+            hasCookie: !!newCookie
+          }, newCookie ? 'info' : 'warning')
+          if (newCookie) await ensureWebViewCookies()
+          setCookie(newCookie)
+          if (!newCookie) setIsLoading(false)
         } catch (error) {
           console.warn('HyloWebView cookie retrieval failed:', error)
           setIsLoading(false)
