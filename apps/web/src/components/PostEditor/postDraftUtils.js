@@ -8,6 +8,12 @@ const serializeGroupIds = (groups = []) =>
     .filter(Boolean)
     .map(group => group.id)
 
+// Accepts url strings (draft payloads) or attachment objects (posts, the attachment store)
+const serializeUrls = (items = []) =>
+  (items || [])
+    .map(item => (typeof item === 'string' ? item : item?.url))
+    .filter(Boolean)
+
 const normalizeDate = value => {
   if (!value) return null
   const date = value instanceof Date ? value : new Date(value)
@@ -39,7 +45,9 @@ export const buildPostDraftPayload = (post = {}) => ({
   quorum: post.quorum || 0,
   votingMethod: post.votingMethod || null,
   sendAnnouncement: !!post.sendAnnouncement,
-  trackId: post.trackId || null
+  trackId: post.trackId || null,
+  imageUrls: serializeUrls(post.imageUrls ?? post.imageAttachments),
+  fileUrls: serializeUrls(post.fileUrls ?? post.fileAttachments)
 })
 
 export const mergeDraftIntoPost = (base, draft, groupOptions = []) => {

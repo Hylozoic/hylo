@@ -15,6 +15,7 @@ import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupCon
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
+import { toast } from 'sonner'
 import { getHourCycle } from 'components/Calendar/calendar-util'
 import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
@@ -82,9 +83,11 @@ import createPost from 'store/actions/createPost'
 import updatePost from 'store/actions/updatePost'
 import {
   addAttachment,
+  attachmentsFromUrls,
   clearAttachments,
   getAttachments,
-  getUploadAttachmentPending
+  getUploadAttachmentPending,
+  setAttachments
 } from 'components/AttachmentManager/AttachmentManager.store'
 import {
   FETCH_LINK_PREVIEW,
@@ -302,6 +305,8 @@ function PostEditorInner ({
   const toFieldTouchedRef = useRef(false)
   /** Blocks duplicate create/update dispatches before Redux pending state updates. */
   const isSubmittingRef = useRef(false)
+  const saveFailedToastIdRef = useRef(null)
+  const mountedRef = useRef(false)
   /**
    * Latest editor HTML. Kept in a ref so typing does not write into React state on every keystroke.
    * null means not hydrated yet — draft effect falls back to currentPost.details.
@@ -323,6 +328,17 @@ function PostEditorInner ({
     state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
+  // The attachment bucket fills asynchronously when an existing post loads, so
+  // drafts only take their attachments from it once the user (or a restored
+  // draft) has changed them; until then the post's own attachments stand.
+  const [attachmentsTouched, setAttachmentsTouched] = useState(false)
+  const markAttachmentsTouched = useCallback(() => setAttachmentsTouched(true), [])
+  const handleUploadError = useCallback(() => toast.error(t('Couldn\'t upload that file. Please try again.')), [t])
+  const withDraftAttachments = useCallback(post => (
+    attachmentsTouched
+      ? { ...post, imageUrls: imageAttachments.map(a => a.url), fileUrls: fileAttachments.map(a => a.url) }
+      : post
+  ), [attachmentsTouched, fileAttachments, imageAttachments])
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT, UPDATE_POST], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
 
@@ -465,8 +481,14 @@ function PostEditorInner ({
     setHasDescription(hasDraftContent(details))
     setEditorInitialContent(details)
     editorRef.current?.setContent(details)
+    // Drafts saved before attachments were kept have no url lists; leave the bucket alone then
+    if (Array.isArray(post.imageUrls) && Array.isArray(post.fileUrls)) {
+      dispatch(setAttachments('post', attachmentPostId, 'image', attachmentsFromUrls(post.imageUrls, 'image')))
+      dispatch(setAttachments('post', attachmentPostId, 'file', attachmentsFromUrls(post.fileUrls, 'file')))
+      setAttachmentsTouched(true)
+    }
     draftLoadedRef.current = true
-  }, [currentGroup, editing, syncDetailsToCurrentPost])
+  }, [attachmentPostId, currentGroup, dispatch, editing, syncDetailsToCurrentPost])
 
   /**
    * Filters the available group options to find only those groups
@@ -549,7 +571,7 @@ function PostEditorInner ({
       ? currentPost
       : { ...currentPost, details }
 
-    const payload = buildPostDraftPayload(postForDraft)
+    const payload = buildPostDraftPayload(withDraftAttachments(postForDraft))
 
     if (!hasPostDraftPayloadContent(payload)) {
       saveServerDraft(JSON.stringify(payload))
@@ -573,7 +595,7 @@ function PostEditorInner ({
       return
     }
     setIsDirty(false)
-  }, [currentPost, initialDraftPayload, saveDraftJSON, saveServerDraft, setIsDirty, typeSwitchDialog, clearDraft])
+  }, [currentPost, initialDraftPayload, saveDraftJSON, saveServerDraft, setIsDirty, typeSwitchDialog, clearDraft, withDraftAttachments])
 
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
@@ -816,6 +838,7 @@ function PostEditorInner ({
     setEditorInitialContent(details)
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
+    setAttachmentsTouched(false)
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
@@ -859,7 +882,7 @@ function PostEditorInner ({
       ...currentPost,
       details: detailsHtmlRef.current ?? currentPost.details
     }
-    const currentPayload = buildPostDraftPayload(postWithDetails)
+    const currentPayload = buildPostDraftPayload(withDraftAttachments(postWithDetails))
     inSessionDraftByTypeRef.current[currentPost.type] = currentPayload
     pendingTypeSwitchRef.current = {
       fromType: currentPost.type,
@@ -883,7 +906,7 @@ function PostEditorInner ({
       groups: (prev.groups || []).filter(g => groupAcceptsPostType(g, type))
     }))
     setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
-  }, [currentPost, navigate, setCurrentPost, syncDetailsToCurrentPost, urlLocation])
+  }, [currentPost, navigate, setCurrentPost, syncDetailsToCurrentPost, urlLocation, withDraftAttachments])
 
   const handleKeepCurrentTypeContent = useCallback(() => {
     if (typeSwitchDialog?.targetType && typeSwitchDialog?.carriedPost) {
@@ -1119,12 +1142,45 @@ function PostEditorInner ({
   // }
 
   /**
+   * Keeps the post in the editor after a failed create/update, turns draft
+   * autosave back on (re-queueing the draft) and offers a retry. If the editor
+   * has closed while saving, the draft is still re-queued but there is nothing
+   * left to retry from.
+   */
+  const handleSaveFailed = useEventCallback((wasAnnouncement) => {
+    isSubmittedRef.current = false
+    isSubmittingRef.current = false
+    setAnnouncementSelected(!!wasAnnouncement)
+    const details = editorRef.current?.getHTML?.() ?? detailsHtmlRef.current ?? currentPost.details
+    saveDraftJSON(buildPostDraftPayload(withDraftAttachments({ ...currentPost, details })))
+    const message = isEditing ? t('Your changes couldn\'t be saved') : t('Your post couldn\'t be sent')
+    if (!mountedRef.current) {
+      toast.error(message)
+      return
+    }
+    saveFailedToastIdRef.current = toast.error(message, {
+      action: { label: t('Try Again'), onClick: () => doSave() }
+    })
+  })
+
+  // The retry action needs this editor, so the toast goes when the editor does
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      if (saveFailedToastIdRef.current != null) toast.dismiss(saveFailedToastIdRef.current)
+    }
+  }, [])
+
+  /**
    * Saves the post to the server
    * Collects all form data and dispatches the appropriate action (create or update)
    */
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
     isSubmittingRef.current = true
+    const wasAnnouncement = announcementSelected
+    let savedPost
 
     try {
       const {
@@ -1235,24 +1291,25 @@ function PostEditorInner ({
       syncDetailsToCurrentPost.cancel()
       cancelPendingSave()
 
-      const savedPost = await dispatch(saveFunc(postToSave))
-      if (!savedPost.error) {
-        await clearDraft()
-        setIsDirty(false)
-        if (afterSave) {
-          const returnedPost = isEditing
-            ? savedPost?.payload?.data?.updatePost
-            : savedPost?.payload?.data?.createPost
-          afterSave(returnedPost)
-        }
-      } else {
-        isSubmittingRef.current = false
-      }
+      savedPost = await dispatch(saveFunc(postToSave))
     } catch (error) {
-      isSubmittingRef.current = false
-      throw error
+      savedPost = { error }
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
+
+    if (!savedPost || savedPost.error) {
+      handleSaveFailed(wasAnnouncement)
+      return
+    }
+
+    await clearDraft()
+    setIsDirty(false)
+    if (afterSave) {
+      const returnedPost = isEditing
+        ? savedPost?.payload?.data?.updatePost
+        : savedPost?.payload?.data?.createPost
+      afterSave(returnedPost)
+    }
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, handleSaveFailed, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -1282,6 +1339,10 @@ function PostEditorInner ({
     if (isEditing) return t('Save')
     return t('Post')
   }, [postPending, isEditing])
+
+  const handleInvalidSubmit = useCallback(() => {
+    if (!currentPost.title) titleInputRef.current?.focus()
+  }, [currentPost.title])
 
   const toggleAnnouncementModal = useCallback(() => {
     setShowAnnouncementModal(!showAnnouncementModal)
@@ -1514,6 +1575,8 @@ function PostEditorInner ({
           showAddButton
           showLabel
           showLoading
+          onChange={markAttachmentsTouched}
+          onUploadError={handleUploadError}
         />
         <AttachmentManager
           type='post'
@@ -1522,6 +1585,8 @@ function PostEditorInner ({
           showAddButton
           showLabel
           showLoading
+          onChange={markAttachmentsTouched}
+          onUploadError={handleUploadError}
         />
       </div>
       {currentPost.type === 'project' && (
@@ -1900,6 +1965,8 @@ function PostEditorInner ({
         submitting={postPending}
         myAdminGroups={myAdminGroups}
         doSave={doSave}
+        onAttachmentAdded={markAttachmentsTouched}
+        onInvalidSubmit={handleInvalidSubmit}
         save={save}
         setAnnouncementSelected={setAnnouncementSelected}
         setIsDirty={setIsDirty}

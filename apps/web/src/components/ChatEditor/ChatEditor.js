@@ -3,13 +3,14 @@ import { debounce, isEmpty, uniqueId } from 'lodash/fp'
 import { DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import React, { useCallback, useMemo, useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector, useDispatch, useStore } from 'react-redux'
 import { useLocation, useParams } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { useTranslation } from 'react-i18next'
 import { throttle } from 'lodash'
 import { CaseSensitive, ImagePlus, Paperclip, Plus, Send } from 'lucide-react'
+import { toast } from 'sonner'
 import { sendIsTypingGroup } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
 import HyloEditor from 'components/HyloEditor'
@@ -25,10 +26,13 @@ import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import createPost from 'store/actions/createPost'
 import {
+  CHAT_ID_FOR_NEW,
   addAttachment,
+  attachmentsFromUrls,
   clearAttachments,
   getAttachments,
-  getUploadAttachmentPending
+  getUploadAttachmentPending,
+  setAttachments
 } from 'components/AttachmentManager/AttachmentManager.store'
 import {
   FETCH_LINK_PREVIEW,
@@ -39,10 +43,14 @@ import {
 } from 'components/PostEditor/PostEditor.store'
 import useEventCallback from 'hooks/useEventCallback'
 import { MAX_POST_TOPICS } from 'util/constants'
-import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
+import useDraft, { hasDraftContent, hasPostDraftPayloadContent, keepAsDraftUnlessPresent } from 'hooks/useDraft'
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import { buildPostDraftPayload, mergeDraftIntoPost } from 'components/PostEditor/postDraftUtils'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
+
+/** Change-detection key for chat drafts: the text plus any attachment urls. */
+const chatDraftKey = (details, imageUrls = [], fileUrls = []) =>
+  JSON.stringify([details || '', imageUrls || [], fileUrls || []])
 
 /**
  * Inline chat composer for ChatRoom — creates chat posts with draft persistence.
@@ -53,10 +61,12 @@ function ChatEditorInner ({
   setIsDirty = () => {},
   onSave,
   afterSave,
+  onSaveFailed,
   onComposerFocus,
   onComposerBlur
 }, ref) {
   const dispatch = useDispatch()
+  const store = useStore()
   const urlLocation = useLocation()
   const { pathname, search } = urlLocation
   const navigateToForDraft = `${pathname}${search || ''}`
@@ -97,10 +107,11 @@ function ChatEditorInner ({
   }, [saveServerDraft])
 
   const draftLoadedRef = useRef(false)
-  const lastSavedChatDetailsRef = useRef('')
+  const lastSavedChatDraftKeyRef = useRef(chatDraftKey(''))
   const chatComposerHadContentRef = useRef(false)
   const isSubmittedRef = useRef(false)
   const isSubmittingRef = useRef(false)
+  const mountedRef = useRef(false)
 
   const linkPreview = useSelector(state => getLinkPreview(state))
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
@@ -110,16 +121,18 @@ function ChatEditorInner ({
   const [attachmentUploading, setAttachmentUploading] = useState(false)
   const [uploadingAttachmentType, setUploadingAttachmentType] = useState(null)
 
-  const uploadFileAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: undefined, attachmentType: 'file' }))
-  const uploadImageAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: undefined, attachmentType: 'image' }))
+  const uploadFileAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: CHAT_ID_FOR_NEW, attachmentType: 'file' }))
+  const uploadImageAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: CHAT_ID_FOR_NEW, attachmentType: 'image' }))
   const imageAttachments = useSelector(
-    state => getAttachments(state, { type: 'post', id: undefined, attachmentType: 'image' }),
+    state => getAttachments(state, { type: 'post', id: CHAT_ID_FOR_NEW, attachmentType: 'image' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
   const fileAttachments = useSelector(
-    state => getAttachments(state, { type: 'post', id: undefined, attachmentType: 'file' }),
+    state => getAttachments(state, { type: 'post', id: CHAT_ID_FOR_NEW, attachmentType: 'file' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
+  const imageUrls = useMemo(() => imageAttachments.map(a => a.url), [imageAttachments])
+  const fileUrls = useMemo(() => fileAttachments.map(a => a.url), [fileAttachments])
   const loading = attachmentUploading || !!uploadImageAttachmentPending || !!uploadFileAttachmentPending
 
   const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending || (attachmentUploading && uploadingAttachmentType === 'image')
@@ -171,13 +184,16 @@ function ChatEditorInner ({
     setHasDescription(hasDraftContent(details))
     setEditorInitialContent(details)
     editorRef.current?.setContent(details)
-    lastSavedChatDetailsRef.current = details
+    // Each room's draft brings its own attachments (none when it has no draft)
+    dispatch(setAttachments('post', CHAT_ID_FOR_NEW, 'image', attachmentsFromUrls(post.imageUrls, 'image')))
+    dispatch(setAttachments('post', CHAT_ID_FOR_NEW, 'file', attachmentsFromUrls(post.fileUrls, 'file')))
+    lastSavedChatDraftKeyRef.current = chatDraftKey(details, post.imageUrls, post.fileUrls)
     draftLoadedRef.current = true
-  }, [currentGroup])
+  }, [currentGroup, dispatch])
 
   useEffect(() => {
     draftLoadedRef.current = false
-    lastSavedChatDetailsRef.current = initialPost.details || ''
+    lastSavedChatDraftKeyRef.current = chatDraftKey(initialPost.details)
     chatComposerHadContentRef.current = false
   }, [draftContextKey])
 
@@ -199,14 +215,14 @@ function ChatEditorInner ({
   useEffect(() => {
     if (isSubmittedRef.current) return
 
-    const details = currentPost.details || ''
-    const initialDetails = initialPost.details || ''
-    const chatPayload = buildPostDraftPayload(currentPost)
+    const draftKey = chatDraftKey(currentPost.details, imageUrls, fileUrls)
+    const initialDraftKey = chatDraftKey(initialPost.details)
+    const chatPayload = buildPostDraftPayload({ ...currentPost, imageUrls, fileUrls })
 
     if (!hasPostDraftPayloadContent(chatPayload)) {
       saveServerDraft(JSON.stringify(chatPayload))
       setIsDirty(false)
-      lastSavedChatDetailsRef.current = details
+      lastSavedChatDraftKeyRef.current = draftKey
       if (chatComposerHadContentRef.current) {
         chatComposerHadContentRef.current = false
         clearDraft({ deleteOnServer: true }).catch(() => {})
@@ -214,12 +230,12 @@ function ChatEditorInner ({
       return
     }
 
-    if (details === initialDetails) {
+    if (draftKey === initialDraftKey) {
       setIsDirty(false)
       return
     }
 
-    if (details === lastSavedChatDetailsRef.current) {
+    if (draftKey === lastSavedChatDraftKeyRef.current) {
       if (hasPostDraftPayloadContent(chatPayload)) {
         chatComposerHadContentRef.current = true
       }
@@ -229,10 +245,10 @@ function ChatEditorInner ({
 
     chatComposerHadContentRef.current = true
     draftLoadedRef.current = true
-    lastSavedChatDetailsRef.current = details
+    lastSavedChatDraftKeyRef.current = draftKey
     saveDraftJSON(chatPayload)
     setIsDirty(true)
-  }, [currentPost, initialPost.details, saveDraftJSON, saveServerDraft, setIsDirty, clearDraft])
+  }, [currentPost, fileUrls, imageUrls, initialPost.details, saveDraftJSON, saveServerDraft, setIsDirty, clearDraft])
 
   // Keep keyboard focus when navigating between chat rooms
   useEffect(() => {
@@ -244,7 +260,8 @@ function ChatEditorInner ({
   useEffect(() => {
     return () => {
       dispatch(clearLinkPreview())
-      dispatch(clearAttachments('post', 'new', 'image'))
+      dispatch(clearAttachments('post', CHAT_ID_FOR_NEW, 'image'))
+      dispatch(clearAttachments('post', CHAT_ID_FOR_NEW, 'file'))
     }
   }, [])
 
@@ -272,8 +289,8 @@ function ChatEditorInner ({
     dispatch(clearLinkPreview())
     setCurrentPost(() => ({ ...initialPost, linkPreview: null, linkPreviewFeatured: false }))
     setEditorInitialContent(initialPost.details || '')
-    dispatch(clearAttachments('post', 'new', 'image'))
-    dispatch(clearAttachments('post', 'new', 'file'))
+    dispatch(clearAttachments('post', CHAT_ID_FOR_NEW, 'image'))
+    dispatch(clearAttachments('post', CHAT_ID_FOR_NEW, 'file'))
     clearDraft()
     chatComposerHadContentRef.current = false
     isSubmittedRef.current = false
@@ -333,6 +350,8 @@ function ChatEditorInner ({
     setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false, skipLinkPreview: true }))
   }, [dispatch, setCurrentPost])
 
+  const handleUploadError = useCallback(() => toast.error(t('Couldn\'t upload that file. Please try again.')), [t])
+
   const handleAttachmentLoadingChange = useCallback((next, attachmentType) => {
     setAttachmentUploading(next)
     setUploadingAttachmentType(next ? attachmentType : null)
@@ -358,10 +377,108 @@ function ChatEditorInner ({
 
   const isValid = !invalidMessage
 
+  /** Puts a failed chat post back into the composer; the draft effect then re-saves it. */
+  const restoreFailedPost = useCallback((postToSave) => {
+    const details = postToSave.details || ''
+    editorRef.current?.setContent(details)
+    setEditorInitialContent(details)
+    setHasDescription(hasDraftContent(details))
+    setCurrentPost(prev => ({
+      ...prev,
+      details,
+      linkPreview: postToSave.linkPreview || null,
+      linkPreviewFeatured: !!postToSave.linkPreviewFeatured,
+      skipLinkPreview: !!postToSave.skipLinkPreview
+    }))
+    dispatch(setAttachments('post', CHAT_ID_FOR_NEW, 'image', postToSave.imageAttachments || []))
+    dispatch(setAttachments('post', CHAT_ID_FOR_NEW, 'file', postToSave.fileAttachments || []))
+  }, [dispatch, setCurrentPost])
+
+  /** True while this composer is still open on the room a message was sent from. */
+  const isStillInRoom = useEventCallback(room => mountedRef.current && room.draftContextKey === draftContextKey)
+
+  /**
+   * Sends a chat post to the room it was written in, which the composer may
+   * have left by the time the request settles.
+   */
+  const sendChatPost = useEventCallback(async (postToSave, room = { draftContextKey, groupId: currentGroup?.id, navigateTo: navigateToForDraft }) => {
+    let savedPost
+    try {
+      savedPost = await dispatch(createPost(postToSave))
+    } catch (error) {
+      savedPost = { error }
+    }
+
+    if (savedPost && !savedPost.error) {
+      await handleSendSucceeded(savedPost, room)
+    } else {
+      handleSendFailed(postToSave, room)
+    }
+  })
+
+  const handleSendSucceeded = useEventCallback(async (savedPost, room) => {
+    if (!isStillInRoom(room)) return
+    await clearDraft()
+    setIsDirty(false)
+    if (afterSave) {
+      afterSave(savedPost?.payload?.data?.createPost)
+    }
+  })
+
+  /**
+   * In the room it was sent from, the optimistic message is withdrawn and the
+   * message goes back into the composer, unless something new is already
+   * there. After leaving that room, it is kept as that room's draft instead.
+   */
+  const handleSendFailed = useEventCallback((postToSave, room) => {
+    const stillInRoom = isStillInRoom(room)
+    // Read from the store: the attachments in earlier closures are the ones that were just sent
+    const composerAttachments = attachmentType =>
+      getAttachments(store.getState(), { type: 'post', id: CHAT_ID_FOR_NEW, attachmentType })
+    const composerIsEmpty = stillInRoom && !!editorRef.current &&
+      !hasDraftContent(editorRef.current.getHTML()) &&
+      isEmpty(composerAttachments('image')) && isEmpty(composerAttachments('file'))
+
+    if (stillInRoom && onSaveFailed) onSaveFailed(postToSave.localId)
+    if (composerIsEmpty) {
+      restoreFailedPost(postToSave)
+    } else if (!stillInRoom) {
+      keepAsDraftUnlessPresent(dispatch, {
+        type: 'post',
+        groupId: room.groupId,
+        postType: 'chat',
+        navigateTo: room.navigateTo
+      }, JSON.stringify(buildPostDraftPayload(postToSave)))
+    }
+
+    toast.error(t('Your message couldn\'t be sent'), {
+      action: {
+        label: t('Try Again'),
+        onClick: () => retryFailedPost(postToSave, room, composerIsEmpty)
+      }
+    })
+  })
+
+  const retryFailedPost = useEventCallback((postToSave, room, restoredToComposer) => {
+    const stillInRoom = isStillInRoom(room)
+    if (restoredToComposer && stillInRoom) {
+      doSave()
+      return
+    }
+    if (stillInRoom && onSave) onSave(postToSave)
+    sendChatPost(postToSave, room)
+  })
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
+
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
     isSubmittingRef.current = true
 
+    let postToSave
     try {
       const {
         groups,
@@ -379,7 +496,7 @@ function ChatEditorInner ({
       const imageUrls = imageAttachments && imageAttachments.map((attachment) => attachment.url)
       const fileUrls = fileAttachments && fileAttachments.map((attachment) => attachment.url)
 
-      const postToSave = {
+      postToSave = {
         acceptContributions: false,
         commenters: [],
         createdAt: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO(),
@@ -407,22 +524,13 @@ function ChatEditorInner ({
       cancelPendingSave()
       stopTyping()
       reset()
+    } finally {
       // The next message can be composed and sent while this request is in flight.
       isSubmittingRef.current = false
-
-      const savedPost = await dispatch(createPost(postToSave))
-      if (!savedPost.error) {
-        await clearDraft()
-        setIsDirty(false)
-        if (afterSave) {
-          afterSave(savedPost?.payload?.data?.createPost)
-        }
-      }
-    } catch (error) {
-      isSubmittingRef.current = false
-      throw error
     }
-  }, [afterSave, cancelPendingSave, clearDraft, currentPost, currentUser, dispatch, fileAttachments, imageAttachments, onSave, reset, setIsDirty, stopTyping])
+
+    await sendChatPost(postToSave)
+  }, [cancelPendingSave, currentPost, currentUser, fileAttachments, imageAttachments, onSave, reset, sendChatPost, stopTyping])
 
   const doSave = useEventCallback(() => {
     if (!isValid || loading) return
@@ -456,12 +564,13 @@ function ChatEditorInner ({
             <PopoverContent side='top' align='start' className='w-48 p-1'>
               <UploadAttachmentButton
                 type='post'
-                id={currentPost.id}
+                id={CHAT_ID_FOR_NEW}
                 attachmentType='image'
                 onSuccess={(attachment) => {
-                  dispatch(addAttachment('post', currentPost.id, attachment))
+                  dispatch(addAttachment('post', CHAT_ID_FOR_NEW, attachment))
                   setIsDirty(true)
                 }}
+                onError={handleUploadError}
                 onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
                 allowMultiple
                 disable={showImages}
@@ -474,12 +583,13 @@ function ChatEditorInner ({
               </UploadAttachmentButton>
               <UploadAttachmentButton
                 type='post'
-                id={currentPost.id}
+                id={CHAT_ID_FOR_NEW}
                 attachmentType='file'
                 onSuccess={(attachment) => {
-                  dispatch(addAttachment('post', currentPost.id, attachment))
+                  dispatch(addAttachment('post', CHAT_ID_FOR_NEW, attachment))
                   setIsDirty(true)
                 }}
+                onError={handleUploadError}
                 onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
                 allowMultiple
                 disable={showFiles}
@@ -557,23 +667,25 @@ function ChatEditorInner ({
         )}
         <AttachmentManager
           type='post'
-          id={currentPost.id}
+          id={CHAT_ID_FOR_NEW}
           attachmentType='image'
           showAddButton
           showLabel
           showLoading
           uploadAttachmentPending={loading && uploadingAttachmentType === 'image'}
           onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
+          onUploadError={handleUploadError}
         />
         <AttachmentManager
           type='post'
-          id={currentPost.id}
+          id={CHAT_ID_FOR_NEW}
           attachmentType='file'
           showAddButton
           showLabel
           showLoading
           uploadAttachmentPending={loading && uploadingAttachmentType === 'file'}
           onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
+          onUploadError={handleUploadError}
         />
       </div>
     </div>

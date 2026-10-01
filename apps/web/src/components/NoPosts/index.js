@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
 import { CircleDashed, MessageSquareDashed } from 'lucide-react'
 
-const NoPosts = ({ message, className, icon, actionLabel, onAction }) => {
+const actionClasses = 'mt-3 border-2 border-foreground/20 rounded-lg px-4 py-2 text-foreground/70 font-medium transition-colors hover:text-foreground hover:border-foreground/40'
+
+const NoPosts = ({ message, className, icon, actionLabel, onAction, secondaryActionLabel, onSecondaryAction }) => {
   const { t } = useTranslation()
   const tMessage = message || t('Nothing to see here')
   return (
@@ -15,15 +17,18 @@ const NoPosts = ({ message, className, icon, actionLabel, onAction }) => {
         ? <MessageSquareDashed className='w-12 h-12 opacity-50' />
         : <CircleDashed className='w-12 h-12 opacity-50' />}
       <div><h2 className='opacity-70'>{tMessage}</h2></div>
-      {actionLabel && onAction && (
-        <button
-          type='button'
-          onClick={onAction}
-          className='mt-3 border-2 border-foreground/20 rounded-lg px-4 py-2 text-foreground/70 font-medium transition-colors hover:text-foreground hover:border-foreground/40'
-        >
-          {actionLabel}
-        </button>
-      )}
+      <div className='flex flex-wrap justify-center gap-x-2'>
+        {actionLabel && onAction && (
+          <button type='button' onClick={onAction} className={actionClasses}>
+            {actionLabel}
+          </button>
+        )}
+        {secondaryActionLabel && onSecondaryAction && (
+          <button type='button' onClick={onSecondaryAction} className={actionClasses}>
+            {secondaryActionLabel}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

@@ -2,6 +2,7 @@
 import React from 'react'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
+import { act, fireEvent } from '@testing-library/react'
 import { render, screen, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import orm from 'store/models'
 import PostEditor from './PostEditor'
@@ -29,11 +30,24 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders ({ withLinkPreview } = {}) {
+jest.mock('sonner', () => ({
+  toast: {
+    error: jest.fn(() => 'toast-id'),
+    dismiss: jest.fn()
+  }
+}))
+
+jest.mock('store/actions/draftActions', () => ({
+  ...jest.requireActual('store/actions/draftActions'),
+  saveDraft: jest.fn(() => ({ type: 'TEST_SAVE_DRAFT' }))
+}))
+
+function testProviders ({ withLinkPreview, linkGroup } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
   const postAttrs = { id: '1', title: 'Test Post', type: 'discussion', groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] }
+  if (linkGroup) postAttrs.groups = ['1']
   if (withLinkPreview) {
     ormSession.LinkPreview.create({
       id: 'lp1',
@@ -123,6 +137,69 @@ describe('PostEditor', () => {
         expect(container.querySelector('.hyloEditor')).toBeInTheDocument()
       })
     })
+
+    it('says why it cannot post and focuses the title when the title is missing', async () => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      const { container } = renderComponent({ autoFocus: false })
+      const titleInput = await waitFor(() => {
+        const input = container.querySelector('.PostEditorTitle input')
+        expect(input).toBeInTheDocument()
+        return input
+      })
+
+      fireEvent.click(screen.getByTestId('post-editor-submit'))
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Title is required')
+      expect(titleInput).toHaveFocus()
+    })
+
+    it('restores attachments from a saved draft and saves changes to them', async () => {
+      const { saveDraft } = require('store/actions/draftActions')
+      saveDraft.mockClear()
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group' })
+      mockGraphqlServer.use(
+        graphql.query('FetchDraft', ({ variables }) => HttpResponse.json({
+          data: {
+            draft: {
+              id: 'draft-1',
+              type: 'post',
+              data: JSON.stringify({
+                title: 'Draft with pictures',
+                details: '',
+                type: variables.postType,
+                groups: ['1'],
+                imageUrls: ['https://example.com/a.png', 'https://example.com/b.png'],
+                fileUrls: []
+              }),
+              groupId: '1',
+              topicId: null,
+              postId: null,
+              messageThreadId: null,
+              postType: variables.postType,
+              isEdit: false,
+              navigateTo: '/',
+              updatedAt: '2026-09-01T00:00:00.000Z',
+              group: { id: '1', name: 'Test Group', slug: 'test-group' },
+              post: null,
+              messageThread: null
+            }
+          }
+        }))
+      )
+
+      const { container } = renderComponent()
+      await screen.findByDisplayValue('Draft with pictures')
+      await screen.findByText('Images')
+      expect(container.querySelectorAll('.image')).toHaveLength(2)
+
+      fireEvent.click(container.querySelector('.image').parentElement.querySelector('.icon-Ex'))
+
+      await waitFor(() => {
+        const lastSave = saveDraft.mock.calls[saveDraft.mock.calls.length - 1]?.[0]
+        expect(lastSave?.data).toContain('https://example.com/b.png')
+        expect(lastSave?.data).not.toContain('https://example.com/a.png')
+      }, { timeout: 4000 })
+    }, 20000)
   })
 
   describe('for a new event', () => {
@@ -168,6 +245,77 @@ describe('PostEditor', () => {
         expect(screen.getByText('example.com')).toBeInTheDocument()
       })
     })
+
+    it('keeps the post, re-enables draft saving and offers a retry when saving fails', async () => {
+      const updatePost = require('store/actions/updatePost')
+      const { saveDraft } = require('store/actions/draftActions')
+      const { toast } = require('sonner')
+      updatePost.mockImplementationOnce(() => ({ type: 'TEST_UPDATE_POST_FAILED', payload: Promise.reject(new Error('offline')) }))
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      const afterSave = jest.fn()
+      const editorRef = React.createRef()
+
+      render(
+        <PostEditor {...baseProps} {...editProps} afterSave={afterSave} ref={editorRef} />,
+        { wrapper: testProviders({ linkGroup: true }) }
+      )
+      await screen.findByDisplayValue('Test Post')
+
+      await act(async () => { await editorRef.current.submit() })
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          'Your changes couldn\'t be saved',
+          expect.objectContaining({ action: expect.objectContaining({ label: 'Try Again' }) })
+        )
+      })
+      expect(afterSave).not.toHaveBeenCalled()
+      expect(screen.getByDisplayValue('Test Post')).toBeInTheDocument()
+
+      fireEvent.change(screen.getByDisplayValue('Test Post'), { target: { value: 'Test Post, edited' } })
+      await waitFor(() => {
+        expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({
+          data: expect.stringContaining('Test Post, edited')
+        }))
+      }, { timeout: 4000 })
+
+      const retry = toast.error.mock.calls[0][1].action.onClick
+      await act(async () => { retry() })
+      await waitFor(() => expect(afterSave).toHaveBeenCalled())
+      expect(updatePost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Test Post, edited' }))
+    }, 20000)
+
+    it('reports a failure that arrives after the editor has closed without offering a retry, and keeps the draft', async () => {
+      const updatePost = require('store/actions/updatePost')
+      const { saveDraft } = require('store/actions/draftActions')
+      const { toast } = require('sonner')
+      toast.error.mockClear()
+      saveDraft.mockClear()
+      let rejectSave
+      updatePost.mockImplementationOnce(() => ({
+        type: 'TEST_UPDATE_POST',
+        payload: new Promise((resolve, reject) => { rejectSave = reject })
+      }))
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      const editorRef = React.createRef()
+
+      const { unmount } = render(
+        <PostEditor {...baseProps} {...editProps} afterSave={jest.fn()} ref={editorRef} />,
+        { wrapper: testProviders({ linkGroup: true }) }
+      )
+      await screen.findByDisplayValue('Test Post')
+      await act(async () => { editorRef.current.submit() })
+      await waitFor(() => expect(updatePost).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Test Post' })))
+
+      unmount()
+      await act(async () => { rejectSave(new Error('offline')) })
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Your changes couldn\'t be saved'))
+      expect(toast.error.mock.calls[0]).toHaveLength(1)
+      await waitFor(() => {
+        expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ data: expect.stringContaining('Test Post') }))
+      }, { timeout: 4000 })
+    }, 20000)
   })
 })
 
@@ -209,6 +357,53 @@ describe('ActionsBar', () => {
       const submitButton = buttons.find(button => button.querySelector('svg'))
       expect(submitButton).toHaveClass('disabled')
     })
+  })
+
+  it('explains inline why an invalid post cannot be sent, instead of sending it', () => {
+    const doSave = jest.fn()
+    const onInvalidSubmit = jest.fn()
+    render(
+      <ActionsBar
+        {...baseProps}
+        valid={false}
+        invalidMessage='Title is required<br />At least one group required'
+        doSave={doSave}
+        onInvalidSubmit={onInvalidSubmit}
+      />
+    )
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    const submitButton = screen.getByRole('button', { name: 'Post' })
+    expect(submitButton).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(submitButton)
+
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveTextContent('Title is required')
+    expect(alert).toHaveTextContent('At least one group required')
+    expect(onInvalidSubmit).toHaveBeenCalled()
+    expect(doSave).not.toHaveBeenCalled()
+  })
+
+  it('sends a valid post', () => {
+    const doSave = jest.fn()
+    render(<ActionsBar {...baseProps} doSave={doSave} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Post' }))
+    expect(doSave).toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('hides the keyboard shortcut hint on touch devices', () => {
+    const isMobile = require('ismobilejs')
+    const wasMobile = isMobile.any
+    isMobile.any = true
+    try {
+      render(<ActionsBar {...baseProps} />)
+      expect(screen.queryByText(/Enter to post/)).not.toBeInTheDocument()
+    } finally {
+      isMobile.any = wasMobile
+    }
+    render(<ActionsBar {...baseProps} />)
+    expect(screen.getByText(/Enter to post/)).toBeInTheDocument()
   })
 
   it('shows announcement icon when user can make announcements', async () => {

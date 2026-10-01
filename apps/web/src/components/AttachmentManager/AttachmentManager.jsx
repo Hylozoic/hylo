@@ -74,7 +74,8 @@ AttachmentManager.propTypes = {
   showLoading: PropTypes.bool,
   uploadAttachmentPending: PropTypes.bool,
   onChange: PropTypes.func,
-  onLoadingChange: PropTypes.func
+  onLoadingChange: PropTypes.func,
+  onUploadError: PropTypes.func
 }
 
 export default AttachmentManager

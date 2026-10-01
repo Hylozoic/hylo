@@ -23,6 +23,10 @@ export const isPersistedChatPostId = (post) => {
   return Number.isFinite(id) && id > 0 && id < Number.MAX_SAFE_INTEGER
 }
 
+/** True for the optimistic (not yet saved) list item created for a message with this localId. */
+export const isPendingLocalPost = (item, localId) =>
+  !!localId && !!item?.pending && item.localId === localId
+
 /**
  * Past/future page for the chat list. Always a full page — never sized by
  * newPostCount. That count is often 0 for the author or after a stale mark-read,

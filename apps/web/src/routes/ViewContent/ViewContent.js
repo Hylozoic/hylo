@@ -78,7 +78,7 @@ import { TYPED_BADGE_VIEW_TYPES } from 'util/viewUnreadBadges'
 import { cn } from 'util/index'
 import useTour from 'tours/useTour'
 import { STREAM_TOUR_ID, streamTourSteps } from 'tours/streamTour'
-import { createPostUrl, groupUrl, spaceUrl } from '@hylo/navigation'
+import { createGroupModalUrl, createPostUrl, groupUrl, publicGroupsUrl, spaceUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { STREAM_MAIN_COLUMN_CLASS } from 'util/mainContentColumn'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
@@ -658,9 +658,16 @@ export default function ViewContent (props) {
     return null
   }, [streamViewConfig, topicName, t])
 
-  const noPostsMessage = view === 'events'
-    ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') })
-    : t('Nothing here yet')
+  // Someone in no groups sees an empty stream wherever they land, so point them at groups instead
+  const showNoGroupsState = !!currentUser && !currentUserHasMemberships && !group && context !== 'public'
+  const exploreGroups = useCallback(() => dispatch(push(`${publicGroupsUrl()}/groups`)), [dispatch])
+  const createGroup = useCallback(() => dispatch(push(createGroupModalUrl(location))), [dispatch, location])
+
+  const noPostsMessage = showNoGroupsState
+    ? t('You\'re not in any groups yet')
+    : view === 'events'
+      ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') })
+      : t('Nothing here yet')
 
   // The empty-state create button pre-selects the view's post type when there
   // is exactly one (events view, a filtered stream, a single-type custom view)
@@ -813,8 +820,10 @@ export default function ViewContent (props) {
                   showEmptyStream={showEmptyStream || showFetchError}
                   noPostsMessage={showFetchError ? t('Couldn\'t load posts') : noPostsMessage}
                   hasPostPrompt={hasPostPrompt && !showFetchError}
-                  onCreateFromEmpty={showFetchError ? () => fetchPostsFrom(0, true) : createFromEmpty}
-                  emptyActionLabel={showFetchError ? t('Try Again') : null}
+                  onCreateFromEmpty={showFetchError ? () => fetchPostsFrom(0, true) : (showNoGroupsState ? exploreGroups : createFromEmpty)}
+                  emptyActionLabel={showFetchError ? t('Try Again') : (showNoGroupsState ? t('Explore Groups') : null)}
+                  emptySecondaryActionLabel={!showFetchError && showNoGroupsState ? t('Create a group') : null}
+                  onEmptySecondaryAction={createGroup}
                   routeParams={routeParams}
                   group={group}
                   currentUser={currentUser}
@@ -888,6 +897,8 @@ function CollectionPostsGrid ({
   hasPostPrompt,
   onCreateFromEmpty,
   emptyActionLabel,
+  emptySecondaryActionLabel,
+  onEmptySecondaryAction,
   routeParams,
   group,
   currentUser,
@@ -939,7 +950,17 @@ function CollectionPostsGrid ({
       gap={8}
       className={gridClassName}
     >
-      {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={emptyActionLabel || (hasPostPrompt ? t('Create something') : null)} onAction={onCreateFromEmpty} /> : ''}
+      {showEmptyStream
+        ? (
+          <NoPosts
+            message={noPostsMessage}
+            actionLabel={emptyActionLabel || (hasPostPrompt ? t('Create something') : null)}
+            onAction={onCreateFromEmpty}
+            secondaryActionLabel={emptySecondaryActionLabel}
+            onSecondaryAction={onEmptySecondaryAction}
+          />
+          )
+        : ''}
       {postItems}
     </MasonryGrid>
   )

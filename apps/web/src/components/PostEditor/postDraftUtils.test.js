@@ -1,5 +1,6 @@
 /* eslint-env jest */
-import { mergeDraftIntoPost } from './postDraftUtils'
+import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+import { hasPostDraftPayloadContent } from 'hooks/useDraft'
 
 describe('mergeDraftIntoPost', () => {
   const existingPreview = {
@@ -49,5 +50,34 @@ describe('mergeDraftIntoPost', () => {
 
     expect(result.linkPreview).toBe(null)
     expect(result.linkPreviewFeatured).toBe(false)
+  })
+})
+
+describe('draft attachments', () => {
+  it('keeps image and file urls through a save and restore', () => {
+    const payload = buildPostDraftPayload({
+      title: '',
+      imageUrls: ['https://example.com/a.png', 'https://example.com/b.png'],
+      fileUrls: ['https://example.com/report.pdf']
+    })
+    const restored = mergeDraftIntoPost({ title: '', groups: [] }, JSON.parse(JSON.stringify(payload)))
+
+    expect(restored.imageUrls).toEqual(['https://example.com/a.png', 'https://example.com/b.png'])
+    expect(restored.fileUrls).toEqual(['https://example.com/report.pdf'])
+  })
+
+  it('takes urls from a post\'s own attachments when no url lists are given', () => {
+    const payload = buildPostDraftPayload({
+      imageAttachments: [{ url: 'https://example.com/a.png', type: 'image' }],
+      fileAttachments: []
+    })
+
+    expect(payload.imageUrls).toEqual(['https://example.com/a.png'])
+    expect(payload.fileUrls).toEqual([])
+  })
+
+  it('counts attachments alone as draft content', () => {
+    expect(hasPostDraftPayloadContent(buildPostDraftPayload({ imageUrls: ['https://example.com/a.png'] }))).toBe(true)
+    expect(hasPostDraftPayloadContent(buildPostDraftPayload({}))).toBe(false)
   })
 })

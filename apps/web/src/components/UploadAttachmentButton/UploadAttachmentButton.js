@@ -6,7 +6,7 @@ import {
   uploadedFileToAttachment,
   filestackPicker
 } from 'client/filestack'
-import { ID_FOR_NEW } from 'components/AttachmentManager/AttachmentManager.store'
+import { ID_FOR_NEW, uploadTargetId } from 'components/AttachmentManager/AttachmentManager.store'
 import Icon from 'components/Icon'
 import uploadAttachment from 'store/actions/uploadAttachment'
 import { cn } from 'util/index'
@@ -48,7 +48,12 @@ export default function UploadAttachmentButton ({
       // If set then we won't upload the file to the server, we'll call this instead
       onInitialUpload(attachment)
     } else {
-      const uploadedAttachment = await dispatch(uploadAttachment(type, id, attachment))
+      let uploadedAttachment
+      try {
+        uploadedAttachment = await dispatch(uploadAttachment(type, id, attachment, uploadTargetId(id)))
+      } catch (error) {
+        return onError(error)
+      }
       return uploadAttachmentComplete(uploadedAttachment)
     }
   }
@@ -58,7 +63,8 @@ export default function UploadAttachmentButton ({
     onLoadingChange?.(false)
   }
 
-  const onUploadDone = async ({ filesUploaded }) => {
+  const onUploadDone = async ({ filesUploaded = [], filesFailed = [] }) => {
+    if (filesFailed.length > 0) onError(new Error('File upload failed'))
     try {
       for (const filestackFileObject of filesUploaded) {
         await onFileUploadFinished(filestackFileObject)
