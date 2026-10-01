@@ -10,6 +10,7 @@ import { createSelector } from 'reselect'
 import { debounce, groupBy, isEqual, isEmpty } from 'lodash'
 import { pick, pickBy } from 'lodash/fp'
 import { Heart, Layers, Map as MapIcon } from 'lucide-react'
+import { AnalyticsEvents } from '@hylo/shared'
 import bbox from '@turf/bbox'
 import bboxPolygon from '@turf/bbox-polygon'
 import center from '@turf/center'
@@ -36,6 +37,7 @@ import { isMobileDevice } from 'util/mobile'
 import { generateViewParams } from 'util/savedSearch'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -435,12 +437,13 @@ function MapExplorer (props) {
   }, [dispatch, updateUrlFromStore])
 
   const updateBaseLayerStyle = useCallback((style) => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.MAP_FILTER_CHANGED, { filter: 'base_layer', value: style, context }))
     if (currentUser) {
       dispatch(updateUserSettings({ settings: { mapBaseLayer: style } }))
     }
     dispatch(changeQuerystringParams(location, { style }, true))
     setBaseLayerStyle(style)
-  }, [dispatch, currentUser, location])
+  }, [dispatch, currentUser, location, context])
 
   const updateBoundingBox = useCallback(bbox => dispatch(updateState({ totalBoundingBoxLoaded: bbox, mapScopeKey })), [dispatch, mapScopeKey])
 
@@ -771,10 +774,11 @@ function MapExplorer (props) {
   useEffect(() => () => afterViewportUpdate.cancel(), [afterViewportUpdate])
 
   const toggleFeatureType = useCallback((type, checked) => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.MAP_FILTER_CHANGED, { filter: 'feature_type', value: type, enabled: checked, context }))
     const newFeatureTypes = { ...filters.featureTypes }
     newFeatureTypes[type] = checked
     doStoreClientFilterParams({ featureTypes: newFeatureTypes })
-  }, [doStoreClientFilterParams, filters.featureTypes])
+  }, [dispatch, doStoreClientFilterParams, filters.featureTypes, context])
 
   const renderTooltip = useCallback(() => {
     if (hoveredObject) {
@@ -799,6 +803,7 @@ function MapExplorer (props) {
   }, [hoveredObject, pointerCoords])
 
   const toggleMapLayer = useCallback((layer) => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.MAP_FILTER_CHANGED, { filter: 'layer', value: layer, enabled: !otherLayers[layer], context }))
     const newLayers = { ...otherLayers }
     if (otherLayers[layer]) {
       delete newLayers[layer]
@@ -810,7 +815,7 @@ function MapExplorer (props) {
       }
     }
     setOtherLayers(newLayers)
-  }, [otherLayers])
+  }, [dispatch, otherLayers, context])
 
   const handleAddItemToMap = useCallback(() => {
     setIsAddingItemToMap(!isAddingItemToMap)

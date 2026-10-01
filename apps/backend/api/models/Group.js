@@ -18,6 +18,7 @@ import HasSettings from './mixins/HasSettings'
 import findOrCreateThread from './post/findOrCreateThread'
 import { groupFilter } from '../graphql/filters'
 import { inviteGroupToGroup } from '../graphql/mutations/group'
+import { explorerStatusForNewGroup, explorerStatusOnVisibilityChange } from '../graphql/mutations/explorerReview'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import * as administrators from './group/administrators'
@@ -962,6 +963,7 @@ module.exports = bookshelf.Model.extend(merge({
     const saneAttrs = clone(attributes)
     const wasAutoAdd = this.get('type') === 'space' && !!this.getSetting('auto_add_members')
     const hadMurmurationsProfile = this.hasMurmurationsProfile()
+    const previousVisibility = this.get('visibility')
 
     if (attributes.settings) {
       saneAttrs.settings = merge({}, this.get('settings'), attributes.settings)
@@ -981,6 +983,11 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     this.set(saneAttrs)
+
+    // A group that switches to Public goes into the Management review list for the Group Explorer
+    const explorerStatus = explorerStatusOnVisibilityChange(this, previousVisibility)
+    if (explorerStatus) this.set({ explorer_status: explorerStatus })
+
     await this.validate()
     const becomingAutoAdd = this.get('type') === 'space' &&
       !!this.getSetting('auto_add_members') &&
@@ -1407,6 +1414,9 @@ module.exports = bookshelf.Model.extend(merge({
 
     // XXX: for now groups by default cannot post to public on production
     attrs.allow_in_public = process.env.NODE_ENV === 'development'
+
+    // New Public groups wait in the Management review list before they appear in the Group Explorer
+    attrs.explorer_status = explorerStatusForNewGroup(attrs)
 
     const defaultSettings = {
       allow_group_invites: false,

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
+import { AnalyticsEvents } from '@hylo/shared'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { isSystemGroupRole, sortCustomGroupRoles, sortSystemGroupRoles } from '@hylo/hooks/groupRoleHelpers'
 import { LayoutGrid, List, Search, Waypoints } from 'lucide-react'
@@ -25,12 +26,14 @@ import { FETCH_MEMBERS, FETCH_MEMBERS_FOR_GRAPH, fetchMembers, fetchMembersForGr
 import { fetchTrack } from 'store/actions/trackActions'
 import { fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import getTrack from 'store/selectors/getTrack'
 import getFundingRound from 'store/selectors/getFundingRound'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { cn } from 'util/index'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
@@ -60,7 +63,9 @@ function Members (props) {
 
   // State selectors
   const group = useSelector(state => getGroupForSlug(state, slug))
-  const sortKeys = sortKeysFactory()
+  // Distance is measured from your own location, so it's only offered once you have one
+  const viewerHasLocation = useSelector(state => !!getMe(state)?.locationObject)
+  const sortKeys = sortKeysFactory(viewerHasLocation)
   const sortByParam = getQuerystringParam('s', location) || defaultSortBy
   const sortBy = sortKeys[sortByParam] ? sortByParam : defaultSortBy
   const search = getQuerystringParam('q', location)
@@ -196,20 +201,35 @@ function Members (props) {
     ? Math.max(0, memberCount - (currentTrack.numPeopleCompleted || 0))
     : null
 
+  // Consent-gated; never includes the search text or who was filtered for
+  const trackFilter = useCallback((filterKind, { sort = sortBy, hasSearch = !!search } = {}) =>
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.MEMBER_DIRECTORY_FILTERED, { sort, filterKind, hasSearch })), [dispatch, sortBy, search])
+
   // Action creators
-  const changeSearch = useCallback(term =>
-    dispatch(changeQuerystringParam(location, 'q', term)), [location])
-  const changeSort = useCallback(sort =>
-    dispatch(changeQuerystringParam(location, 's', sort, 'name')), [location, dispatch])
-  const changeRoleFilter = useCallback(roleId =>
-    dispatch(changeQuerystringParam(location, 'r', roleId, null)), [location, dispatch])
-  const changeTrackCompletionFilter = useCallback(value =>
-    dispatch(changeQuerystringParam(location, 'tc', value, null)), [location, dispatch])
-  const changeFundingRoundCapabilityFilter = useCallback(value =>
-    dispatch(changeQuerystringParam(location, 'fr', value, null)), [location, dispatch])
+  const changeSearch = useCallback(term => {
+    trackFilter('search', { hasSearch: !!term })
+    return dispatch(changeQuerystringParam(location, 'q', term))
+  }, [location, trackFilter])
+  const changeSort = useCallback(sort => {
+    trackFilter('sort', { sort })
+    return dispatch(changeQuerystringParam(location, 's', sort, 'name'))
+  }, [location, dispatch, trackFilter])
+  const changeRoleFilter = useCallback(roleId => {
+    trackFilter('role')
+    return dispatch(changeQuerystringParam(location, 'r', roleId, null))
+  }, [location, dispatch, trackFilter])
+  const changeTrackCompletionFilter = useCallback(value => {
+    trackFilter('track')
+    return dispatch(changeQuerystringParam(location, 'tc', value, null))
+  }, [location, dispatch, trackFilter])
+  const changeFundingRoundCapabilityFilter = useCallback(value => {
+    trackFilter('funding_round')
+    return dispatch(changeQuerystringParam(location, 'fr', value, null))
+  }, [location, dispatch, trackFilter])
   const clearMemberFilters = useCallback(() => {
+    trackFilter('clear')
     dispatch(changeQuerystringParams(location, { r: null, tc: null, fr: null }))
-  }, [location, dispatch])
+  }, [location, dispatch, trackFilter])
   const fetchMembersAction = useCallback((offset = 0) => {
     if (!group?.id || !slug) return
     dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability }))
@@ -286,7 +306,11 @@ function Members (props) {
     fetchMembersAction(members.length)
   }
 
-  const debouncedSearch = debounce(300, changeSearch)
+  // One debounced function for the life of the page, so a burst of typing makes one
+  // search (and one analytics event); it always calls the latest changeSearch
+  const changeSearchRef = useRef(changeSearch)
+  changeSearchRef.current = changeSearch
+  const debouncedSearch = useMemo(() => debounce(300, term => changeSearchRef.current(term)), [])
 
   const openMobileSearch = () => {
     setMobileSearchOpen(true)
@@ -573,10 +597,10 @@ function roleLabel (role) {
   return `${role.emoji ? role.emoji + ' ' : ''}${role.name}`.trim()
 }
 
-function sortKeysFactory () {
+function sortKeysFactory (includeDistance) {
   return {
     name: 'Name',
-    location: 'Distance',
+    ...(includeDistance ? { location: 'Distance' } : {}),
     join: 'Join Date',
     last_active_at: 'Last Active'
   }

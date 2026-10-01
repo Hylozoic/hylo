@@ -4,7 +4,10 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { render, screen, AllTheProviders, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import Members from './Members'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn(() => ({ type: 'TRACK_ANALYTICS_EVENT' })))
 
 let mockGroupSlug
 jest.mock('contexts/SpaceGroupContext', () => ({
@@ -99,6 +102,65 @@ describe('Members header Invite pill', () => {
     renderMembers({ myInviteAccess: null })
 
     expect(screen.queryByRole('button', { name: 'Invite Members' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Members sort options', () => {
+  function providers ({ withLocation }) {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Group.create({ id: '1', slug: 'goteam', name: 'Go Team', memberCount: 3 })
+    if (withLocation) ormSession.Location.create({ id: '9', center: { lat: 48.75, lng: -122.48 } })
+    ormSession.Me.create({
+      id: '1',
+      name: 'You',
+      locationObject: withLocation ? '9' : null,
+      memberships: [ormSession.Membership.create({ id: '1', group: '1' })]
+    })
+    return AllTheProviders({ orm: ormSession.state, pending: {} })
+  }
+
+  beforeEach(() => { mockGroupSlug = 'goteam' })
+  afterEach(() => { mockGroupSlug = undefined })
+
+  it('offers Distance when you have a location', () => {
+    render(<Members />, null, providers({ withLocation: true }))
+    fireEvent.click(screen.getByText(/Sort by/))
+    expect(screen.getByText('Distance')).toBeInTheDocument()
+  })
+
+  it('leaves Distance out when you have no location to measure from', () => {
+    render(<Members />, null, providers({ withLocation: false }))
+    fireEvent.click(screen.getByText(/Sort by/))
+    expect(screen.getByText('Join Date')).toBeInTheDocument()
+    expect(screen.queryByText('Distance')).not.toBeInTheDocument()
+  })
+
+  it('records a sort change without the search text', () => {
+    render(<Members />, null, providers({ withLocation: true }))
+    fireEvent.click(screen.getByText(/Sort by/))
+    fireEvent.click(screen.getByText('Join Date'))
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith('Member Directory Filtered', { sort: 'join', filterKind: 'sort', hasSearch: false })
+  })
+
+  it('records one search event for a burst of typing', () => {
+    jest.useFakeTimers()
+    try {
+      trackAnalyticsEvent.mockClear()
+      render(<Members />, null, providers({ withLocation: false }))
+      const input = screen.getByPlaceholderText('Search name, skill, location, keyword')
+      for (const value of ['g', 'ga', 'gar', 'gard', 'garde', 'garden']) {
+        fireEvent.change(input, { target: { value } })
+        jest.advanceTimersByTime(50)
+      }
+      jest.advanceTimersByTime(400)
+
+      const searchEvents = trackAnalyticsEvent.mock.calls
+        .filter(([name, props]) => name === 'Member Directory Filtered' && props.filterKind === 'search')
+      expect(searchEvents).toEqual([['Member Directory Filtered', { sort: 'name', filterKind: 'search', hasSearch: true }]])
+    } finally {
+      jest.useRealTimers()
+    }
   })
 })
 

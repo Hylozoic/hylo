@@ -2,7 +2,9 @@ import searchReducer, {
   presentSearchResult,
   formatSearchErrorMessage,
   FETCH_SEARCH,
-  getHasFetchedSearchResults
+  FETCH_SEARCH_GROUPS,
+  getHasFetchedSearchResults,
+  getSearchGroupsError
 } from './Search.store'
 import { buildKey } from 'store/reducers/queryResults'
 import orm from 'store/models'
@@ -107,5 +109,34 @@ describe('Search reducer', () => {
       payload: { data: { search: { items: [] } } }
     })
     expect(state[key]).toBeUndefined()
+  })
+})
+
+describe('Search reducer for group search', () => {
+  const variables = { search: 'garden', first: 20, offset: 0 }
+
+  it('stores an error for a failed group search, keyed by the term', () => {
+    const state = searchReducer({}, {
+      type: FETCH_SEARCH_GROUPS,
+      error: true,
+      payload: { message: 'Server error' },
+      meta: { graphql: { variables } }
+    })
+    expect(getSearchGroupsError({ Search: state }, { search: 'garden' })).toEqual({ message: 'Server error' })
+    expect(getSearchGroupsError({ Search: state }, { search: 'pond' })).toBeUndefined()
+  })
+
+  it('clears the error when the group search is tried again', () => {
+    const failed = searchReducer({}, {
+      type: FETCH_SEARCH_GROUPS,
+      error: true,
+      payload: { message: 'Server error' },
+      meta: { graphql: { variables } }
+    })
+    const retrying = searchReducer(failed, {
+      type: FETCH_SEARCH_GROUPS + '_PENDING',
+      meta: { graphql: { variables: { ...variables, offset: 20 } } }
+    })
+    expect(getSearchGroupsError({ Search: retrying }, { search: 'garden' })).toBeUndefined()
   })
 })

@@ -499,6 +499,25 @@ type Query {
 
   # Deleted groups that can still be restored (admin only)
   deletedGroups: [DeletedGroup]
+
+  # Public groups waiting for a decision about the Group Explorer (admin only)
+  explorerReviewList: ExplorerReviewList
+
+  # Groups for the main search: groups you're in, Public groups listed in the Group Explorer, and non-hidden groups related to yours, most recently active first
+  searchGroups(
+    # Search text, matched against the group name, description and location (2 or more characters)
+    term: String,
+    # Number of groups to return
+    first: Int,
+    # For pagination, return groups after this offset
+    offset: Int
+  ): GroupQuerySet
+
+  # A few live, open groups to suggest to the current user, who isn't in them yet: listed in the Group Explorer, Public, Open and recently active, nearest first when the user has a location
+  recommendedGroups(
+    # Number of groups to return (at most 20)
+    first: Int
+  ): [Group]
 }
 
 union Update = Message | MessageThread | Notification
@@ -3293,6 +3312,45 @@ input SiteBannerInput {
   showToNewUsers: Boolean
 }
 
+# A Public group in the Group Explorer review list, with its quality signals (admin only)
+type ExplorerReviewGroup {
+  id: ID
+  name: String
+  slug: String
+  avatarUrl: String
+  description: String
+  createdAt: Date
+  # pending, approved, denied, keep_or_unlist, kept or unlisted
+  status: String
+  # Whether the group is listed in the Group Explorer
+  allowInPublic: Boolean
+  # Active members
+  memberCount: Int
+  # Posts in the last activityWindowDays days
+  recentPostCount: Int
+  lastPostAt: Date
+  # Whether the group passes the bar: minMembers or more members and a post in the activity window
+  meetsBar: Boolean
+}
+
+# The Group Explorer review list (admin only)
+type ExplorerReviewList {
+  # New Public groups waiting for Approve or Deny
+  pending: [ExplorerReviewGroup]
+  # Listed groups that no longer pass the bar, waiting for Keep or Unlist
+  keepOrUnlist: [ExplorerReviewGroup]
+  minMembers: Int
+  activityWindowDays: Int
+}
+
+# A decision in the Group Explorer review list: approve or deny a pending group, keep or unlist a listed one
+enum ExplorerReviewDecision {
+  approve
+  deny
+  keep
+  unlist
+}
+
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type ProposalOptionQuerySet {
   total: Int
@@ -3858,6 +3916,8 @@ type Mutation {
   archiveGroup(groupId: ID!): Group
   # Open an archived top-level group you administer again
   unarchiveGroup(groupId: ID!): Group
+  # Decide whether a Public group appears in the Group Explorer (admin only). Approve and keep apply only to groups that are still Public
+  reviewExplorerGroup(groupId: ID!, decision: ExplorerReviewDecision!): ExplorerReviewGroup
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email

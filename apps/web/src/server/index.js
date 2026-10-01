@@ -7,6 +7,7 @@ import apiProxy from './apiProxy.js'
 import appMiddleware from './appMiddleware.js'
 import redirectToApp from './redirectToApp.js'
 import { handleStaticPages } from './proxy.js'
+import { SITEMAP_ROUTES, handleSitemap } from './sitemapRoute.js'
 
 const port = process.env.PORT || 9001
 
@@ -31,6 +32,8 @@ function startServer () {
   server.use(apiProxy)
   server.use(redirectToApp)
   handleStaticPages(server)
+  server.get(SITEMAP_ROUTES, handleSitemap)
+  // Static files, including robots.txt, are served before the app HTML
   server.use(express.static(path.join(__dirname, '../../dist')))
   server.use(appMiddleware)
 

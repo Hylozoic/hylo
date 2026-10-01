@@ -213,7 +213,7 @@ function applyFundingRoundCapabilityFilter (q, groupId, capability) {
   `, [groupId])
 }
 
-export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }, q) => {
+export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability, viewerId }, q) => {
   if (autocomplete) {
     const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
       .map(word => word.replace(/[,;|:&()!\\]+/, ''))
@@ -281,6 +281,15 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
 
   if (sortBy === 'join') {
     q.orderBy('group_memberships.created_at', order || 'desc')
+  } else if (sortBy === 'location') {
+    // Distance: nearest to the viewer first, people without a location last, then by name.
+    // When the viewer has no location every distance is null, so this is name order.
+    // Subqueries rather than joins keep this valid in queries grouped by users.id.
+    q.orderByRaw(`ST_Distance(
+      (SELECT member_location.center::geography FROM locations member_location WHERE member_location.id = users.location_id),
+      (SELECT viewer_location.center::geography FROM users viewer JOIN locations viewer_location ON viewer_location.id = viewer.location_id WHERE viewer.id = ?)
+    ) ${order || 'asc'} NULLS LAST`, [viewerId || null])
+    q.orderByRaw('lower("users"."name") asc')
   } else if (!sortBy || sortBy === 'name') {
     q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
   } else {
@@ -293,6 +302,28 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
     q.whereRaw('locations.center && ST_MakeEnvelope(?, ?, ?, ?, 4326)', bb)
   }
 })
+
+// "Recently active" counts posts in this many days
+export const RECENT_ACTIVITY_WINDOW_DAYS = 30
+
+// System notices, not something a member posted
+const NON_ACTIVITY_POST_TYPES = ['welcome', 'chat_activity']
+
+/**
+ * CTE body counting each group's posts in the recent-activity window.
+ * Limited to the window so it reads only recent posts (posts_created_at_index).
+ */
+export function recentActivitySql (windowDays = RECENT_ACTIVITY_WINDOW_DAYS) {
+  return bookshelf.knex.raw(`
+    SELECT gp.group_id, count(*)::int AS recent_post_count
+    FROM posts p
+    JOIN groups_posts gp ON gp.post_id = p.id
+    WHERE p.created_at >= now() - make_interval(days => ?)
+      AND p.active = true
+      AND p.type NOT IN (${NON_ACTIVITY_POST_TYPES.map(() => '?').join(', ')})
+    GROUP BY gp.group_id
+  `, [windowDays, ...NON_ACTIVITY_POST_TYPES])
+}
 
 export const filterAndSortGroups = curry((opts, q) => {
   const { search, sortBy = 'name', boundingBox, order } = opts
@@ -317,6 +348,16 @@ export const filterAndSortGroups = curry((opts, q) => {
       SELECT group_id, COUNT(group_id) as size from group_memberships GROUP BY group_id
     `))
     q.join('member_count', 'groups.id', '=', 'member_count.group_id')
+  }
+
+  if (sortBy === 'recent') {
+    // Most posts in the window first; groups with none follow, then by name
+    q.with('recent_activity', recentActivitySql())
+    q.leftJoin('recent_activity', 'groups.id', 'recent_activity.group_id')
+    q.orderByRaw('coalesce(recent_activity.recent_post_count, 0) desc')
+    q.orderByRaw('lower(groups.name) asc')
+    q.orderBy('groups.id', 'asc')
+    return
   }
 
   q.orderBy(sortBy || 'name', order || sortBy === 'size' ? 'desc' : 'asc')

@@ -41,8 +41,9 @@ function AddLocation () {
 
   // Called inside .then() — server has confirmed signupInProgress=false, so navigating to
   // returnToPath here is safe: any subsequent fetchForCurrentUser also sees the committed value.
+  // Without an invitation or another page to return to, suggest groups to join next
   const goToNextStep = useCallback(() => {
-    dispatch(push(returnToPath || '/welcome/explore'))
+    dispatch(push(returnToPath || '/welcome/recommended-groups'))
   }, [dispatch, returnToPath])
 
   const submit = async () => {

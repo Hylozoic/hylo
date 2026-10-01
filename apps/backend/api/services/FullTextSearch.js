@@ -5,7 +5,11 @@ const tableName = 'search_index'
 const columnName = 'document'
 const defaultLang = 'english'
 const searchStatementTimeoutMs = Number(process.env.SEARCH_STATEMENT_TIMEOUT_MS) || 20000
-const recencyHalfLifeSeconds = 1209600 // 14 days
+// Posts and comments lose rank gently with age: rank / (1 + age / RECENCY_DECAY_DAYS),
+// so a post is worth half as much after 90 days. People are ranked by the text match
+// alone, so exact and prefix name matches come first however long ago they joined.
+const RECENCY_DECAY_DAYS = 90
+const recencyDecaySeconds = RECENCY_DECAY_DAYS * 24 * 60 * 60
 
 const raw = (str, knex = bookshelf.knex) => knex.raw(str)
 
@@ -58,7 +62,9 @@ const createView = (lang, knex) => {
       ) as sort_ts,
       ${wv('u.name', 'A')} ||
       ${wv("coalesce(string_agg(replace(s.name, '-', ' '), ' '), '')", 'C')} ||
-      ${wv("coalesce(u.bio, '')", 'C')} as ${columnName}
+      ${wv("coalesce(u.bio, '')", 'C')} ||
+      ${wv("coalesce(u.location, '')", 'C')} ||
+      ${wv("coalesce(u.tagline, '')", 'C')} as ${columnName}
     from users u
     left join skills_users su on u.id = su.user_id and su.type = ${Skill.Type.HAS}
     left join skills s on su.skill_id = s.id
@@ -133,7 +139,13 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
   })
 }
 
-const recencyRankSql = `(rank * case when sort_ts is null then 1 else exp(-extract(epoch from (now() - sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
+const recencyRankForAlias = (alias) => {
+  const col = name => alias ? `${alias}.${name}` : name
+  return `(case when ${col('user_id')} is not null or ${col('sort_ts')} is null then ${col('rank')} ` +
+    `else ${col('rank')} / (1 + greatest(extract(epoch from (now() - ${col('sort_ts')})), 0) / ${recencyDecaySeconds}.0) end)`
+}
+
+const recencyRankSql = recencyRankForAlias()
 
 // Strip characters that are tsquery operators or punctuation so user input
 // like "#release!" does not produce a syntax error in to_tsquery.
@@ -194,9 +206,6 @@ const runWithStatementTimeout = (queryBuilder) => {
   })
 }
 
-const recencyRankForAlias = (alias) =>
-  `(${alias}.rank * case when ${alias}.sort_ts is null then 1 else exp(-extract(epoch from (now() - ${alias}.sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
-
 const buildSearchInGroupsQuery = (groupAccess, opts) => {
   const limit = opts.limit || 20
   const offset = opts.offset || 0
@@ -227,6 +236,7 @@ const searchInGroups = (groupAccess, opts) => {
 }
 
 module.exports = {
+  RECENCY_DECAY_DAYS,
   createView,
   dropView,
   refreshView,

@@ -1,0 +1,29 @@
+# Hylo: the public site, public group pages and public posts can be crawled.
+# The signed-in app, invitation links and account pages cannot.
+User-agent: *
+Allow: /
+Disallow: /noo/
+Disallow: /all
+Disallow: /my
+Disallow: /messages
+Disallow: /search
+Disallow: /notifications
+Disallow: /settings
+Disallow: /welcome
+Disallow: /management
+Disallow: /moderation
+Disallow: /login
+Disallow: /signup
+Disallow: /reset-password
+Disallow: /oauth/
+Disallow: /h/
+Disallow: /payment/
+Disallow: /create-group
+Disallow: /members/
+Disallow: /groups/*/join/
+Disallow: /groups/*/settings
+Disallow: /groups/*/members
+Disallow: /groups/*/chat
+Disallow: /public/settings
+
+Sitemap: https://www.hylo.com/sitemap.xml
