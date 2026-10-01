@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Changed
+- In daily digest dont show X comments in post rows for new posts that day. Also dont show comments from blocked users or comments on posts from blocked users
+
 ## [7.1.1] - 2026-09-29
 
 ### Added
