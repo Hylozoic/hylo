@@ -286,6 +286,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(!!fundingRound?.allowLateJoiners)
   const [frHideFinalResults, setFrHideFinalResults] = useState(!!fundingRound?.hideFinalResultsFromParticipants)
   const [frRequireBudget, setFrRequireBudget] = useState(!!fundingRound?.requireBudget)
+  const [frShowRealtimeSubmissions, setFrShowRealtimeSubmissions] = useState(!!fundingRound?.showRealtimeSubmissions)
   const [frShowRealtimeVotes, setFrShowRealtimeVotes] = useState(!!fundingRound?.showRealtimeVotes)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState(fundingRound?.submissionDescriptor || 'Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState(fundingRound?.submissionDescriptorPlural || 'Submissions')
@@ -372,6 +373,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     setFrAllowLateJoiners(!!fundingRound.allowLateJoiners)
     setFrHideFinalResults(!!fundingRound.hideFinalResultsFromParticipants)
     setFrRequireBudget(!!fundingRound.requireBudget)
+    setFrShowRealtimeSubmissions(!!fundingRound.showRealtimeSubmissions)
     setFrShowRealtimeVotes(!!fundingRound.showRealtimeVotes)
     setFrSubmitterRoles(fundingRound.submitterRoles || [])
     setFrVoterRoles(fundingRound.voterRoles || [])
@@ -472,6 +474,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
           requireBudget: frRequireBudget,
+          showRealtimeSubmissions: frShowRealtimeSubmissions,
           showRealtimeVotes: frShowRealtimeVotes,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
@@ -493,7 +496,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, autoAddMembers, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, autoAddMembers, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeSubmissions, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   /** Convert this space into a child group of the parent. */
   const handleConvertToChildGroup = useCallback(async () => {
@@ -760,6 +763,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             setHideFinalResults={setFrHideFinalResults}
             requireBudget={frRequireBudget}
             setRequireBudget={setFrRequireBudget}
+            showRealtimeSubmissions={frShowRealtimeSubmissions}
+            setShowRealtimeSubmissions={setFrShowRealtimeSubmissions}
             showRealtimeVotes={frShowRealtimeVotes}
             setShowRealtimeVotes={setFrShowRealtimeVotes}
             submitterRoles={frSubmitterRoles}

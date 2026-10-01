@@ -129,7 +129,10 @@ export default function FundingRoundSubmissionsView () {
 
   const postsForDisplay = useMemo(() => {
     if (!round) return []
-    let filtered = ['voting', 'discussion', 'completed'].includes(currentPhase) || canManageRound
+    const showAllSubmissions = canManageRound ||
+      ['voting', 'discussion', 'completed'].includes(currentPhase) ||
+      (currentPhase === 'submissions' && !!round.showRealtimeSubmissions)
+    let filtered = showAllSubmissions
       ? posts
       : posts.filter(post => parseInt(post.creator.id) === parseInt(currentUser.id))
 
@@ -141,7 +144,7 @@ export default function FundingRoundSubmissionsView () {
     }
 
     return filtered
-  }, [canManageRound, posts, currentPhase, currentUser?.id, round?.hideFinalResultsFromParticipants])
+  }, [canManageRound, posts, currentPhase, currentUser?.id, round?.hideFinalResultsFromParticipants, round?.showRealtimeSubmissions])
 
   const allocationsBySubmission = useMemo(() => {
     const map = {}
