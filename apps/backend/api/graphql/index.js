@@ -7,6 +7,7 @@ import RedisPubSub from '../services/RedisPubSub'
 import makeSchema from './makeSchema'
 import { createGroupVisibilityLoader } from './filters'
 import sentry from '../../lib/sentry'
+import { recordActivityDay } from '../../lib/userActivityDays'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
 
@@ -83,6 +84,9 @@ export const yoga = createYoga({
     // Update user last active time unless this is an oAuth login
     if (req.session.userId && !req.api_client) {
       await User.query().where({ id: req.session.userId }).update({ last_active_at: new Date() })
+      recordActivityDay(bookshelf.knex, req.session.userId, {
+        log: err => sails.log.error('Could not record user activity day', err)
+      })
     }
 
     // This is unrelated to the above which is using context as a hook,

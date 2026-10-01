@@ -4,6 +4,7 @@ import ManagementContextMenu from './ManagementContextMenu'
 import StagingEmailTesters from './StagingEmailTesters'
 import StripeAnalytics from './StripeAnalytics/StripeAnalytics'
 import SiteBanners from './SiteBanners/SiteBanners'
+import PlatformHealth from './PlatformHealth/PlatformHealth'
 
 export default function Management () {
   return (
@@ -11,6 +12,7 @@ export default function Management () {
       <ManagementContextMenu />
       <div className='flex-1'>
         <Routes>
+          <Route path='platform/health' element={<PlatformHealth />} />
           <Route path='staging/email-testers' element={<StagingEmailTesters />} />
           <Route path='paid-content/stripe-analytics' element={<StripeAnalytics />} />
           <Route path='site/banners' element={<SiteBanners />} />
