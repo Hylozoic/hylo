@@ -85,6 +85,21 @@ export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
                 reasons
                 phase
                 reminderType
+                actorCount
+                response
+                winningOption
+                tie
+                forAuthor
+                outcome
+                submissionResults {
+                  postId
+                  title
+                  tokens
+                  rank
+                }
+                submissionCount
+                tokenType
+                resultsHidden
               }
               action
               unread

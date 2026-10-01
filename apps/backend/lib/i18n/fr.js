@@ -117,6 +117,30 @@ exports.fr = {
   textForTrackCompleted: ({ actor, trackName }) => `Parcours terminé : « ${trackName} » complété par ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, trackName }) => `Inscription au parcours : « ${trackName} » par ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} a modifié les options de la proposition « ${postName} » dans ${groupName}. Les votes ont été réinitialisés`,
+  textForReaction: ({ person, others, postName, onComment }) => {
+    const who = others > 0 ? `${person} et ${others} ${others === 1 ? 'autre personne' : 'autres personnes'}` : person
+    const verb = others > 0 ? 'ont réagi' : 'a réagi'
+    return onComment ? `${who} ${verb} à votre commentaire sur « ${postName} »` : `${who} ${verb} à votre publication « ${postName} »`
+  },
+  textForEventRsvp: ({ person, others, postName, response }) => {
+    if (others > 0) return `${person} et ${others} ${others === 1 ? 'autre personne ont' : 'autres personnes ont'} répondu à votre événement « ${postName} »`
+    return response === 'interested' ? `${person} est intéressé·e par votre événement « ${postName} »` : `${person} participera à votre événement « ${postName} »`
+  },
+  textForProposalClosingSoon: ({ postName }) => `Le vote sur « ${postName} » se termine bientôt. Vous n'avez pas encore voté`,
+  textForProposalClosed: ({ postName, winningOption, tie, forAuthor }) => {
+    const result = winningOption ? ` : ${winningOption}` : tie ? ' : égalité' : ''
+    return forAuthor
+      ? `Le vote sur votre proposition « ${postName} » est terminé${result}. Indiquez la décision prise pour les votant·e·s`
+      : `Le vote sur « ${postName} » est terminé${result}`
+  },
+  textForProposalOutcome: ({ person, postName, outcome }) => `${person} a indiqué la décision prise pour « ${postName} » : ${outcome}`,
+  textForEventReminder: ({ postName, date }) => `Rappel : « ${postName} » approche, ${date}`,
+  textForProjectJoined: ({ person, postName }) => `${person} a rejoint votre projet « ${postName} »`,
+  textForRequestHelped: ({ person, postName }) => `${person} a indiqué que « ${postName} » est satisfaite et que vous avez aidé. Merci !`,
+  fundingRoundResultText: ({ results = [], total, tokenType, hidden }) => {
+    if (hidden) return 'Les responsables vous communiqueront les résultats.'
+    return results.map(({ title, tokens, rank }) => `Votre proposition « ${title} » a reçu ${tokens} ${tokenType || 'votes'} et s'est classée ${rank} sur ${total}.`).join(' ')
+  },
   textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} a soumis « ${post.summary()} » pour « ${fundingRoundTitle} »`,
   textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {

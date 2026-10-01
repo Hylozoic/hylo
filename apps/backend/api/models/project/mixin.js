@@ -1,3 +1,5 @@
+import { groupKeyFor, sentNoticeKeys } from '../notification/grouping'
+
 export default {
   isProject () {
     return this.get('type') === Post.Type.PROJECT
@@ -18,6 +20,30 @@ export default {
       project_role_id: projectRole.id,
       following: true
     }, opts)
+  },
+
+  isProjectMember: async function (userId, opts) {
+    const postUser = await PostUser.query(q => {
+      q.where({ post_id: this.id, user_id: userId, active: true })
+      q.whereNotNull('project_role_id')
+    }).fetch(opts)
+    return !!postUser
+  },
+
+  // D57: the project's creator hears when someone joins, in-app and by push, once per
+  // person and project (leaving and joining again notifies no one)
+  notifyCreatorOfJoin: async function (userId) {
+    const creatorId = this.get('user_id')
+    if (!creatorId || String(creatorId) === String(userId)) return null
+    const key = `${groupKeyFor('projectJoined', { postId: this.id })}:user:${userId}`
+    if ((await sentNoticeKeys([key])).has(key)) return null
+    return Activity.saveForReasons([{
+      reader_id: creatorId,
+      actor_id: userId,
+      post_id: this.id,
+      reason: 'projectJoined',
+      group_key: key
+    }])
   },
 
   removeProjectMembers: async function (usersOrIds, opts) {

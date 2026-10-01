@@ -25,5 +25,6 @@ export const EMAIL_REASONS = new Set([
   'fundingRoundNewSubmission',
   'fundingRoundPhaseTransition',
   'fundingRoundReminder',
-  'trackReminder'
+  'trackReminder',
+  'eventReminder'
 ])

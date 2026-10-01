@@ -135,7 +135,7 @@ function bumpUnreadViewsInMenu (menuGroup, viewItems, postType) {
 }
 
 export function ormSessionReducer (session, { meta, type, payload }) {
-  const { Group, Message, MessageThread, Membership, Me } = session
+  const { Activity, Group, Message, MessageThread, Membership, Me, Notification } = session
   let currentUser
 
   switch (type) {
@@ -226,16 +226,25 @@ export function ormSessionReducer (session, { meta, type, payload }) {
     }
 
     case RECEIVE_NOTIFICATION: {
+      const notification = payload?.data?.notification
+      // A grouped notice (reactions, RSVPs, votes) replaces the unread one for the same
+      // item: drop that from the bell, and the badge stays as it was
+      const replaces = (notification?.activity?.meta?.replaces || []).map(String)
+      if (replaces.length > 0) {
+        Notification.all().filter(n => replaces.includes(String(n.activity))).delete()
+        Activity.all().filter(a => replaces.includes(String(a.id))).delete()
+      }
+
       currentUser = Me.first()
-      currentUser.update({
-        newNotificationCount: currentUser.newNotificationCount + 1
-      })
+      if (currentUser && replaces.length === 0) {
+        currentUser.update({
+          newNotificationCount: currentUser.newNotificationCount + 1
+        })
+      }
 
       if (window.electron) {
-        const notification = payload.data.notification
-
-        window.electron.setBadgeCount(currentUser.newNotificationCount)
-        window.electron.showNotification(notification)
+        window.electron.setBadgeCount(currentUser?.newNotificationCount)
+        if (replaces.length === 0) window.electron.showNotification(notification)
       }
       break
     }

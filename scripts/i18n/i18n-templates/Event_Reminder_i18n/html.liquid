@@ -1,0 +1,40 @@
+{% snippet 'header_redesign' %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}},{% endtrans %}
+</p>
+
+<p class='lead'>
+  {% if going %}
+    {% trans %}A reminder that you're going to this event:{% endtrans %}
+  {% else %}
+    {% trans %}A reminder that you're interested in this event:{% endtrans %}
+  {% endif %}
+</p>
+
+<h2>{{event_name}}</h2>
+<p><strong>{{date}}</strong></p>
+{% if event_address %}
+  <p>{{event_address}}</p>
+{% endif %}
+{% if meeting_link %}
+  <p>{% trans %}Join online:{% endtrans %} <a href='{{meeting_link}}'>{{meeting_link}}</a></p>
+{% endif %}
+{% if group_name %}
+  {% set group_name_var = group_name %}
+  <p>{% trans %}in {{group_name_var}}{% endtrans %}</p>
+{% endif %}
+
+<a class='btn btn-blue' href='{{event_url}}' clicktracking="off">{% trans %}See the event{% endtrans %}</a>
+
+<p>{% trans %}Plans changed? You can update your answer on the event page.{% endtrans %}</p>
+
+{% snippet 'footer_redesign' %}

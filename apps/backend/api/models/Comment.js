@@ -2,6 +2,7 @@ import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
 import { TextHelpers } from '@hylo/shared'
 import { notifyAboutMessage, sendDigests } from './comment/notifications'
+import { inBackground, notifyReaction } from './notification/socialNotices'
 import EnsureLoad from './mixins/EnsureLoad'
 import * as RichText from '../services/RichText'
 
@@ -67,7 +68,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   addReaction: async function (userId, emojiFull) {
-    return bookshelf.transaction(async trx => {
+    const result = await bookshelf.transaction(async trx => {
       const userReactionsModels = await this.reactionsForUser(userId).fetch({ transacting: trx })
       const userReactions = userReactionsModels.models
       const userReaction = userReactions.filter(reaction => reaction.attributes?.emoji_full === emojiFull)[0]
@@ -89,6 +90,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }
       return false
     })
+    // D15: tell the comment's author once the reaction is saved, after the reaction responds
+    if (result) inBackground(notifyReaction({ comment: this, userId }))
+    return result
   },
 
   deleteReaction: function (userId, emojiFull) {

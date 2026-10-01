@@ -93,7 +93,27 @@ export const REASON_SIGNALS = {
   // D63: the learner's own completion notice is in-app only; idle reminders go in the
   // app and by email
   trackCompletedLearner: { class: LIFECYCLE, channels: [IN_APP] },
-  trackReminder: { class: LIFECYCLE, channels: [IN_APP, EMAIL] }
+  trackReminder: { class: LIFECYCLE, channels: [IN_APP, EMAIL] },
+  // D15: in-app plus at most one grouped push per item per hour (notification/grouping)
+  reaction: { class: SOCIAL },
+  // D45: to the host, in-app plus a grouped push, no email
+  eventRsvp: { class: SOCIAL },
+  // D46: vote notices to authors are in-app only; closing soon is in-app and push
+  proposalVote: { class: SOCIAL, channels: [IN_APP] },
+  proposalClosingSoon: { class: LIFECYCLE, channels: [IN_APP, PUSH] },
+  proposalClosed: { class: SOCIAL },
+  proposalOutcome: { class: SOCIAL },
+  // Changing a proposal's options resets its votes; there is no email for it
+  voteReset: { class: OPERATIONAL, channels: [IN_APP, PUSH] },
+  // D44: a push and an email to people going or interested, an in-app nudge to
+  // invitees who haven't answered (event/reminders)
+  eventReminder: { class: LIFECYCLE, channels: [PUSH, EMAIL] },
+  eventNudge: { class: LIFECYCLE, channels: [IN_APP] },
+  // D57: the creator gets an in-app notice and a push
+  projectJoined: { class: SOCIAL, channels: [IN_APP, PUSH] },
+  // D27: helpers get an in-app notice and a push; followers an in-app notice
+  requestHelped: { class: SOCIAL, channels: [IN_APP, PUSH] },
+  requestMet: { class: AMBIENT, channels: [IN_APP] }
 }
 
 // A reason with no line (or no priority reason at all) keeps every channel, as before.

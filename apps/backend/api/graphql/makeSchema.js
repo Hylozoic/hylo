@@ -846,7 +846,7 @@ export function makeMutations ({ fetchOne }) {
 
     followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
 
-    fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
+    fulfillPost: (root, { postId, contributorIds }, context) => fulfillPost(context.currentUserId, postId, contributorIds),
 
     answerOpenRequestNudge: (root, { postId, answer }, context) => answerOpenRequestNudge(context.currentUserId, { postId, answer }),
 

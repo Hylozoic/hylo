@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { values, includes } from 'lodash/fp'
+import { inBackground, notifyRsvp } from '../../models/notification/socialNotices'
 
 export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
@@ -15,7 +16,8 @@ export async function respondToEvent (userId, eventId, response) {
   // determine if we send an rsvp email before updating eventInvitation
   // note: send even if user enabled subscription - they may not be using the subscription feature
   const wasGoing = eventInvitation?.going()
-  const sendRsvp = (!wasGoing && EventInvitation.going(response)) ||
+  const becameGoing = !wasGoing && EventInvitation.going(response)
+  const sendRsvp = becameGoing ||
     (wasGoing && !EventInvitation.going(response))
 
   if (eventInvitation) {
@@ -36,6 +38,9 @@ export async function respondToEvent (userId, eventId, response) {
     Queue.classMethod('Post', 'sendUserRsvp', { eventId, eventInvitationId: eventInvitation.id, eventChanges })
     Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
   }
+
+  // D45: tell the host, grouped per event (the host's own RSVP notifies no one)
+  if (becameGoing) inBackground(notifyRsvp({ event, userId, response }))
 
   return { success: true }
 }

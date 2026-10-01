@@ -221,11 +221,72 @@ module.exports = bookshelf.Model.extend({
     return getLocaleStrings(locale).textForFundingRoundNewSubmission({ fundingRoundTitle, post, actor })
   },
 
-  textForFundingRoundPhaseTransition: function (fundingRoundTitle, phase, locale) {
-    return getLocaleStrings(locale).textForFundingRoundPhaseTransition({ fundingRoundTitle, phase })
+  // A submitter's own result is added when the round completes (D77)
+  textForFundingRoundPhaseTransition: function (fundingRoundTitle, phase, locale, meta = {}) {
+    const L = getLocaleStrings(locale)
+    const text = L.textForFundingRoundPhaseTransition({ fundingRoundTitle, phase })
+    const result = PushNotification.fundingRoundResultText(meta, locale)
+    return result ? `${text}. ${result}` : text
+  },
+
+  // '' unless the activity carries a submitter's result (FundingRound/notifications)
+  fundingRoundResultText: function (meta = {}, locale) {
+    if (!meta.resultsHidden && !(meta.submissionResults || []).length) return ''
+    return getLocaleStrings(locale).fundingRoundResultText({
+      results: meta.submissionResults || [],
+      total: meta.submissionCount,
+      tokenType: meta.tokenType,
+      hidden: !!meta.resultsHidden
+    })
   },
 
   textForFundingRoundReminder: function (fundingRoundTitle, reminderType, locale) {
     return fundingRoundTitle + ': ' + getLocaleStrings(locale).textForFundingRoundReminder({ reminderType })
+  },
+
+  // Grouped social feedback: `count` is everyone the notice counts, including the actor
+  textForSocialFeedback: function (reason, { actor, count, post, comment, meta = {} }, locale) {
+    const L = getLocaleStrings(locale)
+    const person = actor.get('name')
+    const others = Math.max((count || 1) - 1, 0)
+    const postName = firstLine(decode(post.summary()))
+    switch (reason) {
+      case 'reaction':
+        return L.textForReaction({ person, others, postName, onComment: !!comment })
+      case 'eventRsvp':
+        return L.textForEventRsvp({ person, others, postName, response: meta.response })
+      case 'projectJoined':
+        return L.textForProjectJoined({ person, postName })
+      case 'requestHelped':
+        return L.textForRequestHelped({ person, postName })
+      default:
+        return postName
+    }
+  },
+
+  textForEventReminder: function (post, date, locale) {
+    return getLocaleStrings(locale).textForEventReminder({ postName: firstLine(decode(post.summary())), date })
+  },
+
+  textForProposalNotice: function (reason, { actor, post, meta = {} }, locale) {
+    const L = getLocaleStrings(locale)
+    const postName = firstLine(decode(post.summary()))
+    switch (reason) {
+      case 'proposalClosingSoon':
+        return L.textForProposalClosingSoon({ postName })
+      case 'proposalClosed':
+        return L.textForProposalClosed({ postName, winningOption: meta.winningOption, tie: !!meta.tie, forAuthor: !!meta.forAuthor })
+      case 'proposalOutcome':
+        return L.textForProposalOutcome({ person: actor?.get('name'), postName, outcome: meta.outcome })
+      default:
+        return postName
+    }
+  },
+
+  // Names whoever changed the options (the activity's actor), not always the author
+  textForVoteReset: function (post, group, actor, locale) {
+    const person = actor?.get('name') || post.relations.user?.get('name')
+    const postName = firstLine(decode(post.summary()))
+    return getLocaleStrings(locale).textForVoteReset({ person, postName, groupName: group?.get('name') })
   }
 })

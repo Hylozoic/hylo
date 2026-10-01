@@ -502,7 +502,16 @@ Profile: ${opts.actorProfileUrl}
     ? sendEmailWithOptions(WINBACK_TEMPLATE_ID, opts)
     : Promise.resolve(false),
 
-  winbackTemplateReady: () => !!WINBACK_TEMPLATE_ID
+  winbackTemplateReady: () => !!WINBACK_TEMPLATE_ID,
+
+  // About a day before an event, to people going or interested (api/models/event/reminders.js).
+  // The template (scripts/i18n/i18n-templates/Event_Reminder_i18n) is named by
+  // EVENT_REMINDER_TEMPLATE_ID; until it is set, Notification#sendEventReminderEmail skips it.
+  eventReminderTemplateId: () => process.env.EVENT_REMINDER_TEMPLATE_ID || null,
+
+  sendEventReminderEmail: opts => process.env.EVENT_REMINDER_TEMPLATE_ID
+    ? sendEmailWithOptions(process.env.EVENT_REMINDER_TEMPLATE_ID, opts)
+    : Promise.resolve(false)
 
 }
 

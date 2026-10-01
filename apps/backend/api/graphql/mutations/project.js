@@ -104,8 +104,13 @@ export async function addPeopleToProjectRole (userId, peopleIds, projectRoleId) 
 
 export async function joinProject (projectId, userId) {
   const project = await Post.find(projectId)
-  return project.addProjectMembers([userId])
-    .then(() => ({ success: true }))
+  if (!project || !project.isProject() || !(await Post.isVisibleToUser(projectId, userId))) {
+    throw new GraphQLError('Project not found')
+  }
+  const wasMember = await project.isProjectMember(userId)
+  await project.addProjectMembers([userId])
+  if (!wasMember) await project.notifyCreatorOfJoin(userId)
+  return { success: true }
 }
 
 export async function leaveProject (projectId, userId) {
