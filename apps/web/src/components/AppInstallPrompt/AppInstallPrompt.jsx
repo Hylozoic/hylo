@@ -84,9 +84,11 @@ export default function AppInstallPrompt ({ userAgent }) {
 
   const openUrl = androidIntentUrl(window.location.href)
 
+  // z-[65]: above the map's post column (60) but under the post composer (70) and
+  // dialogs, so an open composer's Post button is never behind the card
   return (
     <div
-      className='fixed inset-x-0 bottom-0 z-[80] px-4 pb-4 pointer-events-none'
+      className='fixed inset-x-0 bottom-0 z-[65] px-4 pb-4 pointer-events-none'
       data-testid='app-install-prompt'
     >
       <div

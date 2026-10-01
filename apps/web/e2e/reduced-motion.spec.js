@@ -14,7 +14,9 @@ async function showBootLoader (page) {
 }
 
 async function sampleLoader (page) {
-  return page.evaluate(() => {
+  return page.evaluate(async () => {
+    // The loader draws its first frame on requestAnimationFrame; sample after one
+    await new Promise(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)))
     const host = document.getElementById('hylo-boot-loader')
     if (!host) return null
     return {
@@ -25,7 +27,8 @@ async function sampleLoader (page) {
 }
 
 test.describe('boot loader with reduced motion', () => {
-  test.use({ reducedMotion: 'reduce' })
+  // reducedMotion is a browser context option, not a top-level test option
+  test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
   test('shows a still mark while the progress bar advances', async ({ page }) => {
     await showBootLoader(page)
@@ -41,7 +44,7 @@ test.describe('boot loader with reduced motion', () => {
 })
 
 test.describe('boot loader with motion allowed', () => {
-  test.use({ reducedMotion: 'no-preference' })
+  test.use({ contextOptions: { reducedMotion: 'no-preference' } })
 
   test('animates the mark', async ({ page }) => {
     await showBootLoader(page)

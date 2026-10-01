@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AnalyticsEvents } from '@hylo/shared'
-import { addQuerystringToPath } from '@hylo/navigation'
+import { addQuerystringToPath, COMPOSER_ENTRY_PARAM } from '@hylo/navigation'
 import InviteMembersDialog, { inviteAccessFor } from 'components/InviteMembersDialog/InviteMembersDialog'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import fetchGroupSetupChecklist from 'store/actions/fetchGroupSetupChecklist'
@@ -124,7 +124,7 @@ export default function SetupChecklist ({ group, className }) {
 
   const openComposer = useCallback((item, params) => {
     trackItem(item)
-    navigate(addQuerystringToPath(location.pathname, { create: 'post', ...params }))
+    navigate(addQuerystringToPath(location.pathname, { create: 'post', [COMPOSER_ENTRY_PARAM]: 'setup_checklist', ...params }))
   }, [trackItem, navigate, location.pathname])
 
   const dismiss = useCallback(() => {

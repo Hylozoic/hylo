@@ -20,7 +20,12 @@ test.describe('Batch G: messages', () => {
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(/\/messages(\/\d+|\/new)?$/, navTimeout)
     if (testInfo.project.name.includes('mobile')) {
-      await expect(page).toHaveTitle(/Messages.*Hylo/i, uiTimeout)
+      // Phones open the composer ("Messages | Hylo") when the inbox is empty, and the
+      // inbox in the nav drawer once there are threads (other specs may start one)
+      const showsMessages = async () =>
+        /Messages.*Hylo/i.test(await page.title()) ||
+        await page.getByPlaceholder(/Search messages/i).first().isVisible()
+      await expect.poll(showsMessages, uiTimeout).toBe(true)
     } else {
       await expect(page.getByPlaceholder(/Search messages/i)).toBeVisible(uiTimeout)
     }

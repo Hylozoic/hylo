@@ -51,7 +51,7 @@ test.describe('Close group', () => {
     await expect(page.getByTestId('close-group-hand-off')).toBeVisible()
     await expect(page.getByTestId('close-group-hand-off').getByRole('textbox', { name: "Search this group's members" })).toBeVisible()
     await expect(page.getByText(/cannot be undone/)).toHaveCount(0)
-    await page.screenshot({ path: path.resolve(screenshotDir, 'close-group-01-options.png') })
+    await page.screenshot({ path: path.resolve(screenshotDir, `${test.info().project.name}-close-group-01-options.png`) })
 
     page.once('dialog', dialog => dialog.accept())
     await page.getByRole('button', { name: 'Archive group' }).click()
@@ -61,7 +61,7 @@ test.describe('Close group', () => {
       data: { title: 'Still here?', type: 'discussion', groupIds: [group.id] }
     })
     expect(refused.errors?.[0]?.message).toContain('This group is archived and read-only')
-    await page.screenshot({ path: path.resolve(screenshotDir, 'close-group-02-archived.png') })
+    await page.screenshot({ path: path.resolve(screenshotDir, `${test.info().project.name}-close-group-02-archived.png`) })
 
     await page.getByRole('button', { name: 'Open group again' }).click()
     await expect(page.getByText(`${group.name} is open again.`)).toBeVisible(uiTimeout)

@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-expressions */
+import '../../../test/setup'
 import { filterAndSortPosts, filterAndSortGroups } from './util'
 import { expectEqualQuery } from '../../../test/setup/helpers'
 

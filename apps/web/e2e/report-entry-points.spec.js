@@ -28,7 +28,13 @@ async function graphql (request, query, variables = {}) {
 }
 
 async function signInOther () {
-  const other = await playwrightRequest.newContext({ baseURL: test.info().project.use.baseURL })
+  // A request context made inside a test takes the project's storageState unless it is
+  // given one. With the e2e user's cookie, this login would replace (and so end) the
+  // shared session every other signed-in test uses.
+  const other = await playwrightRequest.newContext({
+    baseURL: test.info().project.use.baseURL,
+    storageState: { cookies: [], origins: [] }
+  })
   const { login } = await graphql(other,
     'mutation ($email: String, $password: String) { login(email: $email, password: $password) { error me { id } } }',
     { email: OTHER_EMAIL, password: OTHER_PASSWORD }

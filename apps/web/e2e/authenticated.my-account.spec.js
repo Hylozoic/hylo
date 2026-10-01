@@ -102,7 +102,7 @@ test.describe('Batch H: search & themes', () => {
     await expect(page).toHaveURL(/\/search/, navTimeout)
     await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
     await expect(
-      page.getByPlaceholder(/Search for people, posts and comments/i)
+      page.getByPlaceholder(/Search for groups, people, posts and comments/i)
     ).toBeVisible(uiTimeout)
   })
 

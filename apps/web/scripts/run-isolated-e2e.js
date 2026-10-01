@@ -417,6 +417,7 @@ const runE2E = async () => {
     exitAfterTeardown(143)
   })
 
+  let playwrightStatus = 1
   try {
     await waitForBackend(
       `http://localhost:${e2eBackendPort}/noo/graphql`,
@@ -440,13 +441,18 @@ const runE2E = async () => {
       `[isolated-e2e] Running Playwright (web http://localhost:${e2eWebPort}, API http://localhost:${e2eBackendPort})`
     )
     const cliArgs = process.argv.slice(2)
-    run('yarn', ['node', 'node_modules/@playwright/test/cli.js', 'test', ...cliArgs], {
+    // Not run(): it exits straight away on a failure, which skipped the teardown
+    // below and left the API running and the database in place after failed tests
+    const playwright = spawnSync('yarn', ['node', 'node_modules/@playwright/test/cli.js', 'test', ...cliArgs], {
+      stdio: 'inherit',
       cwd: webRoot,
       env: playwrightEnv
     })
+    playwrightStatus = playwright.status ?? 1
   } finally {
     await cleanupAsync()
   }
+  if (playwrightStatus !== 0) process.exit(playwrightStatus)
 }
 
 runE2E().catch(error => {

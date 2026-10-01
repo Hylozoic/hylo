@@ -119,8 +119,10 @@ describe('SetupChecklist', () => {
     await user.click(screen.getByTestId('setup-checklist-welcome-post'))
     expect(window.location.search).toContain('create=post')
     expect(window.location.search).toContain('template=welcome')
+    expect(window.location.search).toContain('composerEntry=setup_checklist')
 
     await user.click(screen.getByTestId('setup-checklist-first-event'))
     expect(window.location.search).toContain('newPostType=event')
+    expect(window.location.search).toContain('composerEntry=setup_checklist')
   })
 })

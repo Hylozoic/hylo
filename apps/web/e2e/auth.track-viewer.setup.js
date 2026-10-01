@@ -3,7 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import dotenv from 'dotenv'
 import { gotoLoginAndWaitForEmail } from './helpers/waitForLoginEmailVisible.js'
-import { ensureHyloCookieConsent } from './helpers/sessionAuth.js'
+import { dismissAppInstallPrompt, ensureHyloCookieConsent } from './helpers/sessionAuth.js'
 
 dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') })
 
@@ -27,5 +27,6 @@ setup('authenticate track viewer', async ({ page }) => {
   await expect(authShell).toBeVisible({ timeout: AUTH_BOOTSTRAP_MS })
 
   fs.mkdirSync(path.dirname(authFile), { recursive: true })
+  await dismissAppInstallPrompt(page)
   await page.context().storageState({ path: authFile })
 })
