@@ -467,15 +467,21 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'anonymous',
         'groupId',
         'created_at',
-        'updated_at'
+        'updated_at',
+        'queue',
+        'category',
+        'resolved_at'
       ],
-      relations: ['post', 'reporter', 'agreements', 'platformAgreements', 'group'],
+      relations: ['post', 'reporter', 'agreements', 'platformAgreements', 'group', 'comment', 'reportedUser', 'resolvedBy'],
       getters: {
-        anonymous: ma => ma.get('anonymous') === 'true'
+        anonymous: ma => ma.get('anonymous') === 'true',
+        commentId: ma => ma.get('comment_id'),
+        messageThreadId: ma => ma.get('message_thread_id'),
+        threadParticipants: ma => ma.threadParticipants()
       },
-      fetchMany: ({ first = 20, offset = 0, slug, sortBy }) =>
+      fetchMany: ({ first = 20, offset = 0, slug, sortBy, queue, status }) =>
         searchQuerySet('forModerationActions', {
-          first, offset, currentUserId: userId, slug, sortBy
+          first, offset, currentUserId: userId, slug, sortBy, queue, status
         })
     },
 
@@ -2236,8 +2242,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: SiteBanner,
       attributes: [
         'id',
-        'title',
-        'text',
         'type',
         'show_to_new_users',
         'created_at',
@@ -2247,13 +2251,19 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { creator: { alias: 'creator' } }
       ],
       getters: {
-        actionText: b => b.get('action_text'),
+        // displayLocale is set by the siteBanners query, so viewers get their
+        // language; Management reads the English fields and translations as stored
+        title: b => b.localized('title', b.displayLocale),
+        text: b => b.localized('text', b.displayLocale),
+        actionText: b => b.localized('action_text', b.displayLocale),
         actionUrl: b => b.get('action_url'),
         publishedAt: b => b.get('published_at'),
         unpublishedAt: b => b.get('unpublished_at'),
         createdAt: b => b.get('created_at'),
         updatedAt: b => b.get('updated_at'),
-        dismissedCount: b => SiteBanner.dismissedCount(b.get('id'))
+        dismissedCount: b => SiteBanner.dismissedCount(b.get('id')),
+        clickedCount: b => SiteBanner.clickedCount(b.get('id')),
+        translations: b => b.get('translations') || {}
       }
     }
   }

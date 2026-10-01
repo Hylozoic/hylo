@@ -53,3 +53,40 @@ it('shows a public post without tracking a login wall', async () => {
   expect(await screen.findByText('Post detail')).toBeInTheDocument()
   expect(trackAnalyticsEvent).not.toHaveBeenCalled()
 })
+
+function mockPostTeaser (postTeaser) {
+  mockGraphqlServer.use(
+    graphql.query('PostTeaser', () => HttpResponse.json({ data: { postTeaser } }))
+  )
+}
+
+it('shows the private-group page, without naming a group, for a members-only post', async () => {
+  mockPostPublic(null)
+  mockPostTeaser({ exists: true, group: null })
+
+  renderPublicPostDetail()
+
+  expect(await screen.findByText('This post is in a private group')).toBeInTheDocument()
+  expect(screen.queryByText('Login page')).not.toBeInTheDocument()
+  expect(trackAnalyticsEvent).toHaveBeenCalledWith('Login Wall Hit', { kind: 'post_teaser_private' })
+})
+
+it('shows the group teaser when the post is in a group with a public About page', async () => {
+  mockPostPublic(null)
+  mockPostTeaser({ exists: true, group: { name: 'Open Garden', slug: 'open-garden', avatarUrl: null } })
+
+  renderPublicPostDetail()
+
+  expect(await screen.findByText('This post is in Open Garden')).toBeInTheDocument()
+  expect(trackAnalyticsEvent).toHaveBeenCalledWith('Login Wall Hit', { kind: 'post_teaser_group' })
+})
+
+it('still sends a signed-out user to login when the post does not exist', async () => {
+  mockPostPublic(null)
+  mockPostTeaser({ exists: false, group: null })
+
+  renderPublicPostDetail()
+
+  expect(await screen.findByText('Login page')).toBeInTheDocument()
+  expect(trackAnalyticsEvent).toHaveBeenCalledWith('Login Wall Hit', { kind: 'post' })
+})

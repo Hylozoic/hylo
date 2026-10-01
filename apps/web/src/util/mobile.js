@@ -1,7 +1,34 @@
 import isMobile from 'ismobilejs'
 
-export const APP_STORE_APP_URL = 'https://apps.apple.com/us/app/hylo/id1002185140'
-export const GOOGLE_PLAY_APP_URL = 'https://play.google.com/store/apps/details?id=com.hylo.hyloandroid'
+export const APP_STORE_APP_ID = '1002185140'
+export const APP_STORE_APP_URL = `https://apps.apple.com/us/app/hylo/id${APP_STORE_APP_ID}`
+export const ANDROID_APP_PACKAGE = 'com.hylo.hyloandroid'
+export const GOOGLE_PLAY_APP_URL = `https://play.google.com/store/apps/details?id=${ANDROID_APP_PACKAGE}`
+
+// Hosts the Android app opens links for (its intent filters); hylo.com itself isn't one yet
+const ANDROID_APP_LINK_HOSTS = ['www.hylo.com', 'staging.hylo.com']
+
+/**
+ * An Android intent URL that opens this page in the Hylo app, or the Play Store
+ * listing when the app isn't installed. Returns null for hosts the app doesn't handle.
+ */
+export function androidIntentUrl (href) {
+  let url
+  try {
+    url = new URL(href)
+  } catch (e) {
+    return null
+  }
+  const host = url.host === 'hylo.com' ? 'www.hylo.com' : url.host
+  if (!ANDROID_APP_LINK_HOSTS.includes(host)) return null
+  const fallback = encodeURIComponent(GOOGLE_PLAY_APP_URL)
+  return `intent://${host}${url.pathname}${url.search}#Intent;scheme=https;package=${ANDROID_APP_PACKAGE};S.browser_fallback_url=${fallback};end`
+}
+
+/** An Android browser, not an app's embedded WebView (those add "; wv)" to the user agent). */
+export function isAndroidBrowser (userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '') {
+  return /Android/i.test(userAgent || '') && !/;\s*wv\)/i.test(userAgent || '')
+}
 
 export function mobileRedirect () {
   if (isMobileDevice()) {

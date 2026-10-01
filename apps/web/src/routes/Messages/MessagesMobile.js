@@ -12,6 +12,7 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import { sendIsTyping } from 'client/websockets'
 import { canAddThreadParticipant } from './messageThreadLimits'
 import MutedThreadNotice from './MutedThreadNotice'
+import ConversationEndedNotice, { isConversationEnded } from './ConversationEndedNotice'
 import { NEW_THREAD_ID } from './Messages.store'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 
@@ -221,21 +222,27 @@ const MessagesMobile = ({
             />
             <PeopleTyping postId={messageThreadId} className='w-full mx-auto max-w-[750px] pl-16 py-1 flex-shrink-0 px-3' />
             <div className='flex-shrink-0 px-3 pb-3 bg-background border-t border-border' style={{ pointerEvents: 'auto' }}>
-              {messageThread?.isMuted && <MutedThreadNotice />}
-              <MessageForm
-                disabled={forNewThread && participants.length === 0}
-                onSubmit={sendMessage}
-                onFocus={() => {
-                  setPeopleSelectorOpen(false)
-                  scheduleScrollMessageListToBottom()
-                }}
-                currentUser={currentUser}
-                ref={formRef}
-                updateMessageText={updateMessageTextAction}
-                messageText={messageText}
-                sendIsTyping={(status) => messageThreadId !== NEW_THREAD_ID && sendIsTyping(messageThreadId, status)}
-                pending={messageCreatePending}
-              />
+              {!forNewThread && isConversationEnded(messageThread, currentUser)
+                ? <div className='pt-3'><ConversationEndedNotice /></div>
+                : (
+                  <>
+                    {messageThread?.isMuted && <MutedThreadNotice />}
+                    <MessageForm
+                      disabled={forNewThread && participants.length === 0}
+                      onSubmit={sendMessage}
+                      onFocus={() => {
+                        setPeopleSelectorOpen(false)
+                        scheduleScrollMessageListToBottom()
+                      }}
+                      currentUser={currentUser}
+                      ref={formRef}
+                      updateMessageText={updateMessageTextAction}
+                      messageText={messageText}
+                      sendIsTyping={(status) => messageThreadId !== NEW_THREAD_ID && sendIsTyping(messageThreadId, status)}
+                      pending={messageCreatePending}
+                    />
+                  </>
+                  )}
             </div>
           </div>
           {socket && messageThreadId && messageThreadId !== 'new' && <SocketSubscriber type='post' id={messageThreadId} />}

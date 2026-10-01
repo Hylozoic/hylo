@@ -1,4 +1,6 @@
 import React from 'react'
+import { graphql, HttpResponse } from 'msw'
+import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { render, screen, fireEvent, AllTheProviders, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import orm from 'store/models'
 import Comment from './Comment'
@@ -115,6 +117,53 @@ describe('Comment', () => {
     expect(edit).toHaveAttribute('tabindex', '0')
     fireEvent.keyDown(edit, { key: ' ' })
     expect(screen.getByTestId('Save')).toBeInTheDocument()
+  })
+
+  describe('Report', () => {
+    const otherPersonsComment = {
+      ...props.comment,
+      creator: { id: '7', name: 'Someone Else', avatarUrl: 'bar.jpg' }
+    }
+    const postInGroup = { id: '10', groups: [{ id: '3', slug: 'the-group' }] }
+
+    function groupProviders () {
+      const ormSession = orm.mutableSession(orm.getEmptyState())
+      ormSession.Me.create({ id: '1' })
+      ormSession.Group.create({ id: '3', slug: 'the-group', name: 'The Group' })
+      ormSession.PlatformAgreement.create({ id: '5', type: 'anywhere', text: 'No harassment' })
+      return AllTheProviders({ orm: ormSession.state, pending: {} })
+    }
+
+    it("isn't offered on your own comment", () => {
+      render(<Comment {...props} post={postInGroup} />, { wrapper: groupProviders() })
+      expect(screen.queryByTestId('Report')).not.toBeInTheDocument()
+    })
+
+    it("isn't offered when the post has no group to report to", () => {
+      render(<Comment {...props} comment={otherPersonsComment} />, { wrapper: testProviders() })
+      expect(screen.queryByRole('button', { name: 'Report comment' })).not.toBeInTheDocument()
+    })
+
+    it("sends a report on someone else's comment to the group's queue with the comment", async () => {
+      let sent = null
+      mockGraphqlServer.use(
+        graphql.operation(({ query, variables }) => {
+          if (!query.includes('createModerationAction')) return HttpResponse.json({ data: {} })
+          sent = variables.data
+          return HttpResponse.json({ data: { createModerationAction: { id: '99', postId: '10', groupId: '3', text: sent.text, anonymous: false, agreements: [], platformAgreements: [{ id: '5' }] } } })
+        })
+      )
+      render(<Comment {...props} post={postInGroup} comment={otherPersonsComment} />, { wrapper: groupProviders() })
+      fireEvent.click(screen.getByRole('button', { name: 'Report comment' }))
+      expect(await screen.findByText('Explanation for Flagging')).toBeInTheDocument()
+
+      fireEvent.change(screen.getByPlaceholderText('What was wrong?'), { target: { value: 'Rude reply' } })
+      fireEvent.click(screen.getByText('No harassment'))
+      fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+
+      await waitFor(() => expect(sent).not.toBe(null))
+      expect(sent).toMatchObject({ postId: '10', commentId: '1', groupId: '3', text: 'Rude reply', platformAgreements: ['5'] })
+    })
   })
 
   describe('handleEditComment', () => {

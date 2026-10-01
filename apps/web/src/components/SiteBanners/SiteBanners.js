@@ -12,7 +12,7 @@ import ClickCatcher, { internalPathname } from 'components/ClickCatcher/ClickCat
 import HyloHTML from 'components/HyloHTML/HyloHTML'
 import { normalizeUserLinkHref } from 'util/url'
 import { cn } from 'util/index'
-import { fetchSiteBanners, dismissSiteBanner } from 'store/actions/siteBanners'
+import { fetchSiteBanners, dismissSiteBanner, clickSiteBanner } from 'store/actions/siteBanners'
 
 const TYPE_STYLES = {
   info: 'bg-card border-foreground/10',
@@ -25,7 +25,7 @@ const MAX_VISIBLE_PEEK = 3
 /**
  * Floating deck of site-wide announcement banners. Only the top card is
  * interactive; the rest peek out behind it to hint that more are queued.
- * Dismissing the top card (via the X or the action button) reveals the next.
+ * Dismissing the top card (the X or Dismiss) or using its action button reveals the next.
  */
 export default function SiteBanners () {
   const { t } = useTranslation()
@@ -64,8 +64,10 @@ export default function SiteBanners () {
     dispatch(dismissSiteBanner(id))
   }, [dispatch])
 
+  // Using the button is recorded as a click, not a dismissal; either way the banner goes away
   const handleAction = useCallback((banner) => {
-    handleDismiss(banner.id)
+    setBanners(prev => prev.filter(b => b.id !== banner.id))
+    dispatch(clickSiteBanner(banner.id))
     const href = normalizeUserLinkHref(banner.actionUrl)
     const pathname = internalPathname(href, origin())
     if (pathname) {
@@ -73,7 +75,7 @@ export default function SiteBanners () {
     } else {
       window.open(href, '_blank', 'noopener,noreferrer')
     }
-  }, [handleDismiss, navigate])
+  }, [dispatch, navigate])
 
   if (banners.length === 0) return null
 

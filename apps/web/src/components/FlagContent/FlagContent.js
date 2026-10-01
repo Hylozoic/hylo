@@ -7,7 +7,8 @@ import TextareaAutosize from 'react-textarea-autosize'
 import Button from 'components/ui/button'
 import Icon from 'components/Icon'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
-import { submitFlagContent } from './FlagContent.store'
+import { toast } from 'sonner'
+import { submitFlagContent, reportToStaff, STAFF_REPORT_TYPES } from './FlagContent.store'
 import { rootDomId } from 'client/util'
 
 function FlagContent ({ linkData, onClose, type = 'content' }) {
@@ -18,6 +19,7 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [subtitle, setSubtitle] = useState(t('What was wrong?'))
   const dispatch = useDispatch()
+  const isStaffReport = STAFF_REPORT_TYPES.includes(linkData?.type)
 
   const closeModal = () => {
     setHighlightRequired(false)
@@ -37,8 +39,8 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
     return () => document.removeEventListener('keydown', handleEscape)
   }, [])
 
-  const isExplanationOptional = (selectedCategory) =>
-    (selectedCategory || selectedCategory) !== 'other'
+  const isExplanationOptional = (category) =>
+    (category || selectedCategory) !== 'other'
 
   const submit = () => {
     if (isEmpty(selectedCategory)) {
@@ -48,7 +50,14 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
 
     if (!isExplanationOptional() && isEmpty(trim(explanation))) {
       setHighlightRequired(true)
-      updateSelected(selectedCategory)
+      updateSelected(selectedCategory, true)
+    } else if (isStaffReport) {
+      // A failed request rejects the dispatch, so the error toast lives in catch
+      dispatch(reportToStaff(selectedCategory, trim(explanation), linkData))
+        .then(() => toast.success(t('Thanks. Your report went to the Hylo team.')))
+        .catch(() => toast.error(t('Something went wrong sending your report. Please try again.')))
+      closeModal()
+      return true
     } else {
       dispatch(submitFlagContent(selectedCategory, trim(explanation), linkData))
       closeModal()
@@ -58,10 +67,10 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
     return false
   }
 
-  const updateSelected = (selectedCategory) => {
+  const updateSelected = (selectedCategory, showRequired = highlightRequired) => {
     setSelectedCategory(selectedCategory)
 
-    const required = !isExplanationOptional(selectedCategory) && highlightRequired
+    const required = !isExplanationOptional(selectedCategory) && showRequired
       ? ` ${t('(explanation required)')}`
       : ''
     const newSubtitle = t('Why was this {{type}} \'{{selectedCategory}}\'{{required}}?', {
@@ -78,6 +87,7 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
     { label: t('Offensive'), id: 'offensive' },
     { label: t('Abusive'), id: 'abusive' },
     { label: t('Illegal'), id: 'illegal' },
+    ...(isStaffReport ? [{ label: t('Safety concern'), id: 'safety' }] : []),
     { label: t('Other'), id: 'other' }
   ]
 
@@ -91,13 +101,18 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className='flex flex-row items-center justify-between mb-4'>
-          <h2 className='text-xl font-semibold'>{t('Explanation for Flagging')}</h2>
+          <h2 className='text-xl font-semibold'>{isStaffReport ? t('Report to Hylo') : t('Explanation for Flagging')}</h2>
           <button onClick={closeModal} className='text-foreground/70 hover:text-foreground transition-colors'>
             <Icon name='Ex' className='w-5 h-5' />
           </button>
         </div>
 
         <div className='space-y-4'>
+          {isStaffReport && (
+            <p className='text-foreground/70 text-sm' data-testid='staff-report-explainer'>
+              {t('staffReportExplainer')}
+            </p>
+          )}
           <div className={`space-y-2 ${reasonRequired ? 'ring-2 ring-red-500 rounded-lg' : ''}`}>
             <Select
               value={selectedCategory}

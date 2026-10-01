@@ -22,7 +22,8 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const { id, slug } = linkData || {}
+  // For a comment report, id is the comment's post and commentId the comment
+  const { id, slug, commentId } = linkData || {}
   const effectiveGroupSlug = useEffectiveGroupSlug()
   const { parentGroupSlug, spaceSlug } = useGroupRouteOpts()
   const groupSlug = effectiveGroupSlug || slug
@@ -98,13 +99,14 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
     dispatch(createModerationAction({
       text: explanation,
       postId: id,
+      ...(commentId ? { commentId } : {}),
       groupId: group.id,
       agreements: agreementsSelected,
       platformAgreements: platformAgreementsSelected,
       anonymous
     }, { slugs }))
     if (onFlag) {
-      onFlag({ postId: id, groupId: group.id })
+      onFlag({ postId: id, commentId, groupId: group.id })
     }
     closeModal()
     return true

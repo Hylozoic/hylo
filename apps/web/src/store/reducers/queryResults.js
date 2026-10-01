@@ -24,6 +24,7 @@ import {
   FETCH_THREADS,
   MUTE_MESSAGE_THREAD,
   UNMUTE_MESSAGE_THREAD,
+  LEAVE_MESSAGE_THREAD,
   FETCH_CHILD_COMMENTS,
   FETCH_COMMENTS,
   REMOVE_POST_PENDING,
@@ -123,6 +124,17 @@ export default function (state = {}, action) {
       return mapValues(state, (results, key) => {
         const keyObject = JSON.parse(key)
         if (keyObject.type !== FETCH_THREADS || keyObject.params?.muted) return results
+        return {
+          ...results,
+          ids: results.ids.filter(id => id !== meta.messageThreadId),
+          total: (results.total || results.total === 0) && results.total - 1
+        }
+      })
+
+    case LEAVE_MESSAGE_THREAD:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (keyObject.type !== FETCH_THREADS || !results.ids.includes(meta.messageThreadId)) return results
         return {
           ...results,
           ids: results.ids.filter(id => id !== meta.messageThreadId),
