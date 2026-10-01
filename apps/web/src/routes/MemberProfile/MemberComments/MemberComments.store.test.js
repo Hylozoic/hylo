@@ -12,13 +12,14 @@ describe('fetchMemberComments', () => {
         variables: {
           id: '12345',
           limit: 10,
-          order: 'desc'
+          order: 'desc',
+          offset: 0
         }
       },
       meta: { extractModel: 'Person' }
     }
     const { query, variables } = expected.graphql
-    const actual = fetchMemberComments(variables.id, 'desc', 10, query)
+    const actual = fetchMemberComments(variables.id, 'desc', 10, 0, query)
     expect(actual).toEqual(expected)
   })
 })

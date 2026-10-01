@@ -19,6 +19,11 @@ describe('viewAcceptedByPostTypes', () => {
     expect(viewAcceptedByPostTypes('projects', [])).toBe(false)
   })
 
+  it('parses JSON-string acceptedPostTypes the same as arrays', () => {
+    expect(viewAcceptedByPostTypes('events', '["event"]')).toBe(true)
+    expect(viewAcceptedByPostTypes('events', '["discussion"]')).toBe(false)
+  })
+
   it('keeps typed views when any of their post types are accepted', () => {
     expect(viewAcceptedByPostTypes('discussions', ['discussion', 'event'])).toBe(true)
     expect(viewAcceptedByPostTypes('requests-and-offers', ['offer'])).toBe(true)

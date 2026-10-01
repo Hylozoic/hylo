@@ -3,6 +3,7 @@ import {
   POST_TYPE_TO_VIEW_TYPE,
   VIEW_TYPE_TO_POST_TYPES
 } from '@hylo/shared'
+import { normalizeAcceptedPostTypes } from './Group'
 
 /** Re-export system view defaults — defined in @hylo/presenters for package sharing. */
 export { COMMON_VIEWS } from '@hylo/presenters/GroupViewPresenter'
@@ -33,10 +34,11 @@ export const NON_HOME_VIEW_TYPES = new Set([
 
 /** Returns true when a view type is allowed by the group's acceptedPostTypes (null = all allowed). */
 export function viewAcceptedByPostTypes (viewType, acceptedPostTypes) {
-  if (acceptedPostTypes == null) return true
+  const types = normalizeAcceptedPostTypes(acceptedPostTypes)
+  if (types == null) return true
   const requiredPostTypes = VIEW_TYPE_TO_POST_TYPES[viewType]
   if (!requiredPostTypes) return true
-  return requiredPostTypes.some(postType => acceptedPostTypes.includes(postType))
+  return requiredPostTypes.some(postType => types.includes(postType))
 }
 
 /** True when a persisted view belongs on the live or edit menu. */

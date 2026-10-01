@@ -554,9 +554,10 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
 
 /**
  * Join a space. Parent-group Administration can join any space. A valid
- * accessCode or invitationToken pre-approves Closed, Restricted, and role-gated
- * spaces. Paywalled spaces still require purchase unless the user administers
- * the parent.
+ * accessCode or invitationToken pre-approves Closed and Restricted spaces
+ * but does NOT bypass role gating — the invited person must still hold the
+ * required role. Paywalled spaces still require purchase unless the user
+ * administers the parent.
  * @param userId {string}
  * @param spaceId {string}
  * @param accessCode {string} optional join-link access code
@@ -596,7 +597,8 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
       throw new GraphQLError('This space is not published')
     }
 
-    // Join/invite links pre-approve Closed, Restricted, and role-gated spaces (same as joinGroup)
+    // Join/invite links pre-approve Closed, Restricted spaces (same as joinGroup),
+    // but NOT role-gated spaces — the invited person must still hold the role.
     let inviteCheck = null
     if (accessCode || invitationToken) {
       inviteCheck = await InvitationService.check(invitationToken, accessCode)
@@ -608,21 +610,21 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
         throw new GraphQLError('This space requires purchased access to join')
       }
 
-      if (!hasValidInvitation) {
-        const requiredRoles = space.get('required_roles')
-        const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
+      // Check required roles regardless of invitation status.
+      // Invite links do NOT bypass role gating — the invited person must hold the role.
+      const requiredRoles = space.get('required_roles')
+      const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
 
-        if (isRoleGated) {
-          const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
-            .where({ user_id: userId, group_id: parentId, active: true })
-            .pluck('group_role_id')
-          const memberRoleIdSet = new Set(memberRoleIds.map(id => String(id)))
-          if (!requiredRoles.some(roleId => memberRoleIdSet.has(String(roleId)))) {
-            throw new GraphQLError('You do not have the required role to join this space')
-          }
-        } else if (space.get('accessibility') !== Group.Accessibility.OPEN) {
-          throw new GraphQLError('This space requires a request to join')
+      if (isRoleGated) {
+        const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
+          .where({ user_id: userId, group_id: parentId, active: true })
+          .pluck('group_role_id')
+        const memberRoleIdSet = new Set(memberRoleIds.map(id => String(id)))
+        if (!requiredRoles.some(roleId => memberRoleIdSet.has(String(roleId)))) {
+          throw new GraphQLError('You do not have the required role to join this space')
         }
+      } else if (!hasValidInvitation && space.get('accessibility') !== Group.Accessibility.OPEN) {
+        throw new GraphQLError('This space requires a request to join')
       }
     }
 

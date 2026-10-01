@@ -342,6 +342,20 @@ describe('on UPDATE_GROUP_SETTINGS_PENDING', () => {
     })
   })
 
+  it('updates acceptedPostTypes on the group', () => {
+    const acceptedPostTypes = ['discussion', 'request', 'offer']
+    const action = {
+      type: UPDATE_GROUP_SETTINGS_PENDING,
+      meta: {
+        id,
+        changes: { acceptedPostTypes }
+      }
+    }
+    const newState = ormReducer(session.state, action)
+    const newSession = orm.session(newState)
+    expect(newSession.Group.withId(id).acceptedPostTypes).toEqual(acceptedPostTypes)
+  })
+
   it('updates a newly created space that has no membership in the ORM yet', () => {
     const newSpaceSession = orm.session(orm.getEmptyState())
     newSpaceSession.Me.create({ id: '1' })
@@ -370,6 +384,39 @@ describe('on UPDATE_GROUP_SETTINGS_PENDING', () => {
 })
 
 describe('on UPDATE_GROUP_SETTINGS', () => {
+  it('keeps saved acceptedPostTypes when the mutation payload does not return an array', () => {
+    const session = orm.session(orm.getEmptyState())
+    session.Me.create({ id: '1' })
+    session.Group.create({
+      id: '1',
+      name: 'Group',
+      acceptedPostTypes: ['discussion', 'event']
+    })
+
+    const savedTypes = ['discussion']
+    const action = {
+      type: UPDATE_GROUP_SETTINGS,
+      payload: {
+        data: {
+          updateGroupSettings: {
+            id: '1',
+            acceptedPostTypes: null
+          }
+        }
+      },
+      meta: {
+        id: '1',
+        extractModel: 'Group',
+        changes: {
+          acceptedPostTypes: savedTypes
+        }
+      }
+    }
+
+    const newState = ormReducer(session.state, action)
+    expect(orm.session(newState).Group.withId('1').acceptedPostTypes).toEqual(savedTypes)
+  })
+
   it('does not crash when the query returns agreements but the space has no membership yet', () => {
     const newSpaceSession = orm.session(orm.getEmptyState())
     newSpaceSession.Me.create({ id: '1' })

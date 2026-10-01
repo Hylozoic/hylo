@@ -76,17 +76,17 @@ export default function CardImageAttachments ({
                 ? (
                   // Single image: keep the 200px height cap but let width follow
                   // aspect ratio up to the chat stream / viewport bound.
-                    <img
-                      data-index={0}
-                      src={singleChatImage.url}
-                      alt='Attached image 1'
-                      loading='lazy'
-                      className={cn(
-                        'block h-auto max-h-[200px] w-auto max-w-[min(calc(var(--chat-stream-width,750px)-50px),calc(100vw-2.5rem))] object-contain rounded-md border border-foreground/10 cursor-pointer hover:brightness-110',
-                        isFlagged && 'blur-[30px]'
-                      )}
-                      onClick={openLightbox}
-                    />
+                  <img
+                    data-index={0}
+                    src={singleChatImage.url}
+                    alt='Attached image 1'
+                    loading='lazy'
+                    className={cn(
+                      'block h-auto max-h-[200px] w-auto max-w-[min(calc(var(--chat-stream-width,750px)-50px),calc(100vw-2.5rem))] object-contain rounded-md border border-foreground/10 cursor-pointer hover:brightness-110',
+                      isFlagged && 'blur-[30px]'
+                    )}
+                    onClick={openLightbox}
+                  />
                   )
                 : (
                   // Multiple images: fixed 150×200 cover tiles in a horizontal row

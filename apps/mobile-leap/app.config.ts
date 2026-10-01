@@ -107,6 +107,9 @@ function buildPlugins (): NonNullable<ExpoConfig['plugins']> {
     ])
   }
 
+  // Must be last: re-asserts entitlements that onesignal-expo-plugin drops
+  plugins.push('./plugins/withReassertEntitlements')
+
   return plugins
 }
 
@@ -115,7 +118,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'Hylo',
   slug: 'hylo-mobile-leap',
   scheme: 'hyloapp',
-  version: '7.0.0', // keep in lockstep with apps/mobile until cutover
+  version: '7.0.4',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
@@ -135,14 +138,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       ITSAppUsesNonExemptEncryption: false,
       ...(ONESIGNAL_APP_ID ? { UIBackgroundModes: ['remote-notification'] } : {})
     },
-    ...(ONESIGNAL_APP_ID
-      ? {
-          entitlements: {
-            'aps-environment': ONESIGNAL_APN_MODE,
-            'com.apple.security.application-groups': [`group.${IOS_BUNDLE_ID}.onesignal`]
-          }
-        }
-      : {})
+    entitlements: {
+      'com.apple.developer.associated-domains': [
+        'applinks:www.hylo.com',
+        'applinks:staging.hylo.com',
+        'applinks:hylo.com'
+      ],
+      ...(ONESIGNAL_APP_ID ? {
+        'aps-environment': ONESIGNAL_APN_MODE,
+        'com.apple.security.application-groups': [`group.${IOS_BUNDLE_ID}.onesignal`]
+      } : {})
+    }
   },
   android: {
     // Legacy home-screen look: App Store icon (dark gray + white merkaba). Match background

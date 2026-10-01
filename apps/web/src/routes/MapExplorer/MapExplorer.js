@@ -836,7 +836,9 @@ function MapExplorer (props) {
         <title>Map | {group ? `${group.name} | ` : context === 'public' ? 'Public | ' : ' All My Groups | '}Hylo</title>
       </Helmet>
 
-      <div className='flex-1 h-full relative' data-testid='map-container'>
+      {/* isolate: the deck.gl overlay lives in a Mapbox control (z-index 2). Without a
+          stacking context here that canvas paints over the map menus. */}
+      <div className='flex-1 h-full relative isolate' data-testid='map-container'>
         {mapTourInvitation}
         <Map
           baseLayerStyle={baseLayerStyle}
@@ -922,7 +924,7 @@ function MapExplorer (props) {
         </>
       )}
 
-      <div className={cn('absolute bottom-[80px] left-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col', { flex: showFeatureFilters, [classes.withoutNav]: withoutNav })}>
+      <div className={cn('absolute bottom-[80px] left-5 z-10 hidden bg-background rounded-md p-2 drop-shadow-md flex-col', { flex: showFeatureFilters, [classes.withoutNav]: withoutNav })}>
         <h3 className='text-sm font-medium mb-2 text-foreground/80'>{t('What do you want to see on the map?')}</h3>
         {possibleFeatureTypes.map(featureType => {
           const color = FEATURE_TYPES[featureType].primaryColor
@@ -964,7 +966,7 @@ function MapExplorer (props) {
         <Layers className='w-4 h-4' />
       </button>
       <div className={cn(
-        'absolute bottom-[120px] w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col',
+        'absolute bottom-[120px] z-10 w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col',
         classes.drawerAdjacentButton,
         {
           flex: showLayersSelector,

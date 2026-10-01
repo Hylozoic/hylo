@@ -62,6 +62,8 @@ export default function useRouteParams () {
           if (pathParts[3] === 'page' && pathParts[4]) {
             params.viewId = pathParts[4]
             params.customViewId = pathParts[4]
+          } else if ((pathParts[3] === 'custom' || pathParts[3] === 'collection') && pathParts[4]) {
+            params.customViewId = pathParts[4]
           }
         } else {
           params.view = ''

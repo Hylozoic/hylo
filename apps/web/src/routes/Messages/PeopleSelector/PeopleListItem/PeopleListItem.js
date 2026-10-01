@@ -11,12 +11,16 @@ const PeopleListItem = forwardRef(({ active, onClick, onMouseOver, person, class
     if (onClick) onClick()
   }
 
+  const hasRole = person.hasRequiredRole
+  const roleLabel = person.roleLabel
+
   return (
     <li
       ref={ref}
       className={cn(
         'hover:bg-selected hover:scale-101 flex items-center transition-all bg-transparent hover:cursor-pointer p-2',
         { [classes.active]: active },
+        !hasRole && typeof hasRole !== 'undefined' && 'opacity-60',
         className
       )}
       onClick={onClick}
@@ -24,9 +28,19 @@ const PeopleListItem = forwardRef(({ active, onClick, onMouseOver, person, class
       onTouchEnd={handleTouchEnd}
     >
       <div className='min-w-[30px]'><RoundImage url={person.avatarUrl} medium /></div>
-      <div className='ml-2 flex gap-2 items-baseline'>
-        <span className='text-foreground'>{person.name}</span>
-        <span className='text-foreground/50 text-xs'>{person.group}</span>
+      <div className='ml-2 flex gap-2 items-baseline flex-1 min-w-0'>
+        <span className={cn('truncate', hasRole ? 'text-foreground' : 'text-foreground/70')}>{person.name}</span>
+        <span className='text-foreground/50 text-xs shrink-0'>{person.group}</span>
+        {typeof roleLabel !== 'undefined' && (
+          <span
+            className={cn(
+              'text-xs shrink-0 ml-auto',
+              hasRole ? 'text-green-600/70 dark:text-green-400/70' : 'text-foreground/40'
+            )}
+          >
+            {roleLabel}
+          </span>
+        )}
       </div>
     </li>
   )
@@ -41,7 +55,9 @@ PeopleListItem.propTypes = {
     id: PropTypes.any,
     name: PropTypes.string,
     avatarUrl: PropTypes.string,
-    group: PropTypes.string
+    group: PropTypes.string,
+    hasRequiredRole: PropTypes.bool,
+    roleLabel: PropTypes.string
   })
 }
 

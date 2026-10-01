@@ -64,7 +64,6 @@ import {
   MUTE_MESSAGE_THREAD,
   UNMUTE_MESSAGE_THREAD,
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
-  UPDATE_WIDGET,
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
   UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
@@ -1233,6 +1232,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_GROUP_SETTINGS: {
+      // Keep the saved list when the mutation payload omits a usable array
+      // (e.g. jsonb serialized as a string and GraphQL [String] nulls the field).
+      const returnedTypes = payload.data?.updateGroupSettings?.acceptedPostTypes
+      if (meta.changes?.acceptedPostTypes !== undefined && !Array.isArray(returnedTypes)) {
+        group = Group.withId(meta.id)
+        if (group) group.update({ acceptedPostTypes: meta.changes.acceptedPostTypes })
+      }
+
       // Set new join questions in the ORM
       if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.joinQuestions || payload.data.updateGroupSettings.prerequisiteGroups)) {
         group = Group.withId(meta.id)
@@ -1471,11 +1478,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
-    case UPDATE_WIDGET: {
-      clearCacheFor(Group, payload.data.updateWidget.group.id)
-      break
-    }
-
     case USE_INVITATION: {
       me = Me.first()
       const membership = payload.data?.useInvitation?.membership
@@ -1498,11 +1500,21 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const emojiFull = meta.data.emojiFull
       me = Me.first()
 
-      const optimisticUpdate = {
-        commentReactions: [...(comment.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
+      if (comment) {
+        const optimisticUpdate = {
+          commentReactions: [...(comment.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
+        }
+        comment.update(optimisticUpdate)
       }
 
-      comment.update(optimisticUpdate)
+      // Also handle optimistic update for Message model (DM messages)
+      const message = session.Message.withId(meta.commentId)
+      if (message) {
+        const optimisticUpdate = {
+          commentReactions: [...(message.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
+        }
+        message.update(optimisticUpdate)
+      }
 
       break
     }
@@ -1511,11 +1523,25 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       comment = session.Comment.withId(meta.commentId)
       const emojiFull = meta.data.emojiFull
       me = Me.first()
-      const commentReactions = comment.commentReactions.filter(reaction => {
-        if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
-        return true
-      })
-      comment.update({ commentReactions })
+
+      if (comment) {
+        const commentReactions = comment.commentReactions.filter(reaction => {
+          if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
+          return true
+        })
+        comment.update({ commentReactions })
+      }
+
+      // Also handle optimistic update for Message model (DM messages)
+      const message = session.Message.withId(meta.commentId)
+      if (message) {
+        const commentReactions = (message.commentReactions || []).filter(reaction => {
+          if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
+          return true
+        })
+        message.update({ commentReactions })
+      }
+
       break
     }
 

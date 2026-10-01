@@ -6,7 +6,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   requireFetch: false,
   hasTimestamps: true,
 
-  /*** Relationships ***/
+  /** Relationships **/
   createdBy: function () {
     return this.belongsTo(User, 'created_by_id')
   },
@@ -49,7 +49,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     const user = await User.find(userId, { transacting })
     const fromGroup = await this.fromGroup().fetch({ transacting })
-    if (!GroupMembership.hasResponsibility(user, fromGroup, Responsibility.constants.RESP_ADMINISTRATION)) {
+    if (!(await GroupMembership.hasResponsibility(user, fromGroup, Responsibility.constants.RESP_ADMINISTRATION))) {
       throw new GraphQLError('Not permitted to do this')
     }
 
@@ -68,7 +68,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     const user = await User.find(userId, { transacting })
     const toGroup = await this.toGroup().fetch({ transacting })
-    if (!GroupMembership.hasResponsibility(user, toGroup, Responsibility.constants.RESP_ADMINISTRATION)) {
+    if (!(await GroupMembership.hasResponsibility(user, toGroup, Responsibility.constants.RESP_ADMINISTRATION))) {
       // The person trying to process the invite does not have permission
       throw new GraphQLError('Not permitted to do this')
     }
@@ -188,6 +188,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           toMembers = (parentToChild && toGroup.isHidden()) ? await toGroup.stewards().fetch({ transacting }) : await toGroup.members().fetch({ transacting })
         }
 
+        const fromStewardIds = new Set((await fromGroup.stewards().fetch({ transacting })).pluck('id'))
         const toStewardIds = new Set((await toGroup.stewards().fetch({ transacting })).pluck('id'))
 
         const reason = parentToChild
@@ -197,6 +198,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
             : Activity.Reason.GroupParentGroupJoinRequestAccepted
         const fromGroupActivities = fromMembers.map(member => {
           const relationshipContext = peerToPeer ? 'peer' : (parentToChild ? 'parent' : 'child')
+          const memberType = peerToPeer ? 'moderator' : (fromStewardIds.has(member.id) ? 'moderator' : 'member')
+          return {
+            reader_id: member.id,
+            actor_id: actorId,
+            group_id: fromGroup.id,
+            other_group_id: toGroup.id,
+            reason: `${reason}:${relationshipContext}:${memberType}`
+          }
+        })
+        const toGroupActivities = toMembers.map(member => {
+          const relationshipContext = peerToPeer ? 'peer' : (parentToChild ? 'child' : 'parent')
           const memberType = peerToPeer ? 'moderator' : (toStewardIds.has(member.id) ? 'moderator' : 'member')
           return {
             reader_id: member.id,

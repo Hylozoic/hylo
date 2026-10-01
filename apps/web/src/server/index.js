@@ -17,6 +17,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 function startServer () {
   console.log('Starting server...')
   const server = express()
+  server.disable('x-powered-by')
+  // Framing stays allowed so Hylo can be embedded and log in on other sites.
+  // A strict Content-Security-Policy would block the inline boot script in index.html.
+  server.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(self)')
+    next()
+  })
   server.use(cookieParser())
   server.use(compression())
   server.use(apiProxy)

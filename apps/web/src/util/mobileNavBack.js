@@ -1,3 +1,4 @@
+import { groupUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { isDrawerNavLayout } from 'util/mobile'
 
@@ -10,6 +11,33 @@ const SECONDARY_SINGLE_VIEW_SEGMENTS = ['members', 'about', 'welcome', 'requests
  */
 function canNavigateBack () {
   return typeof window.history.state?.idx === 'number' && window.history.state.idx > 0
+}
+
+/**
+ * History delta that returns to the entry recorded when a screen was opened.
+ * Null while a post overlay is open (one back step should close it) or when
+ * there is no safe earlier entry.
+ * @param {{ currentIndex: number|null|undefined, entryIndex: number|null|undefined, postOverlayOpen?: boolean }} opts
+ * @returns {number|null}
+ */
+export function historyIndexBackDelta ({ currentIndex, entryIndex, postOverlayOpen = false }) {
+  if (postOverlayOpen) return null
+  if (typeof currentIndex !== 'number' || typeof entryIndex !== 'number') return null
+  if (entryIndex < 0 || currentIndex <= entryIndex) return null
+  return entryIndex - currentIndex
+}
+
+/**
+ * Where profile header-back goes when the profile was opened with no prior history.
+ * Group profiles go to that group's home; other contexts go to their menu home.
+ * @param {{ context?: string, groupSlug?: string }} opts
+ * @returns {string}
+ */
+export function profileDirectLoadBackPath ({ context, groupSlug } = {}) {
+  if (context === 'groups' && groupSlug) return groupUrl(groupSlug)
+  if (context === 'public') return '/public'
+  if (context === 'my') return '/my'
+  return '/all'
 }
 
 /**

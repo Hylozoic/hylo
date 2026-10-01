@@ -117,22 +117,33 @@ function InviteSettingsTab (props) {
       const members = response?.payload?.data?.group?.members
       const rawItems = members?.items || []
       return {
-        items: rawItems.filter(p => String(p.id) !== String(currentUser?.id)),
+        items: rawItems
+          .filter(p => String(p.id) !== String(currentUser?.id))
+          .map(p => ({
+            ...p,
+            groupRoles: p.groupRoles?.items?.map(r => String(r.id)) || []
+          })),
         hasMore: pageHasMore(members, rawItems.length)
       }
     }
-    const connections = response?.payload?.data?.connections
-    const rawItems = connections?.items || []
+    const people = response?.payload?.data?.people
+    const rawItems = people?.items || []
     return {
-      items: rawItems
-        .map(c => c.person)
-        .filter(p => p && String(p.id) !== String(currentUser?.id)),
-      hasMore: pageHasMore(connections, rawItems.length)
+      items: rawItems.filter(p => p && String(p.id) !== String(currentUser?.id)),
+      hasMore: pageHasMore(people, rawItems.length)
     }
   }, [currentUser?.id, isSpace, parentGroupId])
 
+  // For role-gated spaces, restrict the people picker to only show parent-group
+  // members who already hold one of the required roles.
+  const spaceRequiredRoleIds = useMemo(() => {
+    if (!isSpace) return null
+    const ids = group?.requiredRoles || []
+    return ids.length > 0 ? ids.map(id => String(id)) : null
+  }, [isSpace, group?.requiredRoles])
+
   /**
-   * Loads one page of inviteable people: connections (groups) or parent members (spaces).
+   * Loads one page of inviteable people: co-members (groups) or parent members (spaces).
    */
   const fetchPeopleForInvite = useCallback(async (autocomplete = '') => {
     const search = typeof autocomplete === 'string' ? autocomplete : ''
@@ -143,6 +154,7 @@ function InviteSettingsTab (props) {
     const response = await dispatch(fetchInviteablePeople({
       groupId: group.id,
       parentGroupId: isSpace ? parentGroupId : undefined,
+      groupRoleIds: spaceRequiredRoleIds,
       autocomplete: search,
       first: INVITEABLE_PEOPLE_PAGE_SIZE,
       offset: 0
@@ -165,6 +177,7 @@ function InviteSettingsTab (props) {
     const response = await dispatch(fetchInviteablePeople({
       groupId: group.id,
       parentGroupId: isSpace ? parentGroupId : undefined,
+      groupRoleIds: spaceRequiredRoleIds,
       autocomplete: peopleSearchRef.current,
       first: INVITEABLE_PEOPLE_PAGE_SIZE,
       offset
@@ -280,17 +293,38 @@ function InviteSettingsTab (props) {
   }, [resendInvitation])
 
   const hasPendingInvites = !isEmpty(pendingInvites)
+
+  /** True when this is a role-gated space with required roles defined. */
+  const isRoleGated = isSpace && (spaceRequiredRoleIds?.length > 0)
+
   const peopleForSelector = useMemo(() => {
     const invitedIds = new Set(pendingInvites.map(i => i.userId != null && String(i.userId)).filter(Boolean))
     const invitedNames = new Set(pendingInvites.map(i => i.name && i.name.toLowerCase()).filter(Boolean))
     const invitedEmails = new Set(pendingInvites.map(i => i.email && i.email.toLowerCase()).filter(Boolean))
-    return people.filter(p => {
+    const allowed = people.filter(p => {
       if (invitedIds.has(String(p.id))) return false
       if (p.email && invitedEmails.has(String(p.email).toLowerCase())) return false
       if (p.name && invitedNames.has(p.name.toLowerCase())) return false
       return true
     })
-  }, [people, pendingInvites])
+    if (!isRoleGated || !spaceRequiredRoleIds) return allowed
+    const requiredSet = new Set(spaceRequiredRoleIds)
+    const hasRole = []
+    const noRole = []
+    for (const person of allowed) {
+      // groupRoles can arrive as a flat array ['1', '2'] (from parseInviteablePeopleResponse)
+      // or as raw GraphQL { items: [{ id: 1 }] } — handle both safely
+      const roleIds = Array.isArray(person.groupRoles)
+        ? person.groupRoles
+        : person.groupRoles?.items?.map(r => String(r.id)) || []
+      if (roleIds.some(id => requiredSet.has(id))) {
+        hasRole.push({ ...person, hasRequiredRole: true, roleLabel: t('Has role') })
+      } else {
+        noRole.push({ ...person, hasRequiredRole: false, roleLabel: t('No role') })
+      }
+    }
+    return [...hasRole, ...noRole]
+  }, [people, pendingInvites, isRoleGated, spaceRequiredRoleIds, t])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -393,19 +427,32 @@ function InviteSettingsTab (props) {
         </div>
       </div>
 
-      <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
+      <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-2 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
         <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>
           {t('Invite people on Hylo')}
         </h2>
         <span className='text-sm text-foreground/50'>
+          {isRoleGated && (
+            <p className='text-sm text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2'>
+              {t('Only members with one of the required roles will actually be able to join the space.')}{' '}
+              <a
+                href={`/groups/${group.slug}/settings/roles`}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='underline hover:no-underline font-medium'
+              >
+                {t('Go to group roles')}
+              </a>
+            </p>
+          )}
           {isSpace
             ? t('Search members of {{name}} who aren\'t already in this space.', { name: parentName || t('the group') })
-            : t('Search people you\'re connected with who aren\'t already members.')}
+            : t('Search people you can see on Hylo.')}
         </span>
         <PeopleSelector
           placeholder={isSpace
             ? t('Search members of {{name}}...', { name: parentName || t('the group') })
-            : t('Search people you know...')}
+            : t('Search people...')}
           fetchPeople={fetchPeopleForInvite}
           fetchDefaultList={fetchDefaultPeopleList}
           setPeopleSearch={() => {}}
@@ -447,7 +494,10 @@ function InviteSettingsTab (props) {
           onChange={(event) => setSelectedRoleId(event.target.value)}
         >
           <option value=''>{t('No special role')}</option>
-          {group.groupRoles?.items?.filter(role => role.active).map(role => (
+          {(isRoleGated
+            ? (group.groupRoles?.items || []).filter(role => role.active && spaceRequiredRoleIds?.includes(String(role.id)))
+            : (group.groupRoles?.items || []).filter(role => role.active)
+          ).map(role => (
             <option key={role.id} value={role.id}>
               {role.emoji ? `${role.emoji} ` : ''}{role.name}
             </option>

@@ -74,7 +74,6 @@ import GroupPageView from 'routes/GroupPageView'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
-import LandingPage from 'routes/LandingPage'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import RouteBootstrapSkeleton from 'components/Skeleton/RouteBootstrapSkeleton'
 import MapExplorer from 'routes/MapExplorer'
@@ -1109,7 +1108,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='projects/*' element={<ViewContent context='groups' view='projects' />} />
                             <Route path='proposals/*' element={<ViewContent context='groups' view='proposals' />} />
                             <Route path='requests-and-offers/*' element={<ViewContent context='groups' view='requests-and-offers' />} />
-                            <Route path='explore/*' element={<LandingPage />} />
+                            <Route path='explore/*' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                             <Route path='custom/:customViewId/*' element={<ViewContent context='groups' view='custom' />} />
                             <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
                             <Route path='space-collection/:viewId/*' element={<SpaceCollection group={currentGroup} />} />

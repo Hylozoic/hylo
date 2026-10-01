@@ -1,4 +1,5 @@
 import { convert as convertHtmlToText } from 'html-to-text'
+import insane from 'insane'
 import validator from 'validator'
 import { marked } from 'marked'
 import merge from 'lodash/fp/merge.js' // Have to load this way for Electron ESM environment
@@ -9,6 +10,22 @@ import truncText from 'trunc-text'
 
 // Have to load this way for Electron ESM environment
 const { isURL } = validator
+
+const VIDEO_EMBED_HOSTS = [
+  'www.youtube.com', 'youtube.com', 'www.youtube-nocookie.com', 'youtube-nocookie.com', 'player.vimeo.com'
+]
+
+/**
+ * True for https YouTube and Vimeo player URLs, the only sources allowed in iframes.
+ */
+export function isVideoEmbedURL (url) {
+  try {
+    const { protocol, hostname } = new URL(url)
+    return protocol === 'https:' && VIDEO_EMBED_HOSTS.includes(hostname)
+  } catch {
+    return false
+  }
+}
 
 // Sanitization options
 export function insaneOptions (providedInsaneOptions) {
@@ -45,7 +62,9 @@ export function insaneOptions (providedInsaneOptions) {
         img: [
           'src', 'alt', 'title', 'class', 'width', 'height'
         ]
-      }
+      },
+      // HyloHTML turns embed <video> tags into iframes, so both need a trusted source
+      filter: ({ tag, attrs }) => (tag !== 'iframe' && tag !== 'video') || isVideoEmbedURL(attrs.src)
     },
     providedInsaneOptions
   )
@@ -94,7 +113,13 @@ export function textLengthHTML (htmlOrText, options) {
   return presentHTMLToText(htmlOrText, options).length
 }
 
+const MARKDOWN_EXTRA_TAGS = ['del', 'table', 'thead', 'tbody', 'tr', 'th', 'td']
+
+/**
+ * Converts markdown to sanitized HTML. marked passes raw HTML through, so the output is always sanitized.
+ */
 export const markdown = (text, options = {}) => {
+  // TODO from assistant: marked.use is global, so once autolinking is disabled it stays disabled for every later call.
   if (options.disableAutolinking) {
     marked.use({
       tokenizer: {
@@ -107,7 +132,11 @@ export const markdown = (text, options = {}) => {
     })
   }
 
-  return marked.parse(text || '', { gfm: true, breaks: true })
+  const sanitizerOptions = insaneOptions()
+  return insane(marked.parse(text || '', { gfm: true, breaks: true }), {
+    ...sanitizerOptions,
+    allowedTags: [...sanitizerOptions.allowedTags, ...MARKDOWN_EXTRA_TAGS]
+  })
 }
 
 // HTML Generation Helpers
