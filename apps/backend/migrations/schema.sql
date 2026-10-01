@@ -692,6 +692,37 @@ ALTER SEQUENCE public.drafts_id_seq OWNED BY public.drafts.id;
 
 
 --
+-- Name: email_clicks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.email_clicks (
+    id bigint NOT NULL,
+    email_type character varying(64) NOT NULL,
+    user_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: email_clicks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.email_clicks_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: email_clicks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.email_clicks_id_seq OWNED BY public.email_clicks.id;
+
+
+--
 -- Name: email_enabled_testers; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2546,7 +2577,8 @@ CREATE TABLE public.users (
     contact_email character varying(255),
     contact_phone character varying(255),
     last_active_at timestamp with time zone,
-    calendar_token character varying(255)
+    calendar_token character varying(255),
+    acquisition_source jsonb
 );
 
 
@@ -3657,6 +3689,13 @@ ALTER TABLE ONLY public.drafts ALTER COLUMN id SET DEFAULT nextval('public.draft
 
 
 --
+-- Name: email_clicks id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_clicks ALTER COLUMN id SET DEFAULT nextval('public.email_clicks_id_seq'::regclass);
+
+
+--
 -- Name: email_enabled_testers id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4246,6 +4285,14 @@ ALTER TABLE ONLY public.devices
 
 ALTER TABLE ONLY public.drafts
     ADD CONSTRAINT drafts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: email_clicks email_clicks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_clicks
+    ADD CONSTRAINT email_clicks_pkey PRIMARY KEY (id);
 
 
 --
@@ -5214,6 +5261,20 @@ CREATE INDEX drafts_user_id_index ON public.drafts USING btree (user_id);
 
 
 --
+-- Name: email_clicks_email_type_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX email_clicks_email_type_created_at_index ON public.email_clicks USING btree (email_type, created_at);
+
+
+--
+-- Name: email_clicks_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX email_clicks_user_id_index ON public.email_clicks USING btree (user_id);
+
+
+--
 -- Name: email_enabled_testers_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6110,6 +6171,14 @@ ALTER TABLE ONLY public.drafts
 
 ALTER TABLE ONLY public.drafts
     ADD CONSTRAINT drafts_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: email_clicks email_clicks_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_clicks
+    ADD CONSTRAINT email_clicks_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --

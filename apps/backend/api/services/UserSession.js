@@ -1,4 +1,3 @@
-import { omitBy, isNil } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
 import sentry from '../../lib/sentry'
 
@@ -33,19 +32,6 @@ module.exports = {
     sentry.setUser(user.pick('id', 'name', 'email'))
 
     if (providerKey === 'admin' || providerKey === 'token') return
-
-    if (req.headers['ios-version'] || req.headers['android-version']) {
-      const properties = omitBy(isNil, {
-        iosVersion: req.headers['ios-version'],
-        androidVersion: req.headers['android-version']
-      })
-
-      Analytics.track({
-        userId: user.id,
-        event: 'Login from mobile app',
-        properties
-      })
-    }
 
     // Never activate an account without a valid name — email-verification stubs
     // start with name null; they must complete register() or OAuth that supplies a name.

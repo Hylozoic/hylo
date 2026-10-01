@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import Icon from 'components/Icon'
 import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
 import { getLocaleFromLocalStorage, localeToFlagEmoji, localeToWord } from 'util/locale'
+import { markSandboxSignup } from 'util/acquisitionSource'
 
 /**
  * Persistent chrome for sandbox mode — makes it obvious the visitor is in a
@@ -48,6 +49,7 @@ export default function SandboxBanner () {
         </button>
         <a
           href='/signup'
+          onClick={markSandboxSignup}
           className='px-2.5 py-1 rounded-md bg-background text-foreground font-semibold hover:opacity-90 transition-opacity'
         >
           {t('Sign up')}

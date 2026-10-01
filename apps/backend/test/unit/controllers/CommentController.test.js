@@ -3,6 +3,7 @@ const rootPath = require('root-path')
 const setup = require(rootPath('test/setup'))
 const factories = require(rootPath('test/setup/factories'))
 const CommentController = require(rootPath('api/controllers/CommentController'))
+const mixpanel = require(rootPath('lib/mixpanel'))
 
 // Match production: inbound email uses multipart/form-data; factories.mock.request().pipe feeds req.body into Busboy.
 function attachMultipartEmailFields (req, fields) {
@@ -66,15 +67,26 @@ describe('CommentController', function () {
     })
 
     it('creates a comment with created_from=email', function () {
-      Analytics.track = spy(Analytics.track)
+      const saved = { disabled: mixpanel.disabled, track: mixpanel.track }
+      const track = spy(() => {})
+      mixpanel.disabled = false
+      mixpanel.track = track
       attachMultipartEmailFields(req, {
         'stripped-text': 'foo bar baz',
         to: Email.postReplyAddress(fixtures.p1.id, fixtures.u3.id)
       })
 
       return CommentController.createFromEmail(req, res)
+        .finally(() => {
+          mixpanel.disabled = saved.disabled
+          mixpanel.track = saved.track
+        })
         .then(async () => {
-          expect(Analytics.track).to.have.been.called()
+          const [[eventName, properties]] = track.__spy.calls
+          expect(eventName).to.equal('Post: Comment: Add by Email')
+          expect(properties.distinct_id).to.equal(String(fixtures.u3.id))
+          expect(String(properties.postId)).to.equal(String(fixtures.p1.id))
+          expect(properties.groupId.map(String)).to.deep.equal([String(fixtures.g1.id)])
           expect(res.ok).to.have.been.called()
           const comments = await fixtures.p1.comments().fetch()
           const comment = comments.last()

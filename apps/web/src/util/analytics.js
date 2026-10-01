@@ -4,13 +4,17 @@ import { isSandboxMode } from 'sandbox/isSandbox'
 import { getCookieConsent } from 'util/cookieConsent'
 
 let initialized = false
+// The person identified to Mixpanel on this page, whose profile an explicit
+// rejection deletes
+let identifiedUserId = null
 
 /**
  * The analytics choice to honour: this browser's cookie, else the one saved on
  * the account. true or false once answered, null when never answered, and
  * undefined while it can't be known yet: a browser without the cookie (a new
  * device, or one cleared or expired) only learns the account's choice when
- * MeQuery loads cookieConsentPreferences, which is null when none was saved.
+ * CheckLogin or MeQuery loads cookieConsentPreferences, which is null when
+ * none was saved.
  */
 export function resolveAnalyticsChoice (cookieConsent, accountPreferences) {
   if (typeof cookieConsent?.analytics === 'boolean') return cookieConsent.analytics
@@ -44,15 +48,67 @@ export function initAnalytics () {
  * Mirrors a consent choice into Mixpanel's own opt-out, which makes the SDK drop
  * every call and stop writing its cookie. Only an answered choice changes
  * anything, and only when it differs from the SDK's current state.
+ *
+ * `explicit` marks a choice the person is making right now (the cookie panel or
+ * the analytics setting). Rejecting then also deletes the Mixpanel profile of
+ * the person identified on this page (the server deletes it too, for the
+ * signed-in account). A stored choice replayed at startup, from the account or
+ * at login only stops sending, so it doesn't re-issue a deletion.
  */
-export function applyAnalyticsConsent (consent) {
+export function applyAnalyticsConsent (consent, { explicit = false } = {}) {
   if (!initialized || typeof consent?.analytics !== 'boolean') return
   const optedOut = mixpanel.has_opted_out_tracking()
   if (consent.analytics === false && !optedOut) {
-    // Deleting the existing profile is a separate decision; this only stops sending
+    if (explicit) deleteIdentifiedProfile()
     mixpanel.opt_out_tracking({ delete_user: false })
   } else if (consent.analytics === true && optedOut) {
     mixpanel.opt_in_tracking()
+  }
+}
+
+// Only someone identified on this page has a profile the browser can delete.
+// Mixpanel batches requests, and opting out stops and empties those batches,
+// which would drop a queued deletion, so batching is switched off first and
+// the deletion goes out straight away.
+function deleteIdentifiedProfile () {
+  if (!identifiedUserId) return
+  mixpanel.stop_batch_senders()
+  mixpanel.people.delete_user()
+}
+
+/** Identifies the signed-in person to Mixpanel; callers check the choice first. */
+export function identifyAnalytics (userId) {
+  mixpanel.identify(userId)
+  identifiedUserId = userId
+}
+
+/**
+ * Mixpanel adds the previous page's full address ($referrer) and the first
+ * address it saw in this browser ($initial_referrer) to every event. Page
+ * Viewed keeps only their host, like $referring_domain, so it never carries an
+ * address. '$direct' (no referrer) is kept as it is.
+ */
+export function pageViewReferrers () {
+  let initialReferrer
+  try {
+    initialReferrer = initialized ? mixpanel.get_property('$initial_referrer') : undefined
+  } catch (e) {
+    initialReferrer = undefined
+  }
+  return {
+    $referrer: hostOf(document.referrer),
+    $initial_referrer: initialReferrer === '$direct' ? initialReferrer : hostOf(initialReferrer)
+  }
+}
+
+// undefined leaves Mixpanel's own value, which is empty then; an address that
+// can't be read becomes '' so the address itself isn't sent
+function hostOf (address) {
+  if (!address) return undefined
+  try {
+    return new URL(address).host
+  } catch (e) {
+    return ''
   }
 }
 
@@ -66,7 +122,7 @@ function applyChoiceAndCheck (choice) {
 /** Identifies the signed-in person and records their profile, when the choice allows it. */
 export function identifyAnalyticsUser (user, choice) {
   if (!user?.id || !applyChoiceAndCheck(choice)) return
-  mixpanel.identify(user.id)
+  identifyAnalytics(user.id)
   mixpanel.people.set({
     $name: user.name,
     $email: user.email,

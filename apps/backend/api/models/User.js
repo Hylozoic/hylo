@@ -13,6 +13,7 @@ import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
+import { sanitizeAcquisitionSource } from '../../lib/acquisitionSource'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -726,7 +727,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   create: function (attributes) {
-    const { account, group, assignAdministrator } = attributes
+    const { account, group, assignAdministrator, acquisitionSource } = attributes
 
     attributes = merge({
       avatar_url: User.gravatar(attributes.email),
@@ -738,7 +739,11 @@ module.exports = bookshelf.Model.extend(merge({
         comment_notifications: 'both'
       },
       active: true
-    }, omit(attributes, 'account', 'group', 'assignAdministrator', 'role'))
+    }, omit(attributes, 'account', 'group', 'assignAdministrator', 'role', 'acquisitionSource', 'acquisition_source'))
+
+    // Where the person first came from; set only here, when the row is created
+    const source = sanitizeAcquisitionSource(acquisitionSource)
+    if (source) attributes.acquisition_source = source
 
     if (account) {
       merge(

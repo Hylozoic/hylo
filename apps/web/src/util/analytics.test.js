@@ -1,7 +1,9 @@
 jest.mock('mixpanel-browser', () => ({
   init: jest.fn(),
   identify: jest.fn(),
-  people: { set: jest.fn() },
+  people: { set: jest.fn(), delete_user: jest.fn() },
+  get_property: jest.fn(),
+  stop_batch_senders: jest.fn(),
   set_group: jest.fn(),
   get_group: jest.fn(() => ({ set: jest.fn() })),
   has_opted_out_tracking: jest.fn(() => false),
@@ -72,12 +74,61 @@ describe('applyAnalyticsConsent', () => {
     expect(mixpanel.opt_out_tracking).not.toHaveBeenCalled()
   })
 
-  it('opts out when analytics are rejected, without deleting the profile', () => {
+  it('opts out without deleting the profile when a stored rejection is replayed', () => {
     const { analytics, mixpanel } = load()
     analytics.initAnalytics()
     analytics.applyAnalyticsConsent({ analytics: false, support: true })
     expect(mixpanel.opt_out_tracking).toHaveBeenCalledWith({ delete_user: false })
     expect(mixpanel.opt_in_tracking).not.toHaveBeenCalled()
+  })
+
+  it('deletes the identified profile, sent before the opt-out empties the batches, when the person rejects analytics now', () => {
+    const { analytics, mixpanel } = load()
+    const calls = []
+    mixpanel.stop_batch_senders.mockImplementation(() => calls.push('stop_batch_senders'))
+    mixpanel.people.delete_user.mockImplementation(() => calls.push('delete_user'))
+    mixpanel.opt_out_tracking.mockImplementation(options => calls.push(['opt_out_tracking', options]))
+    analytics.initAnalytics()
+    analytics.identifyAnalytics('1')
+
+    analytics.applyAnalyticsConsent({ analytics: false, support: true }, { explicit: true })
+
+    expect(calls).toEqual(['stop_batch_senders', 'delete_user', ['opt_out_tracking', { delete_user: false }]])
+  })
+
+  it('only opts out when the person rejects analytics now without having been identified on this page', () => {
+    const { analytics, mixpanel } = load()
+    analytics.initAnalytics()
+    analytics.applyAnalyticsConsent({ analytics: false, support: true }, { explicit: true })
+    expect(mixpanel.people.delete_user).not.toHaveBeenCalled()
+    expect(mixpanel.stop_batch_senders).not.toHaveBeenCalled()
+    expect(mixpanel.opt_out_tracking).toHaveBeenCalledWith({ delete_user: false })
+  })
+
+  it('does not delete the identified profile when a stored rejection is replayed', () => {
+    const { analytics, mixpanel } = load()
+    analytics.initAnalytics()
+    analytics.identifyAnalytics('1')
+    analytics.applyAnalyticsConsent({ analytics: false, support: true })
+    expect(mixpanel.people.delete_user).not.toHaveBeenCalled()
+    expect(mixpanel.opt_out_tracking).toHaveBeenCalledWith({ delete_user: false })
+  })
+
+  it('does not delete again when an explicit rejection finds Mixpanel already opted out', () => {
+    const { analytics, mixpanel } = load({ optedOut: true })
+    analytics.initAnalytics()
+    analytics.identifyAnalytics('1')
+    analytics.applyAnalyticsConsent({ analytics: false }, { explicit: true })
+    expect(mixpanel.opt_out_tracking).not.toHaveBeenCalled()
+    expect(mixpanel.people.delete_user).not.toHaveBeenCalled()
+  })
+
+  it('opts back in, without deleting anything, when the person accepts analytics now', () => {
+    const { analytics, mixpanel } = load({ optedOut: true })
+    analytics.initAnalytics()
+    analytics.applyAnalyticsConsent({ analytics: true }, { explicit: true })
+    expect(mixpanel.opt_in_tracking).toHaveBeenCalledTimes(1)
+    expect(mixpanel.opt_out_tracking).not.toHaveBeenCalled()
   })
 
   it('opts back in when analytics are accepted after an opt-out', () => {
@@ -186,5 +237,44 @@ describe('when the choice changes before CookieConsentProvider applies it', () =
     expect(mixpanel.opt_out_tracking).toHaveBeenCalledWith({ delete_user: false })
     expect(mixpanel.identify).not.toHaveBeenCalled()
     expect(sent).toEqual([])
+  })
+})
+
+describe('pageViewReferrers', () => {
+  function setReferrer (value) {
+    Object.defineProperty(document, 'referrer', { value, configurable: true })
+  }
+
+  afterEach(() => setReferrer(''))
+
+  it('keeps only the host of the previous and the first address', () => {
+    const { analytics, mixpanel } = load()
+    analytics.initAnalytics()
+    setReferrer('https://hylo.example/groups/garden-club/post/123?token=abc')
+    mixpanel.get_property.mockImplementation(key => key === '$initial_referrer' ? 'https://search.example/?q=garden+club' : undefined)
+
+    expect(analytics.pageViewReferrers()).toEqual({ $referrer: 'hylo.example', $initial_referrer: 'search.example' })
+  })
+
+  it("leaves Mixpanel's own values when there is no referrer, and keeps $direct", () => {
+    const { analytics, mixpanel } = load()
+    analytics.initAnalytics()
+    mixpanel.get_property.mockReturnValue('$direct')
+
+    expect(analytics.pageViewReferrers()).toEqual({ $referrer: undefined, $initial_referrer: '$direct' })
+  })
+
+  it('blanks an address that cannot be read', () => {
+    const { analytics, mixpanel } = load()
+    analytics.initAnalytics()
+    mixpanel.get_property.mockReturnValue('not an address')
+
+    expect(analytics.pageViewReferrers().$initial_referrer).toBe('')
+  })
+
+  it('does not ask Mixpanel before it is initialized', () => {
+    const { analytics, mixpanel } = load()
+    expect(analytics.pageViewReferrers()).toEqual({ $referrer: undefined, $initial_referrer: undefined })
+    expect(mixpanel.get_property).not.toHaveBeenCalled()
   })
 })

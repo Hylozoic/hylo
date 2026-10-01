@@ -137,11 +137,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           group_url: Frontend.Route.group(group),
           invite_link: this.isLimited()
             ? Frontend.Route.invitation(this.get('token'))
-            : Frontend.Route.useInvitation(this.get('token'), email),
-          tracking_pixel_url: Analytics.pixelUrl('Invitation', {
-            recipient: email,
-            group: group.get('name')
-          })
+            : Frontend.Route.useInvitation(this.get('token'), email)
         }
         return this.save({
           sent_count: this.get('sent_count') + 1,

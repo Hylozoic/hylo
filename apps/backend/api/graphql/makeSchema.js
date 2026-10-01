@@ -4,8 +4,8 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { merge, reduce } from 'lodash'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
+import { recordEmailClick } from './mutations/emailClick'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
-import mixpanel from '../../lib/mixpanel'
 import {
   saveDraft,
   deleteDraft,
@@ -292,8 +292,6 @@ async function buildGraphqlSchema (req) {
   if (userId) {
     // authenticated users
     // TODO: look for api_client.scope to see what an oAuthed user is allowed to access
-
-    mixpanel.people.set(userId)
 
     allResolvers = {
       Query: makeAuthenticatedQueries({ fetchOne, fetchMany }),
@@ -593,6 +591,7 @@ export function makePublicMutations ({ fetchOne }) {
     logout,
     sendEmailVerification,
     sendPasswordReset,
+    recordEmailClick: (root, { emailType }, context) => recordEmailClick(context.currentUserId, { emailType }, { ip: context.req?.ip }),
     register: register(fetchOne),
     verifyEmail: verifyEmail(fetchOne),
     createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata })

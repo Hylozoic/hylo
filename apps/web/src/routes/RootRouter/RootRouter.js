@@ -1,5 +1,5 @@
 import { WebViewMessageTypes } from '@hylo/shared'
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { Suspense, useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
@@ -9,14 +9,6 @@ import { debugCheckLogin } from 'config/index'
 import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import NavigateWithParams from 'components/NavigateWithParams'
-import AuthLayoutRouter from 'routes/AuthLayoutRouter'
-import JoinGroup from 'routes/JoinGroup'
-import NonAuthLayoutRouter from 'routes/NonAuthLayoutRouter'
-import OAuthLayoutRouter from 'routes/OAuth/OAuthLayoutRouter'
-import PublicLayoutRouter from 'routes/PublicLayoutRouter'
-import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
-import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
-import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getSignupState'
 import { getAuthSessionTransientError, getAuthSessionUnknown } from 'store/selectors/getAuthSession'
@@ -28,8 +20,37 @@ import {
 } from 'util/webView'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import { initAnalytics } from 'util/analytics'
+import useEmailClickthrough from 'hooks/useEmailClickthrough'
+import { captureAcquisitionSource } from 'util/acquisitionSource'
+import usePageViewTracking from 'hooks/usePageViewTracking'
 
 initAnalytics()
+
+// Loaded only when needed, so signed-out pages don't download the signed-in app
+// and the reverse. The hooks in RootRouter (email clicks, page views, first-touch
+// source) stay in this chunk, outside these boundaries.
+const AuthLayoutRouter = React.lazy(() => import('routes/AuthLayoutRouter'))
+const JoinGroup = React.lazy(() => import('routes/JoinGroup'))
+const NonAuthLayoutRouter = React.lazy(() => import('routes/NonAuthLayoutRouter'))
+const OAuthLayoutRouter = React.lazy(() => import('routes/OAuth/OAuthLayoutRouter'))
+const PublicLayoutRouter = React.lazy(() => import('routes/PublicLayoutRouter'))
+const PublicGroupDetail = React.lazy(() => import('routes/PublicLayoutRouter/PublicGroupDetail'))
+const PublicPostDetail = React.lazy(() => import('routes/PublicLayoutRouter/PublicPostDetail'))
+const OfferingDetails = React.lazy(() => import('routes/OfferingDetails/OfferingDetails'))
+
+/**
+ * Rendered inside the routes' Suspense boundary, so it mounts only once the
+ * route's code has loaded: the boot loader fades out then, and the stale-chunk
+ * reload flag is cleared only after a lazy chunk has actually loaded (clearing
+ * it earlier could let a chunk that keeps failing reload the page again and again).
+ */
+function RoutesReady () {
+  useEffect(() => {
+    window.HyloBootLoader?.ready()
+    clearChunkReloadFlag()
+  }, [])
+  return null
+}
 
 // In the v2 mobile WebView, a failed auth check is almost always a transient cookie
 // desync (e.g. social-login resume), NOT a real logout. Ask native to re-establish
@@ -125,6 +146,13 @@ export default function RootRouter () {
   )
   const navigate = useNavigate()
   const { pathname } = useLocation()
+
+  // Keeps where this visitor first came from, before a redirect can drop the query string
+  useEffect(() => { captureAcquisitionSource() }, [])
+
+  // Records an email link's click and removes its tags before anything else reads the address
+  useEmailClickthrough()
+  usePageViewTracking()
 
   // This should be the only place we check for a session from the API. The
   // authSession reducer records Authenticated/Anonymous from CHECK_LOGIN, so the
@@ -247,10 +275,20 @@ export default function RootRouter () {
   const bootDone = !isAuthSessionUnknown && !mobileRecovering
   // The boot loader would otherwise cover the reconnecting notice
   const showReconnecting = isAuthSessionUnknown && authTransientError
+  // Once the session is known, the routes below render (their Suspense boundary
+  // dismisses the boot loader via RoutesReady) unless one of the loading screens does
+  const rendersRoutes = bootDone && !isMobileWebViewUserLogoutInProgress() &&
+    (isAuthorized || isSandboxMode() || !window.HyloMobileV2)
   useEffect(() => {
-    if (bootDone || showReconnecting) window.HyloBootLoader?.ready()
-    if (bootDone) clearChunkReloadFlag()
-  }, [bootDone, showReconnecting])
+    if ((bootDone && !rendersRoutes) || showReconnecting) window.HyloBootLoader?.ready()
+    if (bootDone && !rendersRoutes) clearChunkReloadFlag()
+  }, [bootDone, rendersRoutes, showReconnecting])
+
+  // Shown while a route's code loads: under the boot loader on first load, or
+  // when signing in switches to the signed-in app
+  const routesFallback = window.HyloMobileV2 || isNeutralRootSessionLoadingPath(pathname)
+    ? <Loading type='fullscreen' />
+    : <BootstrapShell />
 
   if (isMobileWebViewUserLogoutInProgress()) {
     return <Loading type='fullscreen' />
@@ -269,11 +307,14 @@ export default function RootRouter () {
 
   if (isAuthorized || isSandboxMode()) {
     return (
-      <Routes>
-        {/* If authenticated we still need to do oauth stuff when requested */}
-        <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
-        <Route path='*' element={<AuthLayoutRouter />} />
-      </Routes>
+      <Suspense fallback={routesFallback}>
+        <RoutesReady />
+        <Routes>
+          {/* If authenticated we still need to do oauth stuff when requested */}
+          <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
+          <Route path='*' element={<AuthLayoutRouter />} />
+        </Routes>
+      </Suspense>
     )
   }
   // In the v2 mobile WebView, native owns auth (token-based) and is the source of truth.
@@ -284,7 +325,8 @@ export default function RootRouter () {
 
   if (!isAuthorized) {
     return (
-      <>
+      <Suspense fallback={routesFallback}>
+        <RoutesReady />
         <Routes>
           <Route path='/' element={<Navigate to='/login' replace />} />
 
@@ -322,7 +364,7 @@ export default function RootRouter () {
 
           <Route path='*' element={<NonAuthLayoutRouter />} />
         </Routes>
-      </>
+      </Suspense>
     )
   }
 }
