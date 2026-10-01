@@ -1,5 +1,6 @@
 import fetch from 'isomorphic-fetch'
-import apiMiddleware, { fetchJSON, isTransientApiError } from './apiMiddleware'
+import apiMiddleware, { fetchJSON, isTransientApiError, SESSION_CHECK_TIMEOUT_MS } from './apiMiddleware'
+import checkLogin from 'store/actions/checkLogin'
 
 jest.mock('isomorphic-fetch', () => jest.fn())
 
@@ -51,6 +52,14 @@ describe('fetchJSON', () => {
     expect(isTransientApiError(error)).toBe(true)
   })
 
+  it('sets no timeout unless one is asked for', async () => {
+    fetch.mockResolvedValue(jsonResponse(200, { data: {} }))
+
+    await fetchJSON('/noo/graphql', { query: 'query Q { me { id } }' }, { method: 'post', host: 'http://localhost' })
+
+    expect(fetch.mock.calls[0][1].signal).toBeUndefined()
+  })
+
   it('resolves normally when the response arrives in time', async () => {
     fetch.mockResolvedValue(jsonResponse(200, { data: { me: null } }))
 
@@ -69,9 +78,9 @@ describe('isTransientApiError', () => {
 })
 
 describe('apiMiddleware', () => {
-  const run = api => {
+  const run = (api, meta) => {
     const next = jest.fn(action => action)
-    apiMiddleware()({})(next)({ type: 'TEST', payload: { api } })
+    apiMiddleware()({})(next)({ type: 'TEST', payload: { api }, meta })
     return fetch.mock.calls[0][1]
   }
 
@@ -79,17 +88,27 @@ describe('apiMiddleware', () => {
     fetch.mockResolvedValue(jsonResponse(200, { data: {} }))
   })
 
-  it('times out GraphQL queries', () => {
-    const options = run({ path: '/noo/graphql', method: 'POST', params: { query: 'query CheckLogin { me { id } }' } })
+  it('times out a request that asks for a timeout', () => {
+    const options = run({ path: '/noo/graphql', method: 'POST', params: { query: 'query CheckLogin { me { id } }' } }, { timeout: 1000 })
     expect(options.signal).toBeDefined()
   })
 
-  it('never abandons GraphQL mutations or other writes', () => {
+  it('lets every other request run as long as it takes', () => {
+    const query = run({ path: '/noo/graphql', method: 'POST', params: { query: 'query fetchGroupRoleDetails { group { id } }' } })
+    expect(query.signal).toBeUndefined()
+
+    fetch.mockClear()
     const mutation = run({ path: '/noo/graphql', method: 'POST', params: { query: 'mutation ($id: ID) { deletePost(id: $id) { success } }' } })
     expect(mutation.signal).toBeUndefined()
 
     fetch.mockClear()
     const upload = run({ path: '/noo/upload', method: 'post', params: { url: 'https://example.com/a.png' } })
     expect(upload.signal).toBeUndefined()
+  })
+})
+
+describe('checkLogin', () => {
+  it('is the request that asks for the session-check timeout', () => {
+    expect(checkLogin().meta.timeout).toBe(SESSION_CHECK_TIMEOUT_MS)
   })
 })

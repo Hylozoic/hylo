@@ -498,12 +498,15 @@ function RoleList ({
   const [membersForRole, setMembersForRole] = useState([])
   const [hasMoreMembers, setHasMoreMembers] = useState(false)
   const [responsibilitiesForRole, setResponsibilitiesForRole] = useState([])
+  const [detailsStatus, setDetailsStatus] = useState('loading')
+  const [detailsAttempt, setDetailsAttempt] = useState(0)
   const loadingMoreMembers = useRef(false)
   const dispatch = useDispatch()
   const membersListId = `role-members-${roleId}`
 
   useEffect(() => {
     let isMounted = true
+    setDetailsStatus('loading')
     dispatch(fetchGroupRoleDetails({ id: group.id, roleId, first: ROLE_MEMBERS_PAGE_SIZE, offset: 0 }))
       .then((response) => {
         if (!isMounted) return
@@ -511,10 +514,14 @@ function RoleList ({
         setMembersForRole(members?.items || [])
         setHasMoreMembers(!!members?.hasMore)
         setResponsibilitiesForRole(response?.payload?.data?.responsibilities || [])
+        setDetailsStatus('loaded')
       })
-      .catch((e) => { console.error('Error fetching group role details', e) })
+      .catch((e) => {
+        console.error('Error fetching group role details', e)
+        if (isMounted) setDetailsStatus('error')
+      })
     return () => { isMounted = false }
-  }, [group.id, roleId, dispatch])
+  }, [group.id, roleId, dispatch, detailsAttempt])
 
   const fetchMoreMembers = () => {
     if (loadingMoreMembers.current || !hasMoreMembers) return
@@ -591,6 +598,21 @@ function RoleList ({
         />)}
       <div className='p-2'>
         <h4>{t('Members')}</h4>
+        {detailsStatus === 'loading' && (
+          <p className='text-foreground/60 text-sm m-0' data-testid='role-details-loading'>{t('Loading...')}</p>
+        )}
+        {detailsStatus === 'error' && (
+          <div className='flex flex-wrap items-center gap-2 text-sm' role='alert' data-testid='role-details-error'>
+            <span className='text-foreground/70'>{t("Couldn't load this role's members and responsibilities.")}</span>
+            <button
+              type='button'
+              className='text-accent underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-focus rounded'
+              onClick={() => setDetailsAttempt(attempt => attempt + 1)}
+            >
+              {t('Try Again')}
+            </button>
+          </div>
+        )}
         <div className='flex flex-col gap-2 max-h-[560px] overflow-y-auto' id={membersListId}>
           {membersForRole.map(m =>
             <RemovableListItem

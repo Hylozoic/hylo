@@ -2,7 +2,11 @@ import fetch from 'isomorphic-fetch'
 import { debugCheckLogin } from 'config/index'
 import { isSandboxMode } from 'sandbox/isSandbox'
 
-export const API_TIMEOUT_MS = 20000
+// Used only by the startup session check, which must fail fast so the app can
+// show "Can't reach Hylo" instead of an endless loader. Every other request is
+// left to finish: pages on large groups (or slow networks) can legitimately take
+// longer, and abandoning them leaves empty lists behind.
+export const SESSION_CHECK_TIMEOUT_MS = 20000
 
 /**
  * True for failures that say nothing about the request itself: the network
@@ -23,13 +27,6 @@ function networkError (message, cause) {
   return error
 }
 
-// Only reads are timed out: a slow write may still succeed on the server, and
-// abandoning it client-side invites a duplicate when the person retries.
-function isReadRequest (path, params, method) {
-  if (path === '/noo/graphql') return !/^\s*mutation\b/m.test(params?.query || '')
-  return !method || method.toLowerCase() === 'get'
-}
-
 export default function apiMiddleware (req) {
   return store => next => action => {
     const { payload, meta } = action
@@ -45,7 +42,7 @@ export default function apiMiddleware (req) {
         method,
         cookie,
         host: getHost(),
-        timeout: isReadRequest(path, params, method) ? API_TIMEOUT_MS : 0
+        timeout: meta?.timeout || 0
       })
 
     if (meta && meta.then) {
@@ -74,13 +71,13 @@ export function getHost () {
 }
 
 /**
- * `options.timeout` (ms, default API_TIMEOUT_MS; 0 disables) aborts a request
+ * `options.timeout` (ms; unset or 0 means no timeout) aborts a request
  * that never completes and rejects with a network error.
  */
 export function fetchJSON (path, params, options = {}) {
   const method = options.method ? options.method.toLowerCase() : 'get'
   const fetchURL = (options.host) + path + (method === 'get' && params ? '?' + Object.keys(params).map(k => `${k}=${params[k]}`).join('&') : '')
-  const timeout = options.timeout ?? API_TIMEOUT_MS
+  const timeout = options.timeout || 0
   const controller = timeout > 0 && typeof AbortController !== 'undefined' ? new AbortController() : null
   let timedOut = false
   const timer = controller

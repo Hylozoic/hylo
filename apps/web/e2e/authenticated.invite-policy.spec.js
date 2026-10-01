@@ -43,7 +43,8 @@ async function capture (page, testInfo, name, focus) {
   if (!dir) return
   if (focus) await focus.scrollIntoViewIfNeeded()
   fs.mkdirSync(dir, { recursive: true })
-  await page.screenshot({ path: path.join(dir, `${testInfo.project.name}-${name}.png`) })
+  // Finish open/close transitions so a dialog is not captured half faded in
+  await page.screenshot({ path: path.join(dir, `${testInfo.project.name}-${name}.png`), animations: 'disabled' })
 }
 
 /**
@@ -127,12 +128,13 @@ test.describe('Invitations from members (plain member)', () => {
   test('the Invite button shows only where members can invite', async ({ page }) => {
     await page.goto(`/groups/${STEWARDS_GROUP.slug}/members`)
     await waitPastRootSessionLoading(page)
-    await expect(page.getByRole('heading', { name: GROUP_ADMINISTRATOR_NAME })).toBeVisible(uiTimeout)
+    await expect(page.locator('#center-column').getByText(GROUP_ADMINISTRATOR_NAME, { exact: true })).toBeVisible(uiTimeout)
     await expect(page.getByRole('button', { name: 'Invite Members' })).toHaveCount(0)
 
     await page.goto(`/groups/${EVERYONE_GROUP.slug}/members`)
     await waitPastRootSessionLoading(page)
-    await expect(page.getByRole('button', { name: 'Invite Members' }).filter({ hasText: 'Invite' })).toBeVisible(uiTimeout)
+    // The group header and the Members page header each have an Invite pill
+    await expect(page.locator('#center-column').getByRole('button', { name: 'Invite Members' })).toBeVisible(uiTimeout)
   })
 
   test('a member sends a personal email invitation', async ({ page }, testInfo) => {
@@ -140,7 +142,7 @@ test.describe('Invitations from members (plain member)', () => {
 
     await page.goto(`/groups/${EVERYONE_GROUP.slug}/members`)
     await waitPastRootSessionLoading(page)
-    await page.getByRole('button', { name: 'Invite Members' }).filter({ hasText: 'Invite' }).click()
+    await page.locator('#center-column').getByRole('button', { name: 'Invite Members' }).click()
 
     const dialog = page.getByRole('dialog', { name: 'Invite People' })
     await expect(dialog).toBeVisible(uiTimeout)
@@ -198,7 +200,8 @@ test.describe('Approving people invited by members', () => {
     if (await invitedBy.isVisible()) {
       await expect(page.getByText(INVITEE_NAME, { exact: true })).toBeVisible()
       await capture(page, testInfo, 'invite-policy-09-join-request-invited-by', invitedBy)
-      await page.getByRole('button', { name: 'Welcome' }).click()
+      // Global nav tiles are buttons named after their group, so match the name exactly
+      await page.getByRole('button', { name: 'Welcome', exact: true }).click()
     }
     await expect(noRequests).toBeVisible(uiTimeout)
   })
