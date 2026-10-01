@@ -35,6 +35,8 @@ async function groupForNotificationForUser (post, activity, userId) {
 
 const UNSENT_NOTIFICATION_BATCH_SIZE = 200
 
+const EMAIL_SKIPPED = 'skipped'
+
 const TYPE = {
   Mention: 'mention', // you are mentioned in a post or comment
   Chat: 'chat', // someone chats you in a chat room you subscribe to
@@ -121,15 +123,16 @@ module.exports = bookshelf.Model.extend({
       return
     }
     const userId = this.reader().id
+    // A send that reports `false` throws so sendUnsent records failed_at and retries it.
     switch (this.get('medium')) {
       case MEDIUM.Push:
         if (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || (await User.isTester(userId))) {
-          await this.sendPush()
+          if (await this.sendPush() === false) throw new Error('Push notification was not delivered')
         }
         break
       case MEDIUM.Email:
         if (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || (await User.isTester(userId))) {
-          await this.sendEmail()
+          if (await this.sendEmail() === false) throw new Error('Email notification was not delivered')
         }
         break
       case MEDIUM.InApp: {
@@ -505,7 +508,8 @@ module.exports = bookshelf.Model.extend({
   },
 
   sendEmail: async function () {
-    switch (Notification.priorityReason(this.relations.activity.get('meta').reasons)) {
+    const reason = Notification.priorityReason(this.relations.activity.get('meta').reasons)
+    switch (reason) {
       case 'announcement':
         return this.sendAnnouncementEmail()
       case 'approvedJoinRequest':
@@ -551,7 +555,12 @@ module.exports = bookshelf.Model.extend({
       case 'fundingRoundReminder':
         return this.sendFundingRoundReminderEmail()
       default:
-        return Promise.resolve()
+        // Must not throw: an unhandled reason would otherwise be retried until it ages out.
+        sentry.captureException(new Error('No email is defined for this notification reason'), {
+          level: 'warning',
+          extra: { notificationId: this.id, reason }
+        })
+        return EMAIL_SKIPPED
     }
   },
 
@@ -790,6 +799,13 @@ module.exports = bookshelf.Model.extend({
       ctcn: group.get('name')
     }).toString()
 
+    const introduceParams = '?' + new URLSearchParams({
+      ctt: 'approved_join_request_introduce_email',
+      cti: reader.id,
+      ctcn: group.get('name'),
+      create: 'post'
+    }).toString()
+
     return Email.sendApprovedJoinRequestNotification({
       email: reader.get('email'),
       locale,
@@ -799,6 +815,7 @@ module.exports = bookshelf.Model.extend({
         group_avatar_url: group.get('avatar_url'),
         group_name: group.get('name'),
         group_url: Frontend.Route.groupHome(group) + clickthroughParams,
+        introduce_url: Frontend.Route.groupHome(group) + introduceParams,
         approver_name: actor.get('name'),
         approver_avatar_url: actor.get('avatar_url'),
         approver_profile_url: Frontend.Route.profile(actor) + clickthroughParams
@@ -1346,6 +1363,7 @@ module.exports = bookshelf.Model.extend({
 }, {
   MEDIUM,
   TYPE,
+  EMAIL_SKIPPED,
 
   find: function (id, options) {
     if (!id) return Promise.resolve(null)

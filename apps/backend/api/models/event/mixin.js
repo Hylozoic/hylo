@@ -197,6 +197,7 @@ export default {
 
     const rsvpEmailPayload = {
       email: user.get('email'),
+      locale: userLocale,
       data: {
         date: DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone'), locale: userLocale }),
         user_name: user.get('name'),
@@ -204,7 +205,7 @@ export default {
         event_description: this.details(),
         event_location: formatEventLocationForEmail(this.get('location'), this.get('meeting_link')),
         event_url: Frontend.Route.post(this, this.relations.groups.first()),
-        response: eventInvitation.getHumanResponse(),
+        response: eventInvitation.getHumanResponse(userLocale),
         group_names: groupNames,
         newDate,
         newLocation
@@ -217,7 +218,7 @@ export default {
       ]
     }
     if (groupName) {
-      rsvpEmailPayload.sender = { name: await senderNameForGroup(groupName, user.getLocale()) }
+      rsvpEmailPayload.sender = { name: await senderNameForGroup(groupName, userLocale) }
     }
     Queue.classMethod('Email', emailTemplate, rsvpEmailPayload).then(() => {
       eventInvitation.incrementIcalSequence()

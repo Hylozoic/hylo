@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql'
+import { getLocaleStrings } from '../../lib/i18n/locales'
 
 /* eslint-disable camelcase */
 module.exports = bookshelf.Model.extend({
@@ -35,11 +36,12 @@ module.exports = bookshelf.Model.extend({
     return EventInvitation.going(this)
   },
 
-  getHumanResponse: function () {
+  getHumanResponse: function (locale) {
+    const strings = getLocaleStrings(locale)
     const responseMap = {
-      [EventInvitation.RESPONSE.YES]: 'Going to',
-      [EventInvitation.RESPONSE.NO]: 'Not Going to',
-      [EventInvitation.RESPONSE.INTERESTED]: 'Interested in'
+      [EventInvitation.RESPONSE.YES]: strings.rsvpGoing(),
+      [EventInvitation.RESPONSE.NO]: strings.rsvpNotGoing(),
+      [EventInvitation.RESPONSE.INTERESTED]: strings.rsvpInterested()
     }
     return responseMap[this.get('response')]
   }

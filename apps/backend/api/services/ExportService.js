@@ -9,6 +9,7 @@ module.exports = {
    * Group members export by Group ID
    */
   exportMembers: async function ({ groupId, userId, email }) {
+    const requester = await User.find(userId)
     const users = await new Group({ id: groupId })
       .members()
       .fetch()
@@ -82,7 +83,7 @@ module.exports = {
       'affiliations',
       'groups',
       'last_active_at'
-    ], email, group.get('name'), questions)
+    ], email, group.get('name'), questions, requester?.getLocale())
   },
 
   /**
@@ -211,6 +212,7 @@ module.exports = {
 
       Queue.classMethod('Email', 'sendExportUserAccount', {
         email: user.get('email'),
+        locale: user.getLocale(),
         files: [
           {
             id: `user-account-export-${user.get('name')}-${new Date().toISOString().slice(0, 10)}.json`,
@@ -226,7 +228,7 @@ module.exports = {
 }
 
 // toplevel output function for specific endpoints to complete with
-function output (data, columns, email, groupName, questions) {
+function output (data, columns, email, groupName, questions, locale) {
   // Add each question as a column in the results
   const questionsArray = Object.values(questions)
   questionsArray.forEach((question) => {
@@ -264,6 +266,7 @@ function output (data, columns, email, groupName, questions) {
 
     Queue.classMethod('Email', 'sendExportMembersList', {
       email,
+      locale,
       files: [
         {
           id: `members-export-${groupName}-${formattedDate}.csv`,

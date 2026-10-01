@@ -1,7 +1,13 @@
 /* eslint-disable no-unused-expressions */
 import '../../setup'
 import factories from '../../setup/factories'
-import { spyify, unspyify, mockify } from '../../setup/helpers'
+import path from 'path'
+import { dependencyOf, spyify, unspyify, mockify } from '../../setup/helpers'
+
+const notificationSentry = () => dependencyOf(
+  path.resolve(__dirname, '../../../api/models/Notification.js'),
+  path.resolve(__dirname, '../../../lib/sentry.js')
+)
 
 const destroyAllPushNotifications = () => {
   return PushNotification.fetchAll()
@@ -458,6 +464,10 @@ describe('Notification', function () {
           approver_name: 'Joe'
         })
         expect(opts.data.group_url).to.match(/\/groups\/my-group\//)
+        const introduceUrl = new URL(opts.data.introduce_url)
+        expect(introduceUrl.pathname).to.match(/^\/groups\/my-group\//)
+        expect(introduceUrl.searchParams.get('create')).to.equal('post')
+        expect(introduceUrl.searchParams.get('ctt')).to.equal('approved_join_request_introduce_email')
       })
 
       return preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Email)
@@ -466,6 +476,70 @@ describe('Notification', function () {
           expect(Email.sendApprovedJoinRequestNotification).to.have.been.called()
         })
         .then(() => unspyify(Email, 'sendApprovedJoinRequestNotification'))
+    })
+
+    it('throws and leaves sent_at empty when the email is not delivered', async () => {
+      mockify(Email, 'sendApprovedJoinRequestNotification', () => Promise.resolve(false))
+      const notification = await preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Email)
+      try {
+        await expect(notification.send()).to.be.rejectedWith(/not delivered/)
+      } finally {
+        unspyify(Email, 'sendApprovedJoinRequestNotification')
+      }
+      const reloaded = await Notification.find(notification.id)
+      expect(reloaded.get('sent_at')).to.equal(null)
+    })
+
+    it('throws when the push is not delivered', async () => {
+      mockify(OneSignal, 'notify', () => Promise.resolve(false))
+      const notification = await preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Push)
+      await expect(notification.send()).to.be.rejectedWith(/not delivered/)
+      const reloaded = await Notification.find(notification.id)
+      expect(reloaded.get('sent_at')).to.equal(null)
+    })
+
+    it('skips a reason that has no email without throwing', async () => {
+      const sentry = notificationSentry()
+      mockify(sentry, 'captureException', () => {})
+      const captureException = sentry.captureException
+      const notification = await preloadNotification(activities.newComment, Notification.MEDIUM.Email)
+      try {
+        expect(await notification.sendEmail()).to.equal(Notification.EMAIL_SKIPPED)
+        await notification.send()
+      } finally {
+        unspyify(sentry, 'captureException')
+      }
+      expect(captureException).to.have.been.called()
+      expect(captureException.__spy.calls[0][1].level).to.equal('warning')
+      const reloaded = await Notification.find(notification.id)
+      expect(reloaded.get('sent_at')).not.to.equal(null)
+    })
+  })
+
+  describe('.sendUnsent', () => {
+    let originalEmailNotificationsEnabled
+
+    beforeEach(async () => {
+      await bookshelf.knex('notifications').del()
+      originalEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+    })
+
+    afterEach(() => {
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
+      unspyify(Email, 'sendApprovedJoinRequestNotification')
+    })
+
+    it('records failed_at and leaves sent_at empty when the email is not delivered', async () => {
+      mockify(Email, 'sendApprovedJoinRequestNotification', () => Promise.resolve(false))
+      const notification = await preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Email)
+
+      await Notification.sendUnsent()
+
+      const reloaded = await Notification.find(notification.id)
+      expect(reloaded.get('sent_at')).to.equal(null)
+      expect(reloaded.get('failed_at')).not.to.equal(null)
+      expect(reloaded.get('processing_started_at')).to.equal(null)
     })
   })
 
@@ -501,6 +575,68 @@ describe('Notification', function () {
             Notification.MEDIUM.InApp
           ].sort())
         })
+    })
+
+    const minutesAgo = minutes => new Date(Date.now() - minutes * 60000)
+
+    const unsentNotification = async timestamps => {
+      const notification = await new Notification({
+        activity_id: activity.id,
+        medium: Notification.MEDIUM.Email
+      }).save()
+      await bookshelf.knex('notifications').where({ id: notification.id }).update(timestamps)
+      return Number(notification.id)
+    }
+
+    it('reclaims a failed notification an hour after it failed', async () => {
+      const id = await unsentNotification({ created_at: minutesAgo(180), failed_at: minutesAgo(120) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([id])
+    })
+
+    it('waits an hour before reclaiming a failed notification', async () => {
+      await unsentNotification({ created_at: minutesAgo(60), failed_at: minutesAgo(20) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([])
+    })
+
+    it('does not claim notifications older than six hours', async () => {
+      await unsentNotification({ created_at: minutesAgo(7 * 60) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([])
+    })
+
+    it('skips notifications claimed in the last 30 minutes and reclaims stale claims', async () => {
+      await unsentNotification({ created_at: minutesAgo(20), processing_started_at: minutesAgo(10) })
+      const staleId = await unsentNotification({ created_at: minutesAgo(60), processing_started_at: minutesAgo(40) })
+      expect(await Notification.claimUnsentIds()).to.deep.equal([staleId])
+    })
+  })
+
+  describe('.sendUnsent retries', () => {
+    let originalEmailNotificationsEnabled
+
+    beforeEach(async () => {
+      await bookshelf.knex('notifications').del()
+      originalEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+      mockify(Email, 'sendApprovedJoinRequestNotification', () => Promise.resolve({ success: true }))
+    })
+
+    afterEach(() => {
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
+      unspyify(Email, 'sendApprovedJoinRequestNotification')
+    })
+
+    it('sends a notification that failed more than an hour ago', async () => {
+      const notification = await preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Email)
+      const threeHoursAgo = new Date(Date.now() - 3 * 3600000)
+      const twoHoursAgo = new Date(Date.now() - 2 * 3600000)
+      await bookshelf.knex('notifications').where({ id: notification.id })
+        .update({ created_at: threeHoursAgo, failed_at: twoHoursAgo })
+
+      await Notification.sendUnsent()
+
+      const reloaded = await Notification.find(notification.id)
+      expect(Email.sendApprovedJoinRequestNotification).to.have.been.called.exactly(1)
+      expect(reloaded.get('sent_at')).not.to.equal(null)
     })
   })
 
