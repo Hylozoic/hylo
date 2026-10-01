@@ -610,8 +610,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       filter: nonAdminFilter(apiFilter(personFilter(userId))),
       isDefaultTypeForTable: true,
-      fetchMany: ({ boundingBox, first, order, sortBy, offset, search, autocomplete, groupIds, filter }) =>
+      fetchMany: ({ boundingBox, first, order, sortBy, offset, search, autocomplete, groupIds, filter, excludeGroupId, sharedGroupsOnly }) =>
         searchQuerySet('users', {
+          sharedWithUserId: sharedGroupsOnly ? userId : undefined,
           boundingBox,
           term: search,
           limit: first,
@@ -620,7 +621,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           type: filter,
           autocomplete,
           groups: groupIds,
-          sort: sortBy
+          sort: sortBy,
+          excludeGroupId
         })
     },
 
@@ -1173,6 +1175,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
           return GroupRole.findMemberRole(g.id)
         },
         myInviteAccess: g => userId ? GroupMembership.inviteAccess(userId, g) : null,
+        myInviteLink: async g => {
+          if (!userId || await GroupMembership.inviteAccess(userId, g) !== GroupMembership.InviteAccess.LIMITED) {
+            return null
+          }
+          const link = await MemberInviteLink.findActive({ groupId: g.id, userId })
+          return link ? { path: link.path(g), createdAt: link.get('created_at') } : null
+        },
         myInviteAllowance: async g => {
           if (!userId || await GroupMembership.inviteAccess(userId, g) !== GroupMembership.InviteAccess.LIMITED) {
             return null
@@ -1242,15 +1251,19 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!userId) return 0
           return ModerationAction.where({ group_id: g.id, status: 'active' }).count().then(Number)
         },
+        // With limited invite access this is empty: myInvitationSubmissions lists what the person sent
         pendingInvitations: async (g, { first }) => {
           const inviteAccess = userId ? await GroupMembership.inviteAccess(userId, g) : null
           if (inviteAccess === GroupMembership.InviteAccess.FULL) {
             return InvitationService.find({ groupId: g.id, pendingOnly: true, limit: first })
           }
-          if (inviteAccess === GroupMembership.InviteAccess.LIMITED) {
-            return InvitationService.findOwnLimited({ groupId: g.id, userId, limit: first })
-          }
           return { total: 0, items: [] }
+        },
+        myInvitationSubmissions: async (g, { first, offset }) => {
+          if (!userId || await GroupMembership.inviteAccess(userId, g) !== GroupMembership.InviteAccess.LIMITED) {
+            return { total: 0, hasMore: false, items: [] }
+          }
+          return InvitationService.findOwnLimited({ groupId: g.id, userId, limit: first, offset })
         },
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
@@ -1469,7 +1482,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         invitedBy: async jr => {
           const invitation = jr.get('invitation_id') && await jr.invitation().fetch()
-          return invitation ? InvitationService.invitationSender(invitation) : null
+          if (invitation) return InvitationService.invitationSender(invitation)
+          const memberInviteLink = jr.get('member_invite_link_id') && await jr.memberInviteLink().fetch()
+          return memberInviteLink ? InvitationService.memberLinkSender(memberInviteLink) : null
         },
         questionAnswers: jr => jr.questionAnswers().fetch()
       },

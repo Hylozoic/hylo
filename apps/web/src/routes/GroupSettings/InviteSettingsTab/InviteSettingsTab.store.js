@@ -17,6 +17,9 @@ export const RESEND_INVITATION_PENDING = `${MODULE_NAME}/RESEND_INVITATION_PENDI
 export const REINVITE_ALL = `${MODULE_NAME}/REINVITE_ALL`
 export const REINVITE_ALL_PENDING = `${MODULE_NAME}/REINVITE_ALL_PENDING`
 
+export const FETCH_INVITATION_SUBMISSIONS = `${MODULE_NAME}/FETCH_INVITATION_SUBMISSIONS`
+export const CANCEL_INVITATION_SUBMISSION = `${MODULE_NAME}/CANCEL_INVITATION_SUBMISSION`
+
 export const ALLOW_GROUP_INVITES = `${MODULE_NAME}/ALLOW_GROUP_INVITES`
 export const DISALLOW_GROUP_INVITES = `${MODULE_NAME}/DISALLOW_GROUP_INVITES`
 
@@ -32,7 +35,7 @@ export default function reducer (state = defaultState, action) {
   }
 }
 
-export function createInvitations (groupId, emails, groupRoleId = null, userIds = []) {
+export function createInvitations (groupId, emails, groupRoleId = null, userIds = [], note = '') {
   return {
     type: CREATE_INVITATIONS,
     graphql: {
@@ -53,7 +56,8 @@ export function createInvitations (groupId, emails, groupRoleId = null, userIds 
         data: {
           emails,
           userIds,
-          groupRoleId
+          groupRoleId,
+          ...(note ? { note } : {})
         }
       }
     },
@@ -104,18 +108,125 @@ export function fetchPendingInvitations (groupId) {
   }
 }
 
+export const INVITATION_SUBMISSIONS_PAGE_SIZE = 50
+
+/**
+ * With limited invite access: the addresses and people this person invited to the group lately,
+ * shown the same way whether or not an invitation went out, newest first, a page at a time.
+ */
+export function fetchInvitationSubmissions (groupId, { first = INVITATION_SUBMISSIONS_PAGE_SIZE, offset = 0 } = {}) {
+  return {
+    type: FETCH_INVITATION_SUBMISSIONS,
+    graphql: {
+      query: `query ($id: ID, $first: Int, $offset: Int) {
+        group (id: $id) {
+          id
+          myInvitationSubmissions (first: $first, offset: $offset) {
+            total
+            hasMore
+            items {
+              id
+              email
+              createdAt
+              person {
+                id
+                name
+                avatarUrl
+              }
+            }
+          }
+        }
+      }`,
+      variables: { id: groupId, first, offset }
+    }
+  }
+}
+
+export function cancelInvitationSubmission (submissionId) {
+  return {
+    type: CANCEL_INVITATION_SUBMISSION,
+    graphql: {
+      query: `mutation ($submissionId: ID) {
+        cancelInvitationSubmission(submissionId: $submissionId) {
+          success
+        }
+      }`,
+      variables: { submissionId }
+    },
+    meta: { submissionId }
+  }
+}
+
+export const FETCH_MY_INVITE_LINK = `${MODULE_NAME}/FETCH_MY_INVITE_LINK`
+export const CREATE_MEMBER_INVITE_LINK = `${MODULE_NAME}/CREATE_MEMBER_INVITE_LINK`
+export const RESET_MEMBER_INVITE_LINK = `${MODULE_NAME}/RESET_MEMBER_INVITE_LINK`
+
+/** With limited invite access: this person's personal invite link to the group, if they have made one. */
+export function fetchMyInviteLink (groupId) {
+  return {
+    type: FETCH_MY_INVITE_LINK,
+    graphql: {
+      query: `query ($id: ID) {
+        group (id: $id) {
+          id
+          myInviteLink {
+            path
+            createdAt
+          }
+        }
+      }`,
+      variables: { id: groupId }
+    }
+  }
+}
+
+/** Make this person's personal invite link to the group (or get the one they have). */
+export function createMemberInviteLink (groupId) {
+  return {
+    type: CREATE_MEMBER_INVITE_LINK,
+    graphql: {
+      query: `mutation ($groupId: ID) {
+        createMemberInviteLink(groupId: $groupId) {
+          path
+          createdAt
+        }
+      }`,
+      variables: { groupId }
+    }
+  }
+}
+
+/** Stop this person's personal invite link working and make a new one. */
+export function resetMemberInviteLink (groupId) {
+  return {
+    type: RESET_MEMBER_INVITE_LINK,
+    graphql: {
+      query: `mutation ($groupId: ID) {
+        resetMemberInviteLink(groupId: $groupId) {
+          path
+          createdAt
+        }
+      }`,
+      variables: { groupId }
+    }
+  }
+}
+
 export const INVITEABLE_PEOPLE_PAGE_SIZE = 15
 
 /**
- * People who can be invited: people visible to the current user (personFilter),
- * or (for spaces) parent-group members not already in the space. Loads one page at a time.
+ * People who can be invited: people visible to the current user (personFilter) who are not
+ * already members of the group, or (for spaces) parent-group members not already in the space.
+ * With sharedGroupsOnly (members with limited invite access), only people who share a group
+ * with the current user. Loads one page at a time.
  */
 export function fetchInviteablePeople ({
   groupId,
   parentGroupId,
   autocomplete = '',
   first = INVITEABLE_PEOPLE_PAGE_SIZE,
-  offset = 0
+  offset = 0,
+  sharedGroupsOnly = false
 }) {
   if (parentGroupId) {
     return {
@@ -153,8 +264,8 @@ export function fetchInviteablePeople ({
   return {
     type: FETCH_INVITEABLE_PEOPLE,
     graphql: {
-      query: `query ($autocomplete: String, $first: Int, $offset: Int) {
-        people (first: $first, offset: $offset, autocomplete: $autocomplete, sortBy: "name", order: "asc") {
+      query: `query ($autocomplete: String, $first: Int, $offset: Int, $excludeGroupId: ID, $sharedGroupsOnly: Boolean) {
+        people (first: $first, offset: $offset, autocomplete: $autocomplete, sortBy: "name", order: "asc", excludeGroupId: $excludeGroupId, sharedGroupsOnly: $sharedGroupsOnly) {
           hasMore
           items {
             id
@@ -163,7 +274,7 @@ export function fetchInviteablePeople ({
           }
         }
       }`,
-      variables: { autocomplete, first, offset }
+      variables: { autocomplete, first, offset, excludeGroupId: groupId, sharedGroupsOnly }
     }
   }
 }

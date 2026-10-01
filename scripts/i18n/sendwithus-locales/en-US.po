@@ -794,6 +794,51 @@ msgid "Click this link to join me on Hylo: %(invite_link)s"
 msgstr "Click this link to join me on Hylo: %(invite_link)s"
 
 #, python-format
+msgid "%(member_count_var)s people are already in %(group_name_var)s."
+msgstr "%(member_count_var)s people are already in %(group_name_var)s."
+
+#, python-format
+msgid "They shared %(recent_post_count_var)s posts in the last 30 days."
+msgstr "They shared %(recent_post_count_var)s posts in the last 30 days."
+
+msgid "Stop invitations to this address"
+msgstr "Stop invitations to this address"
+
+#, python-format
+msgid "Stop invitations to this address: %(opt_out_url)s"
+msgstr "Stop invitations to this address: %(opt_out_url)s"
+
+#, python-format
+msgid "%(inviter_name_var)s invited you to join %(group_name_var)s on Hylo."
+msgstr "%(inviter_name_var)s invited you to join %(group_name_var)s on Hylo."
+
+#, python-format
+msgid "You were invited to join %(group_name_var)s on Hylo."
+msgstr "You were invited to join %(group_name_var)s on Hylo."
+
+msgid "You started signing up but didn't finish. Your invitation is still waiting for you."
+msgstr "You started signing up but didn't finish. Your invitation is still waiting for you."
+
+msgid "You started signing up for Hylo but didn't finish."
+msgstr "You started signing up for Hylo but didn't finish."
+
+msgid "It only takes a minute to pick up where you left off."
+msgstr "It only takes a minute to pick up where you left off."
+
+msgid "Finish signing up"
+msgstr "Finish signing up"
+
+msgid "If you didn't mean to sign up, you can ignore this email. We won't send another."
+msgstr "If you didn't mean to sign up, you can ignore this email. We won't send another."
+
+#, python-format
+msgid "Your invitation to %(group_name_var)s is waiting"
+msgstr "Your invitation to %(group_name_var)s is waiting"
+
+msgid "Finish signing up for Hylo"
+msgstr "Finish signing up for Hylo"
+
+#, python-format
 msgid "%(inviter_name)s"
 msgstr "%(inviter_name)s"
 

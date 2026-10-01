@@ -310,7 +310,11 @@ type Query {
     # Options are: 'name', 'location', 'join' (join date), 'last_active_at'
     sortBy: String,
     # Return People where the search term matches the name, bio or skills on their profile
-    search: String
+    search: String,
+    # Leave out active members of this group (and the Axolotl), for inviting people to it
+    excludeGroupId: ID,
+    # Only return People who share an active group with the current user
+    sharedGroupsOnly: Boolean
   ): PersonQuerySet
 
   # Find a Person by ID or by email
@@ -691,8 +695,12 @@ type CheckInvitationResult {
   groupRole: GroupRole
   # True for an invitation from a member to a group where a steward approves new people: the person requests to join (with the invitation token) instead of joining
   requiresApproval: Boolean
-  # Who sent a member invitation (null for other invitations)
+  # Who sent a member invitation, or whose personal invite link this is (null for other invitations)
   invitedBy: InvitationSender
+  # True when the code is a member's personal invite link rather than the group's join link
+  isMemberLink: Boolean
+  # True for a member's personal invite link that has been used as often as it can be today: nobody can join or ask to join through it until later
+  tryLater: Boolean
 }
 
 # A comment on a post
@@ -850,6 +858,8 @@ type Group {
   myInviteAccess: String
   # With 'limited' invite access: how many more email addresses the current user can invite to this group today. Null otherwise
   myInviteAllowance: Int
+  # With 'limited' invite access: the current user's personal invite link to this group, if they have made one. Null otherwise
+  myInviteLink: MemberInviteLink
   # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
   openJoinRequestCount: Int
   # Count of active (unresolved) moderation actions in this group
@@ -1109,7 +1119,7 @@ type Group {
     description: String
   ): GroupRelationshipQuerySet
 
-  # Pending invitations to people to join this group. With 'limited' invite access, only the ones the current user sent
+  # Pending invitations to people to join this group, for those with 'full' invite access (empty otherwise)
   pendingInvitations(
     # For pagination, return results after this ID
     cursor: ID,
@@ -1118,6 +1128,14 @@ type Group {
     # Determines sort order, either 'ASC' or 'DESC'
     order: String
   ): InvitationQuerySet
+
+  # With 'limited' invite access: the addresses and people the current user invited to this group in the last 14 days and has not cancelled, newest first, shown the same way whether or not an invitation went out (empty otherwise)
+  myInvitationSubmissions(
+    # Number of submissions to return
+    first: Int,
+    # For pagination, return results after this many
+    offset: Int
+  ): InvitationSubmissionQuerySet
 
   # Groups that must be joined before someone can join this group
   prerequisiteGroups(
@@ -1652,6 +1670,29 @@ type InvitationQuerySet {
   total: Int
   hasMore: Boolean
   items: [Invitation]
+}
+
+# A member's personal invite link to a group. Everyone who joins or asks to join through it counts toward the member's invitations for the day
+type MemberInviteLink {
+  # The link's path, like a group join link: /groups/<slug>/join/<code>
+  path: String
+  createdAt: Date
+}
+
+# An address someone with 'limited' invite access typed, or a person they picked, when they sent invitations
+type InvitationSubmission {
+  id: ID
+  # The address they typed (null for a person they picked)
+  email: String
+  # The person they picked from the people search (null for an address)
+  person: InvitationSender
+  createdAt: Date
+}
+
+type InvitationSubmissionQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [InvitationSubmission]
 }
 
 # Who can invite new people to a group. Roles with Add Members can always invite
@@ -3451,10 +3492,14 @@ type Mutation {
   # Reorder a Post within a View
   reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
 
-  # Invite email addresses and/or existing people to join a Group. With 'limited' invite access: email addresses only, up to 10 at a time and within the daily allowance (fails with 'invite-limit' otherwise)
+  # Invite email addresses and/or existing people to join a Group. With 'limited' invite access: email addresses, and people who share a group with the sender while the member people picker is switched on (in-app notification only), up to 10 at a time and within the daily allowance (fails with 'invite-limit' otherwise)
   createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
-  # Ask to join a Group. invitationToken: a member's invitation to this group, so stewards see who invited the person (otherwise a pending member invitation to the person's email address is used)
-  createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput], invitationToken: String): CreatedRequest
+  # Ask to join a Group. invitationToken: a member's invitation to this group, so stewards see who invited the person (otherwise a pending member invitation to the person's email address is used). accessCode: the code of a member's personal invite link to this group, for the same reason (fails with 'invite-try-later' while it has been used as often as it can be today)
+  createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput], invitationToken: String, accessCode: String): CreatedRequest
+  # With 'limited' invite access: your personal invite link to this group, made now if you have none
+  createMemberInviteLink(groupId: ID): MemberInviteLink
+  # With 'limited' invite access: stop your personal invite link to this group working and make a new one
+  resetMemberInviteLink(groupId: ID): MemberInviteLink
   # Send a direct message
   createMessage(data: MessageInput): Message
   # Create a new moderation action
@@ -3519,6 +3564,8 @@ type Mutation {
   enrollInTrack(trackId: ID): Track
   # Set an invitation to join a group as expired. Allowed for the invitee, anyone who can add members, and the sender of an invitation sent with 'limited' access
   expireInvitation(invitationId: ID): GenericResult
+  # With 'limited' invite access: take one of your invitation submissions off your list and cancel its invitation if it is still pending
+  cancelInvitationSubmission(submissionId: ID): GenericResult
   # Look for a link preview of a URL, or if not found create one
   findOrCreateLinkPreviewByUrl(data: LinkPreviewInput): LinkPreview
   # Look for a geocoded location object or if not found create one from the location data
@@ -4281,12 +4328,14 @@ input InappropriateContentInput {
 
 input InviteInput {
   emails: [String]
-  # Existing Hylo users to invite by id (their account email is used)
+  # Existing Hylo users to invite by id (their account email is used). With 'limited' invite access they are notified in the app only
   userIds: [ID]
   # Assign Administrator system role when the invitation is used
   assignAdministrator: Boolean
   # Group role ID to assign when the invitation is used
   groupRoleId: ID
+  # An optional personal note, shown quoted in the invitation email: plain text (any HTML is removed), cut to 300 characters
+  note: String
 }
 
 # Who can invite new people to a group

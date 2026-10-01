@@ -26,8 +26,9 @@ export function fetchJoinRequests (groupId) {
  * @param accessCode {string} optional access code for pre-approved join
  * @param invitationToken {string} optional invitation token for pre-approved join
  * @param acceptAgreements {boolean} if true, record that user has accepted group agreements
+ * @param isMemberLink {boolean} the access code is a member's personal invite link
  */
-export function joinGroup (groupId, questionAnswers, accessCode, invitationToken, acceptAgreements) {
+export function joinGroup (groupId, questionAnswers, accessCode, invitationToken, acceptAgreements, isMemberLink = false) {
   return {
     type: JOIN_GROUP,
     graphql: {
@@ -67,7 +68,7 @@ export function joinGroup (groupId, questionAnswers, accessCode, invitationToken
             analytics: {
               eventName: AnalyticsEvents.GROUP_INVITATION_ACCEPTED,
               groupId,
-              method: invitationToken ? 'email' : 'link'
+              method: invitationToken ? 'email' : isMemberLink ? 'member' : 'link'
             }
           }
         : {})
@@ -80,13 +81,14 @@ export function joinGroup (groupId, questionAnswers, accessCode, invitationToken
  * @param groupId {string} the group to join
  * @param questionAnswers {array} answers to join questions
  * @param invitationToken {string} optional token of the member invitation that led to this request, so stewards see who invited the person
+ * @param accessCode {string} optional code of the member's personal invite link that led to this request, for the same reason
  */
-export function createJoinRequest (groupId, questionAnswers, invitationToken) {
+export function createJoinRequest (groupId, questionAnswers, invitationToken, accessCode) {
   return {
     type: CREATE_JOIN_REQUEST,
     graphql: {
-      query: `mutation CreateJoinRequest ($groupId: ID, $questionAnswers: [QuestionAnswerInput], $invitationToken: String) {
-        createJoinRequest(groupId: $groupId, questionAnswers: $questionAnswers, invitationToken: $invitationToken) {
+      query: `mutation CreateJoinRequest ($groupId: ID, $questionAnswers: [QuestionAnswerInput], $invitationToken: String, $accessCode: String) {
+        createJoinRequest(groupId: $groupId, questionAnswers: $questionAnswers, invitationToken: $invitationToken, accessCode: $accessCode) {
           request {
             id
             user {
@@ -101,7 +103,7 @@ export function createJoinRequest (groupId, questionAnswers, invitationToken) {
           }
         }
       }`,
-      variables: { groupId, questionAnswers, invitationToken }
+      variables: { groupId, questionAnswers, invitationToken, accessCode }
     },
     meta: {
       groupId,

@@ -5,6 +5,10 @@
   "invite_link": "https://helloworld.com",
   "inviter_avatar_url": "https://hylo-dev.s3.amazonaws.com/dev-evo-uploads/user/24917/userAvatar/24917/face-beautiful-young-girl-clean-260nw-328676489.jpg",
   "inviter_name": "Ray Marceau",
-  "message": "do it yo {}",
-  "subject": "You're invited to Terran Collective"
+  "message": "<p>Hi!</p><p>I'm inviting you to join us on Hylo.</p><blockquote class=\"invitation-note\">We'd love to have you in the garden group.</blockquote>",
+  "subject": "You're invited to Terran Collective",
+  "opt_out_url": "https://www.hylo.com/noo/invitation/example-token/opt-out?locale=en-US",
+  "social_proof": true,
+  "member_count": 42,
+  "recent_post_count": 17
 }

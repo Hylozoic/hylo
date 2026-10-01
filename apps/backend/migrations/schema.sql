@@ -1702,6 +1702,38 @@ ALTER SEQUENCE public.groups_suggested_skills_id_seq OWNED BY public.groups_sugg
 
 
 --
+-- Name: invitation_opt_outs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invitation_opt_outs (
+    id bigint NOT NULL,
+    email text NOT NULL,
+    invitation_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT invitation_opt_outs_email_lowercase CHECK ((email = lower(email)))
+);
+
+
+--
+-- Name: invitation_opt_outs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.invitation_opt_outs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: invitation_opt_outs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.invitation_opt_outs_id_seq OWNED BY public.invitation_opt_outs.id;
+
+
+--
 -- Name: invitation_sends; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1731,6 +1763,42 @@ CREATE SEQUENCE public.invitation_sends_id_seq
 --
 
 ALTER SEQUENCE public.invitation_sends_id_seq OWNED BY public.invitation_sends.id;
+
+
+--
+-- Name: invitation_submissions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invitation_submissions (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    email text,
+    invitee_id bigint,
+    invitation_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    hidden_at timestamp with time zone,
+    CONSTRAINT invitation_submissions_email_or_invitee CHECK (((email IS NOT NULL) OR (invitee_id IS NOT NULL)))
+);
+
+
+--
+-- Name: invitation_submissions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.invitation_submissions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: invitation_submissions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.invitation_submissions_id_seq OWNED BY public.invitation_submissions.id;
 
 
 --
@@ -1776,7 +1844,8 @@ CREATE TABLE public.join_requests (
     status integer,
     group_id bigint NOT NULL,
     processed_by_id bigint,
-    invitation_id bigint
+    invitation_id bigint,
+    member_invite_link_id bigint
 );
 
 
@@ -1994,6 +2063,39 @@ CREATE TABLE public.media (
     comment_id bigint,
     "position" integer DEFAULT 0
 );
+
+
+--
+-- Name: member_invite_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.member_invite_links (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    code character varying(32) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    revoked_at timestamp with time zone
+);
+
+
+--
+-- Name: member_invite_links_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.member_invite_links_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: member_invite_links_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.member_invite_links_id_seq OWNED BY public.member_invite_links.id;
 
 
 --
@@ -3878,10 +3980,24 @@ ALTER TABLE ONLY public.groups_tags ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
+-- Name: invitation_opt_outs id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_opt_outs ALTER COLUMN id SET DEFAULT nextval('public.invitation_opt_outs_id_seq'::regclass);
+
+
+--
 -- Name: invitation_sends id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.invitation_sends ALTER COLUMN id SET DEFAULT nextval('public.invitation_sends_id_seq'::regclass);
+
+
+--
+-- Name: invitation_submissions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions ALTER COLUMN id SET DEFAULT nextval('public.invitation_submissions_id_seq'::regclass);
 
 
 --
@@ -3910,6 +4026,13 @@ ALTER TABLE ONLY public.link_previews ALTER COLUMN id SET DEFAULT nextval('publi
 --
 
 ALTER TABLE ONLY public.locations ALTER COLUMN id SET DEFAULT nextval('public.locations_id_seq'::regclass);
+
+
+--
+-- Name: member_invite_links id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.member_invite_links ALTER COLUMN id SET DEFAULT nextval('public.member_invite_links_id_seq'::regclass);
 
 
 --
@@ -4568,11 +4691,35 @@ ALTER TABLE ONLY public.groups_tags
 
 
 --
+-- Name: invitation_opt_outs invitation_opt_outs_email_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_opt_outs
+    ADD CONSTRAINT invitation_opt_outs_email_unique UNIQUE (email);
+
+
+--
+-- Name: invitation_opt_outs invitation_opt_outs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_opt_outs
+    ADD CONSTRAINT invitation_opt_outs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: invitation_sends invitation_sends_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.invitation_sends
     ADD CONSTRAINT invitation_sends_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invitation_submissions invitation_submissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions
+    ADD CONSTRAINT invitation_submissions_pkey PRIMARY KEY (id);
 
 
 --
@@ -4621,6 +4768,14 @@ ALTER TABLE ONLY public.link_previews
 
 ALTER TABLE ONLY public.locations
     ADD CONSTRAINT locations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: member_invite_links member_invite_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.member_invite_links
+    ADD CONSTRAINT member_invite_links_pkey PRIMARY KEY (id);
 
 
 --
@@ -5591,6 +5746,13 @@ CREATE INDEX invitation_sends_user_id_created_at_index ON public.invitation_send
 
 
 --
+-- Name: invitation_submissions_user_id_group_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX invitation_submissions_user_id_group_id_created_at_index ON public.invitation_submissions USING btree (user_id, group_id, created_at);
+
+
+--
 -- Name: ix_comment_post_2; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5696,10 +5858,38 @@ CREATE INDEX join_requests_invitation_id_index ON public.join_requests USING btr
 
 
 --
+-- Name: join_requests_member_invite_link_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX join_requests_member_invite_link_id_index ON public.join_requests USING btree (member_invite_link_id) WHERE (member_invite_link_id IS NOT NULL);
+
+
+--
 -- Name: location_center_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX location_center_idx ON public.locations USING gist (center);
+
+
+--
+-- Name: member_invite_links_code_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX member_invite_links_code_unique ON public.member_invite_links USING btree (lower((code)::text));
+
+
+--
+-- Name: member_invite_links_one_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX member_invite_links_one_active ON public.member_invite_links USING btree (group_id, user_id) WHERE (revoked_at IS NULL);
+
+
+--
+-- Name: member_invite_links_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX member_invite_links_user_id_index ON public.member_invite_links USING btree (user_id);
 
 
 --
@@ -6774,6 +6964,14 @@ ALTER TABLE ONLY public.groups
 
 
 --
+-- Name: invitation_opt_outs invitation_opt_outs_invitation_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_opt_outs
+    ADD CONSTRAINT invitation_opt_outs_invitation_id_foreign FOREIGN KEY (invitation_id) REFERENCES public.group_invites(id) ON DELETE SET NULL;
+
+
+--
 -- Name: invitation_sends invitation_sends_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6787,6 +6985,38 @@ ALTER TABLE ONLY public.invitation_sends
 
 ALTER TABLE ONLY public.invitation_sends
     ADD CONSTRAINT invitation_sends_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: invitation_submissions invitation_submissions_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions
+    ADD CONSTRAINT invitation_submissions_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: invitation_submissions invitation_submissions_invitation_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions
+    ADD CONSTRAINT invitation_submissions_invitation_id_foreign FOREIGN KEY (invitation_id) REFERENCES public.group_invites(id) ON DELETE SET NULL;
+
+
+--
+-- Name: invitation_submissions invitation_submissions_invitee_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions
+    ADD CONSTRAINT invitation_submissions_invitee_id_foreign FOREIGN KEY (invitee_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: invitation_submissions invitation_submissions_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invitation_submissions
+    ADD CONSTRAINT invitation_submissions_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -6822,6 +7052,14 @@ ALTER TABLE ONLY public.join_requests
 
 
 --
+-- Name: join_requests join_requests_member_invite_link_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.join_requests
+    ADD CONSTRAINT join_requests_member_invite_link_id_foreign FOREIGN KEY (member_invite_link_id) REFERENCES public.member_invite_links(id) ON DELETE SET NULL;
+
+
+--
 -- Name: join_requests join_requests_processed_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6843,6 +7081,22 @@ ALTER TABLE ONLY public.join_requests
 
 ALTER TABLE ONLY public.media
     ADD CONSTRAINT media_comment_id_foreign FOREIGN KEY (comment_id) REFERENCES public.comments(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: member_invite_links member_invite_links_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.member_invite_links
+    ADD CONSTRAINT member_invite_links_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: member_invite_links member_invite_links_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.member_invite_links
+    ADD CONSTRAINT member_invite_links_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

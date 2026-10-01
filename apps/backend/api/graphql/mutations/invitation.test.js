@@ -2,7 +2,7 @@
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { mockify, unspyify, withFeatureFlag } from '../../../test/setup/helpers'
-import { createInvitation, expireInvitation, reinviteAll, resendInvitation, useInvitation } from './invitation'
+import { createInvitation, createMemberInviteLink, expireInvitation, reinviteAll, resendInvitation, resetMemberInviteLink, useInvitation } from './invitation'
 
 const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
 const NO_PERMISSION = "You don't have permission to create an invitation for this group"
@@ -32,6 +32,25 @@ describe('invitation mutation', () => {
         expect(invitation.get('message')).to.not.include('custom override')
         expect(invitation.get('message')).to.include(group.get('name'))
       })
+  })
+
+  it('createInvitation adds a personal note as plain text, cut to 300 characters, quoted after the message', async () => {
+    const email = `note-${Date.now()}@test.com`
+    const note = '<b>Come</b> garden with us & bring <script>alert("x")</script> friends <3\r\n\r\n\r\n' + 'x'.repeat(400)
+    const ret = await createInvitation(user.id, group.id, { emails: [email], note })
+    const message = (await Invitation.find(ret.invitations[0].id)).get('message')
+
+    const [standard, quoted] = message.split('<blockquote class="invitation-note">')
+    expect(standard).to.include(group.get('name'))
+    expect(quoted).to.match(/^Come garden with us &amp; bring alert\(&quot;x&quot;\) friends 3<br><br>x+<\/blockquote>$/)
+    const noteText = quoted.replace('</blockquote>', '').replace(/<br>/g, '\n').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
+    expect(Array.from(noteText)).to.have.lengthOf(300)
+    expect(message).to.not.match(/<b>|<script/)
+  })
+
+  it('createInvitation stores only the standard message without a note', async () => {
+    const ret = await createInvitation(user.id, group.id, { emails: [`no-note-${Date.now()}@test.com`], note: ' <p> </p> ' })
+    expect((await Invitation.find(ret.invitations[0].id)).get('message')).to.not.include('invitation-note')
   })
 
   it('createInvitation rejects the Member role', async () => {
@@ -149,6 +168,42 @@ describe('member invitations', () => {
       expect(queuedInvitationIds()).to.deep.equal([])
     })
 
+    it('lets members invite people who share a group with them only while the people picker is switched on', async () => {
+      const group = await createGroup()
+      const member = await createMember(group)
+      const neighbourhood = await factories.group().save()
+      const neighbour = await factories.user().save()
+      await member.joinGroup(neighbourhood)
+      await neighbour.joinGroup(neighbourhood)
+
+      await expect(createInvitation(member.id, group.id, { userIds: [neighbour.id] }))
+        .to.be.rejectedWith('You can only invite people by email address')
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        await withFeatureFlag('MEMBER_INVITE_PICKER', 'on', async () => {
+          await expect(createInvitation(member.id, group.id, { userIds: [neighbour.id] })).to.be.rejectedWith(NO_PERMISSION)
+        })
+      })
+      expect(await invitesBy(member.id, group.id)).to.have.lengthOf(0)
+
+      const result = await withFeatureFlag('MEMBER_INVITE_PICKER', 'on', () =>
+        createInvitation(member.id, group.id, { userIds: [neighbour.id] }))
+      expect(result).to.deep.equal({ invitations: [{ userId: String(neighbour.id), status: 'sent' }] })
+      const invitations = await invitesBy(member.id, group.id)
+      expect(invitations.map(i => [i.get('email'), i.get('inviter_access')])).to.deep.equal([[neighbour.get('email').toLowerCase(), 'limited']])
+      expect(queuedInvitationIds()).to.deep.equal([])
+    })
+
+    it("puts a member's personal note in their invitations as plain text", async () => {
+      const group = await createGroup()
+      const member = await createMember(group)
+      const [email] = addresses('member-note', 1)
+
+      await createInvitation(member.id, group.id, { emails: [email], note: 'See you <i>there</i>! {soon}' })
+
+      const [invitation] = await invitesBy(member.id, group.id)
+      expect(invitation.get('message')).to.include('<blockquote class="invitation-note">See you there! &#123;soon&#125;</blockquote>')
+    })
+
     it('takes at most 10 different valid addresses at a time', async () => {
       const group = await createGroup()
       const member = await createMember(group)
@@ -238,6 +293,36 @@ describe('member invitations', () => {
       expect(invitation.id).to.exist
       expect((await Invitation.find(invitation.id)).get('inviter_access')).to.equal('full')
       expect(await ledgerTotal({ user_id: admin.id, group_id: group.id })).to.equal(0)
+    })
+  })
+
+  describe('personal invite links', () => {
+    it('gives members with limited invite access one link, which Reset replaces', async () => {
+      const group = await createGroup()
+      const member = await createMember(group)
+
+      const link = await createMemberInviteLink(member.id, group.id)
+      expect(link.path).to.match(new RegExp(`^/groups/${group.get('slug')}/join/[A-Za-z0-9]{16}$`))
+      expect(await createMemberInviteLink(member.id, group.id)).to.deep.equal(link)
+
+      const reset = await resetMemberInviteLink(member.id, group.id)
+      expect(reset.path).to.not.equal(link.path)
+      expect(await createMemberInviteLink(member.id, group.id)).to.deep.equal(reset)
+      expect(link.path).to.not.include(group.get('access_code'))
+    })
+
+    it('gives no link to stewards, to members who cannot invite, or while member invitations are off', async () => {
+      const group = await createGroup('stewards')
+      const member = await createMember(group)
+      const noLink = "You don't have permission to create an invite link for this group"
+      await expect(createMemberInviteLink(member.id, group.id)).to.be.rejectedWith(noLink)
+      await expect(createMemberInviteLink(admin.id, group.id)).to.be.rejectedWith(noLink)
+      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+        await expect(createMemberInviteLink(member.id, group.id)).to.be.rejectedWith(noLink)
+        await expect(resetMemberInviteLink(member.id, group.id)).to.be.rejectedWith(noLink)
+      })
+      expect(await MemberInviteLink.findActive({ groupId: group.id, userId: member.id })).to.not.exist
     })
   })
 

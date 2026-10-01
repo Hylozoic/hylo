@@ -756,6 +756,51 @@ msgid "Click this link to join me on Hylo: %(invite_link)s"
 msgstr "Haz clic en este enlace para unirte a mí en Hylo: %(invite_link)s"
 
 #, python-format
+msgid "%(member_count_var)s people are already in %(group_name_var)s."
+msgstr "%(member_count_var)s personas ya están en %(group_name_var)s."
+
+#, python-format
+msgid "They shared %(recent_post_count_var)s posts in the last 30 days."
+msgstr "Compartieron %(recent_post_count_var)s publicaciones en los últimos 30 días."
+
+msgid "Stop invitations to this address"
+msgstr "Dejar de enviar invitaciones a esta dirección"
+
+#, python-format
+msgid "Stop invitations to this address: %(opt_out_url)s"
+msgstr "Dejar de enviar invitaciones a esta dirección: %(opt_out_url)s"
+
+#, python-format
+msgid "%(inviter_name_var)s invited you to join %(group_name_var)s on Hylo."
+msgstr "%(inviter_name_var)s te invitó a unirte a %(group_name_var)s en Hylo."
+
+#, python-format
+msgid "You were invited to join %(group_name_var)s on Hylo."
+msgstr "Te invitaron a unirte a %(group_name_var)s en Hylo."
+
+msgid "You started signing up but didn't finish. Your invitation is still waiting for you."
+msgstr "Empezaste a registrarte, pero no terminaste. Tu invitación te sigue esperando."
+
+msgid "You started signing up for Hylo but didn't finish."
+msgstr "Empezaste a registrarte en Hylo, pero no terminaste."
+
+msgid "It only takes a minute to pick up where you left off."
+msgstr "Solo lleva un minuto continuar donde lo dejaste."
+
+msgid "Finish signing up"
+msgstr "Terminar el registro"
+
+msgid "If you didn't mean to sign up, you can ignore this email. We won't send another."
+msgstr "Si no querías registrarte, puedes ignorar este correo. No te enviaremos otro."
+
+#, python-format
+msgid "Your invitation to %(group_name_var)s is waiting"
+msgstr "Tu invitación a %(group_name_var)s te está esperando"
+
+msgid "Finish signing up for Hylo"
+msgstr "Termina tu registro en Hylo"
+
+#, python-format
 msgid "%(inviter_name)s"
 msgstr "%(inviter_name)s"
 

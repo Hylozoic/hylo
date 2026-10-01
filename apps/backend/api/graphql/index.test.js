@@ -1353,6 +1353,16 @@ describe('member invitations through GraphQL', () => {
     }
   }`
 
+  const submissionsQuery = (first = 20) => `{
+    group(id: "${group.id}") {
+      myInvitationSubmissions(first: ${first}) {
+        total
+        hasMore
+        items { email person { id } }
+      }
+    }
+  }`
+
   const invite = (userId, emails) => run(userId, `mutation {
     createInvitation(groupId: "${group.id}", data: { emails: ${JSON.stringify(emails)} }) {
       invitations { id email status error }
@@ -1391,12 +1401,17 @@ describe('member invitations through GraphQL', () => {
 
     const memberView = (await run(member.id, pendingQuery())).group
     expect(memberView.myInviteAllowance).to.equal(22)
-    expect(memberView.pendingInvitations.total).to.equal(2)
-    expect(memberView.pendingInvitations.items).to.deep.equal([
-      { email: 'second@graphql-member.com', name: null, userId: null, inviterAccess: null, creator: { id: String(member.id), name: member.get('name') } },
-      { email: 'first@graphql-member.com', name: null, userId: null, inviterAccess: null, creator: { id: String(member.id), name: member.get('name') } }
-    ])
-    expect((await run(member.id, pendingQuery(1))).group.pendingInvitations.items).to.have.lengthOf(1)
+    // Members see what they submitted, sent or not, instead of pending invitations
+    expect(memberView.pendingInvitations).to.deep.equal({ total: 0, items: [] })
+    const submissions = (await run(member.id, submissionsQuery())).group.myInvitationSubmissions
+    expect(submissions.total).to.equal(3)
+    expect(submissions.items.map(item => item.email).sort()).to.deep.equal([
+      'first@graphql-member.com', other.get('email').toLowerCase(), 'second@graphql-member.com'
+    ].sort())
+    expect(submissions.items[0]).to.deep.equal({ email: 'second@graphql-member.com', person: null })
+    const firstPage = (await run(member.id, submissionsQuery(1))).group.myInvitationSubmissions
+    expect(firstPage.items).to.have.lengthOf(1)
+    expect(firstPage.hasMore).to.be.true
   })
 
   it('shows Add Members holders every invitation with who sent it, and no allowance', async () => {
@@ -1423,6 +1438,7 @@ describe('member invitations through GraphQL', () => {
       myInviteAllowance: null,
       pendingInvitations: { total: 0, items: [] }
     })
+    expect((await run(member.id, submissionsQuery())).group.myInvitationSubmissions).to.deep.equal({ total: 0, hasMore: false, items: [] })
   })
 })
 

@@ -121,18 +121,27 @@ module.exports = bookshelf.Model.extend(Object.assign({
     FUNDING_ROUND: 'funding_round',
     INVITE_LINK: 'invite_link',
     JOIN_REQUEST: 'join_request',
+    // A member's personal invite link (invitedById is the member)
+    MEMBER_LINK: 'member_link',
     OPEN: 'open',
     SPACE: 'space',
     TRACK: 'track'
   },
 
   /**
-   * Join attribution for a join that a join link or an email invitation let through.
-   * The access code wins when both are present, as it does in InvitationService.check.
+   * Join attribution for a join that a join link, a member's personal invite
+   * link or an email invitation let through. The code wins when both are
+   * present, as it does in InvitationService.check.
    * @returns {Promise<{ joinSource: string, invitationId?: string, invitedById?: string }>}
    */
   async inviteJoinAttribution ({ accessCode, invitationToken } = {}) {
-    if (accessCode) return { joinSource: GroupMembership.JoinSource.INVITE_LINK }
+    if (accessCode) {
+      const joinLinkGroup = await Group.queryByAccessCode(accessCode).fetch({ require: false })
+      const memberLink = !joinLinkGroup && await MemberInviteLink.findByCode(accessCode)
+      return memberLink
+        ? { joinSource: GroupMembership.JoinSource.MEMBER_LINK, invitedById: memberLink.get('user_id') }
+        : { joinSource: GroupMembership.JoinSource.INVITE_LINK }
+    }
     const invitation = await Invitation.find(invitationToken)
     return {
       joinSource: GroupMembership.JoinSource.EMAIL_INVITE,

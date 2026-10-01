@@ -756,6 +756,51 @@ msgid "Click this link to join me on Hylo: %(invite_link)s"
 msgstr "Clique neste link para se juntar a mim no Hylo: %(invite_link)s"
 
 #, python-format
+msgid "%(member_count_var)s people are already in %(group_name_var)s."
+msgstr "%(member_count_var)s pessoas já estão em %(group_name_var)s."
+
+#, python-format
+msgid "They shared %(recent_post_count_var)s posts in the last 30 days."
+msgstr "Elas compartilharam %(recent_post_count_var)s publicações nos últimos 30 dias."
+
+msgid "Stop invitations to this address"
+msgstr "Parar convites para este endereço"
+
+#, python-format
+msgid "Stop invitations to this address: %(opt_out_url)s"
+msgstr "Parar convites para este endereço: %(opt_out_url)s"
+
+#, python-format
+msgid "%(inviter_name_var)s invited you to join %(group_name_var)s on Hylo."
+msgstr "%(inviter_name_var)s convidou você para entrar em %(group_name_var)s no Hylo."
+
+#, python-format
+msgid "You were invited to join %(group_name_var)s on Hylo."
+msgstr "Você foi convidado para entrar em %(group_name_var)s no Hylo."
+
+msgid "You started signing up but didn't finish. Your invitation is still waiting for you."
+msgstr "Você começou a se cadastrar, mas não terminou. Seu convite ainda está esperando por você."
+
+msgid "You started signing up for Hylo but didn't finish."
+msgstr "Você começou a se cadastrar no Hylo, mas não terminou."
+
+msgid "It only takes a minute to pick up where you left off."
+msgstr "Leva só um minuto para continuar de onde você parou."
+
+msgid "Finish signing up"
+msgstr "Concluir o cadastro"
+
+msgid "If you didn't mean to sign up, you can ignore this email. We won't send another."
+msgstr "Se você não queria se cadastrar, pode ignorar este e-mail. Não enviaremos outro."
+
+#, python-format
+msgid "Your invitation to %(group_name_var)s is waiting"
+msgstr "Seu convite para %(group_name_var)s está esperando"
+
+msgid "Finish signing up for Hylo"
+msgstr "Conclua seu cadastro no Hylo"
+
+#, python-format
 msgid "%(inviter_name)s"
 msgstr "%(inviter_name)s"
 

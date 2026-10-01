@@ -168,7 +168,53 @@ describe('Invitation', function () {
             inviter_email: inviter.get('email'),
             group_name: group.get('name')
           })
+          expect(invData.opt_out_url).to.match(new RegExp(`/noo/invitation/${invitation.get('token')}/opt-out\\?locale=en-US$`))
         })
+    })
+  })
+
+  describe('addresses that asked for no more invitations', () => {
+    let group, inviter, sent
+
+    const invite = (email, attrs) => Invitation.create({ userId: inviter.id, groupId: group.id, email })
+      .then(i => attrs ? i.save(attrs, { patch: true }) : i)
+
+    before(async () => {
+      group = await factories.group().save()
+      inviter = await factories.user().save()
+      sent = []
+      mockify(Email, 'sendInvitation', email => {
+        sent.push(email)
+        return Promise.resolve({})
+      })
+      await InvitationOptOut.record({ email: 'Stop@OptedOut.com' })
+    })
+
+    after(() => unspyify(Email, 'sendInvitation'))
+
+    beforeEach(() => { sent = [] })
+
+    it('are never sent an invitation', async () => {
+      const invitation = await invite('stop@optedout.com')
+      expect(await invitation.send()).to.equal(false)
+      await invitation.refresh()
+      expect(invitation.get('sent_count')).to.equal(0)
+      expect(sent).to.deep.equal([])
+    })
+
+    it('get no automatic reminders and are left out of Resend All', async () => {
+      const day = 1000 * 60 * 60 * 24
+      await invite('stop@optedout.com', { sent_count: 1, last_sent_at: new Date(Date.now() - 5 * day) })
+      await invite('keep@optedout.com', { sent_count: 1, last_sent_at: new Date(Date.now() - 5 * day) })
+
+      await Invitation.resendAllReady()
+      expect(sent).to.include('keep@optedout.com')
+      expect(sent).to.not.include('stop@optedout.com')
+
+      sent = []
+      await Invitation.reinviteAll({ groupId: group.id })
+      expect(sent).to.include('keep@optedout.com')
+      expect(sent).to.not.include('stop@optedout.com')
     })
   })
 
@@ -350,6 +396,113 @@ describe('Invitation', function () {
       const token = invitations.ready.get('token')
       expect(links['ready@member-sent.com']).to.match(new RegExp(`/h/invitation\\?token=${token}$`))
       expect(links['steward@member-sent.com']).to.include('/h/use-invitation?token=')
+    })
+  })
+
+  describe('the second automatic reminder', () => {
+    let group, inviter, sentData
+
+    before(async () => {
+      group = await factories.group({ num_members: 12 }).save()
+      inviter = await factories.user().save()
+      const author = await factories.user().save()
+      const recent = await factories.post({ user_id: author.id }).save()
+      const old = await factories.post({ user_id: author.id }).save()
+      await bookshelf.knex('posts').where('id', old.id).update({ created_at: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000) })
+      await bookshelf.knex('groups_posts').insert([{ post_id: recent.id, group_id: group.id }, { post_id: old.id, group_id: group.id }])
+      sentData = {}
+      mockify(Email, 'sendInvitation', (email, data) => {
+        sentData[email] = data
+        return Promise.resolve({})
+      })
+    })
+
+    after(() => unspyify(Email, 'sendInvitation'))
+
+    it('adds how many people are in the group and how active it has been, keeping the same schedule', async () => {
+      const day = 24 * 60 * 60 * 1000
+      const first = await Invitation.create({ userId: inviter.id, groupId: group.id, email: 'first-reminder@social-proof.com' })
+      await first.save({ sent_count: 1, last_sent_at: new Date(Date.now() - 4.1 * day) }, { patch: true })
+      const second = await Invitation.create({ userId: inviter.id, groupId: group.id, email: 'second-reminder@social-proof.com' })
+      await second.save({ sent_count: 2, last_sent_at: new Date(Date.now() - 9.1 * day) }, { patch: true })
+      const notYet = await Invitation.create({ userId: inviter.id, groupId: group.id, email: 'not-yet@social-proof.com' })
+      await notYet.save({ sent_count: 2, last_sent_at: new Date(Date.now() - 8 * day) }, { patch: true })
+
+      await Invitation.resendAllReady()
+
+      expect(sentData['second-reminder@social-proof.com']).to.include({ social_proof: true, member_count: 12, recent_post_count: 1 })
+      expect(sentData['first-reminder@social-proof.com']).to.exist
+      expect(sentData['first-reminder@social-proof.com'].social_proof).to.be.undefined
+      expect(sentData['not-yet@social-proof.com']).to.be.undefined
+    })
+  })
+
+  describe('stalled signup reminder', () => {
+    const { sendStalledSignupReminders, REMIND_AFTER_HOURS, LOOK_BACK_DAYS } = require(root('api/models/invitation/stalledSignupReminder'))
+    const hoursAgo = hours => new Date(Date.now() - hours * 60 * 60 * 1000)
+    let sent, previousTemplateId
+
+    const signupStartedAt = (email, createdAt, settings = { signup_in_progress: true, locale: 'de' }, { confirmed = true } = {}) =>
+      factories.user({ email, name: null, active: false, email_validated: confirmed, created_at: createdAt, settings }).save()
+
+    before(async () => {
+      previousTemplateId = process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID
+      process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID = 'tem_test_stalled_signup'
+      sent = []
+      mockify(Email, 'sendStalledSignupReminder', opts => {
+        sent.push(opts)
+        return Promise.resolve({})
+      })
+      await signupStartedAt('stalled@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 1))
+      await signupStartedAt('too-soon@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS - 1))
+      await signupStartedAt('too-old@stalled-signup.com', hoursAgo(LOOK_BACK_DAYS * 24 + 1))
+      await signupStartedAt('finished@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 1), { signup_in_progress: false })
+      await signupStartedAt('opted-out@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 1))
+      await InvitationOptOut.record({ email: 'opted-out@stalled-signup.com' })
+      await signupStartedAt('unconfirmed@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 1), undefined, { confirmed: false })
+      await signupStartedAt('never-asked@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 1), undefined, { confirmed: null })
+      const invited = await signupStartedAt('invited@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 2))
+      const group = await factories.group({ name: 'Stalled Signup Group' }).save()
+      const inviter = await factories.user({ name: 'Stalled Signup Inviter' }).save()
+      await Invitation.create({ userId: inviter.id, groupId: group.id, email: invited.get('email'), inviterAccess: Invitation.InviterAccess.LIMITED })
+    })
+
+    after(() => {
+      unspyify(Email, 'sendStalledSignupReminder')
+      if (previousTemplateId === undefined) delete process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID
+      else process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID = previousTemplateId
+    })
+
+    it('reminds people who confirmed their address and stopped signing up 48 hours ago, once, with their invitation when they have one', async () => {
+      expect(await sendStalledSignupReminders()).to.equal(2)
+      const byEmail = Object.fromEntries(sent.map(opts => [opts.email, opts]))
+      expect(Object.keys(byEmail).sort()).to.deep.equal(['invited@stalled-signup.com', 'stalled@stalled-signup.com'])
+      expect(byEmail['stalled@stalled-signup.com'].data).to.deep.equal({ has_invitation: false, continue_url: `${Frontend.Route.prefix}/signup` })
+      expect(byEmail['stalled@stalled-signup.com'].locale).to.equal('de-DE')
+      expect(byEmail['invited@stalled-signup.com'].data).to.include({
+        has_invitation: true,
+        group_name: 'Stalled Signup Group',
+        inviter_name: 'Stalled Signup Inviter'
+      })
+      expect(byEmail['invited@stalled-signup.com'].data.continue_url).to.include('/h/invitation?token=')
+
+      const marked = await User.query(q => q.whereRaw('lower(email) = ?', ['stalled@stalled-signup.com'])).fetch()
+      expect(marked.get('settings').stalled_signup_reminder_sent_at).to.exist
+      expect(marked.get('settings').signup_in_progress).to.equal(true)
+
+      sent = []
+      expect(await sendStalledSignupReminders()).to.equal(0)
+      expect(sent).to.deep.equal([])
+    })
+
+    it('sends nothing until the email template is named', async () => {
+      await signupStartedAt('no-template@stalled-signup.com', hoursAgo(REMIND_AFTER_HOURS + 1))
+      delete process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID
+      sent = []
+      expect(await sendStalledSignupReminders()).to.equal(0)
+      process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID = 'tem_test_stalled_signup'
+      const waiting = await User.query(q => q.whereRaw('lower(email) = ?', ['no-template@stalled-signup.com'])).fetch()
+      expect(waiting.get('settings').stalled_signup_reminder_sent_at).to.be.undefined
     })
   })
 

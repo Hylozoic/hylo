@@ -66,5 +66,20 @@ module.exports = bookshelf.Model.extend({
       .insert({ user_id: userId, group_id: groupId, recipients })
     if (transacting) query = query.transacting(transacting)
     await query
+  },
+
+  /**
+   * Count recipients toward this person's and this group's allowance if both
+   * have that many left, as one step. Used for each person who joins or asks
+   * to join through a member's personal invite link.
+   * @returns {Promise<boolean>} whether they were counted
+   */
+  spend: async function ({ userId, groupId, recipients = 1 }) {
+    return bookshelf.transaction(async transacting => {
+      await this.lockAllowance({ userId, groupId }, { transacting })
+      if (await this.remainingAllowance({ userId, groupId }, { transacting }) < recipients) return false
+      await this.record({ userId, groupId, recipients }, { transacting })
+      return true
+    })
   }
 })

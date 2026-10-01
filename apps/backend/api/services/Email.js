@@ -338,6 +338,11 @@ Profile: ${opts.actorProfileUrl}
     const decodedData = plaintext.split('|')
 
     return { groupId: decodedData[0], userId: decodedData[1] }
-  }
+  },
+
+  // One reminder to someone who started signing up and stopped (api/models/invitation/stalledSignupReminder.js).
+  // The template is named by STALLED_SIGNUP_REMINDER_TEMPLATE_ID.
+  sendStalledSignupReminder: ({ email, data, locale }) =>
+    sendSimpleEmail(email, process.env.STALLED_SIGNUP_REMINDER_TEMPLATE_ID, data, {}, normalizeLocaleToFull(locale))
 
 }

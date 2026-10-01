@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import TextareaAutosize from 'react-textarea-autosize'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Tooltip } from 'react-tooltip'
-import { TextHelpers } from '@hylo/shared'
+import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { groupInviteUrl } from '@hylo/navigation'
 import { isEmpty } from 'lodash'
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
@@ -17,10 +17,13 @@ import PeopleSelector from 'routes/Messages/PeopleSelector'
 import { cn } from 'util/index'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import { toast } from 'sonner'
+import { MEMBER_INVITE_PICKER } from 'config/featureFlags'
 import { INVITE_ACCESS } from 'store/constants'
 import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_TYPES, GROUP_VISIBILITY } from 'store/models/Group'
+import { hasFeature } from 'store/models/Me'
 import getMe from 'store/selectors/getMe'
+import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { regenerateAccessCode as regenerateAccessCodeAction } from '../GroupSettings.store'
 import {
@@ -35,6 +38,10 @@ import {
   resendInvitation as resendInvitationAction,
   reinviteAll as reinviteAllAction
 } from './InviteSettingsTab.store'
+
+import InviteNoteField from './InviteNoteField'
+import MemberInviteLinkCard from './MemberInviteLinkCard'
+import PendingSubmissionsList from './PendingSubmissionsList'
 
 import classes from './InviteSettingsTab.module.scss'
 
@@ -52,13 +59,18 @@ const parseEmailList = emails =>
 /**
  * Invite page. With 'full' invite access (Add Members) it shows the join link, people search,
  * email invites with an optional role, and every pending invite. With 'limited' access it shows
- * only personal email invites, the daily allowance, and the invites this person sent.
+ * the person's own invite link, personal email invites, the daily allowance, and what this person
+ * invited lately.
  */
 function InviteSettingsTab (props) {
   const { group, inModal = false, parentGroup, inviteAccess = INVITE_ACCESS.full } = props
   const limited = inviteAccess === INVITE_ACCESS.limited
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
+  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
+  // Members may also pick people who share a group with them, while that is switched on
+  const limitedPicker = limited && memberInvitesEnabled && hasFeature(MEMBER_INVITE_PICKER)
+  const showPeopleSearch = !limited || limitedPicker
   const pendingCreateFromStore = useSelector(state => state.pending[CREATE_INVITATIONS])
   const pendingCreate = !!(props.pendingCreate || pendingCreateFromStore)
   const pendingPeople = useSelector(state => !!state.pending[FETCH_INVITEABLE_PEOPLE])
@@ -81,7 +93,7 @@ function InviteSettingsTab (props) {
   const parentName = parentGroup?.name || parentGroupFromStore?.name
 
   const regenerateAccessCode = useCallback(() => dispatch(regenerateAccessCodeAction(group.id)), [dispatch, group.id])
-  const createInvitations = useCallback((emails, groupRoleId, userIds) => dispatch(createInvitationsAction(group.id, emails, groupRoleId, userIds)), [dispatch, group.id])
+  const createInvitations = useCallback((emails, groupRoleId, userIds, note) => dispatch(createInvitationsAction(group.id, emails, groupRoleId, userIds, note)), [dispatch, group.id])
   const expireInvitation = useCallback((invitationToken) => dispatch(expireInvitationAction(invitationToken)), [dispatch])
   const resendInvitation = useCallback((invitationToken) => dispatch(resendInvitationAction(invitationToken)), [dispatch])
   const reinviteAll = useCallback(() => dispatch(reinviteAllAction(group.id)), [dispatch, group.id])
@@ -93,6 +105,7 @@ function InviteSettingsTab (props) {
   const [copiedInviteLink, setCopiedInviteLink] = useState(false)
   const [reset, setReset] = useState(false)
   const [emails, setEmails] = useState('')
+  const [note, setNote] = useState('')
   const [selectedRoleId, setSelectedRoleId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -100,6 +113,7 @@ function InviteSettingsTab (props) {
   const [selectedPeople, setSelectedPeople] = useState([])
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [hasMorePeople, setHasMorePeople] = useState(false)
+  const [submissionsReloadKey, setSubmissionsReloadKey] = useState(0)
   const sendingRef = useRef(false)
   const pendingInvitesTransitionRef = useRef(null)
   const peopleSearchRef = useRef('')
@@ -169,14 +183,15 @@ function InviteSettingsTab (props) {
       groupRoleIds: spaceRequiredRoleIds,
       autocomplete: search,
       first: INVITEABLE_PEOPLE_PAGE_SIZE,
-      offset: 0
+      offset: 0,
+      sharedGroupsOnly: limited
     }))
     if (gen !== peopleFetchGenRef.current) return
     const { items, hasMore } = parseInviteablePeopleResponse(response)
     peopleOffsetRef.current = INVITEABLE_PEOPLE_PAGE_SIZE
     setPeople(items)
     setHasMorePeople(!!hasMore)
-  }, [dispatch, group.id, isSpace, parentGroupId, parseInviteablePeopleResponse])
+  }, [dispatch, group.id, isSpace, limited, parentGroupId, parseInviteablePeopleResponse])
 
   /**
    * Appends the next page of inviteable people when the picker list is scrolled to the bottom.
@@ -192,7 +207,8 @@ function InviteSettingsTab (props) {
       groupRoleIds: spaceRequiredRoleIds,
       autocomplete: peopleSearchRef.current,
       first: INVITEABLE_PEOPLE_PAGE_SIZE,
-      offset
+      offset,
+      sharedGroupsOnly: limited
     }))
     if (gen !== peopleFetchGenRef.current) {
       loadingMorePeopleRef.current = false
@@ -206,7 +222,7 @@ function InviteSettingsTab (props) {
     })
     setHasMorePeople(!!hasMore)
     loadingMorePeopleRef.current = false
-  }, [dispatch, group.id, isSpace, parentGroupId, parseInviteablePeopleResponse])
+  }, [dispatch, group.id, isSpace, limited, parentGroupId, parseInviteablePeopleResponse])
 
   const fetchDefaultPeopleList = useCallback(() => {
     fetchPeopleForInvite('')
@@ -234,9 +250,12 @@ function InviteSettingsTab (props) {
     }
 
     const emailList = parseEmailList(emails).filter(Boolean)
-    if (limited && new Set(emailList.map(email => email.toLowerCase())).size > LIMITED_INVITES_PER_SEND) {
+    const userIds = showPeopleSearch ? selectedPeople.map(p => p.id) : []
+    if (limited && new Set(emailList.map(email => email.toLowerCase())).size + userIds.length > LIMITED_INVITES_PER_SEND) {
       setSuccessMessage('')
-      setErrorMessage(t('You can invite up to {{max}} email addresses at a time', { max: LIMITED_INVITES_PER_SEND }))
+      setErrorMessage(limitedPicker
+        ? t('You can invite up to {{max}} people at a time', { max: LIMITED_INVITES_PER_SEND })
+        : t('You can invite up to {{max}} email addresses at a time', { max: LIMITED_INVITES_PER_SEND }))
       return
     }
 
@@ -247,20 +266,19 @@ function InviteSettingsTab (props) {
       groupRoleId = parseInt(selectedRoleId, 10)
     }
 
-    const userIds = limited ? [] : selectedPeople.map(p => p.id)
-    createInvitations(emailList, groupRoleId, userIds)
+    createInvitations(emailList, groupRoleId, userIds, note.trim())
       .then(res => {
         sendingRef.current = false
         if (!res?.payload?.data?.createInvitation) return
         const { invitations } = res.payload.data.createInvitation
-        const badEmails = invitations.filter(email => email.error).map(e => e.email)
+        const badEmails = invitations.filter(invite => invite.error && invite.email).map(invite => invite.email)
 
         const numBad = badEmails.length
         let errorMessage, successMessage
         if (numBad > 0) {
           errorMessage = `${t('{{numBad}} invalid email address/es found (see above)).', { numBad })}{' '}`
         }
-        const numGood = invitations.length - badEmails.length
+        const numGood = invitations.filter(invite => !invite.error).length
         if (numGood > 0) {
           if (limited) {
             successMessage = t('Invites sent to anyone not already in the group')
@@ -276,6 +294,7 @@ function InviteSettingsTab (props) {
           })
         }
         setEmails(badEmails.join('\n'))
+        if (numGood > 0) setNote('')
         setErrorMessage(errorMessage)
         setSuccessMessage(successMessage)
         setSelectedRoleId('')
@@ -284,6 +303,7 @@ function InviteSettingsTab (props) {
           setPeople(prev => prev.filter(p => !userIds.includes(p.id)))
         }
         dispatch(fetchPendingInvitations(group.id))
+        if (limited) setSubmissionsReloadKey(key => key + 1)
       })
       .catch(error => {
         sendingRef.current = false
@@ -303,8 +323,14 @@ function InviteSettingsTab (props) {
     }
   }
 
-  const onCopyPublicLink = () => setTemporaryState(setCopiedPublicLink, true)
-  const onCopyInviteLink = () => setTemporaryState(setCopiedInviteLink, true)
+  const onCopyPublicLink = () => {
+    setTemporaryState(setCopiedPublicLink, true)
+    trackAnalyticsEventDispatch(AnalyticsEvents.INVITE_LINK_COPIED, { groupId: group.id, kind: 'public' })
+  }
+  const onCopyInviteLink = () => {
+    setTemporaryState(setCopiedInviteLink, true)
+    trackAnalyticsEventDispatch(AnalyticsEvents.INVITE_LINK_COPIED, { groupId: group.id, kind: 'join' })
+  }
 
   const buttonColor = highlight => highlight ? 'green' : 'green-white-green-border'
 
@@ -337,12 +363,10 @@ function InviteSettingsTab (props) {
 
   const peopleForSelector = useMemo(() => {
     const invitedIds = new Set(pendingInvites.map(i => i.userId != null && String(i.userId)).filter(Boolean))
-    const invitedNames = new Set(pendingInvites.map(i => i.name && i.name.toLowerCase()).filter(Boolean))
     const invitedEmails = new Set(pendingInvites.map(i => i.email && i.email.toLowerCase()).filter(Boolean))
     const allowed = people.filter(p => {
       if (invitedIds.has(String(p.id))) return false
       if (p.email && invitedEmails.has(String(p.email).toLowerCase())) return false
-      if (p.name && invitedNames.has(p.name.toLowerCase())) return false
       return true
     })
     if (!isRoleGated || !spaceRequiredRoleIds) return allowed
@@ -412,6 +436,8 @@ function InviteSettingsTab (props) {
         </div>
       )}
 
+      {limited && memberInvitesEnabled && <MemberInviteLinkCard group={group} needsApproval={needsApproval} />}
+
       {!limited && (
         <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
           <div className='text-foreground'>
@@ -468,13 +494,13 @@ function InviteSettingsTab (props) {
       )}
 
       <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-2 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
-        {!limited && (
+        {showPeopleSearch && (
           <>
             <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>
-              {t('Invite people on Hylo')}
+              {limited ? t('Invite people you know on Hylo') : t('Invite people on Hylo')}
             </h2>
             <span className='text-sm text-foreground/50'>
-              {isRoleGated && (
+              {!limited && isRoleGated && (
                 <p className='text-sm text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2'>
                   {t('Only members with one of the required roles will actually be able to join the space.')}{' '}
                   <a
@@ -487,9 +513,11 @@ function InviteSettingsTab (props) {
                   </a>
                 </p>
               )}
-              {isSpace
-                ? t('Search members of {{name}} who aren\'t already in this space.', { name: parentName || t('the group') })
-                : t('Search people you can see on Hylo.')}
+              {limited
+                ? t('Search people who share a group with you. They get a notification on Hylo instead of an email.')
+                : isSpace
+                  ? t('Search members of {{name}} who aren\'t already in this space.', { name: parentName || t('the group') })
+                  : t('Search people you can see on Hylo.')}
             </span>
             <PeopleSelector
               placeholder={isSpace
@@ -513,7 +541,7 @@ function InviteSettingsTab (props) {
             />
           </>
         )}
-        <h2 className={cn('text-lg font-bold mb-1 text-foreground', limited ? 'mt-0' : 'mt-4')}>
+        <h2 className={cn('text-lg font-bold mb-1 text-foreground', showPeopleSearch ? 'mt-4' : 'mt-0')}>
           {t('Send Invites via email')}
         </h2>
         {limited
@@ -549,6 +577,7 @@ function InviteSettingsTab (props) {
           disabled={pendingCreate}
           onChange={(event) => setEmails(event.target.value)}
         />
+        <InviteNoteField value={note} onChange={setNote} disabled={pendingCreate} />
         {!limited && (
           <>
             <div className='mt-4 mb-2'>{t('Assign a role to invitees (optional):')}</div>
@@ -635,28 +664,7 @@ function InviteSettingsTab (props) {
         </div>
       )}
 
-      {limited && hasPendingInvites && (
-        <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
-          <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Your pending invites')}</h2>
-          <div className='flex flex-col gap-1'>
-            {pendingInvites.map(invite => (
-              <div className='w-full flex items-center justify-between gap-2 bg-card rounded-lg px-2 py-1.5' key={invite.id}>
-                <div className='flex-1 min-w-0'>
-                  <span className='block truncate'>{invite.email}</span>
-                  <span className='text-foreground/50 text-sm'>{TextHelpers.humanDate(invite.lastSentAt || invite.createdAt)}</span>
-                </div>
-                <button
-                  type='button'
-                  className='shrink-0 bg-foreground/10 rounded-lg p-1 hover:bg-selected/50 transition-all'
-                  onClick={() => expireOnClick(invite.id)}
-                >
-                  {t('Cancel')}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {limited && <PendingSubmissionsList groupId={group.id} reloadKey={submissionsReloadKey} />}
     </div>
   )
 }

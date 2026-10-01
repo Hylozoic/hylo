@@ -1,0 +1,30 @@
+{% snippet 'header_redesign' %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+{% if has_invitation %}
+  {% set group_name_var = group_name %}
+  {% set inviter_name_var = inviter_name %}
+  <p class='lead'>
+    {% if inviter_name %}
+      {% trans %}{{inviter_name_var}} invited you to join {{group_name_var}} on Hylo.{% endtrans %}
+    {% else %}
+      {% trans %}You were invited to join {{group_name_var}} on Hylo.{% endtrans %}
+    {% endif %}
+  </p>
+  <p>{% trans %}You started signing up but didn't finish. Your invitation is still waiting for you.{% endtrans %}</p>
+  <a class='btn btn-blue' href='{{continue_url}}' clicktracking="off">{% trans %}Join {{group_name_var}}{% endtrans %}</a>
+{% else %}
+  <p class='lead'>{% trans %}You started signing up for Hylo but didn't finish.{% endtrans %}</p>
+  <p>{% trans %}It only takes a minute to pick up where you left off.{% endtrans %}</p>
+  <a class='btn btn-blue' href='{{continue_url}}' clicktracking="off">{% trans %}Finish signing up{% endtrans %}</a>
+{% endif %}
+
+<p>{% trans %}If you didn't mean to sign up, you can ignore this email. We won't send another.{% endtrans %}</p>
+
+{% snippet 'footer_redesign' %}

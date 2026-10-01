@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql'
+import InvitationService from '../../services/InvitationService'
 
 /**
  * The member invitation a join request comes from: the one whose token the
@@ -25,22 +26,56 @@ async function sponsoringInvitation (userId, groupId, invitationToken) {
   }).fetch()
 }
 
-export async function createJoinRequest (userId, groupId, questionAnswers = [], invitationToken) {
+/**
+ * The member's personal invite link a join request comes from, when the requester
+ * followed one: it must still be usable and be for this group, and the person counts
+ * toward its owner's invitations for the day.
+ */
+async function sponsoringMemberLink (groupId, accessCode) {
+  const memberLink = await InvitationService.usableMemberLink(accessCode)
+  if (!memberLink || String(memberLink.group.id) !== String(groupId)) {
+    throw new GraphQLError('This invitation cannot be used to request to join this group')
+  }
+  return memberLink.link
+}
+
+/**
+ * Count a request through a member's invite link toward its owner's and the group's
+ * day, except for someone already in the group or someone who already asked through
+ * the same link in the last day (for example, after cancelling their request).
+ */
+async function spendForLinkRequest (userId, groupId, link) {
+  if (await GroupMembership.forPair(userId, groupId).fetch()) return
+  const askedToday = await bookshelf.knex('join_requests')
+    .where({ user_id: userId, group_id: groupId, member_invite_link_id: link.id })
+    .whereRaw("created_at > now() - interval '24 hours'")
+    .first('id')
+  if (!askedToday) await InvitationService.spendMemberLinkAllowance(link)
+}
+
+export async function createJoinRequest (userId, groupId, questionAnswers = [], invitationToken, accessCode) {
   if (groupId && userId) {
-    const invitation = await sponsoringInvitation(userId, groupId, invitationToken)
+    const memberLink = accessCode ? await sponsoringMemberLink(groupId, accessCode) : null
+    const invitation = memberLink ? null : await sponsoringInvitation(userId, groupId, invitationToken)
     const pendingRequest = await JoinRequest.where({ user_id: userId, group_id: groupId, status: JoinRequest.STATUS.Pending }).fetch()
+    const sponsored = request => request.get('invitation_id') || request.get('member_invite_link_id')
     if (pendingRequest) {
-      if (invitation && !pendingRequest.get('invitation_id')) {
+      if (invitation && !sponsored(pendingRequest)) {
         await pendingRequest.save({ invitation_id: invitation.id }, { patch: true })
+      } else if (memberLink && !sponsored(pendingRequest)) {
+        await spendForLinkRequest(userId, groupId, memberLink)
+        await pendingRequest.save({ member_invite_link_id: memberLink.id }, { patch: true })
       }
       return { request: pendingRequest }
     }
+    if (memberLink) await spendForLinkRequest(userId, groupId, memberLink)
     // If there's an existing processed request then let's leave it and create a new one
     // Maybe they left the group and want back in? Or maybe initial request was rejected
     return JoinRequest.create({
       userId,
       groupId,
-      invitationId: invitation ? invitation.id : null
+      invitationId: invitation ? invitation.id : null,
+      memberInviteLinkId: memberLink ? memberLink.id : null
     })
       .then(async (request) => {
         for (const qa of questionAnswers) {
