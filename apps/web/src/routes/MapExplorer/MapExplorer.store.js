@@ -425,9 +425,6 @@ export function fetchMembers ({ boundingBox, context, slug, sortBy, search, grou
     extractModel = 'Group'
     getItems = get('payload.data.group.members')
   } else if (context === 'all') {
-    // query = allGroupsMembersQuery
-    // extractModel = 'User'
-    // getItems = get('payload.data.people')
     // No Members in All Groups Context, yet
     return { type: 'RETURN NO MEMBERS FOR ALL GROUPS' }
   } else if (context === 'public') {

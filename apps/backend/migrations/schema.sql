@@ -4092,7 +4092,7 @@ CREATE MATERIALIZED VIEW public.search_index AS
     ((setweight(to_tsvector('english'::regconfig, p.name), 'B'::"char") || setweight(to_tsvector('english'::regconfig, COALESCE(p.description, ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, (u.name)::text), 'D'::"char")) AS document
    FROM (public.posts p
      JOIN public.users u ON ((u.id = p.user_id)))
-  WHERE ((p.active = true) AND (u.active = true))
+  WHERE ((p.active = true) AND (u.active = true) AND ((p.type)::text <> ALL ((ARRAY['welcome'::character varying, 'chat_activity'::character varying])::text[])))
 UNION
  SELECT ('user-'::text || (u.id)::text) AS row_key,
     NULL::bigint AS post_id,
@@ -4103,7 +4103,7 @@ UNION
           WHERE ((gm.user_id = u.id) AND (gm.active = true))), u.last_active_at, u.updated_at, u.created_at) AS sort_ts,
     ((setweight(to_tsvector('english'::regconfig, (u.name)::text), 'A'::"char") || setweight(to_tsvector('english'::regconfig, COALESCE(string_agg(replace((s.name)::text, '-'::text, ' '::text), ' '::text), ''::text)), 'C'::"char")) || setweight(to_tsvector('english'::regconfig, COALESCE(u.bio, ''::text)), 'C'::"char")) AS document
    FROM ((public.users u
-     LEFT JOIN public.skills_users su ON ((u.id = su.user_id)))
+     LEFT JOIN public.skills_users su ON (((u.id = su.user_id) AND (su.type = 0))))
      LEFT JOIN public.skills s ON ((su.skill_id = s.id)))
   WHERE (u.active = true)
   GROUP BY u.id

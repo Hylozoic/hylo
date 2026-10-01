@@ -64,7 +64,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const group = await this.group().fetch({ transacting })
     const membership =
       await GroupMembership.forPair(user, group).fetch({ transacting }) ||
-      await user.joinGroup(group, { fromInvitation: true, transacting })
+      await user.joinGroup(group, {
+        fromInvitation: true,
+        joinSource: GroupMembership.JoinSource.EMAIL_INVITE,
+        invitationId: this.id,
+        invitedById: this.get('invited_by_id'),
+        transacting
+      })
 
     // Assign group role if specified on the invitation
     const groupRoleId = this.get('group_role_id')

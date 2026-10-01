@@ -1,4 +1,4 @@
-/* globals bookshelf, Group */
+/* globals bookshelf, Group, Skill */
 import { compact, omit } from 'lodash'
 
 const tableName = 'search_index'
@@ -60,7 +60,7 @@ const createView = (lang, knex) => {
       ${wv("coalesce(string_agg(replace(s.name, '-', ' '), ' '), '')", 'C')} ||
       ${wv("coalesce(u.bio, '')", 'C')} as ${columnName}
     from users u
-    left join skills_users su on u.id = su.user_id
+    left join skills_users su on u.id = su.user_id and su.type = ${Skill.Type.HAS}
     left join skills s on su.skill_id = s.id
     where u.active = true
     group by u.id
