@@ -71,9 +71,9 @@ describe('ManageNotifications', () => {
     screen.getAllByRole('option', { name: '~ Mixed ~' }).forEach(option => expect(option).toBeDisabled())
   })
 
-  it('says comment mentions still notify, until everything is unsubscribed', async () => {
+  it('says comment mentions still notify, unless everything is unsubscribed', async () => {
     const note = 'Comments that mention you still notify you, by email and push where your group settings allow.'
-    render(
+    const { unmount } = render(
       <ManageNotifications />,
       { wrapper: testProviders() }
     )
@@ -81,9 +81,80 @@ describe('ManageNotifications', () => {
     await waitFor(() => {
       expect(screen.getByText(note)).toBeInTheDocument()
     })
+    unmount()
 
-    fireEvent.click(screen.getByRole('checkbox'))
+    mockSettingsResponse = { ...mockSettingsResponse, unsubscribeScope: 'everything' }
+    render(
+      <ManageNotifications />,
+      { wrapper: testProviders() }
+    )
+    await waitFor(() => {
+      expect(screen.getByTestId('saved-unsubscribe-scope')).toBeInTheDocument()
+    })
     expect(screen.queryByText(note)).not.toBeInTheDocument()
+  })
+
+  it("offers four unsubscribe choices with 'Everything except direct' preselected", async () => {
+    render(
+      <ManageNotifications />,
+      { wrapper: testProviders() }
+    )
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('radio')).toHaveLength(4)
+    })
+    expect(screen.getByRole('radio', { name: /Fewer emails \(digest only\)/ })).not.toBeChecked()
+    expect(screen.getByRole('radio', { name: /No group emails/ })).not.toBeChecked()
+    expect(screen.getByRole('radio', { name: /Everything except direct/ })).toBeChecked()
+    expect(screen.getByRole('radio', { name: /^Everything No emails/ })).not.toBeChecked()
+    expect(screen.queryByTestId('saved-unsubscribe-scope')).not.toBeInTheDocument()
+  })
+
+  it('saves a choice only when Unsubscribe is pressed', async () => {
+    render(
+      <ManageNotifications />,
+      { wrapper: testProviders() }
+    )
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('radio')).toHaveLength(4)
+    })
+    fireEvent.click(screen.getByRole('radio', { name: /No group emails/ }))
+    expect(mockApiCalls.some(call => call.path === '/noo/user/update-notification-settings')).toBe(false)
+
+    fireEvent.click(screen.getByTestId('unsubscribe-button'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Your choice is saved.')).toBeInTheDocument()
+    })
+    const update = mockApiCalls.find(call => call.path === '/noo/user/update-notification-settings')
+    expect(update.params).toEqual({ token: 'hjkhkjhkjh', unsubscribeScope: 'no_group_emails' })
+  })
+
+  it('shows a saved choice and can resubscribe', async () => {
+    mockSettingsResponse = { ...mockSettingsResponse, unsubscribeScope: 'digest_only' }
+    render(
+      <ManageNotifications />,
+      { wrapper: testProviders() }
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('saved-unsubscribe-scope')).toHaveTextContent('You unsubscribed from: Fewer emails (digest only)')
+    })
+    expect(screen.getByRole('radio', { name: /Fewer emails \(digest only\)/ })).toBeChecked()
+
+    // After resubscribing, the settings come back without a saved choice
+    const { unsubscribeScope, ...resubscribed } = mockSettingsResponse
+    mockSettingsResponse = resubscribed
+    fireEvent.click(screen.getByTestId('resubscribe-button'))
+
+    await waitFor(() => {
+      expect(screen.getByText('You are resubscribed. The settings above apply again.')).toBeInTheDocument()
+    })
+    expect(mockApiCalls.some(call => call.params?.unsubscribeScope === 'none')).toBe(true)
+    expect(screen.queryByTestId('saved-unsubscribe-scope')).not.toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /Everything except direct/ })).toBeChecked()
+    expect(screen.getByRole('radio', { name: /Fewer emails \(digest only\)/ })).not.toBeChecked()
   })
 
   it('sends only the settings that were changed', async () => {
@@ -103,6 +174,6 @@ describe('ManageNotifications', () => {
       expect(mockApiCalls.some(call => call.path === '/noo/user/update-notification-settings')).toBe(true)
     })
     const update = mockApiCalls.find(call => call.path === '/noo/user/update-notification-settings')
-    expect(update.params).toEqual({ token: 'hjkhkjhkjh', unsubscribeAll: false, digestFrequency: 'weekly' })
+    expect(update.params).toEqual({ token: 'hjkhkjhkjh', digestFrequency: 'weekly' })
   })
 })

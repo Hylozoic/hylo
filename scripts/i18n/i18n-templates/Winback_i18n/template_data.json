@@ -1,0 +1,9 @@
+{
+  "first_name": "Alex",
+  "home_url": "https://hylo.com/app?ctt=winback_email",
+  "email_settings_url": "https://hylo.com/notifications?expand=account",
+  "groups": [
+    { "name": "Seed Library", "url": "https://hylo.com/groups/seed-library", "new_post_count": 12 },
+    { "name": "Neighborhood Garden", "url": "https://hylo.com/groups/neighborhood-garden", "new_post_count": 0 }
+  ]
+}

@@ -2788,8 +2788,24 @@ CREATE TABLE public.users (
     contact_phone character varying(255),
     last_active_at timestamp with time zone,
     calendar_token character varying(255),
-    acquisition_source jsonb
+    acquisition_source jsonb,
+    email_undeliverable_at timestamp with time zone,
+    email_undeliverable_reason character varying(255)
 );
+
+
+--
+-- Name: COLUMN users.email_undeliverable_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.email_undeliverable_at IS 'When the email provider last reported this address as undeliverable; cleared when the address changes or is verified';
+
+
+--
+-- Name: COLUMN users.email_undeliverable_reason; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.email_undeliverable_reason IS 'What the provider reported, for example a bounce and its classification';
 
 
 --

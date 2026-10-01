@@ -4,6 +4,12 @@ import InvitationService from '../services/InvitationService'
 import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { decodeHyloJWT } from '../../lib/HyloJWT'
 import { joinRoom, leaveRoom } from '../services/Websockets'
+import {
+  UNSUBSCRIBE_SCOPE,
+  UNSUBSCRIBE_SCOPE_SETTING,
+  isUnsubscribeScope,
+  unsubscribeScopeOf
+} from '../models/notification/rules/unsubscribeScope'
 
 // Values each membership-level setting accepts, with what a missing key behaves as
 // (no digest is sent and new posts are not notified).
@@ -13,6 +19,20 @@ const MEMBERSHIP_SETTING_VALUES = {
 }
 
 const MIXED = 'mixed'
+
+// unsubscribeScope 'none' removes a saved scope (Resubscribe)
+const CLEAR_SCOPE = 'none'
+
+// What the request asks for: one of the four scopes, CLEAR_SCOPE, undefined (no change),
+// or false for a value this endpoint doesn't know. An older page's unsubscribeAll
+// means 'everything except direct', as past choices do (D35).
+function requestedScope ({ unsubscribeScope, unsubscribeAll }) {
+  if (unsubscribeScope !== undefined && unsubscribeScope !== null) {
+    return isUnsubscribeScope(unsubscribeScope) || unsubscribeScope === CLEAR_SCOPE ? unsubscribeScope : false
+  }
+  if (unsubscribeAll === true || unsubscribeAll === 'true') return UNSUBSCRIBE_SCOPE.ALL_BUT_DIRECT
+  return undefined
+}
 
 function sharedMembershipSetting (memberships, key, fallback) {
   if (memberships.length === 0) return fallback
@@ -125,6 +145,7 @@ module.exports = {
       postNotifications: sharedMembershipSetting(memberships.models, 'postNotifications', userSettings.post_notifications || null),
       sendEmail: !isEmpty(emailable),
       sendPushNotifications: !isEmpty(pushable),
+      unsubscribeScope: unsubscribeScopeOf(userSettings),
       hasDevice: false // DEPRECATED, remove after 2025-08-15
     })
   },
@@ -133,7 +154,8 @@ module.exports = {
   // Autheticate them with a JWT token, and then allow them to update their notification settings
   updateNotificationSettings: async function (req, res) {
     const { token } = req.allParams()
-    const { unsubscribeAll, allGroupNotifications } = req.body
+    const { allGroupNotifications } = req.body
+    const scope = requestedScope(req.body)
 
     let decodedToken
     try {
@@ -148,6 +170,11 @@ module.exports = {
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
+    if (scope === false) {
+      return res.status(400).json({ error: 'Invalid value for unsubscribeScope' })
+    }
+    const everything = scope === UNSUBSCRIBE_SCOPE.EVERYTHING
+
     // 'mixed' is what getNotificationSettings reports when memberships differ; sending it back means unchanged
     const requested = omitBy(
       pick(req.body, ['digestFrequency', 'dmNotifications', 'commentNotifications', 'postNotifications']),
@@ -160,8 +187,9 @@ module.exports = {
       }
     }
 
-    // Update the user's notification settings
-    const userSettings = unsubscribeAll
+    // Update the user's notification settings. Only 'everything' switches off direct
+    // messages and comments; 'everything except direct' leaves them as they are (D7, D35).
+    const userSettings = everything
       ? {
           digest_frequency: 'never',
           dm_notifications: 'none',
@@ -170,10 +198,16 @@ module.exports = {
         }
       : mapKeys(requested, (v, k) => snakeCase(k))
 
-    await user.save({ settings: merge({}, user.get('settings'), userSettings) }, { patch: true })
+    const settings = merge({}, user.get('settings'), userSettings)
+    if (scope === CLEAR_SCOPE) {
+      delete settings[UNSUBSCRIBE_SCOPE_SETTING]
+    } else if (scope) {
+      settings[UNSUBSCRIBE_SCOPE_SETTING] = scope
+    }
+    await user.save({ settings }, { patch: true })
 
     // Digests and new-post notifications read these from each membership, not from the user
-    if (!unsubscribeAll && !isEmpty(membershipSettings)) {
+    if (!everything && !isEmpty(membershipSettings)) {
       await bookshelf.knex('group_memberships')
         .where({ user_id: user.id, active: true })
         .update({ settings: bookshelf.knex.raw('settings || ?::jsonb', [JSON.stringify(membershipSettings)]) })
@@ -181,14 +215,16 @@ module.exports = {
 
     let newMembershipSettings = false
 
-    // Update the settings for their group memberships
-    if (unsubscribeAll || allGroupNotifications === 'none' || allGroupNotifications === 'push') {
+    // Update the settings for their group memberships. 'No group emails' and 'everything'
+    // turn off each group's email; only 'everything' also turns off push.
+    const noGroupEmail = everything || scope === UNSUBSCRIBE_SCOPE.NO_GROUP_EMAILS
+    if (noGroupEmail || allGroupNotifications === 'none' || allGroupNotifications === 'push') {
       newMembershipSettings = '\'sendEmail\', false'
     } else if (allGroupNotifications === 'email' || allGroupNotifications === 'both') {
       newMembershipSettings = '\'sendEmail\', true'
     }
 
-    if (unsubscribeAll || allGroupNotifications === 'none' || allGroupNotifications === 'email') {
+    if (everything || allGroupNotifications === 'none' || allGroupNotifications === 'email') {
       newMembershipSettings = (newMembershipSettings ? newMembershipSettings + ',' : '') + '\'sendPushNotifications\', false'
     } else if (allGroupNotifications === 'push' || allGroupNotifications === 'both') {
       newMembershipSettings = (newMembershipSettings ? newMembershipSettings + ',' : '') + '\'sendPushNotifications\', true'

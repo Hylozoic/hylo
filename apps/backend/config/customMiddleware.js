@@ -17,6 +17,8 @@ export default function (app) {
 
   // Capture raw body for Stripe webhook before JSON parsing
   app.use('/noo/stripe/webhook', bodyParser.raw({ type: 'application/json' }))
+  // The email provider's event webhook is signed over its raw body too
+  app.use('/noo/hook/email-events', bodyParser.raw({ type: () => true, limit: '10mb' }))
 
   app.use(bodyParser.urlencoded({ extended: true }))
   app.use(bodyParser.json())

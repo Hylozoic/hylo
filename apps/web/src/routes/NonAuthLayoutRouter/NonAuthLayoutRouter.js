@@ -15,6 +15,7 @@ import Button from 'components/ui/button'
 import JoinGroup from 'routes/JoinGroup'
 import Login from 'routes/NonAuthLayoutRouter/Login'
 import ManageNotifications from 'routes/NonAuthLayoutRouter/ManageNotifications'
+import EmailUnsubscribe from 'routes/NonAuthLayoutRouter/EmailUnsubscribe/EmailUnsubscribe'
 import PasswordReset from 'routes/NonAuthLayoutRouter/PasswordReset'
 import SignupRouter from 'routes/NonAuthLayoutRouter/Signup/SignupRouter'
 import { getLocaleFromLocalStorage, localeToFlagEmoji } from 'util/locale'
@@ -97,6 +98,10 @@ export default function NonAuthLayoutRouter (props) {
             <Route
               path='notifications'
               element={<ManageNotifications {...props} className={classes.form} />}
+            />
+            <Route
+              path='email/unsubscribe'
+              element={<EmailUnsubscribe {...props} />}
             />
             <Route
               path='groups/:groupSlug/join/:accessCode'

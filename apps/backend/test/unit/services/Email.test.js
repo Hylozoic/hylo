@@ -1,6 +1,9 @@
 import path from 'path'
 import nock from 'nock'
 import { dependencyOf, mockify, unspyify } from '../../setup/helpers'
+import { EMAIL_TYPES, emailTypeFor } from '../../../lib/email/emailTypes'
+import { readUnsubscribeToken } from '../../../lib/email/unsubscribeToken'
+import factories from '../../setup/factories'
 require(require('root-path')('test/setup'))
 
 const SENDWITHUS_SEND_PATH = '/api/v1_0/send'
@@ -95,6 +98,31 @@ describe('Email', function () {
       }
     })
 
+    it('sends payment-failed and renewal-reminder emails without Precedence: bulk (D84)', async () => {
+      for (const send of ['sendPaymentFailed', 'sendSubscriptionRenewalReminder']) {
+        captureSend()
+        await Email[send]({ email: 'member@example.com', data: {}, locale: 'en' })
+        expect(sentBody.headers, send).to.deep.equal({ 'X-Auto-Response-Suppress': 'All' })
+      }
+    })
+
+    it('marks the payment-failed and renewal reminders essential and the other paid-content notices bulk (D84)', () => {
+      for (const send of ['sendPaymentFailed', 'sendSubscriptionRenewalReminder']) {
+        expect(emailTypeFor(send).kind, send).to.equal('essential')
+      }
+      for (const send of ['sendSubscriptionCancelled', 'sendSubscriptionCancelledAdminNotification', 'sendAccessGranted', 'sendAccessExpired']) {
+        expect(emailTypeFor(send).kind, send).to.equal('bulk')
+      }
+    })
+
+    it('keeps cancellation and access notices bulk (D84)', async () => {
+      for (const send of ['sendSubscriptionCancelled', 'sendSubscriptionCancelledAdminNotification', 'sendAccessGranted', 'sendAccessExpired']) {
+        captureSend()
+        await Email[send]({ email: 'member@example.com', data: {}, locale: 'en' })
+        expect(sentBody.headers.Precedence, send).to.equal('bulk')
+      }
+    })
+
     it('keeps Precedence: bulk on digests and notifications', async () => {
       captureSend()
       await Email.sendSimpleEmail('member@example.com', 'tem_t7rmGfJKvqXrvmrVWJjjWkg4', {}, { version: 'Spaces' })
@@ -103,6 +131,148 @@ describe('Email', function () {
       captureSend()
       await Email.sendCommentDigest({ email: 'member@example.com', data: {} })
       expect(sentBody.headers).to.deep.equal({ Precedence: 'bulk', 'X-Auto-Response-Suppress': 'All' })
+    })
+  })
+  describe('one-click unsubscribe (D34)', () => {
+    let member, sentBody, sends
+
+    const captureSend = () => {
+      sentBody = null
+      nock('https://api.sendwithus.com')
+        .post(SENDWITHUS_SEND_PATH, body => { sentBody = body; sends += 1; return true })
+        .reply(200, { success: true })
+    }
+
+    const tokenIn = header => readUnsubscribeToken(decodeURIComponent(header.match(/token=([^>&]+)/)[1]))
+
+    beforeEach(async () => {
+      sends = 0
+      member = await factories.user().save()
+    })
+
+    afterEach(() => nock.cleanAll())
+
+    it('adds List-Unsubscribe and one-click headers to bulk email, carrying only the token', async () => {
+      captureSend()
+      await Email.sendPostNotification({ email: member.get('email'), data: {}, unsubscribe: { groupId: 42 } })
+
+      const { headers } = sentBody
+      expect(headers.Precedence).to.equal('bulk')
+      expect(headers['List-Unsubscribe']).to.match(/^<https?:\/\/[^>]+\/noo\/email\/unsubscribe\?token=[^>]+>$/)
+      expect(headers['List-Unsubscribe-Post']).to.equal('List-Unsubscribe=One-Click')
+      expect(headers['List-Unsubscribe']).not.to.contain(member.get('email'))
+      expect(headers['List-Unsubscribe']).not.to.contain(encodeURIComponent(member.get('email')))
+      expect(tokenIn(headers['List-Unsubscribe'])).to.deep.equal({
+        userId: String(member.id),
+        sender: 'sendPostNotification',
+        descriptor: 'group_post_email',
+        groupId: '42',
+        frequency: null,
+        slowedDaily: false
+      })
+      expect(sentBody.email_data.unsubscribe_url).to.match(/\/email\/unsubscribe\?token=/)
+    })
+
+    it('tags each send with its type and group for the email provider', async () => {
+      captureSend()
+      await Email.sendPostNotification({ email: member.get('email'), data: {}, unsubscribe: { groupId: 42 } })
+      expect(sentBody.tags).to.deep.equal(['hylo_type:sendPostNotification', 'hylo_group:42'])
+    })
+
+    it('gives the unified digest a one-click for its frequency', async () => {
+      captureSend()
+      await Email.sendSimpleEmail(member.get('email'), 'tem_t7rmGfJKvqXrvmrVWJjjWkg4', {}, { version: 'Spaces', unsubscribe: { frequency: 'weekly' } })
+
+      expect(sentBody).not.to.have.property('unsubscribe')
+      const token = tokenIn(sentBody.headers['List-Unsubscribe'])
+      expect(token.descriptor).to.equal('group_digest')
+      expect(token.frequency).to.equal('weekly')
+      expect(token.slowedDaily).to.equal(false)
+    })
+
+    it('marks a weekly unified digest that also carries daily groups slowed for being away (D9)', async () => {
+      captureSend()
+      await Email.sendSimpleEmail(member.get('email'), 'tem_t7rmGfJKvqXrvmrVWJjjWkg4', {}, { version: 'Spaces', unsubscribe: { frequency: 'weekly', slowedDaily: true } })
+
+      expect(tokenIn(sentBody.headers['List-Unsubscribe']).slowedDaily).to.equal(true)
+      expect(sentBody.tags).to.deep.equal(['hylo_type:sendSimpleEmail', 'hylo_frequency:weekly', 'hylo_slowed_daily'])
+    })
+
+    it('links email with no single switch to the confirmation page, without one-click', async () => {
+      for (const send of [
+        () => Email.sendWelcomeEmail({ email: member.get('email'), data: {} }),
+        () => Email.sendPostNotification({ email: member.get('email'), data: {} }) // no group named
+      ]) {
+        captureSend()
+        await send()
+        expect(sentBody.headers['List-Unsubscribe']).to.match(/\/noo\/email\/unsubscribe\?token=/)
+        expect(sentBody.headers).not.to.have.property('List-Unsubscribe-Post')
+        expect(sentBody.email_data || {}).not.to.have.property('unsubscribe_url')
+        expect(tokenIn(sentBody.headers['List-Unsubscribe']).descriptor).to.equal('settings_page')
+      }
+    })
+
+    it('never adds them to transactional or essential email', async () => {
+      captureSend()
+      await Email.sendPasswordReset({ email: member.get('email'), templateData: {} })
+      expect(sentBody.headers).to.deep.equal({ 'X-Auto-Response-Suppress': 'All' })
+
+      captureSend()
+      await Email.sendPaymentFailed({ email: member.get('email'), data: {} })
+      expect(sentBody.headers).to.deep.equal({ 'X-Auto-Response-Suppress': 'All' })
+
+      captureSend()
+      await Email.sendInvitation(member.get('email'), { locale: 'en' })
+      expect(sentBody.headers).not.to.have.property('List-Unsubscribe')
+    })
+
+    it('adds none for an address with no Hylo account', async () => {
+      captureSend()
+      await Email.sendPostNotification({ email: 'nobody-here@example.com', data: {}, unsubscribe: { groupId: 42 } })
+      expect(sentBody.headers).not.to.have.property('List-Unsubscribe')
+    })
+
+    it("skips non-essential email for someone who chose 'everything', and still sends essential email", async () => {
+      await member.addSetting({ email_unsubscribe_scope: 'everything' }, true)
+      captureSend()
+
+      const result = await Email.sendPostNotification({ email: member.get('email'), data: {} })
+      expect(result).to.deep.equal({ skipped: true })
+      expect(result).to.equal(Email.SKIPPED)
+      expect(sends).to.equal(0)
+
+      await Email.sendPaymentFailed({ email: member.get('email'), data: {} })
+      expect(sends).to.equal(1)
+    })
+
+    it("sends only direct email to someone who chose 'everything except direct'", async () => {
+      await member.addSetting({ email_unsubscribe_scope: 'all_but_direct' }, true)
+      captureSend()
+
+      expect(await Email.sendWelcomeEmail({ email: member.get('email'), data: {} })).to.equal(Email.SKIPPED)
+      expect(sends).to.equal(0)
+      await Email.sendMessageDigest({ email: member.get('email'), data: {} })
+      expect(sends).to.equal(1)
+    })
+
+    it('skips non-essential email to an undeliverable address and still tries essential email (D36)', async () => {
+      await member.save({ email_undeliverable_at: new Date(), email_undeliverable_reason: 'bounce' }, { patch: true })
+      captureSend()
+
+      expect(await Email.sendMessageDigest({ email: member.get('email'), data: {} })).to.equal(Email.SKIPPED)
+      expect(await Email.sendSimpleEmail(member.get('email'), 'tem_t7rmGfJKvqXrvmrVWJjjWkg4', {}, {})).to.equal(Email.SKIPPED)
+      expect(sends).to.equal(0)
+
+      await Email.sendPasswordReset({ email: member.get('email'), templateData: {} })
+      expect(sends).to.equal(1)
+    })
+
+    it('lists every Email.js sender in lib/email/emailTypes.js', () => {
+      const senders = Object.keys(Email).filter(name => /^send[A-Z]/.test(name) && typeof Email[name] === 'function')
+      expect(senders.length).to.be.above(40)
+      for (const name of senders) {
+        expect(EMAIL_TYPES, name).to.have.property(name)
+      }
     })
   })
 })

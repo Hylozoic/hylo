@@ -349,6 +349,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),
+        emailUndeliverable: u => u.isEmailUndeliverable(),
         hasStripeAccount: u => u.hasStripeAccount(),
         isAdmin: u => isAdmin || false,
         memberInvitesEnabled: () => GroupRole.memberInvitesEnabled(),

@@ -22,6 +22,8 @@ exports.hi = {
   emailDigestWeeklySubject: (name) => `आपका ${name} साप्ताहिक सारांश`,
   emailDigestUnifiedDailySubject: () => 'आपका Hylo दैनिक सारांश',
   emailDigestUnifiedWeeklySubject: () => 'आपका Hylo साप्ताहिक सारांश',
+  // D9: in the first weekly digest after a daily digest was slowed down for being away
+  emailDigestSlowedNotice: () => 'आपके दूर रहने के दौरान हमने आपके ईमेल घटाकर एक साप्ताहिक डाइजेस्ट कर दिए हैं। अपना दैनिक डाइजेस्ट फिर से पाने के लिए कभी भी Hylo पर आएँ।',
   emailSenderViaHyloSuffix: () => ' (Hylo के माध्यम से)',
   groupCreatedNotifySubject: (name) => `नया Hylo समूह बनाया गया: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {

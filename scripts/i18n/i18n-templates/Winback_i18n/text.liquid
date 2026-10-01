@@ -1,0 +1,12 @@
+{% set user_name_var = first_name %}{% trans %}Hi {{user_name_var}},{% endtrans %}
+
+{% trans %}It's been a while since you visited Hylo, so we've been sending you fewer emails. Here's what's been happening in your groups.{% endtrans %}
+{% for group in groups %}
+{{group.name}} {{group.url}}{% if group.new_post_count > 0 %}{% set new_post_count_var = group.new_post_count %}
+{% trans %}New posts since your last visit: {{new_post_count_var}}{% endtrans %}{% endif %}
+{% endfor %}
+{% trans %}Catch up on Hylo: {{home_url}}{% endtrans %}
+
+{% trans %}Direct messages and mentions still reach you by email.{% endtrans %} {% trans %}Choose which emails you get: {{email_settings_url}}{% endtrans %}
+
+{% trans %}The Hylo Team{% endtrans %}

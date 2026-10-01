@@ -1890,6 +1890,8 @@ type Me {
   email: String
   # Whether the logged in user has validated their email address or not
   emailValidated: Boolean
+  # Whether the email provider reported the logged in user's address as undeliverable (a hard bounce). Cleared when the address changes or is verified.
+  emailUndeliverable: Boolean
   # The URL to the logged in user Facebook profile
   facebookUrl: String
  # DEPRECATED: Whether the logged in user is using the Hylo app on any mobile devices
@@ -3268,6 +3270,8 @@ type UserSettings {
   commentNotifications: String
   # How this person wants to receive notifications about Direct Messages: email, push, both, or none
   dmNotifications: String
+  # The unsubscribe choice made on the emailed settings page: digest_only, no_group_emails, all_but_direct or everything (null when none)
+  emailUnsubscribeScope: String
   # When person wants last viewed their Direct Messages
   lastViewedMessagesAt: String
   # Locale preferences for the user
