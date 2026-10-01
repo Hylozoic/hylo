@@ -144,6 +144,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
   // For email invites, fetch the associated email and role from backend (not URL for security)
   const [invitationEmail, setInvitationEmail] = useState(null)
   const [invitationRole, setInvitationRole] = useState(null)
+  const [invitationRequiresApproval, setInvitationRequiresApproval] = useState(false)
+  const [invitedBy, setInvitedBy] = useState(null)
   const [invitationChecked, setInvitationChecked] = useState(false)
   const [linkedSpaceName, setLinkedSpaceName] = useState(null)
   const [linkedSpaceSlug, setLinkedSpaceSlug] = useState(null)
@@ -160,6 +162,10 @@ function GroupDetail ({ forCurrentGroup = false }) {
       // Set invitation role from groupRole on the invite
       if (checkResult?.groupRole) {
         setInvitationRole(checkResult.groupRole)
+      }
+      if (invitationToken && checkResult?.requiresApproval) {
+        setInvitationRequiresApproval(true)
+        setInvitedBy(checkResult.invitedBy || null)
       }
       if (checkResult?.isSpace && checkResult?.parentGroupSlug === slug) {
         setLinkedSpaceName(checkResult.groupName)
@@ -207,8 +213,23 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [dispatch, group, accessCode, invitationToken, linkedSpaceSlug, linkedSpaceId])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
-    dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
-  }, [dispatch])
+    const sponsorToken = invitationRequiresApproval ? invitationToken : undefined
+    const request = dispatch(createJoinRequest(
+      groupId,
+      questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })),
+      sponsorToken
+    ))
+    if (sponsorToken) {
+      // The invitation stopped being usable after the page loaded (used, cancelled or its sender left):
+      // drop it so the page offers whatever the group allows without it
+      request.catch(() => {
+        window.alert(t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'))
+        setInvitationRequiresApproval(false)
+        setInvitedBy(null)
+        navigate(location.pathname, { replace: true })
+      })
+    }
+  }, [dispatch, invitationRequiresApproval, invitationToken, location.pathname, navigate, t])
 
   const updateMySettings = useCallback(changes => {
     if (!group?.id) return
@@ -475,8 +496,10 @@ function GroupDetail ({ forCurrentGroup = false }) {
                   fullPage={fullPage}
                   group={group}
                   groupsWithPendingRequests={groupsWithPendingRequests}
+                  invitationRequiresApproval={invitationRequiresApproval}
                   invitationRole={invitationRole}
                   invitationToken={invitationToken}
+                  invitedBy={invitedBy}
                   joinGroup={joinGroupHandler}
                   linkedSpaceName={linkedSpaceName}
                   requestToJoinGroup={requestToJoinGroup}
@@ -506,8 +529,10 @@ function GroupDetail ({ forCurrentGroup = false }) {
                         fullPage={fullPage}
                         group={group}
                         groupsWithPendingRequests={groupsWithPendingRequests}
+                        invitationRequiresApproval={invitationRequiresApproval}
                         invitationRole={invitationRole}
                         invitationToken={invitationToken}
+                        invitedBy={invitedBy}
                         joinGroup={joinGroupHandler}
                         linkedSpaceName={linkedSpaceName}
                         requestToJoinGroup={requestToJoinGroup}

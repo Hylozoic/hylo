@@ -1080,6 +1080,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='create-group/*' element={<CreateGroup />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
                 <Route path='h/use-invitation' element={<JoinGroup />} />
+                <Route path='h/invitation' element={<JoinGroup />} />
                 <Route
                   path='groups/:groupSlug/*'
                   element={

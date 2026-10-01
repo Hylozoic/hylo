@@ -1,5 +1,13 @@
 import { GraphQLError } from 'graphql'
 
+// The invitation a request came from, while it is neither used nor expired
+function pendingInvitation (request) {
+  return bookshelf.knex('group_invites')
+    .where('id', request.get('invitation_id'))
+    .whereNull('used_by_id')
+    .whereNull('expired_by_id')
+}
+
 module.exports = bookshelf.Model.extend({
   tableName: 'join_requests',
   requireFetch: false,
@@ -17,6 +25,11 @@ module.exports = bookshelf.Model.extend({
     return this.hasMany(GroupJoinQuestionAnswer)
   },
 
+  // The member invitation this request came from, if any
+  invitation: function () {
+    return this.belongsTo(Invitation, 'invitation_id')
+  },
+
   accept: async function (moderatorId) {
     const user = await this.user().fetch()
     const group = await this.group().fetch()
@@ -29,8 +42,12 @@ module.exports = bookshelf.Model.extend({
         await membership.completeJoinBarriers()
       }
 
-      // TODO: add tracking of who did the approving in the join_request
-      await this.save({ status: JoinRequest.STATUS.Accepted }).then(async request => {
+      // joinGroup only marks invitations to the requester's own email address as used
+      if (this.get('invitation_id')) {
+        await pendingInvitation(this).update({ used_by_id: user.id, used_at: new Date() })
+      }
+
+      await this.save({ status: JoinRequest.STATUS.Accepted, processed_by_id: moderatorId || null }).then(async request => {
         const approvedMember = {
           actor_id: moderatorId,
           reader_id: user.id,
@@ -48,10 +65,19 @@ module.exports = bookshelf.Model.extend({
     throw new GraphQLError('Invalid join request')
   },
 
-  /** Mark a pending request as rejected and decrement the group's cached count. */
-  decline: async function () {
+  /**
+   * Mark a pending request as rejected, expire the member invitation it came
+   * from, and decrement the group's cached count.
+   */
+  decline: async function (moderatorId) {
     const wasPending = this.get('status') === JoinRequest.STATUS.Pending
-    await this.save({ status: JoinRequest.STATUS.Rejected })
+    await this.save({ status: JoinRequest.STATUS.Rejected, processed_by_id: moderatorId || null })
+    if (this.get('invitation_id')) {
+      await pendingInvitation(this).update({
+        expired_by_id: moderatorId || bookshelf.knex.raw('invited_by_id'),
+        expired_at: new Date()
+      })
+    }
     if (wasPending) {
       await Group.adjustOpenJoinRequestCount(this.get('group_id'), -1)
     }
@@ -80,6 +106,7 @@ module.exports = bookshelf.Model.extend({
     return new JoinRequest({
       group_id: opts.groupId,
       user_id: opts.userId,
+      invitation_id: opts.invitationId || null,
       created_at: new Date(),
       status: this.STATUS.Pending
     }).save()

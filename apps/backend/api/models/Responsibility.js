@@ -1,8 +1,12 @@
 /* eslint-disable camelcase */
 const RESP_ADMINISTRATION = 'Administration'
 const RESP_ADD_MEMBERS = 'Add Members'
+const RESP_INVITE_MEMBERS = 'Invite Members'
 const RESP_REMOVE_MEMBERS = 'Remove Members'
 const RESP_MANAGE_CONTENT = 'Manage Content'
+
+// System responsibility ids never change once created, so they are cached per process
+const systemIdCache = new Map()
 
 module.exports = bookshelf.Model.extend({
   tableName: 'responsibilities',
@@ -21,6 +25,7 @@ module.exports = bookshelf.Model.extend({
   constants: {
     RESP_ADD_MEMBERS,
     RESP_ADMINISTRATION,
+    RESP_INVITE_MEMBERS,
     RESP_MANAGE_CONTENT,
     RESP_REMOVE_MEMBERS
   },
@@ -40,10 +45,11 @@ module.exports = bookshelf.Model.extend({
         WHEN ? THEN 1
         WHEN ? THEN 2
         WHEN ? THEN 3
-        ELSE 4
+        WHEN ? THEN 4
+        ELSE 5
       END,
       title ASC
-    `, [RESP_ADMINISTRATION, RESP_ADD_MEMBERS, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT])
+    `, [RESP_ADMINISTRATION, RESP_ADD_MEMBERS, RESP_INVITE_MEMBERS, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT])
 
     if (groupRoleId) {
       return orderByPlatformFirst(
@@ -55,6 +61,38 @@ module.exports = bookshelf.Model.extend({
     return orderByPlatformFirst(
       bookshelf.knex('responsibilities').whereRaw('group_id is NULL or group_id = ?', groupId)
     )
+  },
+
+  /**
+   * Id of the platform (type 'system') responsibility with this exact title, or null.
+   * Use this to match a platform responsibility when a group-defined one could share its title.
+   */
+  async systemId (title, { transacting } = {}) {
+    if (systemIdCache.has(title)) return systemIdCache.get(title)
+    let query = bookshelf.knex('responsibilities')
+      .where({ title, type: 'system' })
+      .whereNull('group_id')
+      .orderBy('id', 'asc')
+      .first('id')
+    if (transacting) query = query.transacting(transacting)
+    const row = await query
+    if (!row) return null
+    systemIdCache.set(title, row.id)
+    return row.id
+  },
+
+  /**
+   * True if the title matches a platform responsibility title, ignoring case and surrounding spaces.
+   */
+  async isSystemTitle (title, { transacting } = {}) {
+    const normalized = (title || '').trim().toLowerCase()
+    if (!normalized) return false
+    let query = bookshelf.knex('responsibilities')
+      .where('type', 'system')
+      .whereRaw('lower(trim(title)) = ?', [normalized])
+      .first('id')
+    if (transacting) query = query.transacting(transacting)
+    return !!(await query)
   },
 
   /**

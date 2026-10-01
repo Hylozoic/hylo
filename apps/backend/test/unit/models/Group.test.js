@@ -206,6 +206,25 @@ describe('Group', function () {
     })
   })
 
+  describe('moderators and stewards', function () {
+    it('include Administrators and Moderators but not Hosts or plain members, even when everyone can invite', async function () {
+      const group = await factories.group().save()
+      const [administrator, moderator, host, member] = await Promise.all([1, 2, 3, 4].map(() => factories.user().save()))
+      await group.addMembers([administrator, moderator, host, member])
+      await GroupMembership.assignAdministratorRole(administrator.id, group.id)
+      for (const [user, roleName] of [[moderator, 'Moderator'], [host, 'Host']]) {
+        const role = await GroupRole.findSystemRole(group.id, roleName)
+        await MemberGroupRole.forge({ user_id: user.id, group_id: group.id, group_role_id: role.id, active: true }).save()
+      }
+      await GroupRole.setInvitePolicy(group.id, { mode: GroupRole.InvitePolicy.EVERYONE })
+
+      const ids = async users => (await users.fetch()).map(user => user.id).sort()
+      const expected = [administrator.id, moderator.id].sort()
+      expect(await ids(group.moderators())).to.deep.equal(expected)
+      expect(await ids(group.stewards())).to.deep.equal(expected)
+    })
+  })
+
   describe('removeMembers', function () {
     it('removes child members', async function () {
       const group = await factories.group().save()
@@ -272,6 +291,34 @@ describe('Group', function () {
 
       const otherSpaceMembership = await GroupMembership.forPair(otherUser, space).fetch()
       expect(otherSpaceMembership).to.not.exist
+    })
+
+    it("expires only the leavers' pending member invitations in that group", async function () {
+      const group = await factories.group().save()
+      const otherGroup = await factories.group().save()
+      const leaver = await factories.user().save()
+      const stayer = await factories.user().save()
+      await group.addMembers([leaver.id, stayer.id])
+      await otherGroup.addMembers([leaver.id])
+
+      const invite = (sender, targetGroup, email, inviterAccess = Invitation.InviterAccess.LIMITED) =>
+        Invitation.create({ userId: sender.id, groupId: targetGroup.id, email, inviterAccess })
+      const invitations = {
+        pending: await invite(leaver, group, 'pending@leaver-invites.com'),
+        used: await invite(leaver, group, 'used@leaver-invites.com'),
+        steward: await invite(leaver, group, 'steward@leaver-invites.com', Invitation.InviterAccess.FULL),
+        stayer: await invite(stayer, group, 'stayer@leaver-invites.com'),
+        otherGroup: await invite(leaver, otherGroup, 'other-group@leaver-invites.com')
+      }
+      await invitations.used.save({ used_by_id: stayer.id, used_at: new Date() }, { patch: true })
+
+      await group.removeMembers([leaver.id])
+
+      const expiredBy = {}
+      for (const [name, invitation] of Object.entries(invitations)) {
+        expiredBy[name] = (await Invitation.find(invitation.id)).get('expired_by_id')
+      }
+      expect(expiredBy).to.deep.equal({ pending: leaver.id, used: null, steward: null, stayer: null, otherGroup: null })
     })
 
     it('does not deactivate parent membership when leaving a space only', async function () {

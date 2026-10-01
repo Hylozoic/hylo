@@ -1,7 +1,14 @@
 import React from 'react'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import orm from 'store/models'
 import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Members from './Members'
+
+let mockGroupSlug
+jest.mock('contexts/SpaceGroupContext', () => ({
+  ...jest.requireActual('contexts/SpaceGroupContext'),
+  useEffectiveGroupSlug: () => mockGroupSlug
+}))
 
 function testProviders () {
   const ormSession = orm.mutableSession(orm.getEmptyState())
@@ -45,5 +52,50 @@ describe('Members', () => {
     )
 
     expect(container.querySelector('#root') || container).toBeTruthy()
+  })
+})
+
+describe('Members header Invite pill', () => {
+  function HeaderActions () {
+    const { headerDetails } = useViewHeader()
+    return headerDetails.headerActions || null
+  }
+
+  function providers ({ myInviteAccess, roles = [] }) {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Group.create({ id: '1', slug: 'goteam', name: 'Go Team', memberCount: 3, myInviteAccess })
+    ormSession.Me.create({
+      id: '1',
+      name: 'You',
+      groupRoles: { items: roles },
+      memberships: [ormSession.Membership.create({ id: '1', group: '1' })]
+    })
+    return AllTheProviders({ orm: ormSession.state, pending: {} })
+  }
+
+  function renderMembers (options) {
+    return render(<><Members /><HeaderActions /></>, null, providers(options))
+  }
+
+  beforeEach(() => { mockGroupSlug = 'goteam' })
+  afterEach(() => { mockGroupSlug = undefined })
+
+  it('shows for a member with limited invite access', () => {
+    renderMembers({ myInviteAccess: 'limited' })
+
+    expect(screen.getByRole('button', { name: 'Invite Members' })).toBeInTheDocument()
+  })
+
+  it('shows for someone who can add members', () => {
+    const host = { id: '5', groupId: '1', name: 'Host', responsibilities: { items: [{ id: '2', title: 'Add Members' }] } }
+    renderMembers({ myInviteAccess: 'full', roles: [host] })
+
+    expect(screen.getByRole('button', { name: 'Invite Members' })).toBeInTheDocument()
+  })
+
+  it('is hidden for a member when only stewards can invite', () => {
+    renderMembers({ myInviteAccess: null })
+
+    expect(screen.queryByRole('button', { name: 'Invite Members' })).not.toBeInTheDocument()
   })
 })

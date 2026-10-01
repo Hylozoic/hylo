@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import factories from '../../../test/setup/factories'
+import { withFeatureFlag } from '../../../test/setup/helpers'
 
 import {
   createGroup,
@@ -127,6 +128,74 @@ describe('mutations/group', () => {
 
       await invitation.refresh()
       expect(invitation.get('used_by_id')).to.equal(user.id)
+    })
+
+    describe('with a member invitation', () => {
+      let sponsor
+
+      const memberInvitation = (group, email) =>
+        Invitation.create({ userId: sponsor.id, groupId: group.id, email, inviterAccess: Invitation.InviterAccess.LIMITED })
+
+      const expectNotJoined = async (user, group) =>
+        expect(await GroupMembership.forPair(user, group, { includeInactive: true }).fetch()).to.not.exist
+
+      before(async () => {
+        sponsor = await factories.user().save()
+      })
+
+      it('does not pre-approve a Restricted or Closed group', async () => {
+        for (const accessibility of [Group.Accessibility.RESTRICTED, Group.Accessibility.CLOSED]) {
+          const user = await factories.user().save()
+          const group = await factories.group({ accessibility }).save()
+          const invitation = await memberInvitation(group, user.get('email'))
+
+          await expect(joinGroup(group.id, user.id, [], null, invitation.get('token'), false, {}))
+            .to.be.rejectedWith('You do not have permission to do that')
+          await expectNotJoined(user, group)
+          await invitation.refresh()
+          expect(invitation.get('used_by_id')).to.be.null
+        }
+      })
+
+      it('joins an Open group and marks the invitation used', async () => {
+        const user = await factories.user().save()
+        const group = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+        const invitation = await memberInvitation(group, 'another-address@member-invite.com')
+
+        const membership = await joinGroup(group.id, user.id, [], null, invitation.get('token'), false, {})
+        expect(membership.get('group_id')).to.equal(group.id)
+        await invitation.refresh()
+        expect(invitation.get('used_by_id')).to.equal(user.id)
+      })
+
+      it('never uses it to join its own group while joining another one', async () => {
+        const user = await factories.user().save()
+        const invitedTo = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+        const invitation = await memberInvitation(invitedTo, user.get('email'))
+        const withJoinLink = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+        const open = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+
+        await joinGroup(withJoinLink.id, user.id, [], withJoinLink.get('access_code'), invitation.get('token'), false, {})
+        await joinGroup(open.id, user.id, [], null, invitation.get('token'), false, {})
+
+        expect(await GroupMembership.forPair(user, withJoinLink).fetch()).to.exist
+        expect(await GroupMembership.forPair(user, open).fetch()).to.exist
+        await expectNotJoined(user, invitedTo)
+        await invitation.refresh()
+        expect(invitation.get('used_by_id')).to.be.null
+      })
+
+      it('does not let a member invitation to a space pre-approve its parent', async () => {
+        const user = await factories.user().save()
+        const parent = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+        const space = await factories.group({ type: 'space', parent_id: parent.id, accessibility: Group.Accessibility.OPEN }).save()
+        const invitation = await memberInvitation(space, user.get('email'))
+
+        await expect(joinGroup(parent.id, user.id, [], null, invitation.get('token'), false, {}))
+          .to.be.rejectedWith('You do not have permission to do that')
+        await expectNotJoined(user, parent)
+        await expectNotJoined(user, space)
+      })
     })
   })
 
@@ -545,6 +614,144 @@ describe('mutations/group', () => {
     it('still lets an admin add suggested skills', async () => {
       const skill = await addSuggestedSkillToGroup(steward.id, fromGroup.id, 'beekeeping')
       expect(skill.get('name')).to.equal('beekeeping')
+    })
+  })
+
+  describe('invite policy', () => {
+    let administrator, host, member
+
+    const uniqueSlug = prefix => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+
+    before(async () => {
+      administrator = await factories.user().save()
+      host = await factories.user().save()
+      member = await factories.user().save()
+    })
+
+    describe('createGroup', () => {
+      it('applies each mode inside the create', async () => {
+        const everyone = await createGroup(administrator.id, { name: 'Everyone Invites', slug: uniqueSlug('everyone'), invitePolicy: { mode: 'everyone' } })
+        expect(await GroupRole.getInvitePolicy(everyone.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+
+        const roles = await createGroup(administrator.id, { name: 'Moderators Invite', slug: uniqueSlug('roles'), invitePolicy: { mode: 'roles', systemRoleNames: ['Moderator'] } })
+        const moderator = await GroupRole.findSystemRole(roles.id, 'Moderator')
+        expect(await GroupRole.getInvitePolicy(roles.id)).to.deep.equal({ mode: 'roles', roleIds: [moderator.id] })
+
+        const stewards = await createGroup(administrator.id, { name: 'Stewards Invite', slug: uniqueSlug('stewards'), invitePolicy: { mode: 'stewards' } })
+        expect(await GroupRole.getInvitePolicy(stewards.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('creates no group when the policy is invalid', async () => {
+        for (const invitePolicy of [{ mode: 'anyone' }, { mode: 'roles', systemRoleNames: ['Member'] }, { mode: 'roles', roleIds: ['1'] }]) {
+          const slug = uniqueSlug('invalid-policy')
+          await expect(createGroup(administrator.id, { name: 'Invalid Policy', slug, invitePolicy })).to.be.rejected
+          expect(await Group.find(slug)).to.not.exist
+        }
+      })
+
+      it('creates no group with an everyone or roles policy while member invitations are switched off', async () => {
+        await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+          for (const invitePolicy of [{ mode: 'everyone' }, { mode: 'roles', systemRoleNames: ['Moderator'] }]) {
+            const slug = uniqueSlug('switched-off')
+            await expect(createGroup(administrator.id, { name: 'Switched Off', slug, invitePolicy }))
+              .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
+            expect(await Group.find(slug)).to.not.exist
+          }
+
+          const stewards = await createGroup(administrator.id, { name: 'Switched Off Stewards', slug: uniqueSlug('switched-off'), invitePolicy: { mode: 'stewards' } })
+          expect(await GroupRole.getInvitePolicy(stewards.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+        })
+      })
+
+      it('uses DEFAULT_NEW_GROUP_INVITE_POLICY when no policy is given', async () => {
+        const defaultPolicy = GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY
+        const created = await createGroup(administrator.id, { name: 'Default Policy', slug: uniqueSlug('default') })
+        expect(await GroupRole.getInvitePolicy(created.id)).to.deep.equal({ mode: defaultPolicy.mode, roleIds: [] })
+
+        GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY = { mode: 'everyone' }
+        try {
+          const flipped = await createGroup(administrator.id, { name: 'Flipped Default', slug: uniqueSlug('flipped') })
+          expect(await GroupRole.getInvitePolicy(flipped.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+        } finally {
+          GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY = defaultPolicy
+        }
+      })
+    })
+
+    describe('updateGroup', () => {
+      let group, moderatorRole
+
+      before(async () => {
+        group = await factories.group().save()
+        await administrator.joinGroup(group, { assignAdministrator: true })
+        await host.joinGroup(group)
+        await member.joinGroup(group)
+        const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+        await MemberGroupRole.forge({ user_id: host.id, group_id: group.id, group_role_id: hostRole.id, active: true }).save()
+        moderatorRole = await GroupRole.findSystemRole(group.id, 'Moderator')
+      })
+
+      afterEach(() => GroupRole.setInvitePolicy(group.id, { mode: 'stewards' }))
+
+      it('lets an Administrator set each mode', async () => {
+        await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'everyone' } })
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+
+        await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'roles', roleIds: [String(moderatorRole.id)] } })
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'roles', roleIds: [moderatorRole.id] })
+
+        await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'stewards' } })
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('rejects a Host', async () => {
+        expect(await GroupMembership.inviteAccess(host.id, group.id)).to.equal('full')
+        await expect(updateGroup(host.id, group.id, { invitePolicy: { mode: 'everyone' } }))
+          .to.be.rejectedWith("You don't have the right responsibilities for this group")
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('saves none of the other changes when the policy is invalid', async () => {
+        const name = group.get('name')
+        const memberRole = await GroupRole.findMemberRole(group.id)
+        await expect(updateGroup(administrator.id, group.id, { name: 'Renamed', invitePolicy: { mode: 'roles', roleIds: [memberRole.id] } }))
+          .to.be.rejectedWith('Invite policy roles must be active roles in this group')
+
+        const stored = await Group.find(group.id)
+        expect(stored.get('name')).to.equal(name)
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+      })
+
+      it('only lets an Administrator set stewards while member invitations are switched off', async () => {
+        const name = group.get('name')
+        await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+          for (const invitePolicy of [{ mode: 'everyone' }, { mode: 'roles', roleIds: [String(moderatorRole.id)] }]) {
+            await expect(updateGroup(administrator.id, group.id, { name: 'Renamed', invitePolicy }))
+              .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
+          }
+          expect((await Group.find(group.id)).get('name')).to.equal(name)
+          expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+
+          await updateGroup(administrator.id, group.id, { invitePolicy: { mode: 'stewards' } })
+          expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'stewards', roleIds: [] })
+        })
+      })
+
+      it('leaves the policy alone when none is given', async () => {
+        await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+        await updateGroup(administrator.id, group.id, { description: 'Still everyone' })
+        expect(await GroupRole.getInvitePolicy(group.id)).to.deep.equal({ mode: 'everyone', roleIds: [] })
+      })
+
+      it('does not let limited access regenerate the join link', async () => {
+        await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+        expect(await GroupMembership.inviteAccess(member.id, group.id)).to.equal('limited')
+
+        const code = (await Group.find(group.id)).get('access_code')
+        await expect(regenerateAccessCode(member.id, group.id))
+          .to.be.rejectedWith("You don't have the right responsibilities for this group")
+        expect((await Group.find(group.id)).get('access_code')).to.equal(code)
+      })
     })
   })
 })

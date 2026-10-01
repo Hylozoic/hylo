@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken'
 import { createRequestHandler, makeMutations, makeAuthenticatedQueries } from './index'
 import '../../test/setup'
 import factories from '../../test/setup/factories'
-import { mockify, spyify, unspyify } from '../../test/setup/helpers'
+import { mockify, spyify, unspyify, withFeatureFlag } from '../../test/setup/helpers'
 import { some } from 'lodash/fp'
 import { updateFollowers } from '../models/post/util'
 
@@ -1164,5 +1164,330 @@ describe('steward-only group data', () => {
       const result = await run(admin.id, `{ contentAccess(groupIds: [${group.id}], sortBy: "user_name", order: "asc, (select 1)") { items { id } } }`)
       expect(result.errors[0].message).to.equal('Cannot use sort order "asc, (select 1)"')
     })
+  })
+})
+
+describe('Group.groupRoles', () => {
+  let handler, admin, member, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    group = await factories.group().save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await member.joinGroup(group)
+    await GroupRole.forge({ group_id: group.id, name: 'Greeter', emoji: '👋', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+  })
+
+  it('lists system and custom roles but never the implicit Member role', async () => {
+    expect(await GroupRole.findMemberRole(group.id)).to.exist
+
+    for (const viewer of [admin, member]) {
+      const data = await run(viewer.id, `{ group(id: "${group.id}") { groupRoles { total items { name type } } } }`)
+      const roles = data.group.groupRoles
+      expect(roles.items.map(role => role.name)).to.have.members(['Administrator', 'Moderator', 'Host', 'Greeter'])
+      expect(roles.items.map(role => role.type)).to.not.include(GroupRole.TYPE_MEMBER)
+      expect(roles.total).to.equal(4)
+    }
+  })
+})
+
+describe('group invite policy fields', () => {
+  let handler, admin, host, member, group, space
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  const policyQuery = groupId => `{
+    group(id: "${groupId}") {
+      myInviteAccess
+      invitePath
+      invitePolicy { mode roleIds }
+      memberRole { id name type responsibilities { items { title } } }
+    }
+  }`
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    host = await factories.user().save()
+    member = await factories.user().save()
+    group = await factories.group().save()
+    space = await factories.group({ type: 'space', parent_id: group.id }).save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await host.joinGroup(group)
+    await member.joinGroup(group)
+    await member.joinGroup(space)
+    const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+    await MemberGroupRole.forge({ user_id: host.id, group_id: group.id, group_role_id: hostRole.id, active: true }).save()
+  })
+
+  afterEach(() => GroupRole.setInvitePolicy(group.id, { mode: 'stewards' }))
+
+  it('gives stewards full access and members none when the policy is stewards', async () => {
+    expect((await run(admin.id, policyQuery(group.id))).group.myInviteAccess).to.equal('full')
+    expect((await run(host.id, policyQuery(group.id))).group.myInviteAccess).to.equal('full')
+    expect((await run(member.id, policyQuery(group.id))).group.myInviteAccess).to.be.null
+  })
+
+  it('gives members limited access, and no join link, when the policy is everyone', async () => {
+    await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+
+    const data = await run(member.id, policyQuery(group.id))
+    expect(data.group.myInviteAccess).to.equal('limited')
+    expect(data.group.invitePath).to.be.null
+    expect((await run(host.id, policyQuery(group.id))).group.myInviteAccess).to.equal('full')
+  })
+
+  it('shows the policy and the Member role to Administrators only', async () => {
+    await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+    const memberRole = await GroupRole.findMemberRole(group.id)
+
+    const data = await run(admin.id, policyQuery(group.id))
+    expect(data.group.invitePolicy).to.deep.equal({ mode: 'everyone', roleIds: [] })
+    expect(data.group.memberRole).to.deep.equal({
+      id: String(memberRole.id),
+      name: 'Member',
+      type: GroupRole.TYPE_MEMBER,
+      responsibilities: { items: [{ title: Responsibility.constants.RESP_INVITE_MEMBERS }] }
+    })
+
+    for (const viewer of [host, member]) {
+      const hidden = await run(viewer.id, policyQuery(group.id))
+      expect(hidden.group.invitePolicy).to.be.null
+      expect(hidden.group.memberRole).to.be.null
+    }
+  })
+
+  it('lists no responsibilities on the Member role outside everyone mode', async () => {
+    const moderator = await GroupRole.findSystemRole(group.id, 'Moderator')
+    await GroupRole.setInvitePolicy(group.id, { mode: 'roles', roleIds: [moderator.id] })
+
+    const data = await run(admin.id, policyQuery(group.id))
+    expect(data.group.invitePolicy).to.deep.equal({ mode: 'roles', roleIds: [String(moderator.id)] })
+    expect(data.group.memberRole.responsibilities.items).to.deep.equal([])
+  })
+
+  it('has no policy or Member role in a space, and no limited access there', async () => {
+    await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+
+    const adminView = await run(admin.id, policyQuery(space.id))
+    expect(adminView.group.myInviteAccess).to.equal('full')
+    expect(adminView.group.invitePolicy).to.be.null
+    expect(adminView.group.memberRole).to.be.null
+
+    expect((await run(member.id, policyQuery(space.id))).group.myInviteAccess).to.be.null
+  })
+
+  it('tells the viewer whether member invitations are available on this server', async () => {
+    const query = '{ me { memberInvitesEnabled } }'
+    await withFeatureFlag('MEMBER_INVITES', 'on', async () => {
+      expect((await run(member.id, query)).me.memberInvitesEnabled).to.equal(true)
+    })
+    await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
+      expect((await run(member.id, query)).me.memberInvitesEnabled).to.equal(false)
+    })
+  })
+
+  it('sets the policy through updateGroupSettings and createGroup', async () => {
+    const updated = await run(admin.id, `mutation {
+      updateGroupSettings(id: "${group.id}", changes: { invitePolicy: { mode: "everyone" } }) {
+        invitePolicy { mode roleIds }
+      }
+    }`)
+    expect(updated.updateGroupSettings.invitePolicy).to.deep.equal({ mode: 'everyone', roleIds: [] })
+
+    const slug = `graphql-policy-${Date.now()}`
+    const created = await run(admin.id, `mutation {
+      createGroup(data: { name: "GraphQL Policy", slug: "${slug}", invitePolicy: { mode: "roles", systemRoleNames: ["Moderator"] } }) {
+        id
+        invitePolicy { mode roleIds }
+      }
+    }`)
+    const moderator = await GroupRole.findSystemRole(created.createGroup.id, 'Moderator')
+    expect(created.createGroup.invitePolicy).to.deep.equal({ mode: 'roles', roleIds: [String(moderator.id)] })
+  })
+})
+
+describe('member invitations through GraphQL', () => {
+  let handler, admin, member, other, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  const pendingQuery = (first = 20) => `{
+    group(id: "${group.id}") {
+      myInviteAllowance
+      pendingInvitations(first: ${first}) {
+        total
+        items { email name userId inviterAccess creator { id name } }
+      }
+    }
+  }`
+
+  const invite = (userId, emails) => run(userId, `mutation {
+    createInvitation(groupId: "${group.id}", data: { emails: ${JSON.stringify(emails)} }) {
+      invitations { id email status error }
+    }
+  }`)
+
+  before(async () => {
+    handler = createRequestHandler()
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    other = await factories.user().save()
+    group = await factories.group().save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await member.joinGroup(group)
+    await other.joinGroup(group)
+    await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+  })
+
+  after(() => unspyify(Queue, 'classMethod'))
+
+  it('sends member invitations, counts down the allowance and lists only their own', async () => {
+    expect((await run(member.id, pendingQuery())).group).to.deep.equal({
+      myInviteAllowance: 25,
+      pendingInvitations: { total: 0, items: [] }
+    })
+
+    const created = await invite(member.id, ['first@graphql-member.com', other.get('email'), 'nope'])
+    expect(created.createInvitation.invitations).to.deep.equal([
+      { id: null, email: 'first@graphql-member.com', status: 'sent', error: null },
+      { id: null, email: other.get('email').toLowerCase(), status: 'sent', error: null },
+      { id: null, email: 'nope', status: null, error: 'invalid' }
+    ])
+    await invite(member.id, ['second@graphql-member.com'])
+    await invite(other.id, ['from-other@graphql-member.com'])
+
+    const memberView = (await run(member.id, pendingQuery())).group
+    expect(memberView.myInviteAllowance).to.equal(22)
+    expect(memberView.pendingInvitations.total).to.equal(2)
+    expect(memberView.pendingInvitations.items).to.deep.equal([
+      { email: 'second@graphql-member.com', name: null, userId: null, inviterAccess: null, creator: { id: String(member.id), name: member.get('name') } },
+      { email: 'first@graphql-member.com', name: null, userId: null, inviterAccess: null, creator: { id: String(member.id), name: member.get('name') } }
+    ])
+    expect((await run(member.id, pendingQuery(1))).group.pendingInvitations.items).to.have.lengthOf(1)
+  })
+
+  it('shows Add Members holders every invitation with who sent it, and no allowance', async () => {
+    await run(admin.id, `mutation {
+      createInvitation(groupId: "${group.id}", data: { emails: ["steward@graphql-member.com"] }) { invitations { id } }
+    }`)
+
+    const adminView = (await run(admin.id, pendingQuery())).group
+    expect(adminView.myInviteAllowance).to.be.null
+    const byEmail = Object.fromEntries(adminView.pendingInvitations.items.map(item => [item.email, item]))
+    expect(Object.keys(byEmail)).to.have.members([
+      'first@graphql-member.com', 'second@graphql-member.com', 'from-other@graphql-member.com', 'steward@graphql-member.com'
+    ])
+    expect(byEmail['first@graphql-member.com']).to.include({ inviterAccess: 'limited' })
+    expect(byEmail['first@graphql-member.com'].creator).to.deep.equal({ id: String(member.id), name: member.get('name') })
+    expect(byEmail['steward@graphql-member.com']).to.include({ inviterAccess: 'full' })
+    expect(byEmail['steward@graphql-member.com'].creator.id).to.equal(String(admin.id))
+    expect((await run(admin.id, pendingQuery(2))).group.pendingInvitations.items).to.have.lengthOf(2)
+  })
+
+  it('gives members no list and no allowance under the stewards policy', async () => {
+    await GroupRole.setInvitePolicy(group.id, { mode: 'stewards' })
+    expect((await run(member.id, pendingQuery())).group).to.deep.equal({
+      myInviteAllowance: null,
+      pendingInvitations: { total: 0, items: [] }
+    })
+  })
+})
+
+describe('member invitation approval through GraphQL', () => {
+  let handler, admin, sponsor, invitee, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = userId ? { userId, destroy: () => {} } : {}
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    return executionResult
+  }
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    sponsor = await factories.user({ name: 'Inviting Member', avatar_url: 'https://example.com/inviting-member.png' }).save()
+    invitee = await factories.user().save()
+    group = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await sponsor.joinGroup(group)
+    await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
+  })
+
+  it('checks a member invitation, asks for a request, and shows stewards who invited the person', async () => {
+    const invitation = await Invitation.create({ userId: sponsor.id, groupId: group.id, email: invitee.get('email'), inviterAccess: Invitation.InviterAccess.LIMITED })
+    const token = invitation.get('token')
+    const sender = { id: String(sponsor.id), name: 'Inviting Member', avatarUrl: 'https://example.com/inviting-member.png' }
+
+    for (const viewer of [null, invitee.id]) {
+      const checked = await run(viewer, `{ checkInvitation(invitationToken: "${token}") { valid groupSlug requiresApproval invitedBy { id name avatarUrl } } }`)
+      expect(checked.errors).to.be.undefined
+      expect(checked.data.checkInvitation).to.deep.equal({ valid: true, groupSlug: group.get('slug'), requiresApproval: true, invitedBy: sender })
+    }
+
+    const used = await run(invitee.id, `mutation { useInvitation(invitationToken: "${token}") { requiresApproval groupSlug error membership { id } } }`)
+    expect(used.errors).to.be.undefined
+    expect(used.data.useInvitation).to.deep.equal({ requiresApproval: true, groupSlug: group.get('slug'), error: null, membership: null })
+    expect(await GroupMembership.forPair(invitee.id, group.id).fetch()).to.not.exist
+
+    const requested = await run(invitee.id, `mutation { createJoinRequest(groupId: "${group.id}", invitationToken: "${token}") { request { id status invitedBy { id name } } } }`)
+    expect(requested.errors).to.be.undefined
+    expect(requested.data.createJoinRequest.request).to.include({ status: JoinRequest.STATUS.Pending })
+
+    const stewardView = await run(admin.id, `{ joinRequests(groupId: ${group.id}) { items { user { id } invitedBy { id name avatarUrl } } } }`)
+    expect(stewardView.errors).to.be.undefined
+    expect(stewardView.data.joinRequests.items).to.deep.equal([{ user: { id: String(invitee.id) }, invitedBy: sender }])
+
+    expect(await GroupMembership.inviteAccess(sponsor.id, group.id)).to.equal('limited')
+    const sponsorView = await run(sponsor.id, `{ joinRequests(groupId: ${group.id}) { items { id } } }`)
+    expect(sponsorView.errors[0].message).to.equal('You do not have permission to do that')
+  })
+
+  it('leaves steward invitations as they were', async () => {
+    const invitation = await Invitation.create({ userId: admin.id, groupId: group.id, email: 'steward-invitee@approval-graphql.com' })
+    const checked = await run(null, `{ checkInvitation(invitationToken: "${invitation.get('token')}") { valid requiresApproval invitedBy { id } } }`)
+    expect(checked.data.checkInvitation).to.deep.equal({ valid: true, requiresApproval: false, invitedBy: null })
+
+    const person = await factories.user().save()
+    const used = await run(person.id, `mutation { useInvitation(invitationToken: "${invitation.get('token')}") { requiresApproval groupSlug error membership { id } } }`)
+    expect(used.errors).to.be.undefined
+    expect(used.data.useInvitation.requiresApproval).to.be.null
+    expect(used.data.useInvitation.membership.id).to.exist
   })
 })

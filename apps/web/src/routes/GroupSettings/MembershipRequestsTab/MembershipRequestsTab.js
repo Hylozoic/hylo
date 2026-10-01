@@ -155,7 +155,7 @@ function NewRequests ({ accept, decline, group, joinRequests }) {
 }
 
 function JoinRequest ({ accept, decline, group, request }) {
-  const { createdAt, questionAnswers, user } = request
+  const { createdAt, invitedBy, questionAnswers, user } = request
   const { t } = useTranslation()
   const joinQuestions = group.joinQuestions || []
   const createdAtLabel = createdAt && formatLocalizedDate(createdAt, { style: 'datetime' })
@@ -183,6 +183,12 @@ function JoinRequest ({ accept, decline, group, request }) {
               </div>)
             : (
               <div className='text-sm text-foreground/70'>{user.location}</div>)}
+          {invitedBy && (
+            <div className='flex items-center gap-1.5 mt-1 text-sm text-foreground/70'>
+              <Avatar avatarUrl={invitedBy.avatarUrl} url={personUrl(invitedBy.id)} tiny className='shrink-0' />
+              <span>{t('Invited by {{name}}', { name: invitedBy.name })}</span>
+            </div>
+          )}
         </div>
       </div>
 

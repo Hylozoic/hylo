@@ -257,3 +257,42 @@ it('sets returnToPath and forwards to signup page when invitation is valid and u
     expect(screen.getByText('/groups/test-group/about?accessCode=anything')).toBeInTheDocument()
   })
 })
+
+it('sends a member invitation that needs approval to the group about page with its token', async () => {
+  mockGraphqlServer.use(
+    graphql.query('CheckInvitation', ({ variables }) => {
+      return HttpResponse.json({
+        data: {
+          checkInvitation: {
+            valid: variables.invitationToken === 'member-token',
+            groupId: '3',
+            groupSlug: 'test-group',
+            isSpace: false,
+            requiresApproval: true,
+            invitedBy: { id: '7', name: 'Ada Member', avatarUrl: null }
+          }
+        }
+      })
+    })
+  )
+
+  jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({})
+  jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({ pathname: '/h/invitation', search: '?token=member-token' })
+
+  render(
+    <>
+      <Routes>
+        <Route path='/join-group' element={<JoinGroup />} />
+        <Route
+          path='/groups/test-group/about'
+          element={<div>/groups/test-group/about?token=member-token</div>}
+        />
+      </Routes>
+    </>,
+    { wrapper: currentUserProvider(true) }
+  )
+
+  await waitFor(() => {
+    expect(screen.getByText('/groups/test-group/about?token=member-token')).toBeInTheDocument()
+  })
+})

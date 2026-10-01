@@ -378,6 +378,13 @@ module.exports = {
       return url('/h/use-invitation?token=%s&email=%s', token, encodeURIComponent(email))
     },
 
+    // Link for invitations sent with limited access. Mobile apps open
+    // /h/use-invitation natively and join straight away; this path opens in
+    // their web view, where the web join flow can ask for a steward's approval.
+    invitation: function (token) {
+      return url('/h/invitation?token=%s', encodeURIComponent(token))
+    },
+
     verifyEmail: function (email, token) {
       return url('/signup/verify-email?email=%s&token=%s', encodeURIComponent(email), token)
     },

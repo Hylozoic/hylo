@@ -44,6 +44,15 @@ export default function JoinGroupScreen () {
 
           if (isAuthorized) {
             const { data } = await acceptInvitation(invitationTokenAndCode)
+
+            // Member invitations link to /h/invitation, which opens in the web view; this covers one
+            // reaching /h/use-invitation anyway. Stewards approve the person's request on the about page.
+            const approvalGroupSlug = data?.useInvitation?.requiresApproval && data.useInvitation.groupSlug
+            if (approvalGroupSlug && token) {
+              await openURL(`/groups/${approvalGroupSlug}/about?token=${encodeURIComponent(token)}`)
+              return
+            }
+
             const newMembership = data?.useInvitation?.membership
             const groupSlug = newMembership?.group?.slug
 

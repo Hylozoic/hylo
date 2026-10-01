@@ -1,4 +1,4 @@
-/* global FundingRound, Group, GroupMembership, Responsibility, Queue, bookshelf, Post, PostUser */
+/* global FundingRound, Group, GroupMembership, GroupRole, Responsibility, Queue, bookshelf, Post, PostUser */
 import { omit } from 'lodash'
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
@@ -60,6 +60,7 @@ export async function createFundingRound (userId, data) {
   if (!(await canManageFundingRounds(userId, group))) {
     throw new GraphQLError('You do not have permission to create funding rounds')
   }
+  await GroupRole.assertAssignableRoleIds([...(data.submitterRoles || []), ...(data.voterRoles || [])])
   // Convert role arrays to JSON format for storage
   if (data.submitterRoles) {
     attrs.submitter_roles = JSON.stringify(data.submitterRoles)
@@ -93,6 +94,7 @@ export async function updateFundingRound (userId, id, data) {
     if (!(await canManageFundingRounds(userId, group, { transacting }))) {
       throw new GraphQLError('You do not have permission to update funding rounds')
     }
+    await GroupRole.assertAssignableRoleIds([...(data.submitterRoles || []), ...(data.voterRoles || [])], { transacting })
 
     const attrs = convertGraphqlData(omit(data, 'title', 'bannerUrl', 'description', 'publishedAt', 'phase'))
     const updatedAttrs = fixDateFields(attrs, data)

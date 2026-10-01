@@ -438,6 +438,7 @@ function presentGroup (seed, group) {
     groupViews: { items: presentGroupViews(seed, group) },
     groupRoles: { items: seed.groups.roles.filter(role => !role.groupId || role.groupId === group.id || role.groupId === seed.groups.main.id) },
     stewards: { items: [me] },
+    myInviteAccess: 'full',
     members: paginate(members, 20, 0),
     spaces: {
       items: group.id === seed.groups.main.id

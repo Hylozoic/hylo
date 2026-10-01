@@ -69,6 +69,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
     throw new GraphQLError("You don't have permission to create spaces in this group")
   }
+  await GroupRole.assertAssignableRoleIds(requiredRoles)
 
   const finalSlug = await uniqueStoredSpaceSlug(parentGroup.get('slug'), slug, name)
   const isPaywalled = Boolean(paywall)
@@ -171,7 +172,10 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
   if (accessibility !== undefined) changes.accessibility = accessibility
   if (description !== undefined) changes.description = description
   if (purpose !== undefined) changes.purpose = purpose
-  if (requiredRoles !== undefined) changes.required_roles = requiredRoles
+  if (requiredRoles !== undefined) {
+    await GroupRole.assertAssignableRoleIds(requiredRoles)
+    changes.required_roles = requiredRoles
+  }
   if (location !== undefined) changes.location = location
   if (locationId !== undefined) changes.location_id = locationId
   if (icon !== undefined) changes.icon = icon || null
@@ -385,6 +389,19 @@ async function copyParentStewardsToChild (parentGroup, child, { transacting } = 
 }
 
 /**
+ * Give the new child group the parent's invite policy when it is 'everyone' or
+ * 'stewards'. A 'roles' policy names the parent's own roles, so the child falls
+ * back to 'stewards', as it does while member invitations are switched off.
+ */
+async function copyParentInvitePolicyToChild (parentGroup, child, { transacting } = {}) {
+  const parentPolicy = await GroupRole.getInvitePolicy(parentGroup.id, { transacting })
+  const mode = parentPolicy?.mode === GroupRole.InvitePolicy.EVERYONE && GroupRole.memberInvitesEnabled()
+    ? GroupRole.InvitePolicy.EVERYONE
+    : GroupRole.InvitePolicy.STEWARDS
+  await GroupRole.setInvitePolicy(child.id, { mode }, { transacting })
+}
+
+/**
  * Convert a regular space into a child group of its parent.
  * Clears type/parent_id, creates a parent-child relationship, and
  * turns an on-menu space view into a group view (or deletes an off-menu one).
@@ -423,6 +440,7 @@ export async function convertSpaceToChildGroup (userId, id, context) {
     await space.refresh({ transacting: trx })
     await parentGroup.addChild(space, { transacting: trx })
     await copyParentStewardsToChild(parentGroup, space, { transacting: trx })
+    await copyParentInvitePolicyToChild(parentGroup, space, { transacting: trx })
     await convertSpaceViewToChildGroupView(id, space.get('name'), { transacting: trx })
     await GroupView.syncMoreSpacesCount(parentId, { transacting: trx })
     await removeFromParentSpaceCollections(id, parentId, { transacting: trx })
@@ -541,6 +559,8 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
 
   await bookshelf.transaction(async trx => {
     await group.save({ type: 'space', parent_id: parentGroupId }, { patch: true, transacting: trx })
+    // Spaces have no member invitations, and an invitation to a space can admit people to its parent
+    await Invitation.expirePendingLimited({ groupId: group.id, expiredById: userId }, { transacting: trx })
     await relationship.save({ active: false }, { transacting: trx })
     await convertChildGroupViewToSpaceView(parentGroupId, id, group.get('name'), { transacting: trx })
     await GroupView.syncMoreSpacesCount(parentGroupId, { transacting: trx })
@@ -554,10 +574,10 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
 
 /**
  * Join a space. Parent-group Administration can join any space. A valid
- * accessCode or invitationToken pre-approves Closed and Restricted spaces
- * but does NOT bypass role gating — the invited person must still hold the
- * required role. Paywalled spaces still require purchase unless the user
- * administers the parent.
+ * accessCode or invitationToken (other than a member's invitation) pre-approves
+ * Closed and Restricted spaces but does NOT bypass role gating — the invited
+ * person must still hold the required role. Paywalled spaces still require
+ * purchase unless the user administers the parent.
  * @param userId {string}
  * @param spaceId {string}
  * @param accessCode {string} optional join-link access code
@@ -603,7 +623,8 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
     if (accessCode || invitationToken) {
       inviteCheck = await InvitationService.check(invitationToken, accessCode)
     }
-    hasValidInvitation = !!(inviteCheck?.valid && inviteCheck.groupSlug === space.get('slug'))
+    hasValidInvitation = !!(inviteCheck?.valid && inviteCheck.groupSlug === space.get('slug')) &&
+      (!!accessCode || await InvitationService.preApproves(await Invitation.find(invitationToken), space))
 
     if (!canAdministerParent) {
       if (space.get('paywall')) {

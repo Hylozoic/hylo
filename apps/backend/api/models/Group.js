@@ -49,6 +49,15 @@ function notificationSettingsFromMembership (membership) {
 const DEFAULT_BANNER = '/default-group-banner.svg'
 const DEFAULT_AVATAR = '/default-group-avatar.svg'
 
+// GroupInput.invitePolicy after convertGraphqlData
+function invitePolicyFromData (policy) {
+  return {
+    mode: policy.mode,
+    roleIds: policy.role_ids,
+    systemRoleNames: policy.system_role_names
+  }
+}
+
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'groups',
   requireFetch: false,
@@ -782,6 +791,8 @@ module.exports = bookshelf.Model.extend(merge({
       await Promise.map(userIds, userId =>
         GroupMembership.revokeAllGroupRoles(userId, roleScopeId, { transacting })
       )
+      // Someone who has left no longer vouches for the people they invited as a member
+      await Invitation.expirePendingLimited({ groupId: this.id, invitedByIds: userIds }, { transacting })
       const agreementsQuery = bookshelf.knex('users_groups_agreements')
         .whereIn('user_id', userIds)
         .where('group_id', this.id)
@@ -954,6 +965,10 @@ module.exports = bookshelf.Model.extend(merge({
       !!this.getSetting('auto_add_members') &&
       !wasAutoAdd
     await bookshelf.transaction(async transacting => {
+      if (changes.invite_policy) {
+        await GroupRole.setInvitePolicy(this.id, invitePolicyFromData(changes.invite_policy), { transacting })
+      }
+
       if (changes.agreements && this.get('type') !== 'space' && !this.get('parent_id')) {
         const currentAgreementIds = (await this.agreements().fetch({ transacting })).pluck('id')
         const newAgreementIds = []
@@ -1392,6 +1407,12 @@ module.exports = bookshelf.Model.extend(merge({
       await group.save(null, { transacting: trx })
 
       await GroupRole.setupSystemRoles(group.id, { transacting: trx })
+
+      if (data.invite_policy) {
+        await GroupRole.setInvitePolicy(group.id, invitePolicyFromData(data.invite_policy), { transacting: trx })
+      } else if (group.get('type') !== 'space') {
+        await GroupRole.setInvitePolicy(group.id, GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY, { transacting: trx })
+      }
 
       if (data.group_extensions) {
         for (const extData of data.group_extensions) {

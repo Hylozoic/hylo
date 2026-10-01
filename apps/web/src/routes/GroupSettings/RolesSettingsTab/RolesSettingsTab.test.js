@@ -1,7 +1,7 @@
 import React from 'react'
 import { graphql, HttpResponse } from 'msw'
 import userEvent from '@testing-library/user-event'
-import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders, fireEvent, render, screen, waitFor, within } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import RolesSettingsTab, { AddMemberToRole, RoleList } from './RolesSettingsTab'
 
@@ -39,6 +39,106 @@ describe('RolesSettingsTab', () => {
       'Custom A',
       'Custom B'
     ])
+  })
+})
+
+describe('RolesSettingsTab Member card', () => {
+  const inviteMembers = { id: '41', title: 'Invite Members', description: 'Send personal email invitations to this group.' }
+  let savedFlag
+
+  function groupWith (memberRole, groupRoles = []) {
+    return { id: 1, slug: 'test-group', groupRoles: { items: groupRoles }, memberRole }
+  }
+
+  beforeEach(() => {
+    savedFlag = process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
+    delete process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
+  })
+
+  afterEach(() => {
+    if (savedFlag === undefined) {
+      delete process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
+    } else {
+      process.env.VITE_FEATURE_FLAG_MEMBER_INVITES = savedFlag
+    }
+  })
+
+  it('shows the Member role read-only, with Invite Members when everyone can invite', () => {
+    const memberRole = { id: '9', name: 'Member', responsibilities: { items: [inviteMembers] } }
+    render(<RolesSettingsTab group={groupWith(memberRole)} slug='test-group' />, { wrapper: AllTheProviders() })
+
+    const card = screen.getByTestId('member-role-card')
+    expect(within(card).getByText('Member')).toBeInTheDocument()
+    expect(within(card).getByText('Everyone in this group holds this role.')).toBeInTheDocument()
+    expect(within(card).getByText('Invite Members')).toBeInTheDocument()
+    expect(within(card).queryByText('Remove')).not.toBeInTheDocument()
+    expect(within(card).queryByRole('textbox')).not.toBeInTheDocument()
+    expect(within(card).queryByText('+ Add Member to Role')).not.toBeInTheDocument()
+    expect(within(card).queryByText('+ Add Responsibility to Role')).not.toBeInTheDocument()
+    expect(within(card).getByRole('link', { name: 'Change who can add new members in Privacy & Access' }))
+      .toHaveAttribute('href', '/groups/test-group/settings/privacy')
+  })
+
+  it('shows no responsibilities when members cannot invite', () => {
+    const memberRole = { id: '9', name: 'Member', responsibilities: { items: [] } }
+    render(<RolesSettingsTab group={groupWith(memberRole)} slug='test-group' />, { wrapper: AllTheProviders() })
+
+    const card = screen.getByTestId('member-role-card')
+    expect(within(card).getByText('No responsibilities')).toBeInTheDocument()
+    expect(within(card).queryByText('Invite Members')).not.toBeInTheDocument()
+  })
+
+  it('is not shown without a Member role, and never lists it among the custom roles', () => {
+    const groupRoles = [
+      { id: 9, name: 'Member', type: 'member', active: true, emoji: '', description: '' },
+      { id: 90, name: 'Custom A', type: 'custom', active: true, emoji: '🎖', description: '' }
+    ]
+    render(<RolesSettingsTab group={groupWith(null, groupRoles)} slug='test-group' />, { wrapper: AllTheProviders() })
+
+    expect(screen.queryByTestId('member-role-card')).not.toBeInTheDocument()
+    expect(screen.getAllByDisplayValue(/Member|Custom/).map(input => input.value)).toEqual(['Custom A'])
+  })
+
+  it('is hidden, and Invite Members is not offered to custom roles, while member invitations are switched off', async () => {
+    process.env.VITE_FEATURE_FLAG_MEMBER_INVITES = 'off'
+    mockGraphqlServer.use(
+      graphql.query('fetchResponsibiltiesForGroup', () => HttpResponse.json({
+        data: {
+          responsibilities: [
+            { ...inviteMembers, type: 'system' },
+            { id: '42', title: 'Manage Content', type: 'system', description: '' }
+          ]
+        }
+      })),
+      graphql.query('fetchGroupRoleDetails', () => HttpResponse.json({
+        data: { group: { id: 1, members: { items: [], hasMore: false } }, responsibilities: [] }
+      }))
+    )
+    const memberRole = { id: '9', name: 'Member', responsibilities: { items: [inviteMembers] } }
+    const groupRoles = [{ id: 90, name: 'Custom A', type: 'custom', active: true, emoji: '🎖', description: '' }]
+    render(<RolesSettingsTab group={groupWith(memberRole, groupRoles)} slug='test-group' />, { wrapper: AllTheProviders() })
+
+    expect(screen.queryByTestId('member-role-card')).not.toBeInTheDocument()
+
+    fireEvent.click(await screen.findByText('+ Add Responsibility to Role'))
+    expect(await screen.findByText('Manage Content')).toBeInTheDocument()
+    expect(screen.queryByText('Invite Members')).not.toBeInTheDocument()
+  })
+
+  it('offers Invite Members to custom roles while member invitations are on', async () => {
+    mockGraphqlServer.use(
+      graphql.query('fetchResponsibiltiesForGroup', () => HttpResponse.json({
+        data: { responsibilities: [{ ...inviteMembers, type: 'system' }] }
+      })),
+      graphql.query('fetchGroupRoleDetails', () => HttpResponse.json({
+        data: { group: { id: 1, members: { items: [], hasMore: false } }, responsibilities: [] }
+      }))
+    )
+    const groupRoles = [{ id: 90, name: 'Custom A', type: 'custom', active: true, emoji: '🎖', description: '' }]
+    render(<RolesSettingsTab group={groupWith(null, groupRoles)} slug='test-group' />, { wrapper: AllTheProviders() })
+
+    fireEvent.click(await screen.findByText('+ Add Responsibility to Role'))
+    expect(await screen.findByText('Invite Members')).toBeInTheDocument()
   })
 })
 
