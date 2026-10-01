@@ -68,61 +68,6 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 
 
 --
--- Name: clear_content_access_expires_at(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.clear_content_access_expires_at() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-    DECLARE
-      latest_expires_at TIMESTAMP WITH TIME ZONE;
-    BEGIN
-      IF NEW.track_id IS NOT NULL THEN
-        UPDATE tracks_users
-        SET access_granted = false, updated_at = NOW()
-        WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
-      END IF;
-
-      IF NEW.group_role_id IS NOT NULL THEN
-        SELECT MAX(expires_at) INTO latest_expires_at
-        FROM content_access
-        WHERE user_id = NEW.user_id
-          AND group_role_id = NEW.group_role_id
-          AND granted_by_group_id = NEW.granted_by_group_id
-          AND status = 'active'
-          AND id != NEW.id;
-        UPDATE group_memberships_group_roles
-        SET expires_at = latest_expires_at, updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.granted_by_group_id
-          AND group_role_id = NEW.group_role_id;
-        UPDATE group_memberships
-        SET expires_at = latest_expires_at, updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.granted_by_group_id;
-      END IF;
-
-      IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL THEN
-        SELECT MAX(expires_at) INTO latest_expires_at
-        FROM content_access
-        WHERE user_id = NEW.user_id
-          AND granted_by_group_id = NEW.granted_by_group_id
-          AND track_id IS NULL
-          AND group_role_id IS NULL
-          AND status = 'active'
-          AND id != NEW.id;
-        UPDATE group_memberships
-        SET expires_at = latest_expires_at, updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.granted_by_group_id;
-      END IF;
-
-      RETURN NEW;
-    END;
-    $$;
-
-
---
 -- Name: compute_user_scopes_from_content_access(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -267,63 +212,6 @@ CREATE FUNCTION public.compute_user_scopes_from_role() RETURNS trigger
 --
 
 
-
---
--- Name: sync_content_access_expires_at(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.sync_content_access_expires_at() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-    DECLARE
-      latest_expires_at TIMESTAMP WITH TIME ZONE;
-    BEGIN
-      IF NEW.track_id IS NOT NULL THEN
-        UPDATE tracks_users
-        SET access_granted = true, updated_at = NOW()
-        WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
-      END IF;
-
-      IF NEW.group_role_id IS NOT NULL THEN
-        SELECT MAX(expires_at) INTO latest_expires_at
-        FROM content_access
-        WHERE user_id = NEW.user_id
-          AND group_role_id = NEW.group_role_id
-          AND granted_by_group_id = NEW.granted_by_group_id
-          AND status = 'active';
-        UPDATE group_memberships_group_roles
-        SET expires_at = latest_expires_at, updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.granted_by_group_id
-          AND group_role_id = NEW.group_role_id;
-        UPDATE group_memberships
-        SET expires_at = latest_expires_at, updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.granted_by_group_id;
-      END IF;
-
-      IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL THEN
-        SELECT MAX(expires_at) INTO latest_expires_at
-        FROM content_access
-        WHERE user_id = NEW.user_id
-          AND granted_by_group_id = NEW.granted_by_group_id
-          AND track_id IS NULL
-          AND group_role_id IS NULL
-          AND status = 'active';
-        UPDATE group_memberships
-        SET expires_at = latest_expires_at, updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.granted_by_group_id;
-      END IF;
-
-      RETURN NEW;
-    END;
-    $$;
-
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
 
 --
 -- Name: activities; Type: TABLE; Schema: public; Owner: -
@@ -1024,9 +912,6 @@ CREATE SEQUENCE public.follower_seq
 CREATE TABLE public.funding_rounds (
     id integer NOT NULL,
     group_id bigint NOT NULL,
-    title character varying(255) NOT NULL,
-    banner_url text,
-    description text,
     criteria text,
     require_budget boolean DEFAULT false,
     voting_method character varying(255) NOT NULL,
@@ -1514,41 +1399,6 @@ CREATE SEQUENCE public.group_views_users_id_seq
 --
 
 ALTER SEQUENCE public.group_views_users_id_seq OWNED BY public.group_views_users.id;
-
-
---
--- Name: group_widgets; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.group_widgets (
-    id integer NOT NULL,
-    group_id bigint NOT NULL,
-    widget_id bigint NOT NULL,
-    settings jsonb DEFAULT '{}'::jsonb,
-    is_visible boolean DEFAULT true,
-    "order" integer,
-    created_at timestamp with time zone,
-    context character varying(255)
-);
-
-
---
--- Name: group_widgets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.group_widgets_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: group_widgets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.group_widgets_id_seq OWNED BY public.group_widgets.id;
 
 
 --
@@ -2164,74 +2014,6 @@ CREATE SEQUENCE public.moderation_actions_platform_agreements_id_seq
 --
 
 ALTER SEQUENCE public.moderation_actions_platform_agreements_id_seq OWNED BY public.moderation_actions_platform_agreements.id;
-
-
---
--- Name: networks; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.networks (
-    id integer NOT NULL,
-    name character varying(255),
-    description text,
-    avatar_url character varying(255),
-    banner_url character varying(255),
-    slug character varying(255),
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-
---
--- Name: networks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.networks_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: networks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.networks_id_seq OWNED BY public.networks.id;
-
-
---
--- Name: networks_users; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.networks_users (
-    id integer NOT NULL,
-    network_id bigint,
-    user_id bigint,
-    role integer,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-
---
--- Name: networks_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.networks_users_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: networks_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.networks_users_id_seq OWNED BY public.networks_users.id;
 
 
 --
@@ -3390,10 +3172,6 @@ CREATE SEQUENCE public.token_action_seq
 
 CREATE TABLE public.tracks (
     id integer NOT NULL,
-    name character varying(255) NOT NULL,
-    description text,
-    banner_url text,
-    welcome_message text,
     action_descriptor_plural character varying(255),
     completion_message text,
     deactivated_at timestamp with time zone,
@@ -3681,36 +3459,6 @@ ALTER SEQUENCE public.users_groups_agreements_id_seq OWNED BY public.users_group
 
 
 --
--- Name: widgets; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.widgets (
-    id integer NOT NULL,
-    name character varying(255),
-    created_at timestamp with time zone
-);
-
-
---
--- Name: widgets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.widgets_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: widgets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.widgets_id_seq OWNED BY public.widgets.id;
-
-
---
 -- Name: zapier_triggers; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3974,13 +3722,6 @@ ALTER TABLE ONLY public.group_views_users ALTER COLUMN id SET DEFAULT nextval('p
 
 
 --
--- Name: group_widgets id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_widgets ALTER COLUMN id SET DEFAULT nextval('public.group_widgets_id_seq'::regclass);
-
-
---
 -- Name: groups id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4069,20 +3810,6 @@ ALTER TABLE ONLY public.moderation_actions_agreements ALTER COLUMN id SET DEFAUL
 --
 
 ALTER TABLE ONLY public.moderation_actions_platform_agreements ALTER COLUMN id SET DEFAULT nextval('public.moderation_actions_platform_agreements_id_seq'::regclass);
-
-
---
--- Name: networks id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks ALTER COLUMN id SET DEFAULT nextval('public.networks_id_seq'::regclass);
-
-
---
--- Name: networks_users id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks_users ALTER COLUMN id SET DEFAULT nextval('public.networks_users_id_seq'::regclass);
 
 
 --
@@ -4286,13 +4013,6 @@ ALTER TABLE ONLY public.user_verification_codes ALTER COLUMN id SET DEFAULT next
 --
 
 ALTER TABLE ONLY public.users_groups_agreements ALTER COLUMN id SET DEFAULT nextval('public.users_groups_agreements_id_seq'::regclass);
-
-
---
--- Name: widgets id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.widgets ALTER COLUMN id SET DEFAULT nextval('public.widgets_id_seq'::regclass);
 
 
 --
@@ -4639,14 +4359,6 @@ ALTER TABLE ONLY public.group_views_users
 
 
 --
--- Name: group_widgets group_widgets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_widgets
-    ADD CONSTRAINT group_widgets_pkey PRIMARY KEY (id);
-
-
---
 -- Name: groups groups_access_code_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4788,30 +4500,6 @@ ALTER TABLE ONLY public.moderation_actions
 
 ALTER TABLE ONLY public.moderation_actions_platform_agreements
     ADD CONSTRAINT moderation_actions_platform_agreements_pkey PRIMARY KEY (id);
-
-
---
--- Name: networks networks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks
-    ADD CONSTRAINT networks_pkey PRIMARY KEY (id);
-
-
---
--- Name: networks networks_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks
-    ADD CONSTRAINT networks_slug_unique UNIQUE (slug);
-
-
---
--- Name: networks_users networks_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks_users
-    ADD CONSTRAINT networks_users_pkey PRIMARY KEY (id);
 
 
 --
@@ -5271,14 +4959,6 @@ ALTER TABLE ONLY public.users_groups_agreements
 
 
 --
--- Name: widgets widgets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.widgets
-    ADD CONSTRAINT widgets_pkey PRIMARY KEY (id);
-
-
---
 -- Name: zapier_triggers_groups zapier_triggers_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5530,13 +5210,6 @@ CREATE INDEX group_to_group_join_questions_group_id_index ON public.group_to_gro
 --
 
 CREATE INDEX group_to_group_join_request_question_answers_join_request_id_in ON public.group_to_group_join_request_question_answers USING btree (join_request_id);
-
-
---
--- Name: group_widgets_group_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX group_widgets_group_id_index ON public.group_widgets USING btree (group_id);
 
 
 --
@@ -6773,22 +6446,6 @@ ALTER TABLE ONLY public.group_views_users
 
 
 --
--- Name: group_widgets group_widgets_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_widgets
-    ADD CONSTRAINT group_widgets_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id);
-
-
---
--- Name: group_widgets group_widgets_widget_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_widgets
-    ADD CONSTRAINT group_widgets_widget_id_foreign FOREIGN KEY (widget_id) REFERENCES public.widgets(id);
-
-
---
 -- Name: groups_agreements groups_agreements_agreement_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7018,22 +6675,6 @@ ALTER TABLE ONLY public.moderation_actions
 
 ALTER TABLE ONLY public.moderation_actions
     ADD CONSTRAINT moderation_actions_reporter_id_foreign FOREIGN KEY (reporter_id) REFERENCES public.users(id);
-
-
---
--- Name: networks_users networks_users_network_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks_users
-    ADD CONSTRAINT networks_users_network_id_foreign FOREIGN KEY (network_id) REFERENCES public.networks(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: networks_users networks_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks_users
-    ADD CONSTRAINT networks_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --

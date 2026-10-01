@@ -4,6 +4,8 @@ import { flow, filter, map, includes } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import createComment from '../models/comment/createComment'
 import Busboy from 'busboy'
+import { PassThrough } from 'stream'
+import { isValidInboundEmailSignature } from '../../lib/inboundEmailSignature'
 
 module.exports = {
   createFromEmail: function (req, res) {
@@ -90,6 +92,11 @@ module.exports = {
     }
 
     return new Promise((resolve, reject) => {
+      // The signature covers the raw body, so keep a copy of it while Busboy parses
+      const rawChunks = []
+      const tee = new PassThrough()
+      tee.on('data', chunk => rawChunks.push(chunk))
+
       busboy.on('field', (name, value) => {
         params[name] = value
       })
@@ -98,9 +105,14 @@ module.exports = {
         reject(err)
       })
       busboy.on('finish', () => {
+        if (!isValidInboundEmailSignature(req.headers, Buffer.concat(rawChunks))) {
+          res.status(403).send({ error: 'Invalid signature' })
+          return resolve()
+        }
         Promise.resolve(handleParams(params)).then(resolve).catch(reject)
       })
-      req.pipe(busboy)
+      tee.pipe(busboy)
+      req.pipe(tee)
     })
   },
 

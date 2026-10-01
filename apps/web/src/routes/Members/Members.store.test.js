@@ -11,7 +11,7 @@ describe('getMemberQueryProps', () => {
       sortBy: 'name',
       order: 'asc',
       search: undefined,
-      groupRoleId: null,
+      groupRoleIds: null,
       trackCompleted: null,
       fundingRoundCapability: null
     }
@@ -20,7 +20,7 @@ describe('getMemberQueryProps', () => {
       slug: 'building-hylo',
       sortBy: 'name',
       search: undefined,
-      groupRoleId: null
+      groupRoleIds: null
     })
 
     const storeParams = getMemberQueryProps(variables)
@@ -28,7 +28,7 @@ describe('getMemberQueryProps', () => {
     expect(lookupProps).toEqual({
       slug: 'building-hylo',
       sortBy: 'name',
-      groupRoleId: null,
+      groupRoleIds: null,
       trackCompleted: null,
       fundingRoundCapability: null,
       order: 'asc'

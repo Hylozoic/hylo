@@ -93,25 +93,9 @@ export async function logCookieJar (label: string) {
 }
 
 /**
- * Where native code mints a browser session from the Keychain access token.
- * Review/Heroku frontends (*.herokuapp.com) must use same-origin /noo on the web
- * host so Set-Cookie is rewritten for host-only cookies; direct api-staging calls
- * return Domain=.hylo.com which the WebView jar rejects on non-hylo pages.
+ * Exchange the native bearer token for a WebView session cookie via the API.
  */
 export function sessionFromTokenUrl () {
-  const web = String(HYLO_WEB_BASE_URL || '').replace(/\/$/, '')
-  if (web) {
-    try {
-      const { hostname } = new URL(web)
-      if (
-        hostname !== 'localhost' &&
-        !/^[0-9.]+$/.test(hostname) &&
-        !hostname.endsWith('hylo.com')
-      ) {
-        return `${web}/noo/session/from-token`
-      }
-    } catch (e) { /* use API host below */ }
-  }
   return `${apiHost}/noo/session/from-token`
 }
 
@@ -146,7 +130,7 @@ async function persistSessionCookiesFromJar (webBaseUrl: string) {
 
 /**
  * RN fetch often hides Set-Cookie from JS. Push the header into the WebKit/Android
- * jar when present, then read the jar for the review/staging web host.
+ * jar when present, then read the jar for the session cookie.
  */
 async function ingestSessionFromTokenResponse (requestUrl: string, resp: Response) {
   const setCookie = resp.headers.get('set-cookie')
@@ -221,9 +205,7 @@ function cookieDomainForUrl (url: string) {
   const noScheme = String(url).replace(/^[a-z]+:\/\//i, '')
   const host = noScheme.split('/')[0].split(':')[0]
   if (!host || host === 'localhost' || /^[0-9.]+$/.test(host)) return undefined
-  // Only widen scope for hylo.com hosts. Review frontends (e.g. *.herokuapp.com) sit on
-  // public-suffix domains where Domain= cookies are rejected by the WebView cookie store
-  // (supercookie protection), silently breaking the session sync — host-only is correct there.
+  // Only widen scope for hylo.com hosts.
   if (!host.endsWith('hylo.com')) return undefined
   const labels = host.split('.')
   if (labels.length < 2) return undefined
@@ -235,8 +217,7 @@ async function syncCookiesToWebView (cookieObj: Record<string, string>) {
 
   const web = HYLO_WEB_BASE_URL
   const urls = web ? [web] : []
-  // Review/Heroku web hosts only talk to same-origin /noo/graphql — do not mirror
-  // session cookies onto api-staging with Domain=.hylo.com (jar rejects or ignores).
+  // Only mirror session cookies to the configured web host.
   if (web && cookieDomainForUrl(web)) {
     urls.push(apiHost)
   } else if (!web && apiHost) {
@@ -311,9 +292,8 @@ export async function clearAllExceptSessionCookie () {
   }
 }
 
-/** WebView originWhitelist including the configured web host (review apps, custom URLs). */
 export function webViewOriginWhitelist (webBaseUrl: string) {
-  const list = [
+  return [
     'https://www.hylo*',
     'https://staging.hylo*',
     'http://localhost*',
@@ -322,9 +302,4 @@ export function webViewOriginWhitelist (webBaseUrl: string) {
     'https://*.vimeo.com',
     'https://*.soundcloud.com'
   ]
-  try {
-    const origin = new URL(webBaseUrl).origin
-    if (origin) list.push(`${origin}*`)
-  } catch (e) { /* ignore invalid base URL */ }
-  return list
 }

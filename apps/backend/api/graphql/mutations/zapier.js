@@ -1,4 +1,12 @@
+import { GraphQLError } from 'graphql'
+import { assertPublicUrl } from '../../../lib/safeFetch'
+
 export async function createZapierTrigger (userId, groupIds, targetUrl, type, params) {
+  try {
+    assertPublicUrl(targetUrl)
+  } catch (err) {
+    throw new GraphQLError(err.message)
+  }
   return bookshelf.transaction(async (transacting) => {
     const trigger = await ZapierTrigger.forge({ user_id: userId, target_url: targetUrl, type, params }).save({}, { transacting })
 

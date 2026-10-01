@@ -1,7 +1,6 @@
 import request from 'request'
 import { URL } from 'url'
 import dotenv from 'dotenv'
-import { rewriteSetCookieHeaders } from './rewriteProxySetCookie.js'
 
 dotenv.config()
 
@@ -13,7 +12,6 @@ export default function apiProxy (req, res, next) {
   if (!req.originalUrl.startsWith('/noo')) return next()
 
   const url = VITE_API_HOST + req.originalUrl
-  const frontendHost = (req.headers.host || '').split(':')[0]
 
   request.delete = request.delete || request.del
   const method = request[req.method.toLowerCase()]
@@ -21,8 +19,7 @@ export default function apiProxy (req, res, next) {
   const upstreamReq = method(url, { headers, followRedirect: false })
 
   upstreamReq.on('response', upstreamRes => {
-    const responseHeaders = rewriteSetCookieHeaders(upstreamRes.headers, frontendHost)
-    res.writeHead(upstreamRes.statusCode, responseHeaders)
+    res.writeHead(upstreamRes.statusCode, upstreamRes.headers)
     upstreamRes.pipe(res)
   })
 

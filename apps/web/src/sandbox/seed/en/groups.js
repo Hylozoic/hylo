@@ -174,7 +174,7 @@ export function buildGroups () {
       funding: {
         id: FUNDING_SPACE_ID,
         slug: 'bioregional-grants',
-        name: 'Bioregional Grants',
+        name: 'Bioregional Grants Round 1',
         description: '<p>Participatory grants for regenerative work in the Bay Area bioregion. Members propose projects, discuss them openly, and allocate <strong>Regen Tokens</strong> through community voting — no grant committee, just collective stewardship of shared resources.</p><p>Round 1 is now in the voting phase. Browse submissions, read the plans, and allocate your tokens to the work you believe will heal people, land, and watersheds here.</p>',
         purpose: 'Channel community resources toward the highest-impact regenerative work through participatory budgeting.',
         avatarUrl: 'https://d3ngex8q79bk55.cloudfront.net/community/1054/avatar/1439885454281_BF_logo_final.jpg',

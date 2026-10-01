@@ -563,7 +563,7 @@ export const queryParamWhitelist = [
   'fundingRoundCapability',
   'groupId',
   'groupIds',
-  'groupRoleId',
+  'groupRoleIds',
   'groupSlug',
   'groupSlugs',
   'groupType',

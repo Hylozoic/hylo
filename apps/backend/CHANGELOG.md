@@ -6,6 +6,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
+### Fixed
+- When auto adding people to a space give them same notification settings as they have in parent group
+- Crash when using older Hylo app
+
+## [7.1.0] - 2026-09-25
+
+### Changed
+- Refine role-gated space invite dialog
+
+### Fixed
+- Many security related fixes and updates. Details to come soon.
+- Fix notifications when accepting a group to group invite. Before it was not sending the notification to the invited user.
+
+### Cleanup
+- Dropped leftover spaces-and-views tables (`tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`, `context_widgets`, `custom_views`, `custom_view_topics`, `collections`, `groups_tracks`, `networks`, `networks_users`) and the explore-page `widgets` / `group_widgets` tables
+- Dropped display columns on `tracks` and `funding_rounds`. Names, banners, and descriptions live on the space group
+- Removed the `Widget` and `GroupWidget` models, the `group.widgets` field, and the `updateWidget` mutation. New groups no longer seed explore widgets
+
+## [7.0.8] - 2026-09-23
+
+### Added
+- Reactions support to Direct Messages, at last!
+
+### Changed
+- Keep loading member activity at bottom of member profile as you scroll down. Also fix Recent Activity to show correct posts alongside comments as you scroll
+
 ## [7.0.7] - 2026-09-20
 
 ### Fixed

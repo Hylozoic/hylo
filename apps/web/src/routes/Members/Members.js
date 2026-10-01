@@ -64,15 +64,19 @@ function Members (props) {
   const sortByParam = getQuerystringParam('s', location) || defaultSortBy
   const sortBy = sortKeys[sortByParam] ? sortByParam : defaultSortBy
   const search = getQuerystringParam('q', location)
-  const groupRoleId = getQuerystringParam('r', location) || null
+  const groupRoleIdParam = getQuerystringParam('r', location)
+  const groupRoleIds = useMemo(
+    () => groupRoleIdParam ? [groupRoleIdParam] : null,
+    [groupRoleIdParam]
+  )
   const trackCompletedParam = getQuerystringParam('tc', location)
   const trackCompleted = trackCompletedParam === 'completed' ? true : trackCompletedParam === 'not' ? false : null
   const fundingRoundCapabilityParam = getQuerystringParam('fr', location)
   const fundingRoundCapability = FUNDING_ROUND_CAPABILITIES.includes(fundingRoundCapabilityParam) ? fundingRoundCapabilityParam : null
   const memberCount = useSelector(state => get('memberCount', group))
   const memberQueryProps = useMemo(
-    () => getMemberQueryProps({ slug, search, sortBy, groupRoleId, trackCompleted, fundingRoundCapability }),
-    [slug, search, sortBy, groupRoleId, trackCompleted, fundingRoundCapability]
+    () => getMemberQueryProps({ slug, search, sortBy, groupRoleIds, trackCompleted, fundingRoundCapability }),
+    [slug, search, sortBy, groupRoleIds, trackCompleted, fundingRoundCapability]
   )
   const members = useSelector(state => getMembers(state, memberQueryProps))
   const graphMembers = useSelector(state => getGraphMembers(state, { slug }))
@@ -214,18 +218,18 @@ function Members (props) {
   }, [dispatch, group?.id, slug])
   const fetchMembersAction = useCallback((offset = 0) => {
     if (!group?.id || !slug) return
-    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search, groupRoleId, trackCompleted, fundingRoundCapability }))
-  }, [dispatch, slug, group?.id, sortBy, search, groupRoleId, trackCompleted, fundingRoundCapability])
+    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability }))
+  }, [dispatch, slug, group?.id, sortBy, search, groupRoleIds, trackCompleted, fundingRoundCapability])
 
   useLayoutEffect(() => {
     const centerColumn = document.getElementById(CENTER_COLUMN_ID)
     if (centerColumn) centerColumn.scrollTop = 0
-  }, [slug, sortBy, search, groupRoleId, trackCompleted, fundingRoundCapability])
+  }, [slug, sortBy, search, groupRoleIds, trackCompleted, fundingRoundCapability])
 
   useEffect(() => {
     if (!group?.id || !slug) return
     fetchMembersAction(0)
-  }, [group?.id, slug, sortBy, search, groupRoleId, trackCompleted, fundingRoundCapability, fetchMembersAction])
+  }, [group?.id, slug, sortBy, search, groupRoleIds, trackCompleted, fundingRoundCapability, fetchMembersAction])
 
   // The skill map is loved but heavy — it starts collapsed behind a toggle.
   const [showSkillMap, setShowSkillMap] = useState(false)
@@ -387,7 +391,7 @@ function Members (props) {
           </div>
           {(displayedRoles.length > 0 || canSeeTrackCompletion || showFundingRoundRoles) && (
             <div ref={roleClamp.containerRef} className='flex flex-wrap items-center gap-1.5'>
-              <RolePill active={!groupRoleId && trackCompleted == null && !fundingRoundCapability} count={memberCount || null} onClick={clearMemberFilters}>
+              <RolePill active={!groupRoleIds && trackCompleted == null && !fundingRoundCapability} count={memberCount || null} onClick={clearMemberFilters}>
                 {t('All members')}
               </RolePill>
               {canSeeTrackCompletion && (
@@ -441,7 +445,7 @@ function Members (props) {
                 </>
               )}
               {displayedRoles.map(role => {
-                const active = String(role.id) === String(groupRoleId)
+                const active = groupRoleIds?.includes(String(role.id))
                 const count = isSpaceContext ? (spaceRoleCounts?.[role.id] ?? null) : (role.membersTotal ?? null)
                 return (
                   <RolePill key={role.id} active={active} count={count} onClick={() => changeRoleFilter(active ? null : role.id)}>
@@ -501,7 +505,7 @@ function Members (props) {
             {t('No results for this search')}
           </div>
         )}
-        {!isLoading && members.length > 0 && !search && !groupRoleId && trackCompleted == null && !fundingRoundCapability && Boolean(memberCount) && (
+        {!isLoading && members.length > 0 && !search && !groupRoleIds && trackCompleted == null && !fundingRoundCapability && Boolean(memberCount) && (
           <div className='py-4 text-center text-xs text-foreground/50'>
             {t('Showing {{count}} of {{total}} members', { count: Math.min(members.length, memberCount), total: memberCount })}
           </div>

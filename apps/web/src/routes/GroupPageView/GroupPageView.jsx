@@ -63,7 +63,7 @@ function GroupPageView () {
   if (!groupViewsLoaded) return <Loading />
 
   return (
-    <div className='p-4 global-postContent hylo-page-html max-w-[750px] mx-auto'>
+    <div className='p-4 global-postContent hylo-page-html w-full max-w-[750px] mx-auto'>
       {!hasPageContent && (
         <p className='text-foreground/60'>
           {t('This page has no content yet')}

@@ -82,3 +82,6 @@ Thumbs.db
 # Agent tooling
 .pi/
 .codebase-index/
+.ai-docs/
+.opencode/
+.cache/
