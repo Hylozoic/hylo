@@ -1,8 +1,10 @@
 import {
   POST_TYPE_TO_VIEW_TYPE,
+  membershipBadgeCountFromViews,
   postCountsTowardChatUnread
 } from '@hylo/shared'
 import { updateGroupViewInMenu } from 'store/util/groupViewsOrder'
+import { findViewsForGroupBadge } from 'util/viewUnreadBadges'
 
 const MODULE_NAME = 'SocketListener'
 export const RECEIVE_MESSAGE = `${MODULE_NAME}/RECEIVE_MESSAGE`
@@ -172,7 +174,10 @@ export function ormSessionReducer (session, { meta, type, payload }) {
           text: updatedMessage.text,
           editedAt: updatedMessage.editedAt
             ? new Date(updatedMessage.editedAt).toString()
-            : undefined
+            : undefined,
+          ...(Array.isArray(updatedMessage.commentReactions)
+            ? { commentReactions: updatedMessage.commentReactions }
+            : {})
         })
       }
       break
@@ -185,14 +190,6 @@ export function ormSessionReducer (session, { meta, type, payload }) {
       const creatorId = post.creator?.id || post.creatorId
       if (!currentUser || !groupId || String(creatorId) === String(currentUser.id)) break
       if (post.type === 'chat_activity') break
-
-      const increment = obj =>
-        obj && obj.update({
-          newPostCount: (obj.newPostCount || 0) + 1
-        })
-
-      // Space/group orange dot — membership for the post's group
-      increment(Membership.safeGet({ group: groupId, person: currentUser.id }))
 
       const postType = post.type
       const postGroup = Group.withId(groupId)
@@ -215,6 +212,16 @@ export function ormSessionReducer (session, { meta, type, payload }) {
           bumpUnreadViewsInMenu(parentGroup, nestedItems, postType)
         })
       })
+
+      const membership = Membership.safeGet({ group: groupId, person: currentUser.id })
+      if (membership) {
+        const views = findViewsForGroupBadge(session, groupId)
+        if (views?.length) {
+          membership.update({ newPostCount: membershipBadgeCountFromViews(views) })
+        } else if (postCountsTowardChatUnread(postType) || POST_TYPE_TO_VIEW_TYPE[postType]) {
+          membership.update({ newPostCount: (membership.newPostCount || 0) + 1 })
+        }
+      }
       break
     }
 

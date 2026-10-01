@@ -14,9 +14,9 @@ test('members page: counts, hidden empty roles, stable map, padding', async ({ p
   await waitPastRootSessionLoading(page)
 
   const row = page.locator('div').filter({ has: page.getByRole('button', { name: /All members/ }) }).last()
-  const coordinator = row.getByRole('button', { name: /Coordinator/ })
-  await expect(coordinator).toBeVisible({ timeout: 30000 })
-  await expect(coordinator).toContainText(/\d/)
+  const administrator = row.getByRole('button', { name: /Administrator/ })
+  await expect(administrator).toBeVisible({ timeout: 30000 })
+  await expect(administrator).toContainText(/\d/)
 
   await expect(page.getByRole('button', { name: /Moderator/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /^👋 Host/ })).toHaveCount(0)
@@ -34,7 +34,7 @@ test('members page: counts, hidden empty roles, stable map, padding', async ({ p
     const canvas = document.querySelector('[data-testid="member-skills-graph"] canvas')
     if (canvas) canvas.dataset.stable = 'yes'
   })
-  await coordinator.click()
+  await administrator.click()
   await page.waitForTimeout(1500)
   const marker = await page.evaluate(() =>
     document.querySelector('[data-testid="member-skills-graph"] canvas')?.dataset.stable)

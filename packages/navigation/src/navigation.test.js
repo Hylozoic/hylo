@@ -74,6 +74,18 @@ describe('postUrl', () => {
     const actual = postUrl('123', { context: 'all', action: 'action' })
     expect(actual).toEqual(expected)
   })
+
+  it('should open a group post from about/moderation without nesting under about', () => {
+    const expected = '/groups/awesome-team/post/123'
+    const actual = postUrl('123', { context: 'groups', groupSlug: 'awesome-team', view: 'about' })
+    expect(actual).toEqual(expected)
+  })
+
+  it('should open a space post from about/moderation without nesting under about', () => {
+    const expected = '/groups/awesome-team/spaces/circle/post/123'
+    const actual = postUrl('123', { context: 'groups', groupSlug: 'awesome-team', spaceSlug: 'circle', view: 'about' })
+    expect(actual).toEqual(expected)
+  })
 })
 
 describe('removePostFromUrl', () => {

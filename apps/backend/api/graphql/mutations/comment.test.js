@@ -54,7 +54,7 @@ describe('canDeleteComment', () => {
       p.comments().create(c),
       p.groups().attach(group),
       u1.joinGroup(group),
-      u2.joinGroup(group, { assignCoordinator: true }),
+      u2.joinGroup(group, { assignAdministrator: true }),
       u3.joinGroup(group)
     )
   })

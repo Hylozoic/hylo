@@ -71,7 +71,7 @@ export function buildNotifications ({ peopleById, meId, groups, postsById, track
       group: fundingSpace,
       parent: main,
       post: mycorrhizal,
-      fundingRound
+      fundingRound: { id: fundingRound.id, group: { name: fundingSpace.name } }
     }),
     note('007', -86400 * 3 + 1000, false, {
       action: 'newComment',
@@ -104,7 +104,7 @@ export function buildNotifications ({ peopleById, meId, groups, postsById, track
       actor: peopleById[meId],
       group: fundingSpace,
       parent: main,
-      fundingRound,
+      fundingRound: { id: fundingRound.id, group: { name: fundingSpace.name } },
       meta: { reasons: [], reminderType: 'votingClosing3Days' }
     }),
     note('012', -1800, true, {
@@ -112,7 +112,7 @@ export function buildNotifications ({ peopleById, meId, groups, postsById, track
       actor: p008,
       group: trackSpace,
       parent: main,
-      track
+      track: { id: track.id, space: { name: trackSpace.name } }
     }),
     note('013', -900, true, {
       action: 'joinRequest',
@@ -159,8 +159,8 @@ function note (num, createdAt_offset, unread, {
       comment: comment ? { id: comment.id, text: comment.text } : null,
       group: groupStub(group, parent),
       otherGroup: otherGroup || null,
-      track: track ? { id: track.id, name: track.name } : null,
-      fundingRound: fundingRound ? { id: fundingRound.id, title: fundingRound.title } : null,
+      track: track || null,
+      fundingRound: fundingRound || null,
       contributionAmount: null,
       meta: { reasons: [], ...meta }
     }

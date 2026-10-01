@@ -79,6 +79,10 @@ export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onCli
     }),
     getSize: d => 32,
     sizeUnits: 'pixels',
+    updateTriggers: {
+      getIcon: [data],
+      getPosition: [data]
+    },
     // sizeMinPixels: 20,
     pickable: true,
     onHover,

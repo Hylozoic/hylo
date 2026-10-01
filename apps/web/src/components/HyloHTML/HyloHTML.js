@@ -1,4 +1,5 @@
 import React from 'react'
+import { TextHelpers } from '@hylo/shared'
 import { normalizeUserLinkHref } from 'util/url'
 
 /**
@@ -11,6 +12,7 @@ function transformVideoTags (html) {
 
   // Match <video data-type="embed"> tags with src attribute (handles both self-closing and with closing tag)
   return html.replace(/<video[^>]*data-type=["']embed["'][^>]*src=["']([^"']+)["'][^>]*(\/>|><\/video>)/gi, (match, src) => {
+    if (!TextHelpers.isVideoEmbedURL(src)) return ''
     // Create responsive iframe wrapper
     // Note: src is already extracted from HTML attribute, so it's safe to use in attribute context
     return `<div class="relative w-full aspect-video overflow-hidden my-4">

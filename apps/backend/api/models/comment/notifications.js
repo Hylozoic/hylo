@@ -3,7 +3,7 @@ import { URL } from 'url'
 import { compact, some, sum, uniq } from 'lodash/fp'
 import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import { normalizeLocaleToFull } from '../../../lib/localeHelpers'
-import { senderNameViaHylo } from '../../../lib/email/senderNameViaHylo'
+import { senderNameForGroup } from '../../../lib/email/senderNameViaHylo'
 import RedisClient from '../../services/RedisClient'
 import { getLocaleStrings } from '../../../lib/i18n/locales'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
@@ -68,7 +68,7 @@ export const sendDigests = async () => {
 
     const numSends = await Promise.all(posts.map(async post => {
       const { comments } = post.relations
-      if (comments.length === 0) return []
+      if (comments.length === 0) return 0
 
       const followers = await post.followers().fetch()
 
@@ -186,7 +186,7 @@ async function sendDigestForUser ({ post, comments, user }) {
       },
       sender: {
         reply_to: Email.postReplyAddress(post.id, user.id),
-        name: routeGroup ? senderNameViaHylo(routeGroup.get('name'), locale) : getLocaleStrings(locale).theTeamAtHylo
+        name: routeGroup ? await senderNameForGroup(routeGroup, locale) : getLocaleStrings(locale).theTeamAtHylo
       }
     })
   }

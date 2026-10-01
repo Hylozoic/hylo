@@ -22,7 +22,7 @@ describe('roles mutations', () => {
     group = factories.group()
     return Promise.join(group.save(), user.save(), user2.save())
       .then(() => user.joinGroup(group))
-      .then(() => user2.joinGroup(group, { assignCoordinator: true }))
+      .then(() => user2.joinGroup(group, { assignAdministrator: true }))
   })
 
   after(async () => setup.clearDb())

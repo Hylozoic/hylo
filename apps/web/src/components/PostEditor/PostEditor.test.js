@@ -74,6 +74,9 @@ describe('PostEditor', () => {
       graphql.query('FetchAllMyGroupsSpaces', () => {
         return HttpResponse.json({ data: { me: { memberships: [] } } })
       }),
+      graphql.query('FetchGroupSpaces', () => {
+        return HttpResponse.json({ data: { group: { id: '1', spaces: { items: [] } } } })
+      }),
       graphql.mutation('CreatePost', () => {
         return HttpResponse.json({
           data: {

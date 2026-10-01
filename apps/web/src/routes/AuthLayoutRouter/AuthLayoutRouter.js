@@ -74,7 +74,6 @@ import GroupPageView from 'routes/GroupPageView'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
-import LandingPage from 'routes/LandingPage'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import RouteBootstrapSkeleton from 'components/Skeleton/RouteBootstrapSkeleton'
 import MapExplorer from 'routes/MapExplorer'
@@ -294,7 +293,7 @@ export default function AuthLayoutRouter (props) {
   const setNavContainerRef = useCallback((node) => {
     navContainerRef.current = node
     if (node && isDrawerNavLayout(window.innerWidth)) {
-      node.style.transform = isNavOpenRef.current ? 'translateX(0)' : 'translateX(-100%)'
+      node.style.transform = isNavOpenRef.current ? 'translateX(0%)' : 'translateX(-100%)'
     }
   }, [])
   const setBackdropRef = useCallback((node) => {
@@ -330,7 +329,7 @@ export default function AuthLayoutRouter (props) {
     backdropEl.style.transition = 'opacity 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
 
     if (isNavOpen) {
-      navEl.style.transform = 'translateX(0)'
+      navEl.style.transform = 'translateX(0%)'
       backdropEl.style.opacity = '1'
       backdropEl.style.pointerEvents = 'auto'
     } else {
@@ -380,7 +379,7 @@ export default function AuthLayoutRouter (props) {
       if (!navEl || !backdropEl) return
       navEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
       backdropEl.style.transition = 'opacity 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
-      navEl.style.transform = open ? 'translateX(0)' : 'translateX(-100%)'
+      navEl.style.transform = open ? 'translateX(0%)' : 'translateX(-100%)'
       backdropEl.style.opacity = open ? '1' : '0'
       backdropEl.style.pointerEvents = open ? 'auto' : 'none'
     }
@@ -779,7 +778,14 @@ export default function AuthLayoutRouter (props) {
       }
 
       for (const batch of batches) {
-        await dispatch(fetchGroupsMenuData(batch))
+        try {
+          const result = await dispatch(fetchGroupsMenuData(batch))
+          if (result?.error) {
+            batch.forEach(id => preloadedMenuGroupIdsRef.current.delete(id))
+          }
+        } catch (err) {
+          batch.forEach(id => preloadedMenuGroupIdsRef.current.delete(id))
+        }
       }
     }, INITIAL_DELAY)
 
@@ -895,9 +901,8 @@ export default function AuthLayoutRouter (props) {
         // First join/view: send to welcome when shown to new members, not the home view.
         // Nested `/spaces/` URLs never hit the group lastViewedAt check below (that
         // check is for the parent slug), so this remount is the space equivalent.
-        const isFirstVisit = currentGroupMembership && !get('lastViewedAt', currentGroupMembership)
         destPath = rest || (
-          isFirstVisit && currentGroup?.settings?.showWelcomePage
+          shouldLandOnWelcome(currentGroup, currentGroupMembership, { views: groupViews })
             ? '/welcome'
             : (currentGroup.homeRoute || '/all')
         )
@@ -1103,7 +1108,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='projects/*' element={<ViewContent context='groups' view='projects' />} />
                             <Route path='proposals/*' element={<ViewContent context='groups' view='proposals' />} />
                             <Route path='requests-and-offers/*' element={<ViewContent context='groups' view='requests-and-offers' />} />
-                            <Route path='explore/*' element={<LandingPage />} />
+                            <Route path='explore/*' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/all'}`} replace />} />
                             <Route path='custom/:customViewId/*' element={<ViewContent context='groups' view='custom' />} />
                             <Route path='collection/:customViewId/*' element={<ViewContent context='groups' view='collection' />} />
                             <Route path='space-collection/:viewId/*' element={<SpaceCollection group={currentGroup} />} />

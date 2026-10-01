@@ -57,8 +57,9 @@ export default function MessagesLayout () {
   }, [])
 
   if (isPhoneDevice()) {
-    // No thread picked: the inbox IS the screen (no auto-selected conversation)
-    if (!messageThreadId) return <ThreadList />
+    // Inbox lives in the nav drawer beside GlobalNav. Rendering ThreadList here
+    // too would show a second inbox without the rail when the drawer is closed.
+    if (!messageThreadId) return null
     return <Messages />
   }
 

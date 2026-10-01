@@ -11,16 +11,12 @@ import {
   deleteGroup,
   invitePeerRelationship,
   updatePeerRelationship,
-  deletePeerRelationship
+  deletePeerRelationship,
+  acceptGroupRelationshipInvite,
+  cancelGroupRelationshipInvite,
+  rejectGroupRelationshipInvite
 } from './group'
-
-let starterGroup, starterPost
-
-before(async () => {
-  starterGroup = await factories.group().save({ slug: 'starter-posts', access_code: 'aasdfkjh3##Sasdfsdfedss', accessibility: Group.Accessibility.OPEN })
-  starterPost = await factories.post().save()
-  await starterGroup.posts().attach(starterPost.id)
-})
+import { addSuggestedSkillToGroup, removeSuggestedSkillFromGroup } from './index'
 
 describe('mutations/group', () => {
   describe('moderation', () => {
@@ -30,7 +26,7 @@ describe('mutations/group', () => {
       user = factories.user()
       group = factories.group()
       return Promise.join(group.save(), user.save())
-        .then(() => user.joinGroup(group, { assignCoordinator: true }))
+        .then(() => user.joinGroup(group, { assignAdministrator: true }))
     })
 
     describe('updateGroup', () => {
@@ -52,7 +48,7 @@ describe('mutations/group', () => {
     describe('removeMember', () => {
       it('works', async () => {
         const user2 = await factories.user().save()
-        await user2.joinGroup(group, { assignCoordinator: true })
+        await user2.joinGroup(group, { assignAdministrator: true })
         await removeMember(user.id, user2.id, group.id)
 
         const membership = await GroupMembership.forPair(user2, group,
@@ -80,7 +76,7 @@ describe('mutations/group', () => {
       const inviter = await factories.user().save()
       const user = await factories.user().save()
       const group = await factories.group().save({ accessibility: Group.Accessibility.RESTRICTED })
-      await inviter.joinGroup(group, { assignCoordinator: true })
+      await inviter.joinGroup(group, { assignAdministrator: true })
       await GroupRole.setupSystemRoles(group.id)
       const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
 
@@ -114,7 +110,7 @@ describe('mutations/group', () => {
       const user = await factories.user().save()
       const parent = await factories.group().save({ accessibility: Group.Accessibility.RESTRICTED })
       const space = await factories.group({ type: 'space', parent_id: parent.id }).save()
-      await inviter.joinGroup(parent, { assignCoordinator: true })
+      await inviter.joinGroup(parent, { assignAdministrator: true })
 
       const invitation = await Invitation.create({
         userId: inviter.id,
@@ -135,14 +131,14 @@ describe('mutations/group', () => {
   })
 
   describe('createGroup', () => {
-    let user
+    let user, starterGroup
 
     before(async () => {
       starterGroup = await factories.group().save({ slug: 'starter-posts', access_code: 'aasdfkjh3##Sasdfsdfedss', accessibility: Group.Accessibility.OPEN })
-      starterPost = await factories.post().save()
+      const starterPost = await factories.post().save()
       await starterGroup.posts().attach(starterPost.id)
       user = await factories.user().save()
-      starterGroup.addMembers([user])
+      await starterGroup.addMembers([user])
     })
 
     it('setups up the new administrator membership correctly', async () => {
@@ -188,7 +184,7 @@ describe('mutations/group', () => {
       user = factories.user()
       group = factories.group()
       return Promise.join(group.save(), user.save())
-        .then(() => user.joinGroup(group, { assignCoordinator: true }))
+        .then(() => user.joinGroup(group, { assignAdministrator: true }))
     })
 
     it('deletes the topic', async () => {
@@ -209,7 +205,7 @@ describe('mutations/group', () => {
     before(async () => {
       user = await factories.user().save()
       group = await factories.group().save()
-      await user.joinGroup(group, { assignCoordinator: true })
+      await user.joinGroup(group, { assignAdministrator: true })
     })
 
     it('makes the group inactive', async () => {
@@ -235,11 +231,11 @@ describe('mutations/group', () => {
       otherGroup = await factories.group().save()
 
       // Make adminUser an administrator of both fromGroup and toGroup
-      await adminUser.joinGroup(fromGroup, { assignCoordinator: true })
-      await adminUser.joinGroup(toGroup, { assignCoordinator: true })
+      await adminUser.joinGroup(fromGroup, { assignAdministrator: true })
+      await adminUser.joinGroup(toGroup, { assignAdministrator: true })
 
       // Make memberUser a regular member of fromGroup only
-      await memberUser.joinGroup(fromGroup, )
+      await memberUser.joinGroup(fromGroup, { assignAdministrator: false })
     })
 
     beforeEach(async () => {
@@ -508,6 +504,47 @@ describe('mutations/group', () => {
           expect(error.message).to.match(/Relationship not found/)
         }
       })
+    })
+  })
+
+  describe('permission checks for non-admins', () => {
+    let steward, outsider, fromGroup, toGroup, invite
+
+    before(async () => {
+      steward = await factories.user().save()
+      outsider = await factories.user().save()
+      fromGroup = await factories.group().save()
+      toGroup = await factories.group().save()
+      await steward.joinGroup(fromGroup, { assignAdministrator: true })
+      await steward.joinGroup(toGroup, { assignAdministrator: true })
+      await outsider.joinGroup(fromGroup)
+      await outsider.joinGroup(toGroup)
+      invite = await GroupRelationshipInvite.create({
+        userId: steward.id,
+        fromGroupId: fromGroup.id,
+        toGroupId: toGroup.id,
+        type: GroupRelationshipInvite.TYPE.ParentToChild
+      })
+    })
+
+    after(() => bookshelf.knex('groups_suggested_skills').where('group_id', fromGroup.id).del())
+
+    it('does not let a non-admin accept, reject or cancel a group relationship invite', async () => {
+      for (const fn of [acceptGroupRelationshipInvite, rejectGroupRelationshipInvite, cancelGroupRelationshipInvite]) {
+        await expect(fn(outsider.id, invite.id)).to.be.rejectedWith(/permission/)
+      }
+      await invite.refresh()
+      expect(invite.get('status')).to.equal(GroupRelationshipInvite.STATUS.Pending)
+    })
+
+    it('does not let a non-admin add or remove suggested skills', async () => {
+      await expect(addSuggestedSkillToGroup(outsider.id, fromGroup.id, 'gardening')).to.be.rejectedWith(/permission/)
+      await expect(removeSuggestedSkillFromGroup(outsider.id, fromGroup.id, 'gardening')).to.be.rejectedWith(/permission/)
+    })
+
+    it('still lets an admin add suggested skills', async () => {
+      const skill = await addSuggestedSkillToGroup(steward.id, fromGroup.id, 'beekeeping')
+      expect(skill.get('name')).to.equal('beekeeping')
     })
   })
 })

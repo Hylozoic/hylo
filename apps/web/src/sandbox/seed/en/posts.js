@@ -441,7 +441,7 @@ function basePost (id, creator, groupId, createdAt_offset, type, extras = {}) {
 function groupDisplayName (groupId) {
   if (groupId === MAIN_GROUP_ID) return 'Terran Collective'
   if (groupId === STAFF_GROUP_ID) return 'Holistica Staff'
-  if (groupId === FUNDING_SPACE_ID) return 'Bioregional Grants'
+  if (groupId === FUNDING_SPACE_ID) return 'Bioregional Grants Round 1'
   if (groupId === CHAT_SPACE_ID) return 'General'
   return 'East Bay Connect'
 }
@@ -547,7 +547,7 @@ function fundingSubmission (num, creator, groupId, createdAt_offset, tokensAlloc
     reactionCount: extras.reactionCount || 0,
     fields: {
       budget: extras.budget || '$5,000',
-      fundingRound: { id: FUNDING_ROUND_ID, title: 'Bioregional Grants Round 1' },
+      fundingRound: { id: FUNDING_ROUND_ID, group: { name: 'Bioregional Grants Round 1' } },
       tokensAllocated,
       totalTokensAllocated: tokensAllocated + 8,
       ...locationFields(`fr-${num}`, extras)

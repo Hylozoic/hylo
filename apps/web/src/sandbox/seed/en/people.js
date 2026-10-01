@@ -15,7 +15,7 @@ function memberLocation (token, { fullText, city, lat, lng }) {
 }
 
 /**
- * Sandbox Me — coordinator of Terran Collective (fictional demo persona).
+ * Sandbox Me — administrator of Terran Collective (fictional demo persona).
  * Fields mirror MeQuery / checkLogin shapes used at bootstrap.
  */
 export function buildMe () {

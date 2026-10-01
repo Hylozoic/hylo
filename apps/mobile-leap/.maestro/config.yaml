@@ -1,0 +1,3 @@
+# Default app id for iOS simulator. Override per-flow for Android:
+#   maestro test -e APP_ID=com.hylo.hyloandroid .maestro/
+appId: com.hylo.HyloA

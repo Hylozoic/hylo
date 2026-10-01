@@ -107,7 +107,7 @@ ALTER TABLE tracks ADD COLUMN group_id bigint REFERENCES groups(id) ON DELETE SE
 CREATE INDEX idx_tracks_group_id ON tracks(group_id);
 ```
 
-**Parked (not run):** `migrations/in-progress/20260820120000_drop_track_round_display_columns.js` would drop those display columns. Creates still dual-write `tracks.name` so production `NOT NULL` stays valid. See §14.2.
+**Shipped:** display columns dropped in `20260921140000_drop_track_round_display_columns.js`. `Track.create` no longer writes them. Reads use the space group.
 
 **What moved to the space group (`groups` table):**
 - `name` → `groups.name`
@@ -116,7 +116,7 @@ CREATE INDEX idx_tracks_group_id ON tracks(group_id);
 - `welcome_message` → the space's `welcome` view `page_content`
 - `access_controlled` → `groups.paywall` on the space (shipped, `20260728120000_paid_spaces_from_tracks.js`)
 
-**Columns intentionally kept on `tracks`:** `deactivated_at` and `access_controlled` are **not** in the parked display-column drop. `deactivated_at` is still read by `Track.enroll` and draft/archived state logic; `access_controlled` is zeroed by the paid-spaces migration but the column remains. `groups_tracks` rows were cleared; dropping the table is parked in `20260819140000` (§14.2).
+**Columns intentionally kept on `tracks`:** `deactivated_at` and `access_controlled` were not in the display-column drop. `deactivated_at` is still read by `Track.enroll` and draft/archived state logic; `access_controlled` is zeroed by the paid-spaces migration but the column remains. `groups_tracks` was dropped in `20260921130000`.
 
 **Remaining track-specific columns:** `group_id` (→ space), `completion_message`, `published_at`, `completion_role_id`, `action_descriptor`, `action_descriptor_plural`, `num_actions`, `num_people_enrolled`, `num_people_completed`, `settings`.
 
@@ -126,7 +126,7 @@ CREATE INDEX idx_tracks_group_id ON tracks(group_id);
 
 A funding round is now a space. `funding_rounds.group_id` was **repointed from the parent group to the round's space** during migration. Rounds get a special view type `funding-round-submissions`.
 
-**Parked (not run):** same in-progress drop as tracks (`20260820120000`). Creates still dual-write `funding_rounds.title`. See §14.2.
+**Shipped:** display columns dropped in `20260921140000_drop_track_round_display_columns.js`. `FundingRound.create` no longer writes them. Reads use the space group.
 
 **What moved to the space group:**
 - `title` → `groups.name`
@@ -279,26 +279,27 @@ Used for two view types:
 - `type = 'collection'` — steward-curated post lists (replaces `posts_collections`)
 - `type = 'track-actions'` — ordered action posts in a Track space (replaces `tracks_posts` ordering)
 
-One model sits on this table: `CollectionPost` (`view_id`-based). The legacy `CollectionsPost` (`collection_id`) model is gone. Dropping the leftover `collection_id` column is parked with the other table drops (§14.2).
+One model sits on this table: `CollectionPost` (`view_id`-based). The legacy `CollectionsPost` (`collection_id`) model is gone, and `collections_posts.collection_id` was dropped in `20260921130000`.
 
 ---
 
-### 2.8 Tables whose data has been migrated (not yet dropped)
+### 2.8 Tables dropped after the spaces migration
 
-Data has moved; **the application code no longer reads these tables.** Drop SQL is parked in `migrations/in-progress/` (knex does not run that folder) until after production soak. See §14.2.
+These tables were dropped in `20260921120000`, `20260921130000`, and `20260921150000`. Application code no longer reads them.
 
-| Table | What replaces it | Drop |
+| Table | What replaced it | Drop |
 |-------|-----------------|------|
-| `context_widgets` | `group_views` | Parked — `20260819140000` |
-| `custom_views` | `group_views.settings` + `group_views.topics` | Parked — `20260819140000` |
-| `custom_view_topics` | Topic names as jsonb in `group_views.topics` | Parked — `20260819140000` |
-| `collections` | `collections_posts.view_id` → `group_views` | Parked — `20260819140000` |
-| `funding_rounds_posts` | `groups_posts` on the funding round space | Parked — `20260819130000` |
-| `funding_rounds_users` | `group_memberships`; `tokens_remaining` → `settings.tokensRemaining` | Parked — `20260819130000` |
-| `tracks_posts` | `collections_posts` with `view_id` = the `track-actions` view | Parked — `20260819130000` |
-| `tracks_users` | `group_memberships`; `enrolled_at` → `settings.enrolledAt`, `completed_at` → `settings.completedAt` | Parked — `20260819130000` |
-| `groups_tracks` | `tracks.group_id` (1:1 — each track has one space) | Parked — `20260819140000` |
-| `networks` / `networks_users` | Unused leftover from the 2020 communities → groups move | Parked — `20260820130000` |
+| `context_widgets` | `group_views` | `20260921130000` |
+| `custom_views` | `group_views.settings` + `group_views.topics` | `20260921130000` |
+| `custom_view_topics` | Topic names as jsonb in `group_views.topics` | `20260921130000` |
+| `collections` | `collections_posts.view_id` → `group_views` | `20260921130000` |
+| `funding_rounds_posts` | `groups_posts` on the funding round space | `20260921120000` |
+| `funding_rounds_users` | `group_memberships`; `tokens_remaining` → `settings.tokensRemaining` | `20260921120000` |
+| `tracks_posts` | `collections_posts` with `view_id` = the `track-actions` view | `20260921120000` |
+| `tracks_users` | `group_memberships`; `enrolled_at` → `settings.enrolledAt`, `completed_at` → `settings.completedAt` | `20260921120000` |
+| `groups_tracks` | `tracks.group_id` (1:1 — each track has one space) | `20260921130000` |
+| `networks` / `networks_users` | Unused leftover from the 2020 communities → groups move | `20260921150000` |
+| `widgets` / `group_widgets` | Farm profiles use a hardcoded widget list; the explore page is gone | `20260921160000` |
 
 ---
 
@@ -309,7 +310,6 @@ Data has moved; **the application code no longer reads these tables.** Drop SQL 
 | `tag_follows` | Kept for chat notification preferences only — unread is not tracked here |
 | `tags` / `group_tags` | Unchanged — topics remain for filtering/search |
 | `group_relationships` | Unchanged — peer/affiliation relationships between groups. Spaces do **not** use this. |
-| `widgets` / `group_widgets` | Unchanged — legacy explore/landing page |
 
 ### 2.10 `group_view_pins` — per-view pinned posts
 
@@ -395,7 +395,7 @@ post() → belongsTo(Post, 'post_id')
 
 Statics: `create(attrs)`, `find(viewId, postId)`. Used for both `collection` views and `track-actions` ordering.
 
-The leftover `collection_id` column is still on the table until the parked drop in §14.2.
+The leftover `collection_id` column was dropped in `20260921130000`. `view_id` is `NOT NULL`.
 
 ---
 
@@ -421,13 +421,13 @@ Statics and instance methods:
 - `Group.adjustOpenJoinRequestCount(groupId, delta, transacting)` / `Group.broadcastOpenJoinRequestCount(groupId)` — maintain and push `num_open_join_requests`.
 - `group.openJoinRequestCount()` — reads the cached column.
 
-`Group.create()` seeds explore-page widgets via `createInitialWidgets` (`GroupWidget` / `group_widgets` — a separate system from ContextWidget) and seeds menu views via `Group.setupSpaceViews()`. There is no `setupGroupViews()` and no `setupContextWidgets()`. Menu-change notification is `notifyGroupUpdated` in `api/graphql/mutations/notifyGroupUpdated.js`, which pushes a `groupUpdated` socket event to the group room.
+`Group.create()` seeds menu views via `Group.setupSpaceViews()`. There is no `setupGroupViews()`, no `setupContextWidgets()`, and no `createInitialWidgets()`. Menu-change notification is `notifyGroupUpdated` in `api/graphql/mutations/notifyGroupUpdated.js`, which pushes a `groupUpdated` socket event to the group room.
 
 ---
 
 ### 3.5 Models removed
 
-These models and their GraphQL types are gone. Their tables remain until the parked drops in §14.2.
+These models and their GraphQL types are gone, and their tables were dropped in the `20260921` cleanup migrations.
 
 | Model | Replaced by |
 |-------|-------------|
@@ -436,8 +436,7 @@ These models and their GraphQL types are gone. Their tables remain until the par
 | `Collection.js` / `CollectionsPost.js` | `CollectionPost` (`view_id`) |
 | `PostCollection.js` | `CollectionPost` |
 | `FundingRoundUser.js` / `TrackUser.js` | `group_memberships` on the track/round space |
-
-`GroupWidget` / `group_widgets` is a separate explore-page system and stays.
+| `Widget.js` / `GroupWidget.js` | Farm profiles render a hardcoded widget list. `/groups/:slug/explore` redirects to the group home. |
 
 ---
 
@@ -452,7 +451,7 @@ These models and their GraphQL types are gone. Their tables remain until the par
 - `enroll()` / `leave()` → space membership; `enrolledAt` / `completedAt` in `group_memberships.settings`. `leave()` only drops the space membership — `num_people_enrolled` and `completedAt` are settled by `Group.removeMembers` so that any departure path, including leaving the parent group, keeps the count honest (§3.9)
 - `canAccess()` — still consults `access_controlled`; the paid-spaces migration zeroed the flag and set `groups.paywall` on the space instead, but the track code path has not been retired
 
-Display values come from `track.group.*`. `Track.create` still dual-writes `name` / `description` / `banner_url` onto leftover NOT NULL columns so production stays valid until the parked drop in §14.2. `Track.duplicate` copies the space group's name.
+Display values come from `track.group.*`. `Track.duplicate` copies the space group's name.
 
 ---
 
@@ -467,7 +466,7 @@ Display values come from `track.group.*`. `Track.create` still dual-writes `name
 - `join()` / `leave()` → space membership; as with tracks, `leave()` defers `num_participants` and `tokensRemaining` to `Group.removeMembers` (§3.9)
 - `criteria`, phase dates, voting config, `submitter_roles`, `voter_roles`, and `deactivated_at` remain on the round
 
-Display values come from `round.group.*`. `FundingRound.create` still dual-writes `title` / `description` / `banner_url` onto leftover NOT NULL columns until the parked drop in §14.2.
+Display values come from `round.group.*`.
 
 ---
 
@@ -652,10 +651,13 @@ reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
 | `20260821120000_remove_general_tag.js` | **Step 9 of this migration.** Deleted the `#general` tag, `posts_tags` / `comments_tags` / `groups_tags` / `tag_follows` rows, and stripped `'general'` from `posts.tag_names`. |
 | `20260823120000_add_allow_late_joiners_to_funding_rounds.js` | Added `funding_rounds.allow_late_joiners` (GraphQL `allowLateJoiners`) |
 | `20260824120000_drop_about_and_related_groups_views.js` | Deletes leftover `about` / `related-groups` rows, remaps `home_route` |
+| `20260921120000_drop_legacy_track_round_join_tables.js` | Dropped `tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users` |
+| `20260921130000_drop_legacy_views_tables.js` | Dropped `context_widgets`, `custom_views`, `custom_view_topics`, `collections`, `groups_tracks`, and `collections_posts.collection_id` |
+| `20260921140000_drop_track_round_display_columns.js` | Dropped track and funding-round display columns |
+| `20260921150000_drop_networks_tables.js` | Dropped `networks` and `networks_users` |
+| `20260921160000_drop_explore_widgets.js` | Dropped explore-page `widgets` and `group_widgets` |
 
 The two `20260723` "ensure off-menu views" migrations were reduced to no-ops rather than deleted, so that databases which already recorded those filenames (staging) don't attempt to run different code under the same name, and so production never inserts rows that `20260817140000` would immediately delete.
-
-**Parked, not shipped:** join-table, leftover-views-table, display-column, and networks drops live in `migrations/in-progress/` (knex does not run that folder). See §14.2. Do not treat those filenames as live migrations.
 
 ---
 
@@ -896,7 +898,7 @@ Group routes are registered in `apps/web/src/routes/AuthLayoutRouter/AuthLayoutR
 | `/groups/:groupSlug/spaces/:spaceSlug/*` | `SpaceContent` |
 | `/groups/:groupSlug/topics/:topicName` | `ViewContent` topic stream |
 | `/groups/:groupSlug/topics` | `AllTopics` |
-| `/groups/:groupSlug/explore` | `LandingPage` (legacy) |
+| `/groups/:groupSlug/explore` | Redirects to the group home. The explore landing page was removed. |
 | `/groups/:groupSlug/offerings/:offeringId` | `OfferingDetails` |
 | `/groups/:groupSlug/payment/{success,cancel,failure}` | Paywall return URLs |
 
@@ -1458,9 +1460,7 @@ Moderation search does the same via `forModerationActions.js`, so reports from s
 
 The existing flow continues; the creator picks an "Included Views" list in `routes/CreateGroup.jsx`, which is passed through as `view_types`. New groups default to **all post types on** (`accepted_post_types` left unset).
 
-`Group.create()` currently calls:
-1. `group.createInitialWidgets(trx)` — explore-page `GroupWidget` rows (separate from the deleted ContextWidget system; marked TODO if explore is retired)
-2. `Group.setupSpaceViews(group.id, accepted_post_types, data.view_types, { transacting: trx })` — seeds `group_views` from Included Views (defaults to all/chat/members when omitted)
+`Group.create()` calls `Group.setupSpaceViews(group.id, accepted_post_types, data.view_types, { transacting: trx })`, which seeds `group_views` from Included Views (defaults to all/chat/members when omitted). It does not seed explore widgets.
 
 There is no template system and no `setupGroupViews()`; templates remain future work (§13).
 
@@ -1580,7 +1580,7 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 **Backend**
 - `GroupView`, `GroupViewUser`, `CollectionPost` models with reorder / home-view / unread logic
 - `Group.spaces()`, `parentGroup()`, `groupViews()`, `track()`, `fundingRound()`, `setupSpaceViews()`, `destroySpace()`
-- `Group.create()` seeds explore widgets via `createInitialWidgets` and menu views via `setupSpaceViews` — no `setupContextWidgets`
+- `Group.create()` seeds menu views via `setupSpaceViews` — no `setupContextWidgets` and no explore widgets
 - Space role inheritance via `Group.roleScopeId` (`parent_id || id`) — no per-space role rows
 - `doesMenuUpdate` replaced by `notifyGroupUpdated` socket push
 - Full GraphQL surface for views and spaces (§4.4), including `setGroupViewHidden`, `markGroupAsRead`, `updateGroupViewUser`
@@ -1633,19 +1633,19 @@ The old Phase 1–7 framing has been retired — the phases interleaved in pract
 - Searching in a group does not show public posts; related-group streams do not show peer-group posts; clicking a `#tag` searches
 - Unified mobile back buttons; nested user settings menu on mobile opens in the menu
 
-### 14.2 Parked (not run)
+### 14.2 Shipped cleanup
 
-Knex only loads `apps/backend/migrations/*.js`. These files sit in `migrations/in-progress/` and are **not** live migrations. Do not list them as shipped.
+The files that sat in `migrations/in-progress/` shipped on 21 Sep 2026:
 
-| File | What it would do |
-|------|------------------|
-| `20260819130000_drop_legacy_track_round_join_tables.js` | Drop `tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users` |
-| `20260819140000_drop_legacy_views_tables.js` | Drop `context_widgets`, `custom_views`, `custom_view_topics`, `collections`, `groups_tracks`; drop leftover `collections_posts.collection_id`; add/drop indexes |
-| `20260820120000_drop_track_round_display_columns.js` | Drop `tracks.name` / `description` / `banner_url` / `welcome_message` and `funding_rounds.title` / `banner_url` / `description`. `down()` restores them from the space group. **Before shipping:** stop dual-writing those columns in `Track.create` and `FundingRound.create` |
-| `20260820130000_drop_networks_tables.js` | Drop unused `networks` / `networks_users` |
-| `20260821130000_append_missing_post_tags_to_body.js` | Append attached-but-unmentioned hashtags onto post bodies (skips chat / thread / welcome) |
+| File | What it does |
+|------|----------------|
+| `20260921120000_drop_legacy_track_round_join_tables.js` | Drop `tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`, and the orphaned `sync_content_access_expires_at` / `clear_content_access_expires_at` functions |
+| `20260921130000_drop_legacy_views_tables.js` | Drop `context_widgets`, `custom_views`, `custom_view_topics`, `collections`, `groups_tracks`; drop leftover `collections_posts.collection_id`; add/drop indexes |
+| `20260921140000_drop_track_round_display_columns.js` | Drop `tracks.name` / `description` / `banner_url` / `welcome_message` and `funding_rounds.title` / `banner_url` / `description`. `down()` restores them from the space group |
+| `20260921150000_drop_networks_tables.js` | Drop unused `networks` / `networks_users` |
+| `20260921160000_drop_explore_widgets.js` | Drop `group_widgets` and `widgets`. `/groups/:slug/explore` redirects home |
 
-Move these into `migrations/` after production soak. Dual-write of `tracks.name` / `funding_rounds.title` stays until the display-column drop ships, because those columns are still `NOT NULL` in production.
+`20260821130000_append_missing_post_tags_to_body.js` had already shipped before this cleanup.
 
 ### 14.3 Remaining work
 
@@ -1659,17 +1659,16 @@ Two findings changed the cleanup order that this section previously assumed (bot
 1. Safe deletions: dead mobile native tree, orphaned web files (`NavLink`, `TopicNavigation`, `TopicsSettingsTab`, Tracks/FundingRounds pages, Stream shim), dead redux, stale widget/nav i18n. Join Requests remains both a settings tab and the standalone `/requests` page.
 2. Stop fetching `contextWidgets` / `chatRooms` in production queries.
 3. Remove the legacy menu stack (`ContextMenuOld`, provider, `useGatherItems`, WidgetIconResolver, ormReducer widget branches).
-4. Repoint TagFollow chat-room check and Group welcome sync off `ContextWidget`; `Group.create()` no longer calls `setupContextWidgets` (it still calls `createInitialWidgets` for the explore-page `GroupWidget` system, plus `setupSpaceViews`).
-5. Delete the ContextWidget backend/package surface. (`GroupWidget` / `group_widgets` is a separate explore-page system and stays.)
-6. Display reads live on the space group (`track.group.name` / `fundingRound.group.name`). Writes still dual-write the old columns so production NOT NULL `tracks.name` / `funding_rounds.title` stay valid until the parked drop. Clients still see convenience `name`/`title` from presenters.
+4. Repoint TagFollow chat-room check and Group welcome sync off `ContextWidget`. `Group.create()` calls `setupSpaceViews`.
+5. Delete the ContextWidget backend/package surface.
+6. Display reads live on the space group (`track.group.name` / `fundingRound.group.name`). Clients still see convenience `name`/`title` from presenters. The leftover display columns were dropped in `20260921140000`.
 7. Remove CustomView and legacy Collection (`CollectionsPost` / `collection_id` model). Keep `CollectionPost` (keyed by `view_id`) and the `customViewId` **route param** (it names a `group_views.id`).
-8. Park drop migrations in `migrations/in-progress/` (join tables, leftover views tables + indexes, display columns, networks, post-tag body append). Move them back after production soak.
+8. Ship the parked drops: join tables, leftover views tables, display columns, networks, and the explore-page widget tables (`20260921120000` through `20260921160000`).
 9. Perf: DataLoader batching for unread + pins, `groupViews(menuOnly:)`, bulk-upsert `incrementNewPostCount`, `openJoinRequestCount` off `groups.num_open_join_requests`; frontend trims `linkedGroup`, lazy-loads `fetchGroupSpaces`, per-component view selectors, narrower `groupUpdated` handler.
 
 **Gated follow-up**
 
 - Keep `tracks.deactivated_at`, `tracks.access_controlled`, and `funding_rounds.deactivated_at` — those are still live.
-- Ship the parked `in-progress/` drops only after production soak; keep dual-write until the display-column drop.
 
 **Product remaining**
 

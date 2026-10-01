@@ -6,6 +6,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
+## [7.1.0] - 2026-09-25
+
+### Changed
+- Don't enable Create Account button until email field is valid
+- The people selector in the invite form allows you to invite anyone that is visible to you on hylo. Before it was only allowing you to invite people you had messaged or interacted with.
+- Remove the Farms tab in the Group Explorer for now. It's not being used yet.
+- Refine role-gated space invite dialog
+
+### Fixed
+- Many security related fixes and updates. Details to come soon.
+- Fix display of video embeds in page type views that have little text. Ensure width is wide enough to see the video.
+- Fix searching for emojis on mobile
+
+### Cleanup
+- Removed the old group Explore landing page. `/groups/:slug/explore` redirects to the group home
+- Farm profiles still use the remaining Widget components. The explore-only widgets and the steward visibility editor are gone
+- Sandbox track and funding-round display fields now come from the space group, matching the API
+
+## [7.0.8] - 2026-09-23
+
+### Added
+- Reactions support to Direct Messages, at last!
+- Auto-fill event meeting link from a Zoom/Meet/Jitsi/Microsoft Teams URL in the description
+
+### Changed
+- Keep loading member activity at bottom of member profile as you scroll down. Also fix Recent Activity to show correct posts alongside comments as you scroll
+- Completed post notices appear grayed out with check mark in Chat
+- Don't show search on member profile if looking at own profile. It was conflicting with Edit Profile button
+- Only bundle reactions when there are more than 2 types, not when there are 2.
+- Move affiliations editing from My Groups to Edit Profile
+
+### Fixed
+- Map menus being behind map content
+- Wrap comment cards on mobile, so the header doesnt overflow the container. For user profiles and search results.
+- Stuck loop when opening a post from a member profile and trying to go back
+- Some chat messages were being cut off on the last line
+- Don't flash post: undefined when loading post as individual view
+
+## [7.0.7] - 2026-09-20
+
+### Fixed
+- Collection and custom views no longer inherit a leftover post-type or "active only" filter from Discussions/Events/etc., which made curated posts look missing ("Nothing here yet") until a refresh or logout
+- Only allowing posting of accepted post types in a group
+- Display sibling spaces in To field when creating a post in a space
+- UI blocked on wide screens
+- Link editor in page view type editor
+- Post editor readding current path group/space too often and erasing choices in the To field
+- Move AAPA to .well-known
+
+## [7.0.6] - 2026-09-13
+
+### Added
+- Stewards can now Remove a Member from the profile page of that member in the three-dot menu
+- Created at timestamp now visible on join requests
+
+### Changed
+- Coordinator system role has been renamed to Administrator
+- Tweaked copy of chat activity cards from "Recently In" to "Recent chats in"
+
+### Fixed
+- Fix close/back buttons in DMs on mobile
+
+## [7.0.5] - 2026-09-11
+
+### Added
+- Site banner setting to show the banner to people who join Hylo while it is published (off by default)
+- Support unlisted vimeo videos in posts
+
+### Fixed
+- Loading more map data on zoom and pan
+
+## [7.0.4] - 2026-09-10
+
+### Changed
+- Unread badge counts for spaces now show the number of unread chats, plus the number of unread typed views inside it.
+- Group nav menu badges now appear as long as any view or space has a notification badge in it.
+- Toggle welcome page setting on in group settings adds welcome view to the menu if its not there
+
+### Fixed
+- Unread badge counts for spaces
+- Editing welcome page settings in group settings
+- Clicking on post in moderation view now goes to the post
+
 ## [7.0.3] - 2026-09-09
 
 ### Added

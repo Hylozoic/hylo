@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { assignCoordinator } from '../../../test/setup/roleHelpers'
+import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import {
   createJoinRequest,
   acceptJoinRequest,
@@ -17,7 +17,7 @@ describe('join_request mutations', () => {
     applicant = await factories.user().save()
     moderator = await factories.user().save()
     outsider = await factories.user().save()
-    await assignCoordinator(moderator, group)
+    await assignAdministrator(moderator, group)
   })
 
   after(async function () {
@@ -71,7 +71,7 @@ describe('join_request mutations', () => {
     it('rejects when user cannot add members', async () => {
       const g2 = await factories.group().save()
       const requester = await factories.user().save()
-      await assignCoordinator(moderator, g2)
+      await assignAdministrator(moderator, g2)
       const jr = await createJoinRequest(requester.id, g2.id, [])
       try {
         await acceptJoinRequest(outsider.id, jr.request.id)
@@ -92,7 +92,7 @@ describe('join_request mutations', () => {
 
     it('marks agreements and join questions complete so the welcome modal does not re-ask', async () => {
       const g = await factories.group().save()
-      await assignCoordinator(moderator, g)
+      await assignAdministrator(moderator, g)
       await g.update({
         agreements: [{ title: 'Be kind', description: 'Please be kind' }],
         join_questions: [{ text: 'Why do you want to join?' }]
@@ -151,7 +151,7 @@ describe('join_request mutations', () => {
   describe('declineJoinRequest', () => {
     it('allows a moderator to decline', async () => {
       const g5 = await factories.group().save()
-      await assignCoordinator(moderator, g5)
+      await assignAdministrator(moderator, g5)
       const requester = await factories.user().save()
       const jr = await createJoinRequest(requester.id, g5.id, [])
       const declined = await declineJoinRequest(moderator.id, jr.request.id)
@@ -185,10 +185,10 @@ describe('join_request mutations', () => {
         slug: `space-jr-${Date.now()}`
       }).save()
       parentSteward = await factories.user().save()
-      await assignCoordinator(parentSteward, parentGroup)
+      await assignAdministrator(parentSteward, parentGroup)
     })
 
-    it('notifies parent coordinators who are not space members', async () => {
+    it('notifies parent administrators who are not space members', async () => {
       const spaceRequester = await factories.user().save()
       await createJoinRequest(spaceRequester.id, space.id, [])
       const activities = await Activity.where({
@@ -209,7 +209,7 @@ describe('join_request mutations', () => {
       expect(notifications.length).to.be.at.least(1)
     })
 
-    it('lets a parent coordinator accept without space membership', async () => {
+    it('lets a parent administrator accept without space membership', async () => {
       const spaceRequester = await factories.user().save()
       const { request } = await createJoinRequest(spaceRequester.id, space.id, [])
       await acceptJoinRequest(parentSteward.id, request.id)

@@ -25,9 +25,9 @@ module.exports.session = {
   ***************************************************************************/
   secret: process.env.COOKIE_SECRET,
 
-  genid: function(req) {
+  genid: function (req) {
     // use UUIDs for session IDs prefixed by userId so we can find and clear all sessions for this user on password change
-    return (req.userId || 'anon') + ":" + uuidv4()
+    return (req.userId || 'anon') + ':' + uuidv4()
   },
 
   /***************************************************************************
@@ -43,7 +43,9 @@ module.exports.session = {
     domain: process.env.COOKIE_DOMAIN,
     maxAge: 60 * 86400000, // 60 days
     secure: process.env.PROTOCOL === 'https',
-    sameSite: process.env.PROTOCOL === 'https' ? 'None' : 'Lax'
+    // None so Hylo can stay logged in when embedded in an iframe on another site.
+    // Cross-site GraphQL is limited by the CORS allowlist, not by this flag.
+    sameSite: process.env.PROTOCOL === 'https' ? 'none' : 'lax'
   },
 
   /***************************************************************************
@@ -95,4 +97,4 @@ module.exports.session = {
   // ssl: false,
   // stringify: true
 
-};
+}

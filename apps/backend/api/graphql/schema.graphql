@@ -1003,8 +1003,10 @@ type Group {
     boundingBox: [PointInput],
     # Exclude people who are already members of this group (e.g. parent members not yet in a space)
     excludeGroupId: ID,
-    # Return members with a specific groupRole
+    # DEPRECATED Return members with a specific groupRole
     groupRoleId: ID,
+    # Return members with any of these groupRoles (alternative to single groupRoleId)
+    groupRoleIds: [ID],
     # Track space only: true = members who completed the track, false = members who have not
     trackCompleted: Boolean,
     # Funding round space: 'submit' / 'notSubmit' / 'vote' / 'notVote'
@@ -1272,9 +1274,6 @@ type Group {
     # Sort by 'created_at', 'expires_at', 'user_name'
     sortBy: String
   ): ContentAccessQuerySet
-
-  # Widgets used on the Explore page
-  widgets: GroupWidgetQuerySet
 }
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type FundingRoundQuerySet {
@@ -1603,37 +1602,6 @@ type GroupTopicQuerySet {
   total: Int
   hasMore: Boolean
   items: [GroupTopic]
-}
-
-# Data related to a widget used on the Explore page in a specific group
-type GroupWidget {
-  id: ID
-  # Where this widget is being displayed. Only option right now is 'landing' which means the group Explore page
-  context: String
-  # Which group this widget is being displayed in
-  group: Group
-  # Whether this widget is to  be displayed or not
-  isVisible: Boolean
-  # Name of the widget
-  name: String
-  # The ordering of widgets displayed in the context
-  order: Int
-  # Settings for this widget in this group/context
-  settings: GroupWidgetSettings
-}
-
-type GroupWidgetSettings {
-  # Text content for this widget if it has some
-  text: String
-  # Title content for this widget if it has one
-  title: String
-}
-
-# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
-type GroupWidgetQuerySet {
-  total: Int
-  hasMore: Boolean
-  items: [GroupWidget]
 }
 
 # NOT USED RIGHT NOW
@@ -2054,6 +2022,10 @@ type Message {
   messageThread: MessageThread
   # The content of the Message
   text: String
+  # All reactions on a message
+  commentReactions: [Reaction]
+  # Number of total reactions on a message
+  commentReactionsTotal: Int
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -3124,6 +3096,8 @@ type UserSettings {
   streamPostType: String
   # Color scheme / palette name (e.g. default, forest, ocean)
   theme: String
+  # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
+  unifiedEmailDigest: Boolean
 }
 
 type Draft {
@@ -3165,6 +3139,8 @@ type SiteBanner {
   type: String
   actionText: String
   actionUrl: String
+  # When true, people who join Hylo after this banner is published will see it. Defaults to false.
+  showToNewUsers: Boolean
   creator: Person
   publishedAt: Date
   unpublishedAt: Date
@@ -3180,6 +3156,7 @@ input SiteBannerInput {
   type: String
   actionText: String
   actionUrl: String
+  showToNewUsers: Boolean
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -3194,13 +3171,6 @@ type ProposalVoteQuerySet {
   total: Int
   hasMore: Boolean
   items: [ProposalVote]
-}
-
-# A widget is a block of styled content that appears in an Explore page for a group
-type Widget {
-  id: Int
-  # The name of the widget
-  name: String
 }
 
 type ZapierTrigger {
@@ -3244,7 +3214,7 @@ type Mutation {
   addMember(
     groupId: ID,
     userId: ID,
-    assignCoordinator: Boolean
+    assignAdministrator: Boolean
   ): GenericResult
   # NOT USED RIGHGT NOW. Add one or more people to a Project as a Project member.
   addPeopleToProjectRole(peopleIds: [ID], projectRoleId: ID): GenericResult
@@ -3706,8 +3676,6 @@ type Mutation {
   updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update a track
   updateTrack(trackId: ID, data: TrackInput): Track
-  # Update settings for a GroupWidget
-  updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
   # Accept an invitation to a Group
   useInvitation(
     # The invite code for the Group
@@ -3723,7 +3691,7 @@ type Mutation {
   createSiteBanner(data: SiteBannerInput): SiteBanner
   # Update a site banner's text, type, or action button, at any point in its lifecycle (admin only)
   updateSiteBanner(id: ID!, data: SiteBannerInput): SiteBanner
-  # Publish a site banner so all users see it (admin only)
+  # Publish a site banner so eligible users see it (admin only)
   publishSiteBanner(id: ID!): SiteBanner
   # Take down a published site banner (admin only)
   unpublishSiteBanner(id: ID!): SiteBanner
@@ -4202,21 +4170,6 @@ input GroupSettingsInput {
   autoAddMembers: Boolean
 }
 
-# Settings for a Widget in a particular Group's explore page
-input GroupWidgetInput {
-  # Whether the widget is visible
-  isVisible: Boolean
-  # Additional Widget data for specific Widgets
-  settings: GroupWidgetSettingsInput
-}
-
-input GroupWidgetSettingsInput {
-  # The text content of the widget, for Widgets that use this
-  text: String
-  # The title of the widget, for Widgets that use this
-  title: String
-}
-
 # Input for creating Stripe offerings
 input StripeOfferingInput {
   # The group this offering belongs to
@@ -4266,8 +4219,8 @@ input InviteInput {
   emails: [String]
   # Existing Hylo users to invite by id (their account email is used)
   userIds: [ID]
-  # Assign Coordinator system role when the invitation is used
-  assignCoordinator: Boolean
+  # Assign Administrator system role when the invitation is used
+  assignAdministrator: Boolean
   # Group role ID to assign when the invitation is used
   groupRoleId: ID
 }
@@ -4630,4 +4583,6 @@ input UserSettingsInput {
   streamPostType: String
   # Color scheme / palette name (e.g. default, forest, ocean)
   theme: String
+  # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
+  unifiedEmailDigest: Boolean
 }

@@ -4,6 +4,7 @@ import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import { ImageUp } from 'lucide-react'
 import { Helmet } from 'react-helmet'
+import { useDispatch } from 'react-redux'
 import SettingsControl from 'components/SettingsControl'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
@@ -14,6 +15,10 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { DEFAULT_BANNER } from 'store/models/Me'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import SocialControl from './SocialControl'
+import Affiliation from 'components/Affiliation'
+import { AddAffiliation, Message } from '../UserGroupsTab/UserGroupsTab'
+import { createAffiliation, deleteAffiliation } from '../UserGroupsTab/UserGroupsTab.store'
+import { CREATE_AFFILIATION, DELETE_AFFILIATION } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
 
 export const validateName = name => name && name.match(/\S/gm)
@@ -107,6 +112,64 @@ function EditProfileTab ({
     setConfirm(false)
     updateUserSettings(edits)
   }, [edits, setConfirm, updateUserSettings])
+
+  const dispatch = useDispatch()
+
+  const [affiliations, setAffiliations] = useState(currentUser?.affiliations?.items || [])
+  const [showAddAffiliations, setShowAddAffiliations] = useState(false)
+  const [affiliationError, setAffiliationError] = useState(undefined)
+  const [affiliationSuccess, setAffiliationSuccess] = useState(undefined)
+  const [affiliationAction, setAffiliationAction] = useState(null)
+
+  useEffect(() => {
+    setAffiliations(currentUser?.affiliations?.items || [])
+  }, [currentUser])
+
+  const resetAffiliationMessage = useCallback(() => {
+    setAffiliationError(undefined)
+    setAffiliationSuccess(undefined)
+  }, [])
+
+  const toggleAddAffiliations = useCallback(() => {
+    setShowAddAffiliations(!showAddAffiliations)
+  }, [showAddAffiliations])
+
+  const saveAffiliation = useCallback(({ role, preposition, orgName, url }) => {
+    setAffiliationAction(CREATE_AFFILIATION)
+    dispatch(createAffiliation({ role, preposition, orgName, url }))
+      .then(res => {
+        const affiliation = get(res, 'payload.data.createAffiliation')
+        if (affiliation) {
+          setAffiliationSuccess(t('Your affiliation was added'))
+          const updatedItems = [...affiliations, affiliation]
+          setAffiliations(updatedItems)
+          setShowAddAffiliations(false)
+          setAffiliationError('')
+        }
+      })
+      .catch((e) => {
+        setAffiliationError(e.message)
+        setShowAddAffiliations(true)
+      })
+  }, [affiliations, dispatch, t])
+
+  const deleteAffiliationHandler = useCallback((affiliationId) => {
+    setAffiliationAction(DELETE_AFFILIATION)
+    dispatch(deleteAffiliation(affiliationId))
+      .then(res => {
+        if (res.error) {
+          setAffiliationError(t('Error deleting this affiliation.'))
+          return
+        }
+
+        const deletedAffiliationId = get(res, 'payload.data.deleteAffiliation')
+        if (deletedAffiliationId) {
+          setAffiliationSuccess(t('Your affiliation was deleted'))
+          const updatedItems = affiliations.filter((a) => a.id !== deletedAffiliationId)
+          setAffiliations([...updatedItems])
+        }
+      })
+  }, [affiliations, dispatch, t])
 
   const canSave = changed && validateName(edits.name)
 
@@ -278,6 +341,39 @@ function EditProfileTab ({
                 handleUnlinkAccount={() => unlinkAccount('linkedin')}
               />
             </div>
+          </div>
+
+          <div className='border-t border-foreground/10 pt-6'>
+            <h2 className='text-xl font-bold mb-4 text-foreground'>{t('Other Affiliations')}</h2>
+
+            {affiliationAction && (affiliationError || affiliationSuccess) && (
+              <Message errorMessage={affiliationError} successMessage={affiliationSuccess} reset={resetAffiliationMessage} />
+            )}
+
+            {affiliations && affiliations.length > 0 && affiliations.map((a, index) =>
+              <Affiliation
+                affiliation={a}
+                archive={deleteAffiliationHandler}
+                key={a.id}
+                index={index}
+              />
+            )}
+
+            {affiliations && affiliations.length === 0 && (
+              <p className='text-foreground/70 mb-3'>{t('Add your affiliations')}</p>
+            )}
+
+            {showAddAffiliations
+              ? <AddAffiliation close={toggleAddAffiliations} save={saveAffiliation} />
+              : (
+                <div
+                  className='flex items-center gap-2 p-4 rounded-lg bg-card/60 hover:bg-card/100 cursor-pointer transition-all shadow-lg hover:shadow-xl hover:scale-102'
+                  onClick={toggleAddAffiliations}
+                >
+                  <div className='flex items-center justify-center w-8 h-8 rounded-full bg-selected text-foreground font-bold'>+</div>
+                  <div className='text-foreground'>{t('Add new affiliation')}</div>
+                </div>
+                )}
           </div>
         </div>
       </div>

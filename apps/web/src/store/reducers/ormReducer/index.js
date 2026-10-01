@@ -64,7 +64,6 @@ import {
   MUTE_MESSAGE_THREAD,
   UNMUTE_MESSAGE_THREAD,
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
-  UPDATE_WIDGET,
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
   UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
@@ -127,7 +126,26 @@ import {
   snapshotChatActivityNotices,
   upsertOptimisticChatActivityNotice
 } from 'store/util/chatActivityNotice'
-import { groupMenuHasUnreadBadges } from 'util/viewUnreadBadges'
+import { membershipBadgeCountFromViews } from '@hylo/shared'
+import { findViewsForGroupBadge } from 'util/viewUnreadBadges'
+
+/**
+ * Set this group's membership.newPostCount from loaded views (chat + typed dots).
+ */
+function syncMembershipBadgeFromGroupViews (session, groupId) {
+  if (!groupId) return
+  const { Me, Membership } = session
+  const me = Me.first()
+  if (!me) return
+  const views = findViewsForGroupBadge(session, groupId)
+  if (!views) return
+  const membership = Membership.safeGet({ group: groupId, person: me.id })
+  if (!membership) return
+  const next = membershipBadgeCountFromViews(views)
+  if ((membership.newPostCount || 0) !== next) {
+    membership.update({ newPostCount: next })
+  }
+}
 
 /**
  * Adjust the cached pending join-request count on a Group ORM record.
@@ -147,57 +165,6 @@ function adjustOpenModerationActionCount (session, groupId, delta) {
   const group = session.Group.idExists(groupId) ? session.Group.withId(groupId) : null
   if (!group) return
   group.update({ openModerationActionCount: Math.max(0, (group.openModerationActionCount || 0) + delta) })
-}
-
-/**
- * Whether any loaded menu copy for this group still shows unread (own GroupViews
- * and/or nested under a parent's type=space linkedGroup).
- */
-function groupHasUnreadInAnyMenu (session, groupId, getMembershipNewPostCount) {
-  const { Group } = session
-  const group = Group.idExists(groupId) ? Group.withId(groupId) : null
-  if (group && groupMenuHasUnreadBadges(group, getMembershipNewPostCount)) return true
-
-  for (const parent of Group.all().toModelArray()) {
-    for (const view of parent.groupViews?.items || []) {
-      if (view.type !== 'space' || String(view.linkedGroup?.id) !== String(groupId)) continue
-      if (groupMenuHasUnreadBadges(view.linkedGroup, getMembershipNewPostCount)) return true
-    }
-  }
-  return false
-}
-
-/**
- * Clear group/space membership badges when the menu has no remaining view or
- * nested-space unread. Also clears parent groups that embed this group as a space.
- */
-function clearMembershipIfMenuHasNoUnread (session, groupId) {
-  if (!groupId) return
-  const { Group, Me, Membership } = session
-  const me = Me.first()
-  if (!me) return
-
-  const getMembershipNewPostCount = (id) => {
-    const membership = Membership.safeGet({ group: id, person: me.id })
-    return membership?.newPostCount || 0
-  }
-
-  const clearOne = (id) => {
-    if (groupHasUnreadInAnyMenu(session, id, getMembershipNewPostCount)) return
-    const membership = Membership.safeGet({ group: id, person: me.id })
-    if (membership && membership.newPostCount > 0) {
-      membership.update({ newPostCount: 0 })
-    }
-  }
-
-  clearOne(groupId)
-
-  Group.all().toModelArray().forEach(parent => {
-    const embedsSpace = (parent.groupViews?.items || []).some(view =>
-      view.type === 'space' && String(view.linkedGroup?.id) === String(groupId)
-    )
-    if (embedsSpace) clearOne(parent.id)
-  })
 }
 
 /** Plain creator fields so an optimistic pin survives leaving the ORM session. */
@@ -313,6 +280,9 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
     if (preservedViewPostsSnapshots?.length) {
       restoreViewLoadedPostsAfterFetchGroupViews(Group, preservedViewPostsSnapshots)
+    }
+    if (type === FETCH_GROUP_VIEWS) {
+      syncMembershipBadgeFromGroupViews(session, meta.groupId)
     }
   }
 
@@ -472,14 +442,17 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         })
       }
 
-      const coordinatorRole = createGroupData.groupRoles?.items?.find(role => role.name === 'Coordinator')
-      if (coordinatorRole) {
-        const roleWithGroupId = coordinatorRole.groupId
-          ? coordinatorRole
-          : { ...coordinatorRole, groupId: createGroupData.id }
+      const administratorRole = createGroupData.groupRoles?.items?.find(role =>
+        role.name === 'Administrator' || role.name === 'Coordinator'
+      )
+      if (administratorRole) {
+        const roleWithGroupId = administratorRole.groupId
+          ? administratorRole
+          : { ...administratorRole, groupId: createGroupData.id }
         const existingItems = me.groupRoles?.items || []
         const alreadyHasRole = existingItems.some(
-          role => role.groupId === roleWithGroupId.groupId && role.name === 'Coordinator'
+          role => role.groupId === roleWithGroupId.groupId &&
+            (role.name === 'Administrator' || role.name === 'Coordinator')
         )
         if (!alreadyHasRole) {
           me.update({
@@ -714,9 +687,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // patch every loaded menu so the badge clears where the user is looking.
       if (!meta.id || !meta.data) break
       updateGroupViewInAllMenus(Group.all(), meta.id, meta.data)
-      if ((meta.data.newPostCount ?? 0) === 0) {
-        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
-      }
+      syncMembershipBadgeFromGroupViews(session, meta.groupId)
       break
     }
 
@@ -727,16 +698,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         lastReadPostId: updatedView.lastReadPostId,
         newPostCount: updatedView.newPostCount
       })
-      if ((updatedView.newPostCount ?? 0) === 0) {
-        clearMembershipIfMenuHasNoUnread(session, meta.groupId)
-      }
+      syncMembershipBadgeFromGroupViews(session, meta.groupId)
       break
     }
 
     case MARK_VIEW_AS_READ_PENDING: {
       if (!meta.id) break
       updateGroupViewInAllMenus(Group.all(), meta.id, { newPostCount: 0 })
-      clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      syncMembershipBadgeFromGroupViews(session, meta.groupId)
       break
     }
 
@@ -749,7 +718,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         lastReadPostId: readView.lastReadPostId,
         newPostCount: 0
       })
-      clearMembershipIfMenuHasNoUnread(session, meta.groupId)
+      syncMembershipBadgeFromGroupViews(session, meta.groupId)
       break
     }
 
@@ -1263,6 +1232,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case UPDATE_GROUP_SETTINGS: {
+      // Keep the saved list when the mutation payload omits a usable array
+      // (e.g. jsonb serialized as a string and GraphQL [String] nulls the field).
+      const returnedTypes = payload.data?.updateGroupSettings?.acceptedPostTypes
+      if (meta.changes?.acceptedPostTypes !== undefined && !Array.isArray(returnedTypes)) {
+        group = Group.withId(meta.id)
+        if (group) group.update({ acceptedPostTypes: meta.changes.acceptedPostTypes })
+      }
+
       // Set new join questions in the ORM
       if (payload.data.updateGroupSettings && (payload.data.updateGroupSettings.joinQuestions || payload.data.updateGroupSettings.prerequisiteGroups)) {
         group = Group.withId(meta.id)
@@ -1501,11 +1478,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
-    case UPDATE_WIDGET: {
-      clearCacheFor(Group, payload.data.updateWidget.group.id)
-      break
-    }
-
     case USE_INVITATION: {
       me = Me.first()
       const membership = payload.data?.useInvitation?.membership
@@ -1528,11 +1500,21 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const emojiFull = meta.data.emojiFull
       me = Me.first()
 
-      const optimisticUpdate = {
-        commentReactions: [...(comment.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
+      if (comment) {
+        const optimisticUpdate = {
+          commentReactions: [...(comment.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
+        }
+        comment.update(optimisticUpdate)
       }
 
-      comment.update(optimisticUpdate)
+      // Also handle optimistic update for Message model (DM messages)
+      const message = session.Message.withId(meta.commentId)
+      if (message) {
+        const optimisticUpdate = {
+          commentReactions: [...(message.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
+        }
+        message.update(optimisticUpdate)
+      }
 
       break
     }
@@ -1541,11 +1523,25 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       comment = session.Comment.withId(meta.commentId)
       const emojiFull = meta.data.emojiFull
       me = Me.first()
-      const commentReactions = comment.commentReactions.filter(reaction => {
-        if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
-        return true
-      })
-      comment.update({ commentReactions })
+
+      if (comment) {
+        const commentReactions = comment.commentReactions.filter(reaction => {
+          if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
+          return true
+        })
+        comment.update({ commentReactions })
+      }
+
+      // Also handle optimistic update for Message model (DM messages)
+      const message = session.Message.withId(meta.commentId)
+      if (message) {
+        const commentReactions = (message.commentReactions || []).filter(reaction => {
+          if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
+          return true
+        })
+        message.update({ commentReactions })
+      }
+
       break
     }
 

@@ -74,7 +74,7 @@ const UserSettings = () => {
       )
     },
     {
-      name: t('Groups & Affiliations'),
+      name: t('Groups'),
       path: 'groups',
       component: <UserGroupsTab personId={currentUser.id} />
     },

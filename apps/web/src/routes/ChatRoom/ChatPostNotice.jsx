@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, CircleCheckBig } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatUserDatePair } from 'util/dateFormat'
@@ -20,7 +20,7 @@ export default function ChatPostNotice ({ post, highlighted, className }) {
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
   const viewPostDetails = useViewPostDetails()
-  const { commentsTotal, creator, startTime, endTime, timezone, title, type } = post
+  const { commentsTotal, creator, fulfilledAt, startTime, endTime, timezone, title, type } = post
 
   const postTypeLabel = t(type)
   const accent = POST_TYPES[type]?.primaryColor || POST_TYPES.discussion.primaryColor
@@ -42,7 +42,7 @@ export default function ChatPostNotice ({ post, highlighted, className }) {
         // A single left rule rather than a box — the card sits in a stream, so one
         // edge is enough to bound it and the four-sided border only added weight.
         'group w-fit max-w-full sm:max-w-[520px] flex flex-col gap-1 rounded-lg pl-3 pr-5 py-2.5 cursor-pointer border-0 border-l-2 transition-all hover:scale-105',
-        { 'bg-accent/30': highlighted },
+        { 'bg-accent/30': highlighted, 'opacity-60': fulfilledAt },
         className
       )}
       style={{ borderLeftColor: accent, ...(highlighted ? {} : { background: surface }) }}
@@ -84,7 +84,10 @@ export default function ChatPostNotice ({ post, highlighted, className }) {
         </span>
       </div>
       {title && (
-        <div className='font-bold text-foreground truncate'>{title}</div>
+        <div className='flex items-center min-w-0 font-bold text-foreground'>
+          {fulfilledAt && <span className='mr-1 shrink-0'><CircleCheckBig className='w-4 text-green-500' /></span>}
+          <span className='truncate'>{title}</span>
+        </div>
       )}
       <div className='w-full flex items-center gap-3 min-w-0'>
         {(commentsTotal > 0 || timeRange) && (

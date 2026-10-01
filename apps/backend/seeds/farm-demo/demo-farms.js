@@ -30,7 +30,6 @@ const farmNames = [
 exports.seed = (knex) => seed('groups', knex)
   // .then(() => addUsersToGroups(knex))
   .then(() => addFarmExtensionToGroups(knex))
-  .then(() => addWidgetsToGroups(knex))
   .then(() => addClareToGroups(knex))
   .then(() => addKrishaToGroups(knex))
   .catch(err => {
@@ -81,9 +80,9 @@ function addKrishaToGroups (knex) {
       }))))
     .then(() => knex('groups_roles')
       .whereIn('group_id', knex('groups').select('id').whereIn('groups.name', farmNames))
-      .where({ name: 'Coordinator', type: 'system' })
+      .where({ name: 'Administrator', type: 'system' })
       .select('id as group_role_id', 'group_id'))
-    .then(coordinatorRoles => Promise.all(coordinatorRoles.map(({ group_id, group_role_id }) =>
+    .then(administratorRoles => Promise.all(administratorRoles.map(({ group_id, group_role_id }) =>
       knex('group_memberships_group_roles').insert({
         user_id: 45331,
         group_id,
@@ -108,9 +107,9 @@ function addClareToGroups (knex) {
       }))))
     .then(() => knex('groups_roles')
       .whereIn('group_id', knex('groups').select('id').whereIn('groups.name', farmNames))
-      .where({ name: 'Coordinator', type: 'system' })
+      .where({ name: 'Administrator', type: 'system' })
       .select('id as group_role_id', 'group_id'))
-    .then(coordinatorRoles => Promise.all(coordinatorRoles.map(({ group_id, group_role_id }) =>
+    .then(administratorRoles => Promise.all(administratorRoles.map(({ group_id, group_role_id }) =>
       knex('group_memberships_group_roles').insert({
         user_id: 30206,
         group_id,
@@ -355,17 +354,4 @@ function fakeGroupData (name, slug, created_by_id, type) {
     slack_configure_url: faker.internet.url(),
     type: type || null
   }
-}
-
-function addWidgetsToGroups (knex) {
-  console.info('  --> farm group_widgets')
-  return knex('groups')
-    .select(['id as group_id'])
-    .whereIn('groups.name', farmNames)
-    .then(groupIds => Promise.all(
-      groupIds.map(({ group_id }, index) => Promise.all(
-        [1, 2, 3, 4, 5, 6, 7, 8, 9].map((widget_id) => knex('group_widgets')
-          .insert({ widget_id, group_id, context: 'landing', order: widget_id, is_visible: true })
-        )
-      ))))
 }

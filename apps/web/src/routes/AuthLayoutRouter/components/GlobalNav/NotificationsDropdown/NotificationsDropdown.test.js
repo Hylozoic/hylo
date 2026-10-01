@@ -327,4 +327,17 @@ describe('Notification', () => {
       expectItemText(container, /Marie Curie/i, /mentioned you in a comment/i, /wrote:/i)
     })
   })
+
+  it('shows HTML in names and post titles as text instead of rendering it', async () => {
+    const payload = '<img src=x onerror="window.pwned=1">'
+    const notification = {
+      ...mentionNotification,
+      activity: { ...mentionNotification.activity, actor: { ...u2, name: payload }, post: { title: payload } }
+    }
+    const { container } = render(<NotificationItem notification={notification} />)
+    await waitFor(() => {
+      expectItemText(container, payload)
+    })
+    expect(container.querySelector('img[src="x"]')).toBeNull()
+  })
 })

@@ -119,12 +119,42 @@ export default function SpaceJoinPage () {
     }
   }, [dispatch, spaceGroup?.id, accessCode, invitationToken, t])
 
-  // Join/invite links auto-join; SpaceContent then shows the space instead of this page
+  const isRoleGated = !spaceGroup?.paywall && (spaceGroup?.requiredRoles || []).length > 0
+
+  // Invite-link auto-join only when the user has the required role.
+  // Invite links do NOT bypass role gating (backend enforces this too).
+  const canAutoJoinViaInvite = hasJoinOrInviteLink &&
+    !spaceGroup?.paywall &&
+    (canAdministerParent || !isRoleGated || hasRequiredRole)
+
+  // Parent-group admins can always join; role-holders and open spaces join directly.
+  // Invite links pre-approve Closed and Restricted spaces, but the user must still
+  // hold the required role for role-gated spaces (the role gate is checked below).
+  const canJoinDirectly = canAdministerParent || (
+    !spaceGroup?.paywall && (
+      (isRoleGated && hasRequiredRole) ||
+      spaceGroup?.accessibility === GROUP_ACCESSIBILITY.Open
+    )
+  )
+
+  // Invite links allow direct joining when the user has the required role
+  // (same conditions as canJoinDirectly but also covers Restricted/Closed spaces
+  // that are not role-gated)
+  const canJoinViaInviteDirectly = canAdministerParent || (
+    hasJoinOrInviteLink && !spaceGroup?.paywall &&
+    (!isRoleGated || hasRequiredRole)
+  )
+
+  const autoJoining = canAutoJoinViaInvite && !spaceGroup?.paywall && (!autoJoinAttempted || joining)
+
+  // Join/invite links auto-join only when the user can actually join directly
+  // (i.e. has the required role or is a parent admin). Invite links do NOT bypass
+  // role gating — see canAutoJoinViaInvite above.
   useEffect(() => {
-    if (!hasJoinOrInviteLink || !spaceGroup?.id || spaceGroup.paywall || autoJoinAttempted) return
+    if (!canAutoJoinViaInvite || !spaceGroup?.id || spaceGroup?.paywall || autoJoinAttempted) return
     setAutoJoinAttempted(true)
     handleJoinSpace()
-  }, [hasJoinOrInviteLink, spaceGroup?.id, spaceGroup?.paywall, autoJoinAttempted, handleJoinSpace])
+  }, [canAutoJoinViaInvite, spaceGroup?.id, spaceGroup?.paywall, autoJoinAttempted, handleJoinSpace])
 
   const handleRequestToJoin = useCallback(async () => {
     setActionError(null)
@@ -138,24 +168,11 @@ export default function SpaceJoinPage () {
     }
   }, [dispatch, spaceGroup?.id, t])
 
-  const autoJoining = hasJoinOrInviteLink && !spaceGroup?.paywall && (!autoJoinAttempted || joining)
   if (!parentGroup || !spaceGroup || !spaceDetailsLoaded || autoJoining) return <Loading />
 
   const bannerUrl = spaceGroup.bannerUrl && spaceGroup.bannerUrl !== DEFAULT_BANNER
     ? spaceGroup.bannerUrl
     : null
-
-  const isRoleGated = !spaceGroup.paywall && (spaceGroup.requiredRoles || []).length > 0
-
-  // Parent-group admins can always join; a join/invite link pre-approves Closed,
-  // Restricted, and role-gated spaces; role-holders and open spaces join directly
-  const canJoinDirectly = canAdministerParent || (
-    !spaceGroup.paywall && (
-      hasJoinOrInviteLink ||
-      (isRoleGated && hasRequiredRole) ||
-      spaceGroup.accessibility === GROUP_ACCESSIBILITY.Open
-    )
-  )
 
   const accessDescription = spaceAccessDescription({
     space: spaceGroup,
@@ -242,7 +259,7 @@ export default function SpaceJoinPage () {
                 <p className='text-sm text-red-500 mb-2'>{actionError}</p>
               )}
 
-              {canJoinDirectly
+              {canJoinDirectly || canJoinViaInviteDirectly
                 ? (
                   <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
                     {joining ? t('Joining...') : t('Join Space')}
@@ -255,30 +272,36 @@ export default function SpaceJoinPage () {
                       <PaywallOfferingsSection group={spaceGroup} sellingGroup={parentGroup} />
                     </div>
                     )
-                  : isRoleGated
+                  : isRoleGated && hasJoinOrInviteLink
                     ? (
                       <p className='text-sm text-foreground/60'>
-                        {t('You do not have a role needed to join this space')}
+                        {t('This invitation link requires you to have the {{roleNames}} role to join this space', { roleNames: requiredRoles.map(r => [r.emoji, r.name].filter(Boolean).join(' ')).join(', ') })}
                       </p>
                       )
-                    : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
-                      ? hasPendingRequest
-                        ? (
-                          <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground'>
-                            <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
-                            <span>{t('You will be sent an email and notified on your device when the request is approved.')}</span>
-                          </div>
-                          )
-                        : (
-                          <Button variant='highVisibility' className='w-full justify-center' onClick={handleRequestToJoin} disabled={requesting}>
-                            {requesting ? t('Requesting...') : t('Request to Join Space')}
-                          </Button>
-                          )
-                      : (
+                    : isRoleGated
+                      ? (
                         <p className='text-sm text-foreground/60'>
-                          {t('This space is invite only. You need an invitation to join.')}
+                          {t('You do not have a role needed to join this space')}
                         </p>
-                        )}
+                        )
+                      : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
+                        ? hasPendingRequest
+                          ? (
+                            <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground'>
+                              <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
+                              <span>{t('You will be sent an email and notified on your device when the request is approved.')}</span>
+                            </div>
+                            )
+                          : (
+                            <Button variant='highVisibility' className='w-full justify-center' onClick={handleRequestToJoin} disabled={requesting}>
+                              {requesting ? t('Requesting...') : t('Request to Join Space')}
+                            </Button>
+                            )
+                        : (
+                          <p className='text-sm text-foreground/60'>
+                            {t('This space is invite only. You need an invitation to join.')}
+                          </p>
+                          )}
             </div>
           </div>
         </div>

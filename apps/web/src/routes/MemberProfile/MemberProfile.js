@@ -1,12 +1,12 @@
 import { filter, isFunction } from 'lodash'
-import { Pencil, X } from 'lucide-react'
+import { Pencil, Trash2, X } from 'lucide-react'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useSelector, useDispatch } from 'react-redux'
 import { Tooltip } from 'react-tooltip'
-import { useParams, useNavigate, Routes, Route } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
@@ -15,6 +15,7 @@ import Button from 'components/Button'
 import BadgeEmoji from 'components/BadgeEmoji'
 import ClickCatcher from 'components/ClickCatcher'
 import Dropdown from 'components/Dropdown'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import NotFound from 'components/NotFound'
@@ -31,9 +32,13 @@ import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import blockUser from 'store/actions/blockUser'
+import { removeMember } from 'routes/Members/Members.store'
+import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
+import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
@@ -48,6 +53,7 @@ import {
   getPresentedPerson
 } from './MemberProfile.store'
 import { cn } from 'util/index'
+import { historyIndexBackDelta, profileDirectLoadBackPath } from 'util/mobileNavBack'
 import {
   currentUserSettingsUrl,
   messagePersonUrl,
@@ -72,7 +78,13 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const { t } = useTranslation()
   const [container, setContainer] = useState(null)
 
+  const location = useLocation()
+  const { context, groupSlug: routeGroupSlug } = useRouteParams()
   const personId = routeParams.personId
+  // History index of the page this profile was opened from. Header back returns
+  // there, including after posts opened from the profile have been closed.
+  const entryHistoryIndexRef = useRef(null)
+  const trackedPersonIdRef = useRef(null)
   const error = !Number.isSafeInteger(Number(personId)) ? MESSAGES.invalid : null
   const person = useSelector(state => getPresentedPerson(state, routeParams))
   const contentLoading = useSelector(state => isPendingFor([
@@ -86,10 +98,16 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const roles = useSelector(state => getRolesForGroup(state, { person, groupId: group?.id }))
   const currentUser = useSelector(getMe)
+  const isCurrentUser = currentUser && currentUser.id === personId
   const previousLocation = useSelector(getPreviousLocation) || { pathname: '/' }
+  // Spaces inherit roles/responsibilities from the parent group
+  const roleGroupId = group?.parentId || group?.id
+  const currentUserResponsibilities = useSelector(state =>
+    getResponsibilityTitlesForGroup(state, { person: currentUser, groupId: roleGroupId }))
 
   const fetchPersonAction = (id) => dispatch(fetchPerson(id))
   const blockUserAction = (id) => dispatch(blockUser(id))
+  const removeMemberAction = (id) => dispatch(removeMember(id, group.id, groupSlug))
   const push = (url) => navigate(url)
   const goToPreviousLocation = () => navigate(previousLocation)
 
@@ -110,17 +128,34 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const [isBioClamped, setIsBioClamped] = useState(false)
   const bioRef = useRef(null)
 
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
+
   const { setHeaderDetails } = useViewHeader()
+  const postOverlayOpen = /\/post\/\d+/.test(location.pathname)
   useEffect(() => {
+    if (trackedPersonIdRef.current !== personId) {
+      trackedPersonIdRef.current = personId
+      const idx = window.history.state?.idx
+      entryHistoryIndexRef.current = typeof idx === 'number' ? idx - 1 : null
+    }
+    const historyBack = historyIndexBackDelta({
+      currentIndex: window.history.state?.idx,
+      entryIndex: entryHistoryIndexRef.current,
+      postOverlayOpen
+    })
     setHeaderDetails({
       title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
       icon: 'Person',
       info: '',
-      search: true,
+      search: !isCurrentUser,
       backButton: true,
-      mobileBackButton: true
+      mobileBackButton: true,
+      // No earlier history entry (profile opened directly): leave for the group home.
+      backTo: historyBack != null
+        ? historyBack
+        : (postOverlayOpen ? null : profileDirectLoadBackPath({ context, groupSlug: routeGroupSlug }))
     })
-  }, [person])
+  }, [person, personId, postOverlayOpen, context, routeGroupSlug, t])
 
   useEffect(() => {
     if (personId) fetchPersonAction(personId)
@@ -178,6 +213,11 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     }
   }
 
+  const confirmRemoveMember = () => {
+    setConfirmingRemove(false)
+    removeMemberAction(personId).then(goToPreviousLocation)
+  }
+
   const toggleShowAllGroups = () => {
     setShowAllGroups(!showAllGroups)
   }
@@ -199,8 +239,8 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const memberships = person.memberships.sort((a, b) => a.group.name.localeCompare(b.group.name))
   const projects = person.projects && person.projects.items
   const locationWithoutUsa = person.location && person.location.replace(', United States', '')
-  const isCurrentUser = currentUser && currentUser.id === personId
   const isAxolotl = AXOLOTL_ID === personId
+  const canRemove = Boolean(group?.id) && currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)
   const contentDropDownItems = [
     { id: 'Overview', label: t('Overview'), title: t('{{name}}\'s recent activity', { name: person.name }), component: RecentActivity },
     { id: 'Posts', label: t('Posts'), title: t('{{name}}\'s posts', { name: person.name }), component: MemberPosts },
@@ -220,7 +260,8 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   ]
   const actionDropdownItems = [
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
-    { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl }
+    { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl },
+    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: () => setConfirmingRemove(true), hide: isCurrentUser || isAxolotl || !canRemove }
   ]
   const {
     title: currentContentTitle,
@@ -259,6 +300,38 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             <ActionButtons items={actionButtonsItems} />
             <ActionDropdown items={actionDropdownItems} />
           </div>
+          {canRemove && (
+            <Dialog open={confirmingRemove} onOpenChange={setConfirmingRemove}>
+              <DialogContent className='max-w-md'>
+                <DialogHeader>
+                  <DialogTitle>{t('Remove member')}</DialogTitle>
+                </DialogHeader>
+                <DialogDescription asChild>
+                  <div className='flex flex-wrap items-center gap-1.5 text-sm text-foreground/80'>
+                    <span>{t('You are about to permanently remove')}</span>
+                    <span className='font-semibold text-foreground'>{person.name}</span>
+                    <span>{t('from the group. Are you sure?')}</span>
+                  </div>
+                </DialogDescription>
+                <DialogFooter>
+                  <button
+                    type='button'
+                    onClick={confirmRemoveMember}
+                    className='rounded-md bg-destructive text-white px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity'
+                  >
+                    {t('Remove')}
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setConfirmingRemove(false)}
+                    className='rounded-md border-2 border-foreground/20 px-3 py-1.5 text-sm font-medium text-foreground hover:border-foreground/50 transition-all'
+                  >
+                    {t('Cancel')}
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
           {(person.tagline || person.bio) && (
             <div className='flex items-center flex-col mb-4'>
               {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}

@@ -57,9 +57,9 @@ function resolveSpaceGroup (parentGroup, groupViews, parentSlug, localSlug) {
 /**
  * Renders space views at /groups/:parentSlug/spaces/:spaceSlug/* while the
  * ContextMenu continues to show the parent group's navigation.
- * The space index shows ContextMenuGrid (the space's own menu) whenever no menu
- * is visible alongside it — one-column groups, and any drawer-width viewport —
- * and otherwise redirects to the space's home view.
+ * The space index shows ContextMenuGrid whenever no menu is visible alongside
+ * it (one-column groups, drawer viewport). Otherwise it redirects to the
+ * space's home view — only that view's unread should clear.
  */
 export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColumnGroup = false }) {
   const dispatch = useDispatch()
@@ -173,11 +173,8 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
     fundingRound: spaceGroup?.fundingRound || linkedSpace?.fundingRound
   })
 
-  // Entering a space should land on its menu, not skip straight into a view —
-  // unless a menu is still visible elsewhere. In two column that is the sidebar,
-  // so going to the home view loses nothing. On a drawer layout the sidebar has
-  // slid off screen, so skipping the menu removes the only step where you can see
-  // what the space contains, and the way back is a drawer you have to know about.
+  // Two-column: sidebar already shows the space menu, so land on home.
+  // One-column / drawer: stay on the space menu so you can see what it contains.
   const visibleSpaceViews = (resolvedSpace?.groupViews?.items || [])
     .filter(view => view.order != null)
   // A menu holding a single card is worse than the view it would open —

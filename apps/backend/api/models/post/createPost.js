@@ -170,7 +170,7 @@ async function attachOrQueueLinkPreview (post, trx, skipLinkPreview) {
 }
 
 /**
- * Increment unread for GroupMemberships, typed views, and chat views.
+ * Increment unread for typed views, chat views, then sync membership badges.
  * Called as a background job so large groups do not block createPost.
  */
 export async function incrementNewPostCount (post) {
@@ -231,14 +231,12 @@ export async function incrementNewPostCount (post) {
     }
   }
 
-  return Promise.all([
-    GroupMembership.query(q => {
-      q.whereIn('group_id', groupIds)
-      q.whereNot('group_memberships.user_id', authorId)
-      q.where('group_memberships.active', true)
-    }).query().update({ updated_at: new Date() }).increment('new_post_count'),
-    Promise.all(jobs)
-  ])
+  await Promise.all(jobs)
+  return Promise.all(groups.models.map(group => {
+    const memberIds = membersByGroup.get(String(group.id)) || []
+    if (memberIds.length === 0) return null
+    return GroupMembership.syncBadgeCounts(group.id, memberIds)
+  }))
 }
 
 /**
@@ -324,9 +322,13 @@ async function notifyAndMarkAuthorRead (post, localId, trx) {
     return Promise.all(jobs)
   })
 
+  await markAuthorViewsRead
+  await Promise.all(groups.models.map(group =>
+    GroupMembership.syncBadgeCounts(group.id, [authorId], { transacting: trx })
+  ))
+
   return Promise.all([
     notifySockets,
-    trackAsNewPost && groupTagsQuery.update({ updated_at: new Date() }),
-    markAuthorViewsRead
+    trackAsNewPost && groupTagsQuery.update({ updated_at: new Date() })
   ])
 }

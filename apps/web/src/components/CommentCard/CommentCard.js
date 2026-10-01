@@ -30,21 +30,21 @@ export default function CommentCard ({
   const commentText = useMemo(() => expanded ? comment.text : TextHelpers.truncateHTML(comment.text, 144), [expanded, comment.text])
 
   return (
-    <span onClick={() => viewPostDetails(comment.post)} className={classes.link} data-testid='comment-card'>
+    <span onClick={() => viewPostDetails(comment.post)} className={cn(classes.link, 'block max-w-full min-w-0')} data-testid='comment-card'>
       <div className={cn(
-        'rounded-xl cursor-pointer relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400',
+        'rounded-xl cursor-pointer relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400 w-full min-w-0 max-w-full',
         classes.commentCard,
         { [classes.expanded]: expanded })}
       >
-        <div className={classes.commentHeader}>
-          <div className='flex flex-row items-center justify-between w-full gap-2'>
-            <div className='flex flex-row items-center'>
+        <div className={cn(classes.commentHeader, 'w-full min-w-0')}>
+          <div className='flex flex-row flex-wrap items-center justify-between w-full min-w-0 gap-x-2 gap-y-0.5'>
+            <div className='flex flex-row items-center min-w-0 max-w-full overflow-hidden'>
               <RoundImage url={creator.avatarUrl} medium />
               <Highlight {...highlightProps}>
-                <div className='ml-2 flex gap-1'>
-                  <span className='hidden sm:block text-sm sm:text-base font-bold whitespace-nowrap'>{creator.name}</span>
-                  <span className='text-sm sm:text-base opacity-50 sm:opacity-100 whitespace-nowrap'>{t('commented on')}{' '}</span>
-                  <span className='text-sm sm:text-base truncate font-bold whitespace-nowrap'>{postTitle}</span>
+                <div className='ml-2 flex min-w-0 gap-1 overflow-hidden'>
+                  <span className='hidden sm:block text-sm sm:text-base font-bold whitespace-nowrap shrink-0'>{creator.name}</span>
+                  <span className='text-sm sm:text-base opacity-50 sm:opacity-100 whitespace-nowrap shrink-0'>{t('commented on')}{' '}</span>
+                  <span className='text-sm sm:text-base truncate font-bold min-w-0'>{postTitle}</span>
                 </div>
               </Highlight>
             </div>

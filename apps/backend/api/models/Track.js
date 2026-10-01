@@ -220,14 +220,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   create: async function (attrs, { transacting } = {}) {
     attrs.settings = attrs.settings || { }
-    // Dual-write display fields onto leftover NOT NULL columns until the
-    // in-progress drop-column migration ships. Source of truth is the space group.
-    if (!attrs.name) {
-      const space = attrs.group_id ? await Group.find(attrs.group_id, { transacting }) : null
-      attrs.name = (space && space.get('name')) || 'Untitled'
-      if (attrs.description === undefined) attrs.description = space ? space.get('description') : null
-      if (attrs.banner_url === undefined) attrs.banner_url = space ? space.get('banner_url') : null
-    }
     return this.forge(Object.assign({ created_at: new Date() }, attrs)).save({}, { transacting })
   },
 

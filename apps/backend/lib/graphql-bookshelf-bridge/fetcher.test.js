@@ -94,6 +94,22 @@ describe('Fetcher', () => {
       })
     })
 
+    describe('skipTotal', () => {
+      it('omits count(*) over () when skipTotal is true', () => {
+        const bike = new Bike({id: 1})
+        return fetcher.fetchRelation(bike.wheels(), 'Wheel', {
+          sortBy: 'wheelName',
+          skipTotal: true
+        })
+          .then(() => {
+            const { relation } = fetcher.loaders.relations.log[fetcher.loaders.relations.log.length - 1]
+            const { sql } = relation.query().toSQL()
+            expect(sql).to.equal('select * from "wheels" order by "wheel_name" asc')
+            expect(sql).to.not.contain('__total')
+          })
+      })
+    })
+
     describe('skipModelFilter', () => {
       it('skips the default model filter when skipModelFilter is true', () => {
         const filter = spy(relation => relation.query(q => q.where('wheels.active', true)))

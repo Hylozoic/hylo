@@ -79,6 +79,11 @@ describe('groupAcceptsPostType', () => {
     expect(groupAcceptsPostType(['request', 'offer'], 'discussion')).to.equal(false)
   })
 
+  it('parses jsonb strings', () => {
+    expect(groupAcceptsPostType('["discussion"]', 'discussion')).to.equal(true)
+    expect(groupAcceptsPostType('["discussion"]', 'event')).to.equal(false)
+  })
+
   it('treats requests-and-offers as an alias for request and offer', () => {
     expect(groupAcceptsPostType(['requests-and-offers'], 'request')).to.equal(true)
     expect(groupAcceptsPostType(['requests-and-offers'], 'offer')).to.equal(true)
