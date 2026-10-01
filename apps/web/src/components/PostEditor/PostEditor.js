@@ -4,7 +4,7 @@ import useTour from 'tours/useTour'
 import { POST_EDITOR_TOUR_ID, postEditorTourSteps } from 'tours/postEditorTour'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
-import { DateTimeHelpers } from '@hylo/shared'
+import { AnalyticsEvents, DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import React, { useCallback, useMemo, useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
@@ -81,6 +81,7 @@ import {
 } from 'store/constants'
 import createPost from 'store/actions/createPost'
 import updatePost from 'store/actions/updatePost'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import {
   addAttachment,
   attachmentsFromUrls,
@@ -99,13 +100,21 @@ import {
 } from './PostEditor.store'
 import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
-import { setQuerystringParam } from '@hylo/navigation'
+import { COMPOSER_TEMPLATE_INTRO, COMPOSER_TEMPLATE_PARAM, setQuerystringParam } from '@hylo/navigation'
 import { isMeetingUrl, sanitizeURL } from 'util/url'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+import titleFromDetails, { isTitleOptional } from './titleFromDetails'
+import {
+  composerTemplateText,
+  fetchGroupIntroTemplate,
+  isComposerTemplate,
+  textToEditorHtml,
+  withoutComposerTemplateParams
+} from './composerTemplates'
 
 /** First post type as shown in PostTypeSelect (POST_TYPES order), among allowed types. */
 function firstDropdownPostType (allowedPostTypes) {
@@ -131,6 +140,16 @@ function isSpaceGroup (group) {
 /** Compares group ids as strings so GraphQL/ORM number vs string ids still match. */
 function sameGroupId (a, b) {
   return a != null && b != null && String(a) === String(b)
+}
+
+/** A draft held while it could not reach the server (JSON), or null. */
+function parseUnsentDraft (data) {
+  if (!data) return null
+  try {
+    return JSON.parse(data)
+  } catch {
+    return null
+  }
 }
 
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
@@ -178,7 +197,8 @@ function PostEditorInner ({
   const dispatch = useDispatch()
   const urlLocation = useLocation()
   const { pathname, search } = urlLocation
-  const navigateToForDraft = `${pathname}${search || ''}`
+  // Drafts reopen without the one-time template and entry parameters
+  const navigateToForDraft = withoutComposerTemplateParams(`${pathname}${search || ''}`)
   const routeParams = useParams()
   const parsedRouteParams = useRouteParams()
   // When inside a space, groupSlug is the space; parentGroupSlug / spaceSlug come from the URL
@@ -255,11 +275,53 @@ function PostEditorInner ({
     if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
     return postType
   })()
+  // ?template=intro or ?template=welcome starts a new post from a template.
+  // A saved draft for the same place and type still wins over it.
+  const templateParam = getQuerystringParam(COMPOSER_TEMPLATE_PARAM, urlLocation)
+  const composerTemplate = !editing && !fromPostId && isComposerTemplate(templateParam) ? templateParam : null
+  // Templates name the group, so they wait for it (but not forever)
+  const [templateGroupTimedOut, setTemplateGroupTimedOut] = useState(false)
+  const waitingForTemplateGroup = !!composerTemplate && !!groupSlug && !currentGroup?.id && !templateGroupTimedOut
+  useEffect(() => {
+    if (!waitingForTemplateGroup) return
+    const timer = setTimeout(() => setTemplateGroupTimedOut(true), 5000)
+    return () => clearTimeout(timer)
+  }, [waitingForTemplateGroup])
+  // undefined while the group's own Introduction template is still being read
+  const [groupIntroTemplate, setGroupIntroTemplate] = useState(composerTemplate === COMPOSER_TEMPLATE_INTRO ? undefined : null)
+  useEffect(() => {
+    if (composerTemplate !== COMPOSER_TEMPLATE_INTRO || waitingForTemplateGroup) return
+    if (!currentGroup?.id) {
+      setGroupIntroTemplate(null)
+      return
+    }
+    let cancelled = false
+    fetchGroupIntroTemplate(currentGroup.id)
+      .catch(() => null)
+      .then(text => { if (!cancelled) setGroupIntroTemplate(text || null) })
+    return () => { cancelled = true }
+  }, [composerTemplate, currentGroup?.id, waitingForTemplateGroup])
+  const templatePending = waitingForTemplateGroup ||
+    (composerTemplate === COMPOSER_TEMPLATE_INTRO && groupIntroTemplate === undefined)
+  // The editor opens once the template (or a saved draft) is in place, so it
+  // starts with that text rather than having it swapped in
+  const [templateApplied, setTemplateApplied] = useState(!composerTemplate)
+  const templateHtml = useMemo(() => {
+    if (!composerTemplate || templatePending) return ''
+    return textToEditorHtml(composerTemplateText({
+      template: composerTemplate,
+      groupIntroTemplate,
+      t,
+      name: currentUser?.name,
+      groupName: currentGroup?.name
+    }))
+  }, [composerTemplate, templatePending, groupIntroTemplate, t, currentUser?.name, currentGroup?.name])
+
   // Optional topic from URL / caller (e.g. topic stream, funding round). Spaces/views do not load chat rooms.
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
-  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, cancelPendingSave, clearDraft } = useDraft({
+  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, flushSaveDraft, cancelPendingSave, clearDraft, holdUnsentDraft, takeUnsentDraft } = useDraft({
     type: 'post',
     postId: editing ? editingPostId : undefined,
     groupId: currentGroup?.id,
@@ -307,6 +369,8 @@ function PostEditorInner ({
   const isSubmittingRef = useRef(false)
   const saveFailedToastIdRef = useRef(null)
   const mountedRef = useRef(false)
+  /** Set when the person chose Discard in the close dialog; a save still in flight then leaves nothing behind. */
+  const discardedRef = useRef(false)
   /**
    * Latest editor HTML. Kept in a ref so typing does not write into React state on every keystroke.
    * null means not hydrated yet — draft effect falls back to currentPost.details.
@@ -340,7 +404,7 @@ function PostEditorInner ({
       : post
   ), [attachmentsTouched, fileAttachments, imageAttachments])
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT, UPDATE_POST], state))
-  const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
+  const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending || templatePending || !templateApplied
 
   let inputPost = propsPost
   const _editingPost = useSelector(state => getPost(state, editingPostId))
@@ -387,7 +451,7 @@ function PostEditorInner ({
       acceptContributions: false,
       completionAction: 'button',
       completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
-      details: '',
+      details: templateHtml,
       groups: currentGroup ? [currentGroup] : [],
       isAnonymousVote: false,
       isPublic: context === 'public',
@@ -407,13 +471,14 @@ function PostEditorInner ({
       startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
       endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
     }
-  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, inputPost?.linkPreview?.id, inputPost?.linkPreviewFeatured, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
+  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, inputPost?.linkPreview?.id, inputPost?.linkPreviewFeatured, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, templateHtml, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
   const [typeSwitchDialog, setTypeSwitchDialog] = useState(null)
   const [invalidMessage, setInvalidMessage] = useState('')
-  const [hasDescription, setHasDescription] = useState(initialPost.details?.length > 0) // TODO: an optimization to not run isValid no every character changed in the description
+  // True when the text has something other than blank space; a discussion needs this or a title
+  const [hasDescription, setHasDescription] = useState(hasDraftContent(initialPost.details))
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
   const [showAllSubmissionCriteria, setShowAllSubmissionCriteria] = useState(false)
@@ -509,7 +574,7 @@ function PostEditorInner ({
 
   useEffect(() => {
     if (isSubmittedRef.current) return
-    if (!serverDraftLoaded || draftLoadedRef.current) return
+    if (!serverDraftLoaded || draftLoadedRef.current || templatePending) return
     const activeType = createPostType
     const serverDraft = loadDraftJSON()
     const sessionDraft = inSessionDraftByTypeRef.current[activeType]
@@ -534,9 +599,13 @@ function PostEditorInner ({
       return
     }
 
-    const mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
+    // A post that failed to send, whose draft could not reach the server
+    // either, is newer than anything the server holds
+    const unsentDraft = parseUnsentDraft(takeUnsentDraft())
+    const mergedPost = mergeDraftIntoPost(initialPost, unsentDraft || sessionDraft || serverDraft, groupOptions)
     applyPostToEditor(mergedPost)
-  }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON])
+    setTemplateApplied(true)
+  }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON, takeUnsentDraft, templatePending])
 
   useEffect(() => {
     if (editing || !currentGroup?.id) return
@@ -828,7 +897,7 @@ function PostEditorInner ({
     const details = initialPost.details || ''
     detailsHtmlRef.current = details
     editorRef.current?.setContent(details)
-    setHasDescription(details.length > 0)
+    setHasDescription(hasDraftContent(details))
     dispatch(clearLinkPreview())
     setCurrentPost(() => ({
       ...initialPost,
@@ -940,7 +1009,8 @@ function PostEditorInner ({
    */
   const handleDetailsChange = useCallback((html) => {
     detailsHtmlRef.current = html
-    const hasContent = (editorRef.current?.getText?.() || '').length > 0
+    // Blank lines and spaces alone are not text: an untitled discussion needs real words
+    const hasContent = (editorRef.current?.getText?.() || '').trim().length > 0
     // queueMicrotask: TipTap updates synchronously; deferring avoids render-cycle conflicts
     // that can surface as characters appearing out of order under load.
     queueMicrotask(() => {
@@ -1119,7 +1189,15 @@ function PostEditorInner ({
         break
     }
 
-    if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
+    // Discussions can go without a title (one is made from the text on save),
+    // but not without both
+    if (isTitleOptional(type)) {
+      if (!title?.trim() && !hasDescription) {
+        errorMessages.push(t('Add a title or some text'))
+      } else if (title?.length > MAX_TITLE_LENGTH) {
+        errorMessages.push(t('Title is required'))
+      }
+    } else if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
       errorMessages.push(t('Title is required'))
     }
 
@@ -1142,22 +1220,65 @@ function PostEditorInner ({
   // }
 
   /**
+   * Where "View Draft" reopens a post whose save failed after its editor closed:
+   * the composer at the same place, for the same post type, which loads the draft.
+   */
+  const viewDraftPath = useCallback(() => {
+    try {
+      const url = new URL(navigateToForDraft, window.location.origin)
+      if (!editing) url.searchParams.set('newPostType', createPostType)
+      return `${url.pathname}${url.search}`
+    } catch {
+      return navigateToForDraft
+    }
+  }, [createPostType, editing, navigateToForDraft])
+
+  /**
    * Keeps the post in the editor after a failed create/update, turns draft
    * autosave back on (re-queueing the draft) and offers a retry. If the editor
-   * has closed while saving, the draft is still re-queued but there is nothing
-   * left to retry from.
+   * has closed while saving, the post is kept as a draft straight away (held
+   * in memory when the server can't be reached) and the toast offers to open
+   * it. If the person chose Discard while it was saving,
+   * nothing is kept and nothing is shown.
    */
   const handleSaveFailed = useEventCallback((wasAnnouncement) => {
     isSubmittedRef.current = false
     isSubmittingRef.current = false
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_FAILED, {
+      postType: currentPost.type,
+      editing: isEditing,
+      editorOpen: mountedRef.current,
+      discarded: discardedRef.current
+    }))
+    if (discardedRef.current) return
     setAnnouncementSelected(!!wasAnnouncement)
     const details = editorRef.current?.getHTML?.() ?? detailsHtmlRef.current ?? currentPost.details
-    saveDraftJSON(buildPostDraftPayload(withDraftAttachments({ ...currentPost, details })))
-    const message = isEditing ? t('Your changes couldn\'t be saved') : t('Your post couldn\'t be sent')
+    const draftPayload = buildPostDraftPayload(withDraftAttachments({ ...currentPost, details }))
     if (!mountedRef.current) {
-      toast.error(message)
+      // Saved straight away. When that fails too (usually the same dropped
+      // connection), the text is held here so the composer still opens with it,
+      // and View Draft tries the server again first since it may be back
+      const draftJson = hasPostDraftPayloadContent(draftPayload) ? JSON.stringify(draftPayload) : null
+      const saveDraftNow = () => draftJson ? flushSaveDraft(draftJson, { force: true }) : Promise.resolve(true)
+      const draftSaved = saveDraftNow().then(saved => {
+        if (!saved) holdUnsentDraft(draftJson)
+        return saved
+      })
+      const path = viewDraftPath()
+      toast.error(isEditing ? t('Your changes couldn\'t be saved') : t('Your post wasn\'t sent!'), {
+        action: {
+          label: t('View Draft'),
+          onClick: () => {
+            draftSaved
+              .then(saved => saved || saveDraftNow())
+              .finally(() => navigate(path))
+          }
+        }
+      })
       return
     }
+    saveDraftJSON(draftPayload)
+    const message = isEditing ? t('Your changes couldn\'t be saved') : t('Your post couldn\'t be sent')
     saveFailedToastIdRef.current = toast.error(message, {
       action: { label: t('Try Again'), onClick: () => doSave() }
     })
@@ -1213,6 +1334,7 @@ function PostEditorInner ({
         type
       } = currentPost
       const details = editorRef.current.getHTML()
+      const titleToSave = isTitleOptional(type) && !title?.trim() ? titleFromDetails(details) : title
       const topicNames = topics?.map((t) => t.name)
       const memberIds = members?.map((m) => m.id) || []
       if (type === 'project') {
@@ -1273,7 +1395,7 @@ function PostEditorInner ({
         sendAnnouncement: announcementSelected,
         startTime,
         timezone,
-        title,
+        title: titleToSave,
         topicNames,
         trackId: currentTrack?.id,
         markAsReadTopicName,
@@ -1331,7 +1453,13 @@ function PostEditorInner ({
   // Allow parents (e.g. CreatePostModal) to trigger save/reset flows without duplicating editor logic
   useImperativeHandle(ref, () => ({
     submit: () => doSave(),
-    resetToInitial: () => reset()
+    resetToInitial: () => reset(),
+    // Discard from the close dialog: clear everything, including what a save
+    // still in flight would otherwise put back if it fails
+    discard: () => {
+      discardedRef.current = true
+      reset()
+    }
   }))
 
   const buttonLabel = useCallback(() => {
@@ -1341,8 +1469,13 @@ function PostEditorInner ({
   }, [postPending, isEditing])
 
   const handleInvalidSubmit = useCallback(() => {
-    if (!currentPost.title) titleInputRef.current?.focus()
-  }, [currentPost.title])
+    if (currentPost.title) return
+    if (isTitleOptional(currentPost.type)) {
+      editorRef.current?.focus()
+    } else {
+      titleInputRef.current?.focus()
+    }
+  }, [currentPost.title, currentPost.type])
 
   const toggleAnnouncementModal = useCallback(() => {
     setShowAnnouncementModal(!showAnnouncementModal)
@@ -1522,6 +1655,7 @@ function PostEditorInner ({
           type='text'
           className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
           value={currentPost.title || ''}
+          placeholder={isTitleOptional(currentPost.type) ? t('(optional)') : undefined}
           onChange={handleTitleChange}
           disabled={loading}
           ref={titleInputRef}

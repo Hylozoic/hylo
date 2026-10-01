@@ -17,7 +17,8 @@ export function isTransientApiError (error) {
   if (!error) return false
   if (error.isNetworkError) return true
   const status = error.response?.status
-  return typeof status === 'number' && status >= 500
+  // Status 0 is a request that never got an answer, surfaced as a response
+  return typeof status === 'number' && (status === 0 || status >= 500)
 }
 
 function networkError (message, cause) {

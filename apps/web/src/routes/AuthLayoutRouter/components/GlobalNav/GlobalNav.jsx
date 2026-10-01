@@ -212,7 +212,7 @@ function GlobalCreateMenu () {
           label={t('Create a group')}
         />
         <CreateMenuRow
-          onClick={go(createPostModalUrl(location))}
+          onClick={go(createPostModalUrl(location, { composerEntry: 'create_menu' }))}
           tileClass='bg-[hsl(155_51%_34%)]'
           icon={<Edit className='w-4 h-4' />}
           label={t('Create a post')}

@@ -77,6 +77,44 @@ describe('updatePost', () => {
   })
 })
 
+describe('updatePost title fallback', () => {
+  let user, group
+
+  before(async () => {
+    user = await factories.user().save()
+    group = await factories.group().save()
+    await user.joinGroup(group)
+  })
+
+  it('titles a discussion from its text when the title is cleared', async () => {
+    const post = await factories.post({ type: Post.Type.DISCUSSION, user_id: user.id, name: 'Old title', description: '<p>Old text</p>' }).save()
+    await updatePost(user.id, post.id, { name: '', description: '<p>Brand new text for this discussion</p>', type: Post.Type.DISCUSSION })
+    const updated = await Post.find(post.id)
+    expect(updated.get('name')).to.equal('Brand new text for this discussion')
+  })
+
+  it('uses the existing text when only the title is cleared', async () => {
+    const post = await factories.post({ type: Post.Type.DISCUSSION, user_id: user.id, name: 'Old title', description: '<p>Existing words</p>' }).save()
+    await updatePost(user.id, post.id, { name: '' })
+    const updated = await Post.find(post.id)
+    expect(updated.get('name')).to.equal('Existing words')
+  })
+
+  it('leaves the title alone when the update does not include one', async () => {
+    const post = await factories.post({ type: Post.Type.DISCUSSION, user_id: user.id, name: 'Keep me', description: '<p>Words</p>' }).save()
+    await updatePost(user.id, post.id, { description: '<p>Other words</p>' })
+    const updated = await Post.find(post.id)
+    expect(updated.get('name')).to.equal('Keep me')
+  })
+
+  it('does not make up a title for other post types', async () => {
+    const post = await factories.post({ type: Post.Type.OFFER, user_id: user.id, name: 'Offer title', description: '<p>Words</p>' }).save()
+    await updatePost(user.id, post.id, { name: '' })
+    const updated = await Post.find(post.id)
+    expect(updated.get('name')).to.equal('')
+  })
+})
+
 describe('afterUpdatingPost', () => {
   let u1, u2, post
 

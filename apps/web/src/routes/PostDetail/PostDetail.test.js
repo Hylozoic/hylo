@@ -233,4 +233,39 @@ describe('PostDetail', () => {
       expect(screen.getByText('404 Not Found')).toBeInTheDocument()
     })
   })
+
+  describe('when the post cannot be loaded', () => {
+    beforeEach(() => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '404040' })
+    })
+
+    it('offers to try again after a server error, and shows the post once it loads', async () => {
+      let attempts = 0
+      mockGraphqlServer.use(
+        graphql.query('FetchPost', () => {
+          attempts += 1
+          if (attempts === 1) return new HttpResponse('Server error', { status: 503 })
+          return HttpResponse.json({ data: { post: { ...post, id: '404040', title: 'Back again' } } })
+        })
+      )
+      render(<PostDetail />, { wrapper: AllTheProviders() })
+
+      await screen.findByTestId('load-failed')
+      expect(screen.queryByText('404 Not Found')).not.toBeInTheDocument()
+
+      await act(async () => { screen.getByRole('button', { name: 'Try Again' }).click() })
+
+      await screen.findAllByText('Back again')
+      expect(attempts).toBeGreaterThanOrEqual(2)
+      expect(screen.queryByTestId('load-failed')).not.toBeInTheDocument()
+    })
+
+    it('still says not found when the post is missing or hidden', async () => {
+      mockGraphqlServer.use(graphql.query('FetchPost', () => HttpResponse.json({ data: { post: null } })))
+      render(<PostDetail />, { wrapper: AllTheProviders() })
+
+      await screen.findByText('404 Not Found')
+      expect(screen.queryByTestId('load-failed')).not.toBeInTheDocument()
+    })
+  })
 })

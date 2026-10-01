@@ -20,6 +20,8 @@ import Icon from 'components/Icon'
 import SocketSubscriber from 'components/SocketSubscriber'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
+import LoadFailed from 'components/LoadFailed'
+import { isTransientApiError } from 'store/middleware/apiMiddleware'
 import Button from 'components/ui/button'
 import SoleAdminLeaveDialog from 'components/SoleAdminLeaveDialog/SoleAdminLeaveDialog'
 import JoinSection from './JoinSection'
@@ -184,13 +186,19 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const inviteEmailLower = invitationEmail?.toLowerCase()
   const emailMismatch = hasEmailInvite && currentUser && userEmail !== inviteEmailLower
 
+  // Why the last load of this group failed, if it did (see the not-found branch below)
+  const [loadError, setLoadError] = useState(null)
   const fetchGroup = useCallback(() => {
-    dispatch(fetchGroupDetails({
+    setLoadError(null)
+    const request = dispatch(fetchGroupDetails({
       slug,
       accessCode,
       invitationToken,
       withPrerequisites: !!currentUser
     }))
+    if (request?.catch) {
+      request.catch(error => setLoadError({ slug, transient: isTransientApiError(error) }))
+    }
   }, [dispatch, slug, accessCode, invitationToken, currentUser])
 
   const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
@@ -311,6 +319,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
     }
   }, [group?.name])
 
+  // A dropped connection or server error is not "not found": offer to try again
+  if (!group && !pending && loadError?.transient && loadError.slug === slug) return <LoadFailed onRetry={fetchGroup} />
   if (!group && !pending) return <NotFound />
   if (!group && pending) return <Loading />
 

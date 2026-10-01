@@ -1,5 +1,6 @@
 import React from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Shared confirm dialog for leaving a compose surface with unsaved content.
@@ -14,11 +15,12 @@ export default function UnsavedDraftLeaveDialog ({
   onContinueEditing,
   onDiscard,
   onSaveDraft,
-  continueEditingLabel = 'Continue editing',
-  saveDraftLabel = 'Save',
-  discardLabel = 'Discard',
+  continueEditingLabel,
+  saveDraftLabel,
+  discardLabel,
   saveDraftDisabled = false
 }) {
+  const { t } = useTranslation()
   const showSaveDraft = typeof onSaveDraft === 'function'
   const saveIsPrimary = showSaveDraft && !saveDraftDisabled
 
@@ -46,14 +48,14 @@ export default function UnsavedDraftLeaveDialog ({
                 className='w-full rounded-lg px-4 py-2.5 text-sm border border-foreground/20 hover:bg-foreground/10 transition-colors whitespace-nowrap'
                 onClick={onContinueEditing}
               >
-                {continueEditingLabel}
+                {continueEditingLabel || t('Continue editing')}
               </button>
               <button
                 type='button'
                 className='w-full rounded-lg px-4 py-2.5 text-sm whitespace-nowrap text-white bg-destructive hover:bg-destructive/80 transition-colors'
                 onClick={onDiscard}
               >
-                {discardLabel}
+                {discardLabel || t('Discard')}
               </button>
               {showSaveDraft && (
                 <button
@@ -63,7 +65,7 @@ export default function UnsavedDraftLeaveDialog ({
                   className='w-full rounded-lg px-4 py-2.5 text-sm whitespace-nowrap font-medium text-foreground bg-selected hover:bg-selected/90 transition-colors disabled:opacity-50 disabled:pointer-events-none'
                   onClick={onSaveDraft}
                 >
-                  {saveDraftLabel}
+                  {saveDraftLabel || t('Save')}
                 </button>
               )}
             </div>

@@ -52,6 +52,7 @@ import { cn } from 'util/index'
 import { isLegacyWebView } from 'util/webView'
 import { formatLocalizedDate } from 'util/dateFormat'
 import { getLocaleFromLocalStorage } from 'util/locale'
+import useIntroducePrompt from 'hooks/useIntroducePrompt'
 
 import styles from './ChatRoom.module.scss'
 
@@ -1067,7 +1068,7 @@ const EmptyPlaceholder = ({ context }) => {
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {!context.loadedPast || !context.loadedFuture || !context.hasFetchedForCurrentRoom
         ? <StreamSkeleton columnVariant='chat' />
-        : <EmptyChatWelcome />}
+        : <EmptyChatWelcome group={context.group} />}
     </div>
   )
 }
@@ -1244,13 +1245,24 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   )
 }
 
-const EmptyChatWelcome = () => {
+const EmptyChatWelcome = ({ group }) => {
   const { t } = useTranslation()
+  const { canIntroduce, openIntroduction } = useIntroducePrompt(group, { entry: 'chat' })
 
   return (
     <div className='mx-auto px-4 max-w-[500px] flex flex-col items-center justify-center'>
       <img src='/home-chat-welcome.png' alt='' />
       <h1 className='text-center'>{t('It\'s quiet in here, start the conversation.')}</h1>
+      {canIntroduce && (
+        <button
+          type='button'
+          onClick={openIntroduction}
+          className='mt-2 border-2 border-foreground/20 rounded-lg px-4 py-2 text-foreground/70 font-medium transition-colors hover:text-foreground hover:border-foreground/40'
+          data-testid='chat-start-conversation'
+        >
+          {t('Start the conversation')}
+        </button>
+      )}
     </div>
   )
 }

@@ -262,3 +262,39 @@ describe('GroupDetail after an invalid invitation redirect', () => {
     expect(toast.error).not.toHaveBeenCalled()
   })
 })
+
+describe('GroupDetail when the group cannot be loaded', () => {
+  function emptyProviders () {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    ormSession.Me.create({ id: '10', name: 'New Comer', email: INVITEE_EMAIL })
+    return AllTheProviders({ orm: ormSession.state, pending: {} })
+  }
+
+  beforeEach(() => {
+    useLocation.mockReturnValue({ pathname: '/groups/garden/about', search: '', hash: '' })
+  })
+
+  it('offers to try again after a server error instead of saying not found', async () => {
+    let attempts = 0
+    mockGraphqlServer.use(graphql.query('GroupDetailsQuery', () => {
+      attempts += 1
+      if (attempts === 1) return new HttpResponse('Server error', { status: 500 })
+      return HttpResponse.json({ data: { group } })
+    }))
+    render(<GroupDetail forCurrentGroup />, { wrapper: emptyProviders() })
+
+    await screen.findByTestId('load-failed')
+    expect(screen.queryByText('404 Not Found')).not.toBeInTheDocument()
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Try Again' }))
+    await waitFor(() => expect(attempts).toBe(2))
+  })
+
+  it('still says not found when there is no such group', async () => {
+    mockGraphqlServer.use(graphql.query('GroupDetailsQuery', () => HttpResponse.json({ data: { group: null } })))
+    render(<GroupDetail forCurrentGroup />, { wrapper: emptyProviders() })
+
+    await screen.findByText('404 Not Found')
+    expect(screen.queryByTestId('load-failed')).not.toBeInTheDocument()
+  })
+})

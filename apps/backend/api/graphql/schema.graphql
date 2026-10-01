@@ -1518,6 +1518,8 @@ type GroupSettings {
   autoAddMembers: Boolean
   # Whether people who haven't bought access see titles of the paid content (on unless turned off)
   showPaywallPreview: Boolean
+  # Text a member's post starts with when they choose Introduce yourself; empty means the standard translated introduction
+  introTemplate: String
 }
 
 # What people can see of a paid group or space before they buy: titles and counts only
@@ -3187,6 +3189,8 @@ type UserSettings {
   alreadySeenTour: Boolean
   # Ids of in-app guided tours this person has completed or dismissed
   toursSeen: [String]
+  # How each guided tour ended for this person, by tour: 'completed' or 'dismissed'
+  toursOutcome: JSON
   # Display mode preference: auto, light, or dark
   colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
@@ -4355,12 +4359,6 @@ input GroupInput {
   settings: GroupSettingsInput
   # The default home view for the group: CHAT (general chat), MAP (map view), or STREAM (post stream)
   homeView: String
-  # NOT USED RIGHT NOW. For Slack integratiom
-  slackHookUrl: String
-  # NOT USED RIGHT NOW. For Slack integratiom
-  slackTeam: String
-  # NOT USED RIGHT NOW. For Slack integratiom
-  slackConfigureUrl: String
   # Unique URL slug
   slug: String
   # Word used to describe any steward of this group (someone with a Common Role). Defaults to "Steward"
@@ -4442,6 +4440,8 @@ input GroupSettingsInput {
   autoAddMembers: Boolean
   # Whether people who haven't bought access see titles of the paid content (on unless turned off)
   showPaywallPreview: Boolean
+  # Text a member's post starts with when they choose Introduce yourself; empty means the standard translated introduction
+  introTemplate: String
 }
 
 # Input for creating Stripe offerings
@@ -4835,6 +4835,8 @@ input UserSettingsInput {
   alreadySeenTour: Boolean
   # Ids of in-app guided tours this person has completed or dismissed
   toursSeen: [String]
+  # How each guided tour ended for this person, by tour: 'completed' or 'dismissed'
+  toursOutcome: JSON
   # Display mode preference: auto, light, or dark
   colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none

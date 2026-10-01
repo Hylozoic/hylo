@@ -87,6 +87,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   projectManagementLink
   myEventResponse
   savedAt
+  isFollowing
   commenters(first: 3) {
     id
     name
