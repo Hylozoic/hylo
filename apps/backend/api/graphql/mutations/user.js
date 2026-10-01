@@ -174,10 +174,39 @@ export const sendPasswordReset = async (_, { email }, context) => {
   }
 }
 
-export async function deactivateUser ({ userId, sessionId }) {
+// The answers someone may give when they deactivate or delete their account
+export const ACCOUNT_EXIT_REASONS = ['too_many_emails', 'not_useful', 'group_ended', 'privacy', 'other']
+
+const normalizeExitReason = reason => ACCOUNT_EXIT_REASONS.includes(reason) ? reason : null
+
+/**
+ * The confirmation email is queued with the address, name and language read
+ * before the account changes, so the job never has to read the person again.
+ */
+function accountClosedEmail (user, variant) {
+  const name = user.get('name') || ''
+  return {
+    email: user.get('email'),
+    locale: user.getLocale(),
+    data: {
+      variant,
+      first_name: name.split(' ')[0] || name,
+      login_url: Frontend.Route.prefix + '/login'
+    }
+  }
+}
+
+export async function deactivateUser ({ userId, sessionId, reason }) {
   const user = await User.find(userId)
+  const email = accountClosedEmail(user, 'deactivated')
 
   await user.deactivate(sessionId)
+
+  const exitReason = normalizeExitReason(reason)
+  if (exitReason) {
+    await bookshelf.knex('account_exit_reasons').insert({ kind: 'deactivated', reason: exitReason, user_id: user.id })
+  }
+  await Queue.classMethod('Email', 'sendAccountClosed', email)
 
   return { success: true }
 }
@@ -190,10 +219,20 @@ export async function reactivateUser ({ userId }) {
   return { success: true }
 }
 
-export async function deleteUser ({ userId, sessionId }) {
+export async function deleteUser ({ userId, sessionId, reason }) {
   const user = await User.find(userId, {}, false)
+  // Read before sanelyDeleteUser wipes the address and settings
+  const email = accountClosedEmail(user, 'deleted')
 
   await user.sanelyDeleteUser({ sessionId })
+
+  // No answer is kept against a deleted account, including one given when it was deactivated
+  await bookshelf.knex('account_exit_reasons').where({ user_id: user.id }).update({ user_id: null })
+  const exitReason = normalizeExitReason(reason)
+  if (exitReason) {
+    await bookshelf.knex('account_exit_reasons').insert({ kind: 'deleted', reason: exitReason, user_id: null })
+  }
+  await Queue.classMethod('Email', 'sendAccountClosed', email)
 
   return { success: true }
 }

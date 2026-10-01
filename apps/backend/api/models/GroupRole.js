@@ -14,7 +14,10 @@ const MEMBER_ROLE = {
 
 // Who can invite new people, stored as the set of this group's roles linked to
 // the system Invite Members responsibility:
-// everyone = the Member role, stewards = none, roles = the chosen roles.
+// everyone = the Member role, stewards = the Moderator role (Administrators and
+// Hosts invite through Add Members), roles = the Moderator role and the chosen roles.
+// While member invitations are switched off, stewards links no role at all, so
+// nobody sees Invite Members on the Moderator role before it does anything.
 const InvitePolicy = {
   EVERYONE: 'everyone',
   STEWARDS: 'stewards',
@@ -90,6 +93,21 @@ async function resolveInvitePolicyRoleIds (groupId, { roleIds, systemRoleNames }
   }
 
   return [...ids].map(Number)
+}
+
+// The steward role that invites through Invite Members rather than Add Members
+const MODERATOR = 'Moderator'
+
+function isModeratorRow (row) {
+  return row.type === 'system' && GroupRole.canonicalSystemRoleName(row.name) === MODERATOR
+}
+
+/**
+ * Id of the group's active Moderator system role, or null.
+ */
+async function activeModeratorRoleId (groupId, transacting) {
+  const role = await GroupRole.findSystemRole(groupId, MODERATOR, { transacting })
+  return role && role.get('active') ? role.id : null
 }
 
 const SYSTEM_ROLES = [
@@ -198,6 +216,16 @@ module.exports = bookshelf.Model.extend({
    */
   memberInvitesEnabled: function () {
     return isFeatureEnabled(MEMBER_INVITES)
+  },
+
+  /**
+   * The invite policy for a new group whose creator chose none: everyone while
+   * member invitations are on, otherwise DEFAULT_NEW_GROUP_INVITE_POLICY.
+   */
+  defaultNewGroupInvitePolicy: function () {
+    return GroupRole.memberInvitesEnabled()
+      ? { mode: InvitePolicy.EVERYONE }
+      : GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY
   },
 
   /**
@@ -348,8 +376,9 @@ module.exports = bookshelf.Model.extend({
   /**
    * Who can invite new people to a top-level group, as { mode, roleIds }, read
    * from which of its active roles are linked to the system Invite Members
-   * responsibility. Roles that also hold Add Members could invite anyway, so
-   * linking only those still reads as 'stewards'. Null for spaces and missing groups.
+   * responsibility. The Moderator role and roles that also hold Add Members are
+   * stewards, so linking only those reads as 'stewards'. Null for spaces and
+   * missing groups.
    */
   getInvitePolicy: async function (groupId, { transacting } = {}) {
     const group = await fetchGroupRow(groupId, transacting)
@@ -360,7 +389,7 @@ module.exports = bookshelf.Model.extend({
     const addMembersId = await Responsibility.systemId(Responsibility.constants.RESP_ADD_MEMBERS, { transacting })
 
     let query = bookshelf.knex.raw(`
-      SELECT DISTINCT gr.id, gr.type,
+      SELECT DISTINCT gr.id, gr.type, gr.name,
         EXISTS (
           SELECT 1 FROM group_roles_responsibilities am
           WHERE am.group_role_id = gr.id AND am.responsibility_id = ?
@@ -376,7 +405,7 @@ module.exports = bookshelf.Model.extend({
     if (rows.some(row => row.type === TYPE_MEMBER)) {
       return { mode: InvitePolicy.EVERYONE, roleIds: [] }
     }
-    if (rows.some(row => !row.holds_add_members)) {
+    if (rows.some(row => !row.holds_add_members && !isModeratorRow(row))) {
       return { mode: InvitePolicy.ROLES, roleIds: rows.map(row => row.id) }
     }
     return { mode: InvitePolicy.STEWARDS, roleIds: [] }
@@ -384,11 +413,14 @@ module.exports = bookshelf.Model.extend({
 
   /**
    * Set who can invite new people to a top-level group by linking Invite Members
-   * to exactly: the Member role (everyone), no role (stewards), or the chosen
-   * roles (roles). Chosen roles come from roleIds and from systemRoleNames (such
-   * as 'Moderator', for a group being created whose role ids the caller does not
-   * know yet), and must be this group's active system or custom roles.
-   * 'everyone' and 'roles' are refused unless memberInvitesEnabled().
+   * to exactly: the Member role (everyone), the Moderator role (stewards), or the
+   * Moderator role and the chosen roles (roles). Chosen roles come from roleIds
+   * and from systemRoleNames (for a group being created whose role ids the caller
+   * does not know yet), and must be this group's active system or custom roles.
+   * A group whose Moderator role is missing or deactivated links no Moderator.
+   * 'everyone' and 'roles' are refused unless memberInvitesEnabled(), and while
+   * it is off 'stewards' links no role (the Moderator link is added when member
+   * invitations are switched on; see migrations/scripts/convertInvitePolicies.js).
    * Returns the resulting policy.
    */
   setInvitePolicy: async function (groupId, { mode, roleIds, systemRoleNames } = {}, { transacting } = {}) {
@@ -417,13 +449,17 @@ module.exports = bookshelf.Model.extend({
     if (mode === InvitePolicy.EVERYONE) {
       const memberRole = await GroupRole.ensureMemberRole(group.id, { transacting })
       targetRoleIds = [memberRole.id]
-    } else if (mode === InvitePolicy.ROLES) {
-      targetRoleIds = await resolveInvitePolicyRoleIds(group.id, { roleIds, systemRoleNames }, transacting)
+    } else {
+      const chosen = mode === InvitePolicy.ROLES
+        ? await resolveInvitePolicyRoleIds(group.id, { roleIds, systemRoleNames }, transacting)
+        : []
+      const moderatorId = GroupRole.memberInvitesEnabled() ? await activeModeratorRoleId(group.id, transacting) : null
+      targetRoleIds = [...new Set([moderatorId, ...chosen].filter(Boolean).map(Number))]
     }
 
     const inviteMembersId = await Responsibility.systemId(Responsibility.constants.RESP_INVITE_MEMBERS, { transacting })
     if (!inviteMembersId) {
-      if (targetRoleIds.length > 0) throw new GraphQLError('The Invite Members responsibility is missing')
+      if (mode !== InvitePolicy.STEWARDS) throw new GraphQLError('The Invite Members responsibility is missing')
       return GroupRole.getInvitePolicy(group.id, { transacting })
     }
 

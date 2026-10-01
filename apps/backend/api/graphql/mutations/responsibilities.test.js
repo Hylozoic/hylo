@@ -10,6 +10,7 @@ import {
 } from './responsibilities'
 
 const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+const MEMBER_ROLE_RESPONSIBILITY_ERROR = "The Member role can only take this group's own responsibilities"
 const RESERVED_TITLE_ERROR = 'A built-in responsibility already has this title'
 
 describe('responsibilities mutations', () => {
@@ -32,6 +33,44 @@ describe('responsibilities mutations', () => {
       .del()
     await bookshelf.knex('responsibilities').where({ group_id: group.id }).del()
     await setup.clearDb()
+  })
+
+  describe('keeping an Administrator', () => {
+    it('refuses to remove Administration from the only role that gives it, until another Administrator exists', async () => {
+      const keeperGroup = await factories.group().save()
+      const keeper = await factories.user().save()
+      await keeper.joinGroup(keeperGroup)
+      await GroupRole.setupSystemRoles(keeperGroup.id)
+      const keeperRole = await GroupRole.forge({ group_id: keeperGroup.id, name: 'Keeper', emoji: '🗝️', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+      const administrationId = await Responsibility.systemId(Responsibility.constants.RESP_ADMINISTRATION)
+      const link = await GroupRoleResponsibility.forge({ group_role_id: keeperRole.id, responsibility_id: administrationId }).save()
+      await MemberGroupRole.forge({ user_id: keeper.id, group_id: keeperGroup.id, group_role_id: keeperRole.id, active: true }).save()
+
+      await expect(removeResponsibilityFromRole({ groupId: keeperGroup.id, roleResponsibilityId: link.id, userId: keeper.id }))
+        .to.be.rejectedWith('A group must keep at least one Administrator')
+      expect(await GroupRoleResponsibility.where({ id: link.id }).fetch()).to.exist
+
+      const administratorRole = await GroupRole.findSystemRole(keeperGroup.id, 'Administrator')
+      await MemberGroupRole.forge({ user_id: keeper.id, group_id: keeperGroup.id, group_role_id: administratorRole.id, active: true }).save()
+      await removeResponsibilityFromRole({ groupId: keeperGroup.id, roleResponsibilityId: link.id, userId: keeper.id })
+      expect(await GroupRoleResponsibility.where({ id: link.id }).fetch()).to.be.null
+    })
+  })
+
+  describe('removing Invite Members from a role', () => {
+    it('expires the pending member invitations of people who could only invite through it', async () => {
+      const inviterRole = await GroupRole.forge({ group_id: group.id, name: 'Inviter', emoji: '✉️', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+      const link = await addResponsibilityToRole({ groupId: group.id, roleId: inviterRole.id, responsibilityId: inviteMembersId, userId: administrator.id })
+      await MemberGroupRole.forge({ user_id: member.id, group_id: group.id, group_role_id: inviterRole.id, active: true }).save()
+      expect(await GroupMembership.inviteAccess(member.id, group.id)).to.equal('limited')
+      const invitation = await Invitation.create({ userId: member.id, groupId: group.id, email: `inviter-${Date.now()}@example.com`, inviterAccess: Invitation.InviterAccess.LIMITED })
+
+      await removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: link.id, userId: administrator.id })
+
+      await invitation.refresh()
+      expect(invitation.isExpired()).to.be.true
+      await bookshelf.knex('group_memberships_group_roles').where({ group_role_id: inviterRole.id }).del()
+    })
   })
 
   describe('custom responsibility titles', () => {
@@ -72,11 +111,50 @@ describe('responsibilities mutations', () => {
   })
 
   describe('the implicit Member role', () => {
-    it('cannot be given a responsibility', async () => {
-      await expect(addResponsibilityToRole({ groupId: group.id, roleId: memberRole.id, responsibilityId: inviteMembersId, userId: administrator.id }))
-        .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+    it('cannot be given any built-in responsibility', async () => {
+      const titles = ['Administration', 'Add Members', 'Remove Members', 'Manage Content', 'Invite Members']
+      for (const title of titles) {
+        const responsibilityId = await Responsibility.systemId(title)
+        await expect(addResponsibilityToRole({ groupId: group.id, roleId: memberRole.id, responsibilityId, userId: administrator.id }), title)
+          .to.be.rejectedWith(MEMBER_ROLE_RESPONSIBILITY_ERROR)
+      }
       const links = await GroupRoleResponsibility.where({ group_role_id: memberRole.id }).count()
       expect(Number(links)).to.equal(0)
+    })
+
+    it("can be given and lose this group's own custom responsibilities", async () => {
+      const welcome = await addGroupResponsibility({ groupId: group.id, title: 'Welcome newcomers', userId: administrator.id })
+      const link = await addResponsibilityToRole({ groupId: group.id, roleId: String(memberRole.id), responsibilityId: String(welcome.id), userId: administrator.id })
+      expect(Number(link.get('group_role_id'))).to.equal(memberRole.id)
+      expect(Number(link.get('responsibility_id'))).to.equal(welcome.id)
+
+      await expect(addResponsibilityToRole({ groupId: group.id, roleId: memberRole.id, responsibilityId: welcome.id, userId: member.id }))
+        .to.be.rejectedWith("User doesn't have required privileges to add responsibility to role")
+
+      await removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: link.id, userId: administrator.id })
+      expect(await GroupRoleResponsibility.where({ id: link.id }).fetch()).to.be.null
+    })
+
+    it("cannot be given another group's custom responsibility, or one titled like a built-in one", async () => {
+      const otherGroup = await factories.group().save()
+      const [otherId] = await bookshelf.knex('responsibilities').insert({ title: 'Other Group Chores', type: 'group', group_id: otherGroup.id }).returning('id')
+      const [lookalikeId] = await bookshelf.knex('responsibilities').insert({ title: ' manage content ', type: 'group', group_id: group.id }).returning('id')
+
+      for (const responsibilityId of [otherId.id || otherId, lookalikeId.id || lookalikeId, 99999999, 'abc']) {
+        await expect(addResponsibilityToRole({ groupId: group.id, roleId: memberRole.id, responsibilityId, userId: administrator.id }), String(responsibilityId))
+          .to.be.rejectedWith(MEMBER_ROLE_RESPONSIBILITY_ERROR)
+      }
+      const links = await GroupRoleResponsibility.where({ group_role_id: memberRole.id }).count()
+      expect(Number(links)).to.equal(0)
+      await bookshelf.knex('responsibilities').where({ group_id: otherGroup.id }).del()
+    })
+
+    it("cannot be reached through another group's id", async () => {
+      const otherGroup = await factories.group().save()
+      await administrator.joinGroup(otherGroup, { assignAdministrator: true })
+      const welcome = await addGroupResponsibility({ groupId: group.id, title: 'Welcome everyone', userId: administrator.id })
+      await expect(addResponsibilityToRole({ groupId: otherGroup.id, roleId: memberRole.id, responsibilityId: welcome.id, userId: administrator.id }))
+        .to.be.rejectedWith(MEMBER_ROLE_ERROR)
     })
 
     it('cannot be given a responsibility through ids written in other forms Postgres reads as integers', async () => {
@@ -88,10 +166,10 @@ describe('responsibilities mutations', () => {
       expect(Number(links)).to.equal(0)
     })
 
-    it('cannot have a responsibility removed', async () => {
+    it('cannot have Invite Members removed, since "Who can add new members?" sets it', async () => {
       const link = await GroupRoleResponsibility.forge({ group_role_id: memberRole.id, responsibility_id: inviteMembersId }).save()
       await expect(removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: link.id, userId: administrator.id }))
-        .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+        .to.be.rejectedWith(MEMBER_ROLE_RESPONSIBILITY_ERROR)
       const stillLinked = await GroupRoleResponsibility.where({ id: link.id }).fetch()
       expect(stillLinked).to.exist
       await stillLinked.destroy()

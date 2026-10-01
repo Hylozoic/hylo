@@ -3,6 +3,8 @@ import PropTypes from 'prop-types'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { Link } from 'react-router-dom'
+import { groupUrl } from '@hylo/navigation'
 import Button from 'components/ui/button'
 import Loading from 'components/Loading'
 import SettingsControl from 'components/SettingsControl'
@@ -13,6 +15,74 @@ import { useCookieConsent } from 'contexts/CookieConsentContext'
 import { Switch } from 'components/ui/switch'
 import SettingsSection from '../../GroupSettings/SettingsSection/SettingsSection'
 import { exportUserAccount } from '../UserSettings.store'
+import { useSoleAdministratorGroups } from 'components/SoleAdminLeaveDialog/soleAdministratorGroups'
+
+// The optional answers to why someone is leaving; values match the server's ACCOUNT_EXIT_REASONS
+const EXIT_REASONS = [
+  { value: 'too_many_emails', label: 'I get too many emails' },
+  { value: 'not_useful', label: "Hylo isn't useful to me right now" },
+  { value: 'group_ended', label: 'My group stopped using Hylo' },
+  { value: 'privacy', label: 'I have privacy concerns' },
+  { value: 'other', label: 'Something else' }
+]
+
+/**
+ * One optional question about why the person is leaving. Too many emails points
+ * them to their notification settings as an alternative.
+ */
+export function ExitReasonPicker ({ value, onChange, name }) {
+  const { t } = useTranslation()
+  return (
+    <fieldset className='mt-4 border-0 p-0' data-testid='exit-reason'>
+      <legend className='font-medium mb-2'>{t('Why are you leaving? (optional)')}</legend>
+      <div className='flex flex-col gap-1'>
+        {EXIT_REASONS.map(reason => (
+          <label key={reason.value} className='flex items-center gap-2 text-sm text-foreground/80 cursor-pointer'>
+            <input
+              type='radio'
+              name={name}
+              value={reason.value}
+              checked={value === reason.value}
+              onChange={() => onChange(reason.value)}
+            />
+            {t(reason.label)}
+          </label>
+        ))}
+      </div>
+      {value === 'too_many_emails' && (
+        <p className='text-sm text-foreground/70 mt-2 mb-0' data-testid='exit-reason-emails'>
+          {t('You can get fewer emails, or none, without leaving.')}{' '}
+          <Link to='/my/notifications' className='text-accent hover:underline'>{t('Change your notification settings')}</Link>
+        </p>
+      )}
+    </fieldset>
+  )
+}
+
+/**
+ * Lists the groups this person is the only Administrator of, with a way to hand
+ * each one on. It warns only: they can still deactivate or delete their account.
+ */
+export function SoleAdministratorWarning ({ groups }) {
+  const { t } = useTranslation()
+  if (!groups || groups.length === 0) return null
+  return (
+    <div className='bg-accent/10 rounded-lg p-4 mt-4' data-testid='sole-administrator-warning'>
+      <h4 className='font-medium mb-1 mt-0'>{t("You're the only Administrator of these groups")}</h4>
+      <p className='text-sm text-foreground/70 mt-0 mb-2'>{t('Choose someone to take over first, so each group still has someone to look after it. You can still continue without doing this.')}</p>
+      <ul className='list-none p-0 m-0 space-y-1'>
+        {groups.map(group => (
+          <li key={group.id} className='flex items-center justify-between gap-2 text-sm'>
+            <span className='font-medium'>{group.name}</span>
+            <Link to={groupUrl(group.slug, 'settings/roles')} className='text-accent hover:underline shrink-0'>
+              {t('Choose a new Administrator')}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
 
 function AccountSettingsTab ({
   currentUser,
@@ -31,9 +101,11 @@ function AccountSettingsTab ({
     showDeactivateModal: false,
     exportStatus: null
   })
+  const [exitReason, setExitReason] = useState(null)
 
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const { groups: soleAdministratorGroups } = useSoleAdministratorGroups(state.showDeactivateModal || state.showDeleteModal)
 
   const setEditState = () => {
     if (!currentUser) return
@@ -72,11 +144,11 @@ function AccountSettingsTab ({
   }, [])
 
   const deactivateMeHandler = () => {
-    deactivateMe(currentUser.id).then(logout)
+    deactivateMe({ reason: exitReason }).then(logout)
   }
 
   const deleteMeHandler = () => {
-    deleteMe(currentUser.id).then(logout)
+    deleteMe({ reason: exitReason }).then(logout)
   }
 
   const updateSetting = key => event => {
@@ -263,7 +335,7 @@ function AccountSettingsTab ({
       {showDeactivateModal && (
         <ModalDialog
           key='deactviate-user-dialog'
-          closeModal={() => setState(prev => ({ ...prev, showDeactivateModal: false }))}
+          closeModal={() => { setExitReason(null); setState(prev => ({ ...prev, showDeactivateModal: false })) }}
           showModalTitle={false}
           submitButtonAction={() => deactivateMeHandler()}
           submitButtonText='Deactivate my account'
@@ -287,6 +359,8 @@ function AccountSettingsTab ({
                 <li>{t('Your comments and posts will REMAIN as they are')}</li>
               </ul>
             </div>
+            <SoleAdministratorWarning groups={soleAdministratorGroups} />
+            <ExitReasonPicker name='deactivate-reason' value={exitReason} onChange={setExitReason} />
           </div>
         </ModalDialog>
       )}
@@ -294,7 +368,7 @@ function AccountSettingsTab ({
       {showDeleteModal && (
         <ModalDialog
           key='delete-user-dialog'
-          closeModal={() => setState(prev => ({ ...prev, showDeleteModal: false }))}
+          closeModal={() => { setExitReason(null); setState(prev => ({ ...prev, showDeleteModal: false })) }}
           showModalTitle={false}
           submitButtonAction={() => deleteMeHandler()}
           submitButtonText='Delete my account'
@@ -317,6 +391,8 @@ function AccountSettingsTab ({
                 <li>{t('You won\'t be able to use Hylo unless you create a brand new account')}</li>
               </ul>
             </div>
+            <SoleAdministratorWarning groups={soleAdministratorGroups} />
+            <ExitReasonPicker name='delete-reason' value={exitReason} onChange={setExitReason} />
           </div>
         </ModalDialog>
       )}

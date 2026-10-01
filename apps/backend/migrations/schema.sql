@@ -214,6 +214,40 @@ CREATE FUNCTION public.compute_user_scopes_from_role() RETURNS trigger
 
 
 --
+-- Name: account_exit_reasons; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.account_exit_reasons (
+    id bigint NOT NULL,
+    kind character varying(16) NOT NULL,
+    reason character varying(64) NOT NULL,
+    user_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT account_exit_reasons_deleted_has_no_user CHECK ((((kind)::text <> 'deleted'::text) OR (user_id IS NULL))),
+    CONSTRAINT account_exit_reasons_kind_check CHECK (((kind)::text = ANY ((ARRAY['deactivated'::character varying, 'deleted'::character varying])::text[])))
+);
+
+
+--
+-- Name: account_exit_reasons_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.account_exit_reasons_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: account_exit_reasons_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.account_exit_reasons_id_seq OWNED BY public.account_exit_reasons.id;
+
+
+--
 -- Name: activities; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1060,6 +1094,43 @@ ALTER SEQUENCE public.group_connections_id_seq OWNED BY public.group_relationshi
 
 
 --
+-- Name: group_deletions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_deletions (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    deleted_by_id bigint,
+    memberships jsonb DEFAULT '[]'::jsonb NOT NULL,
+    role_assignments jsonb DEFAULT '[]'::jsonb NOT NULL,
+    accepted_agreement_ids jsonb DEFAULT '[]'::jsonb NOT NULL,
+    restorable_until timestamp with time zone NOT NULL,
+    restored_at timestamp with time zone,
+    restored_by_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: group_deletions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_deletions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_deletions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_deletions_id_seq OWNED BY public.group_deletions.id;
+
+
+--
 -- Name: group_extensions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1799,6 +1870,16 @@ CREATE SEQUENCE public.invitation_submissions_id_seq
 --
 
 ALTER SEQUENCE public.invitation_submissions_id_seq OWNED BY public.invitation_submissions.id;
+
+
+--
+-- Name: invite_policy_migration_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invite_policy_migration_links (
+    group_role_responsibility_id bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
 
 
 --
@@ -3728,6 +3809,13 @@ ALTER SEQUENCE public.zapier_triggers_id_seq OWNED BY public.zapier_triggers.id;
 
 
 --
+-- Name: account_exit_reasons id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account_exit_reasons ALTER COLUMN id SET DEFAULT nextval('public.account_exit_reasons_id_seq'::regclass);
+
+
+--
 -- Name: activities id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3844,6 +3932,13 @@ ALTER TABLE ONLY public.flagged_items ALTER COLUMN id SET DEFAULT nextval('publi
 --
 
 ALTER TABLE ONLY public.funding_rounds ALTER COLUMN id SET DEFAULT nextval('public.funding_rounds_id_seq'::regclass);
+
+
+--
+-- Name: group_deletions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_deletions ALTER COLUMN id SET DEFAULT nextval('public.group_deletions_id_seq'::regclass);
 
 
 --
@@ -4323,6 +4418,14 @@ UNION
 
 
 --
+-- Name: account_exit_reasons account_exit_reasons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account_exit_reasons
+    ADD CONSTRAINT account_exit_reasons_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: activities activity_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4523,6 +4626,14 @@ ALTER TABLE ONLY public.group_relationships
 
 
 --
+-- Name: group_deletions group_deletions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_deletions
+    ADD CONSTRAINT group_deletions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: group_extensions group_extensions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4720,6 +4831,14 @@ ALTER TABLE ONLY public.invitation_sends
 
 ALTER TABLE ONLY public.invitation_submissions
     ADD CONSTRAINT invitation_submissions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invite_policy_migration_links invite_policy_migration_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invite_policy_migration_links
+    ADD CONSTRAINT invite_policy_migration_links_pkey PRIMARY KEY (group_role_responsibility_id);
 
 
 --
@@ -5451,6 +5570,13 @@ CREATE INDEX funding_rounds_group_id_index ON public.funding_rounds USING btree 
 
 
 --
+-- Name: group_deletions_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_deletions_group_id_index ON public.group_deletions USING btree (group_id);
+
+
+--
 -- Name: group_extensions_group_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6068,6 +6194,14 @@ CREATE TRIGGER group_role_assignment_user_scopes_sync AFTER INSERT OR UPDATE ON 
 
 
 --
+-- Name: account_exit_reasons account_exit_reasons_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.account_exit_reasons
+    ADD CONSTRAINT account_exit_reasons_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: activities activities_contribution_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6609,6 +6743,30 @@ ALTER TABLE ONLY public.group_relationships
 
 ALTER TABLE ONLY public.group_relationships
     ADD CONSTRAINT group_connections_parent_group_id_foreign FOREIGN KEY (parent_group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_deletions group_deletions_deleted_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_deletions
+    ADD CONSTRAINT group_deletions_deleted_by_id_foreign FOREIGN KEY (deleted_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_deletions group_deletions_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_deletions
+    ADD CONSTRAINT group_deletions_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_deletions group_deletions_restored_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_deletions
+    ADD CONSTRAINT group_deletions_restored_by_id_foreign FOREIGN KEY (restored_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --

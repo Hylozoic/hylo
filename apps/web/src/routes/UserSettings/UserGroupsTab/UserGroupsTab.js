@@ -10,14 +10,7 @@ import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import GroupCard from 'components/GroupCard'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from 'components/ui/dialog'
+import SoleAdminLeaveDialog from 'components/SoleAdminLeaveDialog/SoleAdminLeaveDialog'
 import {
   LEAVE_GROUP
 } from 'store/constants'
@@ -140,24 +133,16 @@ function UserGroupsTab () {
         </div>
       ))}
 
-      <Dialog open={!!groupToLeave} onOpenChange={(open) => !open && setGroupToLeave(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{groupToLeave ? leaveLabel(groupToLeave) : t('Leave Group')}</DialogTitle>
-            <DialogDescription className='text-foreground/70'>
-              {t('Are you sure you want to leave {{group_name}}? You will no longer have access to this group\'s content.', { group_name: groupToLeave?.name })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className='flex gap-2 mt-4'>
-            <Button variant='outline' onClick={() => setGroupToLeave(null)}>
-              {t('Cancel')}
-            </Button>
-            <Button variant='destructive' onClick={confirmLeaveGroup}>
-              {groupToLeave ? leaveLabel(groupToLeave) : t('Leave Group')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SoleAdminLeaveDialog
+        open={!!groupToLeave}
+        onOpenChange={(open) => !open && setGroupToLeave(null)}
+        group={groupToLeave}
+        isSpace={!!groupToLeave && isSpaceGroup(groupToLeave)}
+        title={groupToLeave ? leaveLabel(groupToLeave) : t('Leave Group')}
+        description={t('Are you sure you want to leave {{group_name}}? You will no longer have access to this group\'s content.', { group_name: groupToLeave?.name })}
+        confirmLabel={groupToLeave ? leaveLabel(groupToLeave) : t('Leave Group')}
+        onConfirm={confirmLeaveGroup}
+      />
     </div>
   )
 }

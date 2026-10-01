@@ -9,6 +9,7 @@ const Promise = require('bluebird')
 const { red } = require('chalk')
 const savedSearches = require('./lib/group/digest2/savedSearches')
 const OIDCAdapter = require('./api/services/oidc/KnexAdapter')
+const { countOrphanedGroups } = require('./api/models/group/administrators')
 
 const sendAndLogDigests = type =>
   digest2.sendAllDigests(type)
@@ -47,6 +48,12 @@ const daily = now => {
   }))
 
   tasks.push(require('./api/models/group/activityBenchmark').runDaily().then(({ line, marked }) => sails.log.debug(`Marked ${marked} groups quiet or busy (line: ${line} feed posts in 28 days)`)).catch(err => sails.log.error('Quiet-group benchmark failed', err)))
+
+  // Staff assign an Administrator from Management > Groups without an Administrator
+  tasks.push(countOrphanedGroups().then(count => {
+    sails.log.info(`metric groups_without_administrator=${count}`)
+    return count
+  }))
 
   return tasks
 }

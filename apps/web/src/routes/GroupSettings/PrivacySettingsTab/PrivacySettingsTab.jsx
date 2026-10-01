@@ -13,6 +13,7 @@ import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { groupUrl } from '@hylo/navigation'
 import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
+import { INVITE_POLICY } from 'store/constants'
 import {
   accessibilityDescription,
   accessibilityString,
@@ -30,6 +31,21 @@ function initialInvitePolicy (group) {
     mode: group.invitePolicy.mode,
     roleIds: (group.invitePolicy.roleIds || []).map(String)
   }
+}
+
+/**
+ * Whether saving `next` takes invite access away from someone who has it under
+ * `current`: everyone to anything else, or specific roles to stewards or to fewer
+ * roles. Locked roles (stewards, Add Members) can always invite, so they don't count.
+ */
+export function narrowsInvitePolicy (current, next, roles = []) {
+  if (!current || !next) return false
+  if (current.mode === INVITE_POLICY.everyone) return next.mode !== INVITE_POLICY.everyone
+  if (current.mode !== INVITE_POLICY.roles || next.mode === INVITE_POLICY.everyone) return false
+  if (next.mode === INVITE_POLICY.stewards) return true
+  const locked = new Set(roles.filter(role => role.locked).map(role => String(role.id)))
+  const kept = new Set((next.roleIds || []).map(String))
+  return (current.roleIds || []).some(id => !locked.has(String(id)) && !kept.has(String(id)))
 }
 
 function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSettings }) {
@@ -110,6 +126,10 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
     const changes = { ...state.edits }
     if (memberInvitesEnabled && invitePolicy && invitePolicyChanged) {
       changes.invitePolicy = invitePolicyToSave(invitePolicy.mode, inviteRoles)
+      if (narrowsInvitePolicy(initialInvitePolicy(group), changes.invitePolicy, inviteRoles) &&
+        !window.confirm(t('Pending invitations sent by members who can no longer invite will be cancelled. Save anyway?'))) {
+        return
+      }
       setInvitePolicy({ mode: changes.invitePolicy.mode, roleIds: changes.invitePolicy.roleIds || [] })
       setInvitePolicyChanged(false)
     }
@@ -259,7 +279,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
       {memberInvitesEnabled && invitePolicy && (
         <SettingsSection>
           <h3 className='text-foreground font-bold mb-2'>{t('Who can add new members?')}</h3>
-          <p className='text-foreground/70 mb-4'>{t('Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.', { name })}</p>
+          <p className='text-foreground/70 mb-4'>{t('Choose who can invite people to join {{name}}. Administrators, Moderators and Hosts can always invite.', { name })}</p>
           <InvitePolicySelect
             mode={invitePolicy.mode}
             onModeChange={changeInvitePolicyMode}

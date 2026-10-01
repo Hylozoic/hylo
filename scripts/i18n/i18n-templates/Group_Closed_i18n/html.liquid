@@ -1,0 +1,35 @@
+
+{% snippet "header_redesign" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+</style>
+
+<p>
+  {% set first_name_var = first_name %}
+  {% trans %}Hi {{first_name_var}},{% endtrans %}
+</p>
+
+<p>
+  {% set group_name_var = group_name %}
+  {% if closed_by_name %}
+    {% set closed_by_name_var = closed_by_name %}
+    {% trans %}{{closed_by_name_var}}, a steward of {{group_name_var}}, has closed the group on Hylo. You're no longer a member, and its posts and chats are no longer available.{% endtrans %}
+  {% else %}
+    {% trans %}{{group_name_var}} has been closed on Hylo. You're no longer a member, and its posts and chats are no longer available.{% endtrans %}
+  {% endif %}
+</p>
+
+<p>{% trans %}If you think this was a mistake, contact the Hylo team within 30 days and they can look into bringing the group back.{% endtrans %}</p>
+
+{% if explore_url %}
+  <p>{% trans %}There are many other groups on Hylo you can join.{% endtrans %}</p>
+  <a class='btn btn-blue' href="{{explore_url}}" clicktracking="off">{% trans %}Explore groups →{% endtrans %}</a>
+{% endif %}
+
+<p>{% trans %}The Hylo Team{% endtrans %}</p>
+
+{% snippet "footer_redesign" %}

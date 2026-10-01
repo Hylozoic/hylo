@@ -53,6 +53,12 @@ test.describe('Create Group modal', () => {
 
     await dialog.locator('#groupName').fill('Bay & Delta  Watershed!')
     await expect(dialog.locator('#groupSlug')).toHaveValue('bay-delta-watershed')
+    // Nothing is preselected for who can see or join the group
+    await expect(dialog.getByRole('button', { name: /Create Group/i })).toBeDisabled()
+    await dialog.getByRole('button', { name: 'Who can see this group?' }).click()
+    await page.getByRole('button', { name: /^Visible to related groups/ }).click()
+    await dialog.getByRole('button', { name: 'Who can join this group?' }).click()
+    await page.getByRole('button', { name: /^By request, with approval/ }).click()
     await expect(dialog.getByRole('button', { name: /Create Group/i })).toBeEnabled()
     await page.screenshot({ path: path.resolve(screenshotDir, 'create-group-02-handle-generated.png') })
   })

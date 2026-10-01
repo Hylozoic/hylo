@@ -101,9 +101,10 @@ describe('GroupMembership', () => {
       }
     })
 
-    it('is limited for every active member when the policy is everyone, and null on stewards', async () => {
+    it('is limited for every active member when the policy is everyone, and only for Moderators on stewards', async () => {
+      await GroupRole.setInvitePolicy(group.id, { mode: 'stewards' })
       expect(await GroupMembership.inviteAccess(member.id, group.id)).to.be.null
-      expect(await GroupMembership.inviteAccess(moderator, group)).to.be.null
+      expect(await GroupMembership.inviteAccess(moderator, group)).to.equal('limited')
 
       await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
       expect(await GroupMembership.inviteAccess(member.id, group.id)).to.equal('limited')

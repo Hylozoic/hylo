@@ -3,7 +3,7 @@ import { AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testin
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import orm from 'store/models'
 import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
-import PrivacySettingsTab from './PrivacySettingsTab'
+import PrivacySettingsTab, { narrowsInvitePolicy } from './PrivacySettingsTab'
 
 jest.mock('store/actions/trackAnalyticsEvent', () => {
   const actual = jest.requireActual('store/actions/trackAnalyticsEvent')
@@ -100,20 +100,19 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
     renderTab()
 
     expect(screen.getByRole('heading', { name: WHO_CAN_ADD })).toBeInTheDocument()
-    expect(screen.getByText('Choose who can invite people to join Seed Library. Roles that include Add Members can always invite.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: WHO_CAN_ADD })).toHaveTextContent('Administrators and Hosts (anyone who can add members)')
+    expect(screen.getByText('Choose who can invite people to join Seed Library. Administrators, Moderators and Hosts can always invite.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: WHO_CAN_ADD })).toHaveTextContent('Stewards (Administrators, Moderators and Hosts)')
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
 
-  it('lists active roles for specific roles, with roles that include Add Members locked on', () => {
-    renderTab({ invitePolicy: { mode: 'roles', roleIds: ['13'] } })
+  it('lists active roles for specific roles, with stewards and roles that include Add Members locked on', () => {
+    renderTab({ invitePolicy: { mode: 'roles', roleIds: ['2', '13'] } })
 
-    for (const name of ['🪄 Administrator', '👋 Host', '🚪 Door Keeper']) {
+    for (const name of ['🪄 Administrator', '⚖️ Moderator', '👋 Host', '🚪 Door Keeper']) {
       const checkbox = screen.getByRole('checkbox', { name })
       expect(checkbox).toBeDisabled()
       expect(checkbox).toHaveAttribute('aria-checked', 'true')
     }
-    expect(screen.getByRole('checkbox', { name: '⚖️ Moderator' })).toHaveAttribute('aria-checked', 'false')
     expect(screen.getByRole('checkbox', { name: '🌱 Gardener' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.queryByRole('checkbox', { name: '💤 Retired' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Create or edit roles in Roles & Badges' })).toHaveAttribute('href', '/groups/seed-library/settings/roles')
@@ -123,13 +122,13 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
     const updateGroupSettings = renderTab()
 
     choose('Specific roles')
-    fireEvent.click(screen.getByRole('checkbox', { name: '⚖️ Moderator' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: '🌱 Gardener' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
 
     expect(updateGroupSettings).toHaveBeenCalledTimes(1)
     expect(updateGroupSettings.mock.calls[0][0]).toMatchObject({
       accessibility: GROUP_ACCESSIBILITY.Restricted,
-      invitePolicy: { mode: 'roles', roleIds: ['2'] }
+      invitePolicy: { mode: 'roles', roleIds: ['13'] }
     })
   })
 
@@ -164,6 +163,35 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
     expect(updateGroupSettings.mock.calls[0][0]).not.toHaveProperty('invitePolicy')
     await Promise.resolve()
     expect(trackAnalyticsEvent).not.toHaveBeenCalled()
+  })
+
+  it('asks before saving a narrower policy, and saves nothing when the steward says no', () => {
+    const updateGroupSettings = renderTab({ invitePolicy: { mode: 'everyone', roleIds: [] } })
+    const confirm = jest.spyOn(window, 'confirm').mockImplementation(() => false)
+
+    choose('Stewards (Administrators, Moderators and Hosts)')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+
+    expect(confirm).toHaveBeenCalledWith('Pending invitations sent by members who can no longer invite will be cancelled. Save anyway?')
+    expect(updateGroupSettings).not.toHaveBeenCalled()
+
+    confirm.mockImplementation(() => true)
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    expect(updateGroupSettings).toHaveBeenCalledTimes(1)
+    expect(updateGroupSettings.mock.calls[0][0].invitePolicy).toEqual({ mode: 'stewards' })
+    confirm.mockRestore()
+  })
+
+  it('does not ask when the policy opens up', () => {
+    const updateGroupSettings = renderTab()
+    const confirm = jest.spyOn(window, 'confirm')
+
+    choose('Everyone in the group')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(updateGroupSettings).toHaveBeenCalledTimes(1)
+    confirm.mockRestore()
   })
 
   it('describes the approval step for the access setting being edited', () => {
@@ -206,5 +234,24 @@ describe('PrivacySettingsTab "Who can add new members?"', () => {
     fireEvent.click(screen.getByText('Open'))
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
     expect(updateGroupSettings.mock.calls[0][0]).not.toHaveProperty('invitePolicy')
+  })
+})
+
+describe('narrowsInvitePolicy', () => {
+  const roles = [{ id: '2', locked: true }, { id: '13', locked: false }, { id: '15', locked: false }]
+
+  it('is true when someone loses invite access', () => {
+    expect(narrowsInvitePolicy({ mode: 'everyone', roleIds: [] }, { mode: 'stewards' }, roles)).toBe(true)
+    expect(narrowsInvitePolicy({ mode: 'everyone', roleIds: [] }, { mode: 'roles', roleIds: ['13'] }, roles)).toBe(true)
+    expect(narrowsInvitePolicy({ mode: 'roles', roleIds: ['2', '13'] }, { mode: 'stewards' }, roles)).toBe(true)
+    expect(narrowsInvitePolicy({ mode: 'roles', roleIds: ['2', '13', '15'] }, { mode: 'roles', roleIds: ['13'] }, roles)).toBe(true)
+  })
+
+  it('is false when nobody loses it', () => {
+    expect(narrowsInvitePolicy({ mode: 'stewards', roleIds: [] }, { mode: 'everyone' }, roles)).toBe(false)
+    expect(narrowsInvitePolicy({ mode: 'stewards', roleIds: [] }, { mode: 'roles', roleIds: ['13'] }, roles)).toBe(false)
+    expect(narrowsInvitePolicy({ mode: 'roles', roleIds: ['2', '13'] }, { mode: 'everyone' }, roles)).toBe(false)
+    expect(narrowsInvitePolicy({ mode: 'roles', roleIds: ['2', '13'] }, { mode: 'roles', roleIds: ['13', '15'] }, roles)).toBe(false)
+    expect(narrowsInvitePolicy(null, { mode: 'stewards' }, roles)).toBe(false)
   })
 })

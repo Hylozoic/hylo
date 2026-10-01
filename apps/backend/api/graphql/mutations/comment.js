@@ -6,6 +6,7 @@ import underlyingDeleteComment from '../../models/comment/deleteComment'
 import underlyingCreateComment, { pushMessageUpdatedToSockets } from '../../models/comment/createComment'
 import underlyingUpdateComment from '../../models/comment/updateComment'
 import { deleteDraftForContext } from './draft'
+import { assertPostWritable } from '../../models/group/archive'
 
 export async function canDeleteComment (userId, comment) {
   if (comment.get('user_id') === userId) return true
@@ -40,6 +41,7 @@ export async function deleteComment (userId, commentId) {
 }
 
 export async function createComment (userId, data, context) {
+  await assertPostWritable({ postId: data.postId })
   await validateCommentCreateData(userId, data)
 
   const { postId, parentCommentId } = data

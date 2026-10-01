@@ -20,6 +20,10 @@ import { groupFilter } from '../graphql/filters'
 import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
+import * as administrators from './group/administrators'
+import { assertWritable } from './group/archive'
+import { sendGroupClosedEmails } from './group/deletion'
+import expireForPolicyChange, { invitePolicyNarrowed } from './invitation/expireForPolicyChange'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import { groupRoom, userRoom, pushToSockets } from '../services/Websockets'
 const { createGroupScope } = require('../../lib/scopes')
@@ -661,6 +665,7 @@ module.exports = bookshelf.Model.extend(merge({
   // joinSource (a GroupMembership.JoinSource), invitationId and invitedById are
   // recorded in settings on new and reactivated memberships only.
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
+    await assertWritable(this, { transacting })
     const groupSettings = this.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
     const { assignAdministrator, joinSource, invitationId, invitedById, ...membershipAttrs } = attrs
@@ -982,7 +987,10 @@ module.exports = bookshelf.Model.extend(merge({
       !wasAutoAdd
     await bookshelf.transaction(async transacting => {
       if (changes.invite_policy) {
-        await GroupRole.setInvitePolicy(this.id, invitePolicyFromData(changes.invite_policy), { transacting })
+        const previousPolicy = await GroupRole.getInvitePolicy(this.id, { transacting })
+        const policy = await GroupRole.setInvitePolicy(this.id, invitePolicyFromData(changes.invite_policy), { transacting })
+        // Members who can no longer invite no longer vouch for the people they invited
+        if (invitePolicyNarrowed(previousPolicy, policy)) await expireForPolicyChange(this.id, { transacting })
       }
 
       if (changes.agreements && this.get('type') !== 'space' && !this.get('parent_id')) {
@@ -1429,7 +1437,7 @@ module.exports = bookshelf.Model.extend(merge({
       if (data.invite_policy) {
         await GroupRole.setInvitePolicy(group.id, invitePolicyFromData(data.invite_policy), { transacting: trx })
       } else if (group.get('type') !== 'space') {
-        await GroupRole.setInvitePolicy(group.id, GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY, { transacting: trx })
+        await GroupRole.setInvitePolicy(group.id, GroupRole.defaultNewGroupInvitePolicy(), { transacting: trx })
       }
 
       if (data.group_extensions) {
@@ -1665,6 +1673,12 @@ module.exports = bookshelf.Model.extend(merge({
   findActive (key, opts = {}) {
     return this.find(key, merge({ active: true }, opts))
   },
+
+  // Background job telling the members of a deleted group that it was closed (group/deletion.js)
+  sendGroupClosedEmails (opts) { return sendGroupClosedEmails(opts) },
+
+  // Active Administrators of a top-level group; see group/administrators.js for the exclusions
+  countActiveAdministrators (groupId, opts = {}) { return administrators.countActiveAdministrators(groupId, opts) },
 
   /**
    * Check if a user has a responsibility that grants full access to group content

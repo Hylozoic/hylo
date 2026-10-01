@@ -197,6 +197,19 @@ import {
   membershipChangeInvoicePreview
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
+import {
+  assignOrphanedGroupAdministrator,
+  mySoleAdministratorGroups,
+  orphanedGroupMembers,
+  orphanedGroups
+} from './mutations/orphanedGroups'
+import {
+  archiveGroup,
+  deletedGroups,
+  handOffAdministrator,
+  restoreDeletedGroup,
+  unarchiveGroup
+} from './mutations/group'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -584,7 +597,11 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       }
       const banners = await SiteBanner.all()
       return banners.toModelArray ? banners.toModelArray() : banners
-    }
+    },
+    orphanedGroups: (root, { first, offset }, context) => orphanedGroups(context.currentUserId, { first, offset }),
+    orphanedGroupMembers: (root, { groupId, search }, context) => orphanedGroupMembers(context.currentUserId, { groupId, search }),
+    mySoleAdministratorGroups: (root, args, context) => mySoleAdministratorGroups(context.currentUserId),
+    deletedGroups: (root, args, context) => deletedGroups(context.currentUserId)
   }
 }
 
@@ -733,7 +750,7 @@ export function makeMutations ({ fetchOne }) {
 
     createTopic: (root, { topicName, groupId, isDefault, isSubscribing }, context) => createTopic(context.currentUserId, topicName, groupId, isDefault, isSubscribing),
 
-    deactivateMe: (root, args, context) => deactivateUser({ sessionId: context.req.sessionID, userId: context.currentUserId }),
+    deactivateMe: (root, { reason }, context) => deactivateUser({ sessionId: context.req.sessionID, userId: context.currentUserId, reason }),
 
     declineJoinRequest: (root, { joinRequestId }, context) => declineJoinRequest(context.currentUserId, joinRequestId),
 
@@ -745,7 +762,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteFundingRound: (root, { id }, context) => deleteFundingRound(context.currentUserId, id),
 
-    deleteGroup: (root, { id }, context) => deleteGroup(context.currentUserId, id),
+    deleteGroup: (root, { id, confirmName }, context) => deleteGroup(context.currentUserId, id, { confirmName }),
 
     deleteGroupRelationship: (root, { parentId, childId }, context) => deleteGroupRelationship(context.currentUserId, parentId, childId, context),
 
@@ -755,7 +772,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteGroupTopic: (root, { id }, context) => deleteGroupTopic(context.currentUserId, id),
 
-    deleteMe: (root, args, context) => deleteUser({ sessionId: context.req.sessionID, userId: context.currentUserId }),
+    deleteMe: (root, { reason }, context) => deleteUser({ sessionId: context.req.sessionID, userId: context.currentUserId, reason }),
 
     deletePost: (root, { id }, context) => deletePost(context.currentUserId, id),
 
@@ -957,7 +974,17 @@ export function makeMutations ({ fetchOne }) {
 
     deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
 
-    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id)
+    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    assignOrphanedGroupAdministrator: (root, { groupId, personId }, context) => assignOrphanedGroupAdministrator(context.currentUserId, { groupId, personId }),
+
+    restoreDeletedGroup: (root, { id }, context) => restoreDeletedGroup(context.currentUserId, id),
+
+    handOffAdministrator: (root, { groupId, personId }, context) => handOffAdministrator(context.currentUserId, groupId, personId),
+
+    archiveGroup: (root, { groupId }, context) => archiveGroup(context.currentUserId, groupId, context),
+
+    unarchiveGroup: (root, { groupId }, context) => unarchiveGroup(context.currentUserId, groupId, context)
   }
 }
 

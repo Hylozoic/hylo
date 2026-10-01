@@ -39,7 +39,12 @@ export const AnalyticsEvents = {
   SIGNUP_AGREEMENTS_ACCEPTED: 'Signup Agreements Accepted',
   SIGNUP_EMAIL_VERIFICATION_FAILED: 'Email Verification Failed',
   WELCOME_WIZARD_STEP_SKIPPED: 'Welcome Wizard Step Skipped',
-  WELCOME_WIZARD_STEP_VIEWED: 'Welcome Wizard Step Viewed'
+  WELCOME_WIZARD_STEP_VIEWED: 'Welcome Wizard Step Viewed',
+  // Closing a group: each option a steward can choose
+  GROUP_ADMINISTRATOR_HANDED_OFF: 'Group Administrator Handed Off',
+  GROUP_ARCHIVED: 'Group Archived',
+  GROUP_UNARCHIVED: 'Group Unarchived',
+  GROUP_DELETED: 'Group Deleted'
 }
 
 // CustomEvent dispatched in the WebView when Android hardware back is pressed.
