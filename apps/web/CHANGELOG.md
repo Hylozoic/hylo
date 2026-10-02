@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Fixed
+- Fix submission posts not getting created correctly when other post types are on in the funding round space
+- Fix issue where multi day events would only show last day on the calendar
+- Add some top and bottom margin around link preview in the PostCard
+- Space location always displays correctly in space settings if set
+- Long space URL slugs don't shrink space name field to very small. In space settings modal.
+
 ## [7.1.1] - 2026-09-29
 
 ### Added

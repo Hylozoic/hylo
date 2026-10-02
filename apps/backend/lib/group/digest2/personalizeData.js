@@ -1,5 +1,5 @@
 import { cloneDeep, flatten, merge, pick, uniq, values } from 'lodash'
-import { includes, filter, get } from 'lodash/fp'
+import { filter, get } from 'lodash/fp'
 import { getLocaleStrings } from '../../i18n/locales'
 import { aggregateChatRooms, shouldSendData } from './util'
 import { applyUnifiedGroupLabels } from './mergeData'
@@ -38,6 +38,18 @@ const CONTENT_KEYS = [
   'posts_with_new_comments',
   'upcoming',
   'ending'
+]
+
+/** Post lists that mean the post itself is already in the digest. */
+const NEW_POST_KEYS = [
+  'discussions',
+  'requests',
+  'offers',
+  'events',
+  'projects',
+  'resources',
+  'proposals',
+  'chats'
 ]
 
 const getPosts = data =>
@@ -111,13 +123,42 @@ const chatReadStateByGroup = async (userId, chats) => {
   return result
 }
 
-const filterMyAndBlockedUserData = async (userId, data) => {
+const sameId = (a, b) => a != null && b != null && String(a) === String(b)
+
+const authorIsBlocked = (object, blockedUserIds) =>
+  blockedUserIds.some(id => sameId(id, get('user.id', object)))
+
+/**
+ * Daily digests already show a new post on its own, so skip the
+ * "N new comments" row for that same post. Weekly digests keep it.
+ * A recipient's own post is left out of the new-post lists, but its
+ * comment summary stays so they still see replies.
+ */
+function omitDailyCommentSummariesForIncludedPosts (data) {
+  const includedIds = new Set()
+  for (const key of NEW_POST_KEYS) {
+    for (const post of data[key] || []) {
+      if (post && post.id != null) includedIds.add(String(post.id))
+    }
+  }
+  if (!data.posts_with_new_comments) return
+  data.posts_with_new_comments = data.posts_with_new_comments.filter(
+    post => !includedIds.has(String(post.id))
+  )
+}
+
+const filterMyAndBlockedUserData = async (userId, data, type) => {
   const clonedData = cloneDeep(data)
   const blockedUserIds = (await BlockedUser.blockedFor(userId)).rows.map(r => r.user_id)
 
   for (const post of clonedData.posts_with_new_comments || []) {
-    // Filter out comments by blocked user or the user themselves
-    post.comments = filter(comment => !includes(get('user.id', comment), blockedUserIds.concat(userId)), post.comments)
+    // Filter out comments by a blocked user or the recipient
+    post.comments = filter(comment => {
+      const commenterId = get('user.id', comment)
+      if (sameId(commenterId, userId)) return false
+      return !blockedUserIds.some(id => sameId(id, commenterId))
+    }, post.comments)
+    post.comment_count = post.comments.length
     // TODO: filter out comments that have alraedy been seen? Unfortunatly we arent tracking last read post time very well right now.
   }
 
@@ -129,8 +170,8 @@ const filterMyAndBlockedUserData = async (userId, data) => {
     if (!clonedData[key]) continue
 
     const filteredItems = clonedData[key].map((object) => {
-      // Filter out all posts by blocked users
-      if (includes(get('user.id', object), blockedUserIds)) return null
+      // Filter out posts by blocked users, including their comment summaries
+      if (authorIsBlocked(object, blockedUserIds)) return null
 
       // Filter out posts by the user themselves except for posts with new comments, upcoming, and ending reminders
       if (!['posts_with_new_comments', 'upcoming', 'ending'].includes(key) && parseInt(object.user.id) === parseInt(userId)) return null
@@ -153,6 +194,8 @@ const filterMyAndBlockedUserData = async (userId, data) => {
 
     clonedData[key] = filteredItems.filter(item => item !== null)
   }
+
+  if (type === 'daily') omitDailyCommentSummariesForIncludedPosts(clonedData)
 
   // Count of new chats in the group chat and each space chat the user is in
   clonedData.chat_rooms = aggregateChatRooms(clonedData.chats)
@@ -197,7 +240,7 @@ async function membershipGroupsById (userId) {
 
 const personalizeData = async (user, type, data, opts = {}) => {
   // Don't show me content I created or created by blocked users
-  const filteredData = await filterMyAndBlockedUserData(user.id, data)
+  const filteredData = await filterMyAndBlockedUserData(user.id, data, type)
 
   // Check again after filtering to make sure we're not sending empty digests
   if (!(await shouldSendData(filteredData, user.id))) {
