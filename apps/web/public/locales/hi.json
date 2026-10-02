@@ -3057,5 +3057,12 @@
   "Selected space": "चयनित स्पेस",
   "Incorrect email or password.": "ईमेल या पासवर्ड गलत है।",
   "If you signed up with Google, log in with Google instead.": "अगर आपने Google से साइन अप किया था, तो Google से लॉग इन करें।",
-  "Too many attempts. Please wait a few minutes and try again.": "बहुत अधिक प्रयास। कृपया कुछ मिनट प्रतीक्षा करें और फिर से प्रयास करें।"
+  "Too many attempts. Please wait a few minutes and try again.": "बहुत अधिक प्रयास। कृपया कुछ मिनट प्रतीक्षा करें और फिर से प्रयास करें।",
+  "You still have access to {{name}}": "आपके पास अभी भी {{name}} की पहुँच है",
+  "You are not currently a member of {{name}}, but your access is still valid. Rejoin to participate again.": "आप अभी {{name}} के सदस्य नहीं हैं, लेकिन आपकी पहुँच अभी भी मान्य है। फिर से भाग लेने के लिए दोबारा जुड़ें।",
+  "Rejoin {{name}}": "{{name}} से दोबारा जुड़ें",
+  "Rejoining...": "फिर से जुड़ रहे हैं...",
+  "To rejoin this space, you need to be a member of its parent group first.": "इस स्पेस से दोबारा जुड़ने के लिए, आपको पहले इसके पैरेंट ग्रुप का सदस्य होना होगा।",
+  "Go to {{name}} about page": "{{name}} के बारे में पेज पर जाएँ",
+  "Your access may have expired. Refresh this page to check your options.": "हो सकता है आपकी पहुँच समाप्त हो गई हो। अपने विकल्प देखने के लिए इस पेज को रीफ़्रेश करें।"
 }

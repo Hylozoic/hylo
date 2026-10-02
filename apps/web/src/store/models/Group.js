@@ -42,6 +42,16 @@ export function accessibilityDescription (a) {
  * Human-readable access sentence for a space, shown on the join page and about
  * modal. requiredRoles are resolved role objects from the parent group.
  */
+export function isRetainedAccessGroup (group) {
+  return Boolean(
+    group?.paywall &&
+    group?.hasValidScope &&
+    group?.currentUserMembershipActive === false &&
+    group?.active !== false &&
+    !['draft', 'archived'].includes(group?.status)
+  )
+}
+
 export function spaceAccessDescription ({ space, parentGroupName, requiredRoles = [], t }) {
   if (space.paywall) return t('A paid membership is required to join this space')
   if (requiredRoles.length > 0) {
@@ -259,7 +269,9 @@ Group.fields = {
   stripeChargesEnabled: attr(),
   stripePayoutsEnabled: attr(),
   stripeDetailsSubmitted: attr(),
-  paywall: attr()
+  paywall: attr(),
+  hasValidScope: attr(),
+  currentUserMembershipActive: attr()
 }
 
 export const DEFAULT_BANNER = '/default-group-banner.svg'

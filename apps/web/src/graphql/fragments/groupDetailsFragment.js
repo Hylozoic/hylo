@@ -43,6 +43,8 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   websiteUrl
   paywall
   canAccess
+  hasValidScope
+  currentUserMembershipActive
   track {
     id
     actionDescriptor

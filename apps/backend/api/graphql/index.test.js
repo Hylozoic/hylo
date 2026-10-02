@@ -124,6 +124,178 @@ describe('graphql request handler', () => {
     })
   })
 
+  describe('retained-access About query', () => {
+    it('returns only minimal About data for a former member with a valid paid scope', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PROTECTED })
+      await paidGroup.addMembers([paidUser])
+      await paidGroup.removeMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+      await bookshelf.knex('user_scopes').insert({
+        user_id: paidUser.id,
+        scope: `group:${paidGroup.id}`,
+        expires_at: null,
+        source_kind: 'grant',
+        source_id: 999999998,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          retainedAccessAbout(slug: "${paidGroup.get('slug')}") {
+            id
+            name
+            slug
+            type
+            hasActiveParentMembership
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.exist
+      expect(executionResult.data.retainedAccessAbout).to.deep.include({
+        id: paidGroup.id,
+        name: paidGroup.get('name'),
+        slug: paidGroup.get('slug'),
+        type: paidGroup.get('type'),
+        hasActiveParentMembership: true
+      })
+    })
+
+    it('exposes scope and prior-membership state through GroupDetails fields', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PUBLIC })
+      await paidGroup.addMembers([paidUser])
+      await paidGroup.removeMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+      await bookshelf.knex('user_scopes').insert({
+        user_id: paidUser.id,
+        scope: `group:${paidGroup.id}`,
+        expires_at: null,
+        source_kind: 'grant',
+        source_id: 999999996,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          group(slug: "${paidGroup.get('slug')}") {
+            hasValidScope
+            currentUserMembershipActive
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.exist
+      expect(executionResult.data.group).to.deep.equal({
+        hasValidScope: true,
+        currentUserMembershipActive: false
+      })
+    })
+
+    it('distinguishes active, inactive, and absent current-user memberships', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PUBLIC })
+      await paidGroup.addMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+      await bookshelf.knex('user_scopes').insert({
+        user_id: paidUser.id,
+        scope: `group:${paidGroup.id}`,
+        expires_at: null,
+        source_kind: 'grant',
+        source_id: 999999995,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+      const readGroupAccess = async () => {
+        const { executionResult } = await handler.inject({
+          document: `{
+            group(slug: "${paidGroup.get('slug')}") {
+              hasValidScope
+              currentUserMembershipActive
+            }
+          }`,
+          serverContext: { req, res }
+        })
+        expect(executionResult.errors).to.not.exist
+        return executionResult.data.group
+      }
+
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: true, currentUserMembershipActive: true })
+      await paidGroup.removeMembers([paidUser])
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: true, currentUserMembershipActive: false })
+      await bookshelf.knex('user_scopes').where({ user_id: paidUser.id, scope: `group:${paidGroup.id}` }).del()
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: false, currentUserMembershipActive: false })
+
+      const neverMember = await factories.user().save()
+      req.session.userId = neverMember.id
+      req.user = neverMember
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: false, currentUserMembershipActive: null })
+    })
+
+    it('returns null when the inactive member no longer has a valid scope', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true })
+      await paidGroup.addMembers([paidUser])
+      await paidGroup.removeMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          retainedAccessAbout(slug: "${paidGroup.get('slug')}") { id }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.exist
+      expect(executionResult.data.retainedAccessAbout).to.equal(null)
+    })
+
+    it('reactivates the existing membership through the GraphQL mutation', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true })
+      await paidGroup.addMembers([paidUser])
+      const originalMembership = await GroupMembership.forPair(paidUser, paidGroup).fetch()
+      await paidGroup.removeMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+      await bookshelf.knex('user_scopes').insert({
+        user_id: paidUser.id,
+        scope: `group:${paidGroup.id}`,
+        expires_at: null,
+        source_kind: 'grant',
+        source_id: 999999997,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+      const { executionResult } = await handler.inject({
+        document: `mutation {
+          rejoinGroup(groupId: "${paidGroup.id}") {
+            id
+            groupId
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.exist
+      expect(executionResult.data.rejoinGroup).to.deep.equal({
+        id: originalMembership.id,
+        groupId: paidGroup.id
+      })
+    })
+  })
+
   describe('with a complex query', function () {
     this.timeout(10000)
     let thread, message
