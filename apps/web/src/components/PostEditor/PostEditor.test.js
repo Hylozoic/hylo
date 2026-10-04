@@ -186,6 +186,7 @@ describe('PostEditor', () => {
       expect(screen.queryByText(/Make Public/)).not.toBeInTheDocument()
       expect(screen.queryByTestId('announcement-icon')).not.toBeInTheDocument()
       expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+      expect(screen.getByText('Editing Chat')).toBeInTheDocument()
     })
   })
 })
