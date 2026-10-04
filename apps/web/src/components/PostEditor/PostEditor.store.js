@@ -110,6 +110,19 @@ function toDestinationGroup (group, extras = {}) {
   }
 }
 
+/** Id from an ORM group model or a plain group record. */
+function groupIdOf (group) {
+  if (!group) return null
+  const raw = group.ref || group
+  return raw.id || null
+}
+
+/** True when the record is a space (`type = space`). */
+function isSpaceDestination (group) {
+  const raw = group?.ref || group
+  return raw?.type === GROUP_TYPES.space
+}
+
 /** Merges a destination into the map, filling in missing parentId/type from later copies. */
 function addDestinationGroup (byId, group, extras = {}) {
   const next = toDestinationGroup(group, extras)
@@ -131,9 +144,10 @@ function addDestinationGroup (byId, group, extras = {}) {
 
 /**
  * Groups and spaces the current user can send a post to. Includes every
- * membership destination, plus the current parent group and its menu/off-menu
- * spaces so the To field can list the parent and sibling spaces at the top
- * when composing from inside a space.
+ * membership destination. The current parent group is included so it can be
+ * selected when composing from inside a space. Child spaces are included only
+ * when the user has joined them; the parent menu and off-menu lists only fill
+ * in parentId for those joined spaces.
  */
 export const getPostEditorDestinationGroups = ormCreateSelector(
   orm,
@@ -141,11 +155,21 @@ export const getPostEditorDestinationGroups = ormCreateSelector(
   ({ Me, Membership, Group }, parentGroupId) => {
     const me = Me.first()
     const byId = new Map()
+    const memberIds = new Set()
 
     if (me) {
       Membership.filter({ person: me.id }).toModelArray().forEach(membership => {
         addDestinationGroup(byId, membership.group)
+        const id = groupIdOf(membership.group) || membership.ref?.group
+        if (id) memberIds.add(String(id))
       })
+    }
+
+    /** Adds a child space only when the current user has joined it. */
+    const addJoinedSpace = (space, extras = {}) => {
+      const id = groupIdOf(space)
+      if (!id || !memberIds.has(String(id))) return
+      addDestinationGroup(byId, space, extras)
     }
 
     const parent = parentGroupId
@@ -154,17 +178,20 @@ export const getPostEditorDestinationGroups = ormCreateSelector(
           : Group.all().toModelArray().find(g => String(g.id) === String(parentGroupId)))
       : null
     if (parent) {
-      addDestinationGroup(byId, parent)
+      const parentId = groupIdOf(parent)
+      if (!isSpaceDestination(parent) || (parentId && memberIds.has(String(parentId)))) {
+        addDestinationGroup(byId, parent)
+      }
       for (const view of parent.groupViews?.items || []) {
         if (view.type === 'space' && view.linkedGroup) {
-          addDestinationGroup(byId, view.linkedGroup, {
+          addJoinedSpace(view.linkedGroup, {
             parentId: view.linkedGroup.parentId || parent.id,
             type: view.linkedGroup.type || GROUP_TYPES.space
           })
         }
       }
       for (const space of parent.spaces?.items || []) {
-        addDestinationGroup(byId, space, {
+        addJoinedSpace(space, {
           parentId: space.parentId || parent.id,
           type: space.type || GROUP_TYPES.space
         })

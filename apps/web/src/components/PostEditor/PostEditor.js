@@ -413,7 +413,7 @@ function PostEditorInner ({
   const [dateError, setDateError] = useState(false)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
-  // Memberships plus the current parent group and its spaces (menu + off-menu).
+  // Joined groups and spaces, plus the current parent group. Unjoined spaces are omitted.
   // Reads Group inside an ORM selector so parentId hydrates when spaces load.
   const destinationGroups = useSelector(state => getPostEditorDestinationGroups(state, currentParentGroupId))
   const groupOptions = useMemo(() => {
@@ -421,13 +421,15 @@ function PostEditorInner ({
     const ensureGroup = (group) => {
       if (!group?.id || group.status === 'archived') return
       if (groups.some(g => sameGroupId(g.id, group.id))) return
+      // Once we know the user, only spaces they have joined are destinations.
+      if (isSpaceGroup(group) && currentUser && !destinationGroups.some(g => sameGroupId(g.id, group.id))) return
       groups.push(group)
     }
     ensureGroup(currentGroup)
     // Always keep the parent group available as a To destination when in a space
     if (inSpace) ensureGroup(routeParentGroup)
     return groups
-  }, [destinationGroups, currentGroup, inSpace, routeParentGroup])
+  }, [destinationGroups, currentGroup, currentUser, inSpace, routeParentGroup])
   const isAction = currentPost.type === 'action'
   const isSubmission = currentPost.type === 'submission'
   const isChat = currentPost.type === 'chat'
@@ -537,12 +539,23 @@ function PostEditorInner ({
   useEffect(() => {
     if (editing || !currentGroup?.id) return
     if (toFieldTouchedRef.current) return
+    const currentSpaceIsJoined = !isSpaceGroup(currentGroup) ||
+      !currentUser ||
+      destinationGroups.some(g => sameGroupId(g.id, currentGroup.id))
+    if (!currentSpaceIsJoined) {
+      setCurrentPost(prev => {
+        const groups = (prev.groups || []).filter(g => !sameGroupId(g?.id, currentGroup.id))
+        if (groups.length === (prev.groups || []).length) return prev
+        return { ...prev, groups }
+      })
+      return
+    }
     setCurrentPost(prev => {
       const hasCurrentGroup = prev.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (hasCurrentGroup) return prev
       return { ...prev, groups: [currentGroup, ...(prev.groups || [])] }
     })
-  }, [currentGroup, editing, setCurrentPost])
+  }, [currentGroup, currentUser, destinationGroups, editing, setCurrentPost])
 
   // Flush pending details into currentPost on unmount so drafts are not truncated.
   useEffect(() => () => {
@@ -737,7 +750,8 @@ function PostEditorInner ({
     }
   }, [])
 
-  // Membership spaces (every group) plus the current parent's space list for siblings
+  // Membership groups and spaces, plus the current parent's space list so joined
+  // spaces pick up parentId for the To field.
   const hasFetchedToFieldDataRef = useRef(false)
   useEffect(() => {
     if (hasFetchedToFieldDataRef.current) return
@@ -1419,7 +1433,7 @@ function PostEditorInner ({
   }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30', isChat && 'pt-12')}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30')}>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
@@ -1428,9 +1442,12 @@ function PostEditorInner ({
         }}
       />
       {editorTourInvitation}
-      {!isChat && (
-        <div className={cn('PostEditorHeader relative')} data-tour='post-type'>
-          {isAction
+      <div className={cn('PostEditorHeader relative')} data-tour='post-type'>
+        {isChat
+          ? (
+            <div>{t('Editing Chat')}</div>
+            )
+          : isAction
             ? (
               <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
               )
@@ -1447,8 +1464,7 @@ function PostEditorInner ({
                   className={cn({ hidden: !!currentFundingRound })}
                 />
                 )}
-        </div>
-      )}
+      </div>
       {showSubmissionCriteria && (
         <div className='flex flex-col gap-2 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-xs text-foreground/80'>
           <div className='text-xs uppercase tracking-wide text-foreground/60'>{t('Submission Criteria')}</div>
