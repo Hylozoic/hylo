@@ -1514,28 +1514,28 @@ function PostEditorInner ({
         </div>
       )}
       {!isChat && (
-      <div className={cn('PostEditorTitle flex w-full items-center bg-input rounded p-1 transition-all border-2 border-transparent', { 'border-2 border-focus': titleFocused })}>
-        <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
-        <input
-          type='text'
-          className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
-          value={currentPost.title || ''}
-          onChange={handleTitleChange}
-          disabled={loading}
-          ref={titleInputRef}
-          maxLength={MAX_TITLE_LENGTH}
-          onFocus={() => setTitleFocused(true)}
-          onBlur={() => setTitleFocused(false)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && event.altKey) {
-              doSave()
-            }
-          }}
-        />
-        {titleLengthError && (
-          <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
-        )}
-      </div>
+        <div className={cn('PostEditorTitle flex w-full items-center bg-input rounded p-1 transition-all border-2 border-transparent', { 'border-2 border-focus': titleFocused })}>
+          <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
+          <input
+            type='text'
+            className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
+            value={currentPost.title || ''}
+            onChange={handleTitleChange}
+            disabled={loading}
+            ref={titleInputRef}
+            maxLength={MAX_TITLE_LENGTH}
+            onFocus={() => setTitleFocused(true)}
+            onBlur={() => setTitleFocused(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && event.altKey) {
+                doSave()
+              }
+            }}
+          />
+          {titleLengthError && (
+            <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
+          )}
+        </div>
       )}
       <div
         className={cn(
