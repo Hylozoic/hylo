@@ -29,11 +29,11 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders ({ withLinkPreview } = {}) {
+function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post' } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
-  const postAttrs = { id: '1', title: 'Test Post', type: 'discussion', groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] }
+  const postAttrs = { id: '1', title, type: postType, groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] }
   if (withLinkPreview) {
     ormSession.LinkPreview.create({
       id: 'lp1',
@@ -167,6 +167,25 @@ describe('PostEditor', () => {
         expect(screen.getByText('Example Site')).toBeInTheDocument()
         expect(screen.getByText('example.com')).toBeInTheDocument()
       })
+    })
+  })
+
+  describe('editing a chat post', () => {
+    it('only shows the body and attachment controls', async () => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      renderComponent({ editing: true }, { postType: 'chat', title: '' })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-image-icon')).toBeInTheDocument()
+        expect(screen.getByTestId('add-file-icon')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('Title')).not.toBeInTheDocument()
+      expect(screen.queryByText('To')).not.toBeInTheDocument()
+      expect(screen.queryByText('Timeframe')).not.toBeInTheDocument()
+      expect(screen.queryByText('Timezone')).not.toBeInTheDocument()
+      expect(screen.queryByText(/Make Public/)).not.toBeInTheDocument()
+      expect(screen.queryByTestId('announcement-icon')).not.toBeInTheDocument()
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     })
   })
 })
