@@ -317,7 +317,8 @@ export default function ViewContent (props) {
       }
     }
 
-    const numPostsToLoad = isMobile.any ? 10 : 20
+    // One page for the visible month. Paging 20 at a time repaints the grid as each page arrives.
+    const numPostsToLoad = isCalendarViewMode ? 60 : (isMobile.any ? 10 : 20)
     const includeChatActivity = view === 'all' && !postTypeFilter && !isCalendarViewMode && showChatActivity
 
     const params = {
@@ -487,7 +488,12 @@ export default function ViewContent (props) {
     if (pending && offset > 0) return
     if (hasMore === false && offset > 0) return
     if (offset === 0) setFetchError(false)
-    return Promise.resolve(dispatch(fetchPosts({ offset, ...fetchPostsParam })))
+    return Promise.resolve(dispatch(fetchPosts({
+      offset,
+      // Keep the current month on screen until this page arrives, then swap it in.
+      replaceResults: isCalendarViewMode && !offset,
+      ...fetchPostsParam
+    })))
       .then(action => {
         if (action?.error) throw action.payload || new Error('FETCH_POSTS failed')
         if (offset === 0) setResolvedPostsQueryKey(buildKey(FETCH_POSTS, fetchPostsParam))
@@ -497,7 +503,7 @@ export default function ViewContent (props) {
         if (!isRetry) return fetchPostsFrom(offset, true)
         setFetchError(true)
       })
-  }, [dispatch, pending, hasMore, fetchPostsParam])
+  }, [dispatch, pending, hasMore, fetchPostsParam, isCalendarViewMode])
 
   useEffect(() => {
     if (view !== 'custom' || !customViewId || !streamViewConfig) return
@@ -523,7 +529,9 @@ export default function ViewContent (props) {
   }, [topicName])
 
   useEffect(() => {
-    if (view === 'events' || isCalendarViewMode) {
+    // List view has to drop before a refetch because pages append. Calendar
+    // replaces offset 0 in place, so dropping here would blank the grid first.
+    if (view === 'events' && !isCalendarViewMode) {
       dispatch(dropPostResults(fetchPostsParam))
     }
   }, [dispatch, fetchPostsParam, isCalendarViewMode, view])
@@ -615,7 +623,6 @@ export default function ViewContent (props) {
   useEffect(() => {
     const isCreatePath = new URLSearchParams(location.search).get('create') === 'post'
     if (prevPathWasCreateRef.current && !isCreatePath && isCalendarViewMode) {
-      dispatch(dropPostResults(fetchPostsParam))
       fetchPostsFrom(0)
     }
     prevPathWasCreateRef.current = isCreatePath
@@ -684,7 +691,7 @@ export default function ViewContent (props) {
   // not a gate that unmounts the whole view when posts briefly go empty.
   const calendarBlocked = topicBlockingStreams || customViewLoading
   const showCalendar = !calendarBlocked && isCalendarViewMode
-  const calendarFetching = pending && showCalendar
+  const calendarFetching = pending && showCalendar && posts.length === 0
   const calendarInitialLoading = calendarBlocked && isCalendarViewMode
 
   const { setHeaderDetails } = useViewHeader()
