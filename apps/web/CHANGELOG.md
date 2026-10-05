@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.3] - 2026-10-04
+
+### Fixed
+- Editing a chat post from the post details doesn't convert it to a discussion
+- Don't let people post to a space they have not joined
+- Fix occasional stuck on add location during welcome flow on android
+- Don't save a post draft until there is title or body content
+- Calendar view more flicker on month view
+
 ## [7.1.2] - 2026-10-01
 
 ### Added
