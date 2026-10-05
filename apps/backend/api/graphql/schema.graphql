@@ -3026,6 +3026,8 @@ type FundingRound {
   phase: FundingRoundPhase
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether members can see every submission during the submissions phase
+  showRealtimeSubmissions: Boolean
   # Whether to show running vote totals during the voting phase
   showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
@@ -3124,6 +3126,8 @@ type UserSettings {
   streamPostType: String
   # Color scheme / palette name (e.g. default, forest, ocean)
   theme: String
+  # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
+  unifiedEmailDigest: Boolean
 }
 
 type Draft {
@@ -4568,6 +4572,8 @@ input FundingRoundInput {
   minTokenAllocation: Int
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether members can see every submission during the submissions phase
+  showRealtimeSubmissions: Boolean
   # Whether to show running vote totals during the voting phase
   showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
@@ -4633,4 +4639,6 @@ input UserSettingsInput {
   streamPostType: String
   # Color scheme / palette name (e.g. default, forest, ocean)
   theme: String
+  # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
+  unifiedEmailDigest: Boolean
 }

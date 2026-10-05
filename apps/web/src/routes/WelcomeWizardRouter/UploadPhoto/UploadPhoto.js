@@ -45,7 +45,7 @@ function UploadPhoto () {
   const currentAvatarUrl = getValue('avatarUrl')
 
   return (
-    <div className='bg-card shadow-md w-[360px] mx-auto rounded-lg'>
+    <div className='bg-card shadow-md w-full mx-auto rounded-lg'>
       <div className='p-8 relative flex flex-col min-h-[480px]'>
         <span className='absolute top-4 right-4 text-xs text-muted-foreground'>{t('STEP 1/3')}</span>
         <div className='flex-1 flex flex-col justify-center'>

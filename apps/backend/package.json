@@ -5,7 +5,7 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "private": true,
-  "version": "7.1.0",
+  "version": "7.1.2",
   "nyc": {
     "sourceMap": false,
     "instrument": false,
@@ -45,7 +45,7 @@
   "devDependencies": {
     "@babel/cli": "^7.17.6",
     "@faker-js/faker": "^6.3.1",
-    "babel-plugin-istanbul": "^2.0.3",
+    "babel-plugin-istanbul": "^6.1.1",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "chai-datetime": "^1.7.0",
@@ -57,7 +57,7 @@
     "mock-require": "^2.0.2",
     "nock": "^13.5.5",
     "nodemon": "^1.12.1",
-    "nyc": "^10.0",
+    "nyc": "^17.1.0",
     "socket.io-client": "^2.3.1",
     "standard": "^17.1.2"
   },
@@ -93,7 +93,7 @@
     "dataloader": "^1.2.0",
     "dotenv": "16.4.5",
     "dotenv-cli": "7.4.2",
-    "ejs": "^2.5.5",
+    "ejs": "^3.1.10",
     "emoji-mart": "^5.2.2",
     "ent": "^2.2.0",
     "file-type": "^6.1.0",

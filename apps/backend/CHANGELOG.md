@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Changed
+- In daily digest dont show X comments in post rows for new posts that day. Also dont show comments from blocked users or comments on posts from blocked users
+
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
+### Fixed
+- When auto adding people to a space give them same notification settings as they have in parent group
+- Crash when using older Hylo app
+
 ## [7.1.0] - 2026-09-25
 
 ### Changed

@@ -32,6 +32,19 @@ export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'nav_order'
 ]
 
+// Notification prefs to copy from a parent membership onto an auto-added space membership.
+// addMembers replaces its default settings when callers pass settings, so these must be included.
+// Missing keys fall back to the same defaults a normal join would get.
+function notificationSettingsFromMembership (membership) {
+  const settings = (membership && membership.get('settings')) || {}
+  return {
+    postNotifications: settings.postNotifications != null ? settings.postNotifications : 'all',
+    digestFrequency: settings.digestFrequency || 'daily',
+    sendEmail: settings.sendEmail !== false,
+    sendPushNotifications: settings.sendPushNotifications !== false
+  }
+}
+
 // For files in the public directory, reference them with the base URL
 const DEFAULT_BANNER = '/default-group-banner.svg'
 const DEFAULT_AVATAR = '/default-group-avatar.svg'
@@ -1222,7 +1235,8 @@ module.exports = bookshelf.Model.extend(merge({
    * Add parent-group members to a space with autoAddMembers. Skips people who
    * already belong and people who left the space (leftSpace). Inactive memberships
    * from leaving the parent group are reactivated. When userIds is omitted, all
-   * current parent members are considered.
+   * current parent members are considered. Each new space membership gets the
+   * same notification settings as that person's parent-group membership.
    */
   async addEligibleMembersToSpace ({ spaceId, userIds } = {}) {
     const space = await Group.find(spaceId)
@@ -1255,14 +1269,32 @@ module.exports = bookshelf.Model.extend(merge({
     const toAdd = candidateIds.filter(id => !skipIds.has(String(id)))
     if (toAdd.length === 0) return
 
-    await space.addMembers(toAdd, {
-      lastReadAt: new Date(),
-      settings: {
-        showJoinForm: false,
-        agreementsAcceptedAt: new Date(),
-        joinQuestionsAnsweredAt: new Date()
-      }
-    })
+    const parentMemberships = await GroupMembership.forIds(toAdd, parentId, { multiple: true }).fetch()
+    const notificationSettingsByUserId = {}
+    for (const membership of parentMemberships.models) {
+      notificationSettingsByUserId[String(membership.get('user_id'))] = notificationSettingsFromMembership(membership)
+    }
+
+    const usersBySettings = {}
+    for (const userId of toAdd) {
+      const notificationSettings = notificationSettingsByUserId[String(userId)] || notificationSettingsFromMembership(null)
+      const key = JSON.stringify(notificationSettings)
+      if (!usersBySettings[key]) usersBySettings[key] = { notificationSettings, userIds: [] }
+      usersBySettings[key].userIds.push(userId)
+    }
+
+    const joinedAt = new Date()
+    for (const { notificationSettings, userIds: ids } of Object.values(usersBySettings)) {
+      await space.addMembers(ids, {
+        lastReadAt: joinedAt,
+        settings: {
+          showJoinForm: false,
+          agreementsAcceptedAt: joinedAt,
+          joinQuestionsAnsweredAt: joinedAt,
+          ...notificationSettings
+        }
+      })
+    }
 
     await Group.ensureSpaceViewUsers(spaceId, toAdd)
   },

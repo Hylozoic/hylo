@@ -6,6 +6,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.3] - 2026-10-04
+
+### Fixed
+- Editing a chat post from the post details doesn't convert it to a discussion
+- Don't let people post to a space they have not joined
+- Fix occasional stuck on add location during welcome flow on android
+- Don't save a post draft until there is title or body content
+- Calendar view more flicker on month view
+
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Fixed
+- Fix submission posts not getting created correctly when other post types are on in the funding round space
+- Fix issue where multi day events would only show last day on the calendar
+- Add some top and bottom margin around link preview in the PostCard
+- Space location always displays correctly in space settings if set
+- Long space URL slugs don't shrink space name field to very small. In space settings modal.
+
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
 ## [7.1.0] - 2026-09-25
 
 ### Changed
@@ -54,8 +80,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Link editor in page view type editor
 - Post editor readding current path group/space too often and erasing choices in the To field
 - Move AAPA to .well-known
-
-### Fixed
 
 ## [7.0.6] - 2026-09-13
 

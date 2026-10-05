@@ -15,6 +15,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import VersionCheck from './components/VersionCheck'
 import { setupOneSignal } from './services/onesignal'
 import RootNavigator from './navigation/RootNavigator'
+import useThemeStore from './store/themeStore'
 import { hydrateStoredLocale } from './i18n'
 
 if (sentryConfig.enabled) {
@@ -32,20 +33,24 @@ const urqlStorage = makeAsyncStorage({
 
 function AppProviders () {
   const urqlClient = useMakeUrqlClient({ storage: urqlStorage })
+  const backgroundColor = useThemeStore(state => state.backgroundColor)
+  const hydrateTheme = useThemeStore(state => state.hydrate)
   const [localeReady, setLocaleReady] = useState(false)
+  const [themeReady, setThemeReady] = useState(false)
 
   useEffect(() => {
     hydrateStoredLocale().finally(() => setLocaleReady(true))
-  }, [])
+    hydrateTheme().then(() => setThemeReady(true))
+  }, [hydrateTheme])
 
   useEffect(() => {
     if (!urqlClient) return
     return setupOneSignal()
   }, [urqlClient])
 
-  if (!urqlClient || !localeReady) {
+  if (!urqlClient || !localeReady || !themeReady) {
     return (
-      <View className='flex-1 items-center justify-center bg-background'>
+      <View className='flex-1 items-center justify-center' style={{ backgroundColor }}>
         <ActivityIndicator />
         <Text className='mt-2 text-muted-foreground'>Starting…</Text>
       </View>
@@ -63,8 +68,10 @@ function AppProviders () {
 }
 
 export default function App () {
+  const backgroundColor = useThemeStore(state => state.backgroundColor)
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor }}>
       <SafeAreaProvider>
         <ErrorBoundary>
           <AppProviders />

@@ -201,7 +201,13 @@
 .modal {
   height: 100%;
   width: 100%;
-  overflow: scroll;
+  box-sizing: border-box;
+  padding: 16px;
+  /* auto, not scroll: overflow:scroll is a scrollport even when nothing overflows,
+     and Android cancels the Next tap as a tiny flick. Hidden x-axis so a long
+     place name cannot shove the dialog sideways. */
+  overflow-x: hidden;
+  overflow-y: auto;
   position: fixed;
   z-index: 100;
   top: 0;
@@ -209,8 +215,12 @@
   right: 0;
   bottom: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* flex-start + the wrapper's auto margins centers the card when it fits, and
+     still lets a short screen scroll down to Next. align/justify center clips
+     the overflow so the button cannot be flicked into view. */
+  justify-content: flex-start;
 }
 
 .instructions {
@@ -243,8 +253,10 @@
   transition: all .25s ease;
   position: relative;
   z-index: 1;
-  min-height: 480px;
-  min-width: 320px;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 360px;
+  min-width: 0;
   margin-top: auto;
   margin-bottom: auto;
   display: flex;

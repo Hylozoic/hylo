@@ -20,6 +20,7 @@ export default function login (email, password) {
                 colorScheme
                 dmNotifications
                 commentNotifications
+                unifiedEmailDigest
                 globalNavStyle
                 groupNavStyle
                 rsvpCalendarSub

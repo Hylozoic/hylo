@@ -59,7 +59,7 @@ export default function PostContent ({
             {post.budget}
           </div>
         )}
-        <div className='flex flex-col gap-4'>
+        <div className={cn('flex flex-col gap-4', { 'my-2': linkPreview && !showFeaturedVideo })}>
           {linkPreview && !showFeaturedVideo && (
             <LinkPreview {...pick(['title', 'description', 'url', 'imageUrl'], linkPreview.ref || linkPreview)} />
           )}
