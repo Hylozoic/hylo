@@ -1,0 +1,1978 @@
+{
+ "status": "ready",
+ "cached": false,
+ "asOf": "2026-05-13T00:00:00.000Z",
+ "generatedAt": "2026-05-13T00:01:00.000Z",
+ "durationMs": 4000,
+ "northStar": {
+  "metricId": "weekly_connected_members",
+  "name": "Weekly Connected Members",
+  "definition": "People on either side of an interaction between two people in a week: one person commented on, reacted to, RSVPed to, voted on, or joined something a different person recently created. Both people count, whether or not the author responds back. Direct messages, self-interactions and the Axolotl bot are excluded. The chart also shows the people connected by more than a reaction.",
+  "why": "It counts the moment Hylo creates value: someone showed up and someone else answered. It grows only when real coordination grows, so notification blasts, empty signups and shell groups can't inflate it. It is computed on the server, so it also sees the activity Mixpanel can't."
+ },
+ "sections": [
+  {
+   "id": "audience",
+   "title": "Audience",
+   "question": "How many people use Hylo, by the standard measures?",
+   "metrics": [
+    {
+     "id": "active_users_now",
+     "label": "Active users (DAU, WAU, MAU)",
+     "definition": "The number of people active in the 1, 7 and 30 days before the report date: daily, weekly and monthly active users (DAU, WAU and MAU). \"Active\" means the person used Hylo while logged in: their browser or the mobile app made at least one signed-in request to Hylo. Just opening Hylo counts, including visits prompted by a notification or an email; posting is not required. Deactivated accounts, the Axolotl bot and third-party apps signed in through OAuth are not counted. The headline is MAU. Stickiness is DAU ÷ MAU, the share of the month's users who come on a given day; WAU ÷ MAU is the same for a week. Also shows the people who contributed in the last 30 days and the number of monthly active users per contributor.",
+     "whyItMatters": "These are the standard audience measures that funders and partners know. MAU is the size of the audience, stickiness shows how much of it comes back often, and visitors per contributor shows how many people read without posting.",
+     "display": "kpi",
+     "unit": "count",
+     "goodDirection": "up",
+     "vital": true,
+     "comparable": false,
+     "notes": "This is a point-in-time count taken from each account's last-active time, which is overwritten on every visit, so it only works for recent dates. A report date of today means right now. For a past date it is blank once more than 1% of that date's MAU have been active again since (allowing one hour after the report time). The weekly trend is in \"Active users over time\". A contribution is a non-DM post of any type (chat included), a comment on one, a reaction to either, an RSVP of yes or interested to someone else's event, a proposal vote, or joining someone else's project, the same rule as weekly active contributors. These are platform-wide totals, which are exempt from small-number suppression.",
+     "data": {
+      "value": 4870,
+      "breakdown": [
+       {
+        "label": "DAU (last day)",
+        "value": 612,
+        "unit": "count"
+       },
+       {
+        "label": "WAU (last 7 days)",
+        "value": 2143,
+        "unit": "count"
+       },
+       {
+        "label": "MAU (last 30 days)",
+        "value": 4870,
+        "unit": "count"
+       },
+       {
+        "label": "Stickiness (DAU ÷ MAU)",
+        "value": 0.12566735112936345,
+        "unit": "percent"
+       },
+       {
+        "label": "WAU ÷ MAU",
+        "value": 0.44004106776180696,
+        "unit": "percent"
+       },
+       {
+        "label": "30-day contributors",
+        "value": 1486,
+        "unit": "count"
+       },
+       {
+        "label": "Visitors per contributor",
+        "value": 3.2772543741588156,
+        "unit": "ratio"
+       }
+      ],
+      "note": null
+     },
+     "headline": {
+      "value": 4870,
+      "previous": null,
+      "period": "last 30 days"
+     },
+     "error": null,
+     "runtimeMs": 100
+    }
+   ]
+  },
+  {
+   "id": "network_alive",
+   "title": "Network vitality",
+   "question": "Is the network alive, and is life spreading beyond a few places?",
+   "metrics": [
+    {
+     "id": "weekly_connected_members",
+     "label": "Weekly connected members",
+     "definition": "Distinct people on either side of a cross-person interaction in each Monday–Sunday week (UTC). An interaction is a comment, a reaction, an RSVP of yes or interested, a proposal vote, or joining a project, on non-DM content. The post or comment being answered must be at most 14 days old, or 30 days for events, proposals and projects. Self-interactions, the Axolotl bot, deactivated accounts, DM threads and project members added by the author at creation are excluded. Shows 26 weeks, a 4-week rolling average of complete weeks, and the current partial week. Also shows the people connected by more than a reaction: the same count with reactions left out, so only comments, RSVPs, proposal votes and project joins count.",
+     "whyItMatters": "This is the core-value unit: it rises only when contributions get answered. A reaction is the lightest touch, so the second line shows how much of that connection went further than one.",
+     "display": "series",
+     "unit": "count",
+     "goodDirection": "up",
+     "vital": true,
+     "notes": "The current week is partial. Project join times are approximate: posts_users has no join timestamp, so the row's creation time is used, and members added by the author when creating the project are left out. RSVP times are approximate: editing an event re-stamps every RSVP, so re-sent invitations fall back to when the invitation was created.",
+     "data": {
+      "granularity": "week",
+      "x": [
+       "2025-11-17",
+       "2025-11-24",
+       "2025-12-01",
+       "2025-12-08",
+       "2025-12-15",
+       "2025-12-22",
+       "2025-12-29",
+       "2026-01-05",
+       "2026-01-12",
+       "2026-01-19",
+       "2026-01-26",
+       "2026-02-02",
+       "2026-02-09",
+       "2026-02-16",
+       "2026-02-23",
+       "2026-03-02",
+       "2026-03-09",
+       "2026-03-16",
+       "2026-03-23",
+       "2026-03-30",
+       "2026-04-06",
+       "2026-04-13",
+       "2026-04-20",
+       "2026-04-27",
+       "2026-05-04",
+       "2026-05-11"
+      ],
+      "lines": [
+       {
+        "key": "value",
+        "label": "Connected members",
+        "values": [
+         706,
+         679,
+         612,
+         594,
+         601,
+         334,
+         368,
+         718,
+         740,
+         736,
+         725,
+         658,
+         618,
+         622,
+         657,
+         695,
+         717,
+         765,
+         779,
+         750,
+         669,
+         650,
+         643,
+         692,
+         697,
+         293
+        ],
+        "primary": true
+       },
+       {
+        "key": "beyond_reactions",
+        "label": "Connected by more than a reaction",
+        "values": [
+         494,
+         515,
+         447,
+         391,
+         389,
+         238,
+         280,
+         516,
+         481,
+         482,
+         526,
+         500,
+         437,
+         401,
+         436,
+         512,
+         542,
+         531,
+         499,
+         506,
+         499,
+         487,
+         438,
+         443,
+         479,
+         221
+        ]
+       },
+       {
+        "key": "rolling_avg_4w",
+        "label": "4-week average",
+        "values": [
+         692.8,
+         699.5,
+         675.3,
+         647.8,
+         621.5,
+         535.3,
+         474.3,
+         505.3,
+         540,
+         640.5,
+         729.8,
+         714.8,
+         684.3,
+         655.8,
+         638.8,
+         648,
+         672.8,
+         708.5,
+         739,
+         752.8,
+         740.8,
+         712,
+         678,
+         663.5,
+         670.5,
+         null
+        ]
+       }
+      ],
+      "partialLast": true
+     },
+     "headline": {
+      "value": 697,
+      "previous": 692,
+      "period": "2026-05-04"
+     },
+     "error": null,
+     "runtimeMs": 100
+    },
+    {
+     "id": "weekly_active_contributors",
+     "label": "Weekly active contributors",
+     "definition": "Distinct people with at least one contribution in each Monday–Sunday week (UTC). A contribution is a non-DM post of any type (chat included), a comment on one, a reaction to either, an RSVP of yes or interested to someone else's event, a proposal vote, or joining someone else's project. The Axolotl bot and deactivated accounts are excluded, as are project members added by the author at creation. Also shows the subset who posted or commented, and a 4-week rolling average of complete weeks.",
+     "whyItMatters": "This is the supply side of the network. It replaces daily or weekly active users, which cannot be rebuilt from users.last_active_at.",
+     "display": "series",
+     "unit": "count",
+     "goodDirection": "up",
+     "vital": false,
+     "notes": "The current week is partial. Project join times are approximate: posts_users has no join timestamp, so the row's creation time is used, and members added by the author when creating the project are left out. RSVP times are approximate: editing an event re-stamps every RSVP, so re-sent invitations fall back to when the invitation was created.",
+     "data": {
+      "granularity": "week",
+      "x": [
+       "2025-11-17",
+       "2025-11-24",
+       "2025-12-01",
+       "2025-12-08",
+       "2025-12-15",
+       "2025-12-22",
+       "2025-12-29",
+       "2026-01-05",
+       "2026-01-12",
+       "2026-01-19",
+       "2026-01-26",
+       "2026-02-02",
+       "2026-02-09",
+       "2026-02-16",
+       "2026-02-23",
+       "2026-03-02",
+       "2026-03-09",
+       "2026-03-16",
+       "2026-03-23",
+       "2026-03-30",
+       "2026-04-06",
+       "2026-04-13",
+       "2026-04-20",
+       "2026-04-27",
+       "2026-05-04",
+       "2026-05-11"
+      ],
+      "lines": [
+       {
+        "key": "value",
+        "label": "Active contributors",
+        "values": [
+         1022,
+         995,
+         944,
+         911,
+         877,
+         520,
+         529,
+         936,
+         974,
+         996,
+         1052,
+         1040,
+         1017,
+         981,
+         965,
+         947,
+         912,
+         914,
+         968,
+         978,
+         1023,
+         1065,
+         1118,
+         1070,
+         1040,
+         468
+        ],
+        "primary": true
+       },
+       {
+        "key": "posted_or_commented",
+        "label": "Posted or commented",
+        "values": [
+         678,
+         674,
+         656,
+         631,
+         578,
+         355,
+         363,
+         636,
+         636,
+         686,
+         698,
+         722,
+         703,
+         656,
+         643,
+         661,
+         624,
+         618,
+         682,
+         686,
+         682,
+         750,
+         758,
+         722,
+         709,
+         319
+        ]
+       },
+       {
+        "key": "rolling_avg_4w",
+        "label": "4-week average",
+        "values": [
+         957.8,
+         982.3,
+         981.3,
+         968,
+         931.8,
+         813,
+         709.3,
+         715.5,
+         739.8,
+         858.8,
+         989.5,
+         1015.5,
+         1026.3,
+         1022.5,
+         1000.8,
+         977.5,
+         951.3,
+         934.5,
+         935.3,
+         943,
+         970.8,
+         1008.5,
+         1046,
+         1069,
+         1073.3,
+         null
+        ]
+       }
+      ],
+      "partialLast": true
+     },
+     "headline": {
+      "value": 1040,
+      "previous": 1070,
+      "period": "2026-05-04"
+     },
+     "error": null,
+     "runtimeMs": 110
+    },
+    {
+     "id": "live_groups",
+     "label": "Live groups",
+     "definition": "Active groups (farms included) with at least 3 distinct people posting or commenting on non-DM posts in the trailing 28 days. Activity in a group's spaces counts toward that group. Each point covers the 28 days before the Monday shown, over 26 weeks. Also shows groups with at least 1, 5 and 10 voices, and the share of all active groups that are live.",
+     "whyItMatters": "This is the real size of the network: the rooms where a conversation is actually happening. Most groups that exist are not live.",
+     "display": "series",
+     "unit": "count",
+     "goodDirection": "up",
+     "vital": true,
+     "notes": "Activity in spaces (chat rooms, tracks and funding rounds) counts toward the parent group; spaces are never counted as groups on their own. Each point is the 28 days before the Monday shown (UTC), so the latest point lags today by up to 6 days. The headline compares the latest 28-day window with the most recent earlier window that overlaps it by less than a week. The share uses today's active flag for groups, since there is no activation history. Counts here are of groups, not people.",
+     "data": {
+      "granularity": "week",
+      "xMeaning": "window-end",
+      "windowDays": 28,
+      "x": [
+       "2025-11-17",
+       "2025-11-24",
+       "2025-12-01",
+       "2025-12-08",
+       "2025-12-15",
+       "2025-12-22",
+       "2025-12-29",
+       "2026-01-05",
+       "2026-01-12",
+       "2026-01-19",
+       "2026-01-26",
+       "2026-02-02",
+       "2026-02-09",
+       "2026-02-16",
+       "2026-02-23",
+       "2026-03-02",
+       "2026-03-09",
+       "2026-03-16",
+       "2026-03-23",
+       "2026-03-30",
+       "2026-04-06",
+       "2026-04-13",
+       "2026-04-20",
+       "2026-04-27",
+       "2026-05-04",
+       "2026-05-11"
+      ],
+      "lines": [
+       {
+        "key": "value",
+        "label": "Live groups (3+ voices)",
+        "values": [
+         179,
+         188,
+         191,
+         197,
+         195,
+         191,
+         188,
+         186,
+         179,
+         176,
+         182,
+         184,
+         185,
+         195,
+         203,
+         200,
+         210,
+         204,
+         206,
+         199,
+         195,
+         192,
+         186,
+         187,
+         188,
+         198
+        ],
+        "primary": true
+       },
+       {
+        "key": "ge1",
+        "label": "1+ voices",
+        "values": [
+         373,
+         397,
+         408,
+         413,
+         409,
+         406,
+         403,
+         383,
+         377,
+         366,
+         382,
+         393,
+         391,
+         402,
+         420,
+         426,
+         441,
+         428,
+         435,
+         414,
+         414,
+         409,
+         385,
+         393,
+         402,
+         422
+        ]
+       },
+       {
+        "key": "ge5",
+        "label": "5+ voices",
+        "values": [
+         95,
+         99,
+         100,
+         103,
+         104,
+         99,
+         96,
+         98,
+         92,
+         91,
+         94,
+         98,
+         94,
+         103,
+         106,
+         102,
+         111,
+         109,
+         109,
+         103,
+         103,
+         98,
+         99,
+         94,
+         98,
+         104
+        ]
+       },
+       {
+        "key": "ge10",
+        "label": "10+ voices",
+        "values": [
+         40,
+         43,
+         43,
+         44,
+         45,
+         44,
+         42,
+         43,
+         42,
+         40,
+         41,
+         42,
+         41,
+         46,
+         48,
+         44,
+         48,
+         46,
+         45,
+         47,
+         44,
+         45,
+         45,
+         45,
+         44,
+         47
+        ]
+       },
+       {
+        "key": "share",
+        "label": "Share of active groups",
+        "values": [
+         0.03436,
+         0.03604,
+         0.03658,
+         0.03768,
+         0.03726,
+         0.03645,
+         0.03584,
+         0.03542,
+         0.03404,
+         0.03343,
+         0.03454,
+         0.03487,
+         0.03502,
+         0.03688,
+         0.03835,
+         0.03774,
+         0.03958,
+         0.0384,
+         0.03874,
+         0.03738,
+         0.03659,
+         0.03598,
+         0.03482,
+         0.03497,
+         0.03511,
+         0.03694
+        ],
+        "unit": "percent"
+       }
+      ],
+      "partialLast": false
+     },
+     "headline": {
+      "value": 198,
+      "previous": 192,
+      "period": "2026-05-11"
+     },
+     "error": null,
+     "runtimeMs": 120
+    },
+    {
+     "id": "live_groups_linked",
+     "label": "Live groups linked to another group",
+     "definition": "Share of live groups (at least 3 people posting or commenting in the 28 days before this week's Monday, with space activity counted toward the parent group) that have at least one active parent-child or peer relationship with another active group. Also shows network-wide link counts and the new links created in each of the last four full quarters and the current quarter so far.",
+     "whyItMatters": "Networks of groups, such as bioregions and alliances, are how regeneration scales without centralizing.",
+     "display": "kpi",
+     "unit": "percent",
+     "goodDirection": "up",
+     "vital": false,
+     "notes": "Activity in spaces (chat rooms, tracks and funding rounds) counts toward the parent group; spaces are never counted as groups on their own. Spaces link to their parent through the group itself, not through group relationships, so they are not counted as links. Network-wide link counts include only links between two active groups; quarterly counts include links later removed or whose groups are now inactive. For a past date, links removed since then still count, but groups deactivated since then drop out.",
+     "data": {
+      "value": 0.5611,
+      "numerator": 101,
+      "denominator": 180,
+      "windowEnd": "2026-05-11",
+      "breakdown": [
+       {
+        "label": "Live groups with a parent-child link",
+        "value": 84,
+        "unit": "count"
+       },
+       {
+        "label": "Live groups with a peer link",
+        "value": 31,
+        "unit": "count"
+       },
+       {
+        "label": "Active parent-child links, network-wide",
+        "value": 2614,
+        "unit": "count"
+       },
+       {
+        "label": "Active peer links, network-wide",
+        "value": 72,
+        "unit": "count"
+       },
+       {
+        "label": "New parent-child links, 2025-Q2",
+        "value": 61,
+        "unit": "count"
+       },
+       {
+        "label": "New peer links, 2025-Q2",
+        "value": 4,
+        "unit": "count"
+       },
+       {
+        "label": "New parent-child links, 2025-Q3",
+        "value": 48,
+        "unit": "count"
+       },
+       {
+        "label": "New peer links, 2025-Q3",
+        "value": 7,
+        "unit": "count"
+       },
+       {
+        "label": "New parent-child links, 2025-Q4",
+        "value": 57,
+        "unit": "count"
+       },
+       {
+        "label": "New peer links, 2025-Q4",
+        "value": 3,
+        "unit": "count"
+       },
+       {
+        "label": "New parent-child links, 2026-Q1",
+        "value": 66,
+        "unit": "count"
+       },
+       {
+        "label": "New peer links, 2026-Q1",
+        "value": 9,
+        "unit": "count"
+       },
+       {
+        "label": "New parent-child links, 2026-Q2 (so far)",
+        "value": 23,
+        "unit": "count"
+       },
+       {
+        "label": "New peer links, 2026-Q2 (so far)",
+        "value": 2,
+        "unit": "count"
+       }
+      ]
+     },
+     "headline": {
+      "value": 0.5611,
+      "previous": null,
+      "period": "2026-05-11",
+      "windowDays": 28
+     },
+     "error": null,
+     "runtimeMs": 130
+    }
+   ]
+  },
+  {
+   "id": "missed_connections",
+   "title": "Missed connections",
+   "question": "Where do people reach out and not get met?",
+   "metrics": [
+    {
+     "id": "weekly_missed_connections",
+     "label": "Weekly missed connections",
+     "definition": "The inverse of Weekly connected members, for people who spoke up: each Monday–Sunday week (UTC), the number of people who posted at least once (any non-DM post, chat included) and got no response from anyone else on any of that week's posts within 7 days. A response is any Weekly connected members interaction on the post (a comment, a reaction, an RSVP of yes or interested, a proposal vote or joining the project); a chat message also counts as answered when someone else posts in the same room within 24 hours. Also shows everyone who posted, the missed share of them, and the isolated: missed people who also had no connection at all that week, neither giving nor getting any Weekly connected members interaction. Because answers get 7 days, the series ends at the last week whose answer window has closed; the headline is that week against the week before.",
+     "whyItMatters": "Every missed person is someone who reached out and heard nothing back, the moment people start to drop off. Watching the count and the share shows whether silence is growing or shrinking as a share of the people who speak up.",
+     "display": "series",
+     "unit": "count",
+     "goodDirection": "down",
+     "vital": true,
+     "notes": "A response is a comment, a reaction, an RSVP of yes or interested, a proposal vote or joining the project, by a different person within 7 days of posting; a chat message also counts as answered when someone else sends a chat message in the same group or space and the same topic room within 24 hours. Chat replies are inferred from timing and room, not from an explicit reply link, and untagged chat counts as one room. Threads/direct messages, welcome posts and chat activity notices are excluded; deleted posts and posts by deactivated accounts are not counted, and self-responses, the Axolotl bot and deactivated accounts never count as responses. RSVP and project join times are approximate, as in Weekly connected members. Weeks newer than the last final week are left off the series, since their posts can still be answered. Missed plus answered people equal posters. Counts are platform-wide totals, so they are shown even when small.",
+     "data": {
+      "granularity": "week",
+      "x": [
+       "2025-11-03",
+       "2025-11-10",
+       "2025-11-17",
+       "2025-11-24",
+       "2025-12-01",
+       "2025-12-08",
+       "2025-12-15",
+       "2025-12-22",
+       "2025-12-29",
+       "2026-01-05",
+       "2026-01-12",
+       "2026-01-19",
+       "2026-01-26",
+       "2026-02-02",
+       "2026-02-09",
+       "2026-02-16",
+       "2026-02-23",
+       "2026-03-02",
+       "2026-03-09",
+       "2026-03-16",
+       "2026-03-23",
+       "2026-03-30",
+       "2026-04-06",
+       "2026-04-13",
+       "2026-04-20",
+       "2026-04-27"
+      ],
+      "lines": [
+       {
+        "key": "missed",
+        "label": "Missed people",
+        "values": [
+         79,
+         83,
+         94,
+         83,
+         95,
+         83,
+         75,
+         49,
+         40,
+         72,
+         73,
+         69,
+         69,
+         62,
+         60,
+         62,
+         63,
+         62,
+         64,
+         76,
+         72,
+         79,
+         93,
+         90,
+         94,
+         76
+        ],
+        "primary": true,
+        "unit": "count"
+       },
+       {
+        "key": "posters",
+        "label": "People who posted",
+        "values": [
+         443,
+         449,
+         472,
+         450,
+         445,
+         424,
+         404,
+         244,
+         229,
+         397,
+         423,
+         449,
+         472,
+         463,
+         460,
+         438,
+         421,
+         406,
+         392,
+         415,
+         427,
+         444,
+         469,
+         451,
+         460,
+         418
+        ],
+        "unit": "count"
+       },
+       {
+        "key": "missed_share",
+        "label": "Missed share of posters",
+        "values": [
+         0.17832957110609482,
+         0.18485523385300667,
+         0.19915254237288135,
+         0.18444444444444444,
+         0.21348314606741572,
+         0.1957547169811321,
+         0.18564356435643564,
+         0.20081967213114754,
+         0.17467248908296942,
+         0.181360201511335,
+         0.17257683215130024,
+         0.15367483296213807,
+         0.1461864406779661,
+         0.13390928725701945,
+         0.13043478260869565,
+         0.1415525114155251,
+         0.1496437054631829,
+         0.15270935960591134,
+         0.16326530612244897,
+         0.18313253012048192,
+         0.1686182669789227,
+         0.17792792792792791,
+         0.19829424307036247,
+         0.19955654101995565,
+         0.20434782608695654,
+         0.18181818181818182
+        ],
+        "unit": "percent"
+       },
+       {
+        "key": "isolated",
+        "label": "Isolated (missed and no connection that week)",
+        "values": [
+         31,
+         29,
+         38,
+         32,
+         32,
+         28,
+         30,
+         19,
+         13,
+         26,
+         25,
+         23,
+         25,
+         25,
+         22,
+         25,
+         21,
+         21,
+         22,
+         27,
+         24,
+         29,
+         33,
+         29,
+         32,
+         24
+        ],
+        "unit": "count"
+       }
+      ],
+      "partialLast": false
+     },
+     "headline": {
+      "value": 76,
+      "previous": 94,
+      "period": "2026-04-27"
+     },
+     "error": null,
+     "runtimeMs": 100
+    },
+    {
+     "id": "where_connections_are_missed",
+     "label": "Where connections are missed",
+     "definition": "Posts made in the 28 days ending 7 days before the as-of date (so every post had its full 7-day answer window), and the share that got no response from anyone else within 7 days, broken down by post type, by whether the post's group was live when it was posted (at least 3 people posting or commenting in the 28 days before that day, with spaces counted toward their parent group), and by author (a newcomer joined Hylo within the 30 days before posting or was making their first-ever post; everyone else is established). Rows are sorted by miss rate within each breakdown, worst first. The headline is the overall miss rate, compared with the 28 days before.",
+     "whyItMatters": "This points stewards at the places where people reach out and hear nothing, whether that is a kind of post, quiet groups or newcomers, so effort can go where silence is most common.",
+     "display": "table",
+     "unit": "percent",
+     "goodDirection": "down",
+     "vital": false,
+     "notes": "A response is a comment, a reaction, an RSVP of yes or interested, a proposal vote or joining the project, by a different person within 7 days of posting; a chat message also counts as answered when someone else sends a chat message in the same group or space and the same topic room within 24 hours. Chat replies are inferred from timing and room, not from an explicit reply link, and untagged chat counts as one room. Threads/direct messages, welcome posts and chat activity notices are excluded; deleted posts and posts by deactivated accounts are not counted, and self-responses, the Axolotl bot and deactivated accounts never count as responses. RSVP and project join times are approximate, as in Weekly connected members. A post shared to several groups counts as in a live group if any of them was live; posts in no active group are shown separately. The Other post type is track actions and funding-round submissions; completing someone else's action is not counted as a response (it is not a Weekly connected members interaction), so these read as missed more often. The newcomer segment swings with welcome activity: a newcomer's first chat message is often answered quickly, so newcomers can be missed less often than established members in some windows and more often in others. Rows with fewer than 5 posts or fewer than 5 authors are hidden (counts and rate shown as blank), and when the missed posts in a row come from fewer than 5 people, its missed count and miss rate are hidden too (the post count stays). Overall rows are platform-wide totals. Days are cut in UTC.",
+     "data": {
+      "columns": [
+       {
+        "key": "dimension",
+        "label": "Breakdown"
+       },
+       {
+        "key": "segment",
+        "label": "Segment"
+       },
+       {
+        "key": "posts",
+        "label": "Posts",
+        "unit": "count"
+       },
+       {
+        "key": "missed",
+        "label": "Missed",
+        "unit": "count"
+       },
+       {
+        "key": "miss_rate",
+        "label": "Miss rate",
+        "unit": "percent"
+       }
+      ],
+      "rows": [
+       {
+        "dimension": "Overall",
+        "segment": "28 days to 2026-05-05",
+        "posts": 2206,
+        "missed": 360,
+        "miss_rate": 0.1631912964641886
+       },
+       {
+        "dimension": "Overall",
+        "segment": "Previous 28 days (to 2026-04-07)",
+        "posts": 2151,
+        "missed": 368,
+        "miss_rate": 0.17108321710832172
+       },
+       {
+        "dimension": "Post type",
+        "segment": "Other (actions and submissions)",
+        "posts": 15,
+        "missed": 11,
+        "miss_rate": 0.7333333333333333
+       },
+       {
+        "dimension": "Post type",
+        "segment": "Resource",
+        "posts": 22,
+        "missed": 10,
+        "miss_rate": 0.45454545454545453
+       },
+       {
+        "dimension": "Post type",
+        "segment": "Event",
+        "posts": 57,
+        "missed": 22,
+        "miss_rate": 0.38596491228070173
+       },
+       {
+        "dimension": "Post type",
+        "segment": "Offer",
+        "posts": 41,
+        "missed": 14,
+        "miss_rate": 0.34146341463414637
+       },
+       {
+        "dimension": "Post type",
+        "segment": "Request",
+        "posts": 64,
+        "missed": 18,
+        "miss_rate": 0.28125
+       },
+       {
+        "dimension": "Post type",
+        "segment": "Discussion",
+        "posts": 512,
+        "missed": 108,
+        "miss_rate": 0.2109375
+       },
+       {
+        "dimension": "Post type",
+        "segment": "Chat",
+        "posts": 1480,
+        "missed": 178,
+        "miss_rate": 0.12027027027027028
+       },
+       {
+        "dimension": "Post type",
+        "segment": "Proposal",
+        "posts": 12,
+        "missed": null,
+        "miss_rate": null
+       },
+       {
+        "dimension": "Post type",
+        "segment": "Project",
+        "posts": null,
+        "missed": null,
+        "miss_rate": null
+       },
+       {
+        "dimension": "Group state",
+        "segment": "In a quiet group",
+        "posts": 356,
+        "missed": 146,
+        "miss_rate": 0.4101123595505618
+       },
+       {
+        "dimension": "Group state",
+        "segment": "Not in an active group",
+        "posts": 145,
+        "missed": 32,
+        "miss_rate": 0.2206896551724138
+       },
+       {
+        "dimension": "Group state",
+        "segment": "In a live group",
+        "posts": 1705,
+        "missed": 222,
+        "miss_rate": 0.13020527859237538
+       },
+       {
+        "dimension": "Author",
+        "segment": "Newcomer",
+        "posts": 188,
+        "missed": 45,
+        "miss_rate": 0.2393617021276596
+       },
+       {
+        "dimension": "Author",
+        "segment": "Established",
+        "posts": 2018,
+        "missed": 323,
+        "miss_rate": 0.16005946481665015
+       }
+      ],
+      "windowEnd": "2026-05-05"
+     },
+     "headline": {
+      "value": 0.1631912964641886,
+      "previous": 0.17108321710832172,
+      "period": "2026-05-05",
+      "windowDays": 28
+     },
+     "error": null,
+     "runtimeMs": 110
+    },
+    {
+     "id": "after_a_missed_connection",
+     "label": "Coming back after a missed connection",
+     "definition": "Monthly cohorts (UTC calendar months) of people who posted (any non-DM post, chat included), split by whether their first post that month got a response from someone else within 7 days (the same rule as Weekly missed connections) or was missed. The Answered and Missed columns are the share of each group who contributed again between 1 and 30 days after that first post, where a contribution is anything counted in Weekly active contributors: a post, a comment, a reaction, an RSVP of yes or interested, a proposal vote or joining someone else's project. The gap is the answered share minus the missed share. Shows the last 12 months whose 30-day follow-up and 7-day answer windows have both closed. The headline is the missed column.",
+     "whyItMatters": "If people who hear nothing come back far less often than people who get an answer, missed connections are where the network loses people, and answering first posts is the lever.",
+     "display": "cohort",
+     "unit": "percent",
+     "goodDirection": "up",
+     "vital": false,
+     "notes": "This shows an association, not a cause: people whose posts go unanswered differ from those who get answers (for example, chat posters and feed posters behave differently, and one-off posters are more often missed). Feed first posts are missed more often than chat ones, but the gap also shows within each kind, so it is not just a chat-versus-feed mix effect. Answered people also have a reason to come back, replying to whoever answered them, so part of the gap is the conversation itself; the 1-day gap before counting a return leaves out same-day replies. The gap column has no good direction of its own: it can shrink because missed people come back more (good) or because answered people come back less (bad). A response is a comment, a reaction, an RSVP of yes or interested, a proposal vote or joining the project, by a different person within 7 days of posting; a chat message also counts as answered when someone else sends a chat message in the same group or space and the same topic room within 24 hours. Chat replies are inferred from timing and room, not from an explicit reply link, and untagged chat counts as one room. Threads/direct messages, welcome posts and chat activity notices are excluded; deleted posts and posts by deactivated accounts are not counted, and self-responses, the Axolotl bot and deactivated accounts never count as responses. RSVP and project join times are approximate, as in Weekly connected members. Rates are hidden when fewer than 5 people are behind them. Cohort sizes are platform-wide totals.",
+     "data": {
+      "columns": [
+       "Answered",
+       "Missed",
+       "Gap"
+      ],
+      "columnDirections": [
+       "up",
+       "up",
+       "neutral"
+      ],
+      "rows": [
+       {
+        "label": "2025-04-01",
+        "size": 432,
+        "values": [
+         0.6158536585365854,
+         0.3942307692307692,
+         0.22162288930581614
+        ]
+       },
+       {
+        "label": "2025-05-01",
+        "size": 482,
+        "values": [
+         0.6235955056179775,
+         0.3968253968253968,
+         0.2267701087925807
+        ]
+       },
+       {
+        "label": "2025-06-01",
+        "size": 461,
+        "values": [
+         0.6235632183908046,
+         0.3893805309734513,
+         0.23418268741735332
+        ]
+       },
+       {
+        "label": "2025-07-01",
+        "size": 427,
+        "values": [
+         0.6055045871559633,
+         0.41,
+         0.19550458715596336
+        ]
+       },
+       {
+        "label": "2025-08-01",
+        "size": 402,
+        "values": [
+         0.6504854368932039,
+         0.43010752688172044,
+         0.2203779100114835
+        ]
+       },
+       {
+        "label": "2025-09-01",
+        "size": 414,
+        "values": [
+         0.6507936507936508,
+         0.45454545454545453,
+         0.19624819624819628
+        ]
+       },
+       {
+        "label": "2025-10-01",
+        "size": 447,
+        "values": [
+         0.6586102719033232,
+         0.4051724137931034,
+         0.2534378581102198
+        ]
+       },
+       {
+        "label": "2025-11-01",
+        "size": 454,
+        "values": [
+         0.6311239193083573,
+         0.411214953271028,
+         0.2199089660373293
+        ]
+       },
+       {
+        "label": "2025-12-01",
+        "size": 454,
+        "values": [
+         0.6209912536443148,
+         0.42342342342342343,
+         0.19756783022089142
+        ]
+       },
+       {
+        "label": "2026-01-01",
+        "size": 440,
+        "values": [
+         0.6066066066066066,
+         0.42990654205607476,
+         0.17670006455053183
+        ]
+       },
+       {
+        "label": "2026-02-01",
+        "size": 408,
+        "values": [
+         0.6305732484076433,
+         0.40425531914893614,
+         0.22631792925870714
+        ]
+       },
+       {
+        "label": "2026-03-01",
+        "size": 403,
+        "values": [
+         0.6437908496732027,
+         0.4020618556701031,
+         0.24172899400309955
+        ]
+       }
+      ]
+     },
+     "headline": {
+      "value": 0.4020618556701031,
+      "previous": 0.40425531914893614,
+      "period": "Missed posters, Mar 2026"
+     },
+     "error": null,
+     "runtimeMs": 120
+    }
+   ]
+  },
+  {
+   "id": "finding_home",
+   "title": "Arrival and activation",
+   "question": "Are new people finding a home, and is growth spreading person to person?",
+   "metrics": [
+    {
+     "id": "signup_contributed_30d",
+     "label": "Signups contributing within 30 days",
+     "definition": "Monthly cohorts of completed signups (UTC months, 12 cohorts), counting only cohorts whose members are all at least 30 days old. Reports the share whose first contribution came within 30 days of signing up. A contribution is a non-DM post, a comment, a reaction, an RSVP of yes or interested to someone else's event, a proposal vote, or joining someone else's project, the same rule as Weekly active contributors. Excludes the bot and deactivated accounts.",
+     "whyItMatters": "This is the next activation milestone: people who contribute early are much more likely to come back than people who only join a group.",
+     "display": "cohort",
+     "unit": "percent",
+     "goodDirection": "up",
+     "vital": false,
+     "notes": "Deactivated accounts are removed from past cohorts retroactively, which can nudge a closed cohort's rate up over time. Project join and RSVP times are approximate, as in Weekly active contributors. Self-reactions count.",
+     "data": {
+      "columns": [
+       "Contributed within 30 days"
+      ],
+      "rows": [
+       {
+        "label": "2025-04-01",
+        "size": 312,
+        "values": [
+         0.2980769230769231
+        ]
+       },
+       {
+        "label": "2025-05-01",
+        "size": 368,
+        "values": [
+         0.33967391304347827
+        ]
+       },
+       {
+        "label": "2025-06-01",
+        "size": 393,
+        "values": [
+         0.3460559796437659
+        ]
+       },
+       {
+        "label": "2025-07-01",
+        "size": 348,
+        "values": [
+         0.34195402298850575
+        ]
+       },
+       {
+        "label": "2025-08-01",
+        "size": 310,
+        "values": [
+         0.33225806451612905
+        ]
+       },
+       {
+        "label": "2025-09-01",
+        "size": 281,
+        "values": [
+         0.33807829181494664
+        ]
+       },
+       {
+        "label": "2025-10-01",
+        "size": 296,
+        "values": [
+         0.3108108108108108
+        ]
+       },
+       {
+        "label": "2025-11-01",
+        "size": 326,
+        "values": [
+         0.3159509202453988
+        ]
+       },
+       {
+        "label": "2025-12-01",
+        "size": 374,
+        "values": [
+         0.2727272727272727
+        ]
+       },
+       {
+        "label": "2026-01-01",
+        "size": 363,
+        "values": [
+         0.27823691460055094
+        ]
+       },
+       {
+        "label": "2026-02-01",
+        "size": 362,
+        "values": [
+         0.2569060773480663
+        ]
+       },
+       {
+        "label": "2026-03-01",
+        "size": 309,
+        "values": [
+         0.28802588996763756
+        ]
+       }
+      ]
+     },
+     "headline": {
+      "value": 0.28802588996763756,
+      "previous": 0.2569060773480663,
+      "period": "2026-03-01"
+     },
+     "error": null,
+     "runtimeMs": 100
+    },
+    {
+     "id": "invite_acceptance_14d",
+     "label": "Invites accepted within 14 days",
+     "definition": "Monthly cohorts of email invites by the month they were created (UTC months, 12 cohorts), counting only cohorts at least 14 days old. Reports the share accepted within 14 days of creation, leaving out bulk sends (Excl. bulk): invites from someone who created more than 100 that UTC day. Invites that expired unused are excluded. The other columns give the same rate for all invites (All) and for invites resent fewer than 4 times (Resent <4), and, for context, the share of invites resent 4 or more times (Resent 4+, lower is better).",
+     "whyItMatters": "This measures invite quality and landing-page conversion, and guards against resend spam.",
+     "display": "cohort",
+     "unit": "percent",
+     "goodDirection": "up",
+     "vital": false,
+     "notes": "Monthly rates swing on small cohorts. A single uploaded list can hold far more invites than everything else sent that month, so it would set the pooled rate on its own; the headline column leaves bulk sends out, and the All column keeps them. The cohort size counts all invites, bulk sends included. A few accepted invites have no acceptance time and count as not accepted.",
+     "data": {
+      "columns": [
+       "Excl. bulk",
+       "All",
+       "Resent <4",
+       "Resent 4+"
+      ],
+      "columnDirections": [
+       "up",
+       "up",
+       "up",
+       "down"
+      ],
+      "rows": [
+       {
+        "label": "2025-04-01",
+        "size": 202,
+        "valueSizes": [
+         202,
+         202,
+         187,
+         202
+        ],
+        "values": [
+         0.4504950495049505,
+         0.4504950495049505,
+         0.47058823529411764,
+         0.07425742574257425
+        ]
+       },
+       {
+        "label": "2025-05-01",
+        "size": 245,
+        "valueSizes": [
+         245,
+         245,
+         235,
+         245
+        ],
+        "values": [
+         0.40816326530612246,
+         0.40816326530612246,
+         0.4127659574468085,
+         0.04081632653061224
+        ]
+       },
+       {
+        "label": "2025-06-01",
+        "size": 233,
+        "valueSizes": [
+         233,
+         233,
+         221,
+         233
+        ],
+        "values": [
+         0.45493562231759654,
+         0.45493562231759654,
+         0.4660633484162896,
+         0.05150214592274678
+        ]
+       },
+       {
+        "label": "2025-07-01",
+        "size": 178,
+        "valueSizes": [
+         178,
+         178,
+         169,
+         178
+        ],
+        "values": [
+         0.5168539325842697,
+         0.5168539325842697,
+         0.5266272189349113,
+         0.05056179775280899
+        ]
+       },
+       {
+        "label": "2025-08-01",
+        "size": 185,
+        "valueSizes": [
+         185,
+         185,
+         168,
+         185
+        ],
+        "values": [
+         0.4486486486486487,
+         0.4486486486486487,
+         0.48214285714285715,
+         0.0918918918918919
+        ]
+       },
+       {
+        "label": "2025-09-01",
+        "size": 209,
+        "valueSizes": [
+         209,
+         209,
+         191,
+         209
+        ],
+        "values": [
+         0.4880382775119617,
+         0.4880382775119617,
+         0.518324607329843,
+         0.0861244019138756
+        ]
+       },
+       {
+        "label": "2025-10-01",
+        "size": 241,
+        "valueSizes": [
+         241,
+         241,
+         223,
+         241
+        ],
+        "values": [
+         0.44813278008298757,
+         0.44813278008298757,
+         0.47085201793721976,
+         0.07468879668049792
+        ]
+       },
+       {
+        "label": "2025-11-01",
+        "size": 220,
+        "valueSizes": [
+         220,
+         220,
+         202,
+         220
+        ],
+        "values": [
+         0.4318181818181818,
+         0.4318181818181818,
+         0.45544554455445546,
+         0.08181818181818182
+        ]
+       },
+       {
+        "label": "2025-12-01",
+        "size": 12047,
+        "valueSizes": [
+         197,
+         12047,
+         9668,
+         12047
+        ],
+        "values": [
+         0.41116751269035534,
+         0.010625051880136134,
+         0.012825817128671908,
+         0.19747655017846766
+        ]
+       },
+       {
+        "label": "2026-01-01",
+        "size": 175,
+        "valueSizes": [
+         175,
+         175,
+         163,
+         175
+        ],
+        "values": [
+         0.45714285714285713,
+         0.45714285714285713,
+         0.4785276073619632,
+         0.06857142857142857
+        ]
+       },
+       {
+        "label": "2026-02-01",
+        "size": 204,
+        "valueSizes": [
+         204,
+         204,
+         185,
+         204
+        ],
+        "values": [
+         0.4215686274509804,
+         0.4215686274509804,
+         0.4486486486486487,
+         0.09313725490196079
+        ]
+       },
+       {
+        "label": "2026-03-01",
+        "size": 253,
+        "valueSizes": [
+         253,
+         253,
+         233,
+         253
+        ],
+        "values": [
+         0.4782608695652174,
+         0.4782608695652174,
+         0.5021459227467812,
+         0.07905138339920949
+        ]
+       }
+      ]
+     },
+     "headline": {
+      "value": 0.4782608695652174,
+      "previous": 0.4215686274509804,
+      "period": "2026-03-01"
+     },
+     "error": null,
+     "runtimeMs": 110
+    }
+   ]
+  },
+  {
+   "id": "being_answered",
+   "title": "Reciprocity",
+   "question": "When people speak up, does someone answer?",
+   "metrics": [
+    {
+     "id": "feed_post_response_rate_7d",
+     "label": "Feed posts answered within 7 days",
+     "definition": "Weekly cohorts of feed posts by people (not chat, threads/direct messages or welcome posts, and not track actions or funding-round submissions, which are not announced to members). The share that got a comment or a reaction from a different person within 7 days of posting. Only weeks whose 7-day windows have fully closed are shown, 26 weeks in all, with a pooled 4-week average and the median hours to first response among answered posts.",
+     "whyItMatters": "A response is the product, and the silence rate is the inverse of Hylo's value.",
+     "display": "series",
+     "unit": "percent",
+     "goodDirection": "up",
+     "vital": true,
+     "notes": "Posts deleted more than an hour after posting still count (deleted posts were rarely answered); posts deleted within the hour are treated as retractions and left out. Posts by accounts that have since been deactivated are not counted. Self-comments, the Axolotl bot and deactivated accounts don't count as responses. Reactions on a post's comments don't count. The weekly rate is hidden for weeks with fewer than 5 posts, the 4-week average when its 4 weeks hold fewer than 5 posts, and median hours for weeks with fewer than 5 answered posts. Post counts are platform-wide totals, so they are shown even when small. Weeks are Monday-start in UTC.",
+     "data": {
+      "granularity": "week",
+      "x": [
+       "2025-11-03",
+       "2025-11-10",
+       "2025-11-17",
+       "2025-11-24",
+       "2025-12-01",
+       "2025-12-08",
+       "2025-12-15",
+       "2025-12-22",
+       "2025-12-29",
+       "2026-01-05",
+       "2026-01-12",
+       "2026-01-19",
+       "2026-01-26",
+       "2026-02-02",
+       "2026-02-09",
+       "2026-02-16",
+       "2026-02-23",
+       "2026-03-02",
+       "2026-03-09",
+       "2026-03-16",
+       "2026-03-23",
+       "2026-03-30",
+       "2026-04-06",
+       "2026-04-13",
+       "2026-04-20",
+       "2026-04-27"
+      ],
+      "lines": [
+       {
+        "key": "rate",
+        "label": "Answered within 7 days",
+        "values": [
+         0.6037735849056604,
+         0.6195652173913043,
+         0.6111111111111112,
+         0.5853658536585366,
+         0.6091954022988506,
+         0.5959595959595959,
+         0.5963302752293578,
+         0.5964912280701754,
+         0.5636363636363636,
+         0.5638297872340425,
+         0.5853658536585366,
+         0.5432098765432098,
+         0.5108695652173914,
+         0.5274725274725275,
+         0.5420560747663551,
+         0.5504587155963303,
+         0.49523809523809526,
+         0.49473684210526314,
+         0.5393258426966292,
+         0.5454545454545454,
+         0.5280898876404494,
+         0.5816326530612245,
+         0.5648148148148148,
+         0.6095238095238096,
+         0.59,
+         0.6063829787234043
+        ],
+        "primary": true,
+        "unit": "percent"
+       },
+       {
+        "key": "rate_4w",
+        "label": "4-week average",
+        "values": [
+         0.5938242280285035,
+         0.6062052505966588,
+         0.6115288220551378,
+         0.6054054054054054,
+         0.6068376068376068,
+         0.6005586592178771,
+         0.596816976127321,
+         0.5994318181818182,
+         0.590625,
+         0.580952380952381,
+         0.5763888888888888,
+         0.5641025641025641,
+         0.5501432664756447,
+         0.5404624277456648,
+         0.5309973045822103,
+         0.5338345864661654,
+         0.529126213592233,
+         0.5216346153846154,
+         0.5201005025125628,
+         0.5172413793103449,
+         0.5263157894736842,
+         0.5494505494505495,
+         0.556135770234987,
+         0.5725,
+         0.5863746958637469,
+         0.5921375921375921
+        ],
+        "unit": "percent"
+       },
+       {
+        "key": "median_hours",
+        "label": "Median hours to first response",
+        "values": [
+         4.2,
+         7.4,
+         4.2,
+         6.4,
+         4.7,
+         4,
+         4.1,
+         6.4,
+         6.8,
+         5.7,
+         6,
+         4.5,
+         6.4,
+         6.1,
+         7,
+         6.6,
+         5.8,
+         4.7,
+         5.6,
+         5.4,
+         5.2,
+         3.7,
+         3.7,
+         6.7,
+         7.3,
+         5.5
+        ],
+        "unit": "hours"
+       },
+       {
+        "key": "answered",
+        "label": "Posts answered",
+        "values": [
+         64,
+         57,
+         55,
+         48,
+         53,
+         59,
+         65,
+         34,
+         31,
+         53,
+         48,
+         44,
+         47,
+         48,
+         58,
+         60,
+         52,
+         47,
+         48,
+         48,
+         47,
+         57,
+         61,
+         64,
+         59,
+         57
+        ],
+        "unit": "count"
+       },
+       {
+        "key": "total",
+        "label": "Posts in cohort",
+        "values": [
+         106,
+         92,
+         90,
+         82,
+         87,
+         99,
+         109,
+         57,
+         55,
+         94,
+         82,
+         81,
+         92,
+         91,
+         107,
+         109,
+         105,
+         95,
+         89,
+         88,
+         89,
+         98,
+         108,
+         105,
+         100,
+         94
+        ],
+        "unit": "count"
+       }
+      ],
+      "partialLast": false
+     },
+     "headline": {
+      "value": 0.6063829787234043,
+      "previous": 0.59,
+      "period": "2026-04-27"
+     },
+     "error": null,
+     "runtimeMs": 100
+    }
+   ]
+  },
+  {
+   "id": "stewards",
+   "title": "Stewardship and safety",
+   "question": "Are stewards present and responsive, and do groups feel safe?",
+   "metrics": [
+    {
+     "id": "tended_groups_share",
+     "label": "Tended active groups",
+     "definition": "Share of active groups that are tended right now. Active groups are active, non-space groups with at least 2 active human members and at least 1 active non-thread human post in the last 90 days (posts in a group's spaces count toward the group). A group is tended when it has at least 1 administrator active in the last 30 days (an active member holding an active role that carries the Administration responsibility) and no join request from an active person left pending for more than 7 days.",
+     "whyItMatters": "It combines steward presence and responsiveness in the places where people actually are.",
+     "display": "kpi",
+     "unit": "percent",
+     "goodDirection": "up",
+     "vital": true,
+     "comparable": false,
+     "notes": "Point-in-time: administrator activity comes from users.last_active_at, which only holds the latest visit, so past dates cannot be rebuilt until daily snapshots exist. Administrators are identified by the Administration responsibility, not by role name, so custom roles that carry it count. Join requests to spaces roll up to the parent group; requests from deactivated accounts and the Axolotl bot are ignored. Values are counts of groups, not people, so no small-cell suppression applies.",
+     "data": {
+      "value": 0.7553444180522565,
+      "numerator": 318,
+      "denominator": 421,
+      "breakdown": [
+       {
+        "label": "Have an administrator active in the last 30 days",
+        "value": 0.8598574821852731,
+        "unit": "percent"
+       },
+       {
+        "label": "Have no join request pending over 7 days",
+        "value": 0.9358669833729216,
+        "unit": "percent"
+       }
+      ]
+     },
+     "headline": {
+      "value": 0.7553444180522565,
+      "previous": null
+     },
+     "error": null,
+     "runtimeMs": 100
+    },
+    {
+     "id": "steward_coverage",
+     "label": "Steward coverage of active groups",
+     "definition": "Groups split by how many administrators they have (active human members holding an active role with the Administration responsibility, regardless of recent activity): none (orphaned), exactly 1 (bus factor 1), or 2 or more. Shown as two rows: active groups (the same definition as Tended active groups, with space posts counting toward the parent group) and all active non-space groups with at least 2 active human members. Shares are within each row.",
+     "whyItMatters": "If a group's only steward burns out, the group is orphaned.",
+     "display": "table",
+     "unit": "percent",
+     "goodDirection": "up",
+     "vital": false,
+     "comparable": false,
+     "notes": "One row per population; each share is within its own row (the three shares in a row sum to 100%), and the two rows overlap, so do not add them. The headline is the share of active groups with 2 or more administrators. Administrator counts ignore recent activity; see Tended active groups for presence. Point-in-time: roles and memberships reflect their current state, so a past date does not reproduce history. Values count groups, not people.",
+     "data": {
+      "columns": [
+       {
+        "key": "population",
+        "label": "Groups"
+       },
+       {
+        "key": "total",
+        "label": "Total",
+        "unit": "count"
+       },
+       {
+        "key": "none_share",
+        "label": "No admin",
+        "unit": "percent"
+       },
+       {
+        "key": "one_share",
+        "label": "1 admin",
+        "unit": "percent"
+       },
+       {
+        "key": "two_plus_share",
+        "label": "2+ admins",
+        "unit": "percent"
+       }
+      ],
+      "rows": [
+       {
+        "population": "Active groups",
+        "total": 421,
+        "none": 11,
+        "none_share": 0.026128266033254157,
+        "one": 152,
+        "one_share": 0.36104513064133015,
+        "two_plus": 258,
+        "two_plus_share": 0.6128266033254157
+       },
+       {
+        "population": "All groups with 2+ members",
+        "total": 3901,
+        "none": 143,
+        "none_share": 0.036657267367341706,
+        "one": 2107,
+        "one_share": 0.5401179184824404,
+        "two_plus": 1651,
+        "two_plus_share": 0.4232248141502179
+       }
+      ]
+     },
+     "headline": {
+      "value": 0.6128266033254157,
+      "previous": null,
+      "period": "active groups with 2+ administrators, current roles"
+     },
+     "error": null,
+     "runtimeMs": 110
+    },
+    {
+     "id": "synthetic_error_metric",
+     "label": "Metric that failed",
+     "definition": "Stands in for a metric whose query failed, to show how the panel reports it.",
+     "whyItMatters": "One failing metric must not hide the others.",
+     "display": "table",
+     "unit": "count",
+     "goodDirection": "up",
+     "vital": false,
+     "data": null,
+     "headline": null,
+     "error": "canceling statement due to statement timeout",
+     "runtimeMs": 30000
+    }
+   ]
+  }
+ ],
+ "antiMetrics": [
+  "Total registered users, total groups, or groups created: they only go up. Most groups are dormant, many have one member or none, and many signups never join a group.",
+  "Raw signups as a headline: signups that never join a group almost never come back. Show signups only as the denominator for activation rates.",
+  "Notifications, pushes or emails sent, or their opens, as engagement: much of push and email reaches people who have been inactive for a month or more, and most pushes are chat or new-post broadcasts. Treat volume as a cost, and watch it through the outbound guardrails.",
+  "DAU/WAU/MAU on their own as proof of value: they count anyone who opened Hylo, including visits prompted by notifications, which often go to people who have been away for a month or more. Report them for comparability with other platforms, always beside contributors and connected members. And never build a trend from users.last_active_at, which keeps only the latest visit.",
+  "Mixpanel event counts or funnels as platform truth: a large share of content comes from people who opted out of analytics, so client-side numbers undercount heavy contributors in particular.",
+  "Raw post, chat, message or reaction counts, especially including DM threads: volume from a few heavy posters or chat broadcasts says nothing about whether anyone was answered. Reactions are cheap, so count them only as a response inside rate metrics.",
+  "Invites sent and resend counts: invites resent many times almost never convert, and they put deliverability at risk. Optimise accepted invites per contributor, not sends.",
+  "Join-request approval rate: nearly every decided request is already approved, and pushing it higher rewards rubber-stamping. The failure mode is silence, so measure time to decision and the stale backlog.",
+  "Events or proposals created: creating is cheap. Many events draw no RSVP from anyone but the host, and casual proposals can never be marked decided. Count outcomes.",
+  "Number of administrators or roles assigned: admins who never log in make coverage look good while nobody tends the group. Count only stewards active in the last 30 days.",
+  "groups.num_members or total memberships: join links and access codes add members who never show up, and member counts hide single-steward fragility.",
+  "Time on site, session length and page views: good coordination is quick (ask, get matched, show up), and long sessions can mean people can't find what they need.",
+  "Low report or block counts as proof of safety: reports are rare and open ones can sit untouched for a long time, so few reports may mean people have stopped bothering. Blocking is a healthy tool, not something to drive to zero.",
+  "fulfilled_at or Contribution/thanks counts as 'needs met': they are almost never written, so a near-zero value measures a UI habit, not unmet need."
+ ],
+ "instrumentationGaps": [
+  {
+   "name": "Nightly platform-health snapshot",
+   "why": "Notifications are pruned after about 30 days, and last_active_at, steward presence, backlog and consent are point-in-time. Without persistence, the tended-groups, outbound and deactivation metrics can never become trends, and the panel re-scans large tables on every load.",
+   "capture": "A nightly job writes every panel aggregate to a platform_health_daily(date, metric_id, dimension, value) table. It includes notification counts by medium × reason × recipient-activity bucket (captured before removeOldNotifications runs), tended-group counts, visitor counts and unsubscribe leaks."
+  },
+  {
+   "name": "Membership source and inviter",
+   "why": "Most new memberships have no recorded source. A true K-factor that credits join-link sharers and ordinary members, not just email-invite stewards, is impossible without it.",
+   "capture": "Add group_memberships.source (email_invite, join_link, access_code, open_join, join_request, admin_add, parent_group, group_creation) plus nullable inviter_id and invite_id, set in every membership-creation path."
+  },
+  {
+   "name": "Signup acquisition context",
+   "why": "Organic, invited and group-link signups can't be told apart, so their activation rates can't be compared.",
+   "capture": "Store the landing referrer, UTM parameters, and the invite or join-link token on users at signup (not in URL-logged analytics), keyed to the membership-source values."
+  },
+  {
+   "name": "Need fulfilment and helper recognition",
+   "why": "fulfilled_at is rarely set on requests, and Contribution rows are only written when a post is marked fulfilled with contributors, so 'needs met' is only inferred from comments.",
+   "capture": "After 7–14 days, prompt request and offer authors to say whether the need was met and who helped. Write posts.fulfilled_at and a Contribution row (post_id, helper_id, created_at)."
+  },
+  {
+   "name": "Gathering attendance",
+   "why": "An RSVP is intent. There is no record of whether an event happened or how many people came, and meeting_link is empty, so place-based and virtual gatherings can't be separated.",
+   "capture": "A post-event host prompt ('did it happen? about how many came?') or attendee check-in stored on the event, plus a structured is_virtual flag or a populated meeting_link."
+  },
+  {
+   "name": "Proposal and project lifecycle timestamps",
+   "why": "Proposal completion time has to be inferred from posts.updated_at, and projects have no status or progress, so decisions and projects can't be trended by completion date.",
+   "capture": "proposals voting_closed_at / completed_at and an optional structured implemented flag (kept separate from the free-text proposal_outcome); projects status (active/completed) and completed_at."
+  },
+  {
+   "name": "Role grant and revoke log",
+   "why": "The 2026-06 consolidate_common_roles migration re-stamped all role created_at values, and revocations delete rows. The steward pipeline and last-admin loss can't be trended or alerted on.",
+   "capture": "An append-only role_events(group_id, user_id, group_role_id, action grant/revoke, actor_id, created_at) table written by the role mutations, plus a last-admin-departure alert."
+  },
+  {
+   "name": "Join request decider and decision time",
+   "why": "The accept and reject code never sets processed_by_id, and decision time is proxied by updated_at, so per-steward load and exact latency are unknown.",
+   "capture": "Set join_requests.processed_by_id and a new decided_at in the accept and reject mutations."
+  },
+  {
+   "name": "Moderation lifecycle",
+   "why": "moderation_actions has only status and updated_at, and flagged_items has no timestamps, so resolution time and outcome are approximate.",
+   "capture": "Add resolved_at, resolved_by_id and a resolution outcome (content_removed, cleared, user_removed) to moderation_actions, and created_at to flagged_items."
+  },
+  {
+   "name": "Deactivation timestamp and reason",
+   "why": "Current code never writes date_deactivated, so churn is proxied by updated_at, which changes for other reasons.",
+   "capture": "Set users.date_deactivated and an optional reason code in the deactivate and delete-account flows."
+  },
+  {
+   "name": "Email and push delivery outcomes",
+   "why": "sent_at marks enqueue, not delivery. Bounces, spam complaints, opens and tap-throughs are invisible, so sender reputation and per-reason effectiveness can't be measured.",
+   "capture": "Ingest email-provider webhooks (delivered, bounce, complaint, unsubscribe) and push tap-through, aggregated daily by medium × reason."
+  },
+  {
+   "name": "Platform of creation and visit",
+   "why": "posts.created_from and comments.created_from are NULL except for email replies, and the device-registration mutation no longer stores devices, so mobile and web health can't be split.",
+   "capture": "Stamp web, ios-webview, android-webview or email on post and comment creation and on the daily activity row, and restore device registration."
+  },
+  {
+   "name": "Post views and reads",
+   "why": "Only the latest last_read_at is kept, so 'unanswered because unseen' can't be told apart from 'seen but ignored', and readers are invisible.",
+   "capture": "A daily aggregated post_view_counts(post_id, date, distinct_viewers) table, written from the post-open path, with no per-user history retained."
+  },
+  {
+   "name": "Structured place",
+   "why": "Many live groups have no location_id, so geographic spread and bioregional coverage are undercounted.",
+   "capture": "Prompt stewards to geocode their group's location, and backfill location_id from free-text groups.location where the match is unambiguous."
+  },
+  {
+   "name": "Steward-reported real-world outcomes",
+   "why": "No column captures regeneration impact such as meals shared, land stewarded or funds moved.",
+   "capture": "An optional quarterly steward pulse with structured outcome tags and rough counts, stored per group, and shown on the panel only as aggregates."
+  }
+ ]
+}

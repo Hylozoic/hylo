@@ -1,5 +1,10 @@
 import { DateTime } from 'luxon'
 import { merge, transform, sortBy } from 'lodash'
+import RedisClient from '../services/RedisClient'
+import { getPlatformHealth } from '../../lib/platformHealth/cache'
+import { InvalidAsOfError } from '../../lib/platformHealth/sql'
+
+const PLATFORM_HEALTH_REQUEST_HEADER = 'hylo-admin'
 
 const rawMetricsQuery = startTime => Promise.props({
   group: Group.query(q => {
@@ -172,6 +177,41 @@ module.exports = {
       stripeSalesPausedAt: pausedAt,
       stripeSalesPausedReason: paused ? reason : null
     })
+  },
+
+  /**
+   * Aggregate platform-health metrics for the Management panel. Returns 202 with
+   * { status: 'computing' } while a background computation runs; clients poll.
+   * Accepts ?asOf=YYYY-MM-DD to view the panel as of a past date, and
+   * ?refresh=1 to recompute instead of using the cache.
+   */
+  platformHealth: async function (req, res) {
+    // Session cookies are SameSite=None and CORS doesn't allow credentialed
+    // cross-site requests, so requiring a custom header stops other sites from
+    // starting expensive computations through an admin's browser.
+    if (req.get('X-Requested-With') !== PLATFORM_HEALTH_REQUEST_HEADER) {
+      return res.badRequest({ error: `Missing X-Requested-With: ${PLATFORM_HEALTH_REQUEST_HEADER} header` })
+    }
+
+    try {
+      const outcome = await getPlatformHealth({
+        knex: bookshelf.knex,
+        redis: RedisClient.create(),
+        asOf: req.param('asOf'),
+        refresh: ['1', 'true'].includes(String(req.param('refresh'))),
+        log: err => sails.log.error('platformHealth computation failed', err)
+      })
+
+      if (outcome.status === 'ready') {
+        return res.ok({ status: 'ready', cached: outcome.cached, ...outcome.result })
+      }
+      res.status({ error: 500, unavailable: 503 }[outcome.status] || 202)
+      return res.send(outcome)
+    } catch (err) {
+      if (err instanceof InvalidAsOfError) return res.badRequest({ error: err.message })
+      sails.log.error('platformHealth failed', err)
+      return res.serverError({ error: err.message })
+    }
   },
 
   rawMetrics: function (req, res) {

@@ -9,6 +9,7 @@ const Promise = require('bluebird')
 const { red } = require('chalk')
 const savedSearches = require('./lib/group/digest2/savedSearches')
 const OIDCAdapter = require('./api/services/oidc/KnexAdapter')
+const { pruneActivityDays } = require('./lib/userActivityDays')
 
 const sendAndLogDigests = type =>
   digest2.sendAllDigests(type)
@@ -44,6 +45,11 @@ const daily = now => {
     sails.log.debug(`Removed ${count} expired OIDC payloads`)
     return count
   }))
+
+  sails.log.debug('Pruning old user activity days')
+  tasks.push(pruneActivityDays(bookshelf.knex)
+    .then(count => sails.log.debug(`Removed ${count} user activity days past retention`))
+    .catch(err => sails.log.error('Pruning user activity days failed; continuing daily tasks', err)))
 
   return tasks
 }

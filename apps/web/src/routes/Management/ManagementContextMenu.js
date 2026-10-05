@@ -1,10 +1,12 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
 import MenuLink from 'routes/AuthLayoutRouter/components/ContextMenu/MenuLink'
 
 export default function ManagementContextMenu () {
   const location = useLocation()
+  const { t } = useTranslation()
 
   return (
     <div className='ContextMenu bg-background relative z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px]'>
@@ -23,7 +25,25 @@ export default function ManagementContextMenu () {
             <ul className='m-0 p-3 mb-6'>
               <li>
                 <div>
-                  <h3 className='text-base font-light opacity-50 text-foreground mb-2'>SITE</h3>
+                  <h3 className='text-base font-light opacity-50 text-foreground mb-2 uppercase'>{t('Platform')}</h3>
+                  <ul className='p-0'>
+                    <li>
+                      <MenuLink
+                        to='/management/platform/health'
+                        className={cn(
+                          'text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100',
+                          { 'border-secondary': location.pathname === '/management/platform/health' }
+                        )}
+                      >
+                        {t('Health')}
+                      </MenuLink>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <h3 className='text-base font-light opacity-50 text-foreground mb-2 mt-4'>SITE</h3>
                   <ul className='p-0'>
                     <li>
                       <MenuLink
