@@ -10,6 +10,7 @@ import dotenv from 'dotenv'
 // import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { publicMetaTagsPlugin } from './src/server/publicMetaTags.js'
 
 const webRoot = path.dirname(fileURLToPath(import.meta.url))
 const __dirname = webRoot
@@ -66,6 +67,7 @@ export default defineConfig(({ command }) => ({
         }
       }
     }),
+    publicMetaTagsPlugin(),
     // htmlPurge(),
     svgr(),
     graphqlLoader()
