@@ -136,9 +136,15 @@ describe('getPostEditorDestinationGroups', () => {
     expect(after.find(g => String(g.id) === '20').parentId).toEqual(parent.id)
   })
 
-  it('includes sibling spaces from the parent menu even without a membership', () => {
+  it('omits sibling spaces the user has not joined and keeps joined ones', () => {
     const session = orm.mutableSession(orm.getEmptyState())
     const me = session.Me.create({ id: '1' })
+    const joined = session.Group.create({
+      id: '21',
+      name: 'Joined Space',
+      slug: 'joined-space',
+      type: GROUP_TYPES.space
+    })
     const parent = session.Group.create({
       id: '10',
       name: 'Parent Group',
@@ -155,24 +161,32 @@ describe('getPostEditorDestinationGroups', () => {
         }]
       },
       spaces: {
-        items: [{
-          id: '23',
-          name: 'Off Menu Space',
-          slug: 'off-menu-space',
-          type: GROUP_TYPES.space
-        }]
+        items: [
+          {
+            id: '23',
+            name: 'Off Menu Space',
+            slug: 'off-menu-space',
+            type: GROUP_TYPES.space
+          },
+          {
+            id: joined.id,
+            name: 'Joined Space',
+            slug: 'joined-space',
+            type: GROUP_TYPES.space,
+            parentId: '10'
+          }
+        ]
       }
     })
     session.Membership.create({ id: 'm-parent', group: parent.id, person: me.id })
+    session.Membership.create({ id: 'm-joined', group: joined.id, person: me.id })
 
     const result = getPostEditorDestinationGroups({ orm: session.state }, parent.id)
-    expect(result.find(g => String(g.id) === '22')).toMatchObject({
-      name: 'Menu Space',
-      parentId: parent.id,
-      type: GROUP_TYPES.space
-    })
-    expect(result.find(g => String(g.id) === '23')).toMatchObject({
-      name: 'Off Menu Space',
+    expect(result.find(g => String(g.id) === '10')).toMatchObject({ name: 'Parent Group' })
+    expect(result.find(g => String(g.id) === '22')).toBeUndefined()
+    expect(result.find(g => String(g.id) === '23')).toBeUndefined()
+    expect(result.find(g => String(g.id) === String(joined.id))).toMatchObject({
+      name: 'Joined Space',
       parentId: parent.id,
       type: GROUP_TYPES.space
     })
