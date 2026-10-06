@@ -43,7 +43,7 @@ function getMapAvatarUrl (avatarUrl) {
 }
 
 // Icon Layer for Groups and Spaces (spaces use Lucide icons at the same size as group avatars)
-export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onClick }) {
+export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onClick, lucideIconsLoaded = false }) {
   const data = groups.filter(group => group.locationObject && group.locationObject.center)
     .map(group => {
       const isSpace = group.type === 'space'
@@ -80,7 +80,7 @@ export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onCli
     getSize: d => 32,
     sizeUnits: 'pixels',
     updateTriggers: {
-      getIcon: [data],
+      getIcon: [data, lucideIconsLoaded],
       getPosition: [data]
     },
     // sizeMinPixels: 20,

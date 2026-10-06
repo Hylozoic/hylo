@@ -48,6 +48,8 @@ export const WebViewMessageTypes = {
   // Web app has no in-app back target left; native should exit the app.
   CAN_EXIT_APP: 'CAN_EXIT_APP',
   THEME_CHANGE: 'THEME_CHANGE',
+  // External URL to open in the OS default browser (mobile WebView only)
+  OPEN_URL: 'OPEN_URL',
   EDITOR: {
     BLUR: 'BLUR',
     CLEAR_CONTENT: 'CLEAR_CONTENT',

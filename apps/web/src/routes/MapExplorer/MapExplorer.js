@@ -23,6 +23,7 @@ import LocationInput from 'components/LocationInput'
 import Map from 'components/Map/Map'
 import { buildClusterLayerData, createIconLayerFromPostsAndMembers } from 'components/Map/layers/clusterLayer'
 import { createIconLayerFromGroups } from 'components/Map/layers/iconLayer'
+import { useLucideIconsLoaded } from 'components/LucideIcon/lucideIconSet'
 import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer'
 import SwitchStyled from 'components/SwitchStyled'
 import Tooltip from 'components/Tooltip'
@@ -128,6 +129,7 @@ function centerWithinBounds (locationObject, boundingBox) {
 
 function MapExplorer (props) {
   const { t } = useTranslation()
+  const lucideIconsLoaded = useLucideIconsLoaded()
 
   // First-visit tour of the map's floating controls, offered by invitation
   const mapTourStepList = useMemo(() => mapTourSteps(t), [t])
@@ -596,9 +598,10 @@ function MapExplorer (props) {
       groups: viewGroups,
       onHover: onMapHover,
       onClick: onMapClick,
-      boundingBox: currentBoundingBox
+      boundingBox: currentBoundingBox,
+      lucideIconsLoaded
     })
-  }, [viewGroups, currentBoundingBox, onMapHover, onMapClick])
+  }, [viewGroups, currentBoundingBox, onMapHover, onMapClick, lucideIconsLoaded])
 
   const polygonLayer = useMemo(() => {
     if (!currentBoundingBox || context === 'public') return null
