@@ -283,6 +283,8 @@ module.exports = bookshelf.Model.extend(merge({
 
   deactivate: async function (sessionId) {
     Queue.classMethod('User', 'clearSessionsFor', { userId: this.id, sessionId })
+    // Someone who has left Hylo no longer vouches for the people they invited as a member
+    await Invitation.expirePendingLimited({ invitedByIds: [this.id] })
     return this.save({ active: false })
   },
 
@@ -310,6 +312,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     await this.deleteUserMedia()
     Queue.classMethod('User', 'clearSessionsFor', { userId: this.id, sessionId })
+    await Invitation.expirePendingLimited({ invitedByIds: [this.id] })
     // TODO RESP: will need to add responsibilies, roles, etc to here, where they are missing (some roles are already handled)
     const query = `
     BEGIN;

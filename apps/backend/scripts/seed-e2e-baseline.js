@@ -66,12 +66,17 @@ const SYSTEM_ROLE_DEFINITIONS = [
   }
 ]
 
-/** System responsibilities referenced by SYSTEM_ROLE_DEFINITIONS — schema.sql creates the table but no rows. */
+/**
+ * System responsibilities referenced by SYSTEM_ROLE_DEFINITIONS — schema.sql creates the table but no rows.
+ * Insertion order sets the ids, which Group.moderators() and stewards() hard-code; Invite Members
+ * comes last, as the migration that added it appends it.
+ */
 const SYSTEM_RESPONSIBILITY_DEFINITIONS = [
   { title: 'Administration', description: 'Allows for editing group settings, managing the menu and spaces, exporting data, and deleting the group.' },
-  { title: 'Add Members', description: 'The ability to invite and add new people to the group, and to accept or reject join requests.' },
+  { title: 'Add Members', description: 'Invite and add new people, manage the group join link and all pending invitations, and accept or reject join requests.' },
   { title: 'Remove Members', description: 'The ability to remove a member from the group.' },
-  { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' }
+  { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' },
+  { title: 'Invite Members', description: 'Send personal email invitations to this group and see or cancel the ones you sent. In Restricted and Closed groups a steward reviews them.' }
 ]
 
 /**
@@ -92,14 +97,15 @@ async function ensureSystemResponsibilities (client, now) {
 }
 
 /**
- * Create per-group system roles (Administrator, Moderator, Host) if missing.
+ * Create per-group system roles (Administrator, Moderator, Host) and the
+ * implicit Member role if missing. Nothing is linked to the Member role.
  * @returns {Promise<Record<string, number>>} role name → groups_roles.id
  */
 async function setupSystemRolesForGroup (client, groupId, now) {
   const roleIds = {}
   for (const roleDef of SYSTEM_ROLE_DEFINITIONS) {
     let res = await client.query(
-      `SELECT id FROM groups_roles WHERE group_id = $1 AND name = $2 AND type = 'system' LIMIT 1`,
+      "SELECT id FROM groups_roles WHERE group_id = $1 AND name = $2 AND type = 'system' LIMIT 1",
       [groupId, roleDef.name]
     )
     let roleId = res.rows[0]?.id
@@ -127,7 +133,29 @@ async function setupSystemRolesForGroup (client, groupId, now) {
     }
     roleIds[roleDef.name] = roleId
   }
+  await client.query(
+    `INSERT INTO groups_roles (group_id, name, emoji, description, type, active, created_at, updated_at)
+     VALUES ($1, 'Member', '', 'Everyone in the group holds this role.', 'member', true, $2::timestamptz, $2::timestamptz)
+     ON CONFLICT (group_id) WHERE type = 'member' DO NOTHING`,
+    [groupId, now]
+  )
   return roleIds
+}
+
+/** Everyone in the group can send personal email invitations ("Everyone in the group"). */
+async function linkInviteMembersToMemberRole (client, groupId) {
+  await client.query(
+    `INSERT INTO group_roles_responsibilities (group_role_id, responsibility_id)
+     SELECT gr.id, r.id
+     FROM groups_roles gr, responsibilities r
+     WHERE gr.group_id = $1 AND gr.type = 'member'
+       AND r.title = 'Invite Members' AND r.type = 'system' AND r.group_id IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM group_roles_responsibilities grr
+         WHERE grr.group_role_id = gr.id AND grr.responsibility_id = r.id
+       )`,
+    [groupId]
+  )
 }
 
 /** Assign the Administrator system role to a membership. */
@@ -188,6 +216,67 @@ async function insertChildSpace (client, {
   return spaceId
 }
 
+/**
+ * Public Restricted group for member invitation E2E: `administratorId` holds
+ * Administrator and `memberIds` are plain members. With `everyoneCanInvite` the
+ * invite policy is "Everyone in the group"; otherwise it is stewards only.
+ * @returns {Promise<number>} group id
+ */
+async function insertMemberInviteGroup (client, {
+  name,
+  slug,
+  administratorId,
+  memberIds,
+  everyoneCanInvite,
+  now,
+  membershipSettings
+}) {
+  const res = await client.query(
+    `INSERT INTO groups (
+      active, created_at, updated_at, name, slug, description,
+      visibility, accessibility, created_by_id, settings, num_members, allow_in_public, home_route
+    ) VALUES (
+      true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+      2, 1, $5, '{}'::jsonb, $6, true, '/all'
+    ) RETURNING id`,
+    [now, name, slug, `Playwright E2E — member invitations (${slug})`, administratorId, memberIds.length + 1]
+  )
+  const groupId = res.rows[0].id
+  await client.query(
+    `INSERT INTO group_views (group_id, type, "order", created_at, updated_at)
+     VALUES
+       ($1, 'all', 0, $2::timestamptz, $2::timestamptz),
+       ($1, 'members', 1, $2::timestamptz, $2::timestamptz)`,
+    [groupId, now]
+  )
+  const roles = await setupSystemRolesForGroup(client, groupId, now)
+  for (const memberId of [administratorId, ...memberIds]) {
+    await client.query(
+      `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+       VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      [groupId, memberId, now, membershipSettings]
+    )
+  }
+  await assignAdministratorRole(client, administratorId, groupId, roles.Administrator, now)
+  if (everyoneCanInvite) await linkInviteMembersToMemberRole(client, groupId)
+  return groupId
+}
+
+/** Pending invitation sent by a plain member, with its allowance ledger row. */
+async function insertMemberInvitation (client, { groupId, senderId, email, token, now }) {
+  const res = await client.query(
+    `INSERT INTO group_invites (created_at, invited_by_id, token, email, group_id, last_sent_at, sent_count, inviter_access)
+     VALUES ($1::timestamptz, $2, $3, $4, $5, $1::timestamptz, 1, 'limited')
+     RETURNING id`,
+    [now, senderId, token, email, groupId]
+  )
+  await client.query(
+    'INSERT INTO invitation_sends (user_id, group_id, recipients) VALUES ($1, $2, 1)',
+    [senderId, groupId]
+  )
+  return res.rows[0].id
+}
+
 const E2E_USER_EMAIL = 'e2e.user@hylo.test'
 const E2E_USER_PASSWORD = 'e2e-password-123'
 /** Logout / re-login Playwright only — keeps primary `e2e.user` session valid for parallel tests. */
@@ -222,6 +311,19 @@ const E2E_JOIN_LINK_GROUPS = [
   { slug: 'e2e-join-public-restricted', name: 'E2E Join Public Restricted', visibility: 2, accessibility: 1, accessCode: 'e2ejpubr001' }
 ]
 
+/**
+ * Member invitations (`apps/web/e2e/authenticated.invite-policy.spec.js`). `e2e.user` is a plain
+ * member of `everyone` and `stewards`, is invited to `landing` by E2E Member A, and administers
+ * `requests`, where the person E2E Member A invited is waiting for approval.
+ */
+const E2E_MEMBER_INVITE_GROUPS = {
+  everyone: { slug: 'e2e-member-invites', name: 'E2E Member Invites' },
+  stewards: { slug: 'e2e-steward-invites', name: 'E2E Steward Invites' },
+  landing: { slug: 'e2e-member-invite-landing', name: 'E2E Member Invite Landing', token: 'e2e-member-invite-landing-001' },
+  requests: { slug: 'e2e-member-invite-requests', name: 'E2E Member Invite Requests', token: 'e2e-member-invite-request-001' }
+}
+const E2E_INVITEE_EMAIL = 'e2e.invitee@hylo.test'
+
 const E2E_GROUP_SLUGS = [
   'e2e-public-group',
   'e2e-private-group',
@@ -231,7 +333,8 @@ const E2E_GROUP_SLUGS = [
   E2E_ONE_COLUMN_GROUP_SLUG,
   E2E_ONE_COLUMN_SPACE_SLUG,
   ...E2E_JOIN_LINK_GROUPS.map((g) => g.slug),
-  ...E2E_INVITE_LINK_GROUPS.map((g) => g.slug)
+  ...E2E_INVITE_LINK_GROUPS.map((g) => g.slug),
+  ...Object.values(E2E_MEMBER_INVITE_GROUPS).map((g) => g.slug)
 ]
 
 const E2E_USER_EMAILS = [
@@ -240,10 +343,15 @@ const E2E_USER_EMAILS = [
   E2E_TRACK_VIEWER_EMAIL,
   E2E_MEMBER_A_EMAIL,
   E2E_MEMBER_B_EMAIL,
+  E2E_INVITEE_EMAIL,
   'e2e.join-host@hylo.test'
 ].map((email) => email.toLowerCase())
 
-const E2E_INVITE_TOKENS = E2E_INVITE_LINK_GROUPS.map((g) => g.token)
+const E2E_INVITE_TOKENS = [
+  ...E2E_INVITE_LINK_GROUPS.map((g) => g.token),
+  E2E_MEMBER_INVITE_GROUPS.landing.token,
+  E2E_MEMBER_INVITE_GROUPS.requests.token
+]
 
 /**
  * Removes rows from a previous full or partial seed so the script is safe to re-run.
@@ -276,6 +384,15 @@ async function clearPreviousE2eBaseline (client) {
   )
   await client.query('DELETE FROM locations WHERE full_text = $1', [E2E_LOCATION_FULL_TEXT])
 
+  const e2eJoinRequests = `SELECT id FROM join_requests
+    WHERE group_id IN (SELECT id FROM groups WHERE slug = ANY($1::text[]))
+       OR user_id IN (SELECT id FROM users WHERE lower(email) = ANY($2::text[]))`
+  await client.query(
+    `DELETE FROM group_join_questions_answers WHERE join_request_id IN (${e2eJoinRequests})`,
+    [E2E_GROUP_SLUGS, E2E_USER_EMAILS]
+  )
+  await client.query(`DELETE FROM join_requests WHERE id IN (${e2eJoinRequests})`, [E2E_GROUP_SLUGS, E2E_USER_EMAILS])
+
   await client.query(
     `DELETE FROM group_invites
      WHERE token = ANY($1::text[])
@@ -296,12 +413,12 @@ async function clearPreviousE2eBaseline (client) {
      WHERE slug = 'e2e-paid-track-space'`
   )
 
-  await client.query(`DELETE FROM group_views WHERE group_id IN (SELECT id FROM groups WHERE slug = 'e2e-paid-track-space')`)
+  await client.query("DELETE FROM group_views WHERE group_id IN (SELECT id FROM groups WHERE slug = 'e2e-paid-track-space')")
   await client.query(
     `DELETE FROM tracks
      WHERE group_id IN (SELECT id FROM groups WHERE slug = 'e2e-paid-track-space')`
   )
-  await client.query(`DELETE FROM groups WHERE slug = 'e2e-paid-track-space'`)
+  await client.query("DELETE FROM groups WHERE slug = 'e2e-paid-track-space'")
 
   await client.query(
     `DELETE FROM groups_posts
@@ -310,7 +427,7 @@ async function clearPreviousE2eBaseline (client) {
     [E2E_GROUP_SLUGS]
   )
 
-  await client.query(`DELETE FROM posts WHERE name = 'E2E Public Post'`)
+  await client.query("DELETE FROM posts WHERE name = 'E2E Public Post'")
 
   await client.query(
     `DELETE FROM group_memberships_group_roles
@@ -483,11 +600,11 @@ async function main () {
       [E2E_LOCATION_FULL_TEXT, now]
     )
     await client.query(
-      `UPDATE groups SET location_id = $1, location = $2 WHERE id = $3`,
+      'UPDATE groups SET location_id = $1, location = $2 WHERE id = $3',
       [locationRes.rows[0].id, E2E_LOCATION_FULL_TEXT, publicGroupId]
     )
     await client.query(
-      `UPDATE users SET location_id = $1, location = $2 WHERE id = $3`,
+      'UPDATE users SET location_id = $1, location = $2 WHERE id = $3',
       [locationRes.rows[0].id, E2E_LOCATION_FULL_TEXT, userId]
     )
 
@@ -775,7 +892,7 @@ async function main () {
     const paidTrackId = paidTrackRes.rows[0].id
 
     await client.query(
-      `UPDATE groups SET track_id = $1 WHERE id = $2`,
+      'UPDATE groups SET track_id = $1 WHERE id = $2',
       [paidTrackId, paidTrackSpaceId]
     )
 
@@ -787,7 +904,7 @@ async function main () {
       [paidTrackSpaceId, now]
     )
     await client.query(
-      `UPDATE groups SET home_route = '/track-actions' WHERE id = $1`,
+      "UPDATE groups SET home_route = '/track-actions' WHERE id = $1",
       [paidTrackSpaceId]
     )
 
@@ -1125,6 +1242,67 @@ async function main () {
         [extraId, passwordHash]
       )
     }
+
+    const [memberAId] = extraMemberIds
+    await insertMemberInviteGroup(client, {
+      ...E2E_MEMBER_INVITE_GROUPS.everyone,
+      administratorId: hostId,
+      memberIds: [userId, memberAId],
+      everyoneCanInvite: true,
+      now,
+      membershipSettings
+    })
+    await insertMemberInviteGroup(client, {
+      ...E2E_MEMBER_INVITE_GROUPS.stewards,
+      administratorId: hostId,
+      memberIds: [userId],
+      everyoneCanInvite: false,
+      now,
+      membershipSettings
+    })
+    const landingGroupId = await insertMemberInviteGroup(client, {
+      ...E2E_MEMBER_INVITE_GROUPS.landing,
+      administratorId: hostId,
+      memberIds: [memberAId],
+      everyoneCanInvite: true,
+      now,
+      membershipSettings
+    })
+    await insertMemberInvitation(client, {
+      groupId: landingGroupId,
+      senderId: memberAId,
+      email: E2E_USER_EMAIL.toLowerCase(),
+      token: E2E_MEMBER_INVITE_GROUPS.landing.token,
+      now
+    })
+
+    const requestsGroupId = await insertMemberInviteGroup(client, {
+      ...E2E_MEMBER_INVITE_GROUPS.requests,
+      administratorId: userId,
+      memberIds: [memberAId],
+      everyoneCanInvite: true,
+      now,
+      membershipSettings
+    })
+    const inviteeRes = await client.query(
+      `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
+       VALUES ($1, $2, $3, $4, true, true, $5::timestamptz, $5::timestamptz, $6::jsonb)
+       RETURNING id`,
+      [E2E_INVITEE_EMAIL, 'E2E Invitee', 'E2E', 'Invitee', now, userSettings]
+    )
+    const requestInvitationId = await insertMemberInvitation(client, {
+      groupId: requestsGroupId,
+      senderId: memberAId,
+      email: E2E_INVITEE_EMAIL,
+      token: E2E_MEMBER_INVITE_GROUPS.requests.token,
+      now
+    })
+    await client.query(
+      `INSERT INTO join_requests (user_id, group_id, status, invitation_id, created_at, updated_at)
+       VALUES ($1, $2, 0, $3, $4::timestamptz, $4::timestamptz)`,
+      [inviteeRes.rows[0].id, requestsGroupId, requestInvitationId, now]
+    )
+    await client.query('UPDATE groups SET num_open_join_requests = 1 WHERE id = $1', [requestsGroupId])
 
     await client.query(
       `INSERT INTO cookie_consents (consent_id, user_id, settings, version, created_at, updated_at, user_agent)

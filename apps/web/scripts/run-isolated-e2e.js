@@ -309,7 +309,9 @@ const runE2E = async () => {
      * Same placeholders as `apps/backend/test/setup/index.js` — E2E does not call live Stripe.
      */
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_fake_key_for_testing_purposes',
-    STRIPE_API_KEY: process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes'
+    STRIPE_API_KEY: process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes',
+    /** authenticated.invite-policy.spec.js needs it on even when a local .env names another environment */
+    FEATURE_FLAG_MEMBER_INVITES: process.env.FEATURE_FLAG_MEMBER_INVITES || 'on'
   }
 
   setupDatabase(backendEnv)
@@ -339,6 +341,8 @@ const runE2E = async () => {
     PORT: e2eWebPort,
     /** Pipe `[Hylo GraphQL]` / `[Hylo checkLogin]` from the browser to the test runner terminal */
     E2E_FORWARD_BROWSER_LOGS: process.env.E2E_FORWARD_BROWSER_LOGS || '',
+    /** Vite reads VITE_* from the environment; matches the backend's member invites flag */
+    VITE_FEATURE_FLAG_MEMBER_INVITES: process.env.VITE_FEATURE_FLAG_MEMBER_INVITES || 'on',
     ...(e2eNotificationJwt ? { E2E_NOTIFICATION_PAGE_JWT: e2eNotificationJwt } : {})
   }
 

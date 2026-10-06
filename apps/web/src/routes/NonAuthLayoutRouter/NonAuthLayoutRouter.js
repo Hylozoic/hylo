@@ -101,6 +101,10 @@ export default function NonAuthLayoutRouter (props) {
               path='h/use-invitation'
               element={<JoinGroup />}
             />
+            <Route
+              path='h/invitation'
+              element={<JoinGroup />}
+            />
             {/*
               Default route
               NOTE: This passes the unmatched location for anything unmatched except `/`

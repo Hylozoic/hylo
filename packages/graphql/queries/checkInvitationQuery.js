@@ -10,6 +10,12 @@ export default gql`
       isSpace
       parentGroupSlug
       parentGroupName
+      requiresApproval
+      invitedBy {
+        id
+        name
+        avatarUrl
+      }
     }
   }
 `

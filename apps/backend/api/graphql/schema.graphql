@@ -689,6 +689,10 @@ type CheckInvitationResult {
   email: String
   # The group role that will be assigned when this invitation is used
   groupRole: GroupRole
+  # True for an invitation from a member to a group where a steward approves new people: the person requests to join (with the invitation token) instead of joining
+  requiresApproval: Boolean
+  # Who sent a member invitation (null for other invitations)
+  invitedBy: InvitationSender
 }
 
 # A comment on a post
@@ -832,12 +836,20 @@ type Group {
   moreSpacesCount: Int
   # The current invite link for this group
   invitePath: String
+  # Who can invite new people to this group. Null for spaces, and for anyone without the Administration responsibility
+  invitePolicy: InvitePolicy
   # A string describing the physical location of this group in the world
   location: String
   # The fully geocoded location object
   locationObject: Location
   # Number of members in this group
   memberCount: Int
+  # The implicit role every member of this group holds. Null for spaces, and for anyone without the Administration responsibility
+  memberRole: GroupRole
+  # How the current user can invite people to this group: 'full' (Add Members), 'limited' (personal email invitations only) or null
+  myInviteAccess: String
+  # With 'limited' invite access: how many more email addresses the current user can invite to this group today. Null otherwise
+  myInviteAllowance: Int
   # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
   openJoinRequestCount: Int
   # Count of active (unresolved) moderation actions in this group
@@ -960,7 +972,7 @@ type Group {
   # Questions that a group requesting to join this group must answer
   groupToGroupJoinQuestions: GroupToGroupJoinQuestionQuerySet
 
-  # Special roles or badges attached to this group
+  # Special roles or badges attached to this group (never the implicit Member role)
   groupRoles(
     # Number of roles to return
     first: Int,
@@ -1097,7 +1109,7 @@ type Group {
     description: String
   ): GroupRelationshipQuerySet
 
-  # Pending invitations to people to join this group
+  # Pending invitations to people to join this group. With 'limited' invite access, only the ones the current user sent
   pendingInvitations(
     # For pagination, return results after this ID
     cursor: ID,
@@ -1530,7 +1542,7 @@ type GroupRole {
   membersTotal: Int
   # The name of the role
   name: String
-  # system or custom
+  # system, custom or member (the implicit role every member of a group holds)
   type: String
   # When this role was last updated
   updatedAt: Date
@@ -1621,12 +1633,16 @@ type Invitation {
   name: String
   # Hylo user id for this invitation, if the email matches an existing account
   userId: ID
-  # NOT USED?
+  # Why an invitation could not be created for this address
   error: String
   # Which group they are being invited to
   group: Group
+  # 'full' if it was sent by someone who can add members, 'limited' if it was sent with personal email invitation access only
+  inviterAccess: String
   # When this invitation was last sent out via email
   lastSentAt: Date
+  # Set on the invitations returned when inviting with 'limited' access: 'sent' for every valid address, whether or not an email went out
+  status: String
   # The login token for the person receiving the invitation to accept it even if they are not logged into Hylo
   token: String
 }
@@ -1638,12 +1654,22 @@ type InvitationQuerySet {
   items: [Invitation]
 }
 
+# Who can invite new people to a group. Roles with Add Members can always invite
+type InvitePolicy {
+  # 'everyone' (every member can send personal email invitations), 'stewards' (only roles with Add Members) or 'roles' (the roles in roleIds can too)
+  mode: String
+  # For 'roles': the roles that can send personal email invitations
+  roleIds: [ID]
+}
+
 # A request from a person to join a group
 type JoinRequest {
   id: Int
   createdAt: Date
   # Which group is being requested to join
   group: Group
+  # The member whose invitation this request came from
+  invitedBy: InvitationSender
   # Answers to questions required by Restricted groups
   questionAnswers: [GroupJoinQuestionAnswer]
   # 0 = Pending, 1 = Accepted, 2 = Rejected, 3 = Canceled
@@ -1759,6 +1785,8 @@ type Me {
   location: String
   # Object with the geocoded details of the logged in user's physical location
   locationObject: Location
+  # Whether members can be given invite access ('everyone' and 'roles' invite policies) on this server
+  memberInvitesEnabled: Boolean
   # Number of total group memberships
   membershipsTotal: Int
   # The number of MessageThreads the logged in user is a part of
@@ -3406,7 +3434,7 @@ type Mutation {
   # Convert a child Group into a Space of its single parent
   convertGroupToSpace(id: ID!, parentGroupId: ID!): Group
   # Join a Space (creates a group membership + per-view unread rows).
-  # accessCode or invitationToken pre-approves Closed, Restricted, and role-gated spaces.
+  # accessCode or invitationToken pre-approves Closed and Restricted spaces, but not role-gated ones; a member's invitation never does.
   joinSpace(spaceId: ID!, accessCode: String, invitationToken: String): Membership
   # Update the current logged in user's last-read position for a chat GroupView, recalculating newPostCount
   updateGroupViewUser(viewId: ID!, lastReadPostId: ID): GroupView
@@ -3423,10 +3451,10 @@ type Mutation {
   # Reorder a Post within a View
   reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
 
-  # Invite email addresses and/or existing people to join a Group
+  # Invite email addresses and/or existing people to join a Group. With 'limited' invite access: email addresses only, up to 10 at a time and within the daily allowance (fails with 'invite-limit' otherwise)
   createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
-  # Ask to join a Group
-  createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput]): CreatedRequest
+  # Ask to join a Group. invitationToken: a member's invitation to this group, so stewards see who invited the person (otherwise a pending member invitation to the person's email address is used)
+  createJoinRequest(groupId: ID, questionAnswers: [QuestionAnswerInput], invitationToken: String): CreatedRequest
   # Send a direct message
   createMessage(data: MessageInput): Message
   # Create a new moderation action
@@ -3489,7 +3517,7 @@ type Mutation {
   duplicateTrack(trackId: ID): Track
   # Enroll in a track
   enrollInTrack(trackId: ID): Track
-  # Set an invitation to join a group as expired. Only a group host can call this.
+  # Set an invitation to join a group as expired. Allowed for the invitee, anyone who can add members, and the sender of an invitation sent with 'limited' access
   expireInvitation(invitationId: ID): GenericResult
   # Look for a link preview of a URL, or if not found create one
   findOrCreateLinkPreviewByUrl(data: LinkPreviewInput): LinkPreview
@@ -3513,6 +3541,7 @@ type Mutation {
   joinFundingRound(id: ID): FundingRound
   # Join a group. Will fail if the person does not have permission to join this group.
   # For Restricted groups, provide accessCode or invitationToken for pre-approved join.
+  # A member's invitation only pre-approves joining an Open group.
   # Set acceptAgreements to true if user has accepted agreements during join flow.
   joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput], accessCode: String, invitationToken: String, acceptAgreements: Boolean): Membership
   # Join a project Post as a member
@@ -3828,6 +3857,17 @@ type InvitationUseResult {
   error: String
   # If the mutation succeeded, the new group Membership object
   membership: Membership
+  # True when the invitation came from a member and nobody joined: either a steward approves new people in the group, and the person can request to join with the invitation token, or the person has not joined the group's prerequisite groups yet
+  requiresApproval: Boolean
+  # With requiresApproval, the slug of the group, whose about page shows how to join
+  groupSlug: String
+}
+
+# Who sent an invitation, as shown to the person invited and to stewards reviewing their request
+type InvitationSender {
+  id: ID
+  name: String
+  avatarUrl: String
 }
 
 # Result of a login or signup related mutation
@@ -4061,6 +4101,8 @@ input GroupInput {
   groupToGroupJoinQuestions: [QuestionInput]
   # The current invite link for this group
   invitePath: String
+  # Who can invite new people to this group (top-level groups only; changing it requires the Administration responsibility). 'everyone' and 'roles' are rejected while member invitations are switched off on this server
+  invitePolicy: InvitePolicyInput
   # Questions a Person must answer when requesting to join this group
   joinQuestions: [QuestionInput]
   # A string describing the physical location of this group in the world
@@ -4225,6 +4267,16 @@ input InviteInput {
   assignAdministrator: Boolean
   # Group role ID to assign when the invitation is used
   groupRoleId: ID
+}
+
+# Who can invite new people to a group
+input InvitePolicyInput {
+  # 'everyone' (every member), 'stewards' (roles with Add Members) or 'roles' (the roles below, as well as stewards)
+  mode: String!
+  # For 'roles': ids of this group's active roles
+  roleIds: [ID]
+  # For 'roles': system role names such as 'Moderator', for a group that is being created
+  systemRoleNames: [String]
 }
 
 # A link to a Post or a Person who has been Flagged

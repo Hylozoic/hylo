@@ -4,13 +4,16 @@ This document details how the complex join links (Join Link and Email Invites) w
 
 ## Overview
 
-There are three ways to invite users to join a group:
+There are four ways to invite users to join a group:
 
 | Link Type | URL Pattern | Auth Required | Validation |
 |-----------|-------------|---------------|------------|
 | **Public Group Link** | `/groups/:groupSlug` | No | None - just goes to about page |
 | **Join Link (Access Code)** | `/groups/:groupSlug/join/:accessCode` | Yes | Validates `accessCode` against group |
 | **Email Invitation** | `/h/use-invitation?token=:token&email=:email` | Yes | Validates `token` against invitation record |
+| **Member Email Invitation** | `/h/invitation?token=:token` | Yes | Validates `token`; joins Open groups directly, otherwise the person requests to join with the token and a steward approves |
+
+Member email invitations are sent by people with limited invite access (`group_invites.inviter_access = 'limited'`). They use their own path because the mobile apps open `/h/use-invitation` natively and join straight away, while `/h/invitation` opens in the web view. Both paths render `JoinGroup`, which sends the person to the group's about page with the token. There `checkInvitation` returns `requiresApproval` and `invitedBy`, `JoinSection` shows who invited them, and `createJoinRequest` receives the token so stewards see "Invited by" on the request.
 
 ---
 

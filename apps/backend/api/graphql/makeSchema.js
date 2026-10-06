@@ -705,7 +705,7 @@ export function makeMutations ({ fetchOne }) {
 
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
 
-    createJoinRequest: (root, { groupId, questionAnswers }, context) => createJoinRequest(context.currentUserId, groupId, questionAnswers),
+    createJoinRequest: (root, { groupId, questionAnswers, invitationToken }, context) => createJoinRequest(context.currentUserId, groupId, questionAnswers, invitationToken),
 
     createMessage: (root, { data }, context) => createMessage(context.currentUserId, data, context),
 

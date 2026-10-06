@@ -1,6 +1,5 @@
 import { get } from 'lodash/fp'
 import { USE_INVITATION } from 'store/constants'
-import { AnalyticsEvents } from '@hylo/shared'
 
 export default function acceptInvitation (inviteCodes = {}) {
   const { invitationToken, accessCode } = inviteCodes
@@ -53,6 +52,8 @@ export default function acceptInvitation (inviteCodes = {}) {
               }
             }
             error
+            requiresApproval
+            groupSlug
           }
         }
       `,
@@ -66,8 +67,7 @@ export default function acceptInvitation (inviteCodes = {}) {
         modelName: 'Membership',
         getRoot: get('useInvitation.membership'),
         append: true
-      },
-      analytics: AnalyticsEvents.GROUP_INVITATION_ACCEPTED
+      }
     }
   }
 }

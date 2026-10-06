@@ -348,6 +348,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
         isAdmin: u => isAdmin || false,
+        memberInvitesEnabled: () => GroupRole.memberInvitesEnabled(),
         membershipCommonRoles: emptyQuerySet,
         // Never expose null names to clients — they call .split() etc.
         name: p => p.get('name') || '',
@@ -882,7 +883,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { childGroups: { querySet: true } },
         { groupRelationshipInvitesFrom: { querySet: true } },
         { groupRelationshipInvitesTo: { querySet: true } },
-        { groupRoles: { querySet: true } },
+        {
+          groupRoles: {
+            querySet: true,
+            filter: relation => relation.query(q => q.whereNot('groups_roles.type', GroupRole.TYPE_MEMBER))
+          }
+        },
         {
           groupTags: {
             querySet: true,
@@ -1148,6 +1154,26 @@ export default function makeModels (userId, isAdmin, apiClient) {
         invitePath: g =>
           userId && GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
             .then(canInvite => canInvite ? Frontend.Route.invitePath(g) : null),
+        invitePolicy: async g => {
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
+            return null
+          }
+          return GroupRole.getInvitePolicy(g.id)
+        },
+        memberRole: async g => {
+          if (g.get('type') === 'space' || g.get('parent_id')) return null
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
+            return null
+          }
+          return GroupRole.findMemberRole(g.id)
+        },
+        myInviteAccess: g => userId ? GroupMembership.inviteAccess(userId, g) : null,
+        myInviteAllowance: async g => {
+          if (!userId || await GroupMembership.inviteAccess(userId, g) !== GroupMembership.InviteAccess.LIMITED) {
+            return null
+          }
+          return InvitationSend.remainingAllowance({ userId, groupId: g.id })
+        },
         location: async (g) => {
           // If location obfuscation is on then non group stewards see a display string that only includes city, region & country
           const precision = g.getSetting('location_display_precision') || LOCATION_DISPLAY_PRECISION.Precise
@@ -1212,10 +1238,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
           return ModerationAction.where({ group_id: g.id, status: 'active' }).count().then(Number)
         },
         pendingInvitations: async (g, { first }) => {
-          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
-            return { total: 0, items: [] }
+          const inviteAccess = userId ? await GroupMembership.inviteAccess(userId, g) : null
+          if (inviteAccess === GroupMembership.InviteAccess.FULL) {
+            return InvitationService.find({ groupId: g.id, pendingOnly: true, limit: first })
           }
-          return InvitationService.find({ groupId: g.id, pendingOnly: true })
+          if (inviteAccess === GroupMembership.InviteAccess.LIMITED) {
+            return InvitationService.findOwnLimited({ groupId: g.id, userId, limit: first })
+          }
+          return { total: 0, items: [] }
         },
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
@@ -1387,7 +1417,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'id',
         'created_at',
         'email',
+        'inviter_access',
         'last_sent_at',
+        'status',
         'token'
       ],
       getters: {
@@ -1430,6 +1462,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'user'
       ],
       getters: {
+        invitedBy: async jr => {
+          const invitation = jr.get('invitation_id') && await jr.invitation().fetch()
+          return invitation ? InvitationService.invitationSender(invitation) : null
+        },
         questionAnswers: jr => jr.questionAnswers().fetch()
       },
       fetchMany: ({ groupId }) => JoinRequest.where({ group_id: groupId, status: JoinRequest.STATUS.Pending })

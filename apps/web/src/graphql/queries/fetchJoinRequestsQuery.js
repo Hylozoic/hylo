@@ -1,7 +1,7 @@
 import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
 
 export default
-`query ($groupId: ID) {
+`query FetchJoinRequests ($groupId: ID) {
   joinRequests (groupId: $groupId, status: ${JOIN_REQUEST_STATUS.Pending}) {
     total
     hasMore
@@ -20,6 +20,11 @@ export default
       group {
         id
         slug
+      }
+      invitedBy {
+        id
+        name
+        avatarUrl
       }
       user {
         id

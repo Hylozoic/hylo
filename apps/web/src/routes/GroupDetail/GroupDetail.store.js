@@ -65,12 +65,18 @@ export function joinGroup (groupId, questionAnswers, accessCode, invitationToken
   }
 }
 
-export function createJoinRequest (groupId, questionAnswers) {
+/**
+ * Ask to join a group whose stewards approve new people.
+ * @param groupId {string} the group to join
+ * @param questionAnswers {array} answers to join questions
+ * @param invitationToken {string} optional token of the member invitation that led to this request, so stewards see who invited the person
+ */
+export function createJoinRequest (groupId, questionAnswers, invitationToken) {
   return {
     type: CREATE_JOIN_REQUEST,
     graphql: {
-      query: `mutation ($groupId: ID, $questionAnswers: [QuestionAnswerInput]) {
-        createJoinRequest(groupId: $groupId, questionAnswers: $questionAnswers) {
+      query: `mutation CreateJoinRequest ($groupId: ID, $questionAnswers: [QuestionAnswerInput], $invitationToken: String) {
+        createJoinRequest(groupId: $groupId, questionAnswers: $questionAnswers, invitationToken: $invitationToken) {
           request {
             id
             user {
@@ -85,7 +91,7 @@ export function createJoinRequest (groupId, questionAnswers) {
           }
         }
       }`,
-      variables: { groupId, questionAnswers }
+      variables: { groupId, questionAnswers, invitationToken }
     },
     meta: {
       groupId,
