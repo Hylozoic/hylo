@@ -1,8 +1,6 @@
 import React from 'react'
 import { Link } from 'lucide-react'
 import { cn, bgImageStyle } from 'util/index'
-import { WebViewMessageTypes } from '@hylo/shared'
-import { sendMessageToWebView } from 'util/webView'
 
 /** Renders a link preview card; invalid or missing URLs are not rendered to avoid URL parse crashes (e.g. on mobile Safari). */
 export default function LinkPreview ({ className, title, url, imageUrl, description }) {
@@ -16,17 +14,7 @@ export default function LinkPreview ({ className, title, url, imageUrl, descript
   }
 
   return (
-    <a
-      className={cn(className)}
-      href={url}
-      target='_blank'
-      rel='noreferrer'
-      onClick={(e) => {
-        if (typeof window !== 'undefined' && window.HyloMobileV2) {
-          e.preventDefault()
-          sendMessageToWebView(WebViewMessageTypes.OPEN_URL, { url })
-        }
-      }} aria-label={title}>
+    <a className={cn(className)} href={url} target='_blank' rel='noreferrer' aria-label={title}>
       <div className='rounded-lg bg-card border border-foreground/10 p-2 flex items-center gap-2 shadow-lg text-foreground hover:scale-102 duration-300 hover:shadow-xl'>
         {imageUrl && <div style={bgImageStyle(imageUrl)} className='self-stretch aspect-square min-h-16 shrink-0 bg-cover bg-center rounded-lg shadow-lg' />}
         <div className='text-foreground p-2'>
