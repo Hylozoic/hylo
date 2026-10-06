@@ -1,6 +1,6 @@
 import Constants from 'expo-constants'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BackHandler, Platform, StatusBar, View } from 'react-native'
+import { BackHandler, Linking, Platform, StatusBar, View } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { WebView } from 'react-native-webview'
 import { WebViewMessageTypes, HYLO_HARDWARE_BACK_EVENT } from '@hylo/shared'
@@ -93,6 +93,15 @@ export default function PrimaryWebViewScreen () {
       case WebViewMessageTypes.AUTH_SUCCESS:
         setSessionRecovering(false)
         break
+      case WebViewMessageTypes.OPEN_URL: {
+        const { url } = (data as { url?: string }) || {}
+        if (url && typeof url === 'string') {
+          Linking.canOpenURL(url).then((canOpen: boolean) => {
+            if (canOpen) Linking.openURL(url)
+          })
+        }
+        break
+      }
       default:
         if (__DEV__ && type) {
           console.log('Unknown WebView message type:', type, data)
