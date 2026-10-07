@@ -313,6 +313,23 @@ describe('createPost imageUrls', () => {
     }, 0)
   })
 
+  it('flattens a nested imageUrls list before queueing the remote URL', async () => {
+    const created = await createPost(user.id, {
+      name: 'Nested remote image',
+      group_ids: [group.id],
+      imageUrls: [[remoteUrl]]
+    })
+
+    await created.load('media')
+    expect(created.relations.media.length).to.equal(0)
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl],
+      startPosition: 0
+    }, 0)
+  })
+
   it('queues every remote URL when several are passed', async () => {
     const secondRemote = 'https://upload.wikimedia.org/wikipedia/commons/cow.jpg'
     const created = await createPost(user.id, {

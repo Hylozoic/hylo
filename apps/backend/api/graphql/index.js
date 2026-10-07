@@ -8,6 +8,7 @@ import makeSchema from './makeSchema'
 import { createGroupVisibilityLoader } from './filters'
 import sentry from '../../lib/sentry'
 import { touchLastActiveAt } from './touchLastActiveAt'
+import { flattenImageUrlVariables } from '../../lib/uploader/rehostRemoteMedia'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
 
@@ -59,11 +60,21 @@ const graphqlSentryContextPlugin = {
   }
 }
 
+// Zapier line items arrive as [[url]]. Flatten before [String] coercion rejects them.
+const flattenImageUrlsPlugin = {
+  onExecute ({ executeFn, setExecuteFn }) {
+    setExecuteFn((executionArgs) => {
+      flattenImageUrlVariables(executionArgs?.variableValues)
+      return executeFn(executionArgs)
+    })
+  }
+}
+
 export const yoga = createYoga({
   graphqlEndpoint: GRAPHQL_ENDPOINT,
   schema: makeSchema,
   // plugins: [useLazyLoadedSchema(createSchema)],
-  plugins: [graphqlSentryContextPlugin],
+  plugins: [flattenImageUrlsPlugin, graphqlSentryContextPlugin],
   context: async ({ req, params }) => {
     if (process.env.DEBUG_GRAPHQL) {
       sails.log.info('\n' +
@@ -113,12 +124,13 @@ export function graphiqlEnabled (request, { req } = {}) {
 // recreates that API by running graphql() with the same schema/context shape as production (yoga),
 // without going through HTTP. response is always null; tests only use executionResult.
 export const createRequestHandler = () => ({
-  inject: async ({ document, serverContext }) => {
+  inject: async ({ document, variables, serverContext }) => {
     const req = serverContext?.req || {}
     const schema = await makeSchema({ req })
     const executionResult = await graphql({
       schema,
       source: document,
+      variableValues: flattenImageUrlVariables(variables),
       contextValue: {
         pubSub: RedisPubSub,
         socket: req.socket,
