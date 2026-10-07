@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.4] - 2026-10-01
+
+### Changed
+- **Performance improvements:**
+- Long cache headers for content hashed build files, so browser caches the files until next deploy
+- Load lucide icons dynamically in its own chunk
+- Speed up filtering/loading of posts on the front-end
+
 ## [7.1.3] - 2026-10-04
 
 ### Fixed
