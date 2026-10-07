@@ -85,10 +85,6 @@ export const handleClick = (navigate, groupSlug, onClick) => event => {
 
         return navigate(pathname)
       }
-      // Mobile WebView: skip target=_blank — the link navigates in the same WebView,
-      // triggering shouldOverrideUrlLoading so the native handler can route it
-      // to the system browser. On desktop this still opens a new tab as usual.
-      if (typeof window !== 'undefined' && window.HyloMobileV2) return
 
       anchorEl.setAttribute('target', '_blank')
     }
