@@ -13,8 +13,8 @@ import useRouteParams from '../../hooks/useRouteParams'
 import useThemeStore from '../../store/themeStore'
 import { isIOS } from '../../util/platform'
 import { authHandshakeEvent } from '../../util/authDebug'
-import { normalizeWebPath } from '../../util/session'
 import NoInternetConnectionScreen from '../NoInternetConnection/NoInternetConnectionScreen'
+import { openBrowserAsync } from 'expo-web-browser'
 
 const hyloAppVersion = Constants.expoConfig?.version ?? '1.0.0'
 
@@ -96,15 +96,6 @@ export default function PrimaryWebViewScreen () {
       case WebViewMessageTypes.AUTH_SUCCESS:
         setSessionRecovering(false)
         break
-      case WebViewMessageTypes.OPEN_URL: {
-        const { url } = (data as { url?: string }) || {}
-        if (url && typeof url === 'string') {
-          Linking.canOpenURL(url).then((canOpen: boolean) => {
-            if (canOpen) Linking.openURL(url)
-          })
-        }
-        break
-      }
       default:
         if (__DEV__ && type) {
           console.log('Unknown WebView message type:', type, data)
@@ -129,25 +120,39 @@ export default function PrimaryWebViewScreen () {
     setWebViewError(syntheticEvent.nativeEvent)
   }, [])
 
-  const webViewPath = normalizeWebPath(originalLinkingPath || path || '/app')
-  const showLoadingOverlay = isLoggingOut || !hasLoadedUser.current || isCookieResolving || isWebViewLoading || sessionRecovering
 
-  useEffect(() => {
-    if (!showLoadingOverlay) return
-    const delays = [5000, 15000, 30000]
-    const timers = delays.map(ms => setTimeout(() => {
-      authHandshakeEvent('PrimaryWebView loading overlay', {
-        elapsedMs: ms,
-        hasLoadedUser: hasLoadedUser.current,
-        isCookieResolving,
-        isWebViewLoading,
-        sessionRecovering,
-        isLoggingOut,
-        userId: currentUser?.id
-      }, 'warning')
-    }, ms))
-    return () => timers.forEach(clearTimeout)
-  }, [showLoadingOverlay, isCookieResolving, isWebViewLoading, sessionRecovering, isLoggingOut, currentUser?.id])
+  /**
+   * Intercept WebView navigation requests. Hylo internal URLs load in the WebView.
+   * External URLs open in the system browser — drop canOpenURL (unreliable on
+   * Android 11+ due to package-visibility), call Linking.openURL directly,
+   * and fall back to expo-web-browser's Chrome Custom Tab on failure.
+   */
+  const handleShouldStartLoad = useCallback((event: { url: string }) => {
+    const { url } = event
+    if (!url) return false
+    try {
+      const parsed = new URL(url)
+      if (parsed.hostname.endsWith('.hylo.com') || parsed.hostname === 'hylo.com' ||
+          parsed.hostname === 'staging.hylo.com' || parsed.hostname === 'localhost') {
+        return true
+      }
+    } catch {
+      return false
+    }
+    // External URL — open in system browser
+    try {
+      Linking.openURL(url)
+      if (__DEV__) console.log('External URL opened via Linking:', url)
+    } catch (e) {
+      console.warn('Linking.openURL failed for', url, e)
+      // Fallback: Chrome Custom Tab (sidesteps Android Intent routing issues)
+      openBrowserAsync(url).catch((e2: unknown) => {
+        console.warn('openBrowserAsync fallback also failed:', url, e2)
+      })
+    }
+    return false
+  }, [])
+  const webViewPath = originalLinkingPath || path || '/app'
 
   if (!hasLoadedUser.current && (!isConnected || !isInternetReachable)) {
     return (
@@ -171,6 +176,8 @@ export default function PrimaryWebViewScreen () {
       />
     )
   }
+
+  const showLoadingOverlay = isLoggingOut || !hasLoadedUser.current || isCookieResolving || isWebViewLoading || sessionRecovering
 
   return (
     <SafeAreaView
@@ -200,6 +207,7 @@ export default function PrimaryWebViewScreen () {
           onError={handleError}
           onHttpError={handleHttpError}
           enableScrolling
+          onShouldStartLoadWithRequest={handleShouldStartLoad}
         />
       )}
     </SafeAreaView>

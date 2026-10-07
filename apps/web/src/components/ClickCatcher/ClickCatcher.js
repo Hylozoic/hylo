@@ -1,8 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { mentionPath, origin, tagSearchUrl } from '@hylo/navigation'
-import { WebViewMessageTypes } from '@hylo/shared'
-import { sendMessageToWebView } from 'util/webView'
 
 /**
  * Strips a leading www. so hylo.com and www.hylo.com compare as the same host.
@@ -87,13 +85,10 @@ export const handleClick = (navigate, groupSlug, onClick) => event => {
 
         return navigate(pathname)
       }
-      // Mobile WebView: delegate to native app so it opens in the system browser,
-      // avoiding external sites getting trapped inside the WebView.
-      if (typeof window !== 'undefined' && window.HyloMobileV2) {
-        event.preventDefault()
-        sendMessageToWebView(WebViewMessageTypes.OPEN_URL, { url: href })
-        return
-      }
+      // Mobile WebView: skip target=_blank — the link navigates in the same WebView,
+      // triggering shouldOverrideUrlLoading so the native handler can route it
+      // to the system browser. On desktop this still opens a new tab as usual.
+      if (typeof window !== 'undefined' && window.HyloMobileV2) return
 
       anchorEl.setAttribute('target', '_blank')
     }
