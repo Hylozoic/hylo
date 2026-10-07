@@ -67,3 +67,32 @@ export function canOpenExternalUrl (rawUrl: string): boolean {
     return false
   }
 }
+
+export function externalUrlForNavigation (rawUrl: string): string | null {
+  if (canOpenExternalUrl(rawUrl)) return rawUrl
+  if (!rawUrl.startsWith('intent://')) return null
+
+  const intentOptionsIndex = rawUrl.indexOf('#Intent;')
+  const intentUrl = intentOptionsIndex < 0 ? rawUrl : rawUrl.slice(0, intentOptionsIndex)
+  const webUrl = `https:${intentUrl.slice('intent:'.length)}`
+  if (isWebFallbackUrl(webUrl)) return webUrl
+
+  const encodedFallbackUrl = rawUrl.match(/(?:^|;)S\.browser_fallback_url=([^;]*)/)?.[1]
+  if (!encodedFallbackUrl) return null
+
+  try {
+    const fallbackUrl = decodeURIComponent(encodedFallbackUrl)
+    return canOpenExternalUrl(fallbackUrl) ? fallbackUrl : null
+  } catch {
+    return null
+  }
+}
+
+function isWebFallbackUrl (rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl)
+    return isWebUrl(rawUrl) && (url.hostname.includes('.') || url.hostname === 'localhost')
+  } catch {
+    return false
+  }
+}

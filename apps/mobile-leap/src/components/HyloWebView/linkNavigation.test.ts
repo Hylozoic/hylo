@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals'
 jest.mock('react-native-url-polyfill', () => ({ URL }))
-import { canOpenExternalUrl, isHyloWebUrl, shouldLoadInWebView } from './linkNavigation'
+import { canOpenExternalUrl, externalUrlForNavigation, isHyloWebUrl, shouldLoadInWebView } from './linkNavigation'
 
 describe('WebView link navigation', () => {
   it('keeps configured and known Hylo origins inside the mobile WebView', () => {
@@ -26,6 +26,16 @@ describe('WebView link navigation', () => {
     expect(canOpenExternalUrl('https://open.spotify.com/track/example')).toBe(true)
     expect(canOpenExternalUrl('mailto:[EMAIL]')).toBe(true)
     expect(canOpenExternalUrl('tel:+15555550123')).toBe(true)
+  })
+
+  it('converts Android intent links to an external web URL', () => {
+    expect(externalUrlForNavigation('intent://open.spotify.com/track/abc#Intent;scheme=https;package=com.spotify.music;end')).toBe(
+      'https://open.spotify.com/track/abc'
+    )
+    expect(externalUrlForNavigation('intent://scan/#Intent;scheme=zxing;S.browser_fallback_url=https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2Fd%2Fabc;end')).toBe(
+      'https://docs.google.com/spreadsheets/d/abc'
+    )
+    expect(externalUrlForNavigation('intent://scan/#Intent;scheme=zxing;end')).toBe(null)
   })
 
   it('rejects unsafe or unsupported URL schemes', () => {

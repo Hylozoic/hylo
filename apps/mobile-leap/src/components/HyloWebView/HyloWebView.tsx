@@ -22,7 +22,7 @@ import {
 import getNativeSessionId from 'util/nativeSessionId'
 import { parseWebViewMessage } from './parseWebViewMessage'
 import { sendMessageFromWebView } from './sendMessageFromWebView'
-import { canOpenExternalUrl, isHyloWebUrl, shouldLoadInWebView } from './linkNavigation'
+import { externalUrlForNavigation, isHyloWebUrl, shouldLoadInWebView } from './linkNavigation'
 
 const baseInjectedStyle = `
   ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
@@ -129,8 +129,9 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
   }, [externalOnLoadEnd])
 
   const openExternalUrl = useCallback((url: string) => {
-    if (!canOpenExternalUrl(url)) return
-    Linking.openURL(url).catch(error =>
+    const externalUrl = externalUrlForNavigation(url)
+    if (!externalUrl) return
+    Linking.openURL(externalUrl).catch(error =>
       console.warn('Failed to open external link:', url, error)
     )
   }, [])
@@ -213,7 +214,7 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
       hideKeyboardAccessoryView
       onLoadStart={handleLoadStart}
       onLoadEnd={handleLoadEnd}
-      originWhitelist={['https://*', 'http://*', 'mailto:*', 'tel:*']}
+      originWhitelist={['https://*', 'http://*', 'mailto:*', 'tel:*', 'intent:*']}
       onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
       onOpenWindow={handleOpenWindow}
       scalesPageToFit={false}
