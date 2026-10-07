@@ -1,6 +1,6 @@
 import Constants from 'expo-constants'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BackHandler, Platform, StatusBar, View } from 'react-native'
+import { BackHandler, Linking, Platform, StatusBar, View } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { WebView } from 'react-native-webview'
 import { WebViewMessageTypes, HYLO_HARDWARE_BACK_EVENT } from '@hylo/shared'
@@ -13,6 +13,7 @@ import useRouteParams from '../../hooks/useRouteParams'
 import useThemeStore from '../../store/themeStore'
 import { isIOS } from '../../util/platform'
 import NoInternetConnectionScreen from '../NoInternetConnection/NoInternetConnectionScreen'
+import { openBrowserAsync } from 'expo-web-browser'
 
 const hyloAppVersion = Constants.expoConfig?.version ?? '1.0.0'
 
@@ -117,6 +118,38 @@ export default function PrimaryWebViewScreen () {
     setWebViewError(syntheticEvent.nativeEvent)
   }, [])
 
+
+  /**
+   * Intercept WebView navigation requests. Hylo internal URLs load in the WebView.
+   * External URLs open in the system browser — drop canOpenURL (unreliable on
+   * Android 11+ due to package-visibility), call Linking.openURL directly,
+   * and fall back to expo-web-browser's Chrome Custom Tab on failure.
+   */
+  const handleShouldStartLoad = useCallback((event: { url: string }) => {
+    const { url } = event
+    if (!url) return false
+    try {
+      const parsed = new URL(url)
+      if (parsed.hostname.endsWith('.hylo.com') || parsed.hostname === 'hylo.com' ||
+          parsed.hostname === 'staging.hylo.com' || parsed.hostname === 'localhost') {
+        return true
+      }
+    } catch {
+      return false
+    }
+    // External URL — open in system browser
+    try {
+      Linking.openURL(url)
+      if (__DEV__) console.log('External URL opened via Linking:', url)
+    } catch (e) {
+      console.warn('Linking.openURL failed for', url, e)
+      // Fallback: Chrome Custom Tab (sidesteps Android Intent routing issues)
+      openBrowserAsync(url).catch((e2: unknown) => {
+        console.warn('openBrowserAsync fallback also failed:', url, e2)
+      })
+    }
+    return false
+  }, [])
   const webViewPath = originalLinkingPath || path || '/app'
 
   if (!hasLoadedUser.current && (!isConnected || !isInternetReachable)) {
@@ -172,6 +205,7 @@ export default function PrimaryWebViewScreen () {
           onError={handleError}
           onHttpError={handleHttpError}
           enableScrolling
+          onShouldStartLoadWithRequest={handleShouldStartLoad}
         />
       )}
     </SafeAreaView>

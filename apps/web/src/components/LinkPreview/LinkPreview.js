@@ -14,7 +14,20 @@ export default function LinkPreview ({ className, title, url, imageUrl, descript
   }
 
   return (
-    <a className={cn(className)} href={url} target='_blank' rel='noreferrer' aria-label={title}>
+    <a
+      className={cn(className)}
+      href={url} target='_blank'
+      rel='noreferrer'
+      onClick={(e) => {
+        if (typeof window !== 'undefined' && window.HyloMobileV2) {
+          // target=_blank is blocked by the WebView's setSupportMultipleWindows.
+          // Navigate in the same WebView so shouldOverrideUrlLoading can route
+          // it to the native handler and system browser.
+          e.preventDefault()
+          window.location.href = url
+        }
+      }} aria-label={title}
+    >
       <div className='rounded-lg bg-card border border-foreground/10 p-2 flex items-center gap-2 shadow-lg text-foreground hover:scale-102 duration-300 hover:shadow-xl'>
         {imageUrl && <div style={bgImageStyle(imageUrl)} className='self-stretch aspect-square min-h-16 shrink-0 bg-cover bg-center rounded-lg shadow-lg' />}
         <div className='text-foreground p-2'>
