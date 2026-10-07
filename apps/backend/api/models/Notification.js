@@ -1293,6 +1293,20 @@ module.exports = bookshelf.Model.extend({
   shouldBeBlocked: async function () {
     if (!this.get('user_id')) return Promise.resolve(false)
 
+    const activity = this.relations.activity
+    if (activity && (activity.get('post_id') || activity.get('comment_id'))) {
+      const groupIds = Activity.groupIds(activity)
+      if (groupIds.length > 0) {
+        const memberships = await bookshelf.knex('group_memberships')
+          .where({ user_id: this.get('user_id') })
+          .whereIn('group_id', groupIds)
+          .select('active')
+        const hasInactiveMembership = memberships.some(membership => !membership.active)
+        const hasActiveMembership = memberships.some(membership => membership.active)
+        if (hasInactiveMembership && !hasActiveMembership) return true
+      }
+    }
+
     const blockedUserIds = (await BlockedUser.blockedFor(this.get('user_id'))).rows.map(r => r.user_id)
     if (blockedUserIds.length === 0) return Promise.resolve(false)
 

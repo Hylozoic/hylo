@@ -26,7 +26,7 @@ import {
   filterAndSortPosts,
   filterAndSortUsers
 } from '../services/Search/util'
-const { createGroupRoleScope } = require('../../lib/scopes')
+const { createGroupRoleScope, createGroupScope } = require('../../lib/scopes')
 const {
   mergeAccessGrantsForPresentation,
   getBuyButtonTextFromOffering
@@ -1144,6 +1144,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         eventCalendarUrl: g => g.eventCalendarUrl(),
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,
+        hasValidScope: g => userId && g ? UserScope.canAccess(userId, createGroupScope(g.id)) : false,
+        currentUserMembershipActive: async g => {
+          if (!userId || !g) return null
+          const membership = await GroupMembership.forPair(userId, g, { includeInactive: true }).fetch()
+          return membership ? !!membership.get('active') : null
+        },
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         invitePath: g =>
           userId && GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)

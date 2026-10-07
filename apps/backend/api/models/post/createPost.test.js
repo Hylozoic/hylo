@@ -329,3 +329,44 @@ describe('createPost imageUrls', () => {
     }, 0)
   })
 })
+
+describe('Post.createActivities', () => {
+  it('does not notify a former group member about a mention in that group', async () => {
+    const author = await factories.user().save()
+    const formerMember = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([author, formerMember])
+    await group.removeMembers([formerMember])
+
+    const post = await factories.post({
+      user_id: author.id,
+      type: Post.Type.DISCUSSION,
+      description: `<span class="mention" data-type="mention" data-id="${formerMember.id}" data-label="person">person</span>`
+    }).save()
+    await group.posts().attach(post)
+
+    await post.createActivities()
+
+    const activities = await Activity.where({ reader_id: formerMember.id, post_id: post.id }).fetchAll()
+    expect(activities.some(activity => activity.get('meta')?.reasons?.includes('mention'))).to.equal(false)
+  })
+
+  it('still notifies an active group member about a mention', async () => {
+    const author = await factories.user().save()
+    const member = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([author, member])
+
+    const post = await factories.post({
+      user_id: author.id,
+      type: Post.Type.DISCUSSION,
+      description: `<span class="mention" data-type="mention" data-id="${member.id}" data-label="person">person</span>`
+    }).save()
+    await group.posts().attach(post)
+
+    await post.createActivities()
+
+    const activities = await Activity.where({ reader_id: member.id, post_id: post.id }).fetchAll()
+    expect(activities.some(activity => activity.get('meta')?.reasons?.includes('mention'))).to.equal(true)
+  })
+})

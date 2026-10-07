@@ -10,6 +10,8 @@ const isMention = activity => {
   return filter(reasons, reason => reason.match(/^mention/)).length > 0
 }
 
+// TODO: Remove this unused helper after confirming no legacy activity path needs it.
+/* eslint-disable-next-line no-unused-vars */
 const isJustNewPost = activity => {
   const reasons = activity.get('meta').reasons
   return reasons.every(reason => reason.match(/^newPost/))
@@ -20,15 +22,17 @@ const isAnnouncement = activity => {
   return filter(reasons, reason => reason.match(/^announcement/)).length > 0
 }
 
-const isTopic = activity => {
-  const reasons = activity.get('meta').reasons
-  const t = filter(reasons, reason => reason.match(/^tag/)).length > 0
-  return t
-}
-
 const isChat = activity => {
   const reasons = activity.get('meta').reasons
   const t = filter(reasons, reason => reason.match(/^chat/)).length > 0
+  return t
+}
+
+// TODO: Remove this unused helper after confirming tag activity handling no longer needs it.
+/* eslint-disable-next-line no-unused-vars */
+const isTopic = activity => {
+  const reasons = activity.get('meta').reasons
+  const t = filter(reasons, reason => reason.match(/^tag/)).length > 0
   return t
 }
 
@@ -326,6 +330,13 @@ module.exports = bookshelf.Model.extend({
 
     const relevantMemberships = filter(memberships.models, mem =>
       includes(groups, mem.related('group').id))
+    if (groups.length > 0 && relevantMemberships.length === 0) {
+      const inactiveMembership = await bookshelf.knex('group_memberships')
+        .where({ user_id: user.id, active: false })
+        .whereIn('group_id', groups)
+        .first()
+      if (inactiveMembership) return []
+    }
 
     const membershipsPermitting = key =>
       filter(relevantMemberships, mem => mem.getSetting(key))

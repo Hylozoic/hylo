@@ -736,6 +736,22 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }))
     activitiesToCreate = activitiesToCreate.concat(invitees)
 
+    if (groups.length > 0 && activitiesToCreate.length > 0) {
+      const groupIds = groups.map(group => group.id)
+      const readerIds = activitiesToCreate.map(activity => activity.reader_id)
+      const memberships = await bookshelf.knex('group_memberships')
+        .whereIn('user_id', readerIds)
+        .whereIn('group_id', groupIds)
+        .select('user_id', 'active')
+      const inactiveMemberIds = new Set(memberships.filter(m => !m.active).map(m => String(m.user_id)))
+      const activeMemberIds = new Set(memberships.filter(m => m.active).map(m => String(m.user_id)))
+
+      activitiesToCreate = activitiesToCreate.filter(activity => {
+        const readerId = String(activity.reader_id)
+        return !inactiveMemberIds.has(readerId) || activeMemberIds.has(readerId)
+      })
+    }
+
     activitiesToCreate = filter(r => r.reader_id !== this.get('user_id'), activitiesToCreate)
 
     return Activity.saveForReasons(activitiesToCreate, trx)
