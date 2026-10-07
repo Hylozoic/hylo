@@ -4380,6 +4380,8 @@ input PostInput {
   linkPreviewFeatured: Boolean
   # When true, do not auto-generate a link preview from URLs in the post (the author removed it in the editor)
   skipLinkPreview: Boolean
+  # Create the post without notifying members: no email, push, in-app notification, unread badge, live update, Slack, or outbound Zapier. Only a steward of every destination group may set this. Cannot be combined with announcement.
+  silent: Boolean
   # Temporary id passed in from the client to identify the post when it is created, for optimistically updating the UI
   localId: String
   # Full location string
