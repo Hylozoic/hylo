@@ -1,4 +1,5 @@
 import { ChevronLeft, Globe, Info } from 'lucide-react'
+import SpaceGlobalNavPinButton from 'components/SpaceGlobalNavPinButton'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -54,7 +55,8 @@ const ViewHeader = () => {
     oneColumn,
     isSingleViewSpace,
     presentedSpaceView,
-    isSpaceMember
+    isSpaceMember,
+    spaceMembership
   } = useMobileNavBack()
   const { backButton, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
   const compactLayout = isCompactLayoutDevice()
@@ -295,6 +297,12 @@ const ViewHeader = () => {
             >
               <Info className='w-4 h-4' />
             </button>
+          )}
+          {isSpaceMember && (
+            <SpaceGlobalNavPinButton
+              membership={spaceMembership}
+              className='ml-1 p-0.5 text-foreground/50 hover:text-foreground'
+            />
           )}
           {!isSingleViewSpace && hasTitle && <span className='mx-1.5 shrink-0 text-foreground/40'>{'>'}</span>}
         </>

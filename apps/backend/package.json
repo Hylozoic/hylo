@@ -36,7 +36,7 @@
     "dev-stripe": "nf -j Procfile.dev-stripe -p 3001 start -t 1000",
     "dump": "pg_dump -Osx hylo | sed -e 's/; Tablespace: $//' -e 's/CREATE SCHEMA public;//' -e 's/ AS \"?column?\"//' -e \"s/'search_path', ''/'search_path', 'public'/\" | sed '/^CREATE PROCEDURE/,/^$$;/d' | sed '/^SET transaction_timeout = 0;$/d' > migrations/schema.sql",
     "dump-docker": "docker exec devcontainer-db-1 pg_dump -Osx hylo -U postgres | sed -e 's/; Tablespace: $//' -e 's/CREATE SCHEMA public;//' -e 's/ AS \"?column?\"//' -e \"s/'search_path', ''/'search_path', 'public'/\" | sed '/^CREATE PROCEDURE/,/^$$;/d' | sed '/^SET transaction_timeout = 0;$/d' > migrations/schema.sql",
-    "test": "mocha -r test/setup/core -r @babel/register --exit",
+    "test": "yarn workspace @hylo/shared build && mocha -r test/setup/core -r @babel/register --exit",
     "cover": "./node_modules/.bin/nyc --cache -a -r lcov ./node_modules/.bin/mocha -r test/setup/core --require @babel/register -R dot --exit",
     "knex": "knex",
     "update-migrations": "node ./migrations/scripts/updateMigrationsTable",
