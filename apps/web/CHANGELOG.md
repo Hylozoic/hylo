@@ -6,14 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Added
-- Users can now make their Hylo profiles public; an alternative to linkedIn or linktree
-- Stewards can now remove a member from the group directly from the member profile page
-- Member profile posts tab refactored with infinite scroll paging for better performance on large post sets
-- Improved anonymous viewer handling for emoji reactions and post creator display on public profiles
+## [7.1.5] - 2026-10-08
 
-### Changed
-- Shared paging infrastructure extracted for reuse across profile list views
+### Added
+- Allow for a user to make their profile public in their profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Fixed
+- Post notifications display the post correctly when the group's home view is a page view or welcome page. Open a post in a modal over the home view when that view is a stream, chat or map. When home view is a page, welcome, or other static view then open posts in a standalone post URL.
+- Make context menu edit draggable on mobile
 
 ## [7.1.4] - 2026-10-01
 
