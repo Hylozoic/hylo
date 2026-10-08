@@ -23554,13 +23554,13 @@ __metadata:
   linkType: hard
 
 "fast-xml-parser@npm:^4.2.5, fast-xml-parser@npm:^4.4.1":
-  version: 4.5.7
-  resolution: "fast-xml-parser@npm:4.5.7"
+  version: 4.5.1
+  resolution: "fast-xml-parser@npm:4.5.1"
   dependencies:
     strnum: "npm:^1.0.5"
   bin:
     fxparser: src/cli/cli.js
-  checksum: 10/209e84e4ad97f98eb877e6e42097db2f0797bf05388e58f08e6f2967d05d74e69407dec9fc3c9390503e1a08b7eb608fc604944cb9fe5ec7b56cd94647150300
+  checksum: 10/17ce5908e798de1b6d12a39d26f04ac3b582ea9ce28f3a6e3b9c401edcb74790f28df84d75377608af53308ff8caad2b244ba1283cc4b5b4cf4cc7bd532a9983
   languageName: node
   linkType: hard
 
@@ -26071,7 +26071,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"http-proxy@npm:^1.17.0":
+"http-proxy@npm:^1.17.0, http-proxy@npm:^1.18.1":
   version: 1.18.1
   resolution: "http-proxy@npm:1.18.1"
   dependencies:
@@ -38316,6 +38316,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"redux-remember@npm:^5.4.0":
+  version: 5.4.0
+  resolution: "redux-remember@npm:5.4.0"
+  peerDependencies:
+    redux: ">=5.0.0"
+  checksum: 10/588e68e629d262eafc75fc15f124dfaf613eb6a9a2b854ec56f869f059a93d62d8c7c753932654754fd66018aa1efbf0926215b3d8a8f2b85b365bc7baea2aa4
+  languageName: node
+  linkType: hard
+
 "redux@npm:^4.0.5, redux@npm:^4.2.0":
   version: 4.2.1
   resolution: "redux@npm:4.2.1"
@@ -39168,6 +39177,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
+    "@babel/preset-typescript": "npm:^7.26.0"
     "@types/jest": "npm:^30.0.0"
     archiver: "npm:^7.0.1"
     standard: "npm:^17.1.2"
@@ -44438,6 +44448,7 @@ __metadata:
     graphql: "npm:^16.3.0"
     graphql-tag: "npm:^2.12.6"
     history: "npm:^5.3.0"
+    http-proxy: "npm:^1.18.1"
     husky: "npm:^7.0.4"
     i18next-browser-languagedetector: "npm:^8.0.0"
     i18next-http-backend: "npm:^2.6.2"
@@ -44511,6 +44522,7 @@ __metadata:
     redux-mock-store: "npm:^1.5.4"
     redux-orm: "npm:^0.16.2"
     redux-promise: "npm:^0.6.0"
+    redux-remember: "npm:^5.4.0"
     request: "npm:^2.83.0"
     reselect: "npm:^3.0.1"
     root-path: "npm:^0.2.1"

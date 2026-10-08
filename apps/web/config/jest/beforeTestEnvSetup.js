@@ -35,15 +35,9 @@ jest.mock('react-use-intercom', () => ({
   useIntercom: () => ({ show: () => {} })
 }))
 
-jest.mock('client/errorReporter', () => ({
-  __esModule: true,
-  SENTRY_DEBUG: false,
-  addBreadcrumb: jest.fn(),
-  default: {
-    disabled: true,
-    error: error => console.log(error),
-    configure: jest.fn()
-  }
+jest.mock('client/rollbar', () => ({
+  error: error => console.log(error),
+  configure: jest.fn()
 }))
 
 const mockT = (str, params) => {

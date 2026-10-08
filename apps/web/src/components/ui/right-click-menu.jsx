@@ -4,6 +4,8 @@ import { Check, ChevronRight, Circle } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
+/* global Node */
+
 /**
  * Returns true when the event landed on an open Radix menu panel.
  */

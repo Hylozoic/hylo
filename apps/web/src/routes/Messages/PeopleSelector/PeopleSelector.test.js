@@ -2,6 +2,8 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import PeopleSelector from './PeopleSelector'
 
+/* global Element */
+
 beforeAll(() => {
   window.Element.prototype.scrollTo = jest.fn()
 })

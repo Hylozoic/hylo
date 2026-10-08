@@ -18,7 +18,15 @@ export default function apiProxy (req, res, next) {
   const headers = { ...req.headers, host: apiHostname }
   const upstreamReq = method(url, { headers, followRedirect: false })
 
+  upstreamReq.on('response', upstreamRes => {
+    res.writeHead(upstreamRes.statusCode, upstreamRes.headers)
+    upstreamRes.pipe(res)
+  })
+
+  upstreamReq.on('error', err => {
+    console.error('✗ ' + err.message)
+    if (!res.headersSent) res.status(502).end()
+  })
+
   req.pipe(upstreamReq)
-    .on('error', err => console.error('✗ ' + err.message))
-    .pipe(res)
 }
