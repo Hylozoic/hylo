@@ -518,7 +518,7 @@ module.exports = bookshelf.Model.extend(merge({
     // tags and password, which are used later)
     const whitelist = pick(changes, [
       'avatar_url', 'banner_url', 'bio', 'email', 'contact_email', 'contact_phone',
-      'extra_info', 'facebook_url', 'intention', 'linkedin_url', 'location', 'location_id',
+      'extra_info', 'facebook_url', 'intention', 'is_profile_public', 'linkedin_url', 'location', 'location_id',
       'name', 'password', 'settings', 'tagline', 'twitter_name', 'url', 'work',
       'new_notification_count', 'calendar_token'
     ])

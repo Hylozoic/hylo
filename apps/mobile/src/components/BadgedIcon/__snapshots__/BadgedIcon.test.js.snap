@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`BadgedIcon matches the last snapshot with the badge 1`] = `
+<TouchableOpacity>
+  <Icon
+    name="Notifications"
+    onPress={[Function]}
+    showBadge={true}
+  />
+  <View>
+    <View />
+  </View>
+</TouchableOpacity>
+`;
+
+exports[`BadgedIcon matches the last snapshot without the badge 1`] = `
+<TouchableOpacity>
+  <Icon
+    name="Notifications"
+    onPress={[Function]}
+  />
+</TouchableOpacity>
+`;

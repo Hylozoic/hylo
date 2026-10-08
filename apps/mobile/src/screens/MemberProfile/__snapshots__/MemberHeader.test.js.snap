@@ -1,0 +1,55 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MemberHeader matches the last snapshot 1`] = `
+<View>
+  <View>
+    <Control
+      isMe={true}
+      onChangeText={[Function]}
+      placeholder="Name"
+      value="Jonas"
+    />
+    <View>
+      <MemberMenu
+        blockUser={[Function]}
+        flagMember={[Function]}
+        isAxolotl={false}
+        isMe={true}
+      />
+    </View>
+  </View>
+  <Control
+    isMe={true}
+    multiline={true}
+    onPress={[Function]}
+    placeholder="Location"
+    value="whale"
+  />
+  <Control
+    isMe={true}
+    onChangeText={[Function]}
+    placeholder="Short Description"
+    value="fingers crossed"
+  />
+</View>
+`;
+
+exports[`MemberMenu returns a popupmenu when flagging allowed 1`] = `
+<PopupMenuButton
+  actions={
+    [
+      [
+        "Flag This Member",
+        [Function],
+      ],
+    ]
+  }
+  destructiveButtonIndex={-1}
+>
+  <Icon
+    name="More"
+  />
+</PopupMenuButton>
+`;
+
+exports[`MemberMenu returns null when flagging not allowed 1`] = `null`;

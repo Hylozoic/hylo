@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectMembersSummary renders as expected 1`] = `
+<TouchableOpacity
+  onPress={[Function]}
+>
+  <Avatar
+    dimension={43}
+    hasBorder={true}
+    hasOverlap={false}
+    zIndex={3}
+  />
+  <Text>
+    1 member
+  </Text>
+</TouchableOpacity>
+`;
+
+exports[`ProjectMembersSummary renders as expected without an onPress handler 1`] = `
+<View>
+  <Avatar
+    dimension={43}
+    hasBorder={true}
+    hasOverlap={false}
+    zIndex={3}
+  />
+  <Text>
+    1 member
+  </Text>
+</View>
+`;

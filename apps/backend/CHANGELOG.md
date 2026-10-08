@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.4] - 2026-10-01
+
+### Added
+- Add 'silent' parameter to createPost to enable stewards to create posts without sending notifications. Only used for importing a lot of posts via zapier for now.
+
+### Changed
+- Flatten imageUrls on postinput to support nested array formats coming from zapier
+- Performance improvements:
+- Don't wait on db update of user.last_active_at on every query. Only update database every 5 minutes. Don't await on the query.
+- Improve compression of data sent by the server to the browser. Use brotli instead of gzip when the client accepts it
+- Add some additional database indexes for common reads
+
+### Fixed
+- Ensure that when someone leaves a group, the roles associated with their membership are deleted. So if they rejoin, they dont have those roles already. Also fixes a bug where deactivated stewards were getting join notifications.
+
+
 ## [7.1.2] - 2026-10-01
 
 ### Added

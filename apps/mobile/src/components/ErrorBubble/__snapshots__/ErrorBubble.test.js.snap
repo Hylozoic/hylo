@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches last snapshot 1`] = `
+<View>
+  <View>
+    <Text>
+      Some error message
+    </Text>
+  </View>
+</View>
+`;

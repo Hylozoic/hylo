@@ -136,14 +136,16 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
   // Fetch post; include action-completion fields only for action posts.
   // Deep-linked actions may fetch twice: once without type, again once type is known.
+  // Anonymous viewers skip comments/commenter identities (counts only).
   useEffect(() => {
     if (!postId) return
     const isAction = post?.type === 'action'
     dispatch(fetchPost(postId, {
+      withComments: !!currentUser,
       withCompletion: isAction,
       withCompletionResponses: isAction && hasTracksResponsibility
     }))
-  }, [postId, post?.type, hasTracksResponsibility])
+  }, [postId, post?.type, hasTracksResponsibility, currentUser])
 
   useEffect(() => {
     if (!post) return

@@ -5,7 +5,7 @@ import PeopleSelector from './PeopleSelector'
 /* global Element */
 
 beforeAll(() => {
-  Element.prototype.scrollTo = jest.fn()
+  window.Element.prototype.scrollTo = jest.fn()
 })
 
 const defaultProps = {

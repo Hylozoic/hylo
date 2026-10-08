@@ -1,5 +1,5 @@
 import { filter, get, isFunction } from 'lodash/fp'
-import { BookmarkCheck, Bookmark, Flag, Megaphone, MessageCircle, Trash2, Pencil } from 'lucide-react'
+import { BookmarkCheck, Bookmark, Flag, Link2, Megaphone, MessageCircle, Trash2, Pencil } from 'lucide-react'
 import PropTypes from 'prop-types'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -155,15 +155,22 @@ export default function PostCard (props) {
     navigator.clipboard.writeText(postUrl)
   }, [postUrl])
 
-  // Chat mode action items
-  const chatActionItems = useMemo(() => filter(item => isFunction(item.onClick), [
-    { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: () => viewPostDetails(post), tooltip: t('Reply to Post') },
-    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator) ? () => navigate(editPostUrl(post.id, routeParams)) : null, tooltip: 'Edit post' },
-    { icon: post.savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: post.savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: post.savedAt ? t('Unsave Post') : t('Save Post') },
-    { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => setFlaggingVisible(true) : null, tooltip: t('Flag Post') },
-    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: t('Delete Post') },
-    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: t('Remove post from group') }
-  ]), [post, isCreator, currentUserResponsibilities, handleSavePost, copyLink, deletePostWithConfirm, removePostWithConfirm, viewPostDetails, t])
+  // Chat mode action items — logged-out viewers only get Copy Link
+  const chatActionItems = useMemo(() => {
+    if (!currentUser) {
+      return [
+        { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink, tooltip: t('Copy Link') }
+      ]
+    }
+    return filter(item => isFunction(item.onClick), [
+      { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: () => viewPostDetails(post), tooltip: t('Reply to Post') },
+      { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator) ? () => navigate(editPostUrl(post.id, routeParams)) : null, tooltip: 'Edit post' },
+      { icon: post.savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: post.savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: post.savedAt ? t('Unsave Post') : t('Save Post') },
+      { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => setFlaggingVisible(true) : null, tooltip: t('Flag Post') },
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: t('Delete Post') },
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: t('Remove post from group') }
+    ])
+  }, [currentUser, post, isCreator, currentUserResponsibilities, handleSavePost, copyLink, deletePostWithConfirm, removePostWithConfirm, viewPostDetails, navigate, routeParams, t])
 
   const myEmojis = useMemo(() =>
     post.postReactions
