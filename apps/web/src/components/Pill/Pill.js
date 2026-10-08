@@ -102,8 +102,12 @@ const Pill = forwardRef(({
       ref={ref}
     >
       <span
-        data-tooltip-html={tooltipContent}
-        data-tooltip-id={tooltipId}
+        {...(tooltipContent
+          ? {
+              'data-tooltip-html': tooltipContent,
+              'data-tooltip-id': tooltipId
+            }
+          : {})}
         className='text-inherit'
         onClick={providedOnClick}
         onTouchStart={handleTouchStart}

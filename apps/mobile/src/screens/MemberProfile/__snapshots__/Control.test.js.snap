@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Control matches the last snapshot 1`] = `
+<View>
+  <View>
+    <React.Fragment>
+      <TextInput
+        editable={true}
+        multiline={true}
+        numberOfLines={8}
+        placeholder="b"
+        underlineColorAndroid="transparent"
+        value="a"
+      />
+      <TouchableOpacity
+        onPress={[Function]}
+      >
+        <Icon
+          allowFontScaling={false}
+          name="edit"
+          size={12}
+        />
+      </TouchableOpacity>
+    </React.Fragment>
+  </View>
+</View>
+`;

@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`disables 1`] = `
+<View>
+  <TouchableOpacity
+    disabled={true}
+    onPress={[Function]}
+  >
+    <View>
+      <View>
+        <Text>
+          Push Me
+        </Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+</View>
+`;
+
+exports[`matches last snapshot 1`] = `
+<View>
+  <TouchableOpacity
+    disabled={false}
+    onPress={[Function]}
+  >
+    <View>
+      <View>
+        <Text>
+          Push Me
+        </Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+</View>
+`;

@@ -6,6 +6,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Users can now make their Hylo profiles public; an alternative to linkedIn or linktree
+- Stewards can now remove a member from the group directly from the member profile page
+- Member profile posts tab refactored with infinite scroll paging for better performance on large post sets
+- Improved anonymous viewer handling for emoji reactions and post creator display on public profiles
+
+### Changed
+- Shared paging infrastructure extracted for reuse across profile list views
+
+## [7.1.4] - 2026-10-01
+
+### Changed
+- **Performance improvements:**
+- Long cache headers for content hashed build files, so browser caches the files until next deploy
+- Load lucide icons dynamically in its own chunk
+- Speed up filtering/loading of posts on the front-end
+
+## [7.1.3] - 2026-10-04
+
+### Fixed
+- Editing a chat post from the post details doesn't convert it to a discussion
+- Don't let people post to a space they have not joined
+- Fix occasional stuck on add location during welcome flow on android
+- Don't save a post draft until there is title or body content
+- Calendar view more flicker on month view
+
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Fixed
+- Fix submission posts not getting created correctly when other post types are on in the funding round space
+- Fix issue where multi day events would only show last day on the calendar
+- Add some top and bottom margin around link preview in the PostCard
+- Space location always displays correctly in space settings if set
+- Long space URL slugs don't shrink space name field to very small. In space settings modal.
+
 ## [7.1.1] - 2026-09-29
 
 ### Added

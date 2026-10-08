@@ -511,7 +511,7 @@ function reaction (num, user, emojiFull, createdAtOffset) {
     emojiBase: emojiFull,
     emojiLabel: emojiFull,
     entityType: 'post',
-    createdAtOffset
+    createdAt_offset: createdAtOffset
   }
 }
 
@@ -558,5 +558,5 @@ export function buildProposalData () {
 }
 
 function vote (id, userId, optionId, postId, createdAtOffset) {
-  return { id: sid('vote', id), userId, optionId, postId, createdAtOffset }
+  return { id: sid('vote', id), userId, optionId, postId, createdAt_offset: createdAtOffset }
 }

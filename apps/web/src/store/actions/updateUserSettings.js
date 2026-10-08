@@ -13,6 +13,7 @@ export default function updateUserSettings (changes) {
             email
             emailValidated
             hasRegistered
+            isProfilePublic
             name
             rsvpCalendarUrl
             settings {

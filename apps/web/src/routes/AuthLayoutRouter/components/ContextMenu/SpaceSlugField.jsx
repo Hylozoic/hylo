@@ -32,7 +32,7 @@ function SpaceUrlPreview ({ parentSlug, slug }) {
     document.body.appendChild(probe)
 
     const measure = (value) => {
-      probe.style.font = getComputedStyle(el).font
+      probe.style.font = window.getComputedStyle(el).font
       probe.textContent = value
       return probe.offsetWidth
     }

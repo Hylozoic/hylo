@@ -93,7 +93,7 @@ describe('ChatPost', () => {
   })
 
   it('shows the full message when it only slightly exceeds the collapsed height', () => {
-    const heightSpy = jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(220)
+    const heightSpy = jest.spyOn(window.HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(220)
     renderComponent({
       post: {
         ...defaultProps.post,
@@ -108,7 +108,7 @@ describe('ChatPost', () => {
   })
 
   it('collapses a message tall enough to need See More, and expands it again', () => {
-    const heightSpy = jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(400)
+    const heightSpy = jest.spyOn(window.HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(400)
     renderComponent({
       post: {
         ...defaultProps.post,

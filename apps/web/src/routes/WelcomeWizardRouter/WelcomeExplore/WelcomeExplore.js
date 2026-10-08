@@ -18,7 +18,7 @@ const WelcomeExplore = () => {
   const currentAvatarUrl = getValue('avatarUrl')
 
   return (
-    <div className='bg-card shadow-md w-[360px] mx-auto rounded-lg'>
+    <div className='bg-card shadow-md w-full mx-auto rounded-lg'>
       <div className='p-4 sm:p-8 flex flex-col justify-center min-h-[480px]'>
         <div className='text-center mb-6'>
           <h3 className='text-2xl font-bold text-foreground mb-2'>{t('Welcome to Hylo!')}</h3>
