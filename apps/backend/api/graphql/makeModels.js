@@ -553,8 +553,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           memberships: {
             filter: relation => {
               // Public profiles only: anonymous viewers see public, non-space groups (membershipFilter).
-              allowPublicProfileRelation(relation)
-              return relation.query(q => Group.excludeSpaces(q))
+              const guarded = allowPublicProfileRelation(relation)
+              return guarded.query(q => Group.excludeSpaces(q))
             }
           }
         },
