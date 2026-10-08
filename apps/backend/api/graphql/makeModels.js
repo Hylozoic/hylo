@@ -166,13 +166,32 @@ export default function makeModels (userId, isAdmin, apiClient) {
   /**
    * Anonymous visitors only reach people through public content (post and comment creators, etc.).
    * They can see who wrote it (id, name, avatar, banner, tagline) but nothing else from the profile.
+   * Opted-in public profiles are the exception: bio, links, skills, and public group memberships stay visible.
+   * Contact and location stay hidden either way.
    */
   const fieldsReturning = (value, fields) => Object.fromEntries(fields.map(f => [f, () => value]))
+  const publicProfileAttribute = column => person =>
+    person.get('is_profile_public') ? person.get(column) : null
   const anonymousPersonGetters = {
-    ...fieldsReturning(null, ['bio', 'contactEmail', 'contactPhone', 'facebookUrl', 'lastActiveAt', 'linkedinUrl', 'location', 'locationObject', 'messageThreadId', 'twitterName', 'url']),
-    ...fieldsReturning([], ['memberships', 'moderatedGroupMemberships']),
+    ...fieldsReturning(null, ['contactEmail', 'contactPhone', 'lastActiveAt', 'location', 'locationObject', 'messageThreadId']),
+    bio: publicProfileAttribute('bio'),
+    facebookUrl: publicProfileAttribute('facebook_url'),
+    linkedinUrl: publicProfileAttribute('linkedin_url'),
+    twitterName: publicProfileAttribute('twitter_name'),
+    url: publicProfileAttribute('url'),
+    ...fieldsReturning([], ['moderatedGroupMemberships']),
     ...fieldsReturning(0, ['membershipsTotal', 'moderatedGroupMembershipsTotal']),
-    ...Object.fromEntries(['affiliations', 'comments', 'eventsAttending', 'groupJoinQuestionAnswers', 'groupRoles', 'posts', 'projects', 'reactions', 'skills', 'skillsToLearn'].map(f => [f, emptyQuerySet]))
+    ...Object.fromEntries(['affiliations', 'comments', 'eventsAttending', 'groupJoinQuestionAnswers', 'groupRoles', 'posts', 'projects', 'reactions'].map(f => [f, emptyQuerySet]))
+  }
+
+  /**
+   * Keep a person relation empty for anonymous viewers unless that person opted into a public profile.
+   */
+  function allowPublicProfileRelation (relation) {
+    if (!blockGroupMemberEnumerationForAnonymous) return relation
+    const attrs = relation.relatedData && relation.relatedData.parentAttributes
+    if (attrs && attrs.is_profile_public) return relation
+    return relation.query(q => q.whereRaw('false'))
   }
 
   /** Returns a relation query that matches no rows (used for public GraphQL without session). */
@@ -510,7 +529,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         {
           memberships: {
-            filter: relation => relation.query(q => Group.excludeSpaces(q))
+            filter: relation => {
+              // Public profiles only: anonymous viewers see public, non-space groups (membershipFilter).
+              allowPublicProfileRelation(relation)
+              return relation.query(q => Group.excludeSpaces(q))
+            }
           }
         },
         {
@@ -605,8 +628,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             })
           }
         },
-        { skills: { querySet: true } },
-        { skillsToLearn: { querySet: true } },
+        { skills: { querySet: true, filter: relation => allowPublicProfileRelation(relation) } },
+        { skillsToLearn: { querySet: true, filter: relation => allowPublicProfileRelation(relation) } },
         {
           reactions: {
             querySet: true,
