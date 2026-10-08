@@ -167,25 +167,47 @@ export default function makeModels (userId, isAdmin, apiClient) {
    * Anonymous visitors only reach people through public content (post and comment creators, etc.).
    * They can see who wrote it (id, name, avatar, banner, tagline) but nothing else from the profile.
    * Opted-in public profiles are the exception: bio, links, skills, and public group memberships stay visible.
-   * Contact and location stay hidden either way.
+   * Contact info stays hidden either way.
    */
   const fieldsReturning = (value, fields) => Object.fromEntries(fields.map(f => [f, () => value]))
   const publicProfileAttribute = column => person =>
     person.get('is_profile_public') ? person.get(column) : null
   const anonymousPersonGetters = {
-    ...fieldsReturning(null, ['contactEmail', 'contactPhone', 'lastActiveAt', 'location', 'locationObject', 'messageThreadId']),
+    ...fieldsReturning(null, ['contactEmail', 'contactPhone', 'lastActiveAt', 'messageThreadId']),
     bio: publicProfileAttribute('bio'),
     facebookUrl: publicProfileAttribute('facebook_url'),
     linkedinUrl: publicProfileAttribute('linkedin_url'),
     twitterName: publicProfileAttribute('twitter_name'),
     url: publicProfileAttribute('url'),
-    ...fieldsReturning([], ['moderatedGroupMemberships']),
-    ...fieldsReturning(0, ['membershipsTotal', 'moderatedGroupMembershipsTotal']),
-    ...Object.fromEntries(['affiliations', 'comments', 'eventsAttending', 'groupJoinQuestionAnswers', 'groupRoles', 'posts', 'projects', 'reactions'].map(f => [f, emptyQuerySet]))
+
+    // Total fields must stay as getters because _loadMany never calls the tap callback,
+    // which would leave the standard .Total Promise hanging forever.
+    membershipsTotal: async p => {
+      if (!p.get('is_profile_public')) return 0
+      const fetched = await p.memberships().fetch()
+      const items = fetched.models || []
+      return items.length
+    },
+    moderatedGroupMembershipsTotal: async p => {
+      if (!p.get('is_profile_public')) return 0
+      const fetched = await p.moderatedGroupMemberships().fetch()
+      const items = fetched.models || []
+      return items.length
+    },
+
+    // Relations: NOT overridden here — for public profiles the standard relation resolvers
+    // handle them (the post filter already limits to public posts for anonymous viewers).
+    // For non-public profiles the personFilter blocks the person query entirely, so these
+    // never resolve.  The Post.creator skipModelFilter case is guarded by postFilter.
+    //
+    // Keep allowPublicProfileRelation for future use as a relation filter:
+    //   posts: { querySet: true, filter: allowPublicProfileRelation }
   }
 
   /**
    * Keep a person relation empty for anonymous viewers unless that person opted into a public profile.
+   * Use as a filter in relation definitions, e.g.:
+   *   posts: { querySet: true, filter: allowPublicProfileRelation }
    */
   function allowPublicProfileRelation (relation) {
     if (!blockGroupMemberEnumerationForAnonymous) return relation
@@ -514,9 +536,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         contactEmail: p => userId ? p.get('contact_email') : null,
         contactPhone: p => userId ? p.get('contact_phone') : null,
         enrolledAt: p => p.pivot && p.pivot.get('created_at'),
-        location: p => userId ? p.get('location') : null,
+        location: p => (userId || p.get('is_profile_public')) ? p.get('location') : null,
         locationObject: async p => {
-          if (!userId) return null
+          if (!userId && !p.get('is_profile_public')) return null
           await p.load('locationObject')
           return p.relations.locationObject
         },
