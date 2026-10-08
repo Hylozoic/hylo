@@ -729,7 +729,6 @@ export default function AuthLayoutRouter (props) {
     dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, new Date().toISOString()))
   }, [dispatch, isFirstGroupVisit, currentUser?.id, currentGroup?.id, currentGroup?.groupViews, landOnWelcome])
 
-  console.log('homeRoute', currentGroup?.homeRoute)
   // Redirect to stream if user is a member but doesn't have access (expired subscription)
   useEffect(() => {
     if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
