@@ -120,6 +120,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
   // XXX: for now give super API users more access, in the future track which groups each client can access
   const apiFilter = makeFilterToggle(!apiClient || !apiClient.super)
 
+  // cache: false on the loaders below. makeSchema reuses this executable schema
+  // across requests, so a cached row would stay stale until the process restarts.
   // One query per All Activity page for every notice's recentPostIds
   const noticeChatPostsLoader = new DataLoader(async (ids) => {
     const posts = await Post.query(q => {
@@ -129,7 +131,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
     }).fetchAll()
     const byId = new Map(posts.models.map(post => [String(post.id), post]))
     return ids.map(id => byId.get(String(id)) || null)
-  }, { cacheKeyFn: id => String(id) })
+  }, { cache: false, cacheKeyFn: id => String(id) })
 
   // cache: false — makeSchema reuses this executable schema (and these loaders)
   // across requests. A cached new_post_count after markViewAsRead made the
@@ -157,26 +159,29 @@ export default function makeModels (userId, isAdmin, apiClient) {
       byView.get(key).push(row.post_id)
     }
     return viewIds.map(id => byView.get(String(id)) || [])
-  }, { cacheKeyFn: id => String(id) })
+  }, { cache: false, cacheKeyFn: id => String(id) })
 
   const blockGroupMemberEnumerationForAnonymous = !userId && !apiClient
 
   /**
    * Anonymous visitors only reach people through public content (post and comment creators, etc.).
-   * When a person has opted into public profiles (is_profile_public = true), they see the full profile.
-   * Otherwise they only get name, avatar, banner, tagline — the plain Person attributes.
+   * They can see who wrote it (id, name, avatar, banner, tagline) but nothing else from the profile.
+   * Opted-in public profiles are the exception: bio, links, skills, and public group memberships stay visible.
+   * Contact info stays hidden either way.
    */
+  const fieldsReturning = (value, fields) => Object.fromEntries(fields.map(f => [f, () => value]))
+  const publicProfileAttribute = column => person =>
+    person.get('is_profile_public') ? person.get(column) : null
   const anonymousPersonGetters = {
-    // Attributes — show when the person has opted into a public profile
-    bio: p => p.get('is_profile_public') ? p.get('bio') : null,
-    facebookUrl: p => p.get('is_profile_public') ? p.get('facebook_url') : null,
-    lastActiveAt: () => null,
-    linkedinUrl: p => p.get('is_profile_public') ? p.get('linkedin_url') : null,
-    twitterName: p => p.get('is_profile_public') ? p.get('twitter_name') : null,
-    url: p => p.get('is_profile_public') ? p.get('url') : null,
+    ...fieldsReturning(null, ['contactEmail', 'contactPhone', 'lastActiveAt', 'messageThreadId']),
+    bio: publicProfileAttribute('bio'),
+    facebookUrl: publicProfileAttribute('facebook_url'),
+    linkedinUrl: publicProfileAttribute('linkedin_url'),
+    twitterName: publicProfileAttribute('twitter_name'),
+    url: publicProfileAttribute('url'),
 
-    // Total fields — override to close the hasTotal emitter gap (_loadMany ignores the tap callback)
-    // so the standard relation resolver would leave the .Total Promise hanging forever.
+    // Total fields must stay as getters because _loadMany never calls the tap callback,
+    // which would leave the standard .Total Promise hanging forever.
     membershipsTotal: async p => {
       if (!p.get('is_profile_public')) return 0
       const fetched = await p.memberships().fetch()
@@ -193,11 +198,22 @@ export default function makeModels (userId, isAdmin, apiClient) {
     // Relations: NOT overridden here — for public profiles the standard relation resolvers
     // handle them (the post filter already limits to public posts for anonymous viewers).
     // For non-public profiles the personFilter blocks the person query entirely, so these
-    // never resolve.  The one exception is the Post.creator relation with skipModelFilter,
-    // where the relation filter (postFilter → public posts only) provides the guard.
+    // never resolve.  The Post.creator skipModelFilter case is guarded by postFilter.
+    //
+    // Keep allowPublicProfileRelation for future use as a relation filter:
+    //   posts: { querySet: true, filter: allowPublicProfileRelation }
+  }
 
-    // Contact / location / messageThreadId are already handled by individual getters above.
-    // This spread must not include them or it would override those getters for everyone.
+  /**
+   * Keep a person relation empty for anonymous viewers unless that person opted into a public profile.
+   * Use as a filter in relation definitions, e.g.:
+   *   posts: { querySet: true, filter: allowPublicProfileRelation }
+   */
+  function allowPublicProfileRelation (relation) {
+    if (!blockGroupMemberEnumerationForAnonymous) return relation
+    const attrs = relation.relatedData && relation.relatedData.parentAttributes
+    if (attrs && attrs.is_profile_public) return relation
+    return relation.query(q => q.whereRaw('false'))
   }
 
   /** Returns a relation query that matches no rows (used for public GraphQL without session). */
@@ -535,7 +551,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         {
           memberships: {
-            filter: relation => relation.query(q => Group.excludeSpaces(q))
+            filter: relation => {
+              // Public profiles only: anonymous viewers see public, non-space groups (membershipFilter).
+              const guarded = allowPublicProfileRelation(relation)
+              return guarded.query(q => Group.excludeSpaces(q))
+            }
           }
         },
         {
@@ -630,8 +650,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             })
           }
         },
-        { skills: { querySet: true } },
-        { skillsToLearn: { querySet: true } },
+        { skills: { querySet: true, filter: relation => allowPublicProfileRelation(relation) } },
+        { skillsToLearn: { querySet: true, filter: relation => allowPublicProfileRelation(relation) } },
         {
           reactions: {
             querySet: true,
