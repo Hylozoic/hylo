@@ -47,6 +47,7 @@ export default function Search (props) {
   const previousLocation = useSelector(getPreviousLocation)
   const groupIds = useMemo(() => group?.id ? [group.id] : null, [group?.id])
   const [searchForInput, setSearchForInput] = useState(searchFromQueryString)
+  const [autoFocusEnabled, setAutoFocusEnabled] = useState(true)
   const [filter, setFilter] = useState('all')
   const searchTermReady = searchForInput.trim().length >= MIN_SEARCH_TERM_LENGTH
   const groupScopeReady = !groupSlug || !!groupIds
@@ -96,6 +97,12 @@ export default function Search (props) {
     fetchSearchResultsAction()
   }, [fetchSearchResultsAction])
 
+  // Disable auto-focus after the first render so Android WebView
+  // doesn't re-focus the search input when post modals open/close.
+  useEffect(() => {
+    setAutoFocusEnabled(false)
+  }, [])
+
   // Person cards are short, so a people-heavy All page often never overflows.
   // ScrollListener only fires after a scroll, so keep fetching until the list fills the column.
   useLayoutEffect(() => {
@@ -122,7 +129,7 @@ export default function Search (props) {
             inputRef={inputRef}
             value={searchForInput}
             placeholder={t('Search for people, posts and comments')}
-            autoFocus
+            autoFocus={autoFocusEnabled}
             onChange={event => {
               const { value } = event.target
               setSearchForInput(value)
@@ -132,7 +139,7 @@ export default function Search (props) {
         </div>
       </div>
     )
-  }, [searchForInput, t, updateQueryParam])
+}, [searchForInput, t, updateQueryParam, autoFocusEnabled])
 
   const { setHeaderDetails } = useViewHeader()
   const [backDestination, setBackDestination] = useState(null)
