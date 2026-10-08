@@ -12,6 +12,7 @@
  */
 
 import customMiddleware from './customMiddleware'
+import responseCompression from '../lib/responseCompression'
 import { magenta } from 'chalk'
 
 module.exports.http = {
@@ -34,17 +35,22 @@ module.exports.http = {
     passportSession: require('passport').session(),
     sentry: require('../lib/sentry').errorHandler(),
 
+    // Brotli when the client accepts it, otherwise gzip. On in every environment
+    // so local responses match production. Runs before GraphQL is mounted.
+    // The Heroku router does not compress; Sails' built-in gzip ran only when NODE_ENV is production.
+    compress: responseCompression,
+
     requestLogger: function (req, res, next) {
       sails.log.info(magenta(`${req.method} ${req.url}`))
       next()
     },
 
-  /***************************************************************************
-  *                                                                          *
-  * The order in which middleware should be run for HTTP request. (the Sails *
-  * router is invoked by the "router" middleware below.)                     *
-  *                                                                          *
-  ***************************************************************************/
+    /***************************************************************************
+    *                                                                          *
+    * The order in which middleware should be run for HTTP request. (the Sails *
+    * router is invoked by the "router" middleware below.)                     *
+    *                                                                          *
+    ***************************************************************************/
 
     order: [
       'cookieParser',
@@ -52,7 +58,6 @@ module.exports.http = {
       'passportInit',
       'passportSession',
       'compress',
-      'poweredBy',
       'requestLogger',
       '$custom',
       'router',
@@ -61,20 +66,20 @@ module.exports.http = {
       'sentry'
     ]
 
-  /***************************************************************************
-  *                                                                          *
-  * The body parser that will handle incoming multipart HTTP requests. By    *
-  * default as of v0.10, Sails uses                                          *
-  * [skipper](http://github.com/balderdashy/skipper). See                    *
-  * http://www.senchalabs.org/connect/multipart.html for other options.      *
-  *                                                                          *
-  ***************************************************************************/
+    /***************************************************************************
+    *                                                                          *
+    * The body parser that will handle incoming multipart HTTP requests. By    *
+    * default as of v0.10, Sails uses                                          *
+    * [skipper](http://github.com/balderdashy/skipper). See                    *
+    * http://www.senchalabs.org/connect/multipart.html for other options.      *
+    *                                                                          *
+    ***************************************************************************/
 
     // bodyParser: require('skipper')
 
   },
 
-  customMiddleware,
+  customMiddleware
 
   /***************************************************************************
   *                                                                          *

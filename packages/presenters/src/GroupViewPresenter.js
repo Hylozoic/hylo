@@ -22,7 +22,7 @@ const VIEW_TYPE_TO_ICON_NAME = {
 
 /**
  * Defaults for built-in / system GroupView types (labels, icons, stream filters).
- * Shared by web ViewContent and packages (e.g. useStreamQueryVariables).
+ * Shared by web ViewContent and the view menu.
  */
 export const COMMON_VIEWS = {
   all: {
@@ -117,6 +117,10 @@ export const COMMON_VIEWS = {
   welcome: {
     name: 'Welcome',
     iconName: 'Hand'
+  },
+  page: {
+    name: 'Page',
+    lucideIcon: 'FileText'
   }
 }
 
@@ -133,6 +137,7 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   member: 'User',
   members: 'Users',
   moderation: 'ShieldCheck',
+  page: 'FileText',
   projects: 'Layers',
   proposals: 'Vote',
   resources: 'PackageOpen',
@@ -152,6 +157,7 @@ const LUCIDE_ICON_NAMES = new Set([
   'Edit',
   'ExternalLink',
   'FilePenLine',
+  'FileText',
   'Grid3x3',
   'Languages',
   'Layers',
@@ -212,7 +218,7 @@ export function avatarForView (view) {
 /** Resolves the icon for a view — DB override, linked space group icon, then type default. */
 export function iconForView (view) {
   if (view?.icon) {
-    if (LUCIDE_ICON_NAMES.has(view.icon) || view.type === 'custom' || view.type === 'collection' || view.type === 'space-collection' || view.type === 'space' || view.type === 'link' || view.type === 'logout') {
+    if (LUCIDE_ICON_NAMES.has(view.icon) || view.type === 'custom' || view.type === 'collection' || view.type === 'space-collection' || view.type === 'space' || view.type === 'link' || view.type === 'logout' || view.type === 'page') {
       return { iconName: null, lucideIcon: view.icon }
     }
     return { iconName: view.icon, lucideIcon: null }

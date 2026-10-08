@@ -29,7 +29,8 @@ export default function fetchPosts ({
   topic,
   topics,
   types,
-  fieldsVariant
+  fieldsVariant,
+  replaceResults
 }) {
   let query, extractModel, getItems
 
@@ -85,7 +86,9 @@ export default function fetchPosts ({
           const params = { ...meta.graphql.variables }
           if (meta.groupId) params.groupId = meta.groupId
           return params
-        }
+        },
+        // Offset 0 refreshes replace the list. Later pages still append.
+        replace: Boolean(replaceResults)
       }
     }
   }

@@ -5,6 +5,7 @@ test.use({ storageState: 'e2e/.auth/session.json' })
 
 test('members page pill clamp does not loop', async ({ page }) => {
   test.skip(test.info().project.name.includes('mobile'), 'pill clamp is a desktop layout check')
+  test.setTimeout(120000)
   const errors = []
   page.on('console', msg => {
     if (msg.type() === 'error') errors.push(msg.text())

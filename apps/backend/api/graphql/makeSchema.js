@@ -167,7 +167,6 @@ import {
   updateSpace,
   updateStripeAccount,
   updateViewSettings,
-  updateWidget,
   useInvitation,
   createStripeConnectedAccount,
   createStripeAccountLink,
@@ -343,6 +342,18 @@ function invitationMatchesGroupQuery (inviteCheck, slug, id) {
 }
 
 /**
+ * Throws unless the user holds the responsibility in every listed group (at least one required).
+ */
+async function requireResponsibilityInGroups (userId, groupIds, responsibility) {
+  if (!userId || !groupIds?.length) throw new GraphQLError('You do not have permission to do that')
+  for (const groupId of groupIds) {
+    if (!await GroupMembership.hasResponsibility(userId, groupId, responsibility)) {
+      throw new GraphQLError('You do not have permission to do that')
+    }
+  }
+}
+
+/**
  * Maps a Bookshelf model instance to its GraphQL type name from makeModels config.
  */
 export function getTypeForInstance (instance, models) {
@@ -440,7 +451,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       InvitationService.check(invitationToken, accessCode),
     comment: (root, { id }) => fetchOne('Comment', id),
     connections: (root, args) => fetchMany('PersonConnection', args),
-    contentAccess: (root, args) => fetchMany('ContentAccess', args),
+    contentAccess: async (root, args, context) => {
+      await requireResponsibilityInGroups(context.currentUserId, args.groupIds, Responsibility.constants.RESP_ADMINISTRATION)
+      return fetchMany('ContentAccess', args)
+    },
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
     group: async (root, { id, slug, updateLastViewed, accessCode, invitationToken }, context) => {
       let group
@@ -457,8 +471,13 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
         group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
       }
       if (updateLastViewed && group) {
-        // Resets new post count to 0
-        await GroupMembership.updateLastViewedAt(context.currentUserId, group)
+        // Side effect only — a badge-sync failure must not null out the group
+        // (that rejects FETCH_POSTS and the stream looks empty).
+        try {
+          await GroupMembership.updateLastViewedAt(context.currentUserId, group)
+        } catch (err) {
+          sails.log.error('updateLastViewedAt failed:', err)
+        }
       }
       return group
     },
@@ -478,7 +497,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     groupTopic: (root, { topicName, groupSlug }) => GroupTag.findByTagAndGroup(topicName, groupSlug),
     groupTopics: (root, args) => fetchMany('GroupTopic', args),
     groups: (root, args) => fetchMany('Group', args),
-    joinRequests: (root, args) => fetchMany('JoinRequest', args),
+    joinRequests: async (root, args, context) => {
+      await requireResponsibilityInGroups(context.currentUserId, args.groupId ? [args.groupId] : [], Responsibility.constants.RESP_ADD_MEMBERS)
+      return fetchMany('JoinRequest', args)
+    },
     myDrafts: (root, args, context) =>
       Draft.where({ user_id: context.currentUserId }).orderBy('updated_at', 'desc').fetchAll(),
 
@@ -606,7 +628,7 @@ export function makeMutations ({ fetchOne }) {
 
     allocateTokensToSubmission: (root, { postId, tokens }, context) => allocateTokensToSubmission(context.currentUserId, postId, tokens),
 
-    allowGroupInvites: (root, { groupId, data }) => allowGroupInvites(groupId, data),
+    allowGroupInvites: (root, { groupId, data }, context) => allowGroupInvites(context.currentUserId, groupId, data),
 
     blockUser: (root, { blockedUserId }, context) => blockUser(context.currentUserId, blockedUserId),
 
@@ -663,11 +685,11 @@ export function makeMutations ({ fetchOne }) {
 
     reorderViewPost: (root, { viewId, postId, order }, context) => reorderViewPost(context.currentUserId, viewId, postId, order),
 
-    createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status }, context) =>
-      createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status }, context),
+    createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context) =>
+      createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context),
 
-    updateSpace: (root, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status }, context) =>
-      updateSpace(context.currentUserId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status }, context),
+    updateSpace: (root, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context) =>
+      updateSpace(context.currentUserId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context),
 
     archiveSpace: (root, { id }, context) => archiveSpace(context.currentUserId, id, context),
 
@@ -704,7 +726,7 @@ export function makeMutations ({ fetchOne }) {
 
     createTopic: (root, { topicName, groupId, isDefault, isSubscribing }, context) => createTopic(context.currentUserId, topicName, groupId, isDefault, isSubscribing),
 
-    deactivateMe: (root, args, context) => deactivateUser({ sessionId: context.req.sessionId, userId: context.currentUserId }),
+    deactivateMe: (root, args, context) => deactivateUser({ sessionId: context.req.sessionID, userId: context.currentUserId }),
 
     declineJoinRequest: (root, { joinRequestId }, context) => declineJoinRequest(context.currentUserId, joinRequestId),
 
@@ -726,7 +748,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteGroupTopic: (root, { id }, context) => deleteGroupTopic(context.currentUserId, id),
 
-    deleteMe: (root, args, context) => deleteUser({ sessionId: context.req.sessionId, userId: context.currentUserId }),
+    deleteMe: (root, args, context) => deleteUser({ sessionId: context.req.sessionID, userId: context.currentUserId }),
 
     deletePost: (root, { id }, context) => deletePost(context.currentUserId, id),
 
@@ -882,13 +904,13 @@ export function makeMutations ({ fetchOne }) {
 
     updateGroupSettings: (root, { id, changes }, context) => updateGroup(context.currentUserId, id, changes, context),
 
-    updateGroupTopic: (root, { id, data }, context) => updateGroupTopic(id, data),
+    updateGroupTopic: (root, { id, data }, context) => updateGroupTopic(context.currentUserId, id, data),
 
     updateGroupTopicFollow: (root, args, context) => updateGroupTopicFollow(context.currentUserId, args),
 
     updateTopicFollow: (root, args, context) => updateTopicFollow(context.currentUserId, args),
 
-    updateMe: (root, { changes }, context) => updateMe(context.req.sessionId, context.currentUserId, changes),
+    updateMe: (root, { changes }, context) => updateMe(context.req.sessionID, context.currentUserId, changes),
 
     updateMembership: (root, args, context) => updateMembership(context.currentUserId, args),
 
@@ -905,8 +927,6 @@ export function makeMutations ({ fetchOne }) {
     updateStripeAccount: (root, { accountId }, context) => updateStripeAccount(context.currentUserId, accountId),
 
     updateTrack: (root, { trackId, data }, context) => updateTrack(context.currentUserId, trackId, data),
-
-    updateWidget: (root, { id, changes }, context) => updateWidget(id, changes),
 
     useInvitation: (root, { invitationToken, accessCode }, context) => useInvitation(context.currentUserId, invitationToken, accessCode),
 
@@ -940,7 +960,7 @@ export function makeApiQueries ({ fetchOne, fetchMany }) {
 
 export function makeApiMutations () {
   return {
-    addMember: (root, { userId, groupId, role }) => addMember(userId, groupId, role),
+    addMember: (root, { userId, groupId, assignAdministrator }) => addMember(userId, groupId, assignAdministrator),
     createGroup: (root, { asUserId, data }) => createGroup(asUserId, data),
     updateGroup: (root, { asUserId, id, changes }) => updateGroup(asUserId, id, changes)
   }

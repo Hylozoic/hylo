@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { assignCoordinator } from '../../../test/setup/roleHelpers'
+import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, deletePost, fulfillPost, unfulfillPost } from './post'
 import { spyify, unspyify } from '../../../test/setup/helpers'
 
@@ -14,7 +14,7 @@ describe('pinPost', () => {
     post = factories.post()
     return Promise.join(group.save(), user.save(), post.save())
       .then(() => group.posts().attach(post))
-      .then(() => user.joinGroup(group, { assignCoordinator: true }))
+      .then(() => user.joinGroup(group, { assignAdministrator: true }))
       .then(() => GroupView.forge({
         group_id: group.id,
         type: GroupView.Type.ALL,
@@ -342,14 +342,14 @@ describe('fulfillPost and unfulfillPost', () => {
     expect(Activity.saveForReasons).to.have.been.called
   })
 
-  it('allows a coordinator to fulfill a fulfillable post', async () => {
-    const coordinator = await factories.user().save()
+  it('allows an administrator to fulfill a fulfillable post', async () => {
+    const administrator = await factories.user().save()
     const g = await factories.group().save()
-    await assignCoordinator(coordinator, g)
+    await assignAdministrator(administrator, g)
     const offerPost = await factories.post({ type: 'offer', user_id: author.id }).save()
     await offerPost.groups().attach(g)
 
-    const result = await fulfillPost(coordinator.id, offerPost.id)
+    const result = await fulfillPost(administrator.id, offerPost.id)
     expect(result).to.deep.equal({ success: true })
     await offerPost.refresh()
     expect(offerPost.get('fulfilled_at')).to.exist

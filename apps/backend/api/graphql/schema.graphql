@@ -827,6 +827,9 @@ type Group {
   # Cached count of on-menu views (order is not null). Stored on groups.menu_view_count
   # so a parent menu can tell single-view vs multi-view spaces without a nested query.
   menuViewCount: Int
+  # Cached count of child spaces not on the group menu. Stored on groups.more_spaces_count
+  # so the menu can show More Spaces and its badge without loading the spaces list.
+  moreSpacesCount: Int
   # The current invite link for this group
   invitePath: String
   # A string describing the physical location of this group in the world
@@ -1000,8 +1003,10 @@ type Group {
     boundingBox: [PointInput],
     # Exclude people who are already members of this group (e.g. parent members not yet in a space)
     excludeGroupId: ID,
-    # Return members with a specific groupRole
+    # DEPRECATED Return members with a specific groupRole
     groupRoleId: ID,
+    # Return members with any of these groupRoles (alternative to single groupRoleId)
+    groupRoleIds: [ID],
     # Track space only: true = members who completed the track, false = members who have not
     trackCompleted: Boolean,
     # Funding round space: 'submit' / 'notSubmit' / 'vote' / 'notVote'
@@ -1269,9 +1274,6 @@ type Group {
     # Sort by 'created_at', 'expires_at', 'user_name'
     sortBy: String
   ): ContentAccessQuerySet
-
-  # Widgets used on the Explore page
-  widgets: GroupWidgetQuerySet
 }
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type FundingRoundQuerySet {
@@ -1292,7 +1294,7 @@ type GroupView {
   id: ID
   # The Group or Space this view belongs to
   group: Group
-  # Display name override (used by 'custom', 'space' and 'group' type views)
+  # Display name override (used by 'custom', 'page', 'space' and 'group' type views)
   name: String
   # The type of view, e.g. 'chat', 'welcome', 'custom', 'space', 'collection', 'link', etc.
   type: String
@@ -1300,7 +1302,7 @@ type GroupView {
   order: Int
   # Icon override for this view
   icon: String
-  # Markdown content, used by 'welcome', 'text' and 'link' type views
+  # HTML content, used by 'page', 'welcome', 'text' and 'link' type views
   pageContent: String
   # URL, used by 'link' type views
   link: String
@@ -1448,6 +1450,8 @@ type GroupSettings {
   showWelcomePage: Boolean
   # Whether the chat view shows inline notices when other post types are created
   showPostNoticesInChat: Boolean
+  # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
+  autoAddMembers: Boolean
 }
 
 # A relationship between two Groups
@@ -1598,37 +1602,6 @@ type GroupTopicQuerySet {
   total: Int
   hasMore: Boolean
   items: [GroupTopic]
-}
-
-# Data related to a widget used on the Explore page in a specific group
-type GroupWidget {
-  id: ID
-  # Where this widget is being displayed. Only option right now is 'landing' which means the group Explore page
-  context: String
-  # Which group this widget is being displayed in
-  group: Group
-  # Whether this widget is to  be displayed or not
-  isVisible: Boolean
-  # Name of the widget
-  name: String
-  # The ordering of widgets displayed in the context
-  order: Int
-  # Settings for this widget in this group/context
-  settings: GroupWidgetSettings
-}
-
-type GroupWidgetSettings {
-  # Text content for this widget if it has some
-  text: String
-  # Title content for this widget if it has one
-  title: String
-}
-
-# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
-type GroupWidgetQuerySet {
-  total: Int
-  hasMore: Boolean
-  items: [GroupWidget]
 }
 
 # NOT USED RIGHT NOW
@@ -2051,6 +2024,10 @@ type Message {
   messageThread: MessageThread
   # The content of the Message
   text: String
+  # All reactions on a message
+  commentReactions: [Reaction]
+  # Number of total reactions on a message
+  commentReactionsTotal: Int
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -3025,6 +3002,8 @@ type FundingRound {
   phase: FundingRoundPhase
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether members can see every submission during the submissions phase
+  showRealtimeSubmissions: Boolean
   # Whether to show running vote totals during the voting phase
   showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
@@ -3123,6 +3102,8 @@ type UserSettings {
   streamPostType: String
   # Color scheme / palette name (e.g. default, forest, ocean)
   theme: String
+  # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
+  unifiedEmailDigest: Boolean
 }
 
 type Draft {
@@ -3164,6 +3145,8 @@ type SiteBanner {
   type: String
   actionText: String
   actionUrl: String
+  # When true, people who join Hylo after this banner is published will see it. Defaults to false.
+  showToNewUsers: Boolean
   creator: Person
   publishedAt: Date
   unpublishedAt: Date
@@ -3179,6 +3162,7 @@ input SiteBannerInput {
   type: String
   actionText: String
   actionUrl: String
+  showToNewUsers: Boolean
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -3193,13 +3177,6 @@ type ProposalVoteQuerySet {
   total: Int
   hasMore: Boolean
   items: [ProposalVote]
-}
-
-# A widget is a block of styled content that appears in an Explore page for a group
-type Widget {
-  id: Int
-  # The name of the widget
-  name: String
 }
 
 type ZapierTrigger {
@@ -3243,7 +3220,7 @@ type Mutation {
   addMember(
     groupId: ID,
     userId: ID,
-    assignCoordinator: Boolean
+    assignAdministrator: Boolean
   ): GenericResult
   # NOT USED RIGHGT NOW. Add one or more people to a Project as a Project member.
   addPeopleToProjectRole(peopleIds: [ID], projectRoleId: ID): GenericResult
@@ -3397,7 +3374,9 @@ type Mutation {
     # When false, parent menu space view is created off-menu (More Views). Default true.
     addToMenu: Boolean,
     # draft or published. Drafts are always created off-menu.
-    status: GroupStatus
+    status: GroupStatus,
+    # When true, current parent-group members are added in the background (except people who previously left)
+    autoAddMembers: Boolean
   ): Group
   # Update a Space's settings
   updateSpace(
@@ -3418,7 +3397,9 @@ type Mutation {
     # When true, space is Paid access (forces protected + restricted)
     paywall: Boolean,
     # draft or published. Setting draft removes the space from the parent menu.
-    status: GroupStatus
+    status: GroupStatus,
+    # When turned on, adds parent-group members who have not previously left this space
+    autoAddMembers: Boolean
   ): Group
   # Archive a Space (status=archived; removes its menu entry from the parent). Stays in More Spaces → Archived.
   archiveSpace(id: ID!): Group
@@ -3701,8 +3682,6 @@ type Mutation {
   updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update a track
   updateTrack(trackId: ID, data: TrackInput): Track
-  # Update settings for a GroupWidget
-  updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
   # Accept an invitation to a Group
   useInvitation(
     # The invite code for the Group
@@ -3718,7 +3697,7 @@ type Mutation {
   createSiteBanner(data: SiteBannerInput): SiteBanner
   # Update a site banner's text, type, or action button, at any point in its lifecycle (admin only)
   updateSiteBanner(id: ID!, data: SiteBannerInput): SiteBanner
-  # Publish a site banner so all users see it (admin only)
+  # Publish a site banner so eligible users see it (admin only)
   publishSiteBanner(id: ID!): SiteBanner
   # Take down a published site banner (admin only)
   unpublishSiteBanner(id: ID!): SiteBanner
@@ -4193,21 +4172,8 @@ input GroupSettingsInput {
   showWelcomePage: Boolean
   # Whether the chat view shows inline notices when other post types are created
   showPostNoticesInChat: Boolean
-}
-
-# Settings for a Widget in a particular Group's explore page
-input GroupWidgetInput {
-  # Whether the widget is visible
-  isVisible: Boolean
-  # Additional Widget data for specific Widgets
-  settings: GroupWidgetSettingsInput
-}
-
-input GroupWidgetSettingsInput {
-  # The text content of the widget, for Widgets that use this
-  text: String
-  # The title of the widget, for Widgets that use this
-  title: String
+  # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
+  autoAddMembers: Boolean
 }
 
 # Input for creating Stripe offerings
@@ -4259,8 +4225,8 @@ input InviteInput {
   emails: [String]
   # Existing Hylo users to invite by id (their account email is used)
   userIds: [ID]
-  # Assign Coordinator system role when the invitation is used
-  assignCoordinator: Boolean
+  # Assign Administrator system role when the invitation is used
+  assignAdministrator: Boolean
   # Group role ID to assign when the invitation is used
   groupRoleId: ID
 }
@@ -4406,7 +4372,7 @@ input PostInput {
   fundingRoundId: ID
   # IDs of the groups to post to
   groupIds: [ID]
-  # URLs of images in the post. URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
+  # URLs of images in the post. A flat list of URL strings, or a nested list such as Zapier line items (those are flattened). URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
   imageUrls: [String]
   # Whether who votes on this proposal is visible or not
   isAnonymousVote: Boolean
@@ -4420,6 +4386,8 @@ input PostInput {
   linkPreviewFeatured: Boolean
   # When true, do not auto-generate a link preview from URLs in the post (the author removed it in the editor)
   skipLinkPreview: Boolean
+  # Create the post without notifying members: no email, push, in-app notification, unread badge, live update, Slack, or outbound Zapier. Only a steward of every destination group may set this. Cannot be combined with announcement.
+  silent: Boolean
   # Temporary id passed in from the client to identify the post when it is created, for optimistically updating the UI
   localId: String
   # Full location string
@@ -4560,6 +4528,8 @@ input FundingRoundInput {
   minTokenAllocation: Int
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether members can see every submission during the submissions phase
+  showRealtimeSubmissions: Boolean
   # Whether to show running vote totals during the voting phase
   showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
@@ -4625,4 +4595,6 @@ input UserSettingsInput {
   streamPostType: String
   # Color scheme / palette name (e.g. default, forest, ocean)
   theme: String
+  # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
+  unifiedEmailDigest: Boolean
 }

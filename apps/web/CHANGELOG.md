@@ -6,6 +6,158 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Users can now make their Hylo profiles public; an alternative to linkedIn or linktree
+- Stewards can now remove a member from the group directly from the member profile page
+- Member profile posts tab refactored with infinite scroll paging for better performance on large post sets
+- Improved anonymous viewer handling for emoji reactions and post creator display on public profiles
+
+### Changed
+- Shared paging infrastructure extracted for reuse across profile list views
+
+## [7.1.4] - 2026-10-01
+
+### Changed
+- **Performance improvements:**
+- Long cache headers for content hashed build files, so browser caches the files until next deploy
+- Load lucide icons dynamically in its own chunk
+- Speed up filtering/loading of posts on the front-end
+
+## [7.1.3] - 2026-10-04
+
+### Fixed
+- Editing a chat post from the post details doesn't convert it to a discussion
+- Don't let people post to a space they have not joined
+- Fix occasional stuck on add location during welcome flow on android
+- Don't save a post draft until there is title or body content
+- Calendar view more flicker on month view
+
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Fixed
+- Fix submission posts not getting created correctly when other post types are on in the funding round space
+- Fix issue where multi day events would only show last day on the calendar
+- Add some top and bottom margin around link preview in the PostCard
+- Space location always displays correctly in space settings if set
+- Long space URL slugs don't shrink space name field to very small. In space settings modal.
+
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
+## [7.1.0] - 2026-09-25
+
+### Changed
+- Don't enable Create Account button until email field is valid
+- The people selector in the invite form allows you to invite anyone that is visible to you on hylo. Before it was only allowing you to invite people you had messaged or interacted with.
+- Remove the Farms tab in the Group Explorer for now. It's not being used yet.
+- Refine role-gated space invite dialog
+
+### Fixed
+- Many security related fixes and updates. Details to come soon.
+- Fix display of video embeds in page type views that have little text. Ensure width is wide enough to see the video.
+- Fix searching for emojis on mobile
+
+### Cleanup
+- Removed the old group Explore landing page. `/groups/:slug/explore` redirects to the group home
+- Farm profiles still use the remaining Widget components. The explore-only widgets and the steward visibility editor are gone
+- Sandbox track and funding-round display fields now come from the space group, matching the API
+
+## [7.0.8] - 2026-09-23
+
+### Added
+- Reactions support to Direct Messages, at last!
+- Auto-fill event meeting link from a Zoom/Meet/Jitsi/Microsoft Teams URL in the description
+
+### Changed
+- Keep loading member activity at bottom of member profile as you scroll down. Also fix Recent Activity to show correct posts alongside comments as you scroll
+- Completed post notices appear grayed out with check mark in Chat
+- Don't show search on member profile if looking at own profile. It was conflicting with Edit Profile button
+- Only bundle reactions when there are more than 2 types, not when there are 2.
+- Move affiliations editing from My Groups to Edit Profile
+
+### Fixed
+- Map menus being behind map content
+- Wrap comment cards on mobile, so the header doesnt overflow the container. For user profiles and search results.
+- Stuck loop when opening a post from a member profile and trying to go back
+- Some chat messages were being cut off on the last line
+- Don't flash post: undefined when loading post as individual view
+
+## [7.0.7] - 2026-09-20
+
+### Fixed
+- Collection and custom views no longer inherit a leftover post-type or "active only" filter from Discussions/Events/etc., which made curated posts look missing ("Nothing here yet") until a refresh or logout
+- Only allowing posting of accepted post types in a group
+- Display sibling spaces in To field when creating a post in a space
+- UI blocked on wide screens
+- Link editor in page view type editor
+- Post editor readding current path group/space too often and erasing choices in the To field
+- Move AAPA to .well-known
+
+## [7.0.6] - 2026-09-13
+
+### Added
+- Stewards can now Remove a Member from the profile page of that member in the three-dot menu
+- Created at timestamp now visible on join requests
+
+### Changed
+- Coordinator system role has been renamed to Administrator
+- Tweaked copy of chat activity cards from "Recently In" to "Recent chats in"
+
+### Fixed
+- Fix close/back buttons in DMs on mobile
+
+## [7.0.5] - 2026-09-11
+
+### Added
+- Site banner setting to show the banner to people who join Hylo while it is published (off by default)
+- Support unlisted vimeo videos in posts
+
+### Fixed
+- Loading more map data on zoom and pan
+
+## [7.0.4] - 2026-09-10
+
+### Changed
+- Unread badge counts for spaces now show the number of unread chats, plus the number of unread typed views inside it.
+- Group nav menu badges now appear as long as any view or space has a notification badge in it.
+- Toggle welcome page setting on in group settings adds welcome view to the menu if its not there
+
+### Fixed
+- Unread badge counts for spaces
+- Editing welcome page settings in group settings
+- Clicking on post in moderation view now goes to the post
+
+## [7.0.3] - 2026-09-09
+
+### Added
+- Space setting to automatically add all current group members, and anyone who joins the group later. People who leave the space are not added again if the setting is turned off and then on.
+- Add new "Page" view type for static HTML content
+
+### Changed
+- Use query param create=post instead of adding /create/post to any route to open create post modal
+- Use better lightbox for image display in chat
+
+### Fixed
+- Scrolling to load more (older) notifications
+- Display of blocked users list in dark mode
+- Display of All Activity and Map views and icons in the sandbox
+
+## [7.0.2] - 2026-09-08
+
+### Added
+- Ability to grant access to a paid space to all current members of the parent group
+- Can include imageUrls in createPost that get uploaded to AWS and attached to the post (if not already in AWS), for use by APIs and Zapier.
+
+### Fixed
+- More Spaces appears in the group menu on first load, using a cached off-menu space count so the spaces list is only fetched when you open that page
+- You can click on a steward's pill in the group about page to view their profile
+- Stop extra calendar reloads
+
 ## [7.0.1] - 2026-09-04
 
 ### Fixed
@@ -13,7 +165,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Converting a child group to a space removes it from GlobalNav immediately, including when it was pinned
 - Don't allow converting a group to a space if it has spaces of its own
 - Make site banner scrollable when long on a small device, and add dismiss button to bottom
-
 
 ## [7.0.0] - 2026-09-03 - Spaces and Views!
 

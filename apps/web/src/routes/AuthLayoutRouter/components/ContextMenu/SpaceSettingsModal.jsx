@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { CreditCard, Hand, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus } from 'lucide-react'
+import { CreditCard, Hand, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus, Users } from 'lucide-react'
 
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import Button from 'components/ui/button'
@@ -37,7 +37,9 @@ import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
+import AutoAddMembersSetting from './AutoAddMembersSetting'
 import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
+import { spaceLocation } from './spaceLocation'
 
 function toDateOrNull (value) {
   if (!value) return null
@@ -174,11 +176,12 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const passedSpace = spaceProp || view?.linkedGroup
-  const spaceFromStore = useSelector(state => {
+  const spaceModel = useSelector(state => {
     const slug = passedSpace?.slug
     if (!slug) return null
-    return getGroupForSlug(state, slug)?.ref || null
+    return getGroupForSlug(state, slug) || null
   })
+  const spaceFromStore = spaceModel?.ref || null
   const parentFromStore = useSelector(state => {
     const slug = parentGroupProp?.slug
     if (!slug) return null
@@ -218,7 +221,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [bannerUrl, setBannerUrl] = useState(space?.bannerUrl || '')
   const [purpose, setPurpose] = useState(space?.purpose || '')
   const [description, setDescription] = useState(space?.description || '')
-  const [locationObject, setLocationObject] = useState(space?.locationObject || null)
+  const [locationObject, setLocationObject] = useState(() => spaceLocation(spaceModel))
   const [postTypes, setPostTypes] = useState(space?.acceptedPostTypes || [])
   const [access, setAccess] = useState(() => accessValueForSpace({
     visibility: space?.visibility,
@@ -235,12 +238,17 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
-  const [openAdvanced, setOpenAdvanced] = useState(() => new Set())
+  const [openAdvanced, setOpenAdvanced] = useState(() => {
+    const open = new Set()
+    if (spaceLocation(spaceModel)?.fullText) open.add('location')
+    return open
+  })
   const [justRevealed, setJustRevealed] = useState(null)
   // Welcome edits only save if the panel was ever opened
   const [welcomeTouched, setWelcomeTouched] = useState(false)
   const [welcomeDraft, setWelcomeDraft] = useState(null)
   const [showWelcomePage, setShowWelcomePage] = useState(space?.settings?.showWelcomePage ?? true)
+  const [autoAddMembers, setAutoAddMembers] = useState(!!space?.settings?.autoAddMembers)
   const welcomeEditorRef = useRef(null)
 
   // Track settings (only relevant when this space is backed by a Track)
@@ -278,6 +286,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(!!fundingRound?.allowLateJoiners)
   const [frHideFinalResults, setFrHideFinalResults] = useState(!!fundingRound?.hideFinalResultsFromParticipants)
   const [frRequireBudget, setFrRequireBudget] = useState(!!fundingRound?.requireBudget)
+  const [frShowRealtimeSubmissions, setFrShowRealtimeSubmissions] = useState(!!fundingRound?.showRealtimeSubmissions)
   const [frShowRealtimeVotes, setFrShowRealtimeVotes] = useState(!!fundingRound?.showRealtimeVotes)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState(fundingRound?.submissionDescriptor || 'Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState(fundingRound?.submissionDescriptorPlural || 'Submissions')
@@ -290,6 +299,10 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   useEffect(() => {
     if (space?.id) dispatch(fetchGroupViews(space.id))
   }, [dispatch, space?.id])
+
+  useEffect(() => {
+    setAutoAddMembers(!!space?.settings?.autoAddMembers)
+  }, [space?.id, space?.settings?.autoAddMembers])
 
   const toggleAdvanced = useCallback((key) => {
     const isOpen = openAdvanced.has(key)
@@ -360,6 +373,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     setFrAllowLateJoiners(!!fundingRound.allowLateJoiners)
     setFrHideFinalResults(!!fundingRound.hideFinalResultsFromParticipants)
     setFrRequireBudget(!!fundingRound.requireBudget)
+    setFrShowRealtimeSubmissions(!!fundingRound.showRealtimeSubmissions)
     setFrShowRealtimeVotes(!!fundingRound.showRealtimeVotes)
     setFrSubmitterRoles(fundingRound.submitterRoles || [])
     setFrVoterRoles(fundingRound.voterRoles || [])
@@ -417,7 +431,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         accessibility: accessOption.accessibility,
         requiredRoles: access === 'role' ? requiredRoles.map(role => role.id) : [],
         paywall: Boolean(accessOption.paywall),
-        status
+        status,
+        autoAddMembers
       }))
 
       if (welcomeTouched) {
@@ -459,6 +474,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
           requireBudget: frRequireBudget,
+          showRealtimeSubmissions: frShowRealtimeSubmissions,
           showRealtimeVotes: frShowRealtimeVotes,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
@@ -480,7 +496,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, autoAddMembers, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeSubmissions, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   /** Convert this space into a child group of the parent. */
   const handleConvertToChildGroup = useCallback(async () => {
@@ -514,6 +530,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           locationObject={locationObject}
           location={locationObject?.fullText || ''}
           onChange={setLocationObject}
+          inputPosition='bottom'
           className={INPUT_CLASS}
         />
       )
@@ -557,8 +574,17 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           />
         </div>
       )
+    },
+    {
+      key: 'autoAddMembers',
+      icon: Users,
+      label: 'Auto-add members',
+      defaultSummary: autoAddMembers ? t('On') : t('Off'),
+      render: () => (
+        <AutoAddMembersSetting checked={autoAddMembers} onChange={setAutoAddMembers} />
+      )
     }
-  ], [t, locationObject, postTypes, welcomeView, welcomeDraft, showWelcomePage, space?.id])
+  ], [t, locationObject, postTypes, welcomeView, welcomeDraft, showWelcomePage, space?.id, autoAddMembers])
 
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
 
@@ -614,8 +640,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
 
         <SpaceIconRow value={icon} onChange={setIcon} />
 
-        <div className='grid grid-cols-1 sm:grid-cols-[1.35fr_1fr] gap-3 items-start'>
-          <div className='flex flex-col gap-1'>
+        <div className='grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_16rem] gap-3 items-start'>
+          <div className='flex flex-col gap-1 min-w-0'>
             <div className='h-5 flex items-center'>
               <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
             </div>
@@ -737,6 +763,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             setHideFinalResults={setFrHideFinalResults}
             requireBudget={frRequireBudget}
             setRequireBudget={setFrRequireBudget}
+            showRealtimeSubmissions={frShowRealtimeSubmissions}
+            setShowRealtimeSubmissions={setFrShowRealtimeSubmissions}
             showRealtimeVotes={frShowRealtimeVotes}
             setShowRealtimeVotes={setFrShowRealtimeVotes}
             submitterRoles={frSubmitterRoles}

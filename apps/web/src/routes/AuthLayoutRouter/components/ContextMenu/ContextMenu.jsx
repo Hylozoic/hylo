@@ -32,7 +32,6 @@ import GroupViewIcon from './GroupViewIcon'
 import useRouteParams from 'hooks/useRouteParams'
 import usePublishedOfferings from 'hooks/usePublishedOfferings'
 import useGroupViews from 'hooks/useGroupViews'
-import useMoreSpacesSections from 'hooks/useMoreSpacesSections'
 import GroupViewPresenter, {
   displayNameForView,
   getStaticMenuViews,
@@ -40,7 +39,6 @@ import GroupViewPresenter, {
 } from '@hylo/presenters/GroupViewPresenter'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import logout from 'store/actions/logout'
 import { FETCH_GROUP_VIEWS, RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -55,7 +53,7 @@ import GroupSettingsMenu from './GroupSettingsMenu'
 import MenuRowBackground from './MenuRowBackground'
 import { viewCardColor } from './viewCardTheme'
 import { DEFAULT_BANNER } from 'store/models/Group'
-import { isMenuViewVisible, singleVisibleMenuView } from 'store/models/GroupView'
+import { isMenuViewVisible } from 'store/models/GroupView'
 import GroupViewEditList from './GroupViewEditList'
 import GroupViewSettingsModal from './GroupViewSettingsModal'
 import SpaceSettingsModal from './SpaceSettingsModal'
@@ -69,9 +67,8 @@ import { menuViewUrl, externalLinkHref, spaceEntryUrl, isParentGroupPath } from 
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { WebViewMessageTypes } from '@hylo/shared'
-import { getMobileAppVersion, sendMessageToWebView } from 'util/webView'
-import { viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
+import { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
+import { spaceRowBadgeCount, viewShowsUnreadDot, viewUnreadBadgeCount } from 'util/viewUnreadBadges'
 
 import classes from './ContextMenu.module.scss'
 
@@ -89,7 +86,7 @@ function UnreadDot ({ className }) {
  * --menu-plane inherits, so the two can never drift apart. */
 const MENU_PLANE_FADE_STYLE = { backgroundImage: 'linear-gradient(to bottom, transparent, var(--menu-plane))' }
 
-const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:duration-[50ms] opacity-85 hover:opacity-100'
+const GROUP_VIEW_MENU_ITEM_CLASS = 'flex items-center gap-2 text-base font-medium text-foreground hover:text-foreground border-2 border-transparent rounded-md p-1 pl-2 my-0 w-full transition-all duration-200 ease-out scale-100 hover:scale-102 active:scale-[0.985] active:translate-y-[0.5px] active:[transition-duration:50ms] opacity-85 hover:opacity-100'
 
 /** MenuLink overrides when nested inside a styled space row wrapper. hover:text-foreground
  *  pins the anchor's color against the global link-hover green. */
@@ -155,12 +152,7 @@ function SpaceMenuItemWithMore ({
   spaceGroup
 }) {
   const { t } = useTranslation()
-  const spaceMoreSections = useMoreSpacesSections(resolvedSpaceGroup)
-  const spaceMoreCount = (spaceMoreSections?.draftSpaces?.length || 0) +
-    (spaceMoreSections?.trackSpaces?.length || 0) +
-    (spaceMoreSections?.fundingRoundSpaces?.length || 0) +
-    (spaceMoreSections?.otherSpaces?.length || 0) +
-    (spaceMoreSections?.archivedSpaces?.length || 0)
+  const spaceMoreCount = Number(resolvedSpaceGroup?.moreSpacesCount) || 0
   const spaceMoreBadge = spaceMoreCount > 0
     ? (
       <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>
@@ -363,12 +355,7 @@ function GroupViewMenuItem ({
       : ''
 
     const handleLogout = async () => {
-      await dispatch(logout())
-      if (window.HyloMobileV2) {
-        sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-      } else {
-        dispatch(replace('/login', null))
-      }
+      await logoutFromMobileWebView(dispatch, logout(), replace('/login', null))
     }
 
     return (
@@ -405,28 +392,17 @@ function GroupViewMenuItem ({
       linkedSpaceGroup?.menuViewCount
     )
     const menuCount = viewCount + (showManageRound ? 1 : 0)
-    // Space badge = membership unread or pending join requests (same orange dot).
-    // Single-view spaces also surface the nested view's unread: a numbered chat
-    // count, or the typed-view orange dot — that view never appears as its own row.
-    const nestedSpaceViews = spaceViewsFromStore.length > 0
-      ? spaceViewsFromStore
-      : (resolvedSpaceGroup?.groupViews?.items || [])
-    const singleSpaceView = singleVisibleMenuView(
-      nestedSpaceViews,
-      resolvedSpaceGroup?.acceptedPostTypes
-    )
-    const spaceChatBadgeCount = viewUnreadBadgeCount(singleSpaceView)
+    // Space badge = membership.newPostCount (unread chats + 1 per other unread
+    // view). Join requests still get a dot when there is no number.
     const spaceMembership = linkedSpaceGroup &&
       myMemberships.find(m => String(m.group?.id) === String(linkedSpaceGroup.id))
-    const spaceUnread = (spaceMembership?.newPostCount || 0) > 0
+    const spaceChatBadgeCount = spaceRowBadgeCount(spaceMembership?.newPostCount)
     const spaceJoinRequests = (
       spaceGroupFromStore?.openJoinRequestCount ||
       linkedSpaceGroup?.openJoinRequestCount ||
       0
     ) > 0
-    const showSpaceDot = !spaceChatBadgeCount && (
-      viewShowsUnreadDot(singleSpaceView) || spaceUnread || spaceJoinRequests
-    )
+    const showSpaceDot = !spaceChatBadgeCount && spaceJoinRequests
     // Single-view spaces open homeRoute directly. Multi-view spaces open the
     // space menu: the drawer stays open on mobile, and the URL is the space
     // index so dismissing the drawer still shows that menu rather than home.
@@ -722,8 +698,6 @@ export default function ContextMenu (props) {
   const fetchedGroupViews = useGroupViews(group)
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
   const groupViewsLoading = viewsPending && fetchedGroupViews.length === 0
-  // Count for the group-level More badge (off-menu tracks + rounds + other spaces)
-  const moreSpacesSections = useMoreSpacesSections(isGroupContext ? group : null)
   const publishedOfferings = usePublishedOfferings(group?.id)
   const menuViews = useMemo(() => {
     const views = staticMenuViews || fetchedGroupViews
@@ -775,8 +749,6 @@ export default function ContextMenu (props) {
     if (spaceMenuViewsFromStore.length > 0) return spaceMenuViewsFromStore
     return activeSpaceGroup?.groupViews?.items || []
   }, [showingSpaceMenu, spaceMenuViewsFromStore, activeSpaceGroup])
-  // Off-menu count for the space menu's More row (spaces not shown in the space menu).
-  const spaceMoreSpacesSections = useMoreSpacesSections(showingSpaceMenu ? activeSpaceGroup : null)
   const spaceViewsLoading = viewsPending && spaceMenuViews.length === 0
   const spaceDisplayName = (activeSpaceView ? displayNameForView(GroupViewPresenter(activeSpaceView), t) : null) ||
     activeSpaceGroup?.name ||
@@ -789,19 +761,13 @@ export default function ContextMenu (props) {
     ? activeSpaceGroup.bannerUrl
     : null
 
-  // Menu views on every group navigation. Off-menu spaces are loaded when More
-  // Spaces or edit mode opens — they overlap heavily with this query.
+  // Menu views on every group navigation. More Spaces uses groups.moreSpacesCount
+  // so we do not fetch the spaces list until that page opens.
   useEffect(() => {
     if (group?.id && isGroupContext) {
       dispatch(fetchGroupViews(group.id))
     }
   }, [group?.id, isGroupContext, dispatch])
-
-  useEffect(() => {
-    if (group?.id && isGroupContext && isEditing) {
-      dispatch(fetchGroupSpaces(group.id))
-    }
-  }, [group?.id, isGroupContext, isEditing, dispatch])
 
   // Load the space's own views when inside a space (multi-view check + space menu).
   useEffect(() => {
@@ -846,13 +812,10 @@ export default function ContextMenu (props) {
     }
   }, [isEditing])
 
-  // Footer More uses the space's off-menu items when drilled into a space menu.
-  const footerMoreSections = showingSpaceMenu ? spaceMoreSpacesSections : moreSpacesSections
-  const moreSpacesCount = (footerMoreSections?.draftSpaces?.length || 0) +
-    (footerMoreSections?.trackSpaces?.length || 0) +
-    (footerMoreSections?.fundingRoundSpaces?.length || 0) +
-    (footerMoreSections?.otherSpaces?.length || 0) +
-    (footerMoreSections?.archivedSpaces?.length || 0)
+  // Footer More uses the space's cached off-menu count when drilled into a space menu.
+  const moreSpacesCount = Number(
+    (showingSpaceMenu ? activeSpaceGroup?.moreSpacesCount : group?.moreSpacesCount) || 0
+  )
   const moreSpacesBadge = moreSpacesCount > 0
     ? (
       <span className='ml-auto shrink-0 text-xs leading-none text-foreground/50 bg-foreground/10 rounded-full px-1.5 py-1'>

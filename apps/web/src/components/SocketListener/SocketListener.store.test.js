@@ -90,6 +90,32 @@ describe('SocketListener.store.ormSessionReducer', () => {
     expect(message.editedAt).toBe(new Date('2024-01-01T00:00:00.000Z').toString())
   })
 
+  it('stores comment reactions from RECEIVE_MESSAGE_UPDATED', () => {
+    session.Message.create({
+      id: '99',
+      text: 'hello',
+      messageThread: '7',
+      commentReactions: []
+    })
+    const commentReactions = [
+      { id: 'r1', emojiFull: '👍', user: { id: '2', name: 'Ada' } }
+    ]
+    ormSessionReducer(session, {
+      type: RECEIVE_MESSAGE_UPDATED,
+      payload: {
+        data: {
+          message: {
+            id: '99',
+            text: 'hello',
+            commentReactions
+          }
+        }
+      }
+    })
+
+    expect(session.Message.withId('99').commentReactions).toEqual(commentReactions)
+  })
+
   describe('for RECEIVE_POST', () => {
     let action
 
@@ -136,6 +162,15 @@ describe('SocketListener.store.ormSessionReducer', () => {
       const views = session.Group.withId('1').groupViews.items
       expect(views.find(v => v.type === 'chat').newPostCount).toBe(1)
       expect(views.find(v => v.type === 'discussions').newPostCount).toBe(0)
+      expect(session.Membership.withId('1').newPostCount).toBe(1)
+    })
+
+    it('does not increment membership again for a second typed post', () => {
+      ormSessionReducer(session, action)
+      ormSessionReducer(session, action)
+      expect(session.Membership.withId('1').newPostCount).toBe(1)
+      const views = session.Group.withId('1').groupViews.items
+      expect(views.find(v => v.type === 'discussions').newPostCount).toBe(2)
     })
 
     it('ignores posts created by the current user', () => {

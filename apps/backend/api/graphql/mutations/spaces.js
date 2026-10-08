@@ -57,7 +57,7 @@ async function requireSpaceManager (userId, spaceId, action, { includeInactive =
   return space
 }
 
-export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true, status }, context) {
+export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true, status, autoAddMembers }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!parentGroupId) throw new GraphQLError('No parentGroupId passed into function')
   if (!name || !name.trim()) throw new GraphQLError('Name cannot be blank')
@@ -107,7 +107,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     accessibility: spaceAccessibility,
     paywall: isPaywalled,
     status: spaceStatus,
-    settings: {},
+    settings: autoAddMembers ? { auto_add_members: true } : {},
     access_code: await Group.getNewAccessCode(),
     calendar_token: uuidv4(),
     created_at: new Date(),
@@ -116,7 +116,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
 
   await bookshelf.transaction(async trx => {
     await space.save(null, { transacting: trx })
-    // No setupSystemRoles / assignCoordinator — spaces inherit roles from the parent
+    // No setupSystemRoles / assignAdministrator — spaces inherit roles from the parent
     await space.addMembers([userId], { lastReadAt: new Date() }, { transacting: trx })
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
@@ -139,15 +139,20 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
 
   notifyGroupUpdated(context, parentGroup, parentGroupId)
 
+  if (autoAddMembers) {
+    Queue.classMethod('Group', 'addEligibleMembersToSpace', { spaceId: space.id })
+  }
+
   // Refresh so home_route (set by setupSpaceViews) is included in the response
   return space.refresh()
 }
 
-export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status }, context) {
+export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
   const space = await requireSpaceManager(userId, id, 'update this space')
+  const wasAutoAdd = !!space.getSetting('auto_add_members')
 
   const changes = {}
   if (name !== undefined && name.trim()) changes.name = name.trim()
@@ -189,9 +194,16 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
     }
     changes.status = status
   }
+  if (autoAddMembers !== undefined) {
+    changes.settings = { ...(space.get('settings') || {}), auto_add_members: Boolean(autoAddMembers) }
+  }
 
   if (Object.keys(changes).length > 0) {
     await space.save(changes, { patch: true })
+  }
+
+  if (autoAddMembers && !wasAutoAdd) {
+    Queue.classMethod('Group', 'addEligibleMembersToSpace', { spaceId: space.id })
   }
 
   if (changes.name) {
@@ -304,7 +316,7 @@ async function removeFromParentSpaceCollections (spaceId, parentId, { transactin
 
 /**
  * Add parent-group stewards to the new child group and copy their system
- * steward roles (Coordinator, Moderator, Host) by name.
+ * steward roles (Administrator, Moderator, Host) by name.
  */
 async function copyParentStewardsToChild (parentGroup, child, { transacting } = {}) {
   await GroupRole.setupSystemRoles(child.id, { transacting })
@@ -348,7 +360,7 @@ async function copyParentStewardsToChild (parentGroup, child, { transacting } = 
 
   const parentRoleIdToName = {}
   parentSystemRoles.forEach(role => {
-    parentRoleIdToName[String(role.id)] = role.get('name')
+    parentRoleIdToName[String(role.id)] = GroupRole.canonicalSystemRoleName(role.get('name'))
   })
 
   for (const assignment of assignments.models) {
@@ -412,6 +424,7 @@ export async function convertSpaceToChildGroup (userId, id, context) {
     await parentGroup.addChild(space, { transacting: trx })
     await copyParentStewardsToChild(parentGroup, space, { transacting: trx })
     await convertSpaceViewToChildGroupView(id, space.get('name'), { transacting: trx })
+    await GroupView.syncMoreSpacesCount(parentId, { transacting: trx })
     await removeFromParentSpaceCollections(id, parentId, { transacting: trx })
   })
 
@@ -530,6 +543,7 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
     await group.save({ type: 'space', parent_id: parentGroupId }, { patch: true, transacting: trx })
     await relationship.save({ active: false }, { transacting: trx })
     await convertChildGroupViewToSpaceView(parentGroupId, id, group.get('name'), { transacting: trx })
+    await GroupView.syncMoreSpacesCount(parentGroupId, { transacting: trx })
     await GroupMembership.unpinGroupFromAllNavs(id, { transacting: trx })
   })
 
@@ -540,9 +554,10 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
 
 /**
  * Join a space. Parent-group Administration can join any space. A valid
- * accessCode or invitationToken pre-approves Closed, Restricted, and role-gated
- * spaces. Paywalled spaces still require purchase unless the user administers
- * the parent.
+ * accessCode or invitationToken pre-approves Closed and Restricted spaces
+ * but does NOT bypass role gating — the invited person must still hold the
+ * required role. Paywalled spaces still require purchase unless the user
+ * administers the parent.
  * @param userId {string}
  * @param spaceId {string}
  * @param accessCode {string} optional join-link access code
@@ -582,7 +597,8 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
       throw new GraphQLError('This space is not published')
     }
 
-    // Join/invite links pre-approve Closed, Restricted, and role-gated spaces (same as joinGroup)
+    // Join/invite links pre-approve Closed, Restricted spaces (same as joinGroup),
+    // but NOT role-gated spaces — the invited person must still hold the role.
     let inviteCheck = null
     if (accessCode || invitationToken) {
       inviteCheck = await InvitationService.check(invitationToken, accessCode)
@@ -594,21 +610,21 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
         throw new GraphQLError('This space requires purchased access to join')
       }
 
-      if (!hasValidInvitation) {
-        const requiredRoles = space.get('required_roles')
-        const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
+      // Check required roles regardless of invitation status.
+      // Invite links do NOT bypass role gating — the invited person must hold the role.
+      const requiredRoles = space.get('required_roles')
+      const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
 
-        if (isRoleGated) {
-          const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
-            .where({ user_id: userId, group_id: parentId, active: true })
-            .pluck('group_role_id')
-          const memberRoleIdSet = new Set(memberRoleIds.map(id => String(id)))
-          if (!requiredRoles.some(roleId => memberRoleIdSet.has(String(roleId)))) {
-            throw new GraphQLError('You do not have the required role to join this space')
-          }
-        } else if (space.get('accessibility') !== Group.Accessibility.OPEN) {
-          throw new GraphQLError('This space requires a request to join')
+      if (isRoleGated) {
+        const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
+          .where({ user_id: userId, group_id: parentId, active: true })
+          .pluck('group_role_id')
+        const memberRoleIdSet = new Set(memberRoleIds.map(id => String(id)))
+        if (!requiredRoles.some(roleId => memberRoleIdSet.has(String(roleId)))) {
+          throw new GraphQLError('You do not have the required role to join this space')
         }
+      } else if (!hasValidInvitation && space.get('accessibility') !== Group.Accessibility.OPEN) {
+        throw new GraphQLError('This space requires a request to join')
       }
     }
 
@@ -623,15 +639,7 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
   }
 
   // Create per-view unread rows for every existing view in the space (spec section 2.6).
-  // Chat starts at the latest chat post so joining does not dump people at the oldest message.
-  const views = await GroupView.findForGroup(spaceId)
-  for (const view of views.models) {
-    if (view.get('type') === 'chat') {
-      await GroupViewUser.markRead(view.id, userId)
-    } else {
-      await GroupViewUser.findOrCreate(view.id, userId)
-    }
-  }
+  await Group.ensureSpaceViewUsers(spaceId, [userId])
 
   return membership
 }

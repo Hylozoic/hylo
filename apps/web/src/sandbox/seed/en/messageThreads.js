@@ -19,7 +19,7 @@ export function buildMessageThreads (peopleById) {
       messages: [
         dmMessage(sid('msg', 'g', '001'), me, -9000, 'Hey everyone 👋 Just wanted to check in — how did the permaculture session go for those who attended?'),
         dmMessage(sid('msg', 'g', '002'), p2, -8800, 'It was incredible! Kevin shared so much about how the Bay Area permaculture community evolved over the decades.'),
-        dmMessage(sid('msg', 'g', '003'), p3, -8600, 'I loved the part about bioregional identity. Really connected to what we\'re building with Hylo.'),
+        dmMessage(sid('msg', 'g', '003'), p3, -8600, "I loved the part about bioregional identity. Really connected to what we're building with Hylo."),
         dmMessage(sid('msg', 'g', '004'), me, -8400, 'Agreed. Notes and video are up in the stream now — check them out!')
       ],
       contextGroupId: MAIN_GROUP_ID
@@ -30,7 +30,7 @@ export function buildMessageThreads (peopleById) {
       messages: [
         dmMessage(sid('msg', 'dm2', '001'), p2, -12000, 'Hi Elena! Quick question — do you know anyone working on rights of nature campaigns in the watershed area?'),
         dmMessage(sid('msg', 'dm2', '002'), me, -11800, 'Yes! I just posted about this in the stream. Thomas Linzey from Bioneers also reached out.'),
-        dmMessage(sid('msg', 'dm2', '003'), p2, -11600, 'Amazing, I\'ll reach out to Elena. Thanks!')
+        dmMessage(sid('msg', 'dm2', '003'), p2, -11600, "Amazing, I'll reach out to Elena. Thanks!")
       ]
     }),
     directThread({

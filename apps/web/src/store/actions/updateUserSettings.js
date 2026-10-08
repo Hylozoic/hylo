@@ -22,6 +22,7 @@ export default function updateUserSettings (changes) {
               colorScheme
               dmNotifications
               commentNotifications
+              unifiedEmailDigest
               globalNavStyle
               groupNavStyle
               rsvpCalendarSub

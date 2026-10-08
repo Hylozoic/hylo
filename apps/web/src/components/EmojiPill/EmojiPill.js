@@ -11,7 +11,7 @@ export default function EmojiPill ({ emojiFull, onClick = () => {}, count, userL
         key={emojiFull}
         label={
           <span className='inline-flex items-center gap-1'>
-            <span className='text-[1.25em] leading-none'>{emojiFull}</span>
+            <span className='inline-block text-[1.25em] leading-none translate-y-px'>{emojiFull}</span>
             <span>{count}</span>
           </span>
         }

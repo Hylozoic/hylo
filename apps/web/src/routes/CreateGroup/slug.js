@@ -2,8 +2,7 @@ export const SLUG_MAX_LENGTH = 40
 
 export const slugValidatorRegex = /^[0-9a-z-]{2,40}$/
 
-// Derives a group handle from a group name. Mirrors the mobile implementation
-// (apps/mobile/src/screens/CreateGroup/CreateGroupUrl.js): punctuation is dropped
+// Derives a group handle from a group name. Punctuation is dropped
 // rather than glued to its neighbours, and runs of hyphens are collapsed so
 // "Bay & Delta  Watershed!" becomes "bay-delta-watershed".
 export function nameToSlug (name) {

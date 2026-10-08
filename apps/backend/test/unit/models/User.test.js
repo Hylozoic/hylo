@@ -108,11 +108,11 @@ describe('User', function () {
     })
   })
 
-  it('can become coordinator', function () {
+  it('can become administrator', function () {
     const street = new Group({ name: 'Street', slug: 'street' })
 
     return street.save()
-    .then(() => cat.joinGroup(street, { assignCoordinator: true }))
+    .then(() => cat.joinGroup(street, { assignAdministrator: true }))
     .then(() => GroupMembership.hasResponsibility(cat, street, Responsibility.constants.RESP_ADMINISTRATION))
     .then(hasAdmin => {
       expect(hasAdmin).to.be.true
@@ -392,8 +392,15 @@ describe('User', function () {
   })
 
   describe('.deactivate and .reactivate', () => {
+    let originalClearSessionsFor
+
     before(function () {
+      originalClearSessionsFor = User.clearSessionsFor
       User.clearSessionsFor = () => {}
+    })
+
+    after(function () {
+      User.clearSessionsFor = originalClearSessionsFor
     })
 
     it('deactivates and reactivates a user', () => {

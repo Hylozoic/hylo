@@ -38,6 +38,7 @@ export default function chatRoomPostFieldsFragment () {
   attachments {
     type
     url
+    thumbnailUrl
     position
     id
   }

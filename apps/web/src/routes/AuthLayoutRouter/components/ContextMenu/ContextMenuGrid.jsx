@@ -20,8 +20,7 @@ import {
 } from '@hylo/navigation'
 import { replace } from 'redux-first-history'
 import { menuViewUrl, spaceEntryUrl, isParentGroupPath } from './groupViewMenuUrl'
-import { WebViewMessageTypes } from '@hylo/shared'
-import { sendMessageToWebView } from 'util/webView'
+import { logoutFromMobileWebView } from 'util/webView'
 import logout from 'store/actions/logout'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { RESP_ADMINISTRATION, RESP_ADD_MEMBERS, RESP_MANAGE_CONTENT, FETCH_GROUP_SPACES, FETCH_GROUP_VIEWS } from 'store/constants'
@@ -402,10 +401,8 @@ function StewardAlertCard ({ view, icon, title, count, onClick }) {
 
 /**
  * Everything behind More Spaces: the visible sections, whether there is
- * anything there at all, and whether we are still finding out. One hook so the
- * card that links here can't disagree with what this page would render — the
- * track/round/space buckets need spaces to have been fetched, so a caller that
- * hasn't fetched them would think the page was empty.
+ * anything there at all, and whether we are still finding out. Used by the
+ * More Spaces grid after fetchGroupSpaces has run.
  */
 function useMoreSpacesContent (group) {
   const currentUser = useSelector(getMe)
@@ -670,21 +667,13 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     if (!isContextMode && menuGroup?.id) dispatch(fetchGroupViews(menuGroup.id))
   }, [dispatch, menuGroup?.id, isContextMode])
 
-  // Whether to offer More Spaces at all. MoreSpacesGrid fetches these
-  // itself once you are on that level, so only fetch here — where the card lives —
-  // to avoid asking twice.
-  const moreSpaces = useMoreSpacesContent(group)
-  // Wait until spaces have loaded — pending would flash the card then hide it
-  // when this group has nothing behind More Spaces.
-  const showMoreSpacesCard = moreSpaces.hasContent
+  // More Spaces card uses the cached count so this grid does not fetch spaces.
+  // MoreSpacesGrid loads the list once you open that level.
+  const showMoreSpacesCard = (group?.moreSpacesCount || 0) > 0
   const moderationCount = menuGroup?.openModerationActionCount || 0
   const joinRequestCount = menuGroup?.openJoinRequestCount || 0
   const showStewardAlerts = !isContextMode && !isEditing && !isMoreSpacesLevel &&
     ((canModerate && moderationCount > 0) || (canAddMembers && joinRequestCount > 0))
-  useEffect(() => {
-    if (isContextMode || isMoreSpacesLevel || spaceGroup || !group?.id || !groupSlug) return
-    dispatch(fetchGroupSpaces(group.id))
-  }, [dispatch, isContextMode, isMoreSpacesLevel, spaceGroup, group?.id, groupSlug])
 
   const groupViews = useGroupViews(isContextMode ? null : menuGroup)
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
@@ -772,12 +761,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
   const handleOpenMenuView = useCallback(async (view) => {
     const presented = GroupViewPresenter(view)
     if (presented.type === 'logout') {
-      await dispatch(logout())
-      if (window.HyloMobileV2) {
-        sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-      } else {
-        dispatch(replace('/login', null))
-      }
+      await logoutFromMobileWebView(dispatch, logout(), replace('/login', null))
       return
     }
     if (presented.type === 'space' && presented.linkedGroup) {

@@ -3,7 +3,7 @@
 
 import RedisClient from '../services/RedisClient'
 import { normalizeLocaleToFull } from '../../lib/localeHelpers'
-import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
+import { ensureGroupParent, groupDisplayNameWithParent, senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 // See docs/spaces-and-views-engineering-spec.md section 2.6 / 3.2
 
@@ -112,14 +112,7 @@ module.exports = bookshelf.Model.extend({
    * Label for the hourly chat digest: the group name, or "Parent > Space" for spaces.
    */
   chatRoomDisplayName: function (group) {
-    if (!group) return 'chat'
-    const name = group.get('name')
-    if (group.get('type') !== 'space') return name
-    const parent = group.relations?.parentGroup ||
-      (typeof group.related === 'function' ? group.related('parentGroup') : null)
-    const parentName = parent && typeof parent.get === 'function' ? parent.get('name') : null
-    if (!parentName) return name
-    return `${parentName} > ${name}`
+    return groupDisplayNameWithParent(group) || 'chat'
   },
 
   /**
@@ -142,14 +135,7 @@ module.exports = bookshelf.Model.extend({
    * Nested withRelated on the self-referential Group.parentGroup often comes back empty.
    */
   ensureParentGroup: async function (group) {
-    if (!group || group.get('type') !== 'space') return group
-    const loaded = group.relations?.parentGroup
-    if (loaded && loaded.get('name')) return group
-    const parentId = group.get('parent_id')
-    if (!parentId) return group
-    const parent = await Group.find(parentId)
-    if (parent) group.relations.parentGroup = parent
-    return group
+    return ensureGroupParent(group)
   },
 
   /**

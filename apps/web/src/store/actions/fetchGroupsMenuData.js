@@ -64,6 +64,7 @@ query FetchGroupsMenuData (
       icon
       homeRoute
       menuViewCount
+      moreSpacesCount
       visibility
       accessibility
       acceptedPostTypes
@@ -77,6 +78,7 @@ query FetchGroupsMenuData (
         allowGroupInvites
         showWelcomePage
         layout
+        autoAddMembers
       }
       groupViews {
         items {
@@ -104,6 +106,7 @@ query FetchGroupsMenuData (
             icon
             homeRoute
             menuViewCount
+            moreSpacesCount
             description
             purpose
             location
@@ -116,6 +119,12 @@ query FetchGroupsMenuData (
             accessibility
             requiredRoles
             paywall
+            settings {
+              allowGroupInvites
+              showWelcomePage
+              layout
+              autoAddMembers
+            }
             groupRoles {
               items {
                 id
@@ -200,6 +209,12 @@ query FetchGroupsMenuData (
           accessibility
           requiredRoles
           paywall
+          settings {
+            allowGroupInvites
+            showWelcomePage
+            layout
+            autoAddMembers
+          }
           groupRoles {
             items {
               id
@@ -211,6 +226,7 @@ query FetchGroupsMenuData (
           active
           homeRoute
           menuViewCount
+          moreSpacesCount
           groupViews {
             items {
               id

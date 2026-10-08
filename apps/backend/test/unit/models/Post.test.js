@@ -613,6 +613,25 @@ describe('Post', function () {
       expect(createGroupEventCalendarSubscriptionsSpy).to.have.been.called
     })
 
+    it('does not email an RSVP when silent', async () => {
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvp = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventCreated({
+        postId: post.id,
+        eventInviteeIds,
+        userId: user.id,
+        params,
+        silent: true
+      })
+
+      expect(postInstance.sendUserRsvp).to.not.have.been.called
+      expect(postInstance.createGroupEventCalendarSubscriptions).to.have.been.called
+    })
+
     it('returns early if post is not found', async () => {
       Post.find = spy(() => Promise.resolve(null))
 
@@ -1034,11 +1053,11 @@ describe('Post', function () {
     beforeEach(async () => {
       spyify(Queue, 'classMethod', () => Promise.resolve())
       await setup.clearDb()
-      const { assignCoordinator } = require('../../setup/roleHelpers')
+      const { assignAdministrator } = require('../../setup/roleHelpers')
       trackManager = await factories.user().save()
       user = await factories.user().save()
       group = await factories.group().save()
-      await assignCoordinator(trackManager, group)
+      await assignAdministrator(trackManager, group)
       await user.joinGroup(group)
       completionRole = await GroupRole.forge({
         group_id: group.id,
@@ -1052,7 +1071,6 @@ describe('Post', function () {
         slug: `track-space-${Date.now()}`
       }).save()
       track = await Track.create({
-        name: 'Test Track',
         completion_role_id: completionRole.id,
         group_id: space.id
       })

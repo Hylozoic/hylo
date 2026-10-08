@@ -11,7 +11,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import useAllowedPostTypesForView from 'hooks/useAllowedPostTypesForView'
-import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
@@ -44,6 +44,7 @@ import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
 import fetchAllMyGroupsSpaces from 'store/actions/fetchAllMyGroupsSpaces'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import {
   PROPOSAL_ADVICE,
   PROPOSAL_CONSENSUS,
@@ -59,10 +60,9 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
-import { GROUP_TYPES } from 'store/models/Group'
+import { GROUP_TYPES, normalizeAcceptedPostTypes } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
-import getMyMemberships from 'store/selectors/getMyMemberships'
 import getPost from 'store/selectors/getPost'
 import presentPost from 'store/presenters/presentPost'
 import getFundingRound from 'store/selectors/getFundingRound'
@@ -91,17 +91,21 @@ import {
   pollingFetchLinkPreview,
   removeLinkPreview,
   clearLinkPreview,
-  getLinkPreview
+  getLinkPreview,
+  getPostEditorDestinationGroups
 } from './PostEditor.store'
 import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
-import { sanitizeURL } from 'util/url'
+import { isMeetingUrl, sanitizeURL } from 'util/url'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+
+/** Chat, action, and submission are not limited by a group's acceptedPostTypes. */
+const UNRESTRICTED_POST_TYPES = ['action', 'chat', 'submission']
 
 /** First post type as shown in PostTypeSelect (POST_TYPES order), among allowed types. */
 function firstDropdownPostType (allowedPostTypes) {
@@ -113,9 +117,10 @@ function firstDropdownPostType (allowedPostTypes) {
 /** Returns true when a group/space accepts the given post type (null acceptedPostTypes = all). */
 function groupAcceptsPostType (group, postType) {
   if (!group || !postType) return false
-  const types = group.acceptedPostTypes
+  if (UNRESTRICTED_POST_TYPES.includes(postType)) return true
+  const types = normalizeAcceptedPostTypes(group.acceptedPostTypes)
   if (types == null) return true
-  if (!Array.isArray(types) || types.length === 0) return false
+  if (types.length === 0) return false
   return types.includes(postType)
 }
 
@@ -177,15 +182,14 @@ function PostEditorInner ({
   const navigateToForDraft = `${pathname}${search || ''}`
   const routeParams = useParams()
   const parsedRouteParams = useRouteParams()
-  // When inside a space, this resolves to the space group's slug so chats/posts go to the space
-  const effectiveGroupSlug = useEffectiveGroupSlug()
-  const groupSlug = effectiveGroupSlug || routeParams.groupSlug || parsedRouteParams.groupSlug
+  // When inside a space, groupSlug is the space; parentGroupSlug / spaceSlug come from the URL
+  const { groupSlug: spaceAwareGroupSlug, parentGroupSlug, spaceSlug } = useGroupRouteOpts()
+  const groupSlug = spaceAwareGroupSlug || routeParams.groupSlug || parsedRouteParams.groupSlug
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
-  const myMemberships = useSelector(getMyMemberships)
 
   // First-time-in-the-editor tour, offered via a floating invitation
   const editorTourSteps = useMemo(() => postEditorTourSteps(t), [t])
@@ -196,6 +200,13 @@ function PostEditorInner ({
     inviteMessage: t('Want a quick tour of the post editor?')
   })
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
+  const routeParentGroup = useSelector(state => getGroupForSlug(state, parentGroupSlug))
+  // Prefer the URL space segment so we still treat this as a space when type/parentId
+  // have not been hydrated on the current group record.
+  const inSpace = Boolean(spaceSlug) || isSpaceGroup(currentGroup)
+  const currentParentGroupId = inSpace
+    ? (routeParentGroup?.id || currentGroup?.parentId)
+    : (currentGroup?.id || routeParentGroup?.id)
   // Track / funding-round spaces carry their config on the group itself.
   const currentTrack = currentGroup?.track || null
   const currentFundingRound = useSelector(state => {
@@ -211,16 +222,16 @@ function PostEditorInner ({
     if (editing) return null
 
     const fromView = allowedPostTypesForView
-    const fromGroup = currentGroup?.acceptedPostTypes
+    const fromGroup = normalizeAcceptedPostTypes(currentGroup?.acceptedPostTypes)
 
     // null/undefined acceptedPostTypes = group accepts all types
     if (fromGroup == null) return fromView
-    if (!Array.isArray(fromGroup)) return fromView
     // Typed views (track-actions, funding-round-submissions) keep their post type even when
     // the space has empty acceptedPostTypes (track/FR spaces do not use stream post types).
+    // Submission, action, and chat stay available even when the space lists other types.
     if (fromView != null) {
       if (fromGroup.length === 0) return fromView
-      return fromView.filter(type => fromGroup.includes(type))
+      return fromView.filter(type => fromGroup.includes(type) || UNRESTRICTED_POST_TYPES.includes(type))
     }
     return fromGroup
   }, [editing, allowedPostTypesForView, currentGroup?.acceptedPostTypes])
@@ -229,7 +240,11 @@ function PostEditorInner ({
     if (groupSlug && !currentGroup) dispatch(fetchForGroup(groupSlug))
   }, [dispatch, groupSlug, currentGroup])
 
-  const editingPostId = routeParams.postId
+  useEffect(() => {
+    if (inSpace && parentGroupSlug && !routeParentGroup) dispatch(fetchForGroup(parentGroupSlug))
+  }, [dispatch, inSpace, parentGroupSlug, routeParentGroup])
+
+  const editingPostId = routeParams.postId || parsedRouteParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
   const viewId = getQuerystringParam('viewId', urlLocation)
 
@@ -239,6 +254,7 @@ function PostEditorInner ({
   const createPostType = (() => {
     const fallback = firstDropdownPostType(allowedPostTypes)
     if (!postType) return fallback
+    if (UNRESTRICTED_POST_TYPES.includes(postType)) return postType
     if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
     return postType
   })()
@@ -284,6 +300,12 @@ function PostEditorInner ({
   const pendingTypeSwitchRef = useRef(null)
   /** Set to true when the post has been successfully submitted, preventing draft saves during teardown/navigation. */
   const isSubmittedRef = useRef(false)
+  /**
+   * Set once the user has edited the To field (added or removed any destination).
+   * After that, the current path's group/space is only applied when the modal
+   * loads — the user's choice is respected and never re-injected.
+   */
+  const toFieldTouchedRef = useRef(false)
   /** Blocks duplicate create/update dispatches before Redux pending state updates. */
   const isSubmittingRef = useRef(false)
   /**
@@ -391,37 +413,26 @@ function PostEditorInner ({
   const [dateError, setDateError] = useState(false)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
-  // Bumped after membership spaces load so To options recompute with parentId/acceptedPostTypes
-  const [membershipSpacesTick, setMembershipSpacesTick] = useState(0)
-
-  // Use Membership rows (same source as SpaceContent after join), not Me.memberships.
-  // joinSpace extracts a Membership but does not append it to Me.memberships, so the
-  // To field would otherwise stay empty until a later Me refetch.
+  // Joined groups and spaces, plus the current parent group. Unjoined spaces are omitted.
+  // Reads Group inside an ORM selector so parentId hydrates when spaces load.
+  const destinationGroups = useSelector(state => getPostEditorDestinationGroups(state, currentParentGroupId))
   const groupOptions = useMemo(() => {
-    const groups = (myMemberships || [])
-      .map((m) => m.group)
-      .filter((g) => {
-        if (!g) return false
-        if (g.status === 'archived') return false
-        // Filter out paywalled groups where user doesn't have access
-        if (g.paywall && g.canAccess === false) {
-          return false
-        }
-        return true
-      })
-
-    if (
-      currentGroup?.id &&
-      currentGroup.status !== 'archived' &&
-      !groups.some(g => sameGroupId(g.id, currentGroup.id))
-    ) {
-      groups.push(currentGroup)
+    const groups = [...destinationGroups]
+    const ensureGroup = (group) => {
+      if (!group?.id || group.status === 'archived') return
+      if (groups.some(g => sameGroupId(g.id, group.id))) return
+      // Once we know the user, only spaces they have joined are destinations.
+      if (isSpaceGroup(group) && currentUser && !destinationGroups.some(g => sameGroupId(g.id, group.id))) return
+      groups.push(group)
     }
-
-    return groups.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-  }, [myMemberships, currentGroup, membershipSpacesTick])
+    ensureGroup(currentGroup)
+    // Always keep the parent group available as a To destination when in a space
+    if (inSpace) ensureGroup(routeParentGroup)
+    return groups
+  }, [destinationGroups, currentGroup, currentUser, inSpace, routeParentGroup])
   const isAction = currentPost.type === 'action'
   const isSubmission = currentPost.type === 'submission'
+  const isChat = currentPost.type === 'chat'
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
@@ -450,7 +461,7 @@ function PostEditorInner ({
 
   const applyPostToEditor = useCallback((nextPost) => {
     let post = nextPost
-    if (!editing && currentGroup?.id) {
+    if (!editing && currentGroup?.id && !toFieldTouchedRef.current) {
       const hasCurrentGroup = post.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (!hasCurrentGroup) {
         post = { ...post, groups: [currentGroup, ...(post.groups || [])] }
@@ -510,18 +521,41 @@ function PostEditorInner ({
       return
     }
 
-    const mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
+    let mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
+    // Chat edits only restore the body. Type and the other post fields stay as saved.
+    if (editing && initialPost.type === 'chat') {
+      mergedPost = {
+        ...initialPost,
+        details: mergedPost.details,
+        linkPreview: mergedPost.linkPreview,
+        linkPreviewFeatured: mergedPost.linkPreviewFeatured,
+        skipLinkPreview: mergedPost.skipLinkPreview,
+        type: 'chat'
+      }
+    }
     applyPostToEditor(mergedPost)
   }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON])
 
   useEffect(() => {
     if (editing || !currentGroup?.id) return
+    if (toFieldTouchedRef.current) return
+    const currentSpaceIsJoined = !isSpaceGroup(currentGroup) ||
+      !currentUser ||
+      destinationGroups.some(g => sameGroupId(g.id, currentGroup.id))
+    if (!currentSpaceIsJoined) {
+      setCurrentPost(prev => {
+        const groups = (prev.groups || []).filter(g => !sameGroupId(g?.id, currentGroup.id))
+        if (groups.length === (prev.groups || []).length) return prev
+        return { ...prev, groups }
+      })
+      return
+    }
     setCurrentPost(prev => {
       const hasCurrentGroup = prev.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (hasCurrentGroup) return prev
       return { ...prev, groups: [currentGroup, ...(prev.groups || [])] }
     })
-  }, [currentGroup, editing, setCurrentPost])
+  }, [currentGroup, currentUser, destinationGroups, editing, setCurrentPost])
 
   // Flush pending details into currentPost on unmount so drafts are not truncated.
   useEffect(() => () => {
@@ -607,59 +641,66 @@ function PostEditorInner ({
     const postTypeForOptions = currentPost.type
     const topLevelGroups = groupOptions.filter(g => g && !isSpaceGroup(g))
     const spaces = groupOptions.filter(g => g && isSpaceGroup(g))
-    const currentTopLevelId = currentGroup?.parentId || currentGroup?.id
+    const currentTopLevelId = currentParentGroupId || routeParentGroup?.id || currentGroup?.parentId || currentGroup?.id
 
-    // Current top-level group first, then alphabetically; only groups that accept this post type
-    const sortedTopLevel = [...topLevelGroups]
-      .filter(g => groupAcceptsPostType(g, postTypeForOptions))
-      .sort((a, b) => {
-        const aIsCurrent = String(a.id) === String(currentTopLevelId)
-        const bIsCurrent = String(b.id) === String(currentTopLevelId)
-        if (aIsCurrent && !bIsCurrent) return -1
-        if (!aIsCurrent && bIsCurrent) return 1
-        return a.name.localeCompare(b.name)
-      })
-
-    return sortedTopLevel.flatMap((parent) => {
-      const options = [{
-        id: parent.id,
-        group: parent,
-        name: parent.name,
-        avatarUrl: parent.avatarUrl,
-        allowInPublic: parent.allowInPublic,
-        isSpace: false
-      }]
-
-      const childSpaces = spaces
-        .filter(space =>
-          String(space.parentId) === String(parent.id) &&
-          groupAcceptsPostType(space, postTypeForOptions)
-        )
-        .sort((a, b) => a.name.localeCompare(b.name))
-
-      childSpaces.forEach(space => {
-        options.push({
-          id: space.id,
-          group: space,
-          parentGroup: parent,
-          name: `${parent.name} / ${space.name}`,
-          avatarUrl: parent.avatarUrl,
-          icon: space.icon,
-          allowInPublic: space.allowInPublic,
-          isSpace: true
-        })
-      })
-
-      return options
+    const parentOption = (parent) => ({
+      id: parent.id,
+      group: parent,
+      name: parent.name,
+      avatarUrl: parent.avatarUrl,
+      allowInPublic: parent.allowInPublic,
+      isSpace: false
     })
-  }, [groupOptions, currentGroup?.id, currentGroup?.parentId, currentPost.type])
+    const spaceOption = (space, parent) => ({
+      id: space.id,
+      group: space,
+      parentGroup: parent,
+      name: parent ? `${parent.name} / ${space.name}` : space.name,
+      avatarUrl: parent?.avatarUrl || space.avatarUrl,
+      icon: space.icon,
+      allowInPublic: space.allowInPublic,
+      isSpace: true
+    })
+    const childSpacesFor = (parent) => spaces
+      .filter(space =>
+        String(space.parentId || space.parentGroup?.id) === String(parent.id) &&
+        groupAcceptsPostType(space, postTypeForOptions)
+      )
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    const optionsForParent = (parent, includeParent) => {
+      const options = []
+      if (includeParent) options.push(parentOption(parent))
+      childSpacesFor(parent).forEach(space => options.push(spaceOption(space, parent)))
+      return options
+    }
+
+    // Current parent group and its spaces first, then everyone else alphabetically.
+    // The parent row is omitted when it does not accept the selected post type.
+    const currentParent = topLevelGroups.find(g => String(g.id) === String(currentTopLevelId)) ||
+      (inSpace && routeParentGroup && !isSpaceGroup(routeParentGroup) ? routeParentGroup : null)
+    const leading = currentParent
+      ? optionsForParent(currentParent, groupAcceptsPostType(currentParent, postTypeForOptions))
+      : []
+
+    const rest = topLevelGroups
+      .filter(g => String(g.id) !== String(currentTopLevelId))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .flatMap(parent => {
+        const includeParent = groupAcceptsPostType(parent, postTypeForOptions)
+        if (!includeParent && childSpacesFor(parent).length === 0) return []
+        return optionsForParent(parent, includeParent)
+      })
+
+    return [...leading, ...rest]
+  }, [groupOptions, currentParentGroupId, currentGroup?.id, currentGroup?.parentId, currentPost.type, inSpace, routeParentGroup])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
       if (!g) return null
 
       if (isSpaceGroup(g)) {
-        const parent = groupOptions.find(p => p && String(p.id) === String(g.parentId))
+        const parent = groupOptions.find(p => p && String(p.id) === String(g.parentId || g.parentGroup?.id))
         return {
           id: g.id,
           group: g,
@@ -695,7 +736,13 @@ function PostEditorInner ({
 
   useEffect(() => {
     if (autoFocus) {
-      setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+      setTimeout(() => {
+        if (initialPost.type === 'chat') {
+          editorRef.current?.focus?.('end')
+        } else if (titleInputRef.current) {
+          titleInputRef.current.focus()
+        }
+      }, 100)
     }
     return () => {
       dispatch(clearLinkPreview())
@@ -703,15 +750,18 @@ function PostEditorInner ({
     }
   }, [])
 
-  // Fetch membership spaces so the To field has destinations from every group
+  // Membership groups and spaces, plus the current parent's space list so joined
+  // spaces pick up parentId for the To field.
   const hasFetchedToFieldDataRef = useRef(false)
   useEffect(() => {
     if (hasFetchedToFieldDataRef.current) return
     hasFetchedToFieldDataRef.current = true
-    Promise.resolve(dispatch(fetchAllMyGroupsSpaces())).finally(() => {
-      setMembershipSpacesTick(tick => tick + 1)
-    })
+    dispatch(fetchAllMyGroupsSpaces())
   }, [dispatch])
+
+  useEffect(() => {
+    if (currentParentGroupId) dispatch(fetchGroupSpaces(currentParentGroupId))
+  }, [dispatch, currentParentGroupId])
 
   useEffect(() => {
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
@@ -813,7 +863,13 @@ function PostEditorInner ({
     setIsDirty(false)
     if (autoFocus) {
       toFieldRef?.current?.reset()
-      setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+      setTimeout(() => {
+        if (initialPost.type === 'chat') {
+          editorRef.current?.focus?.('end')
+        } else if (titleInputRef.current) {
+          titleInputRef.current.focus()
+        }
+      }, 100)
     } else {
       toFieldRef?.current?.reset()
     }
@@ -999,7 +1055,10 @@ function PostEditorInner ({
 
   const handleAddLinkPreview = useEventCallback((url, force) => {
     debouncedFetchLinkPreview(url, force, currentPost.linkPreview)
-  }, [currentPost.linkPreview, debouncedFetchLinkPreview])
+    if (currentPost.type === 'event' && isMeetingUrl(url)) {
+      setCurrentPost(prev => (prev.meetingLink ? prev : { ...prev, meetingLink: url }))
+    }
+  }, [currentPost.linkPreview, currentPost.type, debouncedFetchLinkPreview, setCurrentPost])
 
   const handleAddTopic = useEventCallback((topic) => {
     setCurrentPost(prev => {
@@ -1019,6 +1078,7 @@ function PostEditorInner ({
   }, [dispatch, setCurrentPost])
 
   const handleAddToOption = useCallback((toOptions) => {
+    toFieldTouchedRef.current = true
     const groups = uniqBy('id', toOptions.map(toOption => toOption.group).filter(Boolean))
     setCurrentPost(prev => ({ ...prev, groups }))
   }, [setCurrentPost])
@@ -1054,6 +1114,7 @@ function PostEditorInner ({
    * Determines if the current form state is valid for submission
    * Checks various conditions based on post type and sets error messages
    */
+  const attachmentCount = imageAttachments.length + fileAttachments.length
   const isValid = useMemo(() => {
     const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions } = currentPost
 
@@ -1080,7 +1141,12 @@ function PostEditorInner ({
         break
     }
 
-    if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
+    if (type === 'chat') {
+      // Chat posts have no title. Text or an attachment is enough.
+      if (!hasDescription && attachmentCount === 0) {
+        errorMessages.push(t('Chat must have text or an attachment'))
+      }
+    } else if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
       errorMessages.push(t('Title is required'))
     }
 
@@ -1093,7 +1159,7 @@ function PostEditorInner ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions])
+  }, [attachmentCount, hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -1138,9 +1204,13 @@ function PostEditorInner ({
         timezone,
         title,
         topics,
-        type
+        type: postType
       } = currentPost
-      const details = editorRef.current.getHTML()
+      // Editing a chat never converts it to another post type.
+      const type = editing && editingPost?.type === 'chat' ? 'chat' : postType
+      const rawDetails = editorRef.current.getHTML()
+      // Empty TipTap HTML would render as a blank line on attachment-only chat posts.
+      const details = type === 'chat' && !hasDraftContent(rawDetails) ? '' : rawDetails
       const topicNames = topics?.map((t) => t.name)
       const memberIds = members?.map((m) => m.id) || []
       if (type === 'project') {
@@ -1181,7 +1251,7 @@ function PostEditorInner ({
         imageAttachments, // For optimistic display of the new post
         imageUrls,
         isAnonymousVote,
-        isPublic,
+        isPublic: type === 'submission' ? false : isPublic,
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
@@ -1236,7 +1306,7 @@ function PostEditorInner ({
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -1255,7 +1325,7 @@ function PostEditorInner ({
     }
   }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading, postPending])
 
-  // Allow parents (e.g. CreateModal) to trigger save/reset flows without duplicating editor logic
+  // Allow parents (e.g. CreatePostModal) to trigger save/reset flows without duplicating editor logic
   useImperativeHandle(ref, () => ({
     submit: () => doSave(),
     resetToInitial: () => reset()
@@ -1306,7 +1376,7 @@ function PostEditorInner ({
    * @returns {boolean} - True if user has admin rights in all selected groups
    */
   const canMakeAnnouncement = useCallback(() => {
-    if (currentPost.type === 'action' || currentPost.type === 'submission') return false
+    if (currentPost.type === 'action' || currentPost.type === 'submission' || currentPost.type === 'chat') return false
     const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
     for (let index = 0; index < groups.length; index++) {
@@ -1315,7 +1385,7 @@ function PostEditorInner ({
     return true
   }, [currentPost, myAdminGroups])
 
-  const canHaveTimes = !['discussion', 'action', 'submission'].includes(currentPost.type)
+  const canHaveTimes = !['discussion', 'action', 'submission', 'chat'].includes(currentPost.type)
   const eventTimezone = currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
   const startTimePickerValue = currentPost.startTime
     ? DateTimeHelpers.toPickerDate(currentPost.startTime, eventTimezone)
@@ -1373,23 +1443,27 @@ function PostEditorInner ({
       />
       {editorTourInvitation}
       <div className={cn('PostEditorHeader relative')} data-tour='post-type'>
-        {isAction
+        {isChat
           ? (
-            <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
+            <div>{t('Editing Chat')}</div>
             )
-          : isSubmission
+          : isAction
             ? (
-              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') })}</div>
+              <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
               )
-            : (
-              <PostTypeSelect
-                allowedPostTypes={allowedPostTypes}
-                disabled={loading}
-                postType={currentPost.type}
-                setPostType={handlePostTypeSelection}
-                className={cn({ hidden: !!currentFundingRound })}
-              />
-              )}
+            : isSubmission
+              ? (
+                <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') })}</div>
+                )
+              : (
+                <PostTypeSelect
+                  allowedPostTypes={allowedPostTypes}
+                  disabled={loading}
+                  postType={currentPost.type}
+                  setPostType={handlePostTypeSelection}
+                  className={cn({ hidden: !!currentFundingRound })}
+                />
+                )}
       </div>
       {showSubmissionCriteria && (
         <div className='flex flex-col gap-2 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-xs text-foreground/80'>
@@ -1417,7 +1491,7 @@ function PostEditorInner ({
           )}
         </div>
       )}
-      {!isAction && !isSubmission && (
+      {!isAction && !isSubmission && !isChat && (
         <div
           className={cn('PostEditorTo flex w-full items-center bg-input rounded p-1 border-2 border-transparent transition-all', { 'border-2 border-focus': toFieldFocused })}
           data-tour='post-to'
@@ -1439,28 +1513,30 @@ function PostEditorInner ({
           </div>
         </div>
       )}
-      <div className={cn('PostEditorTitle flex w-full items-center bg-input rounded p-1 transition-all border-2 border-transparent', { 'border-2 border-focus': titleFocused })}>
-        <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
-        <input
-          type='text'
-          className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
-          value={currentPost.title || ''}
-          onChange={handleTitleChange}
-          disabled={loading}
-          ref={titleInputRef}
-          maxLength={MAX_TITLE_LENGTH}
-          onFocus={() => setTitleFocused(true)}
-          onBlur={() => setTitleFocused(false)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && event.altKey) {
-              doSave()
-            }
-          }}
-        />
-        {titleLengthError && (
-          <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
-        )}
-      </div>
+      {!isChat && (
+        <div className={cn('PostEditorTitle flex w-full items-center bg-input rounded p-1 transition-all border-2 border-transparent', { 'border-2 border-focus': titleFocused })}>
+          <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
+          <input
+            type='text'
+            className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
+            value={currentPost.title || ''}
+            onChange={handleTitleChange}
+            disabled={loading}
+            ref={titleInputRef}
+            maxLength={MAX_TITLE_LENGTH}
+            onFocus={() => setTitleFocused(true)}
+            onBlur={() => setTitleFocused(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && event.altKey) {
+                doSave()
+              }
+            }}
+          />
+          {titleLengthError && (
+            <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
+          )}
+        </div>
+      )}
       <div
         className={cn(
           'PostEditorContent w-full bg-input rounded p-1',
@@ -1533,7 +1609,7 @@ function PostEditorInner ({
           />
         </div>
       </div> */}
-      {!isAction && !isSubmission && (
+      {!isAction && !isSubmission && !isChat && (
         <div className='PostEditorPublic flex w-full items-center bg-input rounded p-1' data-tour='post-public'>
           <PublicToggle
             togglePublic={togglePublic}
@@ -1756,7 +1832,7 @@ function PostEditorInner ({
           setCurrentPost={setCurrentPost}
         />
       )}
-      {showLocation && (
+      {showLocation && !isChat && (
         <div className={cn('flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2')}>
           <div className='text-xs text-foreground/50'>{locationLabel}</div>
           <LocationInput

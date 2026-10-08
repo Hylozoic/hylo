@@ -15,7 +15,7 @@ export function useGroupRouteOpts () {
   const parentGroupSlug = routeParams.groupSlug
   const spaceSlug = routeParams.spaceSlug
 
-  // Fallback for components rendered outside SpaceContent's provider (e.g. CreateModal):
+  // Fallback for components rendered outside SpaceContent's provider (e.g. CreatePostModal):
   // resolve the space's full slug from the parent group's menu views or More Spaces list
   const needsLookup = !spaceGroupSlug && !!spaceSlug && !!parentGroupSlug
   const parentGroup = useSelector(state => needsLookup ? getGroupForSlug(state, parentGroupSlug) : null)

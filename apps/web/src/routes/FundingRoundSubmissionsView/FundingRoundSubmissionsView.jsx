@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { createPostUrl } from '@hylo/navigation'
-import CreateModal from 'components/CreateModal'
 import Loading from 'components/Loading'
 import PostDialog from 'components/PostDialog'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
@@ -130,7 +129,10 @@ export default function FundingRoundSubmissionsView () {
 
   const postsForDisplay = useMemo(() => {
     if (!round) return []
-    let filtered = ['voting', 'discussion', 'completed'].includes(currentPhase) || canManageRound
+    const showAllSubmissions = canManageRound ||
+      ['voting', 'discussion', 'completed'].includes(currentPhase) ||
+      (currentPhase === 'submissions' && !!round.showRealtimeSubmissions)
+    let filtered = showAllSubmissions
       ? posts
       : posts.filter(post => parseInt(post.creator.id) === parseInt(currentUser.id))
 
@@ -142,7 +144,7 @@ export default function FundingRoundSubmissionsView () {
     }
 
     return filtered
-  }, [canManageRound, posts, currentPhase, currentUser?.id, round?.hideFinalResultsFromParticipants])
+  }, [canManageRound, posts, currentPhase, currentUser?.id, round?.hideFinalResultsFromParticipants, round?.showRealtimeSubmissions])
 
   const allocationsBySubmission = useMemo(() => {
     const map = {}
@@ -252,7 +254,6 @@ export default function FundingRoundSubmissionsView () {
           ))}
         </div>
         <Routes>
-          {['submissions', 'discussion'].includes(currentPhase) && <Route path='post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />}
           <Route path='post/:postId' element={<PostDialog />} />
         </Routes>
       </div>

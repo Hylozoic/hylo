@@ -42,6 +42,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       showWelcomePage
       showPostNoticesInChat
       layout
+      autoAddMembers
     }
     slug
     type
@@ -51,6 +52,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     icon
     homeRoute
     menuViewCount
+    moreSpacesCount
     acceptedPostTypes
     typeDescriptor
     typeDescriptorPlural
@@ -87,6 +89,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       maxTokenAllocation
       minTokenAllocation
       requireBudget
+      showRealtimeSubmissions
       showRealtimeVotes
       submissionDescriptor
       submissionDescriptorPlural

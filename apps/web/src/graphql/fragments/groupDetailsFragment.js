@@ -1,4 +1,4 @@
-const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets = false }) => `
+const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites, withExtensions }) => `
   id
   aboutVideoUri
   accessibility
@@ -28,6 +28,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     showSuggestedSkills
     showWelcomePage
     layout
+    autoAddMembers
   }
   slug
   type
@@ -67,6 +68,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     maxTokenAllocation
     minTokenAllocation
     requireBudget
+    showRealtimeSubmissions
     showRealtimeVotes
     submissionDescriptor
     submissionDescriptorPlural
@@ -191,6 +193,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           showSuggestedSkills
           showWelcomePage
           layout
+          autoAddMembers
         }
         slug
       }
@@ -206,18 +209,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
         data
         type
         active
-      }
-    }`
-    : ''}
-  ${withWidgets
-    ? `
-    widgets {
-      items {
-        id
-        name
-        context
-        order
-        isVisible
       }
     }`
     : ''}

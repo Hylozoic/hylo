@@ -63,7 +63,7 @@ import { reorderViewPost } from 'store/actions/groupViews'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS, RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
-import { makeDropQueryResults } from 'store/reducers/queryResults'
+import { buildKey, makeDropQueryResults } from 'store/reducers/queryResults'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViewById } from 'store/selectors/getGroupViews'
 import getMe from 'store/selectors/getMe'
@@ -82,6 +82,7 @@ import { createPostUrl, groupUrl, spaceUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { STREAM_MAIN_COLUMN_CLASS } from 'util/mainContentColumn'
 import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
+import { shouldInheritUserStreamFilters } from './viewStreamFilters'
 
 const viewComponent = {
   cards: PostCard,
@@ -220,22 +221,25 @@ export default function ViewContent (props) {
   const customViewLoading = Boolean(
     customViewId && ((group && group.groupViews == null) || (parentGroup && parentGroup.groupViews == null))
   )
+  const customViewMissing = Boolean(
+    customViewId && !customViewLoading && !streamViewConfig && (view === 'custom' || view === 'collection')
+  )
 
   // Do not block the stream on topic refetch when Topic is already in the ORM (e.g. redux-persist (if we ever bring that back)).
   const topicBlockingStreams = Boolean(topicName) && topicLoading && !topic
 
   const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
   const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
-  // All Activity should not inherit a leftover type filter from other views
-  const defaultPostType = view === 'all'
-    ? undefined
-    : (systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined)
+  const inheritUserStreamFilters = shouldInheritUserStreamFilters({ view, customViewId, streamViewConfig })
+  const defaultPostType = inheritUserStreamFilters
+    ? (systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined)
+    : undefined
   const defaultActivePostsOnly = systemView?.defaultActivePostsOnly || get('settings.activePostsOnly', currentUser) || false
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
   const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly', 'calendarMode', 'calendarDate'], location)
 
-  const search = querystringParams.search || streamViewConfig?.searchText
+  const search = querystringParams.search || (streamViewConfig?.type === 'stream' ? streamViewConfig.searchText : undefined)
   const configuredViewMode = querystringParams.v || streamViewConfig?.defaultViewMode || defaultViewMode
   const viewMode = configuredViewMode === 'map' ? 'cards' : configuredViewMode
   const isCalendarViewMode = viewMode === 'calendar'
@@ -247,7 +251,11 @@ export default function ViewContent (props) {
   if (view === 'events' || isCalendarViewMode) {
     sortBy = 'start_time'
   }
-  const activePostsOnly = (querystringParams.activeOnly === 'true') || (!querystringParams.activeOnly && ((streamViewConfig?.type === 'stream' && streamViewConfig.activePostsOnly) || defaultActivePostsOnly))
+  const activePostsOnly = (querystringParams.activeOnly === 'true') || (!querystringParams.activeOnly && (
+    streamViewConfig?.type === 'stream'
+      ? Boolean(streamViewConfig.activePostsOnly)
+      : (inheritUserStreamFilters && defaultActivePostsOnly)
+  ))
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
@@ -309,7 +317,8 @@ export default function ViewContent (props) {
       }
     }
 
-    const numPostsToLoad = isMobile.any ? 10 : 20
+    // One page for the visible month. Paging 20 at a time repaints the grid as each page arrives.
+    const numPostsToLoad = isCalendarViewMode ? 60 : (isMobile.any ? 10 : 20)
     const includeChatActivity = view === 'all' && !postTypeFilter && !isCalendarViewMode && showChatActivity
 
     const params = {
@@ -436,6 +445,9 @@ export default function ViewContent (props) {
   }, [isCalendarViewMode, pinnableView?.pinnedPostIds, pinnedPosts, posts, sortBy, streamViewConfig?.type])
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const pending = useSelector(state => state.pending[FETCH_POSTS])
+  const [fetchError, setFetchError] = useState(false)
+  const postsQueryKey = useMemo(() => buildKey(FETCH_POSTS, fetchPostsParam), [fetchPostsParam])
+  const [resolvedPostsQueryKey, setResolvedPostsQueryKey] = useState(null)
 
   const collectionSensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
@@ -471,11 +483,27 @@ export default function ViewContent (props) {
     }))
   }, [dispatch, group?.id, streamViewConfig?.collectionId])
 
-  const fetchPostsFrom = useCallback((offset) => {
+  /** Loads a page of posts. First-page GraphQL failures retry once, then surface. */
+  const fetchPostsFrom = useCallback((offset, isRetry = false) => {
     if (pending && offset > 0) return
     if (hasMore === false && offset > 0) return
-    dispatch(fetchPosts({ offset, ...fetchPostsParam }))
-  }, [dispatch, pending, hasMore, fetchPostsParam])
+    if (offset === 0) setFetchError(false)
+    return Promise.resolve(dispatch(fetchPosts({
+      offset,
+      // Keep the current month on screen until this page arrives, then swap it in.
+      replaceResults: isCalendarViewMode && !offset,
+      ...fetchPostsParam
+    })))
+      .then(action => {
+        if (action?.error) throw action.payload || new Error('FETCH_POSTS failed')
+        if (offset === 0) setResolvedPostsQueryKey(buildKey(FETCH_POSTS, fetchPostsParam))
+      })
+      .catch(() => {
+        if (offset > 0) return
+        if (!isRetry) return fetchPostsFrom(offset, true)
+        setFetchError(true)
+      })
+  }, [dispatch, pending, hasMore, fetchPostsParam, isCalendarViewMode])
 
   useEffect(() => {
     if (view !== 'custom' || !customViewId || !streamViewConfig) return
@@ -501,7 +529,9 @@ export default function ViewContent (props) {
   }, [topicName])
 
   useEffect(() => {
-    if (view === 'events' || isCalendarViewMode) {
+    // List view has to drop before a refetch because pages append. Calendar
+    // replaces offset 0 in place, so dropping here would blank the grid first.
+    if (view === 'events' && !isCalendarViewMode) {
       dispatch(dropPostResults(fetchPostsParam))
     }
   }, [dispatch, fetchPostsParam, isCalendarViewMode, view])
@@ -591,15 +621,14 @@ export default function ViewContent (props) {
   // Refresh calendar when returning from the create modal (a post may have been created)
   const prevPathWasCreateRef = useRef(false)
   useEffect(() => {
-    const isCreatePath = location.pathname.includes('/create/')
+    const isCreatePath = new URLSearchParams(location.search).get('create') === 'post'
     if (prevPathWasCreateRef.current && !isCreatePath && isCalendarViewMode) {
-      dispatch(dropPostResults(fetchPostsParam))
       fetchPostsFrom(0)
     }
     prevPathWasCreateRef.current = isCreatePath
-  }, [location.pathname, isCalendarViewMode, dispatch, fetchPostsParam, fetchPostsFrom])
+  }, [location.pathname, location.search, isCalendarViewMode, dispatch, fetchPostsParam, fetchPostsFrom])
 
-  const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
+  const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY
   // Calendar view applies on both `/events` (default) and `/stream?v=calendar`.
   // Default new-post type to event in calendar mode; `/events` list view uses COMMON_VIEWS postTypes.
   const postTypesForPrompt = useMemo(() => {
@@ -649,13 +678,20 @@ export default function ViewContent (props) {
     dispatch(push(createPostUrl(routeParams, params)))
   }, [dispatch, routeParams, querystringParams, postTypeFilter, postTypesForPrompt])
 
-  const showEmptyStream = !pending && !topicBlockingStreams && !customViewLoading && streamPosts.length === 0
+  // hasMore is undefined until FETCH_POSTS succeeds. A failed fetch used to
+  // look like a real empty stream ("Nothing here yet") even when posts exist.
+  // Stale empty queryResults for this key (wrong leftover type filter, a
+  // previous race) must not count as ready until this visit's fetch finishes.
+  const queryReady = hasMore !== undefined && resolvedPostsQueryKey === postsQueryKey
+  const showFetchError = fetchError && !pending && streamPosts.length === 0
+  const showEmptyStream = customViewMissing || (queryReady && !pending && !topicBlockingStreams && !customViewLoading && streamPosts.length === 0 && !fetchError)
+  const waitingForFirstPage = !customViewMissing && !queryReady && !fetchError && streamPosts.length === 0
 
   // Keep Calendar mounted across date/month fetches. Pending belongs in an overlay,
   // not a gate that unmounts the whole view when posts briefly go empty.
   const calendarBlocked = topicBlockingStreams || customViewLoading
   const showCalendar = !calendarBlocked && isCalendarViewMode
-  const calendarFetching = pending && showCalendar
+  const calendarFetching = pending && showCalendar && posts.length === 0
   const calendarInitialLoading = calendarBlocked && isCalendarViewMode
 
   const { setHeaderDetails } = useViewHeader()
@@ -781,16 +817,24 @@ export default function ViewContent (props) {
                   onDragEnd={handleCollectionDragEnd}
                   streamPosts={streamPosts}
                   viewMode={viewMode}
-                  showEmptyStream={showEmptyStream}
-                  noPostsMessage={noPostsMessage}
-                  hasPostPrompt={hasPostPrompt}
-                  onCreateFromEmpty={createFromEmpty}
+                  showEmptyStream={showEmptyStream || showFetchError}
+                  noPostsMessage={showFetchError ? t('Couldn\'t load posts') : noPostsMessage}
+                  hasPostPrompt={hasPostPrompt && !showFetchError}
+                  onCreateFromEmpty={showFetchError ? () => fetchPostsFrom(0, true) : createFromEmpty}
+                  emptyActionLabel={showFetchError ? t('Try Again') : null}
                   routeParams={routeParams}
                   group={group}
                   currentUser={currentUser}
                   querystringParams={querystringParams}
                   context={context}
                   groupSlug={groupSlug}
+                />
+              )}
+              {showFetchError && isCalendarViewMode && (
+                <NoPosts
+                  message={t('Couldn\'t load posts')}
+                  actionLabel={t('Try Again')}
+                  onAction={() => fetchPostsFrom(0, true)}
                 />
               )}
               {showCalendar && (
@@ -818,7 +862,7 @@ export default function ViewContent (props) {
                 </div>
               )}
 
-              {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
+              {(pending || waitingForFirstPage || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
                 posts.length === 0
                   ? <StreamSkeleton wrapWithMainColumn={false} />
                   : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
@@ -850,6 +894,7 @@ function CollectionPostsGrid ({
   noPostsMessage,
   hasPostPrompt,
   onCreateFromEmpty,
+  emptyActionLabel,
   routeParams,
   group,
   currentUser,
@@ -901,7 +946,7 @@ function CollectionPostsGrid ({
       gap={8}
       className={gridClassName}
     >
-      {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={hasPostPrompt ? t('Create something') : null} onAction={onCreateFromEmpty} /> : ''}
+      {showEmptyStream ? <NoPosts message={noPostsMessage} actionLabel={emptyActionLabel || (hasPostPrompt ? t('Create something') : null)} onAction={onCreateFromEmpty} /> : ''}
       {postItems}
     </MasonryGrid>
   )

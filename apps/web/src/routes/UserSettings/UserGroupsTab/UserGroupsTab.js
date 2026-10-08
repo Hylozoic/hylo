@@ -1,10 +1,8 @@
 import get from 'lodash/get'
 import React, { useCallback, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { createSelector as ormCreateSelector } from 'redux-orm'
 import { useDispatch, useSelector } from 'react-redux'
 import { WebViewMessageTypes } from '@hylo/shared'
-import Affiliation from 'components/Affiliation'
 import Button from 'components/ui/button'
 import Dropdown from 'components/Dropdown'
 import { Trash } from 'lucide-react'
@@ -21,26 +19,14 @@ import {
   DialogTitle
 } from 'components/ui/dialog'
 import {
-  CREATE_AFFILIATION,
-  DELETE_AFFILIATION,
   LEAVE_GROUP
 } from 'store/constants'
-import orm from 'store/models'
 import { cn } from 'util/index'
 import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 
-import { createAffiliation, deleteAffiliation, leaveGroup } from './UserGroupsTab.store'
+import { leaveGroup } from './UserGroupsTab.store'
 import { getMyGroupsWithChildren, isSpaceGroup } from 'store/selectors/getMyGroups'
 import { spaceHomeUrl } from '@hylo/navigation'
-
-export const getCurrentUserAffiliations = ormCreateSelector(
-  orm,
-  session => {
-    const me = session.Me.first()
-    if (!me) return {}
-    return me?.affiliations?.items
-  }
-)
 
 function UserGroupsTab () {
   const { t } = useTranslation()
@@ -48,20 +34,13 @@ function UserGroupsTab () {
 
   // Get state from Redux
   const action = useSelector(state => get(state, 'UserGroupsTab.action'))
-  const reduxAffiliations = useSelector(getCurrentUserAffiliations)
   const groupsTree = useSelector(getMyGroupsWithChildren)
 
   // Local state
-  const [affiliations, setAffiliations] = useState(reduxAffiliations || [])
   const [groups, setGroups] = useState(groupsTree || [])
   const [errorMessage, setErrorMessage] = useState(undefined)
   const [successMessage, setSuccessMessage] = useState(undefined)
-  const [showAddAffiliations, setShowAddAffiliations] = useState(false)
   const [groupToLeave, setGroupToLeave] = useState(null)
-
-  useEffect(() => {
-    setAffiliations(reduxAffiliations || [])
-  }, [reduxAffiliations])
 
   useEffect(() => {
     setGroups(groupsTree || [])
@@ -70,7 +49,7 @@ function UserGroupsTab () {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: t('Groups and Affiliations'),
+      title: t('My Groups'),
       icon: '',
       info: '',
       search: false
@@ -83,27 +62,6 @@ function UserGroupsTab () {
     setErrorMessage(undefined)
     setSuccessMessage(undefined)
   }, [])
-
-  const toggleAddAffiliations = useCallback(() => {
-    setShowAddAffiliations(!showAddAffiliations)
-  }, [showAddAffiliations])
-
-  const deleteAffiliationHandler = useCallback((affiliationId) => {
-    dispatch(deleteAffiliation(affiliationId))
-      .then(res => {
-        if (res.error) {
-          setErrorMessage(t('Error deleting this affiliation.'))
-          return
-        }
-
-        const deletedAffiliationId = get(res, 'payload.data.deleteAffiliation')
-        if (deletedAffiliationId) {
-          setSuccessMessage(t('Your affiliation was deleted'))
-          const updatedItems = affiliations.filter((a) => a.id !== deletedAffiliationId)
-          setAffiliations([...updatedItems])
-        }
-      })
-  }, [affiliations])
 
   const handleLeaveGroup = useCallback((group) => {
     setGroupToLeave(group)
@@ -140,25 +98,7 @@ function UserGroupsTab () {
       })
   }, [groupToLeave, dispatch, t])
 
-  const saveAffiliation = useCallback(({ role, preposition, orgName, url }) => {
-    dispatch(createAffiliation({ role, preposition, orgName, url }))
-      .then(res => {
-        const affiliation = get(res, 'payload.data.createAffiliation')
-        if (affiliation) {
-          setSuccessMessage(t('Your affiliation was added'))
-          const updatedItems = [...affiliations, affiliation]
-          setAffiliations(updatedItems)
-          setShowAddAffiliations(false)
-          setErrorMessage('')
-        }
-      })
-      .catch((e) => {
-        setErrorMessage(e.message)
-        setShowAddAffiliations(true)
-      })
-  }, [affiliations])
-
-  if (!groups && !affiliations) return <Loading />
+  if (!groups) return <Loading />
 
   const leaveLabel = (group) => t(isSpaceGroup(group) ? 'Leave Space' : 'Leave Group')
 
@@ -184,7 +124,7 @@ function UserGroupsTab () {
 
   return (
     <div className='p-4 max-w-4xl mx-auto'>
-      <div className='text-foreground/70 mb-6'>{t('This list shows which groups on Hylo you are a part of. You can also share your affiliations with organizations that are not currently on Hylo, which will appear on your profile.')}</div>
+      <div className='text-foreground/70 mb-6'>{t('This list shows which groups on Hylo you are a part of.')}</div>
 
       <h2 className='text-xl font-bold mb-4 text-foreground'>{t('Hylo Groups')}</h2>
       {action === LEAVE_GROUP && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={resetMessage} />}
@@ -199,31 +139,6 @@ function UserGroupsTab () {
           }))}
         </div>
       ))}
-
-      <h2 className='text-xl font-bold mb-4 mt-8 text-foreground'>{t('Other Affiliations')}</h2>
-      {action === DELETE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={resetMessage} />}
-      {affiliations && affiliations.length > 0 && affiliations.map((a, index) =>
-        <Affiliation
-          affiliation={a}
-          archive={deleteAffiliationHandler}
-          key={a.id}
-          index={index}
-        />
-      )}
-
-      {action === CREATE_AFFILIATION && displayMessage && <Message errorMessage={errorMessage} successMessage={successMessage} reset={resetMessage} />}
-
-      {showAddAffiliations
-        ? <AddAffiliation close={toggleAddAffiliations} save={saveAffiliation} />
-        : (
-          <div
-            className='flex items-center gap-2 p-4 rounded-lg bg-card/60 hover:bg-card/100 cursor-pointer transition-all shadow-lg hover:shadow-xl hover:scale-102'
-            onClick={toggleAddAffiliations}
-          >
-            <div className='flex items-center justify-center w-8 h-8 rounded-full bg-selected text-foreground font-bold'>+</div>
-            <div className='text-foreground'>{t('Add new affiliation')}</div>
-          </div>
-          )}
 
       <Dialog open={!!groupToLeave} onOpenChange={(open) => !open && setGroupToLeave(null)}>
         <DialogContent>

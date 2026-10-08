@@ -5,7 +5,10 @@ import { red } from 'chalk'
 import { inspect } from 'util'
 import RedisPubSub from '../services/RedisPubSub'
 import makeSchema from './makeSchema'
+import { createGroupVisibilityLoader } from './filters'
 import sentry from '../../lib/sentry'
+import { touchLastActiveAt } from './touchLastActiveAt'
+import { flattenImageUrlVariables } from '../../lib/uploader/rehostRemoteMedia'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
 
@@ -57,11 +60,21 @@ const graphqlSentryContextPlugin = {
   }
 }
 
+// Zapier line items arrive as [[url]]. Flatten before [String] coercion rejects them.
+const flattenImageUrlsPlugin = {
+  onExecute ({ executeFn, setExecuteFn }) {
+    setExecuteFn((executionArgs) => {
+      flattenImageUrlVariables(executionArgs?.variableValues)
+      return executeFn(executionArgs)
+    })
+  }
+}
+
 export const yoga = createYoga({
   graphqlEndpoint: GRAPHQL_ENDPOINT,
   schema: makeSchema,
   // plugins: [useLazyLoadedSchema(createSchema)],
-  plugins: [graphqlSentryContextPlugin],
+  plugins: [flattenImageUrlsPlugin, graphqlSentryContextPlugin],
   context: async ({ req, params }) => {
     if (process.env.DEBUG_GRAPHQL) {
       sails.log.info('\n' +
@@ -79,41 +92,50 @@ export const yoga = createYoga({
       sails.log.info(`[auth] graphql context op=${opName || '?'} currentUserId=${req.session.userId} viaToken=${!!req.api_client} hasCookieHeader=${!!req.headers.cookie}`)
     }
 
-    // Update user last active time unless this is an oAuth login
-    if (req.session.userId && !req.api_client) {
-      await User.query().where({ id: req.session.userId }).update({ last_active_at: new Date() })
-    }
+    // oAuth clients are skipped inside touchLastActiveAt
+    touchLastActiveAt(req)
 
     // This is unrelated to the above which is using context as a hook,
     // this is putting the subscriptions pubSub method on context
     return {
       pubSub: RedisPubSub,
       socket: req.socket,
-      currentUserId: req.session.userId
+      currentUserId: req.session.userId,
+      groupVisibilityLoader: createGroupVisibilityLoader()
     }
   },
   maskedErrors: {
     maskError: maskAndLogGraphqlError
   },
   logging: process.env.GRAPHQL_YOGA_LOG_LEVEL || 'info',
-  graphiql: true
+  graphiql: graphiqlEnabled
 })
+
+/**
+ * GraphiQL is always available outside production; in production only for Hylo admins.
+ */
+export function graphiqlEnabled (request, { req } = {}) {
+  if (process.env.NODE_ENV !== 'production') return true
+  return !!req?.session && Admin.isSignedIn(req)
+}
 
 // Test-only shim: GraphQL Yoga v3 removed handler.inject(). Unit tests (e.g. api/graphql/index.test.js)
 // still call inject({ document, serverContext: { req, res } }) and assert on executionResult. This
 // recreates that API by running graphql() with the same schema/context shape as production (yoga),
 // without going through HTTP. response is always null; tests only use executionResult.
 export const createRequestHandler = () => ({
-  inject: async ({ document, serverContext }) => {
+  inject: async ({ document, variables, serverContext }) => {
     const req = serverContext?.req || {}
     const schema = await makeSchema({ req })
     const executionResult = await graphql({
       schema,
       source: document,
+      variableValues: flattenImageUrlVariables(variables),
       contextValue: {
         pubSub: RedisPubSub,
         socket: req.socket,
         currentUserId: req.session?.userId,
+        groupVisibilityLoader: createGroupVisibilityLoader(),
         // Mutations (e.g. verifyEmail, login) read/write session via context.req
         req
       }
@@ -137,7 +159,11 @@ export const makeAuthenticatedQueries = (currentUserId, fetchOne, fetchMany) => 
   },
   group: async (_root, { id, updateLastViewed } = {}) => {
     if (updateLastViewed) {
-      await GroupMembership.updateLastViewedAt(currentUserId, id)
+      try {
+        await GroupMembership.updateLastViewedAt(currentUserId, id)
+      } catch (err) {
+        sails.log.error('updateLastViewedAt failed:', err)
+      }
     }
     return fetchOne ? fetchOne('group', { id }) : Group.find(id)
   }

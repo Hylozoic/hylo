@@ -32,7 +32,7 @@ export default function EmojiRow (props) {
   ) || [], [comment, post, currentUser])
   const myEmojis = useMemo(() => myReactions.map((reaction) => reaction.emojiFull), [myReactions])
   const entityReactions = useMemo(() => (comment ? comment.commentReactions : post.postReactions) || [], [comment, post])
-  const groupIds = useMemo(() => post.groups.map(g => g.id), [post])
+  const groupIds = useMemo(() => (post.groups || []).map(g => g.id), [post])
 
   const handleReaction = useCallback((emojiFull) => {
     onAddReaction(post, emojiFull)
@@ -74,8 +74,9 @@ export default function EmojiRow (props) {
     Object.values(usersReactions).sort((a, b) => b.count - a.count),
   [usersReactions])
 
-  const topReaction = sortedReactions[0]
-  const overflowReactions = sortedReactions.slice(1)
+  // Two emoji types stay as two pills. A third type is what collapses the rest into the overflow pill.
+  const visibleReactions = sortedReactions.length === 2 ? sortedReactions : sortedReactions.slice(0, 1)
+  const overflowReactions = sortedReactions.length > 2 ? sortedReactions.slice(1) : []
   const overflowCount = overflowReactions.reduce((sum, r) => sum + r.count, 0)
   const hasAnySelected = overflowReactions.some(r => r.loggedInUser)
 
@@ -84,17 +85,17 @@ export default function EmojiRow (props) {
       {entityReactions && (
         <div className='transition-all duration-250 ease-in-out flex relative items-center flex-nowrap'>
           {currentUser && alignLeft ? <EmojiPicker handleReaction={handleReaction} myEmojis={myEmojis} handleRemoveReaction={handleRemoveReaction} onOpenChange={onOpenChange} /> : ''}
-          {topReaction && (
+          {visibleReactions.map(reaction => (
             <EmojiPill
-              onClick={currentUser ? topReaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
-              key={topReaction.emojiFull}
-              emojiFull={topReaction.emojiFull}
-              count={topReaction.count}
-              selected={topReaction.loggedInUser}
-              toolTip={currentUser ? topReaction.userList.join('<br>') : undefined}
+              onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
+              key={reaction.emojiFull}
+              emojiFull={reaction.emojiFull}
+              count={reaction.count}
+              selected={reaction.loggedInUser}
+              toolTip={currentUser ? reaction.userList.join('<br>') : undefined}
               className={pillClassName}
             />
-          )}
+          ))}
           {overflowReactions.length > 0 && (
             <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
               <PopoverTrigger asChild>
@@ -106,8 +107,8 @@ export default function EmojiRow (props) {
                   )}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span className='sm:hidden'>{overflowReactions.slice(0, 2).map(r => r.emojiFull).join('')}{overflowReactions.length > 2 && '…'}</span>
-                  <span className='hidden sm:inline'>{overflowReactions.slice(0, 3).map(r => r.emojiFull).join('')}{overflowReactions.length > 3 && '…'}</span>
+                  <span className='inline-block translate-y-px leading-none sm:hidden'>{overflowReactions.slice(0, 2).map(r => r.emojiFull).join('')}{overflowReactions.length > 2 && '…'}</span>
+                  <span className='hidden translate-y-px leading-none sm:inline-block'>{overflowReactions.slice(0, 3).map(r => r.emojiFull).join('')}{overflowReactions.length > 3 && '…'}</span>
                   <span className='ml-1'>{overflowCount}</span>
                 </div>
               </PopoverTrigger>

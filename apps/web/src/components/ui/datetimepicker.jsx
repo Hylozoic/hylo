@@ -212,7 +212,7 @@ function genYears (yearRange = 50) {
 // ---------- utils end ----------
 /**
  * Returns the nearest dialog DOM node so the popover can portal into it.
- * CreateModal is skipped on purpose: it uses `overflow` + `backdrop-filter`, which
+ * CreatePostModal is skipped on purpose: it uses `overflow` + `backdrop-filter`, which
  * in Safari becomes a containing block for `position: fixed` and shifts the calendar
  * to the right of its trigger. Portaling to `document.body` keeps coordinates
  * viewport-relative, matching Chrome. Radix dialogs (Post dialog, ModalDialog) still

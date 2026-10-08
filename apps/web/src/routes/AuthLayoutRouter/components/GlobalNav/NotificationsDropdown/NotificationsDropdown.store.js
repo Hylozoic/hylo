@@ -98,7 +98,11 @@ export function fetchNotifications (first = 20, offset = 0, resetCount = true) {
       extractModel: 'Notification',
       resetCount,
       extractQueryResults: {
-        getItems: get('payload.data.notifications')
+        getItems: get('payload.data.notifications'),
+        // Keep the queryResults key free of pagination vars (`first` is
+        // whitelisted) so getHasMoreNotifications, which looks up with no
+        // props, still finds this list after load-more fetches.
+        getRouteParams: () => ({})
       }
     }
   }

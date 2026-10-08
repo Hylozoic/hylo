@@ -14,7 +14,7 @@ export const CHAT_SPACE_ID = sid('space', 'chat')
 export const TRACK_SPACE_ID = sid('space', 'track')
 export const FUNDING_SPACE_ID = sid('space', 'funding')
 
-export const MAIN_COORDINATOR_ROLE_ID = sid('role', 'coordinator')
+export const MAIN_ADMINISTRATOR_ROLE_ID = sid('role', 'administrator')
 export const MAIN_MEMBER_ROLE_ID = sid('role', 'member')
 
 /**
@@ -49,7 +49,7 @@ export function buildGroups () {
         lat: 37.8044,
         lng: -122.2712
       }),
-      homeRoute: '/stream',
+      homeRoute: '/all',
       stewardDescriptor: 'Coordinator',
       stewardDescriptorPlural: 'Coordinators',
       createdAt_offset: -86400 * 180,
@@ -174,7 +174,7 @@ export function buildGroups () {
       funding: {
         id: FUNDING_SPACE_ID,
         slug: 'bioregional-grants',
-        name: 'Bioregional Grants',
+        name: 'Bioregional Grants Round 1',
         description: '<p>Participatory grants for regenerative work in the Bay Area bioregion. Members propose projects, discuss them openly, and allocate <strong>Regen Tokens</strong> through community voting — no grant committee, just collective stewardship of shared resources.</p><p>Round 1 is now in the voting phase. Browse submissions, read the plans, and allocate your tokens to the work you believe will heal people, land, and watersheds here.</p>',
         purpose: 'Channel community resources toward the highest-impact regenerative work through participatory budgeting.',
         avatarUrl: 'https://d3ngex8q79bk55.cloudfront.net/community/1054/avatar/1439885454281_BF_logo_final.jpg',
@@ -193,8 +193,8 @@ export function buildGroups () {
     },
     groupRoles: [
       {
-        id: MAIN_COORDINATOR_ROLE_ID,
-        name: 'Coordinator',
+        id: MAIN_ADMINISTRATOR_ROLE_ID,
+        name: 'Administrator',
         emoji: '🪄',
         active: true,
         groupId: MAIN_GROUP_ID,
@@ -213,7 +213,7 @@ export function buildGroups () {
 }
 
 /**
- * Memberships on Me — main group (coordinator) + simple group.
+ * Memberships on Me — main group (administrator) + simple group.
  */
 export function buildMemberships (groups) {
   return [
@@ -389,14 +389,14 @@ export function buildMemberships (groups) {
 }
 
 /**
- * Context menu / groupViews for the main group (stream, map, spaces, etc.).
+ * Context menu / groupViews for the main group (all activity, map, spaces, etc.).
  */
 export function buildGroupViews (groups, track, fundingRound) {
   const { main, spaces } = groups
   return {
     [main.id]: [
-      viewItem(sid('view', 'stream'), 'stream', 'Stream', 0, { icon: 'LayoutList' }),
-      viewItem(sid('view', 'map'), 'map', 'Map', 1, { icon: 'Map' }),
+      viewItem(sid('view', 'all'), 'all', 'All Activity', 0),
+      viewItem(sid('view', 'map'), 'map', 'Map', 1),
       viewItem(sid('view', 'events'), 'events', 'Events', 2, { icon: 'Calendar' }),
       viewItem(sid('view', 'members'), 'members', 'Members', 3, { icon: 'Users' }),
       spaceViewItem(sid('view', 'chat-space'), spaces.chat, 4),
@@ -416,14 +416,14 @@ export function buildGroupViews (groups, track, fundingRound) {
     ],
     [groups.simple.id]: [
       viewItem(sid('view', 'simple-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
-      viewItem(sid('view', 'simple-all'), 'all', 'All Activity', 1, { icon: 'LayoutList' }),
+      viewItem(sid('view', 'simple-all'), 'all', 'All Activity', 1),
       viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
       viewItem(sid('view', 'simple-projects'), 'projects', 'Projects', 3, { icon: 'Layers' }),
       viewItem(sid('view', 'simple-members'), 'members', 'Members', 4, { icon: 'Users' })
     ],
     [groups.staff.id]: [
       viewItem(sid('view', 'staff-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
-      viewItem(sid('view', 'staff-all'), 'all', 'All Activity', 1, { icon: 'LayoutList' }),
+      viewItem(sid('view', 'staff-all'), 'all', 'All Activity', 1),
       viewItem(sid('view', 'staff-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
       viewItem(sid('view', 'staff-events'), 'events', 'Events', 3, { icon: 'Calendar' }),
       viewItem(sid('view', 'staff-members'), 'members', 'Members', 4, { icon: 'Users' })

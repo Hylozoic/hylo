@@ -2,7 +2,7 @@ import { BadgeDollarSign, Bell, Check, ChevronRight, Copy, ExternalLink, Info, L
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import ClickCatcher from 'components/ClickCatcher'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
@@ -21,7 +21,7 @@ import Groups from 'routes/Groups'
 import Members from 'routes/Members'
 import Moderation from 'routes/Moderation'
 import GroupViewPresenter, { avatarForView, iconForView } from '@hylo/presenters/GroupViewPresenter'
-import { groupUrl } from '@hylo/navigation'
+import { groupUrl, personUrl } from '@hylo/navigation'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -75,10 +75,11 @@ function GhostButton ({ icon: IconCmp, children, onClick }) {
   )
 }
 
-function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenMembers, t }) {
+function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenMembers, onBeforeNavigate, t }) {
   const [urlCopied, setUrlCopied] = useState(false)
   const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
   const stewards = group.stewards && group.stewards.length > 0 ? group.stewards : null
+  const profileGroupSlug = parentGroup?.slug || group.slug
   const agreements = group.agreements?.length ? group.agreements : null
   const websiteUrl = group.websiteUrl
 
@@ -152,13 +153,18 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
         >
           <div className='flex flex-wrap gap-2'>
             {stewards.map(steward => (
-              <div key={steward.id} className='flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full border border-foreground/15 bg-background/40'>
+              <Link
+                key={steward.id}
+                to={personUrl(steward.id, profileGroupSlug)}
+                onClick={onBeforeNavigate}
+                className='flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full border border-foreground/15 bg-background/40 hover:border-foreground/30 hover:bg-foreground/5 no-underline hover:no-underline text-inherit'
+              >
                 <RoundImage url={steward.avatarUrl} small />
                 <div>
                   <div className='text-sm font-semibold text-foreground leading-tight'>{steward.name}</div>
                   <div className='text-[11px] text-foreground/55 leading-tight'>{group.stewardDescriptor || t('Steward')}</div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </AboutCard>
@@ -487,6 +493,7 @@ export default function GroupAboutView ({
                   membership={membership}
                   onLeave={() => setShowLeaveDialog(true)}
                   onOpenMembers={() => handleTab('members')}
+                  onBeforeNavigate={onBeforeNavigate}
                   t={t}
                 />
               )}

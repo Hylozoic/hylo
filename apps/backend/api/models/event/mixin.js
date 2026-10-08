@@ -1,7 +1,7 @@
 import { uniq, difference } from 'lodash/fp'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import ical, { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
-import { senderNameViaHylo } from '../../../lib/email/senderNameViaHylo'
+import { senderNameForGroup } from '../../../lib/email/senderNameViaHylo'
 
 function resolveEventChangeValue (eventChanges, key, currentValue) {
   if (!eventChanges || eventChanges[key] === false || eventChanges[key] === undefined) {
@@ -197,7 +197,6 @@ export default {
 
     const rsvpEmailPayload = {
       email: user.get('email'),
-      version: 'default',
       data: {
         date: DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone'), locale: userLocale }),
         user_name: user.get('name'),
@@ -218,7 +217,7 @@ export default {
       ]
     }
     if (groupName) {
-      rsvpEmailPayload.sender = { name: senderNameViaHylo(groupName.get('name'), user.getLocale()) }
+      rsvpEmailPayload.sender = { name: await senderNameForGroup(groupName, user.getLocale()) }
     }
     Queue.classMethod('Email', emailTemplate, rsvpEmailPayload).then(() => {
       eventInvitation.incrementIcalSequence()

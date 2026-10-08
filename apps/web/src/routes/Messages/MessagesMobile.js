@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Helmet } from 'react-helmet'
+import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import PeopleSelector from './PeopleSelector'
@@ -12,6 +13,7 @@ import { sendIsTyping } from 'client/websockets'
 import { canAddThreadParticipant } from './messageThreadLimits'
 import MutedThreadNotice from './MutedThreadNotice'
 import { NEW_THREAD_ID } from './Messages.store'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 
 const MessagesMobile = ({
   messageThreadId,
@@ -127,9 +129,12 @@ const MessagesMobile = ({
     return () => clearTimeout(timer)
   }, [forNewThread, messageThreadId]) // Only depend on forNewThread and messageThreadId, not focusForm
 
+  const dispatch = useDispatch()
   const navigate = useNavigate()
-  // Back deselects the thread — /messages is the inbox screen on phones
+  // Back returns to the inbox in the nav drawer (GlobalNav + thread list), not
+  // the center-column copy of ThreadList that renders when the drawer is closed.
   const handleBack = () => {
+    dispatch(toggleNavMenu(true))
     navigate('/messages')
   }
 

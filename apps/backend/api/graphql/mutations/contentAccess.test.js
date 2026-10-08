@@ -29,12 +29,11 @@ describe('Content Access Mutations', () => {
       publish_status: 'published'
     }).save()
     track = await Track.forge({
-      group_id: group.id,
-      name: 'Test Track'
+      group_id: group.id
     }).save()
 
     // Add admin user as group administrator
-    await adminUser.joinGroup(group, { assignCoordinator: true })
+    await adminUser.joinGroup(group, { assignAdministrator: true })
     // Add regular user as group member
     await user.joinGroup(group)
   })

@@ -104,7 +104,11 @@ function ChatEditorInner ({
 
   const linkPreview = useSelector(state => getLinkPreview(state))
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
-  const uploadAttachmentPending = useSelector(getUploadAttachmentPending)
+  // Local batch flag stays true until every selected file finishes uploading.
+  // Redux UPLOAD_ATTACHMENT pending clears between each file, so it alone is
+  // not enough to keep send disabled during multi-image picks.
+  const [attachmentUploading, setAttachmentUploading] = useState(false)
+  const [uploadingAttachmentType, setUploadingAttachmentType] = useState(null)
 
   const uploadFileAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: undefined, attachmentType: 'file' }))
   const uploadImageAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: undefined, attachmentType: 'image' }))
@@ -116,10 +120,10 @@ function ChatEditorInner ({
     state => getAttachments(state, { type: 'post', id: undefined, attachmentType: 'file' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
-  const loading = !!uploadAttachmentPending
+  const loading = attachmentUploading || !!uploadImageAttachmentPending || !!uploadFileAttachmentPending
 
-  const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending
-  const showFiles = !isEmpty(fileAttachments) || uploadFileAttachmentPending
+  const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending || (attachmentUploading && uploadingAttachmentType === 'image')
+  const showFiles = !isEmpty(fileAttachments) || uploadFileAttachmentPending || (attachmentUploading && uploadingAttachmentType === 'file')
 
   const editorRef = useRef()
 
@@ -138,7 +142,6 @@ function ChatEditorInner ({
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState('')
-  const [invalidMessage, setInvalidMessage] = useState('')
   const [hasDescription, setHasDescription] = useState(false)
   // Formatting toolbar is hidden by default; the CaseSensitive button in the composer toggles it
   const [showToolbar, setShowToolbar] = useState(false)
@@ -330,23 +333,30 @@ function ChatEditorInner ({
     setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false, skipLinkPreview: true }))
   }, [dispatch, setCurrentPost])
 
-  const isValid = useMemo(() => {
+  const handleAttachmentLoadingChange = useCallback((next, attachmentType) => {
+    setAttachmentUploading(next)
+    setUploadingAttachmentType(next ? attachmentType : null)
+    if (next) setAttachMenuOpen(false)
+  }, [])
+
+  const hasAttachments = !isEmpty(imageAttachments) || !isEmpty(fileAttachments)
+
+  const invalidMessage = useMemo(() => {
     const errorMessages = []
 
-    if (!hasDescription) {
-      errorMessages.push(t('Chat must have content'))
+    // Allow attachment-only chat posts (images and/or files) with no text.
+    if (!hasDescription && !hasAttachments) {
+      errorMessages.push(t('Chat must have text or an attachment'))
     }
 
     if (currentPost.groups?.length === 0) {
       errorMessages.push(t('At least one group required'))
     }
 
-    if (errorMessages.length > 0) {
-      setInvalidMessage(errorMessages.join('<br />'))
-    }
+    return errorMessages.join('<br />')
+  }, [currentPost.groups, hasAttachments, hasDescription, t])
 
-    return errorMessages.length === 0
-  }, [currentPost.groups, hasDescription, t])
+  const isValid = !invalidMessage
 
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
@@ -362,7 +372,10 @@ function ChatEditorInner ({
         timezone,
         title
       } = currentPost
-      const details = editorRef.current.getHTML()
+      const rawDetails = editorRef.current.getHTML()
+      // Don't persist empty TipTap shells ("<p></p>") — they render as a blank
+      // line above attachment-only chat posts.
+      const details = hasDraftContent(rawDetails) ? rawDetails : ''
       const imageUrls = imageAttachments && imageAttachments.map((attachment) => attachment.url)
       const fileUrls = fileAttachments && fileAttachments.map((attachment) => attachment.url)
 
@@ -448,8 +461,8 @@ function ChatEditorInner ({
                 onSuccess={(attachment) => {
                   dispatch(addAttachment('post', currentPost.id, attachment))
                   setIsDirty(true)
-                  setAttachMenuOpen(false)
                 }}
+                onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
                 allowMultiple
                 disable={showImages}
                 className='w-full'
@@ -466,8 +479,8 @@ function ChatEditorInner ({
                 onSuccess={(attachment) => {
                   dispatch(addAttachment('post', currentPost.id, attachment))
                   setIsDirty(true)
-                  setAttachMenuOpen(false)
                 }}
+                onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
                 allowMultiple
                 disable={showFiles}
                 className='w-full'
@@ -549,6 +562,8 @@ function ChatEditorInner ({
           showAddButton
           showLabel
           showLoading
+          uploadAttachmentPending={loading && uploadingAttachmentType === 'image'}
+          onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
         />
         <AttachmentManager
           type='post'
@@ -557,6 +572,8 @@ function ChatEditorInner ({
           showAddButton
           showLabel
           showLoading
+          uploadAttachmentPending={loading && uploadingAttachmentType === 'file'}
+          onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
         />
       </div>
     </div>

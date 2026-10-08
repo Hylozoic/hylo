@@ -23,6 +23,7 @@ import LocationInput from 'components/LocationInput'
 import Map from 'components/Map/Map'
 import { buildClusterLayerData, createIconLayerFromPostsAndMembers } from 'components/Map/layers/clusterLayer'
 import { createIconLayerFromGroups } from 'components/Map/layers/iconLayer'
+import { useLucideIconsLoaded } from 'components/LucideIcon/lucideIconSet'
 import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer'
 import SwitchStyled from 'components/SwitchStyled'
 import Tooltip from 'components/Tooltip'
@@ -40,7 +41,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl, spaceHomeUrl } from '@hylo/navigation'
+import { createPostModalUrl, personUrl, postUrl, groupDetailUrl, spaceHomeUrl } from '@hylo/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -115,8 +116,20 @@ function getLocationCenter (entity) {
   return entity.ref?.locationObject?.center || null
 }
 
+/** True when a location center falls inside [west, south, east, north]. */
+function centerWithinBounds (locationObject, boundingBox) {
+  if (!boundingBox) return false
+  const [west, south, east, north] = boundingBox
+  const center = locationObject?.center
+  if (!center) return false
+  const lng = parseFloat(center.lng)
+  const lat = parseFloat(center.lat)
+  return lng >= west && lng <= east && lat >= south && lat <= north
+}
+
 function MapExplorer (props) {
   const { t } = useTranslation()
+  const lucideIconsLoaded = useLucideIconsLoaded()
 
   // First-visit tour of the map's floating controls, offered by invitation
   const mapTourStepList = useMemo(() => mapTourSteps(t), [t])
@@ -162,13 +175,19 @@ function MapExplorer (props) {
     [scopedMapState, reduxState.totalBoundingBoxLoaded]
   )
 
-  const fetchPostsParams = useMemo(() => ({
+  // Selector keys omit boundingBox (not in queryResults whitelist). Keep those
+  // params stable across pans so the same selector sees FETCH_POSTS_MAP appends.
+  const mapPostsQueryParams = useMemo(() => ({
     childPostInclusion,
-    boundingBox: totalBoundingBoxLoaded,
     context,
     slug: groupSlug,
     groupSlugs
-  }), [childPostInclusion, context, groupSlug, groupSlugs, totalBoundingBoxLoaded])
+  }), [childPostInclusion, context, groupSlug, groupSlugs])
+
+  const fetchPostsParams = useMemo(() => ({
+    ...mapPostsQueryParams,
+    boundingBox: totalBoundingBoxLoaded
+  }), [mapPostsQueryParams, totalBoundingBoxLoaded])
 
   const topicsFromPosts = useSelector(state => getCurrentTopics(state, fetchPostsParams))
 
@@ -198,27 +217,35 @@ function MapExplorer (props) {
     currentBoundingBox: (scopedMapState && filters.currentBoundingBox) || totalBoundingBoxLoaded
   }), [childPostInclusion, context, groupSlug, groupSlugs, filters, scopedMapState, totalBoundingBoxLoaded])
 
-  const fetchGroupParams = useMemo(() => ({
-    boundingBox: totalBoundingBoxLoaded,
+  const mapGroupQueryParams = useMemo(() => ({
     context,
     parentSlugs: groupSlugs
-  }), [totalBoundingBoxLoaded, context, groupSlugs])
+  }), [context, groupSlugs])
 
-  const fetchMemberParams = useMemo(() => ({
+  const fetchGroupParams = useMemo(() => ({
     boundingBox: totalBoundingBoxLoaded,
+    ...mapGroupQueryParams
+  }), [totalBoundingBoxLoaded, mapGroupQueryParams])
+
+  const mapMemberQueryParams = useMemo(() => ({
     context,
     slug: groupSlug,
     sortBy: 'name'
-  }), [totalBoundingBoxLoaded, context, groupSlug])
+  }), [context, groupSlug])
+
+  const fetchMemberParams = useMemo(() => ({
+    boundingBox: totalBoundingBoxLoaded,
+    ...mapMemberQueryParams
+  }), [totalBoundingBoxLoaded, mapMemberQueryParams])
 
   // Selectors are memoized per param set — recreating them inline on every
   // render defeated the memoization, so each render re-presented every post
   // and member and handed the map fresh array identities, cascading into full
   // recluster + GPU re-upload on every pan. Keep them stable.
   const membersSelector = useMemo(() => createSelector(
-    (state) => getMembersFilteredByTopics(state, fetchMemberParams),
+    (state) => getMembersFilteredByTopics(state, mapMemberQueryParams),
     (members) => members.map(m => presentMember(m, groupId))
-  ), [fetchMemberParams, groupId])
+  ), [mapMemberQueryParams, groupId])
   const members = useSelector(membersSelector)
 
   const postsForDrawerSelector = useMemo(() => createSelector(
@@ -228,15 +255,15 @@ function MapExplorer (props) {
   const postsForDrawer = useSelector(postsForDrawerSelector)
 
   const postsForMapSelector = useMemo(() => createSelector(
-    (state) => getFilteredPostsForMap(state, fetchPostsParams),
+    (state) => getFilteredPostsForMap(state, mapPostsQueryParams),
     (posts) => posts.map(p => presentPost(p, groupId))
-  ), [fetchPostsParams, groupId])
+  ), [mapPostsQueryParams, groupId])
   const postsForMap = useSelector(postsForMapSelector)
 
   const groupsSelector = useMemo(() => createSelector(
-    (state) => getGroupsFilteredByTopics(state, fetchGroupParams),
+    (state) => getGroupsFilteredByTopics(state, mapGroupQueryParams),
     (groups) => groups.map(g => presentGroup(g))
-  ), [fetchGroupParams])
+  ), [mapGroupQueryParams])
   const groups = useSelector(groupsSelector)
 
   // Use browser location if center location is not otherwise provided
@@ -308,20 +335,14 @@ function MapExplorer (props) {
   const pendingPostsDrawer = useSelector(state => state.pending[FETCH_POSTS_MAP_DRAWER])
   const selectedSearch = useSelector(state => state.SavedSearches.selectedSearch) // TODO: need this?
 
-  const [clusterLayer, setClusterLayer] = useState(null)
   const [currentBoundingBox, setCurrentBoundingBox] = useState(null)
-  const [groupIconLayer, setGroupIconLayer] = useState(null)
-  const [polygonLayer, setPolygonLayer] = useState(null)
   const [hoveredObject, setHoveredObject] = useState(null)
   const [isAddingItemToMap, setIsAddingItemToMap] = useState(false)
   const [pointerCoords, setPointerCoords] = useState([0, 0])
-  const [groupsForDrawer, setGroupsForDrawer] = useState(groups || [])
-  const [membersForDrawer, setMembersForDrawer] = useState(members || [])
   const [otherLayers, setOtherLayers] = useState({})
   // const [selectedObject, setSelectedObject] = useState(null)
   const [showFeatureFilters, setShowFeatureFilters] = useState(false)
   const [showLayersSelector, setShowLayersSelector] = useState(false)
-  const [totalPostsInView, setTotalPostsInView] = useState(postsForMap.length || 0)
   const [showSavedSearches, setShowSavedSearches] = useState(false)
 
   const [viewport, setViewport] = useState({
@@ -335,12 +356,9 @@ function MapExplorer (props) {
   })
 
   // Clicking the map to create goes straight into the post editor with the
-  // clicked location prefilled (CreateModal reads lat/lng), no type chooser
+  // clicked location prefilled (CreatePostModal reads lat/lng), no type chooser
   const goToCreatePostAtLocation = useCallback((lngLat) => {
-    const params = new URLSearchParams(location.search)
-    params.set('lat', lngLat.lat)
-    params.set('lng', lngLat.lng)
-    navigate(`${location.pathname}/create/post?${params.toString()}`)
+    navigate(createPostModalUrl(location, { lat: lngLat.lat, lng: lngLat.lng }))
   }, [location, navigate])
 
   const updateUrlFromStore = useCallback((params, replace) => {
@@ -456,10 +474,11 @@ function MapExplorer (props) {
 
   const onMapClick = useCallback((info, e) => {
     if (info.objects) {
+      const currentZoom = mapRef.current?.getZoom?.() ?? 0
       // On mobile, at high zoom levels (18-20), toggle drawer when clicking cluster
-      if (isMobileDevice() && viewport.zoom >= 18 && viewport.zoom <= 20) {
+      if (isMobileDevice() && currentZoom >= 18 && currentZoom <= 20) {
         toggleDrawer()
-      } else if (viewport.zoom >= 20 && hideDrawer) {
+      } else if (currentZoom >= 20 && hideDrawer) {
         setHideDrawer(false)
         setTimeout(() => {
           mapRef.current.resize()
@@ -467,17 +486,18 @@ function MapExplorer (props) {
       } else {
         const features = featureCollection(info.objects.map(o => point([o.coordinates[0], o.coordinates[1]])))
         const c = center(features)
+        const nextZoom = Math.max(currentZoom, info.expansionZoom)
 
-        setViewport({
-          ...viewport,
+        setViewport(v => ({
+          ...v,
           longitude: c.geometry.coordinates[0],
           latitude: c.geometry.coordinates[1],
-          zoom: Math.max(viewport.zoom, info.expansionZoom)
-        })
+          zoom: nextZoom
+        }))
 
         mapRef.current.flyTo({
           center: [c.geometry.coordinates[0], c.geometry.coordinates[1]],
-          zoom: Math.max(viewport.zoom, info.expansionZoom),
+          zoom: nextZoom,
           duration: 500,
           essential: true
         })
@@ -494,7 +514,7 @@ function MapExplorer (props) {
         showDetails(info.object.id)
       }
     }
-  }, [gotoMember, hideDrawer, showDetails, showGroupDetails, showSpace, viewport])
+  }, [gotoMember, hideDrawer, showDetails, showGroupDetails, showSpace, toggleDrawer])
 
   const creatingPostRef = useRef(false)
 
@@ -532,59 +552,65 @@ function MapExplorer (props) {
     [postsForMap, members]
   )
 
-  const updatedMapFeatures = useCallback((boundingBox) => {
-    // Plain numeric bounds checks: turf's point-in-polygon per item allocated
-    // two GeoJSON objects per feature per pan and was a large share of the lag
-    const [west, south, east, north] = boundingBox
-    const centerWithin = (locationObject) => {
-      const center = locationObject?.center
-      if (!center) return false
-      const lng = parseFloat(center.lng)
-      const lat = parseFloat(center.lat)
-      return lng >= west && lng <= east && lat >= south && lat <= north
-    }
-    const viewMembers = members.filter(member => centerWithin(member.locationObject))
-    const viewPosts = postsForMap.filter(post => centerWithin(post.locationObject))
-    const viewGroups = withCurrentGroup(groups.filter(mapGroup => {
+  // Filter drawer lists to the viewport. Pin layers get the full fetched set;
+  // PostClusterLayer's getClusters(boundingBox) handles view filtering.
+  const viewMembers = useMemo(() => (
+    members.filter(member => centerWithinBounds(member.locationObject, currentBoundingBox))
+  ), [members, currentBoundingBox])
+
+  const viewPosts = useMemo(() => (
+    postsForMap.filter(post => centerWithinBounds(post.locationObject, currentBoundingBox))
+  ), [postsForMap, currentBoundingBox])
+
+  const viewGroups = useMemo(() => {
+    if (!currentBoundingBox) return withCurrentGroup([], group)
+    const [west, south, east, north] = currentBoundingBox
+    return withCurrentGroup(groups.filter(mapGroup => {
       if (mapGroup.geoShape) {
         return mapGroup.geoShape.coordinates[0].some(([lng, lat]) =>
           lng >= west && lng <= east && lat >= south && lat <= north)
       }
-      return centerWithin(mapGroup.locationObject)
+      return centerWithinBounds(mapGroup.locationObject, currentBoundingBox)
     }), group)
       .map(mapGroup => {
-        // Ensure spaces can navigate to their parent from the current map context
         if (mapGroup.type === 'space' && !mapGroup.parentGroup?.slug && group && mapGroup.parentId === group.id) {
           return { ...mapGroup, parentGroup: { id: group.id, slug: group.slug || groupSlug } }
         }
         return mapGroup
       })
+  }, [currentBoundingBox, groups, group, groupSlug])
 
-    setClusterLayer(createIconLayerFromPostsAndMembers({
+  // Fresh layer descriptors each time source data or the viewport bbox changes.
+  // Do not store deck.gl instances in React state — deck mutates them in place.
+  const clusterLayer = useMemo(() => {
+    if (!currentBoundingBox) return null
+    return createIconLayerFromPostsAndMembers({
       data: clusterLayerData,
       onHover: onMapHover,
       onClick: onMapClick,
-      boundingBox
-    }))
+      boundingBox: currentBoundingBox
+    })
+  }, [clusterLayerData, currentBoundingBox, onMapHover, onMapClick])
 
-    setGroupIconLayer(createIconLayerFromGroups({
+  const groupIconLayer = useMemo(() => {
+    if (!currentBoundingBox) return null
+    return createIconLayerFromGroups({
       groups: viewGroups,
       onHover: onMapHover,
       onClick: onMapClick,
-      boundingBox
-    }))
+      boundingBox: currentBoundingBox,
+      lucideIconsLoaded
+    })
+  }, [viewGroups, currentBoundingBox, onMapHover, onMapClick, lucideIconsLoaded])
 
-    setPolygonLayer(context !== 'public' && createPolygonLayerFromGroups({
+  const polygonLayer = useMemo(() => {
+    if (!currentBoundingBox || context === 'public') return null
+    return createPolygonLayerFromGroups({
       groups: viewGroups,
       onHover: onMapHover,
-      boundingBox
-    }))
-
-    setCurrentBoundingBox(boundingBox)
-    setGroupsForDrawer(viewGroups)
-    setMembersForDrawer(viewMembers)
-    setTotalPostsInView(viewPosts.length)
-  }, [members, postsForMap, groups, group, groupSlug, clusterLayerData, onMapHover, onMapClick, context])
+      boundingBox: currentBoundingBox
+    })
+  }, [viewGroups, currentBoundingBox, onMapHover, context])
 
   const updateViewportWithBbox = useCallback((bbox, zoom = false) => {
     if (zoom) {
@@ -613,11 +639,6 @@ function MapExplorer (props) {
   }, [groupPending, mapScopeKey, groupCenter, centerLocation, zoom])
 
   /* Lifecycle methods */
-  useEffect(() => {
-    if (!group) return
-    setGroupsForDrawer(prev => withCurrentGroup(prev, group))
-  }, [group])
-
   useEffect(() => {
     if (isMobileDevice()) {
       setHideDrawer(true)
@@ -670,12 +691,6 @@ function MapExplorer (props) {
   }, [fetchMemberParams])
 
   useEffect(() => {
-    if (currentBoundingBox) {
-      updatedMapFeatures(currentBoundingBox)
-    }
-  }, [currentBoundingBox, updatedMapFeatures])
-
-  useEffect(() => {
     if (selectedSearch) {
       const { boundingBox, featureTypes, searchText, topics } = generateViewParams(selectedSearch)
       // updateQueryParams({ boundingBox, featureTypes, search: searchText, topics })
@@ -708,7 +723,7 @@ function MapExplorer (props) {
     }
   }, [viewport])
 
-  const updateBoundingBoxQuery = (newBoundingBox) => {
+  const updateBoundingBoxQuery = useCallback((newBoundingBox) => {
     let finalBbox
     if (totalBoundingBoxLoaded) {
       const curBbox = bboxPolygon(totalBoundingBoxLoaded)
@@ -728,20 +743,34 @@ function MapExplorer (props) {
       doStoreClientFilterParams({ currentBoundingBox: newBoundingBox })
     }
 
-    updatedMapFeatures(newBoundingBox)
-  }
+    setCurrentBoundingBox(newBoundingBox)
+  }, [doStoreClientFilterParams, filters.currentBoundingBox, totalBoundingBoxLoaded, updateBoundingBox])
 
-  const afterViewportUpdate = debounce((update) => {
+  // Keep a stable debounce: a new lodash debounce every render left trailing
+  // calls holding stale clusterLayerData, which wiped pins after FETCH_POSTS_MAP.
+  const updateBoundingBoxQueryRef = useRef(updateBoundingBoxQuery)
+  updateBoundingBoxQueryRef.current = updateBoundingBoxQuery
+  const updateViewRef = useRef(updateView)
+  updateViewRef.current = updateView
+  const centerLocationRef = useRef(centerLocation)
+  centerLocationRef.current = centerLocation
+  const zoomRef = useRef(zoom)
+  zoomRef.current = zoom
+
+  const afterViewportUpdate = useMemo(() => debounce(() => {
+    if (!mapRef.current) return
     let bounds = mapRef.current.getBounds()
     bounds = [bounds._sw.lng, bounds._sw.lat, bounds._ne.lng, bounds._ne.lat]
-    updateBoundingBoxQuery(bounds)
+    updateBoundingBoxQueryRef.current(bounds)
     const newCenter = mapRef.current.getCenter()
     const newZoom = mapRef.current.getZoom()
-    if (!isEqual(centerLocation, newCenter) || !isEqual(zoom, newZoom)) {
-      updateView({ centerLocation: newCenter, zoom: newZoom })
+    if (!isEqual(centerLocationRef.current, newCenter) || !isEqual(zoomRef.current, newZoom)) {
+      updateViewRef.current({ centerLocation: newCenter, zoom: newZoom })
     }
     creatingPostRef.current = false
-  }, 300)
+  }, 300), [])
+
+  useEffect(() => () => afterViewportUpdate.cancel(), [afterViewportUpdate])
 
   const toggleFeatureType = useCallback((type, checked) => {
     const newFeatureTypes = { ...filters.featureTypes }
@@ -810,7 +839,9 @@ function MapExplorer (props) {
         <title>Map | {group ? `${group.name} | ` : context === 'public' ? 'Public | ' : ' All My Groups | '}Hylo</title>
       </Helmet>
 
-      <div className='flex-1 h-full relative' data-testid='map-container'>
+      {/* isolate: the deck.gl overlay lives in a Mapbox control (z-index 2). Without a
+          stacking context here that canvas paints over the map menus. */}
+      <div className='flex-1 h-full relative isolate' data-testid='map-container'>
         {mapTourInvitation}
         <Map
           baseLayerStyle={baseLayerStyle}
@@ -855,10 +886,10 @@ function MapExplorer (props) {
           fetchPostsForDrawer={doFetchPostsForDrawer}
           filters={filters}
           group={group}
-          groups={groupsForDrawer}
-          members={membersForDrawer}
+          groups={viewGroups}
+          members={viewMembers}
           numFetchedPosts={postsForDrawer.length}
-          numTotalPosts={totalPostsInView}
+          numTotalPosts={viewPosts.length}
           onUpdateFilters={doStoreClientFilterParams}
           pendingPostsDrawer={pendingPostsDrawer}
           posts={postsForDrawer}
@@ -896,7 +927,7 @@ function MapExplorer (props) {
         </>
       )}
 
-      <div className={cn('absolute bottom-[80px] left-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col', { flex: showFeatureFilters, [classes.withoutNav]: withoutNav })}>
+      <div className={cn('absolute bottom-[80px] left-5 z-10 hidden bg-background rounded-md p-2 drop-shadow-md flex-col', { flex: showFeatureFilters, [classes.withoutNav]: withoutNav })}>
         <h3 className='text-sm font-medium mb-2 text-foreground/80'>{t('What do you want to see on the map?')}</h3>
         {possibleFeatureTypes.map(featureType => {
           const color = FEATURE_TYPES[featureType].primaryColor
@@ -938,7 +969,7 @@ function MapExplorer (props) {
         <Layers className='w-4 h-4' />
       </button>
       <div className={cn(
-        'absolute bottom-[120px] w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col',
+        'absolute bottom-[120px] z-10 w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col',
         classes.drawerAdjacentButton,
         {
           flex: showLayersSelector,

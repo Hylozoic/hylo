@@ -1,5 +1,20 @@
 import { attr, many, Model, fk } from 'redux-orm'
 
+/** Parses a group's acceptedPostTypes attr (array, JSON string, or null = all types). */
+export function normalizeAcceptedPostTypes (value) {
+  if (value == null) return null
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : null
+    } catch (e) {
+      return null
+    }
+  }
+  return null
+}
+
 export const GROUP_ACCESSIBILITY = {
   Closed: 0,
   Restricted: 1,
@@ -184,6 +199,7 @@ Group.fields = {
   groupViews: attr(),
   homeRoute: attr(),
   menuViewCount: attr(),
+  moreSpacesCount: attr(),
   icon: attr(),
   id: attr(),
   joinQuestions: many('GroupJoinQuestion'),
@@ -238,7 +254,6 @@ Group.fields = {
     relatedName: 'eventGroups'
   }),
   visibility: attr(),
-  widgets: many('Widget'),
   stripeAccountId: attr(),
   stripeDashboardUrl: attr(),
   stripeChargesEnabled: attr(),

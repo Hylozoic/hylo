@@ -1,9 +1,4 @@
-import { isDrawerNavLayout } from 'util/mobile'
 import { externalLinkHref, groupViewUrl, isParentGroupPath, spaceEntryUrl } from './groupViewMenuUrl'
-
-jest.mock('util/mobile', () => ({
-  isDrawerNavLayout: jest.fn(() => false)
-}))
 
 describe('externalLinkHref', () => {
   it('adds https:// when the stored link has no scheme', () => {
@@ -26,31 +21,13 @@ describe('externalLinkHref', () => {
 describe('spaceEntryUrl', () => {
   const space = { slug: 'parent-space', homeRoute: '/welcome' }
 
-  afterEach(() => {
-    isDrawerNavLayout.mockReturnValue(false)
-  })
-
-  it('returns the space home view when a sidebar menu is visible', () => {
-    expect(spaceEntryUrl('parent', space)).toBe('/groups/parent/spaces/space/welcome')
-  })
-
-  it('returns the space index on a drawer layout so the space menu can show', () => {
-    isDrawerNavLayout.mockReturnValue(true)
+  it('returns the space index so SpaceContent can show the menu or redirect', () => {
     expect(spaceEntryUrl('parent', space)).toBe('/groups/parent/spaces/space')
   })
 
-  it('uses a track space home view when homeRoute is missing', () => {
+  it('returns the space index for a track space (home view is resolved later)', () => {
     const trackSpace = { slug: 'parent-track', track: { id: '1' } }
-    expect(spaceEntryUrl('parent', trackSpace)).toBe('/groups/parent/spaces/track/track-actions')
-  })
-
-  it('uses the order-0 view when homeRoute is stale', () => {
-    const trackSpace = {
-      slug: 'parent-track',
-      homeRoute: '/all',
-      groupViews: { items: [{ type: 'track-actions', order: 0 }, { type: 'chat', order: 1 }] }
-    }
-    expect(spaceEntryUrl('parent', trackSpace)).toBe('/groups/parent/spaces/track/track-actions')
+    expect(spaceEntryUrl('parent', trackSpace)).toBe('/groups/parent/spaces/track')
   })
 
   it('falls back to the parent group when the space is missing', () => {
@@ -77,5 +54,10 @@ describe('groupViewUrl', () => {
   it('includes the view id for space-collection routes', () => {
     expect(groupViewUrl('building-hylo', { type: 'space-collection', id: '99' }))
       .toBe('/groups/building-hylo/space-collection/99')
+  })
+
+  it('includes the view id for page routes', () => {
+    expect(groupViewUrl('building-hylo', { type: 'page', id: '42' }))
+      .toBe('/groups/building-hylo/page/42')
   })
 })

@@ -56,7 +56,7 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import { getMyGroupsWithChildren, isSpaceGroup } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
-import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
+import isWebView, { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { isSandboxMode } from 'sandbox/isSandbox'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
@@ -64,11 +64,9 @@ import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
-import { newMessageUrl, personUrl, myHomeLandingUrl } from '@hylo/navigation'
+import { createGroupModalUrl, createPostModalUrl, newMessageUrl, personUrl, myHomeLandingUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
-import { createGroupModalUrl } from 'routes/CreateGroup/createGroupUrl'
 import {
-  WebViewMessageTypes,
   LOCALE_DE,
   LOCALE_EN_GB,
   LOCALE_EN_US,
@@ -199,7 +197,7 @@ function GlobalCreateMenu () {
           label={t('Create a group')}
         />
         <CreateMenuRow
-          onClick={go(`${location.pathname}/create/post`)}
+          onClick={go(createPostModalUrl(location))}
           tileClass='bg-[hsl(155_51%_34%)]'
           icon={<Edit className='w-4 h-4' />}
           label={t('Create a post')}
@@ -304,12 +302,7 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   }, [])
 
   const handleLogout = async () => {
-    await dispatch(logout())
-    if (window.HyloMobileV2) {
-      sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-    } else {
-      dispatch(replace('/login', null))
-    }
+    await logoutFromMobileWebView(dispatch, logout(), replace('/login', null))
   }
 
   const handleViewProfile = () => {

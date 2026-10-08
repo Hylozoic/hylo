@@ -21,7 +21,7 @@ export function runRegisteredHardwareBackHandlers () {
 }
 
 /**
- * Mount-scoped registration for overlay components (CreateModal, PostDialog, etc.)
+ * Mount-scoped registration for overlay components (CreatePostModal, PostDialog, etc.)
  */
 export function useRegisterHardwareBackHandler (handler) {
   useEffect(() => {

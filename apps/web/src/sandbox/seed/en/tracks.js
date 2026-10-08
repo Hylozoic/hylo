@@ -1,13 +1,11 @@
 import { sid } from '../helpers'
-import { MAIN_COORDINATOR_ROLE_ID, TRACK_SPACE_ID } from './groups'
+import { MAIN_ADMINISTRATOR_ROLE_ID, TRACK_SPACE_ID } from './groups'
 
 export const TRACK_ID = sid('track', 'onboarding')
 
 export function buildTrack () {
   return {
     id: TRACK_ID,
-    name: 'New Member Orientation',
-    description: 'Welcome to Terran Collective! This short track will help you get oriented — learn how we communicate, find the projects that excite you, and meet some fellow Terrans.',
     groupId: TRACK_SPACE_ID,
     actionDescriptor: 'Orientation Step',
     actionDescriptorPlural: 'Orientation Steps',
@@ -18,10 +16,9 @@ export function buildTrack () {
     isEnrolled: true,
     didComplete: false,
     numPeopleEnrolled: 11,
-    welcomeMessage: 'Take these steps at your own pace. Completing them is how you become a full Terran.',
     completionRole: {
-      id: MAIN_COORDINATOR_ROLE_ID,
-      name: 'Coordinator',
+      id: MAIN_ADMINISTRATOR_ROLE_ID,
+      name: 'Administrator',
       emoji: '🪄'
     },
     numActions: 5,

@@ -113,5 +113,13 @@ export default
         name
       }
     }
+    skillsToLearn (first: 100) {
+      total
+      hasMore
+      items {
+        id
+        name
+      }
+    }
   }
 }`

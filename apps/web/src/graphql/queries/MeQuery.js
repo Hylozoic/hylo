@@ -57,6 +57,7 @@ export default gql`
       colorScheme
       dmNotifications
       commentNotifications
+      unifiedEmailDigest
       locale
       mapBaseLayer
       globalNavStyle
@@ -121,6 +122,7 @@ export default gql`
         avatarUrl
         bannerUrl
         homeRoute
+        moreSpacesCount
         icon
         name
         memberCount
@@ -131,6 +133,7 @@ export default gql`
           showSuggestedSkills
           showWelcomePage
           layout
+          autoAddMembers
         }
         slug
         type

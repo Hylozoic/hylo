@@ -1,14 +1,37 @@
 import { GraphQLError } from 'graphql'
 import request from 'request'
+import validator from 'validator'
 import { Validators } from '@hylo/shared'
 import { decodeHyloJWT } from '../../../lib/HyloJWT'
+import { RATE_LIMITED_ERROR, authenticateWithRateLimit, isRateLimited, recordAttempt } from '../../../lib/rateLimit'
 import sentry from '../../../lib/sentry'
 
 // Sign-up Related
 
-export const sendEmailVerification = async (_, { email }) => {
+/**
+ * Returns the email trimmed and lowercased, or null if it isn't a valid email address.
+ * Email verification logs the user in, so it must never reach User.find, which also matches user IDs and names.
+ */
+const normalizeEmail = (email) => {
+  const normalized = typeof email === 'string' ? email.trim().toLowerCase() : ''
+  return validator.isEmail(normalized) ? normalized : null
+}
+
+/**
+ * Finds a user (active or not) by email address only.
+ */
+const findUserByEmail = (email) => User.query(q => q.whereRaw('lower(email) = ?', email)).fetch()
+
+export const sendEmailVerification = async (_, { email: providedEmail }, context) => {
   try {
-    let user = await User.find(email, {}, false)
+    const email = normalizeEmail(providedEmail)
+    if (!email) return { success: false, error: 'Invalid email address' }
+
+    const identifiers = { ip: context?.req?.ip, email }
+    if (await isRateLimited('sendEmailVerification', identifiers)) return { success: false, error: RATE_LIMITED_ERROR }
+    await recordAttempt('sendEmailVerification', identifiers)
+
+    let user = await findUserByEmail(email)
 
     if (!user) {
       user = await User.create({ email, active: false })
@@ -39,18 +62,23 @@ export const sendEmailVerification = async (_, { email }) => {
 export const verifyEmail = (fetchOne) => async (_, { email: providedEmail, code: providedCode, token }, context) => {
   try {
     const decodedToken = token && decodeHyloJWT(token)
-    const email = decodedToken?.sub || providedEmail
+    const email = normalizeEmail(decodedToken?.sub || providedEmail)
     const code = decodedToken?.code || providedCode
 
     if (!email || !code) throw new Error('Must provide an email and code, or a token')
 
+    // Codes are only 6 digits, so guesses have to be limited
+    const identifiers = { ip: context.req?.ip, email }
+    if (await isRateLimited('verifyCode', identifiers)) return { error: RATE_LIMITED_ERROR }
+
     const verified = await UserVerificationCode.verify({ email, code })
 
     if (!verified) {
+      await recordAttempt('verifyCode', identifiers)
       return { error: token ? 'invalid-link' : 'invalid-code' }
     }
 
-    const user = await User.find(email, {}, false)
+    const user = await findUserByEmail(email)
 
     await user.save({ email_validated: true })
 
@@ -98,7 +126,7 @@ export const register = (fetchOne) => async (_, { name, password }, context) => 
 
 export const login = (fetchOne) => async (_, { email, password }, context) => {
   try {
-    const user = await User.authenticate(email, password)
+    const user = await authenticateWithRateLimit(context.req, email, password)
 
     await UserSession.login(context.req, user, 'password')
 
@@ -117,8 +145,12 @@ export const logout = async (root, args, context) => {
 
 // Other User resolvers
 
-export const sendPasswordReset = async (_, { email }) => {
+export const sendPasswordReset = async (_, { email }, context) => {
   try {
+    const identifiers = { ip: context?.req?.ip, email }
+    if (await isRateLimited('sendPasswordReset', identifiers)) return { success: false, error: RATE_LIMITED_ERROR }
+    await recordAttempt('sendPasswordReset', identifiers)
+
     const user = await User.query(q => q.whereRaw('lower(email) = ?', email.toLowerCase())).fetch()
 
     if (user) {

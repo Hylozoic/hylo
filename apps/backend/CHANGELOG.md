@@ -6,8 +6,111 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## Added
+## [7.1.4] - 2026-10-01
+
+### Added
+- Add 'silent' parameter to createPost to enable stewards to create posts without sending notifications. Only used for importing a lot of posts via zapier for now.
+
+### Changed
+- Flatten imageUrls on postinput to support nested array formats coming from zapier
+- Performance improvements:
+- Don't wait on db update of user.last_active_at on every query. Only update database every 5 minutes. Don't await on the query.
+- Improve compression of data sent by the server to the browser. Use brotli instead of gzip when the client accepts it
+- Add some additional database indexes for common reads
+
+### Fixed
+- Ensure that when someone leaves a group, the roles associated with their membership are deleted. So if they rejoin, they dont have those roles already. Also fixes a bug where deactivated stewards were getting join notifications.
+
+
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Changed
+- In daily digest dont show X comments in post rows for new posts that day. Also dont show comments from blocked users or comments on posts from blocked users
+
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
+### Fixed
+- When auto adding people to a space give them same notification settings as they have in parent group
+- Crash when using older Hylo app
+
+## [7.1.0] - 2026-09-25
+
+### Changed
+- Refine role-gated space invite dialog
+
+### Fixed
+- Many security related fixes and updates. Details to come soon.
+- Fix notifications when accepting a group to group invite. Before it was not sending the notification to the invited user.
+
+### Cleanup
+- Dropped leftover spaces-and-views tables (`tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`, `context_widgets`, `custom_views`, `custom_view_topics`, `collections`, `groups_tracks`, `networks`, `networks_users`) and the explore-page `widgets` / `group_widgets` tables
+- Dropped display columns on `tracks` and `funding_rounds`. Names, banners, and descriptions live on the space group
+- Removed the `Widget` and `GroupWidget` models, the `group.widgets` field, and the `updateWidget` mutation. New groups no longer seed explore widgets
+
+## [7.0.8] - 2026-09-23
+
+### Added
+- Reactions support to Direct Messages, at last!
+
+### Changed
+- Keep loading member activity at bottom of member profile as you scroll down. Also fix Recent Activity to show correct posts alongside comments as you scroll
+
+## [7.0.7] - 2026-09-20
+
+### Fixed
+- Post notification emails now name a group the recipient is a member of, not another group the post was also shared to
+- Collection views sorted by manual order no longer add a second ambiguous `ORDER BY "order"` after joining `collections_posts`
+- Only allowing posting of accepted post types in a group
+- Display sibling spaces in To field when creating a post in a space
+
+## [7.0.6] - 2026-09-13
+
+### Changed
+- Coordinator system role has been renamed to Administrator
+
+## [7.0.5] - 2026-09-11
+
+### Added
+- Site banner setting `showToNewUsers` (default off, including existing banners) so people who join Hylo after a banner is published do not see it unless the setting is turned on
+- Support unlisted vimeo videos in posts
+
+### Fixed
+- Occasional out of memory errors when loading post stream on production
+
+## [7.0.4] - 2026-09-10
+
+### Changed
+- Unread badge counts for spaces now show the number of unread chats, plus the number of unread typed views inside it.
+- Group nav menu badges now appear as long as any view or space has a notification badge in it.
+- Toggle welcome page setting on in group settings adds welcome view to the menu if its not there
+
+### Fixed
+- Unread badge counts for spaces
+- Fix event RSVP emails
+- Fix sender name of emails from activity in spaces to include parent group name. "Parent Group > Space Name (view Hylo)"
+
+## [7.0.3] - 2026-09-09
+
+### Added
+- Space setting **Automatically add group members**: when on, current group members are added in the background (except people who previously left the space), and new members are added when they join the group. Leaving a space deactivates membership so they are not re-added if the setting is toggled off and on. Leaving and rejoining the parent group re-adds people to auto-add spaces.
+- Add new "Page" view type for static HTML content
+
+## [7.0.2] - 2026-09-08
+
+### Added
 - Remote `imageUrls` on create/update post (e.g. Airtable attachments via Zapier) are copied to S3 in a background job instead of storing expiring URLs
+- `groups.more_spaces_count`: cached count of child spaces not on the group menu, so the More Spaces row and badge can render without loading the spaces list
+- Ability to grant access to a paid space to all current members of the parent group
+- Backend tracks errors through Sentry.
+
+### Fixed
+- Adding link previews for posts coming from Zapier
 
 ## [7.0.1] - 2026-09-04
 

@@ -109,7 +109,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
         </div>
       )
     }
-  }, [pending, filteredNotifications, message, onClick, hasMore, isMobile])
+  }, [pending, filteredNotifications, message, onClick, hasMore, isMobile, fetchMore])
 
   const handleTouchStart = useCallback((event) => {
     event.stopPropagation()

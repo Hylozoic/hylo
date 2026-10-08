@@ -22,7 +22,7 @@ describe('RolesSettingsTab', () => {
         items: [
           { id: 100, name: 'Custom B', type: 'custom', active: true, emoji: '⭐', description: '' },
           { id: 50, name: 'Host', type: 'system', active: true, emoji: '👋', description: '' },
-          { id: 30, name: 'Coordinator', type: 'system', active: true, emoji: '🪄', description: '' },
+          { id: 30, name: 'Administrator', type: 'system', active: true, emoji: '🪄', description: '' },
           { id: 40, name: 'Moderator', type: 'system', active: true, emoji: '⚖️', description: '' },
           { id: 90, name: 'Custom A', type: 'custom', active: true, emoji: '🎖', description: '' }
         ]
@@ -31,9 +31,9 @@ describe('RolesSettingsTab', () => {
 
     render(<RolesSettingsTab group={group} slug='test-group' />, { wrapper: AllTheProviders() })
 
-    const nameInputs = screen.getAllByDisplayValue(/Coordinator|Moderator|Host|Custom/)
+    const nameInputs = screen.getAllByDisplayValue(/Administrator|Moderator|Host|Custom/)
     expect(nameInputs.map(input => input.value)).toEqual([
-      'Coordinator',
+      'Administrator',
       'Moderator',
       'Host',
       'Custom A',

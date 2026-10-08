@@ -16,7 +16,8 @@ describe('fetchMemberPosts', () => {
           id: '12345',
           first: 10,
           offset: 0,
-          order: 'desc'
+          order: 'desc',
+          sortBy: 'created'
         }
       },
       meta: { extractModel: 'Person' }

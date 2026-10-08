@@ -16,7 +16,7 @@ const POST_TYPE_OPTION_STYLES = {
 }
 
 /** Toggleable pills for selecting which post types apply (custom views, spaces, etc). */
-export default function PostTypePills ({ postTypes, onPostTypesChange, label }) {
+export default function PostTypePills ({ postTypes, onPostTypesChange, label, hideLabel }) {
   const { t } = useTranslation()
 
   const selectedOptionKeys = useMemo(() => {
@@ -36,7 +36,9 @@ export default function PostTypePills ({ postTypes, onPostTypesChange, label }) 
 
   return (
     <div className='flex flex-col gap-2'>
-      <label className='text-sm text-foreground/70'>{label || t('What post types to display?')}</label>
+      {!hideLabel && (
+        <label className='text-sm text-foreground/70'>{label || t('What post types to display?')}</label>
+      )}
       <div className='flex flex-wrap gap-2'>
         {CUSTOM_VIEW_POST_TYPE_OPTIONS.map(option => {
           const isSelected = selectedOptionKeys.includes(option.key)

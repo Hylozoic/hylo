@@ -46,7 +46,6 @@ export default function FarmGroupDetailBody ({
             key={widget.name}
             group={group}
             isMember={isMember}
-            canEdit={false}
             posts={posts}
             routeParams={routeParams}
           />

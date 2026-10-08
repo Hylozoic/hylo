@@ -50,7 +50,7 @@ export function fetchMemberPosts (id, first = PAGE_SIZE, offset = 0, query = mem
     type: FETCH_MEMBER_POSTS,
     graphql: {
       query,
-      variables: { id, first, offset, order: 'desc' }
+      variables: { id, first, offset, order: 'desc', sortBy: 'created' }
     },
     meta: { extractModel: 'Person' }
   }

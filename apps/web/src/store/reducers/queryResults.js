@@ -5,7 +5,7 @@
 // to show when the sort order is set to 'Name' separately from when it is set
 // to 'Location'. And both of these lists are different from what should be
 // shown when something has been typed into the search field.
-import { get, isNull, omitBy, pick, reduce, uniq, isEmpty, includes } from 'lodash/fp'
+import { get, isNull, omitBy, pick, reduce, uniq, isEmpty } from 'lodash/fp'
 import { mapValues, camelCase } from 'lodash'
 import orm from 'store/models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
@@ -563,7 +563,7 @@ export const queryParamWhitelist = [
   'fundingRoundCapability',
   'groupId',
   'groupIds',
-  'groupRoleId',
+  'groupRoleIds',
   'groupSlug',
   'groupSlugs',
   'groupType',
@@ -587,16 +587,44 @@ export const queryParamWhitelist = [
   'nearCoord'
 ]
 
+// Resolve query-result ids in list order. Each id is a hash lookup; query ids
+// may be strings while redux-orm stored a number, or the reverse.
+export function modelsForIds (model, ids) {
+  if (!ids || ids.length === 0) return []
+  const seen = new Set()
+  const models = []
+  for (const id of ids) {
+    const row = modelForResultId(model, id)
+    if (!row || seen.has(String(row.id))) continue
+    seen.add(String(row.id))
+    models.push(row)
+  }
+  return models
+}
+
+function modelForResultId (model, id) {
+  if (id == null || id === '') return null
+  const direct = model.safeWithId(id)
+  if (direct) return direct
+
+  const asString = String(id)
+  if (asString !== id) {
+    const byString = model.safeWithId(asString)
+    if (byString) return byString
+  }
+
+  if (typeof id === 'number' || !/^-?\d+$/.test(asString)) return null
+  const asNumber = Number(asString)
+  if (!Number.isSafeInteger(asNumber)) return null
+  return model.safeWithId(asNumber)
+}
+
 export function makeQueryResultsModelSelector (resultsSelector, modelName, transform = i => i) {
   return ormCreateSelector(
     orm,
     resultsSelector,
     (session, results) => {
       if (isEmpty(results) || isEmpty(results.ids)) return []
-      return session[modelName].all()
-        .filter(x => includes(x.id, results.ids))
-        .orderBy(x => results.ids.indexOf(x.id))
-        .toModelArray()
-        .map(transform)
+      return modelsForIds(session[modelName], results.ids).map(transform)
     })
 }

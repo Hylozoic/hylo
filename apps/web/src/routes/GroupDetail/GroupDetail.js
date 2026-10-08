@@ -181,7 +181,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
       slug,
       accessCode,
       invitationToken,
-      withWidgets: true,
       withPrerequisites: !!currentUser
     }))
   }, [dispatch, slug, accessCode, invitationToken, currentUser])

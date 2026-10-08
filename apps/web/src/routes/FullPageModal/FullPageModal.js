@@ -30,10 +30,8 @@ export default function FullPageModal ({
       </div>
     )
   } else {
-    // Let content grow and scroll via AuthLayout's center column so settings
-    // (and other FullPageModal views) scroll independently of the left nav/menu.
     return (
-      <div className={cn('bg-midground')}>
+      <div className={cn('bg-midground flex flex-col flex-1 min-h-0 h-full overflow-y-auto')}>
         {multipleTabs && (
           <div className={cn('w-full mx-auto px-2 py-2 sm:px-8 sm:py-8', !isTabNav && 'max-w-[750px]')}>
             <Routes>

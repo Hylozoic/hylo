@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
-import fetch from 'node-fetch'
+import { safeFetch } from '../../lib/safeFetch'
 import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
 import { GraphQLError } from 'graphql'
@@ -204,7 +204,7 @@ module.exports = bookshelf.Model.extend(merge({
         })
         q.join('groups_roles as gr', 'gr.id', 'mgr.group_role_id')
         q.where('gr.type', 'system')
-        q.where('gr.name', 'Coordinator')
+        q.whereIn('gr.name', ['Administrator', 'Coordinator'])
         q.where('mgr.active', true)
       })
   },
@@ -282,7 +282,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   deactivate: async function (sessionId) {
-    Queue.classMethod('User', 'clearSessionsFor', { userId: this.get('user_id'), sessionId })
+    Queue.classMethod('User', 'clearSessionsFor', { userId: this.id, sessionId })
     return this.save({ active: false })
   },
 
@@ -309,7 +309,7 @@ module.exports = bookshelf.Model.extend(merge({
     */
 
     await this.deleteUserMedia()
-    Queue.classMethod('User', 'clearSessionsFor', { userId: this.get('user_id'), sessionId })
+    Queue.classMethod('User', 'clearSessionsFor', { userId: this.id, sessionId })
     // TODO RESP: will need to add responsibilies, roles, etc to here, where they are missing (some roles are already handled)
     const query = `
     BEGIN;
@@ -376,13 +376,13 @@ module.exports = bookshelf.Model.extend(merge({
     return normalizeLocaleToFull(this.getSetting('locale') || 'en-US')
   },
 
-  joinGroup: async function (group, { assignCoordinator = false, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {
+  joinGroup: async function (group, { assignAdministrator = false, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {
     const groupSettings = group.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
 
     const memberships = await group.addMembers([this.id],
       {
-        assignCoordinator,
+        assignAdministrator,
         settings: {
           // Set joinQuestionsAnsweredAt if user answered questions during the join flow
           joinQuestionsAnsweredAt: questionAnswers.length > 0 ? new Date() : null,
@@ -670,6 +670,10 @@ module.exports = bookshelf.Model.extend(merge({
 }, HasSettings), {
   AXOLOTL_ID: '13986',
 
+  // One message for every failure, so login can't be used to find out which emails have accounts.
+  // Clients match on this exact string.
+  INVALID_LOGIN_ERROR: 'Incorrect email or password',
+
   authenticate: Promise.method(function (email, password) {
     const compare = Promise.promisify(bcrypt.compare, bcrypt)
 
@@ -679,17 +683,14 @@ module.exports = bookshelf.Model.extend(merge({
     return User.query('whereRaw', 'lower(email) = lower(?)', email)
       .fetch({ withRelated: ['linkedAccounts'] })
       .then(function (user) {
-        if (!user) throw new GraphQLError('email not found')
+        if (!user) throw new GraphQLError(User.INVALID_LOGIN_ERROR)
 
         const account = user.relations.linkedAccounts.find(a => a.get('provider_key') === 'password')
 
-        if (!account) {
-          const keys = user.relations.linkedAccounts.pluck('provider_key')
-          throw new GraphQLError(`password account not found. available: [${keys.join(',')}]`)
-        }
+        if (!account) throw new GraphQLError(User.INVALID_LOGIN_ERROR)
 
         return compare(password, account.get('provider_user_id')).then(function (match) {
-          if (!match) throw new GraphQLError('password does not match')
+          if (!match) throw new GraphQLError(User.INVALID_LOGIN_ERROR)
 
           return user
         })
@@ -718,7 +719,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   create: function (attributes) {
-    const { account, group, assignCoordinator } = attributes
+    const { account, group, assignAdministrator } = attributes
 
     attributes = merge({
       avatar_url: User.gravatar(attributes.email),
@@ -730,7 +731,7 @@ module.exports = bookshelf.Model.extend(merge({
         comment_notifications: 'both'
       },
       active: true
-    }, omit(attributes, 'account', 'group', 'assignCoordinator', 'role'))
+    }, omit(attributes, 'account', 'group', 'assignAdministrator', 'role'))
 
     if (account) {
       merge(
@@ -745,7 +746,7 @@ module.exports = bookshelf.Model.extend(merge({
         .then(async (user) => {
           await Promise.join(
             account && LinkedAccount.create(user.id, account, { transacting }),
-            group && group.addMembers([user.id], { assignCoordinator: !!assignCoordinator }, { transacting }),
+            group && group.addMembers([user.id], { assignAdministrator: !!assignAdministrator }, { transacting }),
             group && user.markInvitationsUsed(group.id, transacting)
           )
           return user
@@ -897,7 +898,7 @@ module.exports = bookshelf.Model.extend(merge({
       const group = await Group.find(groupId)
       if (user && group) {
         for (const trigger of zapierTriggers) {
-          await fetch(trigger.get('target_url'), {
+          await safeFetch(trigger.get('target_url'), {
             method: 'post',
             body: JSON.stringify({
               id: user.id,
@@ -921,7 +922,7 @@ module.exports = bookshelf.Model.extend(merge({
       memberships.models.forEach(async (membership) => {
         const zapierTriggers = await ZapierTrigger.forTypeAndGroups('member_updated', membership.get('group_id')).fetchAll()
         for (const trigger of zapierTriggers) {
-          await fetch(trigger.get('target_url'), {
+          await safeFetch(trigger.get('target_url'), {
             method: 'post',
             body: JSON.stringify(Object.assign({ id: user.id, profileUrl: Frontend.Route.profile(user, membership.relations.group) }, changes)),
             headers: { 'Content-Type': 'application/json' }

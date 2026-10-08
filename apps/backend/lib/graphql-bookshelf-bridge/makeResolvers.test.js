@@ -54,6 +54,39 @@ describe('createResolverForModel', () => {
     })
   })
 
+  it('passes skipTotal through to fetchOpts', () => {
+    const modelWithSkip = {
+      model: {
+        forge () {
+          return {
+            wheels () {
+              return {
+                relatedData: { type: 'hasMany' }
+              }
+            }
+          }
+        }
+      },
+      relations: [
+        {
+          wheels: {
+            typename: 'Wheel',
+            skipTotal: true
+          }
+        }
+      ]
+    }
+    const resolver = createResolverForModel(modelWithSkip, fetcher)
+    const instance = {
+      wheels: spy(() => 'mock wheels relation')
+    }
+    return resolver.wheels(instance, {})
+      .then(() => {
+        const call = fetchRelationCalls[0]
+        expect(call[2].skipTotal).to.equal(true)
+      })
+  })
+
   it('passes skipModelFilter through to fetchOpts', () => {
     const modelWithSkip = {
       model: {

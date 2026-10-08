@@ -21,6 +21,7 @@ export function presentPerson (person, selectedGroupSlug) {
   return {
     ...person.ref,
     skills: person.skills && person.skills.toRefArray(),
+    skillsToLearn: person.skillsToLearn && person.skillsToLearn.toRefArray(),
     memberships: getMemberships(person),
     groupRoles: person.groupRoles
   }

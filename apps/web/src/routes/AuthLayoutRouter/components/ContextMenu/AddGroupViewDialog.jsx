@@ -16,6 +16,7 @@ import AddCollectionDialog from './AddCollectionDialog'
 import AddSpaceCollectionDialog from './AddSpaceCollectionDialog'
 import AddCustomViewDialog from './AddCustomViewDialog'
 import AddWelcomeViewDialog from './AddWelcomeViewDialog'
+import AddPageViewDialog from './AddPageViewDialog'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { createGroupView } from 'store/actions/groupViews'
 import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
@@ -53,6 +54,7 @@ const CUSTOM_VIEW_TYPES = [
   'post',
   'member',
   'group',
+  'page',
   'text',
   'separator'
 ]
@@ -82,6 +84,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
   const [showCollectionDialog, setShowCollectionDialog] = useState(false)
   const [showSpaceCollectionDialog, setShowSpaceCollectionDialog] = useState(false)
   const [showWelcomeViewDialog, setShowWelcomeViewDialog] = useState(false)
+  const [showPageViewDialog, setShowPageViewDialog] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [people, setPeople] = useState([])
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
@@ -202,6 +205,11 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
       return
     }
 
+    if (selectedType === 'page') {
+      setShowPageViewDialog(true)
+      return
+    }
+
     await createView({
       type: selectedType,
       name: selectedType === 'link' ? linkName.trim() : null,
@@ -276,6 +284,11 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
 
   const handleWelcomeViewCreated = useCallback(() => {
     setShowWelcomeViewDialog(false)
+    onClose()
+  }, [onClose])
+
+  const handlePageViewCreated = useCallback(() => {
+    setShowPageViewDialog(false)
     onClose()
   }, [onClose])
 
@@ -430,7 +443,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
               <Button variant='secondary' disabled={!canAdd || isCreating} onClick={handleAdd}>
                 {isCreating
                   ? t('Creating...')
-                  : (selectedType === 'custom' || selectedType === 'collection' || selectedType === 'space-collection' || selectedType === 'welcome')
+                  : (selectedType === 'custom' || selectedType === 'collection' || selectedType === 'space-collection' || selectedType === 'welcome' || selectedType === 'page')
                       ? t('Next')
                       : t('Add View')}
               </Button>
@@ -472,6 +485,15 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
           onCancel={() => setShowWelcomeViewDialog(false)}
           onCreated={handleWelcomeViewCreated}
           onAdd={onAdd ? (viewData) => { onAdd(viewData); handleWelcomeViewCreated() } : undefined}
+        />
+      )}
+
+      {showPageViewDialog && (
+        <AddPageViewDialog
+          group={group}
+          onCancel={() => setShowPageViewDialog(false)}
+          onCreated={handlePageViewCreated}
+          onAdd={onAdd ? (viewData) => { onAdd(viewData); handlePageViewCreated() } : undefined}
         />
       )}
     </>,

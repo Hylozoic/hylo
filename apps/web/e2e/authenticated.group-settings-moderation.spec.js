@@ -5,7 +5,7 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  * Batch I — group settings (`/groups/:slug/settings/*`) and group moderation
  * (`/groups/:slug/about/moderation`; `/moderation` redirects there).
  * There is no moderation route under global `/all`, `/public`, or `/my`.
- * Requires E2E seed: Coordinator group role + Administration responsibility linked for the login user
+ * Requires E2E seed: Administrator group role + Administration responsibility linked for the login user
  * (`scripts/seed-e2e-baseline.js`).
  */
 

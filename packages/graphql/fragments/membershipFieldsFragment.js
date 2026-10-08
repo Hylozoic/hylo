@@ -19,6 +19,7 @@ export default gql`
     group {
       id
       homeRoute
+      moreSpacesCount
       agreements {
         items {
           id
@@ -40,6 +41,7 @@ export default gql`
         showSuggestedSkills
         showWelcomePage
         layout
+        autoAddMembers
       }
       slug
       type
