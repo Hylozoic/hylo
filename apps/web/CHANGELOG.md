@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Users can now make their Hylo profiles public; an alternative to linkedIn or linktree
+- Stewards can now remove a member from the group directly from the member profile page
+- Member profile posts tab refactored with infinite scroll paging for better performance on large post sets
+- Improved anonymous viewer handling for emoji reactions and post creator display on public profiles
+
+### Changed
+- Shared paging infrastructure extracted for reuse across profile list views
+
 ## [7.1.4] - 2026-10-01
 
 ### Changed

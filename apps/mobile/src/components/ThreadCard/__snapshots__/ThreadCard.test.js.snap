@@ -1,0 +1,74 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`handles ThreadAvatars correctly handles when there are more than three participants 1`] = `
+<View>
+  <Avatar
+    avatarUrl="http://avatar.url"
+  />
+  <Avatar
+    avatarUrl="http://avatar.url"
+  />
+  <View>
+    <Text>
+      +
+      2
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`handles ThreadAvatars correctly handles when there are three participants 1`] = `
+<View>
+  <Avatar
+    avatarUrl="http://avatar.url"
+  />
+  <Avatar
+    avatarUrl="http://avatar.url"
+  />
+</View>
+`;
+
+exports[`handles ThreadAvatars correctly handles when there are two participants 1`] = `
+<View>
+  <Avatar
+    avatarUrl="http://avatar.url"
+  />
+  <Avatar
+    avatarUrl="http://avatar.url"
+  />
+</View>
+`;
+
+exports[`handles ThreadAvatars correctly handles when there is one participant 1`] = `
+<View>
+  <Avatar
+    avatarUrl="http://avatar.url"
+  />
+</View>
+`;
+
+exports[`renders correctly 1`] = `
+<View>
+  <ThreadAvatars
+    avatarUrls={
+      [
+        "fred.png",
+      ]
+    }
+  />
+  <View>
+    <Text>
+      You
+    </Text>
+    <Text
+      numberOfLines={2}
+    >
+      You: 
+      Hey, just checking in. Test, test, test.
+    </Text>
+    <Text>
+      
+    </Text>
+  </View>
+</View>
+`;

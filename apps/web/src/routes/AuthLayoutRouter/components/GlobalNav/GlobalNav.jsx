@@ -972,7 +972,7 @@ export default function GlobalNav (props) {
   const openPinnedGroupContextMenu = (groupId, clientX, clientY) => {
     const node = groupRefsMap.current.get(groupId)
     if (!node) return
-    node.dispatchEvent(new MouseEvent('contextmenu', {
+    node.dispatchEvent(new globalThis.MouseEvent('contextmenu', {
       bubbles: true,
       cancelable: true,
       view: window,

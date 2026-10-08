@@ -65,7 +65,6 @@ describe('PostEditor store', () => {
         expect(finalState).toMatchSnapshot()
       })
     })
-
   })
 })
 
