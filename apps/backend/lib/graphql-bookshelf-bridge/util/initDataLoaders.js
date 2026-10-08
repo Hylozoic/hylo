@@ -55,6 +55,20 @@ export default function initDataLoaders (spec) {
   return loaders
 }
 
+/**
+ * Drop cached rows from loaders that outlive a single GraphQL request.
+ * The executable schema is reused per user, so a DataLoader would otherwise
+ * keep the first Bookshelf model it saw (for example an old groups.home_route)
+ * until the process restarts.
+ * @param {object} loaders
+ */
+export function clearDataLoaderCaches (loaders) {
+  if (!loaders) return
+  for (const loader of Object.values(loaders)) {
+    if (loader && typeof loader.clearAll === 'function') loader.clearAll()
+  }
+}
+
 export function makeModelLoader (model) {
   const tableName = model.collection().tableName()
   const idColumn = `${tableName}.id`

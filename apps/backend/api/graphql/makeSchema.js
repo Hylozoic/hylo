@@ -4,6 +4,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { merge, reduce } from 'lodash'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
+import { clearDataLoaderCaches } from '../../lib/graphql-bookshelf-bridge/util/initDataLoaders'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import mixpanel from '../../lib/mixpanel'
 import {
@@ -201,9 +202,11 @@ let modelToTypeMap
 
 /** Yoga calls makeSchema on every GraphQL request. Rebuilding that executable schema
  *  is the isolated-E2E OOM (heap hits the 4GB cap). Cache per auth identity; skip in
- *  unit tests so DataLoaders do not leak across cases. `GRAPHQL_CACHE_SCHEMA=0` disables. */
+ *  unit tests so DataLoaders do not leak across cases. `GRAPHQL_CACHE_SCHEMA=0` disables.
+ *  Loaders are cleared on each request so a reused schema does not serve stale models. */
 const SCHEMA_CACHE_MAX = 16
 const schemaCache = new Map()
+const SCHEMA_LOADERS = Symbol('hyloSchemaLoaders')
 
 /**
  * Whether this process should reuse GraphQL schemas across requests.
@@ -245,6 +248,7 @@ export default async function makeSchema ({ req }) {
   if (key && schemaCache.has(key)) {
     const cached = schemaCache.get(key)
     rememberGraphqlSchema(key, cached)
+    clearDataLoaderCaches(cached[SCHEMA_LOADERS])
     return cached
   }
   const schema = await buildGraphqlSchema(req)
@@ -318,10 +322,12 @@ async function buildGraphqlSchema (req) {
     }
   }
 
-  return createSchema({
+  const schema = createSchema({
     typeDefs: [schemaText],
     resolvers: Object.assign(allResolvers, resolvers)
   })
+  schema[SCHEMA_LOADERS] = loaders
+  return schema
 }
 
 /**

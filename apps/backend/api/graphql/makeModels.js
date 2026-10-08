@@ -120,6 +120,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
   // XXX: for now give super API users more access, in the future track which groups each client can access
   const apiFilter = makeFilterToggle(!apiClient || !apiClient.super)
 
+  // cache: false on the loaders below. makeSchema reuses this executable schema
+  // across requests, so a cached row would stay stale until the process restarts.
   // One query per All Activity page for every notice's recentPostIds
   const noticeChatPostsLoader = new DataLoader(async (ids) => {
     const posts = await Post.query(q => {
@@ -129,7 +131,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
     }).fetchAll()
     const byId = new Map(posts.models.map(post => [String(post.id), post]))
     return ids.map(id => byId.get(String(id)) || null)
-  }, { cacheKeyFn: id => String(id) })
+  }, { cache: false, cacheKeyFn: id => String(id) })
 
   // cache: false — makeSchema reuses this executable schema (and these loaders)
   // across requests. A cached new_post_count after markViewAsRead made the
@@ -157,7 +159,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       byView.get(key).push(row.post_id)
     }
     return viewIds.map(id => byView.get(String(id)) || [])
-  }, { cacheKeyFn: id => String(id) })
+  }, { cache: false, cacheKeyFn: id => String(id) })
 
   const blockGroupMemberEnumerationForAnonymous = !userId && !apiClient
 

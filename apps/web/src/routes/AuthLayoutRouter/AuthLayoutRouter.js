@@ -51,7 +51,7 @@ import { isSpaceGroup } from 'store/selectors/getMyGroups'
 import orm from 'store/models'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
-  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, localSpaceSlug, postUrl, spaceUrl
+  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, localSpaceSlug, nestedPostRedirectPath, pathnameOpensPost, postUrl, spaceUrl
 } from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import {
@@ -205,6 +205,10 @@ export default function AuthLayoutRouter (props) {
     onWelcomePath,
     views: groupViews
   })
+  // A post deep link (including ?postId= on a chat) should open the post.
+  // lastViewedAt stays unset while landOnWelcome is still true, so the next
+  // entry to the group still lands on the welcome page.
+  const opensPost = pathnameOpensPost(location.pathname, location.search)
   const pendingWelcomeDecision = Boolean(
     isFirstGroupVisit &&
     currentGroup?.settings?.showWelcomePage !== false &&
@@ -725,6 +729,7 @@ export default function AuthLayoutRouter (props) {
     dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, new Date().toISOString()))
   }, [dispatch, isFirstGroupVisit, currentUser?.id, currentGroup?.id, currentGroup?.groupViews, landOnWelcome])
 
+  console.log('homeRoute', currentGroup?.homeRoute)
   // Redirect to stream if user is a member but doesn't have access (expired subscription)
   useEffect(() => {
     if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
@@ -870,6 +875,14 @@ export default function AuthLayoutRouter (props) {
     return <NotFound />
   }
 
+  // Old notification links appended /post/:id onto a home view that cannot show
+  // a post (a page, welcome, about). Send those to the standalone post URL.
+  // Query and hash (commentId, email click tracking) stay on the link.
+  const legacyPostPath = nestedPostRedirectPath(location.pathname)
+  if (legacyPostPath) {
+    return <Navigate to={{ pathname: legacyPostPath, search: location.search, hash: location.hash }} replace />
+  }
+
   // Spaces (`type = space`) opened as `/groups/:spaceSlug` nest under their parent.
   // Child groups must stay at `/groups/:slug` even if they still have a parentId.
   // Covers cold-load restore, bookmarks, and any other bare-space links.
@@ -912,8 +925,10 @@ export default function AuthLayoutRouter (props) {
     }
   }
 
-  /* First time viewing a group: welcome page when shown to new members, otherwise home */
-  if (isFirstGroupVisit && landOnWelcome) {
+  /* First time viewing a group: welcome page when shown to new members, otherwise home.
+     Post links skip this so the post opens; the visit is not recorded, so the
+     next time they open the group they still land on welcome. */
+  if (isFirstGroupVisit && landOnWelcome && !opensPost) {
     return <Navigate to={`/groups/${currentGroupSlug}/welcome${location.search}`} replace />
   }
 
@@ -1132,7 +1147,7 @@ export default function AuthLayoutRouter (props) {
                                   : <MoreSpacesPage group={currentGroup} />
                               }
                             />
-                            {!isOneColumnGroup && <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />}
+                            <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
                             <Route path='moderation/*' element={<Navigate to={`/groups/${currentGroupSlug}/about/moderation`} replace />} />
                             {/* Legacy All Views / Tracks / Funding Rounds / All Topics → More Spaces */}
                             <Route path='all-views/*' element={<Navigate to={`/groups/${currentGroupSlug}/more-spaces`} replace />} />
@@ -1144,7 +1159,7 @@ export default function AuthLayoutRouter (props) {
                               element={
                                 pendingWelcomeDecision
                                   ? <RouteBootstrapSkeleton />
-                                  : landOnWelcome
+                                  : landOnWelcome && !opensPost
                                     ? <Navigate to={`/groups/${currentGroupSlug}/welcome${location.search}`} replace />
                                     : isOneColumnGroup
                                       ? <ContextMenuGrid group={currentGroup} />

@@ -230,6 +230,78 @@ function normalizeGroupView (view) {
 }
 
 /**
+ * Home-route prefixes that already mount a nested post (dialog or map detail).
+ * Notification links append /post/:id only for these.
+ */
+const POST_OVERLAY_ROUTE_ROOTS = [
+  '/all',
+  '/stream',
+  '/discussions',
+  '/events',
+  '/resources',
+  '/projects',
+  '/proposals',
+  '/requests-and-offers',
+  '/map',
+  '/chat',
+  '/track-actions',
+  '/funding-round-submissions'
+]
+
+/** Normalize a home route or view path to a leading-slash form without a trailing slash. */
+function normalizeRoutePath (routePath) {
+  if (!routePath) return '/all'
+  const withSlash = routePath.startsWith('/') ? routePath : `/${routePath}`
+  if (withSlash.length > 1 && withSlash.endsWith('/')) return withSlash.replace(/\/+$/, '')
+  return withSlash || '/all'
+}
+
+/**
+ * True when this home route can show a post on top of the view.
+ * Page, welcome, about, the members list, and other static views cannot.
+ * @param {string} [homeRoute] e.g. '/all', '/chat', '/page/7'
+ * @returns {boolean}
+ */
+export function homeRouteHostsPostOverlay (homeRoute) {
+  const path = normalizeRoutePath(homeRoute)
+  if (/^\/custom\/[^/]+$/.test(path)) return true
+  if (/^\/collection\/[^/]+$/.test(path)) return true
+  if (/^\/topics\/[^/]+$/.test(path)) return true
+  if (/^\/members\/[^/]+$/.test(path)) return true
+  return POST_OVERLAY_ROUTE_ROOTS.some(root => path === root || path.startsWith(`${root}/`))
+}
+
+/**
+ * True when this location opens a post: /post/:id, or a chat link with ?postId=.
+ * @param {string} [pathname]
+ * @param {string} [search]
+ * @returns {boolean}
+ */
+export function pathnameOpensPost (pathname = '', search = '') {
+  if (/\/post\/\d+(?:\/|$)/.test(pathname)) return true
+  if (!search) return false
+  const query = search.startsWith('?') ? search.slice(1) : search
+  return Boolean(new URLSearchParams(query).get('postId'))
+}
+
+/**
+ * Rewrite an old notification URL that nested /post/:id under a view which
+ * cannot show it (for example /groups/assembly/page/69228/post/119926).
+ * Returns null when the path should be left alone.
+ * @param {string} pathname
+ * @returns {string|null}
+ */
+export function nestedPostRedirectPath (pathname) {
+  if (!pathname) return null
+  const match = pathname.match(/^\/groups\/([^/]+)(\/spaces\/[^/]+)?\/(.+)$/)
+  if (!match) return null
+  const postMatch = match[3].match(/^(.*)\/post\/(\d+)(\/.*)?$/)
+  if (!postMatch || !postMatch[1]) return null
+  if (homeRouteHostsPostOverlay(`/${postMatch[1]}`)) return null
+  return `/groups/${match[1]}${match[2] || ''}/post/${postMatch[2]}${postMatch[3] || ''}`
+}
+
+/**
  * Route path suffix stored in groups.home_route for a GroupView
  * (e.g. /all, /custom/123, /welcome).
  * Shared by backend GroupView.computeHomeRoutePath and frontend optimistic updates.
@@ -343,16 +415,19 @@ export function primaryPostUrl (post, opts = {}, querystringParams = {}) {
       result = `${result}?postId=${postId}`
     }
   } else {
-    // Non-chat posts open within the group's home view so there is context.
-    // homeRoute is a path like '/all', '/map', or '/chat'.
+    // Non-chat posts open within the group's home view when that view already
+    // mounts a post dialog (a stream, map, or chat). Page, welcome, and other
+    // static homes use a standalone /post/:id URL, because those routes swallow
+    // the extra path segment and never open the post.
+    // homeRoute is a path like '/all', '/map', '/chat', or '/page/7'.
     // Non-chat posts always use the /post/:id path format (modal overlay) even
     // when the home is a chat view, so you can see the full post and comments
     // (?postId= is reserved for chat-type posts only).
-    // If the home is a chat view but the post has no topics (e.g. Zapier-
-    // created posts), fall back to the standalone /post/:id URL so the UI
-    // can still open the post even though it isn't in any chat room.
     const homeRoute = opts.homeRoute || '/all'
-    if (homeRoute === '/chat' || homeRoute.startsWith('/chat/')) {
+    if (!homeRouteHostsPostOverlay(homeRoute)) {
+      result = `${result}/post/${postId}`
+      if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
+    } else if (homeRoute === '/chat' || homeRoute.startsWith('/chat/')) {
       // Non-chat post shown in a chat home: open as a modal above the chat
       result = `${result}/chat/post/${postId}`
       if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
