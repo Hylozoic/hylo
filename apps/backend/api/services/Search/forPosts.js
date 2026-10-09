@@ -94,7 +94,11 @@ export default function forPosts (opts) {
         this.on('event_invitations.event_id', '=', 'posts.id')
           .andOn('event_invitations.user_id', '=', bookshelf.knex.raw('?', [opts.currentUserId]))
       })
-      qb.where('event_invitations.response', opts.rsvpResponse)
+      if (opts.rsvpResponse === 'yes+interested') {
+        qb.whereIn('event_invitations.response', ['yes', 'interested'])
+      } else {
+        qb.where('event_invitations.response', opts.rsvpResponse)
+      }
     }
 
     filterAndSortPosts(Object.assign({}, opts, {

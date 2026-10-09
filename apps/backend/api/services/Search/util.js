@@ -123,7 +123,11 @@ export const filterAndSortPosts = curry((opts, q) => {
       this.on('event_invitations.event_id', '=', 'posts.id')
         .andOn('event_invitations.user_id', '=', bookshelf.knex.raw('?', [currentUserId]))
     })
-    q.where('event_invitations.response', rsvpResponse)
+    if (rsvpResponse === 'yes+interested') {
+      q.whereIn('event_invitations.response', ['yes', 'interested'])
+    } else {
+      q.where('event_invitations.response', rsvpResponse)
+    }
   }
 
   const streamTypes = [DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE]

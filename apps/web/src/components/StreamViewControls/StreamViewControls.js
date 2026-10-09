@@ -105,8 +105,7 @@ const makeFilterDropdown = (selected, options, onChange, t, icon, id) => {
 
 const RSVP_OPTIONS = [
   { id: undefined, label: 'All Events' },
-  { id: 'yes', label: 'Going' },
-  { id: 'interested', label: 'Interested' },
+  { id: 'yes+interested', label: 'Going/Interested' },
   { id: 'no', label: 'Not Going' }
 ]
 
@@ -156,8 +155,7 @@ const StreamViewControls = ({
 
   if (view === 'events' && changeRsvpFilter) {
     // Load RSVP filter option strings
-    t('Going')
-    t('Interested')
+    t('Going/Interested')
     t('Not Going')
     t('All Events')
     rsvpDropdown = makeFilterDropdown(rsvpFilter, RSVP_OPTIONS, changeRsvpFilter, t, null, 'rsvp-filter')
