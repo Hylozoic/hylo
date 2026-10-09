@@ -154,6 +154,11 @@ export default function Login (props) {
         <div className='flex justify-center px-4 pb-4'>
           <GoogleButton onClick={() => handleLoginWithService('google')} />
         </div>
+        <div className='flex justify-center pb-4'>
+          <a href='/sandbox' className='text-foreground/80 text-sm underline-offset-2 hover:underline'>
+            {t('Try the demo')}
+          </a>
+        </div>
       </div>
     </>
   )
