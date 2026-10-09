@@ -30,7 +30,8 @@ export default function fetchPosts ({
   topics,
   types,
   fieldsVariant,
-  replaceResults
+  replaceResults,
+  rsvpResponse
 }) {
   let query, extractModel, getItems
 
@@ -73,7 +74,8 @@ export default function fetchPosts ({
         sortBy,
         topic,
         topics,
-        types
+        types,
+        rsvpResponse
       }
     },
     meta: {
@@ -113,7 +115,8 @@ const groupQuery = (childPostInclusion, { includeGroups = true, fieldsVariant } 
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String],
+  $rsvpResponse: String
 ) {
   group(slug: $slug, updateLastViewed: true) {
     id
@@ -149,7 +152,8 @@ const postsQuery = `query PostsQuery (
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String],
+  $rsvpResponse: String
 ) {
   ${postsQueryFragment}
 }`

@@ -860,7 +860,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         search,
         topic,
         topics,
-        types
+        types,
+        rsvpResponse
       }) =>
         searchQuerySet('posts', {
           activePostsOnly,
@@ -883,6 +884,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           order,
           proposalOutcome,
           proposalStatus,
+          rsvpResponse,
           savedBy,
           sort: sortBy,
           term: search,
@@ -1158,7 +1160,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           viewPosts: {
             querySet: true,
             arguments: () => [userId],
-            filter: (relation, { activePostsOnly = false, afterTime, beforeTime, boundingBox, collectionToFilterOut, filter, forCollection, isFulfilled, order, search, sortBy, topic, topics, types }) =>
+            filter: (relation, { activePostsOnly = false, afterTime, beforeTime, boundingBox, collectionToFilterOut, filter, forCollection, isFulfilled, order, rsvpResponse, search, sortBy, topic, topics, types }) =>
               relation.query(filterAndSortPosts({
                 activePostsOnly,
                 afterTime,
@@ -1168,6 +1170,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 forCollection,
                 isFulfilled,
                 order,
+                rsvpResponse,
+                currentUserId: userId,
                 search,
                 sortBy,
                 topic,

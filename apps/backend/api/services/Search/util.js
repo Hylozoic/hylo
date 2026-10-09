@@ -15,7 +15,9 @@ export const filterAndSortPosts = curry((opts, q) => {
     isAnnouncement,
     isFulfilled,
     order,
+    rsvpResponse,
     savedBy,
+    currentUserId,
     search,
     sortBy = 'updated',
     topic,
@@ -113,6 +115,15 @@ export const filterAndSortPosts = curry((opts, q) => {
       'select post_id from collections_posts where view_id = ?',
       [collectionToFilterOut]
     ))
+  }
+
+  // Filter by RSVP response for events
+  if (rsvpResponse && currentUserId) {
+    q.join('event_invitations', function () {
+      this.on('event_invitations.event_id', '=', 'posts.id')
+        .andOn('event_invitations.user_id', '=', bookshelf.knex.raw('?', [currentUserId]))
+    })
+    q.where('event_invitations.response', rsvpResponse)
   }
 
   const streamTypes = [DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE]
