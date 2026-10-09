@@ -69,6 +69,7 @@ export default
         id
         name
         slug
+        avatarUrl
       }
       person {
         id

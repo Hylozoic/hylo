@@ -5,7 +5,7 @@ import {
   useMemo,
   useState
 } from 'react'
-import { StyleSheet } from 'react-native'
+import { Linking, StyleSheet } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { WebView } from 'react-native-webview'
 import type { WebViewProps } from 'react-native-webview'
@@ -25,6 +25,7 @@ import { authLog, authHandshakeEvent } from 'util/authDebug'
 import getNativeSessionId from 'util/nativeSessionId'
 import { parseWebViewMessage } from './parseWebViewMessage'
 import { sendMessageFromWebView } from './sendMessageFromWebView'
+import { externalUrlForNavigation, isHyloWebUrl, shouldLoadInWebView } from './linkNavigation'
 
 const baseInjectedStyle = `
   ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
@@ -137,6 +138,34 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
     externalOnLoadEnd?.(event)
   }, [externalOnLoadEnd])
 
+  const openExternalUrl = useCallback((url: string) => {
+    const externalUrl = externalUrlForNavigation(url)
+    if (!externalUrl) return
+    Linking.openURL(externalUrl).catch(error =>
+      console.warn('Failed to open external link:', url, error)
+    )
+  }, [])
+
+  const handleShouldStartLoadWithRequest = useCallback<NonNullable<WebViewProps['onShouldStartLoadWithRequest']>>((request) => {
+    if (shouldLoadInWebView(request.url, request.isTopFrame, HYLO_WEB_BASE_URL)) return true
+
+    openExternalUrl(request.url)
+    return false
+  }, [openExternalUrl])
+
+  const handleOpenWindow = useCallback<NonNullable<WebViewProps['onOpenWindow']>>((event) => {
+    const targetUrl = event.nativeEvent.targetUrl
+
+    if (isHyloWebUrl(targetUrl, HYLO_WEB_BASE_URL)) {
+      if (typeof webViewRef !== 'function' && webViewRef?.current) {
+        webViewRef.current.injectJavaScript(`window.location.assign(${JSON.stringify(targetUrl)}); true;`)
+      }
+      return
+    }
+
+    openExternalUrl(targetUrl)
+  }, [openExternalUrl, webViewRef])
+
   const reverifyAuth = useCallback(async () => {
     onSessionRecoveryStart?.()
     try {
@@ -208,9 +237,11 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
       onLoadStart={handleLoadStart}
       onLoadEnd={handleLoadEnd}
       originWhitelist={webViewOriginWhitelist(HYLO_WEB_BASE_URL)}
+      onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
+      onOpenWindow={handleOpenWindow}
       scalesPageToFit={false}
       scrollEnabled={enableScrolling}
-      setSupportMultipleWindows={false}
+      setSupportMultipleWindows={true}
       sharedCookiesEnabled
       source={{
         uri,

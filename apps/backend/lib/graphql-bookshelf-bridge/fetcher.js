@@ -73,7 +73,8 @@ export default class Fetcher {
     }
     return this.loaders.relations.load({ relation }).then(instance => {
       if (!instance) return
-      this.loaders[typename].prime(instance.id, instance)
+      // Replace any id already cached in this request. prime() leaves an existing entry in place.
+      this.loaders[typename].clear(instance.id).prime(instance.id, instance)
       return instance
     })
   }
@@ -159,7 +160,7 @@ export default class Fetcher {
     return this.loaders.relations.load({relation})
       .then(instance => {
         if (!instance) return null
-        loader.prime(instance.id, instance)
+        loader.clear(instance.id).prime(instance.id, instance)
         return loader.load(instance.id)
       })
   }
