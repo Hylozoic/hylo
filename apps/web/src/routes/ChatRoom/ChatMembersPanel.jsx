@@ -20,7 +20,7 @@ import {
   getMembers,
   getRecentlyActiveMembers
 } from 'routes/Members/Members.store'
-import { messagePersonUrl, personUrl } from '@hylo/navigation'
+import { addQuerystringToPath, groupUrl, messagePersonUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import { getRoomPresence } from './RoomPresence.store'
 
@@ -189,7 +189,8 @@ export default function ChatMembersPanel ({ group, latestPost }) {
 
   const openProfile = useCallback((person) => {
     close()
-    navigate(personUrl(person.id, routeParams.groupSlug))
+    const baseUrl = groupUrl(routeParams.groupSlug, 'members')
+    navigate(addQuerystringToPath(baseUrl, { highlightMember: person.id }))
   }, [close, navigate, routeParams.groupSlug])
 
   const openDM = useCallback((e, person) => {

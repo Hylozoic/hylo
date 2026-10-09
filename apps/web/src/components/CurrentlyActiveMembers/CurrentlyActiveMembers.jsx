@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from './CurrentlyActivePills'
-import { personUrl } from '@hylo/navigation'
+import { addQuerystringToPath, groupUrl, personUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import {
   fetchRecentlyActiveMembers,
@@ -63,12 +63,15 @@ export default function CurrentlyActiveMembers ({
   }, [fetched, max])
 
   /**
-   * Opens a member profile and closes the mobile drawer so the profile is visible.
+   * Opens the member directory (not the member's profile) with the person's id
+   * as a query parameter so the member list can highlight them. Closes the mobile
+   * drawer so the members view is visible.
    */
   const handlePersonClick = (person) => {
     if (!interactive || !person?.id) return
     dispatch(toggleNavMenu(false))
-    navigate(personUrl(person.id, countSlug))
+    const baseUrl = membersUrl || groupUrl(countSlug, 'members')
+    navigate(addQuerystringToPath(baseUrl, { highlightMember: person.id }))
   }
 
   /**
