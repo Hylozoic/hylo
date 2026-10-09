@@ -197,6 +197,20 @@ const Messages = () => {
     focusForm()
   }, [messageThreadId])
 
+  // When the mobile WebView regains focus (e.g. tapping a push notification for
+  // an already-loaded thread), refresh the thread data in-place without reloading
+  // the entire page. The browser/WebView dispatches a `focus` event when the app
+  // returns to the foreground.
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (messageThreadId && messageThreadId !== NEW_THREAD_ID) {
+        fetchThreadAction()
+      }
+    }
+    window.addEventListener('focus', handleRefresh)
+    return () => window.removeEventListener('focus', handleRefresh)
+  }, [messageThreadId, fetchThreadAction])
+
   // Clicking anywhere outside the recipient picker closes its dropdown.
   // The dropdown itself portals to document.body, so it needs its own check —
   // treating it as "outside" here would close it on mousedown and swallow the
