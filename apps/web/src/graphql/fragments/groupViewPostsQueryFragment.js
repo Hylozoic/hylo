@@ -29,6 +29,7 @@ ${includeChildGroupPosts ? 'posts: viewPosts(' : 'posts('}
   search: $search,
   topic: $topic,
   topics: $topics,
+  rsvpResponse: $rsvpResponse,
   types: $types
 ) {
   hasMore

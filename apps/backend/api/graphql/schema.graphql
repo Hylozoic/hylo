@@ -368,7 +368,9 @@ type Query {
     # Return only posts that have any of these topics by topic ID
     topics: [ID],
     # Return only posts that are one of these types: 'discussion', 'event', 'offer', 'project', 'proposal', 'request' and/or 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Query for responsibilities
@@ -1155,7 +1157,9 @@ type Group {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # All responsibilities available to the group
@@ -1246,7 +1250,9 @@ type Group {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Content access records for this group (purchased or granted)
@@ -2250,7 +2256,9 @@ type Person {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Project posts that this person is a member of
