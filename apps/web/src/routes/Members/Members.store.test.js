@@ -31,6 +31,7 @@ describe('getMemberQueryProps', () => {
       groupRoleIds: null,
       trackCompleted: null,
       fundingRoundCapability: null,
+      highlightMemberId: null,
       order: 'asc'
     })
     expect(storeParams).toEqual(lookupProps)

@@ -95,7 +95,8 @@ function Member ({
   showTrackCompletion,
   trackCompletedAt,
   square,
-  layout = 'card'
+  layout = 'card',
+  highlighted = false
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -230,7 +231,7 @@ function Member ({
     const col = viewCardColor(null)
 
     return (
-      <div className={cn('flex flex-col min-w-0', className, showJoinAnswersBlock && 'w-full sm:w-[calc(50%-0.375rem)] sm:max-w-[168px]')}>
+      <div className={cn('flex flex-col min-w-0', highlighted && 'ring-2 ring-selected rounded-xl', className, showJoinAnswersBlock && 'w-full sm:w-[calc(50%-0.375rem)] sm:max-w-[168px]')}>
         <div
           className={cn(CARD_CLASS, cardChrome(isDark), 'shrink-0')}
           style={{
@@ -353,7 +354,7 @@ function Member ({
 
   if (layout === 'row') {
     return (
-      <div className={cn('flex flex-col border-b border-foreground/10 last:border-b-0', className)} data-testid='member-card'>
+      <div className={cn('flex flex-col border-b border-foreground/10 last:border-b-0', highlighted && 'bg-selected/10 border-l-2 border-l-selected', className)} data-testid='member-card'>
         <div onClick={goToPerson(id, group?.slug)} className='flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-foreground/5 transition-colors min-w-0'>
           <div className='relative shrink-0'>
             <div className='w-8 h-8 rounded-full bg-cover bg-center' style={bgImageStyle(avatarUrl)} />
@@ -405,7 +406,7 @@ function Member ({
 
   return (
     <div
-      className={cn('relative flex flex-col overflow-hidden rounded-xl bg-card border border-foreground/20 hover:border-foreground/60 hover:-translate-y-px transition-all cursor-pointer', className)}
+      className={cn('relative flex flex-col overflow-hidden rounded-xl bg-card border border-foreground/20 hover:border-foreground/60 hover:-translate-y-px transition-all cursor-pointer', highlighted && 'ring-2 ring-selected bg-selected/5', className)}
       onClick={goToPerson(id, group?.slug)}
       data-testid='member-card'
     >
@@ -491,6 +492,7 @@ function Member ({
 Member.propTypes = {
   className: string,
   group: object,
+  highlighted: bool,
   member: shape({
     id: string,
     name: string,
