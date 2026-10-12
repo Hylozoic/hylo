@@ -7,6 +7,7 @@ import { useLocation, Routes, Route } from 'react-router-dom'
 import TextInput from 'components/TextInput'
 import Icon from 'components/Icon'
 import ScrollListener from 'components/ScrollListener'
+import GroupCard from 'components/GroupCard'
 import PostCard from 'components/PostCard'
 import CommentCard from 'components/CommentCard'
 import RoundImage from 'components/RoundImage'
@@ -121,7 +122,7 @@ export default function Search (props) {
             inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full min-w-[300px] sm:min-w-[375px] max-w-[750px] bg-input rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
             inputRef={inputRef}
             value={searchForInput}
-            placeholder={t('Search for people, posts and comments')}
+            placeholder={t('Search for people, posts, comments and groups')}
             autoFocus
             onChange={event => {
               const { value } = event.target
@@ -226,7 +227,8 @@ function TabBar ({ filter, setSearchFilter }) {
     { id: 'all', label: t('All') },
     { id: 'post', label: t('Posts') },
     { id: 'comment', label: t('Comments') },
-    { id: 'person', label: t('People') }
+    { id: 'person', label: t('People') },
+    { id: 'group', label: t('Groups') }
   ]
 
   return (
@@ -308,6 +310,13 @@ function SearchResult ({
           comment={content}
           expanded={false}
           highlightProps={highlightProps}
+        />
+      )
+      break
+    case 'Group':
+      component = (
+        <GroupCard
+          group={content}
         />
       )
       break
