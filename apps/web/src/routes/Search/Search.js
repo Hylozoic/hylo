@@ -315,9 +315,11 @@ function SearchResult ({
       break
     case 'Group':
       component = (
-        <GroupCard
-          group={content}
-        />
+        <div className='mb-4'>
+          <GroupCard
+            group={content}
+          />
+        </div>
       )
       break
   }
