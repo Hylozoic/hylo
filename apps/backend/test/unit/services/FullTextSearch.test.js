@@ -84,7 +84,7 @@ describe('.search (type group)', () => {
     expect(query).to.contain('"group_id" in (3, 5)')
   })
 
-  it('restricts to public + member groups for authenticated users', () => {
+  it('restricts to public + member groups + related PROTECTED groups for authenticated users', () => {
     const opts = { limit: 10, offset: 0, term: 'plant', type: 'group' }
     const query = FullTextSearch.buildSearchInGroupsQuery({ userId: 42 }, opts).toString()
 
@@ -94,14 +94,33 @@ describe('.search (type group)', () => {
     expect(query).to.contain('"groups"."visibility" = 2')
     // Must include member groups subquery
     expect(query).to.contain('"group_memberships"."user_id" = 42')
+    // Must include PROTECTED + related groups via group_relationships
+    expect(query).to.contain('"groups"."visibility" = 1')
+    // Must reference group_relationships for parent/child/peer lookups
+    expect(query).to.contain('"group_relationships"')
+    expect(query).to.contain('"relationship_type"')
+    expect(query).to.contain('"parent_group_id"')
+    expect(query).to.contain('"child_group_id"')
     // Must allow non-group rows through
     expect(query).to.contain('"group_id" is null')
+    // Spaces must be excluded
+    expect(query).to.contain('"groups"."type"')
+  })
+
+  it('includes PROTECTED peer groups of member groups via group_relationships', () => {
+    const opts = { limit: 10, offset: 0, term: 'plant', type: 'group' }
+    const query = FullTextSearch.buildSearchInGroupsQuery({ userId: 42 }, opts).toString()
+
+    // Must query group_relationships for peer, parent, and child connections
+    expect(query).to.contain('from "group_relationships"')
+    // Must check all four relationship directions
+    const relMatches = query.match(/group_relationships/g)
+    expect(relMatches ? relMatches.length >= 4 : false).to.be.true
   })
 
   it('restricts to public-only groups for anonymous users', () => {
     const opts = { limit: 10, offset: 0, term: 'plant', type: 'group' }
     const query = FullTextSearch.buildSearchInGroupsQuery({}, opts).toString()
-
     // Default groupAccess with no userId and no groupIds means anonymous
     // Must contain: group_id IN (select id from groups where visibility = 2)
     expect(query).to.contain('"visibility" = 2')

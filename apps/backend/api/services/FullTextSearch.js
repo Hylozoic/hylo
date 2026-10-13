@@ -156,16 +156,52 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
         this.whereIn('group_id', groupAccess.groupIds)
       } else if (groupAccess.userId) {
         // Authenticated: show PUBLIC groups + groups the user is a member of
+        // + PROTECTED groups connected via relationships to the user's groups
         var memberGroupsSubquery = Group.selectIdsForMember(groupAccess.userId)
         var accessibleGroupIds = bookshelf.knex.select('id').from('groups').where(function () {
           this.where('groups.visibility', 2) // PUBLIC
             .orWhereIn('groups.id', memberGroupsSubquery)
+            .orWhere(function () {
+              this.where('groups.visibility', Group.Visibility.PROTECTED)
+              this.where(function () {
+                this.whereIn('groups.id', function () {
+                  this.select('child_group_id').from('group_relationships')
+                    .where('group_relationships.active', true)
+                    .where('group_relationships.relationship_type', Group.RelationshipType.PARENT_CHILD)
+                    .whereIn('parent_group_id', memberGroupsSubquery)
+                })
+                .orWhereIn('groups.id', function () {
+                  this.select('parent_group_id').from('group_relationships')
+                    .where('group_relationships.active', true)
+                    .where('group_relationships.relationship_type', Group.RelationshipType.PARENT_CHILD)
+                    .whereIn('child_group_id', memberGroupsSubquery)
+                })
+                .orWhereIn('groups.id', function () {
+                  this.select('child_group_id').from('group_relationships')
+                    .where('group_relationships.active', true)
+                    .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+                    .whereIn('parent_group_id', memberGroupsSubquery)
+                })
+                .orWhereIn('groups.id', function () {
+                  this.select('parent_group_id').from('group_relationships')
+                    .where('group_relationships.active', true)
+                    .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+                    .whereIn('child_group_id', memberGroupsSubquery)
+                })
+              })
+            })
         }).where('groups.active', true)
+        .where(function () {
+          this.whereNull('groups.type').orWhere('groups.type', '<>', 'space')
+        })
         this.whereIn('group_id', accessibleGroupIds)
       } else {
         // Anonymous: only public groups
         this.whereIn('group_id', function () {
           this.select('id').from('groups').where({ active: true, visibility: 2 })
+            .where(function () {
+              this.whereNull('groups.type').orWhere('groups.type', '<>', 'space')
+            })
         })
       }
       // Non-group rows should also pass through the group filter (they're not groups)
