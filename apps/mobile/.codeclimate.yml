@@ -1,0 +1,16 @@
+engines:
+  eslint:
+    enabled: true
+  duplication:
+    enabled: true
+    config:
+      languages:
+        javascript:
+          mass_threshold: 60
+ratings:
+  paths:
+  - src/**
+exclude_paths:
+- "**/*.test.js"
+- "**/*.spec.js"
+- "**/*.styles.js"

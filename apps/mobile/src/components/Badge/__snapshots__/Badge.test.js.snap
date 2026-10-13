@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`BadgedIcon matches snapshot when count is not zero 1`] = `
+<View>
+  <Text>
+    7
+  </Text>
+</View>
+`;

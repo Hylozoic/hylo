@@ -489,6 +489,61 @@ describe('graphql request handler', () => {
       expect(executionResult.data.post.comments.items[0].creator).to.deep.equal(hiddenProfile)
     })
 
+    it('shows skills and public groups on an opted-in public profile', async () => {
+      const suffix = randomUUID().slice(0, 8)
+      const person = await factories.user({
+        name: 'Public Profile',
+        tagline: 'hello there',
+        bio: 'Visible bio',
+        contact_email: 'hidden@example.com',
+        facebook_url: 'https://facebook.com/public',
+        is_profile_public: true
+      }).save()
+      const skill = await factories.skill({ name: `dreaming-${suffix}` }).save()
+      await skill.users().attach({ user_id: person.id })
+      const publicGroup = await factories.group({
+        name: `Public Group ${suffix}`,
+        visibility: Group.Visibility.PUBLIC
+      }).save()
+      const privateGroup = await factories.group({
+        name: `Private Group ${suffix}`,
+        visibility: Group.Visibility.PROTECTED
+      }).save()
+      await publicGroup.addMembers([person.id])
+      await privateGroup.addMembers([person.id])
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          person(id: "${person.id}") {
+            id
+            name
+            tagline
+            bio
+            contactEmail
+            facebookUrl
+            skills { items { name } }
+            memberships { id group { name } }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.be.ok
+      const profile = executionResult.data.person
+      expect(profile).to.include({
+        id: String(person.id),
+        name: 'Public Profile',
+        tagline: 'hello there',
+        bio: 'Visible bio',
+        contactEmail: null,
+        facebookUrl: 'https://facebook.com/public'
+      })
+      expect(profile.skills.items.map(item => item.name)).to.include(`dreaming-${suffix}`)
+      const groupNames = profile.memberships.map(membership => membership.group.name)
+      expect(groupNames).to.include(`Public Group ${suffix}`)
+      expect(groupNames).to.not.include(`Private Group ${suffix}`)
+    })
+
     it('allows checkInvitation', async () => {
       const { executionResult } = await handler.inject({
         document: `{

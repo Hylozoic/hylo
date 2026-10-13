@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`renders as expected 1`] = `
+<View>
+  <_default
+    hideSortOptions={true}
+    members={
+      [
+        {
+          "id": "member1",
+        },
+        {
+          "id": "member2",
+        },
+      ]
+    }
+    showMember={[Function]}
+  />
+</View>
+`;

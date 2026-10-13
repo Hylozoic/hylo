@@ -34,11 +34,18 @@ const memberPostsQuery =
 ) {
   person (id: $id) {
     id
+    name
+    avatarUrl
     ${postsQueryFragment}
   }
 }`
 
-export function fetchMemberPosts (id, first = 20, offset = 0, query = memberPostsQuery) {
+const PAGE_SIZE = 20
+
+/**
+ * Fetch a page of a member's posts (public filter applies automatically when unauthenticated).
+ */
+export function fetchMemberPosts (id, first = PAGE_SIZE, offset = 0, query = memberPostsQuery) {
   return {
     type: FETCH_MEMBER_POSTS,
     graphql: {
@@ -48,6 +55,8 @@ export function fetchMemberPosts (id, first = 20, offset = 0, query = memberPost
     meta: { extractModel: 'Person' }
   }
 }
+
+export { PAGE_SIZE }
 
 export const getMemberPosts = ormCreateSelector(
   orm,

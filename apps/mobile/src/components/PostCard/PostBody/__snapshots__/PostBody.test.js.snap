@@ -1,0 +1,254 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches the last snapshot 1`] = `
+<View>
+  <View>
+    <Text>
+      Combined breaks and links
+    </Text>
+  </View>
+  <View
+    style={
+      [
+        {},
+        undefined,
+        undefined,
+      ]
+    }
+    testID="html"
+  >
+    <View
+      style={
+        [
+          {},
+          undefined,
+          undefined,
+        ]
+      }
+      testID="body"
+    >
+      <View
+        style={
+          [
+            {
+              "marginBottom": 14,
+              "marginTop": 14,
+            },
+            undefined,
+            undefined,
+          ]
+        }
+        testID="p"
+      >
+        <Text
+          allowFontScaling={true}
+          selectable={false}
+          style={
+            [
+              {
+                "fontSize": 14,
+              },
+              undefined,
+              undefined,
+            ]
+          }
+        >
+          <Text
+            allowFontScaling={true}
+            selectable={false}
+            style={
+              [
+                {
+                  "fontSize": 14,
+                },
+                undefined,
+                undefined,
+              ]
+            }
+          >
+            This post has a 
+          </Text>
+          <Text
+            allowFontScaling={true}
+            selectable={false}
+            style={
+              [
+                {
+                  "fontSize": 14,
+                },
+                undefined,
+                undefined,
+              ]
+            }
+            testID="a"
+          >
+            Flargle
+          </Text>
+          <Text
+            allowFontScaling={true}
+            selectable={false}
+            style={
+              [
+                {
+                  "fontSize": 14,
+                },
+                undefined,
+                undefined,
+              ]
+            }
+          >
+             mention.
+          </Text>
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "marginBottom": 14,
+              "marginTop": 14,
+            },
+            undefined,
+            undefined,
+          ]
+        }
+        testID="p"
+      >
+        <Text
+          allowFontScaling={true}
+          selectable={false}
+          style={
+            [
+              {
+                "fontSize": 14,
+              },
+              undefined,
+              undefined,
+            ]
+          }
+        >
+          Then a break.
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "marginBottom": 14,
+              "marginTop": 14,
+            },
+            undefined,
+            undefined,
+          ]
+        }
+        testID="p"
+      >
+        <Text
+          allowFontScaling={true}
+          selectable={false}
+          style={
+            [
+              {
+                "fontSize": 14,
+              },
+              undefined,
+              undefined,
+            ]
+          }
+        >
+          <Text
+            allowFontScaling={true}
+            selectable={false}
+            style={
+              [
+                {
+                  "fontSize": 14,
+                },
+                undefined,
+                undefined,
+              ]
+            }
+          >
+            Then a para ending with a mention 
+          </Text>
+          <Text
+            allowFontScaling={true}
+            selectable={false}
+            style={
+              [
+                {
+                  "fontSize": 14,
+                },
+                undefined,
+                undefined,
+              ]
+            }
+            testID="a"
+          >
+            Anita Cartwright
+          </Text>
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "marginBottom": 14,
+              "marginTop": 14,
+            },
+            undefined,
+            undefined,
+          ]
+        }
+        testID="p"
+      >
+        <Text
+          allowFontScaling={true}
+          selectable={false}
+          style={
+            [
+              {
+                "fontSize": 14,
+              },
+              undefined,
+              undefined,
+            ]
+          }
+          testID="a"
+        >
+          Alexane Rowe
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "marginBottom": 14,
+              "marginTop": 14,
+            },
+            undefined,
+            undefined,
+          ]
+        }
+        testID="p"
+      >
+        <Text
+          allowFontScaling={true}
+          selectable={false}
+          style={
+            [
+              {
+                "fontSize": 14,
+              },
+              undefined,
+              undefined,
+            ]
+          }
+        >
+          More characters to trigger …
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;

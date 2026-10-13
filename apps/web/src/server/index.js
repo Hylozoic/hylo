@@ -7,6 +7,7 @@ import apiProxy from './apiProxy.js'
 import appMiddleware from './appMiddleware.js'
 import redirectToApp from './redirectToApp.js'
 import { handleStaticPages } from './proxy.js'
+import { setStaticCacheHeaders } from './staticCache.js'
 
 const port = process.env.PORT || 9001
 
@@ -31,7 +32,9 @@ function startServer () {
   server.use(apiProxy)
   server.use(redirectToApp)
   handleStaticPages(server)
-  server.use(express.static(path.join(__dirname, '../../dist')))
+  server.use(express.static(path.join(__dirname, '../../dist'), {
+    setHeaders: setStaticCacheHeaders
+  }))
   server.use(appMiddleware)
 
   const listener = server.listen(port, err => {

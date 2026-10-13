@@ -1,0 +1,40 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`alerts with a forced version update 1`] = `
+[
+  [
+    "Force title",
+    "Force message",
+    [
+      {
+        "onPress": [Function],
+        "text": "Update Now",
+      },
+    ],
+    {
+      "cancelable": false,
+    },
+  ],
+]
+`;
+
+exports[`alerts with a suggested version update 1`] = `
+[
+  [
+    "Suggest title",
+    "Suggest message",
+    [
+      {
+        "onPress": [Function],
+        "text": "Update Now",
+      },
+      {
+        "text": "Cancel",
+      },
+    ],
+    {
+      "cancelable": false,
+    },
+  ],
+]
+`;

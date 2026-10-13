@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`JoinProjectButton renders as expected 1`] = `
+<Button
+  onPress={[Function]}
+  text="Join Project"
+/>
+`;
+
+exports[`JoinProjectButton renders as expected when leaving 1`] = `
+<Button
+  onPress={[Function]}
+  text="Leave Project"
+/>
+`;

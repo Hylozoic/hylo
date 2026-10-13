@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`getStore works 1`] = `
+{
+  "@@observable": [Function],
+  "dispatch": [Function],
+  "getState": [Function],
+  "replaceReducer": [Function],
+  "subscribe": [Function],
+}
+`;

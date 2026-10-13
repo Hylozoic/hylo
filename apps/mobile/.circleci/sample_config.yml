@@ -1,0 +1,52 @@
+version: 2.1
+jobs:
+  test:
+    working_directory: ~/Hylozoic/HyloReactNative
+    parallelism: 1
+    docker:
+      - image: cimg/node:15.9
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
+
+      - restore_cache:
+          key: node-v1-{{ checksum "package.json" }}-{{ arch }}
+
+      - run: yarn install
+
+      - save_cache:
+          key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
+          paths:
+            - ~/.cache/yarn
+
+      - save_cache:
+          key: node-v1-{{ checksum "package.json" }}-{{ arch }}
+          paths:
+            - node_modules
+
+      - run:
+          name: jest tests
+          command: |
+            mkdir -p test-results/jest
+            yarn run test
+          environment:
+            JEST_JUNIT_OUTPUT: test-results/jest/junit.xml
+
+      - persist_to_workspace:
+          root: ~/demo-react-native
+          paths:
+            - node_modules
+
+      - store_test_results:
+          path: test-results
+
+      - store_artifacts:
+          path: test-results
+
+workflows:
+  node-android-ios:
+    jobs:
+      - test

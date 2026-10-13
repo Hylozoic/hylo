@@ -1,0 +1,201 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Thread matches the last snapshot 1`] = `
+<View
+  onLayout={[Function]}
+>
+  <RCTScrollView
+    data={
+      Array [
+        Object {
+          "createdAt": "Mon Aug 14 2017 18:58:37 GMT+1200 (NZST)",
+          "creator": Object {
+            "avatarUrl": "http://yup.com",
+            "id": "86894",
+            "name": "Yup",
+          },
+          "id": "56025",
+          "text": "Flargle argle",
+        },
+        Object {
+          "createdAt": "Mon Aug 14 2017 17:27:42 GMT+1200 (NZST)",
+          "creator": Object {
+            "avatarUrl": "http://nope.com",
+            "id": "86895",
+            "name": "Nope",
+          },
+          "id": "56024",
+          "text": "Argle bargle",
+        },
+        Object {
+          "createdAt": "Mon Aug 14 2017 15:24:36 GMT+1200 (NZST)",
+          "creator": Object {
+            "avatarUrl": "http://maybe.com",
+            "id": "86896",
+            "name": "Maybe",
+          },
+          "id": "56023",
+          "text": "Bargle wargle",
+        },
+      ]
+    }
+    getItem={[Function]}
+    getItemCount={[Function]}
+    invertStickyHeaders={true}
+    inverted={true}
+    keyExtractor={[Function]}
+    onContentSizeChange={[Function]}
+    onEndReached={[Function]}
+    onEndReachedThreshold={0.3}
+    onLayout={[Function]}
+    onMomentumScrollBegin={[Function]}
+    onMomentumScrollEnd={[Function]}
+    onScroll={[Function]}
+    onScrollBeginDrag={[Function]}
+    onScrollEndDrag={[Function]}
+    refreshing={false}
+    removeClippedSubviews={false}
+    renderItem={[Function]}
+    scrollEventThrottle={50}
+    stickyHeaderIndices={Array []}
+    style={
+      Array [
+        Object {
+          "transform": Array [
+            Object {
+              "scaleY": -1,
+            },
+          ],
+        },
+        undefined,
+      ]
+    }
+    viewabilityConfigCallbackPairs={Array []}
+  >
+    <View>
+      <View
+        onLayout={[Function]}
+      >
+        <View>
+          <View>
+            <Image
+              source={
+                Object {
+                  "uri": "http://yup.com",
+                }
+              }
+            />
+          </View>
+          <View>
+            <Text>
+              Yup
+            </Text>
+            &lt;p&gt;Flargle argle&lt;/p&gt;
+
+            <Text>
+              Mon Aug 14 2017 18:58:37 GMT+1200 (NZST)
+            </Text>
+          </View>
+        </View>
+      </View>
+      <View
+        onLayout={[Function]}
+      >
+        <View>
+          <View>
+            <Image
+              source={
+                Object {
+                  "uri": "http://nope.com",
+                }
+              }
+            />
+          </View>
+          <View>
+            <Text>
+              Nope
+            </Text>
+            &lt;p&gt;Argle bargle&lt;/p&gt;
+
+            <Text>
+              Mon Aug 14 2017 17:27:42 GMT+1200 (NZST)
+            </Text>
+          </View>
+        </View>
+      </View>
+      <View
+        onLayout={[Function]}
+      >
+        <View>
+          <View>
+            <Image
+              source={
+                Object {
+                  "uri": "http://maybe.com",
+                }
+              }
+            />
+          </View>
+          <View>
+            <Text>
+              Maybe
+            </Text>
+            &lt;p&gt;Bargle wargle&lt;/p&gt;
+
+            <Text>
+              Mon Aug 14 2017 15:24:36 GMT+1200 (NZST)
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  </RCTScrollView>
+  <View>
+    <TextInput
+      blurOnSubmit={false}
+      message=""
+      multiline={true}
+      onChangeText={[Function]}
+      onContentSizeChange={[Function]}
+      onSubmit={[Function]}
+      placeholder="Write something..."
+      placeholderTextColor="#c0c6cd"
+      setMessage={[Function]}
+      style={
+        Object {
+          "flex": 2,
+          "fontFamily": "Circular-Book",
+          "fontSize": 14,
+          "height": 22,
+          "lineHeight": 18,
+          "marginLeft": 5,
+          "paddingVertical": 0,
+        }
+      }
+      underlineColorAndroid="transparent"
+      value=""
+    />
+    <View
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+    >
+      <Icon
+        name="Send"
+      />
+    </View>
+  </View>
+  <View>
+    <Text>
+      
+    </Text>
+  </View>
+</View>
+`;

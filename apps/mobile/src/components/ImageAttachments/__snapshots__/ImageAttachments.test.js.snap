@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`renders multiple images 1`] = `null`;
+
+exports[`renders multiple images that can be tapped to open in browser 1`] = `null`;
+
+exports[`returns ImageBackground 1`] = `null`;

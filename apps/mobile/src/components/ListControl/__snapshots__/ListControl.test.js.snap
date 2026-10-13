@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ListControl renders correctly 1`] = `
+<TouchableOpacity
+  onPress={[Function]}
+>
+  <Text>
+    All
+  </Text>
+  <Icon
+    name="ArrowDown"
+  />
+</TouchableOpacity>
+`;

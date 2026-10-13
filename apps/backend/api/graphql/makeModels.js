@@ -120,6 +120,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
   // XXX: for now give super API users more access, in the future track which groups each client can access
   const apiFilter = makeFilterToggle(!apiClient || !apiClient.super)
 
+  // cache: false on the loaders below. makeSchema reuses this executable schema
+  // across requests, so a cached row would stay stale until the process restarts.
   // One query per All Activity page for every notice's recentPostIds
   const noticeChatPostsLoader = new DataLoader(async (ids) => {
     const posts = await Post.query(q => {
@@ -129,7 +131,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
     }).fetchAll()
     const byId = new Map(posts.models.map(post => [String(post.id), post]))
     return ids.map(id => byId.get(String(id)) || null)
-  }, { cacheKeyFn: id => String(id) })
+  }, { cache: false, cacheKeyFn: id => String(id) })
 
   // cache: false — makeSchema reuses this executable schema (and these loaders)
   // across requests. A cached new_post_count after markViewAsRead made the
@@ -157,20 +159,39 @@ export default function makeModels (userId, isAdmin, apiClient) {
       byView.get(key).push(row.post_id)
     }
     return viewIds.map(id => byView.get(String(id)) || [])
-  }, { cacheKeyFn: id => String(id) })
+  }, { cache: false, cacheKeyFn: id => String(id) })
 
   const blockGroupMemberEnumerationForAnonymous = !userId && !apiClient
 
   /**
    * Anonymous visitors only reach people through public content (post and comment creators, etc.).
    * They can see who wrote it (id, name, avatar, banner, tagline) but nothing else from the profile.
+   * Opted-in public profiles are the exception: bio, links, skills, and public group memberships stay visible.
+   * Contact and location stay hidden either way.
    */
   const fieldsReturning = (value, fields) => Object.fromEntries(fields.map(f => [f, () => value]))
+  const publicProfileAttribute = column => person =>
+    person.get('is_profile_public') ? person.get(column) : null
   const anonymousPersonGetters = {
-    ...fieldsReturning(null, ['bio', 'contactEmail', 'contactPhone', 'facebookUrl', 'lastActiveAt', 'linkedinUrl', 'location', 'locationObject', 'messageThreadId', 'twitterName', 'url']),
-    ...fieldsReturning([], ['memberships', 'moderatedGroupMemberships']),
+    ...fieldsReturning(null, ['contactEmail', 'contactPhone', 'lastActiveAt', 'location', 'locationObject', 'messageThreadId']),
+    bio: publicProfileAttribute('bio'),
+    facebookUrl: publicProfileAttribute('facebook_url'),
+    linkedinUrl: publicProfileAttribute('linkedin_url'),
+    twitterName: publicProfileAttribute('twitter_name'),
+    url: publicProfileAttribute('url'),
+    ...fieldsReturning([], ['moderatedGroupMemberships']),
     ...fieldsReturning(0, ['membershipsTotal', 'moderatedGroupMembershipsTotal']),
-    ...Object.fromEntries(['affiliations', 'comments', 'eventsAttending', 'groupJoinQuestionAnswers', 'groupRoles', 'posts', 'projects', 'reactions', 'skills', 'skillsToLearn'].map(f => [f, emptyQuerySet]))
+    ...Object.fromEntries(['affiliations', 'comments', 'eventsAttending', 'groupJoinQuestionAnswers', 'groupRoles', 'posts', 'projects', 'reactions'].map(f => [f, emptyQuerySet]))
+  }
+
+  /**
+   * Keep a person relation empty for anonymous viewers unless that person opted into a public profile.
+   */
+  function allowPublicProfileRelation (relation) {
+    if (!blockGroupMemberEnumerationForAnonymous) return relation
+    const attrs = relation.relatedData && relation.relatedData.parentAttributes
+    if (attrs && attrs.is_profile_public) return relation
+    return relation.query(q => q.whereRaw('false'))
   }
 
   /** Returns a relation query that matches no rows (used for public GraphQL without session). */
@@ -293,6 +314,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'email_validated',
         'hasRegistered',
         'intercomHash',
+        'is_profile_public',
         'linkedin_url',
         'location',
         'facebook_url',
@@ -478,22 +500,29 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'avatar_url',
         'banner_url',
         'bio',
-        'contact_email',
-        'contact_phone',
+        'is_profile_public',
         'twitter_name',
         'linkedin_url',
         'facebook_url',
         'url',
         'last_active_at',
-        'location',
         'tagline'
       ],
       getters: {
         // When loading via Track.users: enrollment = membership created_at; completion in settings
         completedAt: p => p.pivot && (p.pivot.get('settings') || {}).completedAt,
+        // Never expose contact/location to anonymous viewers of public profiles
+        contactEmail: p => userId ? p.get('contact_email') : null,
+        contactPhone: p => userId ? p.get('contact_phone') : null,
         enrolledAt: p => p.pivot && p.pivot.get('created_at'),
+        location: p => userId ? p.get('location') : null,
+        locationObject: async p => {
+          if (!userId) return null
+          await p.load('locationObject')
+          return p.relations.locationObject
+        },
         membershipCommonRoles: emptyQuerySet,
-        messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null),
+        messageThreadId: p => userId ? p.getMessageThreadWith(userId).then(post => post ? post.id : null) : null,
         // Never expose null names to clients — they call .split() etc.
         name: p => p.get('name') || '',
         ...(blockGroupMemberEnumerationForAnonymous && anonymousPersonGetters)
@@ -501,7 +530,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         {
           memberships: {
-            filter: relation => relation.query(q => Group.excludeSpaces(q))
+            filter: relation => {
+              // Public profiles only: anonymous viewers see public, non-space groups (membershipFilter).
+              allowPublicProfileRelation(relation)
+              return relation.query(q => Group.excludeSpaces(q))
+            }
           }
         },
         {
@@ -521,7 +554,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         'moderatedGroupMemberships', // TODO: still need this?
-        'locationObject',
+        // locationObject only via getter above (redacted for anonymous)
         { groupRoles: { querySet: true, filter: filterGroupRolesByGroup } },
         { affiliations: { querySet: true } },
         { eventsAttending: { querySet: true } },
@@ -596,8 +629,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             })
           }
         },
-        { skills: { querySet: true } },
-        { skillsToLearn: { querySet: true } },
+        { skills: { querySet: true, filter: relation => allowPublicProfileRelation(relation) } },
+        { skillsToLearn: { querySet: true, filter: relation => allowPublicProfileRelation(relation) } },
         {
           reactions: {
             querySet: true,
@@ -750,10 +783,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
             }
           }
         },
-        { user: { alias: 'creator' } },
+        'groups',
+        // If a post is already visible (postFilter), its author identity should be too —
+        // otherwise public posts render without avatars/names for anonymous viewers.
+        { user: { alias: 'creator', skipModelFilter: true } },
         'followers',
         'locationObject',
-        { members: { querySet: true } },
+        { members: { querySet: true, skipModelFilter: true } },
         { eventInvitations: { querySet: true } },
         // Plain list, matching the schema's [ModerationAction] — a querySet
         // here makes every query selecting the field fail with
@@ -1622,7 +1658,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'post',
         'user'
       ],
-      filter: nonAdminFilter(reactionFilter('reactions', userId))
+      filter: nonAdminFilter(reactionFilter(userId))
     },
 
     GroupTopic: {

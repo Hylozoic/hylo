@@ -30,7 +30,17 @@ export default defineConfig(({ command }) => ({
     minify: true,
     // Gzipping every chunk to print sizes is expensive on large bundles and
     // contributed to Heroku build OOMs (~2.5GB heap limit).
-    reportCompressedSize: false
+    reportCompressedSize: false,
+    rollupOptions: {
+      output: {
+        // Hash is its own dot segment (`name.<hash>.js`) so the static server
+        // can cache those files forever without also caching unhashed files
+        // that live under public/assets (fonts, logos).
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash][extname]'
+      }
+    }
   },
   plugins: [
     patchCssModules(),

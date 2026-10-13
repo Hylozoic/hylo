@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`FormError renders correctly 1`] = `
+<View>
+  <View>
+    <Text>
+      email error
+    </Text>
+  </View>
+  <View />
+</View>
+`;
+
+exports[`SignupLink renders correctly 1`] = `
+<View>
+  <Text>
+    Dont have an account?
+     
+  </Text>
+  <TouchableOpacity
+    onPress={[MockFunction]}
+  >
+    <Text>
+      Sign up now
+    </Text>
+  </TouchableOpacity>
+</View>
+`;

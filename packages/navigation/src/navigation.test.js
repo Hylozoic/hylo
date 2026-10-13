@@ -12,6 +12,9 @@ import {
   createGroupModalUrl,
   createPostModalUrl,
   primaryPostUrl,
+  homeRouteHostsPostOverlay,
+  pathnameOpensPost,
+  nestedPostRedirectPath,
   messagePersonUrl,
   isPublicPath,
   isMapView,
@@ -206,6 +209,76 @@ describe('createModalUrl', () => {
   it('accepts an explicit type', () => {
     expect(createModalUrl({ pathname: '/all/all', search: '' }, 'post', { newPostType: 'request' }))
       .toEqual('/all/all?newPostType=request&create=post')
+  })
+})
+
+describe('homeRouteHostsPostOverlay', () => {
+  it('hosts a post on stream, chat, map, and custom homes', () => {
+    expect(homeRouteHostsPostOverlay('/all')).toBe(true)
+    expect(homeRouteHostsPostOverlay('/chat/general')).toBe(true)
+    expect(homeRouteHostsPostOverlay('/map')).toBe(true)
+    expect(homeRouteHostsPostOverlay('/custom/12')).toBe(true)
+    expect(homeRouteHostsPostOverlay('/members/42')).toBe(true)
+  })
+
+  it('does not host a post on page, welcome, or the members list', () => {
+    expect(homeRouteHostsPostOverlay('/page/69228')).toBe(false)
+    expect(homeRouteHostsPostOverlay('/welcome')).toBe(false)
+    expect(homeRouteHostsPostOverlay('/members')).toBe(false)
+    expect(homeRouteHostsPostOverlay('/about')).toBe(false)
+  })
+})
+
+describe('primaryPostUrl home view', () => {
+  it('opens a post over a stream home', () => {
+    expect(primaryPostUrl({ id: '119926' }, { groupSlug: 'assembly', homeRoute: '/all' }))
+      .toEqual('/groups/assembly/all/post/119926')
+  })
+
+  it('opens a post over a chat home', () => {
+    expect(primaryPostUrl({ id: '119926' }, { groupSlug: 'assembly', homeRoute: '/chat/general' }))
+      .toEqual('/groups/assembly/chat/post/119926')
+  })
+
+  it('opens a post by itself when the home is a page', () => {
+    expect(primaryPostUrl({ id: '119926' }, { groupSlug: 'assembly', homeRoute: '/page/69228' }))
+      .toEqual('/groups/assembly/post/119926')
+  })
+
+  it('opens a post by itself when the home is welcome', () => {
+    expect(primaryPostUrl({ id: '9' }, {
+      groupSlug: 'assembly',
+      spaceSlug: 'circle',
+      homeRoute: '/welcome'
+    })).toEqual('/groups/assembly/spaces/circle/post/9')
+  })
+})
+
+describe('pathnameOpensPost', () => {
+  it('matches a post path and a chat postId query', () => {
+    expect(pathnameOpensPost('/groups/assembly/post/119926')).toBe(true)
+    expect(pathnameOpensPost('/groups/assembly/all/post/119926')).toBe(true)
+    expect(pathnameOpensPost('/groups/assembly/chat', '?postId=119926')).toBe(true)
+    expect(pathnameOpensPost('/groups/assembly/all')).toBe(false)
+    expect(pathnameOpensPost('/groups/assembly/welcome')).toBe(false)
+  })
+})
+
+describe('nestedPostRedirectPath', () => {
+  it('rewrites a page or welcome post link to the standalone post', () => {
+    expect(nestedPostRedirectPath('/groups/assembly/page/69228/post/119926'))
+      .toEqual('/groups/assembly/post/119926')
+    expect(nestedPostRedirectPath('/groups/assembly/welcome/post/119926'))
+      .toEqual('/groups/assembly/post/119926')
+    expect(nestedPostRedirectPath('/groups/assembly/spaces/circle/page/7/post/9/comments/3'))
+      .toEqual('/groups/assembly/spaces/circle/post/9/comments/3')
+  })
+
+  it('leaves stream, chat, and standalone post links alone', () => {
+    expect(nestedPostRedirectPath('/groups/assembly/all/post/119926')).toBeNull()
+    expect(nestedPostRedirectPath('/groups/assembly/chat/general/post/119926')).toBeNull()
+    expect(nestedPostRedirectPath('/groups/assembly/post/119926')).toBeNull()
+    expect(nestedPostRedirectPath('/groups/assembly/custom/12/post/119926')).toBeNull()
   })
 })
 
