@@ -174,7 +174,7 @@ export default function PostCard (props) {
 
   const myEmojis = useMemo(() =>
     post.postReactions
-      ? post.postReactions.filter(r => r.user.id === currentUser?.id).map(r => r.emojiFull)
+      ? post.postReactions.filter(r => r.user?.id === currentUser?.id).map(r => r.emojiFull)
       : []
   , [post.postReactions, currentUser?.id])
 
