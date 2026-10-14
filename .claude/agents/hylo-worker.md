@@ -52,14 +52,16 @@ Also never: push to `dev`/`main`, force-push, merge PRs, close issues, edit `.gi
    ```
    For any visual/UI change, take screenshots (`E2E_PATH=/some/path yarn screenshot`, or a small spec in `apps/web/e2e/` that clicks then captures — see `invite-copy.spec.js`), and upload them:
    ```bash
-   gh release upload "untagged-5c3bf358d6724b65a174" <file>.png --repo Hylozoic/hylo --clobber
+   gh release upload pr-screenshots <file>.png --repo Hylozoic/hylo --clobber
+   # embed URL — it's a draft release, so its download path isn't stable and lookup-by-tag 404s; list instead:
+   gh api repos/Hylozoic/hylo/releases --jq '.[] | select(.tag_name == "pr-screenshots") | .assets[] | select(.name == "<file>.png") | .browser_download_url'
    ```
    Name screenshots `issue-$ISSUE-<what>.png` so uploads never clobber another worker's.
 
 6. **Commit, push, open the PR**
    - Commit messages: short imperative summary line, body explaining why. End with the attribution line the session's git instructions specify.
    - `git push -u origin $ISSUE-$SLUG`
-   - `gh pr create --repo Hylozoic/hylo --base $BASE --draft` with a body containing: summary, `Closes #$ISSUE`, screenshots (embed `https://github.com/Hylozoic/hylo/releases/download/untagged-5c3bf358d6724b65a174/<file>.png`), and a test plan listing what you actually ran and saw. End the body with the PR attribution line from the session's git instructions.
+   - `gh pr create --repo Hylozoic/hylo --base $BASE --draft` with a body containing: summary, `Closes #$ISSUE`, screenshots (embed the URLs you looked up in step 5), and a test plan listing what you actually ran and saw. End the body with the PR attribution line from the session's git instructions.
 
 7. **Wait for CI** — `gh pr checks <PR> --repo Hylozoic/hylo --watch --interval 30` (ignore `CircleCI Pipeline`, which always fails, and you may stop waiting on the long Playwright `e2e` job after the other checks pass — report its state as `pending`). If a check fails because of your change, fix it and push again (up to 3 attempts). If it fails for a reason unrelated to your change, don't paper over it — report it.
 
