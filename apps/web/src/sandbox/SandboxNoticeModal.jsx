@@ -14,7 +14,7 @@ import { claimSandboxDialog, releaseSandboxDialog } from 'sandbox/sandboxDialogL
 
 const DIALOG_NAME = 'notice'
 
-const SESSION_KEY = 'hylo-sandbox-notice-dismissed'
+const SESSION_KEY = 'hylo-sandbox-notice-seen-kinds'
 
 /**
  * Root fields of mutations the visitor triggers on purpose, mapped to the kind
@@ -30,20 +30,80 @@ const ACTION_KINDS = {
   createMessage: 'message',
   reactOn: 'reaction',
   enrollInTrack: 'track',
-  createInvitation: 'invite'
+  // Invite UI: invitations, join links, event invites, group-to-group invites
+  createInvitation: 'invite',
+  resendInvitation: 'invite',
+  reinviteAll: 'invite',
+  expireInvitation: 'invite',
+  regenerateAccessCode: 'invite',
+  allowGroupInvites: 'invite',
+  invitePeopleToEvent: 'invite',
+  inviteGroupToJoinParent: 'invite',
+  invitePeerRelationship: 'invite',
+  // Group settings and admin tools
+  updateGroupSettings: 'settings',
+  deleteGroup: 'settings',
+  addGroupRole: 'settings',
+  updateGroupRole: 'settings',
+  addRoleToMember: 'settings',
+  removeRoleFromMember: 'settings',
+  addGroupResponsibility: 'settings',
+  updateGroupResponsibility: 'settings',
+  deleteGroupResponsibility: 'settings',
+  addResponsibilityToRole: 'settings',
+  removeResponsibilityFromRole: 'settings',
+  acceptJoinRequest: 'settings',
+  declineJoinRequest: 'settings',
+  removeMember: 'settings',
+  requestToAddGroupToParent: 'settings',
+  acceptGroupRelationshipInvite: 'settings',
+  rejectGroupRelationshipInvite: 'settings',
+  cancelGroupRelationshipInvite: 'settings',
+  deleteGroupRelationship: 'settings',
+  createGroupView: 'settings',
+  updateGroupView: 'settings',
+  deleteGroupView: 'settings',
+  reorderGroupView: 'settings',
+  setGroupViewHidden: 'settings',
+  setHomeView: 'settings',
+  deleteSpace: 'settings',
+  convertGroupToSpace: 'settings',
+  convertSpaceToChildGroup: 'settings',
+  addSuggestedSkillToGroup: 'settings',
+  removeSuggestedSkillFromGroup: 'settings',
+  createStripeConnectedAccount: 'settings',
+  createStripeAccountLink: 'settings',
+  createStripeOffering: 'settings',
+  updateStripeOffering: 'settings',
+  grantContentAccess: 'settings',
+  revokeContentAccess: 'settings'
+}
+
+function readSeenKinds () {
+  try {
+    const seen = JSON.parse(window.sessionStorage?.getItem(SESSION_KEY) || '[]')
+    return new Set(Array.isArray(seen) ? seen : [])
+  } catch (e) {
+    return new Set()
+  }
+}
+
+function markKindSeen (kind) {
+  try {
+    window.sessionStorage?.setItem(SESSION_KEY, JSON.stringify([...readSeenKinds(), kind]))
+  } catch (e) { /* storage unavailable */ }
 }
 
 /**
  * Demo limitation notice.
  *
  * In sandbox mode, a successful mutation fires SANDBOX_MUTATION_EVENT on window
- * (see sandbox/transport.js). The first deliberate action in a session opens
- * this modal with a call to action tailored to what the visitor just did, then
- * steers them to sign up.
+ * (see sandbox/transport.js). A deliberate action opens this modal with a call
+ * to action tailored to what the visitor just did, then steers them to sign up.
  *
- * Uses sessionStorage so it shows at most once per demo session — navigating
- * around and making more changes in the same sandbox won't spam it. Only one
- * sandbox prompt opens at a time (see sandboxDialogLock.js).
+ * Each kind of action (post, invite, settings, …) prompts at most once per demo
+ * session, tracked in sessionStorage, so repeating it won't spam the visitor.
+ * Only one sandbox prompt opens at a time (see sandboxDialogLock.js).
  */
 export default function SandboxNoticeModal () {
   const { t } = useTranslation()
@@ -73,25 +133,22 @@ export default function SandboxNoticeModal () {
     invite: {
       title: t('Invites are switched off in the demo'),
       description: t('Sign up to create your own group and invite your people.')
+    },
+    settings: {
+      title: t('Settings changes stay in the demo'),
+      description: t('Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.')
     }
   }[actionKind]
 
   useEffect(() => {
     if (!isSandboxMode()) return
-    // No-op if the visitor already saw it this session.
-    try {
-      if (window.sessionStorage?.getItem(SESSION_KEY)) return
-    } catch (e) { /* storage unavailable */ }
 
     const show = (event) => {
       const kind = ACTION_KINDS[event.detail?.rootField]
-      if (!kind) return
+      if (!kind || readSeenKinds().has(kind)) return
       // Another sandbox prompt is open — skip this action and wait for the next one.
       if (!claimSandboxDialog(DIALOG_NAME)) return
-      try {
-        window.sessionStorage?.setItem(SESSION_KEY, '1')
-      } catch (e) { /* storage unavailable */ }
-      window.removeEventListener(SANDBOX_MUTATION_EVENT, show)
+      markKindSeen(kind)
       setActionKind(kind)
     }
     window.addEventListener(SANDBOX_MUTATION_EVENT, show)

@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+- Sandbox demo: sign-up prompts after changes and after 100 seconds, generic group names, and the demo user is now an administrator of Community Hub with working group settings
+
 ## [7.1.5] - 2026-10-08
 
 ### Added
