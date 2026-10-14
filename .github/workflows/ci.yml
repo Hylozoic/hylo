@@ -130,6 +130,18 @@ jobs:
       STRIPE_SECRET_KEY: sk_test_fake_key_for_testing_purposes
       STRIPE_API_KEY: sk_test_fake_api_key_for_testing_purposes
       KUE_NAMESPACE: ci-test
+      # Non-secret values mirroring a local .env.test (OpenIDConnect needs PROTOCOL + DOMAIN for its issuer URL)
+      PROTOCOL: http
+      DOMAIN: localhost:3000
+      ASSET_HOST_URL: http://localhost:3000
+      COOKIE_NAME: hylo-ci-test
+      EMAIL_SENDER: ci@hylo.test
+      HYLO_ADMINS: '[1]'
+      LOG_LEVEL: warn
+      MAILGUN_DOMAIN: mg.hylo.test
+      UPLOADER_PATH_PREFIX: ci-uploads
+      ANDROID_APP_STORE_URL: https://play.google.com/store/apps/details?id=com.hylo.reactnative
+      IOS_APP_STORE_URL: https://itunes.apple.com/app/id1002185140
 
     steps:
       - uses: actions/checkout@v5.0.1
