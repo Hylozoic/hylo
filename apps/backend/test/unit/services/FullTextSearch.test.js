@@ -54,3 +54,76 @@ describe('FullTextSearch', () => {
     })
   })
 })
+
+describe('.search (type group)', () => {
+  it('includes group_id in SELECT for buildSearchInGroupsQuery', () => {
+    const opts = { limit: 10, offset: 0, term: 'plant', type: 'person' }
+    const query = FullTextSearch.buildSearchInGroupsQuery({ groupIds: [3] }, opts).toString()
+
+    expect(query).to.contain('"search"."group_id"')
+    expect(query).to.contain('"search"."post_id"')
+    expect(query).to.contain('"search"."user_id"')
+    expect(query).to.contain('"search"."comment_id"')
+    expect(query).to.contain('"search"."rank"')
+  })
+
+  it('produces group_id is not null filter for type group', () => {
+    const opts = { limit: 10, offset: 0, term: 'plant', type: 'group' }
+    const query = FullTextSearch.buildSearchInGroupsQuery({ groupIds: [3] }, opts).toString()
+
+    expect(query).to.contain('group_id is not null')
+    expect(query).not.to.contain('user_id is not null')
+    expect(query).not.to.contain('post_id is not null')
+    expect(query).not.to.contain('comment_id is not null')
+  })
+
+  it('filters by group_id when explicit groupIds are given', () => {
+    const opts = { limit: 10, offset: 0, term: 'plant', type: 'group' }
+    const query = FullTextSearch.buildSearchInGroupsQuery({ groupIds: [3, 5] }, opts).toString()
+
+    expect(query).to.contain('"group_id" in (3, 5)')
+  })
+
+  it('restricts to public + member groups + related PROTECTED groups for authenticated users', () => {
+    const opts = { limit: 10, offset: 0, term: 'plant', type: 'group' }
+    const query = FullTextSearch.buildSearchInGroupsQuery({ userId: 42 }, opts).toString()
+
+    // Must include OR group_id IN (select id from groups WHERE visibility = 2 OR ...)
+    expect(query).to.contain('"group_id" in (select "id" from "groups" where')
+    // Must include public visibility = 2 check
+    expect(query).to.contain('"groups"."visibility" = 2')
+    // Must include member groups subquery
+    expect(query).to.contain('"group_memberships"."user_id" = 42')
+    // Must include PROTECTED + related groups via group_relationships
+    expect(query).to.contain('"groups"."visibility" = 1')
+    // Must reference group_relationships for parent/child/peer lookups
+    expect(query).to.contain('"group_relationships"')
+    expect(query).to.contain('"parent_group_id"')
+    expect(query).to.contain('"child_group_id"')
+    // Must allow non-group rows through
+    expect(query).to.contain('"group_id" is null')
+    // Spaces must be excluded
+    expect(query).to.contain('"groups"."type"')
+  })
+
+  it('includes PROTECTED groups related to member groups in either direction, regardless of relationship type', () => {
+    const opts = { limit: 10, offset: 0, term: 'plant', type: 'group' }
+    const query = FullTextSearch.buildSearchInGroupsQuery({ userId: 42 }, opts).toString()
+
+    // Both directions: member group as parent, and member group as child
+    expect(query).to.contain('select "child_group_id" from "group_relationships"')
+    expect(query).to.contain('select "parent_group_id" from "group_relationships"')
+    expect(query).to.contain(' union ')
+    // Parent/child and peer relationships are treated the same
+    expect(query).not.to.contain('"relationship_type"')
+  })
+
+  it('restricts to public-only groups for anonymous users', () => {
+    const opts = { limit: 10, offset: 0, term: 'plant', type: 'group' }
+    const query = FullTextSearch.buildSearchInGroupsQuery({}, opts).toString()
+    // Default groupAccess with no userId and no groupIds means anonymous
+    // Must contain: group_id IN (select id from groups where visibility = 2)
+    expect(query).to.contain('"visibility" = 2')
+    expect(query).to.contain('"group_id" is null')
+  })
+})
