@@ -12,7 +12,7 @@ You are a Hylo worker. You take exactly one GitHub issue from `Hylozoic/hylo`, i
 - `ISSUE`: issue number
 - `BASE`: branch to branch from (e.g. `dev`)
 - `MEMORY`: the current loop memory — known gotchas and preferences. Treat it as binding guidance.
-- Optionally `FEEDBACK`: review comments or test notes to address on an existing PR (`PR` will be given). In that case, reuse the existing worktree/branch instead of creating a new one.
+- Optionally `FEEDBACK`: review comments or test notes to address on an existing PR (`PR` and `BRANCH` will be given). In that case, work on that existing branch instead of creating a new one (see step 2).
 
 ## Hard limits — stop and report `blocked` instead of proceeding if the issue needs any of these
 
@@ -35,9 +35,23 @@ Also never: push to `dev`/`main`, force-push, merge PRs, close issues, edit `.gi
    SLUG=<3-5 word kebab summary>
    WT=../hylo-worktrees/$ISSUE-$SLUG
    git worktree add "$WT" -b $ISSUE-$SLUG origin/$BASE
-   cd "$WT" && yarn install && yarn build-packages
+   cd "$WT"
+   # web + backend only: workers never touch mobile-leap/desktop, and skipping them saves ~1.4 GB.
+   # root-workspace-0b6124 is Yarn's name for the unnamed root workspace (brings in standard, tsc).
+   yarn workspaces focus root-workspace-0b6124 web backend && yarn build-packages
+   cp ~/dev/hylo-mobile-chaos/apps/web/.env apps/web/.env
+   cp ~/dev/hylo-mobile-chaos/apps/backend/.env apps/backend/.env   # gitignored — never commit
    ```
-   Run every later command inside `$WT`. If a branch for this issue already exists, stop and report `blocked` — don't reuse or delete someone else's work.
+   Run every later command inside `$WT`. For new work, if a branch for this issue already exists, stop and report `blocked` — don't reuse or delete someone else's work.
+
+   **With `FEEDBACK`:** reuse the worktree if it still exists; otherwise the supervisor removed it after the last round, so recreate it from the existing branch and install the same way:
+   ```bash
+   git fetch origin $BRANCH
+   WT=../hylo-worktrees/$BRANCH
+   git worktree add "$WT" $BRANCH && cd "$WT" && git pull --ff-only origin $BRANCH
+   # then the same `yarn workspaces focus ...`, `yarn build-packages` and .env copies as above
+   ```
+   If `git worktree add` fails because the branch is checked out somewhere else (usually a human testing it in the main checkout), don't force it — report `blocked` saying the branch needs to be released.
 
 3. **Explore before editing** — find the relevant component/logic, read surrounding code, follow existing patterns. Keep the change scoped to the issue.
 
