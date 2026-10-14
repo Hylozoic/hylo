@@ -477,6 +477,9 @@ function presentGroup (seed, group) {
         ? [seed.groups.spaces.chat, seed.groups.spaces.track, seed.groups.spaces.funding]
         : []
     },
+    // The staff group is a child group of main (see buildMemberships)
+    childGroups: { items: group.id === seed.groups.main.id ? [seed.groups.staff] : [] },
+    parentGroups: { items: group.id === seed.groups.staff.id ? [seed.groups.main] : [] },
     fundingRound: group.id === seed.groups.spaces.funding.id ? presentFundingRound(seed, seed.fundingRound.id) : group.fundingRound || null,
     track: group.id === seed.groups.spaces.track.id ? presentTrack(seed, seed.track.id) : group.track || null
   }
@@ -879,10 +882,11 @@ function updateComment (seed, variables) {
 }
 
 function updateMe (seed, variables) {
-  const changes = variables.changes || variables
+  const { settings, ...changes } = variables.changes || variables
   Object.assign(seed.me, changes)
-  if (changes.settings) {
-    seed.me.settings = { ...seed.me.settings, ...changes.settings }
+  // Merge rather than replace — changes.settings only holds the keys being changed
+  if (settings) {
+    seed.me.settings = { ...seed.me.settings, ...settings }
   }
   return presentMe(seed)
 }

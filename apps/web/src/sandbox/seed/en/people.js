@@ -57,7 +57,7 @@ export function buildMe () {
       locale: 'en',
       mapBaseLayer: 'streets-v12',
       globalNavStyle: 'sidebar',
-      groupNavStyle: 'sidebar',
+      groupNavStyle: 'group-default',
       rsvpCalendarSub: null,
       signupInProgress: false,
       stackGroups: false,

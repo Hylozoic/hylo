@@ -86,6 +86,18 @@ describe('sandbox GraphQL handlers', () => {
     expect(counts.data.group[`r${MAIN_MODERATOR_ROLE_ID}`].total).toBe(0)
   })
 
+  it('merges user setting changes without dropping other settings', () => {
+    const before = seed.me.settings
+    const result = handleGraphql({
+      query: 'mutation ($changes: MeInput) { updateMe(changes: $changes) { id settings { theme colorScheme } } }',
+      variables: { changes: { settings: { theme: 'forest' } } }
+    }, seed)
+
+    expect(result.data.updateMe.settings.theme).toBe('forest')
+    expect(result.data.updateMe.settings.colorScheme).toBe(before.colorScheme)
+    expect(result.data.updateMe.settings.groupNavStyle).toBe(before.groupNavStyle)
+  })
+
   it('returns group stream posts for GroupPostsQuery', () => {
     const result = handleGraphql({
       query: 'query GroupPostsQuery ($slug: String) { group(slug: $slug) { id posts { items { id } } } }',

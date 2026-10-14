@@ -320,6 +320,15 @@ export function buildMemberships (groups) {
               slug: groups.spaces.funding.slug,
               visibility: 0,
               accessibility: 1
+            },
+            // Worker Co-op Staff is a child group, so "Stacked" group nav has something to stack
+            {
+              id: groups.staff.id,
+              name: groups.staff.name,
+              avatarUrl: groups.staff.avatarUrl,
+              slug: groups.staff.slug,
+              visibility: groups.staff.visibility,
+              accessibility: groups.staff.accessibility
             }
           ]
         }
