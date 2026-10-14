@@ -13,9 +13,16 @@ export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
   if (!post) throw new GraphQLError('Post not found')
 
-  const jsonResponse = typeof completionResponse === 'string'
-    ? completionResponse
-    : JSON.stringify(completionResponse)
+  let response = typeof completionResponse === 'string'
+    ? JSON.parse(completionResponse)
+    : completionResponse
+
+  // Text responses are rich text editor HTML, which the web renders as HTML
+  if (post.get('completion_action') === 'text' && Array.isArray(response)) {
+    response = response.map(r => typeof r === 'string' ? RichText.sanitizeHTML(r) : r)
+  }
+
+  const jsonResponse = JSON.stringify(response)
 
   await post.complete(userId, jsonResponse)
   return Post.find(postId)
