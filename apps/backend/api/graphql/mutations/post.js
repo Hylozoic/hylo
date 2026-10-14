@@ -13,16 +13,18 @@ export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
   if (!post) throw new GraphQLError('Post not found')
 
-  let response = typeof completionResponse === 'string'
-    ? JSON.parse(completionResponse)
-    : completionResponse
-
-  // Text responses are rich text editor HTML, which the web renders as HTML
-  if (post.get('completion_action') === 'text' && Array.isArray(response)) {
-    response = response.map(r => typeof r === 'string' ? RichText.sanitizeHTML(r) : r)
+  let response = completionResponse
+  if (typeof completionResponse === 'string') {
+    try {
+      response = JSON.parse(completionResponse)
+    } catch (e) {
+      // Not JSON (the column is jsonb, so it can't be stored as is): treat it as a single response
+      response = [completionResponse]
+    }
   }
 
-  const jsonResponse = JSON.stringify(response)
+  // Text responses are rich text editor HTML, which clients render as HTML
+  const jsonResponse = JSON.stringify(Post.sanitizeCompletionResponse(post.get('completion_action'), response))
 
   await post.complete(userId, jsonResponse)
   return Post.find(postId)

@@ -453,6 +453,35 @@ describe('completePost', () => {
     expect(response).to.deep.equal(['<p>First line</p><p><strong>Second</strong> line<br/>third</p><img src="x"/>'])
   })
 
+  it('stores a non-JSON string as a single sanitized text response', async () => {
+    const post = await factories.post({ type: 'action', completion_action: 'text' }).save()
+
+    await completePost(user.id, post.id, 'Plain answer <script>alert(1)</script>')
+
+    const response = await post.completionResponseForUser(user.id)
+    expect(response).to.deep.equal(['Plain answer '])
+  })
+
+  it('sanitizes legacy unsanitized text responses when they are read', async () => {
+    const post = await factories.post({ type: 'action', completion_action: 'text' }).save()
+    const otherUser = await factories.user().save()
+    // Inserted directly, as rows saved before responses were sanitized on write
+    await PostUser.forge({
+      post_id: post.id,
+      user_id: otherUser.id,
+      completed_at: new Date(),
+      completion_response: JSON.stringify(['<p>Hi<img src="x" onerror="alert(1)"></p><script>alert(1)</script>'])
+    }).save()
+    const expected = ['<p>Hi<img src="x"/></p>']
+
+    expect(await post.completionResponseForUser(otherUser.id)).to.deep.equal(expected)
+
+    const responses = await post.completionResponses().fetch()
+    const row = responses.find(pu => pu.get('user_id') === otherUser.id)
+    expect(row.get('completion_response')[0]).to.contain('onerror')
+    expect(await row.completionResponseForDisplay()).to.deep.equal(expected)
+  })
+
   it('leaves selected options unchanged', async () => {
     const post = await factories.post({ type: 'action', completion_action: 'selectOne' }).save()
 
