@@ -5,7 +5,7 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  * Batch B — global **`/all`** context (`All Activity`, `MapExplorer`, `AllTopics`, `MemberProfile`).
  * Runs on `chromium` and `mobile-chrome`. Requires E2E seed + `auth.setup.js` session.
  *
- * `E2E_SEEDED_USER_ID`: baseline seed inserts the login user first in an empty `hylo_e2e` DB (id `1`).
+ * `E2E_SEEDED_USER_ID`: baseline seed inserts the login user first in an empty `hylo_e2e_test` DB (id `1`).
  */
 
 test.describe.configure({ timeout: 120000 })
