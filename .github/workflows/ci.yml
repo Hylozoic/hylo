@@ -142,6 +142,11 @@ jobs:
       UPLOADER_PATH_PREFIX: ci-uploads
       ANDROID_APP_STORE_URL: https://play.google.com/store/apps/details?id=com.hylo.reactnative
       IOS_APP_STORE_URL: https://itunes.apple.com/app/id1002185140
+      # Fake AWS config: lets uploader code paths get past their env checks; tests mock the actual S3 calls
+      AWS_ACCESS_KEY_ID: ci-fake-access-key-id
+      AWS_SECRET_ACCESS_KEY: ci-fake-secret-access-key
+      AWS_S3_BUCKET: hylo-ci-test-bucket
+      AWS_S3_CONTENT_URL: https://hylo-ci-test-bucket.s3.amazonaws.com
 
     steps:
       - uses: actions/checkout@v5.0.1
