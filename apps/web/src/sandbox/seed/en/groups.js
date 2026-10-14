@@ -15,7 +15,30 @@ export const TRACK_SPACE_ID = sid('space', 'track')
 export const FUNDING_SPACE_ID = sid('space', 'funding')
 
 export const MAIN_ADMINISTRATOR_ROLE_ID = sid('role', 'administrator')
+export const MAIN_MODERATOR_ROLE_ID = sid('role', 'moderator')
+export const MAIN_HOST_ROLE_ID = sid('role', 'host')
 export const MAIN_MEMBER_ROLE_ID = sid('role', 'member')
+
+/**
+ * Built-in (system) responsibilities, mirroring the backend. The web app gates
+ * admin UI on these titles (see getResponsibilitiesForGroup), not on role names.
+ */
+export const SYSTEM_RESPONSIBILITIES = [
+  { title: 'Administration', description: 'Allows for editing group settings, exporting data, and deleting the group.' },
+  { title: 'Add Members', description: 'The ability to invite and add new members to the group, and to accept or reject join requests.' },
+  { title: 'Remove Members', description: 'The ability to remove members from the group.' },
+  { title: 'Manage Content', description: 'Adjust group topics, custom views, and moderate content.' },
+  { title: 'Manage Tracks', description: 'Create, edit, and publish tracks.' },
+  { title: 'Manage Rounds', description: 'Create, edit, and run funding rounds.' }
+].map(responsibility => ({
+  id: sid('responsibility', responsibility.title.toLowerCase().replace(/\s+/g, '-')),
+  type: 'system',
+  ...responsibility
+}))
+
+function systemResponsibilities (...titles) {
+  return { items: SYSTEM_RESPONSIBILITIES.filter(responsibility => titles.includes(responsibility.title)) }
+}
 
 /**
  * Two top-level groups plus three spaces under the main group.
@@ -192,13 +215,36 @@ export function buildGroups () {
       }
     },
     groupRoles: [
+      // System roles match the backend's built-ins; Me holds Administrator (see seed/en/index.js)
       {
         id: MAIN_ADMINISTRATOR_ROLE_ID,
         name: 'Administrator',
         emoji: '🪄',
+        description: 'Administrators are empowered to do everything related to group administration.',
+        type: 'system',
         active: true,
         groupId: MAIN_GROUP_ID,
-        responsibilities: { items: [] }
+        responsibilities: systemResponsibilities(...SYSTEM_RESPONSIBILITIES.map(responsibility => responsibility.title))
+      },
+      {
+        id: MAIN_MODERATOR_ROLE_ID,
+        name: 'Moderator',
+        emoji: '⚖️',
+        description: 'Moderators are expected to actively engage in discussion, encourage participation, and take corrective action if a member violates group agreements.',
+        type: 'system',
+        active: true,
+        groupId: MAIN_GROUP_ID,
+        responsibilities: systemResponsibilities('Manage Content', 'Remove Members')
+      },
+      {
+        id: MAIN_HOST_ROLE_ID,
+        name: 'Host',
+        emoji: '👋',
+        description: 'Hosts are responsible for cultivating a good atmosphere by welcoming and orienting new members, embodying the group culture and agreements, and helping members connect with relevant content and people.',
+        type: 'system',
+        active: true,
+        groupId: MAIN_GROUP_ID,
+        responsibilities: systemResponsibilities('Add Members')
       },
       {
         id: MAIN_MEMBER_ROLE_ID,

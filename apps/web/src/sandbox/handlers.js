@@ -69,9 +69,10 @@ function handleQuery (operationName, rootField, variables, seed, query) {
 
     case 'FetchGroupMembers':
     case 'FetchGroupMembersForGraph':
-    case 'FetchRecentlyActiveMembers': {
+    case 'FetchRecentlyActiveMembers':
+    case 'fetchMembersForGroupRole': {
       const group = findGroup(seed, variables)
-      const members = membersForGroup(seed, group)
+      const members = filterByGroupRoles(membersForGroup(seed, group), variables.groupRoleIds)
       return {
         data: {
           group: {
@@ -82,9 +83,26 @@ function handleQuery (operationName, rootField, variables, seed, query) {
       }
     }
 
-    case 'FetchRoleMemberCounts': {
+    case 'fetchGroupRoleDetails': {
       const group = findGroup(seed, variables)
-      return { data: { group: presentGroup(seed, group) } }
+      const members = filterByGroupRoles(membersForGroup(seed, group), variables.groupRoleIds)
+      return {
+        data: {
+          group: { ...presentGroup(seed, group), members: paginate(members, variables.first, variables.offset) },
+          responsibilities: presentResponsibilities(seed, variables)
+        }
+      }
+    }
+
+    case 'FetchRoleMemberCounts': {
+      // Aliased per-role counts: `r<roleId>: members (first: 1, groupRoleIds: ["<roleId>"]) { total }`
+      const group = findGroup(seed, variables)
+      const members = membersForGroup(seed, group)
+      const counts = {}
+      for (const [, alias, roleId] of String(query).matchAll(/\b(r\d+)\s*:\s*members\s*\([^)]*groupRoleIds:\s*\["(\d+)"\]/g)) {
+        counts[alias] = { total: filterByGroupRoles(members, [roleId]).length }
+      }
+      return { data: { group: { ...presentGroup(seed, group), ...counts } } }
     }
 
     case 'PeopleAutocompleteQuery':
@@ -218,6 +236,8 @@ function defaultQuery (rootField, variables, seed, query) {
       return { data: { fundingRound: presentFundingRound(seed, variables.id) } }
     case 'track':
       return { data: { track: presentTrack(seed, variables.id) } }
+    case 'responsibilities':
+      return { data: { responsibilities: presentResponsibilities(seed, variables) } }
     // Plain GraphQL lists (not *QuerySet connections) — must be arrays
     case 'siteBanners':
     case 'allSiteBanners':
@@ -322,6 +342,19 @@ function handleMutation (operationName, rootField, variables, seed) {
       return { data: { [rootField]: payload } }
     }
   }
+}
+
+/**
+ * Plain list (not a QuerySet). By groupRoleId: that role's responsibilities,
+ * with responsibilityId as the edit forms expect. By groupId: every
+ * responsibility available to assign in the group.
+ */
+function presentResponsibilities (seed, { groupRoleId }) {
+  if (groupRoleId) {
+    const role = seed.groups.roles.find(r => String(r.id) === String(groupRoleId))
+    return (role?.responsibilities?.items || []).map(r => ({ ...r, responsibilityId: r.id }))
+  }
+  return seed.groups.responsibilities
 }
 
 function presentMe (seed) {
@@ -647,6 +680,13 @@ function postInGroups (post, groupIdSet) {
 
 function stripHtml (html = '') {
   return String(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+/** Keep people holding any of groupRoleIds (no filter when empty). */
+function filterByGroupRoles (people, groupRoleIds) {
+  if (!groupRoleIds?.length) return people
+  const ids = new Set(groupRoleIds.map(String))
+  return people.filter(person => (person.groupRoles?.items || []).some(role => ids.has(String(role.id))))
 }
 
 function membersForGroup (seed, group) {
