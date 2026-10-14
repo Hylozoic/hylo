@@ -121,13 +121,17 @@ function EditProfileTab ({
     setConfirm(false)
     // Persist profile fields only — public toggle saves immediately on change
     const { isProfilePublic, ...profileEdits } = edits
-    Promise.resolve(updateUserSettings(profileEdits)).then(res => {
-      if (res?.error) {
+    Promise.resolve(updateUserSettings(profileEdits))
+      .then(res => {
+        if (res?.error) {
+          toast.error(t('There was a problem saving your changes'))
+        } else {
+          toast.success(t('Your changes have been saved'))
+        }
+      })
+      .catch(() => {
         toast.error(t('There was a problem saving your changes'))
-      } else {
-        toast.success(t('Your changes have been saved'))
-      }
-    })
+      })
   }, [edits, setConfirm, updateUserSettings, t])
 
   const dispatch = useDispatch()
