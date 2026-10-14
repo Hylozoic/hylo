@@ -1,0 +1,164 @@
+# Unit tests + lint on every PR to dev (Playwright E2E lives in playwright.yml).
+# Jobs run in parallel so a lint failure doesn't hide a test failure and vice versa.
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CI: true
+
+jobs:
+  web-lint:
+    name: Web lint
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5.0.1
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+      - uses: actions/setup-node@v5.0.0
+        with:
+          node-version: '24'
+          cache: yarn
+          cache-dependency-path: yarn.lock
+      - name: Install monorepo dependencies
+        run: yarn install --immutable
+      - name: Lint (standard)
+        working-directory: apps/web
+        run: yarn lint
+
+  web-unit:
+    name: Web unit tests
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5.0.1
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+      - uses: actions/setup-node@v5.0.0
+        with:
+          node-version: '24'
+          cache: yarn
+          cache-dependency-path: yarn.lock
+      - name: Install monorepo dependencies
+        run: yarn install --immutable
+      - name: Build workspace packages (web resolves @hylo/* from built packages)
+        run: yarn build-packages
+      - name: Jest
+        working-directory: apps/web
+        run: yarn test --watchAll=false
+
+  shared-unit:
+    name: Shared package tests
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5.0.1
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+      - uses: actions/setup-node@v5.0.0
+        with:
+          node-version: '24'
+          cache: yarn
+          cache-dependency-path: yarn.lock
+      - name: Install monorepo dependencies
+        run: yarn install --immutable
+      - name: Jest
+        run: yarn workspace @hylo/shared test
+
+  backend-unit:
+    name: Backend tests
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+
+    services:
+      # migrations/schema.sql needs PostGIS (same image as playwright.yml)
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          # test/setup refuses to run unless the DB name starts or ends with "test"
+          POSTGRES_DB: hylotest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # .env.test is gitignored; lib/skiff.js loads it with dotenv, which won't override these
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/hylotest
+      PGSSLMODE: disable
+      REDIS_URL: redis://localhost:6379
+      COOKIE_SECRET: github-actions-ci-cookie-secret-32chars-minimum
+      JWT_SECRET: github-actions-ci-jwt-secret-min-length-ok
+      ADMIN_GOOGLE_CLIENT_ID: ci-placeholder-oauth-client-id
+      ADMIN_GOOGLE_CLIENT_SECRET: ci-placeholder-oauth-client-secret
+      GOOGLE_CLIENT_ID: ci-placeholder-oauth-client-id
+      GOOGLE_CLIENT_SECRET: ci-placeholder-oauth-client-secret
+      LINKEDIN_API_KEY: ci-placeholder-linkedin-key
+      LINKEDIN_API_SECRET: ci-placeholder-linkedin-secret
+      STRIPE_SECRET_KEY: sk_test_fake_key_for_testing_purposes
+      STRIPE_API_KEY: sk_test_fake_api_key_for_testing_purposes
+      KUE_NAMESPACE: ci-test
+
+    steps:
+      - uses: actions/checkout@v5.0.1
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+      - uses: actions/setup-node@v5.0.0
+        with:
+          node-version: '24'
+          cache: yarn
+          cache-dependency-path: yarn.lock
+      - name: Install monorepo dependencies
+        run: yarn install --immutable
+      - name: Build workspace packages (backend requires @hylo/shared)
+        run: yarn build-packages
+      # Same approach as playwright.yml: passport's JwtStrategy needs OIDC_KEYS at load time
+      - name: Set OIDC_KEYS (repo secret or ephemeral RSA for this run only)
+        env:
+          OIDC_FROM_SECRET: ${{ secrets.OIDC_KEYS }}
+        run: |
+          if [ -n "$OIDC_FROM_SECRET" ]; then
+            {
+              echo 'OIDC_KEYS<<__OIDC__'
+              printf '%s' "$OIDC_FROM_SECRET"
+              echo
+              echo '__OIDC__'
+            } >> "$GITHUB_ENV"
+          else
+            echo "OIDC_KEYS=$(openssl genrsa -traditional 2048 2>/dev/null | base64 -w0)" >> "$GITHUB_ENV"
+          fi
+      - name: Mocha
+        working-directory: apps/backend
+        run: yarn test
