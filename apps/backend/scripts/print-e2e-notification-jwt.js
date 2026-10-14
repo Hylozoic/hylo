@@ -13,6 +13,11 @@ async function main () {
     console.error('[print-e2e-notification-jwt] DATABASE_URL is required')
     process.exit(1)
   }
+  const dbName = decodeURIComponent(new URL(process.env.DATABASE_URL).pathname.replace(/^\//, ''))
+  if (!/test/i.test(dbName)) {
+    console.error(`[print-e2e-notification-jwt] Refusing to use database "${dbName}": the name must contain "test"`)
+    process.exit(1)
+  }
   if (!process.env.OIDC_KEYS) {
     console.error('[print-e2e-notification-jwt] OIDC_KEYS is required (see apps/backend/.env)')
     process.exit(1)
