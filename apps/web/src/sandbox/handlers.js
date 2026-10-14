@@ -664,12 +664,12 @@ function membersForGroup (seed, group) {
       ...seed.people.filter(p => p.staffGroup)
     ]
   }
-  const namedTerran = seed.people.filter(p => !p.starterGroup && p.avatarUrl)
+  const namedMainMembers = seed.people.filter(p => !p.starterGroup && p.avatarUrl)
   if (group.id === seed.groups.spaces.chat.id) {
-    return [me, ...namedTerran]
+    return [me, ...namedMainMembers]
   }
   if (group.id === seed.groups.spaces.track.id) {
-    return [me, ...namedTerran.slice(6, 16)]
+    return [me, ...namedMainMembers.slice(6, 16)]
   }
   if (group.id === seed.groups.spaces.funding.id) {
     const ids = new Set([

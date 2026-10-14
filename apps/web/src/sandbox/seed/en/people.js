@@ -15,7 +15,7 @@ function memberLocation (token, { fullText, city, lat, lng }) {
 }
 
 /**
- * Sandbox Me — administrator of Terran Collective (fictional demo persona).
+ * Sandbox Me — administrator of Community Hub (fictional demo persona).
  * Fields mirror MeQuery / checkLogin shapes used at bootstrap.
  */
 export function buildMe () {
@@ -38,7 +38,7 @@ export function buildMe () {
       lat: 37.8044,
       lng: -122.2712
     }),
-    bio: 'Community organizer and technologist working toward a more regenerative Bay Area bioregion. Coordinator at Terran Collective.',
+    bio: 'Community organizer and technologist working toward a more regenerative Bay Area bioregion. Coordinator at Community Hub.',
     tagline: 'Bioregional coordinator',
     contactEmail: null,
     contactPhone: null,
@@ -277,7 +277,7 @@ const REAL_PEOPLE = [
 ]
 
 /**
- * Real-ish Terran Collective members (19 people with Untitled UI avatars) plus starters for the simple group.
+ * Real-ish Community Hub members (19 people with Untitled UI avatars) plus starters for the simple group.
  */
 export function buildPeople () {
   const people = REAL_PEOPLE.map((p, i) => ({
@@ -300,7 +300,7 @@ export function buildPeople () {
     })
   }
 
-  // Three members for the East Bay Connect community group
+  // Three members for the Local Sharing Network community group
   people.push({
     id: sid('person', 'starter', '001'),
     name: 'Cleo Santos',

@@ -135,7 +135,7 @@ describe('sandbox GraphQL handlers', () => {
     expect(messageIds.length).toBe(new Set(messageIds).size)
   })
 
-  it('exposes commenters and comments on Terran stream posts', () => {
+  it('exposes commenters and comments on Community Hub stream posts', () => {
     const withComments = seed.posts.mainStream.filter(p => (p.comments?.items || []).length > 0)
     expect(withComments.length).toBeGreaterThan(0)
     expect(withComments[0].commenters.length).toBeGreaterThan(0)
@@ -189,7 +189,7 @@ describe('sandbox GraphQL handlers', () => {
     }, seed)
 
     const trackSpaceId = String(seed.groups.spaces.track.id)
-    const parent = parentResult.data.groups.items.find(g => g.slug === 'terran-collective')
+    const parent = parentResult.data.groups.items.find(g => g.slug === MAIN_GROUP_SLUG)
     const trackSpaceView = parent.groupViews.items.find(view =>
       view.type === 'space' && String(view.linkedGroup?.id) === trackSpaceId
     )

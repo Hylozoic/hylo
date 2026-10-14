@@ -350,7 +350,7 @@ demo content.
 - [x] `noindex` on `/sandbox`
 - [x] Basename fixes: GroupDetail, ContextMenuOld, CreateTopic
 - [x] Basename hardening: PostHeader, SkillsSection, SkillsToLearnSection
-- [x] Real demo seed (Terran / East Bay Connect / Holistica) + map locations
+- [x] Real demo seed (Community Hub / Local Sharing Network / Worker Co-op Staff) + map locations
 - [x] Demo banner + reset + signup CTA + locale selector (i18n in all 6 locales)
 
 ### Phase 1 — schema-driven mock engine
