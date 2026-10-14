@@ -98,7 +98,6 @@ describe('.search (type group)', () => {
     expect(query).to.contain('"groups"."visibility" = 1')
     // Must reference group_relationships for parent/child/peer lookups
     expect(query).to.contain('"group_relationships"')
-    expect(query).to.contain('"relationship_type"')
     expect(query).to.contain('"parent_group_id"')
     expect(query).to.contain('"child_group_id"')
     // Must allow non-group rows through
@@ -107,15 +106,16 @@ describe('.search (type group)', () => {
     expect(query).to.contain('"groups"."type"')
   })
 
-  it('includes PROTECTED peer groups of member groups via group_relationships', () => {
+  it('includes PROTECTED groups related to member groups in either direction, regardless of relationship type', () => {
     const opts = { limit: 10, offset: 0, term: 'plant', type: 'group' }
     const query = FullTextSearch.buildSearchInGroupsQuery({ userId: 42 }, opts).toString()
 
-    // Must query group_relationships for peer, parent, and child connections
-    expect(query).to.contain('from "group_relationships"')
-    // Must check all four relationship directions
-    const relMatches = query.match(/group_relationships/g)
-    expect(relMatches ? relMatches.length >= 4 : false).to.be.true
+    // Both directions: member group as parent, and member group as child
+    expect(query).to.contain('select "child_group_id" from "group_relationships"')
+    expect(query).to.contain('select "parent_group_id" from "group_relationships"')
+    expect(query).to.contain(' union ')
+    // Parent/child and peer relationships are treated the same
+    expect(query).not.to.contain('"relationship_type"')
   })
 
   it('restricts to public-only groups for anonymous users', () => {

@@ -162,33 +162,18 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
           this.where('groups.visibility', 2) // PUBLIC
             .orWhereIn('groups.id', memberGroupsSubquery)
             .orWhere(function () {
+              // Any active relationship (parent/child or peer), in either direction
               this.where('groups.visibility', Group.Visibility.PROTECTED)
-              this.where(function () {
-                this.whereIn('groups.id', function () {
+                .whereIn('groups.id', function () {
                   this.select('child_group_id').from('group_relationships')
                     .where('group_relationships.active', true)
-                    .where('group_relationships.relationship_type', Group.RelationshipType.PARENT_CHILD)
                     .whereIn('parent_group_id', memberGroupsSubquery)
+                    .union(function () {
+                      this.select('parent_group_id').from('group_relationships')
+                        .where('group_relationships.active', true)
+                        .whereIn('child_group_id', memberGroupsSubquery)
+                    })
                 })
-                .orWhereIn('groups.id', function () {
-                  this.select('parent_group_id').from('group_relationships')
-                    .where('group_relationships.active', true)
-                    .where('group_relationships.relationship_type', Group.RelationshipType.PARENT_CHILD)
-                    .whereIn('child_group_id', memberGroupsSubquery)
-                })
-                .orWhereIn('groups.id', function () {
-                  this.select('child_group_id').from('group_relationships')
-                    .where('group_relationships.active', true)
-                    .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
-                    .whereIn('parent_group_id', memberGroupsSubquery)
-                })
-                .orWhereIn('groups.id', function () {
-                  this.select('parent_group_id').from('group_relationships')
-                    .where('group_relationships.active', true)
-                    .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
-                    .whereIn('child_group_id', memberGroupsSubquery)
-                })
-              })
             })
         }).where('groups.active', true)
         .where(function () {
