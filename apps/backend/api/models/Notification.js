@@ -123,7 +123,7 @@ module.exports = bookshelf.Model.extend({
   },
 
   send: async function () {
-    if (await this.shouldBeBlocked()) {
+    if (await this.shouldBeBlocked() || await this.isForGroupsReaderLeft()) {
       this.destroy()
       return
     }
@@ -1297,22 +1297,18 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
+  // A notification about a post or comment can be queued before the reader leaves the group it
+  // was posted in. Don't send it if they've since left all of the post's groups (see
+  // Activity.formerMemberIds); new ones are never created for them.
+  isForGroupsReaderLeft: async function () {
+    const activity = this.relations.activity
+    if (!this.get('user_id') || !activity || !(activity.get('post_id') || activity.get('comment_id'))) return false
+    const formerMemberIds = await Activity.formerMemberIds([this.get('user_id')], Activity.groupIds(activity))
+    return formerMemberIds.size > 0
+  },
+
   shouldBeBlocked: async function () {
     if (!this.get('user_id')) return Promise.resolve(false)
-
-    const activity = this.relations.activity
-    if (activity && (activity.get('post_id') || activity.get('comment_id'))) {
-      const groupIds = Activity.groupIds(activity)
-      if (groupIds.length > 0) {
-        const memberships = await bookshelf.knex('group_memberships')
-          .where({ user_id: this.get('user_id') })
-          .whereIn('group_id', groupIds)
-          .select('active')
-        const hasInactiveMembership = memberships.some(membership => !membership.active)
-        const hasActiveMembership = memberships.some(membership => membership.active)
-        if (hasInactiveMembership && !hasActiveMembership) return true
-      }
-    }
 
     const blockedUserIds = (await BlockedUser.blockedFor(this.get('user_id'))).rows.map(r => r.user_id)
     if (blockedUserIds.length === 0) return Promise.resolve(false)

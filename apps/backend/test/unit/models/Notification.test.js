@@ -781,6 +781,13 @@ describe('former group member notifications', () => {
     return activity
   }
 
+  // Notifications created for a reader through activities matching `where`
+  const notificationsFor = (reader, where) => Notification.query(q => {
+    q.join('activities', 'activities.id', 'notifications.activity_id')
+    q.where('activities.reader_id', reader.id)
+    q.where(where)
+  }).fetchAll().then(notifications => notifications.length)
+
   it('does not create notification media for a former group member', async () => {
     const reader = await factories.user().save()
     const actor = await factories.user().save()
@@ -792,7 +799,62 @@ describe('former group member notifications', () => {
     expect(await Activity.generateNotificationMedia(activity)).to.deep.equal([])
   })
 
-  it('blocks queued group-post notifications after the reader leaves', async () => {
+  it('still creates notification media for someone who was never a member, e.g. following a public post', async () => {
+    const reader = await factories.user().save()
+    const actor = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([actor])
+    const activity = await groupMentionActivity(reader, actor, group)
+
+    expect(await Activity.generateNotificationMedia(activity)).to.include(Notification.MEDIUM.InApp)
+  })
+
+  it('does not notify a former member about a new comment on a post they follow, but does notify an active follower', async () => {
+    const formerMember = await factories.user().save()
+    const activeMember = await factories.user().save()
+    const commenter = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([formerMember, activeMember, commenter])
+    const post = await factories.post({ user_id: commenter.id, type: Post.Type.DISCUSSION }).save()
+    await group.posts().attach(post)
+    await post.addFollowers([formerMember.id, activeMember.id, commenter.id])
+    await group.removeMembers([formerMember])
+
+    // Leaving a group doesn't unfollow its posts, so the former member still gets a comment activity
+    const comment = await factories.comment({ post_id: post.id, user_id: commenter.id, text: 'A new comment' }).save()
+    await comment.createActivities()
+
+    expect(await notificationsFor(formerMember, { 'activities.comment_id': comment.id })).to.equal(0)
+    expect(await notificationsFor(activeMember, { 'activities.comment_id': comment.id })).to.be.above(0)
+  })
+
+  it('does not notify a former member about a mention or an event invite in a new post, but does notify an active member', async () => {
+    const formerMember = await factories.user().save()
+    const activeMember = await factories.user().save()
+    const author = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([formerMember, activeMember, author])
+    await group.removeMembers([formerMember])
+
+    const mention = user => `<span class="mention" data-type="mention" data-id="${user.id}" data-label="person">person</span>`
+    const post = await factories.post({
+      user_id: author.id,
+      type: Post.Type.EVENT,
+      description: `${mention(formerMember)} ${mention(activeMember)}`
+    }).save()
+    await group.posts().attach(post)
+    await EventInvitation.create({ userId: formerMember.id, inviterId: author.id, eventId: post.id })
+    await EventInvitation.create({ userId: activeMember.id, inviterId: author.id, eventId: post.id })
+
+    await post.createActivities()
+
+    expect(await notificationsFor(formerMember, { 'activities.post_id': post.id })).to.equal(0)
+    const activeMemberActivity = await Activity.where({ reader_id: activeMember.id, post_id: post.id }).fetch()
+    expect(activeMemberActivity.get('meta').reasons).to.include.members(['mention', 'eventInvitation'])
+    expect(await notificationsFor(activeMember, { 'activities.post_id': post.id })).to.be.above(0)
+  })
+
+  it('does not send a notification queued before the reader left the group', async () => {
     const reader = await factories.user().save()
     const actor = await factories.user().save()
     const group = await factories.group().save()
@@ -806,7 +868,9 @@ describe('former group member notifications', () => {
     await group.removeMembers([reader])
     await notification.load(['activity', 'activity.post', 'activity.post.groups'])
 
-    expect(await notification.shouldBeBlocked()).to.equal(true)
+    expect(await notification.isForGroupsReaderLeft()).to.equal(true)
+    // Leaving a group is not the same as blocking someone
+    expect(await notification.shouldBeBlocked()).to.equal(false)
   })
 
   it('keeps active members eligible for group-post notifications', async () => {
@@ -822,6 +886,7 @@ describe('former group member notifications', () => {
     }).save()
     await notification.load(['activity', 'activity.post', 'activity.post.groups'])
 
+    expect(await notification.isForGroupsReaderLeft()).to.equal(false)
     expect(await notification.shouldBeBlocked()).to.equal(false)
   })
 })
