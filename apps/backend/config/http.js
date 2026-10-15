@@ -13,6 +13,7 @@
 
 import customMiddleware from './customMiddleware'
 import responseCompression from '../lib/responseCompression'
+import atprotoMiddleware from '../lib/atproto/http'
 import { magenta } from 'chalk'
 
 module.exports.http = {
@@ -40,6 +41,10 @@ module.exports.http = {
     // The Heroku router does not compress; Sails' built-in gzip ran only when NODE_ENV is production.
     compress: responseCompression,
 
+    // Public AT Protocol endpoints (handle resolution, XRPC). Runs before cookies and sessions
+    // because these are called anonymously by other servers; passes everything else through.
+    atproto: atprotoMiddleware,
+
     requestLogger: function (req, res, next) {
       sails.log.info(magenta(`${req.method} ${req.url}`))
       next()
@@ -53,6 +58,7 @@ module.exports.http = {
     ***************************************************************************/
 
     order: [
+      'atproto',
       'cookieParser',
       'session',
       'passportInit',

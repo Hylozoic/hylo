@@ -93,6 +93,16 @@ $W yarn atproto list
 $W yarn atproto tombstone tom@hylo.com --yes   # permanent for that DID
 ```
 
+With the backend running (`yarn backend:dev`), the public endpoints answer
+for any handle you've provisioned. Until Phase 4 puts Hylo inside the sandbox,
+fake the handle's hostname with a Host header:
+
+```sh
+curl -H 'Host: tom.hylo.atmosbox.test' http://localhost:3001/.well-known/atproto-did
+curl 'http://localhost:3001/xrpc/com.atproto.identity.resolveHandle?handle=tom.hylo.atmosbox.test'
+curl http://localhost:3001/xrpc/com.atproto.server.describeServer
+```
+
 If you destroy and recreate the sandbox, its PLC forgets every DID. Clear the
 local rows with `delete from atproto_identities;` in your dev database.
 

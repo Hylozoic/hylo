@@ -70,11 +70,16 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 - Tests use an in-memory PLC that validates signatures; verified live against the sandbox PLC
   (`tools/atproto-sandbox/with-sandbox.sh`)
 
-### Phase 3: Public endpoints
+### ✅ Phase 3: Public endpoints
 - `GET /.well-known/atproto-did` (Host-based)
 - `GET /xrpc/com.atproto.identity.resolveHandle`
 - `GET /xrpc/com.atproto.server.describeServer`
-- `GET /xrpc/_health`
+- `GET /xrpc/_health`; any other `/xrpc/*` returns `501 MethodNotImplemented`
+- Served by `lib/atproto/http.js`, mounted **before** cookies and sessions in `config/http.js`.
+  Anonymous lookups from other servers never create Redis sessions or set cookies.
+  CORS is open (`*`) because the endpoints are public and read-only.
+- Verified live: the official `@atproto/identity` resolver passes the two-way handle check
+  against the running backend (with DNS/TLS simulated; the real thing comes in Phase 4)
 
 ### Phase 4: Hylo inside the sandbox
 - Backend Dockerfile, plus an AiaB app definition for `hylo-backend`, `hylo-postgres`
@@ -100,6 +105,11 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 - Wildcard DNS and TLS for `*.hylo.com` to the backend, and choose the PDS hostname
 - Check `RESERVED_NAMES` against the real `hylo.com` DNS zone
 - Generate and back up the rotation key and encryption secret; set production env
+- Replace `@did-plc/lib`'s HTTP client: it bundles axios 1.3.4, which has known advisories.
+  Keep the library's op-building functions and use a small `fetch`-based client
+- Rate-limit or cache the public endpoints at the edge (e.g. Cloudflare); every lookup is a DB query
+- Serve the PDS's own `did:web` document at `https://<pds host>/.well-known/did.json`
+  (`describeServer` already advertises it; it becomes necessary for service auth)
 - **With explicit approval:** one test DID on `plc.directory`, then verify with
   `goat resolve` and the public handle debuggers
 
