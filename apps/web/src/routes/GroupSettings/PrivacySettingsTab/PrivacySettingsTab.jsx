@@ -20,6 +20,7 @@ import {
 } from 'store/models/Group'
 import SaveButton from '../SaveButton'
 import SettingsSection from '../SettingsSection'
+import CommonsRequestSection from './CommonsRequestSection'
 
 function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSettings }) {
   const { t } = useTranslation()
@@ -152,22 +153,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
       </SettingsSection>
 
       {visibility === GROUP_VISIBILITY.Public && !group.allowInPublic && (
-        <SettingsSection>
-          <h3 className='text-foreground font-bold mb-2'>{t('Add my group into the commons')}</h3>
-          <p className='text-foreground/70 mb-2'>{t('commonsExplainerText1')}</p>
-          <p className='text-foreground/70 mb-4'>{t('commonsExplainerText2')}</p>
-          <p className='text-foreground/70'>
-            {t('Apply here') + ': '}
-            <a
-              href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-accent hover:underline'
-            >
-              {t('Allow-in-Commons form')}
-            </a>
-          </p>
-        </SettingsSection>
+        <CommonsRequestSection group={group} />
       )}
 
       <SettingsSection>

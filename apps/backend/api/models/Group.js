@@ -2,7 +2,7 @@
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
-import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
+import { clone, defaults, difference, escape, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
 import fetch from 'node-fetch'
@@ -932,7 +932,9 @@ module.exports = bookshelf.Model.extend(merge({
     const wasAutoAdd = this.get('type') === 'space' && !!this.getSetting('auto_add_members')
 
     if (attributes.settings) {
-      saneAttrs.settings = merge({}, this.get('settings'), attributes.settings)
+      // The commons request is only changed through requestPublicListing / reviewPublicListingRequest
+      const { public_listing_request: _ignored, ...settingsChanges } = attributes.settings
+      saneAttrs.settings = merge({}, this.get('settings'), settingsChanges)
     }
 
     // If location_id is explicitly set to something empty then set it to null
@@ -1722,6 +1724,63 @@ module.exports = bookshelf.Model.extend(merge({
           }
         })
       })
+  },
+
+  // Tells the Hylo team (NEW_GROUP_EMAIL) that a group wants to be added to the commons
+  notifyAboutPublicListingRequest: async function ({ groupId }) {
+    const recipient = process.env.NEW_GROUP_EMAIL
+    if (!recipient) return false
+    const group = await Group.find(groupId)
+    const request = group && group.getSetting('public_listing_request')
+    if (!request) return false
+    const requester = await User.find(request.requested_by_id)
+    return Email.sendRawEmail({
+      email: recipient,
+      data: {
+        subject: `Commons request: ${group.get('name')}`,
+        body: [
+          `Group: ${escape(group.get('name'))}`,
+          `URL: ${Frontend.Route.group(group)}`,
+          requester && `Requested by: ${escape(requester.get('name'))} (${escape(requester.get('email'))})`,
+          request.message && `Message: ${escape(request.message)}`,
+          '',
+          `Review requests: ${Frontend.Route.managementCommonsRequests()}`
+        ].filter(line => typeof line === 'string').join('<br/>\n')
+      },
+      extraOptions: {
+        sender: {
+          name: 'Hylobot',
+          address: 'dev+bot@hylo.com'
+        }
+      }
+    })
+  },
+
+  // Emails the steward who asked to join the commons whether they were approved or denied
+  sendPublicListingDecision: async function ({ groupId }) {
+    const group = await Group.find(groupId)
+    const request = group && group.getSetting('public_listing_request')
+    if (!request || !['approved', 'denied'].includes(request.status)) return false
+    const requester = await User.find(request.requested_by_id)
+    if (!requester || !requester.get('email')) return false
+    const L = getLocaleStrings(requester.getLocale())
+    const approved = request.status === 'approved'
+    const groupName = escape(group.get('name'))
+    const body = [
+      approved ? L.publicListingApprovedBody(groupName) : L.publicListingDeniedBody(groupName),
+      request.review_message && `<br/>\n${L.publicListingReviewerNote()}<br/>\n${escape(request.review_message)}`,
+      `<br/>\n${Frontend.Route.groupSettings(group)}/privacy`
+    ].filter(Boolean).join('<br/>\n')
+    return Email.sendRawEmail({
+      email: requester.get('email'),
+      data: {
+        subject: approved ? L.publicListingApprovedSubject(group.get('name')) : L.publicListingDeniedSubject(group.get('name')),
+        body
+      },
+      extraOptions: {
+        sender: { name: L.theTeamAtHylo }
+      }
+    })
   },
 
   sendGroupCreatedEmail: function (opts) {
