@@ -553,11 +553,13 @@ describe('graphql request handler', () => {
       await group.addMembers([person.id])
       const publicPost = await factories.post({
         user_id: person.id,
+        type: Post.Type.DISCUSSION,
         is_public: true,
         name: 'Visible post'
       }).save()
       const privatePost = await factories.post({
         user_id: person.id,
+        type: Post.Type.DISCUSSION,
         is_public: false,
         name: 'Hidden post'
       }).save()
