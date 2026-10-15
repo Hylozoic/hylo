@@ -24,6 +24,7 @@ import GlobalNav from './components/GlobalNav'
 import ContextMenuGrid from './components/ContextMenu/ContextMenuGrid'
 import MoreSpacesPage from './components/ContextMenu/MoreSpacesPage'
 import TopNav from './components/TopNav'
+import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
@@ -51,7 +52,7 @@ import { isSpaceGroup } from 'store/selectors/getMyGroups'
 import orm from 'store/models'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
-  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, localSpaceSlug, nestedPostRedirectPath, pathnameOpensPost, postUrl, spaceUrl, storedSpaceSlug
+  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, localSpaceSlug, nestedPostRedirectPath, pathnameOpensPost, postUrl, spaceUrl
 } from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import {
@@ -64,7 +65,6 @@ import CreateGroup from 'routes/CreateGroup'
 import CreateGroupModal from 'routes/CreateGroup/CreateGroupModal'
 import GroupAboutPage from 'routes/GroupAboutPage'
 import GroupDetail from 'routes/GroupDetail'
-import RetainedAccessAbout from 'routes/RetainedAccessAbout/RetainedAccessAbout'
 import PaymentSuccess from 'routes/GroupDetail/PaymentSuccess'
 import PaymentFailure from 'routes/GroupDetail/PaymentFailure'
 import GroupSettings from 'routes/GroupSettings'
@@ -873,11 +873,7 @@ export default function AuthLayoutRouter (props) {
   const groupInviteBypass =
     !!getQuerystringParam('accessCode', location) || !!getQuerystringParam('token', location)
   if (currentGroupSlug && !currentGroup && !currentGroupLoading && !groupInviteBypass) {
-    const retainedGroupSlug = pathMatchParams?.spaceSlug
-      ? storedSpaceSlug(currentGroupSlug, pathMatchParams.spaceSlug)
-      : currentGroupSlug
-    const fallbackUrl = pathMatchParams?.spaceSlug ? `/groups/${currentGroupSlug}/about` : null
-    return <RetainedAccessAbout slug={retainedGroupSlug} fallbackUrl={fallbackUrl} />
+    return <NotFound />
   }
 
   // Old notification links appended /post/:id onto a home view that cannot show

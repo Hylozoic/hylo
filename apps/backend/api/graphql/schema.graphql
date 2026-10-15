@@ -110,8 +110,6 @@ type Query {
     # Invitation token from email invite - allows viewing the about page for restricted/hidden groups
     invitationToken: String
   ): Group
-  # Minimal About-page data for a former member with a valid paid scope
-  retainedAccessAbout(slug: String!): RetainedAccessAbout
 
   # Check whether a Group exists by URL slug
   groupExists(slug: String): GroupExistsOutput
@@ -794,22 +792,6 @@ type FeedItem {
 
 # NOT USED RIGHT NOW
 union FeedItemContent = Post | Interstitial
-
-# Minimal, authenticated About-page data for a former paid member. Does not expose group content relations.
-type RetainedAccessAbout {
-  id: ID
-  name: String
-  slug: String
-  type: String
-  description: String
-  purpose: String
-  avatarUrl: String
-  bannerUrl: String
-  homeRoute: String
-  hasActiveParentMembership: Boolean
-  parentGroupName: String
-  parentGroupSlug: String
-}
 
 # A Hylo Group
 type Group {

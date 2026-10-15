@@ -350,6 +350,31 @@ function invitationMatchesGroupQuery (inviteCheck, slug, id) {
 }
 
 /**
+ * Someone who leaves a paid group or space keeps their purchased access until it expires, and can
+ * rejoin during that time (see the rejoinGroup mutation). The group filter only shows hidden and
+ * protected groups to active members, so this lets the `group` query return the group to such a
+ * former member so its About page can offer to rejoin. It applies only when the user:
+ * - has an inactive membership in this group (they were a member and left)
+ * - still holds a valid, unexpired group scope for it
+ * and the group is active, paywalled and neither draft nor archived.
+ *
+ * Fields on the returned group that expose content (posts, members, memberships, comments...) still
+ * apply their own active-membership checks, so the former member sees no more of it than a
+ * non-member who can see the group would.
+ */
+async function findGroupWithRetainedPaidAccess (userId, { id, slug }) {
+  if (!userId || (!slug && (id == null || id === ''))) return null
+  const group = await Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
+  if (!group || !group.get('paywall')) return null
+  if ([Group.Status.DRAFT, Group.Status.ARCHIVED].includes(group.get('status'))) return null
+
+  const membership = await GroupMembership.forPair(userId, group, { includeInactive: true }).fetch()
+  if (!membership || membership.get('active')) return null
+  if (!await UserScope.canAccess(userId, createGroupScope(group.id))) return null
+  return group
+}
+
+/**
  * Throws unless the user holds the responsibility in every listed group (at least one required).
  */
 async function requireResponsibilityInGroups (userId, groupIds, responsibility) {
@@ -464,37 +489,6 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       return fetchMany('ContentAccess', args)
     },
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
-    retainedAccessAbout: async (root, { slug }, context) => {
-      const userId = context.currentUserId
-      if (!userId) return null
-
-      const group = await Group.findActive(slug)
-      if (!group || !group.get('paywall') || [Group.Status.DRAFT, Group.Status.ARCHIVED].includes(group.get('status'))) return null
-
-      const membership = await GroupMembership.forPair(userId, group, { includeInactive: true }).fetch()
-      if (!membership || membership.get('active')) return null
-      if (!await UserScope.canAccess(userId, createGroupScope(group.id))) return null
-
-      const parentId = group.get('parent_id')
-      const parent = parentId ? await Group.findActive(parentId) : null
-      const hasActiveParentMembership = !parentId || Boolean(parent && await GroupMembership.forPair(userId, parent).fetch())
-
-      return {
-        id: group.id,
-        name: group.get('name'),
-        slug: group.get('slug'),
-        type: group.get('type'),
-        description: group.get('description'),
-        purpose: group.get('purpose'),
-        avatarUrl: group.get('avatar_url'),
-        bannerUrl: group.get('banner_url'),
-        homeRoute: group.get('home_route'),
-        hasActiveParentMembership,
-        parentGroupName: parent?.get('name') || null,
-        parentGroupSlug: parent?.get('slug') || null
-      }
-    },
-
     group: async (root, { id, slug, updateLastViewed, accessCode, invitationToken }, context) => {
       let group
       // If invitation credentials are provided, validate and bypass visibility filter
@@ -508,6 +502,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       // Default: use normal fetch with group filter applied
       if (!group) {
         group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
+      }
+      // A former member who still has paid access can load the group even if it is hidden/protected
+      if (!group) {
+        group = await findGroupWithRetainedPaidAccess(context.currentUserId, { id, slug })
       }
       if (updateLastViewed && group) {
         // Side effect only — a badge-sync failure must not null out the group

@@ -124,45 +124,94 @@ describe('graphql request handler', () => {
     })
   })
 
-  describe('retained-access About query', () => {
-    it('returns only minimal About data for a former member with a valid paid scope', async () => {
-      const paidUser = await factories.user().save()
-      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PROTECTED })
-      await paidGroup.addMembers([paidUser])
-      await paidGroup.removeMembers([paidUser])
-      req.session.userId = paidUser.id
-      req.user = paidUser
-      await bookshelf.knex('user_scopes').insert({
-        user_id: paidUser.id,
-        scope: `group:${paidGroup.id}`,
-        expires_at: null,
+  describe('retained paid access for former members', () => {
+    const grantGroupScope = (userId, groupId, sourceId, expiresAt = null) =>
+      bookshelf.knex('user_scopes').insert({
+        user_id: userId,
+        scope: `group:${groupId}`,
+        expires_at: expiresAt,
         source_kind: 'grant',
-        source_id: 999999998,
+        source_id: sourceId,
         created_at: new Date(),
         updated_at: new Date()
       })
 
+    const fetchGroupAs = async (viewer, slug) => {
+      req.session.userId = viewer.id
+      req.user = viewer
       const { executionResult } = await handler.inject({
         document: `{
-          retainedAccessAbout(slug: "${paidGroup.get('slug')}") {
+          group(slug: "${slug}") {
             id
             name
-            slug
-            type
-            hasActiveParentMembership
+            hasValidScope
+            currentUserMembershipActive
+            posts { total items { id } }
+            viewPosts { total items { id } }
+            members { total items { id } }
+            memberships { items { id } }
           }
         }`,
         serverContext: { req, res }
       })
-
       expect(executionResult.errors).to.not.exist
-      expect(executionResult.data.retainedAccessAbout).to.deep.include({
+      return executionResult.data.group
+    }
+
+    it('returns a hidden paid group to a former member with a valid scope, without its content', async () => {
+      const formerMember = await factories.user().save()
+      const activeMember = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.HIDDEN })
+      const groupPost = await factories.post({ type: Post.Type.DISCUSSION }).save({ user_id: activeMember.id })
+      await paidGroup.posts().attach(groupPost)
+      await paidGroup.addMembers([formerMember, activeMember])
+      await paidGroup.removeMembers([formerMember])
+      await grantGroupScope(formerMember.id, paidGroup.id, 999999998)
+
+      const result = await fetchGroupAs(formerMember, paidGroup.get('slug'))
+      expect(result).to.deep.include({
         id: paidGroup.id,
         name: paidGroup.get('name'),
-        slug: paidGroup.get('slug'),
-        type: paidGroup.get('type'),
-        hasActiveParentMembership: true
+        hasValidScope: true,
+        currentUserMembershipActive: false
       })
+      expect(result.posts).to.deep.equal({ total: 0, items: [] })
+      expect(result.viewPosts).to.deep.equal({ total: 0, items: [] })
+      expect(result.members.items).to.deep.equal([])
+      expect(result.memberships.items).to.deep.equal([])
+
+      // An active member sees the same content, so the empty lists above come from the access checks
+      const asActiveMember = await fetchGroupAs(activeMember, paidGroup.get('slug'))
+      expect(asActiveMember.posts.items.map(p => p.id)).to.include(groupPost.id)
+      expect(asActiveMember.members.items.map(m => m.id)).to.include(activeMember.id)
+    })
+
+    it('does not return a hidden paid group once the former member\'s scope has expired', async () => {
+      const formerMember = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.HIDDEN })
+      await paidGroup.addMembers([formerMember])
+      await paidGroup.removeMembers([formerMember])
+      await grantGroupScope(formerMember.id, paidGroup.id, 999999994, new Date(Date.now() - 86400000))
+
+      expect(await fetchGroupAs(formerMember, paidGroup.get('slug'))).to.equal(null)
+    })
+
+    it('does not return a hidden paid group to someone with a scope who was never a member', async () => {
+      const outsider = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.HIDDEN })
+      await grantGroupScope(outsider.id, paidGroup.id, 999999993)
+
+      expect(await fetchGroupAs(outsider, paidGroup.get('slug'))).to.equal(null)
+    })
+
+    it('does not return a hidden group that is not paywalled to a former member', async () => {
+      const formerMember = await factories.user().save()
+      const freeGroup = await factories.group().save({ paywall: false, visibility: Group.Visibility.HIDDEN })
+      await freeGroup.addMembers([formerMember])
+      await freeGroup.removeMembers([formerMember])
+      await grantGroupScope(formerMember.id, freeGroup.id, 999999992)
+
+      expect(await fetchGroupAs(formerMember, freeGroup.get('slug'))).to.equal(null)
     })
 
     it('exposes scope and prior-membership state through GroupDetails fields', async () => {
@@ -241,23 +290,13 @@ describe('graphql request handler', () => {
       expect(await readGroupAccess()).to.deep.equal({ hasValidScope: false, currentUserMembershipActive: null })
     })
 
-    it('returns null when the inactive member no longer has a valid scope', async () => {
-      const paidUser = await factories.user().save()
-      const paidGroup = await factories.group().save({ paywall: true })
-      await paidGroup.addMembers([paidUser])
-      await paidGroup.removeMembers([paidUser])
-      req.session.userId = paidUser.id
-      req.user = paidUser
+    it('does not return a protected paid group to a former member without a valid scope', async () => {
+      const formerMember = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PROTECTED })
+      await paidGroup.addMembers([formerMember])
+      await paidGroup.removeMembers([formerMember])
 
-      const { executionResult } = await handler.inject({
-        document: `{
-          retainedAccessAbout(slug: "${paidGroup.get('slug')}") { id }
-        }`,
-        serverContext: { req, res }
-      })
-
-      expect(executionResult.errors).to.not.exist
-      expect(executionResult.data.retainedAccessAbout).to.equal(null)
+      expect(await fetchGroupAs(formerMember, paidGroup.get('slug'))).to.equal(null)
     })
 
     it('reactivates the existing membership through the GraphQL mutation', async () => {
