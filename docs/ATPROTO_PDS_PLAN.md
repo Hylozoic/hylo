@@ -56,16 +56,19 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 - Key encryption, rotation key loading, handle derivation and validation, reserved names
 - `ATPROTO_*` config and eligibility rule
 
-### Phase 2: Provisioning service and CLI
+### ✅ Phase 2: Provisioning service and CLI
 - `AtprotoService.provision(user)`:
   1. check eligibility and choose a handle
   2. generate the signing key
   3. build and sign the genesis op, then store the row as `pending`
   4. submit to the PLC and mark `active`
-- Retrying is safe because the stored genesis op is re-sent
-- `AtprotoService.updateHandle`, `AtprotoService.tombstone` (on account deletion)
-- `yarn atproto` CLI: `status`, `provision`, `rename`, `tombstone`, `resolve`
-- Unit tests with a mocked PLC; manual run against the sandbox PLC
+- Retrying is safe: the stored genesis op is re-sent, and if the DID already exists at the PLC, that counts as success
+- `AtprotoService.updateHandle`, `AtprotoService.tombstone` and `AtprotoService.verify`
+- Account deletion (`User#sanelyDeleteUser`) queues a tombstone job; it never blocks deletion
+- Writes to `plc.directory` are refused unless `ATPROTO_PRODUCTION_PLC_APPROVED=true`
+- `yarn atproto` CLI: `keygen`, `list`, `status`, `provision`, `rename`, `tombstone`, `verify`
+- Tests use an in-memory PLC that validates signatures; verified live against the sandbox PLC
+  (`tools/atproto-sandbox/with-sandbox.sh`)
 
 ### Phase 3: Public endpoints
 - `GET /.well-known/atproto-did` (Host-based)

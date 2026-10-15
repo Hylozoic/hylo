@@ -314,6 +314,8 @@ module.exports = bookshelf.Model.extend(merge({
 
     await this.deleteUserMedia()
     Queue.classMethod('User', 'clearSessionsFor', { userId: this.id, sessionId })
+    await AtprotoService.queueTombstoneForDeletedUser(this.id)
+      .catch(err => sails.log.error(`Failed to queue AT Protocol tombstone for user ${this.id}`, err))
     // TODO RESP: will need to add responsibilies, roles, etc to here, where they are missing (some roles are already handled)
     const query = `
     BEGIN;

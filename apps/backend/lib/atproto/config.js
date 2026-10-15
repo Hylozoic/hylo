@@ -25,9 +25,13 @@ export function atprotoConfig () {
     // Hex-encoded secp256k1 private key authorizing PLC operations for every DID we create
     plcRotationKeyHex: env.ATPROTO_PLC_ROTATION_KEY_HEX,
     // 32 bytes (hex or base64) used to encrypt per-user signing keys at rest
-    keyEncryptionSecret: env.ATPROTO_KEY_ENCRYPTION_SECRET
+    keyEncryptionSecret: env.ATPROTO_KEY_ENCRYPTION_SECRET,
+    // Operations on plc.directory are public and permanent, so writing there needs explicit sign-off
+    productionPlcApproved: env.ATPROTO_PRODUCTION_PLC_APPROVED === 'true'
   }
 }
+
+export const isProductionPlc = plcUrl => (plcUrl || '').replace(/\/+$/, '') === PRODUCTION_PLC_URL
 
 /**
  * Throws unless every setting needed to mint identities is present and safe.
@@ -40,9 +44,20 @@ export function assertAtprotoConfigured (config = atprotoConfig()) {
   if (config.allowedEmailDomains.length === 0) missing.push('allowedEmailDomains')
   if (missing.length > 0) throw new Error(`Missing AT Protocol config: ${missing.join(', ')}`)
 
-  if (config.sandbox && config.plcUrl.replace(/\/+$/, '') === PRODUCTION_PLC_URL) {
+  if (config.sandbox && isProductionPlc(config.plcUrl)) {
     throw new Error('ATPROTO_SANDBOX cannot be used with the production PLC directory')
   }
 
+  return config
+}
+
+/**
+ * Throws unless we may send operations (create/update/tombstone) to the configured PLC.
+ */
+export function assertCanWriteToPlc (config = atprotoConfig()) {
+  assertAtprotoConfigured(config)
+  if (isProductionPlc(config.plcUrl) && !config.productionPlcApproved) {
+    throw new Error('Refusing to write to plc.directory without ATPROTO_PRODUCTION_PLC_APPROVED=true')
+  }
   return config
 }

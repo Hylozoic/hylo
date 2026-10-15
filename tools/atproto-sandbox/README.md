@@ -57,6 +57,45 @@ AiaB's [connectivity docs](https://tangled.org/kandake.africa/atmosphereinabox).
 This means editing `/etc/hosts` and trusting `.aiab/state/ca/root.crt` in your
 keychain, which is a manual opt-in.
 
+## Running Hylo's backend against the sandbox
+
+The sandbox network is private, so host processes reach it through AiaB's
+loopback relay plus a dev-only Node preload (`host-env.cjs`). The preload maps
+`*.atmosbox.test` to `127.0.0.1` and trusts the sandbox CA. Nothing is changed
+in `/etc/hosts` or your keychain.
+
+```sh
+tools/atproto-sandbox/sandbox.sh access start     # relay on 127.0.0.1:443 (once per sandbox start)
+```
+
+In `apps/backend/.env` (generate keys with `yarn atproto keygen`):
+
+```sh
+ATPROTO_ENABLED=true
+ATPROTO_SANDBOX=true
+ATPROTO_PLC_URL=https://plc.atmosbox.test
+ATPROTO_PDS_URL=https://pds.hylo.atmosbox.test
+ATPROTO_HANDLE_DOMAIN=hylo.atmosbox.test
+ATPROTO_ALLOWED_EMAIL_DOMAINS=hylo.com,terran.io
+ATPROTO_PLC_ROTATION_KEY_HEX=...
+ATPROTO_KEY_ENCRYPTION_SECRET=...
+```
+
+Then, from `apps/backend`:
+
+```sh
+W=../../tools/atproto-sandbox/with-sandbox.sh
+$W yarn atproto status tom@hylo.com      # eligible? which handle? existing DID?
+$W yarn atproto provision tom@hylo.com   # mint a did:plc on the sandbox PLC
+$W yarn atproto rename tom@hylo.com tom-renamed
+$W yarn atproto verify tom@hylo.com      # compare our DB with the PLC
+$W yarn atproto list
+$W yarn atproto tombstone tom@hylo.com --yes   # permanent for that DID
+```
+
+If you destroy and recreate the sandbox, its PLC forgets every DID. Clear the
+local rows with `delete from atproto_identities;` in your dev database.
+
 ## Spike
 
 `spike/` mints a `did:plc` the way Hylo will (server rotation key, per-user
