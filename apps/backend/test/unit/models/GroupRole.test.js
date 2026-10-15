@@ -79,6 +79,28 @@ describe('GroupRole', () => {
       expect(await allMembersRows(olderGroup.id)).to.have.lengthOf(1)
     })
 
+    it('is held by every active member, and carries Add Members only when everyone can invite', async () => {
+      await GroupRole.setupSystemRoles(group.id)
+      await user.joinGroup(group)
+
+      const rolesInGroup = async () => {
+        const fresh = await User.where({ id: user.id }).fetch({ withRelated: ['groupRoles.responsibilities'] })
+        return fresh.related('groupRoles').filter(role => Number(role.get('group_id')) === Number(group.id))
+      }
+
+      const before = await rolesInGroup()
+      const allMembers = before.find(role => role.get('type') === GroupRole.TYPE_ALL_MEMBERS)
+      expect(allMembers).to.exist
+      expect(before.filter(role => role.get('type') === GroupRole.TYPE_ALL_MEMBERS)).to.have.lengthOf(1)
+      expect(allMembers.related('responsibilities').map(r => r.get('title'))).to.not.include('Add Members')
+
+      await GroupRole.setInvitePolicy(group.id, 'everyone')
+      const inviting = (await rolesInGroup()).find(role => role.get('type') === GroupRole.TYPE_ALL_MEMBERS)
+      expect(inviting.related('responsibilities').map(r => r.get('title'))).to.include('Add Members')
+
+      await GroupRole.setInvitePolicy(group.id, 'stewards')
+    })
+
     it('cannot be given scopes', async () => {
       const allMembers = await GroupRole.findAllMembersRole(group.id)
       await expect(allMembers.setScopes(['group:1'])).to.be.rejectedWith('The All Members role cannot grant scopes')

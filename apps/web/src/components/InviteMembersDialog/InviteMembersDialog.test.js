@@ -49,6 +49,21 @@ describe('InviteMembersDialog', () => {
     expect(screen.getByText('Send Invites via email')).toBeInTheDocument()
   })
 
+  it('shows for a member with no assigned role when everyone can invite', () => {
+    renderDialog({
+      group: topLevelGroup,
+      roles: [{
+        id: '9',
+        groupId: '1',
+        name: 'All Members',
+        emoji: '',
+        responsibilities: { items: [{ id: '2', title: 'Add Members' }] }
+      }]
+    })
+
+    expect(screen.getByRole('button', { name: 'Invite Members' })).toBeInTheDocument()
+  })
+
   it('shows in a space for someone who can add members', () => {
     renderDialog({
       group: { id: '2', name: 'A Space', slug: 'a-space', type: GROUP_TYPES.space, parentId: '1' },

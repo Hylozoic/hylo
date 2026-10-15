@@ -26,6 +26,15 @@ export function isMemberGroupRole (role) {
 }
 
 /**
+ * A role every member holds without being assigned it. It can carry responsibilities
+ * but is not a badge. Payloads that omit type still match the All Members role by name.
+ */
+export function isImplicitMemberRole (role) {
+  if (isMemberGroupRole(role)) return true
+  return role?.name === 'All Members' && !role.emoji
+}
+
+/**
  * Current system role name, mapping legacy Coordinator to Administrator.
  */
 function canonicalSystemRoleName (name) {
