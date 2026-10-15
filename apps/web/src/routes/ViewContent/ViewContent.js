@@ -237,7 +237,7 @@ export default function ViewContent (props) {
   const defaultActivePostsOnly = systemView?.defaultActivePostsOnly || get('settings.activePostsOnly', currentUser) || false
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
-  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly', 'calendarMode', 'calendarDate'], location)
+  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly', 'rsvpFilter', 'calendarMode', 'calendarDate'], location)
 
   const search = querystringParams.search || (streamViewConfig?.type === 'stream' ? streamViewConfig.searchText : undefined)
   const configuredViewMode = querystringParams.v || streamViewConfig?.defaultViewMode || defaultViewMode
@@ -258,6 +258,7 @@ export default function ViewContent (props) {
   ))
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
+  const rsvpFilter = querystringParams.rsvpFilter || undefined
 
   const postTypesAvailable = useMemo(() => {
     if (streamViewConfig?.type === 'stream') return streamViewConfig?.postTypes
@@ -336,7 +337,8 @@ export default function ViewContent (props) {
       sortBy,
       topics,
       // Do not send a types list with all+notices — a stream-only list would hide notices
-      types: includeChatActivity ? undefined : postTypesAvailable
+      types: includeChatActivity ? undefined : postTypesAvailable,
+      rsvpResponse: rsvpFilter
     }
 
     if (isCalendarViewMode) {
@@ -376,7 +378,7 @@ export default function ViewContent (props) {
       }
     }
     return params
-  }, [activePostsOnly, calendarFetchMonthKey, isCalendarViewMode, childPostInclusion, context, streamViewConfig, group?.id, groupSlug, postTypeFilter, search, showChatActivity, sortBy, timeframe, topic?.id, topicName, view])
+  }, [activePostsOnly, calendarFetchMonthKey, isCalendarViewMode, childPostInclusion, context, streamViewConfig, group?.id, groupSlug, postTypeFilter, rsvpFilter, search, showChatActivity, sortBy, timeframe, topic?.id, topicName, view])
 
   let name = presentedGroupView
     ? displayNameForView(presentedGroupView, t)
@@ -595,6 +597,10 @@ export default function ViewContent (props) {
     dispatch(changeQuerystringParam(location, 'timeframe', timeframe, 'future'))
   }, [location])
 
+  const changeRsvpFilter = useCallback(rsvpValue => {
+    dispatch(changeQuerystringParam(location, 'rsvpFilter', rsvpValue, 'all'))
+  }, [location])
+
   const updateCalendarQueryParams = useCallback((updates) => {
     const params = {}
     if (updates.mode !== undefined) {
@@ -767,6 +773,7 @@ export default function ViewContent (props) {
                 changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
                 changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
                 changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
+                rsvpFilter={rsvpFilter} changeRsvpFilter={changeRsvpFilter}
               />
             </div>
           </div>

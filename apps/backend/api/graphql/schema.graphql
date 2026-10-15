@@ -370,7 +370,9 @@ type Query {
     # Return only posts that have any of these topics by topic ID
     topics: [ID],
     # Return only posts that are one of these types: 'discussion', 'event', 'offer', 'project', 'proposal', 'request' and/or 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Query for responsibilities
@@ -394,7 +396,7 @@ type Query {
     offset: Int,
     # Search term
     term: String,
-    # ONly search for content of a specific type: 'post', 'person', or 'comment'
+    # Only search for content of a specific type: 'post', 'person', 'comment', or 'group'
     type: String
   ): SearchResultQuerySet
 
@@ -1177,7 +1179,9 @@ type Group {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # All responsibilities available to the group
@@ -1268,7 +1272,9 @@ type Group {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Content access records for this group (purchased or granted)
@@ -1775,6 +1781,8 @@ type Me {
   intercomHash: String
   # IGNORE
   isAdmin: Boolean
+  # Whether this user's profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # URL of the logged in user's LinkedIn Profile
   linkedinUrl: String
   # String representing the logged in user's physical location
@@ -2158,6 +2166,8 @@ type Person {
   facebookUrl: String
   # False for new users who have not completed the registration process
   hasRegistered: Boolean
+  # Whether this person's profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # When this person last viewed Hylo
   lastActiveAt: String
   # URL of this person's LinkedIn Profile
@@ -2268,7 +2278,9 @@ type Person {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Project posts that this person is a member of
@@ -2631,10 +2643,10 @@ type SavedSearchQuerySet {
   items: [SavedSearch]
 }
 
-# Search result content item which can be a Person, a Post or a Comment
-union SearchResultContent = Person | Post | Comment
+# Search result content item which can be a Person, a Post, a Comment or a Group
+union SearchResultContent = Person | Post | Comment | Group
 
-# Search result item which can be a Person, a Post or a Comment
+# Search result item which can be a Person, a Post, a Comment or a Group
 type SearchResult {
   id: ID
   content: SearchResultContent
@@ -4277,6 +4289,8 @@ input MeInput {
   email: String
   # The URL to your Facebook profile
   facebookUrl: String
+  # Whether your profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # The URL to your LinkedIn profile
   linkedinUrl: String
   # String representing your physical location
@@ -4390,7 +4404,7 @@ input PostInput {
   fundingRoundId: ID
   # IDs of the groups to post to
   groupIds: [ID]
-  # URLs of images in the post. URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
+  # URLs of images in the post. A flat list of URL strings, or a nested list such as Zapier line items (those are flattened). URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
   imageUrls: [String]
   # Whether who votes on this proposal is visible or not
   isAnonymousVote: Boolean
@@ -4404,6 +4418,8 @@ input PostInput {
   linkPreviewFeatured: Boolean
   # When true, do not auto-generate a link preview from URLs in the post (the author removed it in the editor)
   skipLinkPreview: Boolean
+  # Create the post without notifying members: no email, push, in-app notification, unread badge, live update, Slack, or outbound Zapier. Only a steward of every destination group may set this. Cannot be combined with announcement.
+  silent: Boolean
   # Temporary id passed in from the client to identify the post when it is created, for optimistically updating the UI
   localId: String
   # Full location string

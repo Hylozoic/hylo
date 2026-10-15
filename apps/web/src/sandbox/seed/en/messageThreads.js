@@ -55,7 +55,7 @@ function groupThread ({ id, participants, messages, contextGroupId }) {
     unreadCount: 0,
     isMuted: false,
     createdAt_offset: -86400 * 10,
-    updatedAt_offset: messages[messages.length - 1]?.createdAt_offset || -8400,
+    updatedAt_offset: messages[messages.length - 1]?.createdAtOffset || -8400,
     lastReadAt_offset: -8500,
     messages: { items: messages, total: messages.length, hasMore: false }
   }
@@ -71,7 +71,7 @@ function directThread ({ id, participants, messages, unreadCount = 0 }) {
     unreadCount,
     isMuted: false,
     createdAt_offset: -86400 * 5,
-    updatedAt_offset: messages[messages.length - 1]?.createdAt_offset || -11600,
+    updatedAt_offset: messages[messages.length - 1]?.createdAtOffset || -11600,
     lastReadAt_offset: unreadCount ? null : -11700,
     messages: { items: messages, total: messages.length, hasMore: false }
   }

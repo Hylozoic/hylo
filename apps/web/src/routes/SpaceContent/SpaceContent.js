@@ -31,7 +31,7 @@ import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS } from 'store/constants'
-import { localSpaceSlug, spaceHomeRoutePath, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
+import { localSpaceSlug, pathnameOpensPost, spaceHomeRoutePath, spaceUrl, POST_DETAIL_MATCH } from '@hylo/navigation'
 import { isDrawerNavLayout } from 'util/mobile'
 import shouldLandOnWelcome from 'util/shouldLandOnWelcome'
 
@@ -185,7 +185,12 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
     ? <ContextMenuGrid group={parentGroup} spaceGroup={resolvedSpace} />
     : <Navigate to={{ pathname: `${spaceBase}${homeRoute}`, search: location.search }} replace />
 
-  if (shouldLandOnWelcome(resolvedSpace, spaceMembership, { onWelcomePath })) {
+  // Post links skip welcome. lastViewedAt stays unset, so the next entry to
+  // the space still lands on the welcome page.
+  if (
+    shouldLandOnWelcome(resolvedSpace, spaceMembership, { onWelcomePath }) &&
+    !pathnameOpensPost(location.pathname, location.search)
+  ) {
     return <Navigate to={`${spaceBase}/welcome${location.search}`} replace />
   }
 

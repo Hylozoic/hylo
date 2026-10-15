@@ -6,6 +6,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.6] - 2026-10-15
+
+### Added
+- Search will now surface groups that match the search terms alongside posts, comments and people.
+- Filter to calendar view mode to only show events you RSVPed to, or not.
+- Public Profiles: you can turn this on in your profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Changed
+- New post emails in spaces show group name > space name instead of just space name in email subject
+- Fix crash in sentry when backend server is timing out
+
+### Fixed
+- Fix home route for groups when set to a post or member view
+
+## [7.1.5] - 2026-10-08
+
+### Added
+- Allow for a user to make their profile public in their profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Fixed
+- Post notifications display the post correctly when the group's home view is a page view or welcome page. Open a post in a modal over the home view when that view is a stream, chat or map. When home view is a page, welcome, or other static view then open posts in a standalone post URL.
+
+## [7.1.4] - 2026-10-07
+
+### Added
+- Add 'silent' parameter to createPost to enable stewards to create posts without sending notifications. Only used for importing a lot of posts via zapier for now.
+
+### Changed
+- Flatten imageUrls on postinput to support nested array formats coming from zapier
+- Performance improvements:
+- Don't wait on db update of user.last_active_at on every query. Only update database every 5 minutes. Don't await on the query.
+- Improve compression of data sent by the server to the browser. Use brotli instead of gzip when the client accepts it
+- Add some additional database indexes for common reads
+
+### Fixed
+- Ensure that when someone leaves a group, the roles associated with their membership are deleted. So if they rejoin, they dont have those roles already. Also fixes a bug where deactivated stewards were getting join notifications.
+
+
 ## [7.1.2] - 2026-10-01
 
 ### Added

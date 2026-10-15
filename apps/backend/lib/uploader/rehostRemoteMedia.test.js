@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-expressions */
-import { isHyloHostedUrl, partitionImageUrls } from './rehostRemoteMedia'
+import { flattenImageUrlVariables, isHyloHostedUrl, partitionImageUrls } from './rehostRemoteMedia'
 
 describe('isHyloHostedUrl', () => {
   const originalContentUrl = process.env.AWS_S3_CONTENT_URL
@@ -58,5 +58,32 @@ describe('partitionImageUrls', () => {
       hosted: [],
       remote: [wiki, google]
     })
+  })
+
+  it('flattens a nested list of URL lists from Zapier line items', () => {
+    const first = 'https://v5.airtableusercontent.com/v1/foo/photo.jpg'
+    const second = 'https://upload.wikimedia.org/wikipedia/commons/cow.jpg'
+    expect(partitionImageUrls([[first], [second]])).to.deep.equal({
+      hosted: [],
+      remote: [first, second]
+    })
+  })
+
+  it('flattens a JSON-encoded list that arrived as one string', () => {
+    const url = 'https://v5.airtableusercontent.com/v1/foo/photo.jpg'
+    expect(partitionImageUrls([JSON.stringify([[url]])])).to.deep.equal({
+      hosted: [],
+      remote: [url]
+    })
+  })
+})
+
+describe('flattenImageUrlVariables', () => {
+  it('flattens imageUrls nested inside a GraphQL variables object', () => {
+    const url = 'https://v5.airtableusercontent.com/v1/foo/photo.jpg'
+    const variables = { data: { title: 'Hi', imageUrls: [[url]] } }
+    flattenImageUrlVariables(variables)
+    expect(variables.data.imageUrls).to.deep.equal([url])
+    expect(variables.data.title).to.equal('Hi')
   })
 })
