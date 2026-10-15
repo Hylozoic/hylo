@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New post emails in spaces show group name > space name instead of just space name in email subject
 - Fix crash in sentry when backend server is timing out
 
+### Fixed
+- Fix home route for groups when set to a post or member view
+
 ## [7.1.5] - 2026-10-08
 
 ### Added
