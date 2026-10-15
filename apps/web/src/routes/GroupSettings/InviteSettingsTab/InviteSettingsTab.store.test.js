@@ -1,10 +1,14 @@
 import {
   ormSessionReducer,
   CREATE_INVITATIONS,
+  FETCH_INVITEABLE_PEOPLE,
+  FETCH_INVITE_RECENT_CONTACTS,
   RESEND_INVITATION_PENDING,
   EXPIRE_INVITATION_PENDING,
   REINVITE_ALL_PENDING,
   allowGroupInvites,
+  fetchInviteablePeople,
+  fetchInviteRecentContacts,
   fetchPendingInvitations
 } from './InviteSettingsTab.store'
 import orm from 'store/models'
@@ -76,10 +80,10 @@ describe('InviteSettingsTab.store.ormSessionReducer', () => {
     expect(fetchPendingInvitations('5').graphql.query).toMatch(/myInviteAllowance/)
   })
 
-  it('fetches who sent each pending invitation and how', () => {
+  it('fetches who sent each pending invitation', () => {
     const { query } = fetchPendingInvitations('5').graphql
-    expect(query).toMatch(/inviterAccess/)
     expect(query).toMatch(/creator\s*{\s*id\s+name\s*}/)
+    expect(query).not.toMatch(/inviterAccess/)
   })
 
   it('responds to RESEND_INVITATION_PENDING', () => {
@@ -120,16 +124,38 @@ describe('InviteSettingsTab.store.ormSessionReducer', () => {
     expect(session.Invitation.withId('5').resent).toBeFalsy()
   })
 
-  it('leaves invitations sent by members alone on REINVITE_ALL_PENDING', () => {
+  it('resends every pending invitation on REINVITE_ALL_PENDING', () => {
     session.Group.create({ id: '1' })
-    session.Invitation.create({ id: '2', group: '1', inviterAccess: 'full' })
-    session.Invitation.create({ id: '3', group: '1', inviterAccess: 'limited' })
+    session.Invitation.create({ id: '2', group: '1' })
+    session.Invitation.create({ id: '3', group: '1' })
     ormSessionReducer(session, { type: REINVITE_ALL_PENDING, meta: { groupId: '1' } })
     expect(session.Invitation.withId('2').resent).toBe(true)
-    expect(session.Invitation.withId('3').resent).toBeFalsy()
+    expect(session.Invitation.withId('3').resent).toBe(true)
   })
 
   it('matches the last snapshot for allowGroupInvites', () => {
     expect(allowGroupInvites('1', false)).toMatchSnapshot()
+  })
+
+  it('loads recent contacts for the default invite list and excludes group members', () => {
+    const action = fetchInviteRecentContacts({ groupId: '5' })
+    expect(action.type).toBe(FETCH_INVITE_RECENT_CONTACTS)
+    expect(action.graphql.query).toMatch(/connections\(/)
+    expect(action.graphql.query).toMatch(/excludeGroupId/)
+    expect(action.graphql.query).toMatch(/requireName: true/)
+    expect(action.graphql.variables.excludeGroupId).toBe('5')
+    expect(action.graphql.variables.first).toBe(20)
+  })
+
+  it('searches people and excludes the group when the invite search is not empty', () => {
+    const action = fetchInviteablePeople({ autocomplete: 'ada', excludeGroupId: '5' })
+    expect(action.type).toBe(FETCH_INVITEABLE_PEOPLE)
+    expect(action.graphql.query).toMatch(/people \(/)
+    expect(action.graphql.query).toMatch(/excludeGroupId/)
+    expect(action.graphql.query).toMatch(/requireName: true/)
+    expect(action.graphql.variables).toMatchObject({
+      autocomplete: 'ada',
+      excludeGroupId: '5'
+    })
   })
 })

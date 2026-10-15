@@ -202,6 +202,8 @@ Group.fields = {
   moreSpacesCount: attr(),
   icon: attr(),
   id: attr(),
+  invitePath: attr(),
+  inviteLinks: attr(),
   invitePolicy: attr(),
   joinQuestions: many('GroupJoinQuestion'),
   location: attr(),

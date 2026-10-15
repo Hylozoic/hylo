@@ -22,7 +22,7 @@ export function isSystemGroupRole (role) {
  * without being assigned it.
  */
 export function isMemberGroupRole (role) {
-  return role?.type === 'member'
+  return role?.type === 'member' || role?.type === 'all_members'
 }
 
 /**

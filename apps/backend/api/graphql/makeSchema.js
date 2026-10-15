@@ -114,7 +114,9 @@ import {
   reactivateUser,
   recordClickthrough,
   recordStripePurchase,
-  regenerateAccessCode,
+  createGroupInviteLink,
+  updateGroupInviteLink,
+  deleteGroupInviteLink,
   registerDevice,
   registerStripeAccount,
   reinviteAll,
@@ -830,7 +832,9 @@ export function makeMutations ({ fetchOne }) {
 
     recordClickthrough: (root, { postId }, context) => recordClickthrough({ userId: context.currentUserId, postId }),
 
-    regenerateAccessCode: (root, { groupId }, context) => regenerateAccessCode(context.currentUserId, groupId),
+    createGroupInviteLink: (root, { groupId, data }, context) => createGroupInviteLink(context.currentUserId, groupId, data),
+    updateGroupInviteLink: (root, { id, data }, context) => updateGroupInviteLink(context.currentUserId, id, data),
+    deleteGroupInviteLink: (root, { id }, context) => deleteGroupInviteLink(context.currentUserId, id),
 
     // DEPRECATED: This is no longer used, remove after 2025-08-26
     registerDevice: () => registerDevice(),

@@ -68,15 +68,13 @@ const SYSTEM_ROLE_DEFINITIONS = [
 
 /**
  * System responsibilities referenced by SYSTEM_ROLE_DEFINITIONS — schema.sql creates the table but no rows.
- * Insertion order sets the ids, which Group.moderators() and stewards() hard-code; Invite Members
- * comes last, as the migration that added it appends it.
+ * Insertion order sets the ids, which Group.moderators() and stewards() hard-code.
  */
 const SYSTEM_RESPONSIBILITY_DEFINITIONS = [
   { title: 'Administration', description: 'Allows for editing group settings, managing the menu and spaces, exporting data, and deleting the group.' },
   { title: 'Add Members', description: 'Invite and add new people, manage the group join link and all pending invitations, and accept or reject join requests.' },
   { title: 'Remove Members', description: 'The ability to remove a member from the group.' },
-  { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' },
-  { title: 'Invite Members', description: 'Send personal email invitations to this group and see or cancel the ones you sent. In Restricted and Closed groups a steward reviews them.' }
+  { title: 'Manage Content', description: 'Adjust group topics, custom views and manage content that contradicts the agreements of the group.' }
 ]
 
 /**
@@ -98,7 +96,7 @@ async function ensureSystemResponsibilities (client, now) {
 
 /**
  * Create per-group system roles (Administrator, Moderator, Host) and the
- * implicit Member role if missing. Nothing is linked to the Member role.
+ * implicit All Members role if missing. Nothing is linked to All Members here.
  * @returns {Promise<Record<string, number>>} role name → groups_roles.id
  */
 async function setupSystemRolesForGroup (client, groupId, now) {
@@ -135,21 +133,23 @@ async function setupSystemRolesForGroup (client, groupId, now) {
   }
   await client.query(
     `INSERT INTO groups_roles (group_id, name, emoji, description, type, active, created_at, updated_at)
-     VALUES ($1, 'Member', '', 'Everyone in the group holds this role.', 'member', true, $2::timestamptz, $2::timestamptz)
-     ON CONFLICT (group_id) WHERE type = 'member' DO NOTHING`,
+     SELECT $1, 'All Members', '', 'Every member of the group holds this role.', 'all_members', true, $2::timestamptz, $2::timestamptz
+     WHERE NOT EXISTS (
+       SELECT 1 FROM groups_roles WHERE group_id = $1 AND type = 'all_members'
+     )`,
     [groupId, now]
   )
   return roleIds
 }
 
-/** Everyone in the group can send personal email invitations ("Everyone in the group"). */
-async function linkInviteMembersToMemberRole (client, groupId) {
+/** Everyone in the group can add members. */
+async function linkAddMembersToAllMembers (client, groupId) {
   await client.query(
     `INSERT INTO group_roles_responsibilities (group_role_id, responsibility_id)
      SELECT gr.id, r.id
      FROM groups_roles gr, responsibilities r
-     WHERE gr.group_id = $1 AND gr.type = 'member'
-       AND r.title = 'Invite Members' AND r.type = 'system' AND r.group_id IS NULL
+     WHERE gr.group_id = $1 AND gr.type = 'all_members'
+       AND r.title = 'Add Members' AND r.type = 'system' AND r.group_id IS NULL
        AND NOT EXISTS (
          SELECT 1 FROM group_roles_responsibilities grr
          WHERE grr.group_role_id = gr.id AND grr.responsibility_id = r.id
@@ -219,7 +219,7 @@ async function insertChildSpace (client, {
 /**
  * Public Restricted group for member invitation E2E: `administratorId` holds
  * Administrator and `memberIds` are plain members. With `everyoneCanInvite` the
- * invite policy is "Everyone in the group"; otherwise it is stewards only.
+ * invite policy is "Everyone in the Group"; otherwise it is stewards only.
  * @returns {Promise<number>} group id
  */
 async function insertMemberInviteGroup (client, {
@@ -258,15 +258,15 @@ async function insertMemberInviteGroup (client, {
     )
   }
   await assignAdministratorRole(client, administratorId, groupId, roles.Administrator, now)
-  if (everyoneCanInvite) await linkInviteMembersToMemberRole(client, groupId)
+  if (everyoneCanInvite) await linkAddMembersToAllMembers(client, groupId)
   return groupId
 }
 
 /** Pending invitation sent by a plain member, with its allowance ledger row. */
 async function insertMemberInvitation (client, { groupId, senderId, email, token, now }) {
   const res = await client.query(
-    `INSERT INTO group_invites (created_at, invited_by_id, token, email, group_id, last_sent_at, sent_count, inviter_access)
-     VALUES ($1::timestamptz, $2, $3, $4, $5, $1::timestamptz, 1, 'limited')
+    `INSERT INTO group_invites (created_at, invited_by_id, token, email, group_id, last_sent_at, sent_count)
+     VALUES ($1::timestamptz, $2, $3, $4, $5, $1::timestamptz, 1)
      RETURNING id`,
     [now, senderId, token, email, groupId]
   )
@@ -1290,7 +1290,7 @@ async function main () {
        RETURNING id`,
       [E2E_INVITEE_EMAIL, 'E2E Invitee', 'E2E', 'Invitee', now, userSettings]
     )
-    const requestInvitationId = await insertMemberInvitation(client, {
+    await insertMemberInvitation(client, {
       groupId: requestsGroupId,
       senderId: memberAId,
       email: E2E_INVITEE_EMAIL,
@@ -1298,9 +1298,9 @@ async function main () {
       now
     })
     await client.query(
-      `INSERT INTO join_requests (user_id, group_id, status, invitation_id, created_at, updated_at)
-       VALUES ($1, $2, 0, $3, $4::timestamptz, $4::timestamptz)`,
-      [inviteeRes.rows[0].id, requestsGroupId, requestInvitationId, now]
+      `INSERT INTO join_requests (user_id, group_id, status, created_at, updated_at)
+       VALUES ($1, $2, 0, $3::timestamptz, $3::timestamptz)`,
+      [inviteeRes.rows[0].id, requestsGroupId, now]
     )
     await client.query('UPDATE groups SET num_open_join_requests = 1 WHERE id = $1', [requestsGroupId])
 

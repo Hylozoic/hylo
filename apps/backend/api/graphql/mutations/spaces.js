@@ -109,7 +109,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     paywall: isPaywalled,
     status: spaceStatus,
     settings: autoAddMembers ? { auto_add_members: true } : {},
-    access_code: await Group.getNewAccessCode(),
+    access_code: await GroupInviteLink.generateCode(),
     calendar_token: uuidv4(),
     created_at: new Date(),
     created_by_id: userId
@@ -117,6 +117,12 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
 
   await bookshelf.transaction(async trx => {
     await space.save(null, { transacting: trx })
+    await GroupInviteLink.createForGroup(space.id, {
+      userId,
+      accessCode: space.get('access_code'),
+      grantAccess: true,
+      system: true
+    }, { transacting: trx })
     // No setupSystemRoles / assignAdministrator — spaces inherit roles from the parent
     await space.addMembers([userId], { lastReadAt: new Date() }, { transacting: trx })
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
@@ -389,16 +395,11 @@ async function copyParentStewardsToChild (parentGroup, child, { transacting } = 
 }
 
 /**
- * Give the new child group the parent's invite policy when it is 'everyone' or
- * 'stewards'. A 'roles' policy names the parent's own roles, so the child falls
- * back to 'stewards', as it does while member invitations are switched off.
+ * Give the new child group the parent's invite policy.
  */
 async function copyParentInvitePolicyToChild (parentGroup, child, { transacting } = {}) {
-  const parentPolicy = await GroupRole.getInvitePolicy(parentGroup.id, { transacting })
-  const mode = parentPolicy?.mode === GroupRole.InvitePolicy.EVERYONE && GroupRole.memberInvitesEnabled()
-    ? GroupRole.InvitePolicy.EVERYONE
-    : GroupRole.InvitePolicy.STEWARDS
-  await GroupRole.setInvitePolicy(child.id, { mode }, { transacting })
+  const mode = await GroupRole.getInvitePolicy(parentGroup.id, { transacting })
+  await GroupRole.setInvitePolicy(child.id, mode || GroupRole.InvitePolicy.STEWARDS, { transacting })
 }
 
 /**
@@ -559,8 +560,6 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
 
   await bookshelf.transaction(async trx => {
     await group.save({ type: 'space', parent_id: parentGroupId }, { patch: true, transacting: trx })
-    // Spaces have no member invitations, and an invitation to a space can admit people to its parent
-    await Invitation.expirePendingLimited({ groupId: group.id, expiredById: userId }, { transacting: trx })
     await relationship.save({ active: false }, { transacting: trx })
     await convertChildGroupViewToSpaceView(parentGroupId, id, group.get('name'), { transacting: trx })
     await GroupView.syncMoreSpacesCount(parentGroupId, { transacting: trx })
@@ -624,7 +623,8 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
       inviteCheck = await InvitationService.check(invitationToken, accessCode)
     }
     hasValidInvitation = !!(inviteCheck?.valid && inviteCheck.groupSlug === space.get('slug')) &&
-      (!!accessCode || await InvitationService.preApproves(await Invitation.find(invitationToken), space))
+      ((!!accessCode && inviteCheck.grantAccess) ||
+        (!accessCode && await InvitationService.preApproves(await Invitation.find(invitationToken), space)))
 
     if (!canAdministerParent) {
       if (space.get('paywall')) {
@@ -650,6 +650,12 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
     }
 
     membership = await user.joinGroup(space, { fromInvitation: hasValidInvitation })
+    if (accessCode && inviteCheck?.grantAccess && hasValidInvitation) {
+      const link = await GroupInviteLink.findActiveByCode(accessCode)
+      if (link && String(link.get('group_id')) === String(spaceId)) {
+        await GroupInviteLink.recordJoin(link, userId)
+      }
+    }
   }
 
   if (invitationToken) {

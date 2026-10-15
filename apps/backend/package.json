@@ -200,6 +200,7 @@
       "Group",
       "GroupAgreement",
       "GroupExtension",
+      "GroupInviteLink",
       "GroupMembership",
       "GroupJoinQuestion",
       "GroupJoinQuestionAnswer",

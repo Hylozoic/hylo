@@ -1050,10 +1050,46 @@ CREATE TABLE public.group_invites (
     expired_by_id bigint,
     expired_at timestamp with time zone,
     group_id bigint NOT NULL,
-    group_role_id bigint,
-    inviter_access character varying(16) DEFAULT 'full'::character varying NOT NULL,
-    CONSTRAINT group_invites_inviter_access_check CHECK (((inviter_access)::text = ANY (ARRAY['full'::text, 'limited'::text])))
+    group_role_id bigint
 );
+
+
+--
+-- Name: group_invite_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_invite_links (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    access_code character varying(255) NOT NULL,
+    name character varying(255),
+    grant_access boolean DEFAULT true NOT NULL,
+    granted_roles jsonb DEFAULT '[]'::jsonb NOT NULL,
+    num_joined_users integer DEFAULT 0 NOT NULL,
+    created_by_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    deleted_at timestamp with time zone,
+    deleted_by_id bigint
+);
+
+
+--
+-- Name: group_invite_links_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_invite_links_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_invite_links_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_invite_links_id_seq OWNED BY public.group_invite_links.id;
 
 
 --
@@ -1118,7 +1154,8 @@ CREATE TABLE public.group_memberships (
     updated_at timestamp with time zone,
     new_post_count integer DEFAULT 0,
     project_role_id bigint,
-    nav_order integer
+    nav_order integer,
+    group_invite_link_id bigint
 );
 
 
@@ -1423,6 +1460,7 @@ CREATE TABLE public.groups (
     accessibility integer DEFAULT 1,
     created_by_id bigint,
     access_code character varying(255),
+    lift_admin_invite_limits boolean DEFAULT false NOT NULL,
     settings jsonb,
     num_members integer,
     num_open_join_requests integer DEFAULT 0 NOT NULL,
@@ -1711,8 +1749,7 @@ CREATE TABLE public.join_requests (
     updated_at timestamp with time zone,
     status integer,
     group_id bigint NOT NULL,
-    processed_by_id bigint,
-    invitation_id bigint
+    processed_by_id bigint
 );
 
 
@@ -1879,6 +1916,25 @@ CREATE SEQUENCE public.locations_id_seq
 --
 
 ALTER SEQUENCE public.locations_id_seq OWNED BY public.locations.id;
+
+
+--
+-- Name: group_member_effective_roles; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.group_member_effective_roles AS
+ SELECT group_memberships_group_roles.user_id,
+    group_memberships_group_roles.group_id,
+    group_memberships_group_roles.group_role_id
+   FROM public.group_memberships_group_roles
+  WHERE (group_memberships_group_roles.active IS NOT FALSE)
+UNION
+ SELECT gm.user_id,
+    gm.group_id,
+    gr.id AS group_role_id
+   FROM (public.group_memberships gm
+     JOIN public.groups_roles gr ON (((gr.group_id = gm.group_id) AND ((gr.type)::text = 'all_members'::text) AND (gr.active = true))))
+  WHERE (gm.active = true);
 
 
 --
@@ -3807,6 +3863,13 @@ ALTER TABLE ONLY public.invitation_sends ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: group_invite_links id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_invite_links ALTER COLUMN id SET DEFAULT nextval('public.group_invite_links_id_seq'::regclass);
+
+
+--
 -- Name: join_requests id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4578,6 +4641,14 @@ ALTER TABLE ONLY public.comments
 
 
 --
+-- Name: group_invite_links group_invite_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_invite_links
+    ADD CONSTRAINT group_invite_links_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: group_invites pk_community_invite; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5180,6 +5251,27 @@ CREATE INDEX group_extensions_group_id_index ON public.group_extensions USING bt
 
 
 --
+-- Name: group_invite_links_access_code_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX group_invite_links_access_code_unique ON public.group_invite_links USING btree (lower((access_code)::text));
+
+
+--
+-- Name: group_invite_links_group_id_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_invite_links_group_id_active ON public.group_invite_links USING btree (group_id) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: group_invite_links_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_invite_links_group_id_index ON public.group_invite_links USING btree (group_id);
+
+
+--
 -- Name: group_invites_email_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5212,6 +5304,13 @@ CREATE INDEX group_memberships_group_roles_user_id_group_id_index ON public.grou
 --
 
 CREATE INDEX group_memberships_user_id_active_index ON public.group_memberships USING btree (user_id, active);
+
+
+--
+-- Name: group_memberships_group_invite_link_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_memberships_group_invite_link_id_index ON public.group_memberships USING btree (group_invite_link_id) WHERE (group_invite_link_id IS NOT NULL);
 
 
 --
@@ -5278,10 +5377,10 @@ CREATE INDEX groups_roles_group_id_index ON public.groups_roles USING btree (gro
 
 
 --
--- Name: groups_roles_one_member_role; Type: INDEX; Schema: public; Owner: -
+-- Name: groups_roles_one_all_members_role; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX groups_roles_one_member_role ON public.groups_roles USING btree (group_id) WHERE ((type)::text = 'member'::text);
+CREATE UNIQUE INDEX groups_roles_one_all_members_role ON public.groups_roles USING btree (group_id) WHERE ((type)::text = 'all_members'::text);
 
 
 --
@@ -5563,13 +5662,6 @@ CREATE INDEX ix_vote_user_13 ON public.reactions USING btree (user_id);
 --
 
 CREATE INDEX join_request_question_answers_join_request_id_index ON public.group_join_questions_answers USING btree (join_request_id);
-
-
---
--- Name: join_requests_invitation_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX join_requests_invitation_id_index ON public.join_requests USING btree (invitation_id) WHERE (invitation_id IS NOT NULL);
 
 
 --
@@ -6300,6 +6392,30 @@ ALTER TABLE ONLY public.group_extensions
 
 
 --
+-- Name: group_invite_links group_invite_links_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_invite_links
+    ADD CONSTRAINT group_invite_links_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: group_invite_links group_invite_links_created_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_invite_links
+    ADD CONSTRAINT group_invite_links_created_by_id_foreign FOREIGN KEY (created_by_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: group_invite_links group_invite_links_deleted_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_invite_links
+    ADD CONSTRAINT group_invite_links_deleted_by_id_foreign FOREIGN KEY (deleted_by_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: group_invites group_invites_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6369,6 +6485,14 @@ ALTER TABLE ONLY public.group_memberships
 
 ALTER TABLE ONLY public.group_memberships
     ADD CONSTRAINT group_memberships_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: group_memberships group_memberships_group_invite_link_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_memberships
+    ADD CONSTRAINT group_memberships_group_invite_link_id_foreign FOREIGN KEY (group_invite_link_id) REFERENCES public.group_invite_links(id) ON DELETE SET NULL;
 
 
 --
@@ -6673,14 +6797,6 @@ ALTER TABLE ONLY public.group_join_questions_answers
 
 ALTER TABLE ONLY public.join_requests
     ADD CONSTRAINT join_requests_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: join_requests join_requests_invitation_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.join_requests
-    ADD CONSTRAINT join_requests_invitation_id_foreign FOREIGN KEY (invitation_id) REFERENCES public.group_invites(id) ON DELETE SET NULL;
 
 
 --

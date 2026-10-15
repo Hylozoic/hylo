@@ -62,12 +62,9 @@ function ManageInvitesTab () {
     }
     dispatch(acceptInvitation({ invitationToken }))
       .then(result => {
-        const { membership, requiresApproval, groupSlug } = result?.payload?.data?.useInvitation || {}
+        const { membership } = result?.payload?.data?.useInvitation || {}
         if (membership) dispatch(trackAnalyticsEvent(AnalyticsEvents.GROUP_INVITATION_ACCEPTED))
-        // A member's invitation to a group that approves new people: request to join from its about page
-        dispatch(push(requiresApproval && groupSlug
-          ? `${groupUrl(groupSlug, 'about')}?token=${encodeURIComponent(invitationToken)}`
-          : destinationAfterInvite(group)))
+        dispatch(push(destinationAfterInvite(group)))
       })
   }
 

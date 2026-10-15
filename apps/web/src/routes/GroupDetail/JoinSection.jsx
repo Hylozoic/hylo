@@ -2,7 +2,6 @@ import { trim } from 'lodash'
 import React, { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import Avatar from 'components/Avatar'
 import Button from 'components/ui/button'
 import SuggestedSkills from 'components/SuggestedSkills'
 import { DEFAULT_AVATAR, DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, accessibilityString, accessibilityDescription, visibilityIcon, visibilityString, visibilityDescription } from 'store/models/Group'
@@ -171,27 +170,12 @@ export function JoinBarriers ({ group, onBarriersStateChange, joinIntroCopy = fa
   )
 }
 
-/** Who invited the person, on a member invitation that a steward still has to approve. */
-function InvitedByBanner ({ invitedBy, t }) {
-  return (
-    <div className='bg-selected/10 border border-selected/30 rounded-xl p-4 mb-4 text-center'>
-      <div className='flex items-center justify-center gap-2 text-foreground'>
-        <Avatar avatarUrl={invitedBy.avatarUrl} small className='shrink-0' />
-        <span className='font-medium'>{t('{{name}} invited you', { name: invitedBy.name })}</span>
-      </div>
-      <p className='text-foreground/70 text-sm mt-2 mb-0'>{t('Stewards review every request to join this group.')}</p>
-    </div>
-  )
-}
-
-export default function JoinSection ({ accessCode, currentUser, fullPage, group, groupsWithPendingRequests, invitationRequiresApproval, invitationRole, invitationToken, invitedBy, joinGroup, linkedSpaceName, requestToJoinGroup, routeParams, t }) {
+export default function JoinSection ({ accessCode, currentUser, fullPage, group, groupsWithPendingRequests, grantAccess = true, invitationRole, invitationToken, joinGroup, linkedSpaceName, requestToJoinGroup, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
-  // A member's invitation to a Restricted or Closed group becomes a request to join that stewards review
-  const hasSponsoredRequest = !!(invitationToken && invitationRequiresApproval)
-
-  // User arrived with a join link (accessCode) or a steward's email invite link (token) — pre-approved for Closed/Restricted
-  const hasJoinOrInviteLink = !!accessCode || (!!invitationToken && !hasSponsoredRequest)
+  // A granting link or an email invite lets the person join even when the group is Restricted or Closed.
+  // A view-only link (grantAccess false) still means they request to join.
+  const hasJoinOrInviteLink = (!!accessCode && grantAccess !== false) || !!invitationToken
 
   const linkedSpaceNotice = linkedSpaceName
     ? (
@@ -312,10 +296,9 @@ export default function JoinSection ({ accessCode, currentUser, fullPage, group,
                       <span> {t('You will be sent an email and notified on your device when the request is approved.')}</span>
                     </div>
                     )
-                  : hasSponsoredRequest || group.accessibility === GROUP_ACCESSIBILITY.Restricted
+                  : group.accessibility === GROUP_ACCESSIBILITY.Restricted
                     ? (
                       <>
-                        {hasSponsoredRequest && invitedBy && <InvitedByBanner invitedBy={invitedBy} t={t} />}
                         <JoinQuestionsAndButtons
                           currentUser={currentUser}
                           group={group}

@@ -23,12 +23,12 @@ const STEWARDS_GROUP = { slug: 'e2e-steward-invites' }
 const LANDING_GROUP = { slug: 'e2e-member-invite-landing', name: 'E2E Member Invite Landing', token: 'e2e-member-invite-landing-001' }
 /** `e2e.user` administers it; E2E Member A's invitee is waiting for approval */
 const REQUESTS_GROUP = { slug: 'e2e-member-invite-requests' }
-const SPONSOR_NAME = 'E2E Member A'
 const INVITEE_NAME = 'E2E Invitee'
 const GROUP_ADMINISTRATOR_NAME = 'E2E Join Host'
 
 const WHO_CAN_ADD = 'Who can add new members?'
-const STEWARDS_ONLY = 'Administrators and Hosts (anyone who can add members)'
+const STEWARDS_ONLY = 'Stewards with the Add Members responsibility'
+const EVERYONE = 'Everyone in the Group'
 
 /**
  * Saves a viewport screenshot (after scrolling `focus` into view) when
@@ -47,7 +47,7 @@ async function capture (page, testInfo, name, focus) {
 }
 
 /**
- * Waits for the Privacy & Access save to reach the API.
+ * Waits for the Roles & Badges invite-policy save to reach the API.
  * @param {import('@playwright/test').Page} page
  */
 function waitForSettingsSave (page) {
@@ -57,7 +57,7 @@ function waitForSettingsSave (page) {
 }
 
 test.describe('Who can add new members? (administrator)', () => {
-  test('is chosen when creating a group and changed in Privacy & Access', async ({ page }, testInfo) => {
+  test('is chosen when creating a group and changed in Roles & Badges', async ({ page }, testInfo) => {
     const device = testInfo.project.name.includes('mobile') ? 'mobile' : 'desktop'
     const name = `Invite Policy ${device} ${Date.now().toString(36)}`
 
@@ -70,19 +70,9 @@ test.describe('Who can add new members? (administrator)', () => {
     const createPolicy = createDialog.getByRole('button', { name: WHO_CAN_ADD })
     await expect(createPolicy).toContainText(STEWARDS_ONLY)
     await createPolicy.click()
-    await page.getByRole('button', { name: 'Specific roles' }).click()
-    await expect(createPolicy).toContainText('Specific roles')
-
-    const moderator = createDialog.getByRole('checkbox', { name: '⚖️ Moderator' })
-    await expect(moderator).toBeEnabled()
-    await expect(moderator).toHaveAttribute('aria-checked', 'true')
-    for (const lockedRole of ['🪄 Administrator', '👋 Host']) {
-      const checkbox = createDialog.getByRole('checkbox', { name: lockedRole })
-      await expect(checkbox).toBeDisabled()
-      await expect(checkbox).toHaveAttribute('aria-checked', 'true')
-    }
-    await expect(createDialog.getByText('Create custom roles later in Roles & Badges')).toBeVisible()
-    await capture(page, testInfo, 'invite-policy-01-create-specific-roles', moderator)
+    await page.getByRole('button', { name: EVERYONE }).click()
+    await expect(createPolicy).toContainText(EVERYONE)
+    await capture(page, testInfo, 'invite-policy-01-create-everyone', createPolicy)
 
     const slug = await createDialog.locator('#groupSlug').inputValue()
     expect(slug).toBeTruthy()
@@ -91,35 +81,23 @@ test.describe('Who can add new members? (administrator)', () => {
     await submit.click()
     await expect(page).toHaveURL(new RegExp(`/groups/${slug}([/?#]|$)`), navTimeout)
 
-    await page.goto(`/groups/${slug}/settings/privacy`)
+    await page.goto(`/groups/${slug}/settings/roles`)
     await waitPastRootSessionLoading(page)
     await expect(page.getByRole('heading', { name: WHO_CAN_ADD })).toBeVisible(uiTimeout)
     const settingsPolicy = page.getByRole('button', { name: WHO_CAN_ADD })
-    await expect(settingsPolicy).toContainText('Specific roles', uiTimeout)
-    await expect(page.getByRole('checkbox', { name: '⚖️ Moderator' })).toHaveAttribute('aria-checked', 'true')
-    await expect(page.getByRole('checkbox', { name: '🪄 Administrator' })).toBeDisabled()
-    await capture(page, testInfo, 'invite-policy-02-settings-specific-roles', settingsPolicy)
+    await expect(settingsPolicy).toContainText(EVERYONE, uiTimeout)
+    await capture(page, testInfo, 'invite-policy-02-settings-everyone', settingsPolicy)
 
     await settingsPolicy.click()
-    await page.getByRole('button', { name: 'Everyone in the group' }).click()
-    await expect(settingsPolicy).toContainText('Everyone in the group')
     const saved = waitForSettingsSave(page)
-    await page.getByRole('button', { name: 'Save Changes' }).click()
+    await page.getByRole('button', { name: STEWARDS_ONLY }).click()
+    await expect(settingsPolicy).toContainText(STEWARDS_ONLY)
     expect((await saved).ok()).toBe(true)
 
     await page.reload()
     await waitPastRootSessionLoading(page)
-    await expect(page.getByRole('button', { name: WHO_CAN_ADD })).toContainText('Everyone in the group', uiTimeout)
-    await expect(page.getByRole('checkbox', { name: '⚖️ Moderator' })).toHaveCount(0)
-    await capture(page, testInfo, 'invite-policy-03-settings-everyone', page.getByRole('button', { name: WHO_CAN_ADD }))
-
-    await page.goto(`/groups/${slug}/settings/roles`)
-    await waitPastRootSessionLoading(page)
-    const memberCard = page.getByTestId('member-role-card')
-    await expect(memberCard).toBeVisible(uiTimeout)
-    await expect(memberCard.getByText('Everyone in this group holds this role.')).toBeVisible()
-    await expect(memberCard.getByText('Invite Members', { exact: true })).toBeVisible()
-    await capture(page, testInfo, 'invite-policy-04-member-role-card', memberCard)
+    await expect(page.getByRole('button', { name: WHO_CAN_ADD })).toContainText(STEWARDS_ONLY, uiTimeout)
+    await capture(page, testInfo, 'invite-policy-03-settings-stewards', page.getByRole('button', { name: WHO_CAN_ADD }))
   })
 })
 
@@ -145,19 +123,16 @@ test.describe('Invitations from members (plain member)', () => {
     const dialog = page.getByRole('dialog', { name: 'Invite People' })
     await expect(dialog).toBeVisible(uiTimeout)
     await expect(dialog.getByText('Send Invites via email')).toBeVisible(uiTimeout)
-    await expect(dialog.getByText('Group stewards can see the email addresses you invite.')).toBeVisible()
-    await expect(dialog.getByText(/steward will review their request/)).toBeVisible()
+    await expect(dialog.getByText('Invite people on Hylo')).toBeVisible(uiTimeout)
     await expect(dialog.getByText(/Invites left today: \d+/)).toBeVisible(uiTimeout)
-    await expect(dialog.getByText('Share a Join Link')).toHaveCount(0)
-    await expect(dialog.getByText('Invite people on Hylo')).toHaveCount(0)
     await expect(dialog.getByText('Assign a role to invitees (optional):')).toHaveCount(0)
     await capture(page, testInfo, 'invite-policy-05-member-invite-dialog')
 
     await dialog.getByPlaceholder(/example@domain\.com/).fill(address)
     await dialog.getByRole('button', { name: 'Send Invite' }).click()
 
-    await expect(dialog.getByText('Invites sent to anyone not already in the group')).toBeVisible(uiTimeout)
-    await expect(dialog.getByText('Your pending invites')).toBeVisible(uiTimeout)
+    await expect(dialog.getByText('Sent 1 invite')).toBeVisible(uiTimeout)
+    await expect(dialog.getByText('Pending Invites')).toBeVisible(uiTimeout)
     await expect(dialog.getByText(address)).toBeVisible(uiTimeout)
     await capture(page, testInfo, 'invite-policy-06-member-invite-sent', dialog.getByText(address))
   })
@@ -171,18 +146,12 @@ test.describe('Approving people invited by members', () => {
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${LANDING_GROUP.slug}/about\\?token=${LANDING_GROUP.token}`), navTimeout)
 
-    const request = page.getByRole('button', { name: `Request Membership in ${LANDING_GROUP.name}` })
-    const pending = page.getByText('Request to join pending')
-    await expect(request.or(pending)).toBeVisible(uiTimeout)
-    // A retry after the request was sent finds it pending
-    if (await request.isVisible()) {
-      await expect(page.getByText(`${SPONSOR_NAME} invited you`)).toBeVisible()
-      await expect(page.getByText('Stewards review every request to join this group.')).toBeVisible()
-      await capture(page, testInfo, 'invite-policy-07-invited-by-member', request)
-      await request.click()
-    }
-    await expect(pending).toBeVisible(uiTimeout)
-    await capture(page, testInfo, 'invite-policy-08-request-pending', pending)
+    const join = page.getByRole('button', { name: `Join ${LANDING_GROUP.name}` })
+    await expect(join).toBeVisible(uiTimeout)
+    await expect(page.getByRole('button', { name: `Request Membership in ${LANDING_GROUP.name}` })).toHaveCount(0)
+    await capture(page, testInfo, 'invite-policy-07-email-invite-join', join)
+    await join.click()
+    await expect(join).toHaveCount(0, uiTimeout)
   })
 
   test('an administrator sees who invited a requester and welcomes them', async ({ page }, testInfo) => {
@@ -191,13 +160,12 @@ test.describe('Approving people invited by members', () => {
     await page.goto(`/groups/${REQUESTS_GROUP.slug}/settings/requests`)
     await waitPastRootSessionLoading(page)
 
-    const invitedBy = page.getByText(`Invited by ${SPONSOR_NAME}`)
+    const invitee = page.getByText(INVITEE_NAME, { exact: true })
     const noRequests = page.getByText('No new join requests')
-    await expect(invitedBy.or(noRequests)).toBeVisible(uiTimeout)
+    await expect(invitee.or(noRequests)).toBeVisible(uiTimeout)
     // A retry after the request was accepted finds none left
-    if (await invitedBy.isVisible()) {
-      await expect(page.getByText(INVITEE_NAME, { exact: true })).toBeVisible()
-      await capture(page, testInfo, 'invite-policy-09-join-request-invited-by', invitedBy)
+    if (await invitee.isVisible()) {
+      await capture(page, testInfo, 'invite-policy-09-join-request', invitee)
       await page.getByRole('button', { name: 'Welcome' }).click()
     }
     await expect(noRequests).toBeVisible(uiTimeout)

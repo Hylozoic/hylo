@@ -13,7 +13,8 @@ import GroupsSelector from 'components/GroupsSelector'
 import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
-import InvitePolicySelect, { invitePolicyToSave, trackInvitePolicySet } from 'components/InvitePolicySelect/InvitePolicySelect'
+import InvitePolicySelect from 'components/InvitePolicySelect/InvitePolicySelect'
+import { trackInvitePolicySet } from 'util/invitePolicy'
 import LocationInput from 'components/LocationInput/LocationInput'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
@@ -31,7 +32,6 @@ import { DEFAULT_AVATAR, GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/mod
 import { CUSTOM_HOME_VIEW, POST_TYPE_TO_VIEW_TYPE, viewTypesForCreate } from 'store/models/GroupView'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
@@ -202,17 +202,8 @@ const ACCESSIBILITY_OPTIONS = [
   }
 ]
 
-const CLOSED_DESCRIPTION_WITH_MEMBER_INVITES = 'Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.'
-
 // Matches the server's DEFAULT_NEW_GROUP_INVITE_POLICY
 const DEFAULT_INVITE_POLICY_MODE = INVITE_POLICY.stewards
-
-// The built-in roles every new group gets. Administrators and Hosts include Add Members.
-const NEW_GROUP_INVITE_ROLES = [
-  { id: 'Administrator', emoji: '🪄', locked: true },
-  { id: 'Moderator', emoji: '⚖️', locked: false },
-  { id: 'Host', emoji: '👋', locked: true }
-]
 
 function AgreementsEditor ({ agreements, onChange }) {
   const { t } = useTranslation()
@@ -332,7 +323,6 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   const [visibility, setVisibility] = useState(GROUP_VISIBILITY.Protected)
   const [accessibility, setAccessibility] = useState(GROUP_ACCESSIBILITY.Restricted)
   const [invitePolicyMode, setInvitePolicyMode] = useState(DEFAULT_INVITE_POLICY_MODE)
-  const [moderatorsCanInvite, setModeratorsCanInvite] = useState(true)
   const [isNameFocused, setIsNameFocused] = useState(false)
   const [nameTouched, setNameTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -365,20 +355,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
 
   const slugRef = useRef()
 
-  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
-
-  const accessibilityOptions = useMemo(() => memberInvitesEnabled
-    ? ACCESSIBILITY_OPTIONS.map(option => option.value === GROUP_ACCESSIBILITY.Closed
-      ? { ...option, description: CLOSED_DESCRIPTION_WITH_MEMBER_INVITES }
-      : option)
-    : ACCESSIBILITY_OPTIONS, [memberInvitesEnabled])
-
-  const newGroupInviteRoles = useMemo(() => NEW_GROUP_INVITE_ROLES.map(role => ({
-    id: role.id,
-    label: `${role.emoji} ${t(role.id)}`,
-    locked: role.locked,
-    checked: !role.locked && moderatorsCanInvite
-  })), [t, moderatorsCanInvite])
+  const accessibilityOptions = ACCESSIBILITY_OPTIONS
 
   const slugFormatError = useMemo(() => {
     if (!slug) return name ? t('Please enter a URL slug') : false
@@ -543,11 +520,6 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     const viewTypes = viewTypesForCreate(standardTypesInOrder, standardViewTypes, homeViewType)
 
     // New groups' role ids don't exist yet, so chosen roles are sent by name
-    const invitePolicy = invitePolicyToSave(invitePolicyMode, newGroupInviteRoles)
-    const invitePolicyInput = invitePolicy.roleIds
-      ? { mode: invitePolicy.mode, systemRoleNames: invitePolicy.roleIds }
-      : invitePolicy
-
     const { error, payload } = await dispatch(createGroup({
       accessibility,
       avatarUrl: avatarUrl || DEFAULT_AVATAR,
@@ -564,7 +536,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       acceptedPostTypes: postTypes,
       viewTypes,
       visibility,
-      ...(memberInvitesEnabled ? { invitePolicy: invitePolicyInput } : {})
+      invitePolicy: invitePolicyMode
     }))
 
     if (error) {
@@ -574,7 +546,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     }
 
     const newGroup = payload?.data?.createGroup
-    if (memberInvitesEnabled) dispatch(trackInvitePolicySet(invitePolicyInput.mode, 'create'))
+    dispatch(trackInvitePolicySet(invitePolicyMode, 'create'))
 
     const effectiveWelcome = welcomeEnabled
       ? {
@@ -930,19 +902,14 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
           />
         </div>
 
-        {memberInvitesEnabled && (
-          <div className='flex flex-col gap-2 mt-5'>
-            <span className='text-xs font-bold text-foreground/80'>{t('Who can add new members?')}</span>
-            <InvitePolicySelect
-              mode={invitePolicyMode}
-              onModeChange={setInvitePolicyMode}
-              roles={newGroupInviteRoles}
-              onToggleRole={() => setModeratorsCanInvite(canInvite => !canInvite)}
-              accessibility={accessibility}
-              hint={t('Create custom roles later in Roles & Badges')}
-            />
-          </div>
-        )}
+        <div className='flex flex-col gap-2 mt-5'>
+          <span className='text-xs font-bold text-foreground/80'>{t('Who can add new members?')}</span>
+          <InvitePolicySelect
+            mode={invitePolicyMode}
+            onModeChange={setInvitePolicyMode}
+            accessibility={accessibility}
+          />
+        </div>
 
         <div className='mt-5'>
           {/* items-end + shared mb: the button's bottom sits level with the subtitle,

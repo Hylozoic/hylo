@@ -370,7 +370,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
         isAdmin: u => isAdmin || false,
-        memberInvitesEnabled: () => GroupRole.memberInvitesEnabled(),
         membershipCommonRoles: emptyQuerySet,
         // Never expose null names to clients — they call .split() etc.
         name: p => p.get('name') || '',
@@ -414,6 +413,34 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       getters: {
         accepted: a => a.pivot && a.pivot.get('accepted')
+      }
+    },
+
+    GroupInviteLink: {
+      model: GroupInviteLink,
+      attributes: [
+        'access_code',
+        'created_at',
+        'grant_access',
+        'name',
+        'num_joined_users'
+      ],
+      relations: [
+        'creator'
+      ],
+      getters: {
+        url: link => link.get('grant_access')
+          ? Frontend.Route.inviteLinkPath(link.get('access_code'))
+          : Frontend.Route.viewLinkPath(link.get('access_code')),
+        grantedRoles: async link => {
+          const ids = link.grantedRoleIds()
+          if (ids.length === 0) return []
+          return GroupRole.query(q => {
+            q.whereIn('id', ids)
+            q.where({ active: true })
+            q.whereIn('type', [GroupRole.TYPE_SYSTEM, GroupRole.TYPE_CUSTOM])
+          }).fetchAll().then(roles => roles.models)
+        }
       }
     },
 
@@ -643,7 +670,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       filter: nonAdminFilter(apiFilter(personFilter(userId))),
       isDefaultTypeForTable: true,
-      fetchMany: ({ boundingBox, first, order, sortBy, offset, search, autocomplete, groupIds, filter }) =>
+      fetchMany: ({ boundingBox, first, order, sortBy, offset, search, autocomplete, groupIds, filter, excludeGroupId, requireName }) =>
         searchQuerySet('users', {
           boundingBox,
           term: search,
@@ -653,7 +680,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
           type: filter,
           autocomplete,
           groups: groupIds,
-          sort: sortBy
+          sort: sortBy,
+          excludeGroupId,
+          requireName
         })
     },
 
@@ -922,7 +951,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           groupRoles: {
             querySet: true,
-            filter: relation => relation.query(q => q.whereNot('groups_roles.type', GroupRole.TYPE_MEMBER))
+            filter: relation => relation.query(q => q.whereNot('groups_roles.type', GroupRole.TYPE_ALL_MEMBERS))
           }
         },
         {
@@ -1187,25 +1216,38 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
-        invitePath: g =>
-          userId && GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
-            .then(canInvite => canInvite ? Frontend.Route.invitePath(g) : null),
+        invitePath: async g => {
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
+            return null
+          }
+          const links = await GroupInviteLink.forGroup(g.id)
+          const link = links.models.find(item => GroupInviteLink.grantsAccess(item, g)) || links.models[0]
+          if (link) {
+            return GroupInviteLink.grantsAccess(link, g)
+              ? Frontend.Route.inviteLinkPath(link.get('access_code'))
+              : Frontend.Route.viewLinkPath(link.get('access_code'))
+          }
+          return g.get('access_code') ? Frontend.Route.invitePath(g) : null
+        },
+        inviteLinks: async g => {
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
+            return []
+          }
+          const links = await GroupInviteLink.forGroup(g.id)
+          return links.models
+        },
         invitePolicy: async g => {
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
             return null
           }
           return GroupRole.getInvitePolicy(g.id)
         },
-        memberRole: async g => {
-          if (g.get('type') === 'space' || g.get('parent_id')) return null
-          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
+        myInviteAllowance: async g => {
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
             return null
           }
-          return GroupRole.findMemberRole(g.id)
-        },
-        myInviteAccess: g => userId ? GroupMembership.inviteAccess(userId, g) : null,
-        myInviteAllowance: async g => {
-          if (!userId || await GroupMembership.inviteAccess(userId, g) !== GroupMembership.InviteAccess.LIMITED) {
+          if (g.get('lift_admin_invite_limits') &&
+            await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
             return null
           }
           return InvitationSend.remainingAllowance({ userId, groupId: g.id })
@@ -1273,15 +1315,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!userId) return 0
           return ModerationAction.where({ group_id: g.id, status: 'active' }).count().then(Number)
         },
-        pendingInvitations: async (g, { first }) => {
-          const inviteAccess = userId ? await GroupMembership.inviteAccess(userId, g) : null
-          if (inviteAccess === GroupMembership.InviteAccess.FULL) {
-            return InvitationService.find({ groupId: g.id, pendingOnly: true, limit: first })
+        pendingInvitations: async (g, { first, offset, onlyMine }) => {
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
+            return { total: 0, hasMore: false, items: [] }
           }
-          if (inviteAccess === GroupMembership.InviteAccess.LIMITED) {
-            return InvitationService.findOwnLimited({ groupId: g.id, userId, limit: first })
-          }
-          return { total: 0, items: [] }
+          return InvitationService.find({
+            groupId: g.id,
+            pendingOnly: true,
+            limit: first,
+            offset,
+            invitedById: onlyMine ? userId : null
+          })
         },
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
@@ -1453,9 +1497,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'id',
         'created_at',
         'email',
-        'inviter_access',
         'last_sent_at',
-        'status',
         'token'
       ],
       getters: {
@@ -1498,10 +1540,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'user'
       ],
       getters: {
-        invitedBy: async jr => {
-          const invitation = jr.get('invitation_id') && await jr.invitation().fetch()
-          return invitation ? InvitationService.invitationSender(invitation) : null
-        },
         questionAnswers: jr => jr.questionAnswers().fetch()
       },
       fetchMany: ({ groupId }) => JoinRequest.where({ group_id: groupId, status: JoinRequest.STATUS.Pending })
@@ -1932,7 +1970,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'updated_at'
       ],
       relations: [{ otherUser: { alias: 'person' } }],
-      fetchMany: ({ autocomplete, excludeGroupId } = {}) => UserConnection.query(q => {
+      fetchMany: ({ autocomplete, excludeGroupId, requireName } = {}) => UserConnection.query(q => {
         if (autocomplete) {
           const term = String(autocomplete).trim().replace(/[%_]/g, '')
           if (term) {
@@ -1950,6 +1988,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
               .select('user_id')
               .where({ group_id: excludeGroupId, active: true })
           )
+        }
+        if (requireName) {
+          q.whereExists(function () {
+            this.select(bookshelf.knex.raw('1'))
+              .from('users')
+              .whereRaw('users.id = user_connections.other_user_id')
+              .whereRaw("users.name is not null and btrim(users.name) <> ''")
+          })
         }
       }),
       filter: relation => {

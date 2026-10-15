@@ -21,11 +21,6 @@ export default
         id
         slug
       }
-      invitedBy {
-        id
-        name
-        avatarUrl
-      }
       user {
         id
         avatarUrl

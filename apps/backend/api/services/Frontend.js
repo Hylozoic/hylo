@@ -171,6 +171,14 @@ module.exports = {
       return `/groups/${getSlug(group)}/join/${group.get('access_code')}`
     },
 
+    inviteLinkPath: function (accessCode) {
+      return `/invite/${accessCode}`
+    },
+
+    viewLinkPath: function (accessCode) {
+      return `/view/${accessCode}`
+    },
+
     mapPost: function (post, context, slug) {
       let contextUrl = '/all'
 

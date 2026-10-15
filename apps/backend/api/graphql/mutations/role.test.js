@@ -8,7 +8,7 @@ import {
   updateGroupRole
 } from './role'
 
-const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+const MEMBER_ROLE_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
 
 describe('roles mutations', () => {
   let user, user2, group
@@ -60,7 +60,7 @@ describe('roles mutations', () => {
     let memberRole
 
     before(async () => {
-      memberRole = await GroupRole.findMemberRole(group.id)
+      memberRole = await GroupRole.findAllMembersRole(group.id)
     })
 
     it('cannot be renamed or deactivated', async () => {
@@ -70,7 +70,7 @@ describe('roles mutations', () => {
         .to.be.rejectedWith(MEMBER_ROLE_ERROR)
 
       await memberRole.refresh()
-      expect(memberRole.get('name')).to.equal('Member')
+      expect(memberRole.get('name')).to.equal('All Members')
       expect(memberRole.get('active')).to.equal(true)
     })
 
@@ -101,7 +101,7 @@ describe('roles mutations', () => {
       }
 
       await memberRole.refresh()
-      expect(memberRole.get('name')).to.equal('Member')
+      expect(memberRole.get('name')).to.equal('All Members')
       expect(memberRole.get('active')).to.equal(true)
       const assignments = await MemberGroupRole.where({ group_role_id: memberRole.id }).count()
       expect(Number(assignments)).to.equal(0)

@@ -49,13 +49,10 @@ function notificationSettingsFromMembership (membership) {
 const DEFAULT_BANNER = '/default-group-banner.svg'
 const DEFAULT_AVATAR = '/default-group-avatar.svg'
 
-// GroupInput.invitePolicy after convertGraphqlData
+// GroupInput.invitePolicy is 'everyone' or 'stewards'
 function invitePolicyFromData (policy) {
-  return {
-    mode: policy.mode,
-    roleIds: policy.role_ids,
-    systemRoleNames: policy.system_role_names
-  }
+  if (policy && typeof policy === 'object') return policy.mode
+  return policy
 }
 
 module.exports = bookshelf.Model.extend(merge({
@@ -791,8 +788,6 @@ module.exports = bookshelf.Model.extend(merge({
       await Promise.map(userIds, userId =>
         GroupMembership.revokeAllGroupRoles(userId, roleScopeId, { transacting })
       )
-      // Someone who has left no longer vouches for the people they invited as a member
-      await Invitation.expirePendingLimited({ groupId: this.id, invitedByIds: userIds }, { transacting })
       const agreementsQuery = bookshelf.knex('users_groups_agreements')
         .whereIn('user_id', userIds)
         .where('group_id', this.id)
@@ -1393,7 +1388,7 @@ module.exports = bookshelf.Model.extend(merge({
     const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/all'
 
     // eslint-disable-next-line camelcase
-    const access_code = attrs.access_code || await Group.getNewAccessCode()
+    const access_code = attrs.access_code || await GroupInviteLink.generateCode()
     const group = new Group(merge(attrs, {
       access_code,
       created_at: new Date(),
@@ -1407,6 +1402,12 @@ module.exports = bookshelf.Model.extend(merge({
       await group.save(null, { transacting: trx })
 
       await GroupRole.setupSystemRoles(group.id, { transacting: trx })
+      await GroupInviteLink.createForGroup(group.id, {
+        userId,
+        accessCode: group.get('access_code'),
+        grantAccess: true,
+        system: true
+      }, { transacting: trx })
 
       if (data.invite_policy) {
         await GroupRole.setInvitePolicy(group.id, invitePolicyFromData(data.invite_policy), { transacting: trx })
@@ -1855,17 +1856,16 @@ module.exports = bookshelf.Model.extend(merge({
    */
   selectIdsByResponsibilities (userOrId, responsibilities) {
     const useTitles = responsibilities.some(r => typeof r === 'string' && Number.isNaN(Number(r)))
-    const throughGroupRole = MemberGroupRole.collection().query(q => {
-      q.select('group_memberships_group_roles.group_id')
-      whereId(q, userOrId, 'group_memberships_group_roles.user_id')
-      q.join('group_roles_responsibilities', 'group_roles_responsibilities.group_role_id', 'group_memberships_group_roles.group_role_id')
-      if (useTitles) {
-        q.join('responsibilities', 'responsibilities.id', 'group_roles_responsibilities.responsibility_id')
-        q.whereIn('responsibilities.title', responsibilities)
-      } else {
-        q.whereIn('group_roles_responsibilities.responsibility_id', responsibilities)
-      }
-    })
+    const throughGroupRole = bookshelf.knex('group_member_effective_roles as mgr')
+      .select('mgr.group_id')
+    whereId(throughGroupRole, userOrId, 'mgr.user_id')
+    throughGroupRole.join('group_roles_responsibilities', 'group_roles_responsibilities.group_role_id', 'mgr.group_role_id')
+    if (useTitles) {
+      throughGroupRole.join('responsibilities', 'responsibilities.id', 'group_roles_responsibilities.responsibility_id')
+      throughGroupRole.whereIn('responsibilities.title', responsibilities)
+    } else {
+      throughGroupRole.whereIn('group_roles_responsibilities.responsibility_id', responsibilities)
+    }
 
     return GroupMembership.forIds(userOrId, null, {
       query: q => {
@@ -1874,8 +1874,8 @@ module.exports = bookshelf.Model.extend(merge({
         q.where('groups.active', true)
         // Direct role on this group, or (for spaces) role on parent_id
         q.where(function () {
-          this.whereIn('groups.id', throughGroupRole.query())
-            .orWhereIn('groups.parent_id', throughGroupRole.query())
+          this.whereIn('groups.id', throughGroupRole)
+            .orWhereIn('groups.parent_id', throughGroupRole.clone())
         })
       },
       multiple: true

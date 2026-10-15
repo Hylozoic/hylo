@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { withFeatureFlag } from '../../../test/setup/helpers'
 import {
   addGroupResponsibility,
   addResponsibilityToRole,
@@ -9,11 +8,11 @@ import {
   updateGroupResponsibility
 } from './responsibilities'
 
-const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+const MEMBER_ROLE_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
 const RESERVED_TITLE_ERROR = 'A built-in responsibility already has this title'
 
 describe('responsibilities mutations', () => {
-  let administrator, member, group, memberRole, customRole, inviteMembersId
+  let administrator, member, group, memberRole, customRole, addMembersId
 
   before(async () => {
     administrator = await factories.user().save()
@@ -21,9 +20,9 @@ describe('responsibilities mutations', () => {
     group = await factories.group().save()
     await administrator.joinGroup(group, { assignAdministrator: true })
     await member.joinGroup(group)
-    memberRole = await GroupRole.findMemberRole(group.id)
+    memberRole = await GroupRole.findAllMembersRole(group.id)
     customRole = await GroupRole.forge({ group_id: group.id, name: 'Greeter', emoji: '👋', type: GroupRole.TYPE_CUSTOM, active: true }).save()
-    inviteMembersId = await Responsibility.systemId(Responsibility.constants.RESP_INVITE_MEMBERS)
+    addMembersId = await Responsibility.systemId(Responsibility.constants.RESP_ADD_MEMBERS)
   })
 
   after(async () => {
@@ -36,7 +35,7 @@ describe('responsibilities mutations', () => {
 
   describe('custom responsibility titles', () => {
     it('rejects the title of any built-in responsibility, ignoring case and spaces', async () => {
-      for (const title of ['Invite Members', ' invite members ', 'ADMINISTRATION', 'add Members']) {
+      for (const title of ['Add Members', ' add members ', 'ADMINISTRATION', 'remove Members']) {
         await expect(addGroupResponsibility({ groupId: group.id, title, userId: administrator.id }))
           .to.be.rejectedWith(RESERVED_TITLE_ERROR)
       }
@@ -51,7 +50,7 @@ describe('responsibilities mutations', () => {
 
     it('rejects renaming a custom responsibility to a built-in title', async () => {
       const responsibility = await addGroupResponsibility({ groupId: group.id, title: 'Welcome Newcomers', userId: administrator.id })
-      await expect(updateGroupResponsibility({ groupId: group.id, responsibilityId: responsibility.id, title: 'invite members', userId: administrator.id }))
+      await expect(updateGroupResponsibility({ groupId: group.id, responsibilityId: responsibility.id, title: 'add members', userId: administrator.id }))
         .to.be.rejectedWith(RESERVED_TITLE_ERROR)
       await responsibility.refresh()
       expect(responsibility.get('title')).to.equal('Welcome Newcomers')
@@ -71,9 +70,9 @@ describe('responsibilities mutations', () => {
     })
   })
 
-  describe('the implicit Member role', () => {
+  describe('the implicit All Members role', () => {
     it('cannot be given a responsibility', async () => {
-      await expect(addResponsibilityToRole({ groupId: group.id, roleId: memberRole.id, responsibilityId: inviteMembersId, userId: administrator.id }))
+      await expect(addResponsibilityToRole({ groupId: group.id, roleId: memberRole.id, responsibilityId: addMembersId, userId: administrator.id }))
         .to.be.rejectedWith(MEMBER_ROLE_ERROR)
       const links = await GroupRoleResponsibility.where({ group_role_id: memberRole.id }).count()
       expect(Number(links)).to.equal(0)
@@ -81,7 +80,7 @@ describe('responsibilities mutations', () => {
 
     it('cannot be given a responsibility through ids written in other forms Postgres reads as integers', async () => {
       for (const roleId of [`+${memberRole.id}`, `0x${Number(memberRole.id).toString(16)}`, `0_${memberRole.id}`]) {
-        await expect(addResponsibilityToRole({ groupId: group.id, roleId, responsibilityId: inviteMembersId, userId: administrator.id }), roleId)
+        await expect(addResponsibilityToRole({ groupId: group.id, roleId, responsibilityId: addMembersId, userId: administrator.id }), roleId)
           .to.be.rejectedWith('Invalid role id')
       }
       const links = await GroupRoleResponsibility.where({ group_role_id: memberRole.id }).count()
@@ -89,7 +88,7 @@ describe('responsibilities mutations', () => {
     })
 
     it('cannot have a responsibility removed', async () => {
-      const link = await GroupRoleResponsibility.forge({ group_role_id: memberRole.id, responsibility_id: inviteMembersId }).save()
+      const link = await GroupRoleResponsibility.forge({ group_role_id: memberRole.id, responsibility_id: addMembersId }).save()
       await expect(removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: link.id, userId: administrator.id }))
         .to.be.rejectedWith(MEMBER_ROLE_ERROR)
       const stillLinked = await GroupRoleResponsibility.where({ id: link.id }).fetch()
@@ -97,31 +96,12 @@ describe('responsibilities mutations', () => {
       await stillLinked.destroy()
     })
 
-    it('leaves custom roles editable, including Invite Members', async () => {
-      const link = await addResponsibilityToRole({ groupId: group.id, roleId: customRole.id, responsibilityId: inviteMembersId, userId: administrator.id })
+    it('leaves custom roles editable, including Add Members', async () => {
+      const link = await addResponsibilityToRole({ groupId: group.id, roleId: customRole.id, responsibilityId: addMembersId, userId: administrator.id })
       expect(Number(link.get('group_role_id'))).to.equal(customRole.id)
       await removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: link.id, userId: administrator.id })
       const remaining = await GroupRoleResponsibility.where({ id: link.id }).fetch()
       expect(remaining).to.be.null
-    })
-
-    it('only lets Invite Members be removed from custom roles while member invitations are switched off', async () => {
-      const manageContentId = await Responsibility.systemId(Responsibility.constants.RESP_MANAGE_CONTENT)
-      const existing = await GroupRoleResponsibility.forge({ group_role_id: customRole.id, responsibility_id: inviteMembersId }).save()
-
-      await withFeatureFlag('MEMBER_INVITES', 'off', async () => {
-        await removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: existing.id, userId: administrator.id })
-        for (const responsibilityId of [inviteMembersId, String(inviteMembersId), `+${inviteMembersId}`, `0x${Number(inviteMembersId).toString(16)}`, ` ${inviteMembersId} `]) {
-          await expect(addResponsibilityToRole({ groupId: group.id, roleId: customRole.id, responsibilityId, userId: administrator.id }))
-            .to.be.rejectedWith(GroupRole.MEMBER_INVITES_UNAVAILABLE_ERROR)
-        }
-        const links = await GroupRoleResponsibility.where({ group_role_id: customRole.id, responsibility_id: inviteMembersId }).count()
-        expect(Number(links)).to.equal(0)
-
-        const link = await addResponsibilityToRole({ groupId: group.id, roleId: customRole.id, responsibilityId: manageContentId, userId: administrator.id })
-        expect(Number(link.get('responsibility_id'))).to.equal(manageContentId)
-        await removeResponsibilityFromRole({ groupId: group.id, roleResponsibilityId: link.id, userId: administrator.id })
-      })
     })
   })
 })

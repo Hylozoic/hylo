@@ -10,7 +10,7 @@ const { expect } = require('chai')
 
 /* global ContentAccess, StripeProduct, Track, GroupRole */
 
-const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+const MEMBER_ROLE_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
 
 describe('Content Access Mutations', () => {
   let user, adminUser, group, product, track
@@ -212,7 +212,7 @@ describe('Content Access Mutations', () => {
 
   describe('grantContentAccess with a role', () => {
     it('rejects the Member role', async () => {
-      const memberRole = await GroupRole.findMemberRole(group.id)
+      const memberRole = await GroupRole.findAllMembersRole(group.id)
       await expect(grantContentAccess(adminUser.id, {
         userId: user.id,
         grantedByGroupId: group.id,

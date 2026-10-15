@@ -249,6 +249,7 @@ posts: viewPosts(
     "extractQueryResults": Object {
       "getItems": [Function],
       "getRouteParams": [Function],
+      "replace": false,
     },
     "groupId": undefined,
     "slug": undefined,
@@ -510,6 +511,7 @@ posts(
     "extractQueryResults": Object {
       "getItems": [Function],
       "getRouteParams": [Function],
+      "replace": false,
     },
     "groupId": undefined,
     "slug": undefined,

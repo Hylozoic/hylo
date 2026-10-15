@@ -317,6 +317,36 @@ describe('Notification', function () {
         .then(() => unspyify(Email, 'sendPostMentionNotification'))
     })
 
+    it('names the parent group and space in a new post email', async () => {
+      const parentGroup = await factories.group({ name: 'Parent Group', slug: `parent-post-email-${Date.now()}` }).save()
+      const space = await factories.group({
+        name: 'doughnut_economics',
+        slug: `doughnut-econ-${Date.now()}`,
+        type: 'space',
+        parent_id: parentGroup.id
+      }).save()
+      await space.members().attach(reader)
+      const spacePost = await factories.post({
+        name: 'A Space Post',
+        user_id: actor.id,
+        description: 'Posted in a space'
+      }).save()
+      await space.posts().attach(spacePost)
+      spyify(Email, 'sendPostNotification', opts => {
+        expect(opts.data.group_name).to.equal('Parent Group / doughnut_economics')
+      })
+      const notification = await preloadNotification({
+        post_id: spacePost.id,
+        meta: { reasons: [`newPost: ${space.id}`] },
+        reader_id: reader.id,
+        actor_id: actor.id,
+        group_id: space.id
+      }, Notification.MEDIUM.Email)
+      await notification.send()
+      expect(Email.sendPostNotification).to.have.been.called()
+      unspyify(Email, 'sendPostNotification')
+    })
+
     it('names a member group in a new post email when the post is also in a group the reader is not in', async () => {
       const otherGroup = await factories.group({ name: 'GroupX', slug: `group-x-${Date.now()}` }).save()
       const sharedPost = await factories.post({
