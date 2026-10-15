@@ -3,7 +3,7 @@
 import root from 'root-path'
 import setup from '../../setup'
 import factories from '../../setup/factories'
-import { expectEqualQuery, spyify, unspyify } from '../../setup/helpers'
+import { expectEqualQuery, mockify, spyify, unspyify } from '../../setup/helpers'
 
 export function myGroupIdsSqlFragment (userId) {
   return `(select "groups"."id" from "group_memberships"
@@ -732,7 +732,7 @@ describe('Group', function () {
       calendarContent = null
       // Mock writeStringToS3 to capture calendar content
       storageModule = require(root('lib/uploader/storage'))
-      spyify(storageModule, 'writeStringToS3', async (content) => {
+      mockify(storageModule, 'writeStringToS3', async (content) => {
         calendarContent = content
         return Promise.resolve({ url: 'https://example.com/calendar.ics' })
       })

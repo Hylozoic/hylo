@@ -74,12 +74,14 @@ describe('Highlight', () => {
   })
 
   it('only matches complete words (complex)', () => {
-    const html = <div>
-      <span>one cat and one doge</span>
-      <span>
-        <ul>a caterpillar and a dog</ul>
-      </span>
-    </div>
+    const html = (
+      <div>
+        <span>one cat and one doge</span>
+        <span>
+          <ul>a caterpillar and a dog</ul>
+        </span>
+      </div>
+    )
 
     render(
       <Highlight

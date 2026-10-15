@@ -39,7 +39,7 @@ const TextInput = forwardRef(({
   const onFocus = () => { props.onFocus && props.onFocus(); setActive(true) }
 
   const otherProps = omit(['onEnter', 'onBlur', 'onFocus'], props)
-  const clear = () => onChange && onChange({ target: { name, value: '' } })
+  const clear = () => onChange && onChange({ target: { name: props.name, value: '' } })
 
   // Combine forwarded ref and local ref
   useEffect(() => {

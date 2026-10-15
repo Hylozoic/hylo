@@ -15,14 +15,14 @@ class ProjectContributions extends Component {
     contributionAmount: ''
   }
 
-  toggleExpanded = () => {
+  handleToggleExpanded = () => {
     this.setState({
       expanded: !this.state.expanded,
       received: false
     })
   }
 
-  setAmount = (event) => {
+  handleAmountChange = (event) => {
     this.setState({
       contributionAmount: event.target.value.replace('$', '')
     })
@@ -40,7 +40,7 @@ class ProjectContributions extends Component {
       })
       processStripeToken(postId, token.id, contributionAmount)
         .then(({ error }) => {
-          this.setAmount({ target: { value: '0' } })
+          this.handleAmountChange({ target: { value: '0' } })
           if (error) {
             this.setState({ error: true })
           } else {
@@ -60,7 +60,7 @@ class ProjectContributions extends Component {
         {!expanded && !received && (
           <Button
             color='green'
-            onClick={this.toggleExpanded}
+            onClick={this.handleToggleExpanded}
             label={t('Contribute')}
             small
             narrow
@@ -71,7 +71,7 @@ class ProjectContributions extends Component {
             <div className={classes.amountRow}>
               <span className={classes.amountLabel}>{t('Amount')}</span>
               <TextInput
-                onChange={this.setAmount}
+                onChange={this.handleAmountChange}
                 inputRef={input => { this.amountInput = input }}
                 value={'$' + contributionAmount}
                 noClearButton
@@ -87,7 +87,7 @@ class ProjectContributions extends Component {
             <Button
               className={classes.cancelButton}
               color='gray'
-              onClick={this.toggleExpanded}
+              onClick={this.handleToggleExpanded}
               label={t('Cancel')}
               small
               narrow

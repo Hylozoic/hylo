@@ -22,7 +22,8 @@ Object {
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String],
+  $rsvpResponse: String
 ) {
   group(slug: $slug, updateLastViewed: true) {
     id
@@ -49,6 +50,7 @@ posts: viewPosts(
   search: $search,
   topic: $topic,
   topics: $topics,
+  rsvpResponse: $rsvpResponse,
   types: $types
 ) {
   hasMore
@@ -235,6 +237,7 @@ posts: viewPosts(
       "mentionsOf": undefined,
       "offset": 20,
       "order": undefined,
+      "rsvpResponse": undefined,
       "savedBy": undefined,
       "search": "gardening",
       "slug": undefined,
@@ -285,7 +288,8 @@ Object {
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String],
+  $rsvpResponse: String
 ) {
   
 posts(
@@ -312,6 +316,7 @@ posts(
   search: $search,
   topic: $topic,
   topics: $topics,
+  rsvpResponse: $rsvpResponse,
   types: $types
 ) {
   hasMore
@@ -497,6 +502,7 @@ posts(
       "mentionsOf": undefined,
       "offset": 20,
       "order": undefined,
+      "rsvpResponse": undefined,
       "savedBy": undefined,
       "search": "graphic design",
       "slug": undefined,

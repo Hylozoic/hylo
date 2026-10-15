@@ -14,8 +14,7 @@ const backendRoot = path.resolve(repoRoot, 'apps', 'backend')
 dotenv.config({ path: path.resolve(backendRoot, '.env') })
 const schemaPath = path.resolve(backendRoot, 'migrations', 'schema.sql')
 
-const DEFAULT_E2E_DB = 'hylo_e2e'
-const DANGEROUS_DB_NAMES = new Set(['hylo', 'hylo_test', 'postgres', 'template0', 'template1'])
+const DEFAULT_E2E_DB = 'hylo_e2e_test'
 
 /**
  * One logical DB name for dropdb/createdb/psql/backend. URL path wins when E2E_DATABASE_URL is set.
@@ -51,10 +50,12 @@ function resolveE2eDatabase () {
 
 const { e2eDbUrl, e2eDbName } = resolveE2eDatabase()
 
-if (DANGEROUS_DB_NAMES.has(e2eDbName.toLowerCase()) && process.env.E2E_ALLOW_DANGEROUS_DB !== '1') {
+// This runner drops, recreates and seeds the DB, so it must never touch a dev/staging/prod DB.
+// No override: any database used by tests must have "test" in its name.
+if (!/test/i.test(e2eDbName)) {
   throw new Error(
-    `[isolated-e2e] Refusing to use database "${e2eDbName}" for E2E (drop/create/seed). ` +
-      `Point E2E_DATABASE_URL at a dedicated DB (e.g. .../${DEFAULT_E2E_DB}) or set E2E_ALLOW_DANGEROUS_DB=1.`
+    `[isolated-e2e] Refusing to use database "${e2eDbName}" for E2E (drop/create/seed): ` +
+      `the name must contain "test". Point E2E_DATABASE_URL at a dedicated DB (e.g. .../${DEFAULT_E2E_DB}).`
   )
 }
 

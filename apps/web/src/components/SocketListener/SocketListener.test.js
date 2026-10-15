@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render } from 'util/testing/reactTestingLibraryExtended'
 import SocketListener from './SocketListener'
 import { getSocket, setSocket } from 'client/websockets'
 
