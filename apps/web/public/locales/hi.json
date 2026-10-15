@@ -3105,5 +3105,13 @@
   "Selected space": "चयनित स्पेस",
   "Incorrect email or password.": "ईमेल या पासवर्ड गलत है।",
   "If you signed up with Google, log in with Google instead.": "अगर आपने Google से साइन अप किया था, तो Google से लॉग इन करें।",
-  "Too many attempts. Please wait a few minutes and try again.": "बहुत अधिक प्रयास। कृपया कुछ मिनट प्रतीक्षा करें और फिर से प्रयास करें।"
+  "Too many attempts. Please wait a few minutes and try again.": "बहुत अधिक प्रयास। कृपया कुछ मिनट प्रतीक्षा करें और फिर से प्रयास करें।",
+  "Cancel email change": "ईमेल बदलना रद्द करें",
+  "Confirm your new email address": "अपने नए ईमेल पते की पुष्टि करें",
+  "Email change cancelled": "ईमेल बदलना रद्द किया गया",
+  "That email address is already in use": "यह ईमेल पता पहले से उपयोग में है",
+  "Verification code": "सत्यापन कोड",
+  "We sent a 6 digit code to {{pendingEmail}}. Until you enter it, {{email}} stays the email for logging in and notifications.": "हमने {{pendingEmail}} पर 6 अंकों का कोड भेजा है। जब तक आप इसे यहाँ दर्ज नहीं करते, लॉग इन और सूचनाओं के लिए {{email}} ही ईमेल रहेगा।",
+  "We sent a verification code to {{email}}": "हमने {{email}} पर एक सत्यापन कोड भेजा है",
+  "Your email address is now {{email}}": "आपका ईमेल पता अब {{email}} है"
 }

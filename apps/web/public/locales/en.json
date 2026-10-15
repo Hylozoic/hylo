@@ -3101,5 +3101,13 @@
   "Selected space": "Selected space",
   "Incorrect email or password.": "Incorrect email or password.",
   "If you signed up with Google, log in with Google instead.": "If you signed up with Google, log in with Google instead.",
-  "Too many attempts. Please wait a few minutes and try again.": "Too many attempts. Please wait a few minutes and try again."
+  "Too many attempts. Please wait a few minutes and try again.": "Too many attempts. Please wait a few minutes and try again.",
+  "Cancel email change": "Cancel email change",
+  "Confirm your new email address": "Confirm your new email address",
+  "Email change cancelled": "Email change cancelled",
+  "That email address is already in use": "That email address is already in use",
+  "Verification code": "Verification code",
+  "We sent a 6 digit code to {{pendingEmail}}. Until you enter it, {{email}} stays the email for logging in and notifications.": "We sent a 6 digit code to {{pendingEmail}}. Until you enter it, {{email}} stays the email for logging in and notifications.",
+  "We sent a verification code to {{email}}": "We sent a verification code to {{email}}",
+  "Your email address is now {{email}}": "Your email address is now {{email}}"
 }

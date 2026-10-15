@@ -5,6 +5,10 @@ import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 
+// TODO: this template does not exist in SendWithUs yet. Create it and replace this placeholder id.
+// Sent to the current address when someone asks to change the account email. Data: name, masked_new_email, account_settings_url
+const EMAIL_CHANGE_REQUESTED_TEMPLATE = 'tem_TODO_email_change_requested'
+
 const sendEmail = opts =>
   new Promise((resolve, reject) =>
     api.send(opts, (err, resp) => err ? reject(err) : resolve(resp)))
@@ -71,6 +75,9 @@ module.exports = {
 
   sendEmailVerification: opts =>
     sendSimpleEmail(opts.email, 'tem_h99yGHv9MXTpMrPSDVTjQFyB', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
+
+  sendEmailChangeRequested: opts =>
+    sendSimpleEmail(opts.email, EMAIL_CHANGE_REQUESTED_TEMPLATE, opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
 
   sendFinishRegistration: opts =>
     sendSimpleEmail(opts.email, 'tem_fqGSrDrSK6WpjTBFXSfY79k4', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),

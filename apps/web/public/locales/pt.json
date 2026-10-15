@@ -3105,5 +3105,13 @@
   "Selected space": "Espaço selecionado",
   "Incorrect email or password.": "E-mail ou senha incorretos.",
   "If you signed up with Google, log in with Google instead.": "Se você se cadastrou com o Google, entre com o Google.",
-  "Too many attempts. Please wait a few minutes and try again.": "Muitas tentativas. Aguarde alguns minutos e tente novamente."
+  "Too many attempts. Please wait a few minutes and try again.": "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
+  "Cancel email change": "Cancelar a alteração de e-mail",
+  "Confirm your new email address": "Confirme o seu novo endereço de e-mail",
+  "Email change cancelled": "Alteração de e-mail cancelada",
+  "That email address is already in use": "Esse endereço de e-mail já está em uso",
+  "Verification code": "Código de verificação",
+  "We sent a 6 digit code to {{pendingEmail}}. Until you enter it, {{email}} stays the email for logging in and notifications.": "Enviamos um código de 6 dígitos para {{pendingEmail}}. Até que você o insira, {{email}} continua sendo o e-mail para login e notificações.",
+  "We sent a verification code to {{email}}": "Enviamos um código de verificação para {{email}}",
+  "Your email address is now {{email}}": "Seu endereço de e-mail agora é {{email}}"
 }
