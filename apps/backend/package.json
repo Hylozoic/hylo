@@ -63,6 +63,8 @@
   },
   "dependencies": {
     "@airbnb/node-memwatch": "^3.0.0",
+    "@atproto/crypto": "0.5.7",
+    "@atproto/syntax": "0.7.6",
     "@babel/core": "^7.17.9",
     "@babel/preset-env": "^7.16.11",
     "@babel/register": "^7.17.7",
@@ -179,6 +181,7 @@
       "Affiliation",
       "Analytics",
       "AssetManagement",
+      "AtprotoIdentity",
       "BlockedUser",
       "Comment",
       "CommentTag",

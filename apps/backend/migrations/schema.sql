@@ -290,6 +290,45 @@ ALTER SEQUENCE public.agreements_id_seq OWNED BY public.agreements.id;
 
 
 --
+-- Name: atproto_identities; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.atproto_identities (
+    id integer NOT NULL,
+    user_id bigint NOT NULL,
+    did character varying(255) NOT NULL,
+    handle character varying(255) NOT NULL,
+    status character varying(255) DEFAULT 'pending'::character varying NOT NULL,
+    signing_key_public character varying(255) NOT NULL,
+    signing_key_encrypted text NOT NULL,
+    genesis_op jsonb,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    tombstoned_at timestamp with time zone
+);
+
+
+--
+-- Name: atproto_identities_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.atproto_identities_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: atproto_identities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.atproto_identities_id_seq OWNED BY public.atproto_identities.id;
+
+
+--
 -- Name: blocked_users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3541,6 +3580,13 @@ ALTER TABLE ONLY public.agreements ALTER COLUMN id SET DEFAULT nextval('public.a
 
 
 --
+-- Name: atproto_identities id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.atproto_identities ALTER COLUMN id SET DEFAULT nextval('public.atproto_identities_id_seq'::regclass);
+
+
+--
 -- Name: blocked_users id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4093,6 +4139,30 @@ ALTER TABLE ONLY public.activities
 
 ALTER TABLE ONLY public.agreements
     ADD CONSTRAINT agreements_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: atproto_identities atproto_identities_did_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.atproto_identities
+    ADD CONSTRAINT atproto_identities_did_unique UNIQUE (did);
+
+
+--
+-- Name: atproto_identities atproto_identities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.atproto_identities
+    ADD CONSTRAINT atproto_identities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: atproto_identities atproto_identities_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.atproto_identities
+    ADD CONSTRAINT atproto_identities_user_id_unique UNIQUE (user_id);
 
 
 --
@@ -4976,6 +5046,13 @@ ALTER TABLE ONLY public.zapier_triggers
 
 
 --
+-- Name: atproto_identities_handle_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX atproto_identities_handle_unique ON public.atproto_identities USING btree (handle) WHERE ((status)::text <> 'tombstoned'::text);
+
+
+--
 -- Name: blocked_users_blocked_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5748,6 +5825,14 @@ ALTER TABLE ONLY public.activities
 
 ALTER TABLE ONLY public.activities
     ADD CONSTRAINT activity_reader_id_foreign FOREIGN KEY (reader_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: atproto_identities atproto_identities_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.atproto_identities
+    ADD CONSTRAINT atproto_identities_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --

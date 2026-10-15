@@ -101,6 +101,10 @@ module.exports = bookshelf.Model.extend(merge({
     return returnData
   },
 
+  atprotoIdentity: function () {
+    return this.hasOne(AtprotoIdentity, 'user_id')
+  },
+
   comments: function () {
     return this.hasMany(Comment)
       .query(q => {

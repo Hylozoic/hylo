@@ -71,6 +71,11 @@ const mockStripeClient = {
   }
 }
 
+// The @atproto packages are ESM-only. Load them synchronously here so that when mocha
+// import()s a single test file, Babel's require() of them doesn't hit a half-loaded module.
+require('@atproto/crypto')
+require('@atproto/syntax')
+
 // Mock require.cache for 'stripe' module
 const Module = require('module')
 const originalRequire = Module.prototype.require
