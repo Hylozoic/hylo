@@ -1,0 +1,2 @@
+# Pinned AiaB checkout; its state/ holds credentials and the private CA key.
+.aiab/

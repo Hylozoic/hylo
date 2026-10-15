@@ -1,0 +1,11 @@
+{
+  "name": "atproto-plc-spike",
+  "private": true,
+  "type": "module",
+  "description": "Phase 0 spike: mint and resolve a did:plc against the AiaB PLC",
+  "dependencies": {
+    "@atproto/crypto": "0.5.7",
+    "@atproto/identity": "0.5.16",
+    "@did-plc/lib": "0.0.4"
+  }
+}
