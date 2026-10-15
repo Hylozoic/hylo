@@ -202,6 +202,9 @@ Group.fields = {
   moreSpacesCount: attr(),
   icon: attr(),
   id: attr(),
+  invitePath: attr(),
+  inviteLinks: attr(),
+  invitePolicy: attr(),
   joinQuestions: many('GroupJoinQuestion'),
   location: attr(),
   locationObject: fk({
@@ -210,6 +213,9 @@ Group.fields = {
   }),
   members: many('Person'),
   memberCount: attr(),
+  memberRole: attr(),
+  myInviteAccess: attr(),
+  myInviteAllowance: attr(),
   openJoinRequestCount: attr(),
   openModerationActionCount: attr(),
   stewards: many({

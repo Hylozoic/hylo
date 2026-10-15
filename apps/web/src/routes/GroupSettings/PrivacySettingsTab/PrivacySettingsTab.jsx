@@ -69,9 +69,9 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
   const updateSettingDirectly = (key, changed) => value =>
     updateSetting(key, changed)({ target: { value } })
 
-  const save = async () => {
+  const save = () => {
     setState({ ...state, changed: false })
-    updateGroupSettings({ ...state.edits })
+    updateGroupSettings(state.edits)
   }
 
   const { setHeaderDetails } = useViewHeader()

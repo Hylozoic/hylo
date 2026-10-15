@@ -11,6 +11,8 @@ async function assertNotSpace (groupId) {
   }
 }
 
+const RESERVED_TITLE_ERROR = 'A built-in responsibility already has this title'
+
 export async function addGroupResponsibility ({ groupId, title, description, userId }) {
   if (!userId) throw new GraphQLError('No userId passed into function')
 
@@ -18,6 +20,7 @@ export async function addGroupResponsibility ({ groupId, title, description, use
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+      if (await Responsibility.isSystemTitle(title)) throw new GraphQLError(RESERVED_TITLE_ERROR)
       return Responsibility.forge({ group_id: groupId, title, description, type: 'group' }).save().then((savedGroupResponsibility) => savedGroupResponsibility)
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to create group responsibility')
@@ -35,6 +38,8 @@ export async function updateGroupResponsibility ({ responsibilityId, title, desc
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       return bookshelf.transaction(async transacting => {
         const groupResponsibility = await Responsibility.where({ id: responsibilityId }).fetch()
+        const titleChanged = title && title.trim().toLowerCase() !== (groupResponsibility.get('title') || '').trim().toLowerCase()
+        if (titleChanged && await Responsibility.isSystemTitle(title)) throw new GraphQLError(RESERVED_TITLE_ERROR)
         const updatedAttributes = {
           title: title || groupResponsibility.get('title'),
           description: description || groupResponsibility.get('description')
@@ -77,6 +82,7 @@ export async function addResponsibilityToRole ({ userId, responsibilityId, roleI
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+      await GroupRole.assertAssignableRoleIds([roleId])
       return GroupRoleResponsibility.forge({ group_role_id: roleId, responsibility_id: responsibilityId }).save().then((savedRoleResponsibility) => savedRoleResponsibility)
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to add responsibility to role')
@@ -97,6 +103,7 @@ export async function removeResponsibilityFromRole ({ userId, roleResponsibility
         return q.where('id', roleResponsibilityId)
       })
         .fetch()
+      await GroupRole.assertAssignableRoleIds([roleResponsibility?.get('group_role_id')])
       return roleResponsibility.destroy()
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to remove responsibility from role')

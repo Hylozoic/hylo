@@ -49,6 +49,12 @@ function notificationSettingsFromMembership (membership) {
 const DEFAULT_BANNER = '/default-group-banner.svg'
 const DEFAULT_AVATAR = '/default-group-avatar.svg'
 
+// GroupInput.invitePolicy is 'everyone' or 'stewards'
+function invitePolicyFromData (policy) {
+  if (policy && typeof policy === 'object') return policy.mode
+  return policy
+}
+
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'groups',
   requireFetch: false,
@@ -954,6 +960,10 @@ module.exports = bookshelf.Model.extend(merge({
       !!this.getSetting('auto_add_members') &&
       !wasAutoAdd
     await bookshelf.transaction(async transacting => {
+      if (changes.invite_policy) {
+        await GroupRole.setInvitePolicy(this.id, invitePolicyFromData(changes.invite_policy), { transacting })
+      }
+
       if (changes.agreements && this.get('type') !== 'space' && !this.get('parent_id')) {
         const currentAgreementIds = (await this.agreements().fetch({ transacting })).pluck('id')
         const newAgreementIds = []
@@ -1378,7 +1388,7 @@ module.exports = bookshelf.Model.extend(merge({
     const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/all'
 
     // eslint-disable-next-line camelcase
-    const access_code = attrs.access_code || await Group.getNewAccessCode()
+    const access_code = attrs.access_code || await GroupInviteLink.generateCode()
     const group = new Group(merge(attrs, {
       access_code,
       created_at: new Date(),
@@ -1392,6 +1402,18 @@ module.exports = bookshelf.Model.extend(merge({
       await group.save(null, { transacting: trx })
 
       await GroupRole.setupSystemRoles(group.id, { transacting: trx })
+      await GroupInviteLink.createForGroup(group.id, {
+        userId,
+        accessCode: group.get('access_code'),
+        grantAccess: true,
+        system: true
+      }, { transacting: trx })
+
+      if (data.invite_policy) {
+        await GroupRole.setInvitePolicy(group.id, invitePolicyFromData(data.invite_policy), { transacting: trx })
+      } else if (group.get('type') !== 'space') {
+        await GroupRole.setInvitePolicy(group.id, GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY, { transacting: trx })
+      }
 
       if (data.group_extensions) {
         for (const extData of data.group_extensions) {
@@ -1834,17 +1856,16 @@ module.exports = bookshelf.Model.extend(merge({
    */
   selectIdsByResponsibilities (userOrId, responsibilities) {
     const useTitles = responsibilities.some(r => typeof r === 'string' && Number.isNaN(Number(r)))
-    const throughGroupRole = MemberGroupRole.collection().query(q => {
-      q.select('group_memberships_group_roles.group_id')
-      whereId(q, userOrId, 'group_memberships_group_roles.user_id')
-      q.join('group_roles_responsibilities', 'group_roles_responsibilities.group_role_id', 'group_memberships_group_roles.group_role_id')
-      if (useTitles) {
-        q.join('responsibilities', 'responsibilities.id', 'group_roles_responsibilities.responsibility_id')
-        q.whereIn('responsibilities.title', responsibilities)
-      } else {
-        q.whereIn('group_roles_responsibilities.responsibility_id', responsibilities)
-      }
-    })
+    const throughGroupRole = bookshelf.knex('group_member_effective_roles as mgr')
+      .select('mgr.group_id')
+    whereId(throughGroupRole, userOrId, 'mgr.user_id')
+    throughGroupRole.join('group_roles_responsibilities', 'group_roles_responsibilities.group_role_id', 'mgr.group_role_id')
+    if (useTitles) {
+      throughGroupRole.join('responsibilities', 'responsibilities.id', 'group_roles_responsibilities.responsibility_id')
+      throughGroupRole.whereIn('responsibilities.title', responsibilities)
+    } else {
+      throughGroupRole.whereIn('group_roles_responsibilities.responsibility_id', responsibilities)
+    }
 
     return GroupMembership.forIds(userOrId, null, {
       query: q => {
@@ -1853,8 +1874,8 @@ module.exports = bookshelf.Model.extend(merge({
         q.where('groups.active', true)
         // Direct role on this group, or (for spaces) role on parent_id
         q.where(function () {
-          this.whereIn('groups.id', throughGroupRole.query())
-            .orWhereIn('groups.parent_id', throughGroupRole.query())
+          this.whereIn('groups.id', throughGroupRole)
+            .orWhereIn('groups.parent_id', throughGroupRole.clone())
         })
       },
       multiple: true
