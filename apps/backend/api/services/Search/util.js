@@ -297,7 +297,10 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   if (sortBy === 'join') {
     q.orderBy('group_memberships.created_at', order || 'desc')
   } else if (!sortBy || sortBy === 'name') {
-    q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
+    // Users with no name (null, empty or whitespace only) always go last,
+    // whichever direction the names are sorted in
+    q.orderByRaw('(coalesce("users"."name", \'\') !~ \'\\S\') asc')
+    q.orderByRaw(`lower(trim("users"."name")) ${order || 'asc'}`)
   } else {
     q.orderByRaw(`${sortBy} ${order || 'asc'} NULLS LAST`)
   }
