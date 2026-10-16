@@ -20,6 +20,7 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import Button from 'components/ui/button'
+import RetainedAccessPanel from 'components/RetainedAccessPanel/RetainedAccessPanel'
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import checkInvitation from 'store/actions/checkInvitation'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
+import rejoinGroup from 'store/actions/rejoinGroup'
 import { FETCH_GROUP_DETAILS, RESP_ADMINISTRATION } from 'store/constants'
 import {
   accessibilityDescription,
@@ -41,6 +43,7 @@ import {
   DEFAULT_BANNER,
   DEFAULT_AVATAR,
   GROUP_TYPES,
+  isRetainedAccessGroup,
   visibilityDescription,
   visibilityIcon,
   visibilityString
@@ -55,7 +58,7 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
-import { groupUrl, localSpaceSlug, personUrl, removeGroupFromUrl, spaceUrl } from '@hylo/navigation'
+import { groupUrl, localSpaceSlug, personUrl, removeGroupFromUrl, spaceHomeRoutePath, spaceUrl } from '@hylo/navigation'
 import joinSpace from 'store/actions/joinSpace'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -220,6 +223,29 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
   const [showSpaceSettings, setShowSpaceSettings] = useState(false)
   const isSpace = group?.type === GROUP_TYPES.space
+  const hasActiveParentMembership = !isSpace || myMemberships.some(m => String(m.group?.id) === String(parentGroup?.id))
+  const hasRetainedAccess = isRetainedAccessGroup(group)
+  const [rejoining, setRejoining] = useState(false)
+  const [rejoinError, setRejoinError] = useState(false)
+
+  const handleRejoin = useCallback(async () => {
+    if (!group?.id || !hasActiveParentMembership) return
+    setRejoinError(false)
+    setRejoining(true)
+    try {
+      await dispatch(rejoinGroup(group.id))
+      if (isSpace && parentGroup?.slug) {
+        const localSlug = localSpaceSlug(parentGroup.slug, group.slug)
+        navigate(spaceUrl(parentGroup.slug, localSlug, spaceHomeRoutePath(group)))
+      } else {
+        navigate(`/groups/${group.slug}${group.homeRoute || '/all'}`)
+      }
+    } catch (error) {
+      setRejoinError(true)
+    } finally {
+      setRejoining(false)
+    }
+  }, [dispatch, group, hasActiveParentMembership, isSpace, navigate, parentGroup?.slug])
 
   const handleCopyAgreementsLink = useCallback(() => {
     const url = `${window.location.origin}${groupUrl(group.slug, 'about')}#agreements`
@@ -465,7 +491,18 @@ function GroupDetail ({ forCurrentGroup = false }) {
             </Button>
           </div>
         )}
-        {!isAboutCurrentGroup
+        {hasRetainedAccess && (
+          <RetainedAccessPanel
+            group={group}
+            isSpace={isSpace}
+            parentGroup={parentGroup}
+            hasActiveParentMembership={hasActiveParentMembership}
+            onRejoin={handleRejoin}
+            rejoining={rejoining}
+            error={rejoinError}
+          />
+        )}
+        {!hasRetainedAccess && !isAboutCurrentGroup
           ? group.paywall
             ? (
               <div>

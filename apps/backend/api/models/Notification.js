@@ -123,7 +123,7 @@ module.exports = bookshelf.Model.extend({
   },
 
   send: async function () {
-    if (await this.shouldBeBlocked()) {
+    if (await this.shouldBeBlocked() || await this.isForGroupsReaderLeft()) {
       this.destroy()
       return
     }
@@ -1295,6 +1295,16 @@ module.exports = bookshelf.Model.extend({
         transition_text: L.textForFundingRoundReminder({ reminderType })
       }
     })
+  },
+
+  // A notification about a post or comment can be queued before the reader leaves the group it
+  // was posted in. Don't send it if they've since left all of the post's groups (see
+  // Activity.formerMemberIds); new ones are never created for them.
+  isForGroupsReaderLeft: async function () {
+    const activity = this.relations.activity
+    if (!this.get('user_id') || !activity || !(activity.get('post_id') || activity.get('comment_id'))) return false
+    const formerMemberIds = await Activity.formerMemberIds([this.get('user_id')], Activity.groupIds(activity))
+    return formerMemberIds.size > 0
   },
 
   shouldBeBlocked: async function () {
