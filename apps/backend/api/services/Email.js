@@ -6,12 +6,8 @@ import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 
 // Sent to the current address when someone asks to change the account email. Data: name, masked_new_email, account_settings_url
-// TODO: this template does not exist in SendWithUs yet. Its source is scripts/i18n/i18n-templates/Email_Change_Requested_i18n/
-// (translations in scripts/i18n/sendwithus-locales/*.po). Create it with
-//   node scripts/i18n/upload-new-template.js --template=Email_Change_Requested_i18n
-// then replace this placeholder with the template ID it prints, tag the template "i18n", publish it, and run
-//   node scripts/i18n/upload-po-files.js --tag i18n
-const EMAIL_CHANGE_REQUESTED_TEMPLATE = 'tem_TODO_email_change_requested'
+// Source: scripts/i18n/i18n-templates/Email_Change_Requested_i18n/ (translations in scripts/i18n/sendwithus-locales/*.po)
+const EMAIL_CHANGE_REQUESTED_TEMPLATE = 'tem_gfCWyJRpp6Q996d6ykVgJKCW'
 
 const sendEmail = opts =>
   new Promise((resolve, reject) =>
