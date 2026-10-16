@@ -109,6 +109,11 @@ exports.fr = {
     }
     return `${reminderMessages[reminderType] || 'Échéance proche'}`
   },
+  publicListingApprovedSubject: (name) => `Votre groupe ${name} a été ajouté aux communs`,
+  publicListingDeniedSubject: (name) => `Mise à jour de votre demande d’ajout de ${name} aux communs`,
+  publicListingApprovedBody: (name) => `Bonne nouvelle ! ${name} a été ajouté aux communs. Votre groupe apparaît désormais dans l’explorateur de groupes public et sur la carte publique, et les membres peuvent partager des publications dans le fil public.`,
+  publicListingDeniedBody: (name) => `Merci d’avoir demandé l’ajout de ${name} aux communs. Après examen de votre demande, l’équipe Hylo a décidé de ne pas l’ajouter pour le moment. Votre groupe reste inchangé et vous pouvez envoyer une nouvelle demande depuis les paramètres Confidentialité et accès de votre groupe.`,
+  publicListingReviewerNote: () => 'Un mot de l’équipe Hylo :',
   theTeamAtHylo: 'L’équipe Hylo',
   stripeContributionProductName: () => 'Choisissez votre contribution Hylo',
   stripeContributionProductDescription: () => 'Choisissez votre niveau de contribution pour soutenir la plateforme Hylo.',
