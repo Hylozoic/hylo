@@ -1266,3 +1266,19 @@ msgstr "अगली कॉल में शामिल हों →"
 #, python-format
 msgid "Congratulations on creating %(group_name)s!"
 msgstr "%(group_name)s बनाने के लिए बधाई!"
+
+#, python-format
+msgid "Someone asked to change the email address for your Hylo account to %(masked_new_email)s. Nothing changes unless that address is verified."
+msgstr "किसी ने आपके Hylo खाते का ईमेल पता बदलकर %(masked_new_email)s करने का अनुरोध किया है। जब तक उस पते का सत्यापन नहीं हो जाता, कुछ नहीं बदलेगा।"
+
+msgid "If this wasn’t you, sign in and cancel the change in your account settings, change your password, and contact us."
+msgstr "अगर यह आप नहीं थे, तो साइन इन करें और अपनी खाता सेटिंग्स में यह बदलाव रद्द करें, अपना पासवर्ड बदलें और हमसे संपर्क करें।"
+
+msgid "Review your account settings"
+msgstr "अपनी खाता सेटिंग्स देखें"
+
+msgid "If you made this request, there’s nothing else to do here. Just enter the code we sent to your new address."
+msgstr "अगर यह अनुरोध आपने किया है, तो यहाँ और कुछ करने की ज़रूरत नहीं है। बस वह कोड दर्ज करें जो हमने आपके नए पते पर भेजा है।"
+
+msgid "A change to your Hylo account email was requested"
+msgstr "आपके Hylo खाते का ईमेल बदलने का अनुरोध किया गया है"

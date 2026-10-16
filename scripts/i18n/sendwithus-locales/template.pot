@@ -1363,3 +1363,25 @@ msgid ""
 "%(group_name_var)s is hosted on Hylo, the home of purpose-driven "
 "collaboration!"
 msgstr ""
+
+#, python-format
+msgid ""
+"Someone asked to change the email address for your Hylo account to "
+"%(masked_new_email)s. Nothing changes unless that address is verified."
+msgstr ""
+
+msgid ""
+"If this wasn’t you, sign in and cancel the change in your account settings, "
+"change your password, and contact us."
+msgstr ""
+
+msgid "Review your account settings"
+msgstr ""
+
+msgid ""
+"If you made this request, there’s nothing else to do here. Just enter the "
+"code we sent to your new address."
+msgstr ""
+
+msgid "A change to your Hylo account email was requested"
+msgstr ""
