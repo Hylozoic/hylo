@@ -5,7 +5,7 @@ import sentry from '../../lib/sentry'
 import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
 import { getLocaleStrings } from '../../lib/i18n/locales'
-import { senderNameForGroup, senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
+import { ensureGroupParent, groupDisplayNameWithParent, senderNameForGroup, senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -15,6 +15,13 @@ const STALE_NOTIFICATION_CLAIM_MINUTES = 30
 function routeToPath (routeURL) {
   const parsed = new URL(routeURL)
   return parsed.pathname + parsed.search
+}
+
+// Subject location for new-post emails. Spaces include the parent group:
+// "Parent Group > space name". Regular groups stay as the group name.
+async function groupNameForNewPostEmail (group) {
+  await ensureGroupParent(group)
+  return groupDisplayNameWithParent(group)
 }
 
 // Returns the best group to use for a notification (push deep link or email).
@@ -582,7 +589,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         announcement: true,
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-        group_name: group.get('name'),
+        group_name: await groupNameForNewPostEmail(group),
         post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Announcement', { userId: reader.id })
       }
@@ -615,7 +622,7 @@ module.exports = bookshelf.Model.extend({
       },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-        group_name: group.get('name'),
+        group_name: await groupNameForNewPostEmail(group),
         post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Post', { userId: reader.id })
       }

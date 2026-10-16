@@ -1,6 +1,6 @@
 import React from 'react'
 import orm from 'store/models'
-import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Members from './Members'
 
 function testProviders () {

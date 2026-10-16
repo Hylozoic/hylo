@@ -544,6 +544,46 @@ describe('graphql request handler', () => {
       expect(groupNames).to.not.include(`Private Group ${suffix}`)
     })
 
+    it('shows only public posts on an opted-in public profile', async () => {
+      const person = await factories.user({
+        name: 'Public Poster',
+        is_profile_public: true
+      }).save()
+      const group = await factories.group({ visibility: Group.Visibility.PUBLIC }).save()
+      await group.addMembers([person.id])
+      const publicPost = await factories.post({
+        user_id: person.id,
+        type: Post.Type.DISCUSSION,
+        is_public: true,
+        name: 'Visible post'
+      }).save()
+      const privatePost = await factories.post({
+        user_id: person.id,
+        type: Post.Type.DISCUSSION,
+        is_public: false,
+        name: 'Hidden post'
+      }).save()
+      await group.posts().attach(publicPost)
+      await group.posts().attach(privatePost)
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          person(id: "${person.id}") {
+            posts(first: 10, order: "desc", sortBy: "created") {
+              items { id isPublic }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.be.ok
+      const ids = executionResult.data.person.posts.items.map(post => post.id)
+      expect(ids).to.include(String(publicPost.id))
+      expect(ids).to.not.include(String(privatePost.id))
+      expect(executionResult.data.person.posts.items.every(post => post.isPublic)).to.equal(true)
+    })
+
     it('allows checkInvitation', async () => {
       const { executionResult } = await handler.inject({
         document: `{

@@ -166,7 +166,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
   /**
    * Anonymous visitors only reach people through public content (post and comment creators, etc.).
    * They can see who wrote it (id, name, avatar, banner, tagline) but nothing else from the profile.
-   * Opted-in public profiles are the exception: bio, links, skills, and public group memberships stay visible.
+   * Opted-in public profiles are the exception: bio, links, skills, public group memberships, and public posts stay visible.
    * Contact info stays hidden either way.
    */
   const fieldsReturning = (value, fields) => Object.fromEntries(fields.map(f => [f, () => value]))
@@ -607,8 +607,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
               topic,
               topics,
               types
-            }) =>
-              relation.query(q => {
+            }) => {
+              // Anonymous viewers only get this list for an opted-in public profile.
+              // postFilter still limits those posts to ones marked public.
+              allowPublicProfileRelation(relation)
+              return relation.query(q => {
                 filterAndSortPosts({
                   activePostsOnly,
                   afterTime,
@@ -639,6 +642,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 q.groupBy('posts.id')
                 q.orderBy('posts.id', order === 'asc' ? 'asc' : 'desc')
               })
+            }
           }
         },
         { projects: { querySet: true } },

@@ -17,7 +17,7 @@ function testProviders () {
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: jest.fn().mockReturnValue({ name: 'Philharmonic', token: 'hjkhkjhkjh' }),
+  useParams: jest.fn().mockReturnValue({ name: 'Philharmonic', token: 'hjkhkjhkjh' })
   // useLocation: jest.fn().mockReturnValue({  })
 }))
 

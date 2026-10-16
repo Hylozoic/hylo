@@ -242,10 +242,10 @@ module.exports = {
         hasMore = hasMore_
 
         const ids = transform(items, (ids, item) => {
-          const type = item.post_id ? 'posts' : item.comment_id ? 'comments' : 'people'
+          const type = item.group_id ? 'groups' : item.post_id ? 'posts' : item.comment_id ? 'comments' : 'people'
 
           if (!ids[type]) ids[type] = []
-          const id = item.post_id || item.comment_id || item.user_id
+          const id = item.group_id || item.post_id || item.comment_id || item.user_id
           ids[type].push(id)
         }, {})
 
@@ -253,8 +253,9 @@ module.exports = {
           ids.posts && Post.where('id', 'in', ids.posts).fetchAll(),
           ids.comments && Comment.where('id', 'in', ids.comments).fetchAll(),
           ids.people && User.where('id', 'in', ids.people).fetchAll(),
-          (posts, comments, people) =>
-            items.map(presentResult(posts, comments, people))
+          ids.groups && Group.where('id', 'in', ids.groups).fetchAll(),
+          (posts, comments, people, groups) =>
+            items.map(presentResult(posts, comments, people, groups))
         )
       })
       .then(models => ({ models, hasMore }))
@@ -268,8 +269,13 @@ const fetchGroupAccess = (userId, { groupIds }) => {
 
 const obfuscate = text => Buffer.from(text).toString('hex')
 
-const presentResult = (posts, comments, people) => item => {
-  if (item.user_id) {
+const presentResult = (posts, comments, people, groups) => item => {
+  if (item.group_id) {
+    return {
+      id: obfuscate(`group_id-${item.group_id}`),
+      content: groups.find(g => g.id === item.group_id)
+    }
+  } else if (item.user_id) {
     return {
       id: obfuscate(`user_id-${item.user_id}`),
       content: people.find(p => p.id === item.user_id)

@@ -3,7 +3,7 @@
 # Postgres tutorial: https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers
 # Redis uses the same `services:` + `ports:` pattern as Postgres (not the Marketplace action below).
 # Alternative for Redis only: https://github.com/marketplace/actions/redis-server-in-github-actions
-# Hylo: `run-isolated-e2e.js` passes env (incl. REDIS_URL) to the backend; DB `hylo_e2e` from E2E_DATABASE_URL.
+# Hylo: `run-isolated-e2e.js` passes env (incl. REDIS_URL) to the backend; DB `hylo_e2e_test` from E2E_DATABASE_URL.
 name: Playwright E2E
 
 on:
@@ -36,7 +36,7 @@ env:
   # Surface [Hylo GraphQL] / checkLogin in CI logs when auth routes flake
   E2E_FORWARD_BROWSER_LOGS: '1'
   # Runner talks to the service on localhost (mapped port). Last path segment = DB name for isolated runner.
-  E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hylo_e2e
+  E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hylo_e2e_test
   PGSSLMODE: disable
   # Sails session store (`config/session.js`); not for production.
   REDIS_URL: redis://localhost:6379
