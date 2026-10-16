@@ -3,10 +3,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { TextHelpers } from '@hylo/shared'
+import { completionTextToHTML } from 'util/completionResponse'
 import { formatUserDatePair } from 'util/dateFormat'
 import { FileManager } from 'components/AttachmentManager/FileManager'
 import CardFileAttachments from 'components/CardFileAttachments'
 import ClickCatcher from 'components/ClickCatcher'
+import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
@@ -176,6 +178,10 @@ export default function ActionCompletionSection ({ post, currentUser }) {
     setCompletionResponse(post.completionResponse)
   }, [post.completedAt, post.completionResponse])
 
+  const handleTextResponseUpdate = useCallback((html) => {
+    setCompletionResponse(hasVisibleCompletionMessage(html) ? [html] : [])
+  }, [])
+
   const handleUploadAttachment = useCallback((attachments) => {
     setCompletionResponse(attachments.map(a => ({ id: a.id, url: a.url })))
   }, [])
@@ -232,9 +238,21 @@ export default function ActionCompletionSection ({ post, currentUser }) {
       alreadyCompletedMessage = t('You selected:')
       break
     case 'text':
-      completionControls = <textarea type='text' className='w-full outline-none border-border border-2 bg-input rounded-md p-2' value={completionResponse} onChange={(e) => setCompletionResponse([e.target.value])} />
+      completionControls = (
+        <HyloEditor
+          key={`completion-response-${post.id}-${isEditing}`}
+          contentHTML={completionTextToHTML(completionResponse?.[0])}
+          className='w-full min-h-20 bg-input border-border border-2 rounded-md mb-2'
+          groupIds={post.groups?.map(g => g.id).filter(Boolean)}
+          onUpdate={handleTextResponseUpdate}
+          placeholder={t('Write your response')}
+          showMenu
+          type='postCompletion'
+        />
+      )
       completionButtonText = 'Submit'
       alreadyCompletedMessage = t('Your response was:')
+      completionResponseText = <ClickCatcher><HyloHTML html={completionTextToHTML(completionResponse?.[0])} className='mb-2' /></ClickCatcher>
       break
     case 'uploadFile':
       completionControls = (
