@@ -1726,15 +1726,19 @@ module.exports = bookshelf.Model.extend(merge({
       })
   },
 
-  // Tells the Hylo team (NEW_GROUP_EMAIL) that a group wants to be added to the commons
+  // Tells the Hylo team (NEW_GROUP_EMAIL) that a group wants to be added to the commons.
+  // Runs as its own job, separate from messageAdminsAboutPublicListingRequest, so a
+  // retry after a failed send can't repeat the admins' in-app message.
   notifyAboutPublicListingRequest: async function ({ groupId }) {
     const recipient = process.env.NEW_GROUP_EMAIL
-    if (!recipient) return false
-    const group = await Group.find(groupId)
-    const request = group && group.getSetting('public_listing_request')
+    if (!recipient) {
+      sails.log.warn(`Group.notifyAboutPublicListingRequest: NEW_GROUP_EMAIL is not set, no email sent for group ${groupId}`)
+      return false
+    }
+    const { group, request } = await Group.findPublicListingRequest(groupId, 'notifyAboutPublicListingRequest')
     if (!request) return false
     const requester = await User.find(request.requested_by_id)
-    return Email.sendRawEmail({
+    const sent = await Email.sendRawEmail({
       email: recipient,
       data: {
         subject: `Commons request: ${group.get('name')}`,
@@ -1754,15 +1758,53 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
     })
+    // sendRawEmail swallows SendWithUs errors; throw so the job is retried and reported
+    if (!sent) throw new Error(`Group.notifyAboutPublicListingRequest: email for group ${groupId} failed to send`)
+    return sent
+  },
+
+  // Sends every Hylo admin (HYLO_ADMINS) one Axolotl direct message about a new commons
+  // request, in a single thread like flagged-content alerts (flaggedItem/notifyUtils)
+  messageAdminsAboutPublicListingRequest: async function ({ groupId }) {
+    const adminIds = (process.env.HYLO_ADMINS || '').split(',').map(id => Number(id.trim())).filter(id => id > 0)
+    if (adminIds.length === 0) {
+      sails.log.warn(`Group.messageAdminsAboutPublicListingRequest: HYLO_ADMINS is not set, no message sent for group ${groupId}`)
+      return false
+    }
+    const { group, request } = await Group.findPublicListingRequest(groupId, 'messageAdminsAboutPublicListingRequest')
+    if (!request) return false
+    const requester = await User.find(request.requested_by_id)
+    const text = [
+      `${escape(requester ? requester.get('name') : 'Someone')} asked to add ${escape(group.get('name'))} to the commons.`,
+      request.message && `Message: ${escape(request.message)}`,
+      `Review requests: ${Frontend.Route.managementCommonsRequests()}`
+    ].filter(Boolean).join('\n')
+    return MessagingService.sendMessageFromAxolotl(adminIds, text)
+  },
+
+  // Loads a group's commons request for a notification job, warning when it's gone
+  findPublicListingRequest: async function (groupId, jobName) {
+    const group = await Group.find(groupId)
+    const request = group && group.getSetting('public_listing_request')
+    if (!request) {
+      sails.log.warn(`Group.${jobName}: no commons request found for group ${groupId}`)
+    }
+    return { group, request }
   },
 
   // Emails the steward who asked to join the commons whether they were approved or denied
   sendPublicListingDecision: async function ({ groupId }) {
-    const group = await Group.find(groupId)
-    const request = group && group.getSetting('public_listing_request')
-    if (!request || !['approved', 'denied'].includes(request.status)) return false
+    const { group, request } = await Group.findPublicListingRequest(groupId, 'sendPublicListingDecision')
+    if (!request) return false
+    if (!['approved', 'denied'].includes(request.status)) {
+      sails.log.warn(`Group.sendPublicListingDecision: commons request for group ${groupId} is ${request.status}, not reviewed`)
+      return false
+    }
     const requester = await User.find(request.requested_by_id)
-    if (!requester || !requester.get('email')) return false
+    if (!requester || !requester.get('email')) {
+      sails.log.warn(`Group.sendPublicListingDecision: requester ${request.requested_by_id} for group ${groupId} has no email`)
+      return false
+    }
     const L = getLocaleStrings(requester.getLocale())
     const approved = request.status === 'approved'
     const groupName = escape(group.get('name'))
@@ -1771,7 +1813,7 @@ module.exports = bookshelf.Model.extend(merge({
       request.review_message && `<br/>\n${L.publicListingReviewerNote()}<br/>\n${escape(request.review_message)}`,
       `<br/>\n${Frontend.Route.groupSettings(group)}/privacy`
     ].filter(Boolean).join('<br/>\n')
-    return Email.sendRawEmail({
+    const sent = await Email.sendRawEmail({
       email: requester.get('email'),
       data: {
         subject: approved ? L.publicListingApprovedSubject(group.get('name')) : L.publicListingDeniedSubject(group.get('name')),
@@ -1781,6 +1823,9 @@ module.exports = bookshelf.Model.extend(merge({
         sender: { name: L.theTeamAtHylo }
       }
     })
+    // sendRawEmail swallows SendWithUs errors; throw so the job is retried and reported
+    if (!sent) throw new Error(`Group.sendPublicListingDecision: email for group ${groupId} failed to send`)
+    return sent
   },
 
   sendGroupCreatedEmail: function (opts) {

@@ -53,7 +53,16 @@ export async function requestPublicListing (userId, groupId, message) {
     requested_by_id: String(userId)
   })
 
-  await Queue.classMethod('Group', 'notifyAboutPublicListingRequest', { groupId: group.id })
+  // Email and in-app message are separate jobs: a failure or retry of one doesn't
+  // affect the other. The request is already saved and visible in the Management
+  // tracker, so a queueing error is logged rather than failing the steward's request.
+  for (const method of ['notifyAboutPublicListingRequest', 'messageAdminsAboutPublicListingRequest']) {
+    try {
+      await Queue.classMethod('Group', method, { groupId: group.id })
+    } catch (err) {
+      sails.log.error(`requestPublicListing: could not queue Group.${method} for group ${group.id}`, err)
+    }
+  }
   return group
 }
 
