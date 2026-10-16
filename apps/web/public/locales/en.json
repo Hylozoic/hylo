@@ -3107,5 +3107,7 @@
   "Boundary drawn. Use the pen to redraw it.": "Boundary drawn. Use the pen to redraw it.",
   "Click the map to add points. Click the first point or press Enter to finish.": "Click the map to add points. Click the first point or press Enter to finish.",
   "Remove boundary": "Remove boundary",
-  "The map could not be loaded in this browser.": "The map could not be loaded in this browser."
+  "The map could not be loaded in this browser.": "The map could not be loaded in this browser.",
+  "Space area: {{name}}": "Space area: {{name}}",
+  "Group area: {{name}}": "Group area: {{name}}"
 }

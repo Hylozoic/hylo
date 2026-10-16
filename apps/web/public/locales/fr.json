@@ -3110,5 +3110,7 @@
   "Boundary drawn. Use the pen to redraw it.": "Limite dessinée. Utilisez le crayon pour la redessiner.",
   "Click the map to add points. Click the first point or press Enter to finish.": "Cliquez sur la carte pour ajouter des points. Cliquez sur le premier point ou appuyez sur Entrée pour terminer.",
   "Remove boundary": "Supprimer la limite",
-  "The map could not be loaded in this browser.": "La carte n'a pas pu être chargée dans ce navigateur."
+  "The map could not be loaded in this browser.": "La carte n'a pas pu être chargée dans ce navigateur.",
+  "Space area: {{name}}": "Zone de l'espace : {{name}}",
+  "Group area: {{name}}": "Zone du groupe : {{name}}"
 }

@@ -694,8 +694,8 @@ export function makeMutations ({ fetchOne }) {
     createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context) =>
       createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context),
 
-    updateSpace: (root, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context) =>
-      updateSpace(context.currentUserId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context),
+    updateSpace: (root, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, geoShape, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context) =>
+      updateSpace(context.currentUserId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, geoShape, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context),
 
     archiveSpace: (root, { id }, context) => archiveSpace(context.currentUserId, id, context),
 
