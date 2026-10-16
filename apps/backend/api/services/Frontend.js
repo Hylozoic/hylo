@@ -365,6 +365,10 @@ module.exports = {
       return url('/signup/verify-email?email=%s&token=%s', encodeURIComponent(email), token)
     },
 
+    verifyEmailChange: function (token) {
+      return url('/my/account?emailChangeToken=%s', token)
+    },
+
     emailPostForm: function () {
       return url('/noo/hook/postForm')
     },
