@@ -45,6 +45,7 @@ import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
+import { isRetainedAccessGroup } from 'store/models/Group'
 import { getSignupInProgress } from 'store/selectors/getSignupState'
 import { getLastViewedGroupPath } from 'store/selectors/getLastViewedGroup'
 import { isSpaceGroup } from 'store/selectors/getMyGroups'
@@ -190,6 +191,7 @@ export default function AuthLayoutRouter (props) {
   const dispatch = useDispatch()
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
+  const currentGroupHasRetainedAccess = isRetainedAccessGroup(currentGroup)
   const groupViews = useGroupViews(currentGroup)
   const onWelcomePath = Boolean(
     currentGroupSlug &&
@@ -1105,8 +1107,10 @@ export default function AuthLayoutRouter (props) {
                        instead of a bare spinner. */
                     currentGroupLoading && !paramPostId && !groupInviteBypass
                       ? <RouteBootstrapSkeleton />
-                      : currentGroupSlug && !currentGroupMembership
-                        ? <GroupDetail context='groups' group={currentGroup} />
+                      : currentGroupSlug && !currentGroupMembership && !pathMatchParams?.spaceSlug
+                        ? currentGroupHasRetainedAccess && location.pathname !== `/groups/${currentGroupSlug}/about`
+                          ? <Navigate to={`/groups/${currentGroupSlug}/about${location.search}`} replace />
+                          : <GroupDetail context='groups' group={currentGroup} />
                         : (
                           <Routes>
                             <Route path='spaces/:spaceSlug/*' element={<SpaceContent parentGroup={currentGroup} isOneColumnGroup={isOneColumnGroup} />} />
