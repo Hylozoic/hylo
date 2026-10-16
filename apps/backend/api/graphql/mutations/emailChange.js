@@ -89,6 +89,12 @@ export async function startEmailChange (user, email, { ip } = {}) {
   await recordAttempt('sendEmailVerification', { email: currentEmail })
 
   const code = crypto.randomInt(0, 1000000).toString().padStart(6, '0')
+  // Build everything the emails need before storing the request, so a failure here can't leave
+  // a pending change that no email was ever sent for
+  const token = user.generateJWT({ purpose: TOKEN_PURPOSE, email, code })
+  const verifyUrl = Frontend.Route.verifyEmailChange(token)
+  const locale = user.getLocale()
+
   await user.save({
     settings: {
       ...user.get('settings'),
@@ -96,15 +102,12 @@ export async function startEmailChange (user, email, { ip } = {}) {
     }
   }, { patch: true })
 
-  const token = user.generateJWT({ purpose: TOKEN_PURPOSE, email, code })
-  const verifyUrl = Frontend.Route.verifyEmailChange(token)
-  const locale = user.getLocale()
-
   if (process.env.NODE_ENV === 'development') {
     console.log(`!!! Email change verification for user ${user.id} to ${email} -- code: ${code} link: ${verifyUrl}`)
   }
 
-  Queue.classMethod('Email', 'sendEmailVerification', {
+  // Awaited so a failure to queue the emails surfaces as an error instead of a silent success
+  await Queue.classMethod('Email', 'sendEmailVerification', {
     email,
     locale,
     version: 'with link',
@@ -115,7 +118,7 @@ export async function startEmailChange (user, email, { ip } = {}) {
   })
 
   // Never include the code or link here: whoever reads the old inbox must not be able to complete the change
-  Queue.classMethod('Email', 'sendEmailChangeRequested', {
+  await Queue.classMethod('Email', 'sendEmailChangeRequested', {
     email: currentEmail,
     locale,
     templateData: {
@@ -124,6 +127,8 @@ export async function startEmailChange (user, email, { ip } = {}) {
       account_settings_url: Frontend.Route.evo.passwordSetting()
     }
   })
+
+  sails.log.info(`Email change requested by user ${user.id}: queued verification and notice emails (locale ${locale})`)
 
   return user
 }
