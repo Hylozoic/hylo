@@ -1,0 +1,17 @@
+{% snippet 'header_redesign' %}
+{% set user_name = name %}
+<p>{% trans %}Hi {{user_name}}{% endtrans %},</p>
+
+<p>{% trans %}Someone asked to change the email address for your Hylo account to {{masked_new_email}}. Nothing changes unless that address is verified.{% endtrans %}</p>
+
+<p>{% trans %}If this wasn’t you, sign in and cancel the change in your account settings, change your password, and contact us.{% endtrans %}</p>
+
+<a class='btn btn-blue' href="{{account_settings_url}}" clicktracking="off">{% trans %}Review your account settings{% endtrans %}</a>
+<br/>
+
+<p style='font-size: 10px'>{% trans %}If the link above doesnt work you can copy and paste this link into your browser:{% endtrans %} </p>
+<a name='dontautlink' style='font-size: 10px; color: black; text-decoration: none; word-wrap: break-word; word-break: break-word;'>{{account_settings_url}}</a>
+
+<p style='text-align: center; margin-top: 20px; font-size: 12px;'>{% trans %}If you made this request, there’s nothing else to do here. Just enter the code we sent to your new address.{% endtrans %}</p>
+
+{% snippet 'footer_redesign' %}

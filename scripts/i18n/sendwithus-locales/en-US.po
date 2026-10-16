@@ -1361,3 +1361,19 @@ msgstr "Join the Next Call →"
 #, python-format
 msgid "Congratulations on creating %(group_name)s!"
 msgstr "Congratulations on creating %(group_name)s!"
+
+#, python-format
+msgid "Someone asked to change the email address for your Hylo account to %(masked_new_email)s. Nothing changes unless that address is verified."
+msgstr "Someone asked to change the email address for your Hylo account to %(masked_new_email)s. Nothing changes unless that address is verified."
+
+msgid "If this wasn’t you, sign in and cancel the change in your account settings, change your password, and contact us."
+msgstr "If this wasn’t you, sign in and cancel the change in your account settings, change your password, and contact us."
+
+msgid "Review your account settings"
+msgstr "Review your account settings"
+
+msgid "If you made this request, there’s nothing else to do here. Just enter the code we sent to your new address."
+msgstr "If you made this request, there’s nothing else to do here. Just enter the code we sent to your new address."
+
+msgid "A change to your Hylo account email was requested"
+msgstr "A change to your Hylo account email was requested"
