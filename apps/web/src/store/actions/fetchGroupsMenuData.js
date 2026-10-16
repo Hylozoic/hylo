@@ -110,9 +110,14 @@ query FetchGroupsMenuData (
             description
             purpose
             location
+            geoShape
             locationObject {
               id
               fullText
+              center {
+                lat
+                lng
+              }
             }
             acceptedPostTypes
             visibility
@@ -200,9 +205,14 @@ query FetchGroupsMenuData (
           description
           purpose
           location
+          geoShape
           locationObject {
             id
             fullText
+            center {
+              lat
+              lng
+            }
           }
           acceptedPostTypes
           visibility

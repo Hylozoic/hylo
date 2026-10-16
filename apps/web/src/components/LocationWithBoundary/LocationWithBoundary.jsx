@@ -41,6 +41,11 @@ export default function LocationWithBoundary ({
   const [browserCenter, setBrowserCenter] = useState(null)
   const editorRef = useRef(null)
 
+  // A boundary that arrives after mount (settings loading the space) opens the editor
+  useEffect(() => {
+    if (geoShape) setShowMap(true)
+  }, [geoShape])
+
   useEffect(() => {
     if (!showMap) return
     editorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
@@ -77,21 +82,19 @@ export default function LocationWithBoundary ({
           onChange={onLocationChange}
           saveLocationToDB={saveLocationToDB}
           placeholder={placeholder}
-          className={cn(inputClassName, 'pr-28')}
+          className={cn(inputClassName, !showMap && 'pr-28')}
         />
-        <button
-          type='button'
-          onClick={() => setShowMap(true)}
-          aria-pressed={showMap}
-          className={cn(
-            'absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-semibold transition-colors',
-            showMap || geoShape ? 'text-selected' : 'text-foreground/50 hover:text-foreground hover:bg-foreground/5'
-          )}
-          data-testid='draw-boundary'
-        >
-          <VectorPolygonIcon className='w-3.5 h-3.5' />
-          {t('Draw boundary')}
-        </button>
+        {!showMap && (
+          <button
+            type='button'
+            onClick={() => setShowMap(true)}
+            className='absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-semibold text-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors'
+            data-testid='draw-boundary'
+          >
+            <VectorPolygonIcon className='w-3.5 h-3.5' />
+            {t('Draw boundary')}
+          </button>
+        )}
       </div>
       {showMap && (
         <div ref={editorRef} className='flex flex-col gap-2' data-testid='boundary-editor'>

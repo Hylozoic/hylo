@@ -368,6 +368,16 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           accessibility
           status
           active
+          location
+          geoShape
+          locationObject {
+            id
+            fullText
+            center {
+              lat
+              lng
+            }
+          }
           settings {
             agreementsLastUpdatedAt
             allowGroupInvites
@@ -397,11 +407,11 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
 }
 
 /** Update a space's settings. */
-export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall, status, autoAddMembers }) {
+export function updateSpace ({ id, groupId, spaceViewId, name, slug, description, icon, acceptedPostTypes, viewName, purpose, location, locationId, geoShape, visibility, accessibility, requiredRoles, bannerUrl, avatarUrl, paywall, status, autoAddMembers }) {
   return {
     type: UPDATE_SPACE,
     graphql: {
-      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $status: GroupStatus, $autoAddMembers: Boolean) {
+      query: `mutation ($id: ID!, $name: String, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $geoShape: String, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $status: GroupStatus, $autoAddMembers: Boolean) {
         updateSpace(
           id: $id
           name: $name
@@ -412,6 +422,7 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           purpose: $purpose
           location: $location
           locationId: $locationId
+          geoShape: $geoShape
           visibility: $visibility
           accessibility: $accessibility
           requiredRoles: $requiredRoles
@@ -437,9 +448,14 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           status
           active
           location
+          geoShape
           locationObject {
             id
             fullText
+            center {
+              lat
+              lng
+            }
           }
           settings {
             agreementsLastUpdatedAt
@@ -458,7 +474,7 @@ export function updateSpace ({ id, groupId, spaceViewId, name, slug, description
           }
         }
       }`,
-      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), bannerUrl, avatarUrl, paywall, status, autoAddMembers })
+      variables: omitBy(isUndefined, { id, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, geoShape, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), bannerUrl, avatarUrl, paywall, status, autoAddMembers })
     },
     meta: {
       id,
