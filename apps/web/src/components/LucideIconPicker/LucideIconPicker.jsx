@@ -1,30 +1,33 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, icons } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 
 import LucideIcon from 'components/LucideIcon/LucideIcon'
+import { useLucideIcons } from 'components/LucideIcon/lucideIconSet'
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from 'components/ui/tooltip'
 import { cn } from 'util/index'
 
-const ICON_NAMES = Object.keys(icons).sort()
 const ICONS_BATCH_SIZE = 80
 
 /** Searchable picker for Lucide icon names (PascalCase strings stored on GroupView.icon).
  * Pass `trigger` to replace the default value-labelled button with a custom element. */
 export default function LucideIconPicker ({ value, onChange, className, trigger }) {
   const { t } = useTranslation()
+  const icons = useLucideIcons()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [visibleCount, setVisibleCount] = useState(ICONS_BATCH_SIZE)
 
+  const iconNames = useMemo(() => (icons ? Object.keys(icons).sort() : []), [icons])
+
   const filteredIcons = useMemo(() => {
     const query = search.trim().toLowerCase()
-    if (!query) return ICON_NAMES
-    return ICON_NAMES.filter(name => name.toLowerCase().includes(query))
-  }, [search])
+    if (!query) return iconNames
+    return iconNames.filter(name => name.toLowerCase().includes(query))
+  }, [search, iconNames])
 
   const visibleIcons = useMemo(
     () => filteredIcons.slice(0, visibleCount),
@@ -45,7 +48,7 @@ export default function LucideIconPicker ({ value, onChange, className, trigger 
   }, [filteredIcons.length])
 
   const handleSelect = (iconName) => {
-    const match = ICON_NAMES.find(name => name.toLowerCase() === iconName.toLowerCase()) || iconName
+    const match = iconNames.find(name => name.toLowerCase() === iconName.toLowerCase()) || iconName
     onChange(match)
     setOpen(false)
     setSearch('')
@@ -86,7 +89,9 @@ export default function LucideIconPicker ({ value, onChange, className, trigger 
         />
         <div className='max-h-64 overflow-y-auto' onScroll={handleScroll}>
           {visibleIcons.length === 0 && (
-            <div className='py-4 text-center text-sm text-foreground/60'>{t('No icon found')}</div>
+            <div className='py-4 text-center text-sm text-foreground/60'>
+              {icons ? t('No icon found') : t('Loading...')}
+            </div>
           )}
           <TooltipProvider delayDuration={300}>
             <div className='grid grid-cols-6 gap-1'>

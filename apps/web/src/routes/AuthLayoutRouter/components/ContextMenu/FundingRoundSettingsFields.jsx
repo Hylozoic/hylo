@@ -38,6 +38,8 @@ export default function FundingRoundSettingsFields ({
   setHideFinalResults,
   requireBudget,
   setRequireBudget,
+  showRealtimeSubmissions,
+  setShowRealtimeSubmissions,
   showRealtimeVotes,
   setShowRealtimeVotes,
   submitterRoles,
@@ -176,6 +178,20 @@ export default function FundingRoundSettingsFields ({
           <Label htmlFor='fr-require-budget' className='cursor-pointer font-normal'>
             {t('Show budget field for submissions')}
           </Label>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Checkbox
+            id='fr-show-realtime-submissions'
+            checked={!!showRealtimeSubmissions}
+            onCheckedChange={checked => setShowRealtimeSubmissions(!!checked)}
+          />
+          <Label htmlFor='fr-show-realtime-submissions' className='cursor-pointer font-normal'>
+            {t('Show all submissions to members during the submissions phase')}
+          </Label>
+          <InfoButton
+            className='text-foreground/50'
+            content={t('By default, members only see their own submissions until submissions close. Admins always see every submission.')}
+          />
         </div>
         <div className='flex items-center gap-2'>
           <Checkbox

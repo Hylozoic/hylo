@@ -118,7 +118,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'Hylo',
   slug: 'hylo-mobile-leap',
   scheme: 'hyloapp',
-  version: '7.0.3',
+  version: '7.0.4',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',

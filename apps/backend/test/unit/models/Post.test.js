@@ -613,6 +613,25 @@ describe('Post', function () {
       expect(createGroupEventCalendarSubscriptionsSpy).to.have.been.called
     })
 
+    it('does not email an RSVP when silent', async () => {
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvp = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventCreated({
+        postId: post.id,
+        eventInviteeIds,
+        userId: user.id,
+        params,
+        silent: true
+      })
+
+      expect(postInstance.sendUserRsvp).to.not.have.been.called
+      expect(postInstance.createGroupEventCalendarSubscriptions).to.have.been.called
+    })
+
     it('returns early if post is not found', async () => {
       Post.find = spy(() => Promise.resolve(null))
 

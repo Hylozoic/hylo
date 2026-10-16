@@ -104,6 +104,9 @@ import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
 
+/** Chat, action, and submission are not limited by a group's acceptedPostTypes. */
+const UNRESTRICTED_POST_TYPES = ['action', 'chat', 'submission']
+
 /** First post type as shown in PostTypeSelect (POST_TYPES order), among allowed types. */
 function firstDropdownPostType (allowedPostTypes) {
   const dropdownOrder = Object.keys(POST_TYPES).filter(type => type !== 'action' && type !== 'chat')
@@ -114,6 +117,7 @@ function firstDropdownPostType (allowedPostTypes) {
 /** Returns true when a group/space accepts the given post type (null acceptedPostTypes = all). */
 function groupAcceptsPostType (group, postType) {
   if (!group || !postType) return false
+  if (UNRESTRICTED_POST_TYPES.includes(postType)) return true
   const types = normalizeAcceptedPostTypes(group.acceptedPostTypes)
   if (types == null) return true
   if (types.length === 0) return false
@@ -224,9 +228,10 @@ function PostEditorInner ({
     if (fromGroup == null) return fromView
     // Typed views (track-actions, funding-round-submissions) keep their post type even when
     // the space has empty acceptedPostTypes (track/FR spaces do not use stream post types).
+    // Submission, action, and chat stay available even when the space lists other types.
     if (fromView != null) {
       if (fromGroup.length === 0) return fromView
-      return fromView.filter(type => fromGroup.includes(type))
+      return fromView.filter(type => fromGroup.includes(type) || UNRESTRICTED_POST_TYPES.includes(type))
     }
     return fromGroup
   }, [editing, allowedPostTypesForView, currentGroup?.acceptedPostTypes])
@@ -249,6 +254,7 @@ function PostEditorInner ({
   const createPostType = (() => {
     const fallback = firstDropdownPostType(allowedPostTypes)
     if (!postType) return fallback
+    if (UNRESTRICTED_POST_TYPES.includes(postType)) return postType
     if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
     return postType
   })()
@@ -407,7 +413,7 @@ function PostEditorInner ({
   const [dateError, setDateError] = useState(false)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
-  // Memberships plus the current parent group and its spaces (menu + off-menu).
+  // Joined groups and spaces, plus the current parent group. Unjoined spaces are omitted.
   // Reads Group inside an ORM selector so parentId hydrates when spaces load.
   const destinationGroups = useSelector(state => getPostEditorDestinationGroups(state, currentParentGroupId))
   const groupOptions = useMemo(() => {
@@ -415,15 +421,18 @@ function PostEditorInner ({
     const ensureGroup = (group) => {
       if (!group?.id || group.status === 'archived') return
       if (groups.some(g => sameGroupId(g.id, group.id))) return
+      // Once we know the user, only spaces they have joined are destinations.
+      if (isSpaceGroup(group) && currentUser && !destinationGroups.some(g => sameGroupId(g.id, group.id))) return
       groups.push(group)
     }
     ensureGroup(currentGroup)
     // Always keep the parent group available as a To destination when in a space
     if (inSpace) ensureGroup(routeParentGroup)
     return groups
-  }, [destinationGroups, currentGroup, inSpace, routeParentGroup])
+  }, [destinationGroups, currentGroup, currentUser, inSpace, routeParentGroup])
   const isAction = currentPost.type === 'action'
   const isSubmission = currentPost.type === 'submission'
+  const isChat = currentPost.type === 'chat'
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
@@ -512,19 +521,41 @@ function PostEditorInner ({
       return
     }
 
-    const mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
+    let mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
+    // Chat edits only restore the body. Type and the other post fields stay as saved.
+    if (editing && initialPost.type === 'chat') {
+      mergedPost = {
+        ...initialPost,
+        details: mergedPost.details,
+        linkPreview: mergedPost.linkPreview,
+        linkPreviewFeatured: mergedPost.linkPreviewFeatured,
+        skipLinkPreview: mergedPost.skipLinkPreview,
+        type: 'chat'
+      }
+    }
     applyPostToEditor(mergedPost)
   }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON])
 
   useEffect(() => {
     if (editing || !currentGroup?.id) return
     if (toFieldTouchedRef.current) return
+    const currentSpaceIsJoined = !isSpaceGroup(currentGroup) ||
+      !currentUser ||
+      destinationGroups.some(g => sameGroupId(g.id, currentGroup.id))
+    if (!currentSpaceIsJoined) {
+      setCurrentPost(prev => {
+        const groups = (prev.groups || []).filter(g => !sameGroupId(g?.id, currentGroup.id))
+        if (groups.length === (prev.groups || []).length) return prev
+        return { ...prev, groups }
+      })
+      return
+    }
     setCurrentPost(prev => {
       const hasCurrentGroup = prev.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (hasCurrentGroup) return prev
       return { ...prev, groups: [currentGroup, ...(prev.groups || [])] }
     })
-  }, [currentGroup, editing, setCurrentPost])
+  }, [currentGroup, currentUser, destinationGroups, editing, setCurrentPost])
 
   // Flush pending details into currentPost on unmount so drafts are not truncated.
   useEffect(() => () => {
@@ -705,7 +736,13 @@ function PostEditorInner ({
 
   useEffect(() => {
     if (autoFocus) {
-      setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+      setTimeout(() => {
+        if (initialPost.type === 'chat') {
+          editorRef.current?.focus?.('end')
+        } else if (titleInputRef.current) {
+          titleInputRef.current.focus()
+        }
+      }, 100)
     }
     return () => {
       dispatch(clearLinkPreview())
@@ -713,7 +750,8 @@ function PostEditorInner ({
     }
   }, [])
 
-  // Membership spaces (every group) plus the current parent's space list for siblings
+  // Membership groups and spaces, plus the current parent's space list so joined
+  // spaces pick up parentId for the To field.
   const hasFetchedToFieldDataRef = useRef(false)
   useEffect(() => {
     if (hasFetchedToFieldDataRef.current) return
@@ -825,7 +863,13 @@ function PostEditorInner ({
     setIsDirty(false)
     if (autoFocus) {
       toFieldRef?.current?.reset()
-      setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+      setTimeout(() => {
+        if (initialPost.type === 'chat') {
+          editorRef.current?.focus?.('end')
+        } else if (titleInputRef.current) {
+          titleInputRef.current.focus()
+        }
+      }, 100)
     } else {
       toFieldRef?.current?.reset()
     }
@@ -1070,6 +1114,7 @@ function PostEditorInner ({
    * Determines if the current form state is valid for submission
    * Checks various conditions based on post type and sets error messages
    */
+  const attachmentCount = imageAttachments.length + fileAttachments.length
   const isValid = useMemo(() => {
     const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions } = currentPost
 
@@ -1096,7 +1141,12 @@ function PostEditorInner ({
         break
     }
 
-    if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
+    if (type === 'chat') {
+      // Chat posts have no title. Text or an attachment is enough.
+      if (!hasDescription && attachmentCount === 0) {
+        errorMessages.push(t('Chat must have text or an attachment'))
+      }
+    } else if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
       errorMessages.push(t('Title is required'))
     }
 
@@ -1109,7 +1159,7 @@ function PostEditorInner ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions])
+  }, [attachmentCount, hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -1154,9 +1204,13 @@ function PostEditorInner ({
         timezone,
         title,
         topics,
-        type
+        type: postType
       } = currentPost
-      const details = editorRef.current.getHTML()
+      // Editing a chat never converts it to another post type.
+      const type = editing && editingPost?.type === 'chat' ? 'chat' : postType
+      const rawDetails = editorRef.current.getHTML()
+      // Empty TipTap HTML would render as a blank line on attachment-only chat posts.
+      const details = type === 'chat' && !hasDraftContent(rawDetails) ? '' : rawDetails
       const topicNames = topics?.map((t) => t.name)
       const memberIds = members?.map((m) => m.id) || []
       if (type === 'project') {
@@ -1197,7 +1251,7 @@ function PostEditorInner ({
         imageAttachments, // For optimistic display of the new post
         imageUrls,
         isAnonymousVote,
-        isPublic,
+        isPublic: type === 'submission' ? false : isPublic,
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
@@ -1252,7 +1306,7 @@ function PostEditorInner ({
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -1322,7 +1376,7 @@ function PostEditorInner ({
    * @returns {boolean} - True if user has admin rights in all selected groups
    */
   const canMakeAnnouncement = useCallback(() => {
-    if (currentPost.type === 'action' || currentPost.type === 'submission') return false
+    if (currentPost.type === 'action' || currentPost.type === 'submission' || currentPost.type === 'chat') return false
     const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
     for (let index = 0; index < groups.length; index++) {
@@ -1331,7 +1385,7 @@ function PostEditorInner ({
     return true
   }, [currentPost, myAdminGroups])
 
-  const canHaveTimes = !['discussion', 'action', 'submission'].includes(currentPost.type)
+  const canHaveTimes = !['discussion', 'action', 'submission', 'chat'].includes(currentPost.type)
   const eventTimezone = currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
   const startTimePickerValue = currentPost.startTime
     ? DateTimeHelpers.toPickerDate(currentPost.startTime, eventTimezone)
@@ -1389,23 +1443,27 @@ function PostEditorInner ({
       />
       {editorTourInvitation}
       <div className={cn('PostEditorHeader relative')} data-tour='post-type'>
-        {isAction
+        {isChat
           ? (
-            <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
+            <div>{t('Editing Chat')}</div>
             )
-          : isSubmission
+          : isAction
             ? (
-              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') })}</div>
+              <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
               )
-            : (
-              <PostTypeSelect
-                allowedPostTypes={allowedPostTypes}
-                disabled={loading}
-                postType={currentPost.type}
-                setPostType={handlePostTypeSelection}
-                className={cn({ hidden: !!currentFundingRound })}
-              />
-              )}
+            : isSubmission
+              ? (
+                <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') })}</div>
+                )
+              : (
+                <PostTypeSelect
+                  allowedPostTypes={allowedPostTypes}
+                  disabled={loading}
+                  postType={currentPost.type}
+                  setPostType={handlePostTypeSelection}
+                  className={cn({ hidden: !!currentFundingRound })}
+                />
+                )}
       </div>
       {showSubmissionCriteria && (
         <div className='flex flex-col gap-2 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-xs text-foreground/80'>
@@ -1433,7 +1491,7 @@ function PostEditorInner ({
           )}
         </div>
       )}
-      {!isAction && !isSubmission && (
+      {!isAction && !isSubmission && !isChat && (
         <div
           className={cn('PostEditorTo flex w-full items-center bg-input rounded p-1 border-2 border-transparent transition-all', { 'border-2 border-focus': toFieldFocused })}
           data-tour='post-to'
@@ -1455,28 +1513,30 @@ function PostEditorInner ({
           </div>
         </div>
       )}
-      <div className={cn('PostEditorTitle flex w-full items-center bg-input rounded p-1 transition-all border-2 border-transparent', { 'border-2 border-focus': titleFocused })}>
-        <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
-        <input
-          type='text'
-          className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
-          value={currentPost.title || ''}
-          onChange={handleTitleChange}
-          disabled={loading}
-          ref={titleInputRef}
-          maxLength={MAX_TITLE_LENGTH}
-          onFocus={() => setTitleFocused(true)}
-          onBlur={() => setTitleFocused(false)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && event.altKey) {
-              doSave()
-            }
-          }}
-        />
-        {titleLengthError && (
-          <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
-        )}
-      </div>
+      {!isChat && (
+        <div className={cn('PostEditorTitle flex w-full items-center bg-input rounded p-1 transition-all border-2 border-transparent', { 'border-2 border-focus': titleFocused })}>
+          <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
+          <input
+            type='text'
+            className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
+            value={currentPost.title || ''}
+            onChange={handleTitleChange}
+            disabled={loading}
+            ref={titleInputRef}
+            maxLength={MAX_TITLE_LENGTH}
+            onFocus={() => setTitleFocused(true)}
+            onBlur={() => setTitleFocused(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && event.altKey) {
+                doSave()
+              }
+            }}
+          />
+          {titleLengthError && (
+            <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
+          )}
+        </div>
+      )}
       <div
         className={cn(
           'PostEditorContent w-full bg-input rounded p-1',
@@ -1549,7 +1609,7 @@ function PostEditorInner ({
           />
         </div>
       </div> */}
-      {!isAction && !isSubmission && (
+      {!isAction && !isSubmission && !isChat && (
         <div className='PostEditorPublic flex w-full items-center bg-input rounded p-1' data-tour='post-public'>
           <PublicToggle
             togglePublic={togglePublic}
@@ -1772,7 +1832,7 @@ function PostEditorInner ({
           setCurrentPost={setCurrentPost}
         />
       )}
-      {showLocation && (
+      {showLocation && !isChat && (
         <div className={cn('flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2')}>
           <div className='text-xs text-foreground/50'>{locationLabel}</div>
           <LocationInput

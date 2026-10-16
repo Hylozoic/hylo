@@ -1,7 +1,6 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import VerifyEmail from './VerifyEmail'
-import { useLocation } from 'react-router-dom'
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),

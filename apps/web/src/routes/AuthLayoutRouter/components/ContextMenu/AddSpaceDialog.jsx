@@ -215,6 +215,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(false)
   const [frHideFinalResults, setFrHideFinalResults] = useState(false)
   const [frRequireBudget, setFrRequireBudget] = useState(false)
+  const [frShowRealtimeSubmissions, setFrShowRealtimeSubmissions] = useState(false)
   const [frShowRealtimeVotes, setFrShowRealtimeVotes] = useState(false)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState('Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState('Submissions')
@@ -483,6 +484,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
           requireBudget: frRequireBudget,
+          showRealtimeSubmissions: frShowRealtimeSubmissions,
           showRealtimeVotes: frShowRealtimeVotes,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
@@ -577,7 +579,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, geoShape, postTypes, access, accessOptions, requiredRoles, autoAddMembers, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, geoShape, postTypes, access, accessOptions, requiredRoles, autoAddMembers, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeSubmissions, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   /** True when the user has entered anything beyond the form's initial defaults. */
   const hasEnteredData = useCallback(() => {
@@ -944,6 +946,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               setHideFinalResults={setFrHideFinalResults}
               requireBudget={frRequireBudget}
               setRequireBudget={setFrRequireBudget}
+              showRealtimeSubmissions={frShowRealtimeSubmissions}
+              setShowRealtimeSubmissions={setFrShowRealtimeSubmissions}
               showRealtimeVotes={frShowRealtimeVotes}
               setShowRealtimeVotes={setFrShowRealtimeVotes}
               submitterRoles={frSubmitterRoles}

@@ -27,6 +27,7 @@ export default gql`
       numSubmissions
       phase
       requireBudget
+      showRealtimeSubmissions
       showRealtimeVotes
       submissionDescriptor
       submissionDescriptorPlural

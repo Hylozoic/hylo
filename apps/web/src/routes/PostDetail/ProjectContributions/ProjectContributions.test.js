@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import ProjectContributions from './ProjectContributions'
 
 describe('ProjectContributions', () => {
@@ -25,7 +25,7 @@ describe('ProjectContributions', () => {
   })
 
   it.skip('renders received message', async () => {
-    const { rerender } = render(<ProjectContributions {...defaultProps} />)
+    render(<ProjectContributions {...defaultProps} />)
     fireEvent.click(screen.getByText('Contribute'))
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '10' } })
 
@@ -39,7 +39,7 @@ describe('ProjectContributions', () => {
   })
 
   it.skip('renders error message', async () => {
-    const { rerender } = render(<ProjectContributions {...defaultProps} />)
+    render(<ProjectContributions {...defaultProps} />)
     fireEvent.click(screen.getByText('Contribute'))
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '10' } })
 

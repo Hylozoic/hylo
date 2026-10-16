@@ -17,6 +17,7 @@ export function buildFundingRound () {
     maxTokenAllocation: 40,
     minTokenAllocation: 1,
     requireBudget: true,
+    showRealtimeSubmissions: false,
     submissionDescriptor: 'Project',
     submissionDescriptorPlural: 'Projects',
     numParticipants: 28,

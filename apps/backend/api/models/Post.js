@@ -1387,7 +1387,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     Queue.classMethod('Post', 'publishPostUpdates', { postId, options }, 0)
   },
 
-  processEventCreated: async function ({ postId, eventInviteeIds, userId, params }) {
+  processEventCreated: async function ({ postId, eventInviteeIds, userId, params, silent }) {
     const post = await Post.find(postId)
     if (!post) return
 
@@ -1406,7 +1406,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
     await post.updateEventInvitees({ eventInviteeIds: inviteeIds, inviterId: userId, params })
     await post.createGroupEventCalendarSubscriptions()
     const ownerInvitation = await EventInvitation.find({ userId, eventId: postId }) || eventInvitation
-    await post.sendUserRsvp({ eventInvitationId: ownerInvitation.id, eventChanges: { new: true } })
+    if (!silent) {
+      await post.sendUserRsvp({ eventInvitationId: ownerInvitation.id, eventChanges: { new: true } })
+    }
     Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
   },
 

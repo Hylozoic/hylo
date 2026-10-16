@@ -22,4 +22,11 @@ export function loadSandboxSeedSync (buildFn) {
 }
 
 export { materializeTimestamps } from './helpers'
-export * from './constants'
+export {
+  MAIN_GROUP_MEMBER_COUNT,
+  MAIN_GROUP_SLUG,
+  PLACEHOLDER_COPY,
+  PLACEHOLDER_NAME,
+  SIMPLE_GROUP_SLUG,
+  STAFF_GROUP_SLUG
+} from './constants'
