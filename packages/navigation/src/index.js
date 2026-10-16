@@ -220,13 +220,22 @@ export function groupViewPath (view) {
   }
 }
 
-/** Normalize a GroupView from a plain object or Bookshelf model. */
+/**
+ * Normalize a GroupView from a plain object or Bookshelf model.
+ * Bookshelf rows store the target as post_id / user_id. Copy those onto
+ * viewPost / viewUser so home routes keep /post/:id and /members/:id.
+ */
 function normalizeGroupView (view) {
   if (!view) return null
-  if (typeof view.get === 'function') {
-    return { type: view.get('type'), id: view.get('id') }
+  if (typeof view.get !== 'function') return view
+  const postId = view.get('post_id')
+  const userId = view.get('user_id')
+  return {
+    type: view.get('type'),
+    id: view.get('id'),
+    ...(postId != null && postId !== '' ? { viewPost: { id: postId } } : {}),
+    ...(userId != null && userId !== '' ? { viewUser: { id: userId } } : {})
   }
-  return view
 }
 
 /**

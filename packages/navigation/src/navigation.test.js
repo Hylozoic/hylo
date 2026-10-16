@@ -360,6 +360,26 @@ describe('homeRoutePathForView', () => {
     }
     expect(homeRoutePathForView(view)).toEqual('/welcome')
   })
+
+  it('keeps post and member ids from bookshelf rows', () => {
+    const postView = {
+      get (key) {
+        return { type: 'post', id: '9', post_id: '42' }[key]
+      }
+    }
+    const memberView = {
+      get (key) {
+        return { type: 'member', id: '3', user_id: '7' }[key]
+      }
+    }
+    expect(homeRoutePathForView(postView)).toEqual('/post/42')
+    expect(homeRoutePathForView(memberView)).toEqual('/members/7')
+  })
+
+  it('uses viewPost and viewUser on plain objects', () => {
+    expect(homeRoutePathForView({ type: 'post', viewPost: { id: 42 } })).toEqual('/post/42')
+    expect(homeRoutePathForView({ type: 'member', viewUser: { id: 7 } })).toEqual('/members/7')
+  })
 })
 
 describe('spaceHomeRoutePath', () => {

@@ -60,6 +60,8 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     websiteUrl
     paywall
     canAccess
+    hasValidScope
+    currentUserMembershipActive
     stripeAccountId
     stripeChargesEnabled
     stripePayoutsEnabled

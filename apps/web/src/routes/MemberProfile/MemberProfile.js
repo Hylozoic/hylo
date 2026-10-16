@@ -24,6 +24,7 @@ import RoundImageRow from 'components/RoundImageRow'
 import Loading from 'components/Loading'
 import RecentActivity from './RecentActivity'
 import MemberPosts from './MemberPosts'
+import { getMemberPosts } from './MemberPosts/MemberPosts.store'
 import MemberComments from './MemberComments'
 import Membership from 'components/Membership'
 import MemberReactions from './MemberReactions'
@@ -88,6 +89,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const trackedPersonIdRef = useRef(null)
   const error = !Number.isSafeInteger(Number(personId)) ? MESSAGES.invalid : null
   const person = useSelector(state => getPresentedPerson(state, routeParams))
+  const memberPosts = useSelector(state => getMemberPosts(state, { routeParams }))
   const contentLoading = useSelector(state => isPendingFor([
     FETCH_RECENT_ACTIVITY,
     FETCH_MEMBER_POSTS,
@@ -529,6 +531,9 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
           </div>
         </div>
         <div className='flex flex-col align-items-center max-w-[720px] w-full'>
+          {isPublicView && memberPosts?.length > 0 && (
+            <h2 className='text-sm sm:text-base mb-2'>{t('{{name}}\'s public posts', { name: person.name })}</h2>
+          )}
           {!isPublicView && (
             <div className='flex flex-row items-center justify-between w-full'>
               <h2 className='text-sm sm:text-base'>{currentContentTitle}</h2>
