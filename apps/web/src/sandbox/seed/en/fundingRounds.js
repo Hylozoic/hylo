@@ -6,7 +6,7 @@ export const FUNDING_ROUND_ID = sid('funding-round', 'spring')
 export function buildFundingRound () {
   return {
     id: FUNDING_ROUND_ID,
-    criteria: 'Projects should:\n• Be led by or deeply connected to Bay Area communities\n• Demonstrate clear regenerative impact on people, place, or ecosystem\n• Have a realistic plan and budget under $10,000\n• Benefit people beyond the project team\n• Align with Terran values: mutual aid, bioregional stewardship, and collective liberation',
+    criteria: 'Projects should:\n• Be led by or deeply connected to Bay Area communities\n• Demonstrate clear regenerative impact on people, place, or ecosystem\n• Have a realistic plan and budget under $10,000\n• Benefit people beyond the project team\n• Align with Community Hub values: mutual aid, bioregional stewardship, and collective liberation',
     groupId: FUNDING_SPACE_ID,
     phase: 'voting',
     allowSelfVoting: false,

@@ -15,6 +15,7 @@ const KIND = {
   me: 1,
   person: 10,
   role: 11,
+  responsibility: 22,
   location: 12,
   track: 13,
   'track-action': 14,
