@@ -1285,6 +1285,22 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
           return InvitationService.find({ groupId: g.id, pendingOnly: true })
         },
+        publicListingRequest: async g => {
+          const request = g.getSetting('public_listing_request')
+          if (!userId || !request) return null
+          const canSee = await Admin.isSuperAdmin(userId) ||
+            await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)
+          if (!canSee) return null
+          return {
+            status: request.status,
+            message: request.message,
+            requestedAt: request.requested_at,
+            requestedBy: request.requested_by_id ? User.find(request.requested_by_id) : null,
+            reviewedAt: request.reviewed_at,
+            reviewedBy: request.reviewed_by_id ? User.find(request.reviewed_by_id) : null,
+            reviewMessage: request.review_message
+          }
+        },
         responsibilities: async g => g.availableResponsibilities().fetch(),
         settings: g => mapKeys(camelCase, g.get('settings')),
         // XXX: Flag for translation

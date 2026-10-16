@@ -63,6 +63,9 @@ import {
   unpublishSiteBanner,
   deleteSiteBanner,
   dismissSiteBanner,
+  requestPublicListing,
+  reviewPublicListingRequest,
+  publicListingRequests,
   deleteAffiliation,
   deleteComment,
   deleteFundingRound,
@@ -590,7 +593,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       }
       const banners = await SiteBanner.all()
       return banners.toModelArray ? banners.toModelArray() : banners
-    }
+    },
+    publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status)
   }
 }
 
@@ -956,7 +960,11 @@ export function makeMutations ({ fetchOne }) {
 
     deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
 
-    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id)
+    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    requestPublicListing: (root, { groupId, message }, context) => requestPublicListing(context.currentUserId, groupId, message),
+
+    reviewPublicListingRequest: (root, { groupId, approved, message }, context) => reviewPublicListingRequest(context.currentUserId, groupId, approved, message)
   }
 }
 

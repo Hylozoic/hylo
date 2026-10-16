@@ -111,6 +111,11 @@ exports.es = {
     }
     return `${reminderMessages[reminderType] || 'Fecha límite próxima'}`
   },
+  publicListingApprovedSubject: (name) => `Tu grupo ${name} ha sido añadido a los comunes`,
+  publicListingDeniedSubject: (name) => `Novedades sobre tu solicitud para añadir ${name} a los comunes`,
+  publicListingApprovedBody: (name) => `¡Buenas noticias! ${name} ha sido añadido a los comunes. Tu grupo ahora aparece en el Explorador de Grupos público y en el mapa público, y los miembros pueden compartir publicaciones en el flujo público.`,
+  publicListingDeniedBody: (name) => `Gracias por solicitar añadir ${name} a los comunes. Tras revisar tu solicitud, el equipo de Hylo ha decidido no añadirlo por ahora. Tu grupo no ha cambiado y puedes enviar una nueva solicitud desde la configuración de Privacidad y Acceso de tu grupo.`,
+  publicListingReviewerNote: () => 'Una nota del equipo de Hylo:',
   theTeamAtHylo: 'El equipo de Hylo',
   stripeContributionProductName: () => 'Elige tu contribución a Hylo',
   stripeContributionProductDescription: () => 'Elige tu nivel de contribución para apoyar la plataforma Hylo.',
