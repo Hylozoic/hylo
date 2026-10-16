@@ -1984,9 +1984,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
     PostUser: {
       model: PostUser,
       attributes: [
-        'completed_at',
-        'completion_response'
+        'completed_at'
       ],
+      getters: {
+        completionResponse: pu => pu.completionResponseForDisplay()
+      },
       relations: [
         'post',
         'user'

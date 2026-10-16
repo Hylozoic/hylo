@@ -414,7 +414,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async completionResponseForUser (userId) {
     if (!userId || this.get('type') !== Post.Type.ACTION) return null
     const pu = await this.loadPostInfoForUser(userId)
-    return (pu && pu.get('completion_response')) || null
+    const response = (pu && pu.get('completion_response')) || null
+    return Post.sanitizeCompletionResponse(this.get('completion_action'), response)
   },
 
   async savedAtForUser (userId) {
@@ -866,6 +867,15 @@ module.exports = bookshelf.Model.extend(Object.assign({
 }, EnsureLoad, ProjectMixin, EventMixin), {
   // Class Methods
   ...eventClassMethods,
+
+  /**
+   * Text completion responses are rich text HTML that clients render as HTML, so they are
+   * sanitized when written and again when read (older rows were stored unsanitized).
+   */
+  sanitizeCompletionResponse (completionAction, response) {
+    if (completionAction !== 'text' || !Array.isArray(response)) return response
+    return response.map(r => typeof r === 'string' ? RichText.sanitizeHTML(r) : r)
+  },
 
   Type: {
     ACTION: 'action',
