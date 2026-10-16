@@ -56,8 +56,7 @@ const groupPostsQuery = (postsFragment, extraVariables = '') => `query (
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
-  ${extraVariables}
+  $types: [String]${extraVariables ? `\n  ${extraVariables}` : ''}
 ) {
   group(slug: $slug, updateLastViewed: true) {
     id
@@ -93,8 +92,7 @@ const postsQuery = (postsFragment, extraVariables = '') => `query (
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
-  ${extraVariables}
+  $types: [String]${extraVariables ? `\n  ${extraVariables}` : ''}
 ) {
   ${postsFragment}
 }`
