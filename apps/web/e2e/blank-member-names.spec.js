@@ -6,6 +6,8 @@ test.use({ storageState: 'e2e/.auth/session.json' })
 
 const GROUP_SLUG = 'e2e-public-group'
 const BLANK_MARKER = 'Issue 874 blank-name member'
+// First render can be slow when several browsers hit a cold Vite dev server
+const uiTimeout = { timeout: 60000 }
 
 // Members with a null/blank name (left over from before names were validated)
 // must sort to the bottom of the member directory rather than the top.
@@ -26,7 +28,7 @@ function insertBlankNameMember () {
 
 test('members with no name sort to the bottom of the directory', async ({ page }) => {
   test.skip(test.info().project.name.includes('mobile'), 'desktop directory layout')
-  test.setTimeout(120000)
+  test.setTimeout(180000)
   insertBlankNameMember()
 
   await page.setViewportSize({ width: 1280, height: 900 })
@@ -34,9 +36,9 @@ test('members with no name sort to the bottom of the directory', async ({ page }
   await waitPastRootSessionLoading(page)
 
   const cards = page.getByTestId('member-card')
-  await expect(cards.first()).toBeVisible({ timeout: 30000 })
+  await expect(cards.first()).toBeVisible(uiTimeout)
   await expect(cards.first()).not.toContainText(BLANK_MARKER)
-  await expect(cards.last()).toContainText(BLANK_MARKER)
+  await expect(cards.last()).toContainText(BLANK_MARKER, uiTimeout)
 
   // The card grid is masonry, so the list layout shows the order most clearly
   await page.getByRole('button', { name: 'List', exact: true }).click()
@@ -46,12 +48,12 @@ test('members with no name sort to the bottom of the directory', async ({ page }
 })
 
 test('profile editor refuses a blank name', async ({ page }) => {
-  test.setTimeout(120000)
+  test.setTimeout(180000)
   await page.goto('/my/edit-profile')
   await waitPastRootSessionLoading(page)
 
   const nameField = page.locator('#nameField')
-  await expect(nameField).toBeVisible({ timeout: 30000 })
+  await expect(nameField).toBeVisible(uiTimeout)
   await nameField.fill('   ')
 
   await expect(page.getByText('Name must not be blank')).toBeVisible()
