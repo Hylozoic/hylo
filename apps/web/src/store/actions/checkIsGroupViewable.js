@@ -13,6 +13,7 @@ export default function checkIsGroupViewable (groupSlug, { accessCode, invitatio
       query: gql`
         query CheckIsGroupViewable ($slug: String, $accessCode: String, $invitationToken: String) {
           group (slug: $slug, accessCode: $accessCode, invitationToken: $invitationToken) {
+            id
             visibility
           }
         }
