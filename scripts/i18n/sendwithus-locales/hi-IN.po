@@ -1282,3 +1282,90 @@ msgstr "अगर यह अनुरोध आपने किया है, �
 
 msgid "A change to your Hylo account email was requested"
 msgstr "आपके Hylo खाते का ईमेल बदलने का अनुरोध किया गया है"
+
+# Strings SendWithUs uses that later edits dropped from this file; translations restored from git history
+msgid "Your access to"
+msgstr "आपकी पहुंच"
+
+msgid "has expired."
+msgstr "समाप्त हो गई है।"
+
+msgid "Expired:"
+msgstr "समाप्त:"
+
+msgid "We'd love to have you back! Renew your access to continue enjoying this content."
+msgstr "हम आपको वापस देखना पसंद करेंगे! इस सामग्री का आनंद लेना जारी रखने के लिए अपनी पहुंच नवीनीकृत करें।"
+
+msgid "Available Options:"
+msgstr "उपलब्ध विकल्प:"
+
+msgid "Renew Access"
+msgstr "पहुंच नवीनीकृत करें"
+
+msgid "Email settings"
+msgstr ""
+
+msgid "View this email in a browser"
+msgstr ""
+
+#, python-format
+msgid "Your access to %(offering_name_var)s has expired"
+msgstr ""
+
+#, python-format
+msgid "In %(groups_label)s"
+msgstr ""
+
+msgid "in your Hylo groups"
+msgstr ""
+
+#, python-format
+msgid "in %(post_location)s"
+msgstr ""
+
+#, python-format
+msgid "in %(groups_label)s"
+msgstr ""
+
+msgid "Thank you for your generous donation of "
+msgstr "आपके उदार दान के लिए धन्यवाद "
+
+msgid "Donation Date:"
+msgstr "दान की तारीख:"
+
+msgid "Donation Type:"
+msgstr "दान का प्रकार:"
+
+msgid "Tax-Deductible Donation"
+msgstr "कर-कटौती योग्य दान"
+
+#, python-format
+msgid "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
+msgstr "आपका दान अमेरिका में कर-कटौती योग्य है। Hylo को %(fiscal_sponsor_name_var)s द्वारा वित्तीय प्रायोजन मिला है, एक 501(c)(3) गैर-लाभकारी संगठन।"
+
+msgid "This is a recurring donation that will automatically repeat "
+msgstr "यह आवर्ती दान है जो अपने आप दोहराया जाएगा "
+
+msgid "Next Donation:"
+msgstr "अगला दान:"
+
+msgid "Manage Recurring Donation"
+msgstr "आवर्ती दान प्रबंधित करें"
+
+#, python-format
+msgid "This donation was made as part of your %(purchase_context_var)s."
+msgstr "यह दान आपके %(purchase_context_var)s के हिस्से के रूप में किया गया।"
+
+msgid "Thank you for your donation to Hylo"
+msgstr "Hylo को दान के लिए धन्यवाद"
+
+msgid " via Hylo"
+msgstr ""
+
+#, python-format
+msgid ". \n\nManage their request [ %(settings_url)s ] "
+msgstr ". \n\nउनके अनुरोध का प्रबंधन करें [ %(settings_url)s ] "
+
+#, python-format
+msgid "New chats in %(group_name)s #%(chat_topic)s"
+msgstr "%(group_name)s #%(chat_topic)s में नई चैट"

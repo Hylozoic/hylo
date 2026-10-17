@@ -1377,3 +1377,86 @@ msgstr "If you made this request, there’s nothing else to do here. Just enter 
 
 msgid "A change to your Hylo account email was requested"
 msgstr "A change to your Hylo account email was requested"
+
+# Strings SendWithUs uses that later edits dropped from this file; translations restored from git history
+msgid "Your access to"
+msgstr "Your access to"
+
+msgid "has expired."
+msgstr "has expired."
+
+msgid "Expired:"
+msgstr "Expired:"
+
+msgid "We'd love to have you back! Renew your access to continue enjoying this content."
+msgstr "We'd love to have you back! Renew your access to continue enjoying this content."
+
+msgid "Available Options:"
+msgstr "Available Options:"
+
+msgid "Renew Access"
+msgstr "Renew Access"
+
+msgid "Email settings"
+msgstr "Email settings"
+
+msgid "View this email in a browser"
+msgstr "View this email in a browser"
+
+#, python-format
+msgid "Your access to %(offering_name_var)s has expired"
+msgstr "Your access to %(offering_name_var)s has expired"
+
+#, python-format
+msgid "In %(groups_label)s"
+msgstr "In %(groups_label)s"
+
+msgid "in your Hylo groups"
+msgstr "in your Hylo groups"
+
+#, python-format
+msgid "in %(post_location)s"
+msgstr "in %(post_location)s"
+
+#, python-format
+msgid "in %(groups_label)s"
+msgstr "in %(groups_label)s"
+
+msgid "Thank you for your generous donation of "
+msgstr "Thank you for your generous donation of "
+
+msgid "Donation Date:"
+msgstr "Donation Date:"
+
+msgid "Donation Type:"
+msgstr "Donation Type:"
+
+msgid "Tax-Deductible Donation"
+msgstr "Tax-Deductible Donation"
+
+#, python-format
+msgid "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
+msgstr "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
+
+msgid "This is a recurring donation that will automatically repeat "
+msgstr "This is a recurring donation that will automatically repeat "
+
+msgid "Next Donation:"
+msgstr "Next Donation:"
+
+msgid "Manage Recurring Donation"
+msgstr "Manage Recurring Donation"
+
+#, python-format
+msgid "This donation was made as part of your %(purchase_context_var)s."
+msgstr "This donation was made as part of your %(purchase_context_var)s."
+
+msgid "Thank you for your donation to Hylo"
+msgstr "Thank you for your donation to Hylo"
+
+msgid " via Hylo"
+msgstr " via Hylo"
+
+#, python-format
+msgid "New chats in %(group_name)s #%(chat_topic)s"
+msgstr "New chats in %(group_name)s #%(chat_topic)s"
