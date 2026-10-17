@@ -8,4 +8,5 @@ it('renders correctly', () => {
   )
 
   expect(screen.getByText('Sign in to Hylo')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Try the demo' })).toHaveAttribute('href', '/sandbox')
 })
