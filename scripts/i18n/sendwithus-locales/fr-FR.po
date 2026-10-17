@@ -1282,3 +1282,90 @@ msgstr "Si vous êtes à l'origine de cette demande, vous n'avez rien d'autre à
 
 msgid "A change to your Hylo account email was requested"
 msgstr "Un changement de l'adresse e-mail de votre compte Hylo a été demandé"
+
+# Strings SendWithUs uses that later edits dropped from this file; translations restored from git history
+msgid "Your access to"
+msgstr "Votre accès à"
+
+msgid "has expired."
+msgstr "a expiré."
+
+msgid "Expired:"
+msgstr "Expiré :"
+
+msgid "We'd love to have you back! Renew your access to continue enjoying this content."
+msgstr "Nous serions ravis de vous revoir ! Renouvelez votre accès pour continuer à profiter de ce contenu."
+
+msgid "Available Options:"
+msgstr "Options disponibles :"
+
+msgid "Renew Access"
+msgstr "Renouveler l'accès"
+
+msgid "Email settings"
+msgstr ""
+
+msgid "View this email in a browser"
+msgstr ""
+
+#, python-format
+msgid "Your access to %(offering_name_var)s has expired"
+msgstr ""
+
+#, python-format
+msgid "In %(groups_label)s"
+msgstr ""
+
+msgid "in your Hylo groups"
+msgstr ""
+
+#, python-format
+msgid "in %(post_location)s"
+msgstr ""
+
+#, python-format
+msgid "in %(groups_label)s"
+msgstr ""
+
+msgid "Thank you for your generous donation of "
+msgstr "Merci pour votre généreux don de "
+
+msgid "Donation Date:"
+msgstr "Date du don :"
+
+msgid "Donation Type:"
+msgstr "Type de don :"
+
+msgid "Tax-Deductible Donation"
+msgstr "Don déductible des impôts"
+
+#, python-format
+msgid "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
+msgstr "Votre don est déductible des impôts aux États-Unis. Hylo est parrainé par %(fiscal_sponsor_name_var)s, organisation à but non lucratif 501(c)(3)."
+
+msgid "This is a recurring donation that will automatically repeat "
+msgstr "Ce don récurrent sera automatiquement renouvelé "
+
+msgid "Next Donation:"
+msgstr "Prochain don :"
+
+msgid "Manage Recurring Donation"
+msgstr "Gérer le don récurrent"
+
+#, python-format
+msgid "This donation was made as part of your %(purchase_context_var)s."
+msgstr "Ce don a été effectué dans le cadre de votre %(purchase_context_var)s."
+
+msgid "Thank you for your donation to Hylo"
+msgstr "Merci pour votre don à Hylo"
+
+msgid " via Hylo"
+msgstr ""
+
+#, python-format
+msgid ". \n\nManage their request [ %(settings_url)s ] "
+msgstr ". \n\nGérer leur demande [ %(settings_url)s ] "
+
+#, python-format
+msgid "New chats in %(group_name)s #%(chat_topic)s"
+msgstr "Nouveaux échanges dans %(group_name)s #%(chat_topic)s"
