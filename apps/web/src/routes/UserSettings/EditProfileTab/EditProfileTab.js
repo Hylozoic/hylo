@@ -5,6 +5,7 @@ import PropTypes from 'prop-types'
 import { ImageUp } from 'lucide-react'
 import { Helmet } from 'react-helmet'
 import { useDispatch } from 'react-redux'
+import { toast } from 'sonner'
 import SettingsControl from 'components/SettingsControl'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
@@ -120,8 +121,18 @@ function EditProfileTab ({
     setConfirm(false)
     // Persist profile fields only — public toggle saves immediately on change
     const { isProfilePublic, ...profileEdits } = edits
-    updateUserSettings(profileEdits)
-  }, [edits, setConfirm, updateUserSettings])
+    Promise.resolve(updateUserSettings(profileEdits))
+      .then(res => {
+        if (res?.error) {
+          toast.error(t('There was a problem saving your changes'))
+        } else {
+          toast.success(t('Your changes have been saved'))
+        }
+      })
+      .catch(() => {
+        toast.error(t('There was a problem saving your changes'))
+      })
+  }, [edits, setConfirm, updateUserSettings, t])
 
   const dispatch = useDispatch()
 
