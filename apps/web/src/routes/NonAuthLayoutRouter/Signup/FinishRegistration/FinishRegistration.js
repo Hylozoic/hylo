@@ -24,7 +24,7 @@ export default function FinishRegistration () {
     password: '',
     passwordConfirmation: ''
   })
-  const canSubmit = formValues.name.length > 1 &&
+  const canSubmit = formValues.name.trim().length > 1 &&
     formValues.password.length > 8 &&
     formValues.passwordConfirmation.length > 8
 
@@ -41,7 +41,7 @@ export default function FinishRegistration () {
       if (formValues.password !== formValues.passwordConfirmation) {
         setError(t("Passwords don't match"))
       } else {
-        const result = await dispatch(register(formValues.name, formValues.password))
+        const result = await dispatch(register(formValues.name.trim(), formValues.password))
         const error = result?.payload?.getData()?.error
 
         if (error) setError(error)
