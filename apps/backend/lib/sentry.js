@@ -21,10 +21,13 @@ if (enabled) {
     environment,
     // Error reporting only. Do not set tracesSampleRate: in @sentry/node 10, `0` still
     // enables tracing and loads the Express integration, which patches every middleware.
-    // That patch, plus the HTTP server.emit wrapper, overflows the Sails router
-    // (RangeError in express trim_prefix). The ESM loader is off so a second
-    // @sentry/core copy cannot wrap server.emit again on every request.
+    // The default Http integration wraps http.Server.emit. Each copy of @sentry/core
+    // keeps its own WeakMap of that wrapper, so a second copy (CJS and ESM) adds another
+    // Proxy on every request until a socket event overflows the stack
+    // (RangeError at server-subscription.ts). Leave Http off; captureException and
+    // expressErrorHandler do not need it.
     registerEsmLoaderHooks: false,
+    integrations: (integrations) => integrations.filter((integration) => integration.name !== 'Http'),
     // Align with existing Rollbar person fields (id / name / email via setUser)
     sendDefaultPii: true,
     initialScope: {

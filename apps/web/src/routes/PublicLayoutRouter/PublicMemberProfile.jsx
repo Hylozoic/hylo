@@ -41,7 +41,7 @@ export default function PublicMemberProfile (props) {
   return (
     <Div100vh className='flex flex-col items-stretch bg-background'>
       <PublicPageHeader />
-      <div className='w-full h-full overflow-y-auto'>
+      <div className='w-full h-full overflow-y-auto pt-4'>
         <div className='bg-midground w-full max-w-[750px] mx-auto rounded-xl' id={CENTER_COLUMN_ID}>
           <MemberProfile {...props} context='public' />
         </div>

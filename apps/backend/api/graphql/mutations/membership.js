@@ -1,6 +1,7 @@
-/* global GroupMembership, GroupJoinQuestionAnswer, Queue, bookshelf */
+/* global Group, GroupMembership, GroupJoinQuestionAnswer, Queue, bookshelf */
 import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase } from 'lodash'
+const { createGroupScope } = require('../../../lib/scopes')
 
 export async function updateMembership (userId, { groupId, data = {} }) {
   const settings = data.settings || {}
@@ -79,6 +80,57 @@ export async function updateMembership (userId, { groupId, data = {} }) {
     }
     if (membership.changed) await membership.save({}, { transacting })
     return membership
+  })
+}
+
+export async function rejoinGroup (userId, groupId) {
+  if (!userId) throw new GraphQLError('You must be logged in')
+  if (!groupId) throw new GraphQLError('Group ID is required')
+
+  return bookshelf.transaction(async transacting => {
+    const group = await Group.findActive(groupId, { transacting })
+    if (!group) throw new GraphQLError('Group not found')
+    if ([Group.Status.DRAFT, Group.Status.ARCHIVED].includes(group.get('status'))) {
+      throw new GraphQLError('This group is not available to rejoin')
+    }
+    if (!group.get('paywall')) throw new GraphQLError('This group does not have retained paid access')
+
+    const membership = await GroupMembership.forPair(userId, group, { includeInactive: true }).fetch({ transacting })
+    if (!membership) throw new GraphQLError('No previous membership found')
+    if (membership.get('active')) return membership
+
+    if (group.get('type') === 'space') {
+      const parentId = group.get('parent_id')
+      const parent = parentId && await Group.findActive(parentId, { transacting })
+      if (!parent || !await GroupMembership.forPair(userId, parent).fetch({ transacting })) {
+        throw new GraphQLError('You must rejoin the parent group first')
+      }
+    }
+
+    const scope = createGroupScope(group.id)
+    const hasValidScope = await bookshelf.knex('user_scopes')
+      .where({ user_id: userId, scope })
+      .where(function () {
+        this.whereNull('expires_at').orWhere('expires_at', '>', new Date())
+      })
+      .first()
+      .forUpdate()
+      .transacting(transacting)
+    if (!hasValidScope) throw new GraphQLError('You no longer have access to this group')
+
+    const priorSettings = membership.get('settings') || {}
+    const defaultDigestFrequency = group.get('settings')?.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
+    const settings = {
+      postNotifications: 'all',
+      digestFrequency: defaultDigestFrequency,
+      sendEmail: true,
+      sendPushNotifications: true,
+      ...priorSettings,
+      showJoinForm: false,
+      leftSpace: false
+    }
+    const memberships = await group.addMembers([userId], { settings }, { transacting })
+    return memberships[0]
   })
 }
 
