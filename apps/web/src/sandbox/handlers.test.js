@@ -2,7 +2,7 @@ import { loadSandboxSeedSync } from './seed'
 import { buildEnSeed } from './seed/en'
 import { handleGraphql } from './handlers'
 import { ME_ID } from './seed/en/people'
-import { MAIN_GROUP_ID } from './seed/en/groups'
+import { MAIN_GROUP_ID, MAIN_ADMINISTRATOR_ROLE_ID, MAIN_MODERATOR_ROLE_ID, SIMPLE_GROUP_ID, STAFF_GROUP_ID } from './seed/en/groups'
 import { MAIN_GROUP_SLUG } from './seed/constants'
 
 describe('sandbox GraphQL handlers', () => {
@@ -22,6 +22,80 @@ describe('sandbox GraphQL handlers', () => {
     expect(result.data.me.hasRegistered).toBe(true)
     expect(result.data.me.settings.signupInProgress).toBe(false)
     expect(result.data.me.memberships.length).toBe(6)
+  })
+
+  it('makes me an administrator of the main group only', () => {
+    const { me } = handleGraphql({ query: 'query MeQuery { me { id } }' }, seed).data
+    const titlesFor = groupId => me.groupRoles.items
+      .filter(role => String(role.groupId) === String(groupId))
+      .flatMap(role => role.responsibilities.items.map(r => r.title))
+
+    expect(titlesFor(MAIN_GROUP_ID)).toEqual(expect.arrayContaining(['Administration', 'Add Members', 'Remove Members', 'Manage Content']))
+    expect(titlesFor(SIMPLE_GROUP_ID)).toEqual([])
+    expect(titlesFor(STAFF_GROUP_ID)).toEqual([])
+  })
+
+  it('answers responsibilities queries with plain lists', () => {
+    const forGroup = handleGraphql({
+      query: 'query fetchResponsibiltiesForGroup ($groupId: ID) { responsibilities (groupId: $groupId) { id title type } }',
+      variables: { groupId: MAIN_GROUP_ID }
+    }, seed).data.responsibilities
+    expect(Array.isArray(forGroup)).toBe(true)
+    expect(forGroup.map(r => r.title)).toContain('Administration')
+    expect(new Set(forGroup.map(r => r.id)).size).toBe(forGroup.length)
+
+    const forRole = handleGraphql({
+      query: 'query fetchResponsibilitiesForGroupRole ($groupRoleId: ID) { responsibilities (groupRoleId: $groupRoleId) { id title responsibilityId } }',
+      variables: { groupRoleId: MAIN_ADMINISTRATOR_ROLE_ID }
+    }, seed).data.responsibilities
+    expect(forRole.length).toBe(forGroup.length)
+    expect(forRole[0].responsibilityId).toBe(forRole[0].id)
+  })
+
+  it('filters group members by role', () => {
+    const query = `query fetchMembersForGroupRole ($id: ID, $groupRoleIds: [ID], $first: Int, $offset: Int) {
+      group (id: $id) { id members (first: $first, offset: $offset, groupRoleIds: $groupRoleIds) { items { id } } }
+    }`
+    const admins = handleGraphql({ query, variables: { id: MAIN_GROUP_ID, groupRoleIds: [MAIN_ADMINISTRATOR_ROLE_ID], first: 20, offset: 0 } }, seed)
+    expect(admins.data.group.members.items.map(p => p.id)).toEqual([ME_ID])
+
+    const moderators = handleGraphql({ query, variables: { id: MAIN_GROUP_ID, groupRoleIds: [MAIN_MODERATOR_ROLE_ID], first: 20, offset: 0 } }, seed)
+    expect(moderators.data.group.members.items).toEqual([])
+
+    const details = handleGraphql({
+      query: `query fetchGroupRoleDetails ($id: ID, $groupRoleIds: [ID], $groupRoleId: ID, $first: Int, $offset: Int) {
+        group (id: $id) { id members (first: $first, offset: $offset, groupRoleIds: $groupRoleIds) { items { id } } }
+        responsibilities (groupRoleId: $groupRoleId) { id title responsibilityId }
+      }`,
+      variables: { id: MAIN_GROUP_ID, groupRoleIds: [MAIN_ADMINISTRATOR_ROLE_ID], groupRoleId: MAIN_ADMINISTRATOR_ROLE_ID, first: 20, offset: 0 }
+    }, seed)
+    expect(details.data.group.members.items.map(p => p.id)).toEqual([ME_ID])
+    expect(details.data.responsibilities.map(r => r.title)).toContain('Administration')
+
+    const counts = handleGraphql({
+      query: `query FetchRoleMemberCounts ($slug: String) {
+        group (slug: $slug) {
+          id
+          r${MAIN_ADMINISTRATOR_ROLE_ID}: members (first: 1, groupRoleIds: ["${MAIN_ADMINISTRATOR_ROLE_ID}"]) { total }
+          r${MAIN_MODERATOR_ROLE_ID}: members (first: 1, groupRoleIds: ["${MAIN_MODERATOR_ROLE_ID}"]) { total }
+        }
+      }`,
+      variables: { slug: MAIN_GROUP_SLUG }
+    }, seed)
+    expect(counts.data.group[`r${MAIN_ADMINISTRATOR_ROLE_ID}`].total).toBe(1)
+    expect(counts.data.group[`r${MAIN_MODERATOR_ROLE_ID}`].total).toBe(0)
+  })
+
+  it('merges user setting changes without dropping other settings', () => {
+    const before = seed.me.settings
+    const result = handleGraphql({
+      query: 'mutation ($changes: MeInput) { updateMe(changes: $changes) { id settings { theme colorScheme } } }',
+      variables: { changes: { settings: { theme: 'forest' } } }
+    }, seed)
+
+    expect(result.data.updateMe.settings.theme).toBe('forest')
+    expect(result.data.updateMe.settings.colorScheme).toBe(before.colorScheme)
+    expect(result.data.updateMe.settings.groupNavStyle).toBe(before.groupNavStyle)
   })
 
   it('returns group stream posts for GroupPostsQuery', () => {
@@ -135,7 +209,7 @@ describe('sandbox GraphQL handlers', () => {
     expect(messageIds.length).toBe(new Set(messageIds).size)
   })
 
-  it('exposes commenters and comments on Terran stream posts', () => {
+  it('exposes commenters and comments on Community Hub stream posts', () => {
     const withComments = seed.posts.mainStream.filter(p => (p.comments?.items || []).length > 0)
     expect(withComments.length).toBeGreaterThan(0)
     expect(withComments[0].commenters.length).toBeGreaterThan(0)
@@ -189,7 +263,7 @@ describe('sandbox GraphQL handlers', () => {
     }, seed)
 
     const trackSpaceId = String(seed.groups.spaces.track.id)
-    const parent = parentResult.data.groups.items.find(g => g.slug === 'terran-collective')
+    const parent = parentResult.data.groups.items.find(g => g.slug === MAIN_GROUP_SLUG)
     const trackSpaceView = parent.groupViews.items.find(view =>
       view.type === 'space' && String(view.linkedGroup?.id) === trackSpaceId
     )

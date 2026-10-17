@@ -11,7 +11,7 @@ import { FUNDING_ROUND_ID } from './fundingRounds'
 
 /**
  * All sandbox posts. Keys: mainStream, chatSpace, fundingSubmissions, simpleGroupChat, simpleGroupStream.
- * Populated with real Terran Collective content.
+ * Populated with demo content adapted from real Hylo communities.
  */
 export function buildPosts (peopleById, meId) {
   const me = peopleById[meId]
@@ -39,7 +39,7 @@ export function buildPosts (peopleById, meId) {
       // discussion — community forest crowdfunding (announcement, 12 comments)
       discussionPost('001', me, MAIN_GROUP_ID, -86400 * 14, {
         title: 'Crowdfunding the East Bay Community Forest!',
-        details: '<p>Today&#39;s the big day — we&#39;re launching our crowdfunding campaign for a community forest in the East Bay hills!</p><p>We are looking to raise $100k from our community as part of a larger land-stewardship push. The funds will help a neighborhood land trust secure a hillside parcel, plant a dense native canopy, and keep the land in community care for the long haul.</p><p>Please join us and contribute here: https://www.flipcause.com/secure/cause_pdetails/east-bay-community-forest</p><p>In solidarity,<br/>Maya, Kai, Neha, Elena<br/>Terran Coordinators</p>',
+        details: '<p>Today&#39;s the big day — we&#39;re launching our crowdfunding campaign for a community forest in the East Bay hills!</p><p>We are looking to raise $100k from our community as part of a larger land-stewardship push. The funds will help a neighborhood land trust secure a hillside parcel, plant a dense native canopy, and keep the land in community care for the long haul.</p><p>Please join us and contribute here: https://www.flipcause.com/secure/cause_pdetails/east-bay-community-forest</p><p>In solidarity,<br/>Maya, Kai, Neha, Elena<br/>Community Hub Coordinators</p>',
         announcement: true,
         commentCount: 12,
         reactionCount: 10,
@@ -77,7 +77,7 @@ export function buildPosts (peopleById, meId) {
       // proposal — community decision
       proposalPost('005', me, MAIN_GROUP_ID, -86400 * 12, {
         title: 'Consensus: Shift Hylo stewardship model to member-owned cooperative',
-        details: '<p>We propose to formally transition Terran Collective\'s stewardship of Hylo to a multi-stakeholder cooperative model, giving members a formal voice in governance and product direction. This would mean drafting bylaws, establishing a member council, and beginning the process of legal entity formation.</p>',
+        details: '<p>We propose to formally transition Community Hub to a multi-stakeholder cooperative model, giving members a formal voice in governance and product direction. This would mean drafting bylaws, establishing a member council, and beginning the process of legal entity formation.</p>',
         voting: true
       }),
       // request — Rights of Nature (9 comments)
@@ -95,7 +95,7 @@ export function buildPosts (peopleById, meId) {
       // offer — Join the Hylo stewardship team (3 comments)
       offerPost('007', p005, MAIN_GROUP_ID, -86400 * 5, {
         title: 'Join the Hylo stewardship team!',
-        details: '<p>Terran Collective is hiring for two roles to support Hylo&#39;s growth: a Stakeholder Advocate and an Operations Coordinator. These two roles will be critical to help us channel the energy of everyone wanting to participate in this open-source project.</p><p>Learn more and apply here &gt; https://medium.com/terran-collective/terran-collective-is-hiring-for-hylo-53e4abd0d4b8</p>',
+        details: '<p>Community Hub is hiring for two roles to support our growth: a Stakeholder Advocate and an Operations Coordinator. These two roles will be critical to help us channel the energy of everyone wanting to participate in our work.</p><p>Reply here or message a coordinator if you&#39;d like to apply.</p>',
         commentCount: 3
       }),
       // discussion — maximum wage ratio (6 comments)
@@ -114,7 +114,7 @@ export function buildPosts (peopleById, meId) {
       // proposal — discussion phase
       proposalPost('010', p007, MAIN_GROUP_ID, -86400 * 2, {
         title: 'Proposal: Host monthly community calls open to non-members',
-        details: '<p>We propose opening our monthly community calls to interested non-members, giving prospective members a chance to experience Terran Collective culture before joining. This would increase visibility and help grow the community in an authentic way.</p>',
+        details: '<p>We propose opening our monthly community calls to interested non-members, giving prospective members a chance to experience Community Hub culture before joining. This would increase visibility and help grow the community in an authentic way.</p>',
         discussionPhase: true
       }),
       // request — afforestation
@@ -197,7 +197,7 @@ export function buildPosts (peopleById, meId) {
         budget: '$7,500',
         commentCount: 2,
         reactionCount: 4,
-        details: '<p>Supports the neighborhood land trust securing a hillside parcel in the East Bay hills — the same community forest campaign Terran has been crowdfunding on the main stream. This grant covers native plant nursery costs, volunteer stewardship training, and signage for public trail access.</p><p>Funds stay with the land trust and are released as milestones are met: site assessment, planting days, and the first season of community monitoring.</p>',
+        details: '<p>Supports the neighborhood land trust securing a hillside parcel in the East Bay hills — the same community forest campaign Community Hub has been crowdfunding on the main stream. This grant covers native plant nursery costs, volunteer stewardship training, and signage for public trail access.</p><p>Funds stay with the land trust and are released as milestones are met: site assessment, planting days, and the first season of community monitoring.</p>',
         place: {
           fullText: 'East Bay hills, Oakland, California, United States',
           city: 'Oakland',
@@ -220,7 +220,7 @@ export function buildPosts (peopleById, meId) {
       })
     ],
     simpleGroupChat: [
-      chatPost('simple', '001', me, SIMPLE_GROUP_ID, -3600, 'Morning eastbayconnect — anyone heading to Lake Merritt this afternoon?'),
+      chatPost('simple', '001', me, SIMPLE_GROUP_ID, -3600, 'Morning neighbors — anyone heading to Lake Merritt this afternoon?'),
       chatPost('simple', '002', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -3400, 'I can be there around 4. Bringing leftover mandarins for the food share table.'),
       chatPost('simple', '003', peopleById[sid('person', 'starter', '002')], SIMPLE_GROUP_ID, -3200, 'If you need a hand setting up the twilight markets stall, I have a spare gazebo.'),
       chatPost('simple', '004', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -3000, 'Love that. I&#39;ll post the Side by Side gathering dates in the stream today.'),
@@ -345,8 +345,8 @@ export function buildPosts (peopleById, meId) {
     ],
     staffGroupStream: [
       discussionPost('staff-201', me, STAFF_GROUP_ID, -86400 * 50, {
-        title: 'Holistica is now worker-owned',
-        details: '<p>Today is a huge day — we are formally organizing Holistica as a worker-owned cooperative.</p><p>We will use this space to coordinate our shared work: neighborhood gatherings, skill-shares, and facilitation for groups who want help working together in person. We will never sell anyone&#39;s data, we will never sell out, and we work in deep partnership with people building a world that works for all.</p><p>If you want to help host, keep the books, or take on a neighborhood gig, get in touch. We will hold a design jam soon to decide how we share surplus and how we take on work together.</p>',
+        title: 'We are now worker-owned',
+        details: '<p>Today is a huge day — we are formally organizing as a worker-owned cooperative.</p><p>We will use this space to coordinate our shared work: neighborhood gatherings, skill-shares, and facilitation for groups who want help working together in person. We will never sell anyone&#39;s data, we will never sell out, and we work in deep partnership with people building a world that works for all.</p><p>If you want to help host, keep the books, or take on a neighborhood gig, get in touch. We will hold a design jam soon to decide how we share surplus and how we take on work together.</p>',
         announcement: true,
         commentCount: 1,
         reactionCount: 3,
@@ -376,7 +376,7 @@ export function buildPosts (peopleById, meId) {
         reactionCount: 2
       }),
       eventPost('staff-204', me, STAFF_GROUP_ID, -86400 * 36, {
-        title: 'Holistica season launch gathering',
+        title: 'Co-op season launch gathering',
         details: '<p>Dear friends,</p><p>It is with great excitement that we are announcing the launch of our season fund! We are looking to raise community support so we can keep hosting sliding-scale workshops and neighborhood gatherings this year.</p><p>To celebrate we are hosting a virtual launch gathering. We will walk through the season plan and bring in partners who are hosting with us.</p><p>Feel free to join when you can. Link will be posted on the day!</p>',
         location: 'Online',
         upcoming: false,
@@ -385,21 +385,21 @@ export function buildPosts (peopleById, meId) {
       }),
       requestPost('staff-205', me, STAFF_GROUP_ID, -86400 * 34, {
         title: 'Launching our season fund',
-        details: '<p>Today&#39;s the big day — we&#39;re launching our season fund for Holistica.</p><p>We are looking to raise $100k from our wider community so we can pay facilitation stipends, cover studio rent, and keep workshops sliding-scale. A small cooperative only works if the village around it is in.</p><p>This is not just about money. It is even more important to build relationships with anyone who shares this way of working. If you want to facilitate, keep books, or connect us with a neighborhood that needs a gathering, please get in touch.</p><p>Thank you for your support. We are just at the beginning of this season together.</p><p>In solidarity,<br/>Maya, Kai, Elena<br/>Holistica worker-owners</p>',
+        details: '<p>Today&#39;s the big day — we&#39;re launching our season fund for the co-op.</p><p>We are looking to raise $100k from our wider community so we can pay facilitation stipends, cover studio rent, and keep workshops sliding-scale. A small cooperative only works if the village around it is in.</p><p>This is not just about money. It is even more important to build relationships with anyone who shares this way of working. If you want to facilitate, keep books, or connect us with a neighborhood that needs a gathering, please get in touch.</p><p>Thank you for your support. We are just at the beginning of this season together.</p><p>In solidarity,<br/>Maya, Kai, Elena<br/>Worker Co-op Staff</p>',
         commentCount: 6,
         reactionCount: 4
       }),
       eventPost('staff-206', me, STAFF_GROUP_ID, -86400 * 28, {
         title: 'Season wrap and member celebration',
-        details: '<p>Join us to celebrate the season fund and everyone who signed up as a supporting member. As we keep offering Holistica&#39;s gatherings as a gift to neighborhoods that want to work together, it means the world that so many of you want to come along.</p><p>Here&#39;s what we&#39;re planning:</p><p>- Campaign wrap with numbers, lessons, and plans for the next season</p><p>- Maya will walk through how we&#39;re hosting gatherings this season</p><p>- Meet the worker-owners</p><p>- Get involved: we are inviting supporting members into facilitation, bookkeeping, and outreach</p>',
+        details: '<p>Join us to celebrate the season fund and everyone who signed up as a supporting member. As we keep offering our co-op&#39;s gatherings as a gift to neighborhoods that want to work together, it means the world that so many of you want to come along.</p><p>Here&#39;s what we&#39;re planning:</p><p>- Campaign wrap with numbers, lessons, and plans for the next season</p><p>- Maya will walk through how we&#39;re hosting gatherings this season</p><p>- Meet the worker-owners</p><p>- Get involved: we are inviting supporting members into facilitation, bookkeeping, and outreach</p>',
         location: 'Online',
         upcoming: false,
         commentCount: 3,
         reactionCount: 2
       }),
       resourcePost('staff-207', me, STAFF_GROUP_ID, -86400 * 20, {
-        title: '10 minute Holistica walkthrough to share',
-        details: '<p>I made a video that goes through how we work at Holistica for new worker-owners (it doesn&#39;t cover every internal process).</p><p>Feel free to share around!</p><p>We will make one for hosting partners soon, and a shorter one that leaves out the joining process.</p>',
+        title: '10 minute co-op walkthrough to share',
+        details: '<p>I made a video that goes through how we work at the co-op for new worker-owners (it doesn&#39;t cover every internal process).</p><p>Feel free to share around!</p><p>We will make one for hosting partners soon, and a shorter one that leaves out the joining process.</p>',
         commentCount: 3,
         reactionCount: 2,
         place: {
@@ -438,11 +438,11 @@ function basePost (id, creator, groupId, createdAtOffset, type, extras = {}) {
 }
 
 function groupDisplayName (groupId) {
-  if (groupId === MAIN_GROUP_ID) return 'Terran Collective'
-  if (groupId === STAFF_GROUP_ID) return 'Holistica Staff'
+  if (groupId === MAIN_GROUP_ID) return 'Community Hub'
+  if (groupId === STAFF_GROUP_ID) return 'Worker Co-op Staff'
   if (groupId === FUNDING_SPACE_ID) return 'Bioregional Grants Round 1'
   if (groupId === CHAT_SPACE_ID) return 'General'
-  return 'East Bay Connect'
+  return 'Local Sharing Network'
 }
 
 function locationFields (num, extras = {}) {
