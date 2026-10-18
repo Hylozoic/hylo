@@ -127,6 +127,14 @@ function centerWithinBounds (locationObject, boundingBox) {
   return lng >= west && lng <= east && lat >= south && lat <= north
 }
 
+/** True when any vertex of a polygon lies inside [west, south, east, north]. */
+function shapeMeetsBox (geoShape, boundingBox) {
+  const ring = geoShape?.coordinates?.[0]
+  if (!Array.isArray(ring) || !boundingBox) return false
+  const [west, south, east, north] = boundingBox
+  return ring.some(coord => Array.isArray(coord) && coord[0] >= west && coord[0] <= east && coord[1] >= south && coord[1] <= north)
+}
+
 function MapExplorer (props) {
   const { t } = useTranslation()
   const lucideIconsLoaded = useLucideIconsLoaded()
@@ -564,12 +572,8 @@ function MapExplorer (props) {
 
   const viewGroups = useMemo(() => {
     if (!currentBoundingBox) return withCurrentGroup([], group)
-    const [west, south, east, north] = currentBoundingBox
     return withCurrentGroup(groups.filter(mapGroup => {
-      if (mapGroup.geoShape) {
-        return mapGroup.geoShape.coordinates[0].some(([lng, lat]) =>
-          lng >= west && lng <= east && lat >= south && lat <= north)
-      }
+      if (shapeMeetsBox(mapGroup.geoShape, currentBoundingBox)) return true
       return centerWithinBounds(mapGroup.locationObject, currentBoundingBox)
     }), group)
       .map(mapGroup => {
@@ -608,9 +612,10 @@ function MapExplorer (props) {
     return createPolygonLayerFromGroups({
       groups: viewGroups,
       onHover: onMapHover,
-      boundingBox: currentBoundingBox
+      boundingBox: currentBoundingBox,
+      t
     })
-  }, [viewGroups, currentBoundingBox, onMapHover, context])
+  }, [viewGroups, currentBoundingBox, onMapHover, context, t])
 
   const updateViewportWithBbox = useCallback((bbox, zoom = false) => {
     if (zoom) {
@@ -898,7 +903,7 @@ function MapExplorer (props) {
           topics={topicsFromPosts}
         />
       )}
-      <div className='absolute top-5 left-[74px]'>
+      <div className='absolute top-5 left-[74px] w-80 max-w-[calc(100%-6rem)]'>
         <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-md text-base h-9 text-foreground placeholder-foreground/40 w-full px-2 py-0 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
       <button className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} data-tour='map-features' onClick={toggleFeatureFilters}>

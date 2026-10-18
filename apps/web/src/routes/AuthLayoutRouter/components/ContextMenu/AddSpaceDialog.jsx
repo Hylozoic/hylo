@@ -16,7 +16,7 @@ import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/Advan
 import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
-import LocationInput from 'components/LocationInput/LocationInput'
+import LocationWithBoundary from 'components/LocationWithBoundary/LocationWithBoundary'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
 import SwitchStyled from 'components/SwitchStyled'
@@ -182,6 +182,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [purpose, setPurpose] = useState('')
   const [description, setDescription] = useState('')
   const [locationObject, setLocationObject] = useState(null)
+  const [geoShape, setGeoShape] = useState(null)
   const [postTypes, setPostTypes] = useState(() => defaultsForSpaceType('custom').postTypes)
   const [removedStandardTypes, setRemovedStandardTypes] = useState(() => new Set())
   const [presetStandardViews, setPresetStandardViews] = useState(null)
@@ -447,6 +448,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         purpose: purpose.trim() || null,
         location: locationObject?.fullText || null,
         locationId: locationObject?.id || null,
+        geoShape,
         acceptedPostTypes: postTypes,
         visibility: accessOption.visibility,
         accessibility: accessOption.accessibility,
@@ -577,7 +579,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, autoAddMembers, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeSubmissions, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, geoShape, postTypes, access, accessOptions, requiredRoles, autoAddMembers, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeSubmissions, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   /** True when the user has entered anything beyond the form's initial defaults. */
   const hasEnteredData = useCallback(() => {
@@ -585,7 +587,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     if (spaceType !== 'custom') return true
     if (name.trim() || slugCustomized) return true
     if (purpose.trim() || description.trim()) return true
-    if (bannerUrl || locationObject) return true
+    if (bannerUrl || locationObject || geoShape) return true
     if (icon !== customDefaults.icon) return true
     if (access !== 'open' || requiredRoles.length > 0) return true
     if (autoAddMembers) return true
@@ -598,7 +600,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     if (htmlHasText(welcomeEditorRef.current?.getHTML?.()) || htmlHasText(welcomeExtras?.pageContent)) return true
     return false
   }, [
-    spaceType, name, slugCustomized, purpose, description, bannerUrl, locationObject,
+    spaceType, name, slugCustomized, purpose, description, bannerUrl, locationObject, geoShape,
     icon, access, requiredRoles, autoAddMembers, homeView, manualViews, removedStandardTypes,
     welcomeEnabled, postTypes, welcomeExtras
   ])
@@ -634,11 +636,12 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       label: 'Location',
       defaultSummary: t('No location'),
       render: () => (
-        <LocationInput
+        <LocationWithBoundary
           locationObject={locationObject}
-          location={locationObject?.fullText || ''}
-          onChange={setLocationObject}
-          className={INPUT_CLASS}
+          onLocationChange={setLocationObject}
+          geoShape={geoShape}
+          onGeoShapeChange={setGeoShape}
+          inputClassName={INPUT_CLASS}
         />
       )
     },
@@ -692,7 +695,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         <AutoAddMembersSetting checked={autoAddMembers} onChange={setAutoAddMembers} />
       )
     }
-  ], [t, locationObject, postTypes, spaceType, showWelcomePage, welcomeEnabled, welcomeExtras?.pageContent, group?.id, autoAddMembers])
+  ], [t, locationObject, geoShape, postTypes, spaceType, showWelcomePage, welcomeEnabled, welcomeExtras?.pageContent, group?.id, autoAddMembers])
 
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
   const hideHomePickerCopy = spaceType === 'chat' || spaceType === 'track' || spaceType === 'funding-round'
