@@ -14,8 +14,8 @@ describe('AccessTokenAuth', function () {
   describe('.checkAndSetAuthenticated', () => {
     var userWithToken, generatedToken = '1234'
 
-    before(() => {
-      setup.clearDb()
+    before(async () => {
+      await setup.clearDb()
       UserSession.login = spy(UserSession.login)
       return factories.user()
       .save()

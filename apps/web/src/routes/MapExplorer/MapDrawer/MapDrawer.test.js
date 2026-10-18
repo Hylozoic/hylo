@@ -39,7 +39,7 @@ describe('MapDrawer', () => {
         { id: 1, slug: 'slug2', name: 'group one', avatarUrl: 'https://google.com', description: 'yo', memberCount: 1 }
       ],
       members: [
-        { id: 2, name: 'hello' }
+        { id: '2', name: 'hello' }
       ],
       posts: [
         { id: 1, title: 'Post', type: 'request', groups: [{ id: 1, name: 'group one', slug: 'slug2' }] }
