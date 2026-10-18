@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import CurrentlyActivePills, { DEFAULT_ACTIVE_MAX } from './CurrentlyActivePills'
-import { addQuerystringToPath, groupUrl, personUrl } from '@hylo/navigation'
+import { addQuerystringToPath, groupUrl } from '@hylo/navigation'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import {
   fetchRecentlyActiveMembers,
