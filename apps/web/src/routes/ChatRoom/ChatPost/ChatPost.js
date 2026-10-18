@@ -417,7 +417,7 @@ export default function ChatPost ({
           <div className='relative z-0' onClick={handleClick}>
             {/* Avatar top-aligns with the name so the message text tucks in beside it */}
             <div onClick={showCreator} className='absolute left-0 top-0.5 cursor-pointer'>
-              <Avatar avatarUrl={creator.avatarUrl} medium />
+              <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} medium />
             </div>
             <div className='ml-[42px] flex items-baseline gap-2'>
               <div className='font-bold cursor-pointer flex items-center gap-1.5' onClick={showCreator}>

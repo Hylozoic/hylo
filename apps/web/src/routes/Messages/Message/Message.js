@@ -159,7 +159,7 @@ export default function Message ({ message, isHeader }) {
       <div className={classes.avatar}>
         {isHeader && (
           <ProfileCardDialog personId={person.id}>
-            <Avatar avatarUrl={person.avatarUrl} />
+            <Avatar avatarUrl={person.avatarUrl} personId={person.id} />
           </ProfileCardDialog>
         )}
       </div>

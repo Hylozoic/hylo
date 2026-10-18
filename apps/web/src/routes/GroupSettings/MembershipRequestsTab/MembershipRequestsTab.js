@@ -166,7 +166,7 @@ function JoinRequest ({ accept, decline, group, request }) {
   return (
     <div className='bg-card p-4 rounded-lg space-y-4'>
       <div className='flex items-start gap-4'>
-        <Avatar avatarUrl={user.avatarUrl} url={personUrl(user.id)} className='w-12 h-12 rounded-full' />
+        <Avatar avatarUrl={user.avatarUrl} personId={user.id} url={personUrl(user.id)} className='w-12 h-12 rounded-full' />
         <div className='flex-1 min-w-0'>
           <div className='flex items-start justify-between gap-2'>
             <div className='font-medium text-foreground'>{user.name}</div>
