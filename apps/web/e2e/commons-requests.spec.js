@@ -32,15 +32,31 @@ test('capture screenshot commons request flow', async ({ page }) => {
   const me = await graphql(page, 'query { me { id isAdmin } }')
   test.skip(!me.data?.me?.isAdmin, `e2e user ${me.data?.me?.id} is not in HYLO_ADMINS`)
 
-  // The seeded group is hidden and not in the commons; make it public so it can ask
-  const groupRes = await graphql(page, 'query ($slug: String) { group(slug: $slug) { id } }', { slug: GROUP_SLUG })
-  const groupId = groupRes.data.group.id
-  await graphql(page, 'mutation ($id: ID, $changes: GroupInput) { updateGroupSettings(id: $id, changes: $changes) { id } }', { id: groupId, changes: { visibility: 2 } })
+  // The seeded group is hidden and not in the commons. Selecting Public shows the
+  // section straight away; the request waits until Public is saved.
+  await page.setViewportSize({ width: 1280, height: 1250 })
+  await page.goto(`/groups/${GROUP_SLUG}/settings/privacy`)
+  await page.getByText('Public', { exact: true }).click()
+  const saveFirst = page.getByTestId('commons-request-save-first')
+  await expect(saveFirst).toBeVisible()
+  const button = page.getByTestId('commons-request-button')
+  await expect(button).toBeDisabled()
+  // Frame the Visibility choice and the commons section together
+  await page.getByRole('heading', { name: 'Visibility' }).evaluate(el => el.scrollIntoView({ block: 'start' }))
+  await page.mouse.move(0, 0)
+  await page.waitForFunction(() => document.getAnimations().length === 0) // let the radio highlight transition finish
+  await page.screenshot({ path: path.resolve(screenshotDir, 'issue-1257-public-selected-unsaved.png') })
+
+  await page.getByRole('button', { name: 'Save Changes' }).first().click()
+  await expect(saveFirst).toHaveCount(0)
+  await expect(button).toBeEnabled()
+  await page.getByRole('heading', { name: 'Visibility' }).evaluate(el => el.scrollIntoView({ block: 'start' }))
+  await page.mouse.move(0, 0)
+  await page.waitForFunction(() => document.getAnimations().length === 0) // let the radio highlight transition finish
+  await page.screenshot({ path: path.resolve(screenshotDir, 'issue-1257-public-saved.png') })
+  await page.setViewportSize({ width: 1280, height: 720 })
 
   // Steward entry point
-  await page.goto(`/groups/${GROUP_SLUG}/settings/privacy`)
-  const button = page.getByTestId('commons-request-button')
-  await expect(button).toBeEnabled()
   await page.getByLabel('Tell the Hylo team about your group (optional)').fill('We run open community gardens and want our events on the public map.')
   await button.scrollIntoViewIfNeeded()
   await page.screenshot({ path: path.resolve(screenshotDir, 'issue-1257-steward-request.png') })

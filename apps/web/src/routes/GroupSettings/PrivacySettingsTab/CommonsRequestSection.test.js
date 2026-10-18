@@ -38,8 +38,21 @@ describe('CommonsRequestSection', () => {
     expect(screen.getByTestId('commons-request-button')).toBeEnabled()
   })
 
-  it('disables the request until the group is saved as public', () => {
+  it('asks to save first and disables the request while Public is selected but not saved', () => {
     render(<CommonsRequestSection group={{ ...baseGroup, visibility: 1 }} />)
+    expect(screen.getByTestId('commons-request-save-first')).toBeInTheDocument()
     expect(screen.getByTestId('commons-request-button')).toBeDisabled()
+  })
+
+  it('enables the request once the group is saved as Public', () => {
+    render(<CommonsRequestSection group={baseGroup} />)
+    expect(screen.queryByTestId('commons-request-save-first')).not.toBeInTheDocument()
+    expect(screen.getByTestId('commons-request-button')).toBeEnabled()
+  })
+
+  it('says the group is already in the commons instead of offering a request', () => {
+    render(<CommonsRequestSection group={{ ...baseGroup, allowInPublic: true, publicListingRequest: { status: 'approved' } }} />)
+    expect(screen.getByTestId('commons-request-in-commons')).toBeInTheDocument()
+    expect(screen.queryByTestId('commons-request-button')).not.toBeInTheDocument()
   })
 })
