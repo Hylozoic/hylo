@@ -49,6 +49,7 @@
       "cancelAnimationFrame",
       "describe",
       "expect",
+      "getComputedStyle",
       "it",
       "jest",
       "requestAnimationFrame",
