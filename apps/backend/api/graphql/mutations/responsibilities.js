@@ -93,11 +93,15 @@ export async function removeResponsibilityFromRole ({ userId, roleResponsibility
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+      // Only remove a role responsibility that belongs to a role of this group
       const roleResponsibility = await GroupRoleResponsibility.query(q => {
-        return q.where('id', roleResponsibilityId)
+        return q.where('group_roles_responsibilities.id', roleResponsibilityId)
+          .whereIn('group_roles_responsibilities.group_role_id', bookshelf.knex('groups_roles').select('id').where('group_id', groupId))
       })
         .fetch()
-      return roleResponsibility.destroy()
+      if (!roleResponsibility) throw new GraphQLError('Role responsibility not found in this group')
+      await roleResponsibility.destroy()
+      return { success: true }
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to remove responsibility from role')
     }
