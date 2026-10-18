@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { MessageSquare, ExternalLink, MapPin, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
-import RoundImage from 'components/RoundImage'
+import ProfileCard from 'components/ProfileCard'
 import Loading from 'components/Loading'
 import fetchPerson from 'store/actions/fetchPerson'
 import getPerson from 'store/selectors/getPerson'
@@ -202,57 +202,12 @@ export default function ProfileCardDialog ({ personId, children, className }) {
                   </div>
                   )
                 : (
-                  <div className='flex flex-col'>
-                    {/* Banner area - full bleed to top */}
-                    <div className='relative h-28 bg-darkening/80 overflow-hidden'>
-                      {displayPerson.bannerUrl
-                        ? <div className='absolute inset-0 bg-cover bg-center opacity-70' style={{ backgroundImage: `url(${displayPerson.bannerUrl})` }} />
-                        : <div className='absolute inset-0 bg-cover bg-center opacity-70' style={{ backgroundImage: 'url(/default-user-banner.svg)' }} />}
-                      <div className='absolute inset-0 bg-gradient-to-b from-transparent to-black/60' />
-                    </div>
-
-                    {/* Avatar + basic info */}
-                    <div className='flex flex-col items-center -mt-10 relative z-10 px-4'>
-                      <RoundImage url={displayPerson.avatarUrl} className='shadow-xl' large />
-                      <h2 className='text-foreground text-lg font-bold mt-2 mb-0 text-center'>{displayPerson.name}</h2>
-                      {displayPerson.tagline && (
-                        <p className='text-foreground/70 text-sm text-center mt-1 mb-0'>{displayPerson.tagline}</p>
-                      )}
-                      {displayPerson.location && (
-                        <div className='flex items-center gap-1 text-foreground/50 text-xs mt-1'>
-                          <MapPin className='w-3 h-3' />
-                          <span>{displayPerson.location.replace(', United States', '')}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bio */}
-                    {displayPerson.bio && (
-                      <div className='px-4 mt-3'>
-                        <p className='text-foreground/70 text-sm text-center line-clamp-3 m-0'>{displayPerson.bio.replace(/<[^>]*>/g, '')}</p>
-                      </div>
-                    )}
-
-                    {/* Action buttons */}
-                    <div className='flex gap-2 p-4 pt-4'>
-                      {!isCurrentUser && (
-                        <button
-                          onClick={handleMessage}
-                          className='flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-foreground/10 hover:bg-foreground/20 text-foreground text-sm font-medium transition-all cursor-pointer border-none'
-                        >
-                          <MessageSquare className='w-4 h-4' />
-                          {t('Message')}
-                        </button>
-                      )}
-                      <button
-                        onClick={handleViewProfile}
-                        className='flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-foreground/10 hover:bg-foreground/20 text-foreground text-sm font-medium transition-all cursor-pointer border-none'
-                      >
-                        <ExternalLink className='w-4 h-4' />
-                        {t('View Profile')}
-                      </button>
-                    </div>
-                  </div>
+                  <ProfileCard
+                    person={displayPerson}
+                    showDetails
+                    onMessage={isCurrentUser ? undefined : handleMessage}
+                    onViewProfile={handleViewProfile}
+                  />
                   )}
             </Dialog.Content>
           </Dialog.Overlay>

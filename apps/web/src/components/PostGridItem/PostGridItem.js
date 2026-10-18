@@ -80,7 +80,7 @@ export default function PostGridItem ({
             {title}
           </h3>
           <div className='flex items-center gap-1.5 text-xs text-white h-8 min-w-0'>
-            <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
+            <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} tiny className='flex-shrink-0' />
             {/* With a group name in the row the creator cedes space at 60% so both stay legible */}
             <span className={cn('truncate font-bold min-w-0', groupLabel && 'shrink-0 max-w-[60%]')}>{creator.name}</span>
             {groupLabel && (
@@ -126,7 +126,7 @@ export default function PostGridItem ({
 
       {/* Footer */}
       <div className='flex items-center gap-1 w-full text-xs h-8 px-3 mt-auto bg-card relative z-10 min-w-0'>
-        <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
+        <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} tiny className='flex-shrink-0' />
         <span className={cn('truncate text-foreground font-bold min-w-0', groupLabel && 'shrink-0 max-w-[60%]')}>{creator.name}</span>
         {groupLabel && (
           <span className='truncate text-foreground/60 min-w-0'>{groupLabel}</span>
