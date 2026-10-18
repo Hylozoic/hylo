@@ -157,8 +157,7 @@ export function fetchThread (id) {
       extractModel: 'MessageThread',
       extractQueryResults: {
         getType: () => FETCH_MESSAGES,
-        getItems: get('payload.data.messageThread.messages'),
-        replace: true
+        getItems: get('payload.data.messageThread.messages')
       }
     }
   }

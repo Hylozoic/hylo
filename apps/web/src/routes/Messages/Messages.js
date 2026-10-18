@@ -17,6 +17,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import useDraft from 'hooks/useDraft'
+import useRefreshOnReturn from 'hooks/useRefreshOnReturn'
 import PeopleSelector from './PeopleSelector'
 import Header from './Header'
 import MessageSection from './MessageSection'
@@ -197,19 +198,25 @@ const Messages = () => {
     focusForm()
   }, [messageThreadId])
 
-  // When the mobile WebView regains focus (e.g. tapping a push notification for
-  // an already-loaded thread), refresh the thread data in-place without reloading
-  // the entire page. The browser/WebView dispatches a `focus` event when the app
-  // returns to the foreground.
+  // Messages that arrived while the socket was down (e.g. the mobile app was in the
+  // background) are never pushed to us, so refresh the open thread in place when the
+  // person comes back — such as by tapping a push notification for this thread.
+  const refreshThread = useRefreshOnReturn(fetchThreadAction, { enabled: !!isRealThread })
+
+  // Navigating to the thread that's already open (e.g. clicking its notification)
+  // doesn't change messageThreadId, so the fetch above won't run — refresh here
+  const previousLocationRef = useRef(location)
   useEffect(() => {
-    const handleRefresh = () => {
-      if (messageThreadId && messageThreadId !== NEW_THREAD_ID) {
-        fetchThreadAction()
-      }
+    const previous = previousLocationRef.current
+    previousLocationRef.current = location
+    if (
+      previous.key !== location.key &&
+      previous.pathname === location.pathname &&
+      previous.search === location.search
+    ) {
+      refreshThread()
     }
-    window.addEventListener('focus', handleRefresh)
-    return () => window.removeEventListener('focus', handleRefresh)
-  }, [messageThreadId, fetchThreadAction])
+  }, [location, refreshThread])
 
   // Clicking anywhere outside the recipient picker closes its dropdown.
   // The dropdown itself portals to document.body, so it needs its own check —
