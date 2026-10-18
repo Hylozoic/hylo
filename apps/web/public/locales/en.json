@@ -3148,6 +3148,8 @@
   "You can send a new request below.": "You can send a new request below.",
   "Tell the Hylo team about your group (optional)": "Tell the Hylo team about your group (optional)",
   "What is your group about, and what will it share in public?": "What is your group about, and what will it share in public?",
+  "You've selected Public. Save your changes first, then you can send your request.": "You've selected Public. Save your changes first, then you can send your request.",
+  "This group is already in the Commons.": "This group is already in the Commons.",
   "Save your group as Public before sending a request.": "Save your group as Public before sending a request.",
   "Request to join the commons": "Request to join the Commons",
   "Ask the Hylo team to add this group to the commons": "Ask the Hylo team to add this group to the Commons",

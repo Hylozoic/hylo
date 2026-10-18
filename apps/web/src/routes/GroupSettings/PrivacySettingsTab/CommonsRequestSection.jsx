@@ -14,6 +14,8 @@ function formatDate (date) {
 /**
  * Lets a group administrator ask the Hylo team to add their public group to the
  * commons (allowInPublic), and shows where their latest request stands.
+ * PrivacySettingsTab shows it as soon as Public is selected, before it's saved;
+ * the request itself waits until the group is saved as Public.
  */
 export default function CommonsRequestSection ({ group }) {
   const { t } = useTranslation()
@@ -51,7 +53,13 @@ export default function CommonsRequestSection ({ group }) {
       <p className='text-foreground/70 mb-2'>{t('commonsExplainerText1')}</p>
       <p className='text-foreground/70 mb-4'>{t('commonsExplainerText2')}</p>
 
-      {isPending && (
+      {group.allowInPublic && (
+        <div className='rounded-lg bg-selected/20 p-4' data-testid='commons-request-in-commons'>
+          <p className='text-foreground font-medium m-0'>{t('This group is already in the Commons.')}</p>
+        </div>
+      )}
+
+      {!group.allowInPublic && isPending && (
         <div className='rounded-lg bg-selected/20 p-4' data-testid='commons-request-pending'>
           <p className='text-foreground font-medium m-0'>
             {t('Request sent on {{date}}', { date: formatDate(request.requestedAt) })}
@@ -62,7 +70,7 @@ export default function CommonsRequestSection ({ group }) {
         </div>
       )}
 
-      {!isPending && (
+      {!group.allowInPublic && !isPending && (
         <>
           {isDenied && (
             <div className='rounded-lg bg-foreground/5 p-4 mb-4' data-testid='commons-request-denied'>
@@ -87,7 +95,11 @@ export default function CommonsRequestSection ({ group }) {
             placeholder={t('What is your group about, and what will it share in public?')}
           />
           {!savedAsPublic && (
-            <p className='text-foreground/70 text-sm mb-3'>{t('Save your group as Public before sending a request.')}</p>
+            <div className='rounded-lg bg-accent/20 p-3 mb-3' data-testid='commons-request-save-first'>
+              <p className='text-foreground text-sm m-0'>
+                {t("You've selected Public. Save your changes first, then you can send your request.")}
+              </p>
+            </div>
           )}
           <Button
             variant='secondary'

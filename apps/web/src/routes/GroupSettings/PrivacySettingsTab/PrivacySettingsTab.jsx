@@ -152,7 +152,8 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
         </div>
       </SettingsSection>
 
-      {visibility === GROUP_VISIBILITY.Public && !group.allowInPublic && (
+      {/* Follows the selected visibility, so it shows as soon as Public is clicked */}
+      {visibility === GROUP_VISIBILITY.Public && (
         <CommonsRequestSection group={group} />
       )}
 
