@@ -1,0 +1,27 @@
+# Separately owned Compose project (AiaB's documented exception for things that can't live
+# inside the private network): joins the sandbox network as `hylo-host-bridge` and forwards
+# to the Hylo backend running on the host. Publishes no ports.
+# Managed by tools/atproto-sandbox/hylo/bridge.sh.
+name: atproto-sandbox-hylo-bridge
+
+services:
+  hylo-host-bridge:
+    image: caddy:2.11.4-alpine
+    command: ['caddy', 'reverse-proxy', '--from', ':3001', '--to', 'host.docker.internal:${HYLO_BACKEND_PORT:-3001}']
+    extra_hosts: ['host.docker.internal:host-gateway']
+    read_only: true
+    tmpfs: [/data, /config]
+    cap_drop: [ALL]
+    # The caddy binary carries a file capability; exec fails if it's outside the bounding set
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ['no-new-privileges:true']
+    networks:
+      sandbox:
+        aliases: [hylo-host-bridge]
+      egress: {}
+
+networks:
+  sandbox:
+    external: true
+    name: ${AIAB_PROJECT:-atproto-sandbox}_atmosinabox
+  egress: {}

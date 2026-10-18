@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "hylo",
+  "services": [{ "service": "hylo-proxy", "environment": [] }],
+  "routes": [
+    { "id": "pds", "service": "hylo-proxy", "host": "pds.hylo", "port": 8080 },
+    { "id": "handles", "service": "hylo-proxy", "host": "*.hylo", "port": 8080 }
+  ],
+  "secrets": []
+}

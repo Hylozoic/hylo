@@ -1,0 +1,14 @@
+# AiaB managed application: gives Hylo real sandbox DNS + TLS for pds.hylo.<domain> and
+# *.hylo.<domain>. Managed apps may only join the private sandbox network, so this proxy
+# forwards to hylo-host-bridge (a separate Compose project, see bridge.compose.yaml), which
+# can reach `yarn backend:dev` on the host. Caddy keeps the original Host header.
+services:
+  hylo-proxy:
+    image: caddy:2.11.4-alpine
+    command: ['caddy', 'reverse-proxy', '--from', ':8080', '--to', 'hylo-host-bridge:3001']
+    read_only: true
+    tmpfs: [/data, /config]
+    cap_drop: [ALL]
+    # The caddy binary carries a file capability; exec fails if it's outside the bounding set
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ['no-new-privileges:true']

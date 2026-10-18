@@ -81,12 +81,21 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 - Verified live: the official `@atproto/identity` resolver passes the two-way handle check
   against the running backend (with DNS/TLS simulated; the real thing comes in Phase 4)
 
-### Phase 4: Hylo inside the sandbox
-- Backend Dockerfile, plus an AiaB app definition for `hylo-backend`, `hylo-postgres`
-  and `hylo-redis`, routing `pds.hylo` and `*.hylo`
-- Seed test users (`alice@hylo.com`, `bob@terran.io`, ineligible `carol@gmail.com`) and provision them
-- Verification script: handle ↔ DID ↔ PLC document, the ineligible user gets nothing,
-  and the reference PDS resolves Hylo handles
+### ✅ Phase 4: Hylo in the sandbox (via a bridge to the dev backend)
+- Real sandbox DNS + HTTPS for `pds.hylo.atmosbox.test` and `*.hylo.atmosbox.test`, served by
+  the normal `yarn backend:dev` on the host and its dev database
+- `hylo-proxy`: AiaB managed app (`tools/atproto-sandbox/hylo/`). Managed apps may only join the
+  private network, so it forwards to `hylo-host-bridge`, a separate Compose project
+  (AiaB's documented exception) that also reaches the host. Neither publishes ports.
+- `tools/atproto-sandbox/hylo/verify.sh`, run inside the sandbox, checks:
+  - the official resolver goes handle → DID → same handle over HTTPS
+  - the DID document points at the Hylo PDS
+  - the **reference PDS (`pds1`) resolves Hylo handles**
+  - unknown handles don't resolve, and unimplemented XRPC returns 501
+- Verified with a `@hylo.com` and a `@terran.io` account, including a rename (the old handle
+  stops resolving immediately) and a provision retried after a dropped connection
+- Test users come from the dev database rather than seeded fixtures, since the bridge uses
+  the real dev backend
 
 ### Phase 5: Triggers and UI
 - Backfill script for eligible users
@@ -96,6 +105,8 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 ### Phase 6: User-chosen handles
 - Users pick their own handle name under `hylo.com`, at provisioning and later as a rename
 - Availability check: syntax, reserved names, and uniqueness against active handles
+- Adopt Bluesky's official reserved-handle list (several hundred names; AiaB vendors a copy
+  in `lib/manifest.mjs`) in place of our short `RESERVED_NAMES`
 - Rename = PLC `updateHandle` op; the old handle stops resolving immediately
 - Decide: a cooldown before a released handle can be reclaimed, and rate limits on renames
 - Decide: whether to support bring-your-own-domain handles (DNS TXT or `.well-known` on the user's domain)
@@ -115,6 +126,8 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 
 ### Later
 - Member handles under `*.hylo.social`
+- Fully containerised Hylo in the sandbox (backend Dockerfile, Postgres/PostGIS, Redis), so CI
+  can run `verify.sh` without a developer's machine
 - Signed repositories, `com.atproto.sync.*`, relay and firehose (test with AiaB's `full-stack` preset)
 - AT Protocol OAuth, posting Hylo content as AT Protocol records
 - User-held recovery rotation keys

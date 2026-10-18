@@ -1,8 +1,8 @@
 {
-  "name": "atproto-plc-spike",
+  "name": "atproto-sandbox-client",
   "private": true,
   "type": "module",
-  "description": "Phase 0 spike: mint and resolve a did:plc against the AiaB PLC",
+  "description": "Node scripts that run inside the AiaB sandbox network (spike, Hylo verification)",
   "dependencies": {
     "@atproto/crypto": "0.5.7",
     "@atproto/identity": "0.5.16",
