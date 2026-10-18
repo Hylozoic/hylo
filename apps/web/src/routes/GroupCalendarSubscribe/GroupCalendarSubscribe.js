@@ -80,11 +80,11 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel 
 
   return (
     <>
-      {/* Quiet tonal button, matching the context menu's utility rows */}
+      {/* Tonal button tinted with the theme's selected color so the subscribe option stands out under the calendar */}
       <button
         type='button'
         onClick={handleButtonClick}
-        className='w-full mt-4 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 border-foreground/20 bg-transparent text-foreground/70 hover:text-foreground hover:border-foreground/50 text-sm font-medium transition-all cursor-pointer'
+        className='w-full mt-4 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 border-selected bg-selected/20 text-foreground hover:bg-selected/40 text-sm font-bold transition-all cursor-pointer'
       >
         <Rss size={16} />
         {buttonLabel}
