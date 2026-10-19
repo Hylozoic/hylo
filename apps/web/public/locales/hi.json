@@ -3123,5 +3123,8 @@
   "Remove boundary": "सीमा हटाएं",
   "The map could not be loaded in this browser.": "इस ब्राउज़र में मानचित्र लोड नहीं हो सका।",
   "Space area: {{name}}": "स्पेस क्षेत्र: {{name}}",
-  "Group area: {{name}}": "समूह क्षेत्र: {{name}}"
+  "Group area: {{name}}": "समूह क्षेत्र: {{name}}",
+  "reactionCount_one": "{{count}} प्रतिक्रिया",
+  "reactionCount_other": "{{count}} प्रतिक्रियाएँ",
+  "Tap to remove": "हटाने के लिए टैप करें"
 }

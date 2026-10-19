@@ -3123,5 +3123,8 @@
   "Remove boundary": "Remover limite",
   "The map could not be loaded in this browser.": "Não foi possível carregar o mapa neste navegador.",
   "Space area: {{name}}": "Área do espaço: {{name}}",
-  "Group area: {{name}}": "Área do grupo: {{name}}"
+  "Group area: {{name}}": "Área do grupo: {{name}}",
+  "reactionCount_one": "{{count}} reação",
+  "reactionCount_other": "{{count}} reações",
+  "Tap to remove": "Toque para remover"
 }
