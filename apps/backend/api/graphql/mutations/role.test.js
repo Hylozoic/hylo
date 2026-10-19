@@ -54,4 +54,26 @@ describe('roles mutations', () => {
     const updatedGroupRole = await updateGroupRole({ groupId: group.id, color: 'green', name, emoji, userId: user2.id, groupRoleId: groupRole.get('id') })
     expect(updatedGroupRole.get('color')).to.equal('green')
   })
+
+  describe('with a role from another group', () => {
+    let otherAdmin, otherGroup, otherRole
+
+    before(async () => {
+      otherAdmin = await factories.user().save()
+      otherGroup = await factories.group().save()
+      await otherAdmin.joinGroup(otherGroup, { assignAdministrator: true })
+      otherRole = await addGroupRole({ groupId: otherGroup.id, color, name: 'Theirs', emoji, userId: otherAdmin.id })
+    })
+
+    it('does not update it', async () => {
+      await expect(updateGroupRole({ groupId: group.id, name: 'Hijacked', userId: user2.id, groupRoleId: otherRole.id }))
+        .to.eventually.be.rejectedWith('Role not found in this group')
+      expect((await GroupRole.where({ id: otherRole.id }).fetch()).get('name')).to.equal('Theirs')
+    })
+
+    it('does not assign it to a member', async () => {
+      await expect(addRoleToMember({ userId: user2.id, roleId: otherRole.id, personId: user.id, groupId: group.id }))
+        .to.eventually.be.rejectedWith('Role not found in this group')
+    })
+  })
 })
