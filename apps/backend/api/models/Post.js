@@ -414,7 +414,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async completionResponseForUser (userId) {
     if (!userId || this.get('type') !== Post.Type.ACTION) return null
     const pu = await this.loadPostInfoForUser(userId)
-    return (pu && pu.get('completion_response')) || null
+    const response = (pu && pu.get('completion_response')) || null
+    return Post.sanitizeCompletionResponse(this.get('completion_action'), response)
   },
 
   async savedAtForUser (userId) {
@@ -736,6 +737,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }))
     activitiesToCreate = activitiesToCreate.concat(invitees)
 
+    // You can't mention or invite to an event someone who has left all of this post's groups
+    // (inactive membership), so drop those activities. New-post and chat activities only go to
+    // active members already. Activity.generateNotificationMedia applies the same rule to every
+    // other post and comment notification.
+    const formerMemberIds = await Activity.formerMemberIds(
+      uniq(activitiesToCreate.map(activity => activity.reader_id)),
+      groups.map(group => group.id),
+      trx
+    )
+    activitiesToCreate = activitiesToCreate.filter(activity => !formerMemberIds.has(String(activity.reader_id)))
+
     activitiesToCreate = filter(r => r.reader_id !== this.get('user_id'), activitiesToCreate)
 
     return Activity.saveForReasons(activitiesToCreate, trx)
@@ -855,6 +867,15 @@ module.exports = bookshelf.Model.extend(Object.assign({
 }, EnsureLoad, ProjectMixin, EventMixin), {
   // Class Methods
   ...eventClassMethods,
+
+  /**
+   * Text completion responses are rich text HTML that clients render as HTML, so they are
+   * sanitized when written and again when read (older rows were stored unsanitized).
+   */
+  sanitizeCompletionResponse (completionAction, response) {
+    if (completionAction !== 'text' || !Array.isArray(response)) return response
+    return response.map(r => typeof r === 'string' ? RichText.sanitizeHTML(r) : r)
+  },
 
   Type: {
     ACTION: 'action',

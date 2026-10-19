@@ -798,6 +798,10 @@ type Group {
   id: ID
   # Whether the current user has access to this group (via scope system or free access)
   canAccess: Boolean
+  # Whether the current user has a currently valid user scope for this group or space
+  hasValidScope: Boolean
+  # Current user's membership state; null when the user has never joined
+  currentUserMembershipActive: Boolean
   # URL for a video to display at the top of the about text
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
@@ -3374,6 +3378,8 @@ type Mutation {
     purpose: String,
     location: String,
     locationId: ID,
+    # GeoJSON geometry (e.g. a Polygon) outlining the space's region
+    geoShape: String,
     viewTypes: [String],
     bannerUrl: String,
     avatarUrl: String,
@@ -3399,6 +3405,8 @@ type Mutation {
     requiredRoles: [Int],
     location: String,
     locationId: ID,
+    # GeoJSON geometry (e.g. a Polygon) outlining the space's region. Null clears it.
+    geoShape: String,
     purpose: String,
     bannerUrl: String,
     avatarUrl: String,
@@ -3527,6 +3535,8 @@ type Mutation {
   # For Restricted groups, provide accessCode or invitationToken for pre-approved join.
   # Set acceptAgreements to true if user has accepted agreements during join flow.
   joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput], accessCode: String, invitationToken: String, acceptAgreements: Boolean): Membership
+  # Reactivate a prior membership using still-valid purchased/granted access
+  rejoinGroup(groupId: ID!): Membership
   # Join a project Post as a member
   joinProject(id: ID): GenericResult
   # Leave a funding round

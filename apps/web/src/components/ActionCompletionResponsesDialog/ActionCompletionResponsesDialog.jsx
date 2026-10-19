@@ -1,10 +1,12 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { completionTextToHTML } from 'util/completionResponse'
 import { formatUserDatePair } from 'util/dateFormat'
 
 import Avatar from 'components/Avatar'
 import CardFileAttachments from 'components/CardFileAttachments'
 import * as Dialog from '@radix-ui/react-dialog'
+import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import { personUrl } from '@hylo/navigation'
 
@@ -71,7 +73,7 @@ function CompletionResponse ({ action, response }) {
     case 'reaction':
       return response[0]
     case 'text':
-      return <HyloHTML html={response[0]} />
+      return <ClickCatcher><HyloHTML html={completionTextToHTML(response[0])} /></ClickCatcher>
     case 'uploadFile':
       return <CardFileAttachments attachments={response.map(a => ({ ...a, type: 'file' }))} />
     default:
