@@ -2130,6 +2130,8 @@ type NotificationQuerySet {
 # A user of Hylo
 type Person {
   id: ID
+  # Whether the current user may start a direct message with this person (never true for themself)
+  canMessage: Boolean
   # The URL of this person's avatar image
   avatarUrl: String
   # The URL of this person's banner image on their profile

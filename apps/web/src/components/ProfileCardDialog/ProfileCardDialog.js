@@ -7,6 +7,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import ProfileCard from 'components/ProfileCard'
 import Loading from 'components/Loading'
 import fetchPerson from 'store/actions/fetchPerson'
+import personHoverCardQuery from '@graphql/queries/personHoverCardQuery'
 import getPerson from 'store/selectors/getPerson'
 import getMe from 'store/selectors/getMe'
 import { personUrl, messagePersonUrl, messagesUrl } from '@hylo/navigation'
@@ -36,7 +37,7 @@ export default function ProfileCardDialog ({ personId, children, className }) {
 
   useEffect(() => {
     if (open && personId) {
-      dispatch(fetchPerson(personId))
+      dispatch(fetchPerson(personId, personHoverCardQuery))
     }
   }, [open, personId])
 
@@ -205,7 +206,7 @@ export default function ProfileCardDialog ({ personId, children, className }) {
                   <ProfileCard
                     person={displayPerson}
                     showDetails
-                    onMessage={isCurrentUser ? undefined : handleMessage}
+                    onMessage={!isCurrentUser && displayPerson.canMessage ? handleMessage : undefined}
                     onViewProfile={handleViewProfile}
                   />
                   )}
