@@ -2,12 +2,14 @@ import React, { useMemo, useCallback, useState } from 'react'
 import { cn } from 'util/index'
 import EmojiPicker from 'components/EmojiPicker'
 import EmojiPill from 'components/EmojiPill'
+import ReactionsDrawer, { ALL_REACTIONS } from 'components/ReactionsDrawer'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger
 } from 'components/ui/popover'
 import useReactionActions from 'hooks/useReactionActions'
+import useTouchLongPress from 'hooks/useTouchLongPress'
 
 export default function EmojiRow (props) {
   const {
@@ -24,6 +26,8 @@ export default function EmojiRow (props) {
   } = props
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
   const [overflowOpen, setOverflowOpen] = useState(false)
+  // Emoji the reactions drawer opened on (ALL_REACTIONS for every emoji), null when closed
+  const [drawerEmoji, setDrawerEmoji] = useState(null)
 
   const entityType = comment ? 'comment' : 'post'
   const myReactions = useMemo(() => (comment
@@ -69,6 +73,16 @@ export default function EmojiRow (props) {
     return accum
   }, {}), [entityReactions, myEmojis, currentUser])
 
+  // Touch long press on a reaction opens the drawer of who reacted. Taps still toggle your
+  // reaction and desktop keeps the hover tooltip. Anonymous viewers never see reactor names.
+  const openDrawer = useCallback((emojiFull) => {
+    setOverflowOpen(false)
+    setDrawerEmoji(emojiFull)
+  }, [])
+  const handleLongPress = currentUser ? openDrawer : undefined
+  const { handlers: overflowLongPressHandlers, consumeLongPress: consumeOverflowLongPress } =
+    useTouchLongPress(currentUser ? () => openDrawer(ALL_REACTIONS) : null)
+
   // Sort reactions by count (most popular first)
   const sortedReactions = useMemo(() =>
     Object.values(usersReactions).sort((a, b) => b.count - a.count),
@@ -88,6 +102,7 @@ export default function EmojiRow (props) {
           {visibleReactions.map(reaction => (
             <EmojiPill
               onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
+              onLongPress={handleLongPress}
               key={reaction.emojiFull}
               emojiFull={reaction.emojiFull}
               count={reaction.count}
@@ -105,7 +120,12 @@ export default function EmojiRow (props) {
                     { 'bg-selected text-foreground': hasAnySelected },
                     pillClassName
                   )}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (consumeOverflowLongPress()) e.preventDefault()
+                  }}
+                  {...overflowLongPressHandlers}
+                  style={currentUser ? { WebkitTouchCallout: 'none' } : undefined}
                 >
                   <span className='inline-block translate-y-px leading-none sm:hidden'>{overflowReactions.slice(0, 2).map(r => r.emojiFull).join('')}{overflowReactions.length > 2 && '…'}</span>
                   <span className='hidden translate-y-px leading-none sm:inline-block'>{overflowReactions.slice(0, 3).map(r => r.emojiFull).join('')}{overflowReactions.length > 3 && '…'}</span>
@@ -117,6 +137,7 @@ export default function EmojiRow (props) {
                   {overflowReactions.map(reaction => (
                     <EmojiPill
                       onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
+                      onLongPress={handleLongPress}
                       key={reaction.emojiFull}
                       emojiFull={reaction.emojiFull}
                       count={reaction.count}
@@ -130,6 +151,16 @@ export default function EmojiRow (props) {
           )}
           {currentUser && !alignLeft ? <EmojiPicker handleReaction={handleReaction} myEmojis={myEmojis} handleRemoveReaction={handleRemoveReaction} onOpenChange={onOpenChange} /> : ''}
         </div>
+      )}
+      {currentUser && (
+        <ReactionsDrawer
+          open={!!drawerEmoji}
+          onOpenChange={(open) => { if (!open) setDrawerEmoji(null) }}
+          reactions={entityReactions}
+          currentUser={currentUser}
+          initialEmoji={drawerEmoji}
+          onRemoveReaction={handleRemoveReaction}
+        />
       )}
     </div>
   )
