@@ -4,7 +4,7 @@ import { MessageSquare, ExternalLink, MapPin } from 'lucide-react'
 import RoundImage from 'components/RoundImage'
 import { cn } from 'util/index'
 
-const BUTTON_CLASS = 'flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-foreground/10 hover:bg-foreground/20 text-foreground text-sm font-medium transition-all cursor-pointer border-none'
+const BUTTON_CLASS = 'flex-1 flex items-center justify-center gap-2 px-3 py-2 whitespace-nowrap rounded-md bg-foreground/10 hover:bg-foreground/20 text-foreground text-sm font-medium transition-all cursor-pointer border-none'
 
 /**
  * Summary card for a person: banner, avatar, name, tagline, their roles in the

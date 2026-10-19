@@ -18,9 +18,11 @@ function providers ({ loggedIn = true } = {}) {
     name: 'Ada Lovelace',
     avatarUrl: 'ada.png',
     tagline: 'First programmer',
+    canMessage: true,
     groupRoles: { items: [{ id: '7', name: 'Gardener', emoji: '🌱', active: true, groupId: '10' }] }
   })
   session.Person.create({ id: '1', name: 'Me' })
+  session.Person.create({ id: '3', name: 'Grace Hopper', avatarUrl: 'grace.png', canMessage: false })
   return AllTheProviders({ orm: session.state })
 }
 
@@ -73,6 +75,14 @@ describe('Avatar profile hover card', () => {
       useLocation.mockReturnValue({ pathname: '', search: '' })
       useParams.mockReturnValue({})
     }
+  })
+
+  it('hides the Message button for someone the viewer cannot message', () => {
+    const { container } = render(<Avatar avatarUrl='grace.png' personId='3' />, {}, providers())
+    hover(container.querySelector('[data-profile-hover-card-trigger]'))
+    expect(screen.getByText('Grace Hopper')).toBeInTheDocument()
+    expect(screen.queryByText('Message')).not.toBeInTheDocument()
+    expect(screen.getByText('View Profile')).toBeInTheDocument()
   })
 
   it('has no Message button on your own card', () => {

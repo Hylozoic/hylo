@@ -544,6 +544,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           await p.load('locationObject')
           return p.relations.locationObject
         },
+        // Whether the viewer may start a DM with this person (same rule as the recipient search)
+        canMessage: p => userId ? User.canMessage(userId, p.id) : false,
         membershipCommonRoles: emptyQuerySet,
         messageThreadId: p => userId ? p.getMessageThreadWith(userId).then(post => post ? post.id : null) : null,
         // Never expose null names to clients — they call .split() etc.

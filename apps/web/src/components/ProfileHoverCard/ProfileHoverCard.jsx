@@ -167,8 +167,9 @@ function ProfileHoverCardPopover ({ personId, anchorRef, currentUser, onClose, o
   const person = useSelector(state => getPerson(state, { personId }))
   const roles = useSelector(state => getRolesForGroup(state, { person: personId, groupId: roleGroupId }))
   const visibleRoles = useMemo(() => roleGroupId ? roles.filter(role => role.common || role.active !== false) : [], [roles, roleGroupId])
-  const isCurrentUser = currentUser?.id === personId
   const displayPerson = person?.ref || person
+  // Only offer messaging to people the new-message recipient search would offer (never yourself)
+  const canMessage = Boolean(displayPerson?.canMessage) && currentUser?.id !== personId
 
   useEffect(() => {
     // The backend returns no person when the viewer can't see this profile (blocked, no shared group...)
@@ -211,7 +212,7 @@ function ProfileHoverCardPopover ({ personId, anchorRef, currentUser, onClose, o
               <ProfileCard
                 person={displayPerson}
                 roles={visibleRoles}
-                onMessage={isCurrentUser ? undefined : handleMessage}
+                onMessage={canMessage ? handleMessage : undefined}
                 onViewProfile={handleViewProfile}
               />
               )

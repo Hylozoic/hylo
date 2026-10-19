@@ -672,6 +672,38 @@ module.exports = bookshelf.Model.extend(merge({
 }, HasSettings), {
   AXOLOTL_ID: '13986',
 
+  /**
+   * Whether `viewerId` may start a direct message with `targetId`. Mirrors who the
+   * new-message recipient search offers (members of the viewer's groups, plus the
+   * viewer's connections), so a profile card never offers messaging the search wouldn't:
+   * an active user, not the viewer, not blocked in either direction, who is an active
+   * member of a group the viewer is an active member of or is one of the viewer's
+   * connections. Stricter than findOrCreateThread's personFilter check, so anything
+   * this allows the backend also accepts.
+   */
+  async canMessage (viewerId, targetId) {
+    if (!viewerId || !targetId || String(viewerId) === String(targetId)) return false
+    const knex = bookshelf.knex
+    const sharedGroupMembers = knex('group_memberships as gm_target')
+      .join('group_memberships as gm_viewer', 'gm_viewer.group_id', 'gm_target.group_id')
+      .join('groups', 'groups.id', 'gm_target.group_id')
+      .where({
+        'gm_viewer.user_id': viewerId,
+        'gm_viewer.active': true,
+        'gm_target.active': true,
+        'groups.active': true
+      })
+      .select('gm_target.user_id')
+    const connections = knex('user_connections').where('user_id', viewerId).select('other_user_id')
+    const row = await knex('users')
+      .where('users.id', targetId)
+      .where('users.active', true)
+      .whereNotIn('users.id', BlockedUser.blockedFor(viewerId))
+      .where(q => q.whereIn('users.id', sharedGroupMembers).orWhereIn('users.id', connections))
+      .first('users.id')
+    return Boolean(row)
+  },
+
   // One message for every failure, so login can't be used to find out which emails have accounts.
   // Clients match on this exact string.
   INVALID_LOGIN_ERROR: 'Incorrect email or password',
