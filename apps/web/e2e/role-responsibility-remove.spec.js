@@ -29,20 +29,36 @@ async function roleResponsibilityTitles (page, roleId) {
   return (json.data?.responsibilities || []).map(r => r.title).sort()
 }
 
-function roleCard (page, roleName) {
-  return page.locator('div.relative.rounded-lg').filter({ has: page.locator(`input[value="${roleName}"]`) }).first()
+// Role cards and their responsibility lists have stable test ids (structural/class selectors match
+// nested containers on the mobile layout)
+function roleCard (page, roleId) {
+  return page.getByTestId(`role-card-${roleId}`)
 }
 
-async function addResponsibilityViaUI (page, roleName, title) {
-  const card = roleCard(page, roleName)
-  await card.getByText('+ Add Responsibility to Role').click()
-  await card.locator('li a', { hasText: new RegExp(`^${title}$`) }).click()
-  await expect(card.locator('div.bg-card span', { hasText: new RegExp(`^${title}$`) })).toBeVisible(uiTimeout)
+function responsibilitiesList (page, roleId) {
+  return roleCard(page, roleId).getByTestId('role-responsibilities')
 }
 
-async function removeResponsibilityViaUI (page, roleName, title) {
-  const card = roleCard(page, roleName)
-  const row = card.locator('div.bg-card').filter({ has: page.locator('span', { hasText: new RegExp(`^${title}$`) }) })
+async function expectResponsibilities (page, roleId, titles) {
+  const list = responsibilitiesList(page, roleId)
+  await expect(list.getByText('Remove', { exact: true })).toHaveCount(titles.length, uiTimeout)
+  for (const title of titles) await expect(list.getByText(title, { exact: true })).toBeVisible(uiTimeout)
+}
+
+async function addResponsibilityViaUI (page, roleId, title) {
+  const card = roleCard(page, roleId)
+  await card.getByText('+ Add Responsibility to Role', { exact: true }).click()
+  await card.getByRole('listitem').getByText(title, { exact: true }).click()
+  await expect(responsibilitiesList(page, roleId).getByText(title, { exact: true })).toBeVisible(uiTimeout)
+}
+
+async function removeResponsibilityViaUI (page, roleId, title) {
+  // The innermost element containing both the title and its Remove button is that item's row
+  const list = responsibilitiesList(page, roleId)
+  const row = list.locator('div')
+    .filter({ has: page.getByText(title, { exact: true }) })
+    .filter({ has: page.getByText('Remove', { exact: true }) })
+    .last()
   page.once('dialog', dialog => dialog.accept())
   await row.getByText('Remove', { exact: true }).click()
 }
@@ -71,22 +87,22 @@ test('custom role shows only its own responsibilities and removing one persists 
 
   await page.reload()
   await waitPastRootSessionLoading(page)
-  const card = roleCard(page, roleName)
-  await expect(card.getByText('+ Add Responsibility to Role')).toBeVisible(uiTimeout)
+  const card = roleCard(page, roleId)
+  await expect(card.getByText('+ Add Responsibility to Role', { exact: true })).toBeVisible(uiTimeout)
   // A brand new role has no responsibilities (previously every role listed all system responsibilities)
-  await expect(card.locator('div.bg-card')).toHaveCount(0)
+  await expectResponsibilities(page, roleId, [])
 
-  await addResponsibilityViaUI(page, roleName, 'Add Members')
-  await addResponsibilityViaUI(page, roleName, 'Manage Content')
+  await addResponsibilityViaUI(page, roleId, 'Add Members')
+  await addResponsibilityViaUI(page, roleId, 'Manage Content')
   expect(await roleResponsibilityTitles(page, roleId)).toEqual(['Add Members', 'Manage Content'])
 
   await page.reload()
   await waitPastRootSessionLoading(page)
-  await expect(card.locator('div.bg-card span:not(.border-2)')).toHaveText(['Add Members', 'Manage Content'], uiTimeout)
+  await expectResponsibilities(page, roleId, ['Add Members', 'Manage Content'])
   await card.screenshot({ path: `${shotDir}/issue-1673-after-1-role-loaded.png` })
 
-  await removeResponsibilityViaUI(page, roleName, 'Manage Content')
-  await expect(card.locator('div.bg-card span:not(.border-2)')).toHaveText(['Add Members'], uiTimeout)
+  await removeResponsibilityViaUI(page, roleId, 'Manage Content')
+  await expectResponsibilities(page, roleId, ['Add Members'])
   await card.screenshot({ path: `${shotDir}/issue-1673-after-2-removed.png` })
 
   expect(removeCalls).toHaveLength(1)
@@ -95,7 +111,7 @@ test('custom role shows only its own responsibilities and removing one persists 
 
   await page.reload()
   await waitPastRootSessionLoading(page)
-  await expect(card.locator('div.bg-card span:not(.border-2)')).toHaveText(['Add Members'], uiTimeout)
+  await expectResponsibilities(page, roleId, ['Add Members'])
   expect(await roleResponsibilityTitles(page, roleId)).toEqual(['Add Members'])
   await card.screenshot({ path: `${shotDir}/issue-1673-after-3-reloaded.png` })
 
