@@ -119,6 +119,43 @@ describe('ReactionsDrawer', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
+  it('closes on a tap outside, without the tap reaching the post underneath', () => {
+    const onOpenChange = jest.fn()
+    const onPostClick = jest.fn()
+    const onPostTouchStart = jest.fn()
+    render(
+      <div onClick={onPostClick} onTouchStart={onPostTouchStart} onMouseDown={onPostTouchStart}>
+        <ReactionsDrawer open onOpenChange={onOpenChange} reactions={reactions} currentUser={currentUser} onRemoveReaction={jest.fn()} />
+      </div>
+    )
+    const overlay = screen.getByTestId('reactions-drawer-overlay')
+    fireEvent.touchStart(overlay)
+    fireEvent.pointerDown(overlay)
+    fireEvent.mouseDown(overlay)
+    fireEvent.touchEnd(overlay)
+    fireEvent.click(overlay)
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(onPostClick).not.toHaveBeenCalled()
+    expect(onPostTouchStart).not.toHaveBeenCalled()
+  })
+
+  it('keeps taps inside the drawer from closing it or reaching the post underneath', () => {
+    const onOpenChange = jest.fn()
+    const onPostClick = jest.fn()
+    render(
+      <div onClick={onPostClick}>
+        <ReactionsDrawer open onOpenChange={onOpenChange} reactions={reactions} currentUser={currentUser} onRemoveReaction={jest.fn()} />
+      </div>
+    )
+    const tab = screen.getByRole('tab', { name: /🎉/ })
+    fireEvent.pointerDown(tab)
+    fireEvent.mouseDown(tab)
+    fireEvent.click(tab)
+    expect(tab).toHaveAttribute('aria-selected', 'true')
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(onPostClick).not.toHaveBeenCalled()
+  })
+
   it('renders nothing when closed', () => {
     renderDrawer({ open: false })
     expect(screen.queryByTestId('reactions-drawer')).not.toBeInTheDocument()
