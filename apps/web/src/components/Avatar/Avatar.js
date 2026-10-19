@@ -1,9 +1,8 @@
 import PropTypes from 'prop-types'
-import React from 'react'
+import React, { useCallback, useMemo } from 'react'
 import RoundImage from '../RoundImage'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useProfileHoverCard } from 'components/ProfileHoverCard'
-import { cn } from 'util/index'
 
 /**
  * Pass `personId` for a person's avatar to get the profile hover card (hover on
@@ -14,16 +13,41 @@ export default function Avatar ({ personId, ...props }) {
   return personId ? <AvatarWithHoverCard personId={personId} {...props} /> : <AvatarImage {...props} />
 }
 
-function AvatarWithHoverCard ({ personId, className, ...props }) {
+// Suppresses the long-press callout (iOS link preview / image menu), text selection and dragging
+const NO_TOUCH_CALLOUT_STYLE = { WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitUserDrag: 'none' }
+
+function isTouchOnlyDevice () {
+  return typeof window !== 'undefined' && Boolean(window.matchMedia?.('(hover: none)').matches)
+}
+
+function AvatarWithHoverCard ({ personId, url, ...props }) {
   const { ref, triggerProps, card } = useProfileHoverCard(personId)
+  const navigate = useNavigate()
   const hasCard = Boolean(triggerProps.onPointerEnter)
+  // On touch-only devices a long press on a real link opens the OS link preview (iOS) or link
+  // menu (Android) instead of the card, so the avatar becomes a link-like span there and taps
+  // navigate from the click handler. Desktop keeps the real link (open in new tab etc).
+  const touchOnly = useMemo(isTouchOnlyDevice, [])
+  const asSpanLink = hasCard && url && touchOnly
+  const handleClick = useCallback(e => {
+    triggerProps.onClick?.(e)
+    if (!e.defaultPrevented) navigate(url)
+  }, [triggerProps, navigate, url])
+
   return (
     <>
       <AvatarImage
         {...props}
+        url={asSpanLink ? undefined : url}
         ref={ref}
-        triggerProps={triggerProps}
-        className={hasCard ? cn(className, 'select-none [-webkit-touch-callout:none]') : className}
+        triggerProps={hasCard
+          ? {
+              ...triggerProps,
+              ...(asSpanLink ? { onClick: handleClick, role: 'link' } : {}),
+              draggable: false,
+              style: NO_TOUCH_CALLOUT_STYLE
+            }
+          : triggerProps}
       />
       {card}
     </>

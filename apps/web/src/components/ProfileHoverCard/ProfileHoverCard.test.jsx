@@ -122,6 +122,93 @@ describe('Avatar profile hover card', () => {
     expect(screen.getByTestId('profile-hover-card')).toBeInTheDocument()
   })
 
+  function longPress (trigger) {
+    fireEvent.touchStart(trigger, { touches: [{ clientX: 5, clientY: 5 }] })
+    act(() => { jest.advanceTimersByTime(LONG_PRESS_DELAY + 10) })
+    // false = the touchend was default-prevented, so no click follows it
+    return fireEvent.touchEnd(trigger)
+  }
+
+  function touchPointerDown (el) {
+    const event = createEvent.pointerDown(el)
+    Object.defineProperty(event, 'pointerType', { value: 'touch' })
+    fireEvent(el, event)
+  }
+
+  it('stays open after the long press is released, and the release does not click through', () => {
+    const onParentClick = jest.fn()
+    const { container } = render(<div onClick={onParentClick}><Avatar avatarUrl='ada.png' personId='2' url='/members/2' /></div>, {}, providers())
+    const trigger = container.querySelector('[data-profile-hover-card-trigger]')
+    expect(longPress(trigger)).toBe(false)
+    // iOS can still deliver a click after a long press: it must be swallowed
+    fireEvent.click(trigger)
+    act(() => { jest.advanceTimersByTime(2000) })
+    expect(screen.getByTestId('profile-hover-card')).toBeInTheDocument()
+    expect(onParentClick).not.toHaveBeenCalled()
+  })
+
+  it('stays open when focus moves elsewhere (e.g. to a focusable ancestor on release)', () => {
+    const { container } = render(
+      <span role='button' tabIndex={0} data-testid='focusable-parent'><Avatar avatarUrl='ada.png' personId='2' /></span>,
+      {}, providers())
+    longPress(container.querySelector('[data-profile-hover-card-trigger]'))
+    act(() => { screen.getByTestId('focusable-parent').focus() })
+    act(() => { jest.advanceTimersByTime(1000) })
+    expect(screen.getByTestId('profile-hover-card')).toBeInTheDocument()
+  })
+
+  it('a touch inside the card keeps it open', () => {
+    const { container } = render(<Avatar avatarUrl='ada.png' personId='2' />, {}, providers())
+    longPress(container.querySelector('[data-profile-hover-card-trigger]'))
+    touchPointerDown(screen.getByText('View Profile'))
+    expect(screen.getByTestId('profile-hover-card')).toBeInTheDocument()
+  })
+
+  it("a tap outside closes the card without activating what's under it", () => {
+    const onOutsideClick = jest.fn()
+    const { container } = render(
+      <>
+        <Avatar avatarUrl='ada.png' personId='2' />
+        <button onClick={onOutsideClick}>Open post</button>
+      </>,
+      {}, providers())
+    longPress(container.querySelector('[data-profile-hover-card-trigger]'))
+    const outside = screen.getByText('Open post')
+    touchPointerDown(outside)
+    fireEvent.click(outside)
+    expect(screen.queryByTestId('profile-hover-card')).not.toBeInTheDocument()
+    expect(onOutsideClick).not.toHaveBeenCalled()
+    // Only that one tap is swallowed
+    fireEvent.click(outside)
+    expect(onOutsideClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders above app modals', () => {
+    const { container } = render(<Avatar avatarUrl='ada.png' personId='2' />, {}, providers())
+    hover(container.querySelector('[data-profile-hover-card-trigger]'))
+    expect(screen.getByTestId('profile-hover-card').className).toContain('z-[1250]')
+  })
+
+  it('on touch-only devices renders a linked avatar as a link-like span (no OS link preview) with callout suppressed', () => {
+    const original = window.matchMedia
+    window.matchMedia = jest.fn(query => ({ matches: query === '(hover: none)', addListener () {}, removeListener () {} }))
+    try {
+      const { container } = render(<Avatar avatarUrl='ada.png' personId='2' url='/members/2' />, {}, providers())
+      const trigger = container.querySelector('[data-profile-hover-card-trigger]')
+      expect(trigger.tagName).toBe('SPAN')
+      expect(trigger.getAttribute('role')).toBe('link')
+      expect(container.querySelector('a')).not.toBeInTheDocument()
+      expect(trigger.style.webkitTouchCallout || trigger.getAttribute('style')).toMatch(/none/)
+    } finally {
+      window.matchMedia = original
+    }
+  })
+
+  it('keeps a real link on devices that can hover', () => {
+    const { container } = render(<Avatar avatarUrl='ada.png' personId='2' url='/members/2' />, {}, providers())
+    expect(container.querySelector('[data-profile-hover-card-trigger]').tagName).toBe('A')
+  })
+
   it('does not open when the long press turns into a scroll', () => {
     const { container } = render(<Avatar avatarUrl='ada.png' personId='2' />, {}, providers())
     const trigger = container.querySelector('[data-profile-hover-card-trigger]')

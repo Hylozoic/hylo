@@ -185,7 +185,8 @@ export default function ChatPost ({
   const bindLongPress = useLongPress(() => {
     setIsLongPress(false)
   }, {
-    filterEvents: (e) => !e.target?.closest?.('.global-postContent'),
+    // A long press on an avatar opens its profile card instead of the post's action bar
+    filterEvents: (e) => !e.target?.closest?.('.global-postContent, [data-profile-hover-card-trigger]'),
     onFinish: () => {
       if (isPressDevice) setIsLongPress(true)
     }

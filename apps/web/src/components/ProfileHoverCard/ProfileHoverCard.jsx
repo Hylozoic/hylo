@@ -17,6 +17,11 @@ export const OPEN_DELAY = 500
 export const CLOSE_DELAY = 200
 export const LONG_PRESS_DELAY = 500
 const LONG_PRESS_MOVE_TOLERANCE = 10
+// After a touch outside closes the card, swallow the click that follows so the tap only
+// dismisses the card instead of also activating whatever is under it
+const SWALLOW_CLICK_MS = 700
+
+const stopPropagation = e => e.stopPropagation()
 
 /**
  * Attaches a profile hover card to whatever element renders an avatar.
@@ -188,6 +193,44 @@ function ProfileHoverCardPopover ({ personId, anchorRef, currentUser, onClose, o
     navigate(messagePersonUrl(displayPerson))
   }, [displayPerson, navigate, onClose])
 
+  const contentRef = useRef(null)
+
+  // Touch dismissal is handled here rather than by Radix: a touch that starts outside the card
+  // and the avatar closes it, and the click that tap would produce is swallowed. Radix's own
+  // outside handling is turned off for touch below because on iOS the compatibility events that
+  // follow a long press (focus moving to a focusable ancestor, a late pointer/click) would
+  // otherwise close the card the moment the finger lifts.
+  useEffect(() => {
+    let removeSwallow = null
+    const handlePointerDown = e => {
+      if (e.pointerType === 'mouse') return
+      const target = e.target
+      if (contentRef.current?.contains(target) || anchorRef.current?.contains(target)) return
+      const swallow = clickEvent => {
+        clickEvent.preventDefault()
+        clickEvent.stopPropagation()
+        removeSwallow?.()
+      }
+      document.addEventListener('click', swallow, true)
+      const timer = setTimeout(() => removeSwallow?.(), SWALLOW_CLICK_MS)
+      removeSwallow = () => {
+        document.removeEventListener('click', swallow, true)
+        clearTimeout(timer)
+        removeSwallow = null
+      }
+      onClose()
+    }
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true)
+    // the swallow listener deliberately outlives the card: it removes itself after the click or timeout
+  }, [anchorRef, onClose])
+
+  const handlePointerDownOutside = useCallback(e => {
+    const original = e.detail?.originalEvent
+    // Touch is handled above; a mouse press on the avatar itself is left to the avatar's click
+    if (original?.pointerType !== 'mouse' || anchorRef.current?.contains(original.target)) e.preventDefault()
+  }, [anchorRef])
+
   return (
     <PopoverPrimitive.Root open onOpenChange={isOpen => { if (!isOpen) onClose() }}>
       <PopoverPrimitive.Anchor virtualRef={anchorRef} />
@@ -197,14 +240,26 @@ function ProfileHoverCardPopover ({ personId, anchorRef, currentUser, onClose, o
           align='start'
           sideOffset={6}
           collisionPadding={16}
+          ref={contentRef}
           onOpenAutoFocus={e => e.preventDefault()}
           onCloseAutoFocus={e => e.preventDefault()}
+          // A hover card isn't a focus target: focus moving elsewhere (often a side effect of
+          // the touch that opened it) must not close it
+          onFocusOutside={e => e.preventDefault()}
+          onPointerDownOutside={handlePointerDownOutside}
           onPointerEnter={onPointerEnter}
           onPointerLeave={onPointerLeave}
-          // React bubbles events through portals: keep clicks in the card from
-          // reaching the avatar's clickable ancestors (post cards, chat rows...)
-          onClick={e => e.stopPropagation()}
-          className='z-[200] w-72 max-w-[calc(100vw-32px)] rounded-xl bg-background shadow-2xl overflow-hidden outline-none border border-foreground/10 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95'
+          // React bubbles events through portals: keep presses and clicks in the card from
+          // reaching the avatar's interactive ancestors (post cards, chat rows and their long
+          // press, the DM ProfileCardDialog trigger...)
+          onClick={stopPropagation}
+          onPointerDown={stopPropagation}
+          onMouseDown={stopPropagation}
+          onTouchStart={stopPropagation}
+          onTouchEnd={stopPropagation}
+          onContextMenu={stopPropagation}
+          // Above the app's modals (z-[1100]) and the popovers inside them (z-[1200])
+          className='z-[1250] w-72 max-w-[calc(100vw-32px)] rounded-xl bg-background shadow-2xl overflow-hidden outline-none border border-foreground/10 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95'
           data-testid='profile-hover-card'
         >
           {displayPerson?.name
