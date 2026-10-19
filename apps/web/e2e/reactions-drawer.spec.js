@@ -86,6 +86,14 @@ async function openPostWithReactions (page, postId, ownEmojis, options) {
   return pill
 }
 
+async function touchTap (page, point) {
+  const client = await page.context().newCDPSession(page)
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] })
+  await page.waitForTimeout(80)
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await client.detach()
+}
+
 async function longPress (page, locator) {
   await locator.scrollIntoViewIfNeeded()
   const box = await locator.boundingBox()
@@ -137,7 +145,24 @@ test.describe('reactions drawer', () => {
 
     await page.keyboard.press('Escape')
     await expect(drawer).toBeHidden()
-    await expect(page.locator('[data-testid="emoji-pill"][data-emoji="👍"]').first()).toContainText('2')
+    await expect(pill).toContainText('2')
+
+    // Tapping the dimmed page outside the drawer closes it — and doesn't reach what's underneath.
+    // Tap right on the 👍 pill behind the overlay: a tap-through would add your 👍 back.
+    await longPress(page, pill.locator('span.text-inherit'))
+    await expect(drawer).toBeVisible()
+    await page.waitForTimeout(400) // let the open animation finish
+    const drawerBox = await drawer.boundingBox()
+    const pillBox = await pill.boundingBox()
+    const outside = pillBox.y + pillBox.height / 2 < drawerBox.y - 4
+      ? { x: pillBox.x + pillBox.width / 2, y: pillBox.y + pillBox.height / 2 }
+      : { x: drawerBox.x + drawerBox.width / 2, y: drawerBox.y / 2 }
+    const urlBefore = page.url()
+    await touchTap(page, outside)
+    await expect(drawer).toBeHidden()
+    await page.waitForTimeout(500)
+    expect(page.url()).toBe(urlBefore)
+    await expect(pill).toContainText('2')
 
     // The removal reached the server
     const result = await graphql(page, `query { post(id: "${POST_IDS.drawer}") { myReactions { emojiFull } } }`)
