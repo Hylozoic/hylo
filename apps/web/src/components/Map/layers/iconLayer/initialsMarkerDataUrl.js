@@ -24,7 +24,7 @@ export function initialsMarkerDataUrl (name) {
 function themeStops () {
   const read = (variable, fallback) => {
     if (typeof document === 'undefined') return fallback
-    const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
+    const value = window.getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
     return value ? `hsl(${value})` : fallback
   }
   return [read('--focus', '#0DC39F'), read('--selected', '#40A0DD')]
