@@ -3136,5 +3136,12 @@
   "Maybe later": "शायद बाद में",
   "Create free account": "मुफ़्त खाता बनाएँ",
   "Settings changes stay in the demo": "सेटिंग्स में बदलाव डेमो में ही रहते हैं",
-  "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.": "जितने चाहें उतने एडमिन टूल आज़माएँ — यहाँ कुछ भी सहेजा नहीं जाता। अपना समूह बनाने और उसे सच में सेट करने के लिए साइन अप करें।"
+  "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.": "जितने चाहें उतने एडमिन टूल आज़माएँ — यहाँ कुछ भी सहेजा नहीं जाता। अपना समूह बनाने और उसे सच में सेट करने के लिए साइन अप करें।",
+  "Draw boundary": "सीमा बनाएं",
+  "Boundary drawn. Use the pen to redraw it.": "सीमा बन गई। इसे दोबारा बनाने के लिए पेन का उपयोग करें।",
+  "Click the map to add points. Click the first point or press Enter to finish.": "बिंदु जोड़ने के लिए मानचित्र पर क्लिक करें। समाप्त करने के लिए पहले बिंदु पर क्लिक करें या Enter दबाएं।",
+  "Remove boundary": "सीमा हटाएं",
+  "The map could not be loaded in this browser.": "इस ब्राउज़र में मानचित्र लोड नहीं हो सका।",
+  "Space area: {{name}}": "स्पेस क्षेत्र: {{name}}",
+  "Group area: {{name}}": "समूह क्षेत्र: {{name}}"
 }

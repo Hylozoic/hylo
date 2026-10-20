@@ -3136,5 +3136,12 @@
   "Maybe later": "Talvez mais tarde",
   "Create free account": "Criar conta gratuita",
   "Settings changes stay in the demo": "As alterações de configuração ficam na demo",
-  "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.": "Experimente todas as ferramentas de administração que quiser — nada aqui é salvo. Cadastre-se para criar seu próprio grupo e configurá-lo de verdade."
+  "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.": "Experimente todas as ferramentas de administração que quiser — nada aqui é salvo. Cadastre-se para criar seu próprio grupo e configurá-lo de verdade.",
+  "Draw boundary": "Desenhar limite",
+  "Boundary drawn. Use the pen to redraw it.": "Limite desenhado. Use a caneta para redesenhá-lo.",
+  "Click the map to add points. Click the first point or press Enter to finish.": "Clique no mapa para adicionar pontos. Clique no primeiro ponto ou pressione Enter para concluir.",
+  "Remove boundary": "Remover limite",
+  "The map could not be loaded in this browser.": "Não foi possível carregar o mapa neste navegador.",
+  "Space area: {{name}}": "Área do espaço: {{name}}",
+  "Group area: {{name}}": "Área do grupo: {{name}}"
 }

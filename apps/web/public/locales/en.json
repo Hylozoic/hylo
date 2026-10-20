@@ -3132,5 +3132,12 @@
   "Maybe later": "Maybe later",
   "Create free account": "Create free account",
   "Settings changes stay in the demo": "Settings changes stay in the demo",
-  "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.": "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real."
+  "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.": "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.",
+  "Draw boundary": "Draw boundary",
+  "Boundary drawn. Use the pen to redraw it.": "Boundary drawn. Use the pen to redraw it.",
+  "Click the map to add points. Click the first point or press Enter to finish.": "Click the map to add points. Click the first point or press Enter to finish.",
+  "Remove boundary": "Remove boundary",
+  "The map could not be loaded in this browser.": "The map could not be loaded in this browser.",
+  "Space area: {{name}}": "Space area: {{name}}",
+  "Group area: {{name}}": "Group area: {{name}}"
 }

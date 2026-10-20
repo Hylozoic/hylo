@@ -13,7 +13,7 @@ import GroupsSelector from 'components/GroupsSelector'
 import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
-import LocationInput from 'components/LocationInput/LocationInput'
+import LocationWithBoundary from 'components/LocationWithBoundary/LocationWithBoundary'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
 import SwitchStyled from 'components/SwitchStyled'
@@ -325,6 +325,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   const showConfirmRef = useRef(false)
 
   const [locationObject, setLocationObject] = useState(null)
+  const [geoShape, setGeoShape] = useState(null)
   const [parentGroups, setParentGroups] = useState(
     currentGroup && parentGroupOptions.find(p => p.id === currentGroup.id) ? [currentGroup] : []
   )
@@ -522,6 +523,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       slug,
       location: locationObject?.fullText || null,
       locationId: locationObject?.id || null,
+      geoShape,
       parentIds: parentGroups.map(g => g.id),
       purpose: trim(purpose),
       acceptedPostTypes: postTypes,
@@ -623,7 +625,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     if (homeView !== 'STREAM') return true
     if (visibility !== GROUP_VISIBILITY.Protected) return true
     if (accessibility !== GROUP_ACCESSIBILITY.Restricted) return true
-    if (locationObject) return true
+    if (locationObject || geoShape) return true
     const parentIds = parentGroups.map(group => group.id)
     const initialParentIds = initialParentIdsRef.current
     if (parentIds.length !== initialParentIds.length || parentIds.some(id => !initialParentIds.includes(id))) return true
@@ -638,7 +640,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     return false
   }, [
     name, slug, slugCustomized, purpose, avatarUrl, bannerUrl,
-    homeView, visibility, accessibility, locationObject, parentGroups, agreements,
+    homeView, visibility, accessibility, locationObject, geoShape, parentGroups, agreements,
     joinQuestions, postTypes, welcomeEnabled, removedStandardTypes, manualViews, welcomeExtras
   ])
 
@@ -678,13 +680,14 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       label: 'Location',
       defaultSummary: t('No location'),
       render: () => (
-        <LocationInput
+        <LocationWithBoundary
           locationObject={locationObject}
-          location={locationObject?.fullText || ''}
-          onChange={setLocationObject}
+          onLocationChange={setLocationObject}
+          geoShape={geoShape}
+          onGeoShapeChange={setGeoShape}
           saveLocationToDB
           placeholder={t('Where is this group based?')}
-          className={INPUT_CLASS}
+          inputClassName={INPUT_CLASS}
         />
       )
     },
@@ -756,7 +759,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       render: () => <JoinQuestionsEditor questions={joinQuestions} onChange={setJoinQuestions} />
     }
   ].filter(setting => !setting.hidden), [
-    t, locationObject, postTypes, parentGroupOptions, parentGroups,
+    t, locationObject, geoShape, postTypes, parentGroupOptions, parentGroups,
     agreements, joinQuestions, welcomeEnabled, showWelcomePage, welcomeExtras?.pageContent
   ])
 
