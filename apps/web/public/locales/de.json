@@ -3130,6 +3130,8 @@
   "Create free account": "Kostenloses Konto erstellen",
   "Settings changes stay in the demo": "Einstellungen bleiben in der Demo",
   "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.": "Probiere alle Admin-Werkzeuge aus, wie du möchtest — hier wird nichts gespeichert. Registriere dich, um deine eigene Gruppe zu erstellen und richtig einzurichten.",
+  "Date": "Datum",
+  "Time": "Uhrzeit",
   "You still have access to {{name}}": "Du hast weiterhin Zugriff auf {{name}}",
   "You are not currently a member of {{name}}, but your access is still valid. Rejoin to participate again.": "Du bist derzeit kein Mitglied von {{name}}, aber dein Zugriff ist noch gültig. Tritt wieder bei, um erneut teilzunehmen.",
   "Rejoin {{name}}": "{{name}} erneut beitreten",

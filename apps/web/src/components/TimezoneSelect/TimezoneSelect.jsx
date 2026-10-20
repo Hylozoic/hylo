@@ -22,7 +22,8 @@ export default function TimezoneSelect ({
   value,
   onChange,
   disabled = false,
-  className
+  className,
+  'data-testid': testId
 }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -61,6 +62,7 @@ export default function TimezoneSelect ({
           variant='outline'
           role='combobox'
           aria-expanded={open}
+          data-testid={testId}
           disabled={disabled}
           className={cn('min-h-11 sm:min-h-10 w-full justify-between font-normal touch-manipulation', className)}
         >
