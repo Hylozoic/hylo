@@ -459,27 +459,27 @@ export function buildGroupViews (groups, track, fundingRound) {
       spaceViewItem(sid('view', 'funding-space'), spaces.funding, 6, { fundingRound })
     ],
     [spaces.chat.id]: [
-      viewItem(sid('view', 'chat-main'), 'chat', 'Chat', 0, { icon: 'MessageCircle' })
+      viewItem(sid('view', 'chat-main'), 'chat', 'Chat', 0, { icon: 'MessageCircleMore' })
     ],
     [spaces.track.id]: [
       viewItem(sid('view', 'track-actions'), 'track-actions', 'Orientation Steps', 0, { icon: 'Shapes' }),
-      viewItem(sid('view', 'track-chat'), 'chat', 'Chat', 1, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'track-chat'), 'chat', 'Chat', 1, { icon: 'MessageCircleMore' }),
       viewItem(sid('view', 'track-members'), 'members', 'Members', 2, { icon: 'Users' })
     ],
     [spaces.funding.id]: [
-      viewItem(sid('view', 'fr-submissions'), 'funding-round-submissions', 'Grant Submissions', 0, { icon: 'Coins' })
+      viewItem(sid('view', 'fr-submissions'), 'funding-round-submissions', 'Grant Submissions', 0, { icon: 'ClipboardList' })
     ],
     [groups.simple.id]: [
-      viewItem(sid('view', 'simple-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'simple-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircleMore' }),
       viewItem(sid('view', 'simple-all'), 'all', 'All Activity', 1),
-      viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
+      viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 2),
       viewItem(sid('view', 'simple-projects'), 'projects', 'Projects', 3, { icon: 'Layers' }),
       viewItem(sid('view', 'simple-members'), 'members', 'Members', 4, { icon: 'Users' })
     ],
     [groups.staff.id]: [
-      viewItem(sid('view', 'staff-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'staff-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircleMore' }),
       viewItem(sid('view', 'staff-all'), 'all', 'All Activity', 1),
-      viewItem(sid('view', 'staff-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
+      viewItem(sid('view', 'staff-requests'), 'requests-and-offers', 'Requests & Offers', 2),
       viewItem(sid('view', 'staff-events'), 'events', 'Events', 3, { icon: 'Calendar' }),
       viewItem(sid('view', 'staff-members'), 'members', 'Members', 4, { icon: 'Users' })
     ]
