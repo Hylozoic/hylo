@@ -64,9 +64,10 @@ export default function TimezoneSelect ({
           aria-expanded={open}
           data-testid={testId}
           disabled={disabled}
-          className={cn('min-h-11 sm:min-h-10 w-full justify-between font-normal touch-manipulation', className)}
+          className={cn('min-h-11 sm:min-h-10 w-full min-w-0 max-w-full justify-between overflow-hidden font-normal touch-manipulation', className)}
         >
-          <span className='truncate'>
+          {/* min-w-0 + flex-1 let long labels ("(+11:00) Australian Eastern Time — …") ellipsize instead of widening the trigger */}
+          <span className='min-w-0 flex-1 truncate text-left'>
             {selectedOption?.label || value || t('Select timezone')}
           </span>
           <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />

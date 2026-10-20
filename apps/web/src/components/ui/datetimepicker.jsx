@@ -785,13 +785,22 @@ const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = fal
 
   const dateValue = toDateInputValue(current)
   const timeValue = toTimeInputValue(current, { seconds: withSeconds })
-  const inputClass = 'relative min-h-11 sm:min-h-10 w-full min-w-0 rounded-md border border-foreground/20 bg-background px-2 text-base text-foreground [color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-focus disabled:opacity-50'
+  // iOS gives date/time inputs an intrinsic width and its own centred layout, so they can
+  // poke out of a narrow container: drop the native appearance, size by the box (border-box,
+  // block, 100% / max 100%, min 0) and left-align the value.
+  const inputClass = cn(
+    'relative box-border block min-h-11 sm:min-h-10 w-full min-w-0 max-w-full appearance-none rounded-md border border-foreground/20 bg-background px-2 text-left text-base text-foreground',
+    '[&::-webkit-date-and-time-value]:min-h-[1.5em] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:p-0',
+    '[color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-focus disabled:opacity-50'
+  )
   const emptyClass = 'text-transparent'
   const overlayClass = 'pointer-events-none absolute inset-y-0 left-2 flex items-center text-base text-foreground/50'
 
+  // Date and time sit side by side, and wrap onto two full-width lines when there's no room
+  // for both (e.g. a 320px phone)
   return (
-    <div className={cn('flex w-full min-w-0 items-center gap-2', className)} data-testid='native-datetime-picker'>
-      <div className='relative min-w-0 flex-1'>
+    <div className={cn('flex w-full min-w-0 max-w-full flex-wrap items-center gap-2', className)} data-testid='native-datetime-picker'>
+      <div className='relative min-w-0 max-w-full grow basis-[8.5rem] overflow-hidden rounded-md'>
         <input
           type='date'
           id={`${baseId}-date`}
@@ -805,7 +814,7 @@ const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = fal
         {!dateValue && <span className={overlayClass} aria-hidden='true'>{placeholder}</span>}
       </div>
       {granularity !== 'day' && (
-        <div className='relative min-w-0 flex-1'>
+        <div className='relative min-w-0 max-w-full grow basis-[8.5rem] overflow-hidden rounded-md'>
           <input
             type='time'
             id={`${baseId}-time`}
