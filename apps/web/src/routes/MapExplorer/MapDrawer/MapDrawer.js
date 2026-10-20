@@ -1,4 +1,5 @@
 import { cn, bgImageStyle } from 'util/index'
+import { groupInitials, isDefaultGroupAvatar } from 'util/groupInitials'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -27,11 +28,39 @@ import {
   DropdownMenuTrigger
 } from 'components/ui/dropdown-menu'
 import { CONTEXT_MY } from 'store/constants'
-import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
+import { DEFAULT_BANNER } from 'store/models/Group'
 import { POST_TYPES } from 'store/models/Post'
 import { STREAM_SORT_OPTIONS } from 'util/constants'
 
 import styles from './MapDrawer.module.scss'
+
+/**
+ * Group portrait on a map card. Groups without an uploaded avatar show the
+ * same initials as the map marker.
+ */
+function GroupAvatar ({ group }) {
+  if (!isDefaultGroupAvatar(group.avatarUrl)) {
+    return (
+      <div
+        className='w-[66px] h-[66px] rounded-[13px] bg-cover bg-center shadow-[0_3px_12px_rgba(0,0,0,0.45)]'
+        style={bgImageStyle(group.avatarUrl)}
+      />
+    )
+  }
+
+  return (
+    <div className='relative w-[66px] h-[66px] rounded-[13px] overflow-hidden bg-darkening shadow-[0_3px_12px_rgba(0,0,0,0.45)]'>
+      <div
+        aria-hidden='true'
+        className='absolute inset-0 opacity-70'
+        style={{ background: 'linear-gradient(to bottom right, hsl(var(--focus)), hsl(var(--selected)))' }}
+      />
+      <span className='relative z-10 flex items-center justify-center h-full text-white text-xl uppercase drop-shadow-md'>
+        {groupInitials(group.name)}
+      </span>
+    </div>
+  )
+}
 
 /**
  * Group card per the map-list design: the banner fills the card under a dark
@@ -60,10 +89,7 @@ function MapGroupCard ({ group, routeParams }) {
         style={{ background: 'linear-gradient(180deg, hsl(28 16% 15% / 0.44), hsl(28 18% 12% / 0.78))' }}
       />
       <div className='relative px-4 pt-[22px] pb-5 flex flex-col items-center text-center'>
-        <div
-          className='w-[66px] h-[66px] rounded-[13px] bg-cover bg-center shadow-[0_3px_12px_rgba(0,0,0,0.45)]'
-          style={bgImageStyle(group.avatarUrl || DEFAULT_AVATAR)}
-        />
+        <GroupAvatar group={group} />
         <div className='mt-[11px] text-[15px] font-bold text-white tracking-[-0.01em] [text-shadow:0_1px_6px_rgba(0,0,0,0.5)]'>
           {group.name}
           {group.paywall && (

@@ -198,6 +198,7 @@ Object {
   $topic: ID,
   $topics: [ID],
   $types: [String]
+  $rsvpResponse: String
 ) {
   group(slug: $slug, updateLastViewed: true) {
     id

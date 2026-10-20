@@ -1,10 +1,16 @@
 import { GeoJsonLayer } from '@deck.gl/layers'
 
-export function createPolygonLayerFromGroups ({ groups, onHover }) {
+/** Boundary tooltip: spaces are labeled as spaces, groups as groups. */
+function areaMessage (group, t) {
+  const label = group.type === 'space' ? 'Space area: {{name}}' : 'Group area: {{name}}'
+  return t ? t(label, { name: group.name }) : label.replace('{{name}}', group.name)
+}
+
+export function createPolygonLayerFromGroups ({ groups, onHover, t }) {
   const data = groups.filter(group => group.geoShape).map(group => {
     return {
       geometry: group.geoShape || {},
-      message: 'Group area: ' + group.name,
+      message: areaMessage(group, t),
       properties: { name: group.name },
       type: 'GroupShape'
     }
