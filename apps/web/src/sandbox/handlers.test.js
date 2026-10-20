@@ -1,3 +1,4 @@
+import { iconForView } from '@hylo/presenters/GroupViewPresenter'
 import { loadSandboxSeedSync } from './seed'
 import { buildEnSeed } from './seed/en'
 import { handleGraphql } from './handlers'
@@ -234,6 +235,27 @@ describe('sandbox GraphQL handlers', () => {
     expect(result.data.fundingRound.group.bannerUrl).toContain('BF-Logo_W')
     expect(result.data.fundingRound.numSubmissions).toBe(5)
     expect(result.data.fundingRound.submissions.items.length).toBe(5)
+  })
+
+  it('resolves chat and requests views to icons the menu can draw', () => {
+    const views = [
+      seed.groups.spaces.chat.id,
+      seed.groups.spaces.track.id,
+      seed.groups.simple.id,
+      seed.groups.staff.id
+    ].flatMap(groupId => seed.groupViews[groupId] || [])
+
+    const chat = views.filter(view => view.type === 'chat')
+    const requests = views.filter(view => view.type === 'requests-and-offers')
+
+    expect(chat.length).toBeGreaterThan(0)
+    expect(requests.length).toBeGreaterThan(0)
+    chat.forEach(view => {
+      expect(iconForView(view)).toEqual({ iconName: null, lucideIcon: 'MessageCircleMore' })
+    })
+    requests.forEach(view => {
+      expect(iconForView(view)).toEqual({ iconName: null, lucideIcon: 'Heart' })
+    })
   })
 
   it('returns orientation steps as collectionPosts on the track space', () => {
