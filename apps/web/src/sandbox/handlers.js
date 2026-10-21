@@ -528,6 +528,40 @@ function uniquePresentCommenters (items) {
   return people
 }
 
+function timeMs (value) {
+  if (!value) return NaN
+  const ms = Date.parse(value)
+  return Number.isFinite(ms) ? ms : NaN
+}
+
+/** Match the API: end_time >= afterTime, start_time < beforeTime. */
+function filterByTimeWindow (items, variables) {
+  const after = timeMs(variables.afterTime)
+  const before = timeMs(variables.beforeTime)
+  if (!Number.isFinite(after) && !Number.isFinite(before)) return items
+  return items.filter(post => {
+    const start = timeMs(post.startTime)
+    const end = timeMs(post.endTime)
+    if (Number.isFinite(after)) {
+      const ends = Number.isFinite(end) ? end : start
+      if (!Number.isFinite(ends) || ends < after) return false
+    }
+    if (Number.isFinite(before)) {
+      if (!Number.isFinite(start) || start >= before) return false
+    }
+    return true
+  })
+}
+
+function sortByStartTime (items, order) {
+  return sortByTimestamp(items, 'startTime', order)
+}
+
+function sortByTimestamp (items, key, order) {
+  const dir = order === 'asc' ? 1 : -1
+  return [...items].sort((a, b) => (timeMs(a[key]) - timeMs(b[key])) * dir)
+}
+
 function presentPostQuerySet (seed, variables) {
   let items = listPosts(seed, variables)
   if (variables.types?.length) {
@@ -547,6 +581,12 @@ function presentPostQuerySet (seed, variables) {
   if (variables.createdBy?.length) {
     const ids = new Set(variables.createdBy.map(String))
     items = items.filter(p => ids.has(String(p.creator?.id)))
+  }
+  items = filterByTimeWindow(items, variables)
+  if (variables.sortBy === 'start_time') {
+    items = sortByStartTime(items, variables.order)
+  } else if (variables.sortBy === 'updated' || variables.sortBy === 'created') {
+    items = sortByTimestamp(items, variables.sortBy === 'updated' ? 'updatedAt' : 'createdAt', variables.order)
   }
   items = applyIdCursor(items, variables)
   items = items.map(p => presentPost(seed, p))
@@ -578,7 +618,13 @@ function applyIdCursor (items, variables) {
 function listPosts (seed, variables) {
   const group = findGroup(seed, variables)
   if (group) {
-    if (group.id === seed.groups.main.id) return seed.posts.mainStream
+    if (group.id === seed.groups.main.id) {
+      // Chat rooms send filter: 'chat' and omit types when activity notices are on.
+      const wantsChat = variables.filter === 'chat' ||
+        (variables.types?.length === 1 && variables.types[0] === 'chat')
+      if (wantsChat) return seed.posts.hubChat
+      return seed.posts.mainStream
+    }
     if (group.id === seed.groups.simple.id) {
       const wantsChat = variables.types?.length === 1 && variables.types[0] === 'chat'
       if (wantsChat) return seed.posts.simpleGroupChat
@@ -846,8 +892,10 @@ function createPost (seed, variables) {
     isPublic: variables.isPublic || false
   }
   seed.posts.byId[post.id] = post
-  if (group.id === seed.groups.main.id) seed.posts.mainStream.unshift(post)
-  else if (group.id === seed.groups.simple.id) {
+  if (group.id === seed.groups.main.id) {
+    if (post.type === 'chat') (seed.posts.hubChat || (seed.posts.hubChat = [])).unshift(post)
+    else seed.posts.mainStream.unshift(post)
+  } else if (group.id === seed.groups.simple.id) {
     if (post.type === 'chat') seed.posts.simpleGroupChat.unshift(post)
     else (seed.posts.simpleGroupStream || (seed.posts.simpleGroupStream = [])).unshift(post)
   } else if (group.id === seed.groups.staff.id) {
@@ -868,7 +916,7 @@ function updatePost (seed, variables) {
 function deletePost (seed, variables) {
   const id = variables.id
   delete seed.posts.byId[id]
-  const lists = [seed.posts.mainStream, seed.posts.chatSpace, seed.posts.simpleGroupChat, seed.posts.simpleGroupStream, seed.posts.staffGroupChat, seed.posts.staffGroupStream, seed.posts.fundingSubmissions].filter(Boolean)
+  const lists = [seed.posts.mainStream, seed.posts.hubChat, seed.posts.chatSpace, seed.posts.simpleGroupChat, seed.posts.simpleGroupStream, seed.posts.staffGroupChat, seed.posts.staffGroupStream, seed.posts.fundingSubmissions].filter(Boolean)
   for (const list of lists) {
     const idx = list.findIndex(p => String(p.id) === String(id))
     if (idx !== -1) list.splice(idx, 1)

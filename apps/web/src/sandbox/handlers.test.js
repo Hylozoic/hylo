@@ -204,10 +204,30 @@ describe('sandbox GraphQL handlers', () => {
     expect(listed.data.group.posts.items[0].id).toBe(created.data.createPost.id)
   })
 
+  it('gives Community Hub a chat view and an Introductions space', () => {
+    const names = seed.groupViews[MAIN_GROUP_ID].map(view => view.name)
+    expect(names).toEqual(expect.arrayContaining(['Chat', 'Introductions']))
+    expect(seed.groups.spaces.chat.slug).toBe('introductions')
+
+    const chat = handleGraphql({
+      query: 'query GroupPostsQuery ($slug: String, $filter: String, $sortBy: String, $order: String) { group(slug: $slug) { posts(filter: $filter, sortBy: $sortBy, order: $order) { items { details } } } }',
+      variables: { slug: MAIN_GROUP_SLUG, filter: 'chat', sortBy: 'id', order: 'desc' }
+    }, seed)
+    expect(chat.data.group.posts.items.some(post => post.details.includes('Good morning'))).toBe(true)
+
+    const intros = handleGraphql({
+      query: 'query GroupPostsQuery ($slug: String) { group(slug: $slug) { name posts { items { details } } } }',
+      variables: { slug: 'introductions' }
+    }, seed)
+    expect(intros.data.group.name).toBe('Introductions')
+    expect(intros.data.group.posts.items.some(post => post.details.includes('I&#39;m Kai'))).toBe(true)
+  })
+
   it('has unique ids across seeded posts, people, groups, comments, and threads', () => {
     const postIds = Object.keys(seed.posts.byId)
     expect(postIds.length).toBe(
       seed.posts.mainStream.length +
+      seed.posts.hubChat.length +
       seed.posts.chatSpace.length +
       seed.posts.simpleGroupChat.length +
       (seed.posts.simpleGroupStream || []).length +
@@ -293,6 +313,42 @@ describe('sandbox GraphQL handlers', () => {
     })
     requests.forEach(view => {
       expect(iconForView(view)).toEqual({ iconName: null, lucideIcon: 'Heart' })
+    })
+  })
+
+  it('centers Local Sharing Network on North Berkeley with a map, events, and nearby asks', () => {
+    const views = seed.groupViews[SIMPLE_GROUP_ID].map(view => view.type)
+    expect(views).toEqual(['chat', 'all', 'map', 'events', 'requests-and-offers', 'projects', 'members'])
+    expect(seed.groups.simple.location).toBe('North Berkeley, California, United States')
+    expect(seed.groups.simple.locationObject.center).toEqual({ lat: 37.8801, lng: -122.2693 })
+
+    const stream = seed.posts.simpleGroupStream
+    const nearGroup = post => {
+      const center = post.locationObject?.center
+      if (!center) return false
+      return Math.abs(center.lat - 37.8801) < 0.02 && Math.abs(center.lng - -122.2693) < 0.03
+    }
+    expect(stream.filter(post => post.type === 'event' && nearGroup(post)).length).toBe(4)
+    expect(stream.filter(post => (post.type === 'request' || post.type === 'offer') && nearGroup(post)).length).toBeGreaterThanOrEqual(8)
+
+    const upcoming = handleGraphql({
+      query: 'query ($slug: String, $types: [String], $afterTime: Date, $sortBy: String, $order: String) { group(slug: $slug) { posts(types: $types, afterTime: $afterTime, sortBy: $sortBy, order: $order) { items { title startTime locationObject { center { lat lng } } } } } }',
+      variables: {
+        slug: SIMPLE_GROUP_SLUG,
+        types: ['event'],
+        afterTime: new Date().toISOString(),
+        sortBy: 'start_time',
+        order: 'asc'
+      }
+    }, seed)
+
+    expect(upcoming.data.group.posts.items.map(post => post.title)).toEqual([
+      'North Shattuck produce swap',
+      'Tool library open hours',
+      'Cedar-Rose neighbourhood potluck'
+    ])
+    upcoming.data.group.posts.items.forEach(post => {
+      expect(post.locationObject.center.lat).toBeGreaterThan(37.86)
     })
   })
 
