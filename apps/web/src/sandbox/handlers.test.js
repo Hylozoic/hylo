@@ -4,7 +4,7 @@ import { buildEnSeed } from './seed/en'
 import { handleGraphql } from './handlers'
 import { ME_ID } from './seed/en/people'
 import { MAIN_GROUP_ID, MAIN_ADMINISTRATOR_ROLE_ID, MAIN_MODERATOR_ROLE_ID, SIMPLE_GROUP_ID, STAFF_GROUP_ID } from './seed/en/groups'
-import { MAIN_GROUP_SLUG } from './seed/constants'
+import { MAIN_GROUP_SLUG, SIMPLE_GROUP_SLUG } from './seed/constants'
 
 describe('sandbox GraphQL handlers', () => {
   let seed
@@ -109,6 +109,44 @@ describe('sandbox GraphQL handlers', () => {
     expect(result.data.group.posts.items.length).toBeGreaterThan(0)
     expect(result.data.group.canAccess).toBe(true)
     expect(/^\d+$/.test(result.data.group.posts.items[0].id)).toBe(true)
+  })
+
+  it('pages Local Sharing Network chat by id so a return visit does not repeat the room', () => {
+    const query = `query GroupPostsQuery ($slug: String, $cursor: ID, $order: String, $sortBy: String, $filter: String, $types: [String], $first: Int) {
+      group(slug: $slug) { posts(cursor: $cursor, order: $order, sortBy: $sortBy, filter: $filter, types: $types, first: $first) { hasMore items { id } } }
+    }`
+    const base = { slug: SIMPLE_GROUP_SLUG, sortBy: 'id', filter: 'chat', types: ['chat'], first: 25 }
+
+    const past = handleGraphql({ query, variables: { ...base, order: 'desc' } }, seed)
+    const pastIds = past.data.group.posts.items.map(post => post.id)
+    expect(pastIds).toEqual([...seed.posts.simpleGroupChat].map(post => post.id).sort((a, b) => Number(b) - Number(a)))
+    expect(new Set(pastIds).size).toBe(pastIds.length)
+
+    const newestId = pastIds[0]
+    const newer = handleGraphql({
+      query,
+      variables: { ...base, order: 'asc', cursor: newestId }
+    }, seed)
+    expect(newer.data.group.posts.items).toEqual([])
+    expect(newer.data.group.posts.hasMore).toBe(false)
+
+    const older = handleGraphql({
+      query,
+      variables: { ...base, order: 'desc', cursor: pastIds[pastIds.length - 1] }
+    }, seed)
+    expect(older.data.group.posts.items).toEqual([])
+
+    const middle = pastIds[Math.floor(pastIds.length / 2)]
+    const before = handleGraphql({
+      query,
+      variables: { ...base, order: 'desc', cursor: String(Number(middle) + 1) }
+    }, seed).data.group.posts.items.map(post => post.id)
+    const after = handleGraphql({
+      query,
+      variables: { ...base, order: 'asc', cursor: middle }
+    }, seed).data.group.posts.items.map(post => post.id)
+    expect(before.filter(id => after.includes(id))).toEqual([])
+    expect(before.length + after.length).toBe(pastIds.length)
   })
 
   it('returns only located posts for anonymous MapExplorer group/viewPosts queries', () => {

@@ -548,8 +548,31 @@ function presentPostQuerySet (seed, variables) {
     const ids = new Set(variables.createdBy.map(String))
     items = items.filter(p => ids.has(String(p.creator?.id)))
   }
+  items = applyIdCursor(items, variables)
   items = items.map(p => presentPost(seed, p))
   return paginate(items, variables.first, variables.offset)
+}
+
+/**
+ * Chat pages by post id the way the API does: asc is newer than the cursor,
+ * desc is older. Leaving this off made "back to chat" append the same page again.
+ * Offset-only stream queries keep seed order.
+ */
+function applyIdCursor (items, variables) {
+  if (variables.sortBy !== 'id' && variables.cursor == null) return items
+  const ascending = variables.order === 'asc'
+  const cursorId = variables.cursor != null && variables.cursor !== '' ? Number(variables.cursor) : null
+  let next = items
+  if (Number.isFinite(cursorId)) {
+    next = items.filter(post => {
+      const id = Number(post.id)
+      return ascending ? id > cursorId : id < cursorId
+    })
+  }
+  return [...next].sort((a, b) => {
+    const delta = Number(a.id) - Number(b.id)
+    return ascending ? delta : -delta
+  })
 }
 
 function listPosts (seed, variables) {
