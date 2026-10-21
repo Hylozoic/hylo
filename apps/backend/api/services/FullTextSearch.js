@@ -149,7 +149,9 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
         })
     }
 
-    // Group results: restrict to groups the user can see
+    // Group rows only. Posts, people, and comments store a null group_id, and are
+    // already included by the clauses above. A "group_id is null" pass would match
+    // every one of them and drop the group scope.
     this.orWhere(function () {
       if (hasExplicitGroupIds) {
         // Scoped to explicit groupIds only
@@ -189,10 +191,6 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
             })
         })
       }
-      // Non-group rows should also pass through the group filter (they're not groups)
-      // but since this is inside orWhere, non-group rows (group_id IS NULL) will NOT match
-      // and thus be excluded. We need to also allow null group_id through.
-      this.orWhereNull('group_id')
     })
   })
 }
