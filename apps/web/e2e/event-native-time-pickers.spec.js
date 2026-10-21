@@ -18,13 +18,23 @@ const uiTimeout = { timeout: 60000 }
 test.use({ storageState: 'e2e/.auth/session.json', timezoneId: 'America/Los_Angeles' })
 test.setTimeout(240000)
 
+// Phone projects: Chrome on Android (mobile-chrome) and WebKit on iPhone (mobile-safari)
+const PHONE_PROJECTS = ['mobile-chrome', 'mobile-safari']
+const isPhoneProject = () => PHONE_PROJECTS.includes(test.info().project.name)
+
+/** Screenshots from the WebKit project are named issue-1677-webkit-*, the rest issue-1677-mobile-* / -desktop-* */
 async function screenshot (page, name) {
   fs.mkdirSync(screenshotDir, { recursive: true })
-  await page.screenshot({ path: path.resolve(screenshotDir, name) })
+  const file = test.info().project.name === 'mobile-safari' ? name.replace('issue-1677-mobile-', 'issue-1677-webkit-') : name
+  await page.screenshot({ path: path.resolve(screenshotDir, file) })
 }
 
-async function openEventEditor (page) {
-  await page.goto(`/groups/${GROUP}/all?create=post&newPostType=event`)
+/**
+ * Unsaved drafts are kept per route, so a test that types into the editor without saving uses
+ * its own `basePath` to keep its draft out of the other tests.
+ */
+async function openEventEditor (page, basePath = `/groups/${GROUP}/all`) {
+  await page.goto(`${basePath}?create=post&newPostType=event`)
   await waitPastRootSessionLoading(page)
   const timeframe = page.getByTestId('post-editor-timeframe')
   await expect(timeframe).toBeVisible(uiTimeout)
@@ -92,7 +102,7 @@ function expectNoEditorOverflow (overflow) {
 }
 
 test('touch devices pick event times with native inputs; they save in the post timezone', async ({ page }) => {
-  test.skip(test.info().project.name !== 'mobile-chrome', 'native pickers are for touch devices; desktop is covered below')
+  test.skip(!isPhoneProject(), 'native pickers are for touch devices; desktop is covered below')
 
   const timeframe = await openEventEditor(page)
   const pickers = timeframe.getByTestId('native-datetime-picker')
@@ -201,7 +211,7 @@ test('desktop keeps the popover date/time picker', async ({ page }) => {
 })
 
 test('funding round dates use native inputs on touch devices', async ({ page }) => {
-  test.skip(test.info().project.name !== 'mobile-chrome', 'touch-device layout check')
+  test.skip(!isPhoneProject(), 'touch-device layout check')
 
   await page.goto(`/groups/${GROUP}/more-spaces?edit=true`)
   await waitPastRootSessionLoading(page)
@@ -243,9 +253,9 @@ test('funding round dates use native inputs on touch devices', async ({ page }) 
 })
 
 test('the post editor fits phones from 320 to 430px with native inputs and a long timezone', async ({ page }) => {
-  test.skip(test.info().project.name !== 'mobile-chrome', 'phone layout check')
+  test.skip(!isPhoneProject(), 'phone layout check')
 
-  const timeframe = await openEventEditor(page)
+  const timeframe = await openEventEditor(page, '/all/all')
   await page.getByTestId('post-editor-title').fill('E2E long timezone layout check')
   // The longest common label: "(+11:00) Australian Eastern Time — Australia/Sydney"
   await selectPostTimezone(page, 'Sydney', 'Australia/Sydney')
@@ -286,6 +296,19 @@ test('the post editor fits phones from 320 to 430px with native inputs and a lon
       await timeframe.scrollIntoViewIfNeeded()
       await screenshot(page, `issue-1677-mobile-${width}.png`)
     }
+  }
+
+  // The layout mustn't depend on how an engine sizes the controls themselves. Make the
+  // timezone trigger and the date/time cells size by their own width (flex: none), as a
+  // stand-in for iOS sizing them differently: a flex row of "label + w-full control" then
+  // overflows by the label's width, while grid tracks of minmax(0, 1fr) still hold.
+  await page.addStyleTag({ content: '[data-testid="post-editor-timezone"], [data-testid="native-datetime-picker"] > div { flex: none !important; }' })
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height })
+    await page.waitForTimeout(250)
+    const overflow = await measureEditorOverflow(page)
+    console.log(`[1677] overflow at ${width}px with intrinsic-size stress:`, JSON.stringify(overflow))
+    expectNoEditorOverflow(overflow)
   }
 
   await page.setViewportSize({ width: 375, height })
