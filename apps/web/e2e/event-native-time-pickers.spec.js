@@ -52,6 +52,45 @@ async function fetchPostTimes (page, postId) {
   }, postId)
 }
 
+/**
+ * Horizontal overflow in the create-post modal: the modal's scroll container and wrapper must
+ * not scroll sideways, and no visible element of the editor may stick out of the editor card.
+ */
+async function measureEditorOverflow (page) {
+  return page.evaluate(() => {
+    const wrapper = document.getElementById('create-modal-content')
+    const scroller = wrapper?.parentElement
+    const editor = document.querySelector('[data-testid="post-editor"]')
+    const editorRect = editor.getBoundingClientRect()
+    const describe = el => `${el.tagName.toLowerCase()}${el.dataset.testid ? `[${el.dataset.testid}]` : ''}.${String(el.className || '').slice(0, 50)}`
+    const offenders = [...editor.querySelectorAll('*')]
+      .filter(el => {
+        const rect = el.getBoundingClientRect()
+        if (rect.width === 0 || rect.height === 0) return false
+        const style = window.getComputedStyle(el)
+        if (style.visibility === 'hidden' || style.display === 'none') return false
+        return rect.right > editorRect.right + 1 || rect.left < editorRect.left - 1
+      })
+      .map(el => `${describe(el)} ${Math.round(el.getBoundingClientRect().left)}-${Math.round(el.getBoundingClientRect().right)}`)
+    return {
+      viewport: window.innerWidth,
+      editor: [Math.round(editorRect.left), Math.round(editorRect.right)],
+      wrapper: [wrapper.scrollWidth, wrapper.clientWidth],
+      scroller: [scroller.scrollWidth, scroller.clientWidth, scroller.scrollLeft],
+      offenders: offenders.slice(0, 10)
+    }
+  })
+}
+
+function expectNoEditorOverflow (overflow) {
+  expect(overflow.wrapper[0], 'modal wrapper scrolls sideways').toBeLessThanOrEqual(overflow.wrapper[1])
+  expect(overflow.scroller[0], 'modal scroll container scrolls sideways').toBeLessThanOrEqual(overflow.scroller[1])
+  expect(overflow.scroller[2], 'modal scroll container is shifted sideways').toBe(0)
+  expect(overflow.editor[0]).toBeGreaterThanOrEqual(0)
+  expect(overflow.editor[1]).toBeLessThanOrEqual(overflow.viewport)
+  expect(overflow.offenders, 'elements sticking out of the editor card').toEqual([])
+}
+
 test('touch devices pick event times with native inputs; they save in the post timezone', async ({ page }) => {
   test.skip(test.info().project.name !== 'mobile-chrome', 'native pickers are for touch devices; desktop is covered below')
 
@@ -188,4 +227,72 @@ test('funding round dates use native inputs on touch devices', async ({ page }) 
   }
   await schedule.scrollIntoViewIfNeeded()
   await screenshot(page, 'issue-1677-mobile-funding-round.png')
+
+  // Still inside the dialog on a 320px phone
+  await page.setViewportSize({ width: 320, height: page.viewportSize().height })
+  await page.waitForTimeout(250)
+  const narrowBox = await schedule.boundingBox()
+  expect(narrowBox.x + narrowBox.width).toBeLessThanOrEqual(320)
+  for (const input of await schedule.locator('input').all()) {
+    const inputBox = await input.boundingBox()
+    expect(inputBox.x).toBeGreaterThanOrEqual(narrowBox.x - 1)
+    expect(inputBox.x + inputBox.width).toBeLessThanOrEqual(narrowBox.x + narrowBox.width + 1)
+  }
+  await schedule.scrollIntoViewIfNeeded()
+  await screenshot(page, 'issue-1677-mobile-funding-round-320.png')
+})
+
+test('the post editor fits phones from 320 to 430px with native inputs and a long timezone', async ({ page }) => {
+  test.skip(test.info().project.name !== 'mobile-chrome', 'phone layout check')
+
+  const timeframe = await openEventEditor(page)
+  await page.getByTestId('post-editor-title').fill('E2E long timezone layout check')
+  // The longest common label: "(+11:00) Australian Eastern Time — Australia/Sydney"
+  await selectPostTimezone(page, 'Sydney', 'Australia/Sydney')
+  const pickers = timeframe.getByTestId('native-datetime-picker')
+  await pickers.nth(0).getByTestId('native-date-input').fill('2026-12-24')
+  await pickers.nth(0).getByTestId('native-time-input').fill('12:00')
+
+  // CSS that keeps iOS's intrinsically sized date/time inputs inside their box (emulated
+  // Chrome doesn't size them like iOS, so check the styles themselves too)
+  const inputStyles = await timeframe.locator('input').evaluateAll(els => els.map(el => {
+    const style = window.getComputedStyle(el)
+    return [style.appearance, style.minWidth, style.maxWidth, style.boxSizing, style.display].join(' ')
+  }))
+  for (const style of inputStyles) expect(style).toBe('none 0px 100% border-box block')
+
+  const height = page.viewportSize().height
+  for (const width of [320, 375, 390, 430]) {
+    await page.setViewportSize({ width, height })
+    await page.waitForTimeout(250)
+    // Focusing an input is what made the modal jump sideways on iOS
+    await pickers.nth(1).getByTestId('native-time-input').focus()
+    await page.waitForTimeout(150)
+    const overflow = await measureEditorOverflow(page)
+    console.log(`[1677] overflow at ${width}px:`, JSON.stringify(overflow))
+    expectNoEditorOverflow(overflow)
+
+    // Every Timeframe and Timezone element stays inside its card
+    for (const card of [timeframe, page.getByTestId('post-editor-timezone').locator('..')]) {
+      const cardBox = await card.boundingBox()
+      for (const el of await card.locator('input, button, span, svg').all()) {
+        const box = await el.boundingBox()
+        if (!box || box.width === 0) continue
+        expect(box.x).toBeGreaterThanOrEqual(cardBox.x - 1)
+        expect(box.x + box.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1)
+      }
+    }
+    if (width !== 430) {
+      await timeframe.scrollIntoViewIfNeeded()
+      await screenshot(page, `issue-1677-mobile-${width}.png`)
+    }
+  }
+
+  await page.setViewportSize({ width: 375, height })
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.waitForTimeout(300)
+  expectNoEditorOverflow(await measureEditorOverflow(page))
+  await timeframe.scrollIntoViewIfNeeded()
+  await screenshot(page, 'issue-1677-mobile-375-dark.png')
+  await page.emulateMedia({ colorScheme: 'light' })
 })

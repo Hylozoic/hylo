@@ -1434,7 +1434,7 @@ function PostEditorInner ({
   }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30')}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30 min-w-0 max-w-full')} data-testid='post-editor'>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
@@ -1841,11 +1841,11 @@ function PostEditorInner ({
                 </div>
               </div>
               )}
-          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2'>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2 min-w-0'>
             <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
             <TimezoneSelect
               data-testid='post-editor-timezone'
-              className='border-none bg-transparent'
+              className='flex-1 border-none bg-transparent'
               value={eventTimezone}
               onChange={handleTimezoneChange}
               disabled={loading}
