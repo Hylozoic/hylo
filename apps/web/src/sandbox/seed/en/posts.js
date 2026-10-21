@@ -142,15 +142,22 @@ export function buildPosts (peopleById, meId) {
         }
       })
     ],
+    hubChat: [
+      chatPost('chat', '001', me, MAIN_GROUP_ID, -7200, 'Good morning everyone 🌱 What are you all working on this week?'),
+      chatPost('chat', '002', p010, MAIN_GROUP_ID, -7000, 'Just finished the notes from Kevin Bayuk&#39;s permaculture session — will share in the stream shortly!'),
+      chatPost('chat', '003', p011, MAIN_GROUP_ID, -6800, 'Reminder that the Rights of Nature zoom is tomorrow at noon PT. Link in the post.'),
+      chatPost('chat', '004', p012, MAIN_GROUP_ID, -6600, 'Has anyone connected with the Bioneers community around watershed stewardship? They&#39;d be great allies.'),
+      chatPost('chat', '005', me, MAIN_GROUP_ID, -6400, 'Yes! Thomas Linzey from their team reached out after my post. Setting up a call next week.'),
+      chatPost('chat', '006', p013, MAIN_GROUP_ID, -6200, 'The community forest campaign is going really well — almost at 60% 🎉 Keep sharing!'),
+      chatPost('chat', '007', p014, MAIN_GROUP_ID, -6000, 'Anyone up for a co-working session at the Oakland Collective on Friday?'),
+      chatPost('chat', '008', p015, MAIN_GROUP_ID, -5800, 'I&#39;ll be there! See you around 10am.')
+    ],
     chatSpace: [
-      chatPost('chat', '001', me, CHAT_SPACE_ID, -7200, 'Good morning everyone 🌱 What are you all working on this week?'),
-      chatPost('chat', '002', p010, CHAT_SPACE_ID, -7000, 'Just finished the notes from Kevin Bayuk&#39;s permaculture session — will share in the stream shortly!'),
-      chatPost('chat', '003', p011, CHAT_SPACE_ID, -6800, 'Reminder that the Rights of Nature zoom is tomorrow at noon PT. Link in the post.'),
-      chatPost('chat', '004', p012, CHAT_SPACE_ID, -6600, 'Has anyone connected with the Bioneers community around watershed stewardship? They&#39;d be great allies.'),
-      chatPost('chat', '005', me, CHAT_SPACE_ID, -6400, 'Yes! Thomas Linzey from their team reached out after my post. Setting up a call next week.'),
-      chatPost('chat', '006', p013, CHAT_SPACE_ID, -6200, 'The community forest campaign is going really well — almost at 60% 🎉 Keep sharing!'),
-      chatPost('chat', '007', p014, CHAT_SPACE_ID, -6000, 'Anyone up for a co-working session at the Oakland Collective on Friday?'),
-      chatPost('chat', '008', p015, CHAT_SPACE_ID, -5800, 'I&#39;ll be there! See you around 10am.')
+      chatPost('intro', '001', p003, CHAT_SPACE_ID, -86400 * 12, 'Hi, I&#39;m Kai. I live in the East Bay and I&#39;m here for the people doing land stewardship together.'),
+      chatPost('intro', '002', p004, CHAT_SPACE_ID, -86400 * 9, 'Liam. I build cooperative tools, and I&#39;m glad this community exists.'),
+      chatPost('intro', '003', p008, CHAT_SPACE_ID, -86400 * 6, 'Marcus from Berkeley. Just joined — the community forest campaign is what pulled me in.'),
+      chatPost('intro', '004', p009, CHAT_SPACE_ID, -86400 * 3, 'Amara, Richmond. I work on watershed care and I&#39;m looking for people to learn with.'),
+      chatPost('intro', '005', me, CHAT_SPACE_ID, -86400, 'Welcome, everyone. I&#39;m Elena, one of the coordinators. Say hello whenever you arrive — we read these.')
     ],
     fundingSubmissions: [
       fundingSubmission('001', p016, FUNDING_SPACE_ID, -86400 * 5, 24, {
@@ -333,6 +340,157 @@ export function buildPosts (peopleById, meId) {
           lat: 37.9358,
           lng: -122.3477
         }
+      }),
+      eventPost('simple-112', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400 * 4, {
+        title: 'North Shattuck produce swap',
+        details: '<p>Bring whatever is overflowing — lemons, chard, loquats, sourdough — and leave with something you didn&#39;t grow. Tables go up under the oaks at Live Oak Park. No signup, just a bag.</p><p>If you have nothing to swap, come anyway. Neighbours always bring extra.</p>',
+        upcoming: true,
+        startTime_local: { days: 3, hour: 10 },
+        endTime_local: { days: 3, hour: 12 },
+        commentCount: 3,
+        reactionCount: 2,
+        place: {
+          fullText: 'Live Oak Park, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8836,
+          lng: -122.2686
+        }
+      }),
+      eventPost('simple-113', peopleById[sid('person', 'starter', '002')], SIMPLE_GROUP_ID, -86400 * 6, {
+        title: 'Tool library open hours',
+        details: '<p>The North Berkeley tool shelf is open at the Ohlone Park picnic tables. Borrow a drill, a hedge trimmer, a cargo-bike pump, or a canning pot. Bring it back the following Saturday, or message Finn if you need it longer.</p>',
+        upcoming: true,
+        startTime_local: { days: 8, hour: 10 },
+        endTime_local: { days: 8, hour: 13 },
+        commentCount: 1,
+        reactionCount: 2,
+        place: {
+          fullText: 'Ohlone Park, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8744,
+          lng: -122.2828
+        }
+      }),
+      eventPost('simple-114', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400 * 2, {
+        title: 'Cedar-Rose neighbourhood potluck',
+        details: '<p>Side by Side is hosting a potluck on the Cedar-Rose lawn. Bring a dish and a blanket. Kids are welcome — we&#39;ll keep a corner for them if a couple of adults can rotate through.</p>',
+        upcoming: true,
+        startTime_local: { days: 16, hour: 18 },
+        endTime_local: { days: 16, hour: 20 },
+        commentCount: 2,
+        reactionCount: 3,
+        place: {
+          fullText: 'Cedar-Rose Park, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8807,
+          lng: -122.2866
+        }
+      }),
+      eventPost('simple-115', p008, SIMPLE_GROUP_ID, -86400 * 12, {
+        title: 'Hopkins seed and starts swap',
+        details: '<p>We traded tomato starts, bean seed, and a lot of advice outside Monterey Market. The next one will be posted when the winter sowing is ready.</p>',
+        upcoming: false,
+        startTime_local: { days: -9, hour: 10 },
+        endTime_local: { days: -9, hour: 12 },
+        commentCount: 1,
+        place: {
+          fullText: 'Monterey Market, Hopkins Street, Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8810,
+          lng: -122.2756
+        }
+      }),
+      requestPost('simple-116', me, SIMPLE_GROUP_ID, -86400 * 2, {
+        title: 'Borrow a cargo bike for Saturday market',
+        details: '<p>I&#39;m hauling citrus and a folding table to the North Shattuck produce swap and my rack won&#39;t hold it. Could I borrow a cargo bike Friday evening through Saturday afternoon? I can pick up around Hopkins.</p>',
+        commentCount: 1,
+        place: {
+          fullText: 'Hopkins Street, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8812,
+          lng: -122.2742
+        }
+      }),
+      requestPost('simple-117', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400 * 5, {
+        title: 'Ladder to pick the front-yard lemon',
+        details: '<p>The Meyer lemon on Ada Street is ready and I can&#39;t reach the top third. Happy to share the fruit with anyone who can lend a ladder for an hour this week.</p>',
+        commentCount: 2,
+        reactionCount: 1,
+        place: {
+          fullText: 'Ada Street, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8784,
+          lng: -122.2718
+        }
+      }),
+      requestPost('simple-118', p008, SIMPLE_GROUP_ID, -86400 * 3, {
+        title: 'Ride to the rose garden work morning',
+        details: '<p>I&#39;m helping mulch the Berkeley Rose Garden on Sunday and don&#39;t have a car for the tools. If you&#39;re heading up Euclid, I can meet you at North Berkeley BART.</p>',
+        place: {
+          fullText: 'Berkeley Rose Garden, Euclid Avenue, Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8857,
+          lng: -122.2614
+        }
+      }),
+      requestPost('simple-119', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400, {
+        title: 'An extra adult for the potluck kids corner',
+        details: '<p>The Cedar-Rose potluck needs one more adult to rotate through the kids corner for an hour. You can eat with us the rest of the time. Message me if you can take a shift.</p>',
+        commentCount: 1,
+        place: {
+          fullText: 'Cedar-Rose Park, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8804,
+          lng: -122.2859
+        }
+      }),
+      offerPost('simple-120', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400, {
+        title: 'Meyer lemons and extra chard',
+        details: '<p>The backyard is overloaded. A bag of Meyer lemons and a bunch of rainbow chard are on the porch on Virginia Street — take what you need and leave the bag. I&#39;ll restock after the weekend harvest.</p>',
+        commentCount: 2,
+        reactionCount: 3,
+        place: {
+          fullText: 'Virginia Street, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8758,
+          lng: -122.2774
+        }
+      }),
+      offerPost('simple-121', p008, SIMPLE_GROUP_ID, -86400 * 4, {
+        title: 'Tomato and basil starts',
+        details: '<p>I sowed too many. Six tomato starts and a tray of basil are on the steps by Indian Rock, free to anyone who will actually plant them. Bring a tray, or I have yogurt tubs.</p>',
+        commentCount: 1,
+        reactionCount: 2,
+        place: {
+          fullText: 'Indian Rock Park, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8924,
+          lng: -122.2725
+        }
+      }),
+      offerPost('simple-122', peopleById[sid('person', 'starter', '002')], SIMPLE_GROUP_ID, -86400 * 3, {
+        title: 'Folding tables and a projector',
+        details: '<p>Two 6-foot folding tables and a small projector live with the tool library. Borrow them for a block party or a skill-share. Message Finn to pick up near King Park.</p>',
+        commentCount: 1,
+        reactionCount: 1,
+        place: {
+          fullText: 'King Park, Hopkins Street, Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8820,
+          lng: -122.2792
+        }
+      }),
+      offerPost('simple-123', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400 * 2, {
+        title: 'Saturday sourdough, two loaves spare',
+        details: '<p>I bake two extra country loaves every Saturday morning. First message gets them — pickup on Solano before noon, or I can bring them to the produce swap.</p>',
+        commentCount: 3,
+        reactionCount: 2,
+        place: {
+          fullText: 'Solano Avenue, Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8910,
+          lng: -122.2868
+        }
       })
     ],
     staffGroupChat: [
@@ -441,7 +599,7 @@ function groupDisplayName (groupId) {
   if (groupId === MAIN_GROUP_ID) return 'Community Hub'
   if (groupId === STAFF_GROUP_ID) return 'Worker Co-op Staff'
   if (groupId === FUNDING_SPACE_ID) return 'Bioregional Grants Round 1'
-  if (groupId === CHAT_SPACE_ID) return 'General'
+  if (groupId === CHAT_SPACE_ID) return 'Introductions'
   return 'Local Sharing Network'
 }
 
@@ -473,14 +631,28 @@ function discussionPost (num, creator, groupId, createdAtOffset, extras = {}) {
 }
 
 function eventPost (num, creator, groupId, createdAtOffset, extras = {}) {
-  const { upcoming, location, place, ...rest } = extras
-  const start = upcoming ? 86400 * 5 : -86400 * 3
-  const end = upcoming ? 86400 * 5 + 7200 : -86400 * 3 + 7200
+  const {
+    upcoming,
+    location,
+    place,
+    startTime_offset: startOffset,
+    endTime_offset: endOffset,
+    startTime_local: startLocal,
+    endTime_local: endLocal,
+    ...rest
+  } = extras
+  const start = startOffset != null ? startOffset : (upcoming ? 86400 * 5 : -86400 * 3)
+  const end = endOffset != null ? endOffset : start + 7200
+  const times = startLocal
+    ? {
+        startTime_local: startLocal,
+        endTime_local: endLocal || { ...startLocal, hour: (startLocal.hour || 10) + 2 }
+      }
+    : { startTime_offset: start, endTime_offset: end }
   return basePost(num, creator, groupId, createdAtOffset, 'event', {
     ...rest,
     fields: {
-      startTime_offset: start,
-      endTime_offset: end,
+      ...times,
       timezone: 'America/Los_Angeles',
       location: location || place?.fullText || null,
       meetingLink: null,

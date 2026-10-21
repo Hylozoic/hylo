@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.7] - 2026-10-20
+
+### Added
+- Can add geo boundaries to spaces. Edit geo boundaries in space and group creation and settings.
+
+### Changed
+- People who leave a group they paid for access to can rejoin without paying again
+
+### Fixed
+- Fix bug where all searches leaked outside of current group
+
 ## [7.1.6] - 2026-10-15
 
 ### Added
