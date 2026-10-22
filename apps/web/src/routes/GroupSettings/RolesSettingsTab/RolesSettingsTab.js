@@ -243,7 +243,7 @@ function RoleRow ({
   const isDraftRole = active === ''
   const inactiveStyle = (!active && !isDraftRole && !isSystemRole) ? styles.inactive : ''
   return (
-    <div className={cn('relative bg-foreground/5 rounded-lg my-4 pb-2', inactiveStyle)}>
+    <div className={cn('relative bg-foreground/5 rounded-lg my-4 pb-2', inactiveStyle)} data-testid={`role-card-${id || 'draft'}`}>
       {!isSystemRole &&
         <div className={styles.actionContainer}>
           {isDraftRole && (
@@ -529,7 +529,7 @@ function RoleList ({
 
   return (
     <div>
-      <div className='p-2'>
+      <div className='p-2' data-testid='role-responsibilities'>
         <h4 className='mb-0'>Responsibilities</h4>
         {isSystemRole && (
           <div className='text-foreground/70 text-xs mb-2'>{t('Common roles cannot have their responsibilities edited')}</div>

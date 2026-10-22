@@ -36,7 +36,8 @@ export async function updateGroupRole ({ groupRoleId, color, name, description, 
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
       return bookshelf.transaction(async transacting => {
-        const groupRole = await GroupRole.where({ id: groupRoleId }).fetch()
+        const groupRole = await GroupRole.where({ id: groupRoleId, group_id: groupId }).fetch({ transacting })
+        if (!groupRole) throw new GraphQLError('Role not found in this group')
         const verifiedActiveParam = (active == null) ? groupRole.get('active') : active
         const updatedAttributes = {
           color: color || groupRole.get('color'),
@@ -63,6 +64,8 @@ export async function addRoleToMember ({ userId, roleId, personId, groupId }) {
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+      const groupRole = await GroupRole.where({ id: roleId, group_id: groupId }).fetch()
+      if (!groupRole) throw new GraphQLError('Role not found in this group')
       return MemberGroupRole.forge({
         group_role_id: roleId,
         user_id: personId,
