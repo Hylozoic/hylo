@@ -6,6 +6,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.7] - 2026-10-20
+
+### Added
+- Can add geo boundaries to spaces. Edit geo boundaries in space and group creation and settings.
+- Keep formatting in track action text responses
+
+### Changed
+- Clicking an active member in group menu goes to memberlist, not to individual profile
+- Never show members with blank names
+- Show a confirmation toast after saving profile edits
+- Sandbox demo: sign-up prompts after changes and after 100 seconds, generic group names, the demo user is now an administrator of Community Hub with working group settings, and all Appearance settings apply live
+
+### Fixed
+- Make sure all group avatars are circular
+- Map tooltips are over other map features
+
+## [7.1.6] - 2026-10-15
+
+### Added
+- Search will now surface groups that match the search terms alongside posts, comments and people.
+- Filter to calendar view mode to only show events you RSVPed to, or not.
+- Public Profiles: you can turn this on in your profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Fixed
+- Fix off by 1 error on calendar dates in certain locales
+
 ## [7.1.5] - 2026-10-08
 
 ### Added

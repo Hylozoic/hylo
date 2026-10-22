@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { useCalendarContext } from '../../calendar-context'
-import { Interval, Info } from 'luxon'
+import { Interval } from 'luxon'
 import { DateTimeHelpers } from '@hylo/shared'
 import { cn } from '@/lib/utils'
 import CalendarEvent from '../../calendar-event'
 import { eachIntervalDay, createEventPostUrl } from '../../calendar-util'
-import { getDateLocale, getLocaleFromLocalStorage } from 'util/locale'
+import { getLocaleFromLocalStorage } from 'util/locale'
 
 export default function CalendarBodyMonth () {
   const { t } = useTranslation()
@@ -30,9 +30,9 @@ export default function CalendarBodyMonth () {
   // Get the last day of the month
   const monthEnd = luxonDate.endOf('month')
 
-  // Get the first Monday of the first week (may be in previous month)
+  // First day of the locale week that contains the 1st (may fall in the previous month)
   const calendarStart = monthStart.startOf('week', { useLocaleWeeks: true })
-  // Get the last Sunday of the last week (may be in next month)
+  // Exclusive end of the locale week that contains the last day of the month
   const calendarEnd = monthEnd.endOf('week', { useLocaleWeeks: true }).plus({ day: 1 })
 
   // Get all days between start and end
@@ -54,12 +54,11 @@ export default function CalendarBodyMonth () {
     <>
       <div className='flex flex-col flex-grow overflow-hidden'>
         <div className='hidden md:grid grid-cols-7 border-border divide-x divide-border'>
-          {[0, 1, 2, 3, 4, 5, 6].map((day) => {
-            const luxonDay = (day + 6) % 7
-            const dayName = Info.weekdays('short', { locale: getDateLocale() })[luxonDay]
+          {[0, 1, 2, 3, 4, 5, 6].map((offset) => {
+            const dayName = calendarStart.plus({ days: offset }).toFormat('ccc')
             return (
               <div
-                key={dayName}
+                key={offset}
                 className='py-2 text-center text-sm font-medium text-muted-foreground border-b border-border'
               >
                 {dayName}

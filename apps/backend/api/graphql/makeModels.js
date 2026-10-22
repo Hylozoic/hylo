@@ -26,7 +26,7 @@ import {
   filterAndSortPosts,
   filterAndSortUsers
 } from '../services/Search/util'
-const { createGroupRoleScope } = require('../../lib/scopes')
+const { createGroupRoleScope, createGroupScope } = require('../../lib/scopes')
 const {
   mergeAccessGrantsForPresentation,
   getBuyButtonTextFromOffering
@@ -166,7 +166,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
   /**
    * Anonymous visitors only reach people through public content (post and comment creators, etc.).
    * They can see who wrote it (id, name, avatar, banner, tagline) but nothing else from the profile.
-   * Opted-in public profiles are the exception: bio, links, skills, and public group memberships stay visible.
+   * Opted-in public profiles are the exception: bio, links, skills, public group memberships, and public posts stay visible.
    * Contact info stays hidden either way.
    */
   const fieldsReturning = (value, fields) => Object.fromEntries(fields.map(f => [f, () => value]))
@@ -635,8 +635,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
               topic,
               topics,
               types
-            }) =>
-              relation.query(q => {
+            }) => {
+              // Anonymous viewers only get this list for an opted-in public profile.
+              // postFilter still limits those posts to ones marked public.
+              allowPublicProfileRelation(relation)
+              return relation.query(q => {
                 filterAndSortPosts({
                   activePostsOnly,
                   afterTime,
@@ -667,6 +670,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 q.groupBy('posts.id')
                 q.orderBy('posts.id', order === 'asc' ? 'asc' : 'desc')
               })
+            }
           }
         },
         { projects: { querySet: true } },
@@ -1196,24 +1200,30 @@ export default function makeModels (userId, isAdmin, apiClient) {
             querySet: true,
             arguments: () => [userId],
             filter: (relation, { activePostsOnly = false, afterTime, beforeTime, boundingBox, collectionToFilterOut, filter, forCollection, isFulfilled, order, rsvpResponse, search, sortBy, topic, topics, types }) =>
-              relation.query(filterAndSortPosts({
-                activePostsOnly,
-                afterTime,
-                beforeTime,
-                boundingBox,
-                collectionToFilterOut,
-                forCollection,
-                isFulfilled,
-                order,
-                rsvpResponse,
-                currentUserId: userId,
-                search,
-                sortBy,
-                topic,
-                topics,
-                type: filter,
-                types
-              }))
+              relation.query(q => {
+                filterAndSortPosts({
+                  activePostsOnly,
+                  afterTime,
+                  beforeTime,
+                  boundingBox,
+                  collectionToFilterOut,
+                  forCollection,
+                  isFulfilled,
+                  order,
+                  rsvpResponse,
+                  currentUserId: userId,
+                  search,
+                  sortBy,
+                  topic,
+                  topics,
+                  type: filter,
+                  types
+                })(q)
+                // groups_posts is joined for visibility, which repeats a post once per group
+                // (the parent and each space). Collapse to one row per post so offset pages return new posts.
+                q.groupBy('posts.id')
+                q.orderBy('posts.id', order === 'asc' ? 'asc' : 'desc')
+              })
           }
         },
         { groupExtensions: { querySet: true } },
@@ -1241,6 +1251,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         eventCalendarUrl: g => g.eventCalendarUrl(),
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,
+        hasValidScope: g => userId && g ? UserScope.canAccess(userId, createGroupScope(g.id)) : false,
+        currentUserMembershipActive: async g => {
+          if (!userId || !g) return null
+          const membership = await GroupMembership.forPair(userId, g, { includeInactive: true }).fetch()
+          return membership ? !!membership.get('active') : null
+        },
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         invitePath: async g => {
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
@@ -2056,9 +2072,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
     PostUser: {
       model: PostUser,
       attributes: [
-        'completed_at',
-        'completion_response'
+        'completed_at'
       ],
+      getters: {
+        completionResponse: pu => pu.completionResponseForDisplay()
+      },
       relations: [
         'post',
         'user'

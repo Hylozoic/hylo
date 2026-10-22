@@ -1,5 +1,7 @@
 import { CompositeLayer } from '@deck.gl/core'
 import { IconLayer } from '@deck.gl/layers'
+import { markerUrlForAvatar } from './circularMarkerDataUrl'
+import { initialsMarkerDataUrl } from './initialsMarkerDataUrl'
 import { lucideIconDataUrl } from './lucideIconDataUrl'
 
 const defaultGroupUrl = '/assets/default_group_avatar.png'
@@ -54,6 +56,7 @@ export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onCli
         parentSlug: group.parentGroup?.slug || null,
         type: isSpace ? 'space' : 'group',
         message: (isSpace ? 'Space: ' : 'Group: ') + group.name,
+        name: group.name,
         avatarUrl: getMapAvatarUrl(group.avatarUrl),
         icon: group.icon,
         coordinates: [parseFloat(group.locationObject.center.lng), parseFloat(group.locationObject.center.lat)]
@@ -72,7 +75,7 @@ export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onCli
     getIcon: d => ({
       url: d.type === 'space'
         ? lucideIconDataUrl(d.icon)
-        : (d.avatarUrl || defaultGroupUrl),
+        : markerUrlForAvatar(d.avatarUrl, d.name, initialsMarkerDataUrl(d.name)),
       width: 42,
       height: 42,
       anchorY: 0

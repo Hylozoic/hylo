@@ -10,6 +10,7 @@ import {
   DELETE_COMMENT_PENDING,
   DELETE_POST_PENDING,
   FETCH_FOR_GROUP_PENDING,
+  LEAVE_GROUP_PENDING,
   FETCH_NOTIFICATIONS,
   MARK_ACTIVITY_READ_PENDING,
   MARK_VIEW_AS_READ,
@@ -602,6 +603,30 @@ describe('on FETCH_FOR_GROUP_PENDING', () => {
     const newSession = orm.session(newState)
     const membership = newSession.Membership.withId('2')
     expect(membership.newPostCount).toEqual(99)
+  })
+})
+
+describe('on LEAVE_GROUP_PENDING', () => {
+  it('marks the cached group as no longer actively joined while preserving scope state', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: '1' })
+    const group = session.Group.create({
+      id: '10',
+      slug: 'paid-space',
+      hasValidScope: true,
+      currentUserMembershipActive: true
+    })
+    session.Membership.create({ id: '5', person: me.id, group })
+
+    const state = ormReducer(session.state, {
+      type: LEAVE_GROUP_PENDING,
+      meta: { id: group.id }
+    })
+    const updated = orm.session(state)
+
+    expect(updated.Group.withId(group.id).currentUserMembershipActive).toEqual(false)
+    expect(updated.Group.withId(group.id).hasValidScope).toEqual(true)
+    expect(updated.Membership.idExists('5')).toBe(false)
   })
 })
 

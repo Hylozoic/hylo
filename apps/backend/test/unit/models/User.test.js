@@ -187,6 +187,30 @@ describe('User', function () {
     })
   })
 
+  describe('#validateAndSave', function () {
+    let user
+
+    beforeEach(async () => {
+      user = await factories.user({ name: 'Original Name', active: true }).save()
+    })
+
+    it('rejects a blank name', async () => {
+      for (const name of ['', '   ', '\t \n', null]) {
+        await user.validateAndSave(null, { name })
+          .then(() => expect.fail(`accepted name ${JSON.stringify(name)}`))
+          .catch(err => expect(err.message).to.match(/^Name /))
+      }
+      await user.refresh()
+      expect(user.get('name')).to.equal('Original Name')
+    })
+
+    it('trims whitespace around the name', async () => {
+      await user.validateAndSave(null, { name: '  New Name  ' })
+      await user.refresh()
+      expect(user.get('name')).to.equal('New Name')
+    })
+  })
+
   describe('#groupsSharedWithPost', () => {
     let user, post, c1, c2, c3, c4
     before(() => {

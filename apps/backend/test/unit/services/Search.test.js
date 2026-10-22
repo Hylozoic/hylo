@@ -205,6 +205,27 @@ describe('Search', function () {
           })
       })
 
+      it('sorts members with no name last, in either name order', async () => {
+        const sortGroup = await new Group({ name: 'SortGroup', slug: 'sort-group' }).save()
+        const named = ['Bea', 'alex', 'Cy']
+        const blank = [null, '', '   ']
+        for (const [i, name] of [...named, ...blank].entries()) {
+          const user = await new User({ name, email: `sort${i}@example.org`, active: true }).save()
+          await user.joinGroup(sortGroup)
+        }
+
+        const names = async order => (await Search.forUsers({ groups: [sortGroup.id], sort: 'name', order }).fetchAll())
+          .map(u => u.get('name'))
+
+        const asc = await names('asc')
+        expect(asc.slice(0, 3)).to.deep.equal(['alex', 'Bea', 'Cy'])
+        expect(asc.slice(3)).to.have.members(blank)
+
+        const desc = await names('desc')
+        expect(desc.slice(0, 3)).to.deep.equal(['Cy', 'Bea', 'alex'])
+        expect(desc.slice(3)).to.have.members(blank)
+      })
+
       it('excludes inactive members', async () => {
         await cat.leaveGroup(house)
         const users = await Search.forUsers({

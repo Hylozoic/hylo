@@ -57,7 +57,7 @@ async function requireSpaceManager (userId, spaceId, action, { includeInactive =
   return space
 }
 
-export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true, status, autoAddMembers }, context) {
+export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true, status, autoAddMembers }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!parentGroupId) throw new GraphQLError('No parentGroupId passed into function')
   if (!name || !name.trim()) throw new GraphQLError('Name cannot be blank')
@@ -102,6 +102,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     purpose,
     location,
     location_id: locationId,
+    geo_shape: geoShape ? Group.geoShapeFromGeoJSON(geoShape) : null,
     banner_url: bannerUrl,
     avatar_url: avatarUrl,
     visibility: spaceVisibility,
@@ -154,7 +155,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
   return space.refresh()
 }
 
-export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context) {
+export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, geoShape, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!id) throw new GraphQLError('No id passed into function')
 
@@ -184,6 +185,7 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
   }
   if (location !== undefined) changes.location = location
   if (locationId !== undefined) changes.location_id = locationId
+  if (geoShape !== undefined) changes.geo_shape = geoShape ? Group.geoShapeFromGeoJSON(geoShape) : null
   if (icon !== undefined) changes.icon = icon || null
   if (bannerUrl !== undefined) changes.banner_url = bannerUrl
   if (avatarUrl !== undefined) changes.avatar_url = avatarUrl
