@@ -33,7 +33,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { locationObjectToViewport } from 'util/geo'
+import { locationObjectToViewport, shapeCenter } from 'util/geo'
 import { isMobileDevice } from 'util/mobile'
 import { generateViewParams } from 'util/savedSearch'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
@@ -115,6 +115,11 @@ function getLocationCenter (entity) {
   if (entity.locationObject?.center) return entity.locationObject.center
   if (entity.locationObject?.ref?.center) return entity.locationObject.ref.center
   return entity.ref?.locationObject?.center || null
+}
+
+/** Location pin, or the center of the boundary when a group has no pin. */
+function getGroupMapCenter (entity) {
+  return getLocationCenter(entity) || shapeCenter(entity?.geoShape || entity?.ref?.geoShape)
 }
 
 /** True when a location center falls inside [west, south, east, north]. */
@@ -281,7 +286,7 @@ function MapExplorer (props) {
   useEffect(() => {
     if (!centerParam &&
         !(scopedMapState && reduxState.centerLocation) &&
-        !getLocationCenter(group) &&
+        !getGroupMapCenter(group) &&
         !getLocationCenter(currentUser)) {
       navigator.geolocation.getCurrentPosition((position) => {
         setBrowserLocation({
@@ -298,7 +303,7 @@ function MapExplorer (props) {
     }
   }, [])
 
-  const groupCenter = getLocationCenter(group)
+  const groupCenter = getGroupMapCenter(group)
   const userCenter = getLocationCenter(currentUser)
   const centerParam = getQuerystringParam('center', location)
   const centerLocation = useMemo(() => {
@@ -307,8 +312,8 @@ function MapExplorer (props) {
       return { lat: parseFloat(decodedCenter[0]), lng: parseFloat(decodedCenter[1]) }
     }
 
-    // Prefer scoped redux center, then group location, so maps aren't stuck on
-    // a previous scope's pan or the Africa fallback (35.44, 7.92).
+    // Prefer a saved pan, then the group's pin or boundary center, so maps
+    // aren't stuck on a previous scope's pan or the Africa fallback (35.44, 7.92).
     return (scopedMapState && reduxState.centerLocation) ||
       groupCenter ||
       userCenter ||
