@@ -23,6 +23,7 @@ import LocationInput from 'components/LocationInput'
 import Map from 'components/Map/Map'
 import { buildClusterLayerData, createIconLayerFromPostsAndMembers } from 'components/Map/layers/clusterLayer'
 import { createIconLayerFromGroups } from 'components/Map/layers/iconLayer'
+import { useCircularMarkerVersion } from 'components/Map/layers/iconLayer/circularMarkerDataUrl'
 import { useLucideIconsLoaded } from 'components/LucideIcon/lucideIconSet'
 import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer'
 import SwitchStyled from 'components/SwitchStyled'
@@ -138,6 +139,7 @@ function shapeMeetsBox (geoShape, boundingBox) {
 function MapExplorer (props) {
   const { t } = useTranslation()
   const lucideIconsLoaded = useLucideIconsLoaded()
+  const circularMarkerVersion = useCircularMarkerVersion()
 
   // First-visit tour of the map's floating controls, offered by invitation
   const mapTourStepList = useMemo(() => mapTourSteps(t), [t])
@@ -603,12 +605,13 @@ function MapExplorer (props) {
       onHover: onMapHover,
       onClick: onMapClick,
       boundingBox: currentBoundingBox,
-      lucideIconsLoaded
+      lucideIconsLoaded,
+      circularMarkerVersion
     })
-  }, [viewGroups, currentBoundingBox, onMapHover, onMapClick, lucideIconsLoaded])
+  }, [viewGroups, currentBoundingBox, onMapHover, onMapClick, lucideIconsLoaded, circularMarkerVersion])
 
-  const polygonLayer = useMemo(() => {
-    if (!currentBoundingBox || context === 'public') return null
+  const polygonLayers = useMemo(() => {
+    if (!currentBoundingBox || context === 'public') return []
     return createPolygonLayerFromGroups({
       groups: viewGroups,
       onHover: onMapHover,
@@ -850,7 +853,7 @@ function MapExplorer (props) {
         {mapTourInvitation}
         <Map
           baseLayerStyle={baseLayerStyle}
-          hyloLayers={[polygonLayer, groupIconLayer, clusterLayer]}
+          hyloLayers={[...polygonLayers, groupIconLayer, clusterLayer]}
           isAddingItemToMap={isAddingItemToMap}
           otherLayers={Object.keys(otherLayers)}
           ref={mapRef}

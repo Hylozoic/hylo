@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import Map from 'components/Map'
 import { createIconLayerFromPostsAndMembers } from 'components/Map/layers/clusterLayer'
 import { createIconLayerFromGroups } from 'components/Map/layers/iconLayer'
+import { useCircularMarkerVersion } from 'components/Map/layers/iconLayer/circularMarkerDataUrl'
 import { useLucideIconsLoaded } from 'components/LucideIcon/lucideIconSet'
 import useEnsureSearchedGroups from 'hooks/useEnsureSearchedGroups'
 
@@ -31,6 +32,7 @@ export default function FarmMapWidget ({ group, items }) {
   const [hoveredObject, setHoveredObject] = useState(null)
   const { groups } = useEnsureSearchedGroups({ sortBy: 'nearest', nearCoord: coord, groupType: 'farm' })
   const lucideIconsLoaded = useLucideIconsLoaded()
+  const circularMarkerVersion = useCircularMarkerVersion()
 
   const onMapHover = (info) => {
     setHoveredObject(info.objects || info.object)
@@ -81,9 +83,10 @@ export default function FarmMapWidget ({ group, items }) {
       groups: viewGroups,
       onHover: onMapHover,
       onClick: onMapClick,
-      lucideIconsLoaded
+      lucideIconsLoaded,
+      circularMarkerVersion
     }))
-  }, [groups, lucideIconsLoaded])
+  }, [groups, lucideIconsLoaded, circularMarkerVersion])
 
   useEffect(() => {
     const viewPosts = items.filter(post => {

@@ -1165,24 +1165,30 @@ export default function makeModels (userId, isAdmin, apiClient) {
             querySet: true,
             arguments: () => [userId],
             filter: (relation, { activePostsOnly = false, afterTime, beforeTime, boundingBox, collectionToFilterOut, filter, forCollection, isFulfilled, order, rsvpResponse, search, sortBy, topic, topics, types }) =>
-              relation.query(filterAndSortPosts({
-                activePostsOnly,
-                afterTime,
-                beforeTime,
-                boundingBox,
-                collectionToFilterOut,
-                forCollection,
-                isFulfilled,
-                order,
-                rsvpResponse,
-                currentUserId: userId,
-                search,
-                sortBy,
-                topic,
-                topics,
-                type: filter,
-                types
-              }))
+              relation.query(q => {
+                filterAndSortPosts({
+                  activePostsOnly,
+                  afterTime,
+                  beforeTime,
+                  boundingBox,
+                  collectionToFilterOut,
+                  forCollection,
+                  isFulfilled,
+                  order,
+                  rsvpResponse,
+                  currentUserId: userId,
+                  search,
+                  sortBy,
+                  topic,
+                  topics,
+                  type: filter,
+                  types
+                })(q)
+                // groups_posts is joined for visibility, which repeats a post once per group
+                // (the parent and each space). Collapse to one row per post so offset pages return new posts.
+                q.groupBy('posts.id')
+                q.orderBy('posts.id', order === 'asc' ? 'asc' : 'desc')
+              })
           }
         },
         { groupExtensions: { querySet: true } },
