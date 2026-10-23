@@ -1,5 +1,6 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import PrivacySettingsTab from './PrivacySettingsTab'
 
 describe('PrivacySettingsTab', () => {
@@ -31,5 +32,24 @@ describe('PrivacySettingsTab', () => {
 
     // Check for the save button
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument()
+  })
+
+  it('does not show who can add new members', () => {
+    render(
+      <PrivacySettingsTab
+        group={{
+          id: '1',
+          name: 'Seed Library',
+          slug: 'seed-library',
+          accessibility: GROUP_ACCESSIBILITY.Restricted,
+          visibility: GROUP_VISIBILITY.Protected,
+          settings: {},
+          invitePolicy: 'stewards'
+        }}
+        parentGroups={[]}
+      />
+    )
+
+    expect(screen.queryByRole('heading', { name: 'Who can add new members?' })).not.toBeInTheDocument()
   })
 })

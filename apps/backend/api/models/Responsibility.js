@@ -4,6 +4,9 @@ const RESP_ADD_MEMBERS = 'Add Members'
 const RESP_REMOVE_MEMBERS = 'Remove Members'
 const RESP_MANAGE_CONTENT = 'Manage Content'
 
+// System responsibility ids never change once created, so they are cached per process
+const systemIdCache = new Map()
+
 module.exports = bookshelf.Model.extend({
   tableName: 'responsibilities',
   requireFetch: false,
@@ -58,6 +61,38 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * Id of the platform (type 'system') responsibility with this exact title, or null.
+   * Use this to match a platform responsibility when a group-defined one could share its title.
+   */
+  async systemId (title, { transacting } = {}) {
+    if (systemIdCache.has(title)) return systemIdCache.get(title)
+    let query = bookshelf.knex('responsibilities')
+      .where({ title, type: 'system' })
+      .whereNull('group_id')
+      .orderBy('id', 'asc')
+      .first('id')
+    if (transacting) query = query.transacting(transacting)
+    const row = await query
+    if (!row) return null
+    systemIdCache.set(title, row.id)
+    return row.id
+  },
+
+  /**
+   * True if the title matches a platform responsibility title, ignoring case and surrounding spaces.
+   */
+  async isSystemTitle (title, { transacting } = {}) {
+    const normalized = (title || '').trim().toLowerCase()
+    if (!normalized) return false
+    let query = bookshelf.knex('responsibilities')
+      .where('type', 'system')
+      .whereRaw('lower(trim(title)) = ?', [normalized])
+      .first('id')
+    if (transacting) query = query.transacting(transacting)
+    return !!(await query)
+  },
+
+  /**
    * Responsibilities for a user in a group/space.
    * Spaces inherit role assignments from their parent group (COALESCE(parent_id, id)).
    */
@@ -66,7 +101,7 @@ module.exports = bookshelf.Model.extend({
     return bookshelf.knex.raw(
       `WITH UserGroupRoles AS (
         SELECT group_role_id
-        FROM group_memberships_group_roles
+        FROM group_member_effective_roles
         WHERE user_id = ${userId}
           AND group_id = ${roleScopeId}
       ),
@@ -87,7 +122,7 @@ module.exports = bookshelf.Model.extend({
         SELECT
           m.group_role_id,
           m.group_id
-        FROM group_memberships_group_roles m
+        FROM group_member_effective_roles m
         WHERE m.user_id = ${userId}
       ),
       ResponsibilitiesCTE AS (
@@ -123,7 +158,7 @@ module.exports = bookshelf.Model.extend({
         m.user_id
       FROM responsibilities r
       JOIN group_roles_responsibilities gr ON r.id = gr.responsibility_id
-      JOIN group_memberships_group_roles m ON gr.group_role_id = m.group_role_id
+      JOIN group_member_effective_roles m ON gr.group_role_id = m.group_role_id
       WHERE r.type = 'system' AND m.group_id = ${roleScopeId};`
     ).then(resp => resp.rows)
   },
