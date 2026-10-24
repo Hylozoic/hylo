@@ -2,7 +2,9 @@
 import React from 'react'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
-import { render, screen, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, waitFor, act, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import userEvent from '@testing-library/user-event'
+import updatePost from 'store/actions/updatePost'
 import orm from 'store/models'
 import PostEditor from './PostEditor'
 import ActionsBar from './ActionsBar'
@@ -29,11 +31,11 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post' } = {}) {
+function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', postAttrs: extraPostAttrs = {} } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
-  const postAttrs = { id: '1', title, type: postType, groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] }
+  const postAttrs = { id: '1', title, type: postType, groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }], ...extraPostAttrs }
   if (withLinkPreview) {
     ormSession.LinkPreview.create({
       id: 'lp1',
@@ -167,6 +169,65 @@ describe('PostEditor', () => {
         expect(screen.getByText('Example Site')).toBeInTheDocument()
         expect(screen.getByText('example.com')).toBeInTheDocument()
       })
+    })
+  })
+
+  describe('removing times', () => {
+    const timedPost = {
+      startTime: '2030-05-01T10:00:00.000Z',
+      endTime: '2030-05-01T12:00:00.000Z',
+      timezone: 'UTC'
+    }
+    const renderTimedPost = (postType, props = {}) => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      return renderComponent({ editing: true, ...props }, { postType, postAttrs: { ...timedPost, groups: ['1'] } })
+    }
+
+    beforeEach(() => {
+      updatePost.mockClear()
+    })
+
+    it('removing the start time removes the end time too, and saves both as null', async () => {
+      const ref = React.createRef()
+      renderTimedPost('request', { ref })
+      const user = userEvent.setup()
+
+      await user.click(await screen.findByTestId('post-editor-clear-start-time'))
+
+      expect(screen.getByText('Select Start')).toBeInTheDocument()
+      expect(screen.getByText('Select End')).toBeInTheDocument()
+      expect(screen.queryByTestId('post-editor-clear-start-time')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('post-editor-clear-end-time')).not.toBeInTheDocument()
+
+      await act(async () => { ref.current.submit() })
+      await waitFor(() => expect(updatePost).toHaveBeenCalled())
+      expect(updatePost.mock.calls[0][0]).toMatchObject({ id: '1', startTime: null, endTime: null })
+    })
+
+    it('can remove only the end time', async () => {
+      const ref = React.createRef()
+      renderTimedPost('project', { ref })
+      const user = userEvent.setup()
+
+      await user.click(await screen.findByTestId('post-editor-clear-end-time'))
+
+      expect(screen.queryByText('Select Start')).not.toBeInTheDocument()
+      expect(screen.getByText('Select End')).toBeInTheDocument()
+      expect(screen.getByTestId('post-editor-clear-start-time')).toBeInTheDocument()
+      expect(screen.queryByTestId('post-editor-clear-end-time')).not.toBeInTheDocument()
+
+      await act(async () => { ref.current.submit() })
+      await waitFor(() => expect(updatePost).toHaveBeenCalled())
+      const saved = updatePost.mock.calls[0][0]
+      expect(saved.startTime.toISOString()).toEqual('2030-05-01T10:00:00.000Z')
+      expect(saved.endTime).toBeNull()
+    })
+
+    it('does not offer to remove the times of an event, which requires them', async () => {
+      renderTimedPost('event')
+      await screen.findByText('Timeframe')
+      expect(screen.queryByTestId('post-editor-clear-start-time')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('post-editor-clear-end-time')).not.toBeInTheDocument()
     })
   })
 
