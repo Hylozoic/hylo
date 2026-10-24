@@ -4,7 +4,9 @@ import {
   RESEND_INVITATION_PENDING,
   EXPIRE_INVITATION_PENDING,
   REINVITE_ALL_PENDING,
-  allowGroupInvites
+  allowGroupInvites,
+  fetchPendingInvitations,
+  PENDING_INVITES_PAGE_SIZE
 } from './InviteSettingsTab.store'
 import orm from 'store/models'
 
@@ -87,5 +89,18 @@ describe('InviteSettingsTab.store.ormSessionReducer', () => {
 
   it('matches the last snapshot for allowGroupInvites', () => {
     expect(allowGroupInvites('1', false)).toMatchSnapshot()
+  })
+})
+
+describe('fetchPendingInvitations', () => {
+  it('requests the first page by default', () => {
+    const action = fetchPendingInvitations('1')
+    expect(action.graphql.variables).toEqual({ id: '1', first: PENDING_INVITES_PAGE_SIZE, offset: 0 })
+    expect(action.graphql.query).toMatch(/pendingInvitations \(first: \$first, offset: \$offset\)/)
+  })
+
+  it('requests later pages by offset', () => {
+    const action = fetchPendingInvitations('1', { offset: 40 })
+    expect(action.graphql.variables).toEqual({ id: '1', first: PENDING_INVITES_PAGE_SIZE, offset: 40 })
   })
 })
