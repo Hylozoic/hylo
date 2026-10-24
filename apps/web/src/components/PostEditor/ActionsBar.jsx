@@ -123,6 +123,7 @@ export default function ActionsBar ({
         <Button
           disabled={!valid || loading || submitting}
           onClick={doSave}
+          dataTestId='post-editor-submit'
           className='border-2 border-foreground/30 bg-foreground/30 px-2 py-1 rounded flex items-center'
           dataTipHtml={!valid ? invalidMessage : ''}
           dataFor='submit-tt'
