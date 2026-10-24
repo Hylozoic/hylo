@@ -20,7 +20,13 @@ test.describe('Batch G: messages', () => {
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(/\/messages(\/\d+|\/new)?$/, navTimeout)
     if (testInfo.project.name.includes('mobile')) {
-      await expect(page).toHaveTitle(/Messages.*Hylo/i, uiTimeout)
+      // Other specs create DM threads in the shared DB, so mobile may show the thread list
+      // (or a thread) instead of redirecting an empty inbox to the "Messages | Hylo" composer
+      await expect.poll(async () =>
+        /Messages.*Hylo/i.test(await page.title()) ||
+        await page.getByPlaceholder(/Search messages/i).isVisible() ||
+        await page.locator('#message-list').isVisible(),
+      uiTimeout).toBe(true)
     } else {
       await expect(page.getByPlaceholder(/Search messages/i)).toBeVisible(uiTimeout)
     }
