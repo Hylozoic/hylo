@@ -343,14 +343,14 @@ function InviteSettingsTab (props) {
   return (
     <div className={classes.container}>
       {!isSpace && group.visibility === GROUP_VISIBILITY.Public && group.accessibility !== GROUP_ACCESSIBILITY.Closed && (
-        <div className='border-2 p-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-2 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
+        <div className='border-2 p-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-2 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2' data-testid='invite-public-link-section'>
           <div className='text-foreground'>
             <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Public Group Link')}</h2>
             <div className='text-sm'><strong>{t('Use this for people you don\'t know')}</strong> <span className='text-foreground/50'>{t('who you would like ask join questions to vet before they enter the group.')}</span></div>
           </div>
           <div className='min-w-0 w-full overflow-hidden'>
             <CopyToClipboard text={`${window.location.origin}/groups/${group.slug}`} onCopy={onCopyPublicLink}>
-              <button className='flex items-center group gap-2 min-w-0 w-full max-w-full bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={!copiedPublicLink ? t('Click to Copy') : undefined} data-tooltip-id='public-link-tooltip'>
+              <button className='flex items-center group gap-2 min-w-0 w-full max-w-full bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={!copiedPublicLink ? t('Click to Copy') : undefined} data-tooltip-id='public-link-tooltip' data-testid='invite-public-link-copy'>
                 <span className='min-w-0 flex-1 overflow-hidden whitespace-nowrap text-ellipsis' dir='rtl'>
                   <bdi className='text-selected'>{`${window.location.origin}/groups/${group.slug}`}</bdi>
                 </span>
@@ -374,7 +374,7 @@ function InviteSettingsTab (props) {
         </div>
       )}
 
-      <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
+      <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2' data-testid='invite-join-link-section'>
         <div className='text-foreground'>
           <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Share a Join Link')}</h2>
           <div className='text-sm'>
@@ -399,7 +399,7 @@ function InviteSettingsTab (props) {
           {inviteLink && (
             <div className='min-w-0 w-full sm:flex-1 overflow-hidden'>
               <CopyToClipboard text={inviteLink} onCopy={onCopyInviteLink}>
-                <button className='flex relative items-center group gap-2 min-w-0 w-full max-w-full bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={!copiedInviteLink ? t('Click to Copy') : undefined} data-tooltip-id='invite-link-tooltip'>
+                <button className='flex relative items-center group gap-2 min-w-0 w-full max-w-full bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={!copiedInviteLink ? t('Click to Copy') : undefined} data-tooltip-id='invite-link-tooltip' data-testid='invite-join-link-copy'>
                   <span className='min-w-0 flex-1 overflow-hidden whitespace-nowrap text-ellipsis' dir='rtl'>
                     <bdi className='text-selected'>{inviteLink}</bdi>
                   </span>
