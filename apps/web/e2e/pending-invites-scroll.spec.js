@@ -64,8 +64,11 @@ test('pending invites list loads more as you scroll to the bottom (#1592)', asyn
     // The bottom of the list can be scrolled into view
     await oldest.scrollIntoViewIfNeeded()
     await expect(oldest).toBeInViewport()
-    // Let the newly loaded rows finish fading in before the screenshot
-    await expect(page.getByTestId('pending-invite').last()).toHaveCSS('opacity', '1')
+    // Every newly loaded row finishes fading in (none are left half-transparent)
+    await expect(async () => {
+      const opacities = await page.getByTestId('pending-invite').evaluateAll(rows => rows.map(r => window.getComputedStyle(r).opacity))
+      expect(opacities.filter(o => o !== '1')).toEqual([])
+    }).toPass({ timeout: 10000 })
     await page.screenshot({ path: `e2e/screenshots/issue-1592-pending-invites-${testInfo.project.name}.png` })
   } finally {
     runSql(`DELETE FROM group_invites WHERE email LIKE '${prefix}-%'`)

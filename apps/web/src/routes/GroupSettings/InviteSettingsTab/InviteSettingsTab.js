@@ -90,7 +90,12 @@ function InviteSettingsTab (props) {
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [hasMorePeople, setHasMorePeople] = useState(false)
   const sendingRef = useRef(false)
-  const pendingInvitesTransitionRef = useRef(null)
+  // One ref per invite row: CSSTransition needs each row's own node to finish its fade in/out
+  const pendingInviteNodeRefs = useRef(new Map())
+  const pendingInviteNodeRef = (id) => {
+    if (!pendingInviteNodeRefs.current.has(id)) pendingInviteNodeRefs.current.set(id, React.createRef())
+    return pendingInviteNodeRefs.current.get(id)
+  }
   const peopleSearchRef = useRef('')
   const peopleOffsetRef = useRef(0)
   const peopleFetchGenRef = useRef(0)
@@ -555,7 +560,7 @@ function InviteSettingsTab (props) {
             )}
           </div>
           <TransitionGroup className='flex flex-col gap-1'>
-            {pendingInvites.map((invite, index) => (
+            {pendingInvites.map((invite) => (
               <CSSTransition
                 classNames={{
                   enter: classes.enter,
@@ -564,10 +569,10 @@ function InviteSettingsTab (props) {
                   exitActive: classes.exitActive
                 }}
                 timeout={{ enter: 400, exit: 500 }}
-                key={index}
-                nodeRef={pendingInvitesTransitionRef}
+                key={invite.id}
+                nodeRef={pendingInviteNodeRef(invite.id)}
               >
-                <div className='w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 bg-card rounded-lg px-2 py-1.5 mb-1 last:mb-0' data-testid='pending-invite' key={invite.id} ref={pendingInvitesTransitionRef}>
+                <div className='w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 bg-card rounded-lg px-2 py-1.5 mb-1 last:mb-0' data-testid='pending-invite' ref={pendingInviteNodeRef(invite.id)}>
                   <div className='flex-1 min-w-0'>
                     <span className='block truncate'>
                       {invite.name
