@@ -1825,26 +1825,31 @@ function PostEditorInner ({
           <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0'>
             <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
             <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
-              <DateTimePicker
-                hourCycle={hourCycle}
-                granularity='minute'
-                value={startTimePickerValue}
-                placeholder={t('Select Start')}
-                onChange={handleStartTimeChange}
-                onMonthChange={() => {}}
-              />
-              {clearStartTimeButton}
+              {/* Each picker and its remove button wrap together */}
+              <div className='flex items-center gap-1 min-w-0 max-w-full'>
+                <DateTimePicker
+                  hourCycle={hourCycle}
+                  granularity='minute'
+                  value={startTimePickerValue}
+                  placeholder={t('Select Start')}
+                  onChange={handleStartTimeChange}
+                  onMonthChange={() => {}}
+                />
+                {clearStartTimeButton}
+              </div>
               <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
-              <DateTimePicker
-                ref={endTimeRef}
-                hourCycle={hourCycle}
-                granularity='minute'
-                value={endTimePickerValue}
-                placeholder={t('Select End')}
-                onChange={handleEndTimeChange}
-                onMonthChange={() => {}}
-              />
-              {clearEndTimeButton}
+              <div className='flex items-center gap-1 min-w-0 max-w-full'>
+                <DateTimePicker
+                  ref={endTimeRef}
+                  hourCycle={hourCycle}
+                  granularity='minute'
+                  value={endTimePickerValue}
+                  placeholder={t('Select End')}
+                  onChange={handleEndTimeChange}
+                  onMonthChange={() => {}}
+                />
+                {clearEndTimeButton}
+              </div>
             </div>
           </div>
           <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2'>
