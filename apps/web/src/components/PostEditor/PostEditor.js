@@ -44,6 +44,9 @@ import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
 import fetchAllMyGroupsSpaces from 'store/actions/fetchAllMyGroupsSpaces'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchPost from 'store/actions/fetchPost'
+import { createSelector as ormCreateSelector } from 'redux-orm'
+import orm from 'store/models'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import {
   PROPOSAL_ADVICE,
@@ -2189,4 +2192,45 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
   )
 }
 
-export default forwardRef(PostEditorInner)
+// Reads the groups relation inside the selector so it reruns when the groups arrive
+// (getPost only watches the Post table, not the post-groups join)
+const getPostGroupCount = ormCreateSelector(
+  orm,
+  (state, id) => id,
+  ({ Post }, id) => {
+    const post = id && Post.withId(id)
+    return post ? post.groups.count() : null
+  }
+)
+
+/**
+ * The chat room loads its posts without their groups (see fetchPosts), and an edit
+ * can't be saved without them. When the stored post has none, load the full post
+ * before the editor sets up its initial state.
+ */
+function PostEditor (props, ref) {
+  const dispatch = useDispatch()
+  const routeParams = useParams()
+  const parsedRouteParams = useRouteParams()
+  const editingPostId = props.editing ? (routeParams.postId || parsedRouteParams.postId) : null
+  const lacksGroups = useSelector(state => getPostGroupCount(state, editingPostId)) === 0
+  // Set when the fetch can't supply groups, so the editor still opens (and shows its validation)
+  const [gaveUpOnPostId, setGaveUpOnPostId] = useState(null)
+  const waitingForGroups = lacksGroups && gaveUpOnPostId !== editingPostId
+
+  useEffect(() => {
+    if (!waitingForGroups) return
+    const giveUp = () => setGaveUpOnPostId(editingPostId)
+    // On success the groups reach the store and lacksGroups turns false
+    Promise.resolve(dispatch(fetchPost(editingPostId, { withComments: false })))
+      .then(res => { if (isEmpty(get('payload.data.post.groups', res))) giveUp() })
+      .catch(giveUp)
+  }, [dispatch, editingPostId, waitingForGroups])
+
+  if (waitingForGroups) return <Loading />
+  return <PostEditorInnerWithRef {...props} ref={ref} />
+}
+
+const PostEditorInnerWithRef = forwardRef(PostEditorInner)
+const PostEditorWithRef = forwardRef(PostEditor)
+export default PostEditorWithRef

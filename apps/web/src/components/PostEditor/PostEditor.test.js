@@ -29,11 +29,11 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post' } = {}) {
+function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', groups = [{ id: '1', name: 'Test Group' }], details } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
-  const postAttrs = { id: '1', title, type: postType, groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] }
+  const postAttrs = { id: '1', title, type: postType, groups, topics: [{ name: 'design' }], ...(details ? { details } : {}) }
   if (withLinkPreview) {
     ormSession.LinkPreview.create({
       id: 'lp1',
@@ -187,6 +187,34 @@ describe('PostEditor', () => {
       expect(screen.queryByTestId('announcement-icon')).not.toBeInTheDocument()
       expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
       expect(screen.getByText('Editing Chat')).toBeInTheDocument()
+    })
+
+    // The chat room loads posts without their groups; opening the editor from there must still allow saving
+    it('loads the post groups when the stored post has none, so the edit can be saved', async () => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      const fetchPostRequested = jest.fn()
+      mockGraphqlServer.use(
+        graphql.query('FetchPost', () => {
+          fetchPostRequested()
+          return HttpResponse.json({
+            data: {
+              post: {
+                id: '1',
+                type: 'chat',
+                title: '',
+                details: '<p>hello chat</p>',
+                groups: [{ id: '1', name: 'Test Group', slug: 'test-group' }]
+              }
+            }
+          })
+        })
+      )
+      renderComponent({ editing: true }, { postType: 'chat', title: '', groups: [], details: '<p>hello chat</p>' })
+
+      await waitFor(() => expect(fetchPostRequested).toHaveBeenCalled())
+      await waitFor(() => {
+        expect(screen.getByTestId('post-editor-submit')).not.toHaveAttribute('data-tooltip-html', expect.stringContaining('At least one group required'))
+      })
     })
   })
 })
