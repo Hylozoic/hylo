@@ -6,6 +6,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { SendHorizontal } from 'lucide-react'
 import { sendIsTyping } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
+import EmojiInsertButton from 'components/EmojiInsertButton'
 import { addAttachment, getAttachments, clearAttachments } from 'components/AttachmentManager/AttachmentManager.store'
 import Button from 'components/ui/button'
 import HyloEditor from 'components/HyloEditor'
@@ -273,6 +274,11 @@ const CommentForm = forwardRef(function CommentForm ({
                   customRender={renderProps => (
                     <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
                   )}
+                />
+                <EmojiInsertButton
+                  onSelect={(emoji) => editor.current?.insertContent?.(emoji)}
+                  className='w-6 h-6 p-0'
+                  dataTestId='comment-emoji-button'
                 />
               </div>
               )}
