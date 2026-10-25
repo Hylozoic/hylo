@@ -882,6 +882,9 @@ function PostEditorInner ({
     }
   }, [clearDraft, initialPost, autoFocus, selectedLocation, setCurrentPost, syncDetailsToCurrentPost])
 
+  // Events require a start and an end time (see isValid); other post types' times are optional
+  const timesAreClearable = currentPost.type !== 'event'
+
   /**
    * Calculates an end time based on start time, preserving duration if both times exist
    * @param {Date} startTime - The new start time
@@ -1027,11 +1030,61 @@ function PostEditorInner ({
   const handleStartTimeChange = (pickerStart) => {
     const tz = getPostTimezone()
     const startTime = DateTimeHelpers.fromPickerDate(pickerStart, tz)
-    const endTime = calcEndTime(startTime)
+    // A post that has a start but its end was removed keeps having no end
+    const keepWithoutEnd = timesAreClearable && currentPost.startTime && !currentPost.endTime
+    const endTime = keepWithoutEnd ? null : calcEndTime(startTime)
     validateTimeChange(startTime, endTime)
     setCurrentPost(prev => ({ ...prev, startTime, endTime }))
-    endTimeRef.current?.setValue(DateTimeHelpers.toPickerDate(endTime, tz))
+    if (endTime) endTimeRef.current?.setValue(DateTimeHelpers.toPickerDate(endTime, tz))
   }
+
+  /**
+   * Removes the start time. The end time can't exist without a start, so it goes too.
+   * Saved as null, which clears the stored times.
+   */
+  const handleClearStartTime = useCallback(() => {
+    setDateError(false)
+    setCurrentPost(prev => ({ ...prev, startTime: null, endTime: null }))
+  }, [setCurrentPost])
+
+  const handleClearEndTime = useCallback(() => {
+    setDateError(false)
+    setCurrentPost(prev => ({ ...prev, endTime: null }))
+  }, [setCurrentPost])
+
+  /**
+   * A proposal's voting window drives its status (see the backend's setupPostAttrs and
+   * Post.updateProposalStatuses), so removing part of it asks first and says what will happen:
+   * - no start time: a casual proposal, with no voting
+   * - a start but no end: the status job never moves it on, so voting that has started stays
+   *   open forever, and voting that hasn't started never opens on its own
+   */
+  const [timeRemovalConfirm, setTimeRemovalConfirm] = useState(null)
+
+  const handleRequestClearStartTime = useCallback(() => {
+    if (currentPost.type === 'proposal') {
+      setTimeRemovalConfirm('start')
+    } else {
+      handleClearStartTime()
+    }
+  }, [currentPost.type, handleClearStartTime])
+
+  const handleRequestClearEndTime = useCallback(() => {
+    if (currentPost.type === 'proposal' && currentPost.startTime) {
+      setTimeRemovalConfirm(new Date(currentPost.startTime) <= new Date() ? 'end-started' : 'end-not-started')
+    } else {
+      handleClearEndTime()
+    }
+  }, [currentPost.type, currentPost.startTime, handleClearEndTime])
+
+  const handleConfirmTimeRemoval = useCallback(() => {
+    if (timeRemovalConfirm === 'start') {
+      handleClearStartTime()
+    } else {
+      handleClearEndTime()
+    }
+    setTimeRemovalConfirm(null)
+  }, [timeRemovalConfirm, handleClearStartTime, handleClearEndTime])
 
   const handleEndTimeChange = useCallback((pickerEnd) => {
     const tz = getPostTimezone()
@@ -1425,6 +1478,23 @@ function PostEditorInner ({
   const endTimePickerValue = currentPost.endTime
     ? DateTimeHelpers.toPickerDate(currentPost.endTime, eventTimezone)
     : undefined
+  // Remove buttons live here, outside the pickers, so they work with any picker implementation
+  const clearStartTimeButton = timesAreClearable && currentPost.startTime && (
+    <ClearTimeButton
+      label={t('Remove start time')}
+      testId='post-editor-clear-start-time'
+      onClick={handleRequestClearStartTime}
+      disabled={loading}
+    />
+  )
+  const clearEndTimeButton = timesAreClearable && currentPost.endTime && (
+    <ClearTimeButton
+      label={t('Remove end time')}
+      testId='post-editor-clear-end-time'
+      onClick={handleRequestClearEndTime}
+      disabled={loading}
+    />
+  )
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal'
     ? t('Is there a relevant location for this proposal?')
@@ -1825,7 +1895,7 @@ function PostEditorInner ({
               <div className='flex flex-col border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0' data-testid='post-editor-timeframe'>
                 <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
                 {/* Touch devices: OS date/time pickers, one full-width row each for start and end */}
-                <div className='grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2'>
+                <div className='grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2'>
                   <span aria-hidden='true' />
                   <DateTimePicker
                     id='post-editor-start-time'
@@ -1835,6 +1905,7 @@ function PostEditorInner ({
                     placeholder={t('Select Start')}
                     onChange={handleStartTimeChange}
                   />
+                  {clearStartTimeButton || <span />}
                   <div className='text-xs text-foreground/50'>{t('to')}</div>
                   <DateTimePicker
                     id='post-editor-end-time'
@@ -1845,6 +1916,7 @@ function PostEditorInner ({
                     placeholder={t('Select End')}
                     onChange={handleEndTimeChange}
                   />
+                  {clearEndTimeButton || <span />}
                 </div>
               </div>
               )
@@ -1852,24 +1924,31 @@ function PostEditorInner ({
               <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0' data-testid='post-editor-timeframe'>
                 <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
                 <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
-                  <DateTimePicker
-                    hourCycle={hourCycle}
-                    granularity='minute'
-                    value={startTimePickerValue}
-                    placeholder={t('Select Start')}
-                    onChange={handleStartTimeChange}
-                    onMonthChange={() => {}}
-                  />
+                  {/* Each picker and its remove button wrap together */}
+                  <div className='flex items-center gap-1 min-w-0 max-w-full'>
+                    <DateTimePicker
+                      hourCycle={hourCycle}
+                      granularity='minute'
+                      value={startTimePickerValue}
+                      placeholder={t('Select Start')}
+                      onChange={handleStartTimeChange}
+                      onMonthChange={() => {}}
+                    />
+                    {clearStartTimeButton}
+                  </div>
                   <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
-                  <DateTimePicker
-                    ref={endTimeRef}
-                    hourCycle={hourCycle}
-                    granularity='minute'
-                    value={endTimePickerValue}
-                    placeholder={t('Select End')}
-                    onChange={handleEndTimeChange}
-                    onMonthChange={() => {}}
-                  />
+                  <div className='flex items-center gap-1 min-w-0 max-w-full'>
+                    <DateTimePicker
+                      ref={endTimeRef}
+                      hourCycle={hourCycle}
+                      granularity='minute'
+                      value={endTimePickerValue}
+                      placeholder={t('Select End')}
+                      onChange={handleEndTimeChange}
+                      onMonthChange={() => {}}
+                    />
+                    {clearEndTimeButton}
+                  </div>
                 </div>
               </div>
               )}
@@ -2066,7 +2145,55 @@ function PostEditorInner ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={!!timeRemovalConfirm} onOpenChange={(open) => !open && setTimeRemovalConfirm(null)}>
+        <DialogContent data-testid='post-editor-remove-voting-time-dialog'>
+          <DialogHeader>
+            <DialogTitle>{timeRemovalConfirm === 'start' ? t('Remove the voting window?') : t('Remove the voting end time?')}</DialogTitle>
+            <DialogDescription>
+              {timeRemovalConfirm === 'start'
+                ? t('This makes it a casual proposal: there will be no voting period and no deadline.')
+                : timeRemovalConfirm === 'end-started'
+                  ? t('Voting will stay open with no deadline, and the proposal will never be marked as complete.')
+                  : t('Without an end time, voting will not open on its own at the start time, and there will be no deadline.')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type='button'
+              className='rounded-lg px-4 py-2 text-sm border border-foreground/20 hover:bg-foreground/10 transition-colors'
+              onClick={() => setTimeRemovalConfirm(null)}
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              type='button'
+              data-testid='post-editor-confirm-remove-voting-time'
+              className='rounded-lg px-4 py-2 text-sm font-medium text-white bg-destructive hover:bg-destructive/80 transition-colors'
+              onClick={handleConfirmTimeRemoval}
+            >
+              {t('Remove')}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+/** Small "x" button that removes a start or end time from the post */
+function ClearTimeButton ({ label, testId, onClick, disabled }) {
+  return (
+    <button
+      type='button'
+      aria-label={label}
+      title={label}
+      data-testid={testId}
+      onClick={onClick}
+      disabled={disabled}
+      className='flex items-center justify-center shrink-0 h-8 w-8 rounded-md text-foreground/50 hover:text-foreground hover:bg-foreground/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50 touch-manipulation'
+    >
+      <X className='h-4 w-4' />
+    </button>
   )
 }
 
