@@ -44,6 +44,7 @@ import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
 import fetchAllMyGroupsSpaces from 'store/actions/fetchAllMyGroupsSpaces'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchPost from 'store/actions/fetchPost'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import {
   PROPOSAL_ADVICE,
@@ -335,6 +336,15 @@ function PostEditorInner ({
   let inputPost = propsPost
   const _editingPost = useSelector(state => getPost(state, editingPostId))
   const editingPost = useMemo(() => presentPost(_editingPost), [_editingPost])
+  // The chat room loads its posts without their groups (see fetchPosts), and an edit
+  // can't be saved without them, so load the full post when they're missing
+  const editingPostLacksGroups = editing && !!_editingPost && isEmpty(editingPost?.groups)
+  const editingPostLackedGroupsRef = useRef(editingPostLacksGroups)
+  useEffect(() => {
+    if (!editingPostLacksGroups) return
+    editingPostLackedGroupsRef.current = true
+    dispatch(fetchPost(editingPostId, { withComments: false }))
+  }, [dispatch, editingPostId, editingPostLacksGroups])
   const _fromPost = useSelector(state => getPost(state, fromPostId))
   const fromPost = useMemo(() => presentPost(_fromPost), [_fromPost])
   const [titleFocused, setTitleFocused] = useState(false)
@@ -397,9 +407,17 @@ function PostEditorInner ({
       startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : (inputPost?.startTime || prefilledEventTimes.startTime),
       endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : (inputPost?.endTime || prefilledEventTimes.endTime)
     }
-  }, [inputPost?.id, inputPost?.location, inputPost?.locationId, inputPost?.linkPreview?.id, inputPost?.linkPreviewFeatured, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
+  }, [inputPost?.id, inputPost?.groups?.length, inputPost?.location, inputPost?.locationId, inputPost?.linkPreview?.id, inputPost?.linkPreviewFeatured, createPostType, currentGroup, topic, context, editing, eventDateParam, inputPost?.startTime, inputPost?.endTime, currentTrack?.actionDescriptor, selectedLocation, t])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
+
+  // Once the full post arrives, give the edit its groups (leaving any other edits alone)
+  const loadedEditingGroups = editing ? editingPost?.groups : undefined
+  useEffect(() => {
+    if (!editingPostLackedGroupsRef.current || isEmpty(loadedEditingGroups)) return
+    editingPostLackedGroupsRef.current = false
+    setCurrentPostState(post => isEmpty(post.groups) ? { ...post, groups: loadedEditingGroups } : post)
+  }, [loadedEditingGroups])
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
   const [typeSwitchDialog, setTypeSwitchDialog] = useState(null)
   const [invalidMessage, setInvalidMessage] = useState('')

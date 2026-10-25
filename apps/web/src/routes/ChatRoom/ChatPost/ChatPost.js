@@ -23,6 +23,7 @@ import { savePost, unsavePost } from 'components/PostCard/PostHeader/PostHeader.
 import LinkPreview from 'components/LinkPreview'
 import Tooltip from 'components/Tooltip'
 import useReactionActions from 'hooks/useReactionActions'
+import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
@@ -30,7 +31,7 @@ import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { groupUrl, personUrl, spaceUrl } from '@hylo/navigation'
+import { editPostUrl, groupUrl, personUrl, spaceUrl } from '@hylo/navigation'
 import { useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { hasActiveTextSelection, hasReadableContentSelection } from 'util/textSelectionTouch'
@@ -91,6 +92,7 @@ export default function ChatPost ({
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const routeParams = useRouteParams()
   const ref = useRef()
   const editorRef = useRef()
   const isPressDevice = !window.matchMedia('(hover: hover) and (pointer: fine)').matches
@@ -204,13 +206,21 @@ export default function ChatPost ({
 
   const editPost = useCallback((event) => {
     setIsHovered(false)
+    event.stopPropagation()
+    // Touch devices get the full post editor (the same one the post detail's
+    // Edit opens), which has explicit Save/Cancel buttons and handles the
+    // on-screen keyboard. Closing it returns to the chat room.
+    if (isPressDevice) {
+      setIsLongPress(false)
+      navigate(editPostUrl(id, routeParams))
+      return true
+    }
     setEditing(true)
     setTimeout(() => {
       editorRef.current.focus('end')
     }, 500)
-    event.stopPropagation()
     return true
-  }, [])
+  }, [id, isPressDevice, navigate, routeParams])
 
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
   const handleReaction = (emojiFull) => {
@@ -304,8 +314,8 @@ export default function ChatPost ({
   const actionItems = filter(item => isFunction(item.onClick) || item.disabled, [
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
     { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: showPost, tooltip: 'Reply to post' },
-    // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
-    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator && !isLongPress) ? editPost : null, tooltip: 'Edit post' },
+    // Long press only happens on touch devices, where Edit opens the post editor route instead of editing inline
+    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: isCreator ? editPost : null, tooltip: 'Edit post' },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: savedAt ? 'Unsave post' : 'Save post' },
     { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinAtCap ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : null, disabled: pinAtCap, tooltip: pinAtCap ? t('You can only pin 3 posts') : (pinned ? t('Unpin from View') : t('Pin to View')) },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => { setFlaggingVisible(true) } : null, tooltip: 'Flag post' },
@@ -361,6 +371,7 @@ export default function ChatPost ({
           }
         )}
         ref={ref}
+        data-testid='chat-post'
         {...bindLongPress()}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
