@@ -178,9 +178,9 @@ describe('PostEditor', () => {
       endTime: '2030-05-01T12:00:00.000Z',
       timezone: 'UTC'
     }
-    const renderTimedPost = (postType, props = {}) => {
+    const renderTimedPost = (postType, props = {}, times = timedPost) => {
       jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
-      return renderComponent({ editing: true, ...props }, { postType, postAttrs: { ...timedPost, groups: ['1'] } })
+      return renderComponent({ editing: true, ...props }, { postType, postAttrs: { ...times, groups: ['1'] } })
     }
 
     beforeEach(() => {
@@ -194,6 +194,7 @@ describe('PostEditor', () => {
 
       await user.click(await screen.findByTestId('post-editor-clear-start-time'))
 
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       expect(screen.getByText('Select Start')).toBeInTheDocument()
       expect(screen.getByText('Select End')).toBeInTheDocument()
       expect(screen.queryByTestId('post-editor-clear-start-time')).not.toBeInTheDocument()
@@ -221,6 +222,70 @@ describe('PostEditor', () => {
       const saved = updatePost.mock.calls[0][0]
       expect(saved.startTime.toISOString()).toEqual('2030-05-01T10:00:00.000Z')
       expect(saved.endTime).toBeNull()
+    })
+
+    describe('of a proposal', () => {
+      const votingStarted = {
+        startTime: '2020-05-01T10:00:00.000Z',
+        endTime: '2030-05-01T12:00:00.000Z',
+        timezone: 'UTC'
+      }
+
+      it('asks before removing the voting window, and Cancel keeps both times', async () => {
+        renderTimedPost('proposal', {}, votingStarted)
+        const user = userEvent.setup()
+
+        await user.click(await screen.findByTestId('post-editor-clear-start-time'))
+
+        const dialog = await screen.findByRole('dialog')
+        expect(dialog).toHaveTextContent('Remove the voting window?')
+        expect(dialog).toHaveTextContent('This makes it a casual proposal: there will be no voting period and no deadline.')
+        await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+        expect(screen.queryByText('Select Start')).not.toBeInTheDocument()
+        expect(screen.queryByText('Select End')).not.toBeInTheDocument()
+        expect(screen.getByTestId('post-editor-clear-start-time')).toBeInTheDocument()
+        expect(screen.getByTestId('post-editor-clear-end-time')).toBeInTheDocument()
+      })
+
+      it('removes the voting window when confirmed', async () => {
+        renderTimedPost('proposal', {}, votingStarted)
+        const user = userEvent.setup()
+
+        await user.click(await screen.findByTestId('post-editor-clear-start-time'))
+        await user.click(await screen.findByTestId('post-editor-confirm-remove-voting-time'))
+
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+        expect(screen.getByText('Select Start')).toBeInTheDocument()
+        expect(screen.getByText('Select End')).toBeInTheDocument()
+        expect(screen.queryByTestId('post-editor-clear-start-time')).not.toBeInTheDocument()
+      })
+
+      it('says voting stays open with no deadline before removing the end of a started vote', async () => {
+        renderTimedPost('proposal', {}, votingStarted)
+        const user = userEvent.setup()
+
+        await user.click(await screen.findByTestId('post-editor-clear-end-time'))
+
+        const dialog = await screen.findByRole('dialog')
+        expect(dialog).toHaveTextContent('Remove the voting end time?')
+        expect(dialog).toHaveTextContent('Voting will stay open with no deadline, and the proposal will never be marked as complete.')
+        await user.click(screen.getByTestId('post-editor-confirm-remove-voting-time'))
+
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+        expect(screen.getByText('Select End')).toBeInTheDocument()
+        expect(screen.queryByText('Select Start')).not.toBeInTheDocument()
+      })
+
+      it('says voting will not open on its own before removing the end of a vote that has not started', async () => {
+        renderTimedPost('proposal')
+        const user = userEvent.setup()
+
+        await user.click(await screen.findByTestId('post-editor-clear-end-time'))
+
+        expect(await screen.findByRole('dialog')).toHaveTextContent('Without an end time, voting will not open on its own at the start time, and there will be no deadline.')
+      })
     })
 
     it('does not offer to remove the times of an event, which requires them', async () => {

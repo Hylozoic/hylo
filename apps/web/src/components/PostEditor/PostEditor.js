@@ -1020,6 +1020,40 @@ function PostEditorInner ({
     setCurrentPost(prev => ({ ...prev, endTime: null }))
   }, [setCurrentPost])
 
+  /**
+   * A proposal's voting window drives its status (see the backend's setupPostAttrs and
+   * Post.updateProposalStatuses), so removing part of it asks first and says what will happen:
+   * - no start time: a casual proposal, with no voting
+   * - a start but no end: the status job never moves it on, so voting that has started stays
+   *   open forever, and voting that hasn't started never opens on its own
+   */
+  const [timeRemovalConfirm, setTimeRemovalConfirm] = useState(null)
+
+  const handleRequestClearStartTime = useCallback(() => {
+    if (currentPost.type === 'proposal') {
+      setTimeRemovalConfirm('start')
+    } else {
+      handleClearStartTime()
+    }
+  }, [currentPost.type, handleClearStartTime])
+
+  const handleRequestClearEndTime = useCallback(() => {
+    if (currentPost.type === 'proposal' && currentPost.startTime) {
+      setTimeRemovalConfirm(new Date(currentPost.startTime) <= new Date() ? 'end-started' : 'end-not-started')
+    } else {
+      handleClearEndTime()
+    }
+  }, [currentPost.type, currentPost.startTime, handleClearEndTime])
+
+  const handleConfirmTimeRemoval = useCallback(() => {
+    if (timeRemovalConfirm === 'start') {
+      handleClearStartTime()
+    } else {
+      handleClearEndTime()
+    }
+    setTimeRemovalConfirm(null)
+  }, [timeRemovalConfirm, handleClearStartTime, handleClearEndTime])
+
   const handleEndTimeChange = useCallback((pickerEnd) => {
     const tz = getPostTimezone()
     const endTime = DateTimeHelpers.fromPickerDate(pickerEnd, tz)
@@ -1417,7 +1451,7 @@ function PostEditorInner ({
     <ClearTimeButton
       label={t('Remove start time')}
       testId='post-editor-clear-start-time'
-      onClick={handleClearStartTime}
+      onClick={handleRequestClearStartTime}
       disabled={loading}
     />
   )
@@ -1425,7 +1459,7 @@ function PostEditorInner ({
     <ClearTimeButton
       label={t('Remove end time')}
       testId='post-editor-clear-end-time'
-      onClick={handleClearEndTime}
+      onClick={handleRequestClearEndTime}
       disabled={loading}
     />
   )
@@ -2038,6 +2072,37 @@ function PostEditorInner ({
               onClick={handleLoadSavedTypeDraft}
             >
               {t('Load saved draft')}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!timeRemovalConfirm} onOpenChange={(open) => !open && setTimeRemovalConfirm(null)}>
+        <DialogContent data-testid='post-editor-remove-voting-time-dialog'>
+          <DialogHeader>
+            <DialogTitle>{timeRemovalConfirm === 'start' ? t('Remove the voting window?') : t('Remove the voting end time?')}</DialogTitle>
+            <DialogDescription>
+              {timeRemovalConfirm === 'start'
+                ? t('This makes it a casual proposal: there will be no voting period and no deadline.')
+                : timeRemovalConfirm === 'end-started'
+                  ? t('Voting will stay open with no deadline, and the proposal will never be marked as complete.')
+                  : t('Without an end time, voting will not open on its own at the start time, and there will be no deadline.')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type='button'
+              className='rounded-lg px-4 py-2 text-sm border border-foreground/20 hover:bg-foreground/10 transition-colors'
+              onClick={() => setTimeRemovalConfirm(null)}
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              type='button'
+              data-testid='post-editor-confirm-remove-voting-time'
+              className='rounded-lg px-4 py-2 text-sm font-medium text-white bg-destructive hover:bg-destructive/80 transition-colors'
+              onClick={handleConfirmTimeRemoval}
+            >
+              {t('Remove')}
             </button>
           </DialogFooter>
         </DialogContent>
