@@ -100,6 +100,7 @@ import { setQuerystringParam } from '@hylo/navigation'
 import { isMeetingUrl, sanitizeURL } from 'util/url'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
+import insertTextAtSelection from 'util/insertTextAtSelection'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
@@ -354,6 +355,8 @@ function PostEditorInner ({
   const showFiles = !isEmpty(fileAttachments) || uploadFileAttachmentPending
 
   const titleInputRef = useRef()
+  // Which field the emoji button inserts into: 'title' or 'details' (never link or other fields)
+  const lastFocusedTextFieldRef = useRef('details')
   const editorRef = useRef()
   const toFieldRef = useRef()
   const endTimeRef = useRef()
@@ -954,6 +957,31 @@ function PostEditorInner ({
     setCurrentPost(prev => (title === prev.title ? prev : { ...prev, title }))
   }, [setCurrentPost])
 
+  const handleTitleFocus = useCallback(() => {
+    setTitleFocused(true)
+    lastFocusedTextFieldRef.current = 'title'
+  }, [])
+
+  const handleDetailsFocus = useCallback(() => {
+    lastFocusedTextFieldRef.current = 'details'
+  }, [])
+
+  const handleInsertEmoji = useCallback((emoji) => {
+    const input = titleInputRef.current
+    if (lastFocusedTextFieldRef.current === 'title' && input) {
+      const { value, caret } = insertTextAtSelection(input.value, input.selectionStart, input.selectionEnd, emoji)
+      if (value.length > MAX_TITLE_LENGTH) return
+      handleTitleChange({ target: { value } })
+      // Put the cursor back after the emoji once React has applied the new value
+      window.requestAnimationFrame(() => {
+        input.focus()
+        input.setSelectionRange(caret, caret)
+      })
+      return
+    }
+    editorRef.current?.insertContent?.(emoji)
+  }, [handleTitleChange])
+
   /**
    * TipTap onUpdate handler. Avoid putting full HTML into React state on every keystroke —
    * that re-renders the entire PostEditor and causes typing lag / out-of-order characters
@@ -1526,7 +1554,7 @@ function PostEditorInner ({
             disabled={loading}
             ref={titleInputRef}
             maxLength={MAX_TITLE_LENGTH}
-            onFocus={() => setTitleFocused(true)}
+            onFocus={handleTitleFocus}
             onBlur={() => setTitleFocused(false)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && event.altKey) {
@@ -1554,6 +1582,7 @@ function PostEditorInner ({
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
+              onFocus={handleDetailsFocus}
               contentHTML={editorInitialContent}
               groupIds={groupIds}
               showMenu
@@ -1993,6 +2022,7 @@ function PostEditorInner ({
         loading={loading}
         submitting={postPending}
         myAdminGroups={myAdminGroups}
+        onInsertEmoji={handleInsertEmoji}
         doSave={doSave}
         save={save}
         setAnnouncementSelected={setAnnouncementSelected}

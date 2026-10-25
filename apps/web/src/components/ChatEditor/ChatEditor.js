@@ -12,6 +12,7 @@ import { throttle } from 'lodash'
 import { CaseSensitive, ImagePlus, Paperclip, Plus, Send } from 'lucide-react'
 import { sendIsTypingGroup } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
+import EmojiInsertButton from 'components/EmojiInsertButton'
 import HyloEditor from 'components/HyloEditor'
 import Loading from 'components/Loading'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
@@ -512,7 +513,12 @@ function ChatEditorInner ({
                 />}
           </div>
 
-          {/* Toolbar toggle + send, inside the input */}
+          {/* Emoji (mouse/trackpad only) + toolbar toggle + send, inside the input */}
+          <EmojiInsertButton
+            onSelect={(emoji) => editorRef.current?.insertContent?.(emoji)}
+            className='p-1.5 rounded-md text-foreground/40 hover:text-foreground hover:bg-foreground/5'
+            dataTestId='chat-emoji-button'
+          />
           <button
             type='button'
             onClick={() => setShowToolbar(v => !v)}
