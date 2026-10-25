@@ -1,6 +1,6 @@
 import { trim } from 'lodash/fp'
 import {
-  Activity, ArrowRight, DoorOpen, EyeOff, Globe, Hand, HelpCircle, ImagePlus,
+  Activity, ArrowRight, DoorOpen, EyeOff, Globe, HeartHandshake, HelpCircle, ImagePlus,
   LayoutGrid, Lock, Map, MapPin, MessageCircleMore, Network, Plus, ScrollText, Settings, Shield, Users, X
 } from 'lucide-react'
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
@@ -702,7 +702,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     },
     {
       key: 'welcome',
-      icon: Hand,
+      icon: HeartHandshake,
       label: 'Welcome',
       defaultSummary: welcomeEnabled ? null : t('No welcome page'),
       render: () => (

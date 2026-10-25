@@ -7,7 +7,7 @@ import { TRACK_SETUP_TOUR_ID, trackSetupTourSteps } from 'tours/trackSetupTour'
 import { FUNDING_ROUND_SETUP_TOUR_ID, fundingRoundSetupTourSteps } from 'tours/fundingRoundSetupTour'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, BadgeDollarSign, Hand, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes, Users } from 'lucide-react'
+import { Activity, BadgeDollarSign, HeartHandshake, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes, Users } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
@@ -658,7 +658,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     },
     {
       key: 'welcome',
-      icon: Hand,
+      icon: HeartHandshake,
       label: 'Welcome',
       defaultSummary: welcomeEnabled ? null : t('No welcome page'),
       render: () => (
