@@ -1299,11 +1299,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!userId) return 0
           return ModerationAction.where({ group_id: g.id, status: 'active' }).count().then(Number)
         },
-        pendingInvitations: async (g, { first }) => {
+        pendingInvitations: async (g, { first, offset }) => {
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
-            return { total: 0, items: [] }
+            return emptyQuerySet()
           }
-          return InvitationService.find({ groupId: g.id, pendingOnly: true })
+          return InvitationService.find({ groupId: g.id, pendingOnly: true, limit: first, offset })
         },
         publicListingRequest: async g => {
           const request = g.getSetting('public_listing_request')

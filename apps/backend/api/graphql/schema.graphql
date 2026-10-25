@@ -1114,6 +1114,8 @@ type Group {
     cursor: ID,
     # Number of invitations to return
     first: Int,
+    # For pagination, skip this many invitations
+    offset: Int,
     # Determines sort order, either 'ASC' or 'DESC'
     order: String
   ): InvitationQuerySet
