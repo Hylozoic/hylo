@@ -37,7 +37,7 @@ export function buildTrackActions (peopleById, meId) {
 const TRACK_ACTION_CONTENT = [
   {
     title: 'Introduce yourself',
-    details: 'Head to the General chat and write a short introduction — who you are, where you\'re from, and what brought you to Community Hub. We love knowing what lights you up! 🌟',
+    details: 'Head to Introductions and write a short introduction — who you are, where you\'re from, and what brought you to Community Hub. We love knowing what lights you up! 🌟',
     completionAction: 'comment',
     completionActionSettings: {
       instructions: 'Leave a comment here once you\'ve introduced yourself in chat.'

@@ -1,6 +1,7 @@
 .tooltip {
   position: absolute;
-  z-index: 0;
+  /* Above the deck.gl overlay, which is a Mapbox control at z-index 2. */
+  z-index: 5;
   pointer-events: none;
   border-radius: 4px;
   background-color: white;

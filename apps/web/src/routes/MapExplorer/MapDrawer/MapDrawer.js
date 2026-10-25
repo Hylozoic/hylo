@@ -118,17 +118,24 @@ function MapGroupCard ({ group, routeParams }) {
   )
 }
 
-/** Compact drawer row for a space with a location (distinct from child GroupCards). */
+/** Compact drawer row for a space. A custom avatar fills the circle; otherwise the space icon. */
 function SpaceMapCard ({ space, parentSlug }) {
   const { t } = useTranslation()
   if (!parentSlug || !space?.slug) return null
+  const hasAvatar = !isDefaultGroupAvatar(space.avatarUrl)
   return (
     <Link
       to={spaceHomeUrl(parentSlug, space)}
       className='flex items-center gap-3 p-3 rounded-lg bg-background border border-foreground/10 hover:border-foreground/25 transition-colors'
     >
-      <div className='w-10 h-10 rounded-full bg-foreground/5 border border-foreground/15 grid place-items-center shrink-0 text-foreground/80'>
-        <LucideIcon name={space.icon || 'Circle'} className='w-5 h-5' />
+      <div
+        className={cn(
+          'w-10 h-10 rounded-full border border-foreground/15 grid place-items-center shrink-0 overflow-hidden',
+          hasAvatar ? 'bg-cover bg-center' : 'bg-foreground/5 text-foreground/80'
+        )}
+        style={hasAvatar ? bgImageStyle(space.avatarUrl) : undefined}
+      >
+        {!hasAvatar && <LucideIcon name={space.icon || 'Circle'} className='w-5 h-5' />}
       </div>
       <div className='min-w-0 flex-1'>
         <div className='text-sm font-semibold text-foreground truncate'>{space.name}</div>

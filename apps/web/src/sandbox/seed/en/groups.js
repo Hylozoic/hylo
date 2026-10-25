@@ -59,7 +59,7 @@ export function buildGroups () {
       type: null,
       parentId: null,
       memberCount: MAIN_GROUP_MEMBER_COUNT,
-      postCount: 12,
+      postCount: 20,
       visibility: 2,
       accessibility: 1,
       canAccess: true,
@@ -76,7 +76,7 @@ export function buildGroups () {
       stewardDescriptor: 'Coordinator',
       stewardDescriptorPlural: 'Coordinators',
       createdAt_offset: -86400 * 180,
-      acceptedPostTypes: ['discussion', 'event', 'proposal', 'request', 'offer', 'project', 'resource'],
+      acceptedPostTypes: ['chat', 'discussion', 'event', 'proposal', 'request', 'offer', 'project', 'resource'],
       settings: {
         showSuggestedSkills: true,
         showWelcomePage: false,
@@ -87,27 +87,27 @@ export function buildGroups () {
       id: SIMPLE_GROUP_ID,
       slug: SIMPLE_GROUP_SLUG,
       name: 'Local Sharing Network',
-      description: 'Local Sharing Network is a space for everyone in our community to get great stuff happening.\n\nAs part of the vision of the It Takes A Town movement, Local Sharing Network\'s goal is to create a culture where sharing, generosity and responsiveness to each other is the norm. When everyone is contributing according to their abilities, resources and skills, our community becomes a richer and more connected place for us all. This is a safe, respectful community space for everyone in the East Bay.',
-      purpose: 'Create a culture where sharing, generosity and responsiveness is the norm.',
+      description: 'Local Sharing Network is a space for everyone in our community to get great stuff happening.\n\nAs part of the vision of the It Takes A Town movement, Local Sharing Network\'s goal is to create a culture where sharing, generosity and responsiveness to each other is the norm. When everyone is contributing according to their abilities, resources and skills, our community becomes a richer and more connected place for us all. We are based in North Berkeley — Shattuck, Hopkins, and the parks between — and this is a safe, respectful community space for neighbours across the East Bay.',
+      purpose: 'Create a culture where sharing, generosity and responsiveness is the norm, starting in North Berkeley.',
       avatarUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/29919/communityAvatar/5649/2484%20Connect%20%282%29.png',
       bannerUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/29919/communityBanner/5649/Joanna%20May%20Wollumbin%20photo%202020_vivid50.jpg',
       icon: 'Sprout',
       type: null,
       parentId: null,
       memberCount: 48,
-      postCount: 19,
+      postCount: 31,
       visibility: 2,
       accessibility: 2,
       canAccess: true,
       allowInPublic: true,
       paywall: false,
       homeRoute: '/chat',
-      location: 'Berkeley, California, United States',
+      location: 'North Berkeley, California, United States',
       locationObject: bayLocation(sid('location', 'simple'), {
-        fullText: 'Berkeley, California, United States',
+        fullText: 'North Berkeley, California, United States',
         city: 'Berkeley',
-        lat: 37.8715,
-        lng: -122.2730
+        lat: 37.8801,
+        lng: -122.2693
       }),
       stewardDescriptor: 'Organizer',
       stewardDescriptorPlural: 'Organizers',
@@ -158,17 +158,17 @@ export function buildGroups () {
     spaces: {
       chat: {
         id: CHAT_SPACE_ID,
-        slug: 'general',
-        name: 'General',
-        description: 'The main chat channel for Community Hub — share news, updates, and anything on your mind.',
-        purpose: 'Open conversation for the whole community.',
+        slug: 'introductions',
+        name: 'Introductions',
+        description: 'Say hello. Share who you are, where you are, and what brought you to Community Hub.',
+        purpose: 'A place for new and longtime members to introduce themselves.',
         avatarUrl: null,
         bannerUrl: null,
-        icon: 'MessageCircle',
+        icon: 'MessageCircleMore',
         type: 'space',
         parentId: MAIN_GROUP_ID,
         memberCount: 20,
-        postCount: 8,
+        postCount: 5,
         visibility: 0,
         accessibility: 1,
         homeRoute: '/chat',
@@ -451,35 +451,38 @@ export function buildGroupViews (groups, track, fundingRound) {
   return {
     [main.id]: [
       viewItem(sid('view', 'all'), 'all', 'All Activity', 0),
-      viewItem(sid('view', 'map'), 'map', 'Map', 1),
-      viewItem(sid('view', 'events'), 'events', 'Events', 2, { icon: 'Calendar' }),
-      viewItem(sid('view', 'members'), 'members', 'Members', 3, { icon: 'Users' }),
-      spaceViewItem(sid('view', 'chat-space'), spaces.chat, 4),
-      spaceViewItem(sid('view', 'track-space'), spaces.track, 5, { track }),
-      spaceViewItem(sid('view', 'funding-space'), spaces.funding, 6, { fundingRound })
+      viewItem(sid('view', 'hub-chat'), 'chat', 'Chat', 1, { icon: 'MessageCircleMore' }),
+      viewItem(sid('view', 'map'), 'map', 'Map', 2),
+      viewItem(sid('view', 'events'), 'events', 'Events', 3, { icon: 'Calendar' }),
+      viewItem(sid('view', 'members'), 'members', 'Members', 4, { icon: 'Users' }),
+      spaceViewItem(sid('view', 'chat-space'), spaces.chat, 5),
+      spaceViewItem(sid('view', 'track-space'), spaces.track, 6, { track }),
+      spaceViewItem(sid('view', 'funding-space'), spaces.funding, 7, { fundingRound })
     ],
     [spaces.chat.id]: [
-      viewItem(sid('view', 'chat-main'), 'chat', 'Chat', 0, { icon: 'MessageCircle' })
+      viewItem(sid('view', 'chat-main'), 'chat', 'Chat', 0, { icon: 'MessageCircleMore' })
     ],
     [spaces.track.id]: [
       viewItem(sid('view', 'track-actions'), 'track-actions', 'Orientation Steps', 0, { icon: 'Shapes' }),
-      viewItem(sid('view', 'track-chat'), 'chat', 'Chat', 1, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'track-chat'), 'chat', 'Chat', 1, { icon: 'MessageCircleMore' }),
       viewItem(sid('view', 'track-members'), 'members', 'Members', 2, { icon: 'Users' })
     ],
     [spaces.funding.id]: [
-      viewItem(sid('view', 'fr-submissions'), 'funding-round-submissions', 'Grant Submissions', 0, { icon: 'Coins' })
+      viewItem(sid('view', 'fr-submissions'), 'funding-round-submissions', 'Grant Submissions', 0, { icon: 'ClipboardList' })
     ],
     [groups.simple.id]: [
-      viewItem(sid('view', 'simple-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'simple-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircleMore' }),
       viewItem(sid('view', 'simple-all'), 'all', 'All Activity', 1),
-      viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
-      viewItem(sid('view', 'simple-projects'), 'projects', 'Projects', 3, { icon: 'Layers' }),
-      viewItem(sid('view', 'simple-members'), 'members', 'Members', 4, { icon: 'Users' })
+      viewItem(sid('view', 'simple-map'), 'map', 'Map', 2),
+      viewItem(sid('view', 'simple-events'), 'events', 'Events', 3, { icon: 'Calendar' }),
+      viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 4),
+      viewItem(sid('view', 'simple-projects'), 'projects', 'Projects', 5, { icon: 'Layers' }),
+      viewItem(sid('view', 'simple-members'), 'members', 'Members', 6, { icon: 'Users' })
     ],
     [groups.staff.id]: [
-      viewItem(sid('view', 'staff-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'staff-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircleMore' }),
       viewItem(sid('view', 'staff-all'), 'all', 'All Activity', 1),
-      viewItem(sid('view', 'staff-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
+      viewItem(sid('view', 'staff-requests'), 'requests-and-offers', 'Requests & Offers', 2),
       viewItem(sid('view', 'staff-events'), 'events', 'Events', 3, { icon: 'Calendar' }),
       viewItem(sid('view', 'staff-members'), 'members', 'Members', 4, { icon: 'Users' })
     ]
