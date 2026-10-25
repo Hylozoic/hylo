@@ -40,6 +40,30 @@ describe('RolesSettingsTab', () => {
       'Custom B'
     ])
   })
+
+  it('explains the emoji box on a new role and says the emoji is missing on save', async () => {
+    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {})
+    const group = {
+      id: 1,
+      slug: 'test-group',
+      groupRoles: { items: [{ id: 100, name: 'Custom B', type: 'custom', active: true, emoji: '⭐', description: '' }] }
+    }
+
+    render(<RolesSettingsTab group={group} slug='test-group' />, { wrapper: AllTheProviders() })
+
+    // A role that already has an emoji shows no hint
+    expect(screen.queryByText('Click the box to choose an emoji for this role/badge')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('Create new role/badge'))
+
+    expect(screen.getByText('Click the box to choose an emoji for this role/badge')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Choose an emoji for this role/badge' })).toHaveLength(2)
+
+    await userEvent.click(screen.getByText('Create Role'))
+    expect(alertSpy).toHaveBeenCalledWith('Please choose an emoji for this role/badge by clicking the box next to its name')
+
+    alertSpy.mockRestore()
+  })
 })
 
 describe('RoleList', () => {
