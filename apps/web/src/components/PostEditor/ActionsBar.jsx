@@ -108,8 +108,8 @@ export default function ActionsBar ({
         {onInsertEmoji && (
           <EmojiInsertButton
             onSelect={onInsertEmoji}
-            className='text-foreground hover:text-[#0DC39F]'
-            iconClassName='w-7 h-7'
+            className='w-8 h-8 text-foreground hover:text-[#0DC39F]'
+            iconClassName='w-6 h-6'
             dataTestId='post-editor-emoji-button'
             align='start'
           />
