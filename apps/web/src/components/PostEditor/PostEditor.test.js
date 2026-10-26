@@ -189,32 +189,14 @@ describe('PostEditor', () => {
       expect(screen.getByText('Editing Chat')).toBeInTheDocument()
     })
 
-    // The chat room loads posts without their groups; opening the editor from there must still allow saving
-    it('loads the post groups when the stored post has none, so the edit can be saved', async () => {
+    // The chat room loads posts without their groups; the route's group stands in so the edit can be saved
+    it('uses the route group when the stored chat post has no groups', async () => {
       jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
-      const fetchPostRequested = jest.fn()
-      mockGraphqlServer.use(
-        graphql.query('FetchPost', () => {
-          fetchPostRequested()
-          return HttpResponse.json({
-            data: {
-              post: {
-                id: '1',
-                type: 'chat',
-                title: '',
-                details: '<p>hello chat</p>',
-                groups: [{ id: '1', name: 'Test Group', slug: 'test-group' }]
-              }
-            }
-          })
-        })
-      )
       renderComponent({ editing: true }, { postType: 'chat', title: '', groups: [], details: '<p>hello chat</p>' })
 
-      await waitFor(() => expect(fetchPostRequested).toHaveBeenCalled())
-      await waitFor(() => {
-        expect(screen.getByTestId('post-editor-submit')).not.toHaveAttribute('data-tooltip-html', expect.stringContaining('At least one group required'))
-      })
+      const submit = await screen.findByTestId('post-editor-submit')
+      await waitFor(() => expect(screen.getByText('Editing Chat')).toBeInTheDocument())
+      expect(submit).not.toHaveAttribute('data-tooltip-html', expect.stringContaining('At least one group required'))
     })
   })
 })
