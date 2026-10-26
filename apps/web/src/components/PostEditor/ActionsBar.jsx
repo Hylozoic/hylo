@@ -1,16 +1,17 @@
-import { MapPin, SendHorizontal } from 'lucide-react'
+import { ImagePlus, MapPin, Megaphone, Paperclip, SendHorizontal } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import Button from 'components/Button'
 import EmojiInsertButton from 'components/EmojiInsertButton'
-import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import SendAnnouncementModal from 'components/SendAnnouncementModal'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { cn } from 'util/index'
 
-const actionIconClasses = 'text-[32px] cursor-pointer hover:text-[#0DC39F]'
+// Each action is a 24x24 Lucide icon centred in a 32x32 box (matches EmojiInsertButton)
+const actionBoxClasses = 'w-8 h-8 flex items-center justify-center shrink-0'
+const actionIconClasses = 'w-6 h-6 cursor-pointer hover:text-[#0DC39F]'
 const highlightIconClasses = 'text-[#0DC39F] cursor-default'
 
 export default function ActionsBar ({
@@ -56,11 +57,11 @@ export default function ActionsBar ({
           }}
           allowMultiple
           disable={showImages}
+          className={actionBoxClasses}
         >
-          <Icon
-            name='AddImage'
+          <ImagePlus
             className={cn(actionIconClasses, { [highlightIconClasses]: showImages })}
-            dataTestId='add-image-icon'
+            data-testid='add-image-icon'
           />
         </UploadAttachmentButton>
         <UploadAttachmentButton
@@ -73,23 +74,22 @@ export default function ActionsBar ({
           }}
           allowMultiple
           disable={showFiles}
+          className={actionBoxClasses}
         >
-          <Icon
-            name='Paperclip'
+          <Paperclip
             className={cn(actionIconClasses, { [highlightIconClasses]: showFiles })}
-            dataTestId='add-file-icon'
+            data-testid='add-file-icon'
           />
         </UploadAttachmentButton>
         {type !== 'chat' && !showLocation && (
-          <span data-tooltip-content={t('Add Location')} data-tooltip-id='location-tt' onClick={() => setShowLocation(true)}>
+          <span className={actionBoxClasses} data-tooltip-content={t('Add Location')} data-tooltip-id='location-tt' onClick={() => setShowLocation(true)}>
             <MapPin className={actionIconClasses} />
           </span>
         )}
         {canMakeAnnouncement && (
-          <span data-tooltip-content={t('Send Announcement')} data-tooltip-id='announcement-tt'>
-            <Icon
-              dataTestId='announcement-icon'
-              name='Announcement'
+          <span className={actionBoxClasses} data-tooltip-content={t('Send Announcement')} data-tooltip-id='announcement-tt'>
+            <Megaphone
+              data-testid='announcement-icon'
               onClick={() => {
                 setAnnouncementSelected(!announcementSelected)
                 setIsDirty(true)
