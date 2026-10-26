@@ -18,6 +18,8 @@ export const UPDATE_ALL_MEMBERSHIP_SETTINGS = `${MODULE_NAME}/UPDATE_ALL_MEMBERS
 export const UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING = `${UPDATE_ALL_MEMBERSHIP_SETTINGS}_PENDING`
 export const REGISTER_STRIPE_ACCOUNT = `${MODULE_NAME}/REGISTER_STRIPE_ACCOUNT`
 export const EXPORT_USER_ACCOUNT = `${MODULE_NAME}/EXPORT_USER_ACCOUNT`
+export const FETCH_ATPROTO_STATUS = `${MODULE_NAME}/FETCH_ATPROTO_STATUS`
+export const CREATE_ATPROTO_IDENTITY = `${MODULE_NAME}/CREATE_ATPROTO_IDENTITY`
 export const EXPORT_USER_ACCOUNT_PENDING = `${EXPORT_USER_ACCOUNT}_PENDING`
 
 const defaultState = {
@@ -243,6 +245,44 @@ export function exportUserAccount () {
         method: 'POST',
         path: '/noo/export/user-account'
       }
+    }
+  }
+}
+
+// Experimental AT Protocol identity (see AtprotoIdentitySection)
+const ATPROTO_STATUS_FIELDS = `
+  enabled
+  eligible
+  proposedHandle
+  identity {
+    did
+    handle
+    status
+    createdAt
+  }
+`
+
+export function fetchAtprotoStatus () {
+  return {
+    type: FETCH_ATPROTO_STATUS,
+    graphql: {
+      query: `query MeAtprotoStatus {
+        me {
+          id
+          atproto {${ATPROTO_STATUS_FIELDS}}
+        }
+      }`
+    }
+  }
+}
+
+export function createAtprotoIdentity () {
+  return {
+    type: CREATE_ATPROTO_IDENTITY,
+    graphql: {
+      query: `mutation CreateAtprotoIdentity {
+        createAtprotoIdentity {${ATPROTO_STATUS_FIELDS}}
+      }`
     }
   }
 }

@@ -1,8 +1,8 @@
 import crypto from 'crypto'
 import nock from 'nock'
-import * as plc from '@did-plc/lib'
 import { Secp256k1Keypair } from '@atproto/crypto'
 import factories from '../../setup/factories'
+import createFakePlc from '../../setup/fakePlc'
 require('../../setup')
 
 const PLC_URL = 'https://plc.hylo.test'
@@ -15,46 +15,7 @@ const ENV = {
   ATPROTO_KEY_ENCRYPTION_SECRET: crypto.randomBytes(32).toString('hex')
 }
 
-// In-memory PLC directory that validates signatures the way plc.directory does
-function fakePlc () {
-  const logs = {}
-  const posts = []
-  const data = did => {
-    const { type, prev, sig, ...rest } = plc.normalizeOp(logs[did][logs[did].length - 1])
-    return { did, ...rest }
-  }
-
-  const scope = nock(PLC_URL).persist()
-    .post(/^\/did(:|%3A)plc(:|%3A)[a-z0-9]+$/i).reply(async (path, op) => {
-      const did = decodeURIComponent(path).slice(1)
-      posts.push({ did, op })
-      try {
-        if (!logs[did]) {
-          await plc.assureValidCreationOp(did, op)
-          logs[did] = [op]
-        } else {
-          const last = logs[did][logs[did].length - 1]
-          if (last.type === 'plc_tombstone') return [400, { message: 'DID is tombstoned' }]
-          if (op.type !== 'plc_tombstone' && !op.prev) return [400, { message: 'DID already exists' }]
-          await plc.assureValidSig(plc.normalizeOp(last).rotationKeys, op)
-          logs[did].push(op)
-        }
-        return [200, '']
-      } catch (err) {
-        return [400, { message: err.message }]
-      }
-    })
-    .get(/^\/did(:|%3A)plc(:|%3A)[a-z0-9]+\/(data|log\/last)$/i).reply(path => {
-      const [, did, kind] = decodeURIComponent(path).match(/^\/([^/]+)\/(.*)$/)
-      if (!logs[did]) return [404, { message: 'DID not registered' }]
-      const last = logs[did][logs[did].length - 1]
-      if (last.type === 'plc_tombstone') return [410, { message: 'DID not available' }]
-      return [200, kind === 'data' ? data(did) : last]
-    })
-
-  return { logs, posts, scope }
-}
-
+const fakePlc = () => createFakePlc(PLC_URL)
 const uniq = () => crypto.randomBytes(4).toString('hex')
 
 describe('AtprotoService', () => {

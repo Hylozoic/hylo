@@ -51,6 +51,7 @@ import {
   createZapierTrigger,
   login,
   createTopic,
+  createAtprotoIdentity,
   deactivateUser,
   deleteUser,
   declineJoinRequest,
@@ -731,6 +732,8 @@ export function makeMutations ({ fetchOne }) {
     createZapierTrigger: (root, { groupIds, targetUrl, type, params }, context) => createZapierTrigger(context.currentUserId, groupIds, targetUrl, type, params),
 
     createTopic: (root, { topicName, groupId, isDefault, isSubscribing }, context) => createTopic(context.currentUserId, topicName, groupId, isDefault, isSubscribing),
+
+    createAtprotoIdentity: (root, args, context) => createAtprotoIdentity(context.currentUserId),
 
     deactivateMe: (root, args, context) => deactivateUser({ sessionId: context.req.sessionID, userId: context.currentUserId }),
 

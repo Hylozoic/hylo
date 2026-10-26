@@ -3140,5 +3140,12 @@
   "User": "उपयोगकर्ता",
   "Verify sample": "नमूना जाँचें",
   "{{count}} accounts_one": "{{count}} खाता",
-  "{{count}} accounts_other": "{{count}} खाते"
+  "{{count}} accounts_other": "{{count}} खाते",
+  "AT Protocol identity": "AT Protocol पहचान",
+  "AT Protocol is the open network behind apps like Bluesky. Hylo can host an AT Protocol identity for you: a permanent ID (a DID) and a handle. For now this only creates your identity; nothing you post on Hylo is shared.": "AT Protocol, Bluesky जैसे ऐप्स के पीछे का खुला नेटवर्क है। Hylo आपके लिए एक AT Protocol पहचान होस्ट कर सकता है: एक स्थायी ID (एक DID) और एक हैंडल। अभी केवल आपकी पहचान बनाई जाती है; आप Hylo पर जो कुछ भी पोस्ट करते हैं, वह साझा नहीं किया जाता।",
+  "Being set up. This can take a few minutes.": "सेट अप हो रही है। इसमें कुछ मिनट लग सकते हैं।",
+  "Create my AT Protocol identity": "मेरी AT Protocol पहचान बनाएँ",
+  "Experimental": "प्रायोगिक",
+  "This identity has been retired.": "यह पहचान स्थायी रूप से निष्क्रिय कर दी गई है।",
+  "Your new handle:": "आपका नया हैंडल:"
 }

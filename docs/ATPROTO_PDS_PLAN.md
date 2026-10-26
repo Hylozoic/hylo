@@ -99,7 +99,7 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 - Test users come from the dev database rather than seeded fixtures, since the bridge uses
   the real dev backend
 
-### Phase 5: Staging readiness, management metrics, UI
+### ✅ Phase 5: Staging readiness, management metrics, UI
 **✅ 5a: Staging readiness**
 - Each identity row stores the instance that created it (`plc_url`, `handle_domain`). Every
   lookup, public endpoint and PLC write is scoped to this instance, so rows from another
@@ -122,9 +122,15 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 - Screenshots: `HYLO_ADMINS=1 node scripts/run-isolated-e2e.js atproto-management --project=chromium`
   in `apps/web` (needs an E2E database name containing "test")
 
-**5c: Product UI**
-- GraphQL `me.atprotoIdentity { did handle }` and an opt-in mutation
-- Read-only display in settings (translated strings in `public/locales`)
+**✅ 5c: Product UI**
+- GraphQL `Me.atproto { enabled eligible proposedHandle identity { did handle status createdAt } }`
+  and `createAtprotoIdentity` mutation. Ineligibility reasons and PLC error details stay server-side
+- Settings → Account → "AT Protocol identity" (marked Experimental): eligible users see the handle
+  they'll get and a create button; users with an identity see handle, DID and status. Everyone
+  else sees nothing
+- Strings translated in all locales
+- Verified end to end: the browser creates a real DID on the sandbox PLC
+  (`e2e/authenticated.atproto-settings.spec.js`, run under `with-sandbox.sh`)
 
 ### Staging deployment (Heroku)
 - **Private PLC:** Bluesky's PLC server as its own Heroku app with its own Postgres add-on

@@ -730,6 +730,28 @@ type Comment {
   myReactions: [Reaction]
 }
 
+# Experimental: a Hylo-hosted AT Protocol identity
+type AtprotoIdentity {
+  # The identity's did:plc
+  did: String
+  # The handle, e.g. alice.hylo.com
+  handle: String
+  # pending (not yet confirmed by the PLC directory), active or tombstoned
+  status: String
+  createdAt: Date
+}
+
+# Experimental: whether the logged in user can have, or already has, a Hylo-hosted AT Protocol identity
+type AtprotoStatus {
+  # Whether AT Protocol identities are turned on for this Hylo instance
+  enabled: Boolean
+  # Whether the logged in user may create one
+  eligible: Boolean
+  # The handle they would get if they created one now
+  proposedHandle: String
+  identity: AtprotoIdentity
+}
+
 # Cookie consent preferences for a user
 type CookieConsent {
   id: ID
@@ -1728,6 +1750,8 @@ type Me {
   id: ID
   # Is logged in user active
   active: Boolean
+  # Experimental: the logged in user's AT Protocol identity (DID + handle) hosted by Hylo
+  atproto: AtprotoStatus
   # The URL of logged in user's avatar image
   avatarUrl: String
   # The URL of logged in user's banner image on their profile
@@ -3452,6 +3476,8 @@ type Mutation {
   # Create a new Saved Search for the map
   createSavedSearch(data: SavedSearchInput): SavedSearch
   # Create a new topic within a Group
+  # Experimental: create the logged in user's Hylo-hosted AT Protocol identity (if eligible)
+  createAtprotoIdentity: AtprotoStatus
   createTopic(topicName: String, groupId: ID, isDefault: Boolean, isSubscribing: Boolean): Topic
   # Create a new track
   createTrack(data: TrackInput): Track

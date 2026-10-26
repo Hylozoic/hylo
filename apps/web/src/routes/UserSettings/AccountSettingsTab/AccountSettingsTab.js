@@ -13,6 +13,7 @@ import { useCookieConsent } from 'contexts/CookieConsentContext'
 import { Switch } from 'components/ui/switch'
 import SettingsSection from '../../GroupSettings/SettingsSection/SettingsSection'
 import { exportUserAccount } from '../UserSettings.store'
+import AtprotoIdentitySection from './AtprotoIdentitySection'
 
 function AccountSettingsTab ({
   currentUser,
@@ -367,6 +368,8 @@ function AccountSettingsTab ({
           </div>
         </div>
       </SettingsSection>
+
+      <AtprotoIdentitySection />
     </div>
   )
 }

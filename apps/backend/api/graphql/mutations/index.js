@@ -158,6 +158,7 @@ export {
   leaveFundingRound,
   updateFundingRound
 } from './fundingRound'
+export { createAtprotoIdentity } from './atproto'
 export {
   blockUser,
   deactivateUser,

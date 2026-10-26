@@ -3140,5 +3140,12 @@
   "User": "Usuário",
   "Verify sample": "Verificar amostra",
   "{{count}} accounts_one": "{{count}} conta",
-  "{{count}} accounts_other": "{{count}} contas"
+  "{{count}} accounts_other": "{{count}} contas",
+  "AT Protocol identity": "Identidade do AT Protocol",
+  "AT Protocol is the open network behind apps like Bluesky. Hylo can host an AT Protocol identity for you: a permanent ID (a DID) and a handle. For now this only creates your identity; nothing you post on Hylo is shared.": "AT Protocol é a rede aberta por trás de apps como o Bluesky. O Hylo pode hospedar uma identidade do AT Protocol para você: um ID permanente (um DID) e um handle. Por enquanto, apenas sua identidade é criada; nada do que você publica no Hylo é compartilhado.",
+  "Being set up. This can take a few minutes.": "Sendo configurada. Isso pode levar alguns minutos.",
+  "Create my AT Protocol identity": "Criar minha identidade do AT Protocol",
+  "Experimental": "Experimental",
+  "This identity has been retired.": "Esta identidade foi retirada.",
+  "Your new handle:": "Seu novo handle:"
 }

@@ -114,6 +114,28 @@ module.exports = {
   },
 
   /**
+   * What the logged in user sees (GraphQL Me.atproto). Ineligibility reasons stay server-side.
+   */
+  meStatus: async function (user, config = atprotoConfig()) {
+    if (!config.enabled || !config.plcUrl || !config.handleDomain) {
+      return { enabled: false, eligible: false, proposedHandle: null, identity: null }
+    }
+    const { eligible, identity, proposedHandle } = await this.status(user, config)
+    return {
+      enabled: true,
+      eligible,
+      // status() reports handle problems as "(message)"; those aren't for users
+      proposedHandle: proposedHandle && !proposedHandle.startsWith('(') ? proposedHandle : null,
+      identity: identity && {
+        did: identity.get('did'),
+        handle: identity.get('handle'),
+        status: identity.get('status'),
+        createdAt: identity.get('created_at')
+      }
+    }
+  },
+
+  /**
    * Creates (or finishes creating) the user's did:plc identity. Idempotent: an active identity is
    * returned as is, and a pending one has its stored genesis op resubmitted.
    */

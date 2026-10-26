@@ -389,6 +389,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { cookieConsent: { alias: 'cookieConsentPreferences' } }
       ],
       getters: {
+        atproto: u => AtprotoService.meStatus(u),
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
         isAdmin: u => isAdmin || false,
