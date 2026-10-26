@@ -963,17 +963,23 @@ describe('graphql request handler', () => {
   })
 
   describe('search', () => {
+    let searchTitle
+
     beforeEach(async () => {
+      // FTS is prefix match over every post the user can see. A faker word in the
+      // shared post title (e.g. "parse") also hits other posts, and a stop word
+      // matches nothing. A unique token avoids both.
+      searchTitle = `zzsearch${randomUUID().replace(/-/g, '')}0`
+      const searchable = await factories.post({ type: Post.Type.DISCUSSION, name: searchTitle }).save({ user_id: user.id })
+      await group.posts().attach(searchable)
       await FullTextSearch.dropView()
       await FullTextSearch.createView()
     })
 
     it('works', async () => {
-      // First 4 chars can be an English stop-word prefix (e.g. "withdraw…" → "with") and match nothing in FTS.
-      const searchTerm = post.get('name').trim().split(/\s+/)[0].replace(/\\/g, '\\\\').replace(/"/g, '\\"')
       const { executionResult } = await handler.inject({
         document: `{
-          search(term: "${searchTerm}", type: "post") {
+          search(term: "${searchTitle}", type: "post") {
             items {
               content {
                 __typename
@@ -994,7 +1000,7 @@ describe('graphql request handler', () => {
               {
                 content: {
                   __typename: 'Post',
-                  title: post.get('name')
+                  title: searchTitle
                 }
               }
             ]
