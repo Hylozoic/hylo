@@ -21,6 +21,8 @@ module.exports.routes = {
   'GET    /noo/admin/raw-metrics':                        'AdminController.rawMetrics',
   'GET    /noo/admin/stripe-analytics':                   'AdminController.stripeAnalytics',
   'POST   /noo/admin/stripe-sales-pause':                 'AdminController.setStripeSalesPaused',
+  'GET    /noo/admin/atproto-metrics':                    'AdminController.atprotoMetrics',
+  'POST   /noo/admin/atproto-verify-sample':              'AdminController.atprotoVerifySample',
   'GET    /noo/admin/login-as/:userId':                   'AdminController.loginAsUser',
 
   'POST   /noo/hook/comment':                             'CommentController.createFromEmail',

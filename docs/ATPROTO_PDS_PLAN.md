@@ -110,11 +110,17 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 - `yarn atproto backfill [--limit N] [--yes]` provisions every eligible user and resubmits
   pending ones; dry run by default, one failure doesn't stop the rest
 
-**5b: Management page:** `/management/atproto`, admin-only, built like Stripe Analytics
-- Identities by status; eligible users without an identity; new identities and renames over time
-- Pending identities stuck for more than 10 minutes
-- This instance's PLC URL and handle domain, so it's obvious which environment you're looking at
-- "Verify sample" against the PLC
+**✅ 5b: Management page:** Management → AT Protocol → Identities (`/management/atproto/identities`)
+- Admin-only (`GET /noo/admin/atproto-metrics`, `POST /noo/admin/atproto-verify-sample`)
+- Shows this instance's PLC URL, PDS URL and handle domain (flags the public production directory
+  and sandbox mode), eligibility settings and allowlist size
+- Counts: active, pending, tombstoned, eligible users without an identity, identities from other
+  instances (with the `purge-foreign` hint)
+- Stuck pending identities (more than 10 minutes), recent identities, per-day activity (30 days)
+- "Verify sample" checks up to 10 random active identities against the PLC
+- Not tracked: renames (no history is stored yet; add an event log if needed)
+- Screenshots: `HYLO_ADMINS=1 node scripts/run-isolated-e2e.js atproto-management --project=chromium`
+  in `apps/web` (needs an E2E database name containing "test")
 
 **5c: Product UI**
 - GraphQL `me.atprotoIdentity { did handle }` and an opt-in mutation

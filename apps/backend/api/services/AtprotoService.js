@@ -9,12 +9,14 @@
  * reads and writes this instance's identities.
  */
 import * as plc from '@did-plc/lib'
-import { atprotoConfig, assertAtprotoConfigured, assertCanWriteToPlc, instanceOf } from '../../lib/atproto/config'
+import { atprotoConfig, assertAtprotoConfigured, assertCanWriteToPlc, instanceOf, isProductionPlc } from '../../lib/atproto/config'
 import { atprotoIneligibilityReason } from '../../lib/atproto/eligibility'
 import { buildHandle, handleNameCandidate, handleNameFromEmail, handleNameProblem } from '../../lib/atproto/handles'
 import { generateSigningKey, loadRotationKey } from '../../lib/atproto/keys'
 
 const MAX_HANDLE_CANDIDATES = 50
+const STUCK_PENDING_MINUTES = 10
+const METRICS_DAYS = 30
 
 const plcClient = config => new plc.Client(config.plcUrl)
 
@@ -50,6 +52,26 @@ async function activeIdentityFor (user, config) {
   const identity = await AtprotoIdentity.forUser(user.id, { config })
   if (!identity || !identity.isActive()) throw new Error(`User ${user.id} has no active AT Protocol identity`)
   return identity
+}
+
+// Active users with a verified email that passes this instance's eligibility rules (mirrors
+// lib/atproto/eligibility in SQL) and no identity on this instance, optionally including those
+// whose identity here is still pending
+function eligibleUsersQuery (q, config, { includePending = false } = {}) {
+  const instance = instanceOf(config)
+  q.where('users.active', true)
+  q.where('users.email_validated', true)
+  q.whereRaw("split_part(lower(users.email), '@', 2) = any(?)", [config.allowedEmailDomains])
+  if (config.allowedEmails.length > 0) q.whereRaw('lower(users.email) = any(?)', [config.allowedEmails])
+  q.leftJoin('atproto_identities', function () {
+    this.on('atproto_identities.user_id', 'users.id')
+      .andOn('atproto_identities.plc_url', bookshelf.knex.raw('?', [instance.plc_url]))
+  })
+  q.where(function () {
+    this.whereNull('atproto_identities.id')
+    if (includePending) this.orWhere('atproto_identities.status', AtprotoIdentity.STATUS.Pending)
+  })
+  return q
 }
 
 module.exports = {
@@ -249,20 +271,8 @@ module.exports = {
    * identities (which provision() resubmits). Eligibility is re-checked per user by provision().
    */
   backfillCandidates: async function ({ limit, config = atprotoConfig() } = {}) {
-    const instance = instanceOf(config)
     const users = await User.query(q => {
-      q.where('users.active', true)
-      q.where('users.email_validated', true)
-      q.whereRaw("split_part(lower(users.email), '@', 2) = any(?)", [config.allowedEmailDomains])
-      if (config.allowedEmails.length > 0) q.whereRaw('lower(users.email) = any(?)', [config.allowedEmails])
-      q.leftJoin('atproto_identities', function () {
-        this.on('atproto_identities.user_id', 'users.id')
-          .andOn('atproto_identities.plc_url', bookshelf.knex.raw('?', [instance.plc_url]))
-      })
-      q.where(function () {
-        this.whereNull('atproto_identities.id')
-          .orWhere('atproto_identities.status', AtprotoIdentity.STATUS.Pending)
-      })
+      eligibleUsersQuery(q, config, { includePending: true })
       q.orderBy('users.id')
       if (limit) q.limit(limit)
     }).fetchAll({ columns: ['users.id', 'users.email', 'users.active', 'users.email_validated'] })
@@ -285,5 +295,79 @@ module.exports = {
       }
     }
     return results
+  },
+
+  /**
+   * Summary of this instance's AT Protocol identities for the admin Management page.
+   */
+  metrics: async function ({ config = atprotoConfig(), now = new Date() } = {}) {
+    const knex = bookshelf.knex
+    const instance = instanceOf(config)
+    const ours = () => knex('atproto_identities').where(instance)
+    const since = new Date(now - METRICS_DAYS * 24 * 60 * 60 * 1000)
+    const perDay = column => ours()
+      .where(column, '>=', since)
+      .select(knex.raw(`to_char(date_trunc('day', ${column}), 'YYYY-MM-DD') as day`))
+      .count('* as count')
+      .groupByRaw('1')
+      .orderByRaw('1')
+      .then(rows => rows.map(r => ({ day: r.day, count: Number(r.count) })))
+
+    const byStatus = { pending: 0, active: 0, tombstoned: 0 }
+    const statusRows = await ours().select('status').count('* as count').groupBy('status')
+    statusRows.forEach(r => { byStatus[r.status] = Number(r.count) })
+
+    const eligibleWithoutIdentity = config.allowedEmailDomains.length === 0
+      ? 0
+      : Number((await eligibleUsersQuery(knex('users'), config).count('users.id as count'))[0].count)
+
+    const stuckPending = await ours()
+      .where('status', AtprotoIdentity.STATUS.Pending)
+      .where('created_at', '<', new Date(now - STUCK_PENDING_MINUTES * 60 * 1000))
+      .select('user_id', 'handle', 'did', 'created_at')
+      .orderBy('created_at')
+      .limit(50)
+
+    const recent = await ours()
+      .leftJoin('users', 'users.id', 'atproto_identities.user_id')
+      .select('atproto_identities.user_id', 'users.name as user_name', 'atproto_identities.handle',
+        'atproto_identities.did', 'atproto_identities.status', 'atproto_identities.created_at')
+      .orderBy('atproto_identities.created_at', 'desc')
+      .limit(10)
+
+    return {
+      instance: {
+        enabled: config.enabled,
+        sandbox: config.sandbox,
+        plcUrl: config.plcUrl,
+        productionPlc: isProductionPlc(config.plcUrl),
+        pdsUrl: config.pdsUrl,
+        handleDomain: config.handleDomain,
+        allowedEmailDomains: config.allowedEmailDomains,
+        allowlistSize: config.allowedEmails.length
+      },
+      identities: { ...byStatus, total: byStatus.pending + byStatus.active + byStatus.tombstoned },
+      eligibleWithoutIdentity,
+      foreignIdentities: (await this.purgeForeign({ config })).count,
+      stuckPending,
+      stuckPendingMinutes: STUCK_PENDING_MINUTES,
+      createdPerDay: await perDay('created_at'),
+      tombstonedPerDay: await perDay('tombstoned_at'),
+      days: METRICS_DAYS,
+      recent
+    }
+  },
+
+  /**
+   * Verifies a random sample of this instance's active identities against the PLC directory.
+   */
+  verifySample: async function ({ size = 5, config = assertAtprotoConfigured() } = {}) {
+    const identities = await AtprotoIdentity.forInstance(config)
+      .query(q => q.where('status', AtprotoIdentity.STATUS.Active).orderByRaw('random()').limit(size))
+      .fetchAll()
+    return Promise.all(identities.map(async identity => {
+      const { problems } = await this.verify(identity, config)
+      return { handle: identity.get('handle'), did: identity.get('did'), problems }
+    }))
   }
 }

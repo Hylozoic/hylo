@@ -174,6 +174,31 @@ module.exports = {
     })
   },
 
+  /**
+   * Experimental AT Protocol identities on this instance (Management → AT Protocol).
+   */
+  atprotoMetrics: async function (req, res) {
+    try {
+      return res.ok(await AtprotoService.metrics())
+    } catch (err) {
+      sails.log.error('atprotoMetrics failed', err)
+      return res.serverError(err)
+    }
+  },
+
+  /**
+   * Checks a random sample of active identities against the PLC directory.
+   */
+  atprotoVerifySample: async function (req, res) {
+    try {
+      const size = Math.min(Math.max(parseInt(req.param('size'), 10) || 5, 1), 20)
+      return res.ok({ results: await AtprotoService.verifySample({ size }) })
+    } catch (err) {
+      sails.log.error('atprotoVerifySample failed', err)
+      return res.badRequest({ error: err.message })
+    }
+  },
+
   rawMetrics: function (req, res) {
     const start = DateTime.now().minus({ months: 3 }).toJSDate()
     return rawMetricsQuery(start)

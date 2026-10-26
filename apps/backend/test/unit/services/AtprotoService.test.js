@@ -345,6 +345,66 @@ describe('AtprotoService', () => {
     })
   })
 
+  describe('metrics', () => {
+    afterEach(() => { delete process.env.ATPROTO_ALLOWED_EMAILS })
+
+    it("summarises this instance's identities", async () => {
+      const id = uniq()
+      const before = await AtprotoService.metrics()
+
+      const active = await createUser(`m-a-${id}@hylo.com`)
+      const activeIdentity = await AtprotoService.provision(active)
+      const gone = await createUser(`m-b-${id}@hylo.com`)
+      await AtprotoService.provision(gone)
+      await AtprotoService.tombstone(gone)
+
+      // A pending identity created 20 minutes ago counts as stuck
+      const stuck = await createUser(`m-c-${id}@hylo.com`)
+      nock.cleanAll()
+      nock(PLC_URL).post(/.*/).reply(503)
+      await expect(AtprotoService.provision(stuck)).to.be.rejected
+      nock.cleanAll()
+      directory = fakePlc()
+      await bookshelf.knex('atproto_identities').where({ user_id: stuck.id })
+        .update({ created_at: new Date(Date.now() - 20 * 60 * 1000) })
+
+      const waiting = await createUser(`m-d-${id}@terran.io`)
+      process.env.ATPROTO_ALLOWED_EMAILS = [active, gone, stuck, waiting].map(u => u.get('email')).join(',')
+
+      const after = await AtprotoService.metrics()
+      expect(after.instance).to.include({ enabled: true, plcUrl: PLC_URL, handleDomain: 'hylo.test', productionPlc: false, allowlistSize: 4 })
+      expect(after.identities.active - before.identities.active).to.equal(1)
+      expect(after.identities.tombstoned - before.identities.tombstoned).to.equal(1)
+      expect(after.identities.pending - before.identities.pending).to.equal(1)
+      expect(after.eligibleWithoutIdentity).to.equal(1) // only `waiting`; stuck has a (pending) identity
+      expect(after.stuckPending.map(r => r.user_id)).to.include(stuck.id)
+      expect(after.recent[0].handle).to.be.a('string')
+      expect(after.recent.map(r => r.handle)).to.include(activeIdentity.get('handle'))
+      const today = new Date().toISOString().slice(0, 10)
+      expect(after.createdPerDay.find(d => d.day === today).count).to.be.at.least(3)
+      expect(after.tombstonedPerDay.find(d => d.day === today).count).to.be.at.least(1)
+    })
+  })
+
+  describe('verifySample', () => {
+    it('verifies active identities against the PLC', async () => {
+      // Earlier tests' identities were registered with since-discarded fake PLCs; retire them
+      await bookshelf.knex('atproto_identities')
+        .where({ plc_url: PLC_URL, status: 'active' })
+        .update({ status: 'tombstoned', tombstoned_at: new Date() })
+
+      const a = await AtprotoService.provision(await createUser(`vs-a${uniq()}@hylo.com`))
+      const b = await AtprotoService.provision(await createUser(`vs-b${uniq()}@terran.io`))
+      // Break one: the PLC now has a different handle than our records
+      await b.save({ handle: `drifted-${uniq()}.hylo.test` }, { patch: true })
+
+      const results = await AtprotoService.verifySample({ size: 20 })
+      expect(results.map(r => r.did)).to.have.members([a.get('did'), b.get('did')])
+      expect(results.find(r => r.did === a.get('did')).problems).to.deep.equal([])
+      expect(results.find(r => r.did === b.get('did')).problems[0]).to.match(/handle mismatch/)
+    })
+  })
+
   describe('queueTombstoneForDeletedUser', () => {
     let queued
 
