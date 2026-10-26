@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { CreditCard, Hand, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus, Users } from 'lucide-react'
+import { CreditCard, HeartHandshake, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus, Users } from 'lucide-react'
 
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import Button from 'components/ui/button'
@@ -617,7 +617,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     },
     {
       key: 'welcome',
-      icon: Hand,
+      icon: HeartHandshake,
       label: 'Welcome',
       defaultSummary: welcomeView ? null : t('No welcome page'),
       render: () => (

@@ -50,7 +50,7 @@ function GroupWelcomePage () {
   useEffect(() => {
     setHeaderDetails({
       title: t('Welcome'),
-      icon: 'Hand',
+      icon: 'HeartHandshake',
       search: true
     })
   }, [setHeaderDetails, t])
