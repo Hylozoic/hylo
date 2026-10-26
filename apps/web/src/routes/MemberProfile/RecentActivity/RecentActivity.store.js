@@ -36,7 +36,8 @@ const recentActivityQuery =
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String],
+  $rsvpResponse: String
 ) {
   person (id: $id) {
     id
