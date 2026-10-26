@@ -225,6 +225,126 @@ describe('AtprotoService', () => {
     })
   })
 
+  describe('instance scoping', () => {
+    // A row copied in from another environment's database (e.g. prod → staging)
+    const createForeignIdentity = (user, attrs = {}) => AtprotoIdentity.forge({
+      user_id: user.id,
+      did: `did:plc:${crypto.randomBytes(12).toString('hex')}`,
+      handle: `${user.id}-${uniq()}.hylo.com`,
+      plc_url: 'https://plc.directory',
+      handle_domain: 'hylo.com',
+      status: 'active',
+      signing_key_public: 'did:key:zQ3sForeign',
+      signing_key_encrypted: 'v1:foreign',
+      ...attrs
+    }).save()
+
+    it('stamps new identities with this instance', async () => {
+      const identity = await AtprotoService.provision(await createUser(`rae${uniq()}@hylo.com`))
+      expect(identity.get('plc_url')).to.equal(PLC_URL)
+      expect(identity.get('handle_domain')).to.equal('hylo.test')
+    })
+
+    it("ignores another instance's identity and provisions this instance's own", async () => {
+      const user = await createUser(`sam${uniq()}@hylo.com`)
+      const foreign = await createForeignIdentity(user)
+
+      expect((await AtprotoService.status(user)).identity).to.be.null
+      const ours = await AtprotoService.provision(user)
+      expect(ours.id).not.to.equal(foreign.id)
+      expect(ours.get('plc_url')).to.equal(PLC_URL)
+
+      // Tombstoning only touches our identity; the foreign row and its DID are left alone
+      await AtprotoService.tombstone(user)
+      await foreign.refresh()
+      expect(foreign.get('status')).to.equal('active')
+      expect(directory.posts.map(p => p.did)).not.to.include(foreign.get('did'))
+    })
+
+    it('never queues tombstones for foreign identities', async () => {
+      const queued = []
+      spy.on(Queue, 'classMethod', (...args) => queued.push(args))
+      try {
+        const user = await createUser(`tia${uniq()}@hylo.com`)
+        await createForeignIdentity(user)
+        await AtprotoService.queueTombstoneForDeletedUser(user.id)
+      } finally {
+        spy.restore(Queue, 'classMethod')
+      }
+      expect(queued).to.have.lengthOf(0)
+    })
+
+    it('refuses PLC writes for a foreign identity even if handed one directly', async () => {
+      const foreign = await createForeignIdentity(await createUser(`uma${uniq()}@hylo.com`), { status: 'pending' })
+      await expect(AtprotoService.submitGenesis(foreign)).to.be.rejectedWith(/another instance/)
+      expect(directory.posts).to.have.lengthOf(0)
+    })
+
+    it('reports foreign identities in verify without contacting the PLC', async () => {
+      const foreign = await createForeignIdentity(await createUser(`val${uniq()}@hylo.com`))
+      const { problems } = await AtprotoService.verify(foreign)
+      expect(problems[0]).to.match(/another instance/)
+    })
+
+    it('purges foreign identities only when asked', async () => {
+      const user = await createUser(`wes${uniq()}@hylo.com`)
+      const ours = await AtprotoService.provision(user)
+      await createForeignIdentity(user)
+
+      const dryRun = await AtprotoService.purgeForeign()
+      expect(dryRun.count).to.be.at.least(1)
+      expect(dryRun.deleted).to.equal(0)
+      expect(dryRun.byInstance.map(r => r.plc_url)).to.include('https://plc.directory')
+
+      const result = await AtprotoService.purgeForeign({ delete: true })
+      expect(result.deleted).to.equal(dryRun.count)
+      expect((await AtprotoService.purgeForeign()).count).to.equal(0)
+      expect(await AtprotoIdentity.where({ id: ours.id }).fetch()).to.exist
+    })
+  })
+
+  describe('backfill', () => {
+    afterEach(() => { delete process.env.ATPROTO_ALLOWED_EMAILS })
+
+    it('provisions eligible users without an identity, honouring the allowlist', async () => {
+      const id = uniq()
+      const eligible = await createUser(`bf-a-${id}@hylo.com`)
+      const pendingUser = await createUser(`bf-b-${id}@terran.io`)
+      const unverified = await createUser(`bf-c-${id}@hylo.com`, { email_validated: false })
+      const notListed = await createUser(`bf-d-${id}@hylo.com`)
+
+      // pendingUser starts with a pending identity (PLC was down)
+      nock.cleanAll()
+      nock(PLC_URL).post(/.*/).reply(503)
+      await expect(AtprotoService.provision(pendingUser)).to.be.rejected
+      nock.cleanAll()
+      directory = fakePlc()
+
+      process.env.ATPROTO_ALLOWED_EMAILS = [eligible, pendingUser, unverified].map(u => u.get('email')).join(',')
+
+      const candidates = (await AtprotoService.backfillCandidates()).map(u => u.id)
+      expect(candidates).to.have.members([eligible.id, pendingUser.id])
+      expect(candidates).not.to.include(notListed.id)
+
+      const seen = []
+      const results = await AtprotoService.backfill({ onResult: r => seen.push(r) })
+      expect(results).to.deep.equal({ provisioned: 2, failed: 0 })
+      expect(seen.every(r => r.identity.get('status') === 'active')).to.be.true
+      expect(await AtprotoService.backfillCandidates()).to.have.lengthOf(0)
+    })
+
+    it('keeps going when one user fails', async () => {
+      const id = uniq()
+      const good = await createUser(`bf-e-${id}@hylo.com`)
+      // No handle can be derived from this email, so provisioning it fails
+      const bad = await createUser(`+${id}@hylo.com`)
+      process.env.ATPROTO_ALLOWED_EMAILS = [good, bad].map(u => u.get('email')).join(',')
+
+      const results = await AtprotoService.backfill()
+      expect(results).to.deep.equal({ provisioned: 1, failed: 1 })
+    })
+  })
+
   describe('queueTombstoneForDeletedUser', () => {
     let queued
 

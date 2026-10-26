@@ -4,9 +4,12 @@
  *
  * Every write to the PLC directory is signed by the server rotation key. Rows are written as
  * `pending` before the genesis op is submitted, so a failed submission can be retried safely.
+ *
+ * Identities belong to the instance that created them (see AtprotoIdentity). This service only
+ * reads and writes this instance's identities.
  */
 import * as plc from '@did-plc/lib'
-import { atprotoConfig, assertAtprotoConfigured, assertCanWriteToPlc } from '../../lib/atproto/config'
+import { atprotoConfig, assertAtprotoConfigured, assertCanWriteToPlc, instanceOf } from '../../lib/atproto/config'
 import { atprotoIneligibilityReason } from '../../lib/atproto/eligibility'
 import { buildHandle, handleNameCandidate, handleNameFromEmail, handleNameProblem } from '../../lib/atproto/handles'
 import { generateSigningKey, loadRotationKey } from '../../lib/atproto/keys'
@@ -36,8 +39,15 @@ async function existsAtPlc (did, config) {
   }
 }
 
-async function activeIdentityFor (user) {
-  const identity = await AtprotoIdentity.forUser(user.id)
+// Last line of defence before any PLC write: never act on another instance's identity
+function assertOwned (identity, config) {
+  if (!identity.belongsToInstance(config)) {
+    throw new Error(`Identity ${identity.get('did')} belongs to another instance (${identity.get('plc_url')})`)
+  }
+}
+
+async function activeIdentityFor (user, config) {
+  const identity = await AtprotoIdentity.forUser(user.id, { config })
   if (!identity || !identity.isActive()) throw new Error(`User ${user.id} has no active AT Protocol identity`)
   return identity
 }
@@ -72,7 +82,7 @@ module.exports = {
    * Summary of a user's AT Protocol state, for the CLI and later the API.
    */
   status: async function (user, config = atprotoConfig()) {
-    const identity = await AtprotoIdentity.forUser(user.id)
+    const identity = await AtprotoIdentity.forUser(user.id, { config })
     const ineligibleReason = atprotoIneligibilityReason(user, config)
     let proposedHandle = null
     if (!identity && !ineligibleReason && config.handleDomain) {
@@ -90,7 +100,7 @@ module.exports = {
     const reason = atprotoIneligibilityReason(user, config)
     if (reason) throw new Error(`User ${user.id} is not eligible for an AT Protocol identity: ${reason}`)
 
-    const existing = await AtprotoIdentity.forUser(user.id)
+    const existing = await AtprotoIdentity.forUser(user.id, { config })
     if (existing) {
       if (existing.isActive()) return existing
       if (existing.get('status') === AtprotoIdentity.STATUS.Pending) return this.submitGenesis(existing, config)
@@ -109,6 +119,7 @@ module.exports = {
     })
 
     const identity = await AtprotoIdentity.forge({
+      ...instanceOf(config),
       user_id: user.id,
       did,
       handle,
@@ -122,6 +133,7 @@ module.exports = {
   },
 
   submitGenesis: async function (identity, config = assertCanWriteToPlc()) {
+    assertOwned(identity, config)
     const did = identity.get('did')
     try {
       await plcClient(config).sendOperation(did, identity.get('genesis_op'))
@@ -138,7 +150,8 @@ module.exports = {
    */
   updateHandle: async function (user, handleName) {
     const config = assertCanWriteToPlc()
-    const identity = await activeIdentityFor(user)
+    const identity = await activeIdentityFor(user, config)
+    assertOwned(identity, config)
     const handle = await this.availableHandle(user, { handleName, config })
     if (handle === identity.get('handle')) return identity
 
@@ -152,8 +165,9 @@ module.exports = {
    */
   tombstone: async function (user) {
     const config = assertCanWriteToPlc()
-    const identity = await AtprotoIdentity.forUser(user.id)
+    const identity = await AtprotoIdentity.forUser(user.id, { config })
     if (!identity || identity.get('status') === AtprotoIdentity.STATUS.Tombstoned) return identity
+    assertOwned(identity, config)
 
     if (await existsAtPlc(identity.get('did'), config)) {
       const rotationKey = await loadRotationKey(config.plcRotationKeyHex)
@@ -185,6 +199,9 @@ module.exports = {
    * Returns { problems: [...], document } — no problems means they agree.
    */
   verify: async function (identity, config = assertAtprotoConfigured()) {
+    if (!identity.belongsToInstance(config)) {
+      return { problems: [`identity belongs to another instance (${identity.get('plc_url')}, *.${identity.get('handle_domain')})`], document: null }
+    }
     const did = identity.get('did')
     const tombstoned = identity.get('status') === AtprotoIdentity.STATUS.Tombstoned
     let document
@@ -211,5 +228,62 @@ module.exports = {
       problems.push('our rotation key is not a rotation key for this DID')
     }
     return { problems, document }
+  },
+
+  /**
+   * Identities in this database that another instance created (e.g. prod rows in a
+   * prod-cloned staging DB). Returns { count, byInstance }; with `delete: true` removes them.
+   */
+  purgeForeign: async function ({ delete: shouldDelete = false, config = atprotoConfig() } = {}) {
+    const byInstance = await AtprotoIdentity.foreignQuery(config)
+      .select('plc_url', 'handle_domain')
+      .count('* as count')
+      .groupBy('plc_url', 'handle_domain')
+    const count = byInstance.reduce((sum, row) => sum + Number(row.count), 0)
+    if (shouldDelete && count > 0) await AtprotoIdentity.foreignQuery(config).del()
+    return { count, byInstance, deleted: shouldDelete ? count : 0 }
+  },
+
+  /**
+   * Eligible users who don't have an identity on this instance yet, plus this instance's pending
+   * identities (which provision() resubmits). Eligibility is re-checked per user by provision().
+   */
+  backfillCandidates: async function ({ limit, config = atprotoConfig() } = {}) {
+    const instance = instanceOf(config)
+    const users = await User.query(q => {
+      q.where('users.active', true)
+      q.where('users.email_validated', true)
+      q.whereRaw("split_part(lower(users.email), '@', 2) = any(?)", [config.allowedEmailDomains])
+      if (config.allowedEmails.length > 0) q.whereRaw('lower(users.email) = any(?)', [config.allowedEmails])
+      q.leftJoin('atproto_identities', function () {
+        this.on('atproto_identities.user_id', 'users.id')
+          .andOn('atproto_identities.plc_url', bookshelf.knex.raw('?', [instance.plc_url]))
+      })
+      q.where(function () {
+        this.whereNull('atproto_identities.id')
+          .orWhere('atproto_identities.status', AtprotoIdentity.STATUS.Pending)
+      })
+      q.orderBy('users.id')
+      if (limit) q.limit(limit)
+    }).fetchAll({ columns: ['users.id', 'users.email', 'users.active', 'users.email_validated'] })
+    return users.models
+  },
+
+  /**
+   * Provisions every backfill candidate, one at a time. One failure doesn't stop the rest.
+   */
+  backfill: async function ({ limit, onResult = () => {}, config = assertCanWriteToPlc() } = {}) {
+    const results = { provisioned: 0, failed: 0 }
+    for (const user of await this.backfillCandidates({ limit, config })) {
+      try {
+        const identity = await this.provision(user)
+        results.provisioned++
+        onResult({ user, identity })
+      } catch (error) {
+        results.failed++
+        onResult({ user, error })
+      }
+    }
+    return results
   }
 }

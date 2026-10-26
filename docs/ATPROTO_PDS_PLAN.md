@@ -19,6 +19,8 @@ Branch: `atproto-pds-experiment`
 | Reference PDS | Run one stock PDS in the sandbox alongside Hylo for comparison |
 | Sandbox data | Hylo's sandbox container seeds its own test users |
 | Production PLC | Nothing goes on `plc.directory` until explicitly approved |
+| Staging PLC | Staging runs its **own private PLC directory** (separate small Heroku app plus its own Postgres), so staging DIDs never reach the public `plc.directory` (working assumption; feasibility on Heroku to be confirmed) |
+| AppView | **Not in scope.** Hylo is a PDS (it hosts identities and, later, repos); it does not index the network. See "Out of scope" |
 
 ## Architecture
 
@@ -97,10 +99,38 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 - Test users come from the dev database rather than seeded fixtures, since the bridge uses
   the real dev backend
 
-### Phase 5: Triggers and UI
-- Backfill script for eligible users
+### Phase 5: Staging readiness, management metrics, UI
+**✅ 5a: Staging readiness**
+- Each identity row stores the instance that created it (`plc_url`, `handle_domain`). Every
+  lookup, public endpoint and PLC write is scoped to this instance, so rows from another
+  environment (e.g. prod rows in a prod-cloned staging DB) are never served or acted on
+- One identity per user **per PLC directory**, so a cloned prod row doesn't block staging
+- `yarn atproto purge-foreign [--yes]` deletes other instances' rows (their DIDs are untouched)
+- `ATPROTO_ALLOWED_EMAILS` optionally narrows eligibility to specific (test) accounts
+- `yarn atproto backfill [--limit N] [--yes]` provisions every eligible user and resubmits
+  pending ones; dry run by default, one failure doesn't stop the rest
+
+**5b: Management page:** `/management/atproto`, admin-only, built like Stripe Analytics
+- Identities by status; eligible users without an identity; new identities and renames over time
+- Pending identities stuck for more than 10 minutes
+- This instance's PLC URL and handle domain, so it's obvious which environment you're looking at
+- "Verify sample" against the PLC
+
+**5c: Product UI**
 - GraphQL `me.atprotoIdentity { did handle }` and an opt-in mutation
 - Read-only display in settings (translated strings in `public/locales`)
+
+### Staging deployment (Heroku)
+- **Private PLC:** Bluesky's PLC server as its own Heroku app with its own Postgres add-on
+  (to confirm: Heroku Postgres SSL, buildpack vs. container deploy). Wipe it whenever staging is reset
+- Wildcard DNS + TLS for the staging handle domain (e.g. `*.staging.hylo.com`) to the API app.
+  Heroku's automatic certificates don't cover wildcards, so upload one or use Cloudflare
+- Staging-only rotation key and encryption secret. **Never copy production keys to staging**
+- Staging refresh procedure, after cloning the prod DB:
+  1. `yarn atproto purge-foreign --yes` (removes prod's identity rows from the clone)
+  2. Reset the staging PLC's database, so staging's old DIDs go with the old staging data
+  3. Re-provision test accounts (`yarn atproto backfill --yes`, scoped by `ATPROTO_ALLOWED_EMAILS`)
+- Staging must never ask relays to crawl it (`requestCrawl`), even after posting support exists
 
 ### Phase 6: User-chosen handles
 - Users pick their own handle name under `hylo.com`, at provisioning and later as a rename
@@ -131,3 +161,10 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
 - Signed repositories, `com.atproto.sync.*`, relay and firehose (test with AiaB's `full-stack` preset)
 - AT Protocol OAuth, posting Hylo content as AT Protocol records
 - User-held recovery rotation keys
+
+### Out of scope
+- **Running an AppView.** An AppView indexes records from across the network and serves them back
+  (Bluesky's AppView powers the Bluesky app). Publishing Hylo content to Bluesky only needs the
+  "Later" PDS work (repos, sync, relay); Bluesky's AppView would then index it. AiaB's `full-stack`
+  preset includes a local AppView purely for testing that. A Hylo-specific AppView (e.g. indexing
+  custom Hylo lexicons from other PDSes) would be a separate future project

@@ -49,6 +49,8 @@ describe('AT Protocol HTTP endpoints', () => {
       user_id: user.id,
       did,
       handle: `${name}.hylo.test`,
+      plc_url: 'https://plc.hylo.test',
+      handle_domain: 'hylo.test',
       status: 'active',
       signing_key_public: 'did:key:zQ3sTest',
       signing_key_encrypted: 'v1:test'
@@ -59,7 +61,22 @@ describe('AT Protocol HTTP endpoints', () => {
       user_id: tombstonedUser.id,
       did: `did:plc:${crypto.randomBytes(12).toString('hex')}`,
       handle: `gone-${name}.hylo.test`,
+      plc_url: 'https://plc.hylo.test',
+      handle_domain: 'hylo.test',
       status: 'tombstoned',
+      signing_key_public: 'did:key:zQ3sTest',
+      signing_key_encrypted: 'v1:test'
+    }).save()
+
+    // Same handle domain but another PLC directory, e.g. a row from a cloned database
+    const foreignUser = await factories.user().save()
+    await AtprotoIdentity.forge({
+      user_id: foreignUser.id,
+      did: `did:plc:${crypto.randomBytes(12).toString('hex')}`,
+      handle: `foreign-${name}.hylo.test`,
+      plc_url: 'https://plc.elsewhere.test',
+      handle_domain: 'hylo.test',
+      status: 'active',
       signing_key_public: 'did:key:zQ3sTest',
       signing_key_encrypted: 'v1:test'
     }).save()
@@ -87,7 +104,7 @@ describe('AT Protocol HTTP endpoints', () => {
     })
 
     it('404s for unknown, tombstoned, deeper and foreign hosts', async () => {
-      for (const host of ['nobody.hylo.test', `gone-${name}.hylo.test`, `a.${name}.hylo.test`, 'hylo.test', `${name}.example.com`]) {
+      for (const host of ['nobody.hylo.test', `gone-${name}.hylo.test`, `foreign-${name}.hylo.test`, `a.${name}.hylo.test`, 'hylo.test', `${name}.example.com`]) {
         const { res } = await wellKnown(host)
         expect(res.statusCode, host).to.equal(404)
       }
@@ -105,7 +122,7 @@ describe('AT Protocol HTTP endpoints', () => {
 
     it('rejects missing, invalid, unknown and foreign handles with XRPC errors', async () => {
       expect((await resolve(undefined)).res.body.message).to.match(/Missing/)
-      for (const handle of ['not a handle', 'nobody.hylo.test', `gone-${name}.hylo.test`, 'alice.bsky.social']) {
+      for (const handle of ['not a handle', 'nobody.hylo.test', `gone-${name}.hylo.test`, `foreign-${name}.hylo.test`, 'alice.bsky.social']) {
         const { res } = await resolve(handle)
         expect(res.statusCode, handle).to.equal(400)
         expect(res.body.error).to.equal('InvalidRequest')

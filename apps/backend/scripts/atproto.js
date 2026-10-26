@@ -10,6 +10,9 @@
  *   yarn atproto rename <user> <name>
  *   yarn atproto tombstone <user> --yes         # permanent
  *   yarn atproto verify <user | handle | did>   # compare our records with the PLC directory
+ *   yarn atproto backfill [--limit N] [--yes]   # provision every eligible user (dry run without --yes)
+ *   yarn atproto purge-foreign [--yes]          # delete identities created by another instance
+ *                                               # (e.g. after cloning prod's DB into staging)
  *
  * Against the local AiaB sandbox, run through tools/atproto-sandbox/with-sandbox.sh.
  */
@@ -18,7 +21,7 @@ require('@babel/register')
 const crypto = require('crypto')
 const { bold, green, red, yellow } = require('chalk')
 
-const USAGE = 'Usage: yarn atproto <keygen | list | status | provision | rename | tombstone | verify> [args]'
+const USAGE = 'Usage: yarn atproto <keygen | list | status | provision | rename | tombstone | verify | backfill | purge-foreign> [args]'
 
 async function keygen () {
   const { Secp256k1Keypair } = require('@atproto/crypto')
@@ -86,10 +89,12 @@ async function run (command, args, flags) {
 
   switch (command) {
     case 'list': {
+      // Includes other instances' rows so they're visible; they're marked and never acted on
       const identities = await AtprotoIdentity.query(q => q.orderBy('id')).fetchAll()
       if (identities.length === 0) return console.log('No identities')
       identities.forEach(i => console.log(
-        `${String(i.get('user_id')).padEnd(8)} ${i.get('status').padEnd(11)} ${i.get('did')}  ${i.get('handle')}`
+        `${String(i.get('user_id')).padEnd(8)} ${i.get('status').padEnd(11)} ${i.get('did')}  ${i.get('handle')}` +
+        (i.belongsToInstance(config) ? '' : yellow(`  (other instance: ${i.get('plc_url')})`))
       ))
       return
     }
@@ -132,7 +137,7 @@ async function run (command, args, flags) {
       const target = args[0] || ''
       let identity
       if (target.startsWith('did:')) {
-        identity = await AtprotoIdentity.findByDid(target)
+        identity = await AtprotoIdentity.where({ did: target }).fetch()
       } else if (target.includes('.') && !target.includes('@')) {
         identity = await AtprotoIdentity.query(q => q.where('handle', target.toLowerCase()).orderBy('id', 'desc')).fetch()
       } else {
@@ -141,6 +146,33 @@ async function run (command, args, flags) {
       if (!identity) throw new Error(`No identity found for "${target}"`)
       printIdentity(identity)
       return printVerification(identity)
+    }
+
+    case 'backfill': {
+      const limit = flags.limit ? Number(flags.limit) : undefined
+      if (!flags.yes) {
+        const candidates = await AtprotoService.backfillCandidates({ limit })
+        candidates.forEach(u => console.log(`  ${String(u.id).padEnd(8)} ${u.get('email')}`))
+        return console.log(`${candidates.length} user(s) would be provisioned. Re-run with --yes to do it.`)
+      }
+      const results = await AtprotoService.backfill({
+        limit,
+        onResult: ({ user, identity, error }) => console.log(error
+          ? red(`  ✘ ${user.id} ${user.get('email')}: ${error.message}`)
+          : green(`  ✔ ${user.id} ${identity.get('handle')}  ${identity.get('did')}`))
+      })
+      console.log(`Provisioned ${results.provisioned}, failed ${results.failed}`)
+      if (results.failed > 0) process.exitCode = 1
+      return
+    }
+
+    case 'purge-foreign': {
+      const { count, byInstance, deleted } = await AtprotoService.purgeForeign({ delete: !!flags.yes })
+      byInstance.forEach(row => console.log(`  ${String(row.count).padEnd(6)} ${row.plc_url}  *.${row.handle_domain}`))
+      if (count === 0) return console.log('No identities from other instances')
+      return console.log(deleted
+        ? green(`✔ Deleted ${deleted} identities from other instances (their DIDs are untouched)`)
+        : `${count} identities from other instances. Re-run with --yes to delete them.`)
     }
 
     default:

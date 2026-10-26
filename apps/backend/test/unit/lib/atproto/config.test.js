@@ -1,11 +1,11 @@
 import { expect } from 'chai'
-import { atprotoConfig, assertAtprotoConfigured, assertCanWriteToPlc } from '../../../../lib/atproto/config'
+import { atprotoConfig, assertAtprotoConfigured, assertCanWriteToPlc, instanceOf, normalizePlcUrl } from '../../../../lib/atproto/config'
 import { atprotoIneligibilityReason, isEligibleForAtprotoIdentity } from '../../../../lib/atproto/eligibility'
 
 const ENV_KEYS = [
   'ATPROTO_ENABLED', 'ATPROTO_SANDBOX', 'ATPROTO_PLC_URL', 'ATPROTO_PDS_URL', 'ATPROTO_HANDLE_DOMAIN',
   'ATPROTO_ALLOWED_EMAIL_DOMAINS', 'ATPROTO_PLC_ROTATION_KEY_HEX', 'ATPROTO_KEY_ENCRYPTION_SECRET',
-  'ATPROTO_PRODUCTION_PLC_APPROVED'
+  'ATPROTO_PRODUCTION_PLC_APPROVED', 'ATPROTO_ALLOWED_EMAILS'
 ]
 
 const fullEnv = {
@@ -60,6 +60,12 @@ describe('atproto config', () => {
     expect(() => assertAtprotoConfigured()).to.throw(/production PLC/)
   })
 
+  it('identifies the instance by normalized PLC URL and handle domain', () => {
+    expect(normalizePlcUrl(' HTTPS://PLC.Example.test/ ')).to.equal('https://plc.example.test')
+    process.env.ATPROTO_PLC_URL = 'https://PLC.atmosbox.test//'
+    expect(instanceOf()).to.deep.equal({ plc_url: 'https://plc.atmosbox.test', handle_domain: 'hylo.atmosbox.test' })
+  })
+
   it('only writes to plc.directory with explicit approval', () => {
     expect(assertCanWriteToPlc().plcUrl).to.equal('https://plc.atmosbox.test')
 
@@ -91,6 +97,13 @@ describe('atproto config', () => {
       expect(atprotoIneligibilityReason(user({ email: 'alice@hylo.com', active: false }))).to.equal('user is not active')
       expect(atprotoIneligibilityReason(user({ email: 'alice@hylo.com', email_validated: false }))).to.equal('email is not verified')
       expect(atprotoIneligibilityReason(user({ email: 'carol@gmail.com' }))).to.equal('email domain is not one of: hylo.com, terran.io')
+    })
+
+    it('narrows eligibility to ATPROTO_ALLOWED_EMAILS when set', () => {
+      process.env.ATPROTO_ALLOWED_EMAILS = 'Test1@hylo.com, test2@terran.io'
+      expect(isEligibleForAtprotoIdentity(user({ email: 'test1@hylo.com' }))).to.be.true
+      expect(isEligibleForAtprotoIdentity(user({ email: 'TEST2@terran.io' }))).to.be.true
+      expect(atprotoIneligibilityReason(user({ email: 'alice@hylo.com' }))).to.match(/allowlist/)
     })
   })
 })

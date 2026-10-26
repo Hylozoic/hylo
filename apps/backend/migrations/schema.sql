@@ -304,7 +304,9 @@ CREATE TABLE public.atproto_identities (
     genesis_op jsonb,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    tombstoned_at timestamp with time zone
+    tombstoned_at timestamp with time zone,
+    plc_url character varying(255) NOT NULL,
+    handle_domain character varying(255) NOT NULL
 );
 
 
@@ -4158,11 +4160,11 @@ ALTER TABLE ONLY public.atproto_identities
 
 
 --
--- Name: atproto_identities atproto_identities_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: atproto_identities atproto_identities_user_id_plc_url_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.atproto_identities
-    ADD CONSTRAINT atproto_identities_user_id_unique UNIQUE (user_id);
+    ADD CONSTRAINT atproto_identities_user_id_plc_url_unique UNIQUE (user_id, plc_url);
 
 
 --

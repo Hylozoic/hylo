@@ -11,17 +11,22 @@ const list = value => (value || '')
   .map(s => s.trim().toLowerCase())
   .filter(Boolean)
 
+// Identifies a PLC directory: identities are scoped to (plcUrl, handleDomain)
+export const normalizePlcUrl = url => (url || '').trim().toLowerCase().replace(/\/+$/, '')
+
 export function atprotoConfig () {
   const env = process.env
   return {
     enabled: env.ATPROTO_ENABLED === 'true',
     // Sandbox mode relaxes SSRF protection so identity resolution can reach private (AiaB) addresses
     sandbox: env.ATPROTO_SANDBOX === 'true',
-    plcUrl: env.ATPROTO_PLC_URL,
+    plcUrl: normalizePlcUrl(env.ATPROTO_PLC_URL),
     pdsUrl: env.ATPROTO_PDS_URL,
     // Handles are minted as <name>.<handleDomain>
     handleDomain: (env.ATPROTO_HANDLE_DOMAIN || '').trim().toLowerCase(),
     allowedEmailDomains: list(env.ATPROTO_ALLOWED_EMAIL_DOMAINS),
+    // Optional: when set, only these emails are eligible (e.g. test accounts on a prod-cloned staging DB)
+    allowedEmails: list(env.ATPROTO_ALLOWED_EMAILS),
     // Hex-encoded secp256k1 private key authorizing PLC operations for every DID we create
     plcRotationKeyHex: env.ATPROTO_PLC_ROTATION_KEY_HEX,
     // 32 bytes (hex or base64) used to encrypt per-user signing keys at rest
@@ -31,7 +36,16 @@ export function atprotoConfig () {
   }
 }
 
-export const isProductionPlc = plcUrl => (plcUrl || '').replace(/\/+$/, '') === PRODUCTION_PLC_URL
+export const isProductionPlc = plcUrl => normalizePlcUrl(plcUrl) === PRODUCTION_PLC_URL
+
+/**
+ * The columns that tie an identity row to this instance. Rows with other values were created
+ * elsewhere (e.g. copied in with a prod database clone) and must be ignored.
+ */
+export const instanceOf = (config = atprotoConfig()) => ({
+  plc_url: config.plcUrl,
+  handle_domain: config.handleDomain
+})
 
 /**
  * Throws unless every setting needed to mint identities is present and safe.

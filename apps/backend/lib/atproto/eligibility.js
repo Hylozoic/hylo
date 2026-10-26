@@ -1,6 +1,7 @@
 /**
  * Who may get a Hylo-hosted AT Protocol identity during the experiment:
- * active users with a verified email on one of the allowed domains (hylo.com, terran.io).
+ * active users with a verified email on one of the allowed domains (hylo.com, terran.io),
+ * further limited to ATPROTO_ALLOWED_EMAILS when that is set.
  */
 import { atprotoConfig } from './config'
 
@@ -15,6 +16,9 @@ export function atprotoIneligibilityReason (user, config = atprotoConfig()) {
   if (user.get('email_validated') !== true) return 'email is not verified'
   if (!config.allowedEmailDomains.includes(emailDomain(user.get('email')))) {
     return `email domain is not one of: ${config.allowedEmailDomains.join(', ') || '(none configured)'}`
+  }
+  if (config.allowedEmails.length > 0 && !config.allowedEmails.includes((user.get('email') || '').trim().toLowerCase())) {
+    return 'email is not on this instance\'s allowlist (ATPROTO_ALLOWED_EMAILS)'
   }
   return null
 }

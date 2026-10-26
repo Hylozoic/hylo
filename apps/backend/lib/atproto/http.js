@@ -21,8 +21,9 @@ const CACHE_CONTROL = 'public, max-age=60'
 
 const xrpcError = (res, status, error, message) => res.status(status).json({ error, message })
 
-async function activeIdentityForHandle (handle) {
-  const identity = await AtprotoIdentity.findActiveByHandle(handle)
+// Only this instance's identities are served (see AtprotoIdentity.forInstance)
+async function activeIdentityForHandle (handle, config) {
+  const identity = await AtprotoIdentity.findActiveByHandle(handle, { config })
   return identity && identity.get('did')
 }
 
@@ -37,7 +38,7 @@ function ourHandle (handle, config) {
 export const routes = {
   '/.well-known/atproto-did': async (req, res, config) => {
     const name = handleNameFromHost(req.hostname, config.handleDomain)
-    const did = name && await activeIdentityForHandle(buildHandle(name, config.handleDomain))
+    const did = name && await activeIdentityForHandle(buildHandle(name, config.handleDomain), config)
     if (!did) return res.status(404).type('text/plain').send('handle not found')
     return res.set('Cache-Control', CACHE_CONTROL).type('text/plain').send(did)
   },
@@ -45,7 +46,7 @@ export const routes = {
   '/xrpc/com.atproto.identity.resolveHandle': async (req, res, config) => {
     if (!req.query.handle) return xrpcError(res, 400, 'InvalidRequest', 'Missing required parameter: handle')
     const handle = ourHandle(req.query.handle, config)
-    const did = handle && await activeIdentityForHandle(handle)
+    const did = handle && await activeIdentityForHandle(handle, config)
     if (!did) return xrpcError(res, 400, 'InvalidRequest', 'Unable to resolve handle')
     return res.set('Cache-Control', CACHE_CONTROL).json({ did })
   },
