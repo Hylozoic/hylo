@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react'
-import { browserNetworkErrorIgnorePatterns, isBrowserNetworkError } from 'client/isBrowserNetworkError'
+import isBrowserNetworkError, { browserNetworkErrorIgnorePatterns } from 'client/isBrowserNetworkError'
 import { isSandboxMode } from 'sandbox/isSandbox'
 
 /*
