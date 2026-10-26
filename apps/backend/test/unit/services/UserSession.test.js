@@ -50,6 +50,17 @@ describe('session handling', () => {
     })
   })
 
+  describe('UserSession.keepOutOfCookieSession', () => {
+    it('clears the session id so express-session neither saves the session nor sets a cookie', () => {
+      const req = sessionRequest()
+      req.sessionID = 'anon:abc'
+
+      UserSession.keepOutOfCookieSession(req)
+
+      expect(req.sessionID).to.equal(undefined)
+    })
+  })
+
   describe('session genid', () => {
     it('prefixes the session id with the user id when logging in', () => {
       expect(sails.config.session.genid({ userId: user.id })).to.match(new RegExp(`^${user.id}:`))

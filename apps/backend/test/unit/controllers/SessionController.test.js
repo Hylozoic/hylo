@@ -2,6 +2,7 @@ const setup = require('../../setup')
 const SessionController = require('../../../api/controllers/SessionController')
 var factories = require('../../setup/factories')
 var passport = require('passport')
+const OIDCAdapter = require('../../../api/services/oidc/KnexAdapter')
 
 describe('SessionController.findUser', () => {
   var u1, u2
@@ -145,41 +146,43 @@ describe('SessionController', function () {
         .then(t => token = t)
     })
 
-    it('logs a user in and redirects (Web/GET request)', () => {
-      _.extend(req.params, {u: user.id, t: token})
-      req.method = 'GET'
+    const tokenRequest = (method, params) => {
+      const tokenReq = factories.mock.request()
+      _.extend(tokenReq.params, { u: user.id, t: token }, params)
+      tokenReq.method = method
+      return tokenReq
+    }
 
-      return SessionController.createWithToken(req, res)
-        .then(() => {
-          expect(UserSession.login).to.have.been.called()
-          expect(res.redirect).to.have.been.called()
-          expect(res.redirected).to.equal(Frontend.Route.evo.passwordSetting())
-        })
+    it('does not log in with a valid token, and forwards web links to the linked page', () => {
+      const next = Frontend.Route.evo.passwordSetting()
+      const tokenReq = tokenRequest('GET', { n: next })
+      const tokenRes = factories.mock.response()
+
+      SessionController.createWithToken(tokenReq, tokenRes)
+
+      expect(UserSession.login).not.to.have.been.called()
+      expect(tokenReq.session.userId).to.equal(undefined)
+      expect(tokenRes.redirected).to.equal(next)
     })
 
-    it("logs a user in doesn't redirect (API/POST request)", () => {
-      _.extend(req.params, {u: user.id, t: token})
-      req.method = 'POST'
+    it('sends web links without a next page to the login page', () => {
+      const tokenRes = factories.mock.response()
 
-      res = factories.mock.response()
-      return SessionController.createWithToken(req, res)
-        .then(() => {
-          expect(UserSession.login).to.have.been.called()
-          expect(res.redirect).not.to.have.been.called()
-          expect(res.ok).to.have.been.called()
-        })
+      SessionController.createWithToken(tokenRequest('GET'), tokenRes)
+
+      expect(tokenRes.redirected).to.equal(`${Frontend.Route.prefix}/login`)
     })
 
-    it('rejects an invalid token', () => {
-      var error
-      _.extend(req.params, {u: user.id, t: token + 'x'})
-      res.send = spy(function (msg) { error = msg })
+    it('rejects API (POST) requests', () => {
+      let error
+      const tokenRes = factories.mock.response()
+      tokenRes.send = spy(function (msg) { error = msg })
 
-      return SessionController.createWithToken(req, res)
-        .then(() => {
-          expect(res.send).to.have.been.called()
-          expect(error).to.equal('Link expired')
-        })
+      SessionController.createWithToken(tokenRequest('POST'), tokenRes)
+
+      expect(UserSession.login).not.to.have.been.called()
+      expect(tokenRes.statusCode).to.equal(422)
+      expect(error).to.equal('Link expired')
     })
   })
 
@@ -244,6 +247,8 @@ describe('SessionController', function () {
         .then(() => user.generateJWT())
         .then(t => token = t)
       req.url = `https://hylo.com?u=${user.id}&token=${token}`
+      // the checkJWT policy logs the user in before this action runs
+      req.session.userId = user.id
     })
 
     it('for valid JWT and GET it will redirect', () => {
@@ -324,5 +329,39 @@ describe('SessionController', function () {
           expect(error).to.equal('Invalid link, please try again')
         })
     })
+  })
+})
+
+describe('SessionController.fromToken', () => {
+  const tokenId = 'from-token-test-access-token'
+  let user
+
+  before(async () => {
+    user = await factories.user().save()
+    await new OIDCAdapter('AccessToken').upsert(tokenId, {
+      accountId: String(user.id),
+      exp: Math.floor(Date.now() / 1000) + 3600
+    }, 3600)
+  })
+
+  after(() => new OIDCAdapter('AccessToken').destroy(tokenId))
+
+  it('logs the user into a new session, not the one the WebView already had', async () => {
+    const req = factories.mock.request()
+    req.headers.authorization = `Bearer ${tokenId}`
+    const oldSession = req.session
+    oldSession.userId = 999
+    oldSession.regenerate = spy(cb => {
+      req.session = {}
+      cb()
+    })
+    const res = factories.mock.response()
+
+    await SessionController.fromToken(req, res)
+
+    expect(oldSession.regenerate).to.have.been.called()
+    expect(req.session).to.not.equal(oldSession)
+    expect(req.session.userId).to.equal(user.id)
+    expect(res.ok).to.have.been.called()
   })
 })
