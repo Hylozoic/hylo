@@ -1452,7 +1452,10 @@ module.exports = bookshelf.Model.extend(merge({
       await Queue.classMethod('Group', 'geocodeLocation', { groupId: group.id })
     }
 
-    await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
+    // Internal alert to NEW_GROUP_EMAIL. Spaces are not new top-level groups.
+    if (group.get('type') !== 'space') {
+      await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
+    }
 
     // Send email to creator
     await Queue.classMethod('Group', 'sendGroupCreatedEmail', { groupId: group.id })
@@ -1709,6 +1712,7 @@ module.exports = bookshelf.Model.extend(merge({
   notifyAboutCreate: function (opts) {
     return Group.find(opts.groupId, { withRelated: ['creator'] })
       .then(g => {
+        if (!g || g.get('type') === 'space') return
         const creator = g.relations.creator
         const recipient = process.env.NEW_GROUP_EMAIL
         const L = getLocaleStrings(creator.getLocale())
