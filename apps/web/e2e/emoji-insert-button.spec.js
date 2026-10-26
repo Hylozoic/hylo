@@ -91,6 +91,36 @@ test('post editor: emoji goes into the last focused of title and body', async ({
 
   // Not offered for link fields: only one emoji button in the editor
   await expect(button).toHaveCount(1)
+
+  // Same size as its neighbours in the icon row: the icon matches the location pin's svg,
+  // the clickable box matches the font icons' (attach image / file)
+  const sizes = await page.evaluate(() => {
+    const box = (el) => {
+      const r = el.getBoundingClientRect()
+      return { width: Math.round(r.width), height: Math.round(r.height), centerY: Math.round(r.y + r.height / 2) }
+    }
+    const emoji = document.querySelector('[data-testid="post-editor-emoji-button"]')
+    const row = emoji.parentElement
+    return {
+      emojiButton: box(emoji),
+      emojiIcon: box(emoji.querySelector('svg')),
+      imageIcon: box(row.querySelector('[data-testid="add-image-icon"]')),
+      fileIcon: box(row.querySelector('[data-testid="add-file-icon"]')),
+      locationIcon: row.querySelector('svg.lucide-map-pin') ? box(row.querySelector('svg.lucide-map-pin')) : null
+    }
+  })
+  await test.info().attach('icon-row-sizes', { body: JSON.stringify(sizes, null, 2), contentType: 'application/json' })
+  expect(sizes.emojiButton.width).toBe(sizes.fileIcon.width)
+  expect(sizes.emojiButton.height).toBe(sizes.fileIcon.width)
+  if (sizes.locationIcon) {
+    expect(sizes.emojiIcon.width).toBe(sizes.locationIcon.width)
+    expect(sizes.emojiIcon.height).toBe(sizes.locationIcon.height)
+  }
+  expect(Math.abs(sizes.emojiButton.centerY - sizes.fileIcon.centerY)).toBeLessThanOrEqual(2)
+  const iconRow = button.locator('xpath=../..')
+  await test.info().attach('icon-row', { body: await iconRow.screenshot(), contentType: 'image/png' })
+  if (SCREENSHOT_DIR) await iconRow.screenshot({ path: `${SCREENSHOT_DIR}/issue-1682-post-editor-icons-${test.info().project.name}.png` })
+
   await button.click()
   await expect(page.locator('em-emoji-picker')).toBeVisible(uiTimeout)
   await screenshot(page, 'post-editor')
