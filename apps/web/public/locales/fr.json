@@ -3111,6 +3111,14 @@
   "Incorrect email or password.": "Adresse e-mail ou mot de passe incorrect.",
   "If you signed up with Google, log in with Google instead.": "Si vous vous êtes inscrit avec Google, connectez-vous plutôt avec Google.",
   "Too many attempts. Please wait a few minutes and try again.": "Trop de tentatives. Veuillez patienter quelques minutes et réessayer.",
+  "Cancel email change": "Annuler le changement d'adresse e-mail",
+  "Confirm your new email address": "Confirmez votre nouvelle adresse e-mail",
+  "Email change cancelled": "Changement d'adresse e-mail annulé",
+  "That email address is already in use": "Cette adresse e-mail est déjà utilisée",
+  "Verification code": "Code de vérification",
+  "We sent a 6 digit code to {{pendingEmail}}. Until you enter it, {{email}} stays the email for logging in and notifications.": "Nous avons envoyé un code à 6 chiffres à {{pendingEmail}}. Tant que vous ne l'avez pas saisi, {{email}} reste l'adresse utilisée pour la connexion et les notifications.",
+  "We sent a verification code to {{email}}": "Nous avons envoyé un code de vérification à {{email}}",
+  "Your email address is now {{email}}": "Votre adresse e-mail est maintenant {{email}}",
   "You still have access to {{name}}": "Vous avez toujours accès à {{name}}",
   "You are not currently a member of {{name}}, but your access is still valid. Rejoin to participate again.": "Vous n’êtes actuellement pas membre de {{name}}, mais votre accès est toujours valide. Rejoignez le groupe pour participer à nouveau.",
   "Rejoin {{name}}": "Rejoindre {{name}}",
@@ -3144,5 +3152,7 @@
   "Maybe later": "Peut-être plus tard",
   "Create free account": "Créer un compte gratuit",
   "Settings changes stay in the demo": "Les modifications des paramètres restent dans la démo",
-  "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.": "Essayez tous les outils d'administration que vous voulez — rien n'est enregistré ici. Inscrivez-vous pour créer votre propre groupe et le configurer pour de vrai."
+  "Try out every admin tool you like — nothing here is saved. Sign up to create your own group and set it up for real.": "Essayez tous les outils d'administration que vous voulez — rien n'est enregistré ici. Inscrivez-vous pour créer votre propre groupe et le configurer pour de vrai.",
+  "Date": "Date",
+  "Time": "Heure"
 }

@@ -58,6 +58,8 @@
   width: 100%;
   height: 100%;
   overflow-y: auto;
+  /* A child that overflows sideways must never make the modal scroll (and shift) horizontally */
+  overflow-x: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -77,6 +79,7 @@
 .create-modal-wrapper {
   width: 100%;
   max-width: 800px;
+  min-width: 0;
   margin-top: auto;
   margin-bottom: auto;
   position: relative;
