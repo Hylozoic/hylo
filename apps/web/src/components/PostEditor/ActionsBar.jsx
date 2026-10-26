@@ -3,6 +3,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import Button from 'components/Button'
+import EmojiInsertButton from 'components/EmojiInsertButton'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import SendAnnouncementModal from 'components/SendAnnouncementModal'
@@ -24,6 +25,7 @@ export default function ActionsBar ({
   loading,
   submitting = false,
   myAdminGroups,
+  onInsertEmoji,
   setAnnouncementSelected,
   setShowLocation,
   doSave, // Pops up announcement modal first if announcement is selected
@@ -102,6 +104,15 @@ export default function ActionsBar ({
               id='announcement-tt'
             />
           </span>
+        )}
+        {onInsertEmoji && (
+          <EmojiInsertButton
+            onSelect={onInsertEmoji}
+            className='w-8 h-8 text-foreground hover:text-[#0DC39F]'
+            iconClassName='w-6 h-6'
+            dataTestId='post-editor-emoji-button'
+            align='start'
+          />
         )}
         {showAnnouncementModal && (
           <SendAnnouncementModal

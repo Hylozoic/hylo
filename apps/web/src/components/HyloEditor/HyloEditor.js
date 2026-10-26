@@ -269,6 +269,12 @@ const HyloEditor = React.forwardRef(({
     getText: () => {
       return editorRef.current.getText()
     },
+    // Inserts at the editor's cursor (or replaces the selection) as one undoable step
+    insertContent: content => {
+      if (editorRef.current) {
+        editorRef.current.chain().focus().insertContent(content).run()
+      }
+    },
     isEmpty: () => {
       return editorRef.current ? editorRef.current.isEmpty : true
     },
