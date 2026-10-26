@@ -114,6 +114,17 @@ test('touch: action menu Edit opens the post editor route, and saving returns to
   const editedPost = page.getByTestId('chat-post').filter({ hasText: edited })
   await expect(editedPost).toBeVisible(uiTimeout)
   await expect(editedPost).toBeInViewport()
+  // Saved with the chat room's group (the chat room loads posts without their groups)
+  const savedGroups = await page.evaluate(async (id) => {
+    const res = await fetch('/noo/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ query: 'query ($id: ID) { post(id: $id) { groups { slug } } }', variables: { id } })
+    })
+    return (await res.json()).data.post.groups.map(g => g.slug)
+  }, postId)
+  expect(savedGroups).toEqual([GROUP])
   if (screenshotDir && fs.existsSync(screenshotDir)) {
     await page.screenshot({ path: path.join(screenshotDir, 'issue-1683-touch-after-save.png') })
   }
