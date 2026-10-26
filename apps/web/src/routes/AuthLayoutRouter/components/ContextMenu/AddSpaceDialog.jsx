@@ -44,7 +44,7 @@ import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
 import AutoAddMembersSetting from './AutoAddMembersSetting'
-import { accessOptionsForGroup, toIsoOrNull } from './spaceFormConstants'
+import { accessOptionsForGroup, toMinuteIsoOrNull } from './spaceFormConstants'
 
 const STANDARD_VIEW_TYPES = new Set([
   'all',
@@ -473,10 +473,10 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       } else if (newSpace?.id && spaceType === 'funding-round') {
         await dispatch(createFundingRound({
           groupId: newSpace.id,
-          submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
-          submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
-          votingOpensAt: toIsoOrNull(frVotingOpensAt),
-          votingClosesAt: toIsoOrNull(frVotingClosesAt),
+          submissionsOpenAt: toMinuteIsoOrNull(frSubmissionsOpenAt),
+          submissionsCloseAt: toMinuteIsoOrNull(frSubmissionsCloseAt),
+          votingOpensAt: toMinuteIsoOrNull(frVotingOpensAt),
+          votingClosesAt: toMinuteIsoOrNull(frVotingClosesAt),
           votingMethod: frVotingMethod,
           totalTokens: frTotalTokens === '' ? null : Number(frTotalTokens),
           tokenType: frTokenType,

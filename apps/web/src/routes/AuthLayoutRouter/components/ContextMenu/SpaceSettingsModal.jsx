@@ -39,7 +39,7 @@ import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
 import AutoAddMembersSetting from './AutoAddMembersSetting'
-import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
+import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toMinuteIsoOrNull } from './spaceFormConstants'
 import { geoShapeForApi, groupFieldLoaded, spaceLocation } from './spaceLocation'
 
 function toDateOrNull (value) {
@@ -528,10 +528,10 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       if (fundingRound?.id) {
         await dispatch(updateFundingRound({
           id: fundingRound.id,
-          submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
-          submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
-          votingOpensAt: toIsoOrNull(frVotingOpensAt),
-          votingClosesAt: toIsoOrNull(frVotingClosesAt),
+          submissionsOpenAt: toMinuteIsoOrNull(frSubmissionsOpenAt),
+          submissionsCloseAt: toMinuteIsoOrNull(frSubmissionsCloseAt),
+          votingOpensAt: toMinuteIsoOrNull(frVotingOpensAt),
+          votingClosesAt: toMinuteIsoOrNull(frVotingClosesAt),
           votingMethod: frVotingMethod,
           totalTokens: frTotalTokens === '' ? null : Number(frTotalTokens),
           tokenType: frTokenType,
