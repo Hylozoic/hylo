@@ -6,6 +6,9 @@ import { AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testin
 import GlobalNav from './GlobalNav'
 
 const mockNavigate = jest.fn()
+let mockRouteParams = {}
+
+jest.mock('hooks/useRouteParams', () => () => mockRouteParams)
 
 jest.mock('react-use-intercom', () => ({
   useIntercom: () => ({ show: () => {} })
@@ -138,14 +141,35 @@ describe('GlobalNav', () => {
     // A space with its own avatar still shows the parent avatar full-frame, with the space avatar as the badge
     const customAvatarTile = screen.getByTestId('global-nav-space-custom-space-id')
     expect(customAvatarTile).toHaveStyle({ backgroundImage: 'url(/parent-avatar.jpg)' })
-    expect(screen.getByTestId('pinned-space-badge-avatar-custom-space-id').style.backgroundImage).toContain('space-avatar.jpg')
+    expect(screen.getByTestId('pinned-space-avatar-custom-space-id').style.backgroundImage).toContain('space-avatar.jpg')
 
     // A space with neither icon nor avatar falls back to the default space glyph
-    expect(screen.getByTestId('pinned-space-badge-default-no-icon-space-id')).toBeInTheDocument()
+    expect(screen.getByTestId('pinned-space-default-icon-no-icon-space-id')).toBeInTheDocument()
 
     fireEvent.click(pinnedSpace)
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/groups/parent/spaces/space')
     })
+  })
+
+  it('selects only the pinned space, not its parent group, while the space is open', async () => {
+    mockGlobalNavRequests()
+    mockRouteParams = { context: 'groups', groupSlug: 'parent', spaceSlug: 'space' }
+    try {
+      render(
+        <GlobalNav
+          currentUser={{ id: '1', settings: { alreadySeenTour: true } }}
+          routeParams={mockRouteParams}
+        />,
+        { wrapper: AllTheProviders(stateWithPinnedSpace(), ['/groups/parent/spaces/space']) }
+      )
+
+      const pinnedSpace = await screen.findByTestId('global-nav-space-space-id')
+      expect(pinnedSpace).toHaveClass('border-selected')
+      expect(screen.getByRole('button', { name: 'Parent' })).not.toHaveClass('border-selected')
+      expect(screen.getByTestId('global-nav-space-custom-space-id')).not.toHaveClass('border-selected')
+    } finally {
+      mockRouteParams = {}
+    }
   })
 })

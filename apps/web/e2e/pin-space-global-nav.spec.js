@@ -18,8 +18,9 @@ test.describe.configure({ timeout: 240000 })
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 
 const SPACES = {
-  chromium: { parent: 'e2e-one-column-group', space: 'e2e-one-column-space', name: 'E2E One Column Space' },
-  'mobile-chrome': { parent: 'e2e-public-group', space: 'e2e-test-space', name: 'E2E Test Space' }
+  // parentInitials: what the parent group's default avatar shows (seeded groups have no avatar image)
+  chromium: { parent: 'e2e-one-column-group', space: 'e2e-one-column-space', name: 'E2E One Column Space', parentName: 'E2E One Column Group', parentInitials: 'EO' },
+  'mobile-chrome': { parent: 'e2e-public-group', space: 'e2e-test-space', name: 'E2E Test Space', parentName: 'E2E Public Group', parentInitials: 'EP' }
 }
 
 const PIN_LABEL = 'Pin space to global navigation'
@@ -71,9 +72,12 @@ test('pin a space from its About page, see it in the global nav, then unpin it',
   await navItem.scrollIntoViewIfNeeded()
   await expect(navItem).toBeVisible()
 
-  // Parent group avatar fills the tile; the space's icon is a small corner badge
+  // The parent group's avatar fills the tile (an image, or the default avatar's
+  // initials of the PARENT's name, not the space's); the space's icon is a small corner badge
   const tileBackground = await navItem.evaluate(el => el.style.backgroundImage)
-  expect(tileBackground).toMatch(/^url\(/)
+  if (!tileBackground.startsWith('url(')) {
+    await expect(navItem.locator('.GlobalNavItemDefaultAvatarText')).toHaveText(target.parentInitials)
+  }
   const badge = navItem.locator('[data-testid^="pinned-space-badge-"]')
   await expect(badge).toBeVisible()
   const [tileBox, badgeBox] = await Promise.all([navItem.boundingBox(), badge.boundingBox()])
@@ -86,6 +90,8 @@ test('pin a space from its About page, see it in the global nav, then unpin it',
   await expect(page).toHaveURL(new RegExp(`/groups/${target.parent}/spaces/${target.space}`), { timeout: 30000 })
   await openGlobalNavDrawerIfNeeded(page)
   await expect(navItem).toHaveClass(/border-selected/)
+  // ...and its parent group's own item doesn't also show as selected
+  await expect(page.locator(`.GlobalNavItem [aria-label="${target.parentName}"]`)).not.toHaveClass(/border-selected/)
   await page.screenshot({ path: shot('global-nav-pinned') })
   await navItem.screenshot({ path: shot('global-nav-item'), animations: 'disabled' }).catch(() => {})
 

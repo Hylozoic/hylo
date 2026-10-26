@@ -28,6 +28,7 @@ import { baseUrl, myHomeLandingUrl, isMyHomeContext, localSpaceSlug } from '@hyl
  * @param {number} index - Position in nav list for staggered animations
  * @param {Array} childGroups - Subgroups; when present the item shows a stack of avatars and opens a dropdown on click
  * @param {ReactNode} cornerBadge - Small tile drawn over the avatar's bottom-right corner (a pinned space's icon over its parent group's avatar)
+ * @param {boolean} selectionHeldBySpace - This group's pinned space is open, so the space item shows as selected instead
  * @param {string} avatarName - Name whose initials stand in for a default avatar; defaults to the tooltip
  */
 export default function GlobalNavItem ({
@@ -49,6 +50,7 @@ export default function GlobalNavItem ({
   childGroups = [],
   cornerBadge,
   avatarName,
+  selectionHeldBySpace = false,
   dataTour,
   dataTestId
 }) {
@@ -56,7 +58,7 @@ export default function GlobalNavItem ({
   const routeParams = useRouteParams()
   const hasChildren = childGroups && childGroups.length > 0
   // A stack is selected when its parent group is active OR when one of its stacked subgroups is the active group.
-  const selected = url === myHomeLandingUrl()
+  const selected = !selectionHeldBySpace && (url === myHomeLandingUrl()
     ? isMyHomeContext(routeParams.context)
     : navItemType === 'space'
       ? routeParams.groupSlug === parentSlug &&
@@ -64,7 +66,7 @@ export default function GlobalNavItem ({
       : (
           baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug }) === url ||
           (hasChildren && childGroups.some(child => child.slug === routeParams.groupSlug))
-        )
+        ))
   const [isHovered, setIsHovered] = useState(false)
   const [open, setOpen] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)

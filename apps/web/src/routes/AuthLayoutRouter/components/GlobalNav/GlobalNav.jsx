@@ -66,7 +66,7 @@ import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
-import { createGroupModalUrl, createPostModalUrl, newMessageUrl, personUrl, myHomeLandingUrl } from '@hylo/navigation'
+import { createGroupModalUrl, createPostModalUrl, newMessageUrl, personUrl, myHomeLandingUrl, localSpaceSlug } from '@hylo/navigation'
 import { spaceEntryUrl } from 'routes/AuthLayoutRouter/components/ContextMenu/groupViewMenuUrl'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import {
@@ -79,6 +79,7 @@ import {
   LOCALE_PT
 } from '@hylo/shared'
 import useAppearance from 'hooks/useAppearance'
+import useRouteParams from 'hooks/useRouteParams'
 import { getLocaleFromLocalStorage, normalizeLocaleToFull } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import { availableThemes, getAppearanceFromSettings } from 'util/appearance'
@@ -110,7 +111,7 @@ function isTouchActivatorEvent (event) {
 }
 
 // Sortable wrapper for GlobalNavItem
-function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered, groupRefsMap }) {
+function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered, groupRefsMap, selectionHeldBySpace }) {
   const isSpace = group.navItemType === 'space'
   const {
     attributes,
@@ -163,6 +164,7 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
         parentSlug={group.parentSlug}
         slug={group.slug}
         dataTestId={`global-nav-${group.navItemType}-${group.id}`}
+        selectionHeldBySpace={selectionHeldBySpace}
         isPinned
       />
     </div>
@@ -558,6 +560,16 @@ export default function GlobalNav (props) {
   )
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const pinnedNavItems = useMemo(() => navItems.filter(item => item.navOrder != null), [navItems])
+  // While a pinned space is open, it alone shows as selected, not its parent group too
+  const { groupSlug: routeGroupSlug, spaceSlug: routeSpaceSlug } = useRouteParams()
+  const activeSpaceParentSlug = useMemo(() => {
+    const activeSpace = pinnedNavItems.find(item =>
+      item.navItemType === 'space' &&
+      routeGroupSlug === item.parentSlug &&
+      routeSpaceSlug === localSpaceSlug(item.parentSlug, item.slug)
+    )
+    return activeSpace?.parentSlug || null
+  }, [pinnedNavItems, routeGroupSlug, routeSpaceSlug])
   const unpinnedGroups = useMemo(() => navItems.filter(item => item.navOrder == null), [navItems])
   const compactLayout = isCompactLayoutDevice()
   // The store links only go anywhere on a phone or tablet, so don't offer the
@@ -1133,6 +1145,7 @@ export default function GlobalNav (props) {
                     showTooltip={showLabels}
                     isContainerHovered={showLabels}
                     groupRefsMap={groupRefsMap}
+                    selectionHeldBySpace={group.navItemType !== 'space' && group.slug === activeSpaceParentSlug}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
@@ -1167,6 +1180,7 @@ export default function GlobalNav (props) {
                     className={isVisible(4 + actualIndex)}
                     showTooltip={showLabels}
                     childGroups={group.childGroups}
+                    selectionHeldBySpace={group.slug === activeSpaceParentSlug}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>

@@ -29,12 +29,12 @@ export default function PinnedSpaceBadge ({ space }) {
           <div
             className='w-full h-full bg-cover bg-center'
             style={{ backgroundImage: `url(${presentedSpace.avatarUrl})` }}
-            data-testid={`pinned-space-badge-avatar-${space.id}`}
+            data-testid={`pinned-space-avatar-${space.id}`}
           />
           )
         : hasIcon
           ? <GroupViewIcon view={presentedSpace} className='!m-0 !h-3.5 !w-3.5 shrink-0 text-sm leading-none' />
-          : <Shapes className='h-3.5 w-3.5 shrink-0' data-testid={`pinned-space-badge-default-${space.id}`} />}
+          : <Shapes className='h-3.5 w-3.5 shrink-0' data-testid={`pinned-space-default-icon-${space.id}`} />}
     </div>
   )
 }
