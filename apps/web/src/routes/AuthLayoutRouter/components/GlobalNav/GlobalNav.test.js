@@ -73,7 +73,15 @@ function stateWithPinnedSpace () {
   ormSession.Membership.create({ id: 'm-parent', group: parent.id, person: me.id, navOrder: null })
   ormSession.Membership.create({ id: 'm-space', group: space.id, person: me.id, navOrder: 0 })
   ormSession.Membership.create({ id: 'm-custom-space', group: customAvatarSpace.id, person: me.id, navOrder: 1 })
+  const noIconSpace = ormSession.Group.create({
+    id: 'no-icon-space-id',
+    name: 'No Icon Space',
+    slug: 'parent-no-icon',
+    type: 'space',
+    parentId: parent.id
+  })
   ormSession.Membership.create({ id: 'm-unpinned-space', group: unpinnedSpace.id, person: me.id, navOrder: null })
+  ormSession.Membership.create({ id: 'm-no-icon-space', group: noIconSpace.id, person: me.id, navOrder: 2 })
   return { orm: ormSession.state }
 }
 
@@ -117,20 +125,23 @@ describe('GlobalNav', () => {
 
     const pinnedSpace = await screen.findByTestId('global-nav-space-space-id')
     expect(pinnedSpace).toHaveAttribute('aria-label', 'Pinned Space')
-    const spaceIconBadge = screen.getByTestId('pinned-space-icon-space-id')
-    expect(spaceIconBadge).toHaveClass('top-1', 'left-1', 'h-6', 'w-6', 'rounded-full', 'bg-[hsl(0_0%_17%)]', 'text-white')
+    // The parent group's avatar fills the whole tile, like a group item
+    expect(pinnedSpace).toHaveStyle({ backgroundImage: 'url(/parent-avatar.jpg)' })
+    // The space's icon sits in a small badge in the corner
+    const spaceIconBadge = screen.getByTestId('pinned-space-badge-space-id')
+    expect(pinnedSpace).toContainElement(spaceIconBadge)
+    expect(spaceIconBadge.parentElement).toHaveClass('absolute', '-bottom-1.5', '-right-1.5')
+    expect(spaceIconBadge).toHaveClass('w-6', 'h-6')
     expect(spaceIconBadge.querySelector('svg')).toBeInTheDocument()
-    const spaceAvatarTile = screen.getByTestId('pinned-space-space-avatar-space-id')
-    expect(spaceAvatarTile).toHaveClass('bg-transparent')
-    expect(spaceAvatarTile.style.backgroundImage).toBe('')
-    const parentAvatarTile = screen.getByTestId('pinned-space-parent-avatar-space-id')
-    expect(parentAvatarTile).not.toHaveClass('border-foreground/20')
-    expect(parentAvatarTile.style.backgroundImage).toContain('parent-avatar.jpg')
     expect(screen.queryByRole('button', { name: 'Unpinned Space' })).not.toBeInTheDocument()
 
+    // A space with its own avatar still shows the parent avatar full-frame, with the space avatar as the badge
     const customAvatarTile = screen.getByTestId('global-nav-space-custom-space-id')
-    expect(customAvatarTile).toHaveStyle({ backgroundImage: 'url(/space-avatar.jpg)' })
-    expect(screen.queryByTestId('pinned-space-stack-custom-space-id')).not.toBeInTheDocument()
+    expect(customAvatarTile).toHaveStyle({ backgroundImage: 'url(/parent-avatar.jpg)' })
+    expect(screen.getByTestId('pinned-space-badge-avatar-custom-space-id').style.backgroundImage).toContain('space-avatar.jpg')
+
+    // A space with neither icon nor avatar falls back to the default space glyph
+    expect(screen.getByTestId('pinned-space-badge-default-no-icon-space-id')).toBeInTheDocument()
 
     fireEvent.click(pinnedSpace)
     await waitFor(() => {

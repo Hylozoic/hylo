@@ -27,6 +27,8 @@ import { baseUrl, myHomeLandingUrl, isMyHomeContext, localSpaceSlug } from '@hyl
  * @param {boolean} showTooltip - Whether parent is triggering tooltip cascade
  * @param {number} index - Position in nav list for staggered animations
  * @param {Array} childGroups - Subgroups; when present the item shows a stack of avatars and opens a dropdown on click
+ * @param {ReactNode} cornerBadge - Small tile drawn over the avatar's bottom-right corner (a pinned space's icon over its parent group's avatar)
+ * @param {string} avatarName - Name whose initials stand in for a default avatar; defaults to the tooltip
  */
 export default function GlobalNavItem ({
   children,
@@ -45,6 +47,8 @@ export default function GlobalNavItem ({
   parentSlug,
   slug,
   childGroups = [],
+  cornerBadge,
+  avatarName,
   dataTour,
   dataTestId
 }) {
@@ -300,11 +304,16 @@ export default function GlobalNavItem ({
               />
             )}
             {children}
-            {isDefaultAvatar && <span className='GlobalNavItemDefaultAvatarText relative z-10 text-center text-white text-2xl drop-shadow-md'>{tooltip?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
+            {isDefaultAvatar && <span className='GlobalNavItemDefaultAvatarText relative z-10 text-center text-white text-2xl drop-shadow-md'>{(avatarName || tooltip)?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
           </>
           )}
       {badgeCount > 0 && <Badge number={badgeCount} className='absolute -top-3 -left-3' expanded />}
       {badgeCount === '-' && <Badge number='-' className='absolute -top-3 -left-3 scale-[70%]' expanded />}
+      {cornerBadge && !hasChildren && (
+        <div className='absolute -bottom-1.5 -right-1.5 z-20 pointer-events-none'>
+          {cornerBadge}
+        </div>
+      )}
     </div>
   )
 

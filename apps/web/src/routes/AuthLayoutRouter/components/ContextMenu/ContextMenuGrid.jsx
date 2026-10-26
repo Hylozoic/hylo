@@ -76,7 +76,6 @@ import AddViewOrSpaceMenu from './AddViewOrSpaceMenu'
 import EditingBottomBar, { EDITING_BAR_BUTTON_CLASS } from './EditingBottomBar'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { appendSpaceId, spaceCollectionViews } from 'util/spaceCollection'
-import SpaceGlobalNavPinButton from 'components/SpaceGlobalNavPinButton'
 
 /** Synthetic views so steward-alert and More Spaces cards share the icon wallpaper of real views. */
 const MORE_SPACES_VIEW = { lucideIcon: 'CircleEllipsis' }
@@ -125,9 +124,7 @@ function partitionViewsIntoSections (views) {
  * the full group banner (220px), so the takeover swaps hierarchy without
  * moving the grid below.
  */
-export function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, t }) {
-  const myMemberships = useSelector(getMyMemberships)
-  const membership = myMemberships.find(m => String(m.group?.id) === String(spaceGroup.id))
+function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, t }) {
   const presentedSpaceView = useMemo(() => GroupViewPresenter({
     type: 'space', name: spaceGroup.name, icon: spaceGroup.icon, linkedGroup: spaceGroup
   }), [spaceGroup])
@@ -212,10 +209,6 @@ export function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSet
             <Info className='w-3.5 h-3.5' />
             {t('About')}
           </Link>
-          <SpaceGlobalNavPinButton
-            membership={membership}
-            className={cn('inline-flex items-center justify-center w-8 h-8 rounded-full border transition-colors', pillClass)}
-          />
         </span>
       </div>
     </div>

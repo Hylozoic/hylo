@@ -54,7 +54,7 @@ import {
 import BadgedIcon from 'components/BadgedIcon'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
-import PinnedSpace from './PinnedSpace'
+import PinnedSpaceBadge from './PinnedSpaceBadge'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { getMyGlobalNavItems } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
@@ -111,12 +111,7 @@ function isTouchActivatorEvent (event) {
 
 // Sortable wrapper for GlobalNavItem
 function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered, groupRefsMap }) {
-  const hasCustomSpaceAvatar = Boolean(
-    group.navItemType === 'space' &&
-    group.avatarUrl &&
-    group.avatarUrl !== DEFAULT_AVATAR &&
-    !group.avatarUrl.endsWith('/default-group-avatar.svg')
-  )
+  const isSpace = group.navItemType === 'space'
   const {
     attributes,
     listeners,
@@ -155,9 +150,12 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
     >
       <GlobalNavItem
         badgeCount={group.newPostCount ? '-' : 0}
-        img={group.navItemType === 'space' ? (hasCustomSpaceAvatar ? group.avatarUrl : null) : group.avatarUrl}
+        // A pinned space reads as its parent group, with the space's icon badged in the corner
+        img={isSpace ? (group.parentGroup?.avatarUrl || DEFAULT_AVATAR) : group.avatarUrl}
+        avatarName={isSpace ? group.parentGroup?.name : undefined}
+        cornerBadge={isSpace ? <PinnedSpaceBadge space={group} /> : null}
         tooltip={group.name}
-        url={group.navItemType === 'space' ? spaceEntryUrl(group.parentSlug, group) : `/groups/${group.slug}`}
+        url={isSpace ? spaceEntryUrl(group.parentSlug, group) : `/groups/${group.slug}`}
         className={isVisible}
         showTooltip={isContainerHovered}
         childGroups={group.childGroups}
@@ -166,11 +164,7 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
         slug={group.slug}
         dataTestId={`global-nav-${group.navItemType}-${group.id}`}
         isPinned
-      >
-        {group.navItemType === 'space' && !hasCustomSpaceAvatar && (
-          <PinnedSpace space={group} parentGroup={group.parentGroup} />
-        )}
-      </GlobalNavItem>
+      />
     </div>
   )
 }

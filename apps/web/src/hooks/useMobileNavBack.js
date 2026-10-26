@@ -79,12 +79,11 @@ export default function useMobileNavBack () {
     if (spaceBreadcrumb === false) return null
     return spaceMenuView ? GroupViewPresenter(spaceMenuView) : null
   }, [spaceMenuView, spaceBreadcrumb])
-  const spaceMembership = useMemo(() => {
+  const isSpaceMember = useMemo(() => {
     const spaceId = spaceGroup?.id || spaceMenuView?.linkedGroup?.id
-    if (!spaceId) return null
-    return myMemberships.find(m => String(m.group?.id) === String(spaceId)) || null
+    if (!spaceId) return false
+    return myMemberships.some(m => String(m.group?.id) === String(spaceId))
   }, [spaceGroup, spaceMenuView, myMemberships])
-  const isSpaceMember = Boolean(spaceMembership)
 
   // Single-view detection must not depend on the breadcrumb presenter — back
   // still has to leave the space when the header hides the space crumb.
@@ -156,7 +155,6 @@ export default function useMobileNavBack () {
     oneColumn,
     isSingleViewSpace,
     presentedSpaceView,
-    isSpaceMember,
-    spaceMembership
+    isSpaceMember
   }
 }
