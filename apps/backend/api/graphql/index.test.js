@@ -896,6 +896,45 @@ describe('graphql request handler', () => {
       ])
     })
 
+    it('returns collection posts in manual order from viewPosts', async () => {
+      const firstPost = await factories.post({ type: Post.Type.DISCUSSION, user_id: user.id }).save()
+      const secondPost = await factories.post({ type: Post.Type.DISCUSSION, user_id: user.id }).save()
+      const childGroup = await factories.group().save()
+      await group.addChild(childGroup)
+      await childGroup.addMembers([user.id])
+      await group.posts().attach([firstPost, secondPost])
+      // Same post in a child group duplicates the groups_posts join. Manual order
+      // still has to return one row, in collection order.
+      await childGroup.posts().attach(secondPost)
+
+      const view = await GroupView.forge({
+        group_id: group.id,
+        type: GroupView.Type.COLLECTION,
+        name: 'Collection'
+      }).save()
+      await CollectionPost.create({ view_id: view.id, post_id: secondPost.id, user_id: user.id, order: 0 })
+      await CollectionPost.create({ view_id: view.id, post_id: firstPost.id, user_id: user.id, order: 1 })
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          group(id: "${group.id}") {
+            viewPosts(forCollection: "${view.id}", sortBy: "order", first: 10) {
+              total
+              items { id }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.group.viewPosts.items.map(item => item.id)).to.deep.equal([
+        String(secondPost.id),
+        String(firstPost.id)
+      ])
+      expect(executionResult.data.group.viewPosts.total).to.equal(2)
+    })
+
     describe('with an invalid sort option', () => {
       it('shows an error', async () => {
         const { executionResult } = await handler.inject({
