@@ -29,11 +29,11 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post' } = {}) {
+function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', groups = [{ id: '1', name: 'Test Group' }], details } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
-  const postAttrs = { id: '1', title, type: postType, groups: [{ id: '1', name: 'Test Group' }], topics: [{ name: 'design' }] }
+  const postAttrs = { id: '1', title, type: postType, groups, topics: [{ name: 'design' }], ...(details ? { details } : {}) }
   if (withLinkPreview) {
     ormSession.LinkPreview.create({
       id: 'lp1',
@@ -187,6 +187,16 @@ describe('PostEditor', () => {
       expect(screen.queryByTestId('announcement-icon')).not.toBeInTheDocument()
       expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
       expect(screen.getByText('Editing Chat')).toBeInTheDocument()
+    })
+
+    // The chat room loads posts without their groups; the route's group stands in so the edit can be saved
+    it('uses the route group when the stored chat post has no groups', async () => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      renderComponent({ editing: true }, { postType: 'chat', title: '', groups: [], details: '<p>hello chat</p>' })
+
+      const submit = await screen.findByTestId('post-editor-submit')
+      await waitFor(() => expect(screen.getByText('Editing Chat')).toBeInTheDocument())
+      expect(submit).not.toHaveAttribute('data-tooltip-html', expect.stringContaining('At least one group required'))
     })
   })
 })

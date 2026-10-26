@@ -391,6 +391,9 @@ function PostEditorInner ({
       type: createPostType,
       votingMethod: VOTING_METHOD_SINGLE,
       ...(inputPost || {}),
+      // The chat room loads its posts without their groups. A chat only lives in its
+      // room's group, which the route gives us, so use that (as the inline chat edit does)
+      ...(editing && inputPost?.type === 'chat' && isEmpty(inputPost.groups) && currentGroup ? { groups: [currentGroup] } : {}),
       ...prefilledEventTimes,
       location: inputPost?.location || selectedLocation || '',
       locationId: inputPost?.locationId || null,

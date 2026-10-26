@@ -3,6 +3,14 @@ import { fireEvent, render, screen, AllTheProviders } from 'util/testing/reactTe
 import orm from 'store/models'
 import ChatPost from './index'
 
+const mockNavigate = jest.fn()
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useParams: jest.fn().mockReturnValue({}),
+  useLocation: jest.fn().mockReturnValue({ pathname: '', search: '' }),
+  useNavigate: () => mockNavigate
+}))
+
 function testProviders () {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
@@ -130,5 +138,55 @@ describe('ChatPost', () => {
     fireEvent.click(document.querySelector('[data-tooltip-content="Delete post"]'))
     expect(confirmSpy).toHaveBeenCalled()
     confirmSpy.mockRestore()
+  })
+
+  describe('Edit from the hover action menu', () => {
+    const { useLocation, useParams } = require('react-router-dom')
+    let originalMatchMedia
+
+    beforeEach(() => {
+      mockNavigate.mockClear()
+      originalMatchMedia = window.matchMedia
+      useLocation.mockReturnValue({ pathname: '/groups/foomunity/chat', search: '' })
+      useParams.mockReturnValue({})
+    })
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia
+      useLocation.mockReturnValue({ pathname: '', search: '' })
+      useParams.mockReturnValue({})
+    })
+
+    const mockFinePointer = (fine) => {
+      window.matchMedia = jest.fn().mockImplementation(query => ({
+        matches: fine && query === '(hover: hover) and (pointer: fine)',
+        media: query,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn()
+      }))
+    }
+
+    it('on touch devices, opens the post edit route instead of editing inline', () => {
+      mockFinePointer(false)
+      renderComponent()
+
+      fireEvent.click(document.querySelector('[data-tooltip-content="Edit post"]'))
+
+      expect(mockNavigate).toHaveBeenCalledWith('/groups/foomunity/chat/post/1/edit')
+      expect(screen.queryByTestId('Save')).not.toBeInTheDocument()
+    })
+
+    it('with a mouse, edits inline in the chat room', () => {
+      mockFinePointer(true)
+      renderComponent()
+
+      fireEvent.click(document.querySelector('[data-tooltip-content="Edit post"]'))
+
+      expect(mockNavigate).not.toHaveBeenCalled()
+      expect(screen.getByTestId('Save')).toBeInTheDocument()
+      expect(screen.getByTestId('Cancel')).toBeInTheDocument()
+    })
   })
 })
