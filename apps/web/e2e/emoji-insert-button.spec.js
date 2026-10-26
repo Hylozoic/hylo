@@ -92,31 +92,50 @@ test('post editor: emoji goes into the last focused of title and body', async ({
   // Not offered for link fields: only one emoji button in the editor
   await expect(button).toHaveCount(1)
 
-  // Same size as its neighbours in the icon row: the icon matches the location pin's svg,
-  // the clickable box matches the font icons' (attach image / file)
+  // Same size as its neighbours in the icon row. Each neighbour's clickable box is the row child that
+  // contains it; its icon is its <svg> (Lucide), or the font-icon span itself. Works whether the
+  // attach icons are font icons or Lucide svgs in 32x32 boxes.
   const sizes = await page.evaluate(() => {
     const box = (el) => {
+      if (!el) return null
       const r = el.getBoundingClientRect()
       return { width: Math.round(r.width), height: Math.round(r.height), centerY: Math.round(r.y + r.height / 2) }
     }
     const emoji = document.querySelector('[data-testid="post-editor-emoji-button"]')
     const row = emoji.parentElement
+    const neighbour = (selector) => {
+      const target = row.querySelector(selector)
+      if (!target) return null
+      const clickable = [...row.children].find(child => child.contains(target))
+      const svg = target.tagName.toLowerCase() === 'svg' ? target : target.querySelector('svg')
+      return { clickable: box(clickable), icon: box(svg || target), isSvg: !!svg }
+    }
     return {
       emojiButton: box(emoji),
       emojiIcon: box(emoji.querySelector('svg')),
-      imageIcon: box(row.querySelector('[data-testid="add-image-icon"]')),
-      fileIcon: box(row.querySelector('[data-testid="add-file-icon"]')),
-      locationIcon: row.querySelector('svg.lucide-map-pin') ? box(row.querySelector('svg.lucide-map-pin')) : null
+      image: neighbour('[data-testid="add-image-icon"]'),
+      file: neighbour('[data-testid="add-file-icon"]'),
+      location: neighbour('svg.lucide-map-pin')
     }
   })
+  console.log('icon row sizes', JSON.stringify(sizes))
   await test.info().attach('icon-row-sizes', { body: JSON.stringify(sizes, null, 2), contentType: 'application/json' })
-  expect(sizes.emojiButton.width).toBe(sizes.fileIcon.width)
-  expect(sizes.emojiButton.height).toBe(sizes.fileIcon.width)
-  if (sizes.locationIcon) {
-    expect(sizes.emojiIcon.width).toBe(sizes.locationIcon.width)
-    expect(sizes.emojiIcon.height).toBe(sizes.locationIcon.height)
+  expect(sizes.emojiButton.height).toBe(sizes.emojiButton.width)
+  for (const name of ['image', 'file', 'location']) {
+    const n = sizes[name]
+    if (!n) continue
+    // Clickable box as wide as the attach buttons' (the location pin had no box of its own before #1694)
+    if (name !== 'location') expect(sizes.emojiButton.width, `${name} box width`).toBe(n.clickable.width)
+    // Vertically centred with every neighbour
+    expect(Math.abs(sizes.emojiButton.centerY - n.clickable.centerY), `${name} centre`).toBeLessThanOrEqual(2)
+    // Icon the same size as the neighbour's svg icon (font icons have no svg to compare)
+    if (n.isSvg) {
+      expect(sizes.emojiIcon.width, `${name} icon width`).toBe(n.icon.width)
+      expect(sizes.emojiIcon.height, `${name} icon height`).toBe(n.icon.height)
+    }
   }
-  expect(Math.abs(sizes.emojiButton.centerY - sizes.fileIcon.centerY)).toBeLessThanOrEqual(2)
+  expect(sizes.image || sizes.file, 'attach icons present').toBeTruthy()
+  expect([sizes.image, sizes.file, sizes.location].some(n => n?.isSvg), 'at least one svg neighbour to compare the icon with').toBe(true)
   const iconRow = button.locator('xpath=../..')
   await test.info().attach('icon-row', { body: await iconRow.screenshot(), contentType: 'image/png' })
   if (SCREENSHOT_DIR) await iconRow.screenshot({ path: `${SCREENSHOT_DIR}/issue-1682-post-editor-icons-${test.info().project.name}.png` })
