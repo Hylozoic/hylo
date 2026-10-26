@@ -56,7 +56,7 @@ it('does not submit if name is not present, even if password is valid', async ()
 
   mockGraphqlServer.use(
     graphql.mutation('Register', ({ query, variables }) => {
-      registerCalled(req.variables)
+      registerCalled(variables)
 
       // this return is required, results are ignored
       return HttpResponse.json({

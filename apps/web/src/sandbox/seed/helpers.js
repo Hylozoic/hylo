@@ -15,6 +15,7 @@ const KIND = {
   me: 1,
   person: 10,
   role: 11,
+  responsibility: 22,
   location: 12,
   track: 13,
   'track-action': 14,
@@ -62,6 +63,7 @@ const TOKEN = {
   'track-space': 6,
   'funding-space': 7,
   'chat-main': 8,
+  'hub-chat': 26,
   'track-actions': 9,
   'track-chat': 14,
   'track-members': 15,
@@ -71,6 +73,8 @@ const TOKEN = {
   'simple-requests': 21,
   'simple-projects': 22,
   'simple-members': 23,
+  'simple-map': 24,
+  'simple-events': 25,
   'staff-chat': 13,
   'staff-all': 16,
   'staff-requests': 18,
@@ -139,6 +143,40 @@ export function materializeOffset (offsetSeconds, now = Date.now()) {
   return new Date(now + offsetSeconds * 1000).toISOString()
 }
 
+/** Wall-clock parts of `date` in `timeZone`, read back as a UTC timestamp. */
+function zoneWallClockAsUtc (date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }).formatToParts(date)
+  const get = type => Number(parts.find(part => part.type === type).value)
+  return Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
+}
+
+/**
+ * ISO timestamp for a clock time `days` from now in a zone.
+ * Used so demo events stay on one local calendar day no matter when the page loads.
+ */
+export function materializeLocalTime ({ days = 0, hour = 10, minute = 0, timeZone = 'America/Los_Angeles' }, now = Date.now()) {
+  const wall = zoneWallClockAsUtc(new Date(now), timeZone)
+  const target = new Date(wall)
+  target.setUTCDate(target.getUTCDate() + days)
+  target.setUTCHours(hour, minute, 0, 0)
+  const wallUtc = target.getTime()
+  let utc = wallUtc
+  for (let i = 0; i < 3; i++) {
+    const offset = zoneWallClockAsUtc(new Date(utc), timeZone) - utc
+    utc = wallUtc - offset
+  }
+  return new Date(utc).toISOString()
+}
+
 /**
  * Walk seed objects and replace *_offset fields with absolute ISO dates.
  */
@@ -152,6 +190,11 @@ export function materializeTimestamps (value, now = Date.now()) {
       if (key.endsWith('_offset') && typeof val === 'number') {
         const targetKey = key.replace(/_offset$/, '')
         out[targetKey] = materializeOffset(val, now)
+        continue
+      }
+      if (key.endsWith('_local') && val && typeof val === 'object') {
+        const targetKey = key.replace(/_local$/, '')
+        out[targetKey] = materializeLocalTime(val, now)
         continue
       }
       out[key] = materializeTimestamps(val, now)

@@ -57,6 +57,54 @@ describe('GroupMembership', () => {
     })
   })
 
+  describe('dropRolesOnDeactivate', () => {
+    it('deletes role assignments when the membership is deactivated', async () => {
+      const group = await factories.group().save()
+      const user = await factories.user().save()
+      await user.joinGroup(group)
+      await GroupRole.setupSystemRoles(group.id)
+      const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+      await MemberGroupRole.forge({
+        user_id: user.id,
+        group_id: group.id,
+        group_role_id: hostRole.id,
+        active: true
+      }).save()
+
+      const membership = await GroupMembership.forPair(user, group).fetch()
+      await membership.save({ active: false }, { patch: true })
+
+      const roles = await MemberGroupRole.where({ user_id: user.id, group_id: group.id }).fetchAll()
+      expect(roles.length).to.equal(0)
+    })
+
+    it('keeps parent-group roles when a space membership is deactivated', async () => {
+      const group = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: group.id,
+        slug: `space-roles-${Date.now()}`
+      }).save()
+      const user = await factories.user().save()
+      await group.addMembers([user.id])
+      await space.addMembers([user.id])
+      await GroupRole.setupSystemRoles(group.id)
+      const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+      await MemberGroupRole.forge({
+        user_id: user.id,
+        group_id: group.id,
+        group_role_id: hostRole.id,
+        active: true
+      }).save()
+
+      const spaceMembership = await GroupMembership.forPair(user, space).fetch()
+      await spaceMembership.save({ active: false }, { patch: true })
+
+      const roles = await MemberGroupRole.where({ user_id: user.id, group_id: group.id }).fetchAll()
+      expect(roles.length).to.equal(1)
+    })
+  })
+
   describe('updateLastViewedAt', () => {
     let u, g1, gm
 

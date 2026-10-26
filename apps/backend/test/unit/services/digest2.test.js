@@ -478,6 +478,158 @@ describe('group digest v2', () => {
       })
     })
 
+    it('omits comment summaries for posts already included in the daily digest', async () => {
+      const data = {
+        group_id: '77',
+        group_name: 'foo',
+        group_url: 'https://www.hylo.com/groups/foo',
+        requests: [],
+        events: [],
+        projects: [],
+        resources: [],
+        chats: [],
+        offers: [],
+        discussions: [
+          {
+            id: 21,
+            title: 'New today',
+            user: u4.attributes,
+            comments: [],
+            url: 'https://www.hylo.com/all/post/21'
+          }
+        ],
+        posts_with_new_comments: [
+          {
+            id: 21,
+            title: 'New today',
+            user: u4.attributes,
+            comments: [{ id: 1, user: u3.attributes, text: 'nice' }],
+            comment_count: 1,
+            url: 'https://www.hylo.com/all/post/21'
+          },
+          {
+            id: 22,
+            title: 'Older post',
+            user: u4.attributes,
+            comments: [{ id: 2, user: u3.attributes, text: 'also' }],
+            comment_count: 1,
+            url: 'https://www.hylo.com/all/post/22'
+          }
+        ]
+      }
+
+      const daily = await personalizeData(user, 'daily', data)
+      expect(daily.discussions.map(d => d.id)).to.deep.equal([21])
+      expect(daily.posts_with_new_comments.map(p => p.id)).to.deep.equal([22])
+
+      const weekly = await personalizeData(user, 'weekly', data)
+      expect(weekly.discussions.map(d => d.id)).to.deep.equal([21])
+      expect(weekly.posts_with_new_comments.map(p => p.id).sort()).to.deep.equal([21, 22])
+    })
+
+    it('omits comments on posts by blocked users', async () => {
+      const blockedAuthor = await factories.user().save()
+      await factories.blockedUser({
+        user_id: user.id,
+        blocked_user_id: blockedAuthor.id
+      }).save()
+
+      const data = {
+        group_id: '77',
+        group_name: 'foo',
+        group_url: 'https://www.hylo.com/groups/foo',
+        requests: [],
+        events: [],
+        projects: [],
+        resources: [],
+        chats: [],
+        offers: [],
+        discussions: [
+          {
+            id: 41,
+            title: 'From someone I blocked',
+            user: { id: String(blockedAuthor.id), name: 'Blocked', avatar_url: 'http://example.com/a.png' },
+            comments: [],
+            url: 'https://www.hylo.com/all/post/41'
+          },
+          {
+            id: 42,
+            title: 'From someone else',
+            user: u4.attributes,
+            comments: [],
+            url: 'https://www.hylo.com/all/post/42'
+          }
+        ],
+        posts_with_new_comments: [
+          {
+            id: 41,
+            title: 'From someone I blocked',
+            user: { id: Number(blockedAuthor.id), name: 'Blocked', avatar_url: 'http://example.com/a.png' },
+            comments: [{ id: 7, user: u3.attributes, text: 'on a blocked post' }],
+            comment_count: 1,
+            url: 'https://www.hylo.com/all/post/41'
+          },
+          {
+            id: 43,
+            title: 'Older post',
+            user: u4.attributes,
+            comments: [
+              { id: 8, user: u3.attributes, text: 'ok' },
+              { id: 9, user: { id: blockedAuthor.id, name: 'Blocked', avatar_url: 'http://example.com/a.png' }, text: 'from blocked person' }
+            ],
+            comment_count: 2,
+            url: 'https://www.hylo.com/all/post/43'
+          }
+        ]
+      }
+
+      const daily = await personalizeData(user, 'daily', data)
+      expect(daily.discussions.map(d => d.id)).to.deep.equal([42])
+      expect(daily.posts_with_new_comments.map(p => p.id)).to.deep.equal([43])
+      expect(daily.posts_with_new_comments[0].comments.map(c => c.id)).to.deep.equal([8])
+      expect(daily.posts_with_new_comments[0].comment_count).to.equal(1)
+
+      const weekly = await personalizeData(user, 'weekly', data)
+      expect(weekly.posts_with_new_comments.map(p => p.id)).to.deep.equal([43])
+    })
+
+    it('keeps daily comment summaries when the new post was filtered out for this recipient', async () => {
+      const data = {
+        group_id: '77',
+        group_name: 'foo',
+        group_url: 'https://www.hylo.com/groups/foo',
+        requests: [],
+        events: [],
+        projects: [],
+        resources: [],
+        chats: [],
+        offers: [],
+        discussions: [
+          {
+            id: 31,
+            title: 'My post',
+            user: { id: user.id, name: 'Me', avatar_url: 'http://google.com/logo.png' },
+            comments: [],
+            url: 'https://www.hylo.com/all/post/31'
+          }
+        ],
+        posts_with_new_comments: [
+          {
+            id: 31,
+            title: 'My post',
+            user: { id: user.id, name: 'Me', avatar_url: 'http://google.com/logo.png' },
+            comments: [{ id: 9, user: u3.attributes, text: 'reply' }],
+            comment_count: 1,
+            url: 'https://www.hylo.com/all/post/31'
+          }
+        ]
+      }
+
+      const daily = await personalizeData(user, 'daily', data)
+      expect(daily.discussions).to.deep.equal([])
+      expect(daily.posts_with_new_comments.map(p => p.id)).to.deep.equal([31])
+    })
+
     describe('space post filtering', () => {
       let recipient, parentGroup, space
 

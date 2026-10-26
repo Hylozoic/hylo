@@ -19,6 +19,47 @@ describe('space mutations', () => {
 
   after(async () => setup.clearDb())
 
+  describe('createSpace geoShape', () => {
+    it('stores a GeoJSON boundary on the new space', async () => {
+      const polygon = { type: 'Polygon', coordinates: [[[-122.5, 37.7], [-122.4, 37.7], [-122.4, 37.8], [-122.5, 37.7]]] }
+      const space = await createSpace(administrator.id, {
+        parentGroupId: parentGroup.id,
+        name: 'Shaped Space',
+        geoShape: JSON.stringify(polygon)
+      }, {})
+
+      const saved = await Group.find(space.id)
+      expect(saved.get('geo_shape').type).to.equal('Polygon')
+      expect(saved.get('geo_shape').coordinates).to.deep.equal(polygon.coordinates)
+      await deleteSpace(administrator.id, space.id, {})
+    })
+  })
+
+  describe('updateSpace geoShape', () => {
+    it('stores a boundary and can clear it without touching other updates', async () => {
+      const polygon = { type: 'Polygon', coordinates: [[[-122.5, 37.7], [-122.4, 37.7], [-122.4, 37.8], [-122.5, 37.7]]] }
+      const space = await createSpace(administrator.id, {
+        parentGroupId: parentGroup.id,
+        name: 'Editable Shape'
+      }, {})
+
+      await updateSpace(administrator.id, { id: space.id, geoShape: JSON.stringify(polygon) }, {})
+      const saved = await Group.find(space.id)
+      expect(saved.get('geo_shape').type).to.equal('Polygon')
+      expect(saved.get('geo_shape').coordinates).to.deep.equal(polygon.coordinates)
+
+      await updateSpace(administrator.id, { id: space.id, name: 'Renamed Shape' }, {})
+      const renamed = await Group.find(space.id)
+      expect(renamed.get('name')).to.equal('Renamed Shape')
+      expect(renamed.get('geo_shape').type).to.equal('Polygon')
+
+      await updateSpace(administrator.id, { id: space.id, geoShape: null }, {})
+      const cleared = await Group.find(space.id)
+      expect(cleared.get('geo_shape')).to.equal(null)
+      await deleteSpace(administrator.id, space.id, {})
+    })
+  })
+
   describe('createSpace slug', () => {
     it('stores {parentSlug}-{localSlug} to avoid collisions across groups', async () => {
       const space = await createSpace(administrator.id, {

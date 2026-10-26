@@ -23,6 +23,11 @@ export const UPDATE_FUNDING_ROUND_PENDING = `${MODULE_NAME}/UPDATE_FUNDING_ROUND
 const PostFieldsFragment = `
   id
   budget
+  commenters(first: 3) {
+    id
+    name
+    avatarUrl
+  }
   commentersTotal
   commentsTotal
   createdAt
@@ -144,6 +149,7 @@ export function fetchFundingRound (id) {
           numSubmissions
           phase
           requireBudget
+          showRealtimeSubmissions
           showRealtimeVotes
           submissionDescriptor
           submissionDescriptorPlural
@@ -280,6 +286,7 @@ export function createFundingRound (data) {
           numParticipants,
           numSubmissions,
           requireBudget,
+          showRealtimeSubmissions,
           showRealtimeVotes,
           submissionDescriptor,
           submissionDescriptorPlural,

@@ -3,7 +3,7 @@
 import root from 'root-path'
 import setup from '../../setup'
 import factories from '../../setup/factories'
-import { expectEqualQuery, spyify, unspyify } from '../../setup/helpers'
+import { expectEqualQuery, mockify, spyify, unspyify } from '../../setup/helpers'
 
 export function myGroupIdsSqlFragment (userId) {
   return `(select "groups"."id" from "group_memberships"
@@ -61,6 +61,50 @@ describe('Group', function () {
     expect(calendarToken).to.be.a('string')
     // UUID v4 format: 8-4-4-4-12 hexadecimal characters
     expect(calendarToken).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+  })
+
+  it('can be created with a geo_shape boundary', async function () {
+    const polygon = { type: 'Polygon', coordinates: [[[-122.5, 37.7], [-122.4, 37.7], [-122.4, 37.8], [-122.5, 37.7]]] }
+    const data = { name: 'my group', slug: 'shaped1', geo_shape: JSON.stringify(polygon) }
+
+    const user = await new User({ name: 'username', email: 'shaped1@foo.com', active: true }).save()
+    await Group.create(user.id, data)
+    const savedGroup = await Group.find('shaped1')
+    expect(savedGroup.get('geo_shape').type).to.equal('Polygon')
+    expect(savedGroup.get('geo_shape').coordinates).to.deep.equal(polygon.coordinates)
+  })
+
+  describe('notifyAboutCreate', function () {
+    beforeEach(function () {
+      mockify(Email, 'sendRawEmail', () => Promise.resolve(true))
+    })
+
+    afterEach(function () {
+      unspyify(Email, 'sendRawEmail')
+    })
+
+    it('does not email when the group is a space', async function () {
+      const creator = await factories.user().save()
+      const parent = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: parent.id,
+        created_by_id: creator.id
+      }).save()
+
+      await Group.notifyAboutCreate({ groupId: space.id })
+
+      expect(Email.sendRawEmail).not.to.have.been.called()
+    })
+
+    it('emails when the group is not a space', async function () {
+      const creator = await factories.user().save()
+      const group = await factories.group({ created_by_id: creator.id }).save()
+
+      await Group.notifyAboutCreate({ groupId: group.id })
+
+      expect(Email.sendRawEmail).to.have.been.called()
+    })
   })
 
   it('can be created with group extension data', async function () {
@@ -698,7 +742,7 @@ describe('Group', function () {
       calendarContent = null
       // Mock writeStringToS3 to capture calendar content
       storageModule = require(root('lib/uploader/storage'))
-      spyify(storageModule, 'writeStringToS3', async (content) => {
+      mockify(storageModule, 'writeStringToS3', async (content) => {
         calendarContent = content
         return Promise.resolve({ url: 'https://example.com/calendar.ics' })
       })

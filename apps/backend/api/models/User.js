@@ -420,6 +420,8 @@ module.exports = bookshelf.Model.extend(merge({
   setSanely: function (attrs) {
     const saneAttrs = omit(attrs, 'settings')
 
+    if (typeof saneAttrs.name === 'string') saneAttrs.name = saneAttrs.name.trim()
+
     if (!isEmpty(saneAttrs.twitter_name)) {
       if (saneAttrs.twitter_name.match(/^\s*$/)) {
         saneAttrs.twitter_name = null
@@ -518,7 +520,7 @@ module.exports = bookshelf.Model.extend(merge({
     // tags and password, which are used later)
     const whitelist = pick(changes, [
       'avatar_url', 'banner_url', 'bio', 'email', 'contact_email', 'contact_phone',
-      'extra_info', 'facebook_url', 'intention', 'linkedin_url', 'location', 'location_id',
+      'extra_info', 'facebook_url', 'intention', 'is_profile_public', 'linkedin_url', 'location', 'location_id',
       'name', 'password', 'settings', 'tagline', 'twitter_name', 'url', 'work',
       'new_notification_count', 'calendar_token'
     ])

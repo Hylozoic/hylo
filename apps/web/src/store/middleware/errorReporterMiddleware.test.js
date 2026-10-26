@@ -56,6 +56,10 @@ describe('safeStringify', () => {
 })
 
 describe('errorReporterMiddleware', () => {
+  beforeEach(() => {
+    errorReporter.error.mockClear()
+  })
+
   it('reports a diagnosable message for GraphQL action errors', () => {
     const next = jest.fn(action => action)
     const payload = Object.assign(new Error('Unexpected error.'), {
@@ -78,5 +82,30 @@ describe('errorReporterMiddleware', () => {
       })
     )
     expect(next).toHaveBeenCalledWith(action)
+  })
+
+  it('does not report browser fetch failures that never got an HTTP response', () => {
+    const next = jest.fn(action => action)
+    const action = {
+      error: true,
+      type: 'FETCH_VIEW_PINNED_POSTS',
+      payload: new TypeError('Failed to fetch')
+    }
+
+    errorReporterMiddleware({})(next)(action)
+
+    expect(errorReporter.error).not.toHaveBeenCalled()
+    expect(next).toHaveBeenCalledWith(action)
+  })
+
+  it('still reports fetch errors that include an HTTP response', () => {
+    const next = jest.fn(action => action)
+    const payload = new TypeError('Failed to fetch')
+    payload.response = { status: 502, body: 'bad gateway' }
+    const action = { error: true, type: 'FETCH_VIEW_PINNED_POSTS', payload }
+
+    errorReporterMiddleware({})(next)(action)
+
+    expect(errorReporter.error).toHaveBeenCalled()
   })
 })

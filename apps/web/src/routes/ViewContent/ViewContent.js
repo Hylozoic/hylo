@@ -237,7 +237,7 @@ export default function ViewContent (props) {
   const defaultActivePostsOnly = systemView?.defaultActivePostsOnly || get('settings.activePostsOnly', currentUser) || false
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
-  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly', 'calendarMode', 'calendarDate'], location)
+  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly', 'rsvpFilter', 'calendarMode', 'calendarDate'], location)
 
   const search = querystringParams.search || (streamViewConfig?.type === 'stream' ? streamViewConfig.searchText : undefined)
   const configuredViewMode = querystringParams.v || streamViewConfig?.defaultViewMode || defaultViewMode
@@ -258,6 +258,7 @@ export default function ViewContent (props) {
   ))
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
+  const rsvpFilter = querystringParams.rsvpFilter || undefined
 
   const postTypesAvailable = useMemo(() => {
     if (streamViewConfig?.type === 'stream') return streamViewConfig?.postTypes
@@ -317,7 +318,8 @@ export default function ViewContent (props) {
       }
     }
 
-    const numPostsToLoad = isMobile.any ? 10 : 20
+    // One page for the visible month. Paging 20 at a time repaints the grid as each page arrives.
+    const numPostsToLoad = isCalendarViewMode ? 60 : (isMobile.any ? 10 : 20)
     const includeChatActivity = view === 'all' && !postTypeFilter && !isCalendarViewMode && showChatActivity
 
     const params = {
@@ -335,7 +337,8 @@ export default function ViewContent (props) {
       sortBy,
       topics,
       // Do not send a types list with all+notices — a stream-only list would hide notices
-      types: includeChatActivity ? undefined : postTypesAvailable
+      types: includeChatActivity ? undefined : postTypesAvailable,
+      rsvpResponse: rsvpFilter
     }
 
     if (isCalendarViewMode) {
@@ -375,7 +378,7 @@ export default function ViewContent (props) {
       }
     }
     return params
-  }, [activePostsOnly, calendarFetchMonthKey, isCalendarViewMode, childPostInclusion, context, streamViewConfig, group?.id, groupSlug, postTypeFilter, search, showChatActivity, sortBy, timeframe, topic?.id, topicName, view])
+  }, [activePostsOnly, calendarFetchMonthKey, isCalendarViewMode, childPostInclusion, context, streamViewConfig, group?.id, groupSlug, postTypeFilter, rsvpFilter, search, showChatActivity, sortBy, timeframe, topic?.id, topicName, view])
 
   let name = presentedGroupView
     ? displayNameForView(presentedGroupView, t)
@@ -487,7 +490,12 @@ export default function ViewContent (props) {
     if (pending && offset > 0) return
     if (hasMore === false && offset > 0) return
     if (offset === 0) setFetchError(false)
-    return Promise.resolve(dispatch(fetchPosts({ offset, ...fetchPostsParam })))
+    return Promise.resolve(dispatch(fetchPosts({
+      offset,
+      // Keep the current month on screen until this page arrives, then swap it in.
+      replaceResults: isCalendarViewMode && !offset,
+      ...fetchPostsParam
+    })))
       .then(action => {
         if (action?.error) throw action.payload || new Error('FETCH_POSTS failed')
         if (offset === 0) setResolvedPostsQueryKey(buildKey(FETCH_POSTS, fetchPostsParam))
@@ -497,7 +505,7 @@ export default function ViewContent (props) {
         if (!isRetry) return fetchPostsFrom(offset, true)
         setFetchError(true)
       })
-  }, [dispatch, pending, hasMore, fetchPostsParam])
+  }, [dispatch, pending, hasMore, fetchPostsParam, isCalendarViewMode])
 
   useEffect(() => {
     if (view !== 'custom' || !customViewId || !streamViewConfig) return
@@ -523,7 +531,9 @@ export default function ViewContent (props) {
   }, [topicName])
 
   useEffect(() => {
-    if (view === 'events' || isCalendarViewMode) {
+    // List view has to drop before a refetch because pages append. Calendar
+    // replaces offset 0 in place, so dropping here would blank the grid first.
+    if (view === 'events' && !isCalendarViewMode) {
       dispatch(dropPostResults(fetchPostsParam))
     }
   }, [dispatch, fetchPostsParam, isCalendarViewMode, view])
@@ -587,6 +597,10 @@ export default function ViewContent (props) {
     dispatch(changeQuerystringParam(location, 'timeframe', timeframe, 'future'))
   }, [location])
 
+  const changeRsvpFilter = useCallback(rsvpValue => {
+    dispatch(changeQuerystringParam(location, 'rsvpFilter', rsvpValue, 'all'))
+  }, [location])
+
   const updateCalendarQueryParams = useCallback((updates) => {
     const params = {}
     if (updates.mode !== undefined) {
@@ -615,7 +629,6 @@ export default function ViewContent (props) {
   useEffect(() => {
     const isCreatePath = new URLSearchParams(location.search).get('create') === 'post'
     if (prevPathWasCreateRef.current && !isCreatePath && isCalendarViewMode) {
-      dispatch(dropPostResults(fetchPostsParam))
       fetchPostsFrom(0)
     }
     prevPathWasCreateRef.current = isCreatePath
@@ -684,7 +697,7 @@ export default function ViewContent (props) {
   // not a gate that unmounts the whole view when posts briefly go empty.
   const calendarBlocked = topicBlockingStreams || customViewLoading
   const showCalendar = !calendarBlocked && isCalendarViewMode
-  const calendarFetching = pending && showCalendar
+  const calendarFetching = pending && showCalendar && posts.length === 0
   const calendarInitialLoading = calendarBlocked && isCalendarViewMode
 
   const { setHeaderDetails } = useViewHeader()
@@ -760,6 +773,7 @@ export default function ViewContent (props) {
                 changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
                 changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
                 changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
+                rsvpFilter={rsvpFilter} changeRsvpFilter={changeRsvpFilter}
               />
             </div>
           </div>

@@ -1,14 +1,13 @@
 /**
  * Minimal deterministic E2E data using a single pg connection (avoids Knex pool issues during isolated runs).
  * Expects DATABASE_URL (same as backend).
- * Do not run manually against your dev DB — use `cd apps/web && yarn test:e2e` (isolated `hylo_e2e`).
+ * Do not run manually against your dev DB — use `cd apps/web && yarn test:e2e` (isolated `hylo_e2e_test`).
  */
 const { Client } = require('pg')
 const bcrypt = require('bcrypt')
 
 /** Match `apps/web/scripts/run-isolated-e2e.js` — never seed a normal dev DB by accident. */
-const DEFAULT_E2E_DB = 'hylo_e2e'
-const DANGEROUS_DB_NAMES = new Set(['hylo', 'hylo_test', 'postgres', 'template0', 'template1'])
+const DEFAULT_E2E_DB = 'hylo_e2e_test'
 
 /**
  * Parse the database name from a Postgres connection URL.
@@ -24,8 +23,8 @@ function databaseNameFromUrl (connectionString) {
 }
 
 /**
- * Refuse to run against a dev/shared database unless explicitly overridden.
- * Intended entrypoint: `yarn test:e2e` → run-isolated-e2e.js → hylo_e2e (fresh drop/create).
+ * Refuse to run against any database without "test" in its name (no override).
+ * Intended entrypoint: `yarn test:e2e` → run-isolated-e2e.js → hylo_e2e_test (fresh drop/create).
  * @param {string} connectionString
  */
 function assertSafeE2eDatabase (connectionString) {
@@ -34,9 +33,9 @@ function assertSafeE2eDatabase (connectionString) {
     console.error('[seed-e2e-baseline] Could not parse database name from DATABASE_URL')
     process.exit(1)
   }
-  if (DANGEROUS_DB_NAMES.has(dbName) && process.env.E2E_ALLOW_DANGEROUS_DB !== '1') {
+  if (!dbName.includes('test')) {
     console.error(
-      `[seed-e2e-baseline] Refusing to seed database "${dbName}".\n` +
+      `[seed-e2e-baseline] Refusing to seed database "${dbName}": the name must contain "test".\n` +
       `This script is for the isolated Playwright DB only (e.g. ${DEFAULT_E2E_DB}).\n` +
       'Run: cd apps/web && yarn test:e2e\n' +
       'Or point DATABASE_URL at your E2E database, not your dev database.'

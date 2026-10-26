@@ -368,7 +368,9 @@ type Query {
     # Return only posts that have any of these topics by topic ID
     topics: [ID],
     # Return only posts that are one of these types: 'discussion', 'event', 'offer', 'project', 'proposal', 'request' and/or 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Query for responsibilities
@@ -392,7 +394,7 @@ type Query {
     offset: Int,
     # Search term
     term: String,
-    # ONly search for content of a specific type: 'post', 'person', or 'comment'
+    # Only search for content of a specific type: 'post', 'person', 'comment', or 'group'
     type: String
   ): SearchResultQuerySet
 
@@ -796,6 +798,10 @@ type Group {
   id: ID
   # Whether the current user has access to this group (via scope system or free access)
   canAccess: Boolean
+  # Whether the current user has a currently valid user scope for this group or space
+  hasValidScope: Boolean
+  # Current user's membership state; null when the user has never joined
+  currentUserMembershipActive: Boolean
   # URL for a video to display at the top of the about text
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
@@ -1155,7 +1161,9 @@ type Group {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # All responsibilities available to the group
@@ -1246,7 +1254,9 @@ type Group {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Content access records for this group (purchased or granted)
@@ -1753,6 +1763,8 @@ type Me {
   intercomHash: String
   # IGNORE
   isAdmin: Boolean
+  # Whether this user's profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # URL of the logged in user's LinkedIn Profile
   linkedinUrl: String
   # String representing the logged in user's physical location
@@ -2136,6 +2148,8 @@ type Person {
   facebookUrl: String
   # False for new users who have not completed the registration process
   hasRegistered: Boolean
+  # Whether this person's profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # When this person last viewed Hylo
   lastActiveAt: String
   # URL of this person's LinkedIn Profile
@@ -2246,7 +2260,9 @@ type Person {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Project posts that this person is a member of
@@ -2609,10 +2625,10 @@ type SavedSearchQuerySet {
   items: [SavedSearch]
 }
 
-# Search result content item which can be a Person, a Post or a Comment
-union SearchResultContent = Person | Post | Comment
+# Search result content item which can be a Person, a Post, a Comment or a Group
+union SearchResultContent = Person | Post | Comment | Group
 
-# Search result item which can be a Person, a Post or a Comment
+# Search result item which can be a Person, a Post, a Comment or a Group
 type SearchResult {
   id: ID
   content: SearchResultContent
@@ -2998,6 +3014,8 @@ type FundingRound {
   phase: FundingRoundPhase
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether members can see every submission during the submissions phase
+  showRealtimeSubmissions: Boolean
   # Whether to show running vote totals during the voting phase
   showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
@@ -3360,6 +3378,8 @@ type Mutation {
     purpose: String,
     location: String,
     locationId: ID,
+    # GeoJSON geometry (e.g. a Polygon) outlining the space's region
+    geoShape: String,
     viewTypes: [String],
     bannerUrl: String,
     avatarUrl: String,
@@ -3385,6 +3405,8 @@ type Mutation {
     requiredRoles: [Int],
     location: String,
     locationId: ID,
+    # GeoJSON geometry (e.g. a Polygon) outlining the space's region. Null clears it.
+    geoShape: String,
     purpose: String,
     bannerUrl: String,
     avatarUrl: String,
@@ -3513,6 +3535,8 @@ type Mutation {
   # For Restricted groups, provide accessCode or invitationToken for pre-approved join.
   # Set acceptAgreements to true if user has accepted agreements during join flow.
   joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput], accessCode: String, invitationToken: String, acceptAgreements: Boolean): Membership
+  # Reactivate a prior membership using still-valid purchased/granted access
+  rejoinGroup(groupId: ID!): Membership
   # Join a project Post as a member
   joinProject(id: ID): GenericResult
   # Leave a funding round
@@ -4251,6 +4275,8 @@ input MeInput {
   email: String
   # The URL to your Facebook profile
   facebookUrl: String
+  # Whether your profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # The URL to your LinkedIn profile
   linkedinUrl: String
   # String representing your physical location
@@ -4364,7 +4390,7 @@ input PostInput {
   fundingRoundId: ID
   # IDs of the groups to post to
   groupIds: [ID]
-  # URLs of images in the post. URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
+  # URLs of images in the post. A flat list of URL strings, or a nested list such as Zapier line items (those are flattened). URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
   imageUrls: [String]
   # Whether who votes on this proposal is visible or not
   isAnonymousVote: Boolean
@@ -4378,6 +4404,8 @@ input PostInput {
   linkPreviewFeatured: Boolean
   # When true, do not auto-generate a link preview from URLs in the post (the author removed it in the editor)
   skipLinkPreview: Boolean
+  # Create the post without notifying members: no email, push, in-app notification, unread badge, live update, Slack, or outbound Zapier. Only a steward of every destination group may set this. Cannot be combined with announcement.
+  silent: Boolean
   # Temporary id passed in from the client to identify the post when it is created, for optimistically updating the UI
   localId: String
   # Full location string
@@ -4518,6 +4546,8 @@ input FundingRoundInput {
   minTokenAllocation: Int
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether members can see every submission during the submissions phase
+  showRealtimeSubmissions: Boolean
   # Whether to show running vote totals during the voting phase
   showRealtimeVotes: Boolean
   # The term used to describe a submission to the round

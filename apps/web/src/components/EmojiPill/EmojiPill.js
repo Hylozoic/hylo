@@ -4,7 +4,7 @@ import Pill from 'components/Pill'
 
 export default function EmojiPill ({ emojiFull, onClick = () => {}, count, userList, selected, toolTip, className }) {
   return (
-    <div data-tooltip-content={toolTip} data-tooltip-id={`${emojiFull}-emoji`}>
+    <div {...(toolTip ? { 'data-tooltip-content': toolTip, 'data-tooltip-id': `${emojiFull}-emoji` } : {})}>
       <Pill
         darkText
         id={emojiFull}
@@ -19,7 +19,7 @@ export default function EmojiPill ({ emojiFull, onClick = () => {}, count, userL
         className={cn('mb-1', {
           'bg-selected text-foreground': selected
         }, className)}
-        tooltipContent={toolTip}
+        tooltipContent={toolTip || ''}
       />
     </div>
   )

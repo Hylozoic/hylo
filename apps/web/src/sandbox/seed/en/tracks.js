@@ -9,7 +9,7 @@ export function buildTrack () {
     groupId: TRACK_SPACE_ID,
     actionDescriptor: 'Orientation Step',
     actionDescriptorPlural: 'Orientation Steps',
-    completionMessage: 'Congratulations — you\'ve completed the New Member Orientation! 🌱 You\'re now a full Terran. Welcome to the community. Jump into the chat, join a project, and don\'t hesitate to reach out to any of our Coordinators.',
+    completionMessage: 'Congratulations — you\'ve completed the New Member Orientation! 🌱 You\'re now a full member of Community Hub. Welcome to the community. Jump into the chat, join a project, and don\'t hesitate to reach out to any of our Coordinators.',
     publishedAt_offset: -86400 * 30,
     accessControlled: false,
     canAccess: true,
@@ -37,7 +37,7 @@ export function buildTrackActions (peopleById, meId) {
 const TRACK_ACTION_CONTENT = [
   {
     title: 'Introduce yourself',
-    details: 'Head to the General chat and write a short introduction — who you are, where you\'re from, and what brought you to Terran Collective. We love knowing what lights you up! 🌟',
+    details: 'Head to Introductions and write a short introduction — who you are, where you\'re from, and what brought you to Community Hub. We love knowing what lights you up! 🌟',
     completionAction: 'comment',
     completionActionSettings: {
       instructions: 'Leave a comment here once you\'ve introduced yourself in chat.'
@@ -53,7 +53,7 @@ const TRACK_ACTION_CONTENT = [
   },
   {
     title: 'How do you want to get involved?',
-    details: 'Terran is a bioregional community of practice. Pick the doorway that feels most true right now — you can always change course later.',
+    details: 'Community Hub is a bioregional community of practice. Pick the doorway that feels most true right now — you can always change course later.',
     completionAction: 'selectOne',
     completionActionSettings: {
       instructions: 'Select one option to complete this Orientation Step.',
@@ -81,7 +81,7 @@ const TRACK_ACTION_CONTENT = [
   },
   {
     title: 'You\'re ready to participate',
-    details: 'That\'s the orientation. Mark this step complete when you\'re ready to jump into Terran as a full member — chat, projects, and coordinators are all open to you.',
+    details: 'That\'s the orientation. Mark this step complete when you\'re ready to jump into Community Hub as a full member — chat, projects, and coordinators are all open to you.',
     completionAction: 'button',
     completionActionSettings: {
       instructions: 'Click the button to mark this Orientation Step as complete.'

@@ -941,8 +941,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Make sure geometry column goes into the database correctly, converting from GeoJSON
     if (!isEmpty(attributes.geo_shape)) {
-      const st = knexPostgis(bookshelf.knex)
-      saneAttrs.geo_shape = st.geomFromGeoJSON(attributes.geo_shape)
+      saneAttrs.geo_shape = Group.geoShapeFromGeoJSON(attributes.geo_shape)
     } else if (Object.prototype.hasOwnProperty.call(saneAttrs, 'geo_shape')) {
       // if geo_shape is explicitly set to an empty value then unset it
       saneAttrs.geo_shape = null
@@ -1340,6 +1339,12 @@ module.exports = bookshelf.Model.extend(merge({
     Activity.saveForReasons(activities)
   },
 
+  /** Convert a GeoJSON geometry (object or JSON string) into a value for the geo_shape column. */
+  geoShapeFromGeoJSON (geoJSON) {
+    const st = knexPostgis(bookshelf.knex)
+    return st.geomFromGeoJSON(geoJSON)
+  },
+
   async create (userId, data) {
     if (!data.slug) {
       throw new GraphQLError('Missing required field: slug')
@@ -1363,6 +1368,11 @@ module.exports = bookshelf.Model.extend(merge({
         visibility: Group.Visibility.PROTECTED
       }
     )
+
+    // Convert the GeoJSON boundary into the geometry column's format
+    if (!isEmpty(data.geo_shape)) {
+      attrs.geo_shape = Group.geoShapeFromGeoJSON(data.geo_shape)
+    }
 
     // XXX: for now groups by default cannot post to public on production
     attrs.allow_in_public = process.env.NODE_ENV === 'development'
@@ -1442,7 +1452,10 @@ module.exports = bookshelf.Model.extend(merge({
       await Queue.classMethod('Group', 'geocodeLocation', { groupId: group.id })
     }
 
-    await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
+    // Internal alert to NEW_GROUP_EMAIL. Spaces are not new top-level groups.
+    if (group.get('type') !== 'space') {
+      await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
+    }
 
     // Send email to creator
     await Queue.classMethod('Group', 'sendGroupCreatedEmail', { groupId: group.id })
@@ -1699,6 +1712,7 @@ module.exports = bookshelf.Model.extend(merge({
   notifyAboutCreate: function (opts) {
     return Group.find(opts.groupId, { withRelated: ['creator'] })
       .then(g => {
+        if (!g || g.get('type') === 'space') return
         const creator = g.relations.creator
         const recipient = process.env.NEW_GROUP_EMAIL
         const L = getLocaleStrings(creator.getLocale())

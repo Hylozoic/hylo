@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import MessageSection from './MessageSection'
 
 const person1 = { id: '1', name: 'City Bob', avatarUrl: '' }
@@ -71,16 +71,16 @@ it('fetches more messages when scrolled to top', async () => {
   )
 
   const messageSection = screen.getByTestId('message-section')
-   // Mock properties using a loop
-   const properties = {
+  // Mock properties using a loop
+  const properties = {
     scrollHeight: 1200,
     offsetHeight: 100,
-    scrollTop: 0,
+    scrollTop: 0
   }
   Object.entries(properties).forEach(([key, value]) => {
     Object.defineProperty(messageSection, key, {
       value,
-      writable: true,
+      writable: true
     })
   })
   fireEvent.scroll(messageSection, { target: { scrollTop: 0, scrollHeight: 1200, offsetHeight: 100 } })

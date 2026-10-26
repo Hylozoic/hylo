@@ -124,6 +124,217 @@ describe('graphql request handler', () => {
     })
   })
 
+  describe('retained paid access for former members', () => {
+    const grantGroupScope = (userId, groupId, sourceId, expiresAt = null) =>
+      bookshelf.knex('user_scopes').insert({
+        user_id: userId,
+        scope: `group:${groupId}`,
+        expires_at: expiresAt,
+        source_kind: 'grant',
+        source_id: sourceId,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+    const fetchGroupAs = async (viewer, slug) => {
+      req.session.userId = viewer.id
+      req.user = viewer
+      const { executionResult } = await handler.inject({
+        document: `{
+          group(slug: "${slug}") {
+            id
+            name
+            hasValidScope
+            currentUserMembershipActive
+            posts { total items { id } }
+            viewPosts { total items { id } }
+            members { total items { id } }
+            memberships { items { id } }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(executionResult.errors).to.not.exist
+      return executionResult.data.group
+    }
+
+    it('returns a hidden paid group to a former member with a valid scope, without its content', async () => {
+      const formerMember = await factories.user().save()
+      const activeMember = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.HIDDEN })
+      const groupPost = await factories.post({ type: Post.Type.DISCUSSION }).save({ user_id: activeMember.id })
+      await paidGroup.posts().attach(groupPost)
+      await paidGroup.addMembers([formerMember, activeMember])
+      await paidGroup.removeMembers([formerMember])
+      await grantGroupScope(formerMember.id, paidGroup.id, 999999998)
+
+      const result = await fetchGroupAs(formerMember, paidGroup.get('slug'))
+      expect(result).to.deep.include({
+        id: paidGroup.id,
+        name: paidGroup.get('name'),
+        hasValidScope: true,
+        currentUserMembershipActive: false
+      })
+      expect(result.posts).to.deep.equal({ total: 0, items: [] })
+      expect(result.viewPosts).to.deep.equal({ total: 0, items: [] })
+      expect(result.members.items).to.deep.equal([])
+      expect(result.memberships.items).to.deep.equal([])
+
+      // An active member sees the same content, so the empty lists above come from the access checks
+      const asActiveMember = await fetchGroupAs(activeMember, paidGroup.get('slug'))
+      expect(asActiveMember.posts.items.map(p => p.id)).to.include(groupPost.id)
+      expect(asActiveMember.members.items.map(m => m.id)).to.include(activeMember.id)
+    })
+
+    it('does not return a hidden paid group once the former member\'s scope has expired', async () => {
+      const formerMember = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.HIDDEN })
+      await paidGroup.addMembers([formerMember])
+      await paidGroup.removeMembers([formerMember])
+      await grantGroupScope(formerMember.id, paidGroup.id, 999999994, new Date(Date.now() - 86400000))
+
+      expect(await fetchGroupAs(formerMember, paidGroup.get('slug'))).to.equal(null)
+    })
+
+    it('does not return a hidden paid group to someone with a scope who was never a member', async () => {
+      const outsider = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.HIDDEN })
+      await grantGroupScope(outsider.id, paidGroup.id, 999999993)
+
+      expect(await fetchGroupAs(outsider, paidGroup.get('slug'))).to.equal(null)
+    })
+
+    it('does not return a hidden group that is not paywalled to a former member', async () => {
+      const formerMember = await factories.user().save()
+      const freeGroup = await factories.group().save({ paywall: false, visibility: Group.Visibility.HIDDEN })
+      await freeGroup.addMembers([formerMember])
+      await freeGroup.removeMembers([formerMember])
+      await grantGroupScope(formerMember.id, freeGroup.id, 999999992)
+
+      expect(await fetchGroupAs(formerMember, freeGroup.get('slug'))).to.equal(null)
+    })
+
+    it('exposes scope and prior-membership state through GroupDetails fields', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PUBLIC })
+      await paidGroup.addMembers([paidUser])
+      await paidGroup.removeMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+      await bookshelf.knex('user_scopes').insert({
+        user_id: paidUser.id,
+        scope: `group:${paidGroup.id}`,
+        expires_at: null,
+        source_kind: 'grant',
+        source_id: 999999996,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          group(slug: "${paidGroup.get('slug')}") {
+            hasValidScope
+            currentUserMembershipActive
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.exist
+      expect(executionResult.data.group).to.deep.equal({
+        hasValidScope: true,
+        currentUserMembershipActive: false
+      })
+    })
+
+    it('distinguishes active, inactive, and absent current-user memberships', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PUBLIC })
+      await paidGroup.addMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+      await bookshelf.knex('user_scopes').insert({
+        user_id: paidUser.id,
+        scope: `group:${paidGroup.id}`,
+        expires_at: null,
+        source_kind: 'grant',
+        source_id: 999999995,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+      const readGroupAccess = async () => {
+        const { executionResult } = await handler.inject({
+          document: `{
+            group(slug: "${paidGroup.get('slug')}") {
+              hasValidScope
+              currentUserMembershipActive
+            }
+          }`,
+          serverContext: { req, res }
+        })
+        expect(executionResult.errors).to.not.exist
+        return executionResult.data.group
+      }
+
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: true, currentUserMembershipActive: true })
+      await paidGroup.removeMembers([paidUser])
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: true, currentUserMembershipActive: false })
+      await bookshelf.knex('user_scopes').where({ user_id: paidUser.id, scope: `group:${paidGroup.id}` }).del()
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: false, currentUserMembershipActive: false })
+
+      const neverMember = await factories.user().save()
+      req.session.userId = neverMember.id
+      req.user = neverMember
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: false, currentUserMembershipActive: null })
+    })
+
+    it('does not return a protected paid group to a former member without a valid scope', async () => {
+      const formerMember = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PROTECTED })
+      await paidGroup.addMembers([formerMember])
+      await paidGroup.removeMembers([formerMember])
+
+      expect(await fetchGroupAs(formerMember, paidGroup.get('slug'))).to.equal(null)
+    })
+
+    it('reactivates the existing membership through the GraphQL mutation', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true })
+      await paidGroup.addMembers([paidUser])
+      const originalMembership = await GroupMembership.forPair(paidUser, paidGroup).fetch()
+      await paidGroup.removeMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+      await bookshelf.knex('user_scopes').insert({
+        user_id: paidUser.id,
+        scope: `group:${paidGroup.id}`,
+        expires_at: null,
+        source_kind: 'grant',
+        source_id: 999999997,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+      const { executionResult } = await handler.inject({
+        document: `mutation {
+          rejoinGroup(groupId: "${paidGroup.id}") {
+            id
+            groupId
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.exist
+      expect(executionResult.data.rejoinGroup).to.deep.equal({
+        id: originalMembership.id,
+        groupId: paidGroup.id
+      })
+    })
+  })
+
   describe('with a complex query', function () {
     this.timeout(10000)
     let thread, message
@@ -489,6 +700,101 @@ describe('graphql request handler', () => {
       expect(executionResult.data.post.comments.items[0].creator).to.deep.equal(hiddenProfile)
     })
 
+    it('shows skills and public groups on an opted-in public profile', async () => {
+      const suffix = randomUUID().slice(0, 8)
+      const person = await factories.user({
+        name: 'Public Profile',
+        tagline: 'hello there',
+        bio: 'Visible bio',
+        contact_email: 'hidden@example.com',
+        facebook_url: 'https://facebook.com/public',
+        is_profile_public: true
+      }).save()
+      const skill = await factories.skill({ name: `dreaming-${suffix}` }).save()
+      await skill.users().attach({ user_id: person.id })
+      const publicGroup = await factories.group({
+        name: `Public Group ${suffix}`,
+        visibility: Group.Visibility.PUBLIC
+      }).save()
+      const privateGroup = await factories.group({
+        name: `Private Group ${suffix}`,
+        visibility: Group.Visibility.PROTECTED
+      }).save()
+      await publicGroup.addMembers([person.id])
+      await privateGroup.addMembers([person.id])
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          person(id: "${person.id}") {
+            id
+            name
+            tagline
+            bio
+            contactEmail
+            facebookUrl
+            skills { items { name } }
+            memberships { id group { name } }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.be.ok
+      const profile = executionResult.data.person
+      expect(profile).to.include({
+        id: String(person.id),
+        name: 'Public Profile',
+        tagline: 'hello there',
+        bio: 'Visible bio',
+        contactEmail: null,
+        facebookUrl: 'https://facebook.com/public'
+      })
+      expect(profile.skills.items.map(item => item.name)).to.include(`dreaming-${suffix}`)
+      const groupNames = profile.memberships.map(membership => membership.group.name)
+      expect(groupNames).to.include(`Public Group ${suffix}`)
+      expect(groupNames).to.not.include(`Private Group ${suffix}`)
+    })
+
+    it('shows only public posts on an opted-in public profile', async () => {
+      const person = await factories.user({
+        name: 'Public Poster',
+        is_profile_public: true
+      }).save()
+      const group = await factories.group({ visibility: Group.Visibility.PUBLIC }).save()
+      await group.addMembers([person.id])
+      const publicPost = await factories.post({
+        user_id: person.id,
+        type: Post.Type.DISCUSSION,
+        is_public: true,
+        name: 'Visible post'
+      }).save()
+      const privatePost = await factories.post({
+        user_id: person.id,
+        type: Post.Type.DISCUSSION,
+        is_public: false,
+        name: 'Hidden post'
+      }).save()
+      await group.posts().attach(publicPost)
+      await group.posts().attach(privatePost)
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          person(id: "${person.id}") {
+            posts(first: 10, order: "desc", sortBy: "created") {
+              items { id isPublic }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.be.ok
+      const ids = executionResult.data.person.posts.items.map(post => post.id)
+      expect(ids).to.include(String(publicPost.id))
+      expect(ids).to.not.include(String(privatePost.id))
+      expect(executionResult.data.person.posts.items.every(post => post.isPublic)).to.equal(true)
+    })
+
     it('allows checkInvitation', async () => {
       const { executionResult } = await handler.inject({
         document: `{
@@ -590,6 +896,45 @@ describe('graphql request handler', () => {
       ])
     })
 
+    it('returns collection posts in manual order from viewPosts', async () => {
+      const firstPost = await factories.post({ type: Post.Type.DISCUSSION, user_id: user.id }).save()
+      const secondPost = await factories.post({ type: Post.Type.DISCUSSION, user_id: user.id }).save()
+      const childGroup = await factories.group().save()
+      await group.addChild(childGroup)
+      await childGroup.addMembers([user.id])
+      await group.posts().attach([firstPost, secondPost])
+      // Same post in a child group duplicates the groups_posts join. Manual order
+      // still has to return one row, in collection order.
+      await childGroup.posts().attach(secondPost)
+
+      const view = await GroupView.forge({
+        group_id: group.id,
+        type: GroupView.Type.COLLECTION,
+        name: 'Collection'
+      }).save()
+      await CollectionPost.create({ view_id: view.id, post_id: secondPost.id, user_id: user.id, order: 0 })
+      await CollectionPost.create({ view_id: view.id, post_id: firstPost.id, user_id: user.id, order: 1 })
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          group(id: "${group.id}") {
+            viewPosts(forCollection: "${view.id}", sortBy: "order", first: 10) {
+              total
+              items { id }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.group.viewPosts.items.map(item => item.id)).to.deep.equal([
+        String(secondPost.id),
+        String(firstPost.id)
+      ])
+      expect(executionResult.data.group.viewPosts.total).to.equal(2)
+    })
+
     describe('with an invalid sort option', () => {
       it('shows an error', async () => {
         const { executionResult } = await handler.inject({
@@ -618,17 +963,23 @@ describe('graphql request handler', () => {
   })
 
   describe('search', () => {
+    let searchTitle
+
     beforeEach(async () => {
+      // FTS is prefix match over every post the user can see. A faker word in the
+      // shared post title (e.g. "parse") also hits other posts, and a stop word
+      // matches nothing. A unique token avoids both.
+      searchTitle = `zzsearch${randomUUID().replace(/-/g, '')}0`
+      const searchable = await factories.post({ type: Post.Type.DISCUSSION, name: searchTitle }).save({ user_id: user.id })
+      await group.posts().attach(searchable)
       await FullTextSearch.dropView()
       await FullTextSearch.createView()
     })
 
     it('works', async () => {
-      // First 4 chars can be an English stop-word prefix (e.g. "withdraw…" → "with") and match nothing in FTS.
-      const searchTerm = post.get('name').trim().split(/\s+/)[0].replace(/\\/g, '\\\\').replace(/"/g, '\\"')
       const { executionResult } = await handler.inject({
         document: `{
-          search(term: "${searchTerm}", type: "post") {
+          search(term: "${searchTitle}", type: "post") {
             items {
               content {
                 __typename
@@ -649,7 +1000,7 @@ describe('graphql request handler', () => {
               {
                 content: {
                   __typename: 'Post',
-                  title: post.get('name')
+                  title: searchTitle
                 }
               }
             ]

@@ -1,21 +1,35 @@
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { icons } from 'lucide-react'
+import { getLucideIcons, loadLucideIcons, resolveLucideIcon } from 'components/LucideIcon/lucideIconSet'
 
 const ICON_CACHE = new Map()
 const MAP_ICON_SIZE = 42
 const INNER_ICON_SIZE = 22
 
+// Used until the icon chunk has loaded, and as the stand-in for an unknown name.
+const FALLBACK_MARKER = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${MAP_ICON_SIZE}" height="${MAP_ICON_SIZE}" viewBox="0 0 ${MAP_ICON_SIZE} ${MAP_ICON_SIZE}">` +
+  `<circle cx="${MAP_ICON_SIZE / 2}" cy="${MAP_ICON_SIZE / 2}" r="${MAP_ICON_SIZE / 2 - 1}" fill="#ffffff" stroke="#0f172a" stroke-width="2"/>` +
+  '</svg>'
+)
+
 /**
  * Builds a circular map-marker data URL for a Lucide icon (same asset size as group avatars).
+ * Returns a plain circle until the icon map has loaded; callers should rebuild the layer then.
  * @param {string} name - PascalCase Lucide icon name
- * @returns {string|null}
+ * @returns {string}
  */
 export function lucideIconDataUrl (name) {
-  const iconName = name && icons[name] ? name : 'Circle'
+  const icons = getLucideIcons()
+  if (!icons) {
+    loadLucideIcons()
+    return FALLBACK_MARKER
+  }
+
+  const iconName = resolveLucideIcon(name) ? name : 'Circle'
   if (ICON_CACHE.has(iconName)) return ICON_CACHE.get(iconName)
 
-  const Icon = icons[iconName]
+  const Icon = resolveLucideIcon(iconName)
   const iconSvg = renderToStaticMarkup(
     React.createElement(Icon, {
       size: INNER_ICON_SIZE,
