@@ -35,7 +35,8 @@ import {
   DialogTitle
 } from 'components/ui/dialog'
 import LinkPreview from './LinkPreview'
-import { DateTimePicker, usePrefersNativeDateTimePicker } from 'components/ui/datetimepicker'
+import { DateTimePicker } from 'components/ui/datetimepicker'
+import usePrefersNativeDateTimePicker from 'components/ui/usePrefersNativeDateTimePicker'
 import TimezoneSelect from 'components/TimezoneSelect/TimezoneSelect'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
