@@ -11,6 +11,7 @@ import { TextHelpers } from '@hylo/shared'
 import { isEmpty } from 'lodash'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
+import Loading from 'components/Loading'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,17 +82,22 @@ function linkGrantsAccess (link, { isSpace, accessibility }) {
  */
 function publicGroupLinkText ({ accessibility, t }) {
   if (accessibility === GROUP_ACCESSIBILITY.Open) {
-    return t('Send this link to anyone you want to see the group and join')
+    return t('To see the group and join')
   }
   if (accessibility === GROUP_ACCESSIBILITY.Closed) {
-    return t('Send this link to people you want to see the group profile, they will not be able to join the group.')
+    return t('To see the group profile. They will not be able to join the group.')
   }
-  return t('Send this link to anyone you want to see the group and request to join')
+  return t('To see the group and request to join.')
 }
+
+const LINK_BOX_CLASS = 'flex items-center group gap-2 min-w-0 w-full max-w-full bg-card border-2 border-foreground/20 rounded-lg px-2 py-1 hover:border-foreground/50 transition-all hover:cursor-pointer'
+const COPY_CHIP_CLASS = 'flex items-center gap-1 bg-foreground/10 rounded-md px-1.5 py-0.5 text-xs leading-none group-hover:bg-selected/50 transition-all shrink-0'
+
+const LINK_SECTION_CLASS = 'border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'
 
 /**
  * Short explanation under Invite Links for this visibility and access setting.
- * Restricted groups that are not public also explain view links.
+ * A restricted hidden or protected group explains view links in their own section.
  */
 function inviteLinksExplainer ({ isSpace, accessibility, visibility, t }) {
   const hidden = visibility === GROUP_VISIBILITY.Hidden
@@ -107,11 +113,24 @@ function inviteLinksExplainer ({ isSpace, accessibility, visibility, t }) {
     return t('Anyone with this link can see the group and join.')
   }
   if (accessibility === GROUP_ACCESSIBILITY.Closed) {
-    return t('Send an invite link to grant access to the group.')
+    return t('Grant access to the group.')
   }
-  const grantLine = t('Send an invite link to grant access to the group without a request.')
-  if (visibility === GROUP_VISIBILITY.Public) return grantLine
-  return `${grantLine} ${t('Send a view link to let someone see the group and request to join.')}`
+  return t('Grant access to the group without a request.')
+}
+
+/**
+ * Dashed card used for the view-link and invite-link lists.
+ */
+function InviteLinkSection ({ title, explainer, children }) {
+  return (
+    <div className={LINK_SECTION_CLASS}>
+      <div className='text-foreground'>
+        <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{title}</h2>
+        <div className='text-sm text-foreground/70'>{explainer}</div>
+      </div>
+      {children}
+    </div>
+  )
 }
 
 /**
@@ -141,7 +160,7 @@ function InviteLinkAccessIcon ({ grantsAccess, tooltip }) {
 }
 
 /**
- * Name and role pills under a link. Roles stand in for the name when it is blank.
+ * Name and role pills above a link. Roles stand in for the name when it is blank.
  */
 function InviteLinkMeta ({ name, roles, t }) {
   if (!name && roles.length === 0) return null
@@ -261,7 +280,8 @@ function InviteSettingsTab (props) {
     responsibility: RESP_ADMINISTRATION,
     groupId: group?.id
   }))
-  const inviteLinks = (storeGroup || group).inviteLinks || []
+  const rawInviteLinks = storeGroup?.inviteLinks ?? group?.inviteLinks
+  const inviteLinks = rawInviteLinks || []
   const inviteAllowance = storeGroup?.myInviteAllowance
   const accessibility = (storeGroup || group).accessibility
   const isSpace = group.type === GROUP_TYPES.space || !!group.parentId
@@ -276,6 +296,8 @@ function InviteSettingsTab (props) {
 
   const { t } = useTranslation()
 
+  const [linksSettledFor, setLinksSettledFor] = useState(() => (group?.inviteLinks != null ? group.id : null))
+  const linksLoading = !!group?.id && rawInviteLinks == null && linksSettledFor !== group.id
   const [copiedPublicLink, setCopiedPublicLink] = useState(false)
   const [copiedInviteLinkId, setCopiedInviteLinkId] = useState(null)
   const [pendingPageSize, setPendingPageSize] = useState(PENDING_INVITES_PAGE_SIZE)
@@ -661,14 +683,104 @@ function InviteSettingsTab (props) {
 
   useEffect(() => {
     if (!group?.id) return
+    let active = true
     dispatch(fetchPendingInvitations(group.id, { first: pendingPageSize, onlyMine: inModal }))
       .then(result => {
+        if (!active) return
         const pending = result?.payload?.data?.group?.pendingInvitations
         if (!pending) return
         setPendingTotal(pending.total || 0)
         setPendingHasMore(!!pending.hasMore)
       })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLinksSettledFor(group.id)
+      })
+    return () => { active = false }
   }, [dispatch, group?.id, pendingPageSize, inModal])
+
+  const linkContext = { isSpace, accessibility }
+  const viewLinks = canCreateViewLink
+    ? inviteLinks.filter(link => !linkGrantsAccess(link, linkContext))
+    : []
+  const grantingLinks = canCreateViewLink
+    ? inviteLinks.filter(link => linkGrantsAccess(link, linkContext))
+    : inviteLinks
+  const activeRoles = (group.groupRoles?.items || []).filter(role => role.active)
+  const linksSpinner = (
+    <div className='flex justify-center py-3'>
+      <Loading type='inline' />
+    </div>
+  )
+
+  /**
+   * One copyable link row, including its edit form when that link is open.
+   */
+  const renderInviteLink = link => {
+    const grantsAccess = linkGrantsAccess(link, linkContext)
+    const fullUrl = `${window.location.origin}${inviteLinkDisplayPath(link, grantsAccess)}`
+    const copied = copiedInviteLinkId === link.id
+    return (
+      <div key={link.id} className='flex flex-col gap-1.5'>
+        <InviteLinkMeta name={link.name} roles={link.grantedRoles || []} t={t} />
+        <div className='flex items-center gap-2 min-w-0 w-full'>
+          <CopyToClipboard text={fullUrl} onCopy={() => onCopyInviteLink(link.id)}>
+            <button className={cn(LINK_BOX_CLASS, 'flex-1')} data-tooltip-content={!copied ? t('Click to Copy') : undefined} data-tooltip-id='invite-link-copy-tooltip'>
+              <InviteLinkAccessIcon
+                grantsAccess={grantsAccess}
+                tooltip={grantsAccess
+                  ? grantAccessTooltip({ isSpace, accessibility, t })
+                  : t('Gives access to view the group, but people still have to request to join.')}
+              />
+              <span className='min-w-0 flex-1 overflow-hidden whitespace-nowrap text-ellipsis' dir='rtl'>
+                <bdi className='text-selected'>{fullUrl}</bdi>
+              </span>
+              <div className={COPY_CHIP_CLASS}>
+                {copied
+                  ? <>{t('Copied!')}</>
+                  : <><Icon name='Copy' className='text-xs' /> {t('Copy')}</>}
+              </div>
+            </button>
+          </CopyToClipboard>
+          {canAdminister && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type='button' aria-label={t('Invite link actions')} className='p-1.5 rounded-md hover:bg-foreground/10 transition-colors shrink-0'>
+                  <MoreVertical className='w-5 h-5 text-foreground/60' />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end'>
+                <DropdownMenuItem onClick={() => startEditLink(link)}>{t('Edit')}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => removeInviteLink(link.id)} className='cursor-pointer text-red-500 focus:text-red-500'>{t('Delete')}</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+        {editingLink?.id === link.id && (
+          <InviteLinkEditor
+            draft={editingLink}
+            onChange={setEditingLink}
+            onSave={saveEditedLink}
+            onCancel={() => setEditingLink(null)}
+            canAdminister={canAdminister}
+            roles={activeRoles}
+          />
+        )}
+        {!!link.numJoinedUsers && <p className='text-xs text-foreground/50 m-0'>{t('{{count}} joined', { count: link.numJoinedUsers })}</p>}
+      </div>
+    )
+  }
+
+  const newLinkEditor = creatingLink && newLink && (
+    <InviteLinkEditor
+      draft={newLink}
+      onChange={setNewLink}
+      onSave={saveNewLink}
+      onCancel={() => { setCreatingLink(false); setNewLink(null) }}
+      canAdminister={canAdminister}
+      roles={activeRoles}
+    />
+  )
 
   return (
     <div className={classes.container}>
@@ -682,14 +794,14 @@ function InviteSettingsTab (props) {
           </div>
           <div className='min-w-0 w-full overflow-hidden'>
             <CopyToClipboard text={`${window.location.origin}/groups/${group.slug}`} onCopy={onCopyPublicLink}>
-              <button className='flex items-center group gap-2 min-w-0 w-full max-w-full bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={!copiedPublicLink ? t('Click to Copy') : undefined} data-tooltip-id='public-link-tooltip'>
+              <button className={LINK_BOX_CLASS} data-tooltip-content={!copiedPublicLink ? t('Click to Copy') : undefined} data-tooltip-id='public-link-tooltip'>
                 <span className='min-w-0 flex-1 overflow-hidden whitespace-nowrap text-ellipsis' dir='rtl'>
                   <bdi className='text-selected'>{`${window.location.origin}/groups/${group.slug}`}</bdi>
                 </span>
-                <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all shrink-0'>
+                <div className={COPY_CHIP_CLASS}>
                   {copiedPublicLink
                     ? <>{t('Copied!')}</>
-                    : <><Icon name='Copy' /> {t('Copy')}</>}
+                    : <><Icon name='Copy' className='text-xs' /> {t('Copy')}</>}
                 </div>
               </button>
             </CopyToClipboard>
@@ -707,68 +819,41 @@ function InviteSettingsTab (props) {
       )}
 
       {showInviteLinks && (
-        <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
-          <div className='text-foreground'>
-            <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Invite Links')}</h2>
-            <div className='text-sm text-foreground/70'>
-              {inviteLinksExplainer({ isSpace, accessibility, visibility, t })}
-            </div>
-          </div>
-          {inviteLinks.map(link => {
-            const grantsAccess = linkGrantsAccess(link, { isSpace, accessibility })
-            const fullUrl = `${window.location.origin}${inviteLinkDisplayPath(link, grantsAccess)}`
-            const copied = copiedInviteLinkId === link.id
-            const activeRoles = (group.groupRoles?.items || []).filter(role => role.active)
-            return (
-              <div key={link.id} className='flex flex-col gap-1'>
-                <div className='flex items-center gap-2 min-w-0 w-full'>
-                  <CopyToClipboard text={fullUrl} onCopy={() => onCopyInviteLink(link.id)}>
-                    <button className='flex items-center group gap-2 min-w-0 flex-1 w-full max-w-full bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={!copied ? t('Click to Copy') : undefined} data-tooltip-id='invite-link-copy-tooltip'>
-                      <InviteLinkAccessIcon
-                        grantsAccess={grantsAccess}
-                        tooltip={grantsAccess
-                          ? grantAccessTooltip({ isSpace, accessibility, t })
-                          : t('Gives access to view the group, but people still have to request to join.')}
-                      />
-                      <span className='min-w-0 flex-1 overflow-hidden whitespace-nowrap text-ellipsis' dir='rtl'>
-                        <bdi className='text-selected'>{fullUrl}</bdi>
-                      </span>
-                      <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all shrink-0'>
-                        {copied
-                          ? <>{t('Copied!')}</>
-                          : <><Icon name='Copy' /> {t('Copy')}</>}
-                      </div>
-                    </button>
-                  </CopyToClipboard>
-                  {canAdminister && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button type='button' aria-label={t('Invite link actions')} className='p-1.5 rounded-md hover:bg-foreground/10 transition-colors shrink-0'>
-                          <MoreVertical className='w-5 h-5 text-foreground/60' />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align='end'>
-                        <DropdownMenuItem onClick={() => startEditLink(link)}>{t('Edit')}</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => removeInviteLink(link.id)} className='cursor-pointer text-red-500 focus:text-red-500'>{t('Delete')}</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-                <InviteLinkMeta name={link.name} roles={link.grantedRoles || []} t={t} />
-                {editingLink?.id === link.id && (
-                  <InviteLinkEditor
-                    draft={editingLink}
-                    onChange={setEditingLink}
-                    onSave={saveEditedLink}
-                    onCancel={() => setEditingLink(null)}
-                    canAdminister={canAdminister}
-                    roles={activeRoles}
-                  />
-                )}
-                {!!link.numJoinedUsers && <p className='text-xs text-foreground/50 m-0'>{t('{{count}} joined', { count: link.numJoinedUsers })}</p>}
-              </div>
-            )
-          })}
+        <>
+          {canCreateViewLink && (
+            <InviteLinkSection
+              title={t('View Links')}
+              explainer={t('Let someone see the group and request to join.')}
+            >
+              {linksLoading ? linksSpinner : <div className='flex flex-col gap-4'>{viewLinks.map(renderInviteLink)}</div>}
+              {canAdminister && !creatingLink && !linksLoading && (
+                <button
+                  type='button'
+                  onClick={() => startNewLink(false)}
+                  data-tooltip-id='create-view-link-tooltip'
+                  data-tooltip-content={t('These links allow for viewing the group, but still require a request to join.')}
+                  className='inline-flex items-center gap-1.5 self-start text-sm border-2 border-foreground/20 rounded-md px-2 py-1 hover:border-foreground/50 transition-all'
+                >
+                  <Plus className='w-4 h-4' aria-hidden />
+                  {t('Create View Link')}
+                </button>
+              )}
+              {newLink && !newLink.grantAccess && newLinkEditor}
+            </InviteLinkSection>
+          )}
+          <InviteLinkSection
+            title={t('Invite Links')}
+            explainer={inviteLinksExplainer({ isSpace, accessibility, visibility, t })}
+          >
+            {linksLoading ? linksSpinner : <div className='flex flex-col gap-4'>{grantingLinks.map(renderInviteLink)}</div>}
+            {canAdminister && !creatingLink && !linksLoading && (
+              <button type='button' onClick={() => startNewLink(true)} className='inline-flex items-center gap-1.5 self-start text-sm border-2 border-foreground/20 rounded-md px-2 py-1 hover:border-foreground/50 transition-all'>
+                <Plus className='w-4 h-4' aria-hidden />
+                {t('Create invite link')}
+              </button>
+            )}
+            {newLink?.grantAccess && newLinkEditor}
+          </InviteLinkSection>
           {!isMobile.any && (
             <>
               <Tooltip place='top' type='dark' id='invite-link-grant-tooltip' effect='solid' delayShow={500} />
@@ -781,37 +866,7 @@ function InviteSettingsTab (props) {
               />
             </>
           )}
-          {canAdminister && !creatingLink && (
-            <div className='flex flex-wrap gap-2'>
-              <button type='button' onClick={() => startNewLink(true)} className='inline-flex items-center gap-1.5 self-start text-sm border-2 border-foreground/20 rounded-md px-2 py-1 hover:border-foreground/50 transition-all'>
-                <Plus className='w-4 h-4' aria-hidden />
-                {t('Create invite link')}
-              </button>
-              {canCreateViewLink && (
-                <button
-                  type='button'
-                  onClick={() => startNewLink(false)}
-                  data-tooltip-id='create-view-link-tooltip'
-                  data-tooltip-content={t('These links allow for viewing the group, but still require a request to join.')}
-                  className='inline-flex items-center gap-1.5 self-start text-sm border-2 border-foreground/20 rounded-md px-2 py-1 hover:border-foreground/50 transition-all'
-                >
-                  <Plus className='w-4 h-4' aria-hidden />
-                  {t('Create View Link')}
-                </button>
-              )}
-            </div>
-          )}
-          {creatingLink && newLink && (
-            <InviteLinkEditor
-              draft={newLink}
-              onChange={setNewLink}
-              onSave={saveNewLink}
-              onCancel={() => { setCreatingLink(false); setNewLink(null) }}
-              canAdminister={canAdminister}
-              roles={(group.groupRoles?.items || []).filter(role => role.active)}
-            />
-          )}
-        </div>
+        </>
       )}
 
       <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-2 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>

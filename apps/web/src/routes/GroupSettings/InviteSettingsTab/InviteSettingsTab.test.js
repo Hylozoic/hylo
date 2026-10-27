@@ -67,7 +67,7 @@ describe('InviteSettingsTab', () => {
     render(<InviteSettingsTab group={group} />)
 
     expect(screen.getByText('Public Group Link')).toBeInTheDocument()
-    expect(screen.getByText('Send this link to anyone you want to see the group and join')).toBeInTheDocument()
+    expect(screen.getByText('To see the group and join')).toBeInTheDocument()
     expect(screen.queryByText('Invite Links')).not.toBeInTheDocument()
   })
 
@@ -82,9 +82,9 @@ describe('InviteSettingsTab', () => {
 
     render(<InviteSettingsTab group={group} />)
 
-    expect(screen.getByText('Send this link to anyone you want to see the group and request to join')).toBeInTheDocument()
-    expect(screen.getByText('Send an invite link to grant access to the group without a request.')).toBeInTheDocument()
-    expect(screen.queryByText('Send a view link to let someone see the group and request to join.')).not.toBeInTheDocument()
+    expect(screen.getByText('To see the group and request to join.')).toBeInTheDocument()
+    expect(screen.getByText('Grant access to the group without a request.')).toBeInTheDocument()
+    expect(screen.queryByText('Let someone see the group and request to join.')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Create View Link' })).not.toBeInTheDocument()
   })
 
@@ -99,8 +99,8 @@ describe('InviteSettingsTab', () => {
 
     render(<InviteSettingsTab group={group} />)
 
-    expect(screen.getByText('Send this link to people you want to see the group profile, they will not be able to join the group.')).toBeInTheDocument()
-    expect(screen.getByText('Send an invite link to grant access to the group.')).toBeInTheDocument()
+    expect(screen.getByText('To see the group profile. They will not be able to join the group.')).toBeInTheDocument()
+    expect(screen.getByText('Grant access to the group.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Create View Link' })).not.toBeInTheDocument()
   })
 
@@ -114,7 +114,7 @@ describe('InviteSettingsTab', () => {
         accessibility: GROUP_ACCESSIBILITY.Closed
       }} />)
 
-      expect(screen.getByText('Send an invite link to grant access to the group.')).toBeInTheDocument()
+      expect(screen.getByText('Grant access to the group.')).toBeInTheDocument()
       expect(screen.queryByText('Because this group is Closed, even if someone can see this group they still need an invite to join.')).not.toBeInTheDocument()
       unmount()
     }
@@ -282,7 +282,9 @@ describe('InviteSettingsTab pending invites', () => {
       }
     })
 
-    expect(screen.getByText('Front door')).toBeInTheDocument()
+    const name = screen.getByText('Front door')
+    const url = screen.getByText(/\/invite\/Abcdefghij/)
+    expect(name.compareDocumentPosition(url) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByText('Grants Role(s):')).toBeInTheDocument()
     expect(screen.getByText('👋 Host')).toBeInTheDocument()
     expect(screen.getByTestId('invite-link-grants-access')).toHaveAttribute(
@@ -307,6 +309,49 @@ describe('InviteSettingsTab pending invites', () => {
 
     expect(screen.getByText('Grants Role(s):')).toBeInTheDocument()
     expect(screen.getByText('Host')).toBeInTheDocument()
+  })
+
+  it('puts view links in their own section above invite links', () => {
+    renderTab({
+      group: {
+        inviteLinks: [
+          { id: '9', accessCode: 'InviteCode', url: '/invite/InviteCode', grantAccess: true },
+          { id: '10', accessCode: 'ViewCode11', url: '/view/ViewCode11', grantAccess: false }
+        ]
+      }
+    })
+
+    const viewUrl = screen.getByText(/\/view\/ViewCode11/)
+    const inviteUrl = screen.getByText(/\/invite\/InviteCode/)
+    expect(viewUrl.compareDocumentPosition(inviteUrl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByText(/\/invite\/ViewCode11/)).not.toBeInTheDocument()
+  })
+
+  it('shows a spinner while links are still loading', async () => {
+    let releaseLinks
+    const linksReady = new Promise(resolve => { releaseLinks = resolve })
+    mockGraphqlServer.use(
+      graphql.operation(async ({ query }) => {
+        if (String(query).includes('inviteLinks')) await linksReady
+        return HttpResponse.json({ data: {} })
+      })
+    )
+
+    render(<InviteSettingsTab group={{
+      id: 1,
+      name: 'Hylo',
+      slug: 'hylo',
+      visibility: GROUP_VISIBILITY.Protected,
+      accessibility: GROUP_ACCESSIBILITY.Restricted
+    }} />)
+
+    expect(await screen.findAllByTestId('loading-indicator')).not.toHaveLength(0)
+    expect(screen.getByRole('heading', { name: 'View Links' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Invite Links' })).toBeInTheDocument()
+    releaseLinks()
+    await waitFor(() => {
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    })
   })
 
   it('marks a view-only link with an eye and a /view path', () => {
@@ -416,8 +461,11 @@ describe('InviteSettingsTab pending invites', () => {
   it('shows invite links, email invites, the allowance and pending invites', () => {
     renderTab()
 
-    expect(screen.getByText('Invite Links')).toBeInTheDocument()
-    expect(screen.getByText('Send an invite link to grant access to the group without a request. Send a view link to let someone see the group and request to join.')).toBeInTheDocument()
+    const viewHeading = screen.getByRole('heading', { name: 'View Links' })
+    const inviteHeading = screen.getByRole('heading', { name: 'Invite Links' })
+    expect(viewHeading.compareDocumentPosition(inviteHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByText('Let someone see the group and request to join.')).toBeInTheDocument()
+    expect(screen.getByText('Grant access to the group without a request.')).toBeInTheDocument()
     expect(screen.getByText('Invite people on Hylo')).toBeInTheDocument()
     expect(screen.getByText('Send Invites via email')).toBeInTheDocument()
     expect(screen.getByText('Enter up to 10 email addresses at a time, separated by commas or new lines')).toBeInTheDocument()
