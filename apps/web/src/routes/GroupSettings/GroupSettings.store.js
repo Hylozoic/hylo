@@ -41,6 +41,14 @@ export function fetchGroupSettings (slug) {
           id
           acceptedPostTypes
           accessibility
+          allowInPublic
+          publicListingRequest {
+            status
+            message
+            requestedAt
+            reviewedAt
+            reviewMessage
+          }
           avatarUrl
           bannerUrl
           description

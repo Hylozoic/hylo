@@ -223,6 +223,7 @@
       "ModerationAction",
       "Media",
       "MemberGroupRole",
+      "MessagingService",
       "Notification",
       "OneSignal",
       "PlayCrypto",

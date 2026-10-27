@@ -44,9 +44,7 @@ export default class MessageSection extends Component {
   }
 
   componentDidMount () {
-    const { socket, fetchMessages, messageThread, updateThreadReadTime } = this.props
-    this.reconnectHandler = () => fetchMessages()
-    socket && socket.on('reconnect', this.reconnectHandler)
+    const { messageThread, updateThreadReadTime } = this.props
     document && document.addEventListener('visibilitychange', this.handleVisibilityChange)
     this.setupScrollHandler()
     // Check if we're already at bottom after initial render
@@ -61,8 +59,6 @@ export default class MessageSection extends Component {
   }
 
   componentWillUnmount () {
-    const { socket } = this.props
-    socket && socket.off('reconnect', this.reconnectHandler)
     document && document.removeEventListener('visibilitychange', this.handleVisibilityChange)
   }
 
