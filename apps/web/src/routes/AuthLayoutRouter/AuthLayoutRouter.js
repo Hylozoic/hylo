@@ -63,6 +63,7 @@ import AllTopics from 'routes/AllTopics'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
 import CreateGroupModal from 'routes/CreateGroup/CreateGroupModal'
+import RsvpCalendarPrompt from 'components/RsvpCalendarPrompt/RsvpCalendarPrompt'
 import GroupAboutPage from 'routes/GroupAboutPage'
 import GroupDetail from 'routes/GroupDetail'
 import PaymentSuccess from 'routes/GroupDetail/PaymentSuccess'
@@ -1240,6 +1241,7 @@ export default function AuthLayoutRouter (props) {
         <CookieConsentLinker />
       </div>
       <CreateGroupModal />
+      <RsvpCalendarPrompt />
       <Toaster
         position={compactLayout ? 'top-center' : 'bottom-left'}
         style={compactLayout ? {} : { left: '80px' }}

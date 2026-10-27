@@ -29,7 +29,7 @@ export default function EventRSVP ({ myEventResponse, respondToEvent, position }
   ]
 
   return (
-    <div className={classes.eventRSVP}>
+    <div className={classes.eventRSVP} data-testid='event-rsvp'>
       <DropdownButton
         label={label}
         choices={choices}

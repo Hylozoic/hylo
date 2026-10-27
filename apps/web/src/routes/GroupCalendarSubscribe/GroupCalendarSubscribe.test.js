@@ -5,9 +5,10 @@ import GroupCalendarSubscribe from './GroupCalendarSubscribe'
 jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
 jest.mock('components/ModalDialog', () => {
   const React = require('react')
-  return function MockModalDialog ({ children, closeModal }) {
+  return function MockModalDialog ({ children, closeModal, modalTitle }) {
     return (
       <div data-testid='modal-dialog'>
+        <h1>{modalTitle}</h1>
         <button onClick={closeModal}>Close</button>
         {children}
       </div>
@@ -37,6 +38,19 @@ describe('GroupCalendarSubscribe', () => {
   it('renders Subscribe button with Rss icon when eventCalendarUrl is provided', () => {
     render(<GroupCalendarSubscribe {...defaultProps} />)
     expect(screen.getByRole('button', { name: /Subscribe to this Group's Calendar/i })).toBeInTheDocument()
+  })
+
+  it('shows a short label in the pill, with the full label as its tooltip', () => {
+    render(<GroupCalendarSubscribe {...defaultProps} />)
+    const button = screen.getByTestId('calendar-subscribe-button')
+    expect(button).toHaveAttribute('title', "Subscribe to this Group's Calendar")
+    expect(button).toHaveTextContent('Subscribe')
+    expect(button).toHaveTextContent('Subscribe to calendar')
+  })
+
+  it('uses the given short label (e.g. RSVP calendar)', () => {
+    render(<GroupCalendarSubscribe {...defaultProps} buttonLabel='Subscribe to all the Hylo events you have RSVPed to' shortLabel='Subscribe to your RSVPs' />)
+    expect(screen.getByTestId('calendar-subscribe-button')).toHaveTextContent('Subscribe to your RSVPs')
   })
 
   it('does not render Subscribe button when eventCalendarUrl is empty', () => {
