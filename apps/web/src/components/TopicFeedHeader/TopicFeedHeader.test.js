@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExten
 import TopicFeedHeader from './TopicFeedHeader'
 
 const topicName = 'Petitions'
-const bannerUrl = 'some.url'
 
 const defaultTestProps = {
   topicName,

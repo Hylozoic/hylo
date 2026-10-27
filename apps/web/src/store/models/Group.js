@@ -38,6 +38,16 @@ export function accessibilityDescription (a) {
   }
 }
 
+export function isRetainedAccessGroup (group) {
+  return Boolean(
+    group?.paywall &&
+    group?.hasValidScope &&
+    group?.currentUserMembershipActive === false &&
+    group?.active !== false &&
+    !['draft', 'archived'].includes(group?.status)
+  )
+}
+
 /**
  * Human-readable access sentence for a space, shown on the join page and about
  * modal. requiredRoles are resolved role objects from the parent group.
@@ -259,7 +269,9 @@ Group.fields = {
   stripeChargesEnabled: attr(),
   stripePayoutsEnabled: attr(),
   stripeDetailsSubmitted: attr(),
-  paywall: attr()
+  paywall: attr(),
+  hasValidScope: attr(),
+  currentUserMembershipActive: attr()
 }
 
 export const DEFAULT_BANNER = '/default-group-banner.svg'

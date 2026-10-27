@@ -2,7 +2,7 @@
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
-import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
+import { clone, defaults, difference, escape, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
 import fetch from 'node-fetch'
@@ -31,6 +31,19 @@ export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'active',
   'nav_order'
 ]
+
+// Notification prefs to copy from a parent membership onto an auto-added space membership.
+// addMembers replaces its default settings when callers pass settings, so these must be included.
+// Missing keys fall back to the same defaults a normal join would get.
+function notificationSettingsFromMembership (membership) {
+  const settings = (membership && membership.get('settings')) || {}
+  return {
+    postNotifications: settings.postNotifications != null ? settings.postNotifications : 'all',
+    digestFrequency: settings.digestFrequency || 'daily',
+    sendEmail: settings.sendEmail !== false,
+    sendPushNotifications: settings.sendPushNotifications !== false
+  }
+}
 
 // For files in the public directory, reference them with the base URL
 const DEFAULT_BANNER = '/default-group-banner.svg'
@@ -919,7 +932,9 @@ module.exports = bookshelf.Model.extend(merge({
     const wasAutoAdd = this.get('type') === 'space' && !!this.getSetting('auto_add_members')
 
     if (attributes.settings) {
-      saneAttrs.settings = merge({}, this.get('settings'), attributes.settings)
+      // The commons request is only changed through requestPublicListing / reviewPublicListingRequest
+      const { public_listing_request: _ignored, ...settingsChanges } = attributes.settings
+      saneAttrs.settings = merge({}, this.get('settings'), settingsChanges)
     }
 
     // If location_id is explicitly set to something empty then set it to null
@@ -928,8 +943,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Make sure geometry column goes into the database correctly, converting from GeoJSON
     if (!isEmpty(attributes.geo_shape)) {
-      const st = knexPostgis(bookshelf.knex)
-      saneAttrs.geo_shape = st.geomFromGeoJSON(attributes.geo_shape)
+      saneAttrs.geo_shape = Group.geoShapeFromGeoJSON(attributes.geo_shape)
     } else if (Object.prototype.hasOwnProperty.call(saneAttrs, 'geo_shape')) {
       // if geo_shape is explicitly set to an empty value then unset it
       saneAttrs.geo_shape = null
@@ -1207,7 +1221,8 @@ module.exports = bookshelf.Model.extend(merge({
    * Add parent-group members to a space with autoAddMembers. Skips people who
    * already belong and people who left the space (leftSpace). Inactive memberships
    * from leaving the parent group are reactivated. When userIds is omitted, all
-   * current parent members are considered.
+   * current parent members are considered. Each new space membership gets the
+   * same notification settings as that person's parent-group membership.
    */
   async addEligibleMembersToSpace ({ spaceId, userIds } = {}) {
     const space = await Group.find(spaceId)
@@ -1240,14 +1255,32 @@ module.exports = bookshelf.Model.extend(merge({
     const toAdd = candidateIds.filter(id => !skipIds.has(String(id)))
     if (toAdd.length === 0) return
 
-    await space.addMembers(toAdd, {
-      lastReadAt: new Date(),
-      settings: {
-        showJoinForm: false,
-        agreementsAcceptedAt: new Date(),
-        joinQuestionsAnsweredAt: new Date()
-      }
-    })
+    const parentMemberships = await GroupMembership.forIds(toAdd, parentId, { multiple: true }).fetch()
+    const notificationSettingsByUserId = {}
+    for (const membership of parentMemberships.models) {
+      notificationSettingsByUserId[String(membership.get('user_id'))] = notificationSettingsFromMembership(membership)
+    }
+
+    const usersBySettings = {}
+    for (const userId of toAdd) {
+      const notificationSettings = notificationSettingsByUserId[String(userId)] || notificationSettingsFromMembership(null)
+      const key = JSON.stringify(notificationSettings)
+      if (!usersBySettings[key]) usersBySettings[key] = { notificationSettings, userIds: [] }
+      usersBySettings[key].userIds.push(userId)
+    }
+
+    const joinedAt = new Date()
+    for (const { notificationSettings, userIds: ids } of Object.values(usersBySettings)) {
+      await space.addMembers(ids, {
+        lastReadAt: joinedAt,
+        settings: {
+          showJoinForm: false,
+          agreementsAcceptedAt: joinedAt,
+          joinQuestionsAnsweredAt: joinedAt,
+          ...notificationSettings
+        }
+      })
+    }
 
     await Group.ensureSpaceViewUsers(spaceId, toAdd)
   },
@@ -1308,6 +1341,12 @@ module.exports = bookshelf.Model.extend(merge({
     Activity.saveForReasons(activities)
   },
 
+  /** Convert a GeoJSON geometry (object or JSON string) into a value for the geo_shape column. */
+  geoShapeFromGeoJSON (geoJSON) {
+    const st = knexPostgis(bookshelf.knex)
+    return st.geomFromGeoJSON(geoJSON)
+  },
+
   async create (userId, data) {
     if (!data.slug) {
       throw new GraphQLError('Missing required field: slug')
@@ -1331,6 +1370,11 @@ module.exports = bookshelf.Model.extend(merge({
         visibility: Group.Visibility.PROTECTED
       }
     )
+
+    // Convert the GeoJSON boundary into the geometry column's format
+    if (!isEmpty(data.geo_shape)) {
+      attrs.geo_shape = Group.geoShapeFromGeoJSON(data.geo_shape)
+    }
 
     // XXX: for now groups by default cannot post to public on production
     attrs.allow_in_public = process.env.NODE_ENV === 'development'
@@ -1410,7 +1454,10 @@ module.exports = bookshelf.Model.extend(merge({
       await Queue.classMethod('Group', 'geocodeLocation', { groupId: group.id })
     }
 
-    await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
+    // Internal alert to NEW_GROUP_EMAIL. Spaces are not new top-level groups.
+    if (group.get('type') !== 'space') {
+      await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
+    }
 
     // Send email to creator
     await Queue.classMethod('Group', 'sendGroupCreatedEmail', { groupId: group.id })
@@ -1667,6 +1714,7 @@ module.exports = bookshelf.Model.extend(merge({
   notifyAboutCreate: function (opts) {
     return Group.find(opts.groupId, { withRelated: ['creator'] })
       .then(g => {
+        if (!g || g.get('type') === 'space') return
         const creator = g.relations.creator
         const recipient = process.env.NEW_GROUP_EMAIL
         const L = getLocaleStrings(creator.getLocale())
@@ -1690,6 +1738,108 @@ module.exports = bookshelf.Model.extend(merge({
           }
         })
       })
+  },
+
+  // Tells the Hylo team (NEW_GROUP_EMAIL) that a group wants to be added to the commons.
+  // Runs as its own job, separate from messageAdminsAboutPublicListingRequest, so a
+  // retry after a failed send can't repeat the admins' in-app message.
+  notifyAboutPublicListingRequest: async function ({ groupId }) {
+    const recipient = process.env.NEW_GROUP_EMAIL
+    if (!recipient) {
+      sails.log.warn(`Group.notifyAboutPublicListingRequest: NEW_GROUP_EMAIL is not set, no email sent for group ${groupId}`)
+      return false
+    }
+    const { group, request } = await Group.findPublicListingRequest(groupId, 'notifyAboutPublicListingRequest')
+    if (!request) return false
+    const requester = await User.find(request.requested_by_id)
+    const sent = await Email.sendRawEmail({
+      email: recipient,
+      data: {
+        subject: `Commons request: ${group.get('name')}`,
+        body: [
+          `Group: ${escape(group.get('name'))}`,
+          `URL: ${Frontend.Route.group(group)}`,
+          requester && `Requested by: ${escape(requester.get('name'))} (${escape(requester.get('email'))})`,
+          request.message && `Message: ${escape(request.message)}`,
+          '',
+          `Review requests: ${Frontend.Route.managementCommonsRequests()}`
+        ].filter(line => typeof line === 'string').join('<br/>\n')
+      },
+      extraOptions: {
+        sender: {
+          name: 'Hylobot',
+          address: 'dev+bot@hylo.com'
+        }
+      }
+    })
+    // sendRawEmail swallows SendWithUs errors; throw so the job is retried and reported
+    if (!sent) throw new Error(`Group.notifyAboutPublicListingRequest: email for group ${groupId} failed to send`)
+    return sent
+  },
+
+  // Sends every Hylo admin (HYLO_ADMINS) one Axolotl direct message about a new commons
+  // request, in a single thread like flagged-content alerts (flaggedItem/notifyUtils)
+  messageAdminsAboutPublicListingRequest: async function ({ groupId }) {
+    const adminIds = (process.env.HYLO_ADMINS || '').split(',').map(id => Number(id.trim())).filter(id => id > 0)
+    if (adminIds.length === 0) {
+      sails.log.warn(`Group.messageAdminsAboutPublicListingRequest: HYLO_ADMINS is not set, no message sent for group ${groupId}`)
+      return false
+    }
+    const { group, request } = await Group.findPublicListingRequest(groupId, 'messageAdminsAboutPublicListingRequest')
+    if (!request) return false
+    const requester = await User.find(request.requested_by_id)
+    const text = [
+      `${escape(requester ? requester.get('name') : 'Someone')} asked to add ${escape(group.get('name'))} to the commons.`,
+      request.message && `Message: ${escape(request.message)}`,
+      `Review requests: ${Frontend.Route.managementCommonsRequests()}`
+    ].filter(Boolean).join('\n')
+    return MessagingService.sendMessageFromAxolotl(adminIds, text)
+  },
+
+  // Loads a group's commons request for a notification job, warning when it's gone
+  findPublicListingRequest: async function (groupId, jobName) {
+    const group = await Group.find(groupId)
+    const request = group && group.getSetting('public_listing_request')
+    if (!request) {
+      sails.log.warn(`Group.${jobName}: no commons request found for group ${groupId}`)
+    }
+    return { group, request }
+  },
+
+  // Emails the steward who asked to join the commons whether they were approved or denied
+  sendPublicListingDecision: async function ({ groupId }) {
+    const { group, request } = await Group.findPublicListingRequest(groupId, 'sendPublicListingDecision')
+    if (!request) return false
+    if (!['approved', 'denied'].includes(request.status)) {
+      sails.log.warn(`Group.sendPublicListingDecision: commons request for group ${groupId} is ${request.status}, not reviewed`)
+      return false
+    }
+    const requester = await User.find(request.requested_by_id)
+    if (!requester || !requester.get('email')) {
+      sails.log.warn(`Group.sendPublicListingDecision: requester ${request.requested_by_id} for group ${groupId} has no email`)
+      return false
+    }
+    const L = getLocaleStrings(requester.getLocale())
+    const approved = request.status === 'approved'
+    const groupName = escape(group.get('name'))
+    const body = [
+      approved ? L.publicListingApprovedBody(groupName) : L.publicListingDeniedBody(groupName),
+      request.review_message && `<br/>\n${L.publicListingReviewerNote()}<br/>\n${escape(request.review_message)}`,
+      `<br/>\n${Frontend.Route.groupSettings(group)}/privacy`
+    ].filter(Boolean).join('<br/>\n')
+    const sent = await Email.sendRawEmail({
+      email: requester.get('email'),
+      data: {
+        subject: approved ? L.publicListingApprovedSubject(group.get('name')) : L.publicListingDeniedSubject(group.get('name')),
+        body
+      },
+      extraOptions: {
+        sender: { name: L.theTeamAtHylo }
+      }
+    })
+    // sendRawEmail swallows SendWithUs errors; throw so the job is retried and reported
+    if (!sent) throw new Error(`Group.sendPublicListingDecision: email for group ${groupId} failed to send`)
+    return sent
   },
 
   sendGroupCreatedEmail: function (opts) {

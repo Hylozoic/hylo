@@ -368,7 +368,9 @@ type Query {
     # Return only posts that have any of these topics by topic ID
     topics: [ID],
     # Return only posts that are one of these types: 'discussion', 'event', 'offer', 'project', 'proposal', 'request' and/or 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Query for responsibilities
@@ -392,7 +394,7 @@ type Query {
     offset: Int,
     # Search term
     term: String,
-    # ONly search for content of a specific type: 'post', 'person', or 'comment'
+    # Only search for content of a specific type: 'post', 'person', 'comment', or 'group'
     type: String
   ): SearchResultQuerySet
 
@@ -483,6 +485,9 @@ type Query {
 
   # All site banners, past and present (admin only)
   allSiteBanners: [SiteBanner]
+
+  # Groups that have asked to be added to the commons, filtered by request status: pending, approved or denied. Omit status for all (admin only)
+  publicListingRequests(status: String): [Group]
 }
 
 union Update = Message | MessageThread | Notification
@@ -796,6 +801,10 @@ type Group {
   id: ID
   # Whether the current user has access to this group (via scope system or free access)
   canAccess: Boolean
+  # Whether the current user has a currently valid user scope for this group or space
+  hasValidScope: Boolean
+  # Current user's membership state; null when the user has never joined
+  currentUserMembershipActive: Boolean
   # URL for a video to display at the top of the about text
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
@@ -808,6 +817,8 @@ type Group {
   status: GroupStatus
   # Whether this group's posts can be shown in public feeds
   allowInPublic: Boolean
+  # The group's latest request to be added to the commons (allowInPublic). Only visible to group administrators and Hylo admins
+  publicListingRequest: PublicListingRequest
   # URL to the image of the avatar of the group
   avatarUrl: String
   # Lucide or Hylo icon name for groups/spaces without a custom avatar
@@ -1155,7 +1166,9 @@ type Group {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # All responsibilities available to the group
@@ -1246,7 +1259,9 @@ type Group {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Content access records for this group (purchased or granted)
@@ -1753,6 +1768,8 @@ type Me {
   intercomHash: String
   # IGNORE
   isAdmin: Boolean
+  # Whether this user's profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # URL of the logged in user's LinkedIn Profile
   linkedinUrl: String
   # String representing the logged in user's physical location
@@ -1767,6 +1784,8 @@ type Me {
   name: String
   # The number of unread notifications the logged in user has
   newNotificationCount: Int
+  # A new login email the user has asked for but not yet verified. Until it is verified, email is still the one in use
+  pendingEmail: String
   # The number of Posts the logged in user has created
   postsTotal: Int
   # RSVP calendar URL for subscriptions
@@ -2136,6 +2155,8 @@ type Person {
   facebookUrl: String
   # False for new users who have not completed the registration process
   hasRegistered: Boolean
+  # Whether this person's profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # When this person last viewed Hylo
   lastActiveAt: String
   # URL of this person's LinkedIn Profile
@@ -2246,7 +2267,9 @@ type Person {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Project posts that this person is a member of
@@ -2609,10 +2632,10 @@ type SavedSearchQuerySet {
   items: [SavedSearch]
 }
 
-# Search result content item which can be a Person, a Post or a Comment
-union SearchResultContent = Person | Post | Comment
+# Search result content item which can be a Person, a Post, a Comment or a Group
+union SearchResultContent = Person | Post | Comment | Group
 
-# Search result item which can be a Person, a Post or a Comment
+# Search result item which can be a Person, a Post, a Comment or a Group
 type SearchResult {
   id: ID
   content: SearchResultContent
@@ -2998,6 +3021,8 @@ type FundingRound {
   phase: FundingRoundPhase
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether members can see every submission during the submissions phase
+  showRealtimeSubmissions: Boolean
   # Whether to show running vote totals during the voting phase
   showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
@@ -3096,6 +3121,8 @@ type UserSettings {
   streamPostType: String
   # Color scheme / palette name (e.g. default, forest, ocean)
   theme: String
+  # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
+  unifiedEmailDigest: Boolean
 }
 
 type Draft {
@@ -3127,6 +3154,20 @@ type EmailEnabledTester {
   user: Person
   createdAt: Date
   updatedAt: Date
+}
+
+# A group's request to be added to the commons (have allowInPublic turned on)
+type PublicListingRequest {
+  # pending, approved or denied
+  status: String
+  # Optional note from the requester to the Hylo team
+  message: String
+  requestedAt: Date
+  requestedBy: Person
+  reviewedAt: Date
+  reviewedBy: Person
+  # Optional note from the reviewing admin, included in the decision email
+  reviewMessage: String
 }
 
 # A site-wide announcement banner published by a superadmin
@@ -3246,6 +3287,8 @@ type Mutation {
   allowGroupInvites(groupId: ID, data: Boolean): Group
   # For logged in user to block a user, meaning they will no longer see the user's posts and that user can no longer see theirs or message them.
   blockUser(blockedUserId: ID): GenericResult
+  # Cancel a pending change of your login email. The verification code and link sent to the new address stop working
+  cancelEmailChange: GenericResult
   # For a steward of a group that has invited a group to be in relationship with it, to cancel that invitation.
   cancelGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
   # For a Person who has requested to join another group to cancel that request.
@@ -3358,6 +3401,8 @@ type Mutation {
     purpose: String,
     location: String,
     locationId: ID,
+    # GeoJSON geometry (e.g. a Polygon) outlining the space's region
+    geoShape: String,
     viewTypes: [String],
     bannerUrl: String,
     avatarUrl: String,
@@ -3383,6 +3428,8 @@ type Mutation {
     requiredRoles: [Int],
     location: String,
     locationId: ID,
+    # GeoJSON geometry (e.g. a Polygon) outlining the space's region. Null clears it.
+    geoShape: String,
     purpose: String,
     bannerUrl: String,
     avatarUrl: String,
@@ -3511,6 +3558,8 @@ type Mutation {
   # For Restricted groups, provide accessCode or invitationToken for pre-approved join.
   # Set acceptAgreements to true if user has accepted agreements during join flow.
   joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput], accessCode: String, invitationToken: String, acceptAgreements: Boolean): Membership
+  # Reactivate a prior membership using still-valid purchased/granted access
+  rejoinGroup(groupId: ID!): Membership
   # Join a project Post as a member
   joinProject(id: ID): GenericResult
   # Leave a funding round
@@ -3674,6 +3723,13 @@ type Mutation {
   updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update a track
   updateTrack(trackId: ID, data: TrackInput): Track
+  # Verify the new login email requested via updateMe, using the code or the link's token sent to that address
+  verifyEmailChange(
+    # The 6 digit code sent to the new address
+    code: String,
+    # For verifying by clicking on a URL, the token from the link
+    token: String
+  ): SignupResult
   # Accept an invitation to a Group
   useInvitation(
     # The invite code for the Group
@@ -3697,6 +3753,10 @@ type Mutation {
   deleteSiteBanner(id: ID!): Boolean
   # Dismiss a site banner for the current user
   dismissSiteBanner(id: ID!): Boolean
+  # Ask the Hylo team to add a public group to the commons (allowInPublic). Group administrators only
+  requestPublicListing(groupId: ID!, message: String): Group
+  # Approve or deny a group's pending request to be added to the commons; the requester is emailed either way (admin only)
+  reviewPublicListingRequest(groupId: ID!, approved: Boolean!, message: String): Group
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
@@ -4245,10 +4305,12 @@ input MeInput {
   contactEmail: String
   # Phone number made visible on your profile
   contactPhone: String
-  # Account email address used to log in
+  # Account email address used to log in. Changing it sends a verification to the new address, and it only takes effect once verified (see pendingEmail)
   email: String
   # The URL to your Facebook profile
   facebookUrl: String
+  # Whether your profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # The URL to your LinkedIn profile
   linkedinUrl: String
   # String representing your physical location
@@ -4362,7 +4424,7 @@ input PostInput {
   fundingRoundId: ID
   # IDs of the groups to post to
   groupIds: [ID]
-  # URLs of images in the post. URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
+  # URLs of images in the post. A flat list of URL strings, or a nested list such as Zapier line items (those are flattened). URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
   imageUrls: [String]
   # Whether who votes on this proposal is visible or not
   isAnonymousVote: Boolean
@@ -4376,6 +4438,8 @@ input PostInput {
   linkPreviewFeatured: Boolean
   # When true, do not auto-generate a link preview from URLs in the post (the author removed it in the editor)
   skipLinkPreview: Boolean
+  # Create the post without notifying members: no email, push, in-app notification, unread badge, live update, Slack, or outbound Zapier. Only a steward of every destination group may set this. Cannot be combined with announcement.
+  silent: Boolean
   # Temporary id passed in from the client to identify the post when it is created, for optimistically updating the UI
   localId: String
   # Full location string
@@ -4516,6 +4580,8 @@ input FundingRoundInput {
   minTokenAllocation: Int
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether members can see every submission during the submissions phase
+  showRealtimeSubmissions: Boolean
   # Whether to show running vote totals during the voting phase
   showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
@@ -4581,4 +4647,6 @@ input UserSettingsInput {
   streamPostType: String
   # Color scheme / palette name (e.g. default, forest, ocean)
   theme: String
+  # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
+  unifiedEmailDigest: Boolean
 }

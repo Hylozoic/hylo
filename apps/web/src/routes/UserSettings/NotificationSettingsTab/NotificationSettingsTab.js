@@ -7,6 +7,8 @@ import { createSelector } from 'reselect'
 import Tooltip from 'components/Tooltip'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
+import InfoButton from 'components/ui/info'
+import { Switch } from 'components/ui/switch'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { GROUP_TYPES } from 'store/models/Group'
 import getMe from 'store/selectors/getMe'
@@ -148,6 +150,12 @@ function NotificationSettingsTab ({
     dispatch(updateMembershipSettings(groupId, changes))
   }
 
+  const updateUnifiedDigest = checked => {
+    dispatch(updateUserSettings({
+      settings: { unifiedEmailDigest: checked }
+    }))
+  }
+
   useEffect(() => {
     setTimeout(() => {
       const groupSection = document.getElementById(`group-${jumpToGroupId}`)
@@ -183,11 +191,29 @@ function NotificationSettingsTab ({
               update={updateUserSetting('dmNotifications')}
             />
           </div>
-          <div className='py-2'>
+          <div className='border-b-2 border-foreground/20 py-2'>
             <SettingsToggles
               label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Comments on followed posts')}</span>}
               settings={getCurrentSettings(me, 'commentNotifications')}
               update={updateUserSetting('commentNotifications')}
+            />
+          </div>
+          <div className='flex items-center justify-between gap-2 py-2'>
+            <span className='text-xl inline-flex items-center gap-1'>
+              {t('Unified email digest')}
+              <InfoButton
+                content={
+                  <span className='block max-w-xs'>
+                    {t('When this is on, groups with a daily digest are combined into one daily email, and groups with a weekly digest are combined into one weekly email. A post sent to several groups is included once. Each item shows which of your groups it was posted in.')}
+                  </span>
+                }
+              />
+            </span>
+            <Switch
+              checked={me?.settings?.unifiedEmailDigest === true}
+              onCheckedChange={updateUnifiedDigest}
+              aria-label={t('Unified email digest')}
+              data-testid='unified-email-digest'
             />
           </div>
         </div>

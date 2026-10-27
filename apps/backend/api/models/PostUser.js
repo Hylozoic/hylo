@@ -13,6 +13,14 @@ module.exports = bookshelf.Model.extend({
     return this.belongsTo(User)
   },
 
+  /** The completion response, sanitized when the post's completion action is text. */
+  async completionResponseForDisplay () {
+    const response = this.get('completion_response')
+    if (!response) return response
+    const post = await Post.where({ id: this.get('post_id') }).fetch({ columns: ['id', 'completion_action'] })
+    return Post.sanitizeCompletionResponse(post?.get('completion_action'), response)
+  },
+
   async updateAndSave (attrs, { transacting } = {}) {
     for (let key in attrs) {
       this.set(key, attrs[key])

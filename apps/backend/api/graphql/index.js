@@ -8,6 +8,8 @@ import makeSchema from './makeSchema'
 import { createGroupVisibilityLoader } from './filters'
 import sentry from '../../lib/sentry'
 import { recordActivityDay } from '../../lib/userActivityDays'
+import { touchLastActiveAt } from './touchLastActiveAt'
+import { flattenImageUrlVariables } from '../../lib/uploader/rehostRemoteMedia'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
 
@@ -59,11 +61,21 @@ const graphqlSentryContextPlugin = {
   }
 }
 
+// Zapier line items arrive as [[url]]. Flatten before [String] coercion rejects them.
+const flattenImageUrlsPlugin = {
+  onExecute ({ executeFn, setExecuteFn }) {
+    setExecuteFn((executionArgs) => {
+      flattenImageUrlVariables(executionArgs?.variableValues)
+      return executeFn(executionArgs)
+    })
+  }
+}
+
 export const yoga = createYoga({
   graphqlEndpoint: GRAPHQL_ENDPOINT,
   schema: makeSchema,
   // plugins: [useLazyLoadedSchema(createSchema)],
-  plugins: [graphqlSentryContextPlugin],
+  plugins: [flattenImageUrlsPlugin, graphqlSentryContextPlugin],
   context: async ({ req, params }) => {
     if (process.env.DEBUG_GRAPHQL) {
       sails.log.info('\n' +
@@ -81,9 +93,9 @@ export const yoga = createYoga({
       sails.log.info(`[auth] graphql context op=${opName || '?'} currentUserId=${req.session.userId} viaToken=${!!req.api_client} hasCookieHeader=${!!req.headers.cookie}`)
     }
 
-    // Update user last active time unless this is an oAuth login
+    // oAuth clients are skipped inside touchLastActiveAt
+    touchLastActiveAt(req)
     if (req.session.userId && !req.api_client) {
-      await User.query().where({ id: req.session.userId }).update({ last_active_at: new Date() })
       recordActivityDay(bookshelf.knex, req.session.userId, {
         log: err => sails.log.error('Could not record user activity day', err)
       })
@@ -118,12 +130,13 @@ export function graphiqlEnabled (request, { req } = {}) {
 // recreates that API by running graphql() with the same schema/context shape as production (yoga),
 // without going through HTTP. response is always null; tests only use executionResult.
 export const createRequestHandler = () => ({
-  inject: async ({ document, serverContext }) => {
+  inject: async ({ document, variables, serverContext }) => {
     const req = serverContext?.req || {}
     const schema = await makeSchema({ req })
     const executionResult = await graphql({
       schema,
       source: document,
+      variableValues: flattenImageUrlVariables(variables),
       contextValue: {
         pubSub: RedisPubSub,
         socket: req.socket,

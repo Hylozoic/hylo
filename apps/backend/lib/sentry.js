@@ -19,8 +19,15 @@ if (enabled) {
   Sentry.init({
     dsn,
     environment,
-    // Error reporting only — no performance tracing (matches web policy)
-    tracesSampleRate: 0,
+    // Error reporting only. Do not set tracesSampleRate: in @sentry/node 10, `0` still
+    // enables tracing and loads the Express integration, which patches every middleware.
+    // The default Http integration wraps http.Server.emit. Each copy of @sentry/core
+    // keeps its own WeakMap of that wrapper, so a second copy (CJS and ESM) adds another
+    // Proxy on every request until a socket event overflows the stack
+    // (RangeError at server-subscription.ts). Leave Http off; captureException and
+    // expressErrorHandler do not need it.
+    registerEsmLoaderHooks: false,
+    integrations: (integrations) => integrations.filter((integration) => integration.name !== 'Http'),
     // Align with existing Rollbar person fields (id / name / email via setUser)
     sendDefaultPii: true,
     initialScope: {

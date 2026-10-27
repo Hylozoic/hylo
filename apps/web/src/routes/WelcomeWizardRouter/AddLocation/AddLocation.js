@@ -57,14 +57,14 @@ function AddLocation () {
   }
 
   return (
-    <div className='bg-card shadow-md w-[360px] mx-auto rounded-lg'>
+    <div className='bg-card shadow-md w-full mx-auto rounded-lg'>
       <div className='p-8 relative flex flex-col min-h-[480px]'>
         <span className='absolute top-4 right-4 text-xs text-muted-foreground'>{t('STEP 2/3')}</span>
         <div className='flex-1 flex flex-col justify-center'>
           <div className='flex justify-center items-center'>
             <MapPin className='w-[100px] h-[100px] mb-5 text-muted-foreground' strokeWidth={1.25} />
           </div>
-          <div className='flex justify-center items-center relative'>
+          <div className='flex justify-center items-center relative min-w-0 w-full'>
             <LocationInput
               saveLocationToDB
               inputClass='w-full text-lg font-light text-muted-foreground bg-background border-b border-foreground/20 px-4 py-2 focus:outline-none'

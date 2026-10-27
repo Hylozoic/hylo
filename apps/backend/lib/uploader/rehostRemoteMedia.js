@@ -1,23 +1,74 @@
 import { upload } from './index'
 
 /**
+ * Collect URL strings from a flat list, a nested list (Zapier line items),
+ * or a JSON-encoded list that arrived as one string.
+ * @param {*} value
+ * @param {string[]} out
+ */
+function collectImageUrls (value, out) {
+  if (value == null || value === '') return
+  if (Array.isArray(value)) {
+    for (const item of value) collectImageUrls(item, out)
+    return
+  }
+  if (typeof value !== 'string') return
+
+  const trimmed = value.trim()
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed)
+      if (Array.isArray(parsed)) {
+        collectImageUrls(parsed, out)
+        return
+      }
+    } catch (err) {
+      // A leading "[" that is not a JSON list is still a URL.
+    }
+  }
+
+  for (const part of trimmed.split(/\s+/)) {
+    if (part) out.push(part)
+  }
+}
+
+/**
  * Flatten image URL input into a list of individual http(s) URLs.
- * Accepts an array or a single string, and splits on whitespace so a pasted
- * block of URLs (or a Zapier text field) becomes multiple images.
- * @param {string[]|string|undefined|null} urls
+ * Accepts a string, a flat list, or a nested list, and splits on whitespace
+ * so a pasted block of URLs (or a Zapier text field) becomes multiple images.
+ * @param {string[]|string[][]|string|undefined|null} urls
  * @returns {string[]|undefined|null}
  */
 export function normalizeImageUrls (urls) {
   if (!urls) return urls
-  const list = Array.isArray(urls) ? urls : [urls]
   const out = []
-  for (const item of list) {
-    if (!item || typeof item !== 'string') continue
-    for (const part of item.split(/\s+/)) {
-      if (part) out.push(part)
-    }
-  }
+  collectImageUrls(urls, out)
   return out
+}
+
+/**
+ * Rewrite every imageUrls value in a GraphQL variables object in place.
+ * PostInput.imageUrls is [String], so a Zapier line-item list ([[url]]) has to
+ * be flattened before GraphQL coerces the variables.
+ * @param {*} variables
+ * @returns {*}
+ */
+export function flattenImageUrlVariables (variables) {
+  walkImageUrlFields(variables)
+  return variables
+}
+
+/** @param {*} value */
+function walkImageUrlFields (value) {
+  if (!value || typeof value !== 'object') return
+  if (Array.isArray(value)) {
+    for (const item of value) walkImageUrlFields(item)
+    return
+  }
+  if (Object.prototype.hasOwnProperty.call(value, 'imageUrls')) {
+    value.imageUrls = normalizeImageUrls(value.imageUrls)
+  }
+  for (const nested of Object.values(value)) walkImageUrlFields(nested)
 }
 
 /**

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { CreditCard, Hand, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus, Users } from 'lucide-react'
+import { CreditCard, HeartHandshake, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus, Users } from 'lucide-react'
 
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import Button from 'components/ui/button'
@@ -11,7 +11,7 @@ import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import { Input } from 'components/ui/input'
 import HyloEditor from 'components/HyloEditor'
-import LocationInput from 'components/LocationInput/LocationInput'
+import LocationWithBoundary from 'components/LocationWithBoundary/LocationWithBoundary'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
 import SwitchStyled from 'components/SwitchStyled'
@@ -20,6 +20,7 @@ import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { updateFundingRound, fetchFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { fetchOfferings } from 'routes/GroupSettings/PaidContentTab/PaidContentTab.store'
 import { groupUrl, localSpaceSlug } from '@hylo/navigation'
+import fetchForGroup from 'store/actions/fetchForGroup'
 import { createGroupView, convertSpaceToChildGroup, updateGroupView, updateSpace } from 'store/actions/groupViews'
 import { updateTrack, fetchTrack } from 'store/actions/trackActions'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
@@ -38,7 +39,8 @@ import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
 import AutoAddMembersSetting from './AutoAddMembersSetting'
-import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
+import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toMinuteIsoOrNull } from './spaceFormConstants'
+import { geoShapeForApi, groupFieldLoaded, spaceLocation } from './spaceLocation'
 
 function toDateOrNull (value) {
   if (!value) return null
@@ -175,11 +177,12 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const passedSpace = spaceProp || view?.linkedGroup
-  const spaceFromStore = useSelector(state => {
+  const spaceModel = useSelector(state => {
     const slug = passedSpace?.slug
     if (!slug) return null
-    return getGroupForSlug(state, slug)?.ref || null
+    return getGroupForSlug(state, slug) || null
   })
+  const spaceFromStore = spaceModel?.ref || null
   const parentFromStore = useSelector(state => {
     const slug = parentGroupProp?.slug
     if (!slug) return null
@@ -219,7 +222,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [bannerUrl, setBannerUrl] = useState(space?.bannerUrl || '')
   const [purpose, setPurpose] = useState(space?.purpose || '')
   const [description, setDescription] = useState(space?.description || '')
-  const [locationObject, setLocationObject] = useState(space?.locationObject || null)
+  const [locationObject, setLocationObject] = useState(() => spaceLocation(spaceModel))
+  const [geoShape, setGeoShape] = useState(() => spaceModel?.ref?.geoShape || null)
   const [postTypes, setPostTypes] = useState(space?.acceptedPostTypes || [])
   const [access, setAccess] = useState(() => accessValueForSpace({
     visibility: space?.visibility,
@@ -236,7 +240,11 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
-  const [openAdvanced, setOpenAdvanced] = useState(() => new Set())
+  const [openAdvanced, setOpenAdvanced] = useState(() => {
+    const open = new Set()
+    if (spaceLocation(spaceModel)?.fullText || spaceModel?.ref?.geoShape) open.add('location')
+    return open
+  })
   const [justRevealed, setJustRevealed] = useState(null)
   // Welcome edits only save if the panel was ever opened
   const [welcomeTouched, setWelcomeTouched] = useState(false)
@@ -244,6 +252,15 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [showWelcomePage, setShowWelcomePage] = useState(space?.settings?.showWelcomePage ?? true)
   const [autoAddMembers, setAutoAddMembers] = useState(!!space?.settings?.autoAddMembers)
   const welcomeEditorRef = useRef(null)
+  const locationTouched = useRef(false)
+  const geoShapeTouched = useRef(false)
+  const locationLoadedRef = useRef(groupFieldLoaded(spaceModel, 'location'))
+  const geoShapeLoadedRef = useRef(groupFieldLoaded(spaceModel, 'geoShape'))
+  const spaceModelRef = useRef(spaceModel)
+  const didAutoOpenLocation = useRef(Boolean(spaceLocation(spaceModel)?.fullText || spaceModel?.ref?.geoShape))
+  locationLoadedRef.current = groupFieldLoaded(spaceModel, 'location')
+  geoShapeLoadedRef.current = groupFieldLoaded(spaceModel, 'geoShape')
+  spaceModelRef.current = spaceModel
 
   // Track settings (only relevant when this space is backed by a Track)
   const [actionDescriptor, setActionDescriptor] = useState(track?.actionDescriptor || 'Action')
@@ -280,12 +297,49 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(!!fundingRound?.allowLateJoiners)
   const [frHideFinalResults, setFrHideFinalResults] = useState(!!fundingRound?.hideFinalResultsFromParticipants)
   const [frRequireBudget, setFrRequireBudget] = useState(!!fundingRound?.requireBudget)
+  const [frShowRealtimeSubmissions, setFrShowRealtimeSubmissions] = useState(!!fundingRound?.showRealtimeSubmissions)
   const [frShowRealtimeVotes, setFrShowRealtimeVotes] = useState(!!fundingRound?.showRealtimeVotes)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState(fundingRound?.submissionDescriptor || 'Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState(fundingRound?.submissionDescriptorPlural || 'Submissions')
   const [frSubmitterRoles, setFrSubmitterRoles] = useState(fundingRound?.submitterRoles || [])
   const [frVoterRoles, setFrVoterRoles] = useState(fundingRound?.voterRoles || [])
   const frCriteriaEditorRef = useRef(null)
+
+  const storedLocation = spaceLocation(spaceModel)
+  const storedLocationId = storedLocation?.id ?? ''
+  const storedLocationText = storedLocation?.fullText ?? ''
+  const storedGeoShape = spaceModel?.ref?.geoShape || null
+  const locationLoaded = locationLoadedRef.current
+  const geoShapeLoaded = geoShapeLoadedRef.current
+
+  // A space just created, or opened from a menu row, may not have location or boundary in redux yet
+  useEffect(() => {
+    const slug = space?.slug
+    if (!slug || (locationLoaded && geoShapeLoaded)) return
+    dispatch(fetchForGroup(slug))
+  }, [dispatch, space?.slug, locationLoaded, geoShapeLoaded])
+
+  useEffect(() => {
+    if (locationTouched.current || !locationLoaded) return
+    setLocationObject(spaceLocation(spaceModelRef.current))
+  }, [locationLoaded, storedLocationId, storedLocationText])
+
+  useEffect(() => {
+    if (geoShapeTouched.current || !geoShapeLoaded) return
+    setGeoShape(spaceModelRef.current?.ref?.geoShape || null)
+  }, [geoShapeLoaded, storedGeoShape])
+
+  useEffect(() => {
+    if (didAutoOpenLocation.current) return
+    if (!storedLocationText && !storedGeoShape) return
+    didAutoOpenLocation.current = true
+    setOpenAdvanced(prev => {
+      if (prev.has('location')) return prev
+      const next = new Set(prev)
+      next.add('location')
+      return next
+    })
+  }, [storedLocationText, storedGeoShape])
 
   // The welcome panel edits the space's welcome view — make sure its
   // pageContent is actually loaded (menu payloads are slim).
@@ -366,6 +420,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     setFrAllowLateJoiners(!!fundingRound.allowLateJoiners)
     setFrHideFinalResults(!!fundingRound.hideFinalResultsFromParticipants)
     setFrRequireBudget(!!fundingRound.requireBudget)
+    setFrShowRealtimeSubmissions(!!fundingRound.showRealtimeSubmissions)
     setFrShowRealtimeVotes(!!fundingRound.showRealtimeVotes)
     setFrSubmitterRoles(fundingRound.submitterRoles || [])
     setFrVoterRoles(fundingRound.voterRoles || [])
@@ -405,6 +460,23 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     try {
       const accessOption = accessOptions.find(option => option.value === access)
       const trimmedName = name.trim()
+      let locationToSave = locationObject
+      let geoShapeToSave = geoShape
+      const needsLocation = !locationTouched.current && !locationLoadedRef.current
+      const needsGeoShape = !geoShapeTouched.current && !geoShapeLoadedRef.current
+      // Don't write a null location or boundary over one the form hasn't loaded yet
+      if ((needsLocation || needsGeoShape) && space.slug) {
+        const result = await dispatch(fetchForGroup(space.slug))
+        const fetched = result?.payload?.data?.group
+        if (needsLocation) {
+          locationToSave = fetched?.location
+            ? { id: fetched.locationObject?.id || null, fullText: fetched.location, center: fetched.locationObject?.center }
+            : null
+        }
+        if (needsGeoShape) {
+          geoShapeToSave = fetched?.geoShape ?? null
+        }
+      }
 
       await dispatch(updateSpace({
         id: space.id,
@@ -416,8 +488,9 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         icon,
         bannerUrl: bannerUrl || null,
         purpose: purpose.trim() || null,
-        location: locationObject?.fullText || null,
-        locationId: locationObject?.id || null,
+        location: locationToSave?.fullText || null,
+        locationId: locationToSave?.id || null,
+        geoShape: geoShapeForApi(geoShapeToSave),
         acceptedPostTypes: postTypes,
         visibility: accessOption.visibility,
         accessibility: accessOption.accessibility,
@@ -455,10 +528,10 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       if (fundingRound?.id) {
         await dispatch(updateFundingRound({
           id: fundingRound.id,
-          submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
-          submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
-          votingOpensAt: toIsoOrNull(frVotingOpensAt),
-          votingClosesAt: toIsoOrNull(frVotingClosesAt),
+          submissionsOpenAt: toMinuteIsoOrNull(frSubmissionsOpenAt),
+          submissionsCloseAt: toMinuteIsoOrNull(frSubmissionsCloseAt),
+          votingOpensAt: toMinuteIsoOrNull(frVotingOpensAt),
+          votingClosesAt: toMinuteIsoOrNull(frVotingClosesAt),
           votingMethod: frVotingMethod,
           totalTokens: frTotalTokens === '' ? null : Number(frTotalTokens),
           tokenType: frTokenType,
@@ -466,6 +539,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
           allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
           requireBudget: frRequireBudget,
+          showRealtimeSubmissions: frShowRealtimeSubmissions,
           showRealtimeVotes: frShowRealtimeVotes,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
@@ -487,7 +561,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     } finally {
       setIsSaving(false)
     }
-  }, [dispatch, space?.id, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, autoAddMembers, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
+  }, [dispatch, space?.id, space?.slug, parentGroup?.id, view?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, geoShape, postTypes, access, accessOptions, requiredRoles, welcomeTouched, welcomeDraft, welcomeView, showWelcomePage, space?.settings?.showWelcomePage, autoAddMembers, track?.id, actionDescriptor, actionDescriptorPlural, completionRole, fundingRound?.id, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeSubmissions, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, onClose])
 
   /** Convert this space into a child group of the parent. */
   const handleConvertToChildGroup = useCallback(async () => {
@@ -517,11 +591,18 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       label: 'Location',
       defaultSummary: locationObject?.fullText || t('No location'),
       render: () => (
-        <LocationInput
+        <LocationWithBoundary
           locationObject={locationObject}
-          location={locationObject?.fullText || ''}
-          onChange={setLocationObject}
-          className={INPUT_CLASS}
+          onLocationChange={value => {
+            locationTouched.current = true
+            setLocationObject(value)
+          }}
+          geoShape={geoShape}
+          onGeoShapeChange={value => {
+            geoShapeTouched.current = true
+            setGeoShape(value)
+          }}
+          inputClassName={INPUT_CLASS}
         />
       )
     },
@@ -536,7 +617,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     },
     {
       key: 'welcome',
-      icon: Hand,
+      icon: HeartHandshake,
       label: 'Welcome',
       defaultSummary: welcomeView ? null : t('No welcome page'),
       render: () => (
@@ -574,7 +655,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
         <AutoAddMembersSetting checked={autoAddMembers} onChange={setAutoAddMembers} />
       )
     }
-  ], [t, locationObject, postTypes, welcomeView, welcomeDraft, showWelcomePage, space?.id, autoAddMembers])
+  ], [t, locationObject, geoShape, postTypes, welcomeView, welcomeDraft, showWelcomePage, space?.id, autoAddMembers])
 
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
 
@@ -630,8 +711,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
 
         <SpaceIconRow value={icon} onChange={setIcon} />
 
-        <div className='grid grid-cols-1 sm:grid-cols-[1.35fr_1fr] gap-3 items-start'>
-          <div className='flex flex-col gap-1'>
+        <div className='grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_16rem] gap-3 items-start'>
+          <div className='flex flex-col gap-1 min-w-0'>
             <div className='h-5 flex items-center'>
               <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
             </div>
@@ -753,6 +834,8 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
             setHideFinalResults={setFrHideFinalResults}
             requireBudget={frRequireBudget}
             setRequireBudget={setFrRequireBudget}
+            showRealtimeSubmissions={frShowRealtimeSubmissions}
+            setShowRealtimeSubmissions={setFrShowRealtimeSubmissions}
             showRealtimeVotes={frShowRealtimeVotes}
             setShowRealtimeVotes={setFrShowRealtimeVotes}
             submitterRoles={frSubmitterRoles}

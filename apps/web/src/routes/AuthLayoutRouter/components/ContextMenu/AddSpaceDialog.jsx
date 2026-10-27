@@ -7,7 +7,7 @@ import { TRACK_SETUP_TOUR_ID, trackSetupTourSteps } from 'tours/trackSetupTour'
 import { FUNDING_ROUND_SETUP_TOUR_ID, fundingRoundSetupTourSteps } from 'tours/fundingRoundSetupTour'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, BadgeDollarSign, Hand, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes, Users } from 'lucide-react'
+import { Activity, BadgeDollarSign, HeartHandshake, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes, Users } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
@@ -16,7 +16,7 @@ import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/Advan
 import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
-import LocationInput from 'components/LocationInput/LocationInput'
+import LocationWithBoundary from 'components/LocationWithBoundary/LocationWithBoundary'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
 import SwitchStyled from 'components/SwitchStyled'
@@ -44,7 +44,7 @@ import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
 import AutoAddMembersSetting from './AutoAddMembersSetting'
-import { accessOptionsForGroup, toIsoOrNull } from './spaceFormConstants'
+import { accessOptionsForGroup, toMinuteIsoOrNull } from './spaceFormConstants'
 
 const STANDARD_VIEW_TYPES = new Set([
   'all',
@@ -182,6 +182,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [purpose, setPurpose] = useState('')
   const [description, setDescription] = useState('')
   const [locationObject, setLocationObject] = useState(null)
+  const [geoShape, setGeoShape] = useState(null)
   const [postTypes, setPostTypes] = useState(() => defaultsForSpaceType('custom').postTypes)
   const [removedStandardTypes, setRemovedStandardTypes] = useState(() => new Set())
   const [presetStandardViews, setPresetStandardViews] = useState(null)
@@ -214,6 +215,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [frAllowLateJoiners, setFrAllowLateJoiners] = useState(false)
   const [frHideFinalResults, setFrHideFinalResults] = useState(false)
   const [frRequireBudget, setFrRequireBudget] = useState(false)
+  const [frShowRealtimeSubmissions, setFrShowRealtimeSubmissions] = useState(false)
   const [frShowRealtimeVotes, setFrShowRealtimeVotes] = useState(false)
   const [frSubmissionDescriptor, setFrSubmissionDescriptor] = useState('Submission')
   const [frSubmissionDescriptorPlural, setFrSubmissionDescriptorPlural] = useState('Submissions')
@@ -446,6 +448,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         purpose: purpose.trim() || null,
         location: locationObject?.fullText || null,
         locationId: locationObject?.id || null,
+        geoShape,
         acceptedPostTypes: postTypes,
         visibility: accessOption.visibility,
         accessibility: accessOption.accessibility,
@@ -470,10 +473,10 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       } else if (newSpace?.id && spaceType === 'funding-round') {
         await dispatch(createFundingRound({
           groupId: newSpace.id,
-          submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
-          submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
-          votingOpensAt: toIsoOrNull(frVotingOpensAt),
-          votingClosesAt: toIsoOrNull(frVotingClosesAt),
+          submissionsOpenAt: toMinuteIsoOrNull(frSubmissionsOpenAt),
+          submissionsCloseAt: toMinuteIsoOrNull(frSubmissionsCloseAt),
+          votingOpensAt: toMinuteIsoOrNull(frVotingOpensAt),
+          votingClosesAt: toMinuteIsoOrNull(frVotingClosesAt),
           votingMethod: frVotingMethod,
           totalTokens: frTotalTokens === '' ? null : Number(frTotalTokens),
           tokenType: frTokenType,
@@ -481,6 +484,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
           allowLateJoiners: frAllowLateJoiners,
           hideFinalResultsFromParticipants: frHideFinalResults,
           requireBudget: frRequireBudget,
+          showRealtimeSubmissions: frShowRealtimeSubmissions,
           showRealtimeVotes: frShowRealtimeVotes,
           submissionDescriptor: frSubmissionDescriptor,
           submissionDescriptorPlural: frSubmissionDescriptorPlural,
@@ -575,7 +579,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, postTypes, access, accessOptions, requiredRoles, autoAddMembers, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, geoShape, postTypes, access, accessOptions, requiredRoles, autoAddMembers, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeSubmissions, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
 
   /** True when the user has entered anything beyond the form's initial defaults. */
   const hasEnteredData = useCallback(() => {
@@ -583,7 +587,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     if (spaceType !== 'custom') return true
     if (name.trim() || slugCustomized) return true
     if (purpose.trim() || description.trim()) return true
-    if (bannerUrl || locationObject) return true
+    if (bannerUrl || locationObject || geoShape) return true
     if (icon !== customDefaults.icon) return true
     if (access !== 'open' || requiredRoles.length > 0) return true
     if (autoAddMembers) return true
@@ -596,7 +600,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     if (htmlHasText(welcomeEditorRef.current?.getHTML?.()) || htmlHasText(welcomeExtras?.pageContent)) return true
     return false
   }, [
-    spaceType, name, slugCustomized, purpose, description, bannerUrl, locationObject,
+    spaceType, name, slugCustomized, purpose, description, bannerUrl, locationObject, geoShape,
     icon, access, requiredRoles, autoAddMembers, homeView, manualViews, removedStandardTypes,
     welcomeEnabled, postTypes, welcomeExtras
   ])
@@ -632,11 +636,12 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       label: 'Location',
       defaultSummary: t('No location'),
       render: () => (
-        <LocationInput
+        <LocationWithBoundary
           locationObject={locationObject}
-          location={locationObject?.fullText || ''}
-          onChange={setLocationObject}
-          className={INPUT_CLASS}
+          onLocationChange={setLocationObject}
+          geoShape={geoShape}
+          onGeoShapeChange={setGeoShape}
+          inputClassName={INPUT_CLASS}
         />
       )
     },
@@ -653,7 +658,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     },
     {
       key: 'welcome',
-      icon: Hand,
+      icon: HeartHandshake,
       label: 'Welcome',
       defaultSummary: welcomeEnabled ? null : t('No welcome page'),
       render: () => (
@@ -690,7 +695,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         <AutoAddMembersSetting checked={autoAddMembers} onChange={setAutoAddMembers} />
       )
     }
-  ], [t, locationObject, postTypes, spaceType, showWelcomePage, welcomeEnabled, welcomeExtras?.pageContent, group?.id, autoAddMembers])
+  ], [t, locationObject, geoShape, postTypes, spaceType, showWelcomePage, welcomeEnabled, welcomeExtras?.pageContent, group?.id, autoAddMembers])
 
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
   const hideHomePickerCopy = spaceType === 'chat' || spaceType === 'track' || spaceType === 'funding-round'
@@ -758,8 +763,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
 
           <SpaceIconRow value={icon} onChange={setIcon} />
 
-          <div className='grid grid-cols-1 sm:grid-cols-[1.35fr_1fr] gap-3 items-start'>
-            <div className='flex flex-col gap-1'>
+          <div className='grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_16rem] gap-3 items-start'>
+            <div className='flex flex-col gap-1 min-w-0'>
               <div className='h-5 flex items-center'>
                 <label className={FIELD_LABEL_CLASS}>{t('Name')}</label>
               </div>
@@ -941,6 +946,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               setHideFinalResults={setFrHideFinalResults}
               requireBudget={frRequireBudget}
               setRequireBudget={setFrRequireBudget}
+              showRealtimeSubmissions={frShowRealtimeSubmissions}
+              setShowRealtimeSubmissions={setFrShowRealtimeSubmissions}
               showRealtimeVotes={frShowRealtimeVotes}
               setShowRealtimeVotes={setFrShowRealtimeVotes}
               submitterRoles={frSubmitterRoles}

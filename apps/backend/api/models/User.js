@@ -421,6 +421,8 @@ module.exports = bookshelf.Model.extend(merge({
   setSanely: function (attrs) {
     const saneAttrs = omit(attrs, 'settings')
 
+    if (typeof saneAttrs.name === 'string') saneAttrs.name = saneAttrs.name.trim()
+
     if (!isEmpty(saneAttrs.twitter_name)) {
       if (saneAttrs.twitter_name.match(/^\s*$/)) {
         saneAttrs.twitter_name = null
@@ -518,8 +520,8 @@ module.exports = bookshelf.Model.extend(merge({
     // TODO maybe throw an error if a non-whitelisted field is supplied (besides
     // tags and password, which are used later)
     const whitelist = pick(changes, [
-      'avatar_url', 'banner_url', 'bio', 'email', 'contact_email', 'contact_phone',
-      'extra_info', 'facebook_url', 'intention', 'linkedin_url', 'location', 'location_id',
+      'avatar_url', 'banner_url', 'bio', 'contact_email', 'contact_phone',
+      'extra_info', 'facebook_url', 'intention', 'is_profile_public', 'linkedin_url', 'location', 'location_id',
       'name', 'password', 'settings', 'tagline', 'twitter_name', 'url', 'work',
       'new_notification_count', 'calendar_token'
     ])
@@ -795,7 +797,7 @@ module.exports = bookshelf.Model.extend(merge({
   isEmailUnique: function (email, excludeEmail, { transacting } = {}) {
     let query = bookshelf.knex('users')
       .whereRaw('lower(email) = lower(?)', email).count('*')
-      .transacting(transacting)
+    if (transacting) query = query.transacting(transacting)
     if (excludeEmail) query = query.andWhere('email', '!=', excludeEmail)
     return query.then(rows => Number(rows[0].count) === 0)
   },

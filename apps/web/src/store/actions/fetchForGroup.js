@@ -60,6 +60,8 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     websiteUrl
     paywall
     canAccess
+    hasValidScope
+    currentUserMembershipActive
     stripeAccountId
     stripeChargesEnabled
     stripePayoutsEnabled
@@ -89,6 +91,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       maxTokenAllocation
       minTokenAllocation
       requireBudget
+      showRealtimeSubmissions
       showRealtimeVotes
       submissionDescriptor
       submissionDescriptorPlural

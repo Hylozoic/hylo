@@ -12,7 +12,10 @@ export const stripHtml = html =>
 
 export const hasDraftContent = html => stripHtml(html).length > 0
 
-/** Post draft object or JSON string: true when trimmed title or HTML details has visible text */
+/**
+ * True when a post draft has a title or visible body.
+ * Location, times, and other metadata alone are not enough — the server rejects those saves.
+ */
 export function hasPostDraftPayloadContent (data) {
   if (data == null) return false
   let obj = data
@@ -26,11 +29,6 @@ export function hasPostDraftPayloadContent (data) {
   if (!obj || typeof obj !== 'object') return false
   if (hasDraftContent(obj.details || '')) return true
   if ((obj.title || '').trim().length > 0) return true
-  if ((obj.meetingLink || '').trim().length > 0) return true
-  if ((obj.location || '').trim().length > 0) return true
-  if ((obj.donationsLink || '').trim().length > 0) return true
-  if ((obj.projectManagementLink || '').trim().length > 0) return true
-  if (obj.startTime || obj.endTime) return true
   return false
 }
 

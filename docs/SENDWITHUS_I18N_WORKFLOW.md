@@ -71,39 +71,33 @@ scripts/i18n/i18n-templates/Your_Template_Name_i18n/
   {% endif %}
   ```
 
-### Step 2: Upload Template to SendWithUs
+### Step 2: Create the Template in SendWithUs
 
-Upload the template to SendWithUs using the migration script:
+For a template that doesn't exist in SendWithUs yet (its `metadata.json` has no `templateId`):
 
 ```bash
-# Upload a specific template
-node scripts/i18n/migrate-sendwithus-templates.js --template-id=tem_existing_template_id
-
-# Or use the upload-fixed-templates script if you have the template in i18n-templates/
-node scripts/i18n/upload-fixed-templates.js --template=Your_Template_Name_i18n
+node scripts/i18n/upload-new-template.js --template=Your_Template_Name_i18n
 ```
 
-**Important**: After uploading, you must:
-1. Tag the template with `i18n` in the SendWithUs dashboard (or via API)
-2. Publish the new version in SendWithUs
+This creates the template and its first version, and writes `templateId` / `versionId` back into `metadata.json`. It does **not** tag or publish anything, and locale variants are only generated for templates that carry the tag (Step 5). So, in the SendWithUs dashboard:
+1. Open the new template and add the tag `i18n` (and `i18n ready`, like the other i18n templates)
+2. Publish the version that was just created
 
-### Step 3: Download Updated POT File
+Commit the updated `metadata.json` and put the template ID in `apps/backend/api/services/Email.js`.
 
-After uploading the template, SendWithUs will generate a new POT file with all translatable strings. Download it:
+To push a new version of a template that already exists (it has a `templateId`), use `upload-fixed-templates.js --template=Your_Template_Name_i18n` instead.
+
+### Step 3: Download Updated POT File and Check the New Strings
+
+Once the template is tagged and published, SendWithUs includes its strings in the POT file for the tag. Download it:
 
 ```bash
-# Download the POT file from SendWithUs (recommended)
 node scripts/i18n/download-pot-file.js --tag i18n
 ```
 
-The POT file will be saved to `scripts/i18n/sendwithus-locales/template.pot`.
+The POT file is saved to `scripts/i18n/sendwithus-locales/template.pot`. Check with `git diff` that the template's strings are there. If they aren't, the template isn't tagged `i18n` or has no published version, and uploading PO files will do nothing for it.
 
-**Alternative**: You can download it manually via curl:
-```bash
-curl -H "X-SWU-API-KEY: $SENDWITHUS_KEY" \
-     https://api.sendwithus.com/api/v1_0/i18n/pot/i18n \
-     > scripts/i18n/sendwithus-locales/template.pot
-```
+The `msgid`s in the `.po` files must match SendWithUs's extraction **exactly**: the same curly or straight apostrophes, the same whitespace, and variables as `%(name)s`. Copy them from the downloaded POT rather than retyping them.
 
 ### Step 4: Update Locale PO Files
 
@@ -130,14 +124,14 @@ For each existing locale, add translations for the new strings:
 After updating all locale files, upload them to SendWithUs:
 
 ```bash
+# Preview (no API call)
+node scripts/i18n/upload-po-files.js --tag i18n --dry-run
+
 # Upload all PO files
 node scripts/i18n/upload-po-files.js --tag i18n
-
-# Or upload a specific locale
-node scripts/i18n/upload-po-files.js --tag i18n --locale es-ES
 ```
 
-**Note**: SendWithUs will automatically generate translated template variants for each locale after upload.
+SendWithUs then generates or updates a locale variant (de-DE, es-ES, …) of every template tagged `i18n`. Check in the dashboard that the new template now lists the locales. If it doesn't, see Step 3: the template was most likely not tagged or published when the PO files were uploaded. Fix that, then upload again.
 
 ---
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useState } from 'react'
-import { icons } from 'lucide-react'
+import { useLucideIcons } from 'components/LucideIcon/lucideIconSet'
 
 const ICON_FONT_FAMILY = 'hylo-evo-icons'
 
@@ -70,8 +70,11 @@ function CardIconField ({ view, tint, w, h, cell = 17, iconSize = 12 }) {
   const glyphId = `cif-glyph-${instanceId}`
   const patternId = `cif-pattern-${instanceId}`
 
-  const lucideName = view?.lucideIcon && icons[view.lucideIcon] ? view.lucideIcon : null
-  const fontIconName = !lucideName && view?.iconName ? view.iconName : null
+  const icons = useLucideIcons()
+  const waitingForLucide = Boolean(view?.lucideIcon) && !icons
+  const lucideName = view?.lucideIcon && icons?.[view.lucideIcon] ? view.lucideIcon : null
+  // Don't fall through to the icon font while the Lucide chunk is still loading.
+  const fontIconName = !waitingForLucide && !lucideName && view?.iconName ? view.iconName : null
   const fontReady = useIconFontReady(Boolean(fontIconName))
   const glyph = useMemo(
     () => (fontIconName && fontReady ? readFontGlyph(fontIconName) : null),

@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-expressions */
 import createPost, { afterCreatingPost } from './createPost'
+import * as Websockets from '../../services/Websockets'
 const rootPath = require('root-path')
 const setup = require(rootPath('test/setup'))
 const factories = require(rootPath('test/setup/factories'))
@@ -60,6 +61,40 @@ describe('afterCreatingPost', () => {
         expect(Queue.classMethod).to.have.been.called
           .with('Post', 'createActivities', { postId: post.id })
       })
+  })
+
+  it('does not notify members when silent', () => {
+    spyify(Websockets, 'pushToSockets')
+    const c = factories.group()
+    const silentPost = factories.post({ user_id: post.get('user_id'), description: 'quiet', link_preview_id: null })
+    return c.save()
+      .then(() => silentPost.save())
+      .then(() => afterCreatingPost(silentPost, { group_ids: [c.id], silent: true }))
+      .then(() => {
+        expect(Websockets.pushToSockets).not.to.have.been.called
+        expect(Queue.classMethod).not.to.have.been.called
+          .with('Post', 'incrementNewPostCountForCreatedPost', { postId: silentPost.id }, 0)
+        expect(Queue.classMethod).not.to.have.been.called
+          .with('Post', 'createActivities', { postId: silentPost.id })
+        expect(Queue.classMethod).not.to.have.been.called
+          .with('Post', 'notifySlack', { postId: silentPost.id })
+        expect(Queue.classMethod).not.to.have.been.called
+          .with('Post', 'zapierTriggers', { postId: silentPost.id })
+      })
+      .finally(() => unspyify(Websockets, 'pushToSockets'))
+  })
+
+  it('pushes a newPost socket when the post is not silent', () => {
+    spyify(Websockets, 'pushToSockets')
+    const c = factories.group()
+    const loudPost = factories.post({ user_id: post.get('user_id'), description: 'loud', link_preview_id: null })
+    return c.save()
+      .then(() => loudPost.save())
+      .then(() => afterCreatingPost(loudPost, { group_ids: [c.id] }))
+      .then(() => {
+        expect(Websockets.pushToSockets).to.have.been.called
+      })
+      .finally(() => unspyify(Websockets, 'pushToSockets'))
   })
 
   it('ignores duplicate group ids', () => {
@@ -197,6 +232,70 @@ describe('Post.generateLinkPreview', () => {
   })
 })
 
+describe('createPost silent', () => {
+  let steward, member, group
+
+  before(() =>
+    setup.clearDb()
+      .then(() => Promise.props({
+        steward: new User({ name: 'Steward', email: 'silent-steward@b.c', active: true }).save(),
+        member: new User({ name: 'Member', email: 'silent-member@b.c', active: true }).save(),
+        group: new Group({ slug: 'silent-group', name: 'Silent Group' }).save()
+      }))
+      .then(props => {
+        steward = props.steward
+        member = props.member
+        group = props.group
+        return Promise.join(
+          group.addMembers([steward.id], { assignAdministrator: true }),
+          member.joinGroup(group)
+        )
+      })
+  )
+
+  beforeEach(() => {
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('rejects a silent post from a member who is not a steward', () => {
+    return createPost(member.id, {
+      name: 'Nope',
+      group_ids: [group.id],
+      silent: true
+    })
+      .then(() => expect.fail('should reject'))
+      .catch(e => expect(e.message).to.match(/steward/))
+  })
+
+  it('rejects a silent announcement', () => {
+    return createPost(steward.id, {
+      name: 'Loud',
+      group_ids: [group.id],
+      silent: true,
+      announcement: true
+    })
+      .then(() => expect.fail('should reject'))
+      .catch(e => expect(e.message).to.match(/announcement/))
+  })
+
+  it('creates the post without queuing member notifications', () => {
+    return createPost(steward.id, {
+      name: 'Quiet import',
+      group_ids: [group.id],
+      silent: true
+    }).then(created => {
+      expect(created).to.exist
+      expect(created.get('name')).to.equal('Quiet import')
+      expect(Queue.classMethod).not.to.have.been.called.with('Post', 'incrementNewPostCountForCreatedPost')
+      expect(Queue.classMethod).not.to.have.been.called.with('Post', 'createActivities')
+      expect(Queue.classMethod).not.to.have.been.called.with('Post', 'notifySlack')
+      expect(Queue.classMethod).not.to.have.been.called.with('Post', 'zapierTriggers')
+    })
+  })
+})
+
 describe('createPost accepted_post_types', () => {
   let user, restrictedGroup
 
@@ -313,6 +412,23 @@ describe('createPost imageUrls', () => {
     }, 0)
   })
 
+  it('flattens a nested imageUrls list before queueing the remote URL', async () => {
+    const created = await createPost(user.id, {
+      name: 'Nested remote image',
+      group_ids: [group.id],
+      imageUrls: [[remoteUrl]]
+    })
+
+    await created.load('media')
+    expect(created.relations.media.length).to.equal(0)
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl],
+      startPosition: 0
+    }, 0)
+  })
+
   it('queues every remote URL when several are passed', async () => {
     const secondRemote = 'https://upload.wikimedia.org/wikipedia/commons/cow.jpg'
     const created = await createPost(user.id, {
@@ -327,5 +443,46 @@ describe('createPost imageUrls', () => {
       imageUrls: [remoteUrl, secondRemote],
       startPosition: 0
     }, 0)
+  })
+})
+
+describe('Post.createActivities', () => {
+  it('does not notify a former group member about a mention in that group', async () => {
+    const author = await factories.user().save()
+    const formerMember = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([author, formerMember])
+    await group.removeMembers([formerMember])
+
+    const post = await factories.post({
+      user_id: author.id,
+      type: Post.Type.DISCUSSION,
+      description: `<span class="mention" data-type="mention" data-id="${formerMember.id}" data-label="person">person</span>`
+    }).save()
+    await group.posts().attach(post)
+
+    await post.createActivities()
+
+    const activities = await Activity.where({ reader_id: formerMember.id, post_id: post.id }).fetchAll()
+    expect(activities.some(activity => activity.get('meta')?.reasons?.includes('mention'))).to.equal(false)
+  })
+
+  it('still notifies an active group member about a mention', async () => {
+    const author = await factories.user().save()
+    const member = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([author, member])
+
+    const post = await factories.post({
+      user_id: author.id,
+      type: Post.Type.DISCUSSION,
+      description: `<span class="mention" data-type="mention" data-id="${member.id}" data-label="person">person</span>`
+    }).save()
+    await group.posts().attach(post)
+
+    await post.createActivities()
+
+    const activities = await Activity.where({ reader_id: member.id, post_id: post.id }).fetchAll()
+    expect(activities.some(activity => activity.get('meta')?.reasons?.includes('mention'))).to.equal(true)
   })
 })

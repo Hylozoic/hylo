@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from 'child_process'
 import dotenv from 'dotenv'
 import net from 'net'
+import os from 'os'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -14,8 +15,7 @@ const backendRoot = path.resolve(repoRoot, 'apps', 'backend')
 dotenv.config({ path: path.resolve(backendRoot, '.env') })
 const schemaPath = path.resolve(backendRoot, 'migrations', 'schema.sql')
 
-const DEFAULT_E2E_DB = 'hylo_e2e'
-const DANGEROUS_DB_NAMES = new Set(['hylo', 'hylo_test', 'postgres', 'template0', 'template1'])
+const DEFAULT_E2E_DB = 'hylo_e2e_test'
 
 /**
  * One logical DB name for dropdb/createdb/psql/backend. URL path wins when E2E_DATABASE_URL is set.
@@ -51,10 +51,12 @@ function resolveE2eDatabase () {
 
 const { e2eDbUrl, e2eDbName } = resolveE2eDatabase()
 
-if (DANGEROUS_DB_NAMES.has(e2eDbName.toLowerCase()) && process.env.E2E_ALLOW_DANGEROUS_DB !== '1') {
+// This runner drops, recreates and seeds the DB, so it must never touch a dev/staging/prod DB.
+// No override: any database used by tests must have "test" in its name.
+if (!/test/i.test(e2eDbName)) {
   throw new Error(
-    `[isolated-e2e] Refusing to use database "${e2eDbName}" for E2E (drop/create/seed). ` +
-      `Point E2E_DATABASE_URL at a dedicated DB (e.g. .../${DEFAULT_E2E_DB}) or set E2E_ALLOW_DANGEROUS_DB=1.`
+    `[isolated-e2e] Refusing to use database "${e2eDbName}" for E2E (drop/create/seed): ` +
+      `the name must contain "test". Point E2E_DATABASE_URL at a dedicated DB (e.g. .../${DEFAULT_E2E_DB}).`
   )
 }
 
@@ -92,6 +94,21 @@ const pgCliEnv = pgCliEnvFromDatabaseUrl(e2eDbUrl)
 const e2eWebPort = process.env.E2E_WEB_PORT || '3330'
 const e2eSeedProfile = process.env.E2E_SEED_PROFILE || 'e2e'
 const keepDb = process.env.E2E_KEEP_DB === '1'
+/** Preloaded into the backend and Playwright we start: they exit if this runner dies (even on SIGKILL). */
+const watchdogPath = path.resolve(__dirname, 'e2e-runner-watchdog.cjs')
+
+/**
+ * Test-only hooks (scripts/__tests__/run-isolated-e2e.test.js): run a fake backend / Playwright
+ * script and skip the DB steps, so the process lifecycle can be tested without Postgres or a browser.
+ */
+const backendScript = process.env.E2E_RUNNER_BACKEND_SCRIPT || 'app.js'
+const playwrightScript = process.env.E2E_RUNNER_PLAYWRIGHT_SCRIPT
+const skipDb = process.env.E2E_RUNNER_SKIP_DB === '1'
+
+/** Shell-style exit code for a signal name (SIGINT -> 130). */
+const signalExitCode = (signal) => 128 + (os.constants.signals[signal] || 0)
+/** Set when a signal triggered teardown; that exit code wins over Playwright's. */
+let signalCode = null
 
 /**
  * Returns true if something already accepts HTTP on this port (e.g. stale Sails on 3101).
@@ -312,10 +329,14 @@ const runE2E = async () => {
     STRIPE_API_KEY: process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes'
   }
 
-  setupDatabase(backendEnv)
+  if (skipDb) {
+    console.log('[isolated-e2e] Skipping DB setup (E2E_RUNNER_SKIP_DB=1)')
+  } else {
+    setupDatabase(backendEnv)
+  }
 
   let e2eNotificationJwt = ''
-  if (e2eSeedProfile !== 'none') {
+  if (e2eSeedProfile !== 'none' && !skipDb) {
     try {
       e2eNotificationJwt = runCapture('node', ['scripts/print-e2e-notification-jwt.js'], {
         cwd: backendRoot,
@@ -345,11 +366,12 @@ const runE2E = async () => {
   console.log(
     `[isolated-e2e] Starting backend on port ${e2eBackendPort} (DOMAIN=${backendEnv.DOMAIN}, PROTOCOL=${backendEnv.PROTOCOL})`
   )
-  const backend = spawn('node', ['app.js'], {
+  const backend = spawn('node', ['-r', watchdogPath, backendScript], {
     cwd: backendRoot,
-    env: backendEnv,
+    env: { ...backendEnv, E2E_RUNNER_PID: String(process.pid) },
     stdio: 'inherit'
   })
+  console.log(`[isolated-e2e] Backend pid ${backend.pid}`)
 
   let backendClosed = false
   /** @type {number | null | undefined} */
@@ -362,13 +384,34 @@ const runE2E = async () => {
     }
   })
 
-  let teardownDone = false
+  /** @type {import('child_process').ChildProcess | null} */
+  let playwright = null
+  let playwrightClosed = false
+  let cleanupPromise = null
 
-  const cleanupAsync = async () => {
-    if (teardownDone) return
-    teardownDone = true
+  /** Idempotent: a signal during Playwright and the normal `finally` share one teardown. */
+  const cleanupAsync = () => {
+    cleanupPromise = cleanupPromise || teardown()
+    return cleanupPromise
+  }
+
+  const teardown = async () => {
+    if (playwright && !playwrightClosed) {
+      // SIGINT, not SIGTERM: Playwright only stops its Vite web server on SIGINT. (A terminal Ctrl-C
+      // already reached it via the process group; `kill -TERM/-HUP <runner>` did not.)
+      playwright.kill('SIGINT')
+      for (let i = 0; i < 100; i++) {
+        if (playwrightClosed) break
+        await sleep(100)
+      }
+      if (!playwrightClosed) {
+        console.warn('[isolated-e2e] Playwright did not exit after SIGINT; sending SIGKILL')
+        playwright.kill('SIGKILL')
+      }
+    }
 
     if (!backendClosed) {
+      console.log(`[isolated-e2e] Stopping backend (pid ${backend.pid})`)
       backend.kill('SIGTERM')
       for (let i = 0; i < 60; i++) {
         if (backendClosed) break
@@ -381,7 +424,9 @@ const runE2E = async () => {
       }
     }
 
-    if (!keepDb) {
+    if (skipDb) {
+      console.log('[isolated-e2e] Skipping DB drop (E2E_RUNNER_SKIP_DB=1)')
+    } else if (!keepDb) {
       try {
         console.log(`[isolated-e2e] Dropping DB ${e2eDbName}`)
         terminateSessionsToDatabase(e2eDbName, e2eDbUrl, pgCliEnv)
@@ -398,22 +443,15 @@ const runE2E = async () => {
     }
   }
 
-  const exitAfterTeardown = async (code) => {
-    await cleanupAsync()
-    process.exit(code)
+  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+    process.on(signal, async () => {
+      if (signalCode != null) return
+      signalCode = signalExitCode(signal)
+      console.log(`[isolated-e2e] Received ${signal}; tearing down`)
+      await cleanupAsync()
+      process.exit(signalCode)
+    })
   }
-
-  let signalTeardownStarted = false
-  process.on('SIGINT', () => {
-    if (signalTeardownStarted) return
-    signalTeardownStarted = true
-    exitAfterTeardown(130)
-  })
-  process.on('SIGTERM', () => {
-    if (signalTeardownStarted) return
-    signalTeardownStarted = true
-    exitAfterTeardown(143)
-  })
 
   try {
     await waitForBackend(
@@ -438,16 +476,36 @@ const runE2E = async () => {
       `[isolated-e2e] Running Playwright (web http://localhost:${e2eWebPort}, API http://localhost:${e2eBackendPort})`
     )
     const cliArgs = process.argv.slice(2)
-    run('yarn', ['node', 'node_modules/@playwright/test/cli.js', 'test', ...cliArgs], {
+    // Async spawn (not spawnSync) so the signal handlers above can run while tests are running.
+    // Plain `node` (not `yarn node`) so Playwright is our direct child and the watchdog applies.
+    const playwrightArgs = playwrightScript
+      ? [playwrightScript, ...cliArgs]
+      : ['node_modules/@playwright/test/cli.js', 'test', ...cliArgs]
+    playwright = spawn('node', ['-r', watchdogPath, ...playwrightArgs], {
       cwd: webRoot,
-      env: playwrightEnv
+      env: { ...playwrightEnv, E2E_RUNNER_PID: String(process.pid), E2E_WATCHDOG_SIGNAL: 'SIGINT' },
+      stdio: 'inherit'
     })
+    const playwrightExit = await new Promise((resolve) => {
+      playwright.on('exit', (code, signal) => {
+        playwrightClosed = true
+        resolve(code != null ? code : signalExitCode(signal))
+      })
+      playwright.on('error', (err) => {
+        console.error(`[isolated-e2e] Could not start Playwright: ${err.message}`)
+        playwrightClosed = true
+        resolve(1)
+      })
+    })
+    return playwrightExit
   } finally {
     await cleanupAsync()
   }
 }
 
-runE2E().catch(error => {
-  console.error(`[isolated-e2e] ${error.message}`)
-  process.exit(1)
-})
+runE2E()
+  .then(code => process.exit(signalCode != null ? signalCode : code))
+  .catch(error => {
+    console.error(`[isolated-e2e] ${error.message}`)
+    process.exit(signalCode != null ? signalCode : 1)
+  })
