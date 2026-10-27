@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import { filterAndSortPosts, filterAndSortGroups, filterAndSortUsers } from './util'
 import { expectEqualQuery } from '../../../test/setup/helpers'
+import factories from '../../../test/setup/factories'
 
 describe('filterAndSortPosts', () => {
   let relation, query
@@ -114,13 +115,13 @@ describe('filterAndSortGroups', () => {
     expectEqualQuery(relation, 'select * from "groups" order by "name" asc')
   })
 
-  it('strips every run of special characters from a word', () => {
+  it('treats special characters as word breaks', () => {
     const relation = Group.collection()
     relation.query(q => {
       filterAndSortGroups({ search: 'a:b:c' }, q)
     })
 
-    expectEqualQuery(relation, `select * from "groups" where (((to_tsvector('english', groups.name) @@ to_tsquery('abc:*')) or (to_tsvector('english', groups.description) @@ to_tsquery('abc:*')) or (to_tsvector('english', groups.location) @@ to_tsquery('abc:*')))) order by "name" asc`)
+    expectEqualQuery(relation, `select * from "groups" where (((to_tsvector('english', groups.name) @@ to_tsquery('a:* & b:* & c:*')) or (to_tsvector('english', groups.description) @@ to_tsquery('a:* & b:* & c:*')) or (to_tsvector('english', groups.location) @@ to_tsquery('a:* & b:* & c:*')))) order by "name" asc`)
   })
 })
 
@@ -139,15 +140,15 @@ describe('filterAndSortUsers', () => {
       (coalesce("users"."name", '') !~ '\\S') asc, lower(trim("users"."name")) asc`)
   })
 
-  it('strips every run of special characters from a word', () => {
+  it('treats special characters as word breaks', () => {
     const relation = User.collection()
     relation.query(q => {
       filterAndSortUsers({ autocomplete: 'a:b:c' }, q)
     })
 
     expectEqualQuery(relation, `select * from "users"
-      where to_tsvector('simple', users.name) @@ to_tsquery('simple', 'abc:*')
-      order by ts_rank_cd(to_tsvector('simple', users.name), to_tsquery('simple', 'abc:*')) DESC,
+      where to_tsvector('simple', users.name) @@ to_tsquery('simple', 'a:* & b:* & c:*')
+      order by ts_rank_cd(to_tsvector('simple', users.name), to_tsquery('simple', 'a:* & b:* & c:*')) DESC,
       (coalesce("users"."name", '') !~ '\\S') asc, lower(trim("users"."name")) asc`)
   })
 
@@ -167,5 +168,50 @@ describe('filterAndSortUsers', () => {
     })
 
     expectEqualQuery(relation, `select * from "users" ${nameOrder}`)
+  })
+})
+
+describe('name search terms against Postgres', () => {
+  // Realistic names and stray characters people type into the search boxes.
+  // Each must run without a tsquery syntax error.
+  const terms = [
+    "o'brien", '"quoted"', 'a<b', 'a>b', 'a*', '#tag', 'foo-bar', "foo's bar",
+    '<->', '!', "'", "'abc", 'a<-', 'a<2>b', 'a!b', 'a:b:c', 'José', 'Zoë', '李'
+  ]
+
+  let users
+
+  before(async () => {
+    users = await Promise.all(["Sinéad O'Brien", 'José Zoë Müller', '李明'].map(name =>
+      factories.user({ name }).save()))
+  })
+
+  after(() => Promise.all(users.map(u => u.destroy())))
+
+  const userNames = autocomplete => User.collection()
+    .query(q => {
+      filterAndSortUsers({ autocomplete }, q)
+      q.whereIn('users.id', users.map(u => u.id))
+    })
+    .fetch()
+    .then(c => c.map(u => u.get('name')))
+
+  terms.forEach(term => {
+    it(`runs the people autocomplete query for ${JSON.stringify(term)}`, () =>
+      userNames(term))
+
+    it(`runs the group search query for ${JSON.stringify(term)}`, () =>
+      Group.collection().query(q => filterAndSortGroups({ search: term }, q)).fetch())
+  })
+
+  it('finds names with an apostrophe', async () => {
+    expect(await userNames("o'brien")).to.deep.equal(["Sinéad O'Brien"])
+    expect(await userNames("sinéad o'b")).to.deep.equal(["Sinéad O'Brien"])
+  })
+
+  it('keeps non-Latin letters', async () => {
+    expect(await userNames('josé')).to.deep.equal(['José Zoë Müller'])
+    expect(await userNames('Zoë mü')).to.deep.equal(['José Zoë Müller'])
+    expect(await userNames('李')).to.deep.equal(['李明'])
   })
 })
