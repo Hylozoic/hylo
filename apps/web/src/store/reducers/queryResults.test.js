@@ -3,6 +3,7 @@ import orm from 'store/models'
 import queryResults, {
   buildKey,
   matchNewPostIntoQueryResults,
+  matchNewPostToPostsQuery,
   makeGetQueryResults,
   makeQueryResultsModelSelector,
   matchNewThreadIntoQueryResults
@@ -11,6 +12,7 @@ import { FETCH_MEMBERS } from 'routes/Members/Members.store'
 import {
   CREATE_MODERATION_ACTION,
   CREATE_MODERATION_ACTION_PENDING,
+  CREATE_POST,
   FETCH_MODERATION_ACTIONS,
   FETCH_POSTS,
   REMOVE_POST_PENDING,
@@ -438,6 +440,98 @@ describe('matchNewPostIntoQueryResults', () => {
         total: 3
       }
     })
+  })
+})
+
+describe('matchNewPostToPostsQuery', () => {
+  const post = {
+    id: '99',
+    type: 'discussion',
+    creator: { id: '7' },
+    groups: [{ id: '5', slug: 'bar' }],
+    topics: [{ id: '123', name: 'garden' }]
+  }
+  const groupStream = { context: 'groups', slug: 'bar', groupId: '5', childPostInclusion: 'yes', first: 20, sortBy: 'created' }
+
+  it('prepends into My Posts only for the creator', () => {
+    const myPosts = { context: 'my', createdBy: ['7'], childPostInclusion: 'yes', first: 20, sortBy: 'created' }
+    expect(matchNewPostToPostsQuery(post, myPosts)).toBe('prepend')
+    expect(matchNewPostToPostsQuery(post, { ...myPosts, createdBy: ['8'] })).toBe(null)
+  })
+
+  it('leaves out My views it cannot judge (mentions, saved, interactions, announcements)', () => {
+    expect(matchNewPostToPostsQuery(post, { context: 'my', mentionsOf: ['7'] })).toBe(null)
+    expect(matchNewPostToPostsQuery(post, { context: 'my', savedBy: ['7'], sortBy: 'saved', filter: 'chat' })).toBe(null)
+    expect(matchNewPostToPostsQuery(post, { context: 'my', interactedWithBy: ['7'] })).toBe(null)
+    expect(matchNewPostToPostsQuery(post, { context: 'my', announcementsOnly: true })).toBe(null)
+  })
+
+  it('respects the type filter of common views', () => {
+    expect(matchNewPostToPostsQuery(post, { ...groupStream, types: ['discussion'], sortBy: 'updated' })).toBe('prepend')
+    expect(matchNewPostToPostsQuery(post, { ...groupStream, types: ['request', 'offer'] })).toBe(null)
+    expect(matchNewPostToPostsQuery(post, { ...groupStream, filter: 'discussion' })).toBe('prepend')
+    expect(matchNewPostToPostsQuery(post, { ...groupStream, filter: 'event' })).toBe(null)
+  })
+
+  it('respects the topic filter of custom views and topic streams', () => {
+    expect(matchNewPostToPostsQuery(post, { ...groupStream, types: ['discussion'], topics: ['123', '456'] })).toBe('prepend')
+    expect(matchNewPostToPostsQuery(post, { ...groupStream, types: ['discussion'], topics: ['456'] })).toBe(null)
+    expect(matchNewPostToPostsQuery(post, { ...groupStream, topic: '456' })).toBe(null)
+  })
+
+  it('only matches the groups the post is in, and parent groups that include child posts', () => {
+    const inSpace = { ...post, groups: [{ id: '9', slug: 'space', parentId: '5' }] }
+    expect(matchNewPostToPostsQuery(post, { ...groupStream, slug: 'other', groupId: '6' })).toBe(null)
+    expect(matchNewPostToPostsQuery(inSpace, groupStream)).toBe('prepend')
+    expect(matchNewPostToPostsQuery(inSpace, { ...groupStream, childPostInclusion: 'no' })).toBe(null)
+  })
+
+  it('keeps chat posts out of streams and in chat rooms', () => {
+    const chat = { ...post, type: 'chat' }
+    expect(matchNewPostToPostsQuery(chat, groupStream)).toBe(null)
+    expect(matchNewPostToPostsQuery(chat, { context: 'my', createdBy: ['7'] })).toBe(null)
+    expect(matchNewPostToPostsQuery(chat, { context: 'groups', slug: 'bar', filter: 'chat', sortBy: 'id', order: 'desc', childPostInclusion: 'no' })).toBe('prepend')
+  })
+
+  it('leaves out searches and public streams for non-public posts', () => {
+    expect(matchNewPostToPostsQuery(post, { ...groupStream, search: 'garden' })).toBe(null)
+    expect(matchNewPostToPostsQuery(post, { context: 'public' })).toBe(null)
+    expect(matchNewPostToPostsQuery({ ...post, isPublic: true }, { context: 'public' })).toBe('prepend')
+  })
+
+  it('asks for a refetch when the list is not sorted newest first', () => {
+    const event = { ...post, type: 'event', startTime: '2030-01-10T10:00:00Z', endTime: '2030-01-10T12:00:00Z' }
+    const upcoming = { ...groupStream, types: ['event'], sortBy: 'start_time', order: 'asc', afterTime: '2029-12-01T00:00:00Z' }
+    expect(matchNewPostToPostsQuery(event, upcoming)).toBe('refetch')
+    expect(matchNewPostToPostsQuery(event, { ...upcoming, afterTime: '2030-02-01T00:00:00Z' })).toBe(null)
+    expect(matchNewPostToPostsQuery(event, { ...upcoming, afterTime: undefined, beforeTime: '2030-01-01T00:00:00Z' })).toBe(null)
+    expect(matchNewPostToPostsQuery(post, { ...groupStream, sortBy: 'votes' })).toBe('refetch')
+  })
+
+  it('matches a collection only when the post was created into it', () => {
+    const collection = { ...groupStream, forCollection: '42', sortBy: 'order' }
+    expect(matchNewPostToPostsQuery(post, collection, { viewId: '42' })).toBe('refetch')
+    expect(matchNewPostToPostsQuery(post, collection)).toBe(null)
+  })
+})
+
+describe('CREATE_POST into My Posts', () => {
+  it('prepends the new post to My Posts and flags start-time lists as stale', () => {
+    const myPostsKey = buildKey(FETCH_POSTS, { context: 'my', createdBy: ['7'], childPostInclusion: 'yes', first: 20, sortBy: 'created' })
+    const eventsKey = buildKey(FETCH_POSTS, { context: 'groups', slug: 'bar', groupId: '5', first: 20, types: ['event'], sortBy: 'start_time', order: 'asc' })
+    const state = {
+      [myPostsKey]: { ids: ['18', '11'], total: 2, hasMore: false },
+      [eventsKey]: { ids: ['30'], total: 1, hasMore: false }
+    }
+    const action = {
+      type: CREATE_POST,
+      payload: { data: { createPost: { id: '99', type: 'event', creator: { id: '7' }, groups: [{ id: '5', slug: 'bar' }], topics: [] } } },
+      meta: {}
+    }
+    const next = queryResults(state, action)
+    expect(next[myPostsKey].ids).toEqual(['99', '18', '11'])
+    expect(next[myPostsKey].total).toBe(3)
+    expect(next[eventsKey]).toEqual({ ids: ['30'], total: 1, hasMore: false, stale: true })
   })
 })
 
