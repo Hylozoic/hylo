@@ -238,6 +238,20 @@ describe('ActionsBar', () => {
     })
   })
 
+  it('renders every action as a 24x24 Lucide icon and highlights selected ones', async () => {
+    render(<ActionsBar {...baseProps} canMakeAnnouncement announcementSelected showImages />)
+    await waitFor(() => {
+      for (const id of ['add-image-icon', 'add-file-icon', 'announcement-icon']) {
+        const icon = screen.getByTestId(id)
+        expect(icon.tagName.toLowerCase()).toBe('svg')
+        expect(icon).toHaveClass('lucide', 'w-6', 'h-6')
+      }
+      expect(screen.getByTestId('add-image-icon')).toHaveClass('text-[#0DC39F]', 'cursor-default')
+      expect(screen.getByTestId('announcement-icon')).toHaveClass('text-[#0DC39F]', 'cursor-default')
+      expect(screen.getByTestId('add-file-icon')).not.toHaveClass('cursor-default')
+    })
+  })
+
   it('does not show announcement icon when user cannot make announcements', async () => {
     render(<ActionsBar {...baseProps} canMakeAnnouncement={false} />)
     await waitFor(() => {

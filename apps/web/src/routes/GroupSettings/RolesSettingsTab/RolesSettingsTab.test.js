@@ -77,6 +77,59 @@ describe('RoleList', () => {
       expect(screen.getByText('Common roles cannot have their responsibilities edited')).toBeInTheDocument()
     })
   })
+
+  // Regression for #1673: the role's own responsibilities must be fetched (by groupRoleId) so
+  // Remove sends the group_roles_responsibilities id and the item disappears
+  it('loads the responsibilities for this role and removes one', async () => {
+    const props = {
+      roleId: '61',
+      slug: 'foogroup',
+      suggestions: [],
+      isSystemRole: false,
+      group: { id: '1' },
+      availableResponsibilities: []
+    }
+    let fetchVariables = null
+    let removeVariables = null
+
+    mockGraphqlServer.use(
+      graphql.query('fetchGroupRoleDetails', ({ variables }) => {
+        fetchVariables = variables
+        return HttpResponse.json({
+          data: {
+            group: { id: '1', members: { items: [], hasMore: false } },
+            responsibilities: variables.groupRoleId === '61'
+              ? [
+                  { id: '141', title: 'Add Members', type: 'system', description: '', responsibilityId: '2' },
+                  { id: '142', title: 'Manage Content', type: 'system', description: '', responsibilityId: '4' }
+                ]
+              : []
+          }
+        })
+      }),
+      graphql.operation(({ query, variables }) => {
+        if (!query.includes('removeResponsibilityFromRole')) return
+        removeVariables = variables
+        return HttpResponse.json({ data: { removeResponsibilityFromRole: { success: true } } })
+      })
+    )
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<RoleList {...props} />, { wrapper: AllTheProviders() })
+
+    expect(await screen.findByText('Manage Content')).toBeInTheDocument()
+    expect(fetchVariables.groupRoleId).toBe('61')
+
+    const user = userEvent.setup()
+    await user.click(screen.getAllByText('Remove')[1])
+
+    await waitFor(() => {
+      expect(screen.queryByText('Manage Content')).not.toBeInTheDocument()
+    })
+    expect(screen.getByText('Add Members')).toBeInTheDocument()
+    expect(removeVariables).toEqual({ groupId: '1', roleResponsibilityId: '142' })
+    confirmSpy.mockRestore()
+  })
 })
 
 describe('AddMemberToRole', () => {

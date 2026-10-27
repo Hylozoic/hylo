@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react'
+import isBrowserNetworkError, { browserNetworkErrorIgnorePatterns } from 'client/isBrowserNetworkError'
 import { isSandboxMode } from 'sandbox/isSandbox'
 
 /*
@@ -34,7 +35,9 @@ if (enabled) {
     debug: SENTRY_DEBUG,
     // Error reporting only -- no performance tracing (keeps quota and bundle impact low)
     tracesSampleRate: 0,
-    maxBreadcrumbs: SENTRY_DEBUG ? 200 : 50
+    maxBreadcrumbs: SENTRY_DEBUG ? 200 : 50,
+    // Drop fetch transport failures (offline, aborted, blocked). No HTTP status, nothing to fix.
+    ignoreErrors: browserNetworkErrorIgnorePatterns()
   })
 
   window.__hyloSentryTest = () => {
@@ -66,6 +69,7 @@ const errorReporter = {
 
   /** Reports an error or message string to Sentry, with optional extra context */
   error (errorOrMessage, context) {
+    if (isBrowserNetworkError(errorOrMessage)) return
     if (!enabled) {
       console.error(errorOrMessage, context)
       return

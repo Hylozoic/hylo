@@ -18,6 +18,7 @@ describe('FullTextSearch', () => {
       expect(query).to.contain('ts_rank_cd(document, to_tsquery(\'english\', \'zounds:*\'))')
       expect(query).to.contain('sort_ts')
       expect(query).to.contain('"group_id" in (3, 5)')
+      expect(query).not.to.contain('"group_id" is null')
       expect(query).to.contain('search.sort_ts')
       expect(query).not.to.contain('count(*) over ()')
       expect(query).not.to.contain('left join "comments"')
@@ -82,6 +83,7 @@ describe('.search (type group)', () => {
     const query = FullTextSearch.buildSearchInGroupsQuery({ groupIds: [3, 5] }, opts).toString()
 
     expect(query).to.contain('"group_id" in (3, 5)')
+    expect(query).not.to.contain('"group_id" is null')
   })
 
   it('restricts to public + member groups + related PROTECTED groups for authenticated users', () => {
@@ -100,8 +102,8 @@ describe('.search (type group)', () => {
     expect(query).to.contain('"group_relationships"')
     expect(query).to.contain('"parent_group_id"')
     expect(query).to.contain('"child_group_id"')
-    // Must allow non-group rows through
-    expect(query).to.contain('"group_id" is null')
+    // A null group_id matches every post, person, and comment and would drop this scope
+    expect(query).not.to.contain('"group_id" is null')
     // Spaces must be excluded
     expect(query).to.contain('"groups"."type"')
   })
@@ -116,6 +118,10 @@ describe('.search (type group)', () => {
     expect(query).to.contain(' union ')
     // Parent/child and peer relationships are treated the same
     expect(query).not.to.contain('"relationship_type"')
+    // Posts, people, and comments are admitted by their own filters, not by a null group_id
+    expect(query).not.to.contain('"group_id" is null')
+    expect(query).to.contain('"groups_posts"')
+    expect(query).to.contain('"group_memberships"')
   })
 
   it('restricts to public-only groups for anonymous users', () => {
@@ -124,6 +130,7 @@ describe('.search (type group)', () => {
     // Default groupAccess with no userId and no groupIds means anonymous
     // Must contain: group_id IN (select id from groups where visibility = 2)
     expect(query).to.contain('"visibility" = 2')
-    expect(query).to.contain('"group_id" is null')
+    expect(query).not.to.contain('"group_id" is null')
+    expect(query).to.contain('is_public')
   })
 })

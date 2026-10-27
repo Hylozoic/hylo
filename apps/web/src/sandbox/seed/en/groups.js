@@ -15,7 +15,30 @@ export const TRACK_SPACE_ID = sid('space', 'track')
 export const FUNDING_SPACE_ID = sid('space', 'funding')
 
 export const MAIN_ADMINISTRATOR_ROLE_ID = sid('role', 'administrator')
+export const MAIN_MODERATOR_ROLE_ID = sid('role', 'moderator')
+export const MAIN_HOST_ROLE_ID = sid('role', 'host')
 export const MAIN_MEMBER_ROLE_ID = sid('role', 'member')
+
+/**
+ * Built-in (system) responsibilities, mirroring the backend. The web app gates
+ * admin UI on these titles (see getResponsibilitiesForGroup), not on role names.
+ */
+export const SYSTEM_RESPONSIBILITIES = [
+  { title: 'Administration', description: 'Allows for editing group settings, exporting data, and deleting the group.' },
+  { title: 'Add Members', description: 'The ability to invite and add new members to the group, and to accept or reject join requests.' },
+  { title: 'Remove Members', description: 'The ability to remove members from the group.' },
+  { title: 'Manage Content', description: 'Adjust group topics, custom views, and moderate content.' },
+  { title: 'Manage Tracks', description: 'Create, edit, and publish tracks.' },
+  { title: 'Manage Rounds', description: 'Create, edit, and run funding rounds.' }
+].map(responsibility => ({
+  id: sid('responsibility', responsibility.title.toLowerCase().replace(/\s+/g, '-')),
+  type: 'system',
+  ...responsibility
+}))
+
+function systemResponsibilities (...titles) {
+  return { items: SYSTEM_RESPONSIBILITIES.filter(responsibility => titles.includes(responsibility.title)) }
+}
 
 /**
  * Two top-level groups plus three spaces under the main group.
@@ -27,8 +50,8 @@ export function buildGroups () {
     main: {
       id: MAIN_GROUP_ID,
       slug: MAIN_GROUP_SLUG,
-      name: 'Terran Collective',
-      description: 'Terran Collective is a community of care and practice. We are technologists, community organizers, entrepreneurs, activists, and artists with a vision for all beings thriving.\n\nOur mission is to amplify cooperation among people working to regenerate our communities and our planet. We do this by building systems and tools that foster trust and collaboration, starting in the Bay Area bioregion.\n\nLearn more about our scopes of practice at terran.io',
+      name: 'Community Hub',
+      description: 'Community Hub is a community of care and practice. We are technologists, community organizers, entrepreneurs, activists, and artists with a vision for all beings thriving.\n\nOur mission is to amplify cooperation among people working to regenerate our communities and our planet. We do this by building systems and tools that foster trust and collaboration, starting in the Bay Area bioregion.',
       purpose: 'Amplify cooperation among people working to regenerate our communities and our planet.',
       avatarUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/7650/communityAvatar/4009/67693087_721022015049461_910517523265355776_o.jpg',
       bannerUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/7650/communityBanner/4009/67691464_10102112860412601_1245997620619378688_o-2.jpg',
@@ -36,7 +59,7 @@ export function buildGroups () {
       type: null,
       parentId: null,
       memberCount: MAIN_GROUP_MEMBER_COUNT,
-      postCount: 12,
+      postCount: 20,
       visibility: 2,
       accessibility: 1,
       canAccess: true,
@@ -53,7 +76,7 @@ export function buildGroups () {
       stewardDescriptor: 'Coordinator',
       stewardDescriptorPlural: 'Coordinators',
       createdAt_offset: -86400 * 180,
-      acceptedPostTypes: ['discussion', 'event', 'proposal', 'request', 'offer', 'project', 'resource'],
+      acceptedPostTypes: ['chat', 'discussion', 'event', 'proposal', 'request', 'offer', 'project', 'resource'],
       settings: {
         showSuggestedSkills: true,
         showWelcomePage: false,
@@ -63,28 +86,28 @@ export function buildGroups () {
     simple: {
       id: SIMPLE_GROUP_ID,
       slug: SIMPLE_GROUP_SLUG,
-      name: 'East Bay Connect',
-      description: 'East Bay Connect is a space for everyone in our community to get great stuff happening.\n\nAs part of the vision of the It Takes A Town movement, East Bay Connect\'s goal is to create a culture where sharing, generosity and responsiveness to each other is the norm. When everyone is contributing according to their abilities, resources and skills, our community becomes a richer and more connected place for us all. This is a safe, respectful community space for everyone in the East Bay.',
-      purpose: 'Create a culture where sharing, generosity and responsiveness is the norm.',
+      name: 'Local Sharing Network',
+      description: 'Local Sharing Network is a space for everyone in our community to get great stuff happening.\n\nAs part of the vision of the It Takes A Town movement, Local Sharing Network\'s goal is to create a culture where sharing, generosity and responsiveness to each other is the norm. When everyone is contributing according to their abilities, resources and skills, our community becomes a richer and more connected place for us all. We are based in North Berkeley — Shattuck, Hopkins, and the parks between — and this is a safe, respectful community space for neighbours across the East Bay.',
+      purpose: 'Create a culture where sharing, generosity and responsiveness is the norm, starting in North Berkeley.',
       avatarUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/29919/communityAvatar/5649/2484%20Connect%20%282%29.png',
       bannerUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/29919/communityBanner/5649/Joanna%20May%20Wollumbin%20photo%202020_vivid50.jpg',
       icon: 'Sprout',
       type: null,
       parentId: null,
       memberCount: 48,
-      postCount: 19,
+      postCount: 31,
       visibility: 2,
       accessibility: 2,
       canAccess: true,
       allowInPublic: true,
       paywall: false,
       homeRoute: '/chat',
-      location: 'Berkeley, California, United States',
+      location: 'North Berkeley, California, United States',
       locationObject: bayLocation(sid('location', 'simple'), {
-        fullText: 'Berkeley, California, United States',
+        fullText: 'North Berkeley, California, United States',
         city: 'Berkeley',
-        lat: 37.8715,
-        lng: -122.2730
+        lat: 37.8801,
+        lng: -122.2693
       }),
       stewardDescriptor: 'Organizer',
       stewardDescriptorPlural: 'Organizers',
@@ -99,8 +122,8 @@ export function buildGroups () {
     staff: {
       id: STAFF_GROUP_ID,
       slug: STAFF_GROUP_SLUG,
-      name: 'Holistica Staff',
-      description: 'Together, we use this space to coordinate our skills and resources as worker-owners at Holistica — a small cooperative that hosts neighborhood gatherings, skill-shares, and facilitation for groups who want help working together in person.',
+      name: 'Worker Co-op Staff',
+      description: 'Together, we use this space to coordinate our skills and resources as worker-owners in our co-op — a small cooperative that hosts neighborhood gatherings, skill-shares, and facilitation for groups who want help working together in person.',
       purpose: 'Coordinate shared work as a small workers cooperative.',
       avatarUrl: 'https://hylo-staging.s3.amazonaws.com/evo-uploads/user/41415/groupAvatar/37887/logoipsum-429.png',
       bannerUrl: 'https://d3ngex8q79bk55.cloudfront.net/evo-uploads/user/16325/communityBanner/29/ethereal.jpg',
@@ -135,17 +158,17 @@ export function buildGroups () {
     spaces: {
       chat: {
         id: CHAT_SPACE_ID,
-        slug: 'general',
-        name: 'General',
-        description: 'The main chat channel for Terran Collective — share news, updates, and anything on your mind.',
-        purpose: 'Open conversation for the whole community.',
+        slug: 'introductions',
+        name: 'Introductions',
+        description: 'Say hello. Share who you are, where you are, and what brought you to Community Hub.',
+        purpose: 'A place for new and longtime members to introduce themselves.',
         avatarUrl: null,
         bannerUrl: null,
-        icon: 'MessageCircle',
+        icon: 'MessageCircleMore',
         type: 'space',
         parentId: MAIN_GROUP_ID,
         memberCount: 20,
-        postCount: 8,
+        postCount: 5,
         visibility: 0,
         accessibility: 1,
         homeRoute: '/chat',
@@ -156,7 +179,7 @@ export function buildGroups () {
         id: TRACK_SPACE_ID,
         slug: 'new-member-orientation',
         name: 'New Member Orientation',
-        description: 'A guided onboarding track to help new members get oriented in Terran Collective — learn our tools, culture, and how to get involved.',
+        description: 'A guided onboarding track to help new members get oriented in Community Hub — learn our tools, culture, and how to get involved.',
         purpose: 'Help new members find their footing and their people.',
         avatarUrl: null,
         bannerUrl: null,
@@ -192,13 +215,36 @@ export function buildGroups () {
       }
     },
     groupRoles: [
+      // System roles match the backend's built-ins; Me holds Administrator (see seed/en/index.js)
       {
         id: MAIN_ADMINISTRATOR_ROLE_ID,
         name: 'Administrator',
         emoji: '🪄',
+        description: 'Administrators are empowered to do everything related to group administration.',
+        type: 'system',
         active: true,
         groupId: MAIN_GROUP_ID,
-        responsibilities: { items: [] }
+        responsibilities: systemResponsibilities(...SYSTEM_RESPONSIBILITIES.map(responsibility => responsibility.title))
+      },
+      {
+        id: MAIN_MODERATOR_ROLE_ID,
+        name: 'Moderator',
+        emoji: '⚖️',
+        description: 'Moderators are expected to actively engage in discussion, encourage participation, and take corrective action if a member violates group agreements.',
+        type: 'system',
+        active: true,
+        groupId: MAIN_GROUP_ID,
+        responsibilities: systemResponsibilities('Manage Content', 'Remove Members')
+      },
+      {
+        id: MAIN_HOST_ROLE_ID,
+        name: 'Host',
+        emoji: '👋',
+        description: 'Hosts are responsible for cultivating a good atmosphere by welcoming and orienting new members, embodying the group culture and agreements, and helping members connect with relevant content and people.',
+        type: 'system',
+        active: true,
+        groupId: MAIN_GROUP_ID,
+        responsibilities: systemResponsibilities('Add Members')
       },
       {
         id: MAIN_MEMBER_ROLE_ID,
@@ -274,6 +320,15 @@ export function buildMemberships (groups) {
               slug: groups.spaces.funding.slug,
               visibility: 0,
               accessibility: 1
+            },
+            // Worker Co-op Staff is a child group, so "Stacked" group nav has something to stack
+            {
+              id: groups.staff.id,
+              name: groups.staff.name,
+              avatarUrl: groups.staff.avatarUrl,
+              slug: groups.staff.slug,
+              visibility: groups.staff.visibility,
+              accessibility: groups.staff.accessibility
             }
           ]
         }
@@ -396,35 +451,38 @@ export function buildGroupViews (groups, track, fundingRound) {
   return {
     [main.id]: [
       viewItem(sid('view', 'all'), 'all', 'All Activity', 0),
-      viewItem(sid('view', 'map'), 'map', 'Map', 1),
-      viewItem(sid('view', 'events'), 'events', 'Events', 2, { icon: 'Calendar' }),
-      viewItem(sid('view', 'members'), 'members', 'Members', 3, { icon: 'Users' }),
-      spaceViewItem(sid('view', 'chat-space'), spaces.chat, 4),
-      spaceViewItem(sid('view', 'track-space'), spaces.track, 5, { track }),
-      spaceViewItem(sid('view', 'funding-space'), spaces.funding, 6, { fundingRound })
+      viewItem(sid('view', 'hub-chat'), 'chat', 'Chat', 1, { icon: 'MessageCircleMore' }),
+      viewItem(sid('view', 'map'), 'map', 'Map', 2),
+      viewItem(sid('view', 'events'), 'events', 'Events', 3, { icon: 'Calendar' }),
+      viewItem(sid('view', 'members'), 'members', 'Members', 4, { icon: 'Users' }),
+      spaceViewItem(sid('view', 'chat-space'), spaces.chat, 5),
+      spaceViewItem(sid('view', 'track-space'), spaces.track, 6, { track }),
+      spaceViewItem(sid('view', 'funding-space'), spaces.funding, 7, { fundingRound })
     ],
     [spaces.chat.id]: [
-      viewItem(sid('view', 'chat-main'), 'chat', 'Chat', 0, { icon: 'MessageCircle' })
+      viewItem(sid('view', 'chat-main'), 'chat', 'Chat', 0, { icon: 'MessageCircleMore' })
     ],
     [spaces.track.id]: [
       viewItem(sid('view', 'track-actions'), 'track-actions', 'Orientation Steps', 0, { icon: 'Shapes' }),
-      viewItem(sid('view', 'track-chat'), 'chat', 'Chat', 1, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'track-chat'), 'chat', 'Chat', 1, { icon: 'MessageCircleMore' }),
       viewItem(sid('view', 'track-members'), 'members', 'Members', 2, { icon: 'Users' })
     ],
     [spaces.funding.id]: [
-      viewItem(sid('view', 'fr-submissions'), 'funding-round-submissions', 'Grant Submissions', 0, { icon: 'Coins' })
+      viewItem(sid('view', 'fr-submissions'), 'funding-round-submissions', 'Grant Submissions', 0, { icon: 'ClipboardList' })
     ],
     [groups.simple.id]: [
-      viewItem(sid('view', 'simple-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'simple-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircleMore' }),
       viewItem(sid('view', 'simple-all'), 'all', 'All Activity', 1),
-      viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
-      viewItem(sid('view', 'simple-projects'), 'projects', 'Projects', 3, { icon: 'Layers' }),
-      viewItem(sid('view', 'simple-members'), 'members', 'Members', 4, { icon: 'Users' })
+      viewItem(sid('view', 'simple-map'), 'map', 'Map', 2),
+      viewItem(sid('view', 'simple-events'), 'events', 'Events', 3, { icon: 'Calendar' }),
+      viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 4),
+      viewItem(sid('view', 'simple-projects'), 'projects', 'Projects', 5, { icon: 'Layers' }),
+      viewItem(sid('view', 'simple-members'), 'members', 'Members', 6, { icon: 'Users' })
     ],
     [groups.staff.id]: [
-      viewItem(sid('view', 'staff-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircle' }),
+      viewItem(sid('view', 'staff-chat'), 'chat', 'Chat', 0, { icon: 'MessageCircleMore' }),
       viewItem(sid('view', 'staff-all'), 'all', 'All Activity', 1),
-      viewItem(sid('view', 'staff-requests'), 'requests-and-offers', 'Requests & Offers', 2, { icon: 'HandHeart' }),
+      viewItem(sid('view', 'staff-requests'), 'requests-and-offers', 'Requests & Offers', 2),
       viewItem(sid('view', 'staff-events'), 'events', 'Events', 3, { icon: 'Calendar' }),
       viewItem(sid('view', 'staff-members'), 'members', 'Members', 4, { icon: 'Users' })
     ]

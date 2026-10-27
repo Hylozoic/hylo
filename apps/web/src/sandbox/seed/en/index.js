@@ -5,7 +5,8 @@ import {
   buildGroupViews,
   buildMemberships,
   MAIN_GROUP_ID,
-  MAIN_ADMINISTRATOR_ROLE_ID
+  MAIN_ADMINISTRATOR_ROLE_ID,
+  SYSTEM_RESPONSIBILITIES
 } from './groups'
 import { buildTrack, buildTrackActions, TRACK_ID } from './tracks'
 import { buildFundingRound, FUNDING_ROUND_ID } from './fundingRounds'
@@ -29,6 +30,9 @@ export function buildEnSeed () {
   const track = buildTrack()
   const fundingRound = buildFundingRound()
   const memberships = buildMemberships(groups)
+  // Me administers the main group; also set on the person record so member lists show the role
+  const meGroupRoles = { items: groups.groupRoles.filter(role => role.id === MAIN_ADMINISTRATOR_ROLE_ID) }
+  peopleMap[ME_ID].groupRoles = meGroupRoles
   const groupViews = buildGroupViews(groups, track, fundingRound)
 
   const postCollections = buildPosts(peopleMap, ME_ID)
@@ -73,7 +77,7 @@ export function buildEnSeed () {
       ...me,
       newNotificationCount: unreadNotificationCount(notifications),
       memberships,
-      groupRoles: { items: groups.groupRoles.filter(role => role.id === MAIN_ADMINISTRATOR_ROLE_ID) }
+      groupRoles: meGroupRoles
     },
     people,
     peopleById: peopleMap,
@@ -90,7 +94,8 @@ export function buildEnSeed () {
       simple: groups.simple,
       staff: groups.staff,
       spaces: groups.spaces,
-      roles: groups.groupRoles
+      roles: groups.groupRoles,
+      responsibilities: SYSTEM_RESPONSIBILITIES
     },
     groupViews,
     track: { ...track, actions: trackActions },

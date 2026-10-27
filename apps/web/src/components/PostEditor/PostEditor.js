@@ -36,6 +36,7 @@ import {
 } from 'components/ui/dialog'
 import LinkPreview from './LinkPreview'
 import { DateTimePicker } from 'components/ui/datetimepicker'
+import usePrefersNativeDateTimePicker from 'components/ui/usePrefersNativeDateTimePicker'
 import TimezoneSelect from 'components/TimezoneSelect/TimezoneSelect'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
@@ -187,6 +188,7 @@ function PostEditorInner ({
   const groupSlug = spaceAwareGroupSlug || routeParams.groupSlug || parsedRouteParams.groupSlug
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
+  const nativeTimePickers = usePrefersNativeDateTimePicker()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
@@ -1433,7 +1435,7 @@ function PostEditorInner ({
   }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30')}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30 min-w-0 max-w-full')} data-testid='post-editor'>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
@@ -1518,6 +1520,7 @@ function PostEditorInner ({
           <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
           <input
             type='text'
+            data-testid='post-editor-title'
             className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
             value={currentPost.title || ''}
             onChange={handleTitleChange}
@@ -1786,32 +1789,64 @@ function PostEditorInner ({
       )} */}
       {canHaveTimes && (
         <>
-          <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0'>
-            <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-            <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
-              <DateTimePicker
-                hourCycle={hourCycle}
-                granularity='minute'
-                value={startTimePickerValue}
-                placeholder={t('Select Start')}
-                onChange={handleStartTimeChange}
-                onMonthChange={() => {}}
-              />
-              <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
-              <DateTimePicker
-                ref={endTimeRef}
-                hourCycle={hourCycle}
-                granularity='minute'
-                value={endTimePickerValue}
-                placeholder={t('Select End')}
-                onChange={handleEndTimeChange}
-                onMonthChange={() => {}}
-              />
-            </div>
-          </div>
-          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2'>
-            <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
+          {nativeTimePickers
+            ? (
+              <div className='flex flex-col border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0' data-testid='post-editor-timeframe'>
+                <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+                {/* Touch devices: OS date/time pickers, one full-width row each for start and end */}
+                <div className='grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2'>
+                  <span aria-hidden='true' />
+                  <DateTimePicker
+                    id='post-editor-start-time'
+                    label={t('Select Start')}
+                    granularity='minute'
+                    value={startTimePickerValue}
+                    placeholder={t('Select Start')}
+                    onChange={handleStartTimeChange}
+                  />
+                  <div className='text-xs text-foreground/50'>{t('to')}</div>
+                  <DateTimePicker
+                    id='post-editor-end-time'
+                    ref={endTimeRef}
+                    label={t('Select End')}
+                    granularity='minute'
+                    value={endTimePickerValue}
+                    placeholder={t('Select End')}
+                    onChange={handleEndTimeChange}
+                  />
+                </div>
+              </div>
+              )
+            : (
+              <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0' data-testid='post-editor-timeframe'>
+                <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+                <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
+                  <DateTimePicker
+                    hourCycle={hourCycle}
+                    granularity='minute'
+                    value={startTimePickerValue}
+                    placeholder={t('Select Start')}
+                    onChange={handleStartTimeChange}
+                    onMonthChange={() => {}}
+                  />
+                  <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
+                  <DateTimePicker
+                    ref={endTimeRef}
+                    hourCycle={hourCycle}
+                    granularity='minute'
+                    value={endTimePickerValue}
+                    placeholder={t('Select End')}
+                    onChange={handleEndTimeChange}
+                    onMonthChange={() => {}}
+                  />
+                </div>
+              </div>
+              )}
+          {/* Grid, not flex: the select's column is capped by the card (minmax(0, 1fr)) whatever the trigger's intrinsic width */}
+          <div className='grid grid-cols-[auto_minmax(0,1fr)] items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2 min-w-0 max-w-full' data-testid='post-editor-timezone-row'>
+            <div className='text-xs text-foreground/50'>{t('Timezone')}</div>
             <TimezoneSelect
+              data-testid='post-editor-timezone'
               className='border-none bg-transparent'
               value={eventTimezone}
               onChange={handleTimezoneChange}
