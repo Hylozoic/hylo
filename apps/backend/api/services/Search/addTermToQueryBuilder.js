@@ -1,12 +1,8 @@
-import { chain, isEmpty, times } from 'lodash'
+import { times } from 'lodash'
+import prefixTsQuery from './prefixTsQuery'
 
 export default function (term, qb, { columns }) {
-  const query = chain(term.split(/\s*\s/)) // split on whitespace
-    .map(word => word.replace(/[,;|:&()!\\]+/g, ''))
-    .reject(isEmpty)
-    .map(word => word + ':*') // add prefix matching
-    .join(' & ') // build the tsquery string using logical AND operands
-    .value()
+  const query = prefixTsQuery(term, { splitWords: true })
 
   // A term with no usable words (only whitespace or punctuation) adds no filter
   if (!query) return

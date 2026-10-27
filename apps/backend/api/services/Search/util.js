@@ -1,7 +1,8 @@
 import { GraphQLError } from 'graphql'
-import { chain, curry, includes, isEmpty, values } from 'lodash'
+import { curry, includes, isEmpty, values } from 'lodash'
 import { DateTime } from 'luxon'
 import addTermToQueryBuilder from './addTermToQueryBuilder'
+import prefixTsQuery from './prefixTsQuery'
 
 export const filterAndSortPosts = curry((opts, q) => {
   const {
@@ -230,12 +231,8 @@ function applyFundingRoundCapabilityFilter (q, groupId, capability) {
 
 export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }, q) => {
   if (autocomplete) {
-    const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
-      .map(word => word.replace(/[,;|:&()!\\]+/g, ''))
-      .reject(isEmpty)
-      .map(word => word + ':*') // add prefix matching
-      .join(' & ') // build the tsquery string using logical AND operands
-      .value()
+    // Special characters split words, so "o'brien" matches "O'Brien" (indexed as "o" and "brien")
+    const query = prefixTsQuery(autocomplete, { splitWords: true })
 
     // Input with no usable words (only whitespace or punctuation) skips the name filter
     if (query) {
