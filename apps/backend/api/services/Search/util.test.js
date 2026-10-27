@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-expressions */
-import { filterAndSortPosts, filterAndSortGroups } from './util'
+import { filterAndSortPosts, filterAndSortGroups, filterAndSortUsers } from './util'
 import { expectEqualQuery } from '../../../test/setup/helpers'
 
 describe('filterAndSortPosts', () => {
@@ -103,5 +103,69 @@ describe('filterAndSortGroups', () => {
     })
 
     expectEqualQuery(relation, `select * from "groups" where (((to_tsvector('english', groups.name) @@ to_tsquery('foo:*')) or (to_tsvector('english', groups.description) @@ to_tsquery('foo:*')) or (to_tsvector('english', groups.location) @@ to_tsquery('foo:*')))) order by "name" asc`)
+  })
+
+  it('ignores a search with no usable words', () => {
+    const relation = Group.collection()
+    relation.query(q => {
+      filterAndSortGroups({ search: '(&' }, q)
+    })
+
+    expectEqualQuery(relation, 'select * from "groups" order by "name" asc')
+  })
+
+  it('strips every run of special characters from a word', () => {
+    const relation = Group.collection()
+    relation.query(q => {
+      filterAndSortGroups({ search: 'a:b:c' }, q)
+    })
+
+    expectEqualQuery(relation, `select * from "groups" where (((to_tsvector('english', groups.name) @@ to_tsquery('abc:*')) or (to_tsvector('english', groups.description) @@ to_tsquery('abc:*')) or (to_tsvector('english', groups.location) @@ to_tsquery('abc:*')))) order by "name" asc`)
+  })
+})
+
+describe('filterAndSortUsers', () => {
+  const nameOrder = `order by (coalesce("users"."name", '') !~ '\\S') asc, lower(trim("users"."name")) asc`
+
+  it('filters and ranks by name for autocomplete', () => {
+    const relation = User.collection()
+    relation.query(q => {
+      filterAndSortUsers({ autocomplete: 'al bo' }, q)
+    })
+
+    expectEqualQuery(relation, `select * from "users"
+      where to_tsvector('simple', users.name) @@ to_tsquery('simple', 'al:* & bo:*')
+      order by ts_rank_cd(to_tsvector('simple', users.name), to_tsquery('simple', 'al:* & bo:*')) DESC,
+      (coalesce("users"."name", '') !~ '\\S') asc, lower(trim("users"."name")) asc`)
+  })
+
+  it('strips every run of special characters from a word', () => {
+    const relation = User.collection()
+    relation.query(q => {
+      filterAndSortUsers({ autocomplete: 'a:b:c' }, q)
+    })
+
+    expectEqualQuery(relation, `select * from "users"
+      where to_tsvector('simple', users.name) @@ to_tsquery('simple', 'abc:*')
+      order by ts_rank_cd(to_tsvector('simple', users.name), to_tsquery('simple', 'abc:*')) DESC,
+      (coalesce("users"."name", '') !~ '\\S') asc, lower(trim("users"."name")) asc`)
+  })
+
+  it('skips the name filter when autocomplete is only whitespace', () => {
+    const relation = User.collection()
+    relation.query(q => {
+      filterAndSortUsers({ autocomplete: ' ' }, q)
+    })
+
+    expectEqualQuery(relation, `select * from "users" ${nameOrder}`)
+  })
+
+  it('skips the name filter when autocomplete is only punctuation', () => {
+    const relation = User.collection()
+    relation.query(q => {
+      filterAndSortUsers({ autocomplete: '(&' }, q)
+    })
+
+    expectEqualQuery(relation, `select * from "users" ${nameOrder}`)
   })
 })

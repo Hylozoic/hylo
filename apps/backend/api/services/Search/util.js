@@ -231,17 +231,17 @@ function applyFundingRoundCapabilityFilter (q, groupId, capability) {
 export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }, q) => {
   if (autocomplete) {
     const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
-      .map(word => word.replace(/[,;|:&()!\\]+/, ''))
+      .map(word => word.replace(/[,;|:&()!\\]+/g, ''))
       .reject(isEmpty)
       .map(word => word + ':*') // add prefix matching
-      .reduce((result, word) => {
-        // build the tsquery string using logical AND operands
-        result += ' & ' + word
-        return result
-      }).value()
+      .join(' & ') // build the tsquery string using logical AND operands
+      .value()
 
-    q.whereRaw('to_tsvector(\'simple\', users.name) @@ to_tsquery(\'simple\', ?)', [query])
-    q.orderByRaw('ts_rank_cd(to_tsvector(\'simple\', users.name), to_tsquery(\'simple\', ?)) DESC', [query])
+    // Input with no usable words (only whitespace or punctuation) skips the name filter
+    if (query) {
+      q.whereRaw('to_tsvector(\'simple\', users.name) @@ to_tsquery(\'simple\', ?)', [query])
+      q.orderByRaw('ts_rank_cd(to_tsvector(\'simple\', users.name), to_tsquery(\'simple\', ?)) DESC', [query])
+    }
   }
 
   // Collect all role IDs from single groupRoleId and/or groupRoleIds array, deduplicated
