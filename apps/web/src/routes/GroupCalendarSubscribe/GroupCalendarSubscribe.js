@@ -1,43 +1,31 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Rss } from 'lucide-react'
-import Button from 'components/Button'
-import ModalDialog from 'components/ModalDialog'
-
-const GOOGLE_CALENDAR_ADD_URL = 'https://calendar.google.com/calendar/u/0/r/settings/addbyurl'
-
-/** Converts an https/http calendar URL to webcal so OS opens the default calendar app (e.g. Apple Calendar). */
-const toWebcalUrl = (url) => url ? url.replace(/^https?:\/\//i, 'webcal://') : ''
-
-const DEFAULT_BUTTON_LABEL = "Subscribe to this Group's Calendar"
+import { cn } from 'util/index'
+import { isCompactLayoutDevice } from 'util/mobile'
+import CalendarSubscribeModal from './CalendarSubscribeModal'
 
 /**
- * Renders a subscribe-to-calendar button and modal with calendar URL and copy / Apple Calendar / Google Calendar actions.
+ * Subscribe-to-calendar pill for the view header, opening a modal with the calendar URL and
+ * copy / Apple Calendar / Google Calendar actions.
  * Rendered when eventCalendarUrl is truthy, or when onEnsureCalendarUrl is provided (e.g. RSVP calendar: show button
  * even without URL; on click create token and get URL then open modal).
- * Pass buttonLabel and modalTitle to customize copy (e.g. for RSVP calendar).
+ * buttonLabel is the full description (accessible name, tooltip and default modal title); shortLabel is shown in the
+ * pill on wider screens and "Subscribe" on phones, so the header keeps room for the view title.
  */
-export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel = DEFAULT_BUTTON_LABEL, modalTitle, onEnsureCalendarUrl }) {
+export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel, shortLabel, modalTitle, onEnsureCalendarUrl }) {
   const { t } = useTranslation()
   const [modalVisible, setModalVisible] = useState(false)
   const [resolvedCalendarUrl, setResolvedCalendarUrl] = useState('')
-  const title = modalTitle != null ? modalTitle : buttonLabel
+  const label = buttonLabel || t('Subscribe to this Group\'s Calendar')
+  const title = modalTitle != null ? modalTitle : label
+  const compactLayout = isCompactLayoutDevice()
 
   const effectiveUrl = eventCalendarUrl || resolvedCalendarUrl
 
-  const copyToClipboard = useCallback(async (url) => {
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch (_) {
-      // clipboard may be unavailable (e.g. non-HTTPS)
-    }
-  }, [])
-
-  const handleOpenModal = useCallback(() => setModalVisible(true), [])
-
   const handleButtonClick = useCallback(async () => {
     if (effectiveUrl) {
-      handleOpenModal()
+      setModalVisible(true)
       return
     }
     if (onEnsureCalendarUrl) {
@@ -51,76 +39,33 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel 
         // Do not open modal on error
       }
     }
-  }, [effectiveUrl, onEnsureCalendarUrl, handleOpenModal])
+  }, [effectiveUrl, onEnsureCalendarUrl])
 
-  const handleCloseModal = useCallback(() => {
-    setModalVisible(false)
-  }, [])
-
-  const handleCopy = useCallback(() => {
-    copyToClipboard(effectiveUrl)
-  }, [effectiveUrl, copyToClipboard])
-
-  const handleUrlClick = useCallback(() => {
-    copyToClipboard(effectiveUrl)
-  }, [effectiveUrl, copyToClipboard])
-
-  const handleGoogleCalendar = useCallback(() => {
-    copyToClipboard(effectiveUrl)
-    window.open(GOOGLE_CALENDAR_ADD_URL, '_blank', 'noopener,noreferrer')
-  }, [effectiveUrl, copyToClipboard])
-
-  const webcalUrl = useMemo(() => toWebcalUrl(effectiveUrl), [effectiveUrl])
-
-  const handleAppleCalendar = useCallback(() => {
-    if (webcalUrl) window.location.href = webcalUrl
-  }, [webcalUrl])
+  const handleCloseModal = useCallback(() => setModalVisible(false), [])
 
   if (!eventCalendarUrl && !onEnsureCalendarUrl) return null
 
   return (
     <>
-      {/* Tonal button tinted with the theme's selected color so the subscribe option stands out under the calendar */}
+      {/* Tonal pill tinted with the theme's selected color so the subscribe option stands out (#1669) */}
       <button
         type='button'
         onClick={handleButtonClick}
-        className='w-full mt-4 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 border-selected bg-selected/20 text-foreground hover:bg-selected/40 text-sm font-bold transition-all cursor-pointer'
+        aria-label={label}
+        title={label}
+        data-testid='calendar-subscribe-button'
+        className='flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-selected bg-selected/20 text-foreground hover:bg-selected/40 px-2.5 py-0.5 text-sm font-bold transition-all cursor-pointer'
       >
-        <Rss size={16} />
-        {buttonLabel}
+        <Rss className='w-4 h-4 shrink-0' />
+        <span className={cn(!compactLayout && 'sm:hidden')}>{t('Subscribe')}</span>
+        <span className={cn('hidden', !compactLayout && 'sm:inline')}>{shortLabel || t('Subscribe to calendar')}</span>
       </button>
       {modalVisible && (
-        <ModalDialog
-          closeModal={handleCloseModal}
-          modalTitle={title}
-          showCancelButton
-          showSubmitButton={false}
-        >
-          <div className='flex flex-col gap-4'>
-            <div>
-              <p className='text-sm text-foreground/80 mb-2'>{t('Calendar subscription URL')}:</p>
-              <button
-                type='button'
-                onClick={handleUrlClick}
-                className='rounded-md text-sm font-mono text-secondary break-all text-left hover:underline cursor-pointer bg-midground/50 px-2 py-2 rounded border border-foreground/10'
-                title={t('Click to copy')}
-              >
-                {effectiveUrl}
-              </button>
-            </div>
-            <div className='flex flex-wrap gap-2'>
-              <Button color='green-white-green-border' className='rounded-md' narrow onClick={handleCopy}>
-                {t('Copy')}
-              </Button>
-              <Button color='green-white-green-border' className='rounded-md' narrow onClick={handleAppleCalendar}>
-                {t('Add to Apple or Outlook')}
-              </Button>
-              <Button color='green-white-green-border' className='rounded-md' narrow onClick={handleGoogleCalendar}>
-                {t('Add to Google Calendar')}
-              </Button>
-            </div>
-          </div>
-        </ModalDialog>
+        <CalendarSubscribeModal
+          calendarUrl={effectiveUrl}
+          title={title}
+          onClose={handleCloseModal}
+        />
       )}
     </>
   )

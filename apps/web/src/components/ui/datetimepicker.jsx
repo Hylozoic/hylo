@@ -14,11 +14,10 @@ import { cn } from '@/lib/utils'
 import {
   applyDateInputValue,
   applyTimeInputValue,
-  prefersNativeDateTimePicker,
-  subscribeToPointerChanges,
   toDateInputValue,
   toTimeInputValue
 } from './nativeDateTimePicker'
+import usePrefersNativeDateTimePicker from './usePrefersNativeDateTimePicker'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -836,20 +835,6 @@ const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = fal
 NativeDateTimePicker.displayName = 'NativeDateTimePicker'
 
 /**
- * Whether this device should get the native pickers. Re-evaluated when the pointer media
- * queries change (e.g. a trackpad is attached to a tablet).
- */
-function usePrefersNativeDateTimePicker () {
-  const [prefersNative, setPrefersNative] = React.useState(() => prefersNativeDateTimePicker())
-  React.useEffect(() => {
-    const update = () => setPrefersNative(prefersNativeDateTimePicker())
-    update()
-    return subscribeToPointerChanges(update)
-  }, [])
-  return prefersNative
-}
-
-/**
  * Date + time picker. Touch devices get the OS pickers (NativeDateTimePicker); devices with a
  * mouse or trackpad get the popover calendar (PopoverDateTimePicker). Both take and emit
  * wall-clock Dates; `label` names the native inputs for screen readers (falls back to
@@ -862,4 +847,4 @@ const DateTimePicker = React.forwardRef(({ label, ...props }, ref) => {
     : <PopoverDateTimePicker {...props} ref={ref} />
 })
 DateTimePicker.displayName = 'DateTimePicker'
-export { DateTimePicker, NativeDateTimePicker, PopoverDateTimePicker, TimePickerInput, TimePicker, usePrefersNativeDateTimePicker }
+export { DateTimePicker, NativeDateTimePicker, PopoverDateTimePicker, TimePickerInput, TimePicker }
