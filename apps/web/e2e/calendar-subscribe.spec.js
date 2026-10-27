@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, devices } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
@@ -135,7 +135,9 @@ test('subscribe to RSVPs button sits in the /all/events header', async ({ page }
 
 test.describe('RSVP calendar prompt', () => {
   // The prompt's "Don't ask again" is saved on the shared E2E user, so only one project may run this
-  test.skip(({ browserName }, testInfo) => testInfo.project.name !== 'chromium', 'mutates the shared E2E user settings')
+  test.beforeEach(() => {
+    test.skip(test.info().project.name !== 'chromium', 'mutates the shared E2E user settings')
+  })
 
   test.afterEach(async ({ page }) => {
     await resetRsvpCalendarPromptSettings(page).catch(() => {})
@@ -160,7 +162,23 @@ test.describe('RSVP calendar prompt', () => {
     await rsvp(page, 'Going')
     await expect(prompt).toBeVisible(uiTimeout)
     await expect(prompt).toContainText('Add your RSVPs to your calendar?')
-    if (SCREENSHOT_DIR) await page.screenshot({ path: `${SCREENSHOT_DIR}/issue-1669-rsvp-prompt-${test.info().project.name}.png` })
+    if (SCREENSHOT_DIR) {
+      await prompt.evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)))
+      await page.screenshot({ path: `${SCREENSHOT_DIR}/issue-1669-rsvp-prompt-${test.info().project.name}.png` })
+      // Phone layout screenshot from a separate context; "Not now" leaves the settings unchanged
+      const phone = await page.context().browser().newContext({ ...devices['Pixel 5'], storageState: './e2e/.auth/session.json', baseURL: new URL(page.url()).origin })
+      const phonePage = await phone.newPage()
+      await phonePage.goto(new URL(page.url()).pathname)
+      await waitPastRootSessionLoading(phonePage)
+      await expect(phonePage.getByText('Bring a snack.')).toBeVisible(uiTimeout)
+      await rsvp(phonePage, 'Interested')
+      const phonePrompt = phonePage.getByTestId('rsvp-calendar-prompt')
+      await expect(phonePrompt).toBeVisible(uiTimeout)
+      await phonePrompt.evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)))
+      await phonePage.screenshot({ path: `${SCREENSHOT_DIR}/issue-1669-rsvp-prompt-mobile.png` })
+      await phonePrompt.getByRole('button', { name: 'Not now' }).click()
+      await phone.close()
+    }
 
     // "Not now" only closes it this time
     await prompt.getByRole('button', { name: 'Not now' }).click()

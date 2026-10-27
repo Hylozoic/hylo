@@ -86,13 +86,13 @@ export default function RsvpCalendarPrompt () {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className='gap-2'>
-            <Button variant='ghost' onClick={handleDontAskAgain} disabled={subscribing}>
+            <Button variant='ghost' className='justify-center' onClick={handleDontAskAgain} disabled={subscribing}>
               {t('Don\'t ask again')}
             </Button>
-            <Button variant='outline' onClick={close} disabled={subscribing}>
+            <Button variant='outline' className='justify-center text-sm' onClick={close} disabled={subscribing}>
               {t('Not now')}
             </Button>
-            <Button variant='highVisibility' onClick={handleSubscribe} disabled={subscribing}>
+            <Button variant='highVisibility' className='justify-center text-sm sm:text-sm' onClick={handleSubscribe} disabled={subscribing}>
               {t('Subscribe')}
             </Button>
           </DialogFooter>
