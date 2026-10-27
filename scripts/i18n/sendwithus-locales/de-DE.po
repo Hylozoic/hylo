@@ -1266,3 +1266,106 @@ msgstr "Am nächsten Anruf teilnehmen →"
 #, python-format
 msgid "Congratulations on creating %(group_name)s!"
 msgstr "Herzlichen Glückwunsch zur Erstellung von %(group_name)s!"
+
+#, python-format
+msgid "Someone asked to change the email address for your Hylo account to %(masked_new_email)s. Nothing changes unless that address is verified."
+msgstr "Jemand hat beantragt, die E-Mail-Adresse deines Hylo-Kontos in %(masked_new_email)s zu ändern. Es ändert sich nichts, solange diese Adresse nicht bestätigt ist."
+
+msgid "If this wasn’t you, sign in and cancel the change in your account settings, change your password, and contact us."
+msgstr "Wenn du das nicht warst, melde dich an und brich die Änderung in deinen Kontoeinstellungen ab, ändere dein Passwort und kontaktiere uns."
+
+msgid "Review your account settings"
+msgstr "Kontoeinstellungen ansehen"
+
+msgid "If you made this request, there’s nothing else to do here. Just enter the code we sent to your new address."
+msgstr "Wenn du diese Anfrage gestellt hast, musst du hier nichts weiter tun. Gib einfach den Code ein, den wir an deine neue Adresse gesendet haben."
+
+msgid "A change to your Hylo account email was requested"
+msgstr "Eine Änderung der E-Mail-Adresse deines Hylo-Kontos wurde beantragt"
+
+# Strings SendWithUs uses that later edits dropped from this file; translations restored from git history
+msgid "Your access to"
+msgstr "Ihr Zugang zu"
+
+msgid "has expired."
+msgstr "ist abgelaufen."
+
+msgid "Expired:"
+msgstr "Abgelaufen:"
+
+msgid "We'd love to have you back! Renew your access to continue enjoying this content."
+msgstr "Wir würden uns freuen, Sie zurückzuhaben! Erneuern Sie Ihren Zugang, um weiterhin diese Inhalte zu genießen."
+
+msgid "Available Options:"
+msgstr "Verfügbare Optionen:"
+
+msgid "Renew Access"
+msgstr "Zugang erneuern"
+
+msgid "Email settings"
+msgstr ""
+
+msgid "View this email in a browser"
+msgstr ""
+
+#, python-format
+msgid "Your access to %(offering_name_var)s has expired"
+msgstr ""
+
+#, python-format
+msgid "In %(groups_label)s"
+msgstr ""
+
+msgid "in your Hylo groups"
+msgstr ""
+
+#, python-format
+msgid "in %(post_location)s"
+msgstr ""
+
+#, python-format
+msgid "in %(groups_label)s"
+msgstr ""
+
+msgid "Thank you for your generous donation of "
+msgstr "Vielen Dank für deine großzügige Spende von "
+
+msgid "Donation Date:"
+msgstr "Spendendatum:"
+
+msgid "Donation Type:"
+msgstr "Spendenart:"
+
+msgid "Tax-Deductible Donation"
+msgstr "Steuerlich absetzbare Spende"
+
+#, python-format
+msgid "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
+msgstr "Deine Spende ist in den USA steuerlich absetzbar. Hylo wird von %(fiscal_sponsor_name_var)s, einer 501(c)(3)-Non-Profit-Organisation, finanziell gefördert."
+
+msgid "This is a recurring donation that will automatically repeat "
+msgstr "Dies ist eine wiederkehrende Spende, die automatisch wiederholt wird "
+
+msgid "Next Donation:"
+msgstr "Nächste Spende:"
+
+msgid "Manage Recurring Donation"
+msgstr "Wiederkehrende Spende verwalten"
+
+#, python-format
+msgid "This donation was made as part of your %(purchase_context_var)s."
+msgstr "Diese Spende wurde im Rahmen deines %(purchase_context_var)s getätigt."
+
+msgid "Thank you for your donation to Hylo"
+msgstr "Danke für deine Spende an Hylo"
+
+msgid " via Hylo"
+msgstr ""
+
+#, python-format
+msgid ". \n\nManage their request [ %(settings_url)s ] "
+msgstr ". \n\nIhre Anfrage verwalten [ %(settings_url)s ] "
+
+#, python-format
+msgid "New chats in %(group_name)s #%(chat_topic)s"
+msgstr "Neue Chats in %(group_name)s #%(chat_topic)s"

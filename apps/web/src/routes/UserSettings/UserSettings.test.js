@@ -86,4 +86,15 @@ describe('UserSettings', () => {
 
     expect(container.querySelector('#root') || container).toBeTruthy()
   })
+
+  it('does not crash when the current user is cleared during logout', () => {
+    const loggedOutState = {
+      ...reduxState,
+      orm: orm.getEmptyState()
+    }
+
+    expect(() => {
+      render(<UserSettings />, { wrapper: AllTheProviders(loggedOutState) })
+    }).not.toThrow()
+  })
 })

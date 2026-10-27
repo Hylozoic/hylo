@@ -74,6 +74,39 @@ describe('Group', function () {
     expect(savedGroup.get('geo_shape').coordinates).to.deep.equal(polygon.coordinates)
   })
 
+  describe('notifyAboutCreate', function () {
+    beforeEach(function () {
+      mockify(Email, 'sendRawEmail', () => Promise.resolve(true))
+    })
+
+    afterEach(function () {
+      unspyify(Email, 'sendRawEmail')
+    })
+
+    it('does not email when the group is a space', async function () {
+      const creator = await factories.user().save()
+      const parent = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: parent.id,
+        created_by_id: creator.id
+      }).save()
+
+      await Group.notifyAboutCreate({ groupId: space.id })
+
+      expect(Email.sendRawEmail).not.to.have.been.called()
+    })
+
+    it('emails when the group is not a space', async function () {
+      const creator = await factories.user().save()
+      const group = await factories.group({ created_by_id: creator.id }).save()
+
+      await Group.notifyAboutCreate({ groupId: group.id })
+
+      expect(Email.sendRawEmail).to.have.been.called()
+    })
+  })
+
   it('can be created with group extension data', async function () {
     const data = {
       name: 'my group',

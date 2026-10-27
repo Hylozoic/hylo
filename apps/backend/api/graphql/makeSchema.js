@@ -28,6 +28,7 @@ import {
   allowGroupInvites,
   archiveSpace,
   blockUser,
+  cancelEmailChange,
   cancelGroupRelationshipInvite,
   cancelJoinRequest,
   clearModerationAction,
@@ -181,7 +182,8 @@ import {
   checkStripeStatus,
   fulfillStripeCheckoutSession,
   membershipChangeCommit,
-  verifyEmail
+  verifyEmail,
+  verifyEmailChange
 } from './mutations'
 import {
   stripeAccountStatus,
@@ -671,6 +673,8 @@ export function makeMutations ({ fetchOne }) {
 
     blockUser: (root, { blockedUserId }, context) => blockUser(context.currentUserId, blockedUserId),
 
+    cancelEmailChange: (root, args, context) => cancelEmailChange(context.currentUserId),
+
     cancelGroupRelationshipInvite: (root, { groupRelationshipInviteId }, context) => cancelGroupRelationshipInvite(context.currentUserId, groupRelationshipInviteId),
 
     cancelJoinRequest: (root, { joinRequestId }, context) => cancelJoinRequest(context.currentUserId, joinRequestId),
@@ -953,7 +957,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateTopicFollow: (root, args, context) => updateTopicFollow(context.currentUserId, args),
 
-    updateMe: (root, { changes }, context) => updateMe(context.req.sessionID, context.currentUserId, changes),
+    updateMe: (root, { changes }, context) => updateMe(context.req.sessionID, context.currentUserId, changes, { ip: context.req?.ip }),
 
     updateMembership: (root, args, context) => updateMembership(context.currentUserId, args),
 
@@ -970,6 +974,8 @@ export function makeMutations ({ fetchOne }) {
     updateStripeAccount: (root, { accountId }, context) => updateStripeAccount(context.currentUserId, accountId),
 
     updateTrack: (root, { trackId, data }, context) => updateTrack(context.currentUserId, trackId, data),
+
+    verifyEmailChange: (root, args, context) => verifyEmailChange(fetchOne)(context.currentUserId, args, { ip: context.req?.ip }),
 
     useInvitation: (root, { invitationToken, accessCode }, context) => useInvitation(context.currentUserId, invitationToken, accessCode),
 

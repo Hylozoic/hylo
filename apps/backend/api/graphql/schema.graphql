@@ -1813,6 +1813,8 @@ type Me {
   name: String
   # The number of unread notifications the logged in user has
   newNotificationCount: Int
+  # A new login email the user has asked for but not yet verified. Until it is verified, email is still the one in use
+  pendingEmail: String
   # The number of Posts the logged in user has created
   postsTotal: Int
   # RSVP calendar URL for subscriptions
@@ -3300,6 +3302,8 @@ type Mutation {
   allowGroupInvites(groupId: ID, data: Boolean): Group
   # For logged in user to block a user, meaning they will no longer see the user's posts and that user can no longer see theirs or message them.
   blockUser(blockedUserId: ID): GenericResult
+  # Cancel a pending change of your login email. The verification code and link sent to the new address stop working
+  cancelEmailChange: GenericResult
   # For a steward of a group that has invited a group to be in relationship with it, to cancel that invitation.
   cancelGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
   # For a Person who has requested to join another group to cancel that request.
@@ -3739,6 +3743,13 @@ type Mutation {
   updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update a track
   updateTrack(trackId: ID, data: TrackInput): Track
+  # Verify the new login email requested via updateMe, using the code or the link's token sent to that address
+  verifyEmailChange(
+    # The 6 digit code sent to the new address
+    code: String,
+    # For verifying by clicking on a URL, the token from the link
+    token: String
+  ): SignupResult
   # Accept an invitation to a Group
   useInvitation(
     # The invite code for the Group
@@ -4330,7 +4341,7 @@ input MeInput {
   contactEmail: String
   # Phone number made visible on your profile
   contactPhone: String
-  # Account email address used to log in
+  # Account email address used to log in. Changing it sends a verification to the new address, and it only takes effect once verified (see pendingEmail)
   email: String
   # The URL to your Facebook profile
   facebookUrl: String

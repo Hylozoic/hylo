@@ -1,6 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { mentionPath, origin, tagSearchUrl } from '@hylo/navigation'
+import { staticPages } from '../../server/staticPages'
 
 /**
  * Strips a leading www. so hylo.com and www.hylo.com compare as the same host.
@@ -37,6 +38,18 @@ export function internalPathname (href, currentOrigin) {
   } catch (e) {
     return null
   }
+}
+
+/**
+ * True when the path is served by the static marketing site (not the SPA),
+ * e.g. /agreements or /blog/some-post. The root path is left to the app.
+ * @param {string} path
+ * @returns {boolean}
+ */
+export function isStaticPagePath (path) {
+  const pathname = path.split(/[?#]/)[0].replace(/\/$/, '')
+  if (!pathname) return false
+  return staticPages.includes(pathname) || pathname.startsWith('/blog/')
 }
 
 export default function ClickCatcher ({ handleMouseOver, groupSlug = 'all', onClick, ...props }) {
@@ -80,7 +93,7 @@ export const handleClick = (navigate, groupSlug, onClick) => event => {
     if (href) {
       const pathname = internalPathname(href, origin())
 
-      if (pathname) {
+      if (pathname && !isStaticPagePath(pathname)) {
         event.preventDefault()
 
         return navigate(pathname)
