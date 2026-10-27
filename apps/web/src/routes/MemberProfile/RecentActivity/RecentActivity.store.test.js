@@ -17,6 +17,7 @@ describe('fetchRecentActivity', () => {
     })
     expect(actual.meta).toEqual({ extractModel: 'Person' })
     expect(actual.graphql.query).toContain('query RecentActivity')
+    expect(actual.graphql.query).toContain('$rsvpResponse: String')
     expect(actual.graphql.query).toContain('comments (first: $first, offset: $commentsOffset, order: $order)')
     expect(actual.graphql.query).toContain('offset: $postsOffset')
     expect(actual.graphql.query).toContain('hasMore')
