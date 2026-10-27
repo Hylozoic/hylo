@@ -206,6 +206,11 @@ export {
   deleteSiteBanner,
   dismissSiteBanner
 } from './siteBanners'
+export {
+  requestPublicListing,
+  reviewPublicListingRequest,
+  publicListingRequests
+} from './publicListingRequest'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
 export { muteMessageThread, unmuteMessageThread } from './messageThread'
 

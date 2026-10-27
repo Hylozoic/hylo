@@ -146,6 +146,10 @@ module.exports = {
       return this.group(group) + '/groups'
     },
 
+    managementCommonsRequests: function () {
+      return url('/management/site/commons-requests')
+    },
+
     groupSettings: function (group) {
       return this.group(group) + '/settings'
     },

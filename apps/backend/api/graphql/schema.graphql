@@ -485,6 +485,9 @@ type Query {
 
   # All site banners, past and present (admin only)
   allSiteBanners: [SiteBanner]
+
+  # Groups that have asked to be added to the commons, filtered by request status: pending, approved or denied. Omit status for all (admin only)
+  publicListingRequests(status: String): [Group]
 }
 
 union Update = Message | MessageThread | Notification
@@ -814,6 +817,8 @@ type Group {
   status: GroupStatus
   # Whether this group's posts can be shown in public feeds
   allowInPublic: Boolean
+  # The group's latest request to be added to the commons (allowInPublic). Only visible to group administrators and Hylo admins
+  publicListingRequest: PublicListingRequest
   # URL to the image of the avatar of the group
   avatarUrl: String
   # Lucide or Hylo icon name for groups/spaces without a custom avatar
@@ -3151,6 +3156,20 @@ type EmailEnabledTester {
   updatedAt: Date
 }
 
+# A group's request to be added to the commons (have allowInPublic turned on)
+type PublicListingRequest {
+  # pending, approved or denied
+  status: String
+  # Optional note from the requester to the Hylo team
+  message: String
+  requestedAt: Date
+  requestedBy: Person
+  reviewedAt: Date
+  reviewedBy: Person
+  # Optional note from the reviewing admin, included in the decision email
+  reviewMessage: String
+}
+
 # A site-wide announcement banner published by a superadmin
 type SiteBanner {
   id: ID!
@@ -3734,6 +3753,10 @@ type Mutation {
   deleteSiteBanner(id: ID!): Boolean
   # Dismiss a site banner for the current user
   dismissSiteBanner(id: ID!): Boolean
+  # Ask the Hylo team to add a public group to the commons (allowInPublic). Group administrators only
+  requestPublicListing(groupId: ID!, message: String): Group
+  # Approve or deny a group's pending request to be added to the commons; the requester is emailed either way (admin only)
+  reviewPublicListingRequest(groupId: ID!, approved: Boolean!, message: String): Group
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
