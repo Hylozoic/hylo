@@ -4,30 +4,11 @@ import request from 'request'
 import streamifier from 'streamifier'
 import { gzip } from 'zlib'
 import { URL } from 'url'
+import { staticPages } from './staticPages'
 
 const cache = LRU(50)
 
-// flag-shared
-// flag-shared
-export const staticPages = [
-  '',
-  '/about',
-  '/stories',
-  '/features',
-  '/pricing',
-  '/stewardship-support',
-  '/get-involved',
-  '/blog',
-  '/who-is-hylo-for',
-  '/why-choose-hylo',
-  '/agreements',
-  '/terms',
-  '/privacy',
-  '/murmurations.json',
-  '/funding.json',
-  '/regional-resilience',
-  '/blog'
-]
+export { staticPages }
 
 export const IOS_SITE_ASSOCIATION_FILE = 'apple-app-site-association'
 
