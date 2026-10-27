@@ -84,6 +84,38 @@ describe('membership.test', function () {
     expect(rejoined.getSetting('leftSpace')).to.equal(false)
   })
 
+  it('keeps group and space pins in one per-user order', async function () {
+    const user = await factories.user().save()
+    const parentGroup = await factories.group().save()
+    const space = await factories.group({ type: 'space', parent_id: parentGroup.id }).save()
+    await user.joinGroup(parentGroup)
+    await user.joinGroup(space)
+
+    const parentMembership = await GroupMembership.forPair(user, parentGroup).fetch()
+    const spaceMembership = await GroupMembership.forPair(user, space).fetch()
+    await parentMembership.save({ nav_order: 0 })
+
+    await updateMembership(user.id, {
+      groupId: space.id,
+      data: { navOrder: 0 }
+    })
+
+    await parentMembership.refresh()
+    await spaceMembership.refresh()
+    expect(spaceMembership.get('nav_order')).to.equal(0)
+    expect(parentMembership.get('nav_order')).to.equal(1)
+
+    await updateMembership(user.id, {
+      groupId: parentGroup.id,
+      data: { navOrder: 0 }
+    })
+
+    await parentMembership.refresh()
+    await spaceMembership.refresh()
+    expect(parentMembership.get('nav_order')).to.equal(0)
+    expect(spaceMembership.get('nav_order')).to.equal(1)
+  })
+
   it('handles some values specially', async function () {
     const user = await factories.user().save()
     const group = await factories.group().save()

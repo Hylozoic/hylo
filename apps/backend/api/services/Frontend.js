@@ -146,6 +146,10 @@ module.exports = {
       return this.group(group) + '/groups'
     },
 
+    managementCommonsRequests: function () {
+      return url('/management/site/commons-requests')
+    },
+
     groupSettings: function (group) {
       return this.group(group) + '/settings'
     },
@@ -363,6 +367,10 @@ module.exports = {
 
     verifyEmail: function (email, token) {
       return url('/signup/verify-email?email=%s&token=%s', encodeURIComponent(email), token)
+    },
+
+    verifyEmailChange: function (token) {
+      return url('/my/account?emailChangeToken=%s', token)
     },
 
     emailPostForm: function () {

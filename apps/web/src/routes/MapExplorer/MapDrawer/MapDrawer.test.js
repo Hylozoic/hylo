@@ -54,6 +54,26 @@ describe('MapDrawer', () => {
     expect(screen.getByText('hello')).toBeInTheDocument()
   })
 
+  it('shows a space avatar in the drawer', () => {
+    render(
+      <MapDrawer
+        {...defaultMinProps}
+        group={{ id: 9, slug: 'river' }}
+        groups={[{
+          id: 2,
+          slug: 'oak-park',
+          name: 'Oak Park',
+          type: 'space',
+          avatarUrl: 'https://example.com/oak.jpg',
+          parentGroup: { id: 9, slug: 'river' }
+        }]}
+      />
+    )
+
+    const row = screen.getByRole('link', { name: /Oak Park/ })
+    expect(row.querySelector('div').style.backgroundImage).toContain('oak.jpg')
+  })
+
   it('updates filters when searching', () => {
     const onUpdateFilters = jest.fn()
     render(<MapDrawer {...defaultMinProps} onUpdateFilters={onUpdateFilters} topics={[{ id: 3, name: 'DOAs' }]} />)

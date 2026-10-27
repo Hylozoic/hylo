@@ -1,6 +1,6 @@
 import { trim } from 'lodash/fp'
 import {
-  Activity, ArrowRight, DoorOpen, EyeOff, Globe, Hand, HelpCircle, ImagePlus,
+  Activity, ArrowRight, DoorOpen, EyeOff, Globe, HeartHandshake, HelpCircle, ImagePlus,
   LayoutGrid, Lock, Map, MapPin, MessageCircleMore, Network, Plus, ScrollText, Settings, Shield, Users, X
 } from 'lucide-react'
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
@@ -25,6 +25,7 @@ import InfoButton from 'components/ui/info'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
 import { createGroupView, updateGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
+import { requestPublicListing } from 'store/actions/publicListingRequests'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_AVATAR, GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import { CUSTOM_HOME_VIEW, POST_TYPE_TO_VIEW_TYPE, viewTypesForCreate } from 'store/models/GroupView'
@@ -336,6 +337,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   const [manualViews, setManualViews] = useState([])
   const [welcomeExtras, setWelcomeExtras] = useState(null)
   const [welcomeEnabled, setWelcomeEnabled] = useState(false)
+  const [requestCommons, setRequestCommons] = useState(false)
   const [showWelcomePage, setShowWelcomePage] = useState(true)
   const welcomeEditorRef = useRef(null)
   const [orderedRows, setOrderedRows] = useState([])
@@ -609,6 +611,13 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       }
     }
 
+    // Best effort: a failed request can be re-sent from Privacy & Access settings
+    if (newGroup?.id && requestCommons && visibility === GROUP_VISIBILITY.Public && !newGroup.allowInPublic) {
+      try {
+        await dispatch(requestPublicListing(newGroup.id))
+      } catch (e) {}
+    }
+
     if (onClose) onClose()
     dispatch(push(groupUrl(slug)))
   }
@@ -702,7 +711,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     },
     {
       key: 'welcome',
-      icon: Hand,
+      icon: HeartHandshake,
       label: 'Welcome',
       defaultSummary: welcomeEnabled ? null : t('No welcome page'),
       render: () => (
@@ -942,17 +951,16 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
             <h3 className='font-semibold mb-2 text-sm'>{t('Optional') + ': ' + t('Add my group into the commons')}</h3>
             <p className='text-xs opacity-70 mb-2'>{t('commonsExplainerText1')}</p>
             <p className='text-xs opacity-70 mb-3'>{t('commonsExplainerText2')}</p>
-            <p className='text-xs mb-0'>
-              {t('Apply here') + ': '}
-              <a
-                href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-focus hover:underline'
-              >
-                {t('Allow-in-Commons form')}
-              </a>
-            </p>
+            <div className='flex items-center gap-2' data-testid='create-group-request-commons'>
+              <SwitchStyled
+                checked={requestCommons}
+                onChange={() => setRequestCommons(v => !v)}
+                backgroundColor={requestCommons ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+              />
+              <span className='text-xs text-foreground/80'>
+                {t('Ask the Hylo team to add this group to the commons')}
+              </span>
+            </div>
           </div>
         )}
 

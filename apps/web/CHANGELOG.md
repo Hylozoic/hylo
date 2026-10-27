@@ -6,6 +6,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.8] - 2026-10-27
+
+### Added
+- Ability to pin spaces to global navigation. This is accomplished from the About page of the space
+
+### Changed
+- Use native date/time pickers on touch devices for time pickers
+- Improved display of date/time fields for posts on mobile
+- Space boundaries appear on top of parent group on map
+- Center map on a space or group boundary when it has no location address set
+- Switch the Welcome icon from the waving hand to HeartHandshake
+- Verify a new account email before it replaces the old one
+- Show post times in user's timezone first, then local time zone second
+
+### Fixed
+- Show space avatars in the map drawer
+- Make sure new posts load as you scroll in map drawer
+- Several errors reported to Sentry
+- Stop reporting browser failing to hit our backend errors in Sentry
+- Removing responsibilities from custom roles
+- Allow for posts to link to hylo landing page static pages
+
+## [7.1.7] - 2026-10-20
+
+### Added
+- Can add geo boundaries to spaces. Edit geo boundaries in space and group creation and settings.
+- Keep formatting in track action text responses
+
+### Changed
+- Clicking an active member in group menu goes to memberlist, not to individual profile
+- Never show members with blank names
+- Show a confirmation toast after saving profile edits
+- Sandbox demo: sign-up prompts after changes and after 100 seconds, generic group names, the demo user is now an administrator of Community Hub with working group settings, and all Appearance settings apply live
+
+### Fixed
+- Make sure all group avatars are circular
+- Map tooltips are over other map features
+
 ## [7.1.6] - 2026-10-15
 
 ### Added

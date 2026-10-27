@@ -28,6 +28,7 @@ import {
   allowGroupInvites,
   archiveSpace,
   blockUser,
+  cancelEmailChange,
   cancelGroupRelationshipInvite,
   cancelJoinRequest,
   clearModerationAction,
@@ -63,6 +64,9 @@ import {
   unpublishSiteBanner,
   deleteSiteBanner,
   dismissSiteBanner,
+  requestPublicListing,
+  reviewPublicListingRequest,
+  publicListingRequests,
   deleteAffiliation,
   deleteComment,
   deleteFundingRound,
@@ -179,7 +183,8 @@ import {
   checkStripeStatus,
   fulfillStripeCheckoutSession,
   membershipChangeCommit,
-  verifyEmail
+  verifyEmail,
+  verifyEmailChange
 } from './mutations'
 import {
   stripeAccountStatus,
@@ -619,7 +624,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       }
       const banners = await SiteBanner.all()
       return banners.toModelArray ? banners.toModelArray() : banners
-    }
+    },
+    publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status)
   }
 }
 
@@ -668,6 +674,8 @@ export function makeMutations ({ fetchOne }) {
     allowGroupInvites: (root, { groupId, data }, context) => allowGroupInvites(context.currentUserId, groupId, data),
 
     blockUser: (root, { blockedUserId }, context) => blockUser(context.currentUserId, blockedUserId),
+
+    cancelEmailChange: (root, args, context) => cancelEmailChange(context.currentUserId),
 
     cancelGroupRelationshipInvite: (root, { groupRelationshipInviteId }, context) => cancelGroupRelationshipInvite(context.currentUserId, groupRelationshipInviteId),
 
@@ -949,7 +957,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateTopicFollow: (root, args, context) => updateTopicFollow(context.currentUserId, args),
 
-    updateMe: (root, { changes }, context) => updateMe(context.req.sessionID, context.currentUserId, changes),
+    updateMe: (root, { changes }, context) => updateMe(context.req.sessionID, context.currentUserId, changes, { ip: context.req?.ip }),
 
     updateMembership: (root, args, context) => updateMembership(context.currentUserId, args),
 
@@ -967,6 +975,8 @@ export function makeMutations ({ fetchOne }) {
 
     updateTrack: (root, { trackId, data }, context) => updateTrack(context.currentUserId, trackId, data),
 
+    verifyEmailChange: (root, args, context) => verifyEmailChange(fetchOne)(context.currentUserId, args, { ip: context.req?.ip }),
+
     useInvitation: (root, { invitationToken, accessCode }, context) => useInvitation(context.currentUserId, invitationToken, accessCode),
 
     addEmailEnabledTester: (root, { userId }, context) => addEmailEnabledTester(context.currentUserId, userId),
@@ -983,7 +993,11 @@ export function makeMutations ({ fetchOne }) {
 
     deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
 
-    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id)
+    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    requestPublicListing: (root, { groupId, message }, context) => requestPublicListing(context.currentUserId, groupId, message),
+
+    reviewPublicListingRequest: (root, { groupId, approved, message }, context) => reviewPublicListingRequest(context.currentUserId, groupId, approved, message)
   }
 }
 

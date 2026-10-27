@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.8] - 2026-10-27
+
+### Added
+- Ability to pin spaces to global navigation. This is accomplished from the About page of the space
+
+### Changed
+- Verify a new account email before it replaces the old one
+- Don't send new group email to hylo team for new spaces
+
+### Fixed
+- Display of posts in collections
+- Removing responsibilities from custom roles
+
+## [7.1.7] - 2026-10-20
+
+### Added
+- Can add geo boundaries to spaces. Edit geo boundaries in space and group creation and settings.
+
+### Changed
+- People who leave a group they paid for access to can rejoin without paying again
+
+### Fixed
+- Fix bug where all searches leaked outside of current group
+
 ## [7.1.6] - 2026-10-15
 
 ### Added
