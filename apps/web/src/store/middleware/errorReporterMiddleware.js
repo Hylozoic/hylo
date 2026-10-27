@@ -1,4 +1,5 @@
 import errorReporter, { addBreadcrumb, SENTRY_DEBUG } from 'client/errorReporter'
+import isBrowserNetworkError from 'client/isBrowserNetworkError'
 
 /*
   Reports redux action errors to Sentry. When VITE_SENTRY_DEBUG=true it also
@@ -11,7 +12,7 @@ export default function errorReporterMiddleware (store) {
     if (SENTRY_DEBUG) {
       addBreadcrumb({ category: 'redux', message: type, level: error ? 'error' : 'info' })
     }
-    if (error) {
+    if (error && !isBrowserNetworkError(payload)) {
       errorReporter.error(describeActionError(type, payload), {
         action: JSON.parse(safeStringify(action))
       })

@@ -3,7 +3,7 @@ import getMe from './getMe'
 import getGroupTopicForCurrentRoute from './getGroupTopicForCurrentRoute'
 import getTopicForCurrentRoute from './getTopicForCurrentRoute'
 import getMyMemberships from './getMyMemberships'
-import { getMyGroups, getMyGroupsWithChildren } from './getMyGroups'
+import { getMyGroups, getMyGroupsWithChildren, getMyGlobalNavItems } from './getMyGroups'
 import hasResponsibilityForGroup from './hasResponsibilityForGroup'
 import { getLastViewedGroupPath } from './getLastViewedGroup'
 
@@ -31,6 +31,53 @@ describe('getMyMemberships', () => {
     const me = session.Me.create({ id: 1 })
     session.Membership.create({ id: 'm2', group: group2.id, person: me.id })
     expect(getMyMemberships({ orm: session.state }, {})).toHaveLength(1)
+  })
+})
+
+describe('getMyGlobalNavItems', () => {
+  it('merges pinned spaces into the shared pin order without including unpinned spaces', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent', slug: 'parent', avatarUrl: 'parent.png' })
+    const pinnedSpace = session.Group.create({
+      id: '2',
+      name: 'Pinned Space',
+      slug: 'parent-pinned-space',
+      type: 'space',
+      parentId: parent.id,
+      avatarUrl: 'space.png',
+      icon: 'Sparkles'
+    })
+    const unpinnedSpace = session.Group.create({
+      id: '3',
+      name: 'Unpinned Space',
+      slug: 'parent-unpinned-space',
+      type: 'space',
+      parentId: parent.id
+    })
+    const other = session.Group.create({ id: '4', name: 'Other Group', slug: 'other' })
+    const unpinned = session.Group.create({ id: '5', name: 'Unpinned Group', slug: 'unpinned' })
+    session.Membership.create({ id: 'm-parent', group: parent.id, person: me.id, navOrder: 0 })
+    session.Membership.create({ id: 'm-pinned-space', group: pinnedSpace.id, person: me.id, navOrder: 1, newPostCount: 3 })
+    session.Membership.create({ id: 'm-unpinned-space', group: unpinnedSpace.id, person: me.id, navOrder: null })
+    session.Membership.create({ id: 'm-other', group: other.id, person: me.id, navOrder: 2 })
+    session.Membership.create({ id: 'm-unpinned', group: unpinned.id, person: me.id, navOrder: null })
+
+    const result = getMyGlobalNavItems({ orm: session.state })
+
+    expect(result.map(item => [item.navItemType, item.id])).toEqual([
+      ['group', '1'],
+      ['space', '2'],
+      ['group', '4'],
+      ['group', '5']
+    ])
+    expect(result[1]).toMatchObject({
+      parentSlug: 'parent',
+      parentGroup: { avatarUrl: 'parent.png' },
+      slug: 'parent-pinned-space',
+      icon: 'Sparkles',
+      newPostCount: 3
+    })
   })
 })
 

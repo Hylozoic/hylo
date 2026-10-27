@@ -5,6 +5,7 @@ import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
 import { messageThreadSearchFilter } from './messageThreadSearch'
 import searchQuerySet from './searchQuerySet'
+import { getPendingEmail } from './mutations/emailChange'
 import {
   commentFilter,
   groupFilter,
@@ -407,6 +408,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         membershipCommonRoles: emptyQuerySet,
         // Never expose null names to clients — they call .split() etc.
         name: p => p.get('name') || '',
+        pendingEmail: u => getPendingEmail(u),
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }

@@ -1,4 +1,5 @@
-import { canBeHomeView, isMenuViewVisible, singleVisibleMenuView, viewAcceptedByPostTypes } from './GroupView'
+import { iconForView } from '@hylo/presenters/GroupViewPresenter'
+import { canBeHomeView, COMMON_VIEWS, isMenuViewVisible, singleVisibleMenuView, viewAcceptedByPostTypes } from './GroupView'
 
 describe('viewAcceptedByPostTypes', () => {
   it('allows every view type when acceptedPostTypes is null', () => {
@@ -82,5 +83,12 @@ describe('canBeHomeView', () => {
     expect(canBeHomeView({ type: 'all' })).toBe(true)
     expect(canBeHomeView({ type: 'members' })).toBe(true)
     expect(canBeHomeView({ type: 'page' })).toBe(true)
+  })
+})
+
+describe('welcome view icon', () => {
+  it('uses the Lucide HeartHandshake icon, not the waving hand', () => {
+    expect(iconForView({ type: 'welcome' })).toEqual({ iconName: null, lucideIcon: 'HeartHandshake' })
+    expect(COMMON_VIEWS.welcome.lucideIcon).toBe('HeartHandshake')
   })
 })

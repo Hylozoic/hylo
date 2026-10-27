@@ -19,6 +19,9 @@ export const UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING = `${UPDATE_ALL_MEMBERSHIP_S
 export const REGISTER_STRIPE_ACCOUNT = `${MODULE_NAME}/REGISTER_STRIPE_ACCOUNT`
 export const EXPORT_USER_ACCOUNT = `${MODULE_NAME}/EXPORT_USER_ACCOUNT`
 export const EXPORT_USER_ACCOUNT_PENDING = `${EXPORT_USER_ACCOUNT}_PENDING`
+export const REQUEST_EMAIL_CHANGE = `${MODULE_NAME}/REQUEST_EMAIL_CHANGE`
+export const VERIFY_EMAIL_CHANGE = `${MODULE_NAME}/VERIFY_EMAIL_CHANGE`
+export const CANCEL_EMAIL_CHANGE = `${MODULE_NAME}/CANCEL_EMAIL_CHANGE`
 
 const defaultState = {
   searches: []
@@ -77,6 +80,73 @@ export function updateUserSettings (changes) {
       ],
       optimistic: true,
       changes
+    }
+  }
+}
+
+// Not optimistic: the new email only replaces the current one after it is verified, so the
+// response's pendingEmail is what changes
+export function requestEmailChange (email) {
+  return {
+    type: REQUEST_EMAIL_CHANGE,
+    graphql: {
+      query: `mutation RequestEmailChange ($changes: MeInput) {
+        updateMe(changes: $changes) {
+          id
+          email
+          pendingEmail
+        }
+      }`,
+      variables: { changes: { email } }
+    },
+    meta: {
+      extractModel: [
+        {
+          getRoot: get('updateMe'),
+          modelName: 'Me'
+        }
+      ]
+    }
+  }
+}
+
+export function verifyEmailChange ({ code, token }) {
+  return {
+    type: VERIFY_EMAIL_CHANGE,
+    graphql: {
+      query: `mutation VerifyEmailChange ($code: String, $token: String) {
+        verifyEmailChange(code: $code, token: $token) {
+          me {
+            id
+            email
+            emailValidated
+            pendingEmail
+          }
+          error
+        }
+      }`,
+      variables: { code, token }
+    },
+    meta: {
+      extractModel: [
+        {
+          getRoot: get('verifyEmailChange.me'),
+          modelName: 'Me'
+        }
+      ]
+    }
+  }
+}
+
+export function cancelEmailChange () {
+  return {
+    type: CANCEL_EMAIL_CHANGE,
+    graphql: {
+      query: `mutation CancelEmailChange {
+        cancelEmailChange {
+          success
+        }
+      }`
     }
   }
 }
