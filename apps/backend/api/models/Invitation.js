@@ -139,14 +139,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
   }
 
 }, EnsureLoad), {
-
   find: (idOrToken, opts) => {
     if (!idOrToken) return Promise.resolve(null)
     const attr = isNaN(Number(idOrToken)) ? 'token' : 'id'
     return Invitation.where(attr, idOrToken).fetch(opts)
   },
 
-  create: async function (opts) {
+  create: async function (opts, { transacting } = {}) {
     let groupRoleId = opts.groupRoleId || null
     if (opts.assignAdministrator && !groupRoleId) {
       await GroupRole.setupSystemRoles(opts.groupId)
@@ -164,7 +163,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       created_at: new Date(),
       subject: opts.subject,
       message: opts.message
-    }).save()
+    }).save(null, { transacting })
   },
 
   createAndSend: function ({ invitation }) {
@@ -174,6 +173,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       )
   },
 
+  // Member invitations are left to the automatic reminders
   reinviteAll: function (opts) {
     const { groupId } = opts
     return Invitation.where({ group_id: groupId, used_by_id: null, expired_by_id: null })
@@ -182,17 +182,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
         Promise.map(invitations.models, invitation => invitation.send()))
   },
 
-  resendAllReady () {
-    return Invitation.query(q => {
+  /**
+   * Send the automatic reminders that are due.
+   */
+  async resendAllReady () {
+    const invitations = await Invitation.query(q => {
       const whereClause = "((sent_count=1 and last_sent_at < now() - interval '4 day') or " +
         "(sent_count=2 and last_sent_at < now() - interval '9 day'))"
       q.whereRaw(whereClause)
       q.whereNull('used_by_id')
       q.whereNull('expired_by_id')
-    })
-      .fetchAll({ withRelated: ['creator', 'group', 'tag'] })
-      .tap(invitations => Promise.map(invitations.models, i => i.send()))
-      .then(invitations => invitations.pluck('id'))
+    }).fetchAll({ withRelated: ['creator', 'group', 'tag'] })
+
+    await Promise.map(invitations.models, invitation => invitation.send())
+    return invitations.map(invitation => invitation.id)
   }
 
 })

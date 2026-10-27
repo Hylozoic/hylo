@@ -1,4 +1,52 @@
 /* eslint-disable camelcase */
+import { GraphQLError } from 'graphql'
+
+const TYPE_ALL_MEMBERS = 'all_members'
+
+// Every top-level group has one implicit All Members role. Nobody is assigned it:
+// every active member holds it, through the group_member_effective_roles view.
+const ALL_MEMBERS_ROLE = {
+  name: 'All Members',
+  emoji: '',
+  description: 'Everyone in the group holds this role.'
+}
+
+// Who can invite new people: 'everyone' links Add Members to the All Members
+// role, 'stewards' leaves Add Members only on the roles that already have it.
+const InvitePolicy = {
+  EVERYONE: 'everyone',
+  STEWARDS: 'stewards'
+}
+
+const DEFAULT_NEW_GROUP_INVITE_POLICY = InvitePolicy.STEWARDS
+
+const ALL_MEMBERS_ROLE_LOCKED_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
+
+const MAX_INTEGER_ID = 2147483647
+
+/**
+ * A role id (or an { id } object) as a number, or null unless it is written as
+ * plain decimal digits. Postgres also reads forms such as '+4', '0x04' and
+ * '4_0' as integers, so anything else could name a row a check never looked at.
+ */
+function parseRoleId (value) {
+  const id = (value != null && typeof value === 'object') ? value.id : value
+  if (typeof id !== 'number' && typeof id !== 'string') return null
+  const digits = String(id).trim()
+  if (!/^\d{1,10}$/.test(digits) || Number(digits) > MAX_INTEGER_ID) return null
+  return Number(digits)
+}
+
+async function fetchGroupRow (groupId, transacting) {
+  if (!groupId) return null
+  let query = bookshelf.knex('groups').where('id', groupId).first('id', 'parent_id', 'type')
+  if (transacting) query = query.transacting(transacting)
+  return query
+}
+
+function isTopLevelGroupRow (group) {
+  return !!group && !group.parent_id && group.type !== 'space'
+}
 
 const SYSTEM_ROLES = [
   {
@@ -53,6 +101,9 @@ module.exports = bookshelf.Model.extend({
    * @returns {Promise<GroupRole>}
    */
   setScopes: async function (scopeStrings, { transacting } = {}) {
+    if (this.get('type') === TYPE_ALL_MEMBERS) {
+      throw new GraphQLError('The All Members role cannot grant scopes')
+    }
     return this.save({ scopes: scopeStrings }, { transacting })
   },
 
@@ -88,8 +139,13 @@ module.exports = bookshelf.Model.extend({
 
 }, {
   SYSTEM_ROLES,
+  ALL_MEMBERS_ROLE,
   TYPE_SYSTEM: 'system',
   TYPE_CUSTOM: 'custom',
+  TYPE_ALL_MEMBERS,
+  InvitePolicy,
+  DEFAULT_NEW_GROUP_INVITE_POLICY,
+  ALL_MEMBERS_ROLE_LOCKED_ERROR,
 
   /**
    * Map a stored system role name (including legacy names) to the current name.
@@ -176,7 +232,128 @@ module.exports = bookshelf.Model.extend({
       }
     }
 
+    await GroupRole.ensureAllMembersRole(groupId, { transacting })
+
     return roleIdByName
+  },
+
+  /**
+   * The group's implicit All Members role, or null. Spaces have none.
+   */
+  findAllMembersRole: async function (groupId, { transacting } = {}) {
+    if (!groupId) return null
+    return GroupRole.where({ group_id: groupId, type: TYPE_ALL_MEMBERS }).fetch({ transacting })
+  },
+
+  /**
+   * Create the All Members role for a top-level group if it does not exist yet,
+   * and return it. Safe to call concurrently. Returns null for spaces and missing groups.
+   */
+  ensureAllMembersRole: async function (groupId, { transacting } = {}) {
+    const group = await fetchGroupRow(groupId, transacting)
+    if (!isTopLevelGroupRow(group)) return null
+
+    // The ON CONFLICT predicate must be a literal to match the partial unique index
+    let insertQuery = bookshelf.knex.raw(`
+      INSERT INTO groups_roles (group_id, name, emoji, description, type, active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'all_members', true, now(), now())
+      ON CONFLICT (group_id) WHERE type = 'all_members' DO NOTHING
+    `, [group.id, ALL_MEMBERS_ROLE.name, ALL_MEMBERS_ROLE.emoji, ALL_MEMBERS_ROLE.description])
+    if (transacting) insertQuery = insertQuery.transacting(transacting)
+    await insertQuery
+
+    return GroupRole.findAllMembersRole(group.id, { transacting })
+  },
+
+  parseRoleId,
+
+  /**
+   * Throw if any of these role ids is the All Members role, which cannot be
+   * edited, assigned to people or used as a requirement, or is not written as
+   * plain decimal digits. Accepts ids or { id } objects; null, undefined and ''
+   * mean no role and are skipped.
+   */
+  assertAssignableRoleIds: async function (roleIds, { transacting } = {}) {
+    const ids = [].concat(roleIds ?? [])
+      .filter(id => id != null && id !== '')
+      .map(parseRoleId)
+    if (ids.includes(null)) throw new GraphQLError('Invalid role id')
+    if (ids.length === 0) return
+
+    let query = bookshelf.knex('groups_roles')
+      .whereIn('id', ids)
+      .where('type', TYPE_ALL_MEMBERS)
+      .first('id')
+    if (transacting) query = query.transacting(transacting)
+    if (await query) {
+      throw new GraphQLError(ALL_MEMBERS_ROLE_LOCKED_ERROR)
+    }
+  },
+
+  /**
+   * Who can invite new people to a top-level group: 'everyone' when Add Members
+   * is linked to the All Members role, otherwise 'stewards'. Null for spaces.
+   */
+  getInvitePolicy: async function (groupId, { transacting } = {}) {
+    const group = await fetchGroupRow(groupId, transacting)
+    if (!isTopLevelGroupRow(group)) return null
+
+    const allMembers = await GroupRole.findAllMembersRole(group.id, { transacting })
+    if (!allMembers) return InvitePolicy.STEWARDS
+    const addMembersId = await Responsibility.systemId(Responsibility.constants.RESP_ADD_MEMBERS, { transacting })
+    if (!addMembersId) return InvitePolicy.STEWARDS
+
+    let query = bookshelf.knex('group_roles_responsibilities')
+      .where({ group_role_id: allMembers.id, responsibility_id: addMembersId })
+      .first('group_role_id')
+    if (transacting) query = query.transacting(transacting)
+    return (await query) ? InvitePolicy.EVERYONE : InvitePolicy.STEWARDS
+  },
+
+  /**
+   * Set who can invite new people by linking or unlinking Add Members on the
+   * All Members role. Other roles that hold Add Members are left alone.
+   * Returns the resulting policy.
+   */
+  setInvitePolicy: async function (groupId, mode, { transacting } = {}) {
+    if (!transacting) {
+      return bookshelf.transaction(trx =>
+        GroupRole.setInvitePolicy(groupId, mode, { transacting: trx }))
+    }
+    if (!Object.values(InvitePolicy).includes(mode)) {
+      throw new GraphQLError('Unknown invite policy')
+    }
+    const group = await fetchGroupRow(groupId, transacting)
+    if (!group) throw new GraphQLError('Group not found')
+    if (!isTopLevelGroupRow(group)) {
+      throw new GraphQLError('Only top-level groups have an invite policy')
+    }
+
+    await bookshelf.knex.raw('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', [`group-invite-policy:${group.id}`])
+      .transacting(transacting)
+
+    const allMembers = await GroupRole.ensureAllMembersRole(group.id, { transacting })
+    const addMembersId = await Responsibility.systemId(Responsibility.constants.RESP_ADD_MEMBERS, { transacting })
+    if (!addMembersId || !allMembers) return GroupRole.getInvitePolicy(group.id, { transacting })
+
+    const existing = await bookshelf.knex('group_roles_responsibilities')
+      .where({ group_role_id: allMembers.id, responsibility_id: addMembersId })
+      .first('group_role_id')
+      .transacting(transacting)
+
+    if (mode === InvitePolicy.EVERYONE && !existing) {
+      await bookshelf.knex('group_roles_responsibilities')
+        .insert({ group_role_id: allMembers.id, responsibility_id: addMembersId })
+        .transacting(transacting)
+    }
+    if (mode === InvitePolicy.STEWARDS && existing) {
+      await bookshelf.knex('group_roles_responsibilities')
+        .where({ group_role_id: allMembers.id, responsibility_id: addMembersId })
+        .del()
+        .transacting(transacting)
+    }
+
+    return mode
   },
 
   /**
