@@ -3,6 +3,8 @@
  * doesn't accept discussions), the post editor shows the error instead of
  * the Post button silently doing nothing. The CreatePost response is stubbed
  * with the backend's real error shape so no seeded group has to be restricted.
+ * The server sends the blocking destinations and post type as data (extensions);
+ * the web builds the sentence in the user's language.
  */
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
@@ -12,7 +14,12 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 const GROUP = 'e2e-public-group'
 // The backend names only the blocking destinations, a space as "Parent Group / Space"
-const ERROR = 'E2E Public Group / partnerships does not accept discussion posts'
+const SERVER_ERROR = {
+  message: 'English fallback from the server',
+  path: ['createPost'],
+  extensions: { code: 'POST_TYPE_NOT_ACCEPTED', postType: 'discussion', destinations: ['E2E Public Group / partnerships'] }
+}
+const BANNER = 'E2E Public Group / partnerships does not accept Discussion posts'
 
 test.use({ storageState: 'e2e/.auth/session.json' })
 test.setTimeout(240000)
@@ -27,7 +34,7 @@ test('post editor shows the server error when a post is rejected', async ({ page
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ data: null, errors: [{ message: ERROR, path: ['createPost'] }] })
+      body: JSON.stringify({ data: null, errors: [SERVER_ERROR] })
     })
   })
 
@@ -42,7 +49,7 @@ test('post editor shows the server error when a post is rejected', async ({ page
   await submit.click()
 
   const error = page.getByTestId('post-editor-save-error')
-  await expect(error).toHaveText(ERROR, { timeout: 30000 })
+  await expect(error).toHaveText(BANNER, { timeout: 30000 })
   expect(createPostCalls).toBe(1)
   // The modal stays open with the user's work intact, and they can try again.
   await expect(title).toHaveValue('Rejected post 1699')

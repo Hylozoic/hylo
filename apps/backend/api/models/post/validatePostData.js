@@ -66,10 +66,17 @@ function joinLabels (labels) {
   return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`
 }
 
+/** GraphQL error code for a post type that a destination refuses (see assertGroupsAcceptPostType). */
+export const POST_TYPE_NOT_ACCEPTED = 'POST_TYPE_NOT_ACCEPTED'
+
 /**
- * Rejects when any destination group does not accept the post type. The message
- * names only the groups/spaces that refuse it, with spaces labelled
- * "Parent Group / Space" (a space has a single parent, groups.parent_id).
+ * Rejects when any destination group does not accept the post type. Names only the
+ * groups/spaces that refuse it, with spaces labelled "Parent Group / Space" (a space
+ * has a single parent, groups.parent_id).
+ *
+ * The data is in the error's `extensions` ({ code: POST_TYPE_NOT_ACCEPTED, postType,
+ * destinations: [labels] }) so clients can build the sentence in the user's language;
+ * the English `message` is a fallback for clients that don't know the code.
  * @param {Array<string|number>} groupIds - Destination group ids
  * @param {string} postType - Post type being created
  * @returns {Promise<void>}
@@ -94,7 +101,9 @@ export async function assertGroupsAcceptPostType (groupIds, postType) {
 
   const labels = blockers.map(group => destinationLabel(group, parentNames))
   const verb = labels.length === 1 ? 'does' : 'do'
-  throw new GraphQLError(`${joinLabels(labels)} ${verb} not accept ${postType} posts`)
+  throw new GraphQLError(`${joinLabels(labels)} ${verb} not accept ${postType} posts`, {
+    extensions: { code: POST_TYPE_NOT_ACCEPTED, postType, destinations: labels }
+  })
 }
 
 export default function validatePostData (userId, data) {

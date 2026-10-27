@@ -1,4 +1,4 @@
-import validatePostData, { groupAcceptsPostType, assertGroupsAcceptPostType, destinationLabel } from './validatePostData'
+import validatePostData, { groupAcceptsPostType, assertGroupsAcceptPostType, destinationLabel, POST_TYPE_NOT_ACCEPTED } from './validatePostData'
 
 describe('validatePostData', () => {
   var user, inGroup, notInGroup
@@ -146,6 +146,40 @@ describe('assertGroupsAcceptPostType', () => {
   it('joins three or more blockers with commas', async () => {
     const message = await rejectionMessage([eventsSpace.id, chatSpace.id, noneAccepted.id, openGroup.id], Post.Type.DISCUSSION)
     expect(message).to.equal('Hylo Stewards / gatherings, Hylo Stewards / partnerships and None Accepted do not accept discussion posts')
+  })
+})
+
+describe('assertGroupsAcceptPostType error extensions', () => {
+  let parentGroup, chatSpace, discussionOnly
+
+  before(async function () {
+    parentGroup = new Group({ slug: 'apt-ext-parent', name: 'Ext Parent' })
+    discussionOnly = new Group({ slug: 'apt-ext-discussion', name: 'Ext Discussion Only', accepted_post_types: ['discussion'] })
+    await Promise.all([parentGroup.save(), discussionOnly.save()])
+    chatSpace = new Group({ slug: 'apt-ext-chat-space', name: 'partnerships', type: 'space', parent_id: parentGroup.id, accepted_post_types: ['chat'] })
+    await chatSpace.save()
+  })
+
+  const rejection = (groupIds, postType) =>
+    assertGroupsAcceptPostType(groupIds, postType)
+      .then(() => expect.fail('should reject'), e => e)
+
+  it('carries the code, post type and blocker label so clients can translate the message', async () => {
+    const error = await rejection([parentGroup.id, chatSpace.id], Post.Type.DISCUSSION)
+    expect(error.extensions).to.deep.equal({
+      code: POST_TYPE_NOT_ACCEPTED,
+      postType: 'discussion',
+      destinations: ['Ext Parent / partnerships']
+    })
+    // English fallback for clients that don't know the code
+    expect(error.message).to.equal('Ext Parent / partnerships does not accept discussion posts')
+  })
+
+  it('lists every blocker label in the order given', async () => {
+    const error = await rejection([discussionOnly.id, parentGroup.id, chatSpace.id], Post.Type.EVENT)
+    expect(error.extensions.code).to.equal('POST_TYPE_NOT_ACCEPTED')
+    expect(error.extensions.postType).to.equal('event')
+    expect(error.extensions.destinations).to.deep.equal(['Ext Discussion Only', 'Ext Parent / partnerships'])
   })
 })
 

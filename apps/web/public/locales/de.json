@@ -2522,6 +2522,8 @@
   "postCompletionActions.text.instructions": "Beantworte die Aufforderung, um das {{actionDescriptor}} abzuschließen.",
   "postCompletionActions.uploadFile": "Anhang hochladen",
   "postCompletionActions.uploadFile.instructions": "Lade einen Anhang hoch, um anzuzeigen, dass du das {{actionDescriptor}} abgeschlossen hast.",
+  "postTypeNotAccepted_one": "{{destinations}} akzeptiert keine Beiträge vom Typ „{{postType}}“",
+  "postTypeNotAccepted_other": "{{destinations}} akzeptieren keine Beiträge vom Typ „{{postType}}“",
   "posts": "Beiträge",
   "posts in this collection": "Beiträge in dieser Sammlung",
   "spaces in this collection": "Spaces in dieser Sammlung",
