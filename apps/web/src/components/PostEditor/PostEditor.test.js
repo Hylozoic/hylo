@@ -3,7 +3,9 @@ import React from 'react'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
 import { render, screen, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import userEvent from '@testing-library/user-event'
 import orm from 'store/models'
+import createPost from 'store/actions/createPost'
 import PostEditor from './PostEditor'
 import ActionsBar from './ActionsBar'
 
@@ -167,6 +169,44 @@ describe('PostEditor', () => {
         expect(screen.getByText('Example Site')).toBeInTheDocument()
         expect(screen.getByText('example.com')).toBeInTheDocument()
       })
+    })
+  })
+
+  describe('when the server rejects a new post', () => {
+    const newPostProps = {
+      post: { type: 'discussion', title: 'Hello', groups: [{ id: '1', name: 'Test Group' }] }
+    }
+
+    it('shows the error when the GraphQL mutation fails', async () => {
+      createPost.mockImplementationOnce(jest.requireActual('store/actions/createPost').default)
+      mockGraphqlServer.use(
+        graphql.mutation('CreatePost', () => {
+          return HttpResponse.json({
+            data: null,
+            errors: [{ message: 'Test Group does not accept discussion posts', path: ['createPost'] }]
+          })
+        })
+      )
+      const afterSave = jest.fn()
+      renderComponent({ ...newPostProps, afterSave })
+
+      const submit = await screen.findByTestId('post-editor-submit')
+      await waitFor(() => expect(submit).not.toBeDisabled())
+      await userEvent.click(submit)
+
+      expect(await screen.findByTestId('post-editor-save-error')).toHaveTextContent('Test Group does not accept discussion posts')
+      expect(afterSave).not.toHaveBeenCalled()
+    })
+
+    it('shows a generic error when the action resolves with an error and no message', async () => {
+      createPost.mockImplementationOnce(() => ({ type: 'CREATE_POST', error: true, payload: {} }))
+      renderComponent(newPostProps)
+
+      const submit = await screen.findByTestId('post-editor-submit')
+      await waitFor(() => expect(submit).not.toBeDisabled())
+      await userEvent.click(submit)
+
+      expect(await screen.findByTestId('post-editor-save-error')).toHaveTextContent('There was an error, please try again.')
     })
   })
 
