@@ -50,13 +50,13 @@ tools/atproto-plc-heroku/simulate.sh registry.heroku.com/hylo-plc-staging/web
 # 3. Push and release
 tools/atproto-plc-heroku/deploy.sh hylo-plc-staging --push
 
-# 4. Give it its own domain. It's a single name on a separate app, so Heroku's automatic
-#    certificate works (unlike the *.staging.hylo.com wildcard on the API app)
-heroku domains:add plc.staging.hylo.com --app hylo-plc-staging
-heroku certs:auto:enable --app hylo-plc-staging
+# 4. Give it its own domain, then add a proxied Cloudflare CNAME to the DNS target it prints
+heroku domains:add plc-staging.hylo.com --app hylo-plc-staging
 ```
 
-Then point staging's backend at it: `ATPROTO_PLC_URL=https://plc.staging.hylo.com`.
+Then point staging's backend at it: `ATPROTO_PLC_URL=https://plc-staging.hylo.com`. The full
+staging setup, including DNS and certificates, is in
+[docs/ATPROTO_STAGING_RUNBOOK.md](../../docs/ATPROTO_STAGING_RUNBOOK.md).
 
 The image is built for `linux/amd64` (Heroku's architecture), so on Apple Silicon the build runs
 under emulation and takes a few minutes.

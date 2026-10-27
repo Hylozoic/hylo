@@ -133,6 +133,7 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
   (`e2e/authenticated.atproto-settings.spec.js`, run under `with-sandbox.sh`)
 
 ### Staging deployment (Heroku)
+Step by step: [ATPROTO_STAGING_RUNBOOK.md](ATPROTO_STAGING_RUNBOOK.md)
 - **Private PLC:** Bluesky's PLC server as its own Heroku app with its own Postgres add-on.
   Wipe it whenever staging is reset. Tested locally under Heroku-like conditions
   ([tools/atproto-plc-heroku/](../tools/atproto-plc-heroku/README.md)):
