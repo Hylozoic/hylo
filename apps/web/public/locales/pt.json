@@ -2525,6 +2525,8 @@
   "postCompletionActions.text.instructions": "Responda à solicitação para completar o {{actionDescriptor}}.",
   "postCompletionActions.uploadFile": "Enviar anexo",
   "postCompletionActions.uploadFile.instructions": "Envie um anexo para indicar que você concluiu o {{actionDescriptor}}.",
+  "postTypeNotAccepted_one": "{{destinations}} não aceita publicações do tipo “{{postType}}”",
+  "postTypeNotAccepted_other": "{{destinations}} não aceitam publicações do tipo “{{postType}}”",
   "posts": "publicações",
   "posts in this collection": "publicações nesta coleção",
   "spaces in this collection": "espaços nesta coleção",

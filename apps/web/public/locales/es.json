@@ -2606,6 +2606,8 @@
   "postCompletionActions.text.instructions": "Responda al prompt para completar la {{actionDescriptor}}.",
   "postCompletionActions.uploadFile": "Subir archivo",
   "postCompletionActions.uploadFile.instructions": "Carga un archivo para indicar que completaste {{actionDescriptor}}.",
+  "postTypeNotAccepted_one": "{{destinations}} no acepta publicaciones de tipo «{{postType}}»",
+  "postTypeNotAccepted_other": "{{destinations}} no aceptan publicaciones de tipo «{{postType}}»",
   "posts": "publicaciones",
   "posts in this collection": "publicaciones en esta colección",
   "spaces in this collection": "espacios en esta colección",

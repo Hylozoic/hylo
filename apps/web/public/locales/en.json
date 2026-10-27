@@ -2619,6 +2619,8 @@
   "postCompletionActions.text.instructions": "Respond to the prompt to completed the {{actionDescriptor}}.",
   "postCompletionActions.uploadFile": "Upload attachment",
   "postCompletionActions.uploadFile.instructions": "Upload an attachment to indicate you've completed the {{actionDescriptor}}.",
+  "postTypeNotAccepted_one": "{{destinations}} does not accept {{postType}} posts",
+  "postTypeNotAccepted_other": "{{destinations}} do not accept {{postType}} posts",
   "posts": "posts",
   "posts in this collection": "posts in this collection",
   "spaces in this collection": "spaces in this collection",

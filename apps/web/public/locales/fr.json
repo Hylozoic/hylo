@@ -2524,6 +2524,8 @@
   "postCompletionActions.text.instructions": "Répondez à l'invite pour compléter le {{actionDescriptor}}.",
   "postCompletionActions.uploadFile": "Téléverser une pièce jointe",
   "postCompletionActions.uploadFile.instructions": "Téléversez une pièce jointe pour indiquer que vous avez complété le {{actionDescriptor}}.",
+  "postTypeNotAccepted_one": "{{destinations}} n'accepte pas les publications de type « {{postType}} »",
+  "postTypeNotAccepted_other": "{{destinations}} n'acceptent pas les publications de type « {{postType}} »",
   "posts": "publications",
   "posts in this collection": "publications dans cette collection",
   "spaces in this collection": "espaces dans cette collection",
