@@ -4,7 +4,7 @@ import request from 'request'
 import streamifier from 'streamifier'
 import { gzip } from 'zlib'
 import { URL } from 'url'
-import { staticPages } from './staticPages'
+import { staticPages } from './staticPages.js'
 
 const cache = LRU(50)
 
