@@ -301,52 +301,103 @@ describe('PostEditor', () => {
     const newPostProps = {
       post: { type: 'discussion', title: 'Hello', groups: [{ id: '1', name: 'Test Group' }] }
     }
+    const threeDestinations = [
+      { id: '1', name: 'Test Group' },
+      { id: '3', name: 'Other Group' },
+      { id: '2', name: 'partnerships', type: 'space', parentId: '1' }
+    ]
 
-    it('shows the error when the GraphQL mutation fails, naming only the blocking space', async () => {
-      // The backend names only the destinations that refuse the type, spaces as "Parent / Space"
-      const blockerMessage = 'Test Group / partnerships does not accept discussion posts'
+    // Run the real createPost action against an msw CreatePost response with these errors
+    function rejectCreatePost (errors) {
       createPost.mockImplementationOnce(jest.requireActual('store/actions/createPost').default)
       mockGraphqlServer.use(
-        graphql.mutation('CreatePost', () => {
-          return HttpResponse.json({
-            data: null,
-            errors: [{ message: blockerMessage, path: ['createPost'] }]
-          })
-        })
+        graphql.mutation('CreatePost', () => HttpResponse.json({ data: null, errors }))
       )
-      const afterSave = jest.fn()
-      renderComponent({
-        post: {
-          type: 'discussion',
-          title: 'Hello',
-          groups: [
-            { id: '1', name: 'Test Group' },
-            { id: '3', name: 'Other Group' },
-            { id: '2', name: 'partnerships', type: 'space', parentId: '1' }
-          ]
-        },
-        afterSave
-      })
+    }
 
+    // The backend's post-type rejection: structured data plus an English fallback message
+    const postTypeRejection = (destinations, postType = 'discussion') => ({
+      message: 'English fallback from the server',
+      path: ['createPost'],
+      extensions: { code: 'POST_TYPE_NOT_ACCEPTED', postType, destinations }
+    })
+
+    // useTranslation is mocked globally (t returns the key); use real i18next for these tests
+    async function withRealTranslation (lng) {
+      const i18next = require('i18next')
+      const i18n = i18next.createInstance()
+      await i18n.init({
+        lng,
+        fallbackLng: 'en',
+        resources: {
+          en: { translation: require('../../../public/locales/en.json') },
+          de: { translation: require('../../../public/locales/de.json') }
+        },
+        keySeparator: false,
+        nsSeparator: false,
+        interpolation: { escapeValue: false }
+      })
+      return jest.spyOn(require('react-i18next'), 'useTranslation')
+        .mockReturnValue({ t: i18n.t.bind(i18n), i18n })
+    }
+
+    async function submitAndGetBanner () {
       const submit = await screen.findByTestId('post-editor-submit')
       await waitFor(() => expect(submit).not.toBeDisabled())
       await userEvent.click(submit)
+      return screen.findByTestId('post-editor-save-error')
+    }
 
-      const banner = await screen.findByTestId('post-editor-save-error')
-      expect(banner.textContent).toBe(blockerMessage)
+    let translationSpy
+    afterEach(() => {
+      if (translationSpy) translationSpy.mockRestore()
+      translationSpy = null
+    })
+
+    it('builds the message from the error data, naming only the blocking space', async () => {
+      translationSpy = await withRealTranslation('en-US')
+      rejectCreatePost([postTypeRejection(['Test Group / partnerships'])])
+      const afterSave = jest.fn()
+      renderComponent({ post: { type: 'discussion', title: 'Hello', groups: threeDestinations }, afterSave })
+
+      const banner = await submitAndGetBanner()
+      expect(banner.textContent).toBe('Test Group / partnerships does not accept Discussion posts')
       expect(banner).not.toHaveTextContent('Other Group')
       expect(afterSave).not.toHaveBeenCalled()
+    })
+
+    it('joins two blockers and uses the plural verb', async () => {
+      translationSpy = await withRealTranslation('en-US')
+      rejectCreatePost([postTypeRejection(['Test Group / partnerships', 'Other Group'])])
+      renderComponent({ post: { type: 'discussion', title: 'Hello', groups: threeDestinations } })
+
+      const banner = await submitAndGetBanner()
+      expect(banner.textContent).toBe('Test Group / partnerships and Other Group do not accept Discussion posts')
+    })
+
+    it("builds the message in the user's language", async () => {
+      translationSpy = await withRealTranslation('de-DE')
+      rejectCreatePost([postTypeRejection(['Test Group / partnerships', 'Other Group'])])
+      renderComponent({ post: { type: 'discussion', title: 'Hello', groups: threeDestinations } })
+
+      const banner = await submitAndGetBanner()
+      expect(banner.textContent).toBe('Test Group / partnerships und Other Group akzeptieren keine Beiträge vom Typ „Diskussion“')
+    })
+
+    it("shows the server's message for other errors", async () => {
+      rejectCreatePost([{ message: 'unable to post to all those groups', path: ['createPost'] }])
+      renderComponent(newPostProps)
+
+      const banner = await submitAndGetBanner()
+      expect(banner.textContent).toBe('unable to post to all those groups')
     })
 
     it('shows a generic error when the action resolves with an error and no message', async () => {
       createPost.mockImplementationOnce(() => ({ type: 'CREATE_POST', error: true, payload: {} }))
       renderComponent(newPostProps)
 
-      const submit = await screen.findByTestId('post-editor-submit')
-      await waitFor(() => expect(submit).not.toBeDisabled())
-      await userEvent.click(submit)
-
-      expect(await screen.findByTestId('post-editor-save-error')).toHaveTextContent('There was an error, please try again.')
+      const banner = await submitAndGetBanner()
+      expect(banner).toHaveTextContent('There was an error, please try again.')
     })
   })
 

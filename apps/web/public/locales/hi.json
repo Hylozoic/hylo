@@ -2533,6 +2533,8 @@
   "postCompletionActions.text.instructions": "प्रॉम्प्ट का उत्तर देकर {{actionDescriptor}} को पूरा करें।",
   "postCompletionActions.uploadFile": "संलग्नक अपलोड करें",
   "postCompletionActions.uploadFile.instructions": "यह संकेत देने के लिए कि आपने {{actionDescriptor}} पूरा कर लिया है, एक संलग्नक अपलोड करें।",
+  "postTypeNotAccepted_one": "{{destinations}} {{postType}} पोस्ट स्वीकार नहीं करता है",
+  "postTypeNotAccepted_other": "{{destinations}} {{postType}} पोस्ट स्वीकार नहीं करते हैं",
   "posts": "पोस्ट",
   "posts in this collection": "इस संग्रह की पोस्ट",
   "spaces in this collection": "इस संग्रह के स्पेस",

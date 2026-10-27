@@ -104,6 +104,7 @@ import insertTextAtSelection from 'util/insertTextAtSelection'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+import postSaveErrorMessage from './postSaveErrorMessage'
 
 /** Chat, action, and submission are not limited by a group's acceptedPostTypes. */
 const UNRESTRICTED_POST_TYPES = ['action', 'chat', 'submission']
@@ -189,7 +190,7 @@ function PostEditorInner ({
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
   const nativeTimePickers = usePrefersNativeDateTimePicker()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const currentUser = useSelector(getMe)
 
@@ -1402,13 +1403,13 @@ function PostEditorInner ({
         isSubmittingRef.current = false
         // Keep the user's work: let draft saves resume and show why the save failed.
         isSubmittedRef.current = false
-        setSaveError(savedPost?.payload?.message || t('There was an error, please try again.'))
+        setSaveError(postSaveErrorMessage(savedPost?.payload, t, i18n?.language))
       }
     } catch (error) {
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, t, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, t, i18n?.language, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
