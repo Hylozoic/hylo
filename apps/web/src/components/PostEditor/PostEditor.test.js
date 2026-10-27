@@ -177,24 +177,39 @@ describe('PostEditor', () => {
       post: { type: 'discussion', title: 'Hello', groups: [{ id: '1', name: 'Test Group' }] }
     }
 
-    it('shows the error when the GraphQL mutation fails', async () => {
+    it('shows the error when the GraphQL mutation fails, naming only the blocking space', async () => {
+      // The backend names only the destinations that refuse the type, spaces as "Parent / Space"
+      const blockerMessage = 'Test Group / partnerships does not accept discussion posts'
       createPost.mockImplementationOnce(jest.requireActual('store/actions/createPost').default)
       mockGraphqlServer.use(
         graphql.mutation('CreatePost', () => {
           return HttpResponse.json({
             data: null,
-            errors: [{ message: 'Test Group does not accept discussion posts', path: ['createPost'] }]
+            errors: [{ message: blockerMessage, path: ['createPost'] }]
           })
         })
       )
       const afterSave = jest.fn()
-      renderComponent({ ...newPostProps, afterSave })
+      renderComponent({
+        post: {
+          type: 'discussion',
+          title: 'Hello',
+          groups: [
+            { id: '1', name: 'Test Group' },
+            { id: '3', name: 'Other Group' },
+            { id: '2', name: 'partnerships', type: 'space', parentId: '1' }
+          ]
+        },
+        afterSave
+      })
 
       const submit = await screen.findByTestId('post-editor-submit')
       await waitFor(() => expect(submit).not.toBeDisabled())
       await userEvent.click(submit)
 
-      expect(await screen.findByTestId('post-editor-save-error')).toHaveTextContent('Test Group does not accept discussion posts')
+      const banner = await screen.findByTestId('post-editor-save-error')
+      expect(banner.textContent).toBe(blockerMessage)
+      expect(banner).not.toHaveTextContent('Other Group')
       expect(afterSave).not.toHaveBeenCalled()
     })
 

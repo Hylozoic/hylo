@@ -11,7 +11,8 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
 
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 const GROUP = 'e2e-public-group'
-const ERROR = 'E2E Public Group does not accept discussion posts'
+// The backend names only the blocking destinations, a space as "Parent Group / Space"
+const ERROR = 'E2E Public Group / partnerships does not accept discussion posts'
 
 test.use({ storageState: 'e2e/.auth/session.json' })
 test.setTimeout(240000)
