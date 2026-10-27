@@ -133,8 +133,13 @@ Code: `apps/backend/lib/atproto/`, `apps/backend/api/models/AtprotoIdentity.js`,
   (`e2e/authenticated.atproto-settings.spec.js`, run under `with-sandbox.sh`)
 
 ### Staging deployment (Heroku)
-- **Private PLC:** Bluesky's PLC server as its own Heroku app with its own Postgres add-on
-  (to confirm: Heroku Postgres SSL, buildpack vs. container deploy). Wipe it whenever staging is reset
+- **Private PLC:** Bluesky's PLC server as its own Heroku app with its own Postgres add-on.
+  Wipe it whenever staging is reset. Tested locally under Heroku-like conditions
+  ([tools/atproto-plc-heroku/](../tools/atproto-plc-heroku/README.md)):
+  - One web dyno, configured by Heroku's own `DATABASE_URL` and `PORT`
+  - Heroku Postgres SSL needs `PGSSLMODE=no-verify`, which the image sets
+  - Deployed as a container built from Bluesky's source at a pinned commit, not the Node buildpack
+  - Still to check: that the build from upstream source works (`deploy.sh`, then `simulate.sh`)
 - Wildcard DNS + TLS for the staging handle domain (e.g. `*.staging.hylo.com`) to the API app.
   Heroku's automatic certificates don't cover wildcards, so upload one or use Cloudflare
 - Staging-only rotation key and encryption secret. **Never copy production keys to staging**
