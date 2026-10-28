@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react'
+import continueNativeTrace from 'client/continueNativeTrace'
 import isBrowserNetworkError, { browserNetworkErrorIgnorePatterns } from 'client/isBrowserNetworkError'
 import { isSandboxMode } from 'sandbox/isSandbox'
 
@@ -52,6 +53,12 @@ if (enabled) {
   if (window.HyloMobileAppVersion) Sentry.setTag('mobileAppVersion', window.HyloMobileAppVersion)
   if (window.HyloNativeSessionId) Sentry.setTag('nativeSessionId', window.HyloNativeSessionId)
   if (isSandboxMode()) Sentry.setTag('sandbox', 'true')
+
+  // Link web errors to the native trace that loaded this page (no spans, so no extra quota).
+  // On Android the meta tags can land after early scripts, so retry once the DOM is parsed.
+  if (window.HyloMobileV2 && !continueNativeTrace() && document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', continueNativeTrace, { once: true })
+  }
 }
 
 /** Records a Sentry breadcrumb (no-op when reporting is disabled) */
