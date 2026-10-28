@@ -6,7 +6,7 @@ const { expect } = require('chai')
 
 /* global StripeAccount, StripeProduct */
 
-const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+const MEMBER_ROLE_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
 
 // Mock StripeService to avoid real API calls
 let lastCreateCheckoutSessionArgs = null
@@ -357,7 +357,7 @@ describe('Stripe Mutations', () => {
     })
 
     it('rejects the Member role in access grants', async () => {
-      const memberRole = await GroupRole.findMemberRole(group.id)
+      const memberRole = await GroupRole.findAllMembersRole(group.id)
       const countOfferings = () => StripeProduct.where({ group_id: group.id }).count().then(Number)
       const before = await countOfferings()
 
@@ -374,7 +374,7 @@ describe('Stripe Mutations', () => {
     })
 
     it('rejects role ids that are not plain decimal digits in access grants', async () => {
-      const memberRole = await GroupRole.findMemberRole(group.id)
+      const memberRole = await GroupRole.findAllMembersRole(group.id)
       const countOfferings = () => StripeProduct.where({ group_id: group.id }).count().then(Number)
       const before = await countOfferings()
 
@@ -473,7 +473,7 @@ describe('Stripe Mutations', () => {
     })
 
     it('rejects the Member role in access grants', async () => {
-      const memberRole = await GroupRole.findMemberRole(group.id)
+      const memberRole = await GroupRole.findAllMembersRole(group.id)
       await testProduct.refresh()
       const before = testProduct.get('access_grants')
 

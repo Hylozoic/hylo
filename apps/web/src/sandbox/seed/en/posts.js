@@ -11,11 +11,10 @@ import { FUNDING_ROUND_ID } from './fundingRounds'
 
 /**
  * All sandbox posts. Keys: mainStream, chatSpace, fundingSubmissions, simpleGroupChat, simpleGroupStream.
- * Populated with real Terran Collective content.
+ * Populated with demo content adapted from real Hylo communities.
  */
 export function buildPosts (peopleById, meId) {
   const me = peopleById[meId]
-  const p002 = peopleById[sid('person', '002')]
   const p003 = peopleById[sid('person', '003')]
   const p004 = peopleById[sid('person', '004')]
   const p005 = peopleById[sid('person', '005')]
@@ -40,7 +39,7 @@ export function buildPosts (peopleById, meId) {
       // discussion — community forest crowdfunding (announcement, 12 comments)
       discussionPost('001', me, MAIN_GROUP_ID, -86400 * 14, {
         title: 'Crowdfunding the East Bay Community Forest!',
-        details: '<p>Today&#39;s the big day — we&#39;re launching our crowdfunding campaign for a community forest in the East Bay hills!</p><p>We are looking to raise $100k from our community as part of a larger land-stewardship push. The funds will help a neighborhood land trust secure a hillside parcel, plant a dense native canopy, and keep the land in community care for the long haul.</p><p>Please join us and contribute here: https://www.flipcause.com/secure/cause_pdetails/east-bay-community-forest</p><p>In solidarity,<br/>Maya, Kai, Neha, Elena<br/>Terran Coordinators</p>',
+        details: '<p>Today&#39;s the big day — we&#39;re launching our crowdfunding campaign for a community forest in the East Bay hills!</p><p>We are looking to raise $100k from our community as part of a larger land-stewardship push. The funds will help a neighborhood land trust secure a hillside parcel, plant a dense native canopy, and keep the land in community care for the long haul.</p><p>Please join us and contribute here: https://www.flipcause.com/secure/cause_pdetails/east-bay-community-forest</p><p>In solidarity,<br/>Maya, Kai, Neha, Elena<br/>Community Hub Coordinators</p>',
         announcement: true,
         commentCount: 12,
         reactionCount: 10,
@@ -78,7 +77,7 @@ export function buildPosts (peopleById, meId) {
       // proposal — community decision
       proposalPost('005', me, MAIN_GROUP_ID, -86400 * 12, {
         title: 'Consensus: Shift Hylo stewardship model to member-owned cooperative',
-        details: '<p>We propose to formally transition Terran Collective\'s stewardship of Hylo to a multi-stakeholder cooperative model, giving members a formal voice in governance and product direction. This would mean drafting bylaws, establishing a member council, and beginning the process of legal entity formation.</p>',
+        details: '<p>We propose to formally transition Community Hub to a multi-stakeholder cooperative model, giving members a formal voice in governance and product direction. This would mean drafting bylaws, establishing a member council, and beginning the process of legal entity formation.</p>',
         voting: true
       }),
       // request — Rights of Nature (9 comments)
@@ -96,7 +95,7 @@ export function buildPosts (peopleById, meId) {
       // offer — Join the Hylo stewardship team (3 comments)
       offerPost('007', p005, MAIN_GROUP_ID, -86400 * 5, {
         title: 'Join the Hylo stewardship team!',
-        details: '<p>Terran Collective is hiring for two roles to support Hylo&#39;s growth: a Stakeholder Advocate and an Operations Coordinator. These two roles will be critical to help us channel the energy of everyone wanting to participate in this open-source project.</p><p>Learn more and apply here &gt; https://medium.com/terran-collective/terran-collective-is-hiring-for-hylo-53e4abd0d4b8</p>',
+        details: '<p>Community Hub is hiring for two roles to support our growth: a Stakeholder Advocate and an Operations Coordinator. These two roles will be critical to help us channel the energy of everyone wanting to participate in our work.</p><p>Reply here or message a coordinator if you&#39;d like to apply.</p>',
         commentCount: 3
       }),
       // discussion — maximum wage ratio (6 comments)
@@ -115,7 +114,7 @@ export function buildPosts (peopleById, meId) {
       // proposal — discussion phase
       proposalPost('010', p007, MAIN_GROUP_ID, -86400 * 2, {
         title: 'Proposal: Host monthly community calls open to non-members',
-        details: '<p>We propose opening our monthly community calls to interested non-members, giving prospective members a chance to experience Terran Collective culture before joining. This would increase visibility and help grow the community in an authentic way.</p>',
+        details: '<p>We propose opening our monthly community calls to interested non-members, giving prospective members a chance to experience Community Hub culture before joining. This would increase visibility and help grow the community in an authentic way.</p>',
         discussionPhase: true
       }),
       // request — afforestation
@@ -143,15 +142,22 @@ export function buildPosts (peopleById, meId) {
         }
       })
     ],
+    hubChat: [
+      chatPost('chat', '001', me, MAIN_GROUP_ID, -7200, 'Good morning everyone 🌱 What are you all working on this week?'),
+      chatPost('chat', '002', p010, MAIN_GROUP_ID, -7000, 'Just finished the notes from Kevin Bayuk&#39;s permaculture session — will share in the stream shortly!'),
+      chatPost('chat', '003', p011, MAIN_GROUP_ID, -6800, 'Reminder that the Rights of Nature zoom is tomorrow at noon PT. Link in the post.'),
+      chatPost('chat', '004', p012, MAIN_GROUP_ID, -6600, 'Has anyone connected with the Bioneers community around watershed stewardship? They&#39;d be great allies.'),
+      chatPost('chat', '005', me, MAIN_GROUP_ID, -6400, 'Yes! Thomas Linzey from their team reached out after my post. Setting up a call next week.'),
+      chatPost('chat', '006', p013, MAIN_GROUP_ID, -6200, 'The community forest campaign is going really well — almost at 60% 🎉 Keep sharing!'),
+      chatPost('chat', '007', p014, MAIN_GROUP_ID, -6000, 'Anyone up for a co-working session at the Oakland Collective on Friday?'),
+      chatPost('chat', '008', p015, MAIN_GROUP_ID, -5800, 'I&#39;ll be there! See you around 10am.')
+    ],
     chatSpace: [
-      chatPost('chat', '001', me, CHAT_SPACE_ID, -7200, 'Good morning everyone 🌱 What are you all working on this week?'),
-      chatPost('chat', '002', p010, CHAT_SPACE_ID, -7000, 'Just finished the notes from Kevin Bayuk&#39;s permaculture session — will share in the stream shortly!'),
-      chatPost('chat', '003', p011, CHAT_SPACE_ID, -6800, 'Reminder that the Rights of Nature zoom is tomorrow at noon PT. Link in the post.'),
-      chatPost('chat', '004', p012, CHAT_SPACE_ID, -6600, 'Has anyone connected with the Bioneers community around watershed stewardship? They&#39;d be great allies.'),
-      chatPost('chat', '005', me, CHAT_SPACE_ID, -6400, 'Yes! Thomas Linzey from their team reached out after my post. Setting up a call next week.'),
-      chatPost('chat', '006', p013, CHAT_SPACE_ID, -6200, 'The community forest campaign is going really well — almost at 60% 🎉 Keep sharing!'),
-      chatPost('chat', '007', p014, CHAT_SPACE_ID, -6000, 'Anyone up for a co-working session at the Oakland Collective on Friday?'),
-      chatPost('chat', '008', p015, CHAT_SPACE_ID, -5800, 'I&#39;ll be there! See you around 10am.')
+      chatPost('intro', '001', p003, CHAT_SPACE_ID, -86400 * 12, 'Hi, I&#39;m Kai. I live in the East Bay and I&#39;m here for the people doing land stewardship together.'),
+      chatPost('intro', '002', p004, CHAT_SPACE_ID, -86400 * 9, 'Liam. I build cooperative tools, and I&#39;m glad this community exists.'),
+      chatPost('intro', '003', p008, CHAT_SPACE_ID, -86400 * 6, 'Marcus from Berkeley. Just joined — the community forest campaign is what pulled me in.'),
+      chatPost('intro', '004', p009, CHAT_SPACE_ID, -86400 * 3, 'Amara, Richmond. I work on watershed care and I&#39;m looking for people to learn with.'),
+      chatPost('intro', '005', me, CHAT_SPACE_ID, -86400, 'Welcome, everyone. I&#39;m Elena, one of the coordinators. Say hello whenever you arrive — we read these.')
     ],
     fundingSubmissions: [
       fundingSubmission('001', p016, FUNDING_SPACE_ID, -86400 * 5, 24, {
@@ -198,7 +204,7 @@ export function buildPosts (peopleById, meId) {
         budget: '$7,500',
         commentCount: 2,
         reactionCount: 4,
-        details: '<p>Supports the neighborhood land trust securing a hillside parcel in the East Bay hills — the same community forest campaign Terran has been crowdfunding on the main stream. This grant covers native plant nursery costs, volunteer stewardship training, and signage for public trail access.</p><p>Funds stay with the land trust and are released as milestones are met: site assessment, planting days, and the first season of community monitoring.</p>',
+        details: '<p>Supports the neighborhood land trust securing a hillside parcel in the East Bay hills — the same community forest campaign Community Hub has been crowdfunding on the main stream. This grant covers native plant nursery costs, volunteer stewardship training, and signage for public trail access.</p><p>Funds stay with the land trust and are released as milestones are met: site assessment, planting days, and the first season of community monitoring.</p>',
         place: {
           fullText: 'East Bay hills, Oakland, California, United States',
           city: 'Oakland',
@@ -221,7 +227,7 @@ export function buildPosts (peopleById, meId) {
       })
     ],
     simpleGroupChat: [
-      chatPost('simple', '001', me, SIMPLE_GROUP_ID, -3600, 'Morning eastbayconnect — anyone heading to Lake Merritt this afternoon?'),
+      chatPost('simple', '001', me, SIMPLE_GROUP_ID, -3600, 'Morning neighbors — anyone heading to Lake Merritt this afternoon?'),
       chatPost('simple', '002', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -3400, 'I can be there around 4. Bringing leftover mandarins for the food share table.'),
       chatPost('simple', '003', peopleById[sid('person', 'starter', '002')], SIMPLE_GROUP_ID, -3200, 'If you need a hand setting up the twilight markets stall, I have a spare gazebo.'),
       chatPost('simple', '004', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -3000, 'Love that. I&#39;ll post the Side by Side gathering dates in the stream today.'),
@@ -334,6 +340,157 @@ export function buildPosts (peopleById, meId) {
           lat: 37.9358,
           lng: -122.3477
         }
+      }),
+      eventPost('simple-112', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400 * 4, {
+        title: 'North Shattuck produce swap',
+        details: '<p>Bring whatever is overflowing — lemons, chard, loquats, sourdough — and leave with something you didn&#39;t grow. Tables go up under the oaks at Live Oak Park. No signup, just a bag.</p><p>If you have nothing to swap, come anyway. Neighbours always bring extra.</p>',
+        upcoming: true,
+        startTime_local: { days: 3, hour: 10 },
+        endTime_local: { days: 3, hour: 12 },
+        commentCount: 3,
+        reactionCount: 2,
+        place: {
+          fullText: 'Live Oak Park, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8836,
+          lng: -122.2686
+        }
+      }),
+      eventPost('simple-113', peopleById[sid('person', 'starter', '002')], SIMPLE_GROUP_ID, -86400 * 6, {
+        title: 'Tool library open hours',
+        details: '<p>The North Berkeley tool shelf is open at the Ohlone Park picnic tables. Borrow a drill, a hedge trimmer, a cargo-bike pump, or a canning pot. Bring it back the following Saturday, or message Finn if you need it longer.</p>',
+        upcoming: true,
+        startTime_local: { days: 8, hour: 10 },
+        endTime_local: { days: 8, hour: 13 },
+        commentCount: 1,
+        reactionCount: 2,
+        place: {
+          fullText: 'Ohlone Park, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8744,
+          lng: -122.2828
+        }
+      }),
+      eventPost('simple-114', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400 * 2, {
+        title: 'Cedar-Rose neighbourhood potluck',
+        details: '<p>Side by Side is hosting a potluck on the Cedar-Rose lawn. Bring a dish and a blanket. Kids are welcome — we&#39;ll keep a corner for them if a couple of adults can rotate through.</p>',
+        upcoming: true,
+        startTime_local: { days: 16, hour: 18 },
+        endTime_local: { days: 16, hour: 20 },
+        commentCount: 2,
+        reactionCount: 3,
+        place: {
+          fullText: 'Cedar-Rose Park, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8807,
+          lng: -122.2866
+        }
+      }),
+      eventPost('simple-115', p008, SIMPLE_GROUP_ID, -86400 * 12, {
+        title: 'Hopkins seed and starts swap',
+        details: '<p>We traded tomato starts, bean seed, and a lot of advice outside Monterey Market. The next one will be posted when the winter sowing is ready.</p>',
+        upcoming: false,
+        startTime_local: { days: -9, hour: 10 },
+        endTime_local: { days: -9, hour: 12 },
+        commentCount: 1,
+        place: {
+          fullText: 'Monterey Market, Hopkins Street, Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8810,
+          lng: -122.2756
+        }
+      }),
+      requestPost('simple-116', me, SIMPLE_GROUP_ID, -86400 * 2, {
+        title: 'Borrow a cargo bike for Saturday market',
+        details: '<p>I&#39;m hauling citrus and a folding table to the North Shattuck produce swap and my rack won&#39;t hold it. Could I borrow a cargo bike Friday evening through Saturday afternoon? I can pick up around Hopkins.</p>',
+        commentCount: 1,
+        place: {
+          fullText: 'Hopkins Street, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8812,
+          lng: -122.2742
+        }
+      }),
+      requestPost('simple-117', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400 * 5, {
+        title: 'Ladder to pick the front-yard lemon',
+        details: '<p>The Meyer lemon on Ada Street is ready and I can&#39;t reach the top third. Happy to share the fruit with anyone who can lend a ladder for an hour this week.</p>',
+        commentCount: 2,
+        reactionCount: 1,
+        place: {
+          fullText: 'Ada Street, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8784,
+          lng: -122.2718
+        }
+      }),
+      requestPost('simple-118', p008, SIMPLE_GROUP_ID, -86400 * 3, {
+        title: 'Ride to the rose garden work morning',
+        details: '<p>I&#39;m helping mulch the Berkeley Rose Garden on Sunday and don&#39;t have a car for the tools. If you&#39;re heading up Euclid, I can meet you at North Berkeley BART.</p>',
+        place: {
+          fullText: 'Berkeley Rose Garden, Euclid Avenue, Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8857,
+          lng: -122.2614
+        }
+      }),
+      requestPost('simple-119', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400, {
+        title: 'An extra adult for the potluck kids corner',
+        details: '<p>The Cedar-Rose potluck needs one more adult to rotate through the kids corner for an hour. You can eat with us the rest of the time. Message me if you can take a shift.</p>',
+        commentCount: 1,
+        place: {
+          fullText: 'Cedar-Rose Park, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8804,
+          lng: -122.2859
+        }
+      }),
+      offerPost('simple-120', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400, {
+        title: 'Meyer lemons and extra chard',
+        details: '<p>The backyard is overloaded. A bag of Meyer lemons and a bunch of rainbow chard are on the porch on Virginia Street — take what you need and leave the bag. I&#39;ll restock after the weekend harvest.</p>',
+        commentCount: 2,
+        reactionCount: 3,
+        place: {
+          fullText: 'Virginia Street, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8758,
+          lng: -122.2774
+        }
+      }),
+      offerPost('simple-121', p008, SIMPLE_GROUP_ID, -86400 * 4, {
+        title: 'Tomato and basil starts',
+        details: '<p>I sowed too many. Six tomato starts and a tray of basil are on the steps by Indian Rock, free to anyone who will actually plant them. Bring a tray, or I have yogurt tubs.</p>',
+        commentCount: 1,
+        reactionCount: 2,
+        place: {
+          fullText: 'Indian Rock Park, North Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8924,
+          lng: -122.2725
+        }
+      }),
+      offerPost('simple-122', peopleById[sid('person', 'starter', '002')], SIMPLE_GROUP_ID, -86400 * 3, {
+        title: 'Folding tables and a projector',
+        details: '<p>Two 6-foot folding tables and a small projector live with the tool library. Borrow them for a block party or a skill-share. Message Finn to pick up near King Park.</p>',
+        commentCount: 1,
+        reactionCount: 1,
+        place: {
+          fullText: 'King Park, Hopkins Street, Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8820,
+          lng: -122.2792
+        }
+      }),
+      offerPost('simple-123', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400 * 2, {
+        title: 'Saturday sourdough, two loaves spare',
+        details: '<p>I bake two extra country loaves every Saturday morning. First message gets them — pickup on Solano before noon, or I can bring them to the produce swap.</p>',
+        commentCount: 3,
+        reactionCount: 2,
+        place: {
+          fullText: 'Solano Avenue, Berkeley, California, United States',
+          city: 'Berkeley',
+          lat: 37.8910,
+          lng: -122.2868
+        }
       })
     ],
     staffGroupChat: [
@@ -346,8 +503,8 @@ export function buildPosts (peopleById, meId) {
     ],
     staffGroupStream: [
       discussionPost('staff-201', me, STAFF_GROUP_ID, -86400 * 50, {
-        title: 'Holistica is now worker-owned',
-        details: '<p>Today is a huge day — we are formally organizing Holistica as a worker-owned cooperative.</p><p>We will use this space to coordinate our shared work: neighborhood gatherings, skill-shares, and facilitation for groups who want help working together in person. We will never sell anyone&#39;s data, we will never sell out, and we work in deep partnership with people building a world that works for all.</p><p>If you want to help host, keep the books, or take on a neighborhood gig, get in touch. We will hold a design jam soon to decide how we share surplus and how we take on work together.</p>',
+        title: 'We are now worker-owned',
+        details: '<p>Today is a huge day — we are formally organizing as a worker-owned cooperative.</p><p>We will use this space to coordinate our shared work: neighborhood gatherings, skill-shares, and facilitation for groups who want help working together in person. We will never sell anyone&#39;s data, we will never sell out, and we work in deep partnership with people building a world that works for all.</p><p>If you want to help host, keep the books, or take on a neighborhood gig, get in touch. We will hold a design jam soon to decide how we share surplus and how we take on work together.</p>',
         announcement: true,
         commentCount: 1,
         reactionCount: 3,
@@ -377,7 +534,7 @@ export function buildPosts (peopleById, meId) {
         reactionCount: 2
       }),
       eventPost('staff-204', me, STAFF_GROUP_ID, -86400 * 36, {
-        title: 'Holistica season launch gathering',
+        title: 'Co-op season launch gathering',
         details: '<p>Dear friends,</p><p>It is with great excitement that we are announcing the launch of our season fund! We are looking to raise community support so we can keep hosting sliding-scale workshops and neighborhood gatherings this year.</p><p>To celebrate we are hosting a virtual launch gathering. We will walk through the season plan and bring in partners who are hosting with us.</p><p>Feel free to join when you can. Link will be posted on the day!</p>',
         location: 'Online',
         upcoming: false,
@@ -386,21 +543,21 @@ export function buildPosts (peopleById, meId) {
       }),
       requestPost('staff-205', me, STAFF_GROUP_ID, -86400 * 34, {
         title: 'Launching our season fund',
-        details: '<p>Today&#39;s the big day — we&#39;re launching our season fund for Holistica.</p><p>We are looking to raise $100k from our wider community so we can pay facilitation stipends, cover studio rent, and keep workshops sliding-scale. A small cooperative only works if the village around it is in.</p><p>This is not just about money. It is even more important to build relationships with anyone who shares this way of working. If you want to facilitate, keep books, or connect us with a neighborhood that needs a gathering, please get in touch.</p><p>Thank you for your support. We are just at the beginning of this season together.</p><p>In solidarity,<br/>Maya, Kai, Elena<br/>Holistica worker-owners</p>',
+        details: '<p>Today&#39;s the big day — we&#39;re launching our season fund for the co-op.</p><p>We are looking to raise $100k from our wider community so we can pay facilitation stipends, cover studio rent, and keep workshops sliding-scale. A small cooperative only works if the village around it is in.</p><p>This is not just about money. It is even more important to build relationships with anyone who shares this way of working. If you want to facilitate, keep books, or connect us with a neighborhood that needs a gathering, please get in touch.</p><p>Thank you for your support. We are just at the beginning of this season together.</p><p>In solidarity,<br/>Maya, Kai, Elena<br/>Worker Co-op Staff</p>',
         commentCount: 6,
         reactionCount: 4
       }),
       eventPost('staff-206', me, STAFF_GROUP_ID, -86400 * 28, {
         title: 'Season wrap and member celebration',
-        details: '<p>Join us to celebrate the season fund and everyone who signed up as a supporting member. As we keep offering Holistica&#39;s gatherings as a gift to neighborhoods that want to work together, it means the world that so many of you want to come along.</p><p>Here&#39;s what we&#39;re planning:</p><p>- Campaign wrap with numbers, lessons, and plans for the next season</p><p>- Maya will walk through how we&#39;re hosting gatherings this season</p><p>- Meet the worker-owners</p><p>- Get involved: we are inviting supporting members into facilitation, bookkeeping, and outreach</p>',
+        details: '<p>Join us to celebrate the season fund and everyone who signed up as a supporting member. As we keep offering our co-op&#39;s gatherings as a gift to neighborhoods that want to work together, it means the world that so many of you want to come along.</p><p>Here&#39;s what we&#39;re planning:</p><p>- Campaign wrap with numbers, lessons, and plans for the next season</p><p>- Maya will walk through how we&#39;re hosting gatherings this season</p><p>- Meet the worker-owners</p><p>- Get involved: we are inviting supporting members into facilitation, bookkeeping, and outreach</p>',
         location: 'Online',
         upcoming: false,
         commentCount: 3,
         reactionCount: 2
       }),
       resourcePost('staff-207', me, STAFF_GROUP_ID, -86400 * 20, {
-        title: '10 minute Holistica walkthrough to share',
-        details: '<p>I made a video that goes through how we work at Holistica for new worker-owners (it doesn&#39;t cover every internal process).</p><p>Feel free to share around!</p><p>We will make one for hosting partners soon, and a shorter one that leaves out the joining process.</p>',
+        title: '10 minute co-op walkthrough to share',
+        details: '<p>I made a video that goes through how we work at the co-op for new worker-owners (it doesn&#39;t cover every internal process).</p><p>Feel free to share around!</p><p>We will make one for hosting partners soon, and a shorter one that leaves out the joining process.</p>',
         commentCount: 3,
         reactionCount: 2,
         place: {
@@ -415,14 +572,14 @@ export function buildPosts (peopleById, meId) {
   }
 }
 
-function basePost (id, creator, groupId, createdAt_offset, type, extras = {}) {
+function basePost (id, creator, groupId, createdAtOffset, type, extras = {}) {
   return {
     id: sid('post', id),
     title: extras.title || PLACEHOLDER_NAME,
     details: extras.details || htmlCopy(),
     type,
-    createdAt_offset,
-    updatedAt_offset: createdAt_offset + 3600,
+    createdAt_offset: createdAtOffset,
+    updatedAt_offset: createdAtOffset + 3600,
     creator,
     groups: [{ id: groupId, name: groupDisplayName(groupId) }],
     groupsTotal: 1,
@@ -439,11 +596,11 @@ function basePost (id, creator, groupId, createdAt_offset, type, extras = {}) {
 }
 
 function groupDisplayName (groupId) {
-  if (groupId === MAIN_GROUP_ID) return 'Terran Collective'
-  if (groupId === STAFF_GROUP_ID) return 'Holistica Staff'
+  if (groupId === MAIN_GROUP_ID) return 'Community Hub'
+  if (groupId === STAFF_GROUP_ID) return 'Worker Co-op Staff'
   if (groupId === FUNDING_SPACE_ID) return 'Bioregional Grants Round 1'
-  if (groupId === CHAT_SPACE_ID) return 'General'
-  return 'East Bay Connect'
+  if (groupId === CHAT_SPACE_ID) return 'Introductions'
+  return 'Local Sharing Network'
 }
 
 function locationFields (num, extras = {}) {
@@ -466,22 +623,36 @@ function withoutPlace (extras = {}) {
   return rest
 }
 
-function discussionPost (num, creator, groupId, createdAt_offset, extras = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'discussion', {
+function discussionPost (num, creator, groupId, createdAtOffset, extras = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'discussion', {
     ...withoutPlace(extras),
     fields: locationFields(num, extras)
   })
 }
 
-function eventPost (num, creator, groupId, createdAt_offset, extras = {}) {
-  const { upcoming, location, place, ...rest } = extras
-  const start = upcoming ? 86400 * 5 : -86400 * 3
-  const end = upcoming ? 86400 * 5 + 7200 : -86400 * 3 + 7200
-  return basePost(num, creator, groupId, createdAt_offset, 'event', {
+function eventPost (num, creator, groupId, createdAtOffset, extras = {}) {
+  const {
+    upcoming,
+    location,
+    place,
+    startTime_offset: startOffset,
+    endTime_offset: endOffset,
+    startTime_local: startLocal,
+    endTime_local: endLocal,
+    ...rest
+  } = extras
+  const start = startOffset != null ? startOffset : (upcoming ? 86400 * 5 : -86400 * 3)
+  const end = endOffset != null ? endOffset : start + 7200
+  const times = startLocal
+    ? {
+        startTime_local: startLocal,
+        endTime_local: endLocal || { ...startLocal, hour: (startLocal.hour || 10) + 2 }
+      }
+    : { startTime_offset: start, endTime_offset: end }
+  return basePost(num, creator, groupId, createdAtOffset, 'event', {
     ...rest,
     fields: {
-      startTime_offset: start,
-      endTime_offset: end,
+      ...times,
       timezone: 'America/Los_Angeles',
       location: location || place?.fullText || null,
       meetingLink: null,
@@ -491,8 +662,8 @@ function eventPost (num, creator, groupId, createdAt_offset, extras = {}) {
   })
 }
 
-function proposalPost (num, creator, groupId, createdAt_offset, { voting, discussionPhase, title, details } = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'proposal', {
+function proposalPost (num, creator, groupId, createdAtOffset, { voting, discussionPhase, title, details } = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'proposal', {
     title,
     details,
     fields: {
@@ -504,43 +675,43 @@ function proposalPost (num, creator, groupId, createdAt_offset, { voting, discus
   })
 }
 
-function requestPost (num, creator, groupId, createdAt_offset, extras = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'request', {
+function requestPost (num, creator, groupId, createdAtOffset, extras = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'request', {
     ...withoutPlace(extras),
     fields: { endTime_offset: 86400 * 14, ...locationFields(num, extras) }
   })
 }
 
-function offerPost (num, creator, groupId, createdAt_offset, extras = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'offer', {
+function offerPost (num, creator, groupId, createdAtOffset, extras = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'offer', {
     ...withoutPlace(extras),
     fields: { endTime_offset: 86400 * 30, ...locationFields(num, extras) }
   })
 }
 
-function projectPost (num, creator, groupId, createdAt_offset, extras = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'project', {
+function projectPost (num, creator, groupId, createdAtOffset, extras = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'project', {
     ...withoutPlace(extras),
     fields: locationFields(num, extras)
   })
 }
 
-function resourcePost (num, creator, groupId, createdAt_offset, extras = {}) {
-  return basePost(num, creator, groupId, createdAt_offset, 'resource', {
+function resourcePost (num, creator, groupId, createdAtOffset, extras = {}) {
+  return basePost(num, creator, groupId, createdAtOffset, 'resource', {
     ...withoutPlace(extras),
     fields: locationFields(num, extras)
   })
 }
 
-function chatPost (prefix, num, creator, groupId, createdAt_offset, text) {
-  return basePost(`${prefix}-${num}`, creator, groupId, createdAt_offset, 'chat', {
+function chatPost (prefix, num, creator, groupId, createdAtOffset, text) {
+  return basePost(`${prefix}-${num}`, creator, groupId, createdAtOffset, 'chat', {
     title: null,
     details: '<p>' + (text || PLACEHOLDER_COPY.slice(0, 140)) + '</p>'
   })
 }
 
-function fundingSubmission (num, creator, groupId, createdAt_offset, tokensAllocated, extras = {}) {
-  return basePost(`fr-${num}`, creator, groupId, createdAt_offset, 'project', {
+function fundingSubmission (num, creator, groupId, createdAtOffset, tokensAllocated, extras = {}) {
+  return basePost(`fr-${num}`, creator, groupId, createdAtOffset, 'project', {
     title: extras.title,
     details: extras.details,
     commentCount: extras.commentCount || 0,

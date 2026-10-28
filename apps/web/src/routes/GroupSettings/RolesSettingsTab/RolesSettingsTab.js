@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
 import {
   addGroupRole,
   addRoleToMember,
@@ -25,6 +24,8 @@ import {
   getStewardSuggestions
 } from './RolesSettingsTab.store'
 import { fetchGroupSettings } from '../GroupSettings.store'
+import InvitePolicySelect from 'components/InvitePolicySelect/InvitePolicySelect'
+import { trackInvitePolicySet } from 'util/invitePolicy'
 import SettingsSection from '../SettingsSection'
 import EmojiPicker from 'components/EmojiPicker'
 import SettingsControl from 'components/SettingsControl'
@@ -34,11 +35,8 @@ import KeyControlledItemList from 'components/KeyControlledList/KeyControlledIte
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { keyMap } from 'util/textInput'
 import { cn } from 'util/index'
-import { groupUrl, personUrl } from '@hylo/navigation'
+import { personUrl } from '@hylo/navigation'
 import { sortCustomGroupRoles, sortSystemGroupRoles, isMemberGroupRole, isSystemGroupRole } from '@hylo/hooks/groupRoleHelpers'
-import { RESP_INVITE_MEMBERS } from 'store/constants'
-import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
-
 import styles from './RolesSettingsTab.module.scss'
 
 const emptyRole = {
@@ -55,7 +53,15 @@ const validateRole = ({ name, emoji }) => {
   return true
 }
 
-function RolesSettingsTab ({ group, slug }) {
+/**
+ * Saved invite policy, or null when the group has none (spaces).
+ */
+function initialInvitePolicy (group) {
+  if (!group?.invitePolicy) return null
+  return typeof group.invitePolicy === 'string' ? group.invitePolicy : group.invitePolicy.mode
+}
+
+function RolesSettingsTab ({ group, slug, updateGroupSettings }) {
   const dispatch = useDispatch()
   const suggestions = useSelector(getStewardSuggestions)
   const { t } = useTranslation()
@@ -69,11 +75,10 @@ function RolesSettingsTab ({ group, slug }) {
     [group?.groupRoles?.items]
   )
   const [rolesOverride, setRolesOverride] = useState(null)
+  const [invitePolicy, setInvitePolicy] = useState(() => initialInvitePolicy(group))
   const roles = rolesOverride ?? customRolesFromGroup
   const [availableResponsibilities, setAvailableResponsibilities] = useState([])
   const { setHeaderDetails } = useViewHeader()
-  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
-
   useEffect(() => {
     if (!group?.id) return
     let isMounted = true
@@ -81,14 +86,27 @@ function RolesSettingsTab ({ group, slug }) {
       .then((response) => {
         const responsibilities = response?.payload?.data?.responsibilities || []
         if (isMounted) {
-          setAvailableResponsibilities(memberInvitesEnabled
-            ? responsibilities
-            : responsibilities.filter(responsibility => responsibility.title !== RESP_INVITE_MEMBERS))
+          setAvailableResponsibilities(responsibilities)
         }
       })
       .catch((e) => { console.error('Error fetching responsibilities for group', e) })
     return () => { isMounted = false }
-  }, [group?.id, dispatch, memberInvitesEnabled])
+  }, [group?.id, dispatch])
+
+  useEffect(() => {
+    setInvitePolicy(initialInvitePolicy(group))
+  }, [group?.invitePolicy])
+
+  /**
+   * Saves who can invite as soon as the choice changes. This page has no shared save button.
+   */
+  const changeInvitePolicyMode = mode => {
+    setInvitePolicy(mode)
+    if (!updateGroupSettings) return
+    Promise.resolve(updateGroupSettings({ invitePolicy: mode })).then(result => {
+      if (!result?.error) dispatch(trackInvitePolicySet(mode, 'settings'))
+    })
+  }
 
   useEffect(() => {
     setHeaderDetails({
@@ -187,10 +205,18 @@ function RolesSettingsTab ({ group, slug }) {
             isSystemRole
           />
         ))}
-        {memberInvitesEnabled && group?.memberRole && (
-          <MemberRoleCard memberRole={group.memberRole} slug={group.slug} />
-        )}
       </SettingsSection>
+      {invitePolicy && (
+        <SettingsSection>
+          <h3 className='text-foreground font-bold mb-2'>{t('Who can add new members?')}</h3>
+          <p className='text-foreground/70 mb-4'>{t('Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.', { name: group?.name })}</p>
+          <InvitePolicySelect
+            mode={invitePolicy}
+            onModeChange={changeInvitePolicyMode}
+            accessibility={group?.accessibility}
+          />
+        </SettingsSection>
+      )}
       <SettingsSection>
         <h3>{t('Custom Roles & Badges')}</h3>
         <div className='text-foreground/70 text-xs mb-2'>{t('Create additional roles or badges for your group')}</div>
@@ -228,34 +254,8 @@ RolesSettingsTab.propTypes = {
   group: PropTypes.object,
   removeRoleFromMember: PropTypes.func,
   slug: PropTypes.string,
-  updateGroupRole: PropTypes.func
-}
-
-/**
- * The implicit role every member holds. It can't be edited or assigned; its only
- * possible responsibility, Invite Members, follows "Who can add new members?".
- */
-function MemberRoleCard ({ memberRole, slug }) {
-  const { t } = useTranslation()
-  const responsibilities = memberRole.responsibilities?.items || []
-
-  return (
-    <div className='bg-foreground/5 rounded-lg my-4 p-4' data-testid='member-role-card'>
-      <h4 className='text-foreground font-bold m-0'>{t('Member')}</h4>
-      <p className='text-foreground/70 text-sm mt-1 mb-3'>{t('Everyone in this group holds this role.')}</p>
-      <h4 className='mb-2'>{t('Responsibilities')}</h4>
-      {responsibilities.length > 0
-        ? (
-          <div className='flex flex-col gap-2'>
-            {responsibilities.map(responsibility => <RemovableListItem item={responsibility} key={responsibility.id} />)}
-          </div>
-          )
-        : <p className='text-foreground/50 text-sm m-0'>{t('No responsibilities')}</p>}
-      <Link to={groupUrl(slug, 'settings/privacy')} className='inline-block text-accent text-sm hover:underline mt-3'>
-        {t('Change who can add new members in Privacy & Access')}
-      </Link>
-    </div>
-  )
+  updateGroupRole: PropTypes.func,
+  updateGroupSettings: PropTypes.func
 }
 
 function RoleRow ({
@@ -282,7 +282,7 @@ function RoleRow ({
   const isDraftRole = active === ''
   const inactiveStyle = (!active && !isDraftRole && !isSystemRole) ? styles.inactive : ''
   return (
-    <div className={cn('relative bg-foreground/5 rounded-lg my-4 pb-2', inactiveStyle)}>
+    <div className={cn('relative bg-foreground/5 rounded-lg my-4 pb-2', inactiveStyle)} data-testid={`role-card-${id || 'draft'}`}>
       {!isSystemRole &&
         <div className={styles.actionContainer}>
           {isDraftRole && (
@@ -568,7 +568,7 @@ function RoleList ({
 
   return (
     <div>
-      <div className='p-2'>
+      <div className='p-2' data-testid='role-responsibilities'>
         <h4 className='mb-0'>Responsibilities</h4>
         {isSystemRole && (
           <div className='text-foreground/70 text-xs mb-2'>{t('Common roles cannot have their responsibilities edited')}</div>

@@ -19,11 +19,11 @@ describe('Responsibility', () => {
     it('returns the id of the platform responsibility, not a group one with the same title', async () => {
       const groupDefined = await Responsibility.forge({
         group_id: group.id,
-        title: Responsibility.constants.RESP_INVITE_MEMBERS,
+        title: Responsibility.constants.RESP_ADD_MEMBERS,
         type: 'group'
       }).save()
 
-      const id = await Responsibility.systemId(Responsibility.constants.RESP_INVITE_MEMBERS)
+      const id = await Responsibility.systemId(Responsibility.constants.RESP_ADD_MEMBERS)
       const row = await bookshelf.knex('responsibilities').where({ id }).first()
       expect(row.type).to.equal('system')
       expect(row.group_id).to.equal(null)
@@ -39,26 +39,25 @@ describe('Responsibility', () => {
 
   describe('isSystemTitle', () => {
     it('matches platform titles ignoring case and surrounding spaces', async () => {
-      expect(await Responsibility.isSystemTitle('Invite Members')).to.be.true
-      expect(await Responsibility.isSystemTitle('  invite MEMBERS ')).to.be.true
+      expect(await Responsibility.isSystemTitle('Add Members')).to.be.true
+      expect(await Responsibility.isSystemTitle('  add MEMBERS ')).to.be.true
       expect(await Responsibility.isSystemTitle('administration')).to.be.true
     })
 
     it('does not match other titles', async () => {
-      expect(await Responsibility.isSystemTitle('Invite Members Weekly')).to.be.false
+      expect(await Responsibility.isSystemTitle('Add Members Weekly')).to.be.false
       expect(await Responsibility.isSystemTitle('')).to.be.false
       expect(await Responsibility.isSystemTitle(null)).to.be.false
     })
   })
 
   describe('fetchAll', () => {
-    it('lists Invite Members right after Add Members', async () => {
+    it('lists platform responsibilities in a fixed order', async () => {
       const rows = await Responsibility.fetchAll({ groupId: group.id })
       const titles = rows.filter(r => r.type === 'system').map(r => r.title)
       expect(titles).to.deep.equal([
         'Administration',
         'Add Members',
-        'Invite Members',
         'Remove Members',
         'Manage Content'
       ])

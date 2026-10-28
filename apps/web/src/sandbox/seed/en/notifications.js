@@ -94,10 +94,10 @@ export function buildNotifications ({ peopleById, meId, groups, postsById, track
     note('010', -7000, true, {
       action: 'chat',
       actor: p010,
-      group: chatSpace,
+      group: main,
       parent: main,
       post: chatNotes,
-      meta: { reasons: ['chat: general'] }
+      meta: { reasons: ['chat'] }
     }),
     note('011', -3600, true, {
       action: 'fundingRoundReminder',
@@ -135,7 +135,7 @@ function commentOn (post, num) {
   return items.find(c => c.id === sid('comment', num)) || items[0] || null
 }
 
-function note (num, createdAt_offset, unread, {
+function note (num, createdAtOffset, unread, {
   action,
   actor,
   group,
@@ -149,7 +149,7 @@ function note (num, createdAt_offset, unread, {
 }) {
   return {
     id: sid('notification', num),
-    createdAt_offset,
+    createdAt_offset: createdAtOffset,
     activity: {
       id: sid('activity', num),
       action,

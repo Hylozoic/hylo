@@ -14,7 +14,7 @@ const request = originalUrl => ({
 const graphqlResponse = data => ({ ok: true, json: async () => ({ data }) })
 
 async function render (originalUrl) {
-  const res = { status: jest.fn().mockReturnThis(), send: jest.fn() }
+  const res = { status: jest.fn().mockReturnThis(), send: jest.fn(), setHeader: jest.fn() }
   await appMiddleware(request(originalUrl), res)
   expect(res.status).toHaveBeenCalledWith(200)
   return res.send.mock.calls[0][0]

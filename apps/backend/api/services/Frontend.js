@@ -1,4 +1,5 @@
 import { isString, isNumber, isEmpty } from 'lodash'
+import { homeRouteHostsPostOverlay } from '@hylo/navigation'
 import { format } from 'util'
 
 /*
@@ -145,6 +146,10 @@ module.exports = {
       return this.group(group) + '/groups'
     },
 
+    managementCommonsRequests: function () {
+      return url('/management/site/commons-requests')
+    },
+
     groupSettings: function (group) {
       return this.group(group) + '/settings'
     },
@@ -168,6 +173,14 @@ module.exports = {
 
     invitePath: function (group) {
       return `/groups/${getSlug(group)}/join/${group.get('access_code')}`
+    },
+
+    inviteLinkPath: function (accessCode) {
+      return `/invite/${accessCode}`
+    },
+
+    viewLinkPath: function (accessCode) {
+      return `/view/${accessCode}`
     },
 
     mapPost: function (post, context, slug) {
@@ -213,11 +226,12 @@ module.exports = {
      *    land at /groups/{parentSlug}/spaces/{localSlug}/...
      * 3. Chat-type posts link to the group's chat view with postId as a query
      *    param so the UI can open the message inline.
-     * 4. All other posts use the group's configured home view (home_route):
-     *    - If the home is a chat view (e.g. /chat/general), the post is
-     *      surfaced there via the same ?postId= query param pattern.
-     *    - Otherwise (e.g. /all, /map) the post URL is appended as a path
-     *      segment so the UI renders the post detail modal at that route.
+     * 4. All other posts use the group's configured home view (home_route)
+     *    when that view can show a post on top (a stream, map, or chat).
+     *    The post URL is appended as a path segment so the UI opens the
+     *    post detail modal on that view. Page, welcome, and other static
+     *    homes use a standalone /post/:id URL. Those views do not mount a
+     *    post dialog.
      * 5. Posts with no group fall back to the public or all-groups feed.
      *
      * Note: `group` may be a Bookshelf model (has .get()) or a plain slug
@@ -254,9 +268,6 @@ module.exports = {
         )
       }
 
-      const tags = post.relations?.tags
-      const firstTopic = tags && tags.first()?.get('name')
-
       if (post.get && post.get('type') === Post.Type.CHAT) {
         return appendQueryString(
           groupViewUrl('/chat'),
@@ -265,26 +276,10 @@ module.exports = {
       }
 
       const homeRoute = isGroupObject ? (group.get('home_route') || '/all') : '/all'
-      if (homeRoute.startsWith('/chat/') && firstTopic) {
-        // Non-chat post shown in a chat home: open as a modal above the chat
-        // using /post/:id so you can see the full post and comments.
-        return appendQueryString(
-          groupViewUrl(`${homeRoute}/post/${getModelId(post)}`),
-          querySuffix
-        )
-      }
-      if (!homeRoute.startsWith('/chat/')) {
-        return appendQueryString(
-          groupViewUrl(`${homeRoute}/post/${getModelId(post)}`),
-          querySuffix
-        )
-      }
-      // Chat home but post has no topics (e.g. Zapier-created): fall back to
-      // standalone post URL so the UI can still open it.
-      return appendQueryString(
-        groupViewUrl(`/post/${getModelId(post)}`),
-        querySuffix
-      )
+      const postPath = homeRouteHostsPostOverlay(homeRoute)
+        ? `${homeRoute}/post/${getModelId(post)}`
+        : `/post/${getModelId(post)}`
+      return appendQueryString(groupViewUrl(postPath), querySuffix)
     },
 
     signup: (error) => {
@@ -387,6 +382,10 @@ module.exports = {
 
     verifyEmail: function (email, token) {
       return url('/signup/verify-email?email=%s&token=%s', encodeURIComponent(email), token)
+    },
+
+    verifyEmailChange: function (token) {
+      return url('/my/account?emailChangeToken=%s', token)
     },
 
     emailPostForm: function () {

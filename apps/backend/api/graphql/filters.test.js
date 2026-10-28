@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 import { groupFilter, isGroupVisibleToViewer, loadGroupVisibilityContext, makeFilterToggle } from './filters'
 import makeModels from './makeModels'
 import { expectEqualQuery } from '../../test/setup/helpers'
@@ -113,7 +114,8 @@ describe('model filters', () => {
             (select "group_memberships"."user_id"
             from "group_memberships"
             where "group_memberships"."group_id" in ${myGroupIdsSqlFragment(myId)})
-          or "users"."id" in (select "other_user_id" from "user_connections" where "user_connections"."user_id" = '${myId}'))`)
+          or "users"."id" in (select "other_user_id" from "user_connections" where "user_connections"."user_id" = '${myId}')
+          or "users"."is_profile_public" = true)`)
     })
   })
 
@@ -287,7 +289,7 @@ describe('loadGroupVisibilityContext', () => {
     }, ctx, viewer.id)).to.equal(false)
   })
 
-  it('does not show hidden spaces to members who can invite through the Member role', async () => {
+  it('shows hidden spaces to members when everyone can add members', async () => {
     const viewer = await factories.user().save()
     const host = await factories.user().save()
     const parent = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
@@ -301,19 +303,19 @@ describe('loadGroupVisibilityContext', () => {
     await GroupRole.setupSystemRoles(parent.id)
     const hostRole = await GroupRole.findSystemRole(parent.id, 'Host')
     await MemberGroupRole.forge({ user_id: host.id, group_id: parent.id, group_role_id: hostRole.id, active: true }).save()
-    await GroupRole.setInvitePolicy(parent.id, { mode: 'everyone' })
-    expect(await GroupMembership.inviteAccess(viewer.id, parent.id)).to.equal('limited')
+    await GroupRole.setInvitePolicy(parent.id, 'everyone')
+    expect(await GroupMembership.hasResponsibility(viewer.id, parent, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.true
 
     const visibleSpaceIds = async userId => {
       const groups = await groupFilter(userId)(Group.collection().query(q => q.where('groups.id', hiddenSpace.id))).fetch()
       return groups.map(g => g.id)
     }
-    expect(await visibleSpaceIds(viewer.id)).to.deep.equal([])
+    expect(await visibleSpaceIds(viewer.id)).to.deep.equal([hiddenSpace.id])
     expect(await visibleSpaceIds(host.id)).to.deep.equal([hiddenSpace.id])
 
     const ctx = await loadGroupVisibilityContext(viewer.id)
     expect(ctx.memberIds.has(String(parent.id))).to.equal(true)
-    expect(ctx.joinManagerIds.has(String(parent.id))).to.equal(false)
+    expect(ctx.joinManagerIds.has(String(parent.id))).to.equal(true)
     expect(isGroupVisibleToViewer({
       id: hiddenSpace.id,
       get: key => {
@@ -322,8 +324,7 @@ describe('loadGroupVisibilityContext', () => {
         if (key === 'parent_id') return parent.id
         return null
       }
-    }, ctx, viewer.id)).to.equal(false)
-    expect((await loadGroupVisibilityContext(host.id)).joinManagerIds.has(String(parent.id))).to.equal(true)
+    }, ctx, viewer.id)).to.equal(true)
   })
 
   it('does not show a protected space after leaving the parent', async () => {

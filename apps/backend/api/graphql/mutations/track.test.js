@@ -12,7 +12,7 @@ import {
   updateTrack
 } from './track'
 
-const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+const MEMBER_ROLE_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
 
 describe('track mutations', () => {
   let trackManager, member, group
@@ -54,7 +54,7 @@ describe('track mutations', () => {
 
   describe('completion role', () => {
     it('rejects the Member role when creating or updating a track', async () => {
-      const memberRole = await GroupRole.findMemberRole(group.id)
+      const memberRole = await GroupRole.findAllMembersRole(group.id)
       const countTracks = async () => Number((await bookshelf.knex('tracks').count('id as count').first()).count)
       const before = await countTracks()
       await expect(createTrack(trackManager.id, { groupId: group.id, completionRoleId: String(memberRole.id) }))

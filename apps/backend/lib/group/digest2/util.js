@@ -48,7 +48,8 @@ export const aggregateChatRooms = (chats) => {
         name: chat.source_group_name,
         num_new_chats: 1,
         url: chat.chat_url,
-        space_id: chat.space_id || null
+        space_id: chat.space_id || null,
+        source_group_id: chat.source_group_id
       }
     }
     return acc

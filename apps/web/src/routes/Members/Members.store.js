@@ -14,7 +14,7 @@ export const REMOVE_MEMBER = 'REMOVE_MEMBER'
 export const REMOVE_MEMBER_PENDING = REMOVE_MEMBER + '_PENDING'
 
 export const groupMembersQuery = `
-query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String, $groupRoleIds: [ID], $trackCompleted: Boolean, $fundingRoundCapability: String) {
+query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String, $groupRoleIds: [ID], $trackCompleted: Boolean, $fundingRoundCapability: String, $highlightMemberId: ID) {
   group (slug: $slug) {
     id
     name
@@ -82,6 +82,49 @@ query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: Stri
         }
       }
       hasMore
+    }
+  }
+  person(id: $highlightMemberId) {
+    id
+    name
+    avatarUrl
+    bannerUrl
+    location
+    tagline
+    lastActiveAt
+    enrolledAt
+    skills {
+      hasMore
+      items {
+        id
+        name
+      }
+    }
+    groupRoles (slug: $slug) {
+      items {
+        id
+        name
+        emoji
+        active
+        groupId
+        responsibilities {
+          items {
+            id
+            title
+            description
+          }
+        }
+      }
+    }
+    groupJoinQuestionAnswers (groupId: $groupId) {
+      items {
+        id
+        question {
+          id
+          text
+        }
+        answer
+      }
     }
   }
 }`
@@ -222,7 +265,7 @@ function defaultOrderForSort (sortBy) {
   return 'asc'
 }
 
-export function getMemberQueryProps ({ slug, search, sortBy, groupRoleIds, trackCompleted, fundingRoundCapability }) {
+export function getMemberQueryProps ({ slug, search, sortBy, groupRoleIds, trackCompleted, fundingRoundCapability, highlightMemberId }) {
   return {
     slug,
     search,
@@ -230,11 +273,12 @@ export function getMemberQueryProps ({ slug, search, sortBy, groupRoleIds, track
     groupRoleIds: groupRoleIds?.length ? groupRoleIds : null,
     trackCompleted: typeof trackCompleted === 'boolean' ? trackCompleted : null,
     fundingRoundCapability: fundingRoundCapability || null,
+    highlightMemberId: highlightMemberId || null,
     order: defaultOrderForSort(sortBy)
   }
 }
 
-export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability, first = 20 }) {
+export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability, highlightMemberId, first = 20 }) {
   return {
     type: FETCH_MEMBERS,
     graphql: {
@@ -249,13 +293,36 @@ export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, searc
         search,
         groupRoleIds: groupRoleIds?.length ? groupRoleIds : null,
         trackCompleted: typeof trackCompleted === 'boolean' ? trackCompleted : null,
-        fundingRoundCapability: fundingRoundCapability || null
+        fundingRoundCapability: fundingRoundCapability || null,
+        highlightMemberId: highlightMemberId || null
       }
     },
     meta: {
-      extractModel: 'Group',
+      extractModel: [
+        {
+          modelName: 'Group',
+          getRoot: get('group'),
+          append: true
+        },
+        {
+          modelName: 'Person',
+          getRoot: get('person'),
+          append: true
+        }
+      ],
       extractQueryResults: {
-        getItems: get('payload.data.group.members'),
+        getItems: (action) => {
+          const payload = action?.payload?.data || {}
+          const members = payload.group?.members || {}
+          const person = payload.person
+          if (person && members.items) {
+            const alreadyInList = members.items.some(m => String(m.id) === String(person.id))
+            if (!alreadyInList) {
+              members.items = [person, ...members.items]
+            }
+          }
+          return members
+        },
         replace: !offset,
         getRouteParams: action => getMemberQueryProps(action.meta.graphql.variables)
       }
@@ -283,8 +350,8 @@ export function removeMember (personId, groupId, slug) {
   }
 }
 // I don't know why there is this duplication (see fetchGroupMembers). Not taking the time to refactor.
-export function fetchMembers ({ slug, groupId, sortBy, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability }) {
-  return fetchGroupMembers({ slug, groupId, sortBy, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability })
+export function fetchMembers ({ slug, groupId, sortBy, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability, highlightMemberId }) {
+  return fetchGroupMembers({ slug, groupId, sortBy, offset, search, groupRoleIds, trackCompleted, fundingRoundCapability, highlightMemberId })
 }
 
 export default function reducer (state = {}, action) {

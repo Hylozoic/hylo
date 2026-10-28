@@ -92,7 +92,9 @@ type Query {
     # Return connections whose names match this string
     autocomplete: String,
     # Exclude people who are already members of this group
-    excludeGroupId: ID
+    excludeGroupId: ID,
+    # When true, omit connections whose name is blank or missing
+    requireName: Boolean
   ): PersonConnectionQuerySet
 
 
@@ -303,6 +305,10 @@ type Query {
     first: Int,
     # Only return members of these groups by group ID
     groupIds: [ID],
+    # Exclude active members of this group
+    excludeGroupId: ID,
+    # When true, omit people with a blank or missing name
+    requireName: Boolean,
     # For pagination return people after this offset
     offset: Int,
     # Number of People to return
@@ -368,7 +374,9 @@ type Query {
     # Return only posts that have any of these topics by topic ID
     topics: [ID],
     # Return only posts that are one of these types: 'discussion', 'event', 'offer', 'project', 'proposal', 'request' and/or 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Query for responsibilities
@@ -392,7 +400,7 @@ type Query {
     offset: Int,
     # Search term
     term: String,
-    # ONly search for content of a specific type: 'post', 'person', or 'comment'
+    # Only search for content of a specific type: 'post', 'person', 'comment', or 'group'
     type: String
   ): SearchResultQuerySet
 
@@ -483,6 +491,9 @@ type Query {
 
   # All site banners, past and present (admin only)
   allSiteBanners: [SiteBanner]
+
+  # Groups that have asked to be added to the commons, filtered by request status: pending, approved or denied. Omit status for all (admin only)
+  publicListingRequests(status: String): [Group]
 }
 
 union Update = Message | MessageThread | Notification
@@ -689,10 +700,10 @@ type CheckInvitationResult {
   email: String
   # The group role that will be assigned when this invitation is used
   groupRole: GroupRole
-  # True for an invitation from a member to a group where a steward approves new people: the person requests to join (with the invitation token) instead of joining
-  requiresApproval: Boolean
-  # Who sent a member invitation (null for other invitations)
-  invitedBy: InvitationSender
+  # True when an invite link lets the person join regardless of accessibility
+  grantAccess: Boolean
+  # Roles an invite link assigns when someone joins through it
+  groupRoles: [GroupRole]
 }
 
 # A comment on a post
@@ -800,6 +811,10 @@ type Group {
   id: ID
   # Whether the current user has access to this group (via scope system or free access)
   canAccess: Boolean
+  # Whether the current user has a currently valid user scope for this group or space
+  hasValidScope: Boolean
+  # Current user's membership state; null when the user has never joined
+  currentUserMembershipActive: Boolean
   # URL for a video to display at the top of the about text
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
@@ -812,6 +827,8 @@ type Group {
   status: GroupStatus
   # Whether this group's posts can be shown in public feeds
   allowInPublic: Boolean
+  # The group's latest request to be added to the commons (allowInPublic). Only visible to group administrators and Hylo admins
+  publicListingRequest: PublicListingRequest
   # URL to the image of the avatar of the group
   avatarUrl: String
   # Lucide or Hylo icon name for groups/spaces without a custom avatar
@@ -834,21 +851,19 @@ type Group {
   # Cached count of child spaces not on the group menu. Stored on groups.more_spaces_count
   # so the menu can show More Spaces and its badge without loading the spaces list.
   moreSpacesCount: Int
-  # The current invite link for this group
+  # DEPRECATED: sThe default invite link for this group, for anyone who can add members
   invitePath: String
-  # Who can invite new people to this group. Null for spaces, and for anyone without the Administration responsibility
-  invitePolicy: InvitePolicy
+  # Active invite links, for anyone who can add members
+  inviteLinks: [GroupInviteLink]
+  # Who can invite new people: 'everyone' or 'stewards'. Null for spaces, and for anyone without the Administration responsibility
+  invitePolicy: String
   # A string describing the physical location of this group in the world
   location: String
   # The fully geocoded location object
   locationObject: Location
   # Number of members in this group
   memberCount: Int
-  # The implicit role every member of this group holds. Null for spaces, and for anyone without the Administration responsibility
-  memberRole: GroupRole
-  # How the current user can invite people to this group: 'full' (Add Members), 'limited' (personal email invitations only) or null
-  myInviteAccess: String
-  # With 'limited' invite access: how many more email addresses the current user can invite to this group today. Null otherwise
+  # How many more people the current user can invite to this group today. Null when they cannot invite, or when their limit is lifted
   myInviteAllowance: Int
   # Cached count of pending join requests. Visible only to members who can add members; 0 otherwise
   openJoinRequestCount: Int
@@ -1109,14 +1124,14 @@ type Group {
     description: String
   ): GroupRelationshipQuerySet
 
-  # Pending invitations to people to join this group. With 'limited' invite access, only the ones the current user sent
+  # Pending invitations to people to join this group. onlyMine limits them to the ones the current user sent
   pendingInvitations(
-    # For pagination, return results after this ID
-    cursor: ID,
     # Number of invitations to return
     first: Int,
-    # Determines sort order, either 'ASC' or 'DESC'
-    order: String
+    # For pagination, skip this many invitations
+    offset: Int,
+    # When true, only the invitations the current user sent
+    onlyMine: Boolean
   ): InvitationQuerySet
 
   # Groups that must be joined before someone can join this group
@@ -1167,7 +1182,9 @@ type Group {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # All responsibilities available to the group
@@ -1258,7 +1275,9 @@ type Group {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Content access records for this group (purchased or granted)
@@ -1637,12 +1656,8 @@ type Invitation {
   error: String
   # Which group they are being invited to
   group: Group
-  # 'full' if it was sent by someone who can add members, 'limited' if it was sent with personal email invitation access only
-  inviterAccess: String
   # When this invitation was last sent out via email
   lastSentAt: Date
-  # Set on the invitations returned when inviting with 'limited' access: 'sent' for every valid address, whether or not an email went out
-  status: String
   # The login token for the person receiving the invitation to accept it even if they are not logged into Hylo
   token: String
 }
@@ -1654,12 +1669,22 @@ type InvitationQuerySet {
   items: [Invitation]
 }
 
-# Who can invite new people to a group. Roles with Add Members can always invite
-type InvitePolicy {
-  # 'everyone' (every member can send personal email invitations), 'stewards' (only roles with Add Members) or 'roles' (the roles in roleIds can too)
-  mode: String
-  # For 'roles': the roles that can send personal email invitations
-  roleIds: [ID]
+# A reusable link that lets someone see a group, and join it when grantAccess is true
+type GroupInviteLink {
+  accessCode: String
+  createdAt: Date
+  creator: Person
+  # Whether joining through this link skips the group's accessibility rules
+  grantAccess: Boolean
+  # Roles assigned when someone joins through this link
+  grantedRoles: [GroupRole]
+  id: ID
+  # Optional label shown next to the link
+  name: String
+  # How many people have joined through this link
+  numJoinedUsers: Int
+  # Path of the link, such as /invite/abc or /view/abc when it does not grant access
+  url: String
 }
 
 # A request from a person to join a group
@@ -1668,8 +1693,6 @@ type JoinRequest {
   createdAt: Date
   # Which group is being requested to join
   group: Group
-  # The member whose invitation this request came from
-  invitedBy: InvitationSender
   # Answers to questions required by Restricted groups
   questionAnswers: [GroupJoinQuestionAnswer]
   # 0 = Pending, 1 = Accepted, 2 = Rejected, 3 = Canceled
@@ -1779,14 +1802,14 @@ type Me {
   intercomHash: String
   # IGNORE
   isAdmin: Boolean
+  # Whether this user's profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # URL of the logged in user's LinkedIn Profile
   linkedinUrl: String
   # String representing the logged in user's physical location
   location: String
   # Object with the geocoded details of the logged in user's physical location
   locationObject: Location
-  # Whether members can be given invite access ('everyone' and 'roles' invite policies) on this server
-  memberInvitesEnabled: Boolean
   # Number of total group memberships
   membershipsTotal: Int
   # The number of MessageThreads the logged in user is a part of
@@ -1795,6 +1818,8 @@ type Me {
   name: String
   # The number of unread notifications the logged in user has
   newNotificationCount: Int
+  # A new login email the user has asked for but not yet verified. Until it is verified, email is still the one in use
+  pendingEmail: String
   # The number of Posts the logged in user has created
   postsTotal: Int
   # RSVP calendar URL for subscriptions
@@ -2164,6 +2189,8 @@ type Person {
   facebookUrl: String
   # False for new users who have not completed the registration process
   hasRegistered: Boolean
+  # Whether this person's profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # When this person last viewed Hylo
   lastActiveAt: String
   # URL of this person's LinkedIn Profile
@@ -2274,7 +2301,9 @@ type Person {
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
-    types: [String]
+    types: [String],
+    # Only return events that the current user has RSVPed to with this response (yes, no, interested)
+    rsvpResponse: String
   ): PostQuerySet
 
   # Project posts that this person is a member of
@@ -2637,10 +2666,10 @@ type SavedSearchQuerySet {
   items: [SavedSearch]
 }
 
-# Search result content item which can be a Person, a Post or a Comment
-union SearchResultContent = Person | Post | Comment
+# Search result content item which can be a Person, a Post, a Comment or a Group
+union SearchResultContent = Person | Post | Comment | Group
 
-# Search result item which can be a Person, a Post or a Comment
+# Search result item which can be a Person, a Post, a Comment or a Group
 type SearchResult {
   id: ID
   content: SearchResultContent
@@ -3026,6 +3055,8 @@ type FundingRound {
   phase: FundingRoundPhase
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether members can see every submission during the submissions phase
+  showRealtimeSubmissions: Boolean
   # Whether to show running vote totals during the voting phase
   showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
@@ -3124,6 +3155,8 @@ type UserSettings {
   streamPostType: String
   # Color scheme / palette name (e.g. default, forest, ocean)
   theme: String
+  # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
+  unifiedEmailDigest: Boolean
 }
 
 type Draft {
@@ -3155,6 +3188,20 @@ type EmailEnabledTester {
   user: Person
   createdAt: Date
   updatedAt: Date
+}
+
+# A group's request to be added to the commons (have allowInPublic turned on)
+type PublicListingRequest {
+  # pending, approved or denied
+  status: String
+  # Optional note from the requester to the Hylo team
+  message: String
+  requestedAt: Date
+  requestedBy: Person
+  reviewedAt: Date
+  reviewedBy: Person
+  # Optional note from the reviewing admin, included in the decision email
+  reviewMessage: String
 }
 
 # A site-wide announcement banner published by a superadmin
@@ -3274,6 +3321,8 @@ type Mutation {
   allowGroupInvites(groupId: ID, data: Boolean): Group
   # For logged in user to block a user, meaning they will no longer see the user's posts and that user can no longer see theirs or message them.
   blockUser(blockedUserId: ID): GenericResult
+  # Cancel a pending change of your login email. The verification code and link sent to the new address stop working
+  cancelEmailChange: GenericResult
   # For a steward of a group that has invited a group to be in relationship with it, to cancel that invitation.
   cancelGroupRelationshipInvite(groupRelationshipInviteId: ID): GenericResult
   # For a Person who has requested to join another group to cancel that request.
@@ -3386,6 +3435,8 @@ type Mutation {
     purpose: String,
     location: String,
     locationId: ID,
+    # GeoJSON geometry (e.g. a Polygon) outlining the space's region
+    geoShape: String,
     viewTypes: [String],
     bannerUrl: String,
     avatarUrl: String,
@@ -3411,6 +3462,8 @@ type Mutation {
     requiredRoles: [Int],
     location: String,
     locationId: ID,
+    # GeoJSON geometry (e.g. a Polygon) outlining the space's region. Null clears it.
+    geoShape: String,
     purpose: String,
     bannerUrl: String,
     avatarUrl: String,
@@ -3540,6 +3593,8 @@ type Mutation {
   # A member's invitation only pre-approves joining an Open group.
   # Set acceptAgreements to true if user has accepted agreements during join flow.
   joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput], accessCode: String, invitationToken: String, acceptAgreements: Boolean): Membership
+  # Reactivate a prior membership using still-valid purchased/granted access
+  rejoinGroup(groupId: ID!): Membership
   # Join a project Post as a member
   joinProject(id: ID): GenericResult
   # Leave a funding round
@@ -3580,8 +3635,12 @@ type Mutation {
   reactivateMe(id: ID): GenericResult
   # Record a click through on a moderated post
   recordClickthrough(postId: ID): GenericResult
-  # Regenerate the invite URL used to invite people to a Group. Only a group Host can call this.
-  regenerateAccessCode(groupId: ID): Group
+  # Create an invite link. Only someone with the Administration responsibility can call this.
+  createGroupInviteLink(groupId: ID!, data: GroupInviteLinkInput!): GroupInviteLink
+  # Change an invite link's name, access, and roles. Only someone with the Administration responsibility can call this.
+  updateGroupInviteLink(id: ID!, data: GroupInviteLinkUpdateInput!): GroupInviteLink
+  # Soft-delete an invite link. Only someone with the Administration responsibility can call this.
+  deleteGroupInviteLink(id: ID!): GenericResult
   # DEPRECATED: register a new mobile device to the current logged in user account
   registerDevice(playerId: String, platform: String, version: String): GenericResult
   # Reinvite all pending invitations to the current group. Only a group Host can call this.
@@ -3703,6 +3762,13 @@ type Mutation {
   updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
   # Update a track
   updateTrack(trackId: ID, data: TrackInput): Track
+  # Verify the new login email requested via updateMe, using the code or the link's token sent to that address
+  verifyEmailChange(
+    # The 6 digit code sent to the new address
+    code: String,
+    # For verifying by clicking on a URL, the token from the link
+    token: String
+  ): SignupResult
   # Accept an invitation to a Group
   useInvitation(
     # The invite code for the Group
@@ -3726,6 +3792,10 @@ type Mutation {
   deleteSiteBanner(id: ID!): Boolean
   # Dismiss a site banner for the current user
   dismissSiteBanner(id: ID!): Boolean
+  # Ask the Hylo team to add a public group to the commons (allowInPublic). Group administrators only
+  requestPublicListing(groupId: ID!, message: String): Group
+  # Approve or deny a group's pending request to be added to the commons; the requester is emailed either way (admin only)
+  reviewPublicListingRequest(groupId: ID!, approved: Boolean!, message: String): Group
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
@@ -3853,17 +3923,6 @@ type InvitationUseResult {
   error: String
   # If the mutation succeeded, the new group Membership object
   membership: Membership
-  # True when the invitation came from a member and nobody joined: either a steward approves new people in the group, and the person can request to join with the invitation token, or the person has not joined the group's prerequisite groups yet
-  requiresApproval: Boolean
-  # With requiresApproval, the slug of the group, whose about page shows how to join
-  groupSlug: String
-}
-
-# Who sent an invitation, as shown to the person invited and to stewards reviewing their request
-type InvitationSender {
-  id: ID
-  name: String
-  avatarUrl: String
 }
 
 # Result of a login or signup related mutation
@@ -4097,8 +4156,8 @@ input GroupInput {
   groupToGroupJoinQuestions: [QuestionInput]
   # The current invite link for this group
   invitePath: String
-  # Who can invite new people to this group (top-level groups only; changing it requires the Administration responsibility). 'everyone' and 'roles' are rejected while member invitations are switched off on this server
-  invitePolicy: InvitePolicyInput
+  # Who can invite new people to this group: 'everyone' or 'stewards'. Changing it requires the Administration responsibility
+  invitePolicy: String
   # Questions a Person must answer when requesting to join this group
   joinQuestions: [QuestionInput]
   # A string describing the physical location of this group in the world
@@ -4265,14 +4324,22 @@ input InviteInput {
   groupRoleId: ID
 }
 
-# Who can invite new people to a group
-input InvitePolicyInput {
-  # 'everyone' (every member), 'stewards' (roles with Add Members) or 'roles' (the roles below, as well as stewards)
-  mode: String!
-  # For 'roles': ids of this group's active roles
-  roleIds: [ID]
-  # For 'roles': system role names such as 'Moderator', for a group that is being created
-  systemRoleNames: [String]
+input GroupInviteLinkInput {
+  # 10 letter or digit code shown in the form before it is saved
+  accessCode: String!
+  name: String
+  # When false, the link only lets people see a Restricted group
+  grantAccess: Boolean
+  # Role ids assigned when someone joins through a link that grants access
+  grantedRoleIds: [ID]
+}
+
+input GroupInviteLinkUpdateInput {
+  name: String
+  # When false, the link only lets people see a Restricted group
+  grantAccess: Boolean
+  # Role ids assigned when someone joins through a link that grants access
+  grantedRoleIds: [ID]
 }
 
 # A link to a Post or a Person who has been Flagged
@@ -4297,10 +4364,12 @@ input MeInput {
   contactEmail: String
   # Phone number made visible on your profile
   contactPhone: String
-  # Account email address used to log in
+  # Account email address used to log in. Changing it sends a verification to the new address, and it only takes effect once verified (see pendingEmail)
   email: String
   # The URL to your Facebook profile
   facebookUrl: String
+  # Whether your profile is publicly viewable without logging in
+  isProfilePublic: Boolean
   # The URL to your LinkedIn profile
   linkedinUrl: String
   # String representing your physical location
@@ -4414,7 +4483,7 @@ input PostInput {
   fundingRoundId: ID
   # IDs of the groups to post to
   groupIds: [ID]
-  # URLs of images in the post. URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
+  # URLs of images in the post. A flat list of URL strings, or a nested list such as Zapier line items (those are flattened). URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
   imageUrls: [String]
   # Whether who votes on this proposal is visible or not
   isAnonymousVote: Boolean
@@ -4428,6 +4497,8 @@ input PostInput {
   linkPreviewFeatured: Boolean
   # When true, do not auto-generate a link preview from URLs in the post (the author removed it in the editor)
   skipLinkPreview: Boolean
+  # Create the post without notifying members: no email, push, in-app notification, unread badge, live update, Slack, or outbound Zapier. Only a steward of every destination group may set this. Cannot be combined with announcement.
+  silent: Boolean
   # Temporary id passed in from the client to identify the post when it is created, for optimistically updating the UI
   localId: String
   # Full location string
@@ -4568,6 +4639,8 @@ input FundingRoundInput {
   minTokenAllocation: Int
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # Whether members can see every submission during the submissions phase
+  showRealtimeSubmissions: Boolean
   # Whether to show running vote totals during the voting phase
   showRealtimeVotes: Boolean
   # The term used to describe a submission to the round
@@ -4633,4 +4706,6 @@ input UserSettingsInput {
   streamPostType: String
   # Color scheme / palette name (e.g. default, forest, ocean)
   theme: String
+  # When true, daily group digests are combined into one daily email and weekly group digests into one weekly email
+  unifiedEmailDigest: Boolean
 }

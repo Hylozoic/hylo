@@ -4,8 +4,8 @@
 // which addresses were skipped.
 const LIMITS = {
   perSend: 10,
-  perInviterPerDay: 25,
-  perGroupPerDay: 100
+  perInviterPerDay: 100,
+  perGroupPerDay: 200
 }
 
 async function recipientsInLastDay (column, id, transacting) {

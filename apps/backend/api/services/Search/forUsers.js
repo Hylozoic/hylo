@@ -43,6 +43,18 @@ export default function (opts) {
       qb.whereNotIn('id', opts.exclude)
     }
 
+    if (opts.excludeGroupId) {
+      qb.whereNotIn('users.id', function () {
+        this.select('user_id')
+          .from('group_memberships')
+          .where({ group_id: opts.excludeGroupId, active: true })
+      })
+    }
+
+    if (opts.requireName) {
+      qb.whereRaw("users.name is not null and btrim(users.name) <> ''")
+    }
+
     if (groups && groups.length > 1) {
       // prevent duplicates due to the joins
       if (opts.sort === 'join') {

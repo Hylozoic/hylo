@@ -15,7 +15,9 @@ export const filterAndSortPosts = curry((opts, q) => {
     isAnnouncement,
     isFulfilled,
     order,
+    rsvpResponse,
     savedBy,
+    currentUserId,
     search,
     sortBy = 'updated',
     topic,
@@ -113,6 +115,19 @@ export const filterAndSortPosts = curry((opts, q) => {
       'select post_id from collections_posts where view_id = ?',
       [collectionToFilterOut]
     ))
+  }
+
+  // Filter by RSVP response for events
+  if (rsvpResponse && currentUserId) {
+    q.join('event_invitations', function () {
+      this.on('event_invitations.event_id', '=', 'posts.id')
+        .andOn('event_invitations.user_id', '=', bookshelf.knex.raw('?', [currentUserId]))
+    })
+    if (rsvpResponse === 'yes+interested') {
+      q.whereIn('event_invitations.response', ['yes', 'interested'])
+    } else {
+      q.where('event_invitations.response', rsvpResponse)
+    }
   }
 
   const streamTypes = [DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE]
@@ -282,7 +297,10 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   if (sortBy === 'join') {
     q.orderBy('group_memberships.created_at', order || 'desc')
   } else if (!sortBy || sortBy === 'name') {
-    q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
+    // Users with no name (null, empty or whitespace only) always go last,
+    // whichever direction the names are sorted in
+    q.orderByRaw('(coalesce("users"."name", \'\') !~ \'\\S\') asc')
+    q.orderByRaw(`lower(trim("users"."name")) ${order || 'asc'}`)
   } else {
     q.orderByRaw(`${sortBy} ${order || 'asc'} NULLS LAST`)
   }

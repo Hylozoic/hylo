@@ -198,6 +198,7 @@ Object {
   $topic: ID,
   $topics: [ID],
   $types: [String]
+  $rsvpResponse: String
 ) {
   group(slug: $slug, updateLastViewed: true) {
     id
@@ -224,6 +225,7 @@ posts: viewPosts(
   search: $search,
   topic: $topic,
   topics: $topics,
+  rsvpResponse: $rsvpResponse,
   types: $types
 ) {
   hasMore

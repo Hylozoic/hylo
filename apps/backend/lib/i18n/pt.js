@@ -11,6 +11,8 @@ exports.pt = {
   Group: () => 'Grupo',
   emailDigestDailySubject: (name) => `Seu resumo diário de ${name}`,
   emailDigestWeeklySubject: (name) => `Seu resumo semanal de ${name}`,
+  emailDigestUnifiedDailySubject: () => 'Seu resumo diário do Hylo',
+  emailDigestUnifiedWeeklySubject: () => 'Seu resumo semanal do Hylo',
   emailSenderViaHyloSuffix: () => ' (via Hylo)',
   groupCreatedNotifySubject: (name) => `Novo grupo Hylo criado: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
@@ -107,6 +109,11 @@ exports.pt = {
     }
     return `${reminderMessages[reminderType] || 'Prazo se aproximando'}`
   },
+  publicListingApprovedSubject: (name) => `Seu grupo ${name} foi adicionado ao Commons`,
+  publicListingDeniedSubject: (name) => `Atualização sobre seu pedido para adicionar ${name} ao Commons`,
+  publicListingApprovedBody: (name) => `Boas notícias! ${name} foi adicionado ao Commons. Seu grupo agora aparece no Explorador de Grupos público e no mapa público, e os membros podem compartilhar publicações no fluxo público.`,
+  publicListingDeniedBody: (name) => `Obrigado por pedir para adicionar ${name} ao Commons. Após analisar seu pedido, a equipe Hylo decidiu não adicioná-lo neste momento. Seu grupo não foi alterado e você pode enviar um novo pedido nas configurações de Privacidade e Acesso do seu grupo.`,
+  publicListingReviewerNote: () => 'Uma nota da equipe Hylo:',
   theTeamAtHylo: 'A equipe Hylo',
   stripeContributionProductName: () => 'Escolha sua contribuição para a Hylo',
   stripeContributionProductDescription: () => 'Escolha o nível da sua contribuição para apoiar a plataforma Hylo.',

@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import Switch from './Switch'
 
 describe('Switch', () => {

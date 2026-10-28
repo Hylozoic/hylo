@@ -69,9 +69,10 @@ function handleQuery (operationName, rootField, variables, seed, query) {
 
     case 'FetchGroupMembers':
     case 'FetchGroupMembersForGraph':
-    case 'FetchRecentlyActiveMembers': {
+    case 'FetchRecentlyActiveMembers':
+    case 'fetchMembersForGroupRole': {
       const group = findGroup(seed, variables)
-      const members = membersForGroup(seed, group)
+      const members = filterByGroupRoles(membersForGroup(seed, group), variables.groupRoleIds)
       return {
         data: {
           group: {
@@ -82,9 +83,26 @@ function handleQuery (operationName, rootField, variables, seed, query) {
       }
     }
 
-    case 'FetchRoleMemberCounts': {
+    case 'fetchGroupRoleDetails': {
       const group = findGroup(seed, variables)
-      return { data: { group: presentGroup(seed, group) } }
+      const members = filterByGroupRoles(membersForGroup(seed, group), variables.groupRoleIds)
+      return {
+        data: {
+          group: { ...presentGroup(seed, group), members: paginate(members, variables.first, variables.offset) },
+          responsibilities: presentResponsibilities(seed, variables)
+        }
+      }
+    }
+
+    case 'FetchRoleMemberCounts': {
+      // Aliased per-role counts: `r<roleId>: members (first: 1, groupRoleIds: ["<roleId>"]) { total }`
+      const group = findGroup(seed, variables)
+      const members = membersForGroup(seed, group)
+      const counts = {}
+      for (const [, alias, roleId] of String(query).matchAll(/\b(r\d+)\s*:\s*members\s*\([^)]*groupRoleIds:\s*\["(\d+)"\]/g)) {
+        counts[alias] = { total: filterByGroupRoles(members, [roleId]).length }
+      }
+      return { data: { group: { ...presentGroup(seed, group), ...counts } } }
     }
 
     case 'PeopleAutocompleteQuery':
@@ -218,6 +236,8 @@ function defaultQuery (rootField, variables, seed, query) {
       return { data: { fundingRound: presentFundingRound(seed, variables.id) } }
     case 'track':
       return { data: { track: presentTrack(seed, variables.id) } }
+    case 'responsibilities':
+      return { data: { responsibilities: presentResponsibilities(seed, variables) } }
     // Plain GraphQL lists (not *QuerySet connections) — must be arrays
     case 'siteBanners':
     case 'allSiteBanners':
@@ -322,6 +342,19 @@ function handleMutation (operationName, rootField, variables, seed) {
       return { data: { [rootField]: payload } }
     }
   }
+}
+
+/**
+ * Plain list (not a QuerySet). By groupRoleId: that role's responsibilities,
+ * with responsibilityId as the edit forms expect. By groupId: every
+ * responsibility available to assign in the group.
+ */
+function presentResponsibilities (seed, { groupRoleId }) {
+  if (groupRoleId) {
+    const role = seed.groups.roles.find(r => String(r.id) === String(groupRoleId))
+    return (role?.responsibilities?.items || []).map(r => ({ ...r, responsibilityId: r.id }))
+  }
+  return seed.groups.responsibilities
 }
 
 function presentMe (seed) {
@@ -445,6 +478,9 @@ function presentGroup (seed, group) {
         ? [seed.groups.spaces.chat, seed.groups.spaces.track, seed.groups.spaces.funding]
         : []
     },
+    // The staff group is a child group of main (see buildMemberships)
+    childGroups: { items: group.id === seed.groups.main.id ? [seed.groups.staff] : [] },
+    parentGroups: { items: group.id === seed.groups.staff.id ? [seed.groups.main] : [] },
     fundingRound: group.id === seed.groups.spaces.funding.id ? presentFundingRound(seed, seed.fundingRound.id) : group.fundingRound || null,
     track: group.id === seed.groups.spaces.track.id ? presentTrack(seed, seed.track.id) : group.track || null
   }
@@ -493,6 +529,40 @@ function uniquePresentCommenters (items) {
   return people
 }
 
+function timeMs (value) {
+  if (!value) return NaN
+  const ms = Date.parse(value)
+  return Number.isFinite(ms) ? ms : NaN
+}
+
+/** Match the API: end_time >= afterTime, start_time < beforeTime. */
+function filterByTimeWindow (items, variables) {
+  const after = timeMs(variables.afterTime)
+  const before = timeMs(variables.beforeTime)
+  if (!Number.isFinite(after) && !Number.isFinite(before)) return items
+  return items.filter(post => {
+    const start = timeMs(post.startTime)
+    const end = timeMs(post.endTime)
+    if (Number.isFinite(after)) {
+      const ends = Number.isFinite(end) ? end : start
+      if (!Number.isFinite(ends) || ends < after) return false
+    }
+    if (Number.isFinite(before)) {
+      if (!Number.isFinite(start) || start >= before) return false
+    }
+    return true
+  })
+}
+
+function sortByStartTime (items, order) {
+  return sortByTimestamp(items, 'startTime', order)
+}
+
+function sortByTimestamp (items, key, order) {
+  const dir = order === 'asc' ? 1 : -1
+  return [...items].sort((a, b) => (timeMs(a[key]) - timeMs(b[key])) * dir)
+}
+
 function presentPostQuerySet (seed, variables) {
   let items = listPosts(seed, variables)
   if (variables.types?.length) {
@@ -513,14 +583,49 @@ function presentPostQuerySet (seed, variables) {
     const ids = new Set(variables.createdBy.map(String))
     items = items.filter(p => ids.has(String(p.creator?.id)))
   }
+  items = filterByTimeWindow(items, variables)
+  if (variables.sortBy === 'start_time') {
+    items = sortByStartTime(items, variables.order)
+  } else if (variables.sortBy === 'updated' || variables.sortBy === 'created') {
+    items = sortByTimestamp(items, variables.sortBy === 'updated' ? 'updatedAt' : 'createdAt', variables.order)
+  }
+  items = applyIdCursor(items, variables)
   items = items.map(p => presentPost(seed, p))
   return paginate(items, variables.first, variables.offset)
+}
+
+/**
+ * Chat pages by post id the way the API does: asc is newer than the cursor,
+ * desc is older. Leaving this off made "back to chat" append the same page again.
+ * Offset-only stream queries keep seed order.
+ */
+function applyIdCursor (items, variables) {
+  if (variables.sortBy !== 'id' && variables.cursor == null) return items
+  const ascending = variables.order === 'asc'
+  const cursorId = variables.cursor != null && variables.cursor !== '' ? Number(variables.cursor) : null
+  let next = items
+  if (Number.isFinite(cursorId)) {
+    next = items.filter(post => {
+      const id = Number(post.id)
+      return ascending ? id > cursorId : id < cursorId
+    })
+  }
+  return [...next].sort((a, b) => {
+    const delta = Number(a.id) - Number(b.id)
+    return ascending ? delta : -delta
+  })
 }
 
 function listPosts (seed, variables) {
   const group = findGroup(seed, variables)
   if (group) {
-    if (group.id === seed.groups.main.id) return seed.posts.mainStream
+    if (group.id === seed.groups.main.id) {
+      // Chat rooms send filter: 'chat' and omit types when activity notices are on.
+      const wantsChat = variables.filter === 'chat' ||
+        (variables.types?.length === 1 && variables.types[0] === 'chat')
+      if (wantsChat) return seed.posts.hubChat
+      return seed.posts.mainStream
+    }
     if (group.id === seed.groups.simple.id) {
       const wantsChat = variables.types?.length === 1 && variables.types[0] === 'chat'
       if (wantsChat) return seed.posts.simpleGroupChat
@@ -650,6 +755,13 @@ function stripHtml (html = '') {
   return String(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
+/** Keep people holding any of groupRoleIds (no filter when empty). */
+function filterByGroupRoles (people, groupRoleIds) {
+  if (!groupRoleIds?.length) return people
+  const ids = new Set(groupRoleIds.map(String))
+  return people.filter(person => (person.groupRoles?.items || []).some(role => ids.has(String(role.id))))
+}
+
 function membersForGroup (seed, group) {
   if (!group) return []
   const me = seed.peopleById[seed.ids.me]
@@ -665,12 +777,12 @@ function membersForGroup (seed, group) {
       ...seed.people.filter(p => p.staffGroup)
     ]
   }
-  const namedTerran = seed.people.filter(p => !p.starterGroup && p.avatarUrl)
+  const namedMainMembers = seed.people.filter(p => !p.starterGroup && p.avatarUrl)
   if (group.id === seed.groups.spaces.chat.id) {
-    return [me, ...namedTerran]
+    return [me, ...namedMainMembers]
   }
   if (group.id === seed.groups.spaces.track.id) {
-    return [me, ...namedTerran.slice(6, 16)]
+    return [me, ...namedMainMembers.slice(6, 16)]
   }
   if (group.id === seed.groups.spaces.funding.id) {
     const ids = new Set([
@@ -781,8 +893,10 @@ function createPost (seed, variables) {
     isPublic: variables.isPublic || false
   }
   seed.posts.byId[post.id] = post
-  if (group.id === seed.groups.main.id) seed.posts.mainStream.unshift(post)
-  else if (group.id === seed.groups.simple.id) {
+  if (group.id === seed.groups.main.id) {
+    if (post.type === 'chat') (seed.posts.hubChat || (seed.posts.hubChat = [])).unshift(post)
+    else seed.posts.mainStream.unshift(post)
+  } else if (group.id === seed.groups.simple.id) {
     if (post.type === 'chat') seed.posts.simpleGroupChat.unshift(post)
     else (seed.posts.simpleGroupStream || (seed.posts.simpleGroupStream = [])).unshift(post)
   } else if (group.id === seed.groups.staff.id) {
@@ -803,7 +917,7 @@ function updatePost (seed, variables) {
 function deletePost (seed, variables) {
   const id = variables.id
   delete seed.posts.byId[id]
-  const lists = [seed.posts.mainStream, seed.posts.chatSpace, seed.posts.simpleGroupChat, seed.posts.simpleGroupStream, seed.posts.staffGroupChat, seed.posts.staffGroupStream, seed.posts.fundingSubmissions].filter(Boolean)
+  const lists = [seed.posts.mainStream, seed.posts.hubChat, seed.posts.chatSpace, seed.posts.simpleGroupChat, seed.posts.simpleGroupStream, seed.posts.staffGroupChat, seed.posts.staffGroupStream, seed.posts.fundingSubmissions].filter(Boolean)
   for (const list of lists) {
     const idx = list.findIndex(p => String(p.id) === String(id))
     if (idx !== -1) list.splice(idx, 1)
@@ -840,10 +954,11 @@ function updateComment (seed, variables) {
 }
 
 function updateMe (seed, variables) {
-  const changes = variables.changes || variables
+  const { settings, ...changes } = variables.changes || variables
   Object.assign(seed.me, changes)
-  if (changes.settings) {
-    seed.me.settings = { ...seed.me.settings, ...changes.settings }
+  // Merge rather than replace — changes.settings only holds the keys being changed
+  if (settings) {
+    seed.me.settings = { ...seed.me.settings, ...settings }
   }
   return presentMe(seed)
 }

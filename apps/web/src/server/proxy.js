@@ -4,22 +4,11 @@ import request from 'request'
 import streamifier from 'streamifier'
 import { gzip } from 'zlib'
 import { URL } from 'url'
+import { staticPages } from './staticPages.js'
 
 const cache = LRU(50)
 
-// flag-shared
-const staticPages = [
-  '',
-  '/about',
-  '/agreements',
-  '/participate',
-  '/terms',
-  '/privacy',
-  '/murmurations.json',
-  '/funding.json',
-  '/regional-resilience',
-  '/blog'
-]
+export { staticPages }
 
 export const IOS_SITE_ASSOCIATION_FILE = 'apple-app-site-association'
 

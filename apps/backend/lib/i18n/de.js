@@ -11,6 +11,8 @@ exports.de = {
   Group: () => 'Gruppe',
   emailDigestDailySubject: (name) => `Dein täglicher Überblick für ${name}`,
   emailDigestWeeklySubject: (name) => `Dein wöchentlicher Überblick für ${name}`,
+  emailDigestUnifiedDailySubject: () => 'Dein täglicher Hylo-Überblick',
+  emailDigestUnifiedWeeklySubject: () => 'Dein wöchentlicher Hylo-Überblick',
   emailSenderViaHyloSuffix: () => ' (über Hylo)',
   groupCreatedNotifySubject: (name) => `Neue Hylo-Gruppe erstellt: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
@@ -107,6 +109,11 @@ exports.de = {
     }
     return `${reminderMessages[reminderType] || 'Frist naht'}`
   },
+  publicListingApprovedSubject: (name) => `Deine Gruppe ${name} wurde zu den Commons hinzugefügt`,
+  publicListingDeniedSubject: (name) => `Neuigkeiten zu deiner Anfrage, ${name} zu den Commons hinzuzufügen`,
+  publicListingApprovedBody: (name) => `Gute Nachrichten! ${name} wurde zu den Commons hinzugefügt. Deine Gruppe erscheint jetzt im öffentlichen Gruppen-Explorer und auf der öffentlichen Karte, und Mitglieder können Beiträge im öffentlichen Stream teilen.`,
+  publicListingDeniedBody: (name) => `Danke für deine Anfrage, ${name} zu den Commons hinzuzufügen. Nach Prüfung deiner Anfrage hat das Hylo-Team entschieden, sie vorerst nicht hinzuzufügen. Deine Gruppe bleibt unverändert, und du kannst in den Einstellungen unter Privatsphäre & Zugang deiner Gruppe eine neue Anfrage stellen.`,
+  publicListingReviewerNote: () => 'Eine Nachricht vom Hylo-Team:',
   theTeamAtHylo: 'Das Hylo-Team',
   stripeContributionProductName: () => 'Wähle deinen Hylo-Beitrag',
   stripeContributionProductDescription: () => 'Wähle deine Beitragshöhe, um die Hylo-Plattform zu unterstützen.',

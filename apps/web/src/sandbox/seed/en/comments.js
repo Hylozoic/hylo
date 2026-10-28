@@ -2,7 +2,7 @@ import { htmlCopy, sid } from '../helpers'
 import { ME_ID } from './people'
 
 /**
- * Comments keyed by post id, drawn from real Terran Collective conversations.
+ * Comments keyed by post id, adapted from real Hylo community conversations.
  */
 export function buildCommentsByPostId (peopleById, meId) {
   const me = peopleById[meId]
@@ -41,7 +41,7 @@ export function buildCommentsByPostId (peopleById, meId) {
       comment('001-c07', p006, -86400 * 13 + 10000,
         '<p>I&#39;d love to donate but sending USD will get me a big charge. Any way to donate outside of the US?</p>'),
       comment('001-c08', me, -86400 * 13 + 11000,
-        '<p>Does PayPal work better? You could also donate here: http://paypal.me/terrancollective</p>'),
+        '<p>Does PayPal work better? You could also donate directly to a coordinator — message me for details.</p>'),
       comment('001-c09', p006, -86400 * 13 + 12000,
         '<p>Yep, PayPal is perfect — sorted! 🙏</p>'),
       comment('001-c10', me, -86400 * 13 + 13000,
@@ -164,7 +164,7 @@ export function buildCommentsByPostId (peopleById, meId) {
       comment('102-c03', cleo, -86400 * 33,
         '<p>Could everyone post up how they see themselves being involved with the Twilight Markets? i.e helping to organise them, having a market stall, etc. Like Finn has done already, thank you Finn!</p>'),
       comment('102-c04', cleo, -86400 * 33 + 200,
-        '<p>I see myself supporting the Twilight Markets project through East Bay Connect. I&#39;m happy to reach out to more people to find other organising team members too.</p>'),
+        '<p>I see myself supporting the Twilight Markets project through Local Sharing Network. I&#39;m happy to reach out to more people to find other organising team members too.</p>'),
       comment('102-c05', finn, -86400 * 33 + 400,
         '<p>I have years of experience in the event industry. If you need any help to get this off the ground I&#39;m happy to come along to any meetings and share ideas. I also currently travel to many twilight markets in the region.</p>'),
       comment('102-c06', me, -86400 * 32,
@@ -194,7 +194,7 @@ export function buildCommentsByPostId (peopleById, meId) {
     // Organic facials
     [sid('post', 'simple-106')]: [
       comment('106-c01', cleo, -86400 * 31,
-        '<p>Hello Anjali, welcome to East Bay Connect :) This sounds pretty luxurious, how much are your treatments?</p>'),
+        '<p>Hello Anjali, welcome to Local Sharing Network :) This sounds pretty luxurious, how much are your treatments?</p>'),
       comment('106-c02', anjali, -86400 * 31 + 400,
         '<p>I&#39;m doing a heavily discounted promotion this month — $60 /hr session.</p>'),
       comment('106-c03', me, -86400 * 30,
@@ -244,7 +244,7 @@ export function buildCommentsByPostId (peopleById, meId) {
 
     [sid('post', 'staff-202')]: [
       comment('s202-c01', p005, -86400 * 41,
-        '<p>Hi! I&#39;m planning to post next week about using Holistica for neighborhood gatherings. Anything else I should particularly mention? Have you found someone for the books yet?</p>'),
+        '<p>Hi! I&#39;m planning to post next week about using the co-op for neighborhood gatherings. Anything else I should particularly mention? Have you found someone for the books yet?</p>'),
       comment('s202-c02', me, -86400 * 41 + 500,
         '<p>that sounds great, thanks! no, sadly we have not... still working on it. really should only take a day or two to settle once we find someone.</p>'),
       comment('s202-c03', p003, -86400 * 40,
@@ -272,7 +272,7 @@ export function buildCommentsByPostId (peopleById, meId) {
       comment('s205-c04', p006, -86400 * 31,
         '<p>hey I would give but sending USD will get me a big charge — any way to contribute outside the US?</p>'),
       comment('s205-c05', me, -86400 * 31 + 500,
-        '<p>Does PayPal work better? you could also give here: http://paypal.me/holistica</p>'),
+        '<p>Does PayPal work better? you could also give directly to one of us — message me for details.</p>'),
       comment('s205-c06', p006, -86400 * 30,
         '<p>yep PayPal is perfect, sorted!</p>')
     ],
@@ -308,7 +308,7 @@ export function buildCommentsByPostId (peopleById, meId) {
       comment('fr002-c01', p004, -86400 * 3 + 1000,
         '<p>This is exactly what our cooperative farm network needs — practical, place-based learning without the debt trap.</p>'),
       comment('fr002-c02', me, -86400 * 3 + 2000,
-        '<p>Strong submission. The CC licensing makes this easy to share with partner groups outside Terran too.</p>')
+        '<p>Strong submission. The CC licensing makes this easy to share with partner groups outside Community Hub too.</p>')
     ],
 
     [sid('post', 'fr-003')]: [
@@ -336,14 +336,14 @@ export function buildCommentsByPostId (peopleById, meId) {
   }
 }
 
-function comment (num, creator, createdAt_offset, extrasOrText = {}) {
+function comment (num, creator, createdAtOffset, extrasOrText = {}) {
   const isString = typeof extrasOrText === 'string'
   const text = isString ? extrasOrText : (extrasOrText.text || htmlCopy())
   const childComments = (!isString && extrasOrText.childComments) || []
   return {
     id: sid('comment', num),
     text,
-    createdAt_offset,
+    createdAt_offset: createdAtOffset,
     creator,
     parentComment: null,
     attachments: [],
@@ -502,7 +502,7 @@ export function buildReactionsByPostId (peopleById, meId) {
   }
 }
 
-function reaction (num, user, emojiFull, createdAt_offset) {
+function reaction (num, user, emojiFull, createdAtOffset) {
   return {
     id: sid('reaction', num),
     userId: user?.id,
@@ -511,7 +511,7 @@ function reaction (num, user, emojiFull, createdAt_offset) {
     emojiBase: emojiFull,
     emojiLabel: emojiFull,
     entityType: 'post',
-    createdAt_offset
+    createdAt_offset: createdAtOffset
   }
 }
 
@@ -557,6 +557,6 @@ export function buildProposalData () {
   }
 }
 
-function vote (id, userId, optionId, postId, createdAt_offset) {
-  return { id: sid('vote', id), userId, optionId, postId, createdAt_offset }
+function vote (id, userId, optionId, postId, createdAtOffset) {
+  return { id: sid('vote', id), userId, optionId, postId, createdAt_offset: createdAtOffset }
 }

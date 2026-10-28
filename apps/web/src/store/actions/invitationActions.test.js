@@ -10,17 +10,17 @@ function selectedFields (query, rootField) {
 }
 
 describe('invitation actions', () => {
-  it('checkInvitation asks whether approval is needed and who sent a member invitation', () => {
+  it('checkInvitation asks whether the link grants access', () => {
     const { graphql } = checkInvitation({ invitationToken: 'member-token' })
 
-    expect(selectedFields(graphql.query, 'checkInvitation')).toEqual(expect.arrayContaining(['requiresApproval', 'invitedBy']))
+    expect(selectedFields(graphql.query, 'checkInvitation')).toEqual(expect.arrayContaining(['grantAccess']))
     expect(graphql.variables).toEqual({ invitationToken: 'member-token', accessCode: undefined })
   })
 
-  it('acceptInvitation asks whether the person has to request to join instead', () => {
+  it('acceptInvitation asks for the membership', () => {
     const { graphql } = acceptInvitation({ invitationToken: 'member-token' })
 
-    expect(selectedFields(graphql.query, 'useInvitation')).toEqual(expect.arrayContaining(['membership', 'requiresApproval', 'groupSlug']))
+    expect(selectedFields(graphql.query, 'useInvitation')).toEqual(expect.arrayContaining(['membership', 'error']))
   })
 
   it('acceptInvitation leaves analytics to the caller, which knows whether anyone joined', () => {

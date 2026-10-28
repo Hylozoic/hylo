@@ -6,13 +6,11 @@ import PostCard from 'components/PostCard'
 import ProfileListFooter from '../ProfileListFooter'
 import usePagedProfileList from '../usePagedProfileList'
 import {
+  fetchMemberPosts,
   getMemberPosts,
-  fetchMemberPosts
+  PAGE_SIZE
 } from './MemberPosts.store'
 import classes from './MemberPosts.module.scss'
-
-const PAGE_SIZE = 20
-
 export default function MemberPosts ({ routeParams = {}, loading: loadingProp }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()

@@ -41,6 +41,14 @@ export function fetchGroupSettings (slug) {
           id
           acceptedPostTypes
           accessibility
+          allowInPublic
+          publicListingRequest {
+            status
+            message
+            requestedAt
+            reviewedAt
+            reviewMessage
+          }
           avatarUrl
           bannerUrl
           description
@@ -66,20 +74,7 @@ export function fetchGroupSettings (slug) {
             region
           }
           invitePath
-          invitePolicy {
-            mode
-            roleIds
-          }
-          memberRole {
-            id
-            responsibilities {
-              items {
-                id
-                title
-                description
-              }
-            }
-          }
+          invitePolicy
           name
           purpose
           settings {
@@ -287,20 +282,7 @@ export function updateGroupSettings (id, changes) {
           stripePayoutsEnabled
           stripeDetailsSubmitted
           paywall
-          invitePolicy {
-            mode
-            roleIds
-          }
-          memberRole {
-            id
-            responsibilities {
-              items {
-                id
-                title
-                description
-              }
-            }
-          }
+          invitePolicy
           settings {
             defaultDigestFrequency
             locationDisplayPrecision

@@ -101,14 +101,12 @@ before(function (done) {
 
       setup.createSchema()
         .then(async () => {
-          // Insertion order sets the ids, which Group.moderators() and stewards() hard-code;
-          // Invite Members comes last, as the migration that added it appends it
+          // Insertion order sets the ids, which Group.moderators() and stewards() hard-code
           const systemResponsibilities = [
             'Administration',
             'Add Members',
             'Remove Members',
-            'Manage Content',
-            'Invite Members'
+            'Manage Content'
           ]
           for (const title of systemResponsibilities) {
             await Responsibility.forge({ title, type: 'system' }).save()

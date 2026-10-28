@@ -39,7 +39,7 @@ describe('MapDrawer', () => {
         { id: 1, slug: 'slug2', name: 'group one', avatarUrl: 'https://google.com', description: 'yo', memberCount: 1 }
       ],
       members: [
-        { id: 2, name: 'hello' }
+        { id: '2', name: 'hello' }
       ],
       posts: [
         { id: 1, title: 'Post', type: 'request', groups: [{ id: 1, name: 'group one', slug: 'slug2' }] }
@@ -62,6 +62,26 @@ describe('MapDrawer', () => {
 
     render(<MapDrawer {...defaultMinProps} context='all' routeParams={{ context: 'all' }} members={members} />)
     expect(screen.queryByText('hello')).not.toBeInTheDocument()
+  })
+
+  it('shows a space avatar in the drawer', () => {
+    render(
+      <MapDrawer
+        {...defaultMinProps}
+        group={{ id: 9, slug: 'river' }}
+        groups={[{
+          id: 2,
+          slug: 'oak-park',
+          name: 'Oak Park',
+          type: 'space',
+          avatarUrl: 'https://example.com/oak.jpg',
+          parentGroup: { id: 9, slug: 'river' }
+        }]}
+      />
+    )
+
+    const row = screen.getByRole('link', { name: /Oak Park/ })
+    expect(row.querySelector('div').style.backgroundImage).toContain('oak.jpg')
   })
 
   it('updates filters when searching', () => {

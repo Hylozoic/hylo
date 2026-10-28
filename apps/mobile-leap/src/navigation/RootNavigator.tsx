@@ -14,11 +14,13 @@ import ModalHeader from './headers/ModalHeader'
 import LoginByTokenHandlerScreen from '../screens/LoginByTokenHandler/LoginByTokenHandlerScreen'
 import JoinGroupScreen from '../screens/JoinGroup/JoinGroupScreen'
 import UnknownScreen from '../screens/Unknown/UnknownScreen'
+import useThemeStore from '../store/themeStore'
 
 const Root = createNativeStackNavigator()
 
 export default function RootNavigator () {
   const { isAuthorized, fetching } = useAuth()
+  const backgroundColor = useThemeStore(state => state.backgroundColor)
   const hasCompletedInitialAuthFetch = useRef(false)
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export default function RootNavigator () {
 
   if (fetching && !hasCompletedInitialAuthFetch.current) {
     return (
-      <View className='flex-1 items-center justify-center bg-background'>
+      <View className='flex-1 items-center justify-center' style={{ backgroundColor }}>
         <ActivityIndicator />
       </View>
     )

@@ -8,7 +8,7 @@ import {
   updateGroupRole
 } from './role'
 
-const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+const MEMBER_ROLE_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
 
 describe('roles mutations', () => {
   let user, user2, group
@@ -60,7 +60,7 @@ describe('roles mutations', () => {
     let memberRole
 
     before(async () => {
-      memberRole = await GroupRole.findMemberRole(group.id)
+      memberRole = await GroupRole.findAllMembersRole(group.id)
     })
 
     it('cannot be renamed or deactivated', async () => {
@@ -70,7 +70,7 @@ describe('roles mutations', () => {
         .to.be.rejectedWith(MEMBER_ROLE_ERROR)
 
       await memberRole.refresh()
-      expect(memberRole.get('name')).to.equal('Member')
+      expect(memberRole.get('name')).to.equal('All Members')
       expect(memberRole.get('active')).to.equal(true)
     })
 
@@ -101,7 +101,7 @@ describe('roles mutations', () => {
       }
 
       await memberRole.refresh()
-      expect(memberRole.get('name')).to.equal('Member')
+      expect(memberRole.get('name')).to.equal('All Members')
       expect(memberRole.get('active')).to.equal(true)
       const assignments = await MemberGroupRole.where({ group_role_id: memberRole.id }).count()
       expect(Number(assignments)).to.equal(0)
@@ -110,6 +110,28 @@ describe('roles mutations', () => {
     it('reports missing privileges before anything about the role', async () => {
       await expect(addRoleToMember({ userId: user.id, roleId: memberRole.id, personId: user.id, groupId: group.id }))
         .to.be.rejectedWith("User doesn't have required privileges to add role to member")
+    })
+  })
+
+  describe('with a role from another group', () => {
+    let otherAdmin, otherGroup, otherRole
+
+    before(async () => {
+      otherAdmin = await factories.user().save()
+      otherGroup = await factories.group().save()
+      await otherAdmin.joinGroup(otherGroup, { assignAdministrator: true })
+      otherRole = await addGroupRole({ groupId: otherGroup.id, color, name: 'Theirs', emoji, userId: otherAdmin.id })
+    })
+
+    it('does not update it', async () => {
+      await expect(updateGroupRole({ groupId: group.id, name: 'Hijacked', userId: user2.id, groupRoleId: otherRole.id }))
+        .to.eventually.be.rejectedWith('Role not found in this group')
+      expect((await GroupRole.where({ id: otherRole.id }).fetch()).get('name')).to.equal('Theirs')
+    })
+
+    it('does not assign it to a member', async () => {
+      await expect(addRoleToMember({ userId: user2.id, roleId: otherRole.id, personId: user.id, groupId: group.id }))
+        .to.eventually.be.rejectedWith('Role not found in this group')
     })
   })
 })

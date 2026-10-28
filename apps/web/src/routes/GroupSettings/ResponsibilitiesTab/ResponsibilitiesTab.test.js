@@ -5,17 +5,13 @@ import { AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testin
 import ResponsibilitiesTab from './ResponsibilitiesTab'
 
 describe('ResponsibilitiesTab', () => {
-  let savedFlag
-
   beforeEach(() => {
-    savedFlag = process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
-    delete process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
     mockGraphqlServer.use(
       graphql.query('fetchResponsibiltiesForGroup', () => HttpResponse.json({
         data: {
           responsibilities: [
             { id: '1', title: 'Administration', type: 'system', description: 'Manage the group' },
-            { id: '41', title: 'Invite Members', type: 'system', description: 'Send personal email invitations' },
+            { id: '41', title: 'Add Members', type: 'system', description: 'Invite and add new people' },
             { id: '70', title: 'Greet Newcomers', type: 'group', description: 'Say hello' }
           ]
         }
@@ -23,19 +19,11 @@ describe('ResponsibilitiesTab', () => {
     )
   })
 
-  afterEach(() => {
-    if (savedFlag === undefined) {
-      delete process.env.VITE_FEATURE_FLAG_MEMBER_INVITES
-    } else {
-      process.env.VITE_FEATURE_FLAG_MEMBER_INVITES = savedFlag
-    }
-  })
-
   it('lists the built-in and custom responsibilities', async () => {
     render(<ResponsibilitiesTab group={{ id: '1' }} />, { wrapper: AllTheProviders() })
 
     expect(await screen.findByText('Administration')).toBeInTheDocument()
-    expect(screen.getByText('Invite Members')).toBeInTheDocument()
+    expect(screen.getByText('Add Members')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Greet Newcomers')).toBeInTheDocument()
   })
 
@@ -68,10 +56,10 @@ describe('ResponsibilitiesTab', () => {
 
     it('says a built-in responsibility already has the name', async () => {
       refuseWith('A built-in responsibility already has this title')
-      await createDraft('Invite Members')
+      await createDraft('Add Members')
 
       await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('A built-in responsibility already has this name. Please choose another.'))
-      expect(screen.getByDisplayValue('Invite Members')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Add Members')).toBeInTheDocument()
     })
 
     it('says something went wrong for any other refusal', async () => {
@@ -84,19 +72,11 @@ describe('ResponsibilitiesTab', () => {
     it('says the same when renaming a custom responsibility', async () => {
       refuseWith('A built-in responsibility already has this title')
       render(<ResponsibilitiesTab group={{ id: '1' }} />, { wrapper: AllTheProviders() })
-      fireEvent.change(await screen.findByDisplayValue('Greet Newcomers'), { target: { value: 'Invite Members' } })
+      fireEvent.change(await screen.findByDisplayValue('Greet Newcomers'), { target: { value: 'Add Members' } })
       fireEvent.click(screen.getByRole('button', { name: /Save/ }))
 
       await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('A built-in responsibility already has this name. Please choose another.'))
     })
   })
 
-  it('leaves out Invite Members while member invitations are switched off', async () => {
-    process.env.VITE_FEATURE_FLAG_MEMBER_INVITES = 'off'
-    render(<ResponsibilitiesTab group={{ id: '1' }} />, { wrapper: AllTheProviders() })
-
-    expect(await screen.findByText('Administration')).toBeInTheDocument()
-    expect(screen.queryByText('Invite Members')).not.toBeInTheDocument()
-    expect(screen.getByDisplayValue('Greet Newcomers')).toBeInTheDocument()
-  })
 })

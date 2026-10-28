@@ -5,6 +5,8 @@ import { withPublicPostMetaTags } from './postMetaTags.js'
 import { withDefaultMetaTags, withGroupMetaTags } from './groupMetaTags.js'
 
 export default async function appMiddleware (req, res, next) {
+  // The shell names hashed assets. It must revalidate on every load so a deploy is picked up.
+  res.setHeader('Cache-Control', 'no-cache')
   const withPostTags = await withPublicPostMetaTags(html(''), req)
   const withGroupTags = await withGroupMetaTags(withPostTags, req)
   return res.status(200).send(withDefaultMetaTags(withGroupTags, req))

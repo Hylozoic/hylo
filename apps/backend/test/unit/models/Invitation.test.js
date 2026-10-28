@@ -108,15 +108,14 @@ describe('Invitation', function () {
         })
     })
 
-    it('leaves invitations sent by members to the automatic reminders', async () => {
+    it('resends every pending invitation in the group', async () => {
       const memberInvitation = await Invitation.create({
         groupId: c2.id,
         userId: user.id,
-        email: 'member-sent@example.com',
-        inviterAccess: Invitation.InviterAccess.LIMITED
+        email: 'member-sent@example.com'
       })
       await Invitation.reinviteAll({ userId: inviter.id, groupId: c2.id })
-      expect((await Invitation.find(memberInvitation.id)).get('sent_count')).to.equal(0)
+      expect((await Invitation.find(memberInvitation.id)).get('sent_count')).to.equal(1)
       const stewardInvitation = await Invitation.where({ group_id: c2.id, email: 'baz@foo.com' }).fetch()
       expect(stewardInvitation.get('sent_count')).to.equal(1)
     })
@@ -267,20 +266,13 @@ describe('Invitation', function () {
     })
   })
 
-  describe('.resendAllReady for invitations sent by members', () => {
+  describe('.resendAllReady', () => {
     let admin, member, links, invitations
 
     const due = { sent_count: 1, last_sent_at: new Date(Date.now() - 4.1 * 24 * 60 * 60 * 1000) }
 
-    const everyoneGroup = async () => {
-      const group = await factories.group().save()
-      await admin.joinGroup(group, { assignAdministrator: true })
-      await GroupRole.setInvitePolicy(group.id, { mode: 'everyone' })
-      return group
-    }
-
-    const invite = async (group, sender, email, inviterAccess = Invitation.InviterAccess.LIMITED) => {
-      const invitation = await Invitation.create({ groupId: group.id, userId: sender.id, email, inviterAccess })
+    const invite = async (group, sender, email) => {
+      const invitation = await Invitation.create({ groupId: group.id, userId: sender.id, email })
       await invitation.save(due, { patch: true })
       return invitation
     }
@@ -294,95 +286,31 @@ describe('Invitation', function () {
       admin = await factories.user().save()
       member = await factories.user().save()
 
-      const group = await everyoneGroup()
+      const group = await factories.group().save()
+      await admin.joinGroup(group, { assignAdministrator: true })
       await member.joinGroup(group)
-      const leaver = await factories.user().save()
-      await leaver.joinGroup(group)
-      const deactivated = await factories.user().save()
-      await deactivated.joinGroup(group)
-      const requester = await factories.user().save()
-
-      const stewardsGroup = await everyoneGroup()
-      await member.joinGroup(stewardsGroup)
-
-      const spaceGroup = await everyoneGroup()
-      await member.joinGroup(spaceGroup)
 
       invitations = {
         ready: await invite(group, member, 'ready@member-sent.com'),
-        leaver: await invite(group, leaver, 'leaver@member-sent.com'),
-        deactivated: await invite(group, deactivated, 'deactivated@member-sent.com'),
-        requested: await invite(group, member, 'requested@member-sent.com'),
-        lostAccess: await invite(stewardsGroup, member, 'lost-access@member-sent.com'),
-        steward: await invite(stewardsGroup, admin, 'steward@member-sent.com', Invitation.InviterAccess.FULL),
-        space: await invite(spaceGroup, member, 'space@member-sent.com')
+        steward: await invite(group, admin, 'steward@member-sent.com')
       }
-
-      await GroupMembership.where({ user_id: leaver.id, group_id: group.id }).save({ active: false }, { patch: true })
-      await bookshelf.knex('users').where({ id: deactivated.id }).update({ active: false })
-      await new JoinRequest({
-        group_id: group.id,
-        user_id: requester.id,
-        status: JoinRequest.STATUS.Pending,
-        invitation_id: invitations.requested.id,
-        created_at: new Date()
-      }).save()
-      await GroupRole.setInvitePolicy(stewardsGroup.id, { mode: 'stewards' })
-      await bookshelf.knex('groups').where({ id: spaceGroup.id }).update({ type: 'space', parent_id: group.id })
     })
 
     after(() => unspyify(Email, 'sendInvitation'))
 
-    it('reminds only while the sender can still invite and nobody has asked to join from it', async () => {
+    it('resends every due invitation and uses the invitation link', async () => {
       const resentIds = await Invitation.resendAllReady()
 
       const sentCounts = {}
       for (const [name, invitation] of Object.entries(invitations)) {
         sentCounts[name] = (await Invitation.find(invitation.id)).get('sent_count')
       }
-      expect(sentCounts).to.deep.equal({ ready: 2, leaver: 1, deactivated: 1, requested: 1, lostAccess: 1, steward: 2, space: 1 })
-      const resent = resentIds.map(String)
-      expect(resent).to.include.members([invitations.ready.id, invitations.steward.id].map(String))
-      for (const name of ['leaver', 'deactivated', 'requested', 'lostAccess', 'space']) {
-        expect(resent).to.not.include(String(invitations[name].id))
-      }
+      expect(sentCounts).to.deep.equal({ ready: 2, steward: 2 })
+      expect(resentIds.map(String)).to.include.members([invitations.ready.id, invitations.steward.id].map(String))
 
       const token = invitations.ready.get('token')
-      expect(links['ready@member-sent.com']).to.match(new RegExp(`/h/invitation\\?token=${token}$`))
+      expect(links['ready@member-sent.com']).to.match(new RegExp(`/h/use-invitation\\?token=${token}`))
       expect(links['steward@member-sent.com']).to.include('/h/use-invitation?token=')
-    })
-  })
-
-  describe('.expirePendingLimited', () => {
-    let sender, other, groupA, groupB
-
-    const create = (userId, groupId, inviterAccess = Invitation.InviterAccess.LIMITED) =>
-      Invitation.create({ userId, groupId, email: `expire-${Date.now()}-${Math.random()}@example.com`, inviterAccess })
-    const expiredBy = async invitation => (await Invitation.find(invitation.id)).get('expired_by_id')
-
-    before(async () => {
-      sender = await factories.user().save()
-      other = await factories.user().save()
-      groupA = await factories.group().save()
-      groupB = await factories.group().save()
-    })
-
-    it('expires the pending member invitations a person sent in every group', async () => {
-      const inA = await create(sender.id, groupA.id)
-      const inB = await create(sender.id, groupB.id)
-      const asSteward = await create(sender.id, groupA.id, Invitation.InviterAccess.FULL)
-      const fromOther = await create(other.id, groupA.id)
-
-      await Invitation.expirePendingLimited({ invitedByIds: [sender.id] })
-
-      expect(await expiredBy(inA)).to.equal(sender.id)
-      expect(await expiredBy(inB)).to.equal(sender.id)
-      expect(await expiredBy(asSteward)).to.be.null
-      expect(await expiredBy(fromOther)).to.be.null
-    })
-
-    it('needs a group or senders', async () => {
-      await expect(Invitation.expirePendingLimited({})).to.be.rejectedWith('expirePendingLimited needs a groupId or invitedByIds')
     })
   })
 })

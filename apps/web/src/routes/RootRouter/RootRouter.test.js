@@ -5,6 +5,8 @@ describe('isNeutralRootSessionLoadingPath', () => {
     expect(isNeutralRootSessionLoadingPath('/h/use-invitation')).toBe(true)
     expect(isNeutralRootSessionLoadingPath('/h/invitation')).toBe(true)
     expect(isNeutralRootSessionLoadingPath('/groups/garden/join/join-code')).toBe(true)
+    expect(isNeutralRootSessionLoadingPath('/invite/join-code')).toBe(true)
+    expect(isNeutralRootSessionLoadingPath('/view/join-code')).toBe(true)
   })
 
   it('uses the app shell for main app paths', () => {

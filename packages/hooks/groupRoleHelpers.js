@@ -22,7 +22,16 @@ export function isSystemGroupRole (role) {
  * without being assigned it.
  */
 export function isMemberGroupRole (role) {
-  return role?.type === 'member'
+  return role?.type === 'member' || role?.type === 'all_members'
+}
+
+/**
+ * A role every member holds without being assigned it. It can carry responsibilities
+ * but is not a badge. Payloads that omit type still match the All Members role by name.
+ */
+export function isImplicitMemberRole (role) {
+  if (isMemberGroupRole(role)) return true
+  return role?.name === 'All Members' && !role.emoji
 }
 
 /**

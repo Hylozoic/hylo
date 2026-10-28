@@ -1,13 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import EnsureLoad from './mixins/EnsureLoad'
 
-// Which invite access the sender used: 'full' (Add Members) or 'limited'
-// (Invite Members, personal email invitations only)
-const InviterAccess = {
-  FULL: 'full',
-  LIMITED: 'limited'
-}
-
 module.exports = bookshelf.Model.extend(Object.assign({
   tableName: 'group_invites',
   requireFetch: false,
@@ -44,10 +37,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   isExpired: function () {
     return !!this.get('expired_by_id')
-  },
-
-  isLimited: function () {
-    return this.get('inviter_access') === InviterAccess.LIMITED
   },
 
   tagName: function () {
@@ -135,9 +124,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           group_name: group.get('name'),
           group_avatar_url: group.get('avatar_url'),
           group_url: Frontend.Route.group(group),
-          invite_link: this.isLimited()
-            ? Frontend.Route.invitation(this.get('token'))
-            : Frontend.Route.useInvitation(this.get('token'), email),
+          invite_link: Frontend.Route.useInvitation(this.get('token'), email),
           tracking_pixel_url: Analytics.pixelUrl('Invitation', {
             recipient: email,
             group: group.get('name')
@@ -158,8 +145,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
   }
 
 }, EnsureLoad), {
-  InviterAccess,
-
   find: (idOrToken, opts) => {
     if (!idOrToken) return Promise.resolve(null)
     const attr = isNaN(Number(idOrToken)) ? 'token' : 'id'
@@ -183,8 +168,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       token: uuidv4(),
       created_at: new Date(),
       subject: opts.subject,
-      message: opts.message,
-      inviter_access: opts.inviterAccess || InviterAccess.FULL
+      message: opts.message
     }).save(null, { transacting })
   },
 
@@ -198,16 +182,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
   // Member invitations are left to the automatic reminders
   reinviteAll: function (opts) {
     const { groupId } = opts
-    return Invitation.where({ group_id: groupId, used_by_id: null, expired_by_id: null, inviter_access: InviterAccess.FULL })
+    return Invitation.where({ group_id: groupId, used_by_id: null, expired_by_id: null })
       .fetchAll({ withRelated: ['creator', 'group', 'tag'] })
       .then(invitations =>
         Promise.map(invitations.models, invitation => invitation.send()))
   },
 
   /**
-   * Send the automatic reminders that are due. A member invitation gets no more
-   * reminders once its group has become a space, a join request came from it,
-   * or its sender can no longer invite people to the group.
+   * Send the automatic reminders that are due.
    */
   async resendAllReady () {
     const invitations = await Invitation.query(q => {
@@ -216,55 +198,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
       q.whereRaw(whereClause)
       q.whereNull('used_by_id')
       q.whereNull('expired_by_id')
-      q.where(function () {
-        this.where('group_invites.inviter_access', InviterAccess.FULL)
-          .orWhere(function () {
-            this.whereExists(function () {
-              this.select(bookshelf.knex.raw(1)).from('groups')
-                .whereRaw('groups.id = group_invites.group_id')
-                .whereNull('groups.parent_id')
-                .whereRaw("groups.type IS DISTINCT FROM 'space'")
-            })
-              .whereNotExists(function () {
-                this.select(bookshelf.knex.raw(1)).from('join_requests')
-                  .whereRaw('join_requests.invitation_id = group_invites.id')
-              })
-          })
-      })
     }).fetchAll({ withRelated: ['creator', 'group', 'tag'] })
 
-    const senderAccess = new Map()
-    const ready = await Promise.filter(invitations.models, invitation => {
-      if (!invitation.isLimited()) return true
-      const key = `${invitation.get('invited_by_id')}:${invitation.get('group_id')}`
-      if (!senderAccess.has(key)) {
-        senderAccess.set(key, GroupMembership.inviteAccess(invitation.get('invited_by_id'), invitation.get('group_id')))
-      }
-      return senderAccess.get(key).then(Boolean)
-    }, { concurrency: 5 })
-    await Promise.map(ready, invitation => invitation.send())
-    return ready.map(invitation => invitation.id)
-  },
-
-  /**
-   * Expire the pending member invitations in a group, those sent by some
-   * people in every group, or those sent by some people in a group.
-   * expiredById defaults to each invitation's sender.
-   */
-  expirePendingLimited: async function ({ groupId, invitedByIds, expiredById }, { transacting } = {}) {
-    if (!groupId && !invitedByIds) throw new Error('expirePendingLimited needs a groupId or invitedByIds')
-    let query = bookshelf.knex('group_invites')
-      .where({ inviter_access: InviterAccess.LIMITED })
-      .whereNull('used_by_id')
-      .whereNull('expired_by_id')
-    if (groupId) query = query.where('group_id', groupId)
-    if (invitedByIds) query = query.whereIn('invited_by_id', invitedByIds)
-    query = query.update({
-      expired_by_id: expiredById || bookshelf.knex.raw('invited_by_id'),
-      expired_at: new Date()
-    })
-    if (transacting) query = query.transacting(transacting)
-    return query
+    await Promise.map(invitations.models, invitation => invitation.send())
+    return invitations.map(invitation => invitation.id)
   }
 
 })
