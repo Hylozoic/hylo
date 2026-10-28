@@ -8,6 +8,7 @@ import makeSchema from './makeSchema'
 import { createGroupVisibilityLoader } from './filters'
 import sentry from '../../lib/sentry'
 import { touchLastActiveAt } from './touchLastActiveAt'
+import { recordActivityDay, parseGroupSlug, platformFromHeaders } from '../../lib/analytics/recordActivityDay'
 import { flattenImageUrlVariables } from '../../lib/uploader/rehostRemoteMedia'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
@@ -94,6 +95,16 @@ export const yoga = createYoga({
 
     // oAuth clients are skipped inside touchLastActiveAt
     touchLastActiveAt(req)
+
+    // Daily visit record for analytics; not awaited and never fails the request
+    if (req.session.userId && !req.api_client) {
+      recordActivityDay(bookshelf.knex, {
+        userId: req.session.userId,
+        groupSlug: parseGroupSlug(req.headers['x-hylo-group-slug']),
+        platform: platformFromHeaders(req.headers),
+        log: err => sails.log.error('Could not record activity day', err)
+      })
+    }
 
     // This is unrelated to the above which is using context as a hook,
     // this is putting the subscriptions pubSub method on context

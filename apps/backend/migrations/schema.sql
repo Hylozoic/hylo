@@ -257,6 +257,57 @@ ALTER SEQUENCE public.activity_id_seq OWNED BY public.activities.id;
 
 
 --
+-- Name: activity_days; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.activity_days (
+    day date NOT NULL,
+    group_id bigint DEFAULT 0 NOT NULL,
+    user_id bigint NOT NULL,
+    platform text DEFAULT 'unknown'::text NOT NULL
+);
+
+
+--
+-- Name: activity_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.activity_events (
+    id bigint NOT NULL,
+    occurred_at timestamp with time zone NOT NULL,
+    event_type text NOT NULL,
+    user_id bigint NOT NULL,
+    group_id bigint DEFAULT 0 NOT NULL,
+    object_type text,
+    object_id bigint,
+    target_user_id bigint,
+    post_type text,
+    platform text,
+    properties jsonb,
+    source text DEFAULT 'live'::text NOT NULL
+);
+
+
+--
+-- Name: activity_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.activity_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: activity_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.activity_events_id_seq OWNED BY public.activity_events.id;
+
+
+--
 -- Name: agreements; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3625,6 +3676,13 @@ ALTER TABLE ONLY public.activities ALTER COLUMN id SET DEFAULT nextval('public.a
 
 
 --
+-- Name: activity_events id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activity_events ALTER COLUMN id SET DEFAULT nextval('public.activity_events_id_seq'::regclass);
+
+
+--
 -- Name: agreements id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4190,6 +4248,22 @@ UNION
 
 ALTER TABLE ONLY public.activities
     ADD CONSTRAINT activity_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: activity_days activity_days_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activity_days
+    ADD CONSTRAINT activity_days_pkey PRIMARY KEY (day, group_id, user_id);
+
+
+--
+-- Name: activity_events activity_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activity_events
+    ADD CONSTRAINT activity_events_pkey PRIMARY KEY (id);
 
 
 --
@@ -5094,6 +5168,41 @@ ALTER TABLE ONLY public.zapier_triggers_groups
 
 ALTER TABLE ONLY public.zapier_triggers
     ADD CONSTRAINT zapier_triggers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: activity_days_user_id_day_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX activity_days_user_id_day_index ON public.activity_days USING btree (user_id, day);
+
+
+--
+-- Name: activity_events_dedupe_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX activity_events_dedupe_index ON public.activity_events USING btree (event_type, object_id, user_id, group_id);
+
+
+--
+-- Name: activity_events_group_id_occurred_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX activity_events_group_id_occurred_at_index ON public.activity_events USING btree (group_id, occurred_at);
+
+
+--
+-- Name: activity_events_occurred_at_event_type_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX activity_events_occurred_at_event_type_index ON public.activity_events USING btree (occurred_at, event_type);
+
+
+--
+-- Name: activity_events_user_id_occurred_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX activity_events_user_id_occurred_at_index ON public.activity_events USING btree (user_id, occurred_at);
 
 
 --
