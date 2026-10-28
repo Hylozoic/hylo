@@ -1,5 +1,4 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { INVITE_ACCESS } from 'store/constants'
 import orm from 'store/models'
 
 export const MODULE_NAME = 'InviteSettingsTab'
