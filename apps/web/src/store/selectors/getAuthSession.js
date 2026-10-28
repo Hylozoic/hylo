@@ -18,6 +18,12 @@ export const getAuthSessionUnknown = createSelector(
   authSessionStatus => authSessionStatus === AuthSessionStatus.Unknown
 )
 
+// Changes on every completed auth check (CHECK_LOGIN etc.), even when the result is the same.
+export const getAuthSessionCheckedAt = createSelector(
+  getAuthSession,
+  authSession => authSession.checkedAt
+)
+
 export const getAuthSessionEmailValidated = createSelector(
   getAuthSession,
   authSession => authSession.emailValidated
