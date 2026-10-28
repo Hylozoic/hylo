@@ -24,12 +24,14 @@ function sortLocaleDeep (value) {
     const lowerA = a.toLowerCase()
     const lowerB = b.toLowerCase()
     if (lowerA !== lowerB) {
-      return lowerA.localeCompare(lowerB)
+      if (lowerA < lowerB) return -1
+      if (lowerA > lowerB) return 1
+      return 0
     }
     // If case-insensitive equal, uppercase comes before lowercase.
     // Use code-unit comparison (uppercase code points are smaller) so the
     // order is deterministic and doesn't depend on the runtime locale:
-    // localeCompare's case ordering varies between locales (e.g. 'en' vs 'da').
+    // localeCompare's ordering varies between locales (e.g. 'en' vs 'da').
     if (a < b) return -1
     if (a > b) return 1
     return 0
