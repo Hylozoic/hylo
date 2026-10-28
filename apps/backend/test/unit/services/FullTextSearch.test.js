@@ -1,4 +1,4 @@
-/* globals FullTextSearch, describe, it, expect */
+/* globals FullTextSearch, Skill, User, bookshelf, describe, it, expect, before, after */
 require('../../setup')
 
 describe('FullTextSearch', () => {
@@ -8,6 +8,32 @@ describe('FullTextSearch', () => {
       .then(() => FullTextSearch.createView())
       .then(() => FullTextSearch.refreshView())
       .then(() => FullTextSearch.dropView())
+  })
+
+  describe('people index', () => {
+    let haver, learner
+
+    before(async function () {
+      this.timeout(10000)
+      haver = await new User({ name: 'Skill Haver', email: 'haver@skills.test', active: true }).save()
+      learner = await new User({ name: 'Skill Learner', email: 'learner@skills.test', active: true }).save()
+      const skill = await new Skill({ name: 'woodturning' }).save()
+      await bookshelf.knex('skills_users').insert([
+        { skill_id: skill.id, user_id: haver.id, type: Skill.Type.HAS },
+        { skill_id: skill.id, user_id: learner.id, type: Skill.Type.LEARNING }
+      ])
+      await FullTextSearch.dropView()
+      await FullTextSearch.createView()
+    })
+
+    after(() => FullTextSearch.dropView())
+
+    it('indexes the skills a person has, not the ones they are learning', async () => {
+      const rows = await FullTextSearch.search({ term: 'woodturning', type: 'person', subquery: true })
+      const userIds = rows.map(r => String(r.user_id))
+      expect(userIds).to.include(String(haver.id))
+      expect(userIds).not.to.include(String(learner.id))
+    })
   })
 
   describe('.searchInGroups', () => {

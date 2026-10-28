@@ -94,6 +94,12 @@ describe('InvitationService', () => {
         )
     })
 
+    it('records invite_link as the source of a membership made with an access code', async function () {
+      const linkUser = await factories.user().save()
+      const membership = await InvitationService.use(linkUser.id, null, group.get('access_code'))
+      expect(membership.getSetting('joinSource')).to.equal('invite_link')
+    })
+
     it('should join the invitee to group if token is valid', function () {
       const userId = invitee.get('id')
       const token = invitation.get('token')
