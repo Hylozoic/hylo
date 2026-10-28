@@ -353,6 +353,9 @@ module.exports = bookshelf.Model.extend(merge({
     DELETE FROM tag_follows WHERE user_id = ${this.id};
     DELETE FROM user_external_data WHERE user_id = ${this.id};
     DELETE FROM user_post_relevance WHERE user_id = ${this.id};
+    DELETE FROM activity_days WHERE user_id = ${this.id};
+    DELETE FROM activity_events WHERE user_id = ${this.id};
+    UPDATE activity_events SET target_user_id = NULL WHERE target_user_id = ${this.id};
     DELETE FROM posts_tags WHERE post_id in (select id from posts WHERE user_id = ${this.id});
     DELETE FROM reactions WHERE user_id = ${this.id};
 
