@@ -1,7 +1,6 @@
 /* eslint-disable camelcase */
 const RESP_ADMINISTRATION = 'Administration'
 const RESP_ADD_MEMBERS = 'Add Members'
-const RESP_INVITE_MEMBERS = 'Invite Members'
 const RESP_REMOVE_MEMBERS = 'Remove Members'
 const RESP_MANAGE_CONTENT = 'Manage Content'
 
@@ -25,7 +24,6 @@ module.exports = bookshelf.Model.extend({
   constants: {
     RESP_ADD_MEMBERS,
     RESP_ADMINISTRATION,
-    RESP_INVITE_MEMBERS,
     RESP_MANAGE_CONTENT,
     RESP_REMOVE_MEMBERS
   },
@@ -45,11 +43,10 @@ module.exports = bookshelf.Model.extend({
         WHEN ? THEN 1
         WHEN ? THEN 2
         WHEN ? THEN 3
-        WHEN ? THEN 4
-        ELSE 5
+        ELSE 4
       END,
       title ASC
-    `, [RESP_ADMINISTRATION, RESP_ADD_MEMBERS, RESP_INVITE_MEMBERS, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT])
+    `, [RESP_ADMINISTRATION, RESP_ADD_MEMBERS, RESP_REMOVE_MEMBERS, RESP_MANAGE_CONTENT])
 
     if (groupRoleId) {
       return orderByPlatformFirst(
@@ -104,7 +101,7 @@ module.exports = bookshelf.Model.extend({
     return bookshelf.knex.raw(
       `WITH UserGroupRoles AS (
         SELECT group_role_id
-        FROM group_memberships_group_roles
+        FROM group_member_effective_roles
         WHERE user_id = ${userId}
           AND group_id = ${roleScopeId}
       ),
@@ -125,7 +122,7 @@ module.exports = bookshelf.Model.extend({
         SELECT
           m.group_role_id,
           m.group_id
-        FROM group_memberships_group_roles m
+        FROM group_member_effective_roles m
         WHERE m.user_id = ${userId}
       ),
       ResponsibilitiesCTE AS (
@@ -161,7 +158,7 @@ module.exports = bookshelf.Model.extend({
         m.user_id
       FROM responsibilities r
       JOIN group_roles_responsibilities gr ON r.id = gr.responsibility_id
-      JOIN group_memberships_group_roles m ON gr.group_role_id = m.group_role_id
+      JOIN group_member_effective_roles m ON gr.group_role_id = m.group_role_id
       WHERE r.type = 'system' AND m.group_id = ${roleScopeId};`
     ).then(resp => resp.rows)
   },

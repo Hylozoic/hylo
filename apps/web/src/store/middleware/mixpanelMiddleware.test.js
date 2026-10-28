@@ -12,6 +12,14 @@ jest.mock('mixpanel-browser', () => ({
 describe('mixpanelMiddleware', () => {
   let mixpanelMiddlewareInstance
 
+  // the middleware is a no-op without a token; don't depend on a local .env providing one
+  const originalToken = process.env.VITE_MIXPANEL_TOKEN
+  beforeAll(() => { process.env.VITE_MIXPANEL_TOKEN = 'test-mixpanel-token' })
+  afterAll(() => {
+    if (originalToken === undefined) delete process.env.VITE_MIXPANEL_TOKEN
+    else process.env.VITE_MIXPANEL_TOKEN = originalToken
+  })
+
   beforeEach(() => {
     const session = orm.session(orm.getEmptyState())
     session.Me.create({

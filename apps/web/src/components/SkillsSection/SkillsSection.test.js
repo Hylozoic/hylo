@@ -15,8 +15,8 @@ jest.mock('./SkillsSection.store', () => ({
   removeSkillFromGroup: jest.fn(() => ({ type: 'REMOVE_SKILL_FROM_GROUP' })),
   fetchMemberSkills: jest.fn(() => ({ type: 'FETCH_MEMBER_SKILLS' })),
   fetchSkillSuggestions: jest.fn(() => ({ type: 'FETCH_SKILL_SUGGESTIONS' })),
-  getMemberSkills: jest.fn(() => []),
-  getSkillSuggestions: jest.fn(() => []),
+  getMemberSkills: jest.fn().mockReturnValue([]),
+  getSkillSuggestions: jest.fn().mockReturnValue([]),
   getSearch: jest.fn(() => ''),
   setSearch: jest.fn(() => ({ type: 'SET_SEARCH' }))
 }))

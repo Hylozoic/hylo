@@ -2,7 +2,7 @@ import { BadgeDollarSign, Users } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
@@ -11,6 +11,7 @@ import Loading from 'components/Loading'
 import MenuRowBackground from 'routes/AuthLayoutRouter/components/ContextMenu/MenuRowBackground'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import Button from 'components/ui/button'
+import RetainedAccessPanel from 'components/RetainedAccessPanel/RetainedAccessPanel'
 import { bgImageStyle, cn } from 'util/index'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -21,12 +22,15 @@ import { createJoinRequest } from 'routes/GroupDetail/GroupDetail.store'
 import PaywallOfferingsSection from 'routes/GroupDetail/PaywallOfferingsSection'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import joinSpace from 'store/actions/joinSpace'
+import rejoinGroup from 'store/actions/rejoinGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADMINISTRATION } from 'store/constants'
-import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, spaceAccessDescription } from 'store/models/Group'
+import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, isRetainedAccessGroup, spaceAccessDescription } from 'store/models/Group'
+import { localSpaceSlug, spaceHomeRoutePath, spaceUrl } from '@hylo/navigation'
 
 /**
  * Interstitial shown when a signed-in member of the parent group clicks into a Space
@@ -36,6 +40,7 @@ import { DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, spaceAccessDesc
  */
 export default function SpaceJoinPage () {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const { t } = useTranslation()
   const location = useLocation()
   const routeParams = useRouteParams()
@@ -48,13 +53,18 @@ export default function SpaceJoinPage () {
   const parentGroup = useSelector(state => getGroupForSlug(state, parentSlug))
   const spaceGroup = useSelector(state => getGroupForSlug(state, spaceFullSlug))
   const currentUser = useSelector(getMe)
+  const myMemberships = useSelector(getMyMemberships)
+  const hasActiveParentMembership = myMemberships.some(m => String(m.group?.id) === String(parentGroup?.id))
+  const hasRetainedAccess = isRetainedAccessGroup(spaceGroup)
   const canAdministerParent = useSelector(state => hasResponsibilityForGroup(state, {
     responsibility: RESP_ADMINISTRATION,
     groupId: parentGroup?.id
   }))
   const groupsWithPendingRequests = useKeyJoinRequestsByGroupId()
 
-  const spaceDetailsLoaded = spaceGroup?.accessibility != null
+  const spaceDetailsLoaded = spaceGroup?.accessibility != null &&
+    spaceGroup?.hasValidScope !== undefined &&
+    spaceGroup?.currentUserMembershipActive !== undefined
   const parentRolesLoaded = parentGroup?.groupRoles != null
 
   useEffect(() => {
@@ -103,8 +113,10 @@ export default function SpaceJoinPage () {
   const hasPendingRequest = Boolean(spaceGroup?.id && groupsWithPendingRequests[spaceGroup.id])
 
   const [joining, setJoining] = useState(false)
+  const [rejoining, setRejoining] = useState(false)
   const [requesting, setRequesting] = useState(false)
   const [actionError, setActionError] = useState(null)
+  const [rejoinError, setRejoinError] = useState(false)
   const [autoJoinAttempted, setAutoJoinAttempted] = useState(false)
 
   const handleJoinSpace = useCallback(async () => {
@@ -155,6 +167,26 @@ export default function SpaceJoinPage () {
     setAutoJoinAttempted(true)
     handleJoinSpace()
   }, [canAutoJoinViaInvite, spaceGroup?.id, spaceGroup?.paywall, autoJoinAttempted, handleJoinSpace])
+
+  const handleRejoinSpace = useCallback(async () => {
+    if (!spaceGroup?.id || !hasActiveParentMembership) return
+    setRejoinError(false)
+    setRejoining(true)
+    try {
+      await dispatch(rejoinGroup(spaceGroup.id))
+      const homeRoute = spaceHomeRoutePath({
+        homeRoute: spaceGroup.homeRoute,
+        groupViews: spaceGroup.groupViews?.items,
+        track: spaceGroup.track,
+        fundingRound: spaceGroup.fundingRound
+      })
+      navigate(spaceUrl(parentSlug, localSpaceSlug(parentSlug, spaceGroup.slug), homeRoute))
+    } catch (error) {
+      setRejoinError(true)
+    } finally {
+      setRejoining(false)
+    }
+  }, [dispatch, hasActiveParentMembership, navigate, parentSlug, spaceGroup, t])
 
   const handleRequestToJoin = useCallback(async () => {
     setActionError(null)
@@ -259,49 +291,61 @@ export default function SpaceJoinPage () {
                 <p className='text-sm text-red-500 mb-2'>{actionError}</p>
               )}
 
-              {canJoinDirectly || canJoinViaInviteDirectly
+              {hasRetainedAccess
                 ? (
-                  <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
-                    {joining ? t('Joining...') : t('Join Space')}
-                  </Button>
+                  <RetainedAccessPanel
+                    group={spaceGroup}
+                    isSpace
+                    parentGroup={parentGroup}
+                    hasActiveParentMembership={hasActiveParentMembership}
+                    onRejoin={handleRejoinSpace}
+                    rejoining={rejoining}
+                    error={rejoinError}
+                  />
                   )
-                : spaceGroup.paywall
+                : canJoinDirectly || canJoinViaInviteDirectly
                   ? (
-                    <div className='w-full text-left'>
-                      <p className='text-sm text-foreground/70 mb-3 text-center'>{t('Pay to Join Space')}</p>
-                      <PaywallOfferingsSection group={spaceGroup} sellingGroup={parentGroup} />
-                    </div>
+                    <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
+                      {joining ? t('Joining...') : t('Join Space')}
+                    </Button>
                     )
-                  : isRoleGated && hasJoinOrInviteLink
+                  : spaceGroup.paywall
                     ? (
-                      <p className='text-sm text-foreground/60'>
-                        {t('This invitation link requires you to have the {{roleNames}} role to join this space', { roleNames: requiredRoles.map(r => [r.emoji, r.name].filter(Boolean).join(' ')).join(', ') })}
-                      </p>
+                      <div className='w-full text-left'>
+                        <p className='text-sm text-foreground/70 mb-3 text-center'>{t('Pay to Join Space')}</p>
+                        <PaywallOfferingsSection group={spaceGroup} sellingGroup={parentGroup} />
+                      </div>
                       )
-                    : isRoleGated
+                    : isRoleGated && hasJoinOrInviteLink
                       ? (
                         <p className='text-sm text-foreground/60'>
-                          {t('You do not have a role needed to join this space')}
+                          {t('This invitation link requires you to have the {{roleNames}} role to join this space', { roleNames: requiredRoles.map(r => [r.emoji, r.name].filter(Boolean).join(' ')).join(', ') })}
                         </p>
                         )
-                      : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
-                        ? hasPendingRequest
-                          ? (
-                            <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground'>
-                              <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
-                              <span>{t('You will be sent an email and notified on your device when the request is approved.')}</span>
-                            </div>
-                            )
-                          : (
-                            <Button variant='highVisibility' className='w-full justify-center' onClick={handleRequestToJoin} disabled={requesting}>
-                              {requesting ? t('Requesting...') : t('Request to Join Space')}
-                            </Button>
-                            )
-                        : (
+                      : isRoleGated
+                        ? (
                           <p className='text-sm text-foreground/60'>
-                            {t('This space is invite only. You need an invitation to join.')}
+                            {t('You do not have a role needed to join this space')}
                           </p>
-                          )}
+                          )
+                        : spaceGroup.accessibility === GROUP_ACCESSIBILITY.Restricted
+                          ? hasPendingRequest
+                            ? (
+                              <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground'>
+                                <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
+                                <span>{t('You will be sent an email and notified on your device when the request is approved.')}</span>
+                              </div>
+                              )
+                            : (
+                              <Button variant='highVisibility' className='w-full justify-center' onClick={handleRequestToJoin} disabled={requesting}>
+                                {requesting ? t('Requesting...') : t('Request to Join Space')}
+                              </Button>
+                              )
+                          : (
+                            <p className='text-sm text-foreground/60'>
+                              {t('This space is invite only. You need an invitation to join.')}
+                            </p>
+                            )}
             </div>
           </div>
         </div>

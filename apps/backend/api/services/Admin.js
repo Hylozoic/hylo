@@ -1,4 +1,4 @@
-// Admin status comes only from env ID lists. Emails can be changed by users via updateMe without re-verification.
+// Admin status comes only from env ID lists, never from email addresses.
 function idsFromEnv (name) {
   return (process.env[name] || '').split(',').map(id => Number(id.trim())).filter(id => id > 0)
 }

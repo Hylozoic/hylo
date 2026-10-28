@@ -47,13 +47,27 @@ const withChatSource = (presented, sourceGroup, parentGroup) => {
   }
 }
 
+/** Ids of every group this post was sent to, used to label unified digests. */
+const postedInIds = (post) =>
+  relatedModels(post?.relations?.groups).map(g => g.id).filter(id => id != null)
+
+/** Milliseconds for sorting Coming up / Ending soon after groups are merged. */
+const sortAt = (post, field) => {
+  const value = post.get ? post.get(field) : null
+  if (!value) return null
+  const time = new Date(value).getTime()
+  return Number.isNaN(time) ? null : time
+}
+
 const presentPost = (post, parentGroup, spacesById, type = 'digest') => {
   const sourceGroup = sourceGroupForPost(post, parentGroup, spacesById)
   const presented = post.presentForEmail({ group: sourceGroup, type })
-  if (presented.type === 'chat') {
-    return withChatSource(presented, sourceGroup, parentGroup)
-  }
-  return withSpaceFields(presented, sourceGroup, parentGroup)
+  const withSource = presented.type === 'chat'
+    ? withChatSource(presented, sourceGroup, parentGroup)
+    : withSpaceFields(presented, sourceGroup, parentGroup)
+  const ids = postedInIds(post)
+  if (ids.length === 0) return withSource
+  return { ...withSource, posted_in: ids }
 }
 
 const formatData = curry((group, data) => {
@@ -66,12 +80,18 @@ const formatData = curry((group, data) => {
   }
   ret.chat_rooms = aggregateChatRooms(ret.chats)
   if (data.upcomingPostReminders?.startingSoon) {
-    ret.upcoming = data.upcomingPostReminders.startingSoon.map(p =>
-      presentPost(p, group, spacesById, 'oneline'))
+    ret.upcoming = data.upcomingPostReminders.startingSoon.map(p => {
+      const presented = presentPost(p, group, spacesById, 'oneline')
+      const at = sortAt(p, 'start_time')
+      return at == null ? presented : { ...presented, sort_at: at }
+    })
   }
   if (data.upcomingPostReminders?.endingSoon) {
-    ret.ending = data.upcomingPostReminders.endingSoon.map(p =>
-      presentPost(p, group, spacesById, 'oneline'))
+    ret.ending = data.upcomingPostReminders.endingSoon.map(p => {
+      const presented = presentPost(p, group, spacesById, 'oneline')
+      const at = sortAt(p, 'end_time')
+      return at == null ? presented : { ...presented, sort_at: at }
+    })
   }
 
   const postsWithNewComments = []

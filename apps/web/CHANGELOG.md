@@ -6,6 +6,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.8] - 2026-10-27
+
+### Added
+- Ability to pin spaces to global navigation. This is accomplished from the About page of the space
+
+### Changed
+- Use native date/time pickers on touch devices for time pickers
+- Improved display of date/time fields for posts on mobile
+- Space boundaries appear on top of parent group on map
+- Center map on a space or group boundary when it has no location address set
+- Switch the Welcome icon from the waving hand to HeartHandshake
+- Verify a new account email before it replaces the old one
+- Show post times in user's timezone first, then local time zone second
+
+### Fixed
+- Show space avatars in the map drawer
+- Make sure new posts load as you scroll in map drawer
+- Several errors reported to Sentry
+- Stop reporting browser failing to hit our backend errors in Sentry
+- Removing responsibilities from custom roles
+- Allow for posts to link to hylo landing page static pages
+
+## [7.1.7] - 2026-10-20
+
+### Added
+- Can add geo boundaries to spaces. Edit geo boundaries in space and group creation and settings.
+- Keep formatting in track action text responses
+
+### Changed
+- Clicking an active member in group menu goes to memberlist, not to individual profile
+- Never show members with blank names
+- Show a confirmation toast after saving profile edits
+- Sandbox demo: sign-up prompts after changes and after 100 seconds, generic group names, the demo user is now an administrator of Community Hub with working group settings, and all Appearance settings apply live
+
+### Fixed
+- Make sure all group avatars are circular
+- Map tooltips are over other map features
+
+## [7.1.6] - 2026-10-15
+
+### Added
+- Search will now surface groups that match the search terms alongside posts, comments and people.
+- Filter to calendar view mode to only show events you RSVPed to, or not.
+- Public Profiles: you can turn this on in your profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Fixed
+- Fix off by 1 error on calendar dates in certain locales
+
+## [7.1.5] - 2026-10-08
+
+### Added
+- Allow for a user to make their profile public in their profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Fixed
+- Post notifications display the post correctly when the group's home view is a page view or welcome page. Open a post in a modal over the home view when that view is a stream, chat or map. When home view is a page, welcome, or other static view then open posts in a standalone post URL.
+- Make context menu edit draggable on mobile
+
+## [7.1.4] - 2026-10-01
+
+### Changed
+- **Performance improvements:**
+- Long cache headers for content hashed build files, so browser caches the files until next deploy
+- Load lucide icons dynamically in its own chunk
+- Speed up filtering/loading of posts on the front-end
+
+## [7.1.3] - 2026-10-04
+
+### Fixed
+- Editing a chat post from the post details doesn't convert it to a discussion
+- Don't let people post to a space they have not joined
+- Fix occasional stuck on add location during welcome flow on android
+- Don't save a post draft until there is title or body content
+- Calendar view more flicker on month view
+
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Fixed
+- Fix submission posts not getting created correctly when other post types are on in the funding round space
+- Fix issue where multi day events would only show last day on the calendar
+- Add some top and bottom margin around link preview in the PostCard
+- Space location always displays correctly in space settings if set
+- Long space URL slugs don't shrink space name field to very small. In space settings modal.
+
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
 ## [7.1.0] - 2026-09-25
 
 ### Changed
@@ -54,8 +145,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Link editor in page view type editor
 - Post editor readding current path group/space too often and erasing choices in the To field
 - Move AAPA to .well-known
-
-### Fixed
 
 ## [7.0.6] - 2026-09-13
 

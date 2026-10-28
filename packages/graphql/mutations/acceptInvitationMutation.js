@@ -35,8 +35,6 @@ export default gql`
         }
       }
       error
-      requiresApproval
-      groupSlug
     }
   }
 `

@@ -13,8 +13,6 @@ import {
   deleteGroupResponsibility,
   updateGroupResponsibility
 } from 'store/actions/responsibilities'
-import { RESP_INVITE_MEMBERS } from 'store/constants'
-import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss' // eslint-disable-line no-unused-vars
@@ -39,15 +37,11 @@ export default function ResponsibilitiesTab ({ group }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const [responsibilities, setResponsibilities] = useState([])
-  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
-
   useEffect(() => {
     dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))
       .then((response) => {
         const fetched = response.payload.data.responsibilities
-        setResponsibilities(memberInvitesEnabled
-          ? fetched
-          : fetched.filter(responsibility => responsibility.title !== RESP_INVITE_MEMBERS))
+        setResponsibilities(fetched)
       })
   }, [])
 

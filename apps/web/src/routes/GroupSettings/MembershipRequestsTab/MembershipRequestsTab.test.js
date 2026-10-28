@@ -26,7 +26,7 @@ function providers () {
 }
 
 describe('MembershipRequestsTab', () => {
-  it('shows which member invited each person who was invited', async () => {
+  it('lists pending requests', async () => {
     let requestedGroupId
     mockGraphqlServer.use(
       graphql.query('FetchJoinRequests', ({ variables }) => {
@@ -48,11 +48,8 @@ describe('MembershipRequestsTab', () => {
 
     render(<MembershipRequestsTab group={group} />, null, providers())
 
-    expect(await screen.findByText('Invited by Ada Member')).toBeInTheDocument()
+    expect(await screen.findByText('Grace Newcomer')).toBeInTheDocument()
     expect(requestedGroupId).toBe(group.id)
-    expect(screen.getByText('Grace Newcomer')).toBeInTheDocument()
     expect(screen.getByText('Lin Walkin')).toBeInTheDocument()
-    expect(screen.getAllByText(/^Invited by/)).toHaveLength(1)
-    expect(document.querySelector('a[href="/all/members/7"]')).toBeInTheDocument()
   })
 })

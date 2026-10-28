@@ -12,7 +12,7 @@ import {
   allocateTokensToSubmission
 } from './fundingRound'
 
-const MEMBER_ROLE_ERROR = 'The Member role cannot be edited, assigned or used as a requirement'
+const MEMBER_ROLE_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
 
 /** Save a funding round and put lifecycle on the space group.status. */
 async function saveRound (attrs) {
@@ -173,7 +173,7 @@ describe('createFundingRound', () => {
   })
 
   it('rejects the Member role as a submitter or voter role', async () => {
-    const memberRole = await GroupRole.findMemberRole(group.id)
+    const memberRole = await GroupRole.findAllMembersRole(group.id)
     const data = {
       title: 'Member Round',
       groupId: group.id,
@@ -242,7 +242,7 @@ describe('updateFundingRound', () => {
   })
 
   it('rejects the Member role in role restrictions', async () => {
-    const memberRole = await GroupRole.findMemberRole(group.id)
+    const memberRole = await GroupRole.findAllMembersRole(group.id)
     const moderator = await GroupRole.findSystemRole(group.id, 'Moderator')
 
     await expect(updateFundingRound(moderatorUser.id, round.id, { voterRoles: [{ id: moderator.id }, { id: memberRole.id }] }))

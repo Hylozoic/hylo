@@ -1,17 +1,25 @@
 import { GeoJsonLayer } from '@deck.gl/layers'
 
-export function createPolygonLayerFromGroups ({ groups, onHover }) {
+/** Boundary tooltip: spaces are labeled as spaces, groups as groups. */
+function areaMessage (group, t) {
+  const label = group.type === 'space' ? 'Space area: {{name}}' : 'Group area: {{name}}'
+  return t ? t(label, { name: group.name }) : label.replace('{{name}}', group.name)
+}
+
+/** One boundary layer. Empty sets are skipped so deck does not keep a blank layer. */
+function polygonLayer (id, groups, onHover, t) {
   const data = groups.filter(group => group.geoShape).map(group => {
     return {
       geometry: group.geoShape || {},
-      message: 'Group area: ' + group.name,
+      message: areaMessage(group, t),
       properties: { name: group.name },
       type: 'GroupShape'
     }
   })
+  if (data.length === 0) return null
 
   return new GeoJsonLayer({
-    id: 'geojson-layer',
+    id,
     data,
     pickable: true,
     stroked: true,
@@ -26,4 +34,17 @@ export function createPolygonLayerFromGroups ({ groups, onHover }) {
     getLineWidth: 1,
     onHover
   })
+}
+
+/**
+ * Group boundaries, then space boundaries. Later deck.gl layers paint on top,
+ * so a space area stays above the parent group area that contains it.
+ */
+export function createPolygonLayerFromGroups ({ groups, onHover, t }) {
+  const spaces = groups.filter(group => group.type === 'space')
+  const otherGroups = groups.filter(group => group.type !== 'space')
+  return [
+    polygonLayer('geojson-layer-groups', otherGroups, onHover, t),
+    polygonLayer('geojson-layer-spaces', spaces, onHover, t)
+  ].filter(Boolean)
 }

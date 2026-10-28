@@ -111,6 +111,21 @@ const searchQuery =
             id
           }
         }
+        ... on Group {
+          id
+          name
+          slug
+          avatarUrl
+          bannerUrl
+          memberCount
+          visibility
+          accessibility
+          paywall
+          location
+          description
+          purpose
+          type
+        }
       }
     }
   }
@@ -157,9 +172,13 @@ export function presentSearchResult (searchResult, session) {
       skills: content.skills.toModelArray()
     }
   }
-
   if (type === 'Comment') {
     content = presentComment(content)
+  }
+  if (type === 'Group') {
+    content = {
+      ...content.ref
+    }
   }
 
   return {

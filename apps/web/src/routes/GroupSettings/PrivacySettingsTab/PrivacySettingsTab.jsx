@@ -1,18 +1,15 @@
 import { cn } from 'util/index'
 import { set, startCase, trim } from 'lodash'
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { EyeOff, Shield, X, Globe, Lock, TriangleAlert } from 'lucide-react'
-import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import GroupsSelector from 'components/GroupsSelector'
-import InvitePolicySelect, { invitePolicyRoles, invitePolicyToSave, trackInvitePolicySet } from 'components/InvitePolicySelect/InvitePolicySelect'
 import Button from 'components/ui/button'
 import { Switch } from 'components/ui/switch'
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { groupUrl } from '@hylo/navigation'
-import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 import {
   accessibilityDescription,
   accessibilityString,
@@ -23,35 +20,17 @@ import {
 } from 'store/models/Group'
 import SaveButton from '../SaveButton'
 import SettingsSection from '../SettingsSection'
-
-function initialInvitePolicy (group) {
-  if (!group?.invitePolicy) return null
-  return {
-    mode: group.invitePolicy.mode,
-    roleIds: (group.invitePolicy.roleIds || []).map(String)
-  }
-}
+import CommonsRequestSection from './CommonsRequestSection'
 
 function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSettings }) {
   const { t } = useTranslation()
-  const dispatch = useDispatch()
   const [state, setState] = useState(defaultEditState())
-  const [invitePolicy, setInvitePolicy] = useState(() => initialInvitePolicy(group))
-  const [invitePolicyChanged, setInvitePolicyChanged] = useState(false)
-  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
 
   useEffect(() => {
     if (!fetchPending) {
       setState(defaultEditState())
-      setInvitePolicy(initialInvitePolicy(group))
-      setInvitePolicyChanged(false)
     }
   }, [fetchPending])
-
-  const inviteRoles = useMemo(
-    () => invitePolicyRoles(group?.groupRoles?.items, invitePolicy?.roleIds),
-    [group?.groupRoles?.items, invitePolicy?.roleIds]
-  )
 
   function defaultEditState () {
     if (!group) return { edits: {}, changed: false }
@@ -91,35 +70,9 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
   const updateSettingDirectly = (key, changed) => value =>
     updateSetting(key, changed)({ target: { value } })
 
-  const changeInvitePolicyMode = mode => {
-    setInvitePolicy(current => ({ ...current, mode }))
-    setInvitePolicyChanged(true)
-  }
-
-  const toggleInviteRole = roleId => {
-    setInvitePolicy(current => ({
-      ...current,
-      roleIds: current.roleIds.includes(roleId)
-        ? current.roleIds.filter(id => id !== roleId)
-        : [...current.roleIds, roleId]
-    }))
-    setInvitePolicyChanged(true)
-  }
-
-  const save = async () => {
-    const changes = { ...state.edits }
-    if (memberInvitesEnabled && invitePolicy && invitePolicyChanged) {
-      changes.invitePolicy = invitePolicyToSave(invitePolicy.mode, inviteRoles)
-      setInvitePolicy({ mode: changes.invitePolicy.mode, roleIds: changes.invitePolicy.roleIds || [] })
-      setInvitePolicyChanged(false)
-    }
+  const save = () => {
     setState({ ...state, changed: false })
-    const saving = Promise.resolve(updateGroupSettings(changes))
-    if (changes.invitePolicy) {
-      saving.then(result => {
-        if (!result?.error) dispatch(trackInvitePolicySet(changes.invitePolicy.mode, 'settings'))
-      })
-    }
+    updateGroupSettings(state.edits)
   }
 
   const { setHeaderDetails } = useViewHeader()
@@ -199,23 +152,9 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
         </div>
       </SettingsSection>
 
-      {visibility === GROUP_VISIBILITY.Public && !group.allowInPublic && (
-        <SettingsSection>
-          <h3 className='text-foreground font-bold mb-2'>{t('Add my group into the commons')}</h3>
-          <p className='text-foreground/70 mb-2'>{t('commonsExplainerText1')}</p>
-          <p className='text-foreground/70 mb-4'>{t('commonsExplainerText2')}</p>
-          <p className='text-foreground/70'>
-            {t('Apply here') + ': '}
-            <a
-              href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-accent hover:underline'
-            >
-              {t('Allow-in-Commons form')}
-            </a>
-          </p>
-        </SettingsSection>
+      {/* Follows the selected visibility, so it shows as soon as Public is clicked */}
+      {visibility === GROUP_VISIBILITY.Public && (
+        <CommonsRequestSection group={group} />
       )}
 
       <SettingsSection>
@@ -255,25 +194,6 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
           })}
         </div>
       </SettingsSection>
-
-      {memberInvitesEnabled && invitePolicy && (
-        <SettingsSection>
-          <h3 className='text-foreground font-bold mb-2'>{t('Who can add new members?')}</h3>
-          <p className='text-foreground/70 mb-4'>{t('Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.', { name })}</p>
-          <InvitePolicySelect
-            mode={invitePolicy.mode}
-            onModeChange={changeInvitePolicyMode}
-            roles={inviteRoles}
-            onToggleRole={toggleInviteRole}
-            accessibility={accessibility}
-            hint={
-              <Link to={groupUrl(slug, 'settings/roles')} className='text-accent hover:underline'>
-                {t('Create or edit roles in Roles & Badges')}
-              </Link>
-            }
-          />
-        </SettingsSection>
-      )}
 
       <SettingsSection>
         <h3 className='text-foreground font-bold mb-2'>{t('Join Questions')}</h3>
@@ -405,7 +325,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
         )}
       </SettingsSection>
 
-      <SaveButton save={save} changed={changed || invitePolicyChanged} />
+      <SaveButton save={save} changed={changed} />
     </div>
   )
 }

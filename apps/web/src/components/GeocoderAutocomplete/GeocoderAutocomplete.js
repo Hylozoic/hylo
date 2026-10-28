@@ -40,6 +40,7 @@ const GeocoderAutocomplete = ({
   })
 
   const inputRef = useRef(null)
+  const pickedRef = useRef(false)
 
   useEffect(() => {
     if (focusOnMount && inputRef.current) {
@@ -218,14 +219,39 @@ const GeocoderAutocomplete = ({
     }
   }
 
+  // pointerdown and the click that follows are the same tap. Pick once.
+  const pickOption = (place, listLocation) => (e) => {
+    if (e) {
+      e.preventDefault()
+    }
+    if (pickedRef.current) return
+    pickedRef.current = true
+    clickOption(place, listLocation, e)
+    setTimeout(() => { pickedRef.current = false }, 0)
+  }
+
+  // A long place name scrolls ancestor scrollports to the caret on Android,
+  // which slides Next off screen. Keep the field scrolled to the start.
+  const handleFocus = () => {
+    if (!isMobile.android.device || !inputRef.current) return
+    const input = inputRef.current
+    const reset = () => {
+      if (input.scrollLeft) input.scrollLeft = 0
+      let el = input.parentElement
+      while (el && el !== document.body) {
+        if (el.scrollLeft) el.scrollLeft = 0
+        el = el.parentElement
+      }
+    }
+    reset()
+    requestAnimationFrame(reset)
+    setTimeout(reset, 50)
+    setTimeout(reset, 300)
+  }
+
   const handleBlur = (e) => {
-    if (
-      !e ||
-      !e.relatedTarget ||
-      !e.relatedTarget.parentElement ||
-      !e.relatedTarget.parentElement.parentElement ||
-      e.relatedTarget.parentElement.parentElement.id !== 'react-geo-list'
-    ) {
+    const next = e && e.relatedTarget
+    if (!next || !next.closest || !next.closest('#react-geo-list')) {
       setState(prevState => ({ ...prevState, showList: false }))
     }
   }
@@ -234,10 +260,12 @@ const GeocoderAutocomplete = ({
     <input
       id={id}
       ref={inputRef}
-      className={className}
+      size={1}
+      className={className ? className + ' max-w-full min-w-0' : 'max-w-full min-w-0 w-full'}
       onKeyDown={onKeyDown}
       placeholder={inputPlaceholder}
       onBlur={handleBlur}
+      onFocus={handleFocus}
       type='text'
       value={state.inputValue}
       onChange={onInput}
@@ -245,7 +273,7 @@ const GeocoderAutocomplete = ({
   )
 
   return (
-    <div className='relative'>
+    <div className='relative min-w-0 max-w-full'>
       {inputPosition === 'top' && input}
       {state.results.length > 0 &&
         state.showList &&
@@ -260,10 +288,10 @@ const GeocoderAutocomplete = ({
           >
             {state.results.map((result, i) => (
               <li key={result.id}>
-                <a
-                  href='#'
-                  onClick={(e) => clickOption(result, i, e)}
-                  tabIndex='-1'
+                <button
+                  type='button'
+                  onPointerDown={pickOption(result, i)}
+                  onClick={pickOption(result, i)}
                   className={
                     resultClass +
                     ' ' +
@@ -273,7 +301,7 @@ const GeocoderAutocomplete = ({
                   }
                 >
                   {result.place_name}
-                </a>
+                </button>
               </li>
             ))}
           </ul>}

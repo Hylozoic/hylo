@@ -38,7 +38,7 @@ export default gql`
     }
     email
     emailValidated
-    memberInvitesEnabled
+    pendingEmail
     bannerUrl
     bio
     contactEmail
@@ -50,6 +50,7 @@ export default gql`
     url
     intercomHash
     hasStripeAccount
+    isProfilePublic
     rsvpCalendarUrl
     settings {
       alreadySeenTour
@@ -57,6 +58,7 @@ export default gql`
       colorScheme
       dmNotifications
       commentNotifications
+      unifiedEmailDigest
       locale
       mapBaseLayer
       globalNavStyle

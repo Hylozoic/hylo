@@ -1,7 +1,7 @@
 import React from 'react'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import orm from 'store/models'
-import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Members from './Members'
 
 let mockGroupSlug
@@ -80,10 +80,10 @@ describe('Members header Invite pill', () => {
   beforeEach(() => { mockGroupSlug = 'goteam' })
   afterEach(() => { mockGroupSlug = undefined })
 
-  it('shows for a member with limited invite access', () => {
+  it('is hidden when the member cannot add members', () => {
     renderMembers({ myInviteAccess: 'limited' })
 
-    expect(screen.getByRole('button', { name: 'Invite Members' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Invite Members' })).not.toBeInTheDocument()
   })
 
   it('shows for someone who can add members', () => {

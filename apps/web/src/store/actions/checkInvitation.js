@@ -3,8 +3,8 @@ import { CHECK_INVITATION } from 'store/constants'
 /**
  * Check if an invitation is valid and get group info for redirect
  * @param inviteCodes {{ invitationToken?: string, accessCode?: string }}
- * @returns {{ valid: boolean, groupId?: string, groupSlug?: string, groupName?: string, isSpace?: boolean, parentGroupSlug?: string, parentGroupName?: string, email?: string, groupRole?: { id: string, name: string, emoji?: string }, requiresApproval?: boolean, invitedBy?: { id: string, name: string, avatarUrl?: string } }}
- *   requiresApproval: a member's invitation to a group where a steward approves new people, so the person requests to join with the token instead of joining
+ * @returns {{ valid: boolean, groupId?: string, groupSlug?: string, groupName?: string, isSpace?: boolean, parentGroupSlug?: string, parentGroupName?: string, email?: string, groupRole?: { id: string, name: string, emoji?: string }, grantAccess?: boolean }}
+ *   grantAccess: false means the link only lets the person see the group; they still request to join
  */
 export default function checkInvitation (inviteCodes) {
   const { invitationToken, accessCode } = inviteCodes
@@ -27,12 +27,7 @@ export default function checkInvitation (inviteCodes) {
               name
               emoji
             }
-            requiresApproval
-            invitedBy {
-              id
-              name
-              avatarUrl
-            }
+            grantAccess
           }
         }
       `,

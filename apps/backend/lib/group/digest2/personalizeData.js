@@ -1,7 +1,8 @@
 import { cloneDeep, flatten, merge, pick, uniq, values } from 'lodash'
-import { includes, filter, get } from 'lodash/fp'
+import { filter, get } from 'lodash/fp'
 import { getLocaleStrings } from '../../i18n/locales'
 import { aggregateChatRooms, shouldSendData } from './util'
+import { applyUnifiedGroupLabels } from './mergeData'
 import * as cheerio from 'cheerio'
 
 const generateSubjectLine = (data, type, locale) => {
@@ -9,6 +10,11 @@ const generateSubjectLine = (data, type, locale) => {
   if (data.search) {
     // Saved search
     return L.newSavedSearchResults(data.search.get('name'))
+  }
+
+  if (data.unified) {
+    if (type === 'daily') return L.emailDigestUnifiedDailySubject()
+    if (type === 'weekly') return L.emailDigestUnifiedWeeklySubject()
   }
 
   if (type === 'daily') {
@@ -32,6 +38,18 @@ const CONTENT_KEYS = [
   'posts_with_new_comments',
   'upcoming',
   'ending'
+]
+
+/** Post lists that mean the post itself is already in the digest. */
+const NEW_POST_KEYS = [
+  'discussions',
+  'requests',
+  'offers',
+  'events',
+  'projects',
+  'resources',
+  'proposals',
+  'chats'
 ]
 
 const getPosts = data =>
@@ -105,13 +123,42 @@ const chatReadStateByGroup = async (userId, chats) => {
   return result
 }
 
-const filterMyAndBlockedUserData = async (userId, data) => {
+const sameId = (a, b) => a != null && b != null && String(a) === String(b)
+
+const authorIsBlocked = (object, blockedUserIds) =>
+  blockedUserIds.some(id => sameId(id, get('user.id', object)))
+
+/**
+ * Daily digests already show a new post on its own, so skip the
+ * "N new comments" row for that same post. Weekly digests keep it.
+ * A recipient's own post is left out of the new-post lists, but its
+ * comment summary stays so they still see replies.
+ */
+function omitDailyCommentSummariesForIncludedPosts (data) {
+  const includedIds = new Set()
+  for (const key of NEW_POST_KEYS) {
+    for (const post of data[key] || []) {
+      if (post && post.id != null) includedIds.add(String(post.id))
+    }
+  }
+  if (!data.posts_with_new_comments) return
+  data.posts_with_new_comments = data.posts_with_new_comments.filter(
+    post => !includedIds.has(String(post.id))
+  )
+}
+
+const filterMyAndBlockedUserData = async (userId, data, type) => {
   const clonedData = cloneDeep(data)
   const blockedUserIds = (await BlockedUser.blockedFor(userId)).rows.map(r => r.user_id)
 
   for (const post of clonedData.posts_with_new_comments || []) {
-    // Filter out comments by blocked user or the user themselves
-    post.comments = filter(comment => !includes(get('user.id', comment), blockedUserIds.concat(userId)), post.comments)
+    // Filter out comments by a blocked user or the recipient
+    post.comments = filter(comment => {
+      const commenterId = get('user.id', comment)
+      if (sameId(commenterId, userId)) return false
+      return !blockedUserIds.some(id => sameId(id, commenterId))
+    }, post.comments)
+    post.comment_count = post.comments.length
     // TODO: filter out comments that have alraedy been seen? Unfortunatly we arent tracking last read post time very well right now.
   }
 
@@ -123,14 +170,15 @@ const filterMyAndBlockedUserData = async (userId, data) => {
     if (!clonedData[key]) continue
 
     const filteredItems = clonedData[key].map((object) => {
-      // Filter out all posts by blocked users
-      if (includes(get('user.id', object), blockedUserIds)) return null
+      // Filter out posts by blocked users, including their comment summaries
+      if (authorIsBlocked(object, blockedUserIds)) return null
 
       // Filter out posts by the user themselves except for posts with new comments, upcoming, and ending reminders
       if (!['posts_with_new_comments', 'upcoming', 'ending'].includes(key) && parseInt(object.user.id) === parseInt(userId)) return null
 
-      // Drop posts/chats from spaces the recipient is not a member of
-      if (object.space_id && !memberSpaceIds.has(String(object.space_id))) return null
+      // Drop posts/chats from spaces the recipient is not a member of.
+      // A copy that was also posted in a parent group stays (visible_via_parent).
+      if (object.space_id && !memberSpaceIds.has(String(object.space_id)) && !object.visible_via_parent) return null
 
       // Filter out posts that no longer have any comments
       if (key === 'posts_with_new_comments' && object.comments.length === 0) return null
@@ -147,6 +195,8 @@ const filterMyAndBlockedUserData = async (userId, data) => {
     clonedData[key] = filteredItems.filter(item => item !== null)
   }
 
+  if (type === 'daily') omitDailyCommentSummariesForIncludedPosts(clonedData)
+
   // Count of new chats in the group chat and each space chat the user is in
   clonedData.chat_rooms = aggregateChatRooms(clonedData.chats)
   delete clonedData.chats
@@ -155,9 +205,42 @@ const filterMyAndBlockedUserData = async (userId, data) => {
   return clonedData
 }
 
+const INTERNAL_FIELDS = ['posted_in', 'visible_via_parent', 'sort_at']
+
+/** Remove merge bookkeeping before the payload is rendered. */
+function stripDigestInternals (data) {
+  for (const key of [...CONTENT_KEYS, 'chat_rooms', 'funding_rounds']) {
+    for (const item of data[key] || []) {
+      for (const field of INTERNAL_FIELDS) delete item[field]
+    }
+  }
+}
+
+/**
+ * Active groups this person belongs to, including a space's parent name.
+ * Used to label unified digest items with every group a post was sent to.
+ */
+async function membershipGroupsById (userId) {
+  const rows = await bookshelf.knex('group_memberships')
+    .join('groups', 'groups.id', 'group_memberships.group_id')
+    .leftJoin('groups as parents', 'parents.id', 'groups.parent_id')
+    .where('group_memberships.user_id', userId)
+    .where('group_memberships.active', true)
+    .where('groups.active', true)
+    .select(
+      'groups.id as id',
+      'groups.name as name',
+      'groups.type as type',
+      'parents.name as parent_name'
+    )
+  const membershipById = new Map()
+  rows.forEach(row => membershipById.set(String(row.id), row))
+  return membershipById
+}
+
 const personalizeData = async (user, type, data, opts = {}) => {
   // Don't show me content I created or created by blocked users
-  const filteredData = await filterMyAndBlockedUserData(user.id, data)
+  const filteredData = await filterMyAndBlockedUserData(user.id, data, type)
 
   // Check again after filtering to make sure we're not sending empty digests
   if (!(await shouldSendData(filteredData, user.id))) {
@@ -165,11 +248,18 @@ const personalizeData = async (user, type, data, opts = {}) => {
   }
   filteredData.num_sections = Object.keys(filteredData).filter(k => Array.isArray(filteredData[k]) && filteredData[k].length > 0).length
 
+  if (data.unified) {
+    const membershipById = await membershipGroupsById(user.id)
+    applyUnifiedGroupLabels(filteredData, membershipById)
+  }
+  stripDigestInternals(filteredData)
+
   const locale = user.getLocale()
+  const contextName = data.unified ? 'Hylo' : data.group_name
   const clickthroughParams = '?' + new URLSearchParams({
     ctt: 'digest_email',
     cti: user.id,
-    ctcn: data.group_name
+    ctcn: contextName
   }).toString()
 
   getPosts(filteredData).forEach(post => {
@@ -188,6 +278,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
 
   return Promise.props(merge(filteredData, {
     subject: generateSubjectLine(data, type, locale),
+    unified: !!data.unified,
     group_url: Frontend.appendQueryString(filteredData.group_url, clickthroughParams),
     recipient: {
       avatar_url: user.get('avatar_url'),
@@ -196,7 +287,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
     email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
     tracking_pixel_url: Analytics.pixelUrl('Digest', {
       userId: user.id,
-      group: data.group_name
+      group: contextName
     }),
     // TODO: these not being used right now, bring them back?
     post_creation_action_url: Frontend.Route.emailPostForm(),

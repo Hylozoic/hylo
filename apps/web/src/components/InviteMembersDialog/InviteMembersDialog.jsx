@@ -9,22 +9,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import InviteSettingsTab from 'routes/GroupSettings/InviteSettingsTab'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { hueOf, viewCardColor } from 'routes/AuthLayoutRouter/components/ContextMenu/viewCardTheme'
-import { INVITE_ACCESS, RESP_ADD_MEMBERS } from 'store/constants'
-import { GROUP_TYPES } from 'store/models/Group'
+import { RESP_ADD_MEMBERS } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
+import { inviteAccessFor } from 'util/inviteAccess'
 
 const INVITE_ICON_HUE = hueOf(viewCardColor({ type: null }))
-
-/**
- * 'full' for people who can add members; 'limited' when the server says this person can send
- * personal email invitations to this top-level group; otherwise null.
- */
-export function inviteAccessFor (group, canAddMembers) {
-  if (canAddMembers) return INVITE_ACCESS.full
-  const isSpace = group?.type === GROUP_TYPES.space || !!group?.parentId
-  return !isSpace && group?.myInviteAccess === INVITE_ACCESS.limited ? INVITE_ACCESS.limited : null
-}
 
 /**
  * Invite trigger: UserPlus (or custom children) opens a modal with the invite page.
@@ -134,7 +124,7 @@ export default function InviteMembersDialog ({
           <DialogDescription className='sr-only'>
             {t('Invite people to {{name}}', { name: group.name })}
           </DialogDescription>
-          <InviteSettingsTab group={group} parentGroup={parentGroup} inviteAccess={inviteAccess} inModal />
+          <InviteSettingsTab group={group} parentGroup={parentGroup} inModal />
         </div>
       </DialogContent>
     </Dialog>

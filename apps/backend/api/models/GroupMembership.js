@@ -10,6 +10,25 @@ module.exports = bookshelf.Model.extend(Object.assign({
   requireFetch: false,
   hasTimestamps: true,
 
+  initialize: function () {
+    this.on('saving', function (model, attrs, options) {
+      return model.dropRolesOnDeactivate(options)
+    })
+  },
+
+  /**
+   * Delete this member's role assignments on this group when the membership is turned off.
+   * Assignments are stored on this membership's group id, so deactivating a space membership
+   * leaves roles on the parent group in place.
+   */
+  async dropRolesOnDeactivate (options = {}) {
+    if (!this.hasChanged('active') || this.get('active') !== false) return
+    await MemberGroupRole.where({
+      user_id: this.get('user_id'),
+      group_id: this.get('group_id')
+    }).destroy({ require: false, transacting: options.transacting })
+  },
+
   agreements () {
     return this.belongsToMany(Agreement, 'users_groups_agreements', 'group_id', 'agreement_id', 'group_id')
       .through(UserGroupAgreement, 'group_id', 'agreement_id')
@@ -106,11 +125,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
   }
 
 }, HasSettings), {
-  InviteAccess: {
-    FULL: 'full',
-    LIMITED: 'limited'
-  },
-
   forPair (userOrId, groupOrId, opts = {}) {
     const userId = userOrId instanceof User ? userOrId.id : userOrId
     const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
@@ -173,60 +187,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const roleScopeId = await Group.roleScopeId(groupId)
     if (String(roleScopeId) === String(groupId)) return false
     return this.hasActiveMembership(userOrId, roleScopeId)
-  },
-
-  /**
-   * How this person can invite new people to the group:
-   * - 'full': Add Members (every invite power, including roles, links and join requests)
-   * - 'limited': personal email invitations only, through the system Invite Members
-   *   responsibility on an active role they hold, or on the group's Member role
-   * - null: neither
-   * Limited access is for active members with active accounts, in top-level
-   * groups only, and only while GroupRole.memberInvitesEnabled(). It is matched
-   * by responsibility id, never by title, and is honoured only here, so it never
-   * reaches hasResponsibility or any steward list.
-   */
-  async inviteAccess (userOrId, groupOrId, { transacting } = {}) {
-    const userId = userOrId instanceof User ? userOrId.id : userOrId
-    const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
-    if (!userId || !groupId) return null
-
-    if (await this.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADD_MEMBERS, { transacting })) {
-      return this.InviteAccess.FULL
-    }
-    if (!GroupRole.memberInvitesEnabled()) return null
-
-    let groupQuery = bookshelf.knex('groups').where('id', groupId).first('id', 'parent_id', 'type')
-    if (transacting) groupQuery = groupQuery.transacting(transacting)
-    const group = await groupQuery
-    if (!group || group.parent_id || group.type === 'space') return null
-
-    const inviteMembersId = await Responsibility.systemId(Responsibility.constants.RESP_INVITE_MEMBERS, { transacting })
-    if (!inviteMembersId) return null
-
-    let query = bookshelf.knex.raw(`
-      SELECT EXISTS (
-        SELECT 1
-        FROM group_memberships gm
-        JOIN users u ON u.id = gm.user_id AND u.active = true
-        JOIN groups_roles gr ON gr.group_id = gm.group_id AND gr.active = true
-        JOIN group_roles_responsibilities grr ON grr.group_role_id = gr.id AND grr.responsibility_id = ?
-        WHERE gm.group_id = ? AND gm.user_id = ? AND gm.active = true
-          AND (
-            gr.type = ?
-            OR EXISTS (
-              SELECT 1 FROM group_memberships_group_roles mgr
-              WHERE mgr.group_role_id = gr.id
-                AND mgr.user_id = gm.user_id
-                AND mgr.group_id = gm.group_id
-                AND mgr.active IS NOT FALSE
-            )
-          )
-      ) AS limited
-    `, [inviteMembersId, group.id, userId, GroupRole.TYPE_MEMBER])
-    if (transacting) query = query.transacting(transacting)
-    const { rows } = await query
-    return rows[0].limited ? this.InviteAccess.LIMITED : null
   },
 
   /**

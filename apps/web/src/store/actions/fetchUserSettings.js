@@ -9,6 +9,8 @@ export default function fetchUserSettings () {
         query UserSettingsQuery {
           me {
             id
+            email
+            pendingEmail
             rsvpCalendarUrl
             affiliations {
               items {

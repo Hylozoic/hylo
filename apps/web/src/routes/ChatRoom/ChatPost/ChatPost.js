@@ -171,8 +171,9 @@ export default function ChatPost ({
       !editing &&
       // closest: the click often lands on an icon or span inside the link
       !event.target.closest?.('a[target="_blank"]') &&
-      !event.target.className.includes('image') &&
-      !event.target.className.includes('icon-Smiley')
+      // closest, not className.includes: on SVG elements className is an
+      // SVGAnimatedString, which has no includes (HYLO-24Z)
+      !event.target.closest?.('.image, .icon-Smiley')
     ) {
       showPost()
     }

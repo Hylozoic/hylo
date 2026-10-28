@@ -187,6 +187,30 @@ describe('User', function () {
     })
   })
 
+  describe('#validateAndSave', function () {
+    let user
+
+    beforeEach(async () => {
+      user = await factories.user({ name: 'Original Name', active: true }).save()
+    })
+
+    it('rejects a blank name', async () => {
+      for (const name of ['', '   ', '\t \n', null]) {
+        await user.validateAndSave(null, { name })
+          .then(() => expect.fail(`accepted name ${JSON.stringify(name)}`))
+          .catch(err => expect(err.message).to.match(/^Name /))
+      }
+      await user.refresh()
+      expect(user.get('name')).to.equal('Original Name')
+    })
+
+    it('trims whitespace around the name', async () => {
+      await user.validateAndSave(null, { name: '  New Name  ' })
+      await user.refresh()
+      expect(user.get('name')).to.equal('New Name')
+    })
+  })
+
   describe('#groupsSharedWithPost', () => {
     let user, post, c1, c2, c3, c4
     before(() => {
@@ -418,12 +442,11 @@ describe('User', function () {
     })
   })
 
-  describe('pending member invitations when someone leaves Hylo', () => {
-    let sender, group, otherGroup
+  describe('pending invitations when someone leaves Hylo', () => {
+    let sender, group
 
-    const invite = (groupId, inviterAccess = Invitation.InviterAccess.LIMITED) =>
-      Invitation.create({ userId: sender.id, groupId, email: `leaving-${Date.now()}-${Math.random()}@example.com`, inviterAccess })
-    const expiredBy = async invitation => (await Invitation.find(invitation.id)).get('expired_by_id')
+    const invite = groupId =>
+      Invitation.create({ userId: sender.id, groupId, email: `leaving-${Date.now()}-${Math.random()}@example.com` })
 
     before(() => mockify(Queue, 'classMethod', () => Promise.resolve()))
 
@@ -432,33 +455,19 @@ describe('User', function () {
     beforeEach(async () => {
       sender = await factories.user().save()
       group = await factories.group().save()
-      otherGroup = await factories.group().save()
       await sender.joinGroup(group)
-      await sender.joinGroup(otherGroup)
     })
 
-    it('expires them in every group when the account is deactivated', async () => {
-      const invitations = [await invite(group.id), await invite(otherGroup.id)]
-      const asSteward = await invite(group.id, Invitation.InviterAccess.FULL)
-
+    it('leaves them in place when the account is deactivated', async () => {
+      const invitation = await invite(group.id)
       await sender.deactivate('session')
-
-      for (const invitation of invitations) {
-        expect(await expiredBy(invitation)).to.equal(sender.id)
-      }
-      expect(await expiredBy(asSteward)).to.be.null
+      expect((await Invitation.find(invitation.id)).get('expired_by_id')).to.be.null
     })
 
-    it('expires them in every group when the account is deleted', async () => {
-      const invitations = [await invite(group.id), await invite(otherGroup.id)]
-      const asSteward = await invite(group.id, Invitation.InviterAccess.FULL)
-
+    it('leaves them in place when the account is deleted', async () => {
+      const invitation = await invite(group.id)
       await sender.sanelyDeleteUser({ sessionId: 'session' })
-
-      for (const invitation of invitations) {
-        expect(await expiredBy(invitation)).to.equal(sender.id)
-      }
-      expect(await expiredBy(asSteward)).to.be.null
+      expect((await Invitation.find(invitation.id)).get('expired_by_id')).to.be.null
     })
   })
 

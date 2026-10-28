@@ -1,6 +1,6 @@
 import { trim } from 'lodash/fp'
 import {
-  Activity, ArrowRight, DoorOpen, EyeOff, Globe, Hand, HelpCircle, ImagePlus,
+  Activity, ArrowRight, DoorOpen, EyeOff, Globe, HeartHandshake, HelpCircle, ImagePlus,
   LayoutGrid, Lock, Map, MapPin, MessageCircleMore, Network, Plus, ScrollText, Settings, Shield, Users, X
 } from 'lucide-react'
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
@@ -13,8 +13,8 @@ import GroupsSelector from 'components/GroupsSelector'
 import HomeViewPicker from 'components/HomeViewPicker/HomeViewPicker'
 import HyloEditor from 'components/HyloEditor'
 import IncludedViewsEditor from 'components/IncludedViewsEditor/IncludedViewsEditor'
-import InvitePolicySelect, { invitePolicyToSave, trackInvitePolicySet } from 'components/InvitePolicySelect/InvitePolicySelect'
-import LocationInput from 'components/LocationInput/LocationInput'
+import InvitePolicySelect from 'components/InvitePolicySelect/InvitePolicySelect'
+import LocationWithBoundary from 'components/LocationWithBoundary/LocationWithBoundary'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
 import SettingSelectRow from 'components/SettingSelectRow/SettingSelectRow'
 import SwitchStyled from 'components/SwitchStyled'
@@ -26,16 +26,17 @@ import InfoButton from 'components/ui/info'
 import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
 import { createGroupView, updateGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
+import { requestPublicListing } from 'store/actions/publicListingRequests'
 import { INVITE_POLICY, RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_AVATAR, GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 import { CUSTOM_HOME_VIEW, POST_TYPE_TO_VIEW_TYPE, viewTypesForCreate } from 'store/models/GroupView'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import getMemberInvitesEnabled from 'store/selectors/getMemberInvitesEnabled'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { updateGroupSettings } from 'routes/GroupSettings/GroupSettings.store'
 import { bgImageStyle, cn } from 'util/index'
+import { trackInvitePolicySet } from 'util/invitePolicy'
 import { groupUrl } from '@hylo/navigation'
 import { createGroup, fetchGroupExists } from './CreateGroup.store'
 import { nameToSlug, SLUG_MAX_LENGTH, slugValidatorRegex } from './slug'
@@ -202,17 +203,8 @@ const ACCESSIBILITY_OPTIONS = [
   }
 ]
 
-const CLOSED_DESCRIPTION_WITH_MEMBER_INVITES = 'Nobody can request to join on their own. People arrive by invitation; invitations from members are reviewed by stewards.'
-
 // Matches the server's DEFAULT_NEW_GROUP_INVITE_POLICY
 const DEFAULT_INVITE_POLICY_MODE = INVITE_POLICY.stewards
-
-// The built-in roles every new group gets. Administrators and Hosts include Add Members.
-const NEW_GROUP_INVITE_ROLES = [
-  { id: 'Administrator', emoji: '🪄', locked: true },
-  { id: 'Moderator', emoji: '⚖️', locked: false },
-  { id: 'Host', emoji: '👋', locked: true }
-]
 
 function AgreementsEditor ({ agreements, onChange }) {
   const { t } = useTranslation()
@@ -332,7 +324,6 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   const [visibility, setVisibility] = useState(GROUP_VISIBILITY.Protected)
   const [accessibility, setAccessibility] = useState(GROUP_ACCESSIBILITY.Restricted)
   const [invitePolicyMode, setInvitePolicyMode] = useState(DEFAULT_INVITE_POLICY_MODE)
-  const [moderatorsCanInvite, setModeratorsCanInvite] = useState(true)
   const [isNameFocused, setIsNameFocused] = useState(false)
   const [nameTouched, setNameTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -341,6 +332,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   const showConfirmRef = useRef(false)
 
   const [locationObject, setLocationObject] = useState(null)
+  const [geoShape, setGeoShape] = useState(null)
   const [parentGroups, setParentGroups] = useState(
     currentGroup && parentGroupOptions.find(p => p.id === currentGroup.id) ? [currentGroup] : []
   )
@@ -351,6 +343,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   const [manualViews, setManualViews] = useState([])
   const [welcomeExtras, setWelcomeExtras] = useState(null)
   const [welcomeEnabled, setWelcomeEnabled] = useState(false)
+  const [requestCommons, setRequestCommons] = useState(false)
   const [showWelcomePage, setShowWelcomePage] = useState(true)
   const welcomeEditorRef = useRef(null)
   const [orderedRows, setOrderedRows] = useState([])
@@ -365,20 +358,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
 
   const slugRef = useRef()
 
-  const memberInvitesEnabled = useSelector(getMemberInvitesEnabled)
-
-  const accessibilityOptions = useMemo(() => memberInvitesEnabled
-    ? ACCESSIBILITY_OPTIONS.map(option => option.value === GROUP_ACCESSIBILITY.Closed
-      ? { ...option, description: CLOSED_DESCRIPTION_WITH_MEMBER_INVITES }
-      : option)
-    : ACCESSIBILITY_OPTIONS, [memberInvitesEnabled])
-
-  const newGroupInviteRoles = useMemo(() => NEW_GROUP_INVITE_ROLES.map(role => ({
-    id: role.id,
-    label: `${role.emoji} ${t(role.id)}`,
-    locked: role.locked,
-    checked: !role.locked && moderatorsCanInvite
-  })), [t, moderatorsCanInvite])
+  const accessibilityOptions = ACCESSIBILITY_OPTIONS
 
   const slugFormatError = useMemo(() => {
     if (!slug) return name ? t('Please enter a URL slug') : false
@@ -543,11 +523,6 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     const viewTypes = viewTypesForCreate(standardTypesInOrder, standardViewTypes, homeViewType)
 
     // New groups' role ids don't exist yet, so chosen roles are sent by name
-    const invitePolicy = invitePolicyToSave(invitePolicyMode, newGroupInviteRoles)
-    const invitePolicyInput = invitePolicy.roleIds
-      ? { mode: invitePolicy.mode, systemRoleNames: invitePolicy.roleIds }
-      : invitePolicy
-
     const { error, payload } = await dispatch(createGroup({
       accessibility,
       avatarUrl: avatarUrl || DEFAULT_AVATAR,
@@ -559,12 +534,13 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       slug,
       location: locationObject?.fullText || null,
       locationId: locationObject?.id || null,
+      geoShape,
       parentIds: parentGroups.map(g => g.id),
       purpose: trim(purpose),
       acceptedPostTypes: postTypes,
       viewTypes,
       visibility,
-      ...(memberInvitesEnabled ? { invitePolicy: invitePolicyInput } : {})
+      invitePolicy: invitePolicyMode
     }))
 
     if (error) {
@@ -574,7 +550,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     }
 
     const newGroup = payload?.data?.createGroup
-    if (memberInvitesEnabled) dispatch(trackInvitePolicySet(invitePolicyInput.mode, 'create'))
+    dispatch(trackInvitePolicySet(invitePolicyMode, 'create'))
 
     const effectiveWelcome = welcomeEnabled
       ? {
@@ -646,6 +622,13 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       }
     }
 
+    // Best effort: a failed request can be re-sent from Privacy & Access settings
+    if (newGroup?.id && requestCommons && visibility === GROUP_VISIBILITY.Public && !newGroup.allowInPublic) {
+      try {
+        await dispatch(requestPublicListing(newGroup.id))
+      } catch (e) {}
+    }
+
     if (onClose) onClose()
     dispatch(push(groupUrl(slug)))
   }
@@ -663,7 +646,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     if (visibility !== GROUP_VISIBILITY.Protected) return true
     if (accessibility !== GROUP_ACCESSIBILITY.Restricted) return true
     if (invitePolicyMode !== DEFAULT_INVITE_POLICY_MODE) return true
-    if (locationObject) return true
+    if (locationObject || geoShape) return true
     const parentIds = parentGroups.map(group => group.id)
     const initialParentIds = initialParentIdsRef.current
     if (parentIds.length !== initialParentIds.length || parentIds.some(id => !initialParentIds.includes(id))) return true
@@ -678,7 +661,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     return false
   }, [
     name, slug, slugCustomized, purpose, avatarUrl, bannerUrl,
-    homeView, visibility, accessibility, invitePolicyMode, locationObject, parentGroups, agreements,
+    homeView, visibility, accessibility, invitePolicyMode, locationObject, geoShape, parentGroups, agreements,
     joinQuestions, postTypes, welcomeEnabled, removedStandardTypes, manualViews, welcomeExtras
   ])
 
@@ -718,13 +701,14 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       label: 'Location',
       defaultSummary: t('No location'),
       render: () => (
-        <LocationInput
+        <LocationWithBoundary
           locationObject={locationObject}
-          location={locationObject?.fullText || ''}
-          onChange={setLocationObject}
+          onLocationChange={setLocationObject}
+          geoShape={geoShape}
+          onGeoShapeChange={setGeoShape}
           saveLocationToDB
           placeholder={t('Where is this group based?')}
-          className={INPUT_CLASS}
+          inputClassName={INPUT_CLASS}
         />
       )
     },
@@ -739,7 +723,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     },
     {
       key: 'welcome',
-      icon: Hand,
+      icon: HeartHandshake,
       label: 'Welcome',
       defaultSummary: welcomeEnabled ? null : t('No welcome page'),
       render: () => (
@@ -796,7 +780,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
       render: () => <JoinQuestionsEditor questions={joinQuestions} onChange={setJoinQuestions} />
     }
   ].filter(setting => !setting.hidden), [
-    t, locationObject, postTypes, parentGroupOptions, parentGroups,
+    t, locationObject, geoShape, postTypes, parentGroupOptions, parentGroups,
     agreements, joinQuestions, welcomeEnabled, showWelcomePage, welcomeExtras?.pageContent
   ])
 
@@ -930,19 +914,14 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
           />
         </div>
 
-        {memberInvitesEnabled && (
-          <div className='flex flex-col gap-2 mt-5'>
-            <span className='text-xs font-bold text-foreground/80'>{t('Who can add new members?')}</span>
-            <InvitePolicySelect
-              mode={invitePolicyMode}
-              onModeChange={setInvitePolicyMode}
-              roles={newGroupInviteRoles}
-              onToggleRole={() => setModeratorsCanInvite(canInvite => !canInvite)}
-              accessibility={accessibility}
-              hint={t('Create custom roles later in Roles & Badges')}
-            />
-          </div>
-        )}
+        <div className='flex flex-col gap-2 mt-5'>
+          <span className='text-xs font-bold text-foreground/80'>{t('Who can add new members?')}</span>
+          <InvitePolicySelect
+            mode={invitePolicyMode}
+            onModeChange={setInvitePolicyMode}
+            accessibility={accessibility}
+          />
+        </div>
 
         <div className='mt-5'>
           {/* items-end + shared mb: the button's bottom sits level with the subtitle,
@@ -993,17 +972,16 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
             <h3 className='font-semibold mb-2 text-sm'>{t('Optional') + ': ' + t('Add my group into the commons')}</h3>
             <p className='text-xs opacity-70 mb-2'>{t('commonsExplainerText1')}</p>
             <p className='text-xs opacity-70 mb-3'>{t('commonsExplainerText2')}</p>
-            <p className='text-xs mb-0'>
-              {t('Apply here') + ': '}
-              <a
-                href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-focus hover:underline'
-              >
-                {t('Allow-in-Commons form')}
-              </a>
-            </p>
+            <div className='flex items-center gap-2' data-testid='create-group-request-commons'>
+              <SwitchStyled
+                checked={requestCommons}
+                onChange={() => setRequestCommons(v => !v)}
+                backgroundColor={requestCommons ? 'hsl(var(--selected))' : 'rgba(0 0 0 / .6)'}
+              />
+              <span className='text-xs text-foreground/80'>
+                {t('Ask the Hylo team to add this group to the commons')}
+              </span>
+            </div>
           </div>
         )}
 

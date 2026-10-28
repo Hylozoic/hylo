@@ -10,11 +10,11 @@ export default gql`
       isSpace
       parentGroupSlug
       parentGroupName
-      requiresApproval
-      invitedBy {
+      grantAccess
+      groupRoles {
         id
         name
-        avatarUrl
+        emoji
       }
     }
   }

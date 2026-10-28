@@ -88,16 +88,16 @@ describe('ManageInvitesTab accepting an invitation', () => {
     window.history.pushState({}, '', '/')
   })
 
-  it('opens the group page to request to join when a steward has to approve', async () => {
+  it('opens the group when accepting does not create a membership', async () => {
     const user = userEvent.setup()
-    mockUseInvitation({ membership: null, error: null, requiresApproval: true, groupSlug: 'garden' })
+    mockUseInvitation({ membership: null, error: null })
 
     render(<ManageInvitesTab />, { wrapper: providersWithInvite() })
 
     await user.click(await screen.findByRole('button', { name: 'Join group' }))
 
     await waitFor(() => {
-      expect(window.location.pathname + window.location.search).toBe('/groups/garden/about?token=invite-token')
+      expect(window.location.pathname + window.location.search).toBe('/groups/garden')
     })
     expect(trackAnalyticsEvent).not.toHaveBeenCalled()
   })
