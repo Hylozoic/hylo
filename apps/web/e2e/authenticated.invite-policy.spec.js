@@ -101,16 +101,25 @@ test.describe('Who can add new members? (administrator)', () => {
   })
 })
 
+/**
+ * The Invite pill in the Member Directory header. The group menu header has its own
+ * Invite pill with the same label, so scope to the center column.
+ * @param {import('@playwright/test').Page} page
+ */
+function memberDirectoryInvite (page) {
+  return page.locator('#center-column').getByRole('button', { name: 'Invite Members' })
+}
+
 test.describe('Invitations from members (plain member)', () => {
   test('the Invite button shows only where members can invite', async ({ page }) => {
     await page.goto(`/groups/${STEWARDS_GROUP.slug}/members`)
     await waitPastRootSessionLoading(page)
-    await expect(page.getByRole('heading', { name: GROUP_ADMINISTRATOR_NAME })).toBeVisible(uiTimeout)
+    await expect(page.getByTestId('member-card').filter({ hasText: GROUP_ADMINISTRATOR_NAME })).toBeVisible(uiTimeout)
     await expect(page.getByRole('button', { name: 'Invite Members' })).toHaveCount(0)
 
     await page.goto(`/groups/${EVERYONE_GROUP.slug}/members`)
     await waitPastRootSessionLoading(page)
-    await expect(page.getByRole('button', { name: 'Invite Members' }).filter({ hasText: 'Invite' })).toBeVisible(uiTimeout)
+    await expect(memberDirectoryInvite(page)).toBeVisible(uiTimeout)
   })
 
   test('a member sends a personal email invitation', async ({ page }, testInfo) => {
@@ -118,7 +127,7 @@ test.describe('Invitations from members (plain member)', () => {
 
     await page.goto(`/groups/${EVERYONE_GROUP.slug}/members`)
     await waitPastRootSessionLoading(page)
-    await page.getByRole('button', { name: 'Invite Members' }).filter({ hasText: 'Invite' }).click()
+    await memberDirectoryInvite(page).click()
 
     const dialog = page.getByRole('dialog', { name: 'Invite People' })
     await expect(dialog).toBeVisible(uiTimeout)
@@ -166,7 +175,7 @@ test.describe('Approving people invited by members', () => {
     // A retry after the request was accepted finds none left
     if (await invitee.isVisible()) {
       await capture(page, testInfo, 'invite-policy-09-join-request', invitee)
-      await page.getByRole('button', { name: 'Welcome' }).click()
+      await page.getByRole('button', { name: 'Welcome', exact: true }).click()
     }
     await expect(noRequests).toBeVisible(uiTimeout)
   })
