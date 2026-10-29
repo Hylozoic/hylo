@@ -54,7 +54,7 @@ export async function declineJoinRequest (userId, joinRequestId) {
   const joinRequest = await JoinRequest.find(joinRequestId)
   if (joinRequest) {
     if (await GroupMembership.hasResponsibility(userId, joinRequest.get('group_id'), Responsibility.constants.RESP_ADD_MEMBERS)) {
-      await joinRequest.decline()
+      await joinRequest.decline(userId)
       return joinRequest
     } else {
       throw new GraphQLError('You do not have permission to do this')

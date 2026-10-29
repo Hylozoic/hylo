@@ -14,6 +14,13 @@ import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
 
+// Join table for groupRoles(). The view has no id column; Bookshelf joins it on
+// user_id and group_role_id, which this view does have.
+const GroupMemberEffectiveRole = bookshelf.Model.extend({
+  tableName: 'group_member_effective_roles',
+  requireFetch: false
+})
+
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
   requireFetch: false,
@@ -156,9 +163,14 @@ module.exports = bookshelf.Model.extend(merge({
       .orderBy('created_at', 'desc')
   },
 
+  /**
+   * Roles this person holds. Assigned roles come from group_memberships_group_roles.
+   * Every active member also holds the group's All Members role, so a responsibility
+   * linked to it (Add Members, when everyone can invite) shows up here without an assignment.
+   */
   groupRoles () {
     return this.belongsToMany(GroupRole)
-      .through(MemberGroupRole, 'user_id', 'group_role_id')
+      .through(GroupMemberEffectiveRole, 'user_id', 'group_role_id')
       .where('groups_roles.active', true)
   },
 
@@ -519,7 +531,7 @@ module.exports = bookshelf.Model.extend(merge({
     // TODO maybe throw an error if a non-whitelisted field is supplied (besides
     // tags and password, which are used later)
     const whitelist = pick(changes, [
-      'avatar_url', 'banner_url', 'bio', 'email', 'contact_email', 'contact_phone',
+      'avatar_url', 'banner_url', 'bio', 'contact_email', 'contact_phone',
       'extra_info', 'facebook_url', 'intention', 'is_profile_public', 'linkedin_url', 'location', 'location_id',
       'name', 'password', 'settings', 'tagline', 'twitter_name', 'url', 'work',
       'new_notification_count', 'calendar_token'
@@ -796,7 +808,7 @@ module.exports = bookshelf.Model.extend(merge({
   isEmailUnique: function (email, excludeEmail, { transacting } = {}) {
     let query = bookshelf.knex('users')
       .whereRaw('lower(email) = lower(?)', email).count('*')
-      .transacting(transacting)
+    if (transacting) query = query.transacting(transacting)
     if (excludeEmail) query = query.andWhere('email', '!=', excludeEmail)
     return query.then(rows => Number(rows[0].count) === 0)
   },

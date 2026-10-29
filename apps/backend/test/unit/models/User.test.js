@@ -4,7 +4,7 @@ import '../../setup'
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import factories from '../../setup/factories'
-import { wait } from '../../setup/helpers'
+import { mockify, unspyify, wait } from '../../setup/helpers'
 import { times } from 'lodash'
 import { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 import setup from '../../setup'
@@ -439,6 +439,35 @@ describe('User', function () {
           await user.reactivate()
           expect(user.get('active')).to.be.true
         })
+    })
+  })
+
+  describe('pending invitations when someone leaves Hylo', () => {
+    let sender, group
+
+    const invite = groupId =>
+      Invitation.create({ userId: sender.id, groupId, email: `leaving-${Date.now()}-${Math.random()}@example.com` })
+
+    before(() => mockify(Queue, 'classMethod', () => Promise.resolve()))
+
+    after(() => unspyify(Queue, 'classMethod'))
+
+    beforeEach(async () => {
+      sender = await factories.user().save()
+      group = await factories.group().save()
+      await sender.joinGroup(group)
+    })
+
+    it('leaves them in place when the account is deactivated', async () => {
+      const invitation = await invite(group.id)
+      await sender.deactivate('session')
+      expect((await Invitation.find(invitation.id)).get('expired_by_id')).to.be.null
+    })
+
+    it('leaves them in place when the account is deleted', async () => {
+      const invitation = await invite(group.id)
+      await sender.sanelyDeleteUser({ sessionId: 'session' })
+      expect((await Invitation.find(invitation.id)).get('expired_by_id')).to.be.null
     })
   })
 

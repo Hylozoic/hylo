@@ -74,6 +74,39 @@ describe('Group', function () {
     expect(savedGroup.get('geo_shape').coordinates).to.deep.equal(polygon.coordinates)
   })
 
+  describe('notifyAboutCreate', function () {
+    beforeEach(function () {
+      mockify(Email, 'sendRawEmail', () => Promise.resolve(true))
+    })
+
+    afterEach(function () {
+      unspyify(Email, 'sendRawEmail')
+    })
+
+    it('does not email when the group is a space', async function () {
+      const creator = await factories.user().save()
+      const parent = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: parent.id,
+        created_by_id: creator.id
+      }).save()
+
+      await Group.notifyAboutCreate({ groupId: space.id })
+
+      expect(Email.sendRawEmail).not.to.have.been.called()
+    })
+
+    it('emails when the group is not a space', async function () {
+      const creator = await factories.user().save()
+      const group = await factories.group({ created_by_id: creator.id }).save()
+
+      await Group.notifyAboutCreate({ groupId: group.id })
+
+      expect(Email.sendRawEmail).to.have.been.called()
+    })
+  })
+
   it('can be created with group extension data', async function () {
     const data = {
       name: 'my group',
@@ -217,6 +250,25 @@ describe('Group', function () {
     })
   })
 
+  describe('moderators and stewards', function () {
+    it('include Administrators and Moderators but not Hosts or plain members, even when everyone can invite', async function () {
+      const group = await factories.group().save()
+      const [administrator, moderator, host, member] = await Promise.all([1, 2, 3, 4].map(() => factories.user().save()))
+      await group.addMembers([administrator, moderator, host, member])
+      await GroupMembership.assignAdministratorRole(administrator.id, group.id)
+      for (const [user, roleName] of [[moderator, 'Moderator'], [host, 'Host']]) {
+        const role = await GroupRole.findSystemRole(group.id, roleName)
+        await MemberGroupRole.forge({ user_id: user.id, group_id: group.id, group_role_id: role.id, active: true }).save()
+      }
+      await GroupRole.setInvitePolicy(group.id, GroupRole.InvitePolicy.EVERYONE)
+
+      const ids = async users => (await users.fetch()).map(user => user.id).sort()
+      const expected = [administrator.id, moderator.id].sort()
+      expect(await ids(group.moderators())).to.deep.equal(expected)
+      expect(await ids(group.stewards())).to.deep.equal(expected)
+    })
+  })
+
   describe('removeMembers', function () {
     it('removes child members', async function () {
       const group = await factories.group().save()
@@ -283,6 +335,21 @@ describe('Group', function () {
 
       const otherSpaceMembership = await GroupMembership.forPair(otherUser, space).fetch()
       expect(otherSpaceMembership).to.not.exist
+    })
+
+    it('leaves pending invitations in place when someone leaves', async function () {
+      const group = await factories.group().save()
+      const leaver = await factories.user().save()
+      await group.addMembers([leaver.id])
+      const invitation = await Invitation.create({
+        userId: leaver.id,
+        groupId: group.id,
+        email: 'pending@leaver-invites.com'
+      })
+
+      await group.removeMembers([leaver.id])
+
+      expect((await Invitation.find(invitation.id)).get('expired_by_id')).to.be.null
     })
 
     it('does not deactivate parent membership when leaving a space only', async function () {

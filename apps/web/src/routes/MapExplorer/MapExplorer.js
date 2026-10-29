@@ -23,6 +23,7 @@ import LocationInput from 'components/LocationInput'
 import Map from 'components/Map/Map'
 import { buildClusterLayerData, createIconLayerFromPostsAndMembers } from 'components/Map/layers/clusterLayer'
 import { createIconLayerFromGroups } from 'components/Map/layers/iconLayer'
+import { useCircularMarkerVersion } from 'components/Map/layers/iconLayer/circularMarkerDataUrl'
 import { useLucideIconsLoaded } from 'components/LucideIcon/lucideIconSet'
 import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer'
 import SwitchStyled from 'components/SwitchStyled'
@@ -32,7 +33,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { locationObjectToViewport } from 'util/geo'
+import { locationObjectToViewport, shapeCenter } from 'util/geo'
 import { isMobileDevice } from 'util/mobile'
 import { generateViewParams } from 'util/savedSearch'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
@@ -116,6 +117,11 @@ function getLocationCenter (entity) {
   return entity.ref?.locationObject?.center || null
 }
 
+/** Location pin, or the center of the boundary when a group has no pin. */
+function getGroupMapCenter (entity) {
+  return getLocationCenter(entity) || shapeCenter(entity?.geoShape || entity?.ref?.geoShape)
+}
+
 /** True when a location center falls inside [west, south, east, north]. */
 function centerWithinBounds (locationObject, boundingBox) {
   if (!boundingBox) return false
@@ -138,6 +144,7 @@ function shapeMeetsBox (geoShape, boundingBox) {
 function MapExplorer (props) {
   const { t } = useTranslation()
   const lucideIconsLoaded = useLucideIconsLoaded()
+  const circularMarkerVersion = useCircularMarkerVersion()
 
   // First-visit tour of the map's floating controls, offered by invitation
   const mapTourStepList = useMemo(() => mapTourSteps(t), [t])
@@ -279,7 +286,7 @@ function MapExplorer (props) {
   useEffect(() => {
     if (!centerParam &&
         !(scopedMapState && reduxState.centerLocation) &&
-        !getLocationCenter(group) &&
+        !getGroupMapCenter(group) &&
         !getLocationCenter(currentUser)) {
       navigator.geolocation.getCurrentPosition((position) => {
         setBrowserLocation({
@@ -296,7 +303,7 @@ function MapExplorer (props) {
     }
   }, [])
 
-  const groupCenter = getLocationCenter(group)
+  const groupCenter = getGroupMapCenter(group)
   const userCenter = getLocationCenter(currentUser)
   const centerParam = getQuerystringParam('center', location)
   const centerLocation = useMemo(() => {
@@ -305,8 +312,8 @@ function MapExplorer (props) {
       return { lat: parseFloat(decodedCenter[0]), lng: parseFloat(decodedCenter[1]) }
     }
 
-    // Prefer scoped redux center, then group location, so maps aren't stuck on
-    // a previous scope's pan or the Africa fallback (35.44, 7.92).
+    // Prefer a saved pan, then the group's pin or boundary center, so maps
+    // aren't stuck on a previous scope's pan or the Africa fallback (35.44, 7.92).
     return (scopedMapState && reduxState.centerLocation) ||
       groupCenter ||
       userCenter ||
@@ -603,12 +610,13 @@ function MapExplorer (props) {
       onHover: onMapHover,
       onClick: onMapClick,
       boundingBox: currentBoundingBox,
-      lucideIconsLoaded
+      lucideIconsLoaded,
+      circularMarkerVersion
     })
-  }, [viewGroups, currentBoundingBox, onMapHover, onMapClick, lucideIconsLoaded])
+  }, [viewGroups, currentBoundingBox, onMapHover, onMapClick, lucideIconsLoaded, circularMarkerVersion])
 
-  const polygonLayer = useMemo(() => {
-    if (!currentBoundingBox || context === 'public') return null
+  const polygonLayers = useMemo(() => {
+    if (!currentBoundingBox || context === 'public') return []
     return createPolygonLayerFromGroups({
       groups: viewGroups,
       onHover: onMapHover,
@@ -850,7 +858,7 @@ function MapExplorer (props) {
         {mapTourInvitation}
         <Map
           baseLayerStyle={baseLayerStyle}
-          hyloLayers={[polygonLayer, groupIconLayer, clusterLayer]}
+          hyloLayers={[...polygonLayers, groupIconLayer, clusterLayer]}
           isAddingItemToMap={isAddingItemToMap}
           otherLayers={Object.keys(otherLayers)}
           ref={mapRef}

@@ -11,6 +11,8 @@ export const routingConfig: Record<string, string | ((search: string) => void)> 
   '/oauth/consent/:uid': `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
   '/oauth/login/:uid': `${NON_AUTH_ROOT_SCREEN_NAME}/Login`,
   '/:context(groups)/:groupSlug/join/:accessCode': 'JoinGroup',
+  '/invite/:accessCode': 'JoinGroup',
+  '/view/:accessCode': 'JoinGroup',
   '/h/use-invitation': 'JoinGroup',
   ':path(.*)': `${AUTH_ROOT_SCREEN_NAME}/Main`
 }

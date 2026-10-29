@@ -173,6 +173,39 @@ describe('join_request mutations', () => {
     })
   })
 
+  describe('requests when everyone can add members', () => {
+    let restricted, admin, member
+
+    before(async () => {
+      restricted = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+      admin = await factories.user().save()
+      member = await factories.user().save()
+      await admin.joinGroup(restricted, { assignAdministrator: true })
+      await member.joinGroup(restricted)
+      await GroupRole.setInvitePolicy(restricted.id, 'everyone')
+    })
+
+    it('notifies members who can add members', async () => {
+      const requester = await factories.user().save()
+      await createJoinRequest(requester.id, restricted.id, [])
+
+      const notified = async reader => {
+        const activities = await Activity.where({ reader_id: reader.id, actor_id: requester.id, group_id: restricted.id }).fetchAll()
+        return activities.some(a => (a.get('meta')?.reasons || []).includes('joinRequest'))
+      }
+      expect(await notified(admin)).to.be.true
+      expect(await notified(member)).to.be.true
+    })
+
+    it('lets a member with Add Members accept a request', async () => {
+      const requester = await factories.user().save()
+      const { request } = await createJoinRequest(requester.id, restricted.id, [])
+      await acceptJoinRequest(member.id, request.id)
+      expect((await JoinRequest.find(request.id)).get('status')).to.equal(JoinRequest.STATUS.Accepted)
+      expect(await GroupMembership.forPair(requester.id, restricted.id).fetch()).to.exist
+    })
+  })
+
   describe('space join requests', () => {
     let parentGroup, space, parentSteward
 

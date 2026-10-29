@@ -268,6 +268,7 @@ module.exports = {
       if (!groupId && !productId && !groupRoleId) {
         throw new GraphQLError('Must specify either groupId, productId, or groupRoleId')
       }
+      await GroupRole.assertAssignableRoleIds(groupRoleId)
 
       const emailContext = await buildAccessEmailContext({
         groupRoleId,

@@ -39,7 +39,7 @@ function EventBody (props) {
       <div className={cn(classes.body, classes.eventBody, { [classes.smallMargin]: !expanded, [classes.eventImage]: attachmentType === 'image', [classes.constrained]: constrained }, className)}>
         <div className={cn('flex flex-col', { [classes.constrained]: constrained, [classes.isFlagged]: isFlagged })}>
           <div className='flex flex-row gap-5 items-center justify-start mb-4'>
-            <EventDate {...event} />
+            <EventDate startTime={startTime} />
             <div className='flex flex-col gap-0 min-w-0'>
               <div className={cn('text-xs text-foreground/50 flex flex-row gap-2 items-center')} onClick={onClick}>
                 {isHappeningNow && <div className='bg-selected/10 p-1 rounded-lg text-selected text-xs font-bold flex items-center justify-center inline-block px-2'>{t('Happening now!')}</div>}

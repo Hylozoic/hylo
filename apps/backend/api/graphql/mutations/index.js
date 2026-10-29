@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase, size, trim } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import convertGraphqlData from './convertGraphqlData'
+import { startEmailChange, validateEmailChange } from './emailChange'
 import { pushToSockets, userRoom } from '../../services/Websockets'
 
 export {
@@ -66,7 +67,9 @@ export {
   deleteGroupTopic,
   inviteGroupToGroup,
   joinGroup,
-  regenerateAccessCode,
+  createGroupInviteLink,
+  updateGroupInviteLink,
+  deleteGroupInviteLink,
   rejectGroupRelationshipInvite,
   removeMember,
   updateGroup,
@@ -174,6 +177,10 @@ export {
   verifyEmail
 } from './user'
 export {
+  cancelEmailChange,
+  verifyEmailChange
+} from './emailChange'
+export {
   createZapierTrigger,
   deleteZapierTrigger
 } from './zapier'
@@ -201,12 +208,25 @@ export {
   deleteSiteBanner,
   dismissSiteBanner
 } from './siteBanners'
+export {
+  requestPublicListing,
+  reviewPublicListingRequest,
+  publicListingRequests
+} from './publicListingRequest'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
 export { muteMessageThread, unmuteMessageThread } from './messageThread'
 
-export async function updateMe (sessionId, userId, changes) {
+export async function updateMe (sessionId, userId, changes, { ip } = {}) {
   const user = await User.find(userId)
   const convertedChanges = convertGraphqlData(changes)
+
+  // A new email address only replaces the current one once it has been verified (see ./emailChange).
+  // Check it before saving anything else, so an invalid or duplicate email still fails the whole update.
+  let newEmail
+  if (convertedChanges.email !== undefined) {
+    newEmail = await validateEmailChange(user, convertedChanges.email, { ip })
+    delete convertedChanges.email
+  }
 
   // Generate calendar token if RSVP calendar subscription is enabled and token doesn't exist
   if (convertedChanges.settings?.rsvp_calendar_sub) {
@@ -218,7 +238,9 @@ export async function updateMe (sessionId, userId, changes) {
     Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId: user.id })
   }
 
-  return user.validateAndSave(sessionId, convertedChanges)
+  const savedUser = await user.validateAndSave(sessionId, convertedChanges)
+  if (newEmail) await startEmailChange(savedUser, newEmail, { ip })
+  return savedUser
 }
 
 export async function allowGroupInvites (userId, groupId, data) {

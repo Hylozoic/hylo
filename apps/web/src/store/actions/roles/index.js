@@ -145,7 +145,7 @@ export function fetchGroupRoleDetails ({ id, roleId: groupRoleId, first = ROLE_M
         }
       }`,
       variables: {
-        id, groupRoleIds: groupRoleId ? [groupRoleId] : null, first, offset
+        id, groupRoleIds: groupRoleId ? [groupRoleId] : null, groupRoleId, first, offset
       }
     },
     meta: {
