@@ -16,7 +16,6 @@ import CalendarSubscribeModal from 'routes/GroupCalendarSubscribe/CalendarSubscr
 import updateUserSettings from 'store/actions/updateUserSettings'
 import getMe from 'store/selectors/getMe'
 import {
-  RSVP_CALENDAR_PROMPT_ID,
   closeRsvpCalendarPrompt,
   getRsvpCalendarPromptOpen,
   shouldOfferRsvpCalendar
@@ -50,10 +49,9 @@ export default function RsvpCalendarPrompt () {
   }, [close])
 
   const handleDontAskAgain = useCallback(() => {
-    const toursSeen = currentUser?.settings?.toursSeen || []
-    dispatch(updateUserSettings({ settings: { toursSeen: [...toursSeen, RSVP_CALENDAR_PROMPT_ID] } }))
+    dispatch(updateUserSettings({ settings: { hideRsvpCalendarPrompt: true } }))
     close()
-  }, [currentUser?.settings?.toursSeen, dispatch, close])
+  }, [dispatch, close])
 
   const handleSubscribe = useCallback(async () => {
     setSubscribing(true)

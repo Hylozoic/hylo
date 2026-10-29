@@ -10,7 +10,6 @@ import respondToEvent from 'store/actions/respondToEvent'
 import { RESPOND_TO_EVENT } from 'store/constants'
 import RsvpCalendarPrompt from './RsvpCalendarPrompt'
 import reducer, {
-  RSVP_CALENDAR_PROMPT_ID,
   closeRsvpCalendarPrompt,
   initialState,
   shouldOfferRsvpCalendar
@@ -45,7 +44,8 @@ describe('RsvpCalendarPrompt.store', () => {
     expect(shouldOfferRsvpCalendar({})).toBe(true)
     expect(shouldOfferRsvpCalendar({ toursSeen: ['global-chrome'] })).toBe(true)
     expect(shouldOfferRsvpCalendar({ rsvpCalendarSub: true })).toBe(false)
-    expect(shouldOfferRsvpCalendar({ toursSeen: [RSVP_CALENDAR_PROMPT_ID] })).toBe(false)
+    expect(shouldOfferRsvpCalendar({ hideRsvpCalendarPrompt: false })).toBe(true)
+    expect(shouldOfferRsvpCalendar({ hideRsvpCalendarPrompt: true })).toBe(false)
   })
 })
 
@@ -118,16 +118,18 @@ describe('RsvpCalendarPrompt', () => {
     const { store, rsvp } = setup({ toursSeen: ['global-chrome'] })
     await rsvp('yes')
     fireEvent.click(await screen.findByText('Don\'t ask again'))
+    // The optimistic update marks it on `me` straight away, keeping the other settings
+    expect(getMe(store.getState()).settings).toEqual({ toursSeen: ['global-chrome'], hideRsvpCalendarPrompt: true })
     await waitFor(() => expect(screen.queryByText(PROMPT_TITLE)).not.toBeInTheDocument())
-    await waitFor(() => expect(updateMeCalls).toEqual([{ settings: { toursSeen: ['global-chrome', RSVP_CALENDAR_PROMPT_ID] } }]))
-    expect(getMe(store.getState()).settings.toursSeen).toContain(RSVP_CALENDAR_PROMPT_ID)
+    await waitFor(() => expect(updateMeCalls).toEqual([{ settings: { hideRsvpCalendarPrompt: true } }]))
+    await waitFor(() => expect(getMe(store.getState()).settings.hideRsvpCalendarPrompt).toBe(true))
 
     await rsvp('yes')
     expect(screen.queryByText(PROMPT_TITLE)).not.toBeInTheDocument()
   })
 
   it('does not show for someone already opted out', async () => {
-    const { rsvp } = setup({ toursSeen: [RSVP_CALENDAR_PROMPT_ID] })
+    const { rsvp } = setup({ hideRsvpCalendarPrompt: true })
     await rsvp('yes')
     expect(screen.queryByText(PROMPT_TITLE)).not.toBeInTheDocument()
   })
