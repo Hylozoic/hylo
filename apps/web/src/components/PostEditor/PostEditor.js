@@ -1497,7 +1497,7 @@ function PostEditorInner ({
   const endTimePickerValue = currentPost.endTime
     ? DateTimeHelpers.toPickerDate(currentPost.endTime, eventTimezone)
     : undefined
-  // Remove buttons live here, outside the pickers, so they work with any picker implementation
+  // Remove buttons, shown inside each picker's field (see DateTimePicker's endAdornment)
   const clearStartTimeButton = timesAreClearable && currentPost.startTime && (
     <ClearTimeButton
       label={t('Remove start time')}
@@ -1914,7 +1914,7 @@ function PostEditorInner ({
               <div className='flex flex-col border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0' data-testid='post-editor-timeframe'>
                 <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
                 {/* Touch devices: OS date/time pickers, one full-width row each for start and end */}
-                <div className='grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2'>
+                <div className='grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2'>
                   <span aria-hidden='true' />
                   <DateTimePicker
                     id='post-editor-start-time'
@@ -1923,8 +1923,8 @@ function PostEditorInner ({
                     value={startTimePickerValue}
                     placeholder={t('Select Start')}
                     onChange={handleStartTimeChange}
+                    endAdornment={clearStartTimeButton}
                   />
-                  {clearStartTimeButton || <span />}
                   <div className='text-xs text-foreground/50'>{t('to')}</div>
                   <DateTimePicker
                     id='post-editor-end-time'
@@ -1934,8 +1934,8 @@ function PostEditorInner ({
                     value={endTimePickerValue}
                     placeholder={t('Select End')}
                     onChange={handleEndTimeChange}
+                    endAdornment={clearEndTimeButton}
                   />
-                  {clearEndTimeButton || <span />}
                 </div>
               </div>
               )
@@ -1943,31 +1943,26 @@ function PostEditorInner ({
               <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0' data-testid='post-editor-timeframe'>
                 <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
                 <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
-                  {/* Each picker and its remove button wrap together */}
-                  <div className='flex items-center gap-1 min-w-0 max-w-full'>
-                    <DateTimePicker
-                      hourCycle={hourCycle}
-                      granularity='minute'
-                      value={startTimePickerValue}
-                      placeholder={t('Select Start')}
-                      onChange={handleStartTimeChange}
-                      onMonthChange={() => {}}
-                    />
-                    {clearStartTimeButton}
-                  </div>
+                  <DateTimePicker
+                    hourCycle={hourCycle}
+                    granularity='minute'
+                    value={startTimePickerValue}
+                    placeholder={t('Select Start')}
+                    onChange={handleStartTimeChange}
+                    onMonthChange={() => {}}
+                    endAdornment={clearStartTimeButton}
+                  />
                   <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
-                  <div className='flex items-center gap-1 min-w-0 max-w-full'>
-                    <DateTimePicker
-                      ref={endTimeRef}
-                      hourCycle={hourCycle}
-                      granularity='minute'
-                      value={endTimePickerValue}
-                      placeholder={t('Select End')}
-                      onChange={handleEndTimeChange}
-                      onMonthChange={() => {}}
-                    />
-                    {clearEndTimeButton}
-                  </div>
+                  <DateTimePicker
+                    ref={endTimeRef}
+                    hourCycle={hourCycle}
+                    granularity='minute'
+                    value={endTimePickerValue}
+                    placeholder={t('Select End')}
+                    onChange={handleEndTimeChange}
+                    onMonthChange={() => {}}
+                    endAdornment={clearEndTimeButton}
+                  />
                 </div>
               </div>
               )}
@@ -2204,7 +2199,10 @@ function PostEditorInner ({
   )
 }
 
-/** Small "x" button that removes a start or end time from the post */
+/**
+ * Small "x" button, shown inside a date/time field, that removes the start or end time.
+ * It sits over the field but isn't part of the picker, so its click mustn't reach the picker.
+ */
 function ClearTimeButton ({ label, testId, onClick, disabled }) {
   return (
     <button
@@ -2212,9 +2210,14 @@ function ClearTimeButton ({ label, testId, onClick, disabled }) {
       aria-label={label}
       title={label}
       data-testid={testId}
-      onClick={onClick}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onClick()
+      }}
       disabled={disabled}
-      className='flex items-center justify-center shrink-0 h-8 w-8 rounded-md text-foreground/50 hover:text-foreground hover:bg-foreground/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50 touch-manipulation'
+      className='flex items-center justify-center shrink-0 h-8 w-8 sm:h-7 sm:w-7 rounded-full text-foreground/50 hover:text-foreground hover:bg-foreground/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50 touch-manipulation'
     >
       <X className='h-4 w-4' />
     </button>

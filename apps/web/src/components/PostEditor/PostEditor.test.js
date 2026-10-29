@@ -289,6 +289,44 @@ describe('PostEditor', () => {
       })
     })
 
+    describe('remove buttons sit inside their date/time fields', () => {
+      const matchMediaImpl = window.matchMedia.getMockImplementation()
+      const mockPointer = (coarse) => window.matchMedia.mockImplementation(query => ({
+        matches: query === '(pointer: coarse)' ? coarse : query === '(any-pointer: fine)' ? !coarse : false,
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn()
+      }))
+      afterEach(() => window.matchMedia.mockImplementation(matchMediaImpl))
+
+      it('inside the popover trigger, and removing a time does not open the picker', async () => {
+        mockPointer(false)
+        renderTimedPost('request')
+        const user = userEvent.setup()
+
+        const clearEnd = await screen.findByTestId('post-editor-clear-end-time')
+        const triggers = screen.getByTestId('post-editor-timeframe').querySelectorAll('[aria-haspopup="dialog"]')
+        expect(triggers).toHaveLength(2)
+        expect(triggers[0].parentElement).toContainElement(screen.getByTestId('post-editor-clear-start-time'))
+        expect(triggers[1].parentElement).toContainElement(clearEnd)
+
+        await user.click(clearEnd)
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(screen.getByText('Select End')).toBeInTheDocument()
+      })
+
+      it('inside the native time inputs, with no extra grid column', async () => {
+        mockPointer(true)
+        renderTimedPost('request')
+
+        const clearStart = await screen.findByTestId('post-editor-clear-start-time')
+        const timeInputs = screen.getAllByTestId('native-time-input')
+        expect(timeInputs[0].parentElement).toContainElement(clearStart)
+        expect(timeInputs[1].parentElement).toContainElement(screen.getByTestId('post-editor-clear-end-time'))
+        expect(screen.getByTestId('post-editor-timeframe').querySelector('.grid')).toHaveClass('grid-cols-[auto_minmax(0,1fr)]')
+      })
+    })
+
     it('does not offer to remove the times of an event, which requires them', async () => {
       renderTimedPost('event')
       await screen.findByText('Timeframe')
