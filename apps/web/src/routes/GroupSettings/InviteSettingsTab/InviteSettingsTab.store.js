@@ -63,21 +63,16 @@ export function createInvitations (groupId, emails, groupRoleId = null, userIds 
   }
 }
 
-export const PENDING_INVITES_PAGE_SIZE = 20
-
-/**
- * Loads invitePath and one page of pending invitations so the invite UI works outside Group Settings.
- * Pass offset to load the next page; the invitations accumulate in the store.
- */
-export function fetchPendingInvitations (groupId, { first = PENDING_INVITES_PAGE_SIZE, offset = 0 } = {}) {
+/** Loads invitePath and pending invitations so the invite UI works outside Group Settings. */
+export function fetchPendingInvitations (groupId) {
   return {
     type: FETCH_PENDING_INVITATIONS,
     graphql: {
-      query: `query ($id: ID, $first: Int, $offset: Int) {
+      query: `query ($id: ID) {
         group (id: $id) {
           id
           invitePath
-          pendingInvitations (first: $first, offset: $offset) {
+          pendingInvitations {
             hasMore
             items {
               id
@@ -90,7 +85,7 @@ export function fetchPendingInvitations (groupId, { first = PENDING_INVITES_PAGE
           }
         }
       }`,
-      variables: { id: groupId, first, offset }
+      variables: { id: groupId }
     },
     meta: {
       extractModel: 'Group'

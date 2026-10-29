@@ -88,7 +88,6 @@ module.exports = {
       }).fetchAll({ withRelated: ['user'] }))
       .then(invitations => ({
         total: invitations.length > 0 ? Number(invitations.first().get('total')) : 0,
-        hasMore: invitations.length > 0 && (offset || 0) + invitations.length < Number(invitations.first().get('total')),
         items: invitations.map(i => {
           let user = i.relations.user
           if (isEmpty(user) && i.get('joined_user_id')) {

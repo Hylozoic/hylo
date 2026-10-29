@@ -74,38 +74,6 @@ describe('InvitationService', () => {
     })
   })
 
-  describe('find', () => {
-    let pagedGroup
-
-    before(async () => {
-      pagedGroup = await factories.group().save()
-      for (let n = 1; n <= 25; n++) {
-        await factories.invitation({
-          invited_by_id: inviter.id,
-          group_id: pagedGroup.id,
-          email: `paged-${n}@example.com`,
-          created_at: new Date(Date.UTC(2020, 0, 1, 0, n))
-        }).save()
-      }
-    })
-
-    it('returns one page at a time, newest first, with hasMore', async () => {
-      const first = await InvitationService.find({ groupId: pagedGroup.id, pendingOnly: true, limit: 10 })
-      expect(first.total).to.equal(25)
-      expect(first.hasMore).to.equal(true)
-      expect(first.items.map(i => i.email)).to.deep.equal(
-        [25, 24, 23, 22, 21, 20, 19, 18, 17, 16].map(n => `paged-${n}@example.com`)
-      )
-
-      const last = await InvitationService.find({ groupId: pagedGroup.id, pendingOnly: true, limit: 10, offset: 20 })
-      expect(last.total).to.equal(25)
-      expect(last.hasMore).to.equal(false)
-      expect(last.items.map(i => i.email)).to.deep.equal(
-        [5, 4, 3, 2, 1].map(n => `paged-${n}@example.com`)
-      )
-    })
-  })
-
   describe('use', function () {
     before(function () {
       invitation = factories.invitation()

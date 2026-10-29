@@ -35,7 +35,6 @@ import {
   reinviteAll as reinviteAllAction
 } from './InviteSettingsTab.store'
 
-import useScrollSentinel from 'routes/MemberProfile/useScrollSentinel'
 import classes from './InviteSettingsTab.module.scss'
 
 const { bool, object } = PropTypes
@@ -90,12 +89,7 @@ function InviteSettingsTab (props) {
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [hasMorePeople, setHasMorePeople] = useState(false)
   const sendingRef = useRef(false)
-  // One ref per invite row: CSSTransition needs each row's own node to finish its fade in/out
-  const pendingInviteNodeRefs = useRef(new Map())
-  const pendingInviteNodeRef = (id) => {
-    if (!pendingInviteNodeRefs.current.has(id)) pendingInviteNodeRefs.current.set(id, React.createRef())
-    return pendingInviteNodeRefs.current.get(id)
-  }
+  const pendingInvitesTransitionRef = useRef(null)
   const peopleSearchRef = useRef('')
   const peopleOffsetRef = useRef(0)
   const peopleFetchGenRef = useRef(0)
@@ -300,32 +294,6 @@ function InviteSettingsTab (props) {
 
   const hasPendingInvites = !isEmpty(pendingInvites)
 
-  const [hasMoreInvites, setHasMoreInvites] = useState(false)
-  const [loadingMoreInvites, setLoadingMoreInvites] = useState(false)
-
-  /**
-   * Loads a page of pending invites. The offset is the number already in the store, so expiring
-   * an invite (removed from both the store and the server's list) doesn't skip the next one.
-   */
-  const loadPendingInvites = useCallback(async (offset = 0) => {
-    if (!group?.id) return
-    try {
-      const res = await dispatch(fetchPendingInvitations(group.id, { offset }))
-      const querySet = res?.payload?.data?.group?.pendingInvitations
-      setHasMoreInvites(!res?.error && !!querySet?.hasMore)
-    } catch (e) {
-      setHasMoreInvites(false)
-    }
-  }, [dispatch, group?.id])
-
-  const loadMoreInvites = useCallback(async () => {
-    setLoadingMoreInvites(true)
-    await loadPendingInvites(pendingInvites.length)
-    setLoadingMoreInvites(false)
-  }, [loadPendingInvites, pendingInvites.length])
-
-  const invitesSentinelRef = useScrollSentinel(hasMoreInvites && !loadingMoreInvites, loadMoreInvites, pendingInvites.length)
-
   /** True when this is a role-gated space with required roles defined. */
   const isRoleGated = isSpace && (spaceRequiredRoleIds?.length > 0)
 
@@ -369,8 +337,8 @@ function InviteSettingsTab (props) {
   }, [inModal, setHeaderDetails, t])
 
   useEffect(() => {
-    loadPendingInvites()
-  }, [loadPendingInvites])
+    if (group?.id) dispatch(fetchPendingInvitations(group.id))
+  }, [dispatch, group?.id])
 
   return (
     <div className={classes.container}>
@@ -547,7 +515,7 @@ function InviteSettingsTab (props) {
       </div>
 
       {hasPendingInvites && (
-        <div data-testid='pending-invites' className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
+        <div className='border-2 mt-2 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
           <div className='w-full flex justify-between items-center'>
             <h2 className='text-lg font-bold mt-0 mb-1 text-foreground w-full'>{t('Pending Invites')}</h2>
             {hasPendingInvites && (
@@ -560,7 +528,7 @@ function InviteSettingsTab (props) {
             )}
           </div>
           <TransitionGroup className='flex flex-col gap-1'>
-            {pendingInvites.map((invite) => (
+            {pendingInvites.map((invite, index) => (
               <CSSTransition
                 classNames={{
                   enter: classes.enter,
@@ -569,10 +537,10 @@ function InviteSettingsTab (props) {
                   exitActive: classes.exitActive
                 }}
                 timeout={{ enter: 400, exit: 500 }}
-                key={invite.id}
-                nodeRef={pendingInviteNodeRef(invite.id)}
+                key={index}
+                nodeRef={pendingInvitesTransitionRef}
               >
-                <div className='w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 bg-card rounded-lg px-2 py-1.5 mb-1 last:mb-0' data-testid='pending-invite' ref={pendingInviteNodeRef(invite.id)}>
+                <div className='w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 bg-card rounded-lg px-2 py-1.5 mb-1 last:mb-0' key={invite.id} ref={pendingInvitesTransitionRef}>
                   <div className='flex-1 min-w-0'>
                     <span className='block truncate'>
                       {invite.name
@@ -589,7 +557,6 @@ function InviteSettingsTab (props) {
               </CSSTransition>
             ))}
           </TransitionGroup>
-          {hasMoreInvites && <div ref={invitesSentinelRef} className='h-px' aria-hidden='true' />}
         </div>
       )}
     </div>
