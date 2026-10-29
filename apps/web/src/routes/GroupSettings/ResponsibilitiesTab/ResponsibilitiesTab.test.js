@@ -78,5 +78,4 @@ describe('ResponsibilitiesTab', () => {
       await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('A built-in responsibility already has this name. Please choose another.'))
     })
   })
-
 })
