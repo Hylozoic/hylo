@@ -109,6 +109,9 @@ describe('NativeDateTimePicker', () => {
     const timeBox = screen.getByTestId('native-time-input').parentElement
     expect(timeBox).toContainElement(adornment)
     expect(screen.getByTestId('native-time-input')).toHaveClass('pr-10')
+    // Chrome's own picker icon makes way for the adornment
+    expect(screen.getByTestId('native-time-input')).toHaveClass('[&::-webkit-calendar-picker-indicator]:hidden')
+    expect(screen.getByTestId('native-date-input')).not.toHaveClass('[&::-webkit-calendar-picker-indicator]:hidden')
     expect(screen.getByTestId('native-date-input').parentElement).not.toContainElement(adornment)
     expect(screen.getByTestId('native-date-input')).not.toHaveClass('pr-10')
   })

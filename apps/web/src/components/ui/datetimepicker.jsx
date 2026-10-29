@@ -698,27 +698,33 @@ const PopoverDateTimePicker = React.forwardRef(({ locale: localeProp, defaultPop
     }
   }, [popoverOpen])
 
+  const trigger = (
+    <PopoverTrigger asChild disabled={disabled}>
+      <Button variant='outline' className={cn('min-h-11 sm:min-h-10 max-w-full justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', endAdornment && 'pr-10 sm:pr-9', className)} ref={buttonRef}>
+        <CalendarIcon className='mr-2 h-4 w-4' />
+        {displayDate
+          ? (DateTimeHelpers.toDateTime(displayDate, {
+              locale
+            }).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12))
+          : (<span>{placeholder}</span>)}
+      </Button>
+    </PopoverTrigger>
+  )
+
   return (
     <Popover open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
-      {/* The adornment (e.g. a clear button) can't go inside the trigger <button>, so it's
-          overlaid on the trigger's right padding; as a sibling, clicking it doesn't open the popover */}
-      <div className='relative inline-flex min-w-0 max-w-full'>
-        <PopoverTrigger asChild disabled={disabled}>
-          <Button variant='outline' className={cn('min-h-11 sm:min-h-10 max-w-full justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', endAdornment && 'pr-10 sm:pr-9', className)} ref={buttonRef}>
-            <CalendarIcon className='mr-2 h-4 w-4' />
-            {displayDate
-              ? (DateTimeHelpers.toDateTime(displayDate, {
-                  locale
-                }).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12))
-              : (<span>{placeholder}</span>)}
-          </Button>
-        </PopoverTrigger>
-        {endAdornment && (
-          <div className='absolute inset-y-0 right-1 flex items-center' data-testid='datetime-picker-end-adornment'>
-            {endAdornment}
+      {endAdornment
+        ? (
+          // The adornment (e.g. a clear button) can't go inside the trigger <button>, so it's
+          // overlaid on the trigger's right padding; as a sibling, clicking it doesn't open the popover
+          <div className='relative inline-flex min-w-0 max-w-full'>
+            {trigger}
+            <div className='absolute inset-y-0 right-1 flex items-center' data-testid='datetime-picker-end-adornment'>
+              {endAdornment}
+            </div>
           </div>
-        )}
-      </div>
+          )
+        : trigger}
       <PopoverContent
         ref={popoverContentRef}
         container={popoverSurface}
@@ -803,8 +809,10 @@ const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = fal
   )
   const emptyClass = 'text-transparent'
   // The adornment (e.g. a clear button) sits inside the last input's box, over its right
-  // padding, so the value and the browser's own picker icon stay clear of it
-  const adornmentPadding = 'pr-10 sm:pr-9'
+  // padding. That input drops the browser's own picker icon (Chrome shows one; iOS and Android
+  // don't, and tapping the field opens the picker anyway), which would otherwise crowd the
+  // value out of a phone-width field.
+  const adornmentPadding = 'pr-10 sm:pr-9 [&::-webkit-calendar-picker-indicator]:hidden'
   const adornment = endAdornment && (
     <div className='absolute inset-y-0 right-1 z-10 flex items-center' data-testid='datetime-picker-end-adornment'>
       {endAdornment}

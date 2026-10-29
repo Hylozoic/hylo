@@ -121,9 +121,23 @@ async function expectInsideField (field, button) {
   // The field's content box (its text, and the native picker's own icon) ends before the button
   const contentRight = await field.evaluate(el => el.getBoundingClientRect().right - parseFloat(getComputedStyle(el).paddingRight))
   expect(contentRight).toBeLessThanOrEqual(buttonBox.x + 1)
-  // ...and the value still fits in it
-  const clipped = await field.evaluate(el => el.scrollWidth > el.clientWidth + 1)
-  expect(clipped).toBe(false)
+  // ...and the value still fits in it. Chrome clips a native input's value inside its shadow
+  // DOM without changing scrollWidth, so measure the displayed text (plus Chrome's picker icon,
+  // if shown) against the content box. The popover trigger is a plain button: compare scrollWidth.
+  const fit = await field.evaluate(el => {
+    const style = getComputedStyle(el)
+    const content = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    if (el.tagName !== 'INPUT') return { content: el.clientWidth, needed: el.scrollWidth - 1 }
+    const [h, m] = el.value.split(':').map(Number)
+    const text = new Date(2030, 0, 1, h, m).toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit' })
+    const ctx = document.createElement('canvas').getContext('2d')
+    ctx.font = `${style.fontSize} ${style.fontFamily}`
+    // Chrome's icon plus its margins takes ~36px; its edit fields add a few px of padding.
+    // (getComputedStyle doesn't report on that pseudo-element, so go by the class that hides it.)
+    const icon = el.className.includes('[&::-webkit-calendar-picker-indicator]:hidden') ? 0 : 36
+    return { content, needed: ctx.measureText(text).width + icon + 4 }
+  })
+  expect(fit.needed).toBeLessThanOrEqual(fit.content)
 }
 
 test('the remove buttons sit inside their date/time fields', async ({ page }) => {
