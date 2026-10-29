@@ -3259,5 +3259,8 @@
   "Requested {{date}}": "Requested {{date}}",
   "Reviewed {{date}}": "Reviewed {{date}}",
   "Message to the requester (optional)": "Message to the requester (optional)",
-  "Message to the requester (optional), included in the email": "Message to the requester (optional), included in the email"
+  "Message to the requester (optional), included in the email": "Message to the requester (optional), included in the email",
+  "reactionCount_one": "{{count}} reaction",
+  "reactionCount_other": "{{count}} reactions",
+  "Tap to remove": "Tap to remove"
 }

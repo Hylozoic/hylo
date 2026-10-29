@@ -379,11 +379,16 @@ function PostHeader (props) {
         ? t('Started: {{from}}', { from })
         : false
 
+  // When no start string is shown, `to` may be time-only (same-day range), so format the end with its full date
+  const endDisplay = !startString && actualEndTime
+    ? formatUserDatePair({ start: actualEndTime, timezone, returnAsObj: true }).from
+    : to
+
   let endString = false
   if (fulfilledAt && fulfilledAt <= endTime) {
-    endString = t('Completed: {{endTime}}', { endTime: to })
+    endString = t('Completed: {{endTime}}', { endTime: endDisplay })
   } else {
-    endString = TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: to }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: to }) : false
+    endString = TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: endDisplay }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: endDisplay }) : false
   }
 
   let timeWindow = ''
