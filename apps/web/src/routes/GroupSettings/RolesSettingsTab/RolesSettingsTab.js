@@ -24,6 +24,8 @@ import {
   getStewardSuggestions
 } from './RolesSettingsTab.store'
 import { fetchGroupSettings } from '../GroupSettings.store'
+import InvitePolicySelect from 'components/InvitePolicySelect/InvitePolicySelect'
+import { trackInvitePolicySet } from 'util/invitePolicy'
 import SettingsSection from '../SettingsSection'
 import EmojiPicker from 'components/EmojiPicker'
 import SettingsControl from 'components/SettingsControl'
@@ -34,8 +36,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { keyMap } from 'util/textInput'
 import { cn } from 'util/index'
 import { personUrl } from '@hylo/navigation'
-import { sortCustomGroupRoles, sortSystemGroupRoles, isSystemGroupRole } from '@hylo/hooks/groupRoleHelpers'
-
+import { sortCustomGroupRoles, sortSystemGroupRoles, isMemberGroupRole, isSystemGroupRole } from '@hylo/hooks/groupRoleHelpers'
 import styles from './RolesSettingsTab.module.scss'
 
 const emptyRole = {
@@ -53,7 +54,15 @@ const roleValidationError = ({ name, emoji }, t) => {
   return null
 }
 
-function RolesSettingsTab ({ group, slug }) {
+/**
+ * Saved invite policy, or null when the group has none (spaces).
+ */
+function initialInvitePolicy (group) {
+  if (!group?.invitePolicy) return null
+  return typeof group.invitePolicy === 'string' ? group.invitePolicy : group.invitePolicy.mode
+}
+
+function RolesSettingsTab ({ group, slug, updateGroupSettings }) {
   const dispatch = useDispatch()
   const suggestions = useSelector(getStewardSuggestions)
   const { t } = useTranslation()
@@ -63,24 +72,42 @@ function RolesSettingsTab ({ group, slug }) {
     [group?.groupRoles?.items]
   )
   const customRolesFromGroup = useMemo(
-    () => sortCustomGroupRoles((group?.groupRoles?.items || []).filter(role => !isSystemGroupRole(role))),
+    () => sortCustomGroupRoles((group?.groupRoles?.items || []).filter(role => !isSystemGroupRole(role) && !isMemberGroupRole(role))),
     [group?.groupRoles?.items]
   )
   const [rolesOverride, setRolesOverride] = useState(null)
+  const [invitePolicy, setInvitePolicy] = useState(() => initialInvitePolicy(group))
   const roles = rolesOverride ?? customRolesFromGroup
   const [availableResponsibilities, setAvailableResponsibilities] = useState([])
   const { setHeaderDetails } = useViewHeader()
-
   useEffect(() => {
     if (!group?.id) return
     let isMounted = true
     dispatch(fetchResponsibilitiesForGroup({ groupId: group.id }))
       .then((response) => {
-        if (isMounted) setAvailableResponsibilities(response?.payload?.data?.responsibilities || [])
+        const responsibilities = response?.payload?.data?.responsibilities || []
+        if (isMounted) {
+          setAvailableResponsibilities(responsibilities)
+        }
       })
       .catch((e) => { console.error('Error fetching responsibilities for group', e) })
     return () => { isMounted = false }
   }, [group?.id, dispatch])
+
+  useEffect(() => {
+    setInvitePolicy(initialInvitePolicy(group))
+  }, [group?.invitePolicy])
+
+  /**
+   * Saves who can invite as soon as the choice changes. This page has no shared save button.
+   */
+  const changeInvitePolicyMode = mode => {
+    setInvitePolicy(mode)
+    if (!updateGroupSettings) return
+    Promise.resolve(updateGroupSettings({ invitePolicy: mode })).then(result => {
+      if (!result?.error) dispatch(trackInvitePolicySet(mode, 'settings'))
+    })
+  }
 
   useEffect(() => {
     setHeaderDetails({
@@ -182,6 +209,17 @@ function RolesSettingsTab ({ group, slug }) {
           />
         ))}
       </SettingsSection>
+      {invitePolicy && (
+        <SettingsSection>
+          <h3 className='text-foreground font-bold mb-2'>{t('Who can add new members?')}</h3>
+          <p className='text-foreground/70 mb-4'>{t('Choose who can invite people to join {{name}}. Roles that include Add Members can always invite.', { name: group?.name })}</p>
+          <InvitePolicySelect
+            mode={invitePolicy}
+            onModeChange={changeInvitePolicyMode}
+            accessibility={group?.accessibility}
+          />
+        </SettingsSection>
+      )}
       <SettingsSection>
         <h3>{t('Custom Roles & Badges')}</h3>
         <div className='text-foreground/70 text-xs mb-2'>{t('Create additional roles or badges for your group')}</div>
@@ -219,7 +257,8 @@ RolesSettingsTab.propTypes = {
   group: PropTypes.object,
   removeRoleFromMember: PropTypes.func,
   slug: PropTypes.string,
-  updateGroupRole: PropTypes.func
+  updateGroupRole: PropTypes.func,
+  updateGroupSettings: PropTypes.func
 }
 
 function RoleRow ({

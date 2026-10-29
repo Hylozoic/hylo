@@ -1,3 +1,4 @@
+import { isImplicitMemberRole } from '@hylo/hooks/groupRoleHelpers'
 import orm from '../models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import getMe from './getMe'
@@ -14,7 +15,10 @@ const getRolesForGroup = ormCreateSelector(
       return []
     }
 
-    return (person.groupRoles?.items || []).filter(role => role.groupId === groupId)
+    // All Members is held by everyone so its responsibilities apply, but it is not a badge.
+    return (person.groupRoles?.items || []).filter(role =>
+      role.groupId === groupId && !isImplicitMemberRole(role)
+    )
   }
 )
 

@@ -74,6 +74,7 @@ export function fetchGroupSettings (slug) {
             region
           }
           invitePath
+          invitePolicy
           name
           purpose
           settings {
@@ -168,6 +169,12 @@ export function fetchGroupSettings (slug) {
               name
               description
               type
+              responsibilities {
+                items {
+                  id
+                  title
+                }
+              }
             }
           }
           groupToGroupJoinQuestions {
@@ -275,6 +282,7 @@ export function updateGroupSettings (id, changes) {
           stripePayoutsEnabled
           stripeDetailsSubmitted
           paywall
+          invitePolicy
           settings {
             defaultDigestFrequency
             locationDisplayPrecision

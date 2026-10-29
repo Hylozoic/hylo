@@ -1,9 +1,16 @@
 import React from 'react'
 import { graphql, HttpResponse } from 'msw'
 import userEvent from '@testing-library/user-event'
-import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import { GROUP_ACCESSIBILITY } from 'store/models/Group'
 import RolesSettingsTab, { AddMemberToRole, RoleList } from './RolesSettingsTab'
+
+jest.mock('store/actions/trackAnalyticsEvent', () => {
+  const actual = jest.requireActual('store/actions/trackAnalyticsEvent')
+  return { __esModule: true, default: jest.fn(actual.default) }
+})
 
 describe('RolesSettingsTab', () => {
   it('renders without crashing', () => {
@@ -63,6 +70,105 @@ describe('RolesSettingsTab', () => {
     expect(alertSpy).toHaveBeenCalledWith('Please choose an emoji for this role/badge by clicking the box next to its name')
 
     alertSpy.mockRestore()
+  })
+})
+
+describe('RolesSettingsTab "Who can add new members?"', () => {
+  const WHO_CAN_ADD = 'Who can add new members?'
+  const STEWARDS = 'Stewards with the Add Members responsibility'
+  const EVERYONE = 'Everyone in the Group'
+  const APPROVAL = 'Every member can invite people. A steward approves each person before they join.'
+  const NO_APPROVAL = 'Every member can invite people, and the people they invite join right away.'
+
+  const baseGroup = {
+    id: '1',
+    name: 'Seed Library',
+    slug: 'seed-library',
+    accessibility: GROUP_ACCESSIBILITY.Restricted,
+    invitePolicy: 'stewards',
+    groupRoles: { items: [] }
+  }
+
+  beforeEach(() => {
+    trackAnalyticsEvent.mockClear()
+  })
+
+  function renderTab (overrides = {}, saveResult = {}) {
+    const updateGroupSettings = jest.fn(() => Promise.resolve(saveResult))
+    const view = render(
+      <RolesSettingsTab group={{ ...baseGroup, ...overrides }} slug='seed-library' updateGroupSettings={updateGroupSettings} />,
+      { wrapper: AllTheProviders() }
+    )
+    return { ...view, updateGroupSettings }
+  }
+
+  function choose (optionTitle) {
+    fireEvent.click(screen.getByRole('button', { name: WHO_CAN_ADD }))
+    fireEvent.click(screen.getByRole('button', { name: optionTitle }))
+  }
+
+  it('sits below Common Roles and above Custom Roles', () => {
+    renderTab()
+
+    const headings = screen.getAllByRole('heading').map(heading => heading.textContent)
+    const common = headings.indexOf('Common Roles')
+    const who = headings.indexOf(WHO_CAN_ADD)
+    const custom = headings.indexOf('Custom Roles & Badges')
+    expect(common).toBeGreaterThanOrEqual(0)
+    expect(common).toBeLessThan(who)
+    expect(who).toBeLessThan(custom)
+    expect(screen.getByText('Choose who can invite people to join Seed Library. Roles that include Add Members can always invite.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: WHO_CAN_ADD })).toHaveTextContent(STEWARDS)
+  })
+
+  it('saves the choice as soon as it changes', async () => {
+    const { updateGroupSettings } = renderTab()
+
+    choose(EVERYONE)
+
+    expect(updateGroupSettings).toHaveBeenCalledWith({ invitePolicy: 'everyone' })
+    await waitFor(() => expect(trackAnalyticsEvent).toHaveBeenCalledWith('Group Invite Policy Set', { mode: 'everyone', surface: 'settings' }))
+  })
+
+  it('reports a policy only once it has saved', async () => {
+    const { updateGroupSettings } = renderTab({}, { error: true })
+
+    choose(EVERYONE)
+
+    await waitFor(() => expect(updateGroupSettings).toHaveBeenCalledTimes(1))
+    await Promise.resolve()
+    expect(trackAnalyticsEvent).not.toHaveBeenCalled()
+  })
+
+  it('describes whether invited people join right away', () => {
+    const { unmount } = renderTab({ accessibility: GROUP_ACCESSIBILITY.Open, invitePolicy: 'everyone' })
+    expect(screen.getByText(NO_APPROVAL)).toBeInTheDocument()
+    unmount()
+
+    renderTab({ accessibility: GROUP_ACCESSIBILITY.Restricted, invitePolicy: 'everyone' })
+    expect(screen.getByText(APPROVAL)).toBeInTheDocument()
+  })
+
+  it('is hidden when the policy was not loaded', () => {
+    renderTab({ invitePolicy: null })
+    expect(screen.queryByRole('heading', { name: WHO_CAN_ADD })).not.toBeInTheDocument()
+  })
+})
+
+describe('RolesSettingsTab All Members role', () => {
+  function groupWith (groupRoles = []) {
+    return { id: 1, slug: 'test-group', groupRoles: { items: groupRoles } }
+  }
+
+  it('never lists the All Members role among the custom roles', () => {
+    const groupRoles = [
+      { id: 9, name: 'All Members', type: 'all_members', active: true, emoji: '', description: '' },
+      { id: 90, name: 'Custom A', type: 'custom', active: true, emoji: '🎖', description: '' }
+    ]
+    render(<RolesSettingsTab group={groupWith(groupRoles)} slug='test-group' />, { wrapper: AllTheProviders() })
+
+    expect(screen.queryByDisplayValue('All Members')).not.toBeInTheDocument()
+    expect(screen.getAllByDisplayValue(/Custom/).map(input => input.value)).toEqual(['Custom A'])
   })
 })
 

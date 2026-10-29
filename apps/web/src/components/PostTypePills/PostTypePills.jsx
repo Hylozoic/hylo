@@ -1,14 +1,16 @@
 import React, { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeftRight, BookOpen, Calendar, Check, FolderKanban, MessageSquareText, Vote } from 'lucide-react'
+import { ArrowLeftRight, BookOpen, Calendar, Check, FolderKanban, Gift, Heart, MessageSquareText, Vote } from 'lucide-react'
 
-import { CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
+import { ACCEPTED_POST_TYPE_PILLS } from 'components/CustomViewForm/customViewFormConstants'
 import { cn } from 'util/index'
 
 /** Per-post-type icon and selected-state color (literal class names so Tailwind's scanner picks them up). */
 const POST_TYPE_OPTION_STYLES = {
   discussion: { icon: MessageSquareText, selectedClassName: 'border-discussions bg-discussions/15 text-discussions' },
   event: { icon: Calendar, selectedClassName: 'border-events bg-events/15 text-events' },
+  request: { icon: Heart, selectedClassName: 'border-requests bg-requests/15 text-requests' },
+  offer: { icon: Gift, selectedClassName: 'border-offers bg-offers/15 text-offers' },
   'requests-and-offers': { icon: ArrowLeftRight, selectedClassName: 'border-requests bg-requests/15 text-requests' },
   resource: { icon: BookOpen, selectedClassName: 'border-resources bg-resources/15 text-resources' },
   proposal: { icon: Vote, selectedClassName: 'border-proposals bg-proposals/15 text-proposals' },
@@ -16,14 +18,14 @@ const POST_TYPE_OPTION_STYLES = {
 }
 
 /** Toggleable pills for selecting which post types apply (custom views, spaces, etc). */
-export default function PostTypePills ({ postTypes, onPostTypesChange, label, hideLabel }) {
+export default function PostTypePills ({ postTypes, onPostTypesChange, label, hideLabel, options = ACCEPTED_POST_TYPE_PILLS }) {
   const { t } = useTranslation()
 
   const selectedOptionKeys = useMemo(() => {
-    return CUSTOM_VIEW_POST_TYPE_OPTIONS
+    return options
       .filter(option => option.postTypes.every(type => postTypes.includes(type)))
       .map(option => option.key)
-  }, [postTypes])
+  }, [options, postTypes])
 
   const togglePostTypeOption = useCallback((option) => {
     const isSelected = option.postTypes.every(type => postTypes.includes(type))
@@ -40,7 +42,7 @@ export default function PostTypePills ({ postTypes, onPostTypesChange, label, hi
         <label className='text-sm text-foreground/70'>{label || t('What post types to display?')}</label>
       )}
       <div className='flex flex-wrap gap-2'>
-        {CUSTOM_VIEW_POST_TYPE_OPTIONS.map(option => {
+        {options.map(option => {
           const isSelected = selectedOptionKeys.includes(option.key)
           const optionLabel = t(option.labelKey)
           const { icon: OptionIcon, selectedClassName } = POST_TYPE_OPTION_STYLES[option.key]

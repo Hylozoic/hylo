@@ -22,6 +22,22 @@ export const unspyify = (object, methodName) => {
   }
 }
 
+// Runs fn with FEATURE_FLAG_<name> set to value ('on' or 'off'), then restores it
+export async function withFeatureFlag (name, value, fn) {
+  const key = `FEATURE_FLAG_${name}`
+  const previous = process.env[key]
+  process.env[key] = value
+  try {
+    return await fn()
+  } finally {
+    if (previous === undefined) {
+      delete process.env[key]
+    } else {
+      process.env[key] = previous
+    }
+  }
+}
+
 export const wait = (millis, callback) =>
   new Promise(resolve => setTimeout(() =>
     resolve(callback ? callback() : null), millis))

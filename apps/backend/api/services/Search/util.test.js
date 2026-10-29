@@ -86,6 +86,20 @@ describe('filterAndSortPosts', () => {
       order by "posts"."updated_at" desc`)
   })
 
+  it('narrows a types array to a specific type filter', () => {
+    filterAndSortPosts({ type: 'offer', types: ['request', 'offer'] }, query)
+    expectEqualQuery(relation, `select * from "posts"
+      where "posts"."type" in ('offer')
+      order by "posts"."updated_at" desc`)
+  })
+
+  it('uses the types array when type is all', () => {
+    filterAndSortPosts({ type: 'all', types: ['request', 'offer'] }, query)
+    expectEqualQuery(relation, `select * from "posts"
+      where "posts"."type" in ('request', 'offer')
+      order by "posts"."updated_at" desc`)
+  })
+
   it('searches post content and creator name', () => {
     filterAndSortPosts({ search: 'alice' }, query)
     expectEqualQuery(relation, `select * from "posts"

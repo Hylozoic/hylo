@@ -147,6 +147,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   // For email invites, fetch the associated email and role from backend (not URL for security)
   const [invitationEmail, setInvitationEmail] = useState(null)
   const [invitationRole, setInvitationRole] = useState(null)
+  const [grantAccess, setGrantAccess] = useState(true)
   const [invitationChecked, setInvitationChecked] = useState(false)
   const [linkedSpaceName, setLinkedSpaceName] = useState(null)
   const [linkedSpaceSlug, setLinkedSpaceSlug] = useState(null)
@@ -164,6 +165,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
       if (checkResult?.groupRole) {
         setInvitationRole(checkResult.groupRole)
       }
+      if (accessCode) setGrantAccess(checkResult?.grantAccess !== false)
       if (checkResult?.isSpace && checkResult?.parentGroupSlug === slug) {
         setLinkedSpaceName(checkResult.groupName)
         setLinkedSpaceSlug(checkResult.groupSlug)
@@ -210,7 +212,10 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [dispatch, group, accessCode, invitationToken, linkedSpaceSlug, linkedSpaceId])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
-    dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
+    dispatch(createJoinRequest(
+      groupId,
+      questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))
+    ))
   }, [dispatch])
 
   const updateMySettings = useCallback(changes => {
@@ -512,6 +517,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                   fullPage={fullPage}
                   group={group}
                   groupsWithPendingRequests={groupsWithPendingRequests}
+                  grantAccess={grantAccess}
                   invitationRole={invitationRole}
                   invitationToken={invitationToken}
                   joinGroup={joinGroupHandler}
@@ -543,6 +549,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                         fullPage={fullPage}
                         group={group}
                         groupsWithPendingRequests={groupsWithPendingRequests}
+                        grantAccess={grantAccess}
                         invitationRole={invitationRole}
                         invitationToken={invitationToken}
                         joinGroup={joinGroupHandler}

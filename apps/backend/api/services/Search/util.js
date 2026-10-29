@@ -141,6 +141,9 @@ export const filterAndSortPosts = curry((opts, q) => {
     q.whereIn('posts.type', streamTypesWithNotices)
   } else if ((!type || type === 'all') && !(types && types.length)) {
     q.whereIn('posts.type', streamTypes)
+  } else if (types && types.length && type && type !== 'chat' && includes(values(Post.Type), type)) {
+    // A specific type filter narrows the view's allowed types rather than being overridden by them
+    q.whereIn('posts.type', types.filter(t => t === type))
   } else if (types && types.length) {
     q.whereIn('posts.type', types)
   } else if (type === 'chat') {
