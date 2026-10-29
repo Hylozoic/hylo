@@ -3262,5 +3262,9 @@
   "Requested {{date}}": "Demandé le {{date}}",
   "Reviewed {{date}}": "Examiné le {{date}}",
   "Message to the requester (optional)": "Message au demandeur (facultatif)",
-  "Message to the requester (optional), included in the email": "Message au demandeur (facultatif), inclus dans l'e-mail"
+  "Message to the requester (optional), included in the email": "Message au demandeur (facultatif), inclus dans l'e-mail",
+  "reactionCount_one": "{{count}} réaction",
+  "reactionCount_other": "{{count}} réactions",
+  "Tap to remove": "Touchez pour retirer",
+  "reactionCount_many": "{{count}} réactions"
 }

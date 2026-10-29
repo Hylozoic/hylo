@@ -3263,5 +3263,8 @@
   "Requested {{date}}": "Angefragt am {{date}}",
   "Reviewed {{date}}": "Geprüft am {{date}}",
   "Message to the requester (optional)": "Nachricht an die anfragende Person (optional)",
-  "Message to the requester (optional), included in the email": "Nachricht an die anfragende Person (optional), wird in die E-Mail aufgenommen"
+  "Message to the requester (optional), included in the email": "Nachricht an die anfragende Person (optional), wird in die E-Mail aufgenommen",
+  "reactionCount_one": "{{count}} Reaktion",
+  "reactionCount_other": "{{count}} Reaktionen",
+  "Tap to remove": "Zum Entfernen tippen"
 }
