@@ -22,10 +22,10 @@ export const CUSTOM_VIEW_POST_TYPE_OPTIONS = [
 export const CUSTOM_VIEW_DEFAULT_VIEW_MODE = 'cards'
 
 export const CUSTOM_VIEW_VIEW_MODE_OPTIONS = [
-  { value: 'cards', labelKey: 'Stream', defaultLabel: 'Stream' },
+  { value: 'cards', labelKey: 'Card', defaultLabel: 'Card' },
   { value: 'list', labelKey: 'List', defaultLabel: 'List' },
-  { value: 'grid', labelKey: 'Grid', defaultLabel: 'Grid' },
-  { value: 'bigGrid', labelKey: 'Big Grid', defaultLabel: 'Big Grid' },
+  { value: 'bigGrid', labelKey: 'Large Grid', defaultLabel: 'Large Grid' },
+  { value: 'grid', labelKey: 'Small Grid', defaultLabel: 'Small Grid' },
   { value: 'calendar', labelKey: 'Calendar', defaultLabel: 'Calendar' },
   { value: 'map', labelKey: 'Map', defaultLabel: 'Map' }
 ]

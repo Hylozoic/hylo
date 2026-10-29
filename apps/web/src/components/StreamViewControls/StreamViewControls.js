@@ -196,8 +196,8 @@ const StreamViewControls = ({
               </span>
             }
             items={[
-              { label: t('Card view'), icon: VIEW_MODE_ICONS.cards, onClick: () => changeView('cards') },
-              { label: t('List view'), icon: VIEW_MODE_ICONS.list, onClick: () => changeView('list') },
+              { label: t('Card'), icon: VIEW_MODE_ICONS.cards, onClick: () => changeView('cards') },
+              { label: t('List'), icon: VIEW_MODE_ICONS.list, onClick: () => changeView('list') },
               { label: t('Large Grid'), icon: VIEW_MODE_ICONS.bigGrid, onClick: () => changeView('bigGrid') },
               { label: t('Small Grid'), icon: VIEW_MODE_ICONS.grid, onClick: () => changeView('grid') },
               ...(postHasDates ? [{ label: t('Calendar'), icon: VIEW_MODE_ICONS.calendar, onClick: () => changeView('calendar') }] : [])
@@ -206,10 +206,10 @@ const StreamViewControls = ({
         </div>
 
         <div className={cn(GROUP_CLASS, 'max-sm:hidden')} data-testid='stream-view-controls' data-tour='stream-view-modes'>
-          <ToolBtn active={viewMode === 'cards'} onClick={() => changeView('cards')} tooltip={t('Card view')}>
+          <ToolBtn active={viewMode === 'cards'} onClick={() => changeView('cards')} tooltip={t('Card')}>
             {VIEW_MODE_ICONS.cards}
           </ToolBtn>
-          <ToolBtn active={viewMode === 'list'} onClick={() => changeView('list')} tooltip={t('List view')}>
+          <ToolBtn active={viewMode === 'list'} onClick={() => changeView('list')} tooltip={t('List')}>
             {VIEW_MODE_ICONS.list}
           </ToolBtn>
           <ToolBtn active={viewMode === 'bigGrid'} onClick={() => changeView('bigGrid')} tooltip={t('Large Grid')}>
