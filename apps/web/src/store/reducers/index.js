@@ -30,6 +30,7 @@ import RoomPresence from 'routes/ChatRoom/RoomPresence.store'
 import PostEditor from 'components/PostEditor/PostEditor.store'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import RelatedGroups from 'routes/GroupSettings/RelatedGroupsTab/RelatedGroupsTab.store'
+import RsvpCalendarPrompt from 'components/RsvpCalendarPrompt/RsvpCalendarPrompt.store'
 import SavedSearches from 'routes/UserSettings/UserSettings.store'
 import Search from 'routes/Search/Search.store'
 import SkillsSection from 'components/SkillsSection/SkillsSection.store'
@@ -67,6 +68,7 @@ export const createCombinedReducers = routerReducer => combineReducers({
   AuthLayoutRouter,
   PostEditor,
   RelatedGroups,
+  RsvpCalendarPrompt,
   SavedSearches,
   Search,
   SkillsSection,

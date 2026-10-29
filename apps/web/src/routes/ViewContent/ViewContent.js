@@ -296,8 +296,9 @@ export default function ViewContent (props) {
   const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser])
 
   const handleEnsureRsvpCalendarUrl = useCallback(async () => {
-    const payload = await dispatch(updateUserSettings({ settings: { rsvpCalendarSub: true } }))
-    return get('data.updateMe.rsvpCalendarUrl', payload) || null
+    // dispatch resolves to the completed action, so the GraphQL result is under `payload`
+    const action = await dispatch(updateUserSettings({ settings: { rsvpCalendarSub: true } }))
+    return get('payload.data.updateMe.rsvpCalendarUrl', action) || null
   }, [dispatch])
 
   const fetchPostsParam = useMemo(() => {
@@ -700,6 +701,27 @@ export default function ViewContent (props) {
   const calendarFetching = pending && showCalendar && posts.length === 0
   const calendarInitialLoading = calendarBlocked && isCalendarViewMode
 
+  // Subscribe-to-calendar sits in the header next to the view title (#1700): the group's event feed in a
+  // group, or the person's RSVP feed on the cross-group events views (/all, /public)
+  const showCalendarSubscribe = view === 'events' || isCalendarViewMode
+  const inGroup = Boolean(group)
+  const calendarSubscribeAction = useMemo(() => {
+    if (!showCalendarSubscribe) return null
+    if (inGroup) {
+      return eventCalendarUrl ? <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} /> : null
+    }
+    if (view !== 'events') return null
+    return (
+      <GroupCalendarSubscribe
+        eventCalendarUrl={rsvpCalendarUrl}
+        buttonLabel={t('Subscribe to all the Hylo events you have RSVPed to')}
+        shortLabel={t('Subscribe to your RSVPs')}
+        modalTitle={t('Subscribe to all the Hylo events you have RSVPed to')}
+        onEnsureCalendarUrl={handleEnsureRsvpCalendarUrl}
+      />
+    )
+  }, [showCalendarSubscribe, inGroup, eventCalendarUrl, view, rsvpCalendarUrl, handleEnsureRsvpCalendarUrl, t])
+
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     if (isDraftsView) {
@@ -710,9 +732,10 @@ export default function ViewContent (props) {
       title: name,
       icon,
       info,
-      search: true
+      search: true,
+      headerActions: calendarSubscribeAction
     })
-  }, [icon, info, isDraftsView, name, setHeaderDetails, t])
+  }, [calendarSubscribeAction, icon, info, isDraftsView, name, setHeaderDetails, t])
 
   if (isDraftsView) {
     return (
@@ -857,15 +880,6 @@ export default function ViewContent (props) {
                     setMode={changeCalendarMode}
                     updateCalendarView={updateCalendarQueryParams}
                   />
-                  {group && calendarMode === 'month' && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
-                  {!group && view === 'events' && calendarMode === 'month' && (
-                    <GroupCalendarSubscribe
-                      eventCalendarUrl={rsvpCalendarUrl}
-                      buttonLabel={t('Subscribe to all the Hylo events you have RSVPed to')}
-                      modalTitle={t('Subscribe to all the Hylo events you have RSVPed to')}
-                      onEnsureCalendarUrl={handleEnsureRsvpCalendarUrl}
-                    />
-                  )}
                 </div>
               )}
 

@@ -54,6 +54,7 @@ export function verifyEmail (email, code, token) {
               settings {
                 alreadySeenTour
                 toursSeen
+                hideRsvpCalendarPrompt
                 colorScheme
                 dmNotifications
                 commentNotifications
@@ -110,6 +111,7 @@ export function register (name, password) {
               settings {
                 alreadySeenTour
                 toursSeen
+                hideRsvpCalendarPrompt
                 colorScheme
                 dmNotifications
                 commentNotifications
