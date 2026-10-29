@@ -3263,5 +3263,8 @@
   "Requested {{date}}": "Pedido em {{date}}",
   "Reviewed {{date}}": "Analisado em {{date}}",
   "Message to the requester (optional)": "Mensagem para quem fez o pedido (opcional)",
-  "Message to the requester (optional), included in the email": "Mensagem para quem fez o pedido (opcional), incluída no e-mail"
+  "Message to the requester (optional), included in the email": "Mensagem para quem fez o pedido (opcional), incluída no e-mail",
+  "reactionCount_one": "{{count}} reação",
+  "reactionCount_other": "{{count}} reações",
+  "Tap to remove": "Toque para remover"
 }

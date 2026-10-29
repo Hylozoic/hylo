@@ -3263,5 +3263,8 @@
   "Requested {{date}}": "{{date}} को अनुरोध किया गया",
   "Reviewed {{date}}": "{{date}} को समीक्षा की गई",
   "Message to the requester (optional)": "अनुरोधकर्ता के लिए संदेश (वैकल्पिक)",
-  "Message to the requester (optional), included in the email": "अनुरोधकर्ता के लिए संदेश (वैकल्पिक), ईमेल में शामिल"
+  "Message to the requester (optional), included in the email": "अनुरोधकर्ता के लिए संदेश (वैकल्पिक), ईमेल में शामिल",
+  "reactionCount_one": "{{count}} प्रतिक्रिया",
+  "reactionCount_other": "{{count}} प्रतिक्रियाएँ",
+  "Tap to remove": "हटाने के लिए टैप करें"
 }
