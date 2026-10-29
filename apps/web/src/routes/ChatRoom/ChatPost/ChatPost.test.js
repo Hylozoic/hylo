@@ -3,6 +3,9 @@ import { fireEvent, render, screen, AllTheProviders } from 'util/testing/reactTe
 import orm from 'store/models'
 import ChatPost from './index'
 
+const mockViewPostDetails = jest.fn()
+jest.mock('hooks/useViewPostDetails', () => () => mockViewPostDetails)
+
 function testProviders () {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
@@ -121,6 +124,34 @@ describe('ChatPost', () => {
     expect(details.style.maxHeight).toBe('')
     expect(screen.getByRole('button', { name: 'See Less' })).toBeInTheDocument()
     heightSpy.mockRestore()
+  })
+
+  describe('clicking the post', () => {
+    beforeEach(() => mockViewPostDetails.mockClear())
+
+    it('opens the post when the click lands on an SVG inside it', () => {
+      renderComponent({
+        post: {
+          ...defaultProps.post,
+          details: '<p>chat with an icon <svg data-testid="inline-svg"><path d="M0 0h1v1z"></path></svg></p>'
+        }
+      })
+      const path = screen.getByTestId('inline-svg').querySelector('path')
+      expect(() => fireEvent.click(path)).not.toThrow()
+      expect(mockViewPostDetails).toHaveBeenCalled()
+    })
+
+    it('does not open the post when the click lands inside an .image or .icon-Smiley element', () => {
+      renderComponent({
+        post: {
+          ...defaultProps.post,
+          details: '<p>an image <span class="image"><svg data-testid="image-svg"></svg></span><span class="icon-Smiley" data-testid="smiley"></span></p>'
+        }
+      })
+      fireEvent.click(screen.getByTestId('image-svg'))
+      fireEvent.click(screen.getByTestId('smiley'))
+      expect(mockViewPostDetails).not.toHaveBeenCalled()
+    })
   })
 
   it('does not crash when a hover action that expects the click event is used', () => {

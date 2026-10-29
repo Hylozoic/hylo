@@ -75,7 +75,7 @@ const ModerationListItem = ({
             : (
               <div className='flex items-center gap-2'>
                 <Button variant='link' className='p-0' to={reporterUrl}>
-                  <Avatar avatarUrl={reporter.avatarUrl} url={reporterUrl} medium />
+                  <Avatar avatarUrl={reporter.avatarUrl} personId={reporter.id} url={reporterUrl} medium />
                   <span className='over:text-accent/80 font-medium text-foreground'>{reporter.name}</span>
                 </Button>
               </div>)}

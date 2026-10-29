@@ -379,11 +379,16 @@ function PostHeader (props) {
         ? t('Started: {{from}}', { from })
         : false
 
+  // When no start string is shown, `to` may be time-only (same-day range), so format the end with its full date
+  const endDisplay = !startString && actualEndTime
+    ? formatUserDatePair({ start: actualEndTime, timezone, returnAsObj: true }).from
+    : to
+
   let endString = false
   if (fulfilledAt && fulfilledAt <= endTime) {
-    endString = t('Completed: {{endTime}}', { endTime: to })
+    endString = t('Completed: {{endTime}}', { endTime: endDisplay })
   } else {
-    endString = TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: to }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: to }) : false
+    endString = TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: endDisplay }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: endDisplay }) : false
   }
 
   let timeWindow = ''
@@ -404,7 +409,7 @@ function PostHeader (props) {
     <div className={cn('PostHeader relative !bg-transparent', { 'mb-0 px-2': constrained }, className)}>
       <div className='w-full rounded-t-lg'>
         <div className='flex justify-start items-center p-2'>
-          <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
+          <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
           <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
             <Highlight {...highlightProps}>
               <div className='flex flex-col min-w-0'>

@@ -146,6 +146,10 @@ module.exports = {
       return this.group(group) + '/groups'
     },
 
+    managementCommonsRequests: function () {
+      return url('/management/site/commons-requests')
+    },
+
     groupSettings: function (group) {
       return this.group(group) + '/settings'
     },
@@ -169,6 +173,14 @@ module.exports = {
 
     invitePath: function (group) {
       return `/groups/${getSlug(group)}/join/${group.get('access_code')}`
+    },
+
+    inviteLinkPath: function (accessCode) {
+      return `/invite/${accessCode}`
+    },
+
+    viewLinkPath: function (accessCode) {
+      return `/view/${accessCode}`
     },
 
     mapPost: function (post, context, slug) {
@@ -359,6 +371,13 @@ module.exports = {
 
     useInvitation: function (token, email) {
       return url('/h/use-invitation?token=%s&email=%s', token, encodeURIComponent(email))
+    },
+
+    // Link for invitations sent with limited access. Mobile apps open
+    // /h/use-invitation natively and join straight away; this path opens in
+    // their web view, where the web join flow can ask for a steward's approval.
+    invitation: function (token) {
+      return url('/h/invitation?token=%s', encodeURIComponent(token))
     },
 
     verifyEmail: function (email, token) {

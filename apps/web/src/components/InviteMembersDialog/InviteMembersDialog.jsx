@@ -12,13 +12,15 @@ import { hueOf, viewCardColor } from 'routes/AuthLayoutRouter/components/Context
 import { RESP_ADD_MEMBERS } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
+import { inviteAccessFor } from 'util/inviteAccess'
 
 const INVITE_ICON_HUE = hueOf(viewCardColor({ type: null }))
 
 /**
- * Invite trigger: UserPlus (or custom children) opens a modal with the full
- * invite page — share links, people search, email invites, and pending invites.
- * Shown only when the user can add members.
+ * Invite trigger: UserPlus (or custom children) opens a modal with the invite page.
+ * People who can add members get the full page (share links, people search, email invites and
+ * every pending invite); people with limited invite access get personal email invites only.
+ * Hidden for everyone else.
  */
 export default function InviteMembersDialog ({
   group,
@@ -36,6 +38,7 @@ export default function InviteMembersDialog ({
     responsibility: RESP_ADD_MEMBERS,
     groupId: group?.id
   }))
+  const inviteAccess = inviteAccessFor(group, canAddMembers)
   const [open, setOpen] = useState(false)
 
   const handleOpenChange = (nextOpen) => {
@@ -43,7 +46,7 @@ export default function InviteMembersDialog ({
     if (nextOpen) dispatch(toggleNavMenu(false))
   }
 
-  if (!canAddMembers || !group?.id) return null
+  if (!inviteAccess || !group?.id) return null
 
   const defaultTrigger = (
     <button

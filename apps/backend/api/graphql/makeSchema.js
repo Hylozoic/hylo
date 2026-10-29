@@ -64,6 +64,9 @@ import {
   unpublishSiteBanner,
   deleteSiteBanner,
   dismissSiteBanner,
+  requestPublicListing,
+  reviewPublicListingRequest,
+  publicListingRequests,
   deleteAffiliation,
   deleteComment,
   deleteFundingRound,
@@ -117,7 +120,9 @@ import {
   rejoinGroup,
   recordClickthrough,
   recordStripePurchase,
-  regenerateAccessCode,
+  createGroupInviteLink,
+  updateGroupInviteLink,
+  deleteGroupInviteLink,
   registerDevice,
   registerStripeAccount,
   reinviteAll,
@@ -621,7 +626,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       }
       const banners = await SiteBanner.all()
       return banners.toModelArray ? banners.toModelArray() : banners
-    }
+    },
+    publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status)
   }
 }
 
@@ -747,7 +753,7 @@ export function makeMutations ({ fetchOne }) {
 
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
 
-    createJoinRequest: (root, { groupId, questionAnswers }, context) => createJoinRequest(context.currentUserId, groupId, questionAnswers),
+    createJoinRequest: (root, { groupId, questionAnswers, invitationToken }, context) => createJoinRequest(context.currentUserId, groupId, questionAnswers, invitationToken),
 
     createMessage: (root, { data }, context) => createMessage(context.currentUserId, data, context),
 
@@ -867,7 +873,9 @@ export function makeMutations ({ fetchOne }) {
 
     recordClickthrough: (root, { postId }, context) => recordClickthrough({ userId: context.currentUserId, postId }),
 
-    regenerateAccessCode: (root, { groupId }, context) => regenerateAccessCode(context.currentUserId, groupId),
+    createGroupInviteLink: (root, { groupId, data }, context) => createGroupInviteLink(context.currentUserId, groupId, data),
+    updateGroupInviteLink: (root, { id, data }, context) => updateGroupInviteLink(context.currentUserId, id, data),
+    deleteGroupInviteLink: (root, { id }, context) => deleteGroupInviteLink(context.currentUserId, id),
 
     // DEPRECATED: This is no longer used, remove after 2025-08-26
     registerDevice: () => registerDevice(),
@@ -989,7 +997,11 @@ export function makeMutations ({ fetchOne }) {
 
     deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
 
-    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id)
+    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    requestPublicListing: (root, { groupId, message }, context) => requestPublicListing(context.currentUserId, groupId, message),
+
+    reviewPublicListingRequest: (root, { groupId, approved, message }, context) => reviewPublicListingRequest(context.currentUserId, groupId, approved, message)
   }
 }
 

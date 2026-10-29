@@ -187,7 +187,7 @@ export default function GroupSettings () {
   const rolesSettings = {
     name: t('Roles & Badges'),
     path: 'roles',
-    component: <RolesSettingsTab groupId={group.id} group={group} slug={group.slug} />
+    component: <RolesSettingsTab groupId={group.id} group={group} slug={group.slug} updateGroupSettings={updateGroupSettingsAction} />
   }
 
   const accessSettings = {

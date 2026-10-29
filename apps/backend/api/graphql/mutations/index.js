@@ -67,7 +67,9 @@ export {
   deleteGroupTopic,
   inviteGroupToGroup,
   joinGroup,
-  regenerateAccessCode,
+  createGroupInviteLink,
+  updateGroupInviteLink,
+  deleteGroupInviteLink,
   rejectGroupRelationshipInvite,
   removeMember,
   updateGroup,
@@ -206,6 +208,11 @@ export {
   deleteSiteBanner,
   dismissSiteBanner
 } from './siteBanners'
+export {
+  requestPublicListing,
+  reviewPublicListingRequest,
+  publicListingRequests
+} from './publicListingRequest'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
 export { muteMessageThread, unmuteMessageThread } from './messageThread'
 
