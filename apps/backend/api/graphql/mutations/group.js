@@ -80,7 +80,9 @@ export async function deleteGroupRelationship (userId, parentId, childId, contex
 
 /**
  * Join a group. For Open groups, anyone can join directly.
- * For Restricted or Closed groups, a valid accessCode or invitationToken is required (pre-approved).
+ * For Restricted or Closed groups, a valid accessCode that grants access, or an
+ * invitationToken, is required (pre-approved). A link that does not grant
+ * access only lets the person see the group.
  * @param groupId {string} the group to join
  * @param userId {string} the user joining
  * @param questionAnswers {array} answers to join questions
@@ -101,8 +103,13 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   if (accessCode || invitationToken) {
     inviteCheck = await InvitationService.check(invitationToken, accessCode)
   }
-  const inviteIsForThisGroup = !!(inviteCheck?.valid && inviteCheck.groupSlug === group.get('slug'))
-  const inviteIsForChildSpace = !!(inviteCheck?.valid && inviteCheck.parentGroupSlug === group.get('slug'))
+  const checkedInvitation = inviteCheck?.valid && !accessCode ? await Invitation.find(invitationToken) : null
+  const inviteApproves = !!inviteCheck?.valid && (
+    (!!accessCode && inviteCheck.grantAccess) ||
+    (!accessCode && await InvitationService.preApproves(checkedInvitation, group))
+  )
+  const inviteIsForThisGroup = inviteApproves && inviteCheck.groupSlug === group.get('slug')
+  const inviteIsForChildSpace = inviteApproves && inviteCheck.parentGroupSlug === group.get('slug')
   const hasValidInvitation = inviteIsForThisGroup || inviteIsForChildSpace
 
   // For non-Open groups, require a valid invitation
@@ -120,7 +127,14 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
     }
   })
 
+  const wasMember = !!(await GroupMembership.forPair(userId, group.id).fetch())
   const membership = await user.joinGroup(group, { questionAnswers, fromInvitation: hasValidInvitation })
+  if (accessCode && inviteCheck?.grantAccess && inviteIsForThisGroup && !wasMember) {
+    const link = await GroupInviteLink.findActiveByCode(accessCode)
+    if (link && String(link.get('group_id')) === String(group.id)) {
+      await GroupInviteLink.recordJoin(link, userId)
+    }
+  }
 
   // Record agreement acceptance if user accepted agreements during join flow.
   // Keep showJoinForm true so the Welcome/purpose modal still shows, but mark
@@ -132,11 +146,13 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   // Token invitations can attach a group role (e.g. Host). joinGroup marks invites used by
   // email but does not assign roles — invitation.use() handles role assignment.
   // A space invite also joins that space (view unread rows included via joinSpace).
+  // A member invitation is only used here for the group just joined: using it
+  // joins its own group, which may need approval.
   if (inviteIsForChildSpace && inviteCheck.groupId) {
     await joinSpace(userId, inviteCheck.groupId, accessCode, invitationToken)
   } else if (invitationToken && hasValidInvitation) {
-    const invitation = await Invitation.find(invitationToken)
-    if (invitation) {
+    const invitation = checkedInvitation || await Invitation.find(invitationToken)
+    if (invitation && String(invitation.get('group_id')) === String(group.id)) {
       await invitation.use(userId)
     }
   }
@@ -146,10 +162,34 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   return membership
 }
 
-export async function regenerateAccessCode (userId, groupId) {
-  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADD_MEMBERS)
-  const code = await Group.getNewAccessCode()
-  return group.save({ access_code: code }, { patch: true }) // eslint-disable-line camelcase
+export async function createGroupInviteLink (userId, groupId, data) {
+  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+  return GroupInviteLink.createForGroup(group.id, {
+    userId,
+    accessCode: data.accessCode,
+    name: data.name,
+    grantAccess: data.grantAccess,
+    grantedRoleIds: data.grantedRoleIds
+  })
+}
+
+export async function updateGroupInviteLink (userId, id, data) {
+  const link = await GroupInviteLink.where({ id }).fetch({ require: false })
+  if (!link || link.get('deleted_at')) throw new GraphQLError('Invite link not found')
+  await getStewardedGroup(userId, link.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
+  return GroupInviteLink.updateLink(link, {
+    name: data.name,
+    grantAccess: data.grantAccess,
+    grantedRoleIds: data.grantedRoleIds
+  })
+}
+
+export async function deleteGroupInviteLink (userId, id) {
+  const link = await GroupInviteLink.where({ id }).fetch({ require: false })
+  if (!link || link.get('deleted_at')) throw new GraphQLError('Invite link not found')
+  await getStewardedGroup(userId, link.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
+  await GroupInviteLink.softDelete(link, userId)
+  return { success: true }
 }
 
 /**

@@ -1,0 +1,7119 @@
+{
+  "version": 1,
+  "slug": "river-city",
+  "name": "River City",
+  "tz": "America/Los_Angeles",
+  "emailDomain": "demo.invalid",
+  "realUserEmail": "tibet@terran.io",
+  "expectedPeople": 101,
+  "place": {
+    "city": "Sacramento",
+    "region": "California",
+    "country": "United States",
+    "countryCode": "US",
+    "personSuffix": "Sacramento, California",
+    "postSuffix": "Sacramento, California",
+    "usePostCity": false,
+    "personCity": "fixed",
+    "fallbackCity": "Sacramento"
+  },
+  "topics": [
+    "general",
+    "food",
+    "gleaning",
+    "housing",
+    "furniture",
+    "rides",
+    "childcare",
+    "tools",
+    "heat",
+    "smoke",
+    "flood",
+    "seeds",
+    "welcome"
+  ],
+  "emojis": [
+    {
+      "full": "❤️",
+      "base": "❤",
+      "label": "red heart"
+    },
+    {
+      "full": "🙏",
+      "base": "🙏",
+      "label": "folded hands"
+    },
+    {
+      "full": "🍋",
+      "base": "🍋",
+      "label": "lemon"
+    },
+    {
+      "full": "👏",
+      "base": "👏",
+      "label": "clapping hands"
+    },
+    {
+      "full": "💪",
+      "base": "💪",
+      "label": "flexed biceps"
+    }
+  ],
+  "filler": {
+    "en": [
+      "I can help with this on Saturday morning.",
+      "Leaving a comment so it stays on my list.",
+      "My neighbor asked about this too. I will send them here.",
+      "Count me in if you still need a person.",
+      "Thank you for posting it where people can actually find it.",
+      "I have done this before. Happy to walk someone through it.",
+      "Saving this. I will know more after work.",
+      "This is exactly the kind of thing the network is for.",
+      "I can bring a cooler if that helps.",
+      "Checked with my household. We can do one of the days.",
+      "Putting this in the group chat so the night shift sees it.",
+      "Glad this is still open. I almost missed it."
+    ],
+    "es": [
+      "Yo puedo el sábado por la mañana.",
+      "Gracias por escribirlo aquí.",
+      "Le aviso a mi vecina, ella también necesita esto.",
+      "Cuenten conmigo si todavía falta gente.",
+      "Lo vi en el grupo y quería decir que sí."
+    ]
+  },
+  "fillerSpanishSpaces": [
+    "oak-park",
+    "del-paso"
+  ],
+  "centers": {
+    "oak": [
+      38.548,
+      -121.465
+    ],
+    "midtown": [
+      38.576,
+      -121.483
+    ],
+    "land": [
+      38.545,
+      -121.498
+    ],
+    "delpaso": [
+      38.615,
+      -121.445
+    ],
+    "westsac": [
+      38.58,
+      -121.53
+    ],
+    "arden": [
+      38.602,
+      -121.4
+    ],
+    "elkgrove": [
+      38.425,
+      -121.371
+    ]
+  },
+  "neighborhoods": {
+    "oak": {
+      "label": "Oak Park",
+      "option": "Oak Park"
+    },
+    "midtown": {
+      "label": "Midtown",
+      "option": "Midtown & Downtown"
+    },
+    "land": {
+      "label": "Land Park",
+      "option": "Land Park & Curtis Park"
+    },
+    "delpaso": {
+      "label": "Del Paso Heights",
+      "option": "Del Paso Heights & North Sac"
+    },
+    "westsac": {
+      "label": "West Sacramento"
+    },
+    "arden": {
+      "label": "Arden-Arcade"
+    },
+    "elkgrove": {
+      "label": "Elk Grove"
+    }
+  },
+  "skillPool": [
+    "gardening",
+    "fruit picking",
+    "carpentry",
+    "bike repair",
+    "pickup truck",
+    "childcare",
+    "cooking",
+    "first aid",
+    "spanish",
+    "vietnamese",
+    "dari",
+    "hmong",
+    "tech help",
+    "ham radio"
+  ],
+  "people": [
+    {
+      "key": "tibet",
+      "name": "Tibet Sprague",
+      "email": "tibet@terran.io",
+      "realUser": true,
+      "neighborhood": "midtown",
+      "tagline": "Co-weaver. Has a ladder and a fruit picker, will lend both.",
+      "skills": [
+        "carpentry",
+        "tech help"
+      ],
+      "spaces": [
+        "midtown",
+        "oak-park",
+        "gleaning",
+        "tools",
+        "ready",
+        "grants",
+        "welcome"
+      ],
+      "roles": [
+        "administrator",
+        "neighborhood-host",
+        "flow-funder"
+      ],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": null,
+      "portraitPool": null
+    },
+    {
+      "key": "rosa",
+      "name": "Rosa Delgado",
+      "email": "rosa.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Co-founder. Keeps the 3rd Ave community fridge stocked.",
+      "skills": [
+        "cooking",
+        "spanish"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "ready",
+        "grants",
+        "welcome"
+      ],
+      "roles": [
+        "administrator",
+        "neighborhood-host",
+        "flow-funder"
+      ],
+      "locale": "es",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/39283832/pexels-photo-39283832.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "marcus",
+      "name": "Marcus Bell",
+      "email": "marcus.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Runs a half-acre urban farm on a vacant lot. Seedlings for anyone.",
+      "skills": [
+        "gardening",
+        "pickup truck"
+      ],
+      "spaces": [
+        "del-paso",
+        "gleaning",
+        "grants"
+      ],
+      "roles": [
+        "moderator",
+        "neighborhood-host",
+        "flow-funder"
+      ],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/12311567/pexels-photo-12311567.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-man"
+    },
+    {
+      "key": "lin",
+      "name": "Lin Nguyen",
+      "email": "lin.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Retired teacher. Calls elders on hot days.",
+      "skills": [
+        "vietnamese",
+        "first aid"
+      ],
+      "spaces": [
+        "land-park",
+        "ready",
+        "grants",
+        "welcome"
+      ],
+      "roles": [
+        "neighborhood-host",
+        "flow-funder"
+      ],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/6888684/pexels-photo-6888684.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-east-asian-woman"
+    },
+    {
+      "key": "hannah",
+      "name": "Hannah Kim",
+      "email": "hannah.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Leads the Gleaning Crew. 3,000 lbs of fruit saved so far.",
+      "skills": [
+        "fruit picking"
+      ],
+      "spaces": [
+        "gleaning",
+        "midtown",
+        "grants",
+        "welcome"
+      ],
+      "roles": [
+        "host",
+        "neighborhood-host",
+        "flow-funder"
+      ],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/8727574/pexels-photo-8727574.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "jorge",
+      "name": "Jorge Ramirez",
+      "email": "jorge.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Carpenter. Runs the tool library out of his garage.",
+      "skills": [
+        "carpentry",
+        "spanish"
+      ],
+      "spaces": [
+        "oak-park",
+        "tools",
+        "grants"
+      ],
+      "roles": [
+        "neighborhood-host"
+      ],
+      "locale": "es",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/20709107/pexels-photo-20709107.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "walt",
+      "name": "Walt Jensen",
+      "email": "walt.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Retired electrician, ham radio operator.",
+      "skills": [
+        "ham radio",
+        "first aid"
+      ],
+      "spaces": [
+        "land-park",
+        "ready",
+        "grants"
+      ],
+      "roles": [
+        "neighborhood-host",
+        "flow-funder"
+      ],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/35880856/pexels-photo-35880856.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-man"
+    },
+    {
+      "key": "bea",
+      "name": "Bea Thompson",
+      "email": "bea.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "78, gardener for 50 years. Lemons, persimmons, opinions.",
+      "skills": [
+        "gardening"
+      ],
+      "spaces": [
+        "land-park",
+        "gleaning",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/5257621/pexels-photo-5257621.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-woman"
+    },
+    {
+      "key": "aisha",
+      "name": "Aisha Rahman",
+      "email": "aisha.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Mom of two, night-shift CNA.",
+      "skills": [
+        "childcare"
+      ],
+      "spaces": [
+        "del-paso",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/9419163/pexels-photo-9419163.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "south-asian-woman"
+    },
+    {
+      "key": "nia",
+      "name": "Nia Carter",
+      "email": "nia.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Doula. Organizes meal trains for new parents.",
+      "skills": [
+        "cooking",
+        "childcare"
+      ],
+      "spaces": [
+        "oak-park",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/16152597/pexels-photo-16152597.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-woman"
+    },
+    {
+      "key": "dev",
+      "name": "Dev Patel",
+      "email": "dev.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Bike mechanic, fixes bikes for free on Sundays.",
+      "skills": [
+        "bike repair"
+      ],
+      "spaces": [
+        "midtown",
+        "tools",
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/36342203/pexels-photo-36342203.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "south-asian-man"
+    },
+    {
+      "key": "sam",
+      "name": "Sam Okafor",
+      "email": "sam.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Sac State junior, math tutor, no car.",
+      "skills": [
+        "tech help"
+      ],
+      "spaces": [
+        "midtown",
+        "tools",
+        "grants",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/38165826/pexels-photo-38165826.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-man"
+    },
+    {
+      "key": "tomas",
+      "name": "Tomás Herrera",
+      "email": "tomas.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Has a truck and a free Saturday most weeks.",
+      "skills": [
+        "pickup truck",
+        "spanish"
+      ],
+      "spaces": [
+        "del-paso",
+        "ready",
+        "grants"
+      ],
+      "roles": [
+        "flow-funder"
+      ],
+      "locale": "es",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/6616120/pexels-photo-6616120.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "grace",
+      "name": "Grace Liu",
+      "email": "grace.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Baker. Day-old bread every Friday.",
+      "skills": [
+        "cooking"
+      ],
+      "spaces": [
+        "midtown",
+        "gleaning",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/6281952/pexels-photo-6281952.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "kai",
+      "name": "Kai Whitehorse",
+      "email": "kai.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Tenant organizer. Knows the rental assistance maze.",
+      "skills": [
+        "tech help"
+      ],
+      "spaces": [
+        "midtown",
+        "ready",
+        "grants"
+      ],
+      "roles": [
+        "flow-funder"
+      ],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/27010729/pexels-photo-27010729.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "indigenous-man"
+    },
+    {
+      "key": "farid",
+      "name": "Farid Haddad",
+      "email": "farid.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Arrived in Sacramento in August with his wife and three kids.",
+      "skills": [
+        "dari"
+      ],
+      "spaces": [
+        "del-paso",
+        "grants",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/37272199/pexels-photo-37272199.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "middle-eastern-man"
+    },
+    {
+      "key": "ellie",
+      "name": "Ellie Moreno",
+      "email": "ellie.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Fridge volunteer, teaches canning.",
+      "skills": [
+        "cooking"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "ready",
+        "tools",
+        "grants"
+      ],
+      "roles": [
+        "flow-funder"
+      ],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/6564468/pexels-photo-6564468.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "priya",
+      "name": "Priya Shah",
+      "email": "priya.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "ER nurse. Teaches free first aid and smoke-safety classes.",
+      "skills": [
+        "first aid"
+      ],
+      "spaces": [
+        "land-park",
+        "ready",
+        "grants"
+      ],
+      "roles": [
+        "flow-funder"
+      ],
+      "locale": "en",
+      "pending": false,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/29601846/pexels-photo-29601846.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "south-asian-woman"
+    },
+    {
+      "key": "dana",
+      "name": "Dana Ortiz",
+      "email": "dana.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "arden",
+      "tagline": "Heard about the network from a coworker. Lives in Arden-Arcade.",
+      "skills": [],
+      "spaces": [],
+      "roles": [],
+      "locale": "en",
+      "pending": true,
+      "supporting": false,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/35843378/pexels-photo-35843378.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "maribel",
+      "name": "Maribel Cruz",
+      "email": "maribel.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Mamá de tres, cocino tamales para todos en diciembre.",
+      "skills": [
+        "spanish"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "grants",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/20233027/pexels-photo-20233027.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "luz",
+      "name": "Luz Herrera",
+      "email": "luz.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Tengo una troca y los sábados estoy libre.",
+      "skills": [
+        "spanish",
+        "cooking"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "ready",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/39453939/pexels-photo-39453939.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "camila",
+      "name": "Camila Reyes",
+      "email": "camila.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Me gusta compartir lo que sobra de la cocina.",
+      "skills": [
+        "spanish",
+        "first aid",
+        "tech help"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/38997321/pexels-photo-38997321.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "diego",
+      "name": "Diego Morales",
+      "email": "diego.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Cuido niños de la cuadra después de la escuela.",
+      "skills": [
+        "spanish"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/16686151/pexels-photo-16686151.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "sofia",
+      "name": "Sofia Alvarez",
+      "email": "sofia.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Sé arreglar bicicletas, traigan las suyas el domingo.",
+      "skills": [
+        "spanish",
+        "vietnamese"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "ready",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/7700574/pexels-photo-7700574.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "elena",
+      "name": "Elena Vasquez",
+      "email": "elena.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Busco maneras de ayudar sin que se sienta a caridad.",
+      "skills": [
+        "spanish",
+        "dari",
+        "fruit picking"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "grants",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/5004337/pexels-photo-5004337.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "mateo",
+      "name": "Mateo Ruiz",
+      "email": "mateo.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Tengo frascos de más si alguien va a hacer conservas.",
+      "skills": [
+        "spanish"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/33722925/pexels-photo-33722925.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "valeria",
+      "name": "Valeria Santos",
+      "email": "valeria.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Puedo traducir en citas si me avisan con tiempo.",
+      "skills": [
+        "spanish",
+        "tech help"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "ready",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/30713489/pexels-photo-30713489.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "andre",
+      "name": "Andre Washington",
+      "email": "andre.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Walks the neighborhood and notices fruit going to waste.",
+      "skills": [
+        "spanish",
+        "ham radio",
+        "pickup truck"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/12311572/pexels-photo-12311572.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-man"
+    },
+    {
+      "key": "imani",
+      "name": "Imani Brooks",
+      "email": "imani.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Has a folding table and two chairs to lend.",
+      "skills": [
+        "vietnamese"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/36439572/pexels-photo-36439572.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-woman"
+    },
+    {
+      "key": "chrisd",
+      "name": "Chris Dalton",
+      "email": "chrisd.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Student, no car, will trade tutoring for rides.",
+      "skills": [
+        "dari",
+        "fruit picking"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "ready",
+        "grants",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/30109517/pexels-photo-30109517.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "man"
+    },
+    {
+      "key": "naomi",
+      "name": "Naomi Reed",
+      "email": "naomi.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Keeps seedlings on the back steps every spring.",
+      "skills": [
+        "hmong",
+        "carpentry",
+        "first aid"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/15361970/pexels-photo-15361970.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-woman"
+    },
+    {
+      "key": "malik",
+      "name": "Malik Johnson",
+      "email": "malik.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Happy to lend tools if you bring them back clean.",
+      "skills": [
+        "tech help"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/12311579/pexels-photo-12311579.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-man"
+    },
+    {
+      "key": "helen",
+      "name": "Helen Cho",
+      "email": "helen.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "I bake on Fridays and always have extra.",
+      "skills": [
+        "ham radio",
+        "pickup truck"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "ready",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/8066158/pexels-photo-8066158.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "peter",
+      "name": "Peter Grant",
+      "email": "peter.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Retired, and I like knowing my neighbors.",
+      "skills": [
+        "gardening",
+        "childcare",
+        "dari"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/11091224/pexels-photo-11091224.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "man"
+    },
+    {
+      "key": "amina",
+      "name": "Amina Diallo",
+      "email": "amina.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Can haul a couch if the date works.",
+      "skills": [
+        "fruit picking"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "grants",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/6311668/pexels-photo-6311668.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-woman"
+    },
+    {
+      "key": "ruthie",
+      "name": "Ruthie Owens",
+      "email": "ruthie.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Learning to garden in a small yard.",
+      "skills": [
+        "carpentry",
+        "first aid"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "ready",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/11215202/pexels-photo-11215202.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "woman"
+    },
+    {
+      "key": "benc",
+      "name": "Ben Carter",
+      "email": "benc.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Night shift, so mornings are when I can help.",
+      "skills": [
+        "bike repair",
+        "spanish",
+        "ham radio"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/12446392/pexels-photo-12446392.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "man"
+    },
+    {
+      "key": "lila",
+      "name": "Lila Nguyen",
+      "email": "lila.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "I keep a bin of kids clothes on the porch.",
+      "skills": [
+        "pickup truck"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/30049264/pexels-photo-30049264.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "omar",
+      "name": "Omar Farooq",
+      "email": "omar.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Good with a drill, bad at asking for help.",
+      "skills": [
+        "childcare",
+        "dari"
+      ],
+      "spaces": [
+        "oak-park",
+        "gleaning",
+        "tools",
+        "ready",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/30612812/pexels-photo-30612812.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "middle-eastern-man"
+    },
+    {
+      "key": "june",
+      "name": "June Park",
+      "email": "june.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "oak",
+      "tagline": "Walks the neighborhood and notices fruit going to waste.",
+      "skills": [
+        "cooking",
+        "hmong",
+        "carpentry"
+      ],
+      "spaces": [
+        "oak-park",
+        "tools",
+        "grants",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/31514202/pexels-photo-31514202.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "jordan",
+      "name": "Jordan Ellis",
+      "email": "jordan.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Has a folding table and two chairs to lend.",
+      "skills": [
+        "first aid"
+      ],
+      "spaces": [
+        "midtown",
+        "tools",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/33222689/pexels-photo-33222689.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "person"
+    },
+    {
+      "key": "maya",
+      "name": "Maya Chen",
+      "email": "maya.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Student, no car, will trade tutoring for rides.",
+      "skills": [
+        "spanish",
+        "ham radio"
+      ],
+      "spaces": [
+        "midtown",
+        "tools",
+        "ready",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/18962988/pexels-photo-18962988.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "alexr",
+      "name": "Alex Romero",
+      "email": "alexr.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Keeps seedlings on the back steps every spring.",
+      "skills": [
+        "vietnamese",
+        "gardening",
+        "childcare"
+      ],
+      "spaces": [
+        "midtown",
+        "tools",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/10039969/pexels-photo-10039969.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "noah",
+      "name": "Noah Kim",
+      "email": "noah.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Happy to lend tools if you bring them back clean.",
+      "skills": [
+        "dari"
+      ],
+      "spaces": [
+        "midtown"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/13293818/pexels-photo-13293818.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-man"
+    },
+    {
+      "key": "taylor",
+      "name": "Taylor Brooks",
+      "email": "taylor.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "I bake on Fridays and always have extra.",
+      "skills": [
+        "hmong",
+        "carpentry"
+      ],
+      "spaces": [
+        "midtown",
+        "ready",
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/33222686/pexels-photo-33222686.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "person"
+    },
+    {
+      "key": "samira",
+      "name": "Samira Noori",
+      "email": "samira.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Retired, and I like knowing my neighbors.",
+      "skills": [
+        "tech help",
+        "bike repair",
+        "spanish"
+      ],
+      "spaces": [
+        "midtown"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/6771220/pexels-photo-6771220.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "middle-eastern-woman"
+    },
+    {
+      "key": "chrisp",
+      "name": "Chris Pham",
+      "email": "chrisp.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Can haul a couch if the date works.",
+      "skills": [
+        "ham radio"
+      ],
+      "spaces": [
+        "midtown"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/8250204/pexels-photo-8250204.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-man"
+    },
+    {
+      "key": "riley",
+      "name": "Riley Santos",
+      "email": "riley.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Learning to garden in a small yard.",
+      "skills": [
+        "gardening",
+        "childcare"
+      ],
+      "spaces": [
+        "midtown",
+        "ready",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/17035816/pexels-photo-17035816.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "avery",
+      "name": "Avery Cole",
+      "email": "avery.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Night shift, so mornings are when I can help.",
+      "skills": [
+        "fruit picking",
+        "cooking",
+        "hmong"
+      ],
+      "spaces": [
+        "midtown"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/3754430/pexels-photo-3754430.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "person"
+    },
+    {
+      "key": "mina",
+      "name": "Mina Park",
+      "email": "mina.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "I keep a bin of kids clothes on the porch.",
+      "skills": [
+        "carpentry"
+      ],
+      "spaces": [
+        "midtown",
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/28845478/pexels-photo-28845478.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "leo",
+      "name": "Leo Martins",
+      "email": "leo.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Good with a drill, bad at asking for help.",
+      "skills": [
+        "bike repair",
+        "spanish"
+      ],
+      "spaces": [
+        "midtown",
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/10959917/pexels-photo-10959917.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "harper",
+      "name": "Harper Nguyen",
+      "email": "harper.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Walks the neighborhood and notices fruit going to waste.",
+      "skills": [
+        "pickup truck",
+        "vietnamese",
+        "gardening"
+      ],
+      "spaces": [
+        "midtown"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/8519048/pexels-photo-8519048.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "quinn",
+      "name": "Quinn Adler",
+      "email": "quinn.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Has a folding table and two chairs to lend.",
+      "skills": [
+        "childcare"
+      ],
+      "spaces": [
+        "midtown"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/3826501/pexels-photo-3826501.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "person"
+    },
+    {
+      "key": "jules",
+      "name": "Jules Okonkwo",
+      "email": "jules.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Student, no car, will trade tutoring for rides.",
+      "skills": [
+        "cooking",
+        "hmong"
+      ],
+      "spaces": [
+        "midtown",
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/7562179/pexels-photo-7562179.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-man"
+    },
+    {
+      "key": "remy",
+      "name": "Remy Brooks",
+      "email": "remy.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Keeps seedlings on the back steps every spring.",
+      "skills": [
+        "first aid",
+        "tech help",
+        "bike repair"
+      ],
+      "spaces": [
+        "midtown",
+        "grants",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/13375591/pexels-photo-13375591.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "person"
+    },
+    {
+      "key": "sasha",
+      "name": "Sasha Ivanov",
+      "email": "sasha.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Happy to lend tools if you bring them back clean.",
+      "skills": [
+        "spanish"
+      ],
+      "spaces": [
+        "midtown"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/9092311/pexels-photo-9092311.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "person"
+    },
+    {
+      "key": "casey",
+      "name": "Casey Nguyen",
+      "email": "casey.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "I bake on Fridays and always have extra.",
+      "skills": [
+        "vietnamese",
+        "gardening"
+      ],
+      "spaces": [
+        "midtown",
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/35173758/pexels-photo-35173758.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "drew",
+      "name": "Drew Alvarez",
+      "email": "drew.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "midtown",
+      "tagline": "Retired, and I like knowing my neighbors.",
+      "skills": [
+        "dari",
+        "fruit picking",
+        "cooking"
+      ],
+      "spaces": [
+        "midtown"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/5931195/pexels-photo-5931195.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "dorothy",
+      "name": "Dorothy Chen",
+      "email": "dorothy.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Can haul a couch if the date works.",
+      "skills": [
+        "hmong"
+      ],
+      "spaces": [
+        "land-park"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/25792420/pexels-photo-25792420.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-east-asian-woman"
+    },
+    {
+      "key": "arthur",
+      "name": "Arthur Blake",
+      "email": "arthur.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Learning to garden in a small yard.",
+      "skills": [
+        "tech help",
+        "bike repair"
+      ],
+      "spaces": [
+        "land-park",
+        "ready",
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/30208144/pexels-photo-30208144.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-man"
+    },
+    {
+      "key": "margaret",
+      "name": "Margaret Olsen",
+      "email": "margaret.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Night shift, so mornings are when I can help.",
+      "skills": [
+        "ham radio",
+        "pickup truck",
+        "vietnamese"
+      ],
+      "spaces": [
+        "land-park"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/14319677/pexels-photo-14319677.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-woman"
+    },
+    {
+      "key": "frank",
+      "name": "Frank Ito",
+      "email": "frank.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "I keep a bin of kids clothes on the porch.",
+      "skills": [
+        "gardening"
+      ],
+      "spaces": [
+        "land-park",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/18137274/pexels-photo-18137274.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-east-asian-man"
+    },
+    {
+      "key": "carol",
+      "name": "Carol Nguyen",
+      "email": "carol.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Good with a drill, bad at asking for help.",
+      "skills": [
+        "fruit picking",
+        "cooking"
+      ],
+      "spaces": [
+        "land-park",
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/8789224/pexels-photo-8789224.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "henry",
+      "name": "Henry Walsh",
+      "email": "henry.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Walks the neighborhood and notices fruit going to waste.",
+      "skills": [
+        "carpentry",
+        "first aid",
+        "tech help"
+      ],
+      "spaces": [
+        "land-park"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/19502588/pexels-photo-19502588.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-man"
+    },
+    {
+      "key": "irene",
+      "name": "Irene Cho",
+      "email": "irene.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Has a folding table and two chairs to lend.",
+      "skills": [
+        "bike repair"
+      ],
+      "spaces": [
+        "land-park",
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/31085310/pexels-photo-31085310.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "susan",
+      "name": "Susan Blake",
+      "email": "susan.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Student, no car, will trade tutoring for rides.",
+      "skills": [
+        "pickup truck",
+        "vietnamese"
+      ],
+      "spaces": [
+        "land-park",
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/40225982/pexels-photo-40225982.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-woman"
+    },
+    {
+      "key": "george",
+      "name": "George Nguyen",
+      "email": "george.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Keeps seedlings on the back steps every spring.",
+      "skills": [
+        "childcare",
+        "dari",
+        "fruit picking"
+      ],
+      "spaces": [
+        "land-park"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/7417185/pexels-photo-7417185.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-man"
+    },
+    {
+      "key": "patricia",
+      "name": "Patricia Moore",
+      "email": "patricia.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Happy to lend tools if you bring them back clean.",
+      "skills": [
+        "cooking"
+      ],
+      "spaces": [
+        "land-park"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/8528483/pexels-photo-8528483.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-woman"
+    },
+    {
+      "key": "alan",
+      "name": "Alan Cho",
+      "email": "alan.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "I bake on Fridays and always have extra.",
+      "skills": [
+        "first aid",
+        "tech help"
+      ],
+      "spaces": [
+        "land-park",
+        "ready",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/31052395/pexels-photo-31052395.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-man"
+    },
+    {
+      "key": "ruthf",
+      "name": "Ruth Feldman",
+      "email": "ruthf.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Retired, and I like knowing my neighbors.",
+      "skills": [
+        "spanish",
+        "ham radio",
+        "pickup truck"
+      ],
+      "spaces": [
+        "land-park",
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/8727573/pexels-photo-8727573.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "older-woman"
+    },
+    {
+      "key": "victor",
+      "name": "Victor Tran",
+      "email": "victor.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "land",
+      "tagline": "Can haul a couch if the date works.",
+      "skills": [
+        "vietnamese"
+      ],
+      "spaces": [
+        "land-park"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/21775096/pexels-photo-21775096.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-man"
+    },
+    {
+      "key": "ramon",
+      "name": "Ramón Ortega",
+      "email": "ramon.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Sé arreglar bicicletas, traigan las suyas el domingo.",
+      "skills": [
+        "spanish",
+        "fruit picking"
+      ],
+      "spaces": [
+        "del-paso",
+        "ready",
+        "gleaning"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/17420229/pexels-photo-17420229.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "graciela",
+      "name": "Graciela Ruiz",
+      "email": "graciela.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Busco maneras de ayudar sin que se sienta a caridad.",
+      "skills": [
+        "spanish",
+        "carpentry",
+        "first aid"
+      ],
+      "spaces": [
+        "del-paso"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/2531151/pexels-photo-2531151.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "yesenia",
+      "name": "Yesenia Lopez",
+      "email": "yesenia.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Tengo frascos de más si alguien va a hacer conservas.",
+      "skills": [
+        "spanish"
+      ],
+      "spaces": [
+        "del-paso"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/12002760/pexels-photo-12002760.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "hector",
+      "name": "Hector Mendoza",
+      "email": "hector.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Puedo traducir en citas si me avisan con tiempo.",
+      "skills": [
+        "spanish",
+        "pickup truck"
+      ],
+      "spaces": [
+        "del-paso",
+        "ready",
+        "grants"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/35299001/pexels-photo-35299001.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "carmen",
+      "name": "Carmen Diaz",
+      "email": "carmen.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Mamá de tres, cocino tamales para todos en diciembre.",
+      "skills": [
+        "spanish",
+        "childcare",
+        "dari"
+      ],
+      "spaces": [
+        "del-paso",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/28246624/pexels-photo-28246624.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "luis",
+      "name": "Luis Ortega",
+      "email": "luis.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Tengo una troca y los sábados estoy libre.",
+      "skills": [
+        "spanish"
+      ],
+      "spaces": [
+        "del-paso"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/12850150/pexels-photo-12850150.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "anaf",
+      "name": "Ana Flores",
+      "email": "anaf.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Me gusta compartir lo que sobra de la cocina.",
+      "skills": [
+        "spanish",
+        "first aid"
+      ],
+      "spaces": [
+        "del-paso",
+        "ready"
+      ],
+      "roles": [],
+      "locale": "es",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/17110430/pexels-photo-17110430.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "pa",
+      "name": "Pa Vang",
+      "email": "pa.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "New to the neighborhood and glad this network exists.",
+      "skills": [
+        "hmong",
+        "spanish",
+        "ham radio"
+      ],
+      "spaces": [
+        "del-paso",
+        "gleaning",
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/39224282/pexels-photo-39224282.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "southeast-asian-woman"
+    },
+    {
+      "key": "mai",
+      "name": "Mai Yang",
+      "email": "mai.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Grow long beans and cucumbers, come take some.",
+      "skills": [
+        "hmong"
+      ],
+      "spaces": [
+        "del-paso",
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/36492185/pexels-photo-36492185.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "southeast-asian-woman"
+    },
+    {
+      "key": "chue",
+      "name": "Chue Lor",
+      "email": "chue.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "I can translate for clinic visits if you need Hmong.",
+      "skills": [
+        "hmong",
+        "dari"
+      ],
+      "spaces": [
+        "del-paso",
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/36125729/pexels-photo-36125729.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "southeast-asian-man"
+    },
+    {
+      "key": "laila",
+      "name": "Laila Ahmadi",
+      "email": "laila.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "I can translate Dari for school meetings.",
+      "skills": [
+        "dari",
+        "hmong",
+        "carpentry"
+      ],
+      "spaces": [
+        "del-paso"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/35295548/pexels-photo-35295548.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "middle-eastern-woman"
+    },
+    {
+      "key": "yusuf",
+      "name": "Yusuf Karimi",
+      "email": "yusuf.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Happy to help fix small things around the house.",
+      "skills": [
+        "dari"
+      ],
+      "spaces": [
+        "del-paso",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/7270548/pexels-photo-7270548.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "middle-eastern-man"
+    },
+    {
+      "key": "jamal",
+      "name": "Jamal Wright",
+      "email": "jamal.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Learning to garden in a small yard.",
+      "skills": [
+        "spanish",
+        "ham radio"
+      ],
+      "spaces": [
+        "del-paso",
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/7432863/pexels-photo-7432863.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-man"
+    },
+    {
+      "key": "keisha",
+      "name": "Keisha Brown",
+      "email": "keisha.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Night shift, so mornings are when I can help.",
+      "skills": [
+        "vietnamese",
+        "gardening",
+        "childcare"
+      ],
+      "spaces": [
+        "del-paso",
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/35250757/pexels-photo-35250757.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-woman"
+    },
+    {
+      "key": "tony",
+      "name": "Tony Nguyen",
+      "email": "tony.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "I keep a bin of kids clothes on the porch.",
+      "skills": [
+        "dari"
+      ],
+      "spaces": [
+        "del-paso"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/8586791/pexels-photo-8586791.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-man"
+    },
+    {
+      "key": "amber",
+      "name": "Amber Cole",
+      "email": "amber.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Good with a drill, bad at asking for help.",
+      "skills": [
+        "hmong",
+        "carpentry"
+      ],
+      "spaces": [
+        "del-paso",
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/10260754/pexels-photo-10260754.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "woman"
+    },
+    {
+      "key": "ray",
+      "name": "Ray Santos",
+      "email": "ray.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "delpaso",
+      "tagline": "Walks the neighborhood and notices fruit going to waste.",
+      "skills": [
+        "tech help",
+        "bike repair",
+        "spanish"
+      ],
+      "spaces": [
+        "del-paso"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/28640731/pexels-photo-28640731.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "brian",
+      "name": "Brian Holt",
+      "email": "brian.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "westsac",
+      "tagline": "Has a folding table and two chairs to lend.",
+      "skills": [
+        "ham radio"
+      ],
+      "spaces": [],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/36291553/pexels-photo-36291553.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "man"
+    },
+    {
+      "key": "angela",
+      "name": "Angela Reyes",
+      "email": "angela.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "westsac",
+      "tagline": "Student, no car, will trade tutoring for rides.",
+      "skills": [
+        "gardening",
+        "childcare"
+      ],
+      "spaces": [
+        "ready",
+        "grants",
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/29719294/pexels-photo-29719294.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "pete",
+      "name": "Pete Nguyen",
+      "email": "pete.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "westsac",
+      "tagline": "Keeps seedlings on the back steps every spring.",
+      "skills": [
+        "fruit picking",
+        "cooking",
+        "hmong"
+      ],
+      "spaces": [],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/4584536/pexels-photo-4584536.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-man"
+    },
+    {
+      "key": "megan",
+      "name": "Megan Cho",
+      "email": "megan.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "arden",
+      "tagline": "Happy to lend tools if you bring them back clean.",
+      "skills": [
+        "carpentry"
+      ],
+      "spaces": [],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/31085334/pexels-photo-31085334.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "sandra",
+      "name": "Sandra Ortiz",
+      "email": "sandra.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "arden",
+      "tagline": "I bake on Fridays and always have extra.",
+      "skills": [
+        "bike repair",
+        "spanish"
+      ],
+      "spaces": [
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/14938892/pexels-photo-14938892.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latina"
+    },
+    {
+      "key": "kevin",
+      "name": "Kevin Park",
+      "email": "kevin.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "arden",
+      "tagline": "Retired, and I like knowing my neighbors.",
+      "skills": [
+        "pickup truck",
+        "vietnamese",
+        "gardening"
+      ],
+      "spaces": [],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/28446973/pexels-photo-28446973.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-man"
+    },
+    {
+      "key": "tina",
+      "name": "Tina Vang",
+      "email": "tina.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "elkgrove",
+      "tagline": "Can haul a couch if the date works.",
+      "skills": [
+        "childcare"
+      ],
+      "spaces": [
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/7777229/pexels-photo-7777229.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "southeast-asian-woman"
+    },
+    {
+      "key": "nicole",
+      "name": "Nicole Brooks",
+      "email": "nicole.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "elkgrove",
+      "tagline": "Learning to garden in a small yard.",
+      "skills": [
+        "cooking",
+        "hmong"
+      ],
+      "spaces": [
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/36322504/pexels-photo-36322504.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-woman"
+    },
+    {
+      "key": "jason",
+      "name": "Jason Lee",
+      "email": "jason.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "elkgrove",
+      "tagline": "Night shift, so mornings are when I can help.",
+      "skills": [
+        "first aid",
+        "tech help",
+        "bike repair"
+      ],
+      "spaces": [
+        "welcome"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/24430436/pexels-photo-24430436.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-man"
+    },
+    {
+      "key": "fatima",
+      "name": "Fatima Noori",
+      "email": "fatima.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "elkgrove",
+      "tagline": "I keep a bin of kids clothes on the porch.",
+      "skills": [
+        "spanish"
+      ],
+      "spaces": [],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/8154425/pexels-photo-8154425.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "middle-eastern-woman"
+    },
+    {
+      "key": "andres",
+      "name": "Andre Silva",
+      "email": "andres.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "elkgrove",
+      "tagline": "Good with a drill, bad at asking for help.",
+      "skills": [
+        "vietnamese",
+        "gardening"
+      ],
+      "spaces": [
+        "ready"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": false,
+      "portraitUrl": "https://images.pexels.com/photos/13316906/pexels-photo-13316906.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "latino"
+    },
+    {
+      "key": "lily",
+      "name": "Lily Chen",
+      "email": "lily.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "elkgrove",
+      "tagline": "Walks the neighborhood and notices fruit going to waste.",
+      "skills": [
+        "dari",
+        "fruit picking",
+        "cooking"
+      ],
+      "spaces": [
+        "grants"
+      ],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/35173752/pexels-photo-35173752.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "east-asian-woman"
+    },
+    {
+      "key": "markj",
+      "name": "Mark Johnson",
+      "email": "markj.river-city@demo.invalid",
+      "realUser": false,
+      "neighborhood": "elkgrove",
+      "tagline": "Has a folding table and two chairs to lend.",
+      "skills": [
+        "hmong"
+      ],
+      "spaces": [],
+      "roles": [],
+      "locale": "en",
+      "pending": false,
+      "supporting": true,
+      "recent": true,
+      "portraitUrl": "https://images.pexels.com/photos/17555243/pexels-photo-17555243.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "portraitPool": "black-man"
+    }
+  ],
+  "group": {
+    "name": "River City Mutual Aid",
+    "slug": "river-city-mutual-aid",
+    "purpose": "Neighbors across the Sacramento region meeting each other's needs: sharing what we have, asking for what we need, and getting ready together for heat, smoke and floods.",
+    "description": "We're a network of neighbors, not a charity. Post a request when you need something, an offer when you have something to share, and map the fruit trees, fridges and free pantries around you. Gifts, loans and trades only, never sales.",
+    "visibility": "hidden",
+    "accessibility": "restricted",
+    "allowInPublic": false,
+    "location": {
+      "lat": 38.5816,
+      "lng": -121.4944,
+      "fullText": "Sacramento, California",
+      "neighborhood": "Sacramento",
+      "city": "Sacramento"
+    },
+    "polygon": [
+      [
+        -121.56,
+        38.42
+      ],
+      [
+        -121.33,
+        38.4
+      ],
+      [
+        -121.32,
+        38.62
+      ],
+      [
+        -121.38,
+        38.7
+      ],
+      [
+        -121.55,
+        38.68
+      ],
+      [
+        -121.58,
+        38.55
+      ]
+    ],
+    "icon": "hand-heart",
+    "homeRoute": "/requests-and-offers",
+    "typeDescriptor": "Network",
+    "typeDescriptorPlural": "Networks",
+    "stewardDescriptor": "Weaver",
+    "stewardDescriptorPlural": "Weavers",
+    "bannerKey": "banner",
+    "markKey": "river-city",
+    "numOpenJoinRequests": 1,
+    "menu": [
+      {
+        "type": "requests-and-offers",
+        "settings": {
+          "defaultViewMode": "cards"
+        }
+      },
+      {
+        "type": "map"
+      },
+      {
+        "type": "chat",
+        "key": "parent:chat"
+      },
+      {
+        "type": "events"
+      },
+      {
+        "type": "resources"
+      },
+      {
+        "type": "custom",
+        "key": "parent:fruit",
+        "name": "Fruit to Glean",
+        "icon": "Apple",
+        "topics": [
+          "gleaning"
+        ],
+        "settings": {
+          "defaultViewMode": "cards",
+          "postTypes": [
+            "resource"
+          ]
+        }
+      },
+      {
+        "type": "discussions",
+        "key": "parent:discussions"
+      },
+      {
+        "type": "proposals"
+      },
+      {
+        "type": "members"
+      },
+      {
+        "type": "text",
+        "name": "Neighborhoods"
+      },
+      {
+        "type": "space",
+        "name": "Oak Park",
+        "space": "oak-park"
+      },
+      {
+        "type": "space",
+        "name": "Midtown & Downtown",
+        "space": "midtown"
+      },
+      {
+        "type": "space",
+        "name": "Land Park & Curtis Park",
+        "space": "land-park"
+      },
+      {
+        "type": "space",
+        "name": "Del Paso Heights & North Sac",
+        "space": "del-paso"
+      },
+      {
+        "type": "text",
+        "name": "Working groups"
+      },
+      {
+        "type": "space",
+        "name": "Gleaning Crew",
+        "space": "gleaning"
+      },
+      {
+        "type": "space",
+        "name": "Tool Library",
+        "space": "tools"
+      },
+      {
+        "type": "space",
+        "name": "Ready Sac: Heat, Smoke & Flood",
+        "space": "ready"
+      },
+      {
+        "type": "space",
+        "name": "Neighbor Grants: Fall Flow Fund",
+        "space": "grants"
+      },
+      {
+        "type": "space",
+        "name": "Welcome to River City",
+        "space": "welcome"
+      },
+      {
+        "type": "welcome",
+        "key": "parent:welcome",
+        "page": "<p>A note from the Weavers. This is a network of neighbors. Post a request when you need something, an offer when you have something to share, and put fruit trees, fridges, and pantries on the map.</p><p>Una nota de las tejedoras. Somos una red de vecinas y vecinos. Pide lo que necesitas, ofrece lo que puedes compartir, y marca en el mapa los árboles, la heladera y las despensas.</p><p><strong>How to use this network.</strong> Ask. Offer. Map a resource. Join your neighborhood space.</p><p><a href=\"/groups/river-city-mutual-aid/spaces/oak-park\">Oak Park</a> · <a href=\"/groups/river-city-mutual-aid/spaces/midtown\">Midtown &amp; Downtown</a> · <a href=\"/groups/river-city-mutual-aid/spaces/land-park\">Land Park &amp; Curtis Park</a> · <a href=\"/groups/river-city-mutual-aid/spaces/del-paso\">Del Paso Heights &amp; North Sac</a></p>"
+      }
+    ]
+  },
+  "spaces": [
+    {
+      "key": "oak-park",
+      "name": "Oak Park",
+      "icon": "trees",
+      "host": "rosa",
+      "purpose": "Broadway, Stockton, 14th Ave, and the freeway.",
+      "bannerKey": "oak",
+      "markKey": "oak-park",
+      "polygon": [
+        [
+          -121.498,
+          38.535
+        ],
+        [
+          -121.448,
+          38.535
+        ],
+        [
+          -121.448,
+          38.562
+        ],
+        [
+          -121.498,
+          38.562
+        ]
+      ],
+      "home": "/chat",
+      "views": [
+        {
+          "type": "chat",
+          "key": "oak-park:chat"
+        },
+        {
+          "type": "requests-and-offers"
+        },
+        {
+          "type": "map"
+        },
+        {
+          "type": "events"
+        },
+        {
+          "type": "resources"
+        },
+        {
+          "type": "members"
+        }
+      ]
+    },
+    {
+      "key": "midtown",
+      "name": "Midtown & Downtown",
+      "icon": "building-2",
+      "host": "tibet",
+      "purpose": "Business 80, Alhambra, Broadway, and the river.",
+      "bannerKey": "midtown",
+      "markKey": "midtown",
+      "polygon": [
+        [
+          -121.51,
+          38.568
+        ],
+        [
+          -121.46,
+          38.568
+        ],
+        [
+          -121.46,
+          38.592
+        ],
+        [
+          -121.505,
+          38.592
+        ]
+      ],
+      "home": "/chat",
+      "views": [
+        {
+          "type": "chat",
+          "key": "midtown:chat"
+        },
+        {
+          "type": "requests-and-offers"
+        },
+        {
+          "type": "map"
+        },
+        {
+          "type": "events"
+        },
+        {
+          "type": "resources"
+        },
+        {
+          "type": "members"
+        }
+      ]
+    },
+    {
+      "key": "land-park",
+      "name": "Land Park & Curtis Park",
+      "icon": "flower-2",
+      "host": "lin",
+      "purpose": "Broadway, the freeway, Sutterville, and Freeport.",
+      "bannerKey": "land",
+      "markKey": "land-park",
+      "polygon": [
+        [
+          -121.51,
+          38.528
+        ],
+        [
+          -121.485,
+          38.528
+        ],
+        [
+          -121.485,
+          38.558
+        ],
+        [
+          -121.505,
+          38.558
+        ]
+      ],
+      "home": "/chat",
+      "views": [
+        {
+          "type": "chat",
+          "key": "land-park:chat"
+        },
+        {
+          "type": "requests-and-offers"
+        },
+        {
+          "type": "map"
+        },
+        {
+          "type": "events"
+        },
+        {
+          "type": "resources"
+        },
+        {
+          "type": "members"
+        }
+      ]
+    },
+    {
+      "key": "del-paso",
+      "name": "Del Paso Heights & North Sac",
+      "icon": "sprout",
+      "host": "marcus",
+      "purpose": "The Marysville corridor, Arcade Creek down to Grand.",
+      "bannerKey": "delpaso",
+      "markKey": "del-paso",
+      "polygon": [
+        [
+          -121.47,
+          38.595
+        ],
+        [
+          -121.42,
+          38.595
+        ],
+        [
+          -121.42,
+          38.65
+        ],
+        [
+          -121.47,
+          38.65
+        ]
+      ],
+      "home": "/chat",
+      "views": [
+        {
+          "type": "chat",
+          "key": "del-paso:chat"
+        },
+        {
+          "type": "requests-and-offers"
+        },
+        {
+          "type": "map"
+        },
+        {
+          "type": "events"
+        },
+        {
+          "type": "resources"
+        },
+        {
+          "type": "members"
+        }
+      ]
+    },
+    {
+      "key": "gleaning",
+      "name": "Gleaning Crew",
+      "icon": "apple",
+      "host": "hannah",
+      "purpose": "Region-wide. Fruit that would otherwise fall on the sidewalk.",
+      "bannerKey": "gleaning",
+      "markKey": "gleaning",
+      "accepted": [
+        "resource",
+        "event",
+        "request",
+        "offer",
+        "discussion"
+      ],
+      "home": "/chat",
+      "views": [
+        {
+          "type": "chat",
+          "key": "gleaning:chat"
+        },
+        {
+          "type": "resources",
+          "settings": {
+            "defaultViewMode": "map"
+          }
+        },
+        {
+          "type": "events"
+        },
+        {
+          "type": "requests-and-offers"
+        },
+        {
+          "type": "members"
+        }
+      ]
+    },
+    {
+      "key": "tools",
+      "name": "Tool Library",
+      "icon": "wrench",
+      "host": "jorge",
+      "purpose": "Borrow tools from the Oak Park shed. Write your name and bring them back.",
+      "bannerKey": "tools",
+      "markKey": "tools",
+      "accepted": [
+        "resource",
+        "request",
+        "offer"
+      ],
+      "home": "/resources",
+      "pin": {
+        "lat": 38.5472,
+        "lng": -121.4554,
+        "fullText": "5th Ave & 40th St, Sacramento, California",
+        "city": "Sacramento"
+      },
+      "views": [
+        {
+          "type": "resources",
+          "settings": {
+            "defaultViewMode": "map"
+          }
+        },
+        {
+          "type": "chat",
+          "key": "tools:chat"
+        },
+        {
+          "type": "requests-and-offers"
+        },
+        {
+          "type": "members"
+        }
+      ]
+    },
+    {
+      "key": "ready",
+      "name": "Ready Sac: Heat, Smoke & Flood",
+      "icon": "umbrella",
+      "host": "walt",
+      "purpose": "Getting ready together for heat, smoke, and floods.",
+      "bannerKey": "readysac",
+      "markKey": "ready",
+      "home": "/chat",
+      "views": [
+        {
+          "type": "chat",
+          "key": "ready:chat"
+        },
+        {
+          "type": "events"
+        },
+        {
+          "type": "requests-and-offers"
+        },
+        {
+          "type": "proposals"
+        },
+        {
+          "type": "discussions"
+        },
+        {
+          "type": "members"
+        }
+      ]
+    },
+    {
+      "key": "grants",
+      "name": "Neighbor Grants: Fall Flow Fund",
+      "icon": "coins",
+      "host": "rosa",
+      "purpose": "Ten neighbors each allocate 100 tokens across small grants. Each token is $5 of a $5,000 pool.",
+      "bannerKey": "grants",
+      "markKey": "grants",
+      "home": "/funding-round-submissions",
+      "status": "voting",
+      "views": [
+        {
+          "type": "funding-round-submissions"
+        },
+        {
+          "type": "chat",
+          "key": "grants:chat"
+        },
+        {
+          "type": "members"
+        },
+        {
+          "type": "welcome",
+          "page": "<p>Ten trusted neighbors each have 100 tokens. Each token is $5 of the $5,000 pool. Spread them across the proposals. You can see the totals move while voting is open.</p><p>Diez vecinas y vecinos tienen 100 fichas cada quien. Cada ficha vale $5 de un fondo de $5,000. Se ven los totales mientras la votación está abierta.</p>"
+        }
+      ]
+    },
+    {
+      "key": "welcome",
+      "name": "Welcome to River City",
+      "icon": "door-open",
+      "host": "hannah",
+      "purpose": "Five short steps for people who just arrived.",
+      "bannerKey": "welcome",
+      "markKey": "welcome",
+      "home": "/track-actions",
+      "views": [
+        {
+          "type": "track-actions",
+          "key": "welcome:track-actions"
+        },
+        {
+          "type": "chat",
+          "key": "welcome:chat"
+        },
+        {
+          "type": "members"
+        },
+        {
+          "type": "welcome",
+          "page": "<p>Five steps. When you finish, you're ready to join in.</p>"
+        }
+      ]
+    }
+  ],
+  "agreements": [
+    {
+      "title": "Solidarity, not charity.",
+      "description": "Everyone has needs and everyone has something to give."
+    },
+    {
+      "title": "Gifts, loans and trades.",
+      "description": "No selling or advertising."
+    },
+    {
+      "title": "Protect each other's privacy.",
+      "description": "Share exact addresses in DMs, not in posts. Ask before posting photos of people or homes."
+    },
+    {
+      "title": "Close the loop.",
+      "description": "Mark your post fulfilled and thank who helped, so the network can see what's working."
+    }
+  ],
+  "questions": [
+    {
+      "text": "Which neighborhood do you live in or near?",
+      "sampleAnswer": "Arden-Arcade"
+    },
+    {
+      "text": "What's one thing you could share with neighbors (a skill, a tool, time)?",
+      "sampleAnswer": "Weekday morning rides, and I know the bus routes."
+    },
+    {
+      "text": "How did you hear about us?",
+      "sampleAnswer": "A coworker in Oak Park."
+    }
+  ],
+  "pendingJoinKey": "dana",
+  "roles": [
+    {
+      "key": "neighborhood-host",
+      "name": "Neighborhood Host",
+      "emoji": "🏡",
+      "description": "Hosts a neighborhood or working-group space.",
+      "responsibilities": [
+        "Manage Content"
+      ]
+    },
+    {
+      "key": "flow-funder",
+      "name": "Flow Funder",
+      "emoji": "🌊",
+      "description": "Allocates tokens in the Fall Flow Fund.",
+      "responsibilities": []
+    }
+  ],
+  "welcomeTrack": {
+    "space": "welcome",
+    "host": "hannah",
+    "viewKey": "welcome:track-actions",
+    "enrolled": 41,
+    "completed": 23,
+    "midway": 3,
+    "actionDescriptor": "Step",
+    "actionDescriptorPlural": "Steps",
+    "completionMessage": "<p>You're in! Your neighbors are glad you're here.</p><p>¡Bienvenido! Nos alegra tenerte aquí.</p>",
+    "actions": [
+      {
+        "key": "step1",
+        "title": "Read and accept our agreements",
+        "details": "Four agreements. Solidarity, no selling, privacy, and closing the loop. Accept them here.",
+        "completion": "button",
+        "settings": {
+          "instructions": "Mark this step complete after you have read the agreements."
+        }
+      },
+      {
+        "key": "step2",
+        "title": "Say hi in #general: where you live and one thing you love about it",
+        "details": "One or two sentences. Where you are, and one thing you love about that place.",
+        "completion": "comment",
+        "settings": {
+          "instructions": "Comment here with where you live and one thing you love about it."
+        }
+      },
+      {
+        "key": "step3",
+        "title": "Pick your neighborhood space",
+        "details": "Join the space for the neighborhood you live in or near. You can change it later.",
+        "completion": "selectOne",
+        "settings": {
+          "instructions": "Choose one.",
+          "options": [
+            "Oak Park",
+            "Midtown & Downtown",
+            "Land Park & Curtis Park",
+            "Del Paso Heights & North Sac",
+            "None yet"
+          ]
+        }
+      },
+      {
+        "key": "step4",
+        "title": "Share one thing you could offer neighbors",
+        "details": "A skill, a tool, a ride, a language, an hour. Small is fine.",
+        "completion": "text",
+        "settings": {
+          "instructions": "Write one thing you could offer."
+        }
+      },
+      {
+        "key": "step5",
+        "title": "Map a fruit tree, fridge, or pantry near you",
+        "details": "Add a resource pin, or confirm you know how. The map is how people find the lemons.",
+        "completion": "button",
+        "settings": {
+          "instructions": "Mark this complete after you map a resource, or open Create Resource and look at the form."
+        }
+      }
+    ]
+  },
+  "funding": {
+    "space": "grants",
+    "role": "flow-funder",
+    "tokensEach": 100,
+    "allocations": {
+      "rosa": [
+        40,
+        20,
+        10,
+        10,
+        10,
+        10,
+        0
+      ],
+      "kai": [
+        20,
+        35,
+        15,
+        10,
+        10,
+        10,
+        0
+      ],
+      "lin": [
+        20,
+        20,
+        20,
+        20,
+        10,
+        10,
+        0
+      ],
+      "marcus": [
+        20,
+        20,
+        20,
+        15,
+        15,
+        10,
+        0
+      ],
+      "hannah": [
+        20,
+        20,
+        20,
+        20,
+        10,
+        5,
+        5
+      ],
+      "walt": [
+        35,
+        0,
+        20,
+        20,
+        15,
+        5,
+        5
+      ],
+      "priya": [
+        12,
+        15,
+        20,
+        18,
+        15,
+        10,
+        10
+      ],
+      "ellie": [
+        0,
+        20,
+        10,
+        15,
+        20,
+        25,
+        10
+      ],
+      "tomas": [
+        5,
+        5,
+        10,
+        10,
+        16,
+        25,
+        29
+      ]
+    },
+    "grantKeys": [
+      "G1",
+      "G5",
+      "G2",
+      "G6",
+      "G3",
+      "G4",
+      "G7"
+    ],
+    "columnTotals": [
+      172,
+      155,
+      145,
+      138,
+      121,
+      110,
+      59
+    ],
+    "tokensRemaining": {
+      "tibet": 100
+    },
+    "round": {
+      "criteria": "<p>Benefits more than one household. Led by someone who lives here. Budget under $1,000.</p>",
+      "requireBudget": true,
+      "votingMethod": "token_allocation_constant",
+      "tokenType": "Tokens",
+      "totalTokens": 100,
+      "minTokenAllocation": 0,
+      "maxTokenAllocation": 40,
+      "submissionsOpenAt": [
+        -21,
+        9,
+        0
+      ],
+      "submissionsCloseAt": [
+        -7,
+        18,
+        0
+      ],
+      "votingOpensAt": [
+        -2,
+        9,
+        0
+      ],
+      "votingClosesAt": [
+        5,
+        18,
+        0
+      ],
+      "allowSelfVoting": false,
+      "showRealtimeVotes": true,
+      "showRealtimeSubmissions": false,
+      "createdAt": [
+        -24,
+        10,
+        0
+      ]
+    }
+  },
+  "peer": {
+    "slug": "bay-area-bioregion",
+    "standinSlug": "bay-delta-bioregion-demo",
+    "name": "Bay Delta Bioregion",
+    "purpose": "A stand-in so River City can show a peer group on the map.",
+    "description": "Placeholder created by the River City demo because Bay Delta Bioregion was not in this database.",
+    "markKey": "bay-delta",
+    "homeRoute": "/all"
+  },
+  "mention": {
+    "space": "oak-park",
+    "person": "tibet",
+    "unread": 2
+  },
+  "unread": {
+    "person": "tibet",
+    "space": "oak-park",
+    "count": 2
+  },
+  "unreadPost": {
+    "key": "O1",
+    "person": "tibet"
+  },
+  "bell": [
+    {
+      "type": "comment",
+      "post": "O1",
+      "by": "hannah",
+      "reason": "newComment",
+      "group": "parent"
+    },
+    {
+      "type": "joinRequest",
+      "by": "dana",
+      "reason": "joinRequest",
+      "group": "parent",
+      "daysAgo": 1
+    },
+    {
+      "type": "mention",
+      "by": "rosa",
+      "reason": "mention",
+      "group": "oak-park"
+    },
+    {
+      "type": "comment",
+      "post": "E3",
+      "by": "walt",
+      "reason": "commentMention",
+      "group": "ready"
+    }
+  ],
+  "project": {
+    "key": "J1",
+    "children": [
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "O2"
+    ],
+    "requestPrefix": "R"
+  },
+  "density": {
+    "minComments": 140,
+    "minReactions": 430,
+    "skipPostKeys": [
+      "R16"
+    ],
+    "skipPrefixes": [
+      "G"
+    ]
+  },
+  "posts": [
+    {
+      "key": "R1",
+      "type": "request",
+      "by": "aisha",
+      "title": "Convertible car seat for my 2-year-old",
+      "details": "Daycare will not take him in the old one. If you have a convertible seat your kid outgrew, we can pick it up.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Rio Linda Blvd & Grand Ave",
+      "lat": 38.6362,
+      "lng": -121.4434,
+      "at": [
+        -9,
+        9,
+        10
+      ],
+      "topics": [
+        "childcare"
+      ],
+      "image": "carseat",
+      "fulfilled": {
+        "at": [
+          -9,
+          14,
+          5
+        ],
+        "by": [
+          "nia"
+        ]
+      },
+      "reactions": 8,
+      "comments": [
+        {
+          "by": "nia",
+          "at": [
+            -9,
+            9,
+            42
+          ],
+          "text": "I have a Graco Extend2Fit, outgrown, never in a crash. Messaging you."
+        },
+        {
+          "by": "aisha",
+          "at": [
+            -9,
+            14,
+            20
+          ],
+          "text": "Nia brought it over this afternoon. He is in it tomorrow. Thank you.",
+          "reactions": 6
+        }
+      ]
+    },
+    {
+      "key": "R2",
+      "type": "request",
+      "by": "farid",
+      "title": "Beds for 3 kids (ages 6, 9, 12)",
+      "details": "We got here in August and the kids are still on the floor. Twin or bunk is fine. I can help carry.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Marysville Blvd & South Ave",
+      "lat": 38.6124,
+      "lng": -121.4462,
+      "at": [
+        -14,
+        11,
+        0
+      ],
+      "topics": [
+        "furniture",
+        "housing"
+      ],
+      "image": "bunk",
+      "fulfilled": {
+        "at": [
+          -8,
+          16,
+          0
+        ],
+        "by": [
+          "tomas"
+        ]
+      },
+      "project": true,
+      "comments": [
+        {
+          "by": "tomas",
+          "at": [
+            -10,
+            9,
+            0
+          ],
+          "text": "A Midtown family has bunks. I can haul them Saturday."
+        }
+      ]
+    },
+    {
+      "key": "R3",
+      "type": "request",
+      "by": "farid",
+      "title": "Kitchen table that seats 5",
+      "details": "We are eating on the floor too. Nothing fancy. A table and a few chairs would change the evenings.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Marysville Blvd & South Ave",
+      "lat": 38.6124,
+      "lng": -121.4462,
+      "at": [
+        -14,
+        11,
+        20
+      ],
+      "topics": [
+        "furniture"
+      ],
+      "image": "table",
+      "fulfilled": {
+        "at": [
+          -5,
+          15,
+          0
+        ],
+        "by": [
+          "jorge"
+        ]
+      },
+      "project": true,
+      "comments": [
+        {
+          "by": "jorge",
+          "at": [
+            -6,
+            18,
+            0
+          ],
+          "text": "I can build one from shop scraps this week. What height works for the kids?"
+        }
+      ]
+    },
+    {
+      "key": "R4",
+      "type": "request",
+      "by": "farid",
+      "title": "Winter coats, kids sizes 6, 9, 12",
+      "details": "Coats are the piece we still do not have. Sizes 6, 9, and 12. Used is perfect.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Marysville Blvd & South Ave",
+      "lat": 38.6124,
+      "lng": -121.4462,
+      "at": [
+        -6,
+        17,
+        0
+      ],
+      "topics": [
+        "welcome"
+      ],
+      "image": "coats",
+      "project": true,
+      "commentTarget": 3,
+      "comments": [
+        {
+          "by": "lin",
+          "at": [
+            -1,
+            19,
+            10
+          ],
+          "text": "I have a size 9 puffer and a size 6 raincoat. They are clean. I can leave them with Rosa."
+        },
+        {
+          "by": "rosa",
+          "at": [
+            0,
+            8,
+            40
+          ],
+          "text": "Drop them at the fridge porch. I will text Farid."
+        }
+      ]
+    },
+    {
+      "key": "R5",
+      "type": "request",
+      "by": "farid",
+      "title": "Dari speaker for a school meeting Thursday",
+      "details": "The school meeting is Thursday and I do not want to miss what they are asking of us. If you speak Dari, I can meet you there.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Marysville Blvd & South Ave",
+      "lat": 38.6124,
+      "lng": -121.4462,
+      "at": [
+        -4,
+        12,
+        0
+      ],
+      "topics": [
+        "welcome"
+      ],
+      "project": true,
+      "comments": [
+        {
+          "by": "laila",
+          "at": [
+            -3,
+            15,
+            0
+          ],
+          "text": "I can come Thursday. Send me the time and the school name."
+        }
+      ]
+    },
+    {
+      "key": "R6",
+      "type": "request",
+      "by": "sam",
+      "title": "Ride to a job interview in Rancho Cordova",
+      "details": "Interview is Thursday morning in Rancho Cordova. I do not have a car and the bus gets me there late. I can chip in gas.",
+      "spaces": [
+        "midtown"
+      ],
+      "place": "21st & J St",
+      "lat": 38.5766,
+      "lng": -121.4808,
+      "at": [
+        -5,
+        16,
+        0
+      ],
+      "topics": [
+        "rides"
+      ],
+      "fulfilled": {
+        "at": [
+          -3,
+          12,
+          30
+        ],
+        "by": [
+          "tomas"
+        ]
+      },
+      "reactions": 6,
+      "comments": [
+        {
+          "by": "dev",
+          "at": [
+            -5,
+            17,
+            0
+          ],
+          "text": "My car is in the shop or I would take you."
+        },
+        {
+          "by": "tomas",
+          "at": [
+            -5,
+            18,
+            10
+          ],
+          "text": "I can do it. I will be at 21st and J at 8."
+        },
+        {
+          "by": "sam",
+          "at": [
+            -3,
+            13,
+            0
+          ],
+          "text": "Got the job!",
+          "reactions": 15
+        }
+      ]
+    },
+    {
+      "key": "R7",
+      "type": "request",
+      "by": "sam",
+      "title": "Borrow a drill to hang shelves",
+      "details": "Need a drill and a few bits for shelves tonight or tomorrow. I will bring it back to the shed.",
+      "spaces": [
+        "tools"
+      ],
+      "place": "21st & J St",
+      "lat": 38.5766,
+      "lng": -121.4808,
+      "at": [
+        -2,
+        18,
+        0
+      ],
+      "topics": [
+        "tools"
+      ],
+      "image": "drill",
+      "comments": [
+        {
+          "by": "dev",
+          "at": [
+            -1,
+            9,
+            15
+          ],
+          "text": "Grab mine from the shed. It is the blue case on the left. No need to ask Jorge, I already told him."
+        },
+        {
+          "by": "jorge",
+          "at": [
+            0,
+            7,
+            50
+          ],
+          "text": "Blue case is still there. Put it back on the left when you are done."
+        }
+      ]
+    },
+    {
+      "key": "R8",
+      "type": "request",
+      "by": "bea",
+      "title": "Grab bars installed in my bathroom",
+      "details": "The tub is getting harder. If someone can put up two grab bars, the hardware can be mine or yours.",
+      "spaces": [
+        "land-park"
+      ],
+      "place": "5th Ave & Franklin Blvd",
+      "lat": 38.5492,
+      "lng": -121.4718,
+      "at": [
+        -17,
+        10,
+        0
+      ],
+      "topics": [
+        "housing"
+      ],
+      "fulfilled": {
+        "at": [
+          -15,
+          14,
+          0
+        ],
+        "by": [
+          "jorge"
+        ]
+      },
+      "comments": [
+        {
+          "by": "jorge",
+          "at": [
+            -16,
+            11,
+            0
+          ],
+          "text": "I can do it Thursday. I will bring the bars so you do not have to shop."
+        }
+      ]
+    },
+    {
+      "key": "R9",
+      "type": "request",
+      "by": "lin",
+      "title": "2 more drivers for elder check-ins during storms",
+      "details": "When the atmospheric river hits I still need two more drivers to call and visit elders in Land Park. An hour, a phone, and a car.",
+      "spaces": [
+        "ready"
+      ],
+      "place": "Land Park Dr & Sutterville Rd",
+      "lat": 38.5438,
+      "lng": -121.5012,
+      "at": [
+        -4,
+        9,
+        0
+      ],
+      "topics": [
+        "flood"
+      ],
+      "commentTarget": 2
+    },
+    {
+      "key": "R10",
+      "type": "request",
+      "by": "walt",
+      "title": "Generator to borrow for the warming hub",
+      "details": "The church hall on 24th will be the warming hub if the power goes. A quiet generator for two nights would cover the cots and the radio.",
+      "spaces": [
+        "ready"
+      ],
+      "place": "24th St & 4th Ave",
+      "lat": 38.5516,
+      "lng": -121.4774,
+      "at": [
+        -3,
+        11,
+        0
+      ],
+      "topics": [
+        "flood"
+      ],
+      "image": "generator",
+      "comments": [
+        {
+          "by": "marcus",
+          "at": [
+            -2,
+            8,
+            0
+          ],
+          "text": "The farm has a small one. It is loud. Yours if nobody has a quieter one."
+        }
+      ]
+    },
+    {
+      "key": "R11",
+      "type": "request",
+      "by": "marcus",
+      "title": "Working rototiller to borrow for a weekend",
+      "details": "I want to open two more beds before the planting workday. A working tiller for a weekend, I will return it full of gas.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Del Paso Blvd & Grand Ave",
+      "lat": 38.6088,
+      "lng": -121.4526,
+      "at": [
+        -8,
+        15,
+        0
+      ],
+      "topics": [
+        "food"
+      ],
+      "image": "tiller",
+      "comments": [
+        {
+          "by": "jorge",
+          "at": [
+            -7,
+            19,
+            0
+          ],
+          "text": "The library does not have one yet. If the fundraiser proposal passes we could buy one and keep it at the shed."
+        }
+      ]
+    },
+    {
+      "key": "R12",
+      "type": "request",
+      "by": "kai",
+      "title": "Help carrying a couch to a 3rd-floor walkup, Saturday",
+      "details": "A neighbor on P Street is giving a couch to someone on the third floor. We need two more people Saturday morning. No truck, just stairs.",
+      "spaces": [
+        "midtown"
+      ],
+      "place": "16th & P St",
+      "lat": 38.5724,
+      "lng": -121.4886,
+      "at": [
+        -1,
+        14,
+        0
+      ],
+      "topics": [
+        "furniture"
+      ],
+      "image": "couch",
+      "commentTarget": 2
+    },
+    {
+      "key": "R13",
+      "type": "request",
+      "by": "lin",
+      "title": "Box fans for elders without AC (heat wave)",
+      "details": "Checking on elders in the last heat wave. Several apartments have no AC. Box fans, working, any color.",
+      "spaces": [
+        "ready"
+      ],
+      "place": "Land Park Dr & Sutterville Rd",
+      "lat": 38.5438,
+      "lng": -121.5012,
+      "at": [
+        -40,
+        9,
+        0
+      ],
+      "topics": [
+        "heat"
+      ],
+      "fulfilled": {
+        "at": [
+          -38,
+          17,
+          0
+        ],
+        "by": [
+          "walt",
+          "tibet"
+        ]
+      },
+      "comments": [
+        {
+          "by": "walt",
+          "at": [
+            -40,
+            11,
+            0
+          ],
+          "text": "I have six box fans in the garage from the old shop."
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -40,
+            12,
+            30
+          ],
+          "text": "I can bring two more and help Walt drop them off."
+        }
+      ]
+    },
+    {
+      "key": "R14",
+      "type": "request",
+      "by": "nia",
+      "title": "Crib or pack-n-play for a client due next week",
+      "details": "A client is due next week and does not have a safe place for the baby to sleep. Crib or pack-n-play, I can pick up.",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": "35th St & 5th Ave",
+      "lat": 38.5476,
+      "lng": -121.4618,
+      "at": [
+        -2,
+        13,
+        0
+      ],
+      "topics": [
+        "childcare"
+      ],
+      "image": "crib",
+      "comments": [
+        {
+          "by": "jorge",
+          "at": [
+            -1,
+            20,
+            0
+          ],
+          "text": "I think there is a pack-n-play in the shed. Checking tonight."
+        }
+      ]
+    },
+    {
+      "key": "R15",
+      "type": "request",
+      "by": "rosa",
+      "title": "Rides to dialysis, Tue/Thu mornings, for my neighbor",
+      "details": "My neighbor on Broadway has dialysis Tuesday and Thursday mornings. One ride a week from anyone with a car would cover the gap the medical van misses.",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": "Broadway & 33rd St",
+      "lat": 38.5564,
+      "lng": -121.4648,
+      "at": [
+        -6,
+        8,
+        0
+      ],
+      "topics": [
+        "rides"
+      ],
+      "image": "rides",
+      "comments": [
+        {
+          "by": "imani",
+          "at": [
+            -1,
+            18,
+            0
+          ],
+          "text": "I can take Tuesdays. I am already headed that direction for work."
+        },
+        {
+          "by": "peter",
+          "at": [
+            0,
+            7,
+            20
+          ],
+          "text": "Thursdays work for me through the end of the month."
+        }
+      ]
+    },
+    {
+      "key": "R16",
+      "type": "request",
+      "by": "aisha",
+      "title": "Kitchen faucet leaking, anyone handy?",
+      "details": "The kitchen faucet started dripping hard this morning. I cannot get the water to stop all the way. If you are handy and free today, I can make tea.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Rio Linda Blvd & Grand Ave",
+      "lat": 38.6362,
+      "lng": -121.4434,
+      "at": null,
+      "topics": [
+        "housing"
+      ],
+      "hoursAgo": 3,
+      "image": "faucet"
+    },
+    {
+      "key": "R17",
+      "type": "request",
+      "by": "bea",
+      "title": "Sandbags along the garage before Friday's rain",
+      "details": "The last storm came over the curb on Franklin and into the garage. I cannot lift the bags. If two people can fill them and stack them along the garage door, I will have coffee on.",
+      "spaces": [
+        "land-park",
+        "ready"
+      ],
+      "place": "5th Ave & Franklin Blvd",
+      "lat": 38.5492,
+      "lng": -121.4718,
+      "at": null,
+      "topics": [
+        "flood"
+      ],
+      "hoursAgo": 4,
+      "image": "sandbags",
+      "reactions": 3,
+      "comments": [
+        {
+          "by": "walt",
+          "at": [
+            0,
+            9,
+            10
+          ],
+          "text": "The filled bags at the farm are by the orange cone. I can set ten aside with your name on them."
+        }
+      ]
+    },
+    {
+      "key": "R18",
+      "type": "request",
+      "by": "priya",
+      "title": "Sump pump or wet vac, the garage took water again",
+      "details": "Four inches in the garage after the last storm, right under the water heater. I need a pump or a wet vac for a day so it does not sit there. I can pick it up in Land Park.",
+      "spaces": [
+        "land-park",
+        "ready"
+      ],
+      "place": "Riverside Blvd",
+      "lat": 38.5412,
+      "lng": -121.5088,
+      "at": null,
+      "topics": [
+        "flood"
+      ],
+      "hoursAgo": 9,
+      "image": "pump",
+      "comments": [
+        {
+          "by": "jorge",
+          "at": [
+            0,
+            8,
+            15
+          ],
+          "text": "The shed has a wet vac. Yellow shop vac, bottom shelf. Bring it back emptied."
+        }
+      ]
+    },
+    {
+      "key": "O1",
+      "type": "offer",
+      "by": "tibet",
+      "title": "24 ft ladder + pole fruit picker, borrow anytime",
+      "details": "Both live in my garage in Midtown. Borrow them whenever, including for gleaning. Bring the ladder back with all the parts.",
+      "spaces": [
+        "midtown",
+        "tools"
+      ],
+      "place": "23rd & N St",
+      "lat": 38.5738,
+      "lng": -121.4786,
+      "at": [
+        -25,
+        10,
+        0
+      ],
+      "topics": [
+        "tools",
+        "gleaning"
+      ],
+      "image": "ladder",
+      "reactions": 5,
+      "comments": [
+        {
+          "by": "hannah",
+          "at": [
+            -1,
+            16,
+            0
+          ],
+          "text": "Ladder is back on your porch. Thank you, the persimmons would still be in the tree."
+        }
+      ]
+    },
+    {
+      "key": "O2",
+      "type": "offer",
+      "by": "grace",
+      "title": "Day-old bread every Friday, 2–4pm",
+      "details": "The bakery lets me take what is left. Fridays 2 to 4 on Capitol. Farid, there is a loaf with your name on it every week now.",
+      "spaces": [
+        "midtown"
+      ],
+      "place": "19th & Capitol Ave",
+      "lat": 38.5782,
+      "lng": -121.4834,
+      "at": [
+        -28,
+        14,
+        0
+      ],
+      "topics": [
+        "food"
+      ],
+      "image": "bread",
+      "project": true,
+      "reactions": 7
+    },
+    {
+      "key": "O3",
+      "type": "offer",
+      "by": "marcus",
+      "title": "Free winter veg starts: kale, chard, garlic, 200+ plants",
+      "details": "Two hundred starts on the farm table. Kale, chard, and garlic. Come take a flat. They were gone by the middle of the month.",
+      "spaces": [
+        "del-paso",
+        "gleaning"
+      ],
+      "place": "Del Paso Blvd & Grand Ave",
+      "lat": 38.6088,
+      "lng": -121.4526,
+      "at": [
+        -30,
+        9,
+        0
+      ],
+      "topics": [
+        "food",
+        "seeds"
+      ],
+      "fulfilled": {
+        "at": [
+          -15,
+          12,
+          0
+        ],
+        "by": [
+          "rosa",
+          "bea",
+          "lin",
+          "ellie",
+          "grace",
+          "hannah",
+          "pa",
+          "ramon"
+        ]
+      },
+      "image": "farm",
+      "reactions": 9
+    },
+    {
+      "key": "O4",
+      "type": "offer",
+      "by": "ellie",
+      "title": "Meyer lemon marmalade, 24 jars",
+      "details": "Twenty-four jars from the Curtis Park fruit and the canning class. First come, bring a story if you want a second jar.",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": "3rd Ave & 36th St",
+      "lat": 38.5506,
+      "lng": -121.4602,
+      "at": [
+        -10,
+        15,
+        0
+      ],
+      "topics": [
+        "food",
+        "gleaning"
+      ],
+      "fulfilled": {
+        "at": [
+          -6,
+          11,
+          0
+        ],
+        "by": [
+          "nia",
+          "aisha",
+          "bea"
+        ]
+      },
+      "image": "marmalade",
+      "reactions": 8
+    },
+    {
+      "key": "O5",
+      "type": "offer",
+      "by": "dev",
+      "title": "Free bike tune-ups Sundays",
+      "details": "Sundays at 20th and K, bring the bike. Flats, brakes, and gears. Parts at cost if I have them, otherwise we make a list.",
+      "spaces": [
+        "midtown"
+      ],
+      "place": "20th & K St",
+      "lat": 38.5774,
+      "lng": -121.4822,
+      "at": [
+        -20,
+        11,
+        0
+      ],
+      "topics": [
+        "tools"
+      ],
+      "image": "bikes"
+    },
+    {
+      "key": "O6",
+      "type": "offer",
+      "by": "sam",
+      "title": "Free algebra and calculus tutoring, Tuesdays",
+      "details": "Tuesdays after 4 at the library or a cafe. Algebra through calc. Parents, your kid can come. I got help when I needed it.",
+      "spaces": [
+        "midtown"
+      ],
+      "place": "21st & J St",
+      "lat": 38.5766,
+      "lng": -121.4808,
+      "at": [
+        -15,
+        16,
+        0
+      ],
+      "topics": [
+        "welcome"
+      ],
+      "commentTarget": 3
+    },
+    {
+      "key": "O7",
+      "type": "offer",
+      "by": "farid",
+      "title": "Brakes and oil changes, free, bring parts",
+      "details": "I was a mechanic before we moved. Brakes and oil changes, free, you bring the parts. It feels good to be useful here.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Marysville Blvd & South Ave",
+      "lat": 38.6124,
+      "lng": -121.4462,
+      "at": [
+        -3,
+        18,
+        0
+      ],
+      "topics": [
+        "welcome"
+      ],
+      "image": "brakes"
+    },
+    {
+      "key": "O8",
+      "type": "offer",
+      "by": "tomas",
+      "title": "Truck + muscle for moves, most Saturdays",
+      "details": "Truck is free most Saturdays. Moves inside the city, no dump runs. Message me the night before.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Norwood Ave",
+      "lat": 38.621,
+      "lng": -121.451,
+      "at": [
+        -18,
+        8,
+        0
+      ],
+      "topics": [
+        "rides"
+      ],
+      "image": "truck"
+    },
+    {
+      "key": "O9",
+      "type": "offer",
+      "by": "kai",
+      "title": "Help with rental assistance applications",
+      "details": "I know the rental assistance forms and which office actually answers. Bring your lease and a recent bill. English or Spanish.",
+      "spaces": [
+        "midtown"
+      ],
+      "place": "16th & P St",
+      "lat": 38.5724,
+      "lng": -121.4886,
+      "at": [
+        -12,
+        13,
+        0
+      ],
+      "topics": [
+        "housing"
+      ]
+    },
+    {
+      "key": "O10",
+      "type": "offer",
+      "by": "nia",
+      "title": "Meal train for new parents",
+      "details": "If you just had a baby, or your neighbor did, I will set up a meal train. Oak Park and nearby. Tell me dietary needs.",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": "35th St & 5th Ave",
+      "lat": 38.5476,
+      "lng": -121.4618,
+      "at": [
+        -7,
+        10,
+        0
+      ],
+      "topics": [
+        "childcare",
+        "food"
+      ],
+      "image": "meals"
+    },
+    {
+      "key": "O11",
+      "type": "offer",
+      "by": "walt",
+      "title": "6 box fans",
+      "details": "Six working box fans from the old shop. They all went to Lin's elder list during the heat wave.",
+      "spaces": [
+        "ready"
+      ],
+      "place": "24th St & 4th Ave",
+      "lat": 38.5516,
+      "lng": -121.4774,
+      "at": [
+        -40,
+        11,
+        30
+      ],
+      "topics": [
+        "heat"
+      ],
+      "fulfilled": {
+        "at": [
+          -38,
+          17,
+          0
+        ],
+        "by": [
+          "lin"
+        ]
+      }
+    },
+    {
+      "key": "O12",
+      "type": "offer",
+      "by": "ellie",
+      "title": "Canning class, bring 6 jars",
+      "details": "Next session uses the lemons if you still have them. Bring 6 jars. The water-bath kit is in the tool shed.",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": "3rd Ave & 36th St",
+      "lat": 38.5506,
+      "lng": -121.4602,
+      "at": [
+        -9,
+        12,
+        0
+      ],
+      "topics": [
+        "food"
+      ],
+      "image": "canning"
+    },
+    {
+      "key": "O13",
+      "type": "offer",
+      "by": "walt",
+      "title": "Ham radio license study group",
+      "details": "Technician license study group, a few evenings. Useful when the cell network is down in a storm. No equipment required to start.",
+      "spaces": [
+        "ready"
+      ],
+      "place": "24th St & 4th Ave",
+      "lat": 38.5516,
+      "lng": -121.4774,
+      "at": [
+        -5,
+        19,
+        0
+      ],
+      "topics": [
+        "flood"
+      ],
+      "image": "radio"
+    },
+    {
+      "key": "O14",
+      "type": "offer",
+      "by": "priya",
+      "title": "Box of 40 N95 masks for smoke days",
+      "details": "Forty N95s from a clinic surplus. Take a few for your household before the next smoke day. I am keeping ten for the elder visits.",
+      "spaces": [
+        "ready"
+      ],
+      "place": "Riverside Blvd",
+      "lat": 38.5412,
+      "lng": -121.5088,
+      "at": [
+        -2,
+        8,
+        0
+      ],
+      "topics": [
+        "smoke"
+      ],
+      "image": "masks"
+    },
+    {
+      "key": "O15",
+      "type": "offer",
+      "by": "walt",
+      "title": "Filled sandbags at the farm, come take them",
+      "details": "Twenty bags are filled and stacked by the orange cone at the Del Paso farm. Take them before Friday's rain. If you cannot lift them, say so and we will find a truck.",
+      "spaces": [
+        "ready",
+        "del-paso"
+      ],
+      "place": "Del Paso Blvd & Grand Ave",
+      "lat": 38.6088,
+      "lng": -121.4526,
+      "at": null,
+      "topics": [
+        "flood"
+      ],
+      "hoursAgo": 1,
+      "image": "sandbagpile",
+      "reactions": 5,
+      "comments": [
+        {
+          "by": "tomas",
+          "at": [
+            0,
+            10,
+            20
+          ],
+          "text": "I can run a load to Land Park this afternoon. Bea, I will start with your garage."
+        }
+      ]
+    },
+    {
+      "key": "O16",
+      "type": "offer",
+      "by": "tomas",
+      "title": "Saturday truck for sandbags and furniture off the floor",
+      "details": "Before the river comes up I can haul a load of sandbags or move a couch and a mattress upstairs. Del Paso and Land Park. Message me Friday night with the address.",
+      "spaces": [
+        "del-paso",
+        "ready"
+      ],
+      "place": "Norwood Ave",
+      "lat": 38.621,
+      "lng": -121.451,
+      "at": null,
+      "topics": [
+        "flood"
+      ],
+      "hoursAgo": 14,
+      "image": "tarps",
+      "comments": [
+        {
+          "by": "aisha",
+          "at": [
+            0,
+            8,
+            5
+          ],
+          "text": "Our block in Del Paso floods at the corner. Can you take two mattresses up Saturday?"
+        }
+      ]
+    },
+    {
+      "key": "F1",
+      "type": "resource",
+      "by": "bea",
+      "title": "Meyer lemon + Fuyu persimmon trees, glean anytime",
+      "details": "Two trees in the yard near 5th and Franklin. I cannot climb anymore. Take what you need, just leave me a dozen.",
+      "spaces": [
+        "land-park",
+        "gleaning"
+      ],
+      "place": "5th Ave & Franklin Blvd",
+      "lat": 38.5492,
+      "lng": -121.4718,
+      "at": [
+        -21,
+        9,
+        0
+      ],
+      "topics": [
+        "gleaning"
+      ],
+      "image": "lemons",
+      "isPublic": true,
+      "reactions": 11,
+      "comments": [
+        {
+          "by": "bea",
+          "at": [
+            -21,
+            9,
+            5
+          ],
+          "text": "I cannot climb anymore. Take what you need, just leave me a dozen."
+        },
+        {
+          "by": "hannah",
+          "at": [
+            -20,
+            8,
+            30
+          ],
+          "text": "Bea, these are gorgeous. Can the crew come through one morning? I will message you."
+        }
+      ]
+    },
+    {
+      "key": "F2",
+      "type": "resource",
+      "by": "hannah",
+      "title": "Loquat tree on the public strip",
+      "details": "Loquats on the parking strip at 22nd and P. Public side of the sidewalk, ripe now, bring a bag.",
+      "spaces": [
+        "midtown",
+        "gleaning"
+      ],
+      "place": "22nd & P St",
+      "lat": 38.5712,
+      "lng": -121.4796,
+      "at": [
+        -16,
+        10,
+        0
+      ],
+      "topics": [
+        "gleaning"
+      ]
+    },
+    {
+      "key": "F3",
+      "type": "resource",
+      "by": "hannah",
+      "title": "Two fig trees along the alley",
+      "details": "Two fig trees on the alley side of 4th and 38th. The owner said the crew is welcome. They ripen in a wave.",
+      "spaces": [
+        "oak-park",
+        "gleaning"
+      ],
+      "place": "4th Ave & 38th St",
+      "lat": 38.5494,
+      "lng": -121.4578,
+      "at": [
+        -15,
+        11,
+        0
+      ],
+      "topics": [
+        "gleaning"
+      ]
+    },
+    {
+      "key": "F4",
+      "type": "resource",
+      "by": "marcus",
+      "title": "Pomegranate hedge, ask the owner first",
+      "details": "A hedge of pomegranates at Grand and Clay. The fruit hangs over the sidewalk. Knock and ask, they have said yes before.",
+      "spaces": [
+        "del-paso",
+        "gleaning"
+      ],
+      "place": "Grand Ave & Clay St",
+      "lat": 38.6042,
+      "lng": -121.4388,
+      "at": [
+        -12,
+        9,
+        0
+      ],
+      "topics": [
+        "gleaning"
+      ]
+    },
+    {
+      "key": "F5",
+      "type": "resource",
+      "by": "lin",
+      "title": "Navel orange trees, ripe Dec–Feb",
+      "details": "Navel oranges in the front yard, ripe December through February. Take a bag. Please do not climb the fence.",
+      "spaces": [
+        "land-park",
+        "gleaning"
+      ],
+      "place": "Riverside Blvd & Vallejo Way",
+      "lat": 38.5388,
+      "lng": -121.5064,
+      "at": [
+        -9,
+        10,
+        0
+      ],
+      "topics": [
+        "gleaning"
+      ]
+    },
+    {
+      "key": "F6",
+      "type": "resource",
+      "by": "rosa",
+      "title": "Oak Park community fridge, open 24/7",
+      "details": "The fridge on the 3rd Ave porch is open all night. Take what you need, leave what you can. It is full of Hannah's lemons this week.",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": "3rd Ave & 34th St",
+      "lat": 38.5512,
+      "lng": -121.4632,
+      "at": [
+        -40,
+        12,
+        0
+      ],
+      "topics": [
+        "food"
+      ],
+      "image": "fridge",
+      "isPublic": true,
+      "reactions": 8
+    },
+    {
+      "key": "F7",
+      "type": "resource",
+      "by": "ellie",
+      "title": "Little Free Pantry",
+      "details": "Dry goods cupboard next to the canning porch. Pasta, rice, and jars when we have them.",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": "3rd Ave & 36th St",
+      "lat": 38.5506,
+      "lng": -121.4602,
+      "at": [
+        -30,
+        12,
+        0
+      ],
+      "topics": [
+        "food"
+      ],
+      "image": "pantry"
+    },
+    {
+      "key": "F8",
+      "type": "resource",
+      "by": "marcus",
+      "title": "Del Paso urban farm, free produce Saturdays",
+      "details": "The half acre is open Saturdays for anyone to take produce. Bring a bag. The sandbag pile will be here too.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Del Paso Blvd & Grand Ave",
+      "lat": 38.6088,
+      "lng": -121.4526,
+      "at": [
+        -28,
+        8,
+        0
+      ],
+      "topics": [
+        "food"
+      ],
+      "image": "farm"
+    },
+    {
+      "key": "F9",
+      "type": "resource",
+      "by": "jorge",
+      "title": "Oak Park tool shed (hours, how to borrow)",
+      "details": "Garage shed at 5th and 40th. Borrowing works like a library: write your name, the tool, and when it comes back. Open most evenings.",
+      "spaces": [
+        "tools"
+      ],
+      "place": "5th Ave & 40th St",
+      "lat": 38.5472,
+      "lng": -121.4554,
+      "at": [
+        -16,
+        17,
+        0
+      ],
+      "topics": [
+        "tools"
+      ],
+      "image": "tools"
+    },
+    {
+      "key": "F10",
+      "type": "resource",
+      "by": "jorge",
+      "title": "Pressure washer",
+      "details": "Pressure washer lives at the Oak Park shed. Good for sidewalks and not for paint. Back in two days.",
+      "spaces": [
+        "tools"
+      ],
+      "place": "5th Ave & 40th St",
+      "lat": 38.5472,
+      "lng": -121.4554,
+      "at": [
+        -16,
+        17,
+        10
+      ],
+      "topics": [
+        "tools"
+      ]
+    },
+    {
+      "key": "F11",
+      "type": "resource",
+      "by": "jorge",
+      "title": "Wet tile saw",
+      "details": "Wet tile saw at the shed. Messy, so use it in the driveway. Ask Jorge before you take it off the stand.",
+      "spaces": [
+        "tools"
+      ],
+      "place": "5th Ave & 40th St",
+      "lat": 38.5472,
+      "lng": -121.4554,
+      "at": [
+        -16,
+        17,
+        20
+      ],
+      "topics": [
+        "tools"
+      ]
+    },
+    {
+      "key": "F12",
+      "type": "resource",
+      "by": "jorge",
+      "title": "Post-hole digger + 2 shovels",
+      "details": "Post-hole digger and two shovels. The digger is heavier than it looks. Bring it back cleaned.",
+      "spaces": [
+        "tools"
+      ],
+      "place": "5th Ave & 40th St",
+      "lat": 38.5472,
+      "lng": -121.4554,
+      "at": [
+        -16,
+        17,
+        30
+      ],
+      "topics": [
+        "tools"
+      ]
+    },
+    {
+      "key": "F13",
+      "type": "resource",
+      "by": "ellie",
+      "title": "Water-bath canning kit",
+      "details": "Big pot, rack, and jar lifter. Used for the lemon class. It lives at the shed between classes.",
+      "spaces": [
+        "tools"
+      ],
+      "place": "5th Ave & 40th St",
+      "lat": 38.5472,
+      "lng": -121.4554,
+      "at": [
+        -9,
+        12,
+        10
+      ],
+      "topics": [
+        "tools",
+        "food"
+      ]
+    },
+    {
+      "key": "F14",
+      "type": "resource",
+      "by": "walt",
+      "title": "Sandbag pickup, free, bring a shovel",
+      "details": "Sand is piled at the Del Paso farm for anyone filling bags before the storm. Bring a shovel and a way to haul them.",
+      "spaces": [
+        "ready"
+      ],
+      "place": "Del Paso Blvd & Grand Ave",
+      "lat": 38.6088,
+      "lng": -121.4526,
+      "at": [
+        -6,
+        9,
+        0
+      ],
+      "topics": [
+        "flood"
+      ]
+    },
+    {
+      "key": "E1",
+      "type": "event",
+      "by": "hannah",
+      "title": "Curtis Park Gleaning Day",
+      "details": "Meet at Bea's lemon and persimmon trees. Bring bags, gloves, and a ladder if you have one. Half the fruit goes to the Oak Park fridge.",
+      "spaces": [
+        "gleaning",
+        "land-park"
+      ],
+      "place": "5th Ave & Franklin Blvd",
+      "lat": 38.5492,
+      "lng": -121.4718,
+      "at": [
+        -18,
+        15,
+        0
+      ],
+      "topics": [
+        "gleaning"
+      ],
+      "going": [
+        "tibet",
+        "grace",
+        "ellie",
+        "hannah",
+        "rosa",
+        "bea",
+        "lin"
+      ],
+      "start": [
+        -12,
+        9,
+        0
+      ],
+      "end": [
+        -12,
+        11,
+        0
+      ]
+    },
+    {
+      "key": "E2",
+      "type": "event",
+      "by": "dev",
+      "title": "Fix-it Clinic: bikes and small appliances",
+      "details": "Bikes and small appliances at the Oak Park shed. Jorge is on appliances, Dev is on bikes. Bring the thing and the story of what it used to do.",
+      "spaces": [
+        "midtown",
+        "tools"
+      ],
+      "place": "5th Ave & 40th St",
+      "lat": 38.5472,
+      "lng": -121.4554,
+      "at": [
+        -8,
+        12,
+        0
+      ],
+      "topics": [
+        "tools"
+      ],
+      "going": [
+        "dev",
+        "jorge",
+        "sam",
+        "maya"
+      ],
+      "inviteTibet": true,
+      "start": [
+        2,
+        13,
+        0
+      ],
+      "end": [
+        2,
+        16,
+        0
+      ]
+    },
+    {
+      "key": "E3",
+      "type": "event",
+      "by": "walt",
+      "title": "Sandbag Day at the Del Paso Heights farm",
+      "details": "Fill bags for households that flood first. 9 to noon at the urban farm. Shovels on site, gloves if you have them.",
+      "spaces": [
+        "ready",
+        "del-paso"
+      ],
+      "place": "Del Paso Blvd & Grand Ave",
+      "lat": 38.6088,
+      "lng": -121.4526,
+      "at": [
+        -12,
+        10,
+        0
+      ],
+      "topics": [
+        "flood"
+      ],
+      "going": [
+        "tibet",
+        "walt",
+        "lin",
+        "marcus",
+        "tomas",
+        "rosa",
+        "priya",
+        "kai",
+        "pa"
+      ],
+      "interested": [
+        "hannah",
+        "jorge"
+      ],
+      "inviteTibet": true,
+      "comments": [
+        {
+          "by": "walt",
+          "at": [
+            -1,
+            8,
+            0
+          ],
+          "text": "Sandbag Day is coming up. Tibet, you still in for the morning shift?",
+          "mention": "tibet"
+        }
+      ],
+      "start": [
+        4,
+        9,
+        0
+      ],
+      "end": [
+        4,
+        12,
+        0
+      ]
+    },
+    {
+      "key": "E4",
+      "type": "event",
+      "by": "rosa",
+      "title": "Oak Park Potluck & Skill Swap",
+      "details": "Sunday evening at the park picnic tables. Bring a dish if you can and one thing you know how to do. Folding tables are spoken for.",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": "Broadway & 33rd St",
+      "lat": 38.5564,
+      "lng": -121.4648,
+      "at": [
+        -10,
+        11,
+        0
+      ],
+      "topics": [
+        "welcome",
+        "food"
+      ],
+      "goingCount": 11,
+      "going": [
+        "tibet",
+        "rosa",
+        "ellie",
+        "nia",
+        "jorge",
+        "hannah"
+      ],
+      "inviteTibet": true,
+      "start": [
+        6,
+        17,
+        0
+      ],
+      "end": [
+        6,
+        20,
+        0
+      ]
+    },
+    {
+      "key": "E5",
+      "type": "event",
+      "by": "priya",
+      "title": "Wildfire smoke & first aid class",
+      "details": "How to seal a room, when to leave, and the first aid that shows up on smoke days. Library meeting room.",
+      "spaces": [
+        "ready",
+        "land-park"
+      ],
+      "place": "Riverside Blvd",
+      "lat": 38.5412,
+      "lng": -121.5088,
+      "at": [
+        -7,
+        18,
+        0
+      ],
+      "topics": [
+        "smoke"
+      ],
+      "going": [
+        "priya",
+        "lin",
+        "walt",
+        "bea",
+        "rosa",
+        "kai"
+      ],
+      "inviteTibet": true,
+      "start": [
+        9,
+        18,
+        0
+      ],
+      "end": [
+        9,
+        20,
+        0
+      ]
+    },
+    {
+      "key": "E6",
+      "type": "event",
+      "by": "marcus",
+      "title": "Winter Planting Workday",
+      "details": "Beds, starts, and garlic at the Del Paso farm. Beginners welcome. We stop at noon and eat whatever is ready.",
+      "spaces": [
+        "del-paso",
+        "gleaning"
+      ],
+      "place": "Del Paso Blvd & Grand Ave",
+      "lat": 38.6088,
+      "lng": -121.4526,
+      "at": [
+        -8,
+        9,
+        0
+      ],
+      "topics": [
+        "food"
+      ],
+      "going": [
+        "marcus",
+        "pa",
+        "ramon",
+        "hannah",
+        "lin"
+      ],
+      "inviteTibet": true,
+      "start": [
+        11,
+        8,
+        0
+      ],
+      "end": [
+        11,
+        12,
+        0
+      ]
+    },
+    {
+      "key": "D1",
+      "type": "discussion",
+      "by": "rosa",
+      "title": "Welcome! Introduce yourself here",
+      "details": "Say where you live and one thing you could share. This thread stays at the top so new people can find us.",
+      "spaces": [],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -45,
+        10,
+        0
+      ],
+      "topics": [
+        "welcome"
+      ],
+      "pin": true,
+      "commentTarget": 16,
+      "comments": [
+        {
+          "by": "hannah",
+          "at": [
+            -44,
+            11,
+            0
+          ],
+          "text": "Hannah, East Sac and Midtown. I glean fruit that would otherwise hit the sidewalk."
+        },
+        {
+          "by": "marcus",
+          "at": [
+            -44,
+            12,
+            0
+          ],
+          "text": "Marcus, Del Paso Heights. Seedlings if you have a pot."
+        }
+      ]
+    },
+    {
+      "key": "D2",
+      "type": "discussion",
+      "by": "jorge",
+      "title": "Should we start a tool library?",
+      "details": "My garage is already half a library. If we name it and write things down, more people can borrow without asking me first. What would you want on the shelf?",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -22,
+        19,
+        0
+      ],
+      "topics": [
+        "tools"
+      ],
+      "commentTarget": 14
+    },
+    {
+      "key": "D3",
+      "type": "discussion",
+      "by": "hannah",
+      "title": "Gleaning Day recap: 140 lbs!",
+      "details": "140 pounds of lemons and persimmons off Bea's trees. Half went to the Oak Park fridge, 30 pounds to Ellie's canning class. Thanks Tibet for the ladder.",
+      "spaces": [
+        "gleaning"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -11,
+        16,
+        0
+      ],
+      "topics": [
+        "gleaning"
+      ],
+      "image": "crates",
+      "reactions": 12,
+      "mention": "tibet",
+      "commentTarget": 9,
+      "comments": [
+        {
+          "by": "rosa",
+          "at": [
+            -11,
+            17,
+            0
+          ],
+          "text": "The fridge was full by evening. People kept coming back with bags."
+        },
+        {
+          "by": "bea",
+          "at": [
+            -11,
+            18,
+            0
+          ],
+          "text": "You left me my dozen, and the trees look relieved. Come back for the last persimmons."
+        }
+      ]
+    },
+    {
+      "key": "D4",
+      "type": "discussion",
+      "by": "walt",
+      "title": "What's in your outage kit?",
+      "details": "Radio, water, meds, a way to charge a phone. What do you actually have, and what do you wish a neighbor had?",
+      "spaces": [
+        "ready"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -9,
+        20,
+        0
+      ],
+      "topics": [
+        "flood"
+      ],
+      "commentTarget": 11
+    },
+    {
+      "key": "D5",
+      "type": "discussion",
+      "by": "kai",
+      "title": "Rent hikes on P Street, tenants meeting?",
+      "details": "Several buildings on P got notices the same week. If you rent nearby and want a meeting, say so here and I will find a room.",
+      "spaces": [
+        "midtown"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -4,
+        18,
+        0
+      ],
+      "topics": [
+        "housing"
+      ],
+      "commentTarget": 6
+    },
+    {
+      "key": "D6",
+      "type": "discussion",
+      "by": "hannah",
+      "title": "What's in season right now?",
+      "details": "Loquats are ready. Persimmons need another week in the shade. What are you seeing in your alley?",
+      "spaces": [
+        "gleaning"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -1,
+        9,
+        0
+      ],
+      "topics": [
+        "gleaning"
+      ],
+      "comments": [
+        {
+          "by": "bea",
+          "at": [
+            -1,
+            10,
+            0
+          ],
+          "text": "Persimmons on my tree are still sharp. Give them a week."
+        },
+        {
+          "by": "ramon",
+          "at": [
+            -1,
+            14,
+            0
+          ],
+          "text": "Los limones de Grand ya están buenos. Pueden pasar."
+        },
+        {
+          "by": "grace",
+          "at": [
+            0,
+            8,
+            10
+          ],
+          "text": "The loquat on 22nd dropped fruit on the sidewalk this morning. It is time."
+        },
+        {
+          "by": "ellie",
+          "at": [
+            0,
+            9,
+            5
+          ],
+          "text": "I will take a bag of loquats if someone is already going."
+        }
+      ]
+    },
+    {
+      "key": "P1",
+      "type": "proposal",
+      "by": "rosa",
+      "title": "How should we spend the $2,400 from the fall fundraiser?",
+      "details": "The block party raised $2,400. One choice. Voting closes in a few days. We need 20% of the network for quorum.",
+      "spaces": [
+        "ready"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -6,
+        12,
+        0
+      ],
+      "topics": [
+        "heat"
+      ],
+      "voting": true,
+      "closes": [
+        5,
+        18,
+        0
+      ],
+      "quorum": 20,
+      "options": [
+        [
+          "HEPA air purifiers for elders",
+          "🌬️"
+        ],
+        [
+          "Emergency radios + battery banks",
+          "📻"
+        ],
+        [
+          "Expand the tool library",
+          "🔧"
+        ]
+      ],
+      "votes": [
+        6,
+        4,
+        3
+      ]
+    },
+    {
+      "key": "P2",
+      "type": "proposal",
+      "by": "rosa",
+      "title": "Move the Oak Park potluck to Sundays?",
+      "details": "Weeknights were leaving out the night-shift folks. Sundays 5 to 8?",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -20,
+        11,
+        0
+      ],
+      "topics": [
+        "welcome"
+      ],
+      "completed": true,
+      "closes": [
+        -12,
+        18,
+        0
+      ],
+      "options": [
+        [
+          "Yes, Sundays",
+          "✅"
+        ],
+        [
+          "No, keep weeknights",
+          "❌"
+        ]
+      ],
+      "votes": [
+        9,
+        1
+      ]
+    },
+    {
+      "key": "J1",
+      "type": "project",
+      "by": "kai",
+      "title": "Welcome Home kit for Farid's family",
+      "details": "A few of us are pulling together beds, a table, coats, and a Dari speaker for Farid, his wife, and their three kids. Add yourself if you can carry something.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Marysville Blvd & South Ave",
+      "lat": 38.6124,
+      "lng": -121.4462,
+      "at": [
+        -14,
+        10,
+        0
+      ],
+      "topics": [
+        "welcome",
+        "housing"
+      ],
+      "members": [
+        "kai",
+        "tomas",
+        "grace",
+        "rosa",
+        "jorge",
+        "farid"
+      ]
+    },
+    {
+      "key": "S1",
+      "type": "request",
+      "by": "maribel",
+      "title": "Busco cuna para mi bebé, nace en diciembre",
+      "details": "Mi bebé nace en diciembre y no tenemos cuna. Si alguien tiene una, o un corralito, la paso a buscar. Gracias.",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": "35th St & 5th Ave",
+      "lat": 38.5476,
+      "lng": -121.4618,
+      "at": [
+        -3,
+        19,
+        0
+      ],
+      "topics": [
+        "childcare"
+      ],
+      "image": "cuna",
+      "comments": [
+        {
+          "by": "jorge",
+          "at": [
+            -2,
+            21,
+            0
+          ],
+          "text": "Creo que hay un corralito en el cobertizo. Lo reviso y te escribo."
+        }
+      ]
+    },
+    {
+      "key": "S2",
+      "type": "offer",
+      "by": "luz",
+      "title": "Clases de inglés gratis los sábados / Free English classes Saturdays",
+      "details": "Sábados por la mañana en Oak Park, inglés práctico: escuela, clínica, trabajo. English for school, clinic, and work. Free.",
+      "spaces": [
+        "oak-park"
+      ],
+      "place": "Broadway & 33rd St",
+      "lat": 38.5564,
+      "lng": -121.4648,
+      "at": [
+        -8,
+        9,
+        0
+      ],
+      "topics": [
+        "welcome"
+      ],
+      "image": "english"
+    },
+    {
+      "key": "S3",
+      "type": "event",
+      "by": "tomas",
+      "title": "Taller: cómo prepararse para las tormentas (en español)",
+      "details": "Una hora en español: agua, documentos, a quién llamar, cómo llenar sacos. Traigan a quien necesite oírlo.",
+      "spaces": [
+        "del-paso",
+        "ready"
+      ],
+      "place": "Del Paso Blvd & Grand Ave",
+      "lat": 38.6088,
+      "lng": -121.4526,
+      "at": [
+        -5,
+        12,
+        0
+      ],
+      "topics": [
+        "flood"
+      ],
+      "goingCount": 12,
+      "going": [
+        "tomas",
+        "rosa",
+        "maribel",
+        "graciela",
+        "ramon",
+        "yesenia"
+      ],
+      "start": [
+        7,
+        10,
+        0
+      ],
+      "end": [
+        7,
+        11,
+        30
+      ]
+    },
+    {
+      "key": "S4",
+      "type": "discussion",
+      "by": "graciela",
+      "title": "¿Alguien sabe de ayuda para pagar la renta?",
+      "details": "Nos subieron la renta y no sé por dónde empezar. ¿Alguien ha pedido ayuda y le contestaron?",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -4,
+        20,
+        0
+      ],
+      "topics": [
+        "housing"
+      ],
+      "commentTarget": 5,
+      "comments": [
+        {
+          "by": "kai",
+          "at": [
+            -3,
+            9,
+            0
+          ],
+          "text": "Sí. Trae el contrato y un recibo. Te ayudo con la solicitud en español o en inglés, the rental assistance office on Power Inn is the one that actually answers. Puedo verte esta semana."
+        }
+      ]
+    },
+    {
+      "key": "S5",
+      "type": "resource",
+      "by": "ramon",
+      "title": "Árbol de limones, pueden tomar lo que necesiten",
+      "details": "Limones en Grand y Altos. Están buenos. Toquen la puerta, o pasen si la reja está abierta. Dejen unos cuantos.",
+      "spaces": [
+        "del-paso",
+        "gleaning"
+      ],
+      "place": "Grand Ave & Altos Ave",
+      "lat": 38.6004,
+      "lng": -121.4326,
+      "at": [
+        -6,
+        8,
+        0
+      ],
+      "topics": [
+        "gleaning"
+      ]
+    },
+    {
+      "key": "X1",
+      "type": "offer",
+      "by": "pa",
+      "title": "Cucumbers and long beans from my garden",
+      "details": "More cucumbers and long beans than we can eat. A box on the steps Saturday morning.",
+      "spaces": [
+        "del-paso"
+      ],
+      "place": "Del Paso Blvd & Grand Ave",
+      "lat": 38.6088,
+      "lng": -121.4526,
+      "at": [
+        -9,
+        8,
+        0
+      ],
+      "topics": [
+        "food"
+      ],
+      "image": "cucumbers",
+      "fulfilled": {
+        "at": [
+          -7,
+          12,
+          0
+        ],
+        "by": [
+          "marcus",
+          "mai",
+          "graciela",
+          "farid"
+        ]
+      }
+    },
+    {
+      "key": "X2",
+      "type": "request",
+      "by": "jordan",
+      "title": "Ride to the airport Friday at 5am",
+      "details": "Flight Friday, need to be at the airport by 5am. I can give gas money and I am a quiet passenger.",
+      "spaces": [
+        "midtown"
+      ],
+      "place": "21st & J St",
+      "lat": 38.5766,
+      "lng": -121.4808,
+      "at": [
+        -2,
+        21,
+        0
+      ],
+      "topics": [
+        "rides"
+      ],
+      "image": "airport",
+      "comments": [
+        {
+          "by": "tomas",
+          "at": [
+            -1,
+            7,
+            0
+          ],
+          "text": "I am up anyway. I will take you if you are at 21st and J at 4:20."
+        }
+      ]
+    },
+    {
+      "key": "G1",
+      "type": "submission",
+      "by": "ellie",
+      "title": "New compressor + shade cover for the Oak Park fridge",
+      "details": "The compressor is loud and tired, and the porch bakes in the afternoon. A new compressor and a shade cover keep food safe in September.",
+      "spaces": [
+        "grants"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -18,
+        11,
+        0
+      ],
+      "topics": [],
+      "budget": 650,
+      "reactions": 3
+    },
+    {
+      "key": "G5",
+      "type": "submission",
+      "by": "walt",
+      "title": "Cots and blankets for the winter warming hub",
+      "details": "Twelve cots and blankets for the hall we open when the power fails. They stay in the Ready Sac closet the rest of the year.",
+      "spaces": [
+        "grants"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -16,
+        14,
+        0
+      ],
+      "topics": [],
+      "budget": 900,
+      "reactions": 3
+    },
+    {
+      "key": "G2",
+      "type": "submission",
+      "by": "jorge",
+      "title": "Bilingual storm-prep flyers + door-knocking",
+      "details": "Flyers in Spanish and English, and a Saturday of door-knocking in Oak Park and Del Paso before the first big storm.",
+      "spaces": [
+        "grants"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -15,
+        10,
+        0
+      ],
+      "topics": [],
+      "budget": 400,
+      "reactions": 3
+    },
+    {
+      "key": "G6",
+      "type": "submission",
+      "by": "farid",
+      "title": "Interpreter stipends (Dari, Spanish, Hmong) for school and clinic visits",
+      "details": "Small stipends so neighbors who interpret at schools and clinics are not doing it unpaid every week.",
+      "spaces": [
+        "grants"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -14,
+        16,
+        0
+      ],
+      "topics": [],
+      "budget": 750,
+      "reactions": 3
+    },
+    {
+      "key": "G3",
+      "type": "submission",
+      "by": "pa",
+      "title": "Del Paso seed library",
+      "details": "Jars, labels, and a shelf at the farm for seeds people already save. Anyone can take a packet and bring some back.",
+      "spaces": [
+        "grants"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -13,
+        9,
+        0
+      ],
+      "topics": [],
+      "budget": 350,
+      "reactions": 3
+    },
+    {
+      "key": "G4",
+      "type": "submission",
+      "by": "dev",
+      "title": "Bike trailer for hauling gleaned fruit",
+      "details": "A trailer behind a bike moves lemons without waiting on a truck. It would live with the gleaning crew.",
+      "spaces": [
+        "grants"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -12,
+        15,
+        0
+      ],
+      "topics": [],
+      "budget": 450,
+      "reactions": 3
+    },
+    {
+      "key": "G7",
+      "type": "submission",
+      "by": "sam",
+      "title": "Kids' bike repair camp",
+      "details": "Two Saturdays where kids learn to fix a flat and leave with a working bike. Parts are the budget.",
+      "spaces": [
+        "grants"
+      ],
+      "place": null,
+      "lat": null,
+      "lng": null,
+      "at": [
+        -10,
+        13,
+        0
+      ],
+      "topics": [],
+      "budget": 300,
+      "reactions": 3
+    }
+  ],
+  "chats": [
+    {
+      "room": "parent",
+      "messages": [
+        {
+          "by": "rosa",
+          "at": [
+            -45,
+            10,
+            30
+          ],
+          "text": "This is the neighborhood thread. Say hello when you arrive."
+        },
+        {
+          "by": "hannah",
+          "at": [
+            -30,
+            9,
+            0
+          ],
+          "text": "Gleaning crew is meeting at Bea's next week. Details are in events."
+        },
+        {
+          "by": "marcus",
+          "at": [
+            -14,
+            18,
+            0
+          ],
+          "text": "Farm stand Saturday. Kale starts are free until they are gone."
+        },
+        {
+          "by": "walt",
+          "at": [
+            -6,
+            7,
+            0
+          ],
+          "text": "Atmospheric river is on the weekend maps. Sandbags at the farm."
+        },
+        {
+          "by": "kai",
+          "at": [
+            -4,
+            12,
+            0
+          ],
+          "text": "If your rent notice came this month, look at the P Street thread."
+        },
+        {
+          "by": "tomas",
+          "at": [
+            -2,
+            8,
+            0
+          ],
+          "text": "Who has a truck Saturday besides me? Couch on P, third floor."
+        },
+        {
+          "by": "lin",
+          "at": [
+            -2,
+            9,
+            0
+          ],
+          "text": "I can drive elders that morning if the couch is covered."
+        },
+        {
+          "by": "grace",
+          "at": [
+            -1,
+            14,
+            0
+          ],
+          "text": "Friday bread is two loaves heavier than usual. Come by Capitol."
+        },
+        {
+          "by": "priya",
+          "at": [
+            -1,
+            18,
+            0
+          ],
+          "text": "N95s are in a box at my porch. Take a few before the next smoke day."
+        },
+        {
+          "by": "rosa",
+          "at": [
+            0,
+            8,
+            0
+          ],
+          "text": "Join requests: if you asked to join and have not heard, we are reading them today."
+        },
+        {
+          "by": "ellie",
+          "at": [
+            0,
+            9,
+            30
+          ],
+          "text": "Canning class still has four open seats."
+        },
+        {
+          "by": "hannah",
+          "minutesAgo": 50,
+          "text": "Loquats on 22nd are dropping. Bags in the gleaning thread."
+        }
+      ]
+    },
+    {
+      "room": "oak-park",
+      "messages": [
+        {
+          "by": "rosa",
+          "at": [
+            -6,
+            9,
+            0
+          ],
+          "text": "Fridge was empty at dawn and full by noon. That is a good day."
+        },
+        {
+          "by": "maribel",
+          "at": [
+            -5,
+            20,
+            0
+          ],
+          "text": "¿Alguien tiene una cuna pequeña? Publiqué un pedido."
+        },
+        {
+          "by": "jorge",
+          "at": [
+            -4,
+            18,
+            0
+          ],
+          "text": "Tool shed is open tonight until 8. Drill bits are restocked."
+        },
+        {
+          "by": "nia",
+          "at": [
+            -3,
+            11,
+            0
+          ],
+          "text": "Meal train for a family on 35th starts Thursday. Soup is covered, we need two dinners."
+        },
+        {
+          "by": "ellie",
+          "at": [
+            -2,
+            16,
+            0
+          ],
+          "text": "Marmalade is gone. Thank you for taking it to people who will actually eat it."
+        },
+        {
+          "by": "luz",
+          "at": [
+            -2,
+            10,
+            0
+          ],
+          "text": "Clase de inglés este sábado, misma esquina de siempre."
+        },
+        {
+          "by": "imani",
+          "at": [
+            -1,
+            8,
+            0
+          ],
+          "text": "I can do Tuesday dialysis rides. I put it on Rosa's request."
+        },
+        {
+          "by": "andre",
+          "at": [
+            -1,
+            19,
+            0
+          ],
+          "text": "Does anyone have a folding table that is not already promised to the potluck?"
+        },
+        {
+          "by": "rosa",
+          "minutesAgo": 110,
+          "text": "Fridge is FULL of Hannah's lemons, come grab some 🍋"
+        },
+        {
+          "by": "ellie",
+          "minutesAgo": 90,
+          "text": "Taking 2 bags for canning class, thank you!"
+        },
+        {
+          "by": "nia",
+          "minutesAgo": 70,
+          "text": "Anyone have a pack-n-play? Posted a request, client is due next week."
+        },
+        {
+          "by": "jorge",
+          "minutesAgo": 50,
+          "text": "I think there is one in the shed, checking tonight."
+        },
+        {
+          "by": "rosa",
+          "minutesAgo": 35,
+          "text": "can you bring the folding tables to the potluck Sunday?",
+          "mention": "tibet"
+        },
+        {
+          "by": "jorge",
+          "minutesAgo": 20,
+          "text": "Found it. Nia I will drop it by tomorrow 👍"
+        }
+      ]
+    },
+    {
+      "room": "midtown",
+      "messages": [
+        {
+          "by": "grace",
+          "at": [
+            -10,
+            13,
+            0
+          ],
+          "text": "Bread Friday is on. Two to four, Capitol side."
+        },
+        {
+          "by": "dev",
+          "at": [
+            -8,
+            11,
+            0
+          ],
+          "text": "Fix-it clinic needs one more person who is not afraid of toasters."
+        },
+        {
+          "by": "sam",
+          "at": [
+            -5,
+            16,
+            30
+          ],
+          "text": "If anyone is already going toward Rancho Thursday morning, I posted a ride request."
+        },
+        {
+          "by": "kai",
+          "at": [
+            -4,
+            19,
+            0
+          ],
+          "text": "P Street notices went up. Thread is in discussions if you want the meeting."
+        },
+        {
+          "by": "maya",
+          "at": [
+            -3,
+            12,
+            0
+          ],
+          "text": "I can help carry the couch if it is after 10."
+        },
+        {
+          "by": "jordan",
+          "at": [
+            -2,
+            21,
+            10
+          ],
+          "text": "Early airport ride Friday if anyone is a morning person."
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -1,
+            15,
+            0
+          ],
+          "text": "Ladder is back in the garage. Fruit picker too. Borrow either."
+        },
+        {
+          "by": "grace",
+          "at": [
+            -1,
+            14,
+            20
+          ],
+          "text": "Loaf set aside for Farid's family. Tomás, it can ride with you."
+        }
+      ]
+    },
+    {
+      "room": "del-paso",
+      "messages": [
+        {
+          "by": "marcus",
+          "at": [
+            -14,
+            9,
+            0
+          ],
+          "text": "Starts are on the table. Take a flat, leave the tray."
+        },
+        {
+          "by": "farid",
+          "at": [
+            -8,
+            17,
+            0
+          ],
+          "text": "The bunks are in the kids' room. They made their beds before I finished tightening the frame.",
+          "image": "bunk"
+        },
+        {
+          "by": "tomas",
+          "at": [
+            -8,
+            18,
+            0
+          ],
+          "text": "Easiest haul of the month. Happy to do the table next if Jorge needs a truck."
+        },
+        {
+          "by": "graciela",
+          "at": [
+            -4,
+            20,
+            30
+          ],
+          "text": "¿Alguien ha pedido ayuda para la renta? Dejé una pregunta en discusiones."
+        },
+        {
+          "by": "pa",
+          "at": [
+            -3,
+            8,
+            0
+          ],
+          "text": "Cucumbers on the steps until noon."
+        },
+        {
+          "by": "ramon",
+          "at": [
+            -2,
+            9,
+            0
+          ],
+          "text": "Los limones de Grand están listos. Pasen."
+        },
+        {
+          "by": "walt",
+          "at": [
+            -1,
+            10,
+            0
+          ],
+          "text": "Sandbag pile is marked with an orange cone. Bring a shovel."
+        },
+        {
+          "by": "aisha",
+          "minutesAgo": 200,
+          "text": "Faucet request is up. If you are nearby today I am home after 2."
+        }
+      ]
+    },
+    {
+      "room": "gleaning",
+      "messages": [
+        {
+          "by": "hannah",
+          "at": [
+            -20,
+            9,
+            0
+          ],
+          "text": "Bea said yes to a morning. We need a tall ladder."
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -19,
+            8,
+            0
+          ],
+          "text": "Ladder and the fruit picker are yours. I will drop them the night before."
+        },
+        {
+          "by": "ellie",
+          "at": [
+            -12,
+            15,
+            0
+          ],
+          "text": "I will take the bruised ones for marmalade. Leave the pretty ones for the fridge."
+        },
+        {
+          "by": "bea",
+          "at": [
+            -11,
+            18,
+            30
+          ],
+          "text": "You all left the yard cleaner than you found it. That is new."
+        },
+        {
+          "by": "hannah",
+          "at": [
+            -6,
+            10,
+            0
+          ],
+          "text": "Figs in the Oak Park alley are close. Another week."
+        },
+        {
+          "by": "marcus",
+          "at": [
+            -4,
+            9,
+            0
+          ],
+          "text": "Pomegranates are splitting. Ask at the house, then pick the sidewalk side."
+        },
+        {
+          "by": "grace",
+          "at": [
+            -2,
+            11,
+            0
+          ],
+          "text": "I can take a crate to the fridge Friday on my way back from the bakery."
+        },
+        {
+          "by": "hannah",
+          "at": [
+            -1,
+            9,
+            30
+          ],
+          "text": "Persimmons need another week. Loquats do not."
+        }
+      ]
+    },
+    {
+      "room": "ready",
+      "messages": [
+        {
+          "by": "walt",
+          "at": [
+            -6,
+            7,
+            30
+          ],
+          "text": "Forecast is getting serious. Check the sandbag post before the weekend."
+        },
+        {
+          "by": "lin",
+          "at": [
+            -4,
+            9,
+            30
+          ],
+          "text": "Still short two drivers for elder checks. The request is up."
+        },
+        {
+          "by": "priya",
+          "at": [
+            -3,
+            18,
+            0
+          ],
+          "text": "Smoke class is on the calendar. Tell elders who will not come to a website."
+        },
+        {
+          "by": "rosa",
+          "at": [
+            -2,
+            12,
+            0
+          ],
+          "text": "Fundraiser vote is open. Read the three options before you pick."
+        },
+        {
+          "by": "marcus",
+          "at": [
+            -1,
+            8,
+            30
+          ],
+          "text": "Farm generator is the backup. It is loud and it works."
+        },
+        {
+          "by": "walt",
+          "minutesAgo": 80,
+          "text": "Radio net check-in tonight at 7. If you have a handheld, say your call sign or just hello."
+        }
+      ]
+    },
+    {
+      "room": "grants",
+      "messages": [
+        {
+          "by": "rosa",
+          "at": [
+            -20,
+            11,
+            0
+          ],
+          "text": "Submissions are in. Read the budgets before you move tokens."
+        },
+        {
+          "by": "kai",
+          "at": [
+            -10,
+            14,
+            0
+          ],
+          "text": "Farid's interpreter proposal is the one I keep coming back to."
+        },
+        {
+          "by": "lin",
+          "at": [
+            -4,
+            16,
+            0
+          ],
+          "text": "The cots and the purifiers are both winter. Hard to split them in my head."
+        },
+        {
+          "by": "walt",
+          "at": [
+            -2,
+            9,
+            0
+          ],
+          "text": "Voting is open. You can see the totals move, so do not all wait until the last hour."
+        },
+        {
+          "by": "ellie",
+          "at": [
+            -1,
+            11,
+            0
+          ],
+          "text": "I did not put tokens on the fridge. Someone else should decide that one."
+        },
+        {
+          "by": "hannah",
+          "at": [
+            -1,
+            15,
+            0
+          ],
+          "text": "Tibet, your hundred are still sitting there when you want them."
+        }
+      ]
+    },
+    {
+      "room": "welcome",
+      "messages": [
+        {
+          "by": "maya",
+          "at": [
+            -2,
+            10,
+            0
+          ],
+          "text": "Just joined. I am in Midtown and I love the loquat trees nobody admits to owning."
+        },
+        {
+          "by": "yesenia",
+          "at": [
+            -1,
+            19,
+            0
+          ],
+          "text": "Acabo de entrar. Vivo en Del Paso y puedo cuidar niños entre semana."
+        },
+        {
+          "by": "brian",
+          "at": [
+            -1,
+            12,
+            0
+          ],
+          "text": "West Sac here. I have a truck on Sundays."
+        },
+        {
+          "by": "fatima",
+          "minutesAgo": 400,
+          "text": "Joined from Elk Grove. I can help with clinic paperwork."
+        },
+        {
+          "by": "chue",
+          "minutesAgo": 180,
+          "text": "Just joined. I can translate Hmong if you tell me the day."
+        }
+      ]
+    }
+  ],
+  "threads": [
+    {
+      "key": "ladder",
+      "people": [
+        "tibet",
+        "hannah"
+      ],
+      "unread": true,
+      "messages": [
+        {
+          "by": "hannah",
+          "at": [
+            -19,
+            8,
+            0
+          ],
+          "text": "Can I borrow the 24 ft ladder and the fruit picker for Bea's trees? Thursday morning."
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -19,
+            8,
+            20
+          ],
+          "text": "Yes. I will leave both on the porch Wednesday night."
+        },
+        {
+          "by": "hannah",
+          "at": [
+            -18,
+            21,
+            0
+          ],
+          "text": "Got them. I will bring a friend to carry the ladder, it is a long one."
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -18,
+            21,
+            15
+          ],
+          "text": "The picker is in the blue bag. Do not stand on the top rung, Bea will tell you the same thing."
+        },
+        {
+          "by": "hannah",
+          "at": [
+            -12,
+            12,
+            0
+          ],
+          "text": "140 pounds. Your ladder did the high persimmons."
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -12,
+            12,
+            40
+          ],
+          "text": "Good. Leave it whenever."
+        },
+        {
+          "by": "hannah",
+          "at": [
+            -1,
+            16,
+            10
+          ],
+          "text": "Ladder back on your porch, thank you!"
+        }
+      ]
+    },
+    {
+      "key": "proposal",
+      "people": [
+        "tibet",
+        "rosa",
+        "lin"
+      ],
+      "unread": true,
+      "messages": [
+        {
+          "by": "rosa",
+          "at": [
+            -6,
+            12,
+            30
+          ],
+          "text": "I posted the $2,400 question. Three options. Tell me if I missed one before votes pile up."
+        },
+        {
+          "by": "lin",
+          "at": [
+            -6,
+            13,
+            0
+          ],
+          "text": "The radios are Walt's, the purifiers are what the elders actually ask me for."
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -6,
+            14,
+            0
+          ],
+          "text": "The tool library option is Jorge's tiller and a few things we keep borrowing from his garage."
+        },
+        {
+          "by": "rosa",
+          "at": [
+            -5,
+            9,
+            0
+          ],
+          "text": "I am leaving it at three. More options and nobody finishes."
+        },
+        {
+          "by": "lin",
+          "at": [
+            -3,
+            11,
+            0
+          ],
+          "text": "Can we add warming-hub supplies if the cots do not win the flow fund?"
+        },
+        {
+          "by": "rosa",
+          "at": [
+            -3,
+            11,
+            40
+          ],
+          "text": "If I add it now I have to reset votes. I do not want to do that to people."
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -2,
+            8,
+            0
+          ],
+          "text": "Agree. Mention it in the thread so people know the cots exist as the other pot of money."
+        },
+        {
+          "by": "lin",
+          "at": [
+            -1,
+            17,
+            0
+          ],
+          "text": "I will. And I want the purifiers. I am not pretending otherwise."
+        },
+        {
+          "by": "rosa",
+          "at": [
+            -1,
+            18,
+            0
+          ],
+          "text": "Tibet, you still have not voted. People at the table will watch the bar move if you do it live."
+        }
+      ]
+    },
+    {
+      "key": "shed",
+      "people": [
+        "tibet",
+        "sam"
+      ],
+      "unread": true,
+      "messages": [
+        {
+          "by": "sam",
+          "at": [
+            -2,
+            18,
+            30
+          ],
+          "text": "Dev said his drill is at the shed. Is the shed open Saturday?"
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -2,
+            19,
+            0
+          ],
+          "text": "Jorge usually opens it by 10. I can meet you there if the door is locked."
+        },
+        {
+          "by": "sam",
+          "minutesAgo": 45,
+          "text": "Is the tool shed open Saturday?"
+        }
+      ]
+    },
+    {
+      "key": "fans",
+      "people": [
+        "tibet",
+        "walt"
+      ],
+      "messages": [
+        {
+          "by": "walt",
+          "at": [
+            -40,
+            11,
+            0
+          ],
+          "text": "Lin needs fans. I have six. Can you bring two more and help deliver?"
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -40,
+            11,
+            20
+          ],
+          "text": "Yes. I will be at your garage at 4."
+        },
+        {
+          "by": "walt",
+          "at": [
+            -40,
+            16,
+            0
+          ],
+          "text": "Loaded. Land Park first, then the apartments off Sutterville."
+        },
+        {
+          "by": "tibet",
+          "at": [
+            -38,
+            18,
+            0
+          ],
+          "text": "All eight are in windows. Lin has the list of who still needs one."
+        }
+      ]
+    },
+    {
+      "key": "carseat",
+      "people": [
+        "nia",
+        "aisha"
+      ],
+      "messages": [
+        {
+          "by": "nia",
+          "at": [
+            -9,
+            9,
+            50
+          ],
+          "text": "The Graco is in my closet. It expires next year, never in a crash. Want it?"
+        },
+        {
+          "by": "aisha",
+          "at": [
+            -9,
+            10,
+            5
+          ],
+          "text": "Yes. I am off at 1. I can come to you or you can come here, whichever is easier."
+        },
+        {
+          "by": "nia",
+          "at": [
+            -9,
+            10,
+            12
+          ],
+          "text": "I will come to you. Send the address here, not on the post."
+        },
+        {
+          "by": "aisha",
+          "at": [
+            -9,
+            10,
+            18
+          ],
+          "text": "Apartment 2, the building with the blue door just off Rio Linda. I will meet you in the lot so you do not have to find the stairs."
+        },
+        {
+          "by": "nia",
+          "at": [
+            -9,
+            13,
+            40
+          ],
+          "text": "In the lot. I see you."
+        },
+        {
+          "by": "aisha",
+          "at": [
+            -9,
+            14,
+            10
+          ],
+          "text": "He sat in it in the driveway and did not complain. That is a review. Thank you."
+        }
+      ]
+    },
+    {
+      "key": "glean-date",
+      "people": [
+        "hannah",
+        "bea"
+      ],
+      "messages": [
+        {
+          "by": "hannah",
+          "at": [
+            -20,
+            9,
+            0
+          ],
+          "text": "Bea, your lemon post is the best thing on the map. Can we bring a small crew one morning?"
+        },
+        {
+          "by": "bea",
+          "at": [
+            -20,
+            10,
+            0
+          ],
+          "text": "Mornings, not afternoons. I nap. And leave me a dozen lemons and a few persimmons."
+        },
+        {
+          "by": "hannah",
+          "at": [
+            -19,
+            8,
+            0
+          ],
+          "text": "Thursday morning, 9 to 11. We will stay in the yard, not the house."
+        },
+        {
+          "by": "bea",
+          "at": [
+            -19,
+            8,
+            30
+          ],
+          "text": "The side gate sticks. Lift it. And do not let anyone stand on the top of that ladder."
+        },
+        {
+          "by": "hannah",
+          "at": [
+            -12,
+            12,
+            0
+          ],
+          "text": "Dozen lemons and a bowl of persimmons are on your kitchen chair. The rest is already at the fridge."
+        }
+      ]
+    },
+    {
+      "key": "farid-kai",
+      "people": [
+        "kai",
+        "farid"
+      ],
+      "messages": [
+        {
+          "by": "kai",
+          "at": [
+            -14,
+            10,
+            0
+          ],
+          "text": "I wrote a project so people can see the whole list, not five separate surprises. Want to read it before it goes up?"
+        },
+        {
+          "by": "farid",
+          "at": [
+            -14,
+            10,
+            30
+          ],
+          "text": "Yes. Please say we can help too. I do not want it to sound like we only receive."
+        },
+        {
+          "by": "kai",
+          "at": [
+            -14,
+            11,
+            0
+          ],
+          "text": "Beds, a table, coats, and a Dari speaker for Thursday. I will add that you fix cars."
+        },
+        {
+          "by": "farid",
+          "at": [
+            -14,
+            11,
+            20
+          ],
+          "text": "The lease says we cannot paint. Is that a problem for the table? It is only furniture."
+        },
+        {
+          "by": "kai",
+          "at": [
+            -14,
+            12,
+            0
+          ],
+          "text": "Furniture is fine. Do not drill into the walls for the beds if the lease says so. Jorge will know."
+        },
+        {
+          "by": "farid",
+          "at": [
+            -8,
+            17,
+            30
+          ],
+          "text": "The bunks are up. The kids are arguing about the top bed, which means it worked."
+        },
+        {
+          "by": "kai",
+          "at": [
+            -5,
+            16,
+            0
+          ],
+          "text": "Jorge is bringing the table tomorrow. I will be there to carry."
+        },
+        {
+          "by": "farid",
+          "at": [
+            -3,
+            18,
+            30
+          ],
+          "text": "I posted that I can do brakes. It felt right after the table arrived."
+        }
+      ]
+    },
+    {
+      "key": "ride",
+      "people": [
+        "tomas",
+        "sam"
+      ],
+      "messages": [
+        {
+          "by": "tomas",
+          "at": [
+            -5,
+            18,
+            20
+          ],
+          "text": "I can take you. 21st and J at 8. Interview clothes are fine in the truck."
+        },
+        {
+          "by": "sam",
+          "at": [
+            -5,
+            18,
+            40
+          ],
+          "text": "I will be on the corner. Thank you. I have been rehearsing answers out loud."
+        },
+        {
+          "by": "tomas",
+          "at": [
+            -3,
+            8,
+            5
+          ],
+          "text": "Outside. Take your time, we are early."
+        },
+        {
+          "by": "sam",
+          "at": [
+            -3,
+            12,
+            40
+          ],
+          "text": "Good luck was the right thing to say. I got it."
+        }
+      ]
+    }
+  ],
+  "images": {
+    "banner": "https://images.pexels.com/photos/28532652/pexels-photo-28532652.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "oak": "https://images.unsplash.com/photo-1781974179634-ce0b58065174?w=1600&h=900&fit=crop&q=80",
+    "midtown": "https://images.unsplash.com/photo-1504261025028-554905831f45?w=1600&h=900&fit=crop&q=80",
+    "land": "https://images.unsplash.com/photo-1464295440335-ee082a75ccca?w=1600&h=900&fit=crop&q=80",
+    "delpaso": "https://images.unsplash.com/photo-1614582682702-a85fb3949c74?w=1600&h=900&fit=crop&q=80",
+    "gleaning": "https://images.pexels.com/photos/14046786/pexels-photo-14046786.jpeg?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop",
+    "tools": "https://images.unsplash.com/photo-1750054976309-9164e39cdc8d?w=1600&h=900&fit=crop&q=80",
+    "readysac": "https://images.unsplash.com/photo-1657069343999-39722b95f1d8?w=1600&h=900&fit=crop&q=80",
+    "grants": "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=1600&h=900&fit=crop&q=80",
+    "welcome": "https://images.unsplash.com/photo-1604882234072-d5741489e0c0?w=1600&h=900&fit=crop&q=80",
+    "lemons": "https://images.pexels.com/photos/28698837/pexels-photo-28698837.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "crates": "https://images.unsplash.com/photo-1775919257291-8425641d9df5?w=1600&h=900&fit=crop&q=80",
+    "marmalade": "https://images.unsplash.com/photo-1625252543566-e464a0ff1f66?w=1600&h=900&fit=crop&q=80",
+    "fridge": "https://images.unsplash.com/photo-1606859191214-25806e8e2423?w=1600&h=900&fit=crop&q=80",
+    "bunk": "https://images.unsplash.com/photo-1615478418030-8d1acace7983?w=1600&h=900&fit=crop&q=80",
+    "bread": "https://images.unsplash.com/photo-1586765501019-cbe3973ef8fa?w=1600&h=900&fit=crop&q=80",
+    "farm": "https://images.unsplash.com/photo-1568455283161-1f29a9faaec0?w=1600&h=900&fit=crop&q=80",
+    "bikes": "https://images.unsplash.com/photo-1791897754268-a6c76a628808?w=1600&h=900&fit=crop&q=80",
+    "pantry": "https://images.unsplash.com/photo-1554702309-b733f9d3a552?w=1600&h=900&fit=crop&q=80",
+    "faucet": "https://images.unsplash.com/photo-1521207418485-99c705420785?w=1600&h=900&fit=crop&q=80",
+    "crib": "https://images.pexels.com/photos/6849260/pexels-photo-6849260.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "cuna": "https://images.pexels.com/photos/7937990/pexels-photo-7937990.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "coats": "https://images.pexels.com/photos/11585383/pexels-photo-11585383.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "couch": "https://images.unsplash.com/photo-1632829882891-5047ccc421bc?w=1600&h=900&fit=crop&q=80",
+    "rides": "https://images.unsplash.com/photo-1643804926339-e94f0a655185?w=1600&h=900&fit=crop&q=80",
+    "airport": "https://images.pexels.com/photos/33014979/pexels-photo-33014979.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "generator": "https://images.pexels.com/photos/5693845/pexels-photo-5693845.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "drill": "https://images.pexels.com/photos/30413428/pexels-photo-30413428.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "tiller": "https://images.pexels.com/photos/5715872/pexels-photo-5715872.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "carseat": "https://images.pexels.com/photos/36552332/pexels-photo-36552332.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "table": "https://images.unsplash.com/photo-1636138389529-d35a2a348dc1?w=1600&h=900&fit=crop&q=80",
+    "masks": "https://images.pexels.com/photos/3993241/pexels-photo-3993241.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "meals": "https://images.pexels.com/photos/6995300/pexels-photo-6995300.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "brakes": "https://images.pexels.com/photos/34277926/pexels-photo-34277926.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "ladder": "https://images.unsplash.com/photo-1577682053793-ad8094df3ba7?w=1600&h=900&fit=crop&q=80",
+    "truck": "https://images.unsplash.com/photo-1605504835488-e8c6d37beb43?w=1600&h=900&fit=crop&q=80",
+    "canning": "https://images.pexels.com/photos/35567499/pexels-photo-35567499.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "cucumbers": "https://images.pexels.com/photos/8805495/pexels-photo-8805495.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "english": "https://images.unsplash.com/photo-1753442360794-92c33c57c412?w=1600&h=900&fit=crop&q=80",
+    "radio": "https://images.pexels.com/photos/21070592/pexels-photo-21070592.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "sandbags": "https://images.pexels.com/photos/7115278/pexels-photo-7115278.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "sandbagpile": "https://images.pexels.com/photos/35972270/pexels-photo-35972270.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "pump": "https://images.pexels.com/photos/3616735/pexels-photo-3616735.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "tarps": "https://images.pexels.com/photos/14033030/pexels-photo-14033030.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    "marks": {
+      "river-city": "https://images.pexels.com/photos/6591162/pexels-photo-6591162.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "oak-park": "https://images.pexels.com/photos/39627587/pexels-photo-39627587.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "midtown": "https://images.pexels.com/photos/13338739/pexels-photo-13338739.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "land-park": "https://images.pexels.com/photos/8734731/pexels-photo-8734731.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "del-paso": "https://images.pexels.com/photos/12407449/pexels-photo-12407449.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "gleaning": "https://images.pexels.com/photos/162709/pexels-photo-162709.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "tools": "https://images.pexels.com/photos/5846253/pexels-photo-5846253.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "ready": "https://images.pexels.com/photos/9348645/pexels-photo-9348645.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "grants": "https://images.pexels.com/photos/6863252/pexels-photo-6863252.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "welcome": "https://images.pexels.com/photos/7282207/pexels-photo-7282207.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop",
+      "bay-delta": "https://images.pexels.com/photos/32395647/pexels-photo-32395647.jpeg?auto=compress&cs=tinysrgb&w=480&h=480&fit=crop"
+    }
+  },
+  "imageQueries": {
+    "photos": {
+      "banner": "sacramento tree lined residential street fruit trees",
+      "oak": "oak trees shaded residential street",
+      "midtown": "downtown city street cafes evening",
+      "land": "leafy neighborhood park lawn",
+      "delpaso": "urban farm vegetable rows",
+      "gleaning": "rows of harvested apples in wooden crates",
+      "tools": "hand tools workshop wall",
+      "readysac": "sandbags flood preparation community",
+      "grants": "neighbors community potluck outdoor",
+      "welcome": "front porch neighborhood house",
+      "lemons": "meyer lemons in a crate",
+      "crates": "wooden crates of harvested citrus",
+      "marmalade": "jars of lemon marmalade",
+      "fridge": "community refrigerator stocked with food",
+      "bunk": "empty wooden bunk bed childrens bedroom",
+      "bread": "fresh baked bread loaves",
+      "farm": "kale and chard seedlings garden",
+      "bikes": "bicycle repair stand workshop",
+      "pantry": "little free pantry food box",
+      "faucet": "close up of a dripping kitchen faucet",
+      "crib": "empty pack and play portable crib",
+      "cuna": "empty wooden baby crib in a bedroom",
+      "coats": "winter coats hanging on a wooden rack",
+      "couch": "beige fabric sofa in a living room",
+      "rides": "car keys on a wooden table",
+      "airport": "rolling suitcase beside a car at dawn",
+      "generator": "portable gasoline generator outdoors",
+      "drill": "cordless drill on a workbench",
+      "tiller": "garden rototiller in vegetable soil",
+      "carseat": "empty convertible car seat in a back seat",
+      "table": "simple wooden dining table and chairs",
+      "masks": "stack of white n95 respirator masks",
+      "meals": "home cooked dinner in glass containers",
+      "brakes": "car brake rotor on a mechanic workbench",
+      "ladder": "aluminum extension ladder in a garage",
+      "truck": "pickup truck with the tailgate down",
+      "canning": "mason jars in a water bath canning pot",
+      "cucumbers": "fresh cucumbers and long beans in a basket",
+      "english": "classroom whiteboard and notebooks on a desk",
+      "radio": "amateur ham radio transceiver on a desk",
+      "sandbags": "sandbags stacked along a house foundation",
+      "sandbagpile": "pile of filled flood sandbags",
+      "pump": "portable sump pump with a hose",
+      "tarps": "blue tarps folded in the bed of a pickup truck"
+    },
+    "marks": {
+      "river-city": "hands passing a bag of groceries",
+      "oak-park": "oak tree leaves sunlight",
+      "midtown": "downtown skyline at dusk",
+      "land-park": "pink roses in a garden",
+      "del-paso": "vegetable seedling trays",
+      "gleaning": "wooden crate of freshly picked apples",
+      "tools": "hand tools on a workbench",
+      "ready": "stacked flood sandbags",
+      "grants": "coins in a glass jar",
+      "welcome": "front door with a flower wreath",
+      "bay-delta": "river delta wetlands aerial"
+    }
+  },
+  "legacy": {
+    "emails": [
+      "rosa.delgado@example.com",
+      "marcus.bell@example.com",
+      "lin.nguyen@example.com",
+      "hannah.kim@example.com",
+      "jorge.ramirez@example.com",
+      "walt.jensen@example.com",
+      "bea.thompson@example.com",
+      "aisha.rahman@example.com",
+      "nia.carter@example.com",
+      "dev.patel@example.com",
+      "sam.okafor@example.com",
+      "tomas.herrera@example.com",
+      "grace.liu@example.com",
+      "kai.whitehorse@example.com",
+      "farid.haddad@example.com",
+      "ellie.moreno@example.com",
+      "priya.shah@example.com",
+      "dana.ortiz@example.com",
+      "maribel@example.com",
+      "luz@example.com",
+      "camila@example.com",
+      "diego@example.com",
+      "sofia@example.com",
+      "elena@example.com",
+      "mateo@example.com",
+      "valeria@example.com",
+      "andre@example.com",
+      "imani@example.com",
+      "chrisd@example.com",
+      "naomi@example.com",
+      "malik@example.com",
+      "helen@example.com",
+      "peter@example.com",
+      "amina@example.com",
+      "ruthie@example.com",
+      "benc@example.com",
+      "lila@example.com",
+      "omar@example.com",
+      "june@example.com",
+      "jordan@example.com",
+      "maya@example.com",
+      "alexr@example.com",
+      "noah@example.com",
+      "taylor@example.com",
+      "samira@example.com",
+      "chrisp@example.com",
+      "riley@example.com",
+      "avery@example.com",
+      "mina@example.com",
+      "leo@example.com",
+      "harper@example.com",
+      "quinn@example.com",
+      "jules@example.com",
+      "remy@example.com",
+      "sasha@example.com",
+      "casey@example.com",
+      "drew@example.com",
+      "dorothy@example.com",
+      "arthur@example.com",
+      "margaret@example.com",
+      "frank@example.com",
+      "carol@example.com",
+      "henry@example.com",
+      "irene@example.com",
+      "susan@example.com",
+      "george@example.com",
+      "patricia@example.com",
+      "alan@example.com",
+      "ruthf@example.com",
+      "victor@example.com",
+      "ramon@example.com",
+      "graciela@example.com",
+      "yesenia@example.com",
+      "hector@example.com",
+      "carmen@example.com",
+      "luis@example.com",
+      "anaf@example.com",
+      "pa@example.com",
+      "mai@example.com",
+      "chue@example.com",
+      "laila@example.com",
+      "yusuf@example.com",
+      "jamal@example.com",
+      "keisha@example.com",
+      "tony@example.com",
+      "amber@example.com",
+      "ray@example.com",
+      "brian@example.com",
+      "angela@example.com",
+      "pete@example.com",
+      "megan@example.com",
+      "sandra@example.com",
+      "kevin@example.com",
+      "tina@example.com",
+      "nicole@example.com",
+      "jason@example.com",
+      "fatima@example.com",
+      "andres@example.com",
+      "lily@example.com",
+      "markj@example.com"
+    ],
+    "settingsKeys": [
+      "sacramentoDemo"
+    ],
+    "createdFrom": [
+      "sacramento-demo"
+    ]
+  }
+}

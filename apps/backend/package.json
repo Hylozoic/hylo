@@ -5,7 +5,7 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "private": true,
-  "version": "7.1.8",
+  "version": "7.1.9",
   "nyc": {
     "sourceMap": false,
     "instrument": false,
@@ -39,6 +39,7 @@
     "test": "mocha -r test/setup/core -r @babel/register --timeout 10000 --exit",
     "cover": "./node_modules/.bin/nyc --cache -a -r lcov ./node_modules/.bin/mocha -r test/setup/core --require @babel/register --timeout 10000 -R dot --exit",
     "knex": "knex",
+    "demo": "node demos/cli.js",
     "update-migrations": "node ./migrations/scripts/updateMigrationsTable",
     "heroku-postbuild": "yarn install"
   },
@@ -200,6 +201,7 @@
       "Group",
       "GroupAgreement",
       "GroupExtension",
+      "GroupInviteLink",
       "GroupMembership",
       "GroupJoinQuestion",
       "GroupJoinQuestionAnswer",
@@ -214,6 +216,7 @@
       "GroupViewPin",
       "GroupViewUser",
       "Invitation",
+      "InvitationSend",
       "JoinRequest",
       "LinkedAccount",
       "LinkPreview",

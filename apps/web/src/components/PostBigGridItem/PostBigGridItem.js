@@ -113,7 +113,7 @@ export default function PostBigGridItem ({
 
           <div className='flex items-center gap-2 text-white min-w-0'>
             <div className='flex items-center gap-1 text-white font-bold h-6 text-xs min-w-0'>
-              <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
+              <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} tiny className='flex-shrink-0' />
               <span className='truncate font-bold'>{creator.name}</span>
             </div>
             <span className='text-white/50 text-xs flex-shrink-0'>{createdTimestampShort}</span>
@@ -189,7 +189,7 @@ export default function PostBigGridItem ({
           {isEvent && <EventDate {...post} />}
           <div className='flex-1 min-w-0'>
             <div className='flex items-center gap-2 text-xs text-foreground/60 min-w-0'>
-              <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
+              <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} tiny className='flex-shrink-0' />
               <span className='font-bold text-foreground truncate'>{creator.name}</span>
               <span className='flex-shrink-0'>{createdTimestampShort}</span>
             </div>

@@ -13,7 +13,7 @@ import Button from 'components/Button'
 import Icon from 'components/Icon'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import { RESP_MANAGE_CONTENT } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
 import { baseUrl, createGroupModalUrl, groupUrl, myHomeLandingUrl, isMyHomePath } from '@hylo/navigation'
 
@@ -29,6 +29,8 @@ export default function Drawer (props) {
   const groups = useSelector(getMyGroups)
   const { group, className } = props
   const responsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group?.id })).map(r => r.title)
+  // The same people GroupSettings lets in
+  const canOpenSettings = responsibilities.includes(RESP_ADMINISTRATION) || responsibilities.includes(RESP_ADD_MEMBERS)
   const defaultContexts = [
     {
       id: PUBLIC_CONTEXT_ID,
@@ -96,7 +98,7 @@ export default function Drawer (props) {
             <Icon name='Ex' className={s.closeDrawer} onClick={toggleDrawer} />
           </div>
           <Logo group={group} />
-          {responsibilities.length !== 0 && !responsibilities.includes(RESP_MANAGE_CONTENT) && (
+          {canOpenSettings && (
             <Link className={s.settingsLink} to={groupUrl(group.slug, 'settings')}>
               <Icon name='Settings' className={s.settingsIcon} /> <span>{t('Group Settings')}</span>
             </Link>
