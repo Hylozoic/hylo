@@ -2751,6 +2751,8 @@
   "view-public-groups": "Group Explorer",
   "view-public-map": "Public Map",
   "view-public-all": "Public Activity",
+  "view-offers": "Offers",
+  "view-requests": "Requests",
   "view-requests-and-offers": "Requests & Offers",
   "view-resources": "Resources",
   "view-separator": "Separator",

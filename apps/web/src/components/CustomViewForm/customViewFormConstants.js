@@ -1,5 +1,5 @@
-/** All post types available for custom view filters (requests & offers are one pill). */
-export const CUSTOM_VIEW_DEFAULT_POST_TYPES = [
+/** Post type strings selected by default for a new custom view, group, or space. */
+export const DEFAULT_SELECTED_POST_TYPES = [
   'discussion',
   'event',
   'resource',
@@ -9,7 +9,19 @@ export const CUSTOM_VIEW_DEFAULT_POST_TYPES = [
   'offer'
 ]
 
-export const CUSTOM_VIEW_POST_TYPE_OPTIONS = [
+/** Pills in the custom stream form. Request and offer are separate pills. */
+export const CUSTOM_STREAM_POST_TYPE_PILLS = [
+  { key: 'discussion', postTypes: ['discussion'], labelKey: 'view-discussions' },
+  { key: 'event', postTypes: ['event'], labelKey: 'view-events' },
+  { key: 'resource', postTypes: ['resource'], labelKey: 'view-resources' },
+  { key: 'project', postTypes: ['project'], labelKey: 'view-projects' },
+  { key: 'proposal', postTypes: ['proposal'], labelKey: 'view-proposals' },
+  { key: 'request', postTypes: ['request'], labelKey: 'view-requests' },
+  { key: 'offer', postTypes: ['offer'], labelKey: 'view-offers' }
+]
+
+/** Pills for a group or space's accepted post types. Request and offer share one pill. */
+export const ACCEPTED_POST_TYPE_PILLS = [
   { key: 'discussion', postTypes: ['discussion'], labelKey: 'view-discussions' },
   { key: 'event', postTypes: ['event'], labelKey: 'view-events' },
   { key: 'resource', postTypes: ['resource'], labelKey: 'view-resources' },

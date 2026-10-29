@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux'
 import Button from 'components/ui/button'
 import CustomViewFormFields from 'components/CustomViewForm/CustomViewFormFields'
 import {
-  CUSTOM_VIEW_DEFAULT_POST_TYPES,
+  DEFAULT_SELECTED_POST_TYPES,
   CUSTOM_VIEW_DEFAULT_VIEW_MODE
 } from 'components/CustomViewForm/customViewFormConstants'
 import { createGroupView } from 'store/actions/groupViews'
@@ -17,7 +17,7 @@ export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd
   const dispatch = useDispatch()
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('ListFilter')
-  const [postTypes, setPostTypes] = useState(CUSTOM_VIEW_DEFAULT_POST_TYPES)
+  const [postTypes, setPostTypes] = useState(DEFAULT_SELECTED_POST_TYPES)
   const [topics, setTopics] = useState([])
   const [searchText, setSearchText] = useState('')
   const [defaultViewMode, setDefaultViewMode] = useState(CUSTOM_VIEW_DEFAULT_VIEW_MODE)
