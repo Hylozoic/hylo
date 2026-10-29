@@ -4,6 +4,7 @@ import { normalizeLocaleToFull } from '../../lib/localeHelpers'
 import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
+const { isDemoAddress } = require('../../lib/demo/addresses')
 
 // Sent to the current address when someone asks to change the account email. Data: name, masked_new_email, account_settings_url
 // Source: scripts/i18n/i18n-templates/Email_Change_Requested_i18n/ (translations in scripts/i18n/sendwithus-locales/*.po)
@@ -33,6 +34,7 @@ const defaultOptions = {
 }
 
 const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-US') => {
+  if (isDemoAddress(address)) return Promise.resolve(false)
   const emailOpts = merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address },
@@ -47,6 +49,7 @@ const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-U
 }
 
 const sendEmailWithOptions = curry((templateId, opts) => {
+  if (isDemoAddress(opts && opts.email)) return Promise.resolve(false)
   const emailOpts = merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address: opts.email },
