@@ -103,6 +103,27 @@ describe('NativeDateTimePicker', () => {
     expect(screen.getByTestId('native-time-input')).toHaveValue('03:04')
     expect(ref.current.value).toEqual(new Date(2027, 0, 2, 3, 4))
   })
+  it('shows the end adornment inside the time input box, with room kept for it', () => {
+    render(<NativeDateTimePicker value={new Date(2026, 9, 21, 14, 30)} granularity='minute' endAdornment={<button type='button'>x</button>} />)
+    const adornment = screen.getByTestId('datetime-picker-end-adornment')
+    const timeBox = screen.getByTestId('native-time-input').parentElement
+    expect(timeBox).toContainElement(adornment)
+    expect(screen.getByTestId('native-time-input')).toHaveClass('pr-10')
+    expect(screen.getByTestId('native-date-input').parentElement).not.toContainElement(adornment)
+    expect(screen.getByTestId('native-date-input')).not.toHaveClass('pr-10')
+  })
+
+  it('puts the end adornment in the date input when there is no time input', () => {
+    render(<NativeDateTimePicker value={new Date(2026, 9, 21)} granularity='day' endAdornment={<button type='button'>x</button>} />)
+    expect(screen.getByTestId('native-date-input').parentElement).toContainElement(screen.getByTestId('datetime-picker-end-adornment'))
+    expect(screen.getByTestId('native-date-input')).toHaveClass('pr-10')
+  })
+
+  it('reserves no room when there is no adornment', () => {
+    render(<NativeDateTimePicker value={new Date(2026, 9, 21, 14, 30)} granularity='minute' endAdornment={false} />)
+    expect(screen.queryByTestId('datetime-picker-end-adornment')).not.toBeInTheDocument()
+    expect(screen.getByTestId('native-time-input')).not.toHaveClass('pr-10')
+  })
 })
 
 describe('DateTimePicker', () => {
@@ -114,6 +135,29 @@ describe('DateTimePicker', () => {
     render(<DateTimePicker placeholder='Select Start' granularity='minute' />)
     expect(screen.queryByTestId('native-datetime-picker')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Select Start/ })).toBeInTheDocument()
+  })
+
+  it('shows the end adornment inside the popover trigger\'s box, and clicking it does not open the popover', () => {
+    mockPointer({ coarse: false, anyFine: true })
+    const onAdornmentClick = jest.fn()
+    render(
+      <DateTimePicker
+        placeholder='Select Start'
+        granularity='minute'
+        value={new Date(2026, 9, 21, 14, 30)}
+        endAdornment={<button type='button' aria-label='Remove start time' onClick={onAdornmentClick}>x</button>}
+      />
+    )
+    const adornment = screen.getByTestId('datetime-picker-end-adornment')
+    const trigger = document.querySelector('[aria-haspopup="dialog"]')
+    // Overlaid on the trigger (same wrapper), not nested in its <button>
+    expect(trigger.parentElement).toContainElement(adornment)
+    expect(trigger).not.toContainElement(adornment)
+    expect(trigger).toHaveClass('pr-10')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove start time' }))
+    expect(onAdornmentClick).toHaveBeenCalledTimes(1)
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('uses the native pickers on touch-only devices', () => {
