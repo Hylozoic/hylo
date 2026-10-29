@@ -5,7 +5,7 @@ import { includes } from 'lodash/fp'
 import underlyingDeleteComment from '../../models/comment/deleteComment'
 import underlyingCreateComment, { pushMessageUpdatedToSockets } from '../../models/comment/createComment'
 import underlyingUpdateComment from '../../models/comment/updateComment'
-import { deleteDraftForContext } from './draft'
+import { deleteDraftAfterCreate, deleteDraftForContext } from './draft'
 
 export async function canDeleteComment (userId, comment) {
   if (comment.get('user_id') === userId) return true
@@ -53,7 +53,7 @@ export async function createComment (userId, data, context) {
     context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
   }
 
-  await deleteDraftForContext(userId, { type: 'comment', postId })
+  await deleteDraftAfterCreate(() => deleteDraftForContext(userId, { type: 'comment', postId }))
 
   return comment
 }
@@ -89,7 +89,7 @@ export async function createMessage (userId, data, context) {
     }
   })
 
-  await deleteDraftForContext(userId, { type: 'message', messageThreadId: postId })
+  await deleteDraftAfterCreate(() => deleteDraftForContext(userId, { type: 'message', messageThreadId: postId }))
 
   return comment
 }
