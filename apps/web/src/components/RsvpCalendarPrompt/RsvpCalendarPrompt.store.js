@@ -5,20 +5,16 @@ export const MODULE_NAME = 'RsvpCalendarPrompt'
 
 export const CLOSE_RSVP_CALENDAR_PROMPT = `${MODULE_NAME}/CLOSE`
 
-// "Don't ask again" is remembered on the account in the existing `toursSeen` setting (ids of
-// dismissed in-app guidance), so no new user setting or migration is needed
-export const RSVP_CALENDAR_PROMPT_ID = 'rsvp-calendar-prompt'
-
 export const POSITIVE_RSVP_RESPONSES = [RESPONSES.YES, RESPONSES.INTERESTED]
 
 /**
  * Whether to offer the RSVP calendar feed: not once the person has subscribed to it
- * (settings.rsvpCalendarSub) or chosen "Don't ask again".
+ * (settings.rsvpCalendarSub) or chosen "Don't ask again" (settings.hideRsvpCalendarPrompt).
  */
 export function shouldOfferRsvpCalendar (settings) {
   if (!settings) return false
   if (settings.rsvpCalendarSub) return false
-  return !(settings.toursSeen || []).includes(RSVP_CALENDAR_PROMPT_ID)
+  return !settings.hideRsvpCalendarPrompt
 }
 
 export const initialState = { open: false }

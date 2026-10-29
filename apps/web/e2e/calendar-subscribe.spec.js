@@ -11,7 +11,6 @@ test.describe.configure({ timeout: 180000 })
 const uiTimeout = { timeout: 60000 }
 const PUBLIC_GROUP_SLUG = 'e2e-public-group'
 const FAKE_GROUP_CALENDAR_URL = 'https://example.com/group/1/calendar-e2e.ics'
-const RSVP_CALENDAR_PROMPT_ID = 'rsvp-calendar-prompt'
 const SCREENSHOT_DIR = process.env.E2E_SCREENSHOT_DIR
 
 async function gql (page, query, variables) {
@@ -51,12 +50,10 @@ async function stubGroupCalendarUrl (page) {
 
 /** RSVP prompt state lives on the (shared) E2E user's settings: clear it so the prompt can show */
 async function resetRsvpCalendarPromptSettings (page) {
-  const { me } = await gql(page, 'query { me { id settings { toursSeen } } }')
-  const toursSeen = (me.settings?.toursSeen || []).filter(id => id !== RSVP_CALENDAR_PROMPT_ID)
   await gql(
     page,
     'mutation ($changes: MeInput) { updateMe(changes: $changes) { id } }',
-    { changes: { settings: { toursSeen, rsvpCalendarSub: false } } }
+    { changes: { settings: { hideRsvpCalendarPrompt: false, rsvpCalendarSub: false } } }
   )
 }
 
@@ -187,17 +184,23 @@ test.describe('RSVP calendar prompt', () => {
     await expect(prompt).toBeVisible(uiTimeout)
 
     const saved = page.waitForResponse(res =>
-      res.url().includes('/noo/graphql') && (res.request().postData() || '').includes(RSVP_CALENDAR_PROMPT_ID))
+      res.url().includes('/noo/graphql') && (res.request().postData() || '').includes('"hideRsvpCalendarPrompt":true'))
     await prompt.getByRole('button', { name: 'Don\'t ask again' }).click()
-    await saved
+    const savedJson = await (await saved).json()
+    expect(savedJson.data.updateMe.settings.hideRsvpCalendarPrompt).toBe(true)
+    await expect(prompt).toHaveCount(0)
+
+    // Not asked again in the same session
+    await rsvp(page, 'Going')
+    await settle(page)
     await expect(prompt).toHaveCount(0)
 
     // Remembered on the account, so it holds after a reload
     await page.reload()
     await waitPastRootSessionLoading(page)
     await expect(page.getByText('Bring a snack.')).toBeVisible(uiTimeout)
-    await rsvp(page, 'Going')
-    await expect(page.getByTestId('event-rsvp')).toContainText('Going')
+    await rsvp(page, 'Interested')
+    await expect(page.getByTestId('event-rsvp')).toContainText('Interested')
     await settle(page)
     await expect(prompt).toHaveCount(0)
   })

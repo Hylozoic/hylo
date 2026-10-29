@@ -19,6 +19,7 @@ export default function updateUserSettings (changes) {
             settings {
               alreadySeenTour
               toursSeen
+              hideRsvpCalendarPrompt
               colorScheme
               dmNotifications
               commentNotifications
