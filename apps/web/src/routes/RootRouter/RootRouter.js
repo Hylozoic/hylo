@@ -19,7 +19,7 @@ import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getSignupState'
-import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
+import { getAuthSessionCheckedAt, getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import {
   clearMobileWebViewUserLogout,
   isMobileWebViewUserLogoutInProgress,
@@ -97,6 +97,7 @@ export default function RootRouter () {
   const dispatch = useDispatch()
   const isAuthorized = useSelector(getAuthorized)
   const isAuthSessionUnknown = useSelector(getAuthSessionUnknown)
+  const authCheckedAt = useSelector(getAuthSessionCheckedAt)
   const [mobileRecovering, setMobileRecovering] = useState(
     () => typeof window !== 'undefined' && window.HyloMobileV2 && readMobileRecovering()
   )
@@ -174,6 +175,10 @@ export default function RootRouter () {
   // - unauthorized → ask native to re-mint the session (VERIFY_AUTH). Native syncs
   //   cookies and posts SESSION_READY so we can retry in place. After MAX failures,
   //   send LOGOUT so native shows its login UI.
+  // Keyed on authCheckedAt so it re-runs after every checkLogin, including a retry that
+  // comes back anonymous again: isAuthSessionUnknown/isAuthorized don't change then, and
+  // Android's WebView doesn't reload on SESSION_READY (same URL), so without it the
+  // retry was never counted and the app sat on the spinner forever (#1711).
   useEffect(() => {
     if (isAuthSessionUnknown) return
     if (!window.HyloMobileV2) return
@@ -201,7 +206,7 @@ export default function RootRouter () {
     }
     writeMobileReauthAttempts(attempts + 1)
     sendMessageToWebView(WebViewMessageTypes.VERIFY_AUTH)
-  }, [isAuthSessionUnknown, isAuthorized])
+  }, [isAuthSessionUnknown, isAuthorized, authCheckedAt])
 
   // Boot loading screen milestones (the loader lives in index.html so it can
   // start before React mounts): React has mounted, then the session is known —
