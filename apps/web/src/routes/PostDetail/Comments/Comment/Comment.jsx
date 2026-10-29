@@ -160,7 +160,7 @@ function Comment ({
     >
       <div className='flex flex-row items-center justify-between w-full'>
         <div className='flex flex-row items-center'>
-          <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} medium />
+          <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} url={profileUrl} medium />
           <Link to={profileUrl} className='text-sm font-bold ml-2 text-foreground'>{creator.name}</Link>
         </div>
         <div>

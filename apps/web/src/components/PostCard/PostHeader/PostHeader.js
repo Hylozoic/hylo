@@ -409,7 +409,7 @@ function PostHeader (props) {
     <div className={cn('PostHeader relative !bg-transparent', { 'mb-0 px-2': constrained }, className)}>
       <div className='w-full rounded-t-lg'>
         <div className='flex justify-start items-center p-2'>
-          <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
+          <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
           <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
             <Highlight {...highlightProps}>
               <div className='flex flex-col min-w-0'>
