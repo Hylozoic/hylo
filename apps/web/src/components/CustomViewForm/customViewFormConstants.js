@@ -26,6 +26,7 @@ export const CUSTOM_VIEW_VIEW_MODE_OPTIONS = [
   { value: 'list', labelKey: 'List', defaultLabel: 'List' },
   { value: 'bigGrid', labelKey: 'Large Grid', defaultLabel: 'Large Grid' },
   { value: 'grid', labelKey: 'Small Grid', defaultLabel: 'Small Grid' },
-  { value: 'calendar', labelKey: 'Calendar', defaultLabel: 'Calendar' },
-  { value: 'map', labelKey: 'Map', defaultLabel: 'Map' }
+  { value: 'calendar', labelKey: 'Calendar', defaultLabel: 'Calendar' }
+  // TODO from assistant: temporarily hidden while the Map view mode is in progress
+  // { value: 'map', labelKey: 'Map', defaultLabel: 'Map' }
 ]
