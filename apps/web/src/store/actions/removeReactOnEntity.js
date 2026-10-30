@@ -18,7 +18,10 @@ export default function removeReactOnEntity ({ commentId, emojiFull, entityType,
       commentId,
       data,
       optimistic: true,
-      analytics: AnalyticsEvents.VOTED_ON_POST
+      analytics: {
+        eventName: AnalyticsEvents.REACTION_REMOVED,
+        type: entityType === 'post' ? 'post' : 'comment'
+      }
     }
   }
 }

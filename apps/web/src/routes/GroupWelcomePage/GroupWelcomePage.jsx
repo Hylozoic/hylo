@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { AnalyticsEvents } from '@hylo/shared'
 import Button from 'components/ui/button'
 import ClickCatcher from 'components/ClickCatcher'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
@@ -10,6 +11,7 @@ import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import useGroupViews from 'hooks/useGroupViews'
 import { spaceHomeRoutePath, spaceHomeUrl } from '@hylo/navigation'
@@ -46,6 +48,10 @@ function GroupWelcomePage () {
       dispatch(fetchGroupViews(groupId))
     }
   }, [dispatch, groupId, groupViewsLoaded])
+
+  useEffect(() => {
+    if (groupId) dispatch(trackAnalyticsEvent(AnalyticsEvents.GROUP_WELCOME_PAGE_VIEWED, { groupId }))
+  }, [dispatch, groupId])
 
   useEffect(() => {
     setHeaderDetails({

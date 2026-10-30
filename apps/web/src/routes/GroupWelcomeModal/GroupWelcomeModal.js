@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { CSSTransition } from 'react-transition-group'
 import { useParams, useNavigate } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
+import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import presentGroup from 'store/presenters/presentGroup'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
 import { fetchGroupWelcomeData } from './GroupWelcomeModal.store'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
@@ -138,6 +139,8 @@ export default function GroupWelcomeModal (props) {
       return
     }
 
+    // Existing members also see this modal to re-accept changed agreements; that is not a welcome
+    const isFirstWelcome = Boolean(currentMembership.settings?.showJoinForm)
     await dispatch(updateMembershipSettings(
       group.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
@@ -145,6 +148,13 @@ export default function GroupWelcomeModal (props) {
       // If join questions were previously answered, don't overwrite them with empty answers here
       questionAnswers && !joinQuestionsAnsweredAt && !questionsHaveSavedAnswers ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : null
     ))
+    if (isFirstWelcome) {
+      dispatch(trackAnalyticsEvent(AnalyticsEvents.GROUP_WELCOME_COMPLETED, {
+        groupId: group.id,
+        hadAgreements: hasFirstPage,
+        hadJoinQuestions: questionsStillRequired
+      }))
+    }
     return null
   }
 

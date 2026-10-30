@@ -1,14 +1,16 @@
 import { get } from 'lodash/fp'
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push, goBack } from 'redux-first-history'
 import { ImageUp, Loader2 } from 'lucide-react'
+import { AnalyticsEvents } from '@hylo/shared'
 import { bgImageStyle } from 'util/index'
 import Loading from 'components/Loading'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import WelcomeWizardModalFooter from '../WelcomeWizardModalFooter'
 import getMe from 'store/selectors/getMe'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import { UPLOAD_ATTACHMENT } from 'store/constants'
 
@@ -19,6 +21,10 @@ function UploadPhoto () {
   const uploadImagePending = useSelector(state => state.pending[UPLOAD_ATTACHMENT])
 
   const [edits, setEdits] = useState({})
+
+  useEffect(() => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.WELCOME_WIZARD_STEP_VIEWED, { step: 'upload-photo' }))
+  }, [])
 
   const updateSettingDirectly = useCallback((key) => value => {
     setEdits(prev => ({
@@ -32,6 +38,9 @@ function UploadPhoto () {
   }, [edits, currentUser])
 
   const submit = () => {
+    if (!edits.avatarUrl) {
+      dispatch(trackAnalyticsEvent(AnalyticsEvents.WELCOME_WIZARD_STEP_SKIPPED, { step: 'upload-photo' }))
+    }
     dispatch(updateUserSettings(edits))
     dispatch(push('/welcome/add-location'))
   }

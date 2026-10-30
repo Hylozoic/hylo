@@ -1,4 +1,5 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
+import { AnalyticsEvents } from '@hylo/shared'
 import orm from 'store/models'
 import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
 import {
@@ -13,7 +14,7 @@ import clearCacheFor from 'store/reducers/ormReducer/clearCacheFor'
 import getMyJoinRequests from 'store/selectors/getMyJoinRequests'
 import { isSpaceGroup } from 'store/selectors/getMyGroups'
 
-export function cancelJoinRequest (id) {
+export function cancelJoinRequest (id, groupId) {
   return {
     type: CANCEL_JOIN_REQUEST,
     graphql: {
@@ -25,7 +26,11 @@ export function cancelJoinRequest (id) {
       variables: { id }
     },
     meta: {
-      id
+      id,
+      analytics: {
+        eventName: AnalyticsEvents.JOIN_REQUEST_CANCELED,
+        groupId
+      }
     }
   }
 }

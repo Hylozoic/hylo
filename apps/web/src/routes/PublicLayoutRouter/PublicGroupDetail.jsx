@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react'
 import Div100vh from 'react-div-100vh'
 import { useDispatch } from 'react-redux'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { AnalyticsEvents } from '@hylo/shared'
 import checkIsGroupViewable from 'store/actions/checkIsGroupViewable'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import Loading from 'components/Loading'
 import GroupDetail from 'routes/GroupDetail'
@@ -31,18 +33,23 @@ export default function PublicGroupDetail (props) {
     ;(async () => {
       setLoading(true)
       const loginPath = '/login?returnToUrl=' + encodeURIComponent(location.pathname + location.search)
+      const redirectToLogin = () => {
+        dispatch(trackAnalyticsEvent(AnalyticsEvents.LOGIN_WALL_HIT, { kind: 'group' }))
+        navigate(loginPath, { replace: true })
+      }
       try {
         const result = await dispatch(checkIsGroupViewable(groupSlug, { accessCode, invitationToken }))
         if (cancelled) return
         const groupData = result?.payload?.data?.group ?? result?.payload?.getData?.()
         const isPublicGroup = groupData?.visibility === 2
         if (!isPublicGroup && !(hasInvitationParams && groupData)) {
-          navigate(loginPath, { replace: true })
+          redirectToLogin()
           return
         }
+        dispatch(trackAnalyticsEvent(AnalyticsEvents.PUBLIC_GROUP_VIEWED, { groupId: groupData.id, viaInvite: hasInvitationParams }))
         setLoading(false)
       } catch {
-        if (!cancelled) navigate(loginPath, { replace: true })
+        if (!cancelled) redirectToLogin()
       }
     })()
     return () => { cancelled = true }
