@@ -1,13 +1,18 @@
-module.exports = function(req, res, next) {
-  // Skip admin check for static assets (CSS, JS, images, etc.)
-  const isAssetRequest = req.path.includes('/assets/') ||
-    /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i.test(req.path)
+// kue-ui's static files are public, and Sails gives requests that look like files no session,
+// so they can't be checked. Only this directory is skipped: any other path ending in .js/.css
+// (e.g. /noo/admin/kue/api/jobs/0..100/asc.js) must still pass the admin check.
+const KUE_UI_ASSETS_PATH = '/noo/admin/kue/assets/'
 
-  if (isAssetRequest) {
+module.exports = function (req, res, next) {
+  const fullPath = (req.baseUrl || '') + req.path
+  const isKueUIAsset = ['GET', 'HEAD'].includes(req.method) &&
+    fullPath.startsWith(KUE_UI_ASSETS_PATH) && !fullPath.includes('..')
+
+  if (isKueUIAsset) {
     return next()
   }
 
-  if (Admin.isSignedIn(req)) {
+  if (req.session && Admin.isSignedIn(req)) {
     sails.log.debug('isAdmin: ' + req.session.userEmail)
     return next()
   } else {

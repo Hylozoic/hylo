@@ -18,7 +18,11 @@ var AccessTokenAuth = module.exports = {
        qb.andWhere('linked_account.provider_key', '=', 'token')
     })
     .fetch()
-    .then(user => !user || UserSession.login(req, user, 'token'))
+    .then(user => {
+      if (!user) return
+      UserSession.keepOutOfCookieSession(req)
+      return UserSession.login(req, user, 'token')
+    })
   }
 
 }
