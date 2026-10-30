@@ -10,8 +10,22 @@ const { isDemoAddress } = require('../../lib/demo/addresses')
 // Source: scripts/i18n/i18n-templates/Email_Change_Requested_i18n/ (translations in scripts/i18n/sendwithus-locales/*.po)
 const EMAIL_CHANGE_REQUESTED_TEMPLATE = 'tem_gfCWyJRpp6Q996d6ykVgJKCW'
 
-const sendEmail = opts =>
-  new Promise((resolve, reject) =>
+/**
+ * Never send from unit tests or the isolated E2E backend (DISABLE_EMAIL_SENDING=1), whatever key the local
+ * .env holds: sendwithus delivers mail sent with a test key to the account owner (#1722).
+ * Checked on every send rather than at load time, so module load order can't bypass it.
+ */
+const emailSendingDisabled = () =>
+  process.env.NODE_ENV === 'test' || process.env.DISABLE_EMAIL_SENDING === '1'
+
+const sendEmail = opts => {
+  if (emailSendingDisabled()) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.log(`Email sending disabled; not sending ${opts.email_id} to ${opts.recipient && opts.recipient.address}`)
+    }
+    return Promise.resolve(false)
+  }
+  return new Promise((resolve, reject) =>
     api.send(opts, (err, resp) => err ? reject(err) : resolve(resp)))
     .then((resp) => {
       return resp || true
@@ -20,6 +34,7 @@ const sendEmail = opts =>
       console.error('Error sending email:', err, ' email opts = ', opts)
       return false
     })
+}
 
 const defaultOptions = {
   sender: {
