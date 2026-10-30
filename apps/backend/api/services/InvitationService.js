@@ -155,7 +155,9 @@ module.exports = {
 
         invitedById && qb.where('invited_by_id', invitedById)
 
-        qb.orderBy('created_at', 'desc')
+        // id breaks ties so invitations created in the same millisecond keep a stable, newest-first order across pages
+        qb.orderBy('group_invites.created_at', 'desc')
+        qb.orderBy('group_invites.id', 'desc')
       }).fetchAll({ withRelated: ['user'] }))
       .then(invitations => {
         const total = invitations.length > 0 ? Number(invitations.first().get('total')) : 0
