@@ -35,9 +35,11 @@ export async function updateGroupRole ({ groupRoleId, color, name, description, 
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+      await GroupRole.assertAssignableRoleIds([groupRoleId])
       return bookshelf.transaction(async transacting => {
         const groupRole = await GroupRole.where({ id: groupRoleId, group_id: groupId }).fetch({ transacting })
         if (!groupRole) throw new GraphQLError('Role not found in this group')
+        if (groupRole.get('type') === GroupRole.TYPE_ALL_MEMBERS) throw new GraphQLError(GroupRole.ALL_MEMBERS_ROLE_LOCKED_ERROR)
         const verifiedActiveParam = (active == null) ? groupRole.get('active') : active
         const updatedAttributes = {
           color: color || groupRole.get('color'),
@@ -64,6 +66,7 @@ export async function addRoleToMember ({ userId, roleId, personId, groupId }) {
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+      await GroupRole.assertAssignableRoleIds([roleId])
       const groupRole = await GroupRole.where({ id: roleId, group_id: groupId }).fetch()
       if (!groupRole) throw new GraphQLError('Role not found in this group')
       return MemberGroupRole.forge({
@@ -87,6 +90,7 @@ export async function removeRoleFromMember ({ userId, roleId, personId, groupId 
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION) || userId === personId) {
+      await GroupRole.assertAssignableRoleIds([roleId])
       const role = await MemberGroupRole.query(q => {
         return q.where('user_id', personId)
           .andWhere('group_role_id', roleId)

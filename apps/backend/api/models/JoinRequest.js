@@ -29,8 +29,7 @@ module.exports = bookshelf.Model.extend({
         await membership.completeJoinBarriers()
       }
 
-      // TODO: add tracking of who did the approving in the join_request
-      await this.save({ status: JoinRequest.STATUS.Accepted }).then(async request => {
+      await this.save({ status: JoinRequest.STATUS.Accepted, processed_by_id: moderatorId || null }).then(async request => {
         const approvedMember = {
           actor_id: moderatorId,
           reader_id: user.id,
@@ -48,10 +47,12 @@ module.exports = bookshelf.Model.extend({
     throw new GraphQLError('Invalid join request')
   },
 
-  /** Mark a pending request as rejected and decrement the group's cached count. */
-  decline: async function () {
+  /**
+   * Mark a pending request as rejected and decrement the group's cached count.
+   */
+  decline: async function (moderatorId) {
     const wasPending = this.get('status') === JoinRequest.STATUS.Pending
-    await this.save({ status: JoinRequest.STATUS.Rejected })
+    await this.save({ status: JoinRequest.STATUS.Rejected, processed_by_id: moderatorId || null })
     if (wasPending) {
       await Group.adjustOpenJoinRequestCount(this.get('group_id'), -1)
     }

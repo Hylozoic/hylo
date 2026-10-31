@@ -240,7 +240,7 @@ export default function PostCard (props) {
         {/* Chat-style header: Avatar + Name created a PostType + Timestamp + Announcement/Flag */}
         <div className='flex items-center gap-2 mb-2'>
           <div onClick={showCreator} className='cursor-pointer'>
-            <Avatar avatarUrl={post.creator?.avatarUrl} large />
+            <Avatar avatarUrl={post.creator?.avatarUrl} personId={post.creator?.id} large />
           </div>
           <div className='flex items-center gap-1 text-sm flex-1 justify-between'>
             <div className='flex items-center gap-1'>

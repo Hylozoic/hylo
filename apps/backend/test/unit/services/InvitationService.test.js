@@ -223,4 +223,148 @@ describe('InvitationService', () => {
       expect(activity.get('other_group_id')).to.equal(parent.id)
     })
   })
+
+  describe('invitation checks and joining', () => {
+    let open, restricted, closed, parent, space
+
+    const invitation = (target, sender, email = `invitee-${Date.now()}-${Math.random()}@approval.com`) =>
+      Invitation.create({ userId: sender.id, groupId: target.id, email })
+
+    before(async () => {
+      open = await factories.group({ accessibility: Group.Accessibility.OPEN }).save()
+      restricted = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+      closed = await factories.group({ accessibility: Group.Accessibility.CLOSED }).save()
+      parent = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+      space = await factories.group({ type: 'space', parent_id: parent.id, accessibility: Group.Accessibility.OPEN }).save()
+    })
+
+    it('pre-approves an invitation for its own group and a space invitation for its parent', async () => {
+      expect(await InvitationService.preApproves(await invitation(open, inviter), open)).to.be.true
+      expect(await InvitationService.preApproves(await invitation(restricted, inviter), restricted)).to.be.true
+      expect(await InvitationService.preApproves(await invitation(closed, inviter), closed)).to.be.true
+      expect(await InvitationService.preApproves(await invitation(open, inviter), restricted)).to.be.false
+      expect(await InvitationService.preApproves(await invitation(space, inviter), space)).to.be.true
+      expect(await InvitationService.preApproves(await invitation(space, inviter), parent)).to.be.true
+      expect(await InvitationService.preApproves(null, open)).to.be.false
+    })
+
+    it('checks an email invitation as granting access', async () => {
+      const checked = await InvitationService.check((await invitation(restricted, inviter)).get('token'))
+      expect(checked).to.include({ valid: true, groupSlug: restricted.get('slug'), grantAccess: true })
+      expect(checked.groupRoles).to.deep.equal([])
+    })
+
+    it('checks a granting invite link and a view-only link', async () => {
+      const granting = await GroupInviteLink.createForGroup(restricted.id, { userId: inviter.id, grantAccess: true, accessCode: 'GrantAcces' })
+      const viewing = await GroupInviteLink.createForGroup(restricted.id, { userId: inviter.id, grantAccess: false, accessCode: 'ViewOnlyLn' })
+
+      const grantingCheck = await InvitationService.check(null, granting.get('access_code'))
+      expect(grantingCheck).to.include({ valid: true, grantAccess: true, groupSlug: restricted.get('slug') })
+
+      const viewingCheck = await InvitationService.check(null, viewing.get('access_code'))
+      expect(viewingCheck).to.include({ valid: true, grantAccess: false, groupSlug: restricted.get('slug') })
+    })
+
+    it('joins a Restricted or Closed group with an email invitation', async () => {
+      for (const target of [restricted, closed]) {
+        const person = await factories.user().save()
+        const created = await invitation(target, inviter, person.get('email'))
+        const membership = await InvitationService.use(person.id, created.get('token'))
+        expect(membership.get('group_id')).to.equal(target.id)
+        await created.refresh()
+        expect(created.get('used_by_id')).to.equal(person.id)
+      }
+    })
+
+    it('records which invite link a person joined through', async () => {
+      const person = await factories.user().save()
+      const granting = await GroupInviteLink.createForGroup(restricted.id, { userId: inviter.id, grantAccess: true, accessCode: 'JoinViaLnk' })
+      const membership = await InvitationService.use(person.id, null, granting.get('access_code'))
+      await membership.refresh()
+      expect(String(membership.get('group_invite_link_id'))).to.equal(String(granting.id))
+      await granting.refresh()
+      expect(Number(granting.get('num_joined_users'))).to.equal(1)
+    })
+
+    it('does not join through a view-only link', async () => {
+      const person = await factories.user().save()
+      const viewing = await GroupInviteLink.createForGroup(restricted.id, { userId: inviter.id, grantAccess: false, accessCode: 'NoGrantLnk' })
+      await expect(InvitationService.use(person.id, null, viewing.get('access_code')))
+        .to.be.rejectedWith('This link does not grant access to join')
+      expect(await GroupMembership.forPair(person.id, restricted.id, { includeInactive: true }).fetch()).to.not.exist
+    })
+
+    it('returns the membership of someone already in the group', async () => {
+      const person = await factories.user().save()
+      await person.joinGroup(restricted)
+      const created = await invitation(restricted, inviter, person.get('email'))
+      const membership = await InvitationService.use(person.id, created.get('token'))
+      expect(membership.get('group_id')).to.equal(restricted.id)
+    })
+  })
+
+  describe('pending invitation lists', () => {
+    let listGroup, admin, member, other, memberInvitations
+
+    before(async () => {
+      admin = await factories.user().save()
+      member = await factories.user().save()
+      other = await factories.user().save()
+      listGroup = await factories.group().save()
+      await admin.joinGroup(listGroup, { assignAdministrator: true })
+      await member.joinGroup(listGroup)
+      await other.joinGroup(listGroup)
+
+      const create = (sender, email) =>
+        Invitation.create({ userId: sender.id, groupId: listGroup.id, email })
+      await create(admin, invitee.get('email'))
+      memberInvitations = [
+        await create(member, 'first@member-list.com'),
+        await create(member, 'second@member-list.com'),
+        await create(member, 'third@member-list.com')
+      ]
+      await create(other, 'other@member-list.com')
+      const used = await create(member, 'used@member-list.com')
+      await used.save({ used_by_id: other.id, used_at: new Date() }, { patch: true })
+      await memberInvitations[2].expire(member.id)
+      // Give "first" and "second" the same timestamp so the expected newest-first order
+      // depends on the id tie-breaker, not on how fast they were created
+      const sameTime = new Date()
+      await Promise.all(memberInvitations.slice(0, 2).map(i => i.save({ created_at: sameTime }, { patch: true })))
+    })
+
+    it('gives the full list with who sent each invitation, and respects the limit', async () => {
+      const { total, items } = await InvitationService.find({ groupId: listGroup.id, pendingOnly: true })
+      expect(total).to.equal(4)
+      const byEmail = Object.fromEntries(items.map(item => [item.email, item]))
+      const creator = await byEmail['other@member-list.com'].creator().fetch()
+      expect(creator.id).to.equal(other.id)
+
+      const firstTwo = await InvitationService.find({ groupId: listGroup.id, pendingOnly: true, limit: 2 })
+      expect(firstTwo.total).to.equal(4)
+      expect(firstTwo.items).to.have.lengthOf(2)
+    })
+
+    it('gives a person only the pending invitations they sent', async () => {
+      const { total, items } = await InvitationService.find({ groupId: listGroup.id, pendingOnly: true, invitedById: member.id })
+      expect(total).to.equal(2)
+      expect(items.map(item => item.email)).to.deep.equal(['second@member-list.com', 'first@member-list.com'])
+      for (const item of items) {
+        expect((await item.creator().fetch()).id).to.equal(member.id)
+      }
+
+      const limited = await InvitationService.find({ groupId: listGroup.id, pendingOnly: true, invitedById: member.id, limit: 1 })
+      expect(limited.total).to.equal(2)
+      expect(limited.items.map(item => item.id)).to.deep.equal([memberInvitations[1].id])
+    })
+
+    it('lets someone with Add Members cancel an invitation, and the invitee', async () => {
+      const [first] = memberInvitations
+      expect(await InvitationService.canExpire(member.id, first.id)).to.be.false
+      expect(await InvitationService.canExpire(admin.id, first.id)).to.be.true
+      expect(await InvitationService.canExpire(other.id, first.id)).to.be.false
+      expect(await InvitationService.checkPermission(member.id, first.id)).to.be.false
+      await expect(InvitationService.canExpire(member.id, '999999999')).to.be.rejectedWith('Invitation not found')
+    })
+  })
 })

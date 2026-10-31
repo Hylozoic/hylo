@@ -14,6 +14,13 @@ import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
 
+// Join table for groupRoles(). The view has no id column; Bookshelf joins it on
+// user_id and group_role_id, which this view does have.
+const GroupMemberEffectiveRole = bookshelf.Model.extend({
+  tableName: 'group_member_effective_roles',
+  requireFetch: false
+})
+
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
   requireFetch: false,
@@ -154,11 +161,17 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Invitation, 'email', 'email')
       .query({ where: { used_by_id: null, expired_by_id: null } })
       .orderBy('created_at', 'desc')
+      .orderBy('id', 'desc')
   },
 
+  /**
+   * Roles this person holds. Assigned roles come from group_memberships_group_roles.
+   * Every active member also holds the group's All Members role, so a responsibility
+   * linked to it (Add Members, when everyone can invite) shows up here without an assignment.
+   */
   groupRoles () {
     return this.belongsToMany(GroupRole)
-      .through(MemberGroupRole, 'user_id', 'group_role_id')
+      .through(GroupMemberEffectiveRole, 'user_id', 'group_role_id')
       .where('groups_roles.active', true)
   },
 
@@ -672,6 +685,38 @@ module.exports = bookshelf.Model.extend(merge({
 
 }, HasSettings), {
   AXOLOTL_ID: '13986',
+
+  /**
+   * Whether `viewerId` may start a direct message with `targetId`. Mirrors who the
+   * new-message recipient search offers (members of the viewer's groups, plus the
+   * viewer's connections), so a profile card never offers messaging the search wouldn't:
+   * an active user, not the viewer, not blocked in either direction, who is an active
+   * member of a group the viewer is an active member of or is one of the viewer's
+   * connections. Stricter than findOrCreateThread's personFilter check, so anything
+   * this allows the backend also accepts.
+   */
+  async canMessage (viewerId, targetId) {
+    if (!viewerId || !targetId || String(viewerId) === String(targetId)) return false
+    const knex = bookshelf.knex
+    const sharedGroupMembers = knex('group_memberships as gm_target')
+      .join('group_memberships as gm_viewer', 'gm_viewer.group_id', 'gm_target.group_id')
+      .join('groups', 'groups.id', 'gm_target.group_id')
+      .where({
+        'gm_viewer.user_id': viewerId,
+        'gm_viewer.active': true,
+        'gm_target.active': true,
+        'groups.active': true
+      })
+      .select('gm_target.user_id')
+    const connections = knex('user_connections').where('user_id', viewerId).select('other_user_id')
+    const row = await knex('users')
+      .where('users.id', targetId)
+      .where('users.active', true)
+      .whereNotIn('users.id', BlockedUser.blockedFor(viewerId))
+      .where(q => q.whereIn('users.id', sharedGroupMembers).orWhereIn('users.id', connections))
+      .first('users.id')
+    return Boolean(row)
+  },
 
   // One message for every failure, so login can't be used to find out which emails have accounts.
   // Clients match on this exact string.

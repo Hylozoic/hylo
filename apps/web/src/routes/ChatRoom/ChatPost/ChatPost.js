@@ -186,7 +186,8 @@ export default function ChatPost ({
   const bindLongPress = useLongPress(() => {
     setIsLongPress(false)
   }, {
-    filterEvents: (e) => !e.target?.closest?.('.global-postContent'),
+    // A long press on an avatar opens its profile card instead of the post's action bar
+    filterEvents: (e) => !e.target?.closest?.('.global-postContent, [data-profile-hover-card-trigger]'),
     onFinish: () => {
       if (isPressDevice) setIsLongPress(true)
     }
@@ -418,7 +419,7 @@ export default function ChatPost ({
           <div className='relative z-0' onClick={handleClick}>
             {/* Avatar top-aligns with the name so the message text tucks in beside it */}
             <div onClick={showCreator} className='absolute left-0 top-0.5 cursor-pointer'>
-              <Avatar avatarUrl={creator.avatarUrl} medium />
+              <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} medium />
             </div>
             <div className='ml-[42px] flex items-baseline gap-2'>
               <div className='font-bold cursor-pointer flex items-center gap-1.5' onClick={showCreator}>

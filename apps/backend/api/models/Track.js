@@ -135,7 +135,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         copySpace = await sourceSpace.clone()
         delete copySpace.attributes.id
         delete copySpace.id
-        const accessCode = await Group.getNewAccessCode()
+        const accessCode = await GroupInviteLink.generateCode({ transacting: trx })
         await copySpace.save({
           name: (sourceSpace.get('name') || 'Track') + ' (copy)',
           slug: `${sourceSpace.get('slug')}-copy-${Date.now()}`.slice(0, 40),
@@ -145,6 +145,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
           created_at: new Date(),
           num_members: 0,
           num_open_join_requests: 0
+        }, { transacting: trx })
+        await GroupInviteLink.createForGroup(copySpace.id, {
+          userId: sourceSpace.get('created_by_id'),
+          accessCode,
+          grantAccess: true,
+          system: true
         }, { transacting: trx })
         await newTrack.save({ group_id: copySpace.id }, { patch: true, transacting: trx })
         await Group.setupSpaceViews(copySpace.id, sourceSpace.get('accepted_post_types') || [], ['track-actions', 'members', 'welcome'], { transacting: trx })
