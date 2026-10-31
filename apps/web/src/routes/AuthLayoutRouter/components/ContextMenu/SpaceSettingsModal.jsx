@@ -3,10 +3,16 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { CreditCard, HeartHandshake, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus, Users } from 'lucide-react'
+import { ChevronDown, CreditCard, HeartHandshake, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus, Users } from 'lucide-react'
 
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import Button from 'components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from 'components/ui/dropdown-menu'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import { Input } from 'components/ui/input'
@@ -34,6 +40,8 @@ import { DEFAULT_BANNER } from 'store/models/Group'
 import { offeringGrantsGroupAccess } from 'util/accessGrants'
 import { cn } from 'util/index'
 
+import ConvertChatSpaceModal from './ConvertChatSpaceModal'
+import isChatOnlySpace from './isChatOnlySpace'
 import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
@@ -240,6 +248,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
   const [roleSearchTerm, setRoleSearchTerm] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
+  const [showConvertChat, setShowConvertChat] = useState(false)
   const [openAdvanced, setOpenAdvanced] = useState(() => {
     const open = new Set()
     if (spaceLocation(spaceModel)?.fullText || spaceModel?.ref?.geoShape) open.add('location')
@@ -885,14 +894,39 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       </div>
 
       <div className='flex flex-wrap items-center gap-2 mt-4 pt-2 border-t border-foreground/10'>
-        {canConvertToChildGroup && (
-          <Button
-            variant='outline'
-            disabled={isSaving || isConverting}
-            onClick={handleConvertToChildGroup}
-          >
-            {isConverting ? t('Saving...') : t('Convert to Child Group')}
-          </Button>
+        {(isChatOnlySpace(space) || canConvertToChildGroup) && (
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='outline'
+                size='sm'
+                className='h-8 px-2.5 text-xs font-normal text-foreground/70'
+                disabled={isSaving || isConverting}
+                data-testid='space-advanced-menu'
+              >
+                {t('Advanced')}
+                <ChevronDown className='w-3 h-3' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='start' side='top' className='z-[1200]'>
+              {isChatOnlySpace(space) && (
+                <DropdownMenuItem
+                  data-testid='convert-chat-space'
+                  onSelect={() => setShowConvertChat(true)}
+                >
+                  {t('Convert chat room to discussion post')}
+                </DropdownMenuItem>
+              )}
+              {canConvertToChildGroup && (
+                <DropdownMenuItem
+                  disabled={isSaving || isConverting}
+                  onSelect={handleConvertToChildGroup}
+                >
+                  {isConverting ? t('Saving...') : t('Convert to Child Group')}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         <div className='flex justify-end gap-2 ml-auto'>
           <Button variant='primary' onClick={onClose}>{t('Cancel')}</Button>
@@ -917,7 +951,21 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     </div>
   )
 
-  if (inline) return panel
+  if (inline) {
+    return (
+      <>
+        {panel}
+        {showConvertChat && (
+          <ConvertChatSpaceModal
+            space={space}
+            destination={parentGroup}
+            onClose={() => setShowConvertChat(false)}
+            onConverted={onClose}
+          />
+        )}
+      </>
+    )
+  }
 
   const handleBackdropClick = (event) => {
     if (event.target === event.currentTarget) onClose()
@@ -925,13 +973,25 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
 
   // Portal above AuthLayout nav stacking (nav is z-50); otherwise the left edge of the
   // centered panel sits under GlobalNav/ContextMenu and radio/checkbox hit targets miss.
-  return createPortal(
-    <div
-      className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'
-      onClick={handleBackdropClick}
-    >
-      {panel}
-    </div>,
-    document.body
+  return (
+    <>
+      {createPortal(
+        <div
+          className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 pointer-events-auto'
+          onClick={handleBackdropClick}
+        >
+          {panel}
+        </div>,
+        document.body
+      )}
+      {showConvertChat && (
+        <ConvertChatSpaceModal
+          space={space}
+          destination={parentGroup}
+          onClose={() => setShowConvertChat(false)}
+          onConverted={onClose}
+        />
+      )}
+    </>
   )
 }

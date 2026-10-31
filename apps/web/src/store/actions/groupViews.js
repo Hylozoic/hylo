@@ -7,6 +7,7 @@ import {
   DELETE_SPACE,
   ARCHIVE_SPACE,
   CONVERT_GROUP_TO_SPACE,
+  CONVERT_CHAT_SPACE_TO_DISCUSSION,
   CONVERT_SPACE_TO_CHILD_GROUP,
   FETCH_VIEW_POSTS,
   REMOVE_POST_FROM_VIEW,
@@ -548,6 +549,36 @@ export function convertSpaceToChildGroup ({ id }) {
         { getRoot: get('convertSpaceToChildGroup'), modelName: 'Group' }
       ]
     }
+  }
+}
+
+/**
+ * Turn a chat-only space into a discussion post. dryRun returns counts and writes nothing.
+ */
+export function convertChatSpaceToDiscussion ({ spaceId, title, dryRun }) {
+  return {
+    type: CONVERT_CHAT_SPACE_TO_DISCUSSION,
+    graphql: {
+      query: `mutation ConvertChatSpaceToDiscussion ($spaceId: ID!, $title: String, $dryRun: Boolean) {
+        convertChatSpaceToDiscussion(spaceId: $spaceId, title: $title, dryRun: $dryRun) {
+          dryRun
+          queued
+          messageCount
+          authorCount
+          attachmentCount
+          reactionCount
+          replyCount
+          firstMessageAt
+          lastMessageAt
+          post {
+            id
+            title
+          }
+        }
+      }`,
+      variables: { spaceId, title, dryRun }
+    },
+    meta: { spaceId, dryRun }
   }
 }
 

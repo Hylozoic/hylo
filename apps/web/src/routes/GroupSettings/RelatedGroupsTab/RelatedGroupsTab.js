@@ -20,6 +20,8 @@ import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 import fetchGroupSpaces from 'store/actions/fetchGroupSpaces'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { convertGroupToSpace } from 'store/actions/groupViews'
+import ConvertChatSpaceModal from 'routes/AuthLayoutRouter/components/ContextMenu/ConvertChatSpaceModal'
+import isChatOnlySpace from 'routes/AuthLayoutRouter/components/ContextMenu/isChatOnlySpace'
 import { isSpaceGroup } from 'store/selectors/getMyGroups'
 import { fetchGroupSettings } from '../GroupSettings.store'
 import {
@@ -73,6 +75,7 @@ function RelatedGroupsTab () {
   const [showRequestToJoinModalForGroup, setShowRequestToJoinModalForGroup] = useState(false)
   const [showRequestToJoinPicker, setShowRequestToJoinPicker] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
+  const [roomToConvert, setRoomToConvert] = useState(null)
 
   useEffect(() => {
     dispatch(fetchGroupToGroupJoinQuestions())
@@ -143,8 +146,11 @@ function RelatedGroupsTab () {
   }
 
   const parentGroup = parentGroups.length === 1 ? parentGroups[0] : null
+  const ownSpaces = (group?.spaces?.items || []).filter(space => space.active !== false && !space.chatConverted)
+  const chatRoomsBlocking = ownSpaces.filter(isChatOnlySpace)
+  const nonChatSpaces = ownSpaces.filter(space => !isChatOnlySpace(space))
   const spacesLoaded = group?.spaces != null
-  const hasOwnSpaces = (group?.spaces?.items || []).length > 0
+  const hasOwnSpaces = ownSpaces.length > 0
   const hasOtherRelatedGroups = parentGroups.length > 1 || childGroups.length > 0 || peerGroups.length > 0
   const canShowConvertToSpace = Boolean(
     group &&
@@ -165,9 +171,11 @@ function RelatedGroupsTab () {
     ? t('This group cannot be converted to a space because it has other related groups and spaces of its own.')
     : hasOtherRelatedGroups
       ? t('This group cannot be converted to a space because it has other related groups. A group can only become a space if it has exactly one parent and no child or peer groups.')
-      : hasOwnSpaces
-        ? t('This group cannot be converted to a space because it has spaces of its own.')
-        : null
+      : chatRoomsBlocking.length > 0 && nonChatSpaces.length === 0
+        ? t('Convert the chat rooms below into discussion posts first.')
+        : hasOwnSpaces
+          ? t('This group cannot be converted to a space because it has spaces of its own.')
+          : null
 
   /** Convert this group into a space of its only parent. */
   const handleConvertToSpace = async () => {
@@ -381,6 +389,28 @@ function RelatedGroupsTab () {
           )
         : <div className='text-foreground/70 text-sm'>{t('{{group.name}} is not a member of any groups yet', { group })}</div>}
 
+      {canShowConvertToSpace && chatRoomsBlocking.length > 0 && (
+        <div className='mt-4 rounded-md border border-foreground/10 p-3' data-testid='chat-rooms-blocking-conversion'>
+          <p className='text-sm text-foreground/70 mb-2'>
+            {t('This group has chat rooms that must be converted before it can become a space.')}
+          </p>
+          <ul className='flex flex-col gap-2'>
+            {chatRoomsBlocking.map(room => (
+              <li key={room.id} className='flex items-center justify-between gap-2'>
+                <span className='text-sm truncate'>{room.name}</span>
+                <button
+                  type='button'
+                  className='text-xs text-foreground/60 hover:text-foreground underline shrink-0'
+                  onClick={() => setRoomToConvert(room)}
+                >
+                  {t('Convert to discussion')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {groupInvitesToJoinThem.length > 0 && (
         <div>
           <div className='text-foreground/70 text-sm mb-4'>{t('Open Invitations to Join Other Groups')}</div>
@@ -552,6 +582,17 @@ function RelatedGroupsTab () {
           parentGroup={showRequestToJoinModalForGroup}
           requestToAddGroupToParent={requestToAddGroupToParent}
           hideRequestToJoinModal={hideRequestToJoinModal}
+        />
+      )}
+
+      {roomToConvert && (
+        <ConvertChatSpaceModal
+          space={roomToConvert}
+          destination={group}
+          onClose={() => setRoomToConvert(null)}
+          onConverted={() => {
+            if (group?.id) dispatch(fetchGroupSpaces(group.id))
+          }}
         />
       )}
     </div>
