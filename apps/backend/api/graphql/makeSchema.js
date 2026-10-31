@@ -33,6 +33,7 @@ import {
   cancelJoinRequest,
   clearModerationAction,
   completePost,
+  convertChatSpaceToDiscussion,
   convertGroupToSpace,
   convertSpaceToChildGroup,
   createAffiliation,
@@ -747,6 +748,9 @@ export function makeMutations ({ fetchOne }) {
 
     convertGroupToSpace: (root, { id, parentGroupId }, context) =>
       convertGroupToSpace(context.currentUserId, { id, parentGroupId }, context),
+
+    convertChatSpaceToDiscussion: (root, { spaceId, title, dryRun }, context) =>
+      convertChatSpaceToDiscussion(context.currentUserId, { spaceId, title, dryRun }, context),
 
     joinSpace: (root, { spaceId, accessCode, invitationToken }, context) =>
       joinSpace(context.currentUserId, spaceId, accessCode, invitationToken),
