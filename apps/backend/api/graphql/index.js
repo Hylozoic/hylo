@@ -7,6 +7,7 @@ import RedisPubSub from '../services/RedisPubSub'
 import makeSchema from './makeSchema'
 import { createGroupVisibilityLoader } from './filters'
 import sentry from '../../lib/sentry'
+import { recordActivityDay } from '../../lib/userActivityDays'
 import { touchLastActiveAt } from './touchLastActiveAt'
 import { flattenImageUrlVariables } from '../../lib/uploader/rehostRemoteMedia'
 
@@ -94,6 +95,11 @@ export const yoga = createYoga({
 
     // oAuth clients are skipped inside touchLastActiveAt
     touchLastActiveAt(req)
+    if (req.session.userId && !req.api_client) {
+      recordActivityDay(bookshelf.knex, req.session.userId, {
+        log: err => sails.log.error('Could not record user activity day', err)
+      })
+    }
 
     // This is unrelated to the above which is using context as a hook,
     // this is putting the subscriptions pubSub method on context
