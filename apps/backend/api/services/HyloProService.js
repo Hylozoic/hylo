@@ -7,15 +7,21 @@
  *
  * - ensureProPrices / ensurePortalConfiguration create the "Hylo Pro" product, its $10/month and
  *   $100/year prices, and a Customer Portal configuration on first use, then cache their ids.
+ * - Each group pays with one platform customer (hylo_pro_customers), created before its first Checkout.
  * - createCheckoutSession / createPortalSession return Stripe-hosted URLs for sign-up and for
- *   cancelling, switching interval or updating the card.
- * - Webhooks: Pro subscriptions are tagged with metadata { hylo_pro: 'true', group_id }.
- *   isHyloProEvent picks those out (platform events only) and handleWebhookEvent re-reads the
- *   subscription from Stripe and upserts its hylo_pro_subscriptions row, so events arriving out
- *   of order can't leave stale state.
+ *   cancelling, switching interval or updating the card. Checkout is refused while the group's
+ *   customer has a subscription that isn't over yet (checked in Stripe, not just our table), and an
+ *   open Checkout for the group is reused (same interval) or expired (other interval), so a group
+ *   can't end up paying twice.
+ * - Pro subscriptions are tagged with metadata { hylo_pro: 'true', group_id }. isHyloProEvent picks
+ *   their webhooks out (platform events only). Webhooks, and activateCheckoutSession when a steward
+ *   returns from Checkout, call syncSubscriptionById: under a per-subscription lock it re-reads the
+ *   subscription from Stripe and upserts its hylo_pro_subscriptions row, so concurrent, retried or
+ *   out-of-order events always leave the latest state.
  */
 
 const Stripe = require('stripe')
+const { GraphQLError } = require('graphql')
 
 /* global bookshelf, Frontend, Group, HyloProSubscription */
 
@@ -47,6 +53,26 @@ const PRO_EVENT_TYPES = new Set([
   'invoice.paid',
   'invoice.payment_failed'
 ])
+
+// Error code for "this group already has a subscription"; the web shows its own translated message
+const ALREADY_SUBSCRIBED = 'HYLO_PRO_ALREADY_SUBSCRIBED'
+
+function alreadySubscribedError () {
+  return new GraphQLError('This group already has a Hylo Pro subscription. Use Manage subscription to change it.', {
+    extensions: { code: ALREADY_SUBSCRIBED }
+  })
+}
+
+/**
+ * Runs fn in a transaction holding a Postgres advisory lock on `key`, so callers using the same key
+ * run one at a time (across all backend processes). The lock is released when the transaction ends.
+ */
+function withLock (key, fn) {
+  return bookshelf.transaction(async trx => {
+    await trx.raw('select pg_advisory_xact_lock(hashtext(?))', [key])
+    return fn(trx)
+  })
+}
 
 let cachedPriceIds = null
 let cachedPortalConfigurationId = null
@@ -89,6 +115,14 @@ module.exports = {
   PRODUCT_ID,
   PLANS,
   INTERVALS,
+  CURRENCY,
+  ALREADY_SUBSCRIBED,
+  alreadySubscribedError,
+
+  // Plans in display order, for the Billing page
+  plans () {
+    return INTERVALS.map(interval => ({ interval, unitAmount: PLANS[interval].unitAmount, currency: CURRENCY }))
+  },
 
   // For tests: forget ids cached from earlier calls
   clearCache () {
@@ -208,7 +242,50 @@ module.exports = {
   },
 
   /**
+   * The platform customer this group pays with, or null if it never started a Checkout.
+   * Groups that subscribed before hylo_pro_customers existed fall back to their latest subscription's customer.
+   */
+  async stripeCustomerIdForGroup (groupId) {
+    const row = await bookshelf.knex('hylo_pro_customers').where({ group_id: groupId }).first('stripe_customer_id')
+    if (row) return row.stripe_customer_id
+    return HyloProSubscription.latestStripeCustomerId(groupId)
+  },
+
+  /**
+   * Returns the group's platform customer, creating and recording it on first use.
+   * Call it while holding the group's checkout lock (see createCheckoutSession).
+   */
+  async ensureCustomer (group) {
+    const existing = await this.stripeCustomerIdForGroup(group.id)
+    let customerId = existing
+    if (!customerId) {
+      // No idempotency key: group ids repeat across databases sharing a Stripe account (dev,
+      // staging), so a key per group could hand one group another's customer. Callers hold the
+      // group's checkout lock, so two customers can't be created for one group at once.
+      const customer = await stripe.customers.create({
+        name: group.get('name'),
+        metadata: { [PRO_METADATA_KEY]: 'true', group_id: String(group.id) }
+      })
+      customerId = customer.id
+    }
+    const now = new Date()
+    await bookshelf.knex('hylo_pro_customers')
+      .insert({ group_id: group.id, stripe_customer_id: customerId, created_at: now, updated_at: now })
+      .onConflict('group_id')
+      .ignore()
+    // Another request may have recorded a customer first; always use the recorded one
+    const row = await bookshelf.knex('hylo_pro_customers').where({ group_id: group.id }).first('stripe_customer_id')
+    return row.stripe_customer_id
+  },
+
+  /**
    * Starts a Stripe-hosted Checkout for a group to subscribe to Hylo Pro.
+   *
+   * Runs under a per-group lock. Throws alreadySubscribedError() if the group's customer has a
+   * subscription in Stripe that isn't over (anything but canceled / incomplete_expired) — those are
+   * synced into our table first, covering a webhook that hasn't arrived yet. An open Checkout for
+   * the same interval is returned instead of creating another; one for the other interval is
+   * expired, so only one Checkout for the group can ever be completed.
    *
    * @returns {Promise<{ url: string, sessionId: string }>}
    */
@@ -217,35 +294,80 @@ module.exports = {
       throw new Error(`Unknown Hylo Pro interval: ${interval}`)
     }
 
-    const priceIds = await this.ensureProPrices()
-    const customerId = await HyloProSubscription.latestStripeCustomerId(group.id)
-    const metadata = {
-      [PRO_METADATA_KEY]: 'true',
-      group_id: String(group.id)
-    }
-    const returnUrl = billingUrl(group)
+    return withLock(`hylo_pro_checkout:${group.id}`, async () => {
+      const priceIds = await this.ensureProPrices()
+      const customerId = await this.ensureCustomer(group)
 
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      line_items: [{ price: priceIds[interval], quantity: 1 }],
-      ...(customerId ? { customer: customerId } : {}),
-      client_reference_id: String(group.id),
-      metadata: { ...metadata, user_id: String(userId) },
-      subscription_data: { metadata },
-      success_url: `${returnUrl}?checkout=success`,
-      cancel_url: `${returnUrl}?checkout=canceled`
+      const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 })
+      const open = subscriptions.data.filter(sub => !HyloProSubscription.TERMINAL_STRIPE_STATUSES.includes(sub.status))
+      if (open.length > 0) {
+        for (const sub of open) await this.syncSubscriptionById(sub.id)
+        throw alreadySubscribedError()
+      }
+
+      const openSessions = await stripe.checkout.sessions.list({ customer: customerId, status: 'open', limit: 100 })
+      for (const existing of openSessions.data) {
+        const metadata = proMetadataOf(existing)
+        if (!metadata || String(metadata.group_id) !== String(group.id)) continue
+        if (metadata.interval === interval && existing.url) {
+          return { url: existing.url, sessionId: existing.id }
+        }
+        await stripe.checkout.sessions.expire(existing.id)
+      }
+
+      const metadata = {
+        [PRO_METADATA_KEY]: 'true',
+        group_id: String(group.id)
+      }
+      const returnUrl = billingUrl(group)
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        line_items: [{ price: priceIds[interval], quantity: 1 }],
+        customer: customerId,
+        client_reference_id: String(group.id),
+        metadata: { ...metadata, interval, user_id: String(userId) },
+        subscription_data: { metadata },
+        // Stripe fills in the session id, so the Billing page can activate Pro without waiting for the webhook
+        success_url: `${returnUrl}?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${returnUrl}?checkout=canceled`
+      })
+
+      return { url: session.url, sessionId: session.id }
     })
-
-    return { url: session.url, sessionId: session.id }
   },
 
   /**
-   * Opens the Stripe-hosted Customer Portal for the customer this group last paid with.
+   * Called when a steward returns from Checkout: syncs the session's subscription right away, so
+   * Pro doesn't depend on the webhook arriving first. The session must be a Pro Checkout for this group.
    *
-   * @returns {Promise<{ url: string } | null>} null if the group has never had a Stripe subscription
+   * @returns {Promise<HyloProSubscription|null>} the synced row, or null if the session has no subscription yet
+   */
+  async activateCheckoutSession ({ group, sessionId }) {
+    let session
+    try {
+      session = await stripe.checkout.sessions.retrieve(sessionId)
+    } catch (error) {
+      if (error.code === 'resource_missing') throw new GraphQLError('Checkout session not found')
+      throw error
+    }
+
+    const metadata = proMetadataOf(session)
+    if (!metadata || session.mode !== 'subscription' || String(metadata.group_id) !== String(group.id)) {
+      throw new GraphQLError('This checkout session is not a Hylo Pro checkout for this group')
+    }
+
+    const subscriptionId = idOf(session.subscription)
+    if (!subscriptionId) return null
+    return this.syncSubscriptionById(subscriptionId)
+  },
+
+  /**
+   * Opens the Stripe-hosted Customer Portal for the customer this group pays with.
+   *
+   * @returns {Promise<{ url: string } | null>} null if the group has no customer yet
    */
   async createPortalSession ({ group }) {
-    const customerId = await HyloProSubscription.latestStripeCustomerId(group.id)
+    const customerId = await this.stripeCustomerIdForGroup(group.id)
     if (!customerId) return null
 
     const configuration = await this.ensurePortalConfiguration()
@@ -284,17 +406,30 @@ module.exports = {
       return null
     }
 
-    // Re-read the subscription so out-of-order or retried events always apply its latest state
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-    return this.syncSubscription(subscription)
+    return this.syncSubscriptionById(subscriptionId)
   },
 
   /**
-   * Upserts the hylo_pro_subscriptions row for a Stripe subscription object.
+   * Re-reads a subscription from Stripe and upserts its row. Holds a lock on the subscription id
+   * from before the read until the write commits, so when two syncs overlap the later one reads
+   * Stripe after the earlier one has written — an older snapshot can never overwrite a newer one.
+   *
+   * @returns {Promise<HyloProSubscription|null>}
+   */
+  async syncSubscriptionById (subscriptionId) {
+    return withLock(`hylo_pro_subscription:${subscriptionId}`, async trx => {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+      return this.syncSubscription(subscription, { transacting: trx })
+    })
+  },
+
+  /**
+   * Upserts the hylo_pro_subscriptions row for a Stripe subscription object. Use syncSubscriptionById
+   * unless the caller holds that subscription's lock and has just read it from Stripe.
    *
    * @returns {Promise<HyloProSubscription|null>} null if it isn't a Pro subscription for a known group
    */
-  async syncSubscription (subscription) {
+  async syncSubscription (subscription, { transacting } = {}) {
     const metadata = proMetadataOf(subscription)
     if (!metadata) {
       console.warn(`Stripe subscription ${subscription?.id} is not a Hylo Pro subscription, skipping`)
@@ -329,12 +464,13 @@ module.exports = {
       updated_at: now
     }
 
-    const [row] = await bookshelf.knex('hylo_pro_subscriptions')
+    const knex = transacting || bookshelf.knex
+    const [row] = await knex('hylo_pro_subscriptions')
       .insert({ ...attrs, created_at: now })
       .onConflict('stripe_subscription_id')
       .merge(attrs)
       .returning('id')
 
-    return HyloProSubscription.where({ id: row.id || row }).fetch()
+    return HyloProSubscription.where({ id: row.id || row }).fetch({ transacting })
   }
 }

@@ -1,25 +1,55 @@
 import React from 'react'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
-import { AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { act, AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import BillingTab from './BillingTab'
 
 const group = { id: '1', slug: 'hylo', name: 'Hylo' }
 
-// Responds to the Billing tab's GraphQL operations; records mutation variables by operation name
-function mockBillingApi ({ proSubscription = null, checkout, portal } = {}) {
+const PLANS = [
+  { interval: 'month', unitAmount: 1000, currency: 'usd' },
+  { interval: 'year', unitAmount: 10000, currency: 'usd' }
+]
+
+const OPEN_STATUSES = ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused']
+
+// What the server's proBilling resolver returns for a Stripe subscription and/or grant
+function billingFor ({ subscription = null, grant = null } = {}) {
+  const hasPro = !!(subscription?.active || grant?.active)
+  const open = !!subscription && OPEN_STATUSES.includes(subscription.status) && !subscription.endedAt
+  return {
+    hasPro,
+    canUpgrade: !hasPro && !open,
+    canManage: !!subscription,
+    needsPaymentUpdate: open && ['past_due', 'unpaid', 'incomplete'].includes(subscription.status),
+    subscription,
+    grant,
+    plans: PLANS
+  }
+}
+
+const stripeSub = attrs => ({ id: '5', source: 'stripe', status: 'active', active: true, interval: 'month', currentPeriodEnd: '2027-03-01T12:00:00.000Z', cancelAtPeriodEnd: false, endsAt: null, endedAt: null, ...attrs })
+const manualGrant = attrs => ({ id: '6', source: 'manual', status: 'active', active: true, interval: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, endsAt: null, endedAt: null, ...attrs })
+
+// Responds to the Billing tab's GraphQL operations; records variables by operation name.
+// `billing` may be a function, called on every query, for state that changes.
+function mockBillingApi ({ billing = billingFor(), checkout, portal, activate } = {}) {
   const requests = {}
   mockGraphqlServer.use(
     graphql.operation(({ operationName, variables }) => {
       requests[operationName] = (requests[operationName] || []).concat([variables])
-      if (operationName === 'HyloProSubscriptionQuery') {
-        return HttpResponse.json({ data: { group: { id: group.id, hasPro: !!proSubscription?.active, proSubscription } } })
+      if (operationName === 'HyloProBillingQuery') {
+        const proBilling = typeof billing === 'function' ? billing() : billing
+        return HttpResponse.json({ data: { group: { id: group.id, proBilling } } })
       }
       if (operationName === 'CreateHyloProCheckoutSession') {
         return checkout ? checkout(variables) : HttpResponse.json({ data: { createHyloProCheckoutSession: { url: 'https://checkout.stripe.com/c/pay/cs_test' } } })
       }
       if (operationName === 'CreateHyloProPortalSession') {
         return portal ? portal(variables) : HttpResponse.json({ data: { createHyloProPortalSession: { url: 'https://billing.stripe.com/p/session/test' } } })
+      }
+      if (operationName === 'ActivateHyloProCheckoutSession') {
+        return activate ? activate(variables) : HttpResponse.json({ data: { activateHyloProCheckoutSession: { success: true, active: true } } })
       }
       return HttpResponse.json({ data: {} })
     })
@@ -61,9 +91,7 @@ describe('BillingTab', () => {
   })
 
   it('shows a renewing yearly subscription with a Manage button that opens the portal', async () => {
-    const requests = mockBillingApi({
-      proSubscription: { id: '5', source: 'stripe', status: 'active', active: true, interval: 'year', currentPeriodEnd: '2027-03-01T12:00:00.000Z', cancelAtPeriodEnd: false, endsAt: null, endedAt: null }
-    })
+    const requests = mockBillingApi({ billing: billingFor({ subscription: stripeSub({ interval: 'year' }) }) })
     renderTab()
 
     expect(await screen.findByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (yearly)')
@@ -77,9 +105,7 @@ describe('BillingTab', () => {
   })
 
   it('shows when a cancelled subscription ends', async () => {
-    mockBillingApi({
-      proSubscription: { id: '5', source: 'stripe', status: 'active', active: true, interval: 'month', currentPeriodEnd: '2027-03-01T12:00:00.000Z', cancelAtPeriodEnd: true, endsAt: '2027-03-01T12:00:00.000Z', endedAt: null }
-    })
+    mockBillingApi({ billing: billingFor({ subscription: stripeSub({ cancelAtPeriodEnd: true, endsAt: '2027-03-01T12:00:00.000Z' }) }) })
     renderTab()
 
     expect(await screen.findByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (monthly)')
@@ -88,9 +114,7 @@ describe('BillingTab', () => {
   })
 
   it('asks for a new card when a payment failed, instead of offering a second subscription', async () => {
-    mockBillingApi({
-      proSubscription: { id: '5', source: 'stripe', status: 'past_due', active: false, interval: 'month', currentPeriodEnd: '2027-03-01T12:00:00.000Z', cancelAtPeriodEnd: false, endsAt: null, endedAt: null }
-    })
+    mockBillingApi({ billing: billingFor({ subscription: stripeSub({ status: 'past_due', active: false }) }) })
     renderTab()
 
     expect(await screen.findByTestId('billing-payment-failed')).toBeInTheDocument()
@@ -99,9 +123,7 @@ describe('BillingTab', () => {
   })
 
   it('shows a grant from Hylo without Stripe controls', async () => {
-    mockBillingApi({
-      proSubscription: { id: '6', source: 'manual', status: 'active', active: true, interval: null, currentPeriodEnd: null, cancelAtPeriodEnd: false, endsAt: null, endedAt: null }
-    })
+    mockBillingApi({ billing: billingFor({ grant: manualGrant() }) })
     renderTab()
 
     expect(await screen.findByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (granted by Hylo)')
@@ -112,7 +134,7 @@ describe('BillingTab', () => {
 
   it('lets a lapsed subscriber upgrade again and still reach their invoices', async () => {
     mockBillingApi({
-      proSubscription: { id: '5', source: 'stripe', status: 'canceled', active: false, interval: 'month', currentPeriodEnd: '2026-03-01T12:00:00.000Z', cancelAtPeriodEnd: true, endsAt: '2026-03-01T12:00:00.000Z', endedAt: '2026-03-01T12:00:00.000Z' }
+      billing: billingFor({ subscription: stripeSub({ status: 'canceled', active: false, currentPeriodEnd: '2026-03-01T12:00:00.000Z', cancelAtPeriodEnd: true, endsAt: '2026-03-01T12:00:00.000Z', endedAt: '2026-03-01T12:00:00.000Z' }) })
     })
     renderTab()
 
@@ -122,10 +144,8 @@ describe('BillingTab', () => {
     expect(screen.getByTestId('billing-manage')).toBeInTheDocument()
   })
 
-  it('shows an error and stays on the page when Checkout cannot be started', async () => {
-    mockBillingApi({
-      checkout: () => HttpResponse.json({ errors: [{ message: 'boom' }] })
-    })
+  it('shows a connection error and stays on the page when Checkout cannot be reached', async () => {
+    mockBillingApi({ checkout: () => HttpResponse.error() })
     const startHref = window.location.href
     renderTab()
 
@@ -136,6 +156,69 @@ describe('BillingTab', () => {
     expect(screen.getByTestId('billing-upgrade-month')).not.toBeDisabled()
   })
 
+  it("shows the server's message when it refuses to start Checkout", async () => {
+    mockBillingApi({
+      checkout: () => HttpResponse.json({ errors: [{ message: "You don't have permission to manage this group's billing", path: ['createHyloProCheckoutSession'] }] })
+    })
+    renderTab()
+
+    fireEvent.click(await screen.findByTestId('billing-upgrade-month'))
+
+    expect(await screen.findByTestId('billing-error')).toHaveTextContent("You don't have permission to manage this group's billing")
+  })
+
+  it('explains that the group already subscribed and shows that subscription to manage', async () => {
+    let subscribedElsewhere = false
+    mockBillingApi({
+      billing: () => subscribedElsewhere ? billingFor({ subscription: stripeSub() }) : billingFor(),
+      checkout: () => {
+        // Another steward's subscription that reached the server after this page loaded
+        subscribedElsewhere = true
+        return HttpResponse.json({ errors: [{ message: 'This group already has a Hylo Pro subscription.', path: ['createHyloProCheckoutSession'], extensions: { code: 'HYLO_PRO_ALREADY_SUBSCRIBED' } }] })
+      }
+    })
+    renderTab()
+
+    fireEvent.click(await screen.findByTestId('billing-upgrade-year'))
+
+    expect(await screen.findByTestId('billing-error')).toHaveTextContent('This group already has a Hylo Pro subscription. Use Manage subscription to change it.')
+    expect(screen.getByTestId('billing-manage')).toBeInTheDocument()
+    expect(screen.queryByTestId('billing-upgrade-year')).not.toBeInTheDocument()
+  })
+
+  it('re-enables the buttons when the browser restores the page after Back from Stripe', async () => {
+    mockBillingApi()
+    renderTab()
+
+    fireEvent.click(await screen.findByTestId('billing-upgrade-month'))
+    await waitFor(() => expect(window.location.href).toBe('https://checkout.stripe.com/c/pay/cs_test'))
+    expect(screen.getByTestId('billing-upgrade-month')).toBeDisabled()
+
+    const pageshow = new Event('pageshow')
+    pageshow.persisted = true
+    act(() => { window.dispatchEvent(pageshow) })
+
+    await waitFor(() => expect(screen.getByTestId('billing-upgrade-month')).not.toBeDisabled())
+  })
+
+  it('still shows a failing subscription and Manage while a grant from Hylo gives Pro', async () => {
+    mockBillingApi({ billing: billingFor({ grant: manualGrant(), subscription: stripeSub({ status: 'past_due', active: false }) }) })
+    renderTab()
+
+    expect(await screen.findByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (granted by Hylo)')
+    expect(screen.getByTestId('billing-payment-failed')).toBeInTheDocument()
+    expect(screen.getByTestId('billing-manage')).toBeInTheDocument()
+    expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
+  })
+
+  it('shows plan prices from the server', async () => {
+    mockBillingApi({ billing: { ...billingFor(), plans: [{ interval: 'month', unitAmount: 1250, currency: 'usd' }] } })
+    renderTab()
+
+    expect(await screen.findByTestId('billing-upgrade-month')).toHaveTextContent('$12.50/month')
+    expect(screen.queryByTestId('billing-upgrade-year')).not.toBeInTheDocument()
+  })
+
   it('tells the steward when they cancel Checkout', async () => {
     mockBillingApi()
     renderTab('/groups/hylo/settings/billing?checkout=canceled')
@@ -143,37 +226,45 @@ describe('BillingTab', () => {
     expect(await screen.findByTestId('billing-checkout-canceled')).toHaveTextContent('Checkout was canceled. You have not been charged.')
   })
 
-  it('confirms the upgrade once the subscription is active after returning from Checkout', async () => {
-    mockBillingApi({
-      proSubscription: { id: '5', source: 'stripe', status: 'active', active: true, interval: 'month', currentPeriodEnd: '2027-03-01T12:00:00.000Z', cancelAtPeriodEnd: false, endsAt: null, endedAt: null }
+  it('activates the subscription from the Checkout session on return, without waiting for the webhook', async () => {
+    let activated = false
+    const requests = mockBillingApi({
+      billing: () => activated ? billingFor({ subscription: stripeSub() }) : billingFor(),
+      activate: () => {
+        activated = true
+        return HttpResponse.json({ data: { activateHyloProCheckoutSession: { success: true, active: true } } })
+      }
     })
-    renderTab('/groups/hylo/settings/billing?checkout=success')
+    renderTab('/groups/hylo/settings/billing?checkout=success&session_id=cs_test_123')
 
-    expect(await screen.findByTestId('billing-checkout-success')).toHaveTextContent('Thanks for upgrading to Hylo Pro!')
+    expect(await screen.findByText('Thanks for upgrading to Hylo Pro!')).toBeInTheDocument()
+    expect(requests.ActivateHyloProCheckoutSession).toEqual([{ groupId: '1', sessionId: 'cs_test_123' }])
+    expect(screen.getByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (monthly)')
   })
 
-  it('keeps checking for the subscription after returning from Checkout until the webhook lands', async () => {
+  it('does not offer a second subscription while waiting for the new one after Checkout', async () => {
     jest.useFakeTimers()
     try {
       let active = false
-      mockGraphqlServer.use(
-        graphql.operation(({ operationName }) => {
-          if (operationName !== 'HyloProSubscriptionQuery') return HttpResponse.json({ data: {} })
-          const proSubscription = active
-            ? { id: '5', source: 'stripe', status: 'active', active: true, interval: 'month', currentPeriodEnd: '2027-03-01T12:00:00.000Z', cancelAtPeriodEnd: false, endsAt: null, endedAt: null }
-            : null
-          return HttpResponse.json({ data: { group: { id: group.id, hasPro: active, proSubscription } } })
-        })
-      )
-      renderTab('/groups/hylo/settings/billing?checkout=success')
+      mockBillingApi({
+        billing: () => active ? billingFor({ subscription: stripeSub() }) : billingFor(),
+        // The payment is still processing, so activation finds no subscription yet
+        activate: () => HttpResponse.json({ data: { activateHyloProCheckoutSession: { success: true, active: false } } })
+      })
+      renderTab('/groups/hylo/settings/billing?checkout=success&session_id=cs_test_123')
 
       expect(await screen.findByTestId('billing-checkout-success')).toHaveTextContent('will appear here in a moment')
+      expect(screen.getByTestId('billing-plan-name')).toHaveTextContent('Free')
+      expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('billing-upgrade-year')).not.toBeInTheDocument()
 
+      // The webhook lands; polling picks it up
       active = true
       jest.advanceTimersByTime(2000)
 
       expect(await screen.findByText('Thanks for upgrading to Hylo Pro!')).toBeInTheDocument()
       expect(screen.getByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (monthly)')
+      expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
     } finally {
       jest.useRealTimers()
     }

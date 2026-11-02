@@ -22,6 +22,7 @@ import {
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
 import InvitationService from '../services/InvitationService'
+import HyloProService from '../services/HyloProService'
 import {
   filterAndSortContentAccess,
   filterAndSortPosts,
@@ -1269,13 +1270,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         hasPro: g => g.hasPro(),
-        proSubscription: async g => {
+        proBilling: async g => {
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
             return null
           }
-          const sub = await HyloProSubscription.currentForGroup(g.id)
-          if (!sub) return null
-          return {
+          const { subscription, grant, hasPro } = await HyloProSubscription.billingForGroup(g.id)
+          const present = sub => sub && {
             id: sub.id,
             source: sub.get('source'),
             status: sub.get('status'),
@@ -1285,6 +1285,16 @@ export default function makeModels (userId, isAdmin, apiClient) {
             cancelAtPeriodEnd: !!(sub.get('cancel_at_period_end') || sub.get('cancel_at')),
             endsAt: sub.endsAt(),
             endedAt: sub.get('ended_at')
+          }
+          const hasOpenSubscription = HyloProSubscription.isOpenStripeSubscription(subscription)
+          return {
+            hasPro,
+            canUpgrade: !hasPro && !hasOpenSubscription,
+            canManage: !!subscription && !!subscription.get('stripe_customer_id'),
+            needsPaymentUpdate: hasOpenSubscription && HyloProSubscription.NEEDS_PAYMENT_STRIPE_STATUSES.includes(subscription.get('status')),
+            subscription: present(subscription),
+            grant: present(grant),
+            plans: HyloProService.plans()
           }
         },
         invitePath: async g => {

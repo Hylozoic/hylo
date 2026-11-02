@@ -347,4 +347,83 @@ describe('StripeController.webhook', () => {
       expect(await group.hasPro()).to.be.false
     })
   })
+
+  describe('signature verification', () => {
+    const stripeMock = new (require('stripe'))('sk_test_fake')
+    let savedWebhooks, savedEnv, triedSecrets
+
+    // Stripe signs each endpoint with its own secret; this fake accepts only `validSecret`
+    function signedWith (validSecret) {
+      triedSecrets = []
+      stripeMock.webhooks = {
+        constructEvent: (payload, signature, secret) => {
+          triedSecrets.push(secret)
+          if (secret !== validSecret) throw new Error('No signatures found matching the expected signature for payload')
+          return { id: `evt_signed_${validSecret}`, type: 'product.created', data: { object: {} } }
+        }
+      }
+    }
+
+    beforeEach(() => {
+      delete global.__stripeWebhookConstructEvent
+      savedWebhooks = stripeMock.webhooks
+      savedEnv = {
+        STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+        STRIPE_PLATFORM_WEBHOOK_SECRET: process.env.STRIPE_PLATFORM_WEBHOOK_SECRET,
+        STRIPE_WEBHOOK_BYPASS_SIGNATURE: process.env.STRIPE_WEBHOOK_BYPASS_SIGNATURE
+      }
+      delete process.env.STRIPE_WEBHOOK_BYPASS_SIGNATURE
+      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_connect'
+      process.env.STRIPE_PLATFORM_WEBHOOK_SECRET = 'whsec_platform'
+    })
+
+    afterEach(() => {
+      stripeMock.webhooks = savedWebhooks
+      for (const [key, value] of Object.entries(savedEnv)) {
+        if (value === undefined) delete process.env[key]
+        else process.env[key] = value
+      }
+    })
+
+    it('accepts events signed by the Connect endpoint secret', async () => {
+      signedWith('whsec_connect')
+      await StripeController.webhook(req, res)
+      expect(res.statusCode).to.not.equal(400)
+      expect(res.body.received).to.equal(true)
+      expect(triedSecrets).to.deep.equal(['whsec_connect'])
+    })
+
+    it('accepts events signed by the platform endpoint secret', async () => {
+      signedWith('whsec_platform')
+      await StripeController.webhook(req, res)
+      expect(res.body.received).to.equal(true)
+      expect(triedSecrets).to.deep.equal(['whsec_connect', 'whsec_platform'])
+      const stored = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: 'evt_signed_whsec_platform' }).first()
+      expect(stored).to.not.equal(undefined)
+    })
+
+    it('works with only the platform secret set', async () => {
+      delete process.env.STRIPE_WEBHOOK_SECRET
+      signedWith('whsec_platform')
+      await StripeController.webhook(req, res)
+      expect(res.body.received).to.equal(true)
+      expect(triedSecrets).to.deep.equal(['whsec_platform'])
+    })
+
+    it('rejects events no configured secret signed', async () => {
+      signedWith('whsec_someone_else')
+      await StripeController.webhook(req, res)
+      expect(res.statusCode).to.equal(400)
+      expect(res.body).to.deep.equal({ error: 'Invalid signature' })
+    })
+
+    it('fails when no secret is configured', async () => {
+      delete process.env.STRIPE_WEBHOOK_SECRET
+      delete process.env.STRIPE_PLATFORM_WEBHOOK_SECRET
+      signedWith('whsec_connect')
+      await StripeController.webhook(req, res)
+      expect(res.statusCode).to.equal(500)
+      expect(triedSecrets).to.deep.equal([])
+    })
+  })
 })

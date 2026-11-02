@@ -8,9 +8,6 @@ import HyloProService from '../../services/HyloProService'
 
 /* global Group, GroupMembership, HyloProSubscription, Responsibility */
 
-// Stripe keeps retrying payment on these, so the subscription still exists
-const UNPAID_STATUSES = ['past_due', 'unpaid']
-
 async function findGroupForBilling (userId, groupId) {
   if (!userId) throw new GraphQLError('You must be logged in to manage billing')
 
@@ -30,16 +27,24 @@ export async function createHyloProCheckoutSession (userId, { groupId, interval 
     throw new GraphQLError(`interval must be one of: ${HyloProService.INTERVALS.join(', ')}`)
   }
 
-  // A subscription that is active, or still open with a failed payment, is changed in the portal instead
+  // A subscription that isn't over yet (active, unpaid or paused) is changed in the portal instead.
+  // This is a quick check of our table; createCheckoutSession also checks Stripe itself.
   const rows = (await HyloProSubscription.forGroup(group.id)).models
-  const hasOpenSubscription = rows.some(row => row.get('source') === HyloProSubscription.SOURCE_STRIPE &&
-    (row.isActive() || UNPAID_STATUSES.includes(row.get('status'))))
-  if (hasOpenSubscription) {
-    throw new GraphQLError('This group already has a Hylo Pro subscription. Use Manage subscription to change it.')
+  if (rows.some(row => HyloProSubscription.isOpenStripeSubscription(row))) {
+    throw HyloProService.alreadySubscribedError()
   }
 
   const { url } = await HyloProService.createCheckoutSession({ group, interval, userId })
   return { url }
+}
+
+// Called by the Billing page on return from Checkout (success_url carries the session id)
+export async function activateHyloProCheckoutSession (userId, { groupId, sessionId }) {
+  const group = await findGroupForBilling(userId, groupId)
+  if (!sessionId) throw new GraphQLError('sessionId is required')
+
+  const row = await HyloProService.activateCheckoutSession({ group, sessionId })
+  return { success: true, active: !!row && row.isActive() }
 }
 
 export async function createHyloProPortalSession (userId, { groupId }) {

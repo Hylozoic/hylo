@@ -885,8 +885,8 @@ type Group {
   paywall: Boolean
   # Total number of posts in this group
   postCount: Int
-  # Hylo Pro subscription or grant shown on the Billing settings page. Null when there is none, and for anyone without the Administration responsibility
-  proSubscription: HyloProSubscription
+  # Hylo Pro billing for the group's Billing settings page. Null for anyone without the Administration responsibility
+  proBilling: HyloProBilling
   # The purpose statement for the group
   purpose: String
   # Spaces & Views: group role ids required to view/post in this Space. Null/empty = no role restriction
@@ -3819,6 +3819,8 @@ type Mutation {
   createHyloProCheckoutSession(groupId: ID!, interval: String!): HyloProSessionResult
   # Open the Stripe-hosted Customer Portal to cancel, switch between monthly and yearly, or update the card
   createHyloProPortalSession(groupId: ID!): HyloProSessionResult
+  # Sync the subscription from a completed Checkout (session_id from the success URL), so Pro activates without waiting for the webhook
+  activateHyloProCheckoutSession(groupId: ID!, sessionId: String!): HyloProActivationResult
 
   # Stripe Connect mutations
   # Create a Stripe Connected Account for a group
@@ -3965,6 +3967,39 @@ type HyloProSubscription {
   endsAt: Date
   # When an ended subscription or grant stopped
   endedAt: Date
+}
+
+# What a group's Billing settings page shows
+type HyloProBilling {
+  # Whether the group currently has Hylo Pro (a paid subscription or a manual grant)
+  hasPro: Boolean
+  # Whether the group can start a new subscription: no Pro and no subscription that isn't over yet
+  canUpgrade: Boolean
+  # Whether there is a Stripe customer whose subscription can be managed in the Customer Portal
+  canManage: Boolean
+  # True when the subscription's payment failed or is pending and the card needs updating
+  needsPaymentUpdate: Boolean
+  # The group's Stripe subscription: one that isn't over yet, else the most recent one. Shown even during a manual grant
+  subscription: HyloProSubscription
+  # An active grant from Hylo, if any
+  grant: HyloProSubscription
+  # Plans a group can subscribe to
+  plans: [HyloProPlan]
+}
+
+type HyloProPlan {
+  # 'month' or 'year'
+  interval: String
+  # Price in the smallest currency unit (cents)
+  unitAmount: Int
+  # ISO currency code, lowercase (e.g. 'usd')
+  currency: String
+}
+
+type HyloProActivationResult {
+  success: Boolean
+  # Whether the subscription gives the group Pro now (false while a payment is still processing)
+  active: Boolean
 }
 
 type HyloProSessionResult {

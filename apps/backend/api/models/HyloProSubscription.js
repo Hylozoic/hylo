@@ -12,6 +12,14 @@ const SOURCE_MANUAL = 'manual'
 
 // Stripe statuses that mean the group is paid up (or in a trial)
 const ACTIVE_STRIPE_STATUSES = ['active', 'trialing']
+// Stripe statuses where the subscription still exists but isn't paid up: a failed or pending
+// payment Stripe is still retrying (past_due, unpaid, incomplete), or a paused subscription.
+// These don't give Pro, but the group must manage that subscription rather than start another.
+const OPEN_UNPAID_STRIPE_STATUSES = ['past_due', 'unpaid', 'incomplete', 'paused']
+// Statuses where the customer has to act (pay or update the card) to keep the subscription
+const NEEDS_PAYMENT_STRIPE_STATUSES = ['past_due', 'unpaid', 'incomplete']
+// Stripe statuses a subscription can never leave
+const TERMINAL_STRIPE_STATUSES = ['canceled', 'incomplete_expired']
 
 function toDate (value) {
   if (!value) return null
@@ -47,6 +55,41 @@ function isActive (row, now = new Date()) {
   return true
 }
 
+/**
+ * Whether a Stripe row is a subscription that still exists in Stripe: active (see isActive) or
+ * open but unpaid/paused. The group can't start another subscription while one is open.
+ */
+function isOpenStripeSubscription (row, now = new Date()) {
+  if (!row) return false
+  const attrs = typeof row.get === 'function' ? row.attributes : row
+  if (attrs.source !== SOURCE_STRIPE) return false
+  if (isActive(attrs, now)) return true
+  if (attrs.ended_at && toDate(attrs.ended_at).getTime() <= toDate(now).getTime()) return false
+  return OPEN_UNPAID_STRIPE_STATUSES.includes(attrs.status)
+}
+
+/**
+ * Restricts a knex query to rows that grant Pro at `now` — the SQL version of isActive.
+ */
+function whereActive (q, now = new Date()) {
+  q.where(function () {
+    this.where(function () {
+      this.where('source', SOURCE_MANUAL)
+        .where('status', 'active')
+        .where(q2 => q2.whereNull('expires_at').orWhere('expires_at', '>', now))
+    }).orWhere(function () {
+      this.where('source', SOURCE_STRIPE)
+        .whereIn('status', ACTIVE_STRIPE_STATUSES)
+        .where(q2 => q2.whereNull('ended_at').orWhere('ended_at', '>', now))
+        .where(q2 => q2.whereNull('cancel_at').orWhere('cancel_at', '>', now))
+        .where(q2 => q2.where('cancel_at_period_end', false)
+          .orWhereNull('current_period_end')
+          .orWhere('current_period_end', '>', now))
+    })
+  })
+  return q
+}
+
 module.exports = bookshelf.Model.extend({
   tableName: 'hylo_pro_subscriptions',
   requireFetch: false,
@@ -75,8 +118,13 @@ module.exports = bookshelf.Model.extend({
   SOURCE_STRIPE,
   SOURCE_MANUAL,
   ACTIVE_STRIPE_STATUSES,
+  OPEN_UNPAID_STRIPE_STATUSES,
+  NEEDS_PAYMENT_STRIPE_STATUSES,
+  TERMINAL_STRIPE_STATUSES,
 
   isActive,
+  isOpenStripeSubscription,
+  whereActive,
 
   forGroup: function (groupId, opts = {}) {
     return this.query(q => {
@@ -87,20 +135,30 @@ module.exports = bookshelf.Model.extend({
   },
 
   groupHasPro: async function (groupId, now = new Date()) {
-    const rows = await this.forGroup(groupId)
-    return rows.models.some(row => isActive(row, now))
+    const row = await bookshelf.knex('hylo_pro_subscriptions')
+      .where('group_id', groupId)
+      .modify(q => whereActive(q, now))
+      .first('id')
+    return !!row
   },
 
   /**
-   * The row to show on the group's Billing page: an active Stripe subscription first, then any
-   * active grant, then the most recent row (e.g. a lapsed subscription), or null.
+   * What the group's Billing page shows:
+   * - subscription: the group's Stripe subscription — an open one (active, or unpaid/paused) first,
+   *   else the most recent one (e.g. lapsed), or null. Shown even while a manual grant is active,
+   *   so stewards can still see a failed payment and manage the subscription.
+   * - grant: an active manual grant, or null
+   * - hasPro: whether any row gives the group Pro
    */
-  currentForGroup: async function (groupId, now = new Date()) {
+  billingForGroup: async function (groupId, now = new Date()) {
     const rows = (await this.forGroup(groupId)).models
-    return rows.find(row => row.get('source') === SOURCE_STRIPE && isActive(row, now)) ||
-      rows.find(row => isActive(row, now)) ||
-      rows[0] ||
+    const stripeRows = rows.filter(row => row.get('source') === SOURCE_STRIPE)
+    const subscription = stripeRows.find(row => isActive(row, now)) ||
+      stripeRows.find(row => isOpenStripeSubscription(row, now)) ||
+      stripeRows[0] ||
       null
+    const grant = rows.find(row => row.get('source') === SOURCE_MANUAL && isActive(row, now)) || null
+    return { subscription, grant, hasPro: rows.some(row => isActive(row, now)) }
   },
 
   // The platform-account customer this group paid with before, so a re-subscription reuses it

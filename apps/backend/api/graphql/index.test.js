@@ -165,22 +165,36 @@ describe('graphql request handler', () => {
       }).save()
     })
 
-    const query = id => `{ group(id: "${id}") { hasPro proSubscription { source status active interval cancelAtPeriodEnd endsAt } } }`
+    const query = id => `{ group(id: "${id}") {
+      hasPro
+      proBilling {
+        hasPro canUpgrade canManage needsPaymentUpdate
+        subscription { source status active interval cancelAtPeriodEnd endsAt }
+        grant { id }
+        plans { interval unitAmount currency }
+      }
+    } }`
 
     it('shows billing details to stewards with Administration', async () => {
       req.session.userId = steward.id
       req.user = steward
       const { executionResult } = await handler.inject({ document: query(proGroup.id), serverContext: { req, res } })
       expect(executionResult.errors).to.be.undefined
-      expect(executionResult.data.group.hasPro).to.equal(true)
-      expect(executionResult.data.group.proSubscription).to.deep.include({
+      const { hasPro, proBilling } = executionResult.data.group
+      expect(hasPro).to.equal(true)
+      expect(proBilling).to.deep.include({ hasPro: true, canUpgrade: false, canManage: true, needsPaymentUpdate: false, grant: null })
+      expect(proBilling.subscription).to.deep.include({
         source: 'stripe',
         status: 'active',
         active: true,
         interval: 'year',
         cancelAtPeriodEnd: true
       })
-      expect(new Date(executionResult.data.group.proSubscription.endsAt).toISOString()).to.equal('2099-01-01T00:00:00.000Z')
+      expect(new Date(proBilling.subscription.endsAt).toISOString()).to.equal('2099-01-01T00:00:00.000Z')
+      expect(proBilling.plans).to.deep.equal([
+        { interval: 'month', unitAmount: 1000, currency: 'usd' },
+        { interval: 'year', unitAmount: 10000, currency: 'usd' }
+      ])
     })
 
     it('hides billing details from other members', async () => {
@@ -188,7 +202,7 @@ describe('graphql request handler', () => {
       req.user = member
       const { executionResult } = await handler.inject({ document: query(proGroup.id), serverContext: { req, res } })
       expect(executionResult.errors).to.be.undefined
-      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proSubscription: null })
+      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proBilling: null })
     })
   })
 

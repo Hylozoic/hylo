@@ -194,6 +194,7 @@ export {
   fulfillStripeCheckoutSession
 } from './stripe'
 export {
+  activateHyloProCheckoutSession,
   createHyloProCheckoutSession,
   createHyloProPortalSession
 } from './hyloPro'

@@ -2,15 +2,15 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import HyloProService from '../../services/HyloProService'
-import { createHyloProCheckoutSession, createHyloProPortalSession } from './hyloPro'
+import { activateHyloProCheckoutSession, createHyloProCheckoutSession, createHyloProPortalSession } from './hyloPro'
 
-/* global HyloProSubscription */
+/* global bookshelf, HyloProSubscription */
 
 const Stripe = require('stripe')
 
 // test/setup/core makes every `new Stripe()` return this one shared mock client
 const stripeMock = new Stripe('sk_test_fake')
-const STUBBED_NAMESPACES = ['products', 'prices', 'checkout', 'billingPortal']
+const STUBBED_NAMESPACES = ['products', 'prices', 'checkout', 'billingPortal', 'subscriptions', 'customers']
 
 const PRICES = [
   { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 1000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
@@ -18,7 +18,7 @@ const PRICES = [
 ]
 
 describe('Hylo Pro mutations', () => {
-  let admin, member, group, saved, checkoutCalls, portalCalls
+  let admin, member, group, saved, checkoutCalls, portalCalls, stripeSubscriptions
 
   before(async () => {
     await setup.clearDb()
@@ -35,10 +35,17 @@ describe('Hylo Pro mutations', () => {
     HyloProService.clearCache()
     checkoutCalls = []
     portalCalls = []
+    stripeSubscriptions = []
+    stripeMock.customers = { create: async () => ({ id: 'cus_created' }) }
+    stripeMock.subscriptions = {
+      list: async ({ customer }) => ({ data: stripeSubscriptions.filter(sub => sub.customer === customer) }),
+      retrieve: async id => stripeSubscriptions.find(sub => sub.id === id)
+    }
     stripeMock.products = { retrieve: async () => ({ id: 'hylo_pro', active: true }) }
     stripeMock.prices = { list: async () => ({ data: PRICES }) }
     stripeMock.checkout = {
       sessions: {
+        list: async () => ({ data: [] }),
         create: async params => {
           checkoutCalls.push(params)
           return { id: 'cs_1', url: 'https://checkout.stripe.com/c/pay/cs_1' }
@@ -62,6 +69,7 @@ describe('Hylo Pro mutations', () => {
     for (const name of STUBBED_NAMESPACES) stripeMock[name] = saved[name]
     HyloProService.clearCache()
     await HyloProSubscription.query().where({ group_id: group.id }).del()
+    await bookshelf.knex('hylo_pro_customers').where({ group_id: group.id }).del()
   })
 
   after(() => setup.clearDb())
@@ -103,10 +111,31 @@ describe('Hylo Pro mutations', () => {
       expect(checkoutCalls).to.deep.equal([])
     })
 
-    it('rejects a new subscription while a payment is failing on the existing one', async () => {
-      await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'past_due', stripe_subscription_id: 'sub_past_due', stripe_customer_id: 'cus_1' }).save()
-      await expect(createHyloProCheckoutSession(admin.id, { groupId: group.id, interval: 'month' }))
-        .to.be.rejectedWith(/already has a Hylo Pro subscription/)
+    for (const status of ['past_due', 'unpaid', 'incomplete', 'paused']) {
+      it(`rejects a new subscription while the existing one is ${status}`, async () => {
+        await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status, stripe_subscription_id: `sub_${status}`, stripe_customer_id: 'cus_1' }).save()
+        const error = await createHyloProCheckoutSession(admin.id, { groupId: group.id, interval: 'month' }).catch(e => e)
+        expect(error.message).to.match(/already has a Hylo Pro subscription/)
+        expect(error.extensions.code).to.equal('HYLO_PRO_ALREADY_SUBSCRIBED')
+        expect(checkoutCalls).to.deep.equal([])
+      })
+    }
+
+    it("rejects a new subscription when Stripe has one our table doesn't know about yet", async () => {
+      await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_known' })
+      stripeSubscriptions.push({
+        id: 'sub_webhook_pending',
+        object: 'subscription',
+        customer: 'cus_known',
+        status: 'active',
+        metadata: { hylo_pro: 'true', group_id: String(group.id) },
+        items: { data: [{ current_period_end: 1796181841, price: { id: 'price_m', recurring: { interval: 'month' } } }] }
+      })
+
+      const error = await createHyloProCheckoutSession(admin.id, { groupId: group.id, interval: 'month' }).catch(e => e)
+      expect(error.extensions.code).to.equal('HYLO_PRO_ALREADY_SUBSCRIBED')
+      expect(checkoutCalls).to.deep.equal([])
+      expect(await group.hasPro()).to.be.true
     })
 
     it('allows subscribing again after a subscription ended', async () => {
@@ -114,6 +143,34 @@ describe('Hylo Pro mutations', () => {
       const result = await createHyloProCheckoutSession(admin.id, { groupId: group.id, interval: 'month' })
       expect(result.url).to.equal('https://checkout.stripe.com/c/pay/cs_1')
       expect(checkoutCalls[0].customer).to.equal('cus_ended')
+    })
+  })
+
+  describe('activateHyloProCheckoutSession', () => {
+    it('activates Pro from the Checkout session the steward returned with', async () => {
+      const metadata = { hylo_pro: 'true', group_id: String(group.id) }
+      stripeMock.checkout = { sessions: { retrieve: async () => ({ id: 'cs_done', mode: 'subscription', subscription: 'sub_done', metadata }) } }
+      stripeSubscriptions.push({
+        id: 'sub_done',
+        object: 'subscription',
+        customer: 'cus_done',
+        status: 'active',
+        metadata,
+        items: { data: [{ current_period_end: 1796181841, price: { id: 'price_y', recurring: { interval: 'year' } } }] }
+      })
+
+      const result = await activateHyloProCheckoutSession(admin.id, { groupId: group.id, sessionId: 'cs_done' })
+
+      expect(result).to.deep.equal({ success: true, active: true })
+      expect(await group.hasPro()).to.be.true
+    })
+
+    it('rejects members without Administration', async () => {
+      let retrieved = false
+      stripeMock.checkout = { sessions: { retrieve: async () => { retrieved = true } } }
+      await expect(activateHyloProCheckoutSession(member.id, { groupId: group.id, sessionId: 'cs_done' }))
+        .to.be.rejectedWith(/permission/)
+      expect(retrieved).to.be.false
     })
   })
 

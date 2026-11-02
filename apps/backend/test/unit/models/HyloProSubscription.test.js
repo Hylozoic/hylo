@@ -68,6 +68,28 @@ describe('HyloProSubscription', () => {
     })
   })
 
+  describe('isOpenStripeSubscription', () => {
+    const isOpen = row => HyloProSubscription.isOpenStripeSubscription(row, NOW)
+
+    it('is open while active or unpaid/paused, so a second subscription is refused', () => {
+      for (const status of ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused']) {
+        expect(isOpen(stripeRow({ status })), status).to.be.true
+      }
+    })
+
+    it('is not open once the subscription is over', () => {
+      expect(isOpen(stripeRow({ status: 'canceled', ended_at: PAST }))).to.be.false
+      expect(isOpen(stripeRow({ status: 'incomplete_expired' }))).to.be.false
+      expect(isOpen(stripeRow({ cancel_at_period_end: true, current_period_end: PAST }))).to.be.false
+      expect(isOpen(stripeRow({ status: 'past_due', ended_at: PAST }))).to.be.false
+    })
+
+    it('ignores manual grants and missing rows', () => {
+      expect(isOpen(manualRow({}))).to.be.false
+      expect(isOpen(null)).to.be.false
+    })
+  })
+
   describe('for a group', () => {
     let group
 
@@ -80,17 +102,20 @@ describe('HyloProSubscription', () => {
 
     it('has no Pro without any rows', async () => {
       expect(await group.hasPro()).to.be.false
-      expect(await HyloProSubscription.currentForGroup(group.id)).to.equal(null)
+      expect(await HyloProSubscription.billingForGroup(group.id)).to.deep.equal({ subscription: null, grant: null, hasPro: false })
       expect(await HyloProSubscription.latestStripeCustomerId(group.id)).to.equal(null)
     })
 
     it('has Pro when any row is active, and shows the active Stripe subscription first', async () => {
       await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'canceled', stripe_subscription_id: 'sub_old', stripe_customer_id: 'cus_1', ended_at: PAST }).save()
-      await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active' }).save()
+      const grant = await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active' }).save()
       const paid = await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'active', stripe_subscription_id: 'sub_new', stripe_customer_id: 'cus_1' }).save()
 
       expect(await group.hasPro()).to.be.true
-      expect((await HyloProSubscription.currentForGroup(group.id)).id).to.equal(paid.id)
+      const billing = await HyloProSubscription.billingForGroup(group.id)
+      expect(billing.subscription.id).to.equal(paid.id)
+      expect(billing.grant.id).to.equal(grant.id)
+      expect(billing.hasPro).to.be.true
       expect(await HyloProSubscription.latestStripeCustomerId(group.id)).to.equal('cus_1')
     })
 
@@ -99,7 +124,51 @@ describe('HyloProSubscription', () => {
       const lapsed = await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'canceled', stripe_subscription_id: 'sub_lapsed', ended_at: PAST }).save()
 
       expect(await group.hasPro()).to.be.false
-      expect((await HyloProSubscription.currentForGroup(group.id)).id).to.equal(lapsed.id)
+      const billing = await HyloProSubscription.billingForGroup(group.id)
+      expect(billing.subscription.id).to.equal(lapsed.id)
+      expect(billing.grant).to.equal(null)
+      expect(billing.hasPro).to.be.false
+    })
+
+    it('still shows a past_due subscription while a manual grant gives Pro, so it can be managed', async () => {
+      const grant = await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active', expires_at: FUTURE }).save()
+      const pastDue = await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'past_due', stripe_subscription_id: 'sub_past_due', stripe_customer_id: 'cus_1' }).save()
+      // A newer, ended subscription doesn't hide the one still open
+      await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'canceled', stripe_subscription_id: 'sub_newer_ended', stripe_customer_id: 'cus_1', ended_at: PAST }).save()
+
+      const billing = await HyloProSubscription.billingForGroup(group.id, NOW)
+      expect(billing.hasPro).to.be.true
+      expect(billing.grant.id).to.equal(grant.id)
+      expect(billing.subscription.id).to.equal(pastDue.id)
+    })
+
+    it('decides hasPro in SQL exactly as isActive does', async () => {
+      const cases = [
+        stripeRow({ current_period_end: FUTURE }),
+        stripeRow({ status: 'trialing' }),
+        stripeRow({ status: 'past_due' }),
+        stripeRow({ status: 'paused' }),
+        stripeRow({ status: 'canceled', ended_at: PAST }),
+        stripeRow({ cancel_at_period_end: true, current_period_end: FUTURE }),
+        stripeRow({ cancel_at_period_end: true, current_period_end: PAST }),
+        stripeRow({ cancel_at_period_end: true, current_period_end: NOW }),
+        stripeRow({ cancel_at_period_end: true }),
+        stripeRow({ cancel_at: PAST }),
+        stripeRow({ cancel_at: FUTURE }),
+        stripeRow({ current_period_end: PAST }),
+        stripeRow({ ended_at: PAST }),
+        stripeRow({ ended_at: FUTURE }),
+        manualRow({}),
+        manualRow({ expires_at: FUTURE }),
+        manualRow({ expires_at: PAST }),
+        manualRow({ status: 'canceled' })
+      ]
+      for (const [i, attrs] of cases.entries()) {
+        const caseGroup = await factories.group().save()
+        await HyloProSubscription.forge({ group_id: caseGroup.id, stripe_subscription_id: attrs.source === 'stripe' ? `sub_case_${i}` : null, ...attrs }).save()
+        expect(await HyloProSubscription.groupHasPro(caseGroup.id, NOW), JSON.stringify(attrs))
+          .to.equal(HyloProSubscription.isActive(attrs, NOW))
+      }
     })
 
     it('reports when access ends', async () => {

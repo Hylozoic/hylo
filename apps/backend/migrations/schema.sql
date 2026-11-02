@@ -1676,6 +1676,38 @@ ALTER SEQUENCE public.groups_suggested_skills_id_seq OWNED BY public.groups_sugg
 
 
 --
+-- Name: hylo_pro_customers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.hylo_pro_customers (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    stripe_customer_id character varying(255) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: hylo_pro_customers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.hylo_pro_customers_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: hylo_pro_customers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.hylo_pro_customers_id_seq OWNED BY public.hylo_pro_customers.id;
+
+
+--
 -- Name: hylo_pro_subscriptions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7387,6 +7419,45 @@ ALTER TABLE ONLY public.zapier_triggers_groups
 
 ALTER TABLE ONLY public.zapier_triggers
     ADD CONSTRAINT zapier_triggers_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: hylo_pro_customers id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hylo_pro_customers ALTER COLUMN id SET DEFAULT nextval('public.hylo_pro_customers_id_seq'::regclass);
+
+
+--
+-- Name: hylo_pro_customers hylo_pro_customers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hylo_pro_customers
+    ADD CONSTRAINT hylo_pro_customers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: hylo_pro_customers hylo_pro_customers_group_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hylo_pro_customers
+    ADD CONSTRAINT hylo_pro_customers_group_id_unique UNIQUE (group_id);
+
+
+--
+-- Name: hylo_pro_customers hylo_pro_customers_stripe_customer_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hylo_pro_customers
+    ADD CONSTRAINT hylo_pro_customers_stripe_customer_id_unique UNIQUE (stripe_customer_id);
+
+
+--
+-- Name: hylo_pro_customers hylo_pro_customers_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hylo_pro_customers
+    ADD CONSTRAINT hylo_pro_customers_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
 
 
 --

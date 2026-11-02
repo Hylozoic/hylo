@@ -6,14 +6,13 @@ import { AlertCircle, CheckCircle2, Sparkles } from 'lucide-react'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { fetchProSubscription, createProCheckoutSession, createProPortalSession } from './BillingTab.store'
+import { activateProCheckoutSession, createProCheckoutSession, createProPortalSession, fetchProBilling } from './BillingTab.store'
 
-// Keep in sync with PLANS in apps/backend/api/services/HyloProService.js
-const PLAN_PRICES = { month: 10, year: 100 }
-// After Checkout the subscription arrives by webhook, so poll briefly for it
+// On return from Checkout the page activates the subscription right away; if Stripe is still
+// processing the payment, poll briefly (the webhook also syncs it)
 const ACTIVATION_POLL_MS = 2000
 const ACTIVATION_POLL_ATTEMPTS = 15
-const UNPAID_STATUSES = ['past_due', 'unpaid']
+const ALREADY_SUBSCRIBED = 'HYLO_PRO_ALREADY_SUBSCRIBED'
 
 // Redux GraphQL actions can resolve with an error or reject; treat both as failure
 async function runGraphql (dispatch, action, field) {
@@ -22,13 +21,19 @@ async function runGraphql (dispatch, action, field) {
   return result?.payload?.data?.[field]
 }
 
+// GraphQL errors from the server carry a path or extensions; anything else is a network problem
+function isServerError (error) {
+  return !!(error?.extensions || error?.path)
+}
+
 export default function BillingTab ({ group }) {
   const { t, i18n } = useTranslation()
   const dispatch = useDispatch()
   const [searchParams] = useSearchParams()
   const checkoutResult = searchParams.get('checkout')
+  const checkoutSessionId = searchParams.get('session_id')
 
-  const [subscription, setSubscription] = useState(null)
+  const [billing, setBilling] = useState(null)
   const [loaded, setLoaded] = useState(false)
   const [redirecting, setRedirecting] = useState(null)
   const [error, setError] = useState(null)
@@ -45,14 +50,25 @@ export default function BillingTab ({ group }) {
     })
   }, [])
 
+  // Coming back from Stripe restores this page from the back/forward cache with the buttons
+  // still disabled; re-enable them
+  useEffect(() => {
+    const onPageShow = event => { if (event.persisted) setRedirecting(null) }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [])
+
+  const connectionError = t('Oh no, something went wrong! Check your internet connection and try again')
+
   const load = useCallback(async () => {
     try {
-      const data = await runGraphql(dispatch, fetchProSubscription(group.id), 'group')
-      setSubscription(data?.proSubscription || null)
+      const data = await runGraphql(dispatch, fetchProBilling(group.id), 'group')
+      const next = data?.proBilling || null
+      setBilling(next)
       setError(null)
-      return data?.proSubscription || null
+      return next
     } catch (e) {
-      setError(t('Oh no, something went wrong! Check your internet connection and try again'))
+      setError(connectionError)
       return null
     } finally {
       setLoaded(true)
@@ -69,7 +85,7 @@ export default function BillingTab ({ group }) {
       const current = await load()
       if (cancelled) return
       attempts++
-      if (checkoutResult === 'success' && !current?.active) {
+      if (checkoutResult === 'success' && !current?.hasPro) {
         if (attempts < ACTIVATION_POLL_ATTEMPTS) {
           timer = setTimeout(poll, ACTIVATION_POLL_MS)
         } else {
@@ -77,13 +93,24 @@ export default function BillingTab ({ group }) {
         }
       }
     }
-    poll()
+
+    const start = async () => {
+      if (checkoutResult === 'success' && checkoutSessionId) {
+        // Best effort: if this fails, polling still picks up the webhook's sync
+        try {
+          await runGraphql(dispatch, activateProCheckoutSession(group.id, checkoutSessionId), 'activateHyloProCheckoutSession')
+        } catch (e) {}
+        if (cancelled) return
+      }
+      poll()
+    }
+    start()
 
     return () => {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [group?.id, checkoutResult, load])
+  }, [group?.id, checkoutResult, checkoutSessionId, load])
 
   const redirectTo = async (key, action, field) => {
     setRedirecting(key)
@@ -94,7 +121,13 @@ export default function BillingTab ({ group }) {
       window.location.href = session.url
     } catch (e) {
       setRedirecting(null)
-      setError(t('Oh no, something went wrong! Check your internet connection and try again'))
+      if (e?.extensions?.code === ALREADY_SUBSCRIBED) {
+        // The server has just synced that subscription; show it and its Manage button
+        await load()
+        setError(t('This group already has a Hylo Pro subscription. Use Manage subscription to change it.'))
+      } else {
+        setError(isServerError(e) && e.message ? e.message : connectionError)
+      }
     }
   }
 
@@ -104,28 +137,34 @@ export default function BillingTab ({ group }) {
   if (!group || !loaded) return <Loading />
 
   const formatDate = value => value ? new Date(value).toLocaleDateString(i18n.language, { dateStyle: 'long' }) : ''
-  const formatPrice = amount => new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount)
+  const formatPrice = plan => new Intl.NumberFormat(i18n.language, {
+    style: 'currency',
+    currency: (plan.currency || 'usd').toUpperCase(),
+    maximumFractionDigits: plan.unitAmount % 100 === 0 ? 0 : 2
+  }).format(plan.unitAmount / 100)
 
-  const active = !!subscription?.active
-  const isStripe = subscription?.source === 'stripe'
-  const isUnpaid = isStripe && UNPAID_STATUSES.includes(subscription.status)
-  const canUpgrade = !active && !isUnpaid
-  const canManage = isStripe
+  const subscription = billing?.subscription
+  const grant = billing?.grant
+  const hasPro = !!billing?.hasPro
+  const paidActive = !!subscription?.active
+  // Right after Checkout, wait for the new subscription instead of offering a second one
+  const awaitingActivation = checkoutResult === 'success' && !hasPro && !activationTimedOut
+  const showUpgrade = !!billing?.canUpgrade && !awaitingActivation
+  const plans = billing?.plans || []
 
   let planName = t('Free')
-  if (active && isStripe) planName = subscription.interval === 'year' ? t('Hylo Pro (yearly)') : t('Hylo Pro (monthly)')
-  if (active && !isStripe) planName = t('Hylo Pro (granted by Hylo)')
-
   let planDetail = null
-  if (active && isStripe) {
+  if (paidActive) {
+    planName = subscription.interval === 'year' ? t('Hylo Pro (yearly)') : t('Hylo Pro (monthly)')
     planDetail = subscription.cancelAtPeriodEnd
       ? t('Cancels on {{date}}. Pro features stay on until then.', { date: formatDate(subscription.endsAt || subscription.currentPeriodEnd) })
       : subscription.currentPeriodEnd && t('Renews on {{date}}', { date: formatDate(subscription.currentPeriodEnd) })
-  } else if (active) {
-    planDetail = subscription.endsAt
-      ? t('Pro access until {{date}}', { date: formatDate(subscription.endsAt) })
+  } else if (grant) {
+    planName = t('Hylo Pro (granted by Hylo)')
+    planDetail = grant.endsAt
+      ? t('Pro access until {{date}}', { date: formatDate(grant.endsAt) })
       : t('No end date')
-  } else if (subscription?.endedAt && !isUnpaid) {
+  } else if (subscription?.endedAt && !billing?.needsPaymentUpdate) {
     planDetail = t('Your Hylo Pro subscription ended on {{date}}.', { date: formatDate(subscription.endedAt) })
   }
 
@@ -140,7 +179,7 @@ export default function BillingTab ({ group }) {
         <div className='flex items-start gap-2 rounded-lg bg-selected/20 p-3 text-foreground' data-testid='billing-checkout-success'>
           <CheckCircle2 className='w-5 h-5 shrink-0 text-selected' />
           <span>
-            {active
+            {hasPro
               ? t('Thanks for upgrading to Hylo Pro!')
               : activationTimedOut
                 ? t('Thanks for upgrading! It is taking longer than usual to confirm your payment. Refresh this page in a few minutes.')
@@ -149,54 +188,52 @@ export default function BillingTab ({ group }) {
         </div>
       )}
 
-      {checkoutResult === 'canceled' && !active && (
+      {checkoutResult === 'canceled' && !hasPro && (
         <div className='rounded-lg bg-foreground/5 p-3 text-foreground/70' data-testid='billing-checkout-canceled'>
           {t('Checkout was canceled. You have not been charged.')}
         </div>
       )}
 
-      {isUnpaid && (
+      {billing?.needsPaymentUpdate && (
         <div className='flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-foreground' data-testid='billing-payment-failed'>
           <AlertCircle className='w-5 h-5 shrink-0 text-destructive' />
           <span>{t('Your last payment failed. Update your payment method to keep Hylo Pro.')}</span>
         </div>
       )}
 
-      {error && <p className='text-destructive'>{error}</p>}
+      {error && <p className='text-destructive' data-testid='billing-error'>{error}</p>}
 
       <div className='rounded-xl border-2 border-foreground/10 p-4 flex flex-col gap-1'>
         <span className='text-xs uppercase tracking-wide text-foreground/50'>{t('Current plan')}</span>
         <div className='flex items-center gap-2 text-lg font-bold text-foreground' data-testid='billing-plan-name'>
-          {active && <Sparkles className='w-5 h-5 text-selected' />}
+          {hasPro && <Sparkles className='w-5 h-5 text-selected' />}
           {planName}
         </div>
         {planDetail && <p className='text-foreground/70' data-testid='billing-plan-detail'>{planDetail}</p>}
       </div>
 
-      {canUpgrade && (
+      {showUpgrade && plans.length > 0 && (
         <div className='flex flex-col sm:flex-row gap-3'>
-          <Button
-            className='flex-1 min-w-0 h-auto py-3 flex flex-col items-center'
-            disabled={!!redirecting}
-            onClick={() => upgrade('month')}
-            data-testid='billing-upgrade-month'
-          >
-            <span className='font-bold'>{t('Upgrade monthly')}</span>
-            <span className='text-sm opacity-80'>{t('{{price}}/month', { price: formatPrice(PLAN_PRICES.month) })}</span>
-          </Button>
-          <Button
-            className='flex-1 min-w-0 h-auto py-3 flex flex-col items-center'
-            disabled={!!redirecting}
-            onClick={() => upgrade('year')}
-            data-testid='billing-upgrade-year'
-          >
-            <span className='font-bold'>{t('Upgrade yearly')}</span>
-            <span className='text-sm opacity-80'>{t('{{price}}/year', { price: formatPrice(PLAN_PRICES.year) })}</span>
-          </Button>
+          {plans.map(plan => (
+            <Button
+              key={plan.interval}
+              className='flex-1 min-w-0 h-auto py-3 flex flex-col items-center'
+              disabled={!!redirecting}
+              onClick={() => upgrade(plan.interval)}
+              data-testid={`billing-upgrade-${plan.interval}`}
+            >
+              <span className='font-bold'>{plan.interval === 'year' ? t('Upgrade yearly') : t('Upgrade monthly')}</span>
+              <span className='text-sm opacity-80'>
+                {plan.interval === 'year'
+                  ? t('{{price}}/year', { price: formatPrice(plan) })
+                  : t('{{price}}/month', { price: formatPrice(plan) })}
+              </span>
+            </Button>
+          ))}
         </div>
       )}
 
-      {canManage && (
+      {billing?.canManage && (
         <div className='flex flex-col gap-2'>
           <Button
             variant='outline'

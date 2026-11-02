@@ -599,21 +599,29 @@ module.exports = {
           return res.status(400).json({ error: 'Missing signature' })
         }
 
-        if (!process.env.STRIPE_WEBHOOK_SECRET) {
-          console.error('STRIPE_WEBHOOK_SECRET environment variable is not set')
+        // Stripe signs each webhook endpoint with its own secret. The Connect endpoint (events from
+        // connected accounts) uses STRIPE_WEBHOOK_SECRET; a separate platform ("Your account")
+        // endpoint, which sends Hylo Pro events, can point at this same URL with
+        // STRIPE_PLATFORM_WEBHOOK_SECRET. Accept a signature from either.
+        const secrets = [process.env.STRIPE_WEBHOOK_SECRET, process.env.STRIPE_PLATFORM_WEBHOOK_SECRET].filter(Boolean)
+        if (secrets.length === 0) {
+          console.error('Neither STRIPE_WEBHOOK_SECRET nor STRIPE_PLATFORM_WEBHOOK_SECRET is set')
           return res.status(500).json({ error: 'Webhook secret not configured' })
         }
 
         // Verify webhook signature
         // req.body should be a Buffer from bodyParser.raw() middleware
-        try {
-          event = stripe.webhooks.constructEvent(
-            req.body,
-            signature,
-            process.env.STRIPE_WEBHOOK_SECRET
-          )
-        } catch (err) {
-          console.error('Webhook signature verification failed:', err.message)
+        let lastError
+        for (const secret of secrets) {
+          try {
+            event = stripe.webhooks.constructEvent(req.body, signature, secret)
+            break
+          } catch (err) {
+            lastError = err
+          }
+        }
+        if (!event) {
+          console.error('Webhook signature verification failed:', lastError.message)
           return res.status(400).json({ error: 'Invalid signature' })
         }
       }
