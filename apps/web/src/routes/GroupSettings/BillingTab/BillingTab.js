@@ -137,11 +137,15 @@ export default function BillingTab ({ group }) {
   if (!group || !loaded) return <Loading />
 
   const formatDate = value => value ? new Date(value).toLocaleDateString(i18n.language, { dateStyle: 'long' }) : ''
-  const formatPrice = plan => new Intl.NumberFormat(i18n.language, {
-    style: 'currency',
-    currency: (plan.currency || 'usd').toUpperCase(),
-    maximumFractionDigits: plan.unitAmount % 100 === 0 ? 0 : 2
-  }).format(plan.unitAmount / 100)
+  const formatPrice = plan => {
+    const digits = plan.unitAmount % 100 === 0 ? 0 : 2
+    return new Intl.NumberFormat(i18n.language, {
+      style: 'currency',
+      currency: (plan.currency || 'usd').toUpperCase(),
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    }).format(plan.unitAmount / 100)
+  }
 
   const subscription = billing?.subscription
   const grant = billing?.grant
