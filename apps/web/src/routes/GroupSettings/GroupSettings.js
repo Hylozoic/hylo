@@ -20,6 +20,7 @@ import RelatedGroupsTab from './RelatedGroupsTab'
 import ResponsibilitiesTab from './ResponsibilitiesTab'
 import ExportDataTab from './ExportDataTab'
 import PaidContentTab from './PaidContentTab'
+import BillingTab from './BillingTab'
 import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
@@ -153,6 +154,7 @@ export default function GroupSettings () {
     canAdminister && { name: t('Export Data'), path: 'export' },
     canAdminister && { name: t('Appearance & Layout'), path: 'appearance' },
     canAdminister && { name: t('Paid Content'), path: 'paid-content' },
+    canAdminister && { name: t('Billing'), path: 'billing' },
     canAdminister && { name: t('Delete'), path: 'delete' }
   ])
 
@@ -238,6 +240,12 @@ export default function GroupSettings () {
     component: <PaidContentTab group={group} currentUser={currentUser} />
   }
 
+  const billingSettings = {
+    name: t('Billing'),
+    path: 'billing',
+    component: <BillingTab group={group} />
+  }
+
   const deleteSettings = {
     name: t('Delete'),
     path: 'delete',
@@ -261,6 +269,7 @@ export default function GroupSettings () {
         canAdminister ? exportSettings : null,
         canAdminister ? appearanceSettings : null,
         canAdminister ? paidContentSettings : null,
+        canAdminister ? billingSettings : null,
         canAdminister ? deleteSettings : null
       ])}
     />

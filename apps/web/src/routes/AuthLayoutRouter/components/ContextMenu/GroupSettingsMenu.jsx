@@ -64,6 +64,7 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
     canAdminister && { title: 'Export Data', url: 'settings/export' },
     canAdminister && { title: 'Appearance & Layout', url: 'settings/appearance' },
     canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
+    canAdminister && { title: 'Billing', url: 'settings/billing' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers, isSpace])
 

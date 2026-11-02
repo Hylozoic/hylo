@@ -194,6 +194,10 @@ export {
   fulfillStripeCheckoutSession
 } from './stripe'
 export {
+  createHyloProCheckoutSession,
+  createHyloProPortalSession
+} from './hyloPro'
+export {
   membershipChangeCommit
 } from './membershipChange'
 export {

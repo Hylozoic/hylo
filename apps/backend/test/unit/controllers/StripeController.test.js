@@ -2,7 +2,7 @@
 const root = require('root-path')
 const setup = require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
-/* global ContentAccess, StripeProduct, SubscriptionChangeEvent */
+/* global ContentAccess, StripeAccount, StripeProduct, SubscriptionChangeEvent */
 
 let currentWebhookEvent = null
 
@@ -245,5 +245,106 @@ describe('StripeController.webhook', () => {
     expect(payload.applied).to.equal(true)
     expect(payload.appliedFromWebhookType).to.equal('customer.subscription.deleted')
     expect(payload.appliedFromWebhookEventId).to.equal('evt_lifetime_deleted')
+  })
+
+  describe('Hylo Pro events', () => {
+    const stripeMock = new (require('stripe'))('sk_test_fake')
+    let group, savedSubscriptions, savedHandlers
+
+    beforeEach(async () => {
+      group = await factories.group().save()
+      savedSubscriptions = stripeMock.subscriptions
+      savedHandlers = {
+        handleSubscriptionUpdated: StripeController.handleSubscriptionUpdated,
+        handleCheckoutSessionCompleted: StripeController.handleCheckoutSessionCompleted
+      }
+      StripeController.handleSubscriptionUpdated = spy(async () => {})
+      StripeController.handleCheckoutSessionCompleted = spy(async () => {})
+    })
+
+    afterEach(() => {
+      stripeMock.subscriptions = savedSubscriptions
+      Object.assign(StripeController, savedHandlers)
+    })
+
+    function proSubscription (overrides = {}) {
+      return {
+        id: 'sub_pro_webhook',
+        object: 'subscription',
+        status: 'active',
+        customer: 'cus_pro',
+        cancel_at_period_end: false,
+        metadata: { hylo_pro: 'true', group_id: String(group.id) },
+        items: { data: [{ current_period_end: 1796181841, price: { id: 'price_y', recurring: { interval: 'year' } } }] },
+        ...overrides
+      }
+    }
+
+    it('syncs platform Pro events and keeps them away from the Connect handlers', async () => {
+      const retrieved = []
+      stripeMock.subscriptions = {
+        retrieve: async id => {
+          retrieved.push(id)
+          return proSubscription()
+        }
+      }
+      currentWebhookEvent = {
+        id: 'evt_pro_updated',
+        type: 'customer.subscription.updated',
+        data: { object: proSubscription() }
+      }
+
+      await StripeController.webhook(req, res)
+
+      expect(res.body.received).to.equal(true)
+      expect(retrieved).to.deep.equal(['sub_pro_webhook'])
+      expect(StripeController.handleSubscriptionUpdated).to.not.have.been.called()
+      expect(await group.hasPro()).to.be.true
+
+      const stored = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: 'evt_pro_updated' }).first()
+      expect(stored).to.not.equal(undefined)
+    })
+
+    it('skips a Pro event already processed', async () => {
+      await bookshelf.knex('stripe_webhook_processed_events').insert({ stripe_event_id: 'evt_pro_dup' })
+      const retrieved = []
+      stripeMock.subscriptions = { retrieve: async id => { retrieved.push(id); return proSubscription() } }
+      currentWebhookEvent = { id: 'evt_pro_dup', type: 'customer.subscription.updated', data: { object: proSubscription() } }
+
+      await StripeController.webhook(req, res)
+
+      expect(res.body.duplicate).to.equal(true)
+      expect(retrieved).to.deep.equal([])
+    })
+
+    it('does not mark a Pro event processed when syncing fails, so Stripe retries it', async () => {
+      stripeMock.subscriptions = { retrieve: async () => { throw new Error('stripe down') } }
+      currentWebhookEvent = { id: 'evt_pro_fail', type: 'customer.subscription.updated', data: { object: proSubscription() } }
+
+      await StripeController.webhook(req, res)
+
+      expect(res.statusCode).to.equal(400)
+      const stored = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: 'evt_pro_fail' }).first()
+      expect(stored).to.equal(undefined)
+    })
+
+    it('sends Connect events to the Connect handlers even if their metadata looks like Pro', async () => {
+      await StripeAccount.forge({ stripe_account_external_id: 'acct_known_pro_lookalike' }).save()
+      const retrieved = []
+      stripeMock.subscriptions = { retrieve: async id => { retrieved.push(id); return proSubscription() } }
+      currentWebhookEvent = {
+        id: 'evt_connect_lookalike',
+        type: 'customer.subscription.updated',
+        account: 'acct_known_pro_lookalike',
+        data: { object: proSubscription() }
+      }
+
+      await StripeController.webhook(req, res)
+
+      expect(res.body.received).to.equal(true)
+      expect(StripeController.handleSubscriptionUpdated).to.have.been.called()
+      expect(retrieved).to.deep.equal([])
+      expect(await group.hasPro()).to.be.false
+    })
   })
 })

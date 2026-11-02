@@ -1,4 +1,4 @@
-/* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost */
+/* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost HyloProSubscription */
 import DataLoader from 'dataloader'
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
@@ -1268,6 +1268,25 @@ export default function makeModels (userId, isAdmin, apiClient) {
           return membership ? !!membership.get('active') : null
         },
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
+        hasPro: g => g.hasPro(),
+        proSubscription: async g => {
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
+            return null
+          }
+          const sub = await HyloProSubscription.currentForGroup(g.id)
+          if (!sub) return null
+          return {
+            id: sub.id,
+            source: sub.get('source'),
+            status: sub.get('status'),
+            active: sub.isActive(),
+            interval: sub.get('interval'),
+            currentPeriodEnd: sub.get('current_period_end'),
+            cancelAtPeriodEnd: !!(sub.get('cancel_at_period_end') || sub.get('cancel_at')),
+            endsAt: sub.endsAt(),
+            endedAt: sub.get('ended_at')
+          }
+        },
         invitePath: async g => {
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
             return null

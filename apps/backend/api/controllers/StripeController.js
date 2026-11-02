@@ -9,6 +9,7 @@
  */
 
 const StripeService = require('../services/StripeService')
+const HyloProService = require('../services/HyloProService')
 const Stripe = require('stripe')
 const { parseJsonObject: parseAccessGrants } = require('../../lib/stripeOfferingMetadata')
 const { grantCheckoutSessionAccess } = require('../../lib/grantCheckoutSessionAccess')
@@ -631,6 +632,14 @@ module.exports = {
           console.log(`Duplicate Stripe webhook event ${event.id}, skipping handlers`)
         }
         return res.json({ received: true, duplicate: true })
+      }
+
+      // Hylo Pro: a group's subscription to Hylo on the platform account (never a Connect event).
+      // Handled separately so these never reach the Connect content-access handlers below.
+      if (HyloProService.isHyloProEvent(event)) {
+        await HyloProService.handleWebhookEvent(event)
+        await markStripeWebhookProcessed(event.id)
+        return res.json({ received: true })
       }
 
       // Handle different event types

@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-expressions */
+/* global HyloProSubscription */
 import { randomUUID } from 'node:crypto'
 import jwt from 'jsonwebtoken'
 import { createRequestHandler, makeMutations, makeAuthenticatedQueries } from './index'
@@ -138,6 +139,56 @@ describe('graphql request handler', () => {
         other: { canMessage: true },
         self: { canMessage: false }
       })
+    })
+  })
+
+  describe('Group Hylo Pro fields', () => {
+    let proGroup, steward, member
+
+    before(async () => {
+      proGroup = await factories.group().save()
+      steward = await factories.user().save()
+      await steward.joinGroup(proGroup, { assignAdministrator: true })
+      // A separate member, so other specs' queries of `user`'s memberships are unaffected
+      member = await factories.user().save()
+      await member.joinGroup(proGroup)
+      await HyloProSubscription.forge({
+        group_id: proGroup.id,
+        source: 'stripe',
+        status: 'active',
+        interval: 'year',
+        stripe_subscription_id: 'sub_graphql_pro',
+        stripe_customer_id: 'cus_graphql_pro',
+        cancel_at_period_end: true,
+        cancel_at: new Date('2099-01-01T00:00:00Z'),
+        current_period_end: new Date('2099-01-01T00:00:00Z')
+      }).save()
+    })
+
+    const query = id => `{ group(id: "${id}") { hasPro proSubscription { source status active interval cancelAtPeriodEnd endsAt } } }`
+
+    it('shows billing details to stewards with Administration', async () => {
+      req.session.userId = steward.id
+      req.user = steward
+      const { executionResult } = await handler.inject({ document: query(proGroup.id), serverContext: { req, res } })
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.group.hasPro).to.equal(true)
+      expect(executionResult.data.group.proSubscription).to.deep.include({
+        source: 'stripe',
+        status: 'active',
+        active: true,
+        interval: 'year',
+        cancelAtPeriodEnd: true
+      })
+      expect(new Date(executionResult.data.group.proSubscription.endsAt).toISOString()).to.equal('2099-01-01T00:00:00.000Z')
+    })
+
+    it('hides billing details from other members', async () => {
+      req.session.userId = member.id
+      req.user = member
+      const { executionResult } = await handler.inject({ document: query(proGroup.id), serverContext: { req, res } })
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proSubscription: null })
     })
   })
 
