@@ -7,6 +7,14 @@ import factories from '../../setup/factories'
 const NOW = new Date('2026-06-15T12:00:00Z')
 const PAST = new Date('2026-06-01T00:00:00Z')
 const FUTURE = new Date('2026-07-01T00:00:00Z')
+const DAY = 24 * 60 * 60 * 1000
+// A period that ended within the grace period, and one that ended exactly at its edge
+// (functions: model globals aren't loaded yet when this file is required)
+const grace = () => HyloProSubscription.STRIPE_PERIOD_GRACE_DAYS * DAY
+const RECENT = () => new Date(NOW.getTime() - grace() + DAY)
+const GRACE_EDGE = () => new Date(NOW.getTime() - grace())
+// For tests that use the real clock
+const FAR_FUTURE = new Date('2100-01-01T00:00:00Z')
 
 const stripeRow = attrs => ({ source: 'stripe', status: 'active', cancel_at_period_end: false, ...attrs })
 const manualRow = attrs => ({ source: 'manual', status: 'active', ...attrs })
@@ -39,12 +47,25 @@ describe('HyloProSubscription', () => {
       expect(isActive(stripeRow({ cancel_at_period_end: true, current_period_end: NOW }))).to.be.false
     })
 
-    it('stays active past the period end when it renews (renewal webhooks move the period forward)', () => {
-      expect(isActive(stripeRow({ current_period_end: PAST }))).to.be.true
+    it('stays active for a grace period past the period end, while the renewal webhook arrives', () => {
+      expect(isActive(stripeRow({ current_period_end: RECENT() }))).to.be.true
+    })
+
+    it('is not active once the grace period has passed, so a missed deletion does not mean Pro forever', () => {
+      expect(isActive(stripeRow({ current_period_end: GRACE_EDGE() }))).to.be.false
+      expect(isActive(stripeRow({ current_period_end: PAST }))).to.be.false
+    })
+
+    it('gets no grace period after a cancellation at period end', () => {
+      expect(isActive(stripeRow({ cancel_at_period_end: true, current_period_end: RECENT() }))).to.be.false
+    })
+
+    it('is not active without a period end', () => {
+      expect(isActive(stripeRow({}))).to.be.false
     })
 
     it('is not active once the subscription has ended', () => {
-      expect(isActive(stripeRow({ ended_at: PAST }))).to.be.false
+      expect(isActive(stripeRow({ ended_at: PAST, current_period_end: FUTURE }))).to.be.false
     })
 
     it('handles manual grants with and without an end date', () => {
@@ -73,7 +94,7 @@ describe('HyloProSubscription', () => {
 
     it('is open while active or unpaid/paused, so a second subscription is refused', () => {
       for (const status of ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused']) {
-        expect(isOpen(stripeRow({ status })), status).to.be.true
+        expect(isOpen(stripeRow({ status, current_period_end: FUTURE })), status).to.be.true
       }
     })
 
@@ -82,6 +103,8 @@ describe('HyloProSubscription', () => {
       expect(isOpen(stripeRow({ status: 'incomplete_expired' }))).to.be.false
       expect(isOpen(stripeRow({ cancel_at_period_end: true, current_period_end: PAST }))).to.be.false
       expect(isOpen(stripeRow({ status: 'past_due', ended_at: PAST }))).to.be.false
+      // An active row we stopped trusting (period long over) no longer blocks Checkout, which re-checks Stripe
+      expect(isOpen(stripeRow({ current_period_end: PAST }))).to.be.false
     })
 
     it('ignores manual grants and missing rows', () => {
@@ -103,20 +126,18 @@ describe('HyloProSubscription', () => {
     it('has no Pro without any rows', async () => {
       expect(await group.hasPro()).to.be.false
       expect(await HyloProSubscription.billingForGroup(group.id)).to.deep.equal({ subscription: null, grant: null, hasPro: false })
-      expect(await HyloProSubscription.latestStripeCustomerId(group.id)).to.equal(null)
     })
 
     it('has Pro when any row is active, and shows the active Stripe subscription first', async () => {
       await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'canceled', stripe_subscription_id: 'sub_old', stripe_customer_id: 'cus_1', ended_at: PAST }).save()
       const grant = await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active' }).save()
-      const paid = await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'active', stripe_subscription_id: 'sub_new', stripe_customer_id: 'cus_1' }).save()
+      const paid = await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'active', stripe_subscription_id: 'sub_new', stripe_customer_id: 'cus_1', current_period_end: FAR_FUTURE }).save()
 
       expect(await group.hasPro()).to.be.true
       const billing = await HyloProSubscription.billingForGroup(group.id)
       expect(billing.subscription.id).to.equal(paid.id)
       expect(billing.grant.id).to.equal(grant.id)
       expect(billing.hasPro).to.be.true
-      expect(await HyloProSubscription.latestStripeCustomerId(group.id)).to.equal('cus_1')
     })
 
     it('shows the latest lapsed row when nothing is active', async () => {
@@ -146,6 +167,11 @@ describe('HyloProSubscription', () => {
       const cases = [
         stripeRow({ current_period_end: FUTURE }),
         stripeRow({ status: 'trialing' }),
+        stripeRow({ status: 'trialing', current_period_end: FUTURE }),
+        stripeRow({}),
+        stripeRow({ current_period_end: RECENT() }),
+        stripeRow({ current_period_end: GRACE_EDGE() }),
+        stripeRow({ cancel_at_period_end: true, current_period_end: RECENT() }),
         stripeRow({ status: 'past_due' }),
         stripeRow({ status: 'paused' }),
         stripeRow({ status: 'canceled', ended_at: PAST }),
@@ -155,9 +181,11 @@ describe('HyloProSubscription', () => {
         stripeRow({ cancel_at_period_end: true }),
         stripeRow({ cancel_at: PAST }),
         stripeRow({ cancel_at: FUTURE }),
+        stripeRow({ cancel_at: FUTURE, current_period_end: FUTURE }),
         stripeRow({ current_period_end: PAST }),
         stripeRow({ ended_at: PAST }),
         stripeRow({ ended_at: FUTURE }),
+        stripeRow({ ended_at: FUTURE, current_period_end: FUTURE }),
         manualRow({}),
         manualRow({ expires_at: FUTURE }),
         manualRow({ expires_at: PAST }),

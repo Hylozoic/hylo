@@ -204,6 +204,16 @@ describe('graphql request handler', () => {
       expect(executionResult.errors).to.be.undefined
       expect(executionResult.data.group).to.deep.equal({ hasPro: true, proBilling: null })
     })
+
+    it('has no billing for spaces, even for their stewards', async () => {
+      const space = await factories.group({ type: 'space', parent_id: proGroup.id }).save()
+      await steward.joinGroup(space, { assignAdministrator: true })
+      req.session.userId = steward.id
+      req.user = steward
+      const { executionResult } = await handler.inject({ document: query(space.id), serverContext: { req, res } })
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.group.proBilling).to.equal(null)
+    })
   })
 
   describe('retained paid access for former members', () => {

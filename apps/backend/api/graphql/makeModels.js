@@ -1271,6 +1271,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         hasPro: g => g.hasPro(),
         proBilling: async g => {
+          // Hylo Pro is for groups; spaces have no billing of their own
+          if (g.get('type') === 'space') return null
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
             return null
           }

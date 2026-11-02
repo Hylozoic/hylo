@@ -577,6 +577,9 @@ module.exports = {
   webhook: async function (req, res) {
     try {
       let event
+      // True when the platform endpoint's secret verified the event. That endpoint only exists for
+      // Hylo Pro; every other event it sends is acknowledged without running the Connect handlers.
+      let fromPlatformEndpoint = false
       if (global.__stripeWebhookConstructEvent) {
         event = global.__stripeWebhookConstructEvent(req.body, req.headers)
       } else if (shouldBypassStripeWebhookSignatureCheck()) {
@@ -603,7 +606,10 @@ module.exports = {
         // connected accounts) uses STRIPE_WEBHOOK_SECRET; a separate platform ("Your account")
         // endpoint, which sends Hylo Pro events, can point at this same URL with
         // STRIPE_PLATFORM_WEBHOOK_SECRET. Accept a signature from either.
-        const secrets = [process.env.STRIPE_WEBHOOK_SECRET, process.env.STRIPE_PLATFORM_WEBHOOK_SECRET].filter(Boolean)
+        const secrets = [
+          { secret: process.env.STRIPE_WEBHOOK_SECRET, platform: false },
+          { secret: process.env.STRIPE_PLATFORM_WEBHOOK_SECRET, platform: true }
+        ].filter(s => s.secret)
         if (secrets.length === 0) {
           console.error('Neither STRIPE_WEBHOOK_SECRET nor STRIPE_PLATFORM_WEBHOOK_SECRET is set')
           return res.status(500).json({ error: 'Webhook secret not configured' })
@@ -612,9 +618,10 @@ module.exports = {
         // Verify webhook signature
         // req.body should be a Buffer from bodyParser.raw() middleware
         let lastError
-        for (const secret of secrets) {
+        for (const { secret, platform } of secrets) {
           try {
             event = stripe.webhooks.constructEvent(req.body, signature, secret)
+            fromPlatformEndpoint = platform
             break
           } catch (err) {
             lastError = err
@@ -648,6 +655,15 @@ module.exports = {
         await HyloProService.handleWebhookEvent(event)
         await markStripeWebhookProcessed(event.id)
         return res.json({ received: true })
+      }
+
+      // Anything else from the platform endpoint (e.g. a refund or dispute on a Pro charge, or
+      // platform activity unrelated to Pro) isn't for the Connect handlers, which act on groups'
+      // own sales. Pro refunds and disputes get their own handling in a later change.
+      if (fromPlatformEndpoint) {
+        console.log(`Stripe webhook: skipping platform event ${event.id} (${event.type}), not a Hylo Pro subscription event`)
+        await markStripeWebhookProcessed(event.id)
+        return res.json({ received: true, skipped: 'platform_event' })
       }
 
       // Handle different event types

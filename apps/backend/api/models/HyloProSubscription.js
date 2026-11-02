@@ -20,6 +20,11 @@ const OPEN_UNPAID_STRIPE_STATUSES = ['past_due', 'unpaid', 'incomplete', 'paused
 const NEEDS_PAYMENT_STRIPE_STATUSES = ['past_due', 'unpaid', 'incomplete']
 // Stripe statuses a subscription can never leave
 const TERMINAL_STRIPE_STATUSES = ['canceled', 'incomplete_expired']
+// How long past current_period_end a Stripe row keeps Pro without being re-synced. A renewal moves
+// the period forward (via webhook), so a row this far past its period end means we missed the
+// renewal or the deletion; it stops granting Pro instead of granting it forever.
+const STRIPE_PERIOD_GRACE_DAYS = 3
+const STRIPE_PERIOD_GRACE_MS = STRIPE_PERIOD_GRACE_DAYS * 24 * 60 * 60 * 1000
 
 function toDate (value) {
   if (!value) return null
@@ -29,10 +34,11 @@ function toDate (value) {
 /**
  * Whether a row grants Pro at `now`. Works on a model or a plain row object.
  *
- * - stripe: status active/trialing, unless a scheduled cancellation (cancel_at, or
- *   cancel_at_period_end + current_period_end) has already passed, or the subscription ended.
- *   A subscription canceled at period end stays 'active' in Stripe until the period is over,
- *   so it keeps Pro until then; the period-end check covers a missed customer.subscription.deleted.
+ * - stripe: status active/trialing, current_period_end set and less than STRIPE_PERIOD_GRACE_DAYS
+ *   ago, and no scheduled cancellation (cancel_at, or cancel_at_period_end + current_period_end)
+ *   or end that has already passed. A subscription canceled at period end stays 'active' in Stripe
+ *   until the period is over, so it keeps Pro until then. The period checks cover a missed
+ *   customer.subscription.deleted (or a missed renewal, which re-syncs on the next Checkout attempt).
  * - manual: status active and expires_at unset or in the future.
  */
 function isActive (row, now = new Date()) {
@@ -51,8 +57,10 @@ function isActive (row, now = new Date()) {
   if (!ACTIVE_STRIPE_STATUSES.includes(attrs.status)) return false
   if (passed(attrs.ended_at)) return false
   if (passed(attrs.cancel_at)) return false
-  if (attrs.cancel_at_period_end && passed(attrs.current_period_end)) return false
-  return true
+  const periodEnd = toDate(attrs.current_period_end)
+  if (!periodEnd) return false
+  if (attrs.cancel_at_period_end && periodEnd.getTime() <= nowTime) return false
+  return periodEnd.getTime() + STRIPE_PERIOD_GRACE_MS > nowTime
 }
 
 /**
@@ -82,9 +90,9 @@ function whereActive (q, now = new Date()) {
         .whereIn('status', ACTIVE_STRIPE_STATUSES)
         .where(q2 => q2.whereNull('ended_at').orWhere('ended_at', '>', now))
         .where(q2 => q2.whereNull('cancel_at').orWhere('cancel_at', '>', now))
-        .where(q2 => q2.where('cancel_at_period_end', false)
-          .orWhereNull('current_period_end')
-          .orWhere('current_period_end', '>', now))
+        .whereNotNull('current_period_end')
+        .where('current_period_end', '>', new Date(toDate(now).getTime() - STRIPE_PERIOD_GRACE_MS))
+        .where(q2 => q2.where('cancel_at_period_end', false).orWhere('current_period_end', '>', now))
     })
   })
   return q
@@ -121,6 +129,7 @@ module.exports = bookshelf.Model.extend({
   OPEN_UNPAID_STRIPE_STATUSES,
   NEEDS_PAYMENT_STRIPE_STATUSES,
   TERMINAL_STRIPE_STATUSES,
+  STRIPE_PERIOD_GRACE_DAYS,
 
   isActive,
   isOpenStripeSubscription,
@@ -159,17 +168,5 @@ module.exports = bookshelf.Model.extend({
       null
     const grant = rows.find(row => row.get('source') === SOURCE_MANUAL && isActive(row, now)) || null
     return { subscription, grant, hasPro: rows.some(row => isActive(row, now)) }
-  },
-
-  // The platform-account customer this group paid with before, so a re-subscription reuses it
-  latestStripeCustomerId: async function (groupId) {
-    const row = await this.query(q => {
-      q.where('group_id', groupId)
-      q.where('source', SOURCE_STRIPE)
-      q.whereNotNull('stripe_customer_id')
-      q.orderBy('created_at', 'desc')
-      q.orderBy('id', 'desc')
-    }).fetch()
-    return row ? row.get('stripe_customer_id') : null
   }
 })

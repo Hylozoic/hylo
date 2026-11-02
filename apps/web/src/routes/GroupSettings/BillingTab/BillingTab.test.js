@@ -1,4 +1,5 @@
 import React from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { act, AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
@@ -57,8 +58,14 @@ function mockBillingApi ({ billing = billingFor(), checkout, portal, activate } 
   return requests
 }
 
+// Shows the current query string, to check the checkout params are cleared (useLocation is mocked in Jest)
+function LocationProbe () {
+  const [searchParams] = useSearchParams()
+  return <div data-testid='location'>{searchParams.toString()}</div>
+}
+
 function renderTab (initialEntry = '/groups/hylo/settings/billing') {
-  return render(<BillingTab group={group} />, { wrapper: AllTheProviders({}, [initialEntry]) })
+  return render(<><BillingTab group={group} /><LocationProbe /></>, { wrapper: AllTheProviders({}, [initialEntry]) })
 }
 
 describe('BillingTab', () => {
@@ -224,6 +231,9 @@ describe('BillingTab', () => {
     renderTab('/groups/hylo/settings/billing?checkout=canceled')
 
     expect(await screen.findByTestId('billing-checkout-canceled')).toHaveTextContent('Checkout was canceled. You have not been charged.')
+    // The params are cleared once handled, but the message stays
+    await waitFor(() => expect(screen.getByTestId('location')).toBeEmptyDOMElement())
+    expect(screen.getByTestId('billing-checkout-canceled')).toBeInTheDocument()
   })
 
   it('activates the subscription from the Checkout session on return, without waiting for the webhook', async () => {
@@ -240,6 +250,10 @@ describe('BillingTab', () => {
     expect(await screen.findByText('Thanks for upgrading to Hylo Pro!')).toBeInTheDocument()
     expect(requests.ActivateHyloProCheckoutSession).toEqual([{ groupId: '1', sessionId: 'cs_test_123' }])
     expect(screen.getByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (monthly)')
+    // checkout and session_id are removed from the URL so a refresh doesn't replay this
+    await waitFor(() => expect(screen.getByTestId('location')).toBeEmptyDOMElement())
+    expect(screen.getByText('Thanks for upgrading to Hylo Pro!')).toBeInTheDocument()
+    expect(requests.ActivateHyloProCheckoutSession.length).toEqual(1)
   })
 
   it('does not offer a second subscription while waiting for the new one after Checkout', async () => {
@@ -257,6 +271,8 @@ describe('BillingTab', () => {
       expect(screen.getByTestId('billing-plan-name')).toHaveTextContent('Free')
       expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
       expect(screen.queryByTestId('billing-upgrade-year')).not.toBeInTheDocument()
+      // Still polling, so the params stay
+      expect(screen.getByTestId('location')).toHaveTextContent('checkout=success&session_id=cs_test_123')
 
       // The webhook lands; polling picks it up
       active = true
@@ -265,6 +281,7 @@ describe('BillingTab', () => {
       expect(await screen.findByText('Thanks for upgrading to Hylo Pro!')).toBeInTheDocument()
       expect(screen.getByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (monthly)')
       expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
+      await waitFor(() => expect(screen.getByTestId('location')).not.toHaveTextContent('checkout='))
     } finally {
       jest.useRealTimers()
     }

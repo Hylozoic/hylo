@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
@@ -29,9 +29,11 @@ function isServerError (error) {
 export default function BillingTab ({ group }) {
   const { t, i18n } = useTranslation()
   const dispatch = useDispatch()
-  const [searchParams] = useSearchParams()
-  const checkoutResult = searchParams.get('checkout')
-  const checkoutSessionId = searchParams.get('session_id')
+  const [searchParams, setSearchParams] = useSearchParams()
+  // Read once: the params are removed from the URL when activation finishes (see clearCheckoutParams),
+  // so a refresh or a shared link doesn't replay the checkout banner
+  const [checkoutResult] = useState(() => searchParams.get('checkout'))
+  const [checkoutSessionId] = useState(() => searchParams.get('session_id'))
 
   const [billing, setBilling] = useState(null)
   const [loaded, setLoaded] = useState(false)
@@ -75,6 +77,18 @@ export default function BillingTab ({ group }) {
     }
   }, [dispatch, group?.id])
 
+  // setSearchParams changes whenever the URL does; a ref keeps clearing it from re-running the effect below
+  const setSearchParamsRef = useRef(setSearchParams)
+  setSearchParamsRef.current = setSearchParams
+  const clearCheckoutParams = useCallback(() => {
+    setSearchParamsRef.current(params => {
+      const next = new URLSearchParams(params)
+      next.delete('checkout')
+      next.delete('session_id')
+      return next
+    }, { replace: true })
+  }, [])
+
   useEffect(() => {
     if (!group?.id) return
     let cancelled = false
@@ -85,13 +99,12 @@ export default function BillingTab ({ group }) {
       const current = await load()
       if (cancelled) return
       attempts++
-      if (checkoutResult === 'success' && !current?.hasPro) {
-        if (attempts < ACTIVATION_POLL_ATTEMPTS) {
-          timer = setTimeout(poll, ACTIVATION_POLL_MS)
-        } else {
-          setActivationTimedOut(true)
-        }
+      if (checkoutResult === 'success' && !current?.hasPro && attempts < ACTIVATION_POLL_ATTEMPTS) {
+        timer = setTimeout(poll, ACTIVATION_POLL_MS)
+        return
       }
+      if (checkoutResult === 'success' && !current?.hasPro) setActivationTimedOut(true)
+      if (checkoutResult) clearCheckoutParams()
     }
 
     const start = async () => {
@@ -110,7 +123,7 @@ export default function BillingTab ({ group }) {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [group?.id, checkoutResult, checkoutSessionId, load])
+  }, [group?.id, checkoutResult, checkoutSessionId, load, clearCheckoutParams])
 
   const redirectTo = async (key, action, field) => {
     setRedirecting(key)

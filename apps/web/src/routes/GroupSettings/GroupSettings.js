@@ -154,7 +154,7 @@ export default function GroupSettings () {
     canAdminister && { name: t('Export Data'), path: 'export' },
     canAdminister && { name: t('Appearance & Layout'), path: 'appearance' },
     canAdminister && { name: t('Paid Content'), path: 'paid-content' },
-    canAdminister && { name: t('Billing'), path: 'billing' },
+    canAdminister && !isSpace && { name: t('Billing'), path: 'billing' },
     canAdminister && { name: t('Delete'), path: 'delete' }
   ])
 
@@ -269,7 +269,7 @@ export default function GroupSettings () {
         canAdminister ? exportSettings : null,
         canAdminister ? appearanceSettings : null,
         canAdminister ? paidContentSettings : null,
-        canAdminister ? billingSettings : null,
+        canAdminister && !isSpace ? billingSettings : null,
         canAdminister ? deleteSettings : null
       ])}
     />

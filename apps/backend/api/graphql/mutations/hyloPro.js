@@ -6,7 +6,7 @@
 import { GraphQLError } from 'graphql'
 import HyloProService from '../../services/HyloProService'
 
-/* global Group, GroupMembership, HyloProSubscription, Responsibility */
+/* global Group, GroupMembership, Responsibility */
 
 async function findGroupForBilling (userId, groupId) {
   if (!userId) throw new GraphQLError('You must be logged in to manage billing')
@@ -27,13 +27,8 @@ export async function createHyloProCheckoutSession (userId, { groupId, interval 
     throw new GraphQLError(`interval must be one of: ${HyloProService.INTERVALS.join(', ')}`)
   }
 
-  // A subscription that isn't over yet (active, unpaid or paused) is changed in the portal instead.
-  // This is a quick check of our table; createCheckoutSession also checks Stripe itself.
-  const rows = (await HyloProSubscription.forGroup(group.id)).models
-  if (rows.some(row => HyloProSubscription.isOpenStripeSubscription(row))) {
-    throw HyloProService.alreadySubscribedError()
-  }
-
+  // Refuses (HYLO_PRO_ALREADY_SUBSCRIBED) if Stripe has a subscription for the group that isn't over;
+  // Stripe decides, not our table, so a row left stale by a missed webhook can't block Checkout
   const { url } = await HyloProService.createCheckoutSession({ group, interval, userId })
   return { url }
 }

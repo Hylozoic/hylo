@@ -17,7 +17,8 @@
  *   their webhooks out (platform events only). Webhooks, and activateCheckoutSession when a steward
  *   returns from Checkout, call syncSubscriptionById: under a per-subscription lock it re-reads the
  *   subscription from Stripe and upserts its hylo_pro_subscriptions row, so concurrent, retried or
- *   out-of-order events always leave the latest state.
+ *   out-of-order events always leave the latest state. Only subscriptions whose customer matches the
+ *   group's hylo_pro_customers row are synced, since group ids repeat across environments.
  */
 
 const Stripe = require('stripe')
@@ -63,13 +64,23 @@ function alreadySubscribedError () {
   })
 }
 
+async function advisoryLock (key, transacting) {
+  await bookshelf.knex.raw('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', [key])
+    .transacting(transacting)
+}
+
 /**
- * Runs fn in a transaction holding a Postgres advisory lock on `key`, so callers using the same key
- * run one at a time (across all backend processes). The lock is released when the transaction ends.
+ * Runs fn(trx) holding a Postgres advisory lock on `key`, so callers using the same key run one at
+ * a time (across all backend processes). The lock is released when the transaction ends. Pass
+ * `transacting` to take the lock inside an existing transaction instead of opening a new one.
  */
-function withLock (key, fn) {
+async function withLock (key, fn, { transacting } = {}) {
+  if (transacting) {
+    await advisoryLock(key, transacting)
+    return fn(transacting)
+  }
   return bookshelf.transaction(async trx => {
-    await trx.raw('select pg_advisory_xact_lock(hashtext(?))', [key])
+    await advisoryLock(key, trx)
     return fn(trx)
   })
 }
@@ -107,6 +118,20 @@ function subscriptionIdOf (object) {
   return idOf(object.subscription) || idOf(object.parent?.subscription_details?.subscription)
 }
 
+// Whether a portal configuration's features already match what ensurePortalConfiguration wants
+function portalFeaturesMatch (actual, wanted) {
+  if (!actual) return false
+  const sorted = list => [...(list || [])].sort().join()
+  const prices = features => sorted((features?.subscription_update?.products || []).flatMap(p => p.prices || []))
+  return prices(actual) === prices(wanted) &&
+    sorted(actual.customer_update?.allowed_updates) === sorted(wanted.customer_update.allowed_updates) &&
+    ['customer_update', 'invoice_history', 'payment_method_update', 'subscription_cancel', 'subscription_update']
+      .every(name => !!actual[name]?.enabled === wanted[name].enabled) &&
+    actual.subscription_cancel?.mode === wanted.subscription_cancel.mode &&
+    actual.subscription_update?.proration_behavior === wanted.subscription_update.proration_behavior &&
+    sorted(actual.subscription_update?.default_allowed_updates) === sorted(wanted.subscription_update.default_allowed_updates)
+}
+
 function billingUrl (group) {
   return `${Frontend.Route.groupSettings(group)}/billing`
 }
@@ -139,19 +164,26 @@ module.exports = {
       return product
     } catch (error) {
       if (error.code !== 'resource_missing') throw error
-      return stripe.products.create({
+    }
+    try {
+      return await stripe.products.create({
         id: PRODUCT_ID,
         name: PRODUCT_NAME,
         description: 'Extra features for your Hylo group',
         metadata: { [PRO_METADATA_KEY]: 'true' }
       })
+    } catch (error) {
+      // Another process created it first
+      if (error.code !== 'resource_already_exists') throw error
+      return stripe.products.retrieve(PRODUCT_ID)
     }
   },
 
   /**
    * Ensures the Hylo Pro product and its monthly/yearly prices exist on the platform account.
    * Prices are found by lookup_key; a price whose amount no longer matches PLANS is replaced
-   * (transfer_lookup_key moves the key to the new price).
+   * (transfer_lookup_key moves the key to the new price). If two processes create a price at once,
+   * the one left without the lookup key archives its price and uses the other.
    *
    * @returns {Promise<{ month: string, year: string }>} price ids by interval
    */
@@ -185,7 +217,14 @@ module.exports = {
           transfer_lookup_key: true,
           metadata: { [PRO_METADATA_KEY]: 'true' }
         })
-        priceIds[interval] = created.id
+        const current = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 })
+        const holder = current.data[0]
+        if (holder && holder.id !== created.id) {
+          await stripe.prices.update(created.id, { active: false })
+          priceIds[interval] = holder.id
+        } else {
+          priceIds[interval] = created.id
+        }
       }
     }
 
@@ -228,11 +267,7 @@ module.exports = {
         metadata: { [PORTAL_METADATA_KEY]: 'true' }
       })
     } else {
-      const configuredPrices = (existing.features?.subscription_update?.products || [])
-        .flatMap(p => p.prices || [])
-        .sort()
-      const wantedPrices = [priceIds.month, priceIds.year].sort()
-      configuration = configuredPrices.join() === wantedPrices.join()
+      configuration = portalFeaturesMatch(existing.features, features)
         ? existing
         : await stripe.billingPortal.configurations.update(existing.id, { features })
     }
@@ -241,27 +276,29 @@ module.exports = {
     return configuration.id
   },
 
-  /**
-   * The platform customer this group pays with, or null if it never started a Checkout.
-   * Groups that subscribed before hylo_pro_customers existed fall back to their latest subscription's customer.
-   */
-  async stripeCustomerIdForGroup (groupId) {
-    const row = await bookshelf.knex('hylo_pro_customers').where({ group_id: groupId }).first('stripe_customer_id')
-    if (row) return row.stripe_customer_id
-    return HyloProSubscription.latestStripeCustomerId(groupId)
+  // The platform customer this group pays with, or null if it never started a Checkout
+  async stripeCustomerIdForGroup (groupId, { transacting } = {}) {
+    const knex = transacting || bookshelf.knex
+    const row = await knex('hylo_pro_customers').where({ group_id: groupId }).first('stripe_customer_id')
+    return row ? row.stripe_customer_id : null
   },
 
   /**
-   * Returns the group's platform customer, creating and recording it on first use.
-   * Call it while holding the group's checkout lock (see createCheckoutSession).
+   * Returns the group's platform customer, creating and recording it on first use. Runs under a
+   * per-group lock in its own short transaction, so the recorded customer is committed even if the
+   * Checkout that needed it then fails.
    */
   async ensureCustomer (group) {
-    const existing = await this.stripeCustomerIdForGroup(group.id)
+    return withLock(`hylo_pro_customer:${group.id}`, trx => this.ensureCustomerLocked(group, trx))
+  },
+
+  async ensureCustomerLocked (group, trx) {
+    const existing = await this.stripeCustomerIdForGroup(group.id, { transacting: trx })
     let customerId = existing
     if (!customerId) {
       // No idempotency key: group ids repeat across databases sharing a Stripe account (dev,
-      // staging), so a key per group could hand one group another's customer. Callers hold the
-      // group's checkout lock, so two customers can't be created for one group at once.
+      // staging), so a key per group could hand one group another's customer. The caller holds the
+      // group's customer lock, so two customers can't be created for one group at once.
       const customer = await stripe.customers.create({
         name: group.get('name'),
         metadata: { [PRO_METADATA_KEY]: 'true', group_id: String(group.id) }
@@ -269,23 +306,24 @@ module.exports = {
       customerId = customer.id
     }
     const now = new Date()
-    await bookshelf.knex('hylo_pro_customers')
+    await trx('hylo_pro_customers')
       .insert({ group_id: group.id, stripe_customer_id: customerId, created_at: now, updated_at: now })
       .onConflict('group_id')
       .ignore()
-    // Another request may have recorded a customer first; always use the recorded one
-    const row = await bookshelf.knex('hylo_pro_customers').where({ group_id: group.id }).first('stripe_customer_id')
+    const row = await trx('hylo_pro_customers').where({ group_id: group.id }).first('stripe_customer_id')
     return row.stripe_customer_id
   },
 
   /**
    * Starts a Stripe-hosted Checkout for a group to subscribe to Hylo Pro.
    *
-   * Runs under a per-group lock. Throws alreadySubscribedError() if the group's customer has a
-   * subscription in Stripe that isn't over (anything but canceled / incomplete_expired) — those are
-   * synced into our table first, covering a webhook that hasn't arrived yet. An open Checkout for
-   * the same interval is returned instead of creating another; one for the other interval is
-   * expired, so only one Checkout for the group can ever be completed.
+   * Runs under a per-group lock. Stripe decides whether the group is already subscribed, not our
+   * table: throws alreadySubscribedError() if the group's customer has a subscription in Stripe that
+   * isn't over (anything but canceled / incomplete_expired). Those are synced into our table first
+   * (covering a webhook that hasn't arrived yet), and so are local rows that still look open when
+   * Stripe has none (covering a missed cancellation), so a stale row can't block Checkout. An open
+   * Checkout for the same interval is returned instead of creating another; one for the other
+   * interval is expired, so only one Checkout for the group can ever be completed.
    *
    * @returns {Promise<{ url: string, sessionId: string }>}
    */
@@ -294,15 +332,32 @@ module.exports = {
       throw new Error(`Unknown Hylo Pro interval: ${interval}`)
     }
 
-    return withLock(`hylo_pro_checkout:${group.id}`, async () => {
-      const priceIds = await this.ensureProPrices()
-      const customerId = await this.ensureCustomer(group)
+    // Neither needs the checkout lock: prices are shared (and cached), and ensureCustomer locks itself
+    const priceIds = await this.ensureProPrices()
+    const customerId = await this.ensureCustomer(group)
 
+    const result = await withLock(`hylo_pro_checkout:${group.id}`, async trx => {
       const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 })
       const open = subscriptions.data.filter(sub => !HyloProSubscription.TERMINAL_STRIPE_STATUSES.includes(sub.status))
       if (open.length > 0) {
-        for (const sub of open) await this.syncSubscriptionById(sub.id)
-        throw alreadySubscribedError()
+        for (const sub of open) await this.syncSubscriptionById(sub.id, { transacting: trx })
+        // Return rather than throw so the syncs commit
+        return { alreadySubscribed: true }
+      }
+
+      // Stripe has nothing open for this customer: re-sync any of our rows that still say otherwise
+      const rows = (await HyloProSubscription.forGroup(group.id, { transacting: trx })).models
+      const stale = rows.filter(row => row.get('stripe_subscription_id') && HyloProSubscription.isOpenStripeSubscription(row))
+      for (const row of stale) {
+        let synced
+        try {
+          synced = await this.syncSubscriptionById(row.get('stripe_subscription_id'), { transacting: trx })
+        } catch (error) {
+          // Gone from Stripe entirely (e.g. deleted test data): nothing there to block a new subscription
+          if (error.code !== 'resource_missing') throw error
+          console.warn(`Hylo Pro subscription ${row.get('stripe_subscription_id')} no longer exists in Stripe`)
+        }
+        if (HyloProSubscription.isOpenStripeSubscription(synced)) return { alreadySubscribed: true }
       }
 
       const openSessions = await stripe.checkout.sessions.list({ customer: customerId, status: 'open', limit: 100 })
@@ -334,6 +389,9 @@ module.exports = {
 
       return { url: session.url, sessionId: session.id }
     })
+
+    if (result.alreadySubscribed) throw alreadySubscribedError()
+    return result
   },
 
   /**
@@ -416,16 +474,20 @@ module.exports = {
    *
    * @returns {Promise<HyloProSubscription|null>}
    */
-  async syncSubscriptionById (subscriptionId) {
+  async syncSubscriptionById (subscriptionId, { transacting } = {}) {
     return withLock(`hylo_pro_subscription:${subscriptionId}`, async trx => {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId)
       return this.syncSubscription(subscription, { transacting: trx })
-    })
+    }, { transacting })
   },
 
   /**
    * Upserts the hylo_pro_subscriptions row for a Stripe subscription object. Use syncSubscriptionById
    * unless the caller holds that subscription's lock and has just read it from Stripe.
+   *
+   * Only syncs a subscription whose customer is the one this database recorded for the group
+   * (hylo_pro_customers). Group ids repeat across databases sharing a Stripe account (dev, staging),
+   * so metadata.group_id alone could point at another environment's group.
    *
    * @returns {Promise<HyloProSubscription|null>} null if it isn't a Pro subscription for a known group
    */
@@ -444,6 +506,14 @@ module.exports = {
       return null
     }
 
+    const knex = transacting || bookshelf.knex
+    const customerId = idOf(subscription.customer)
+    const customer = await knex('hylo_pro_customers').where({ group_id: group.id }).first('stripe_customer_id')
+    if (!customer || customer.stripe_customer_id !== customerId) {
+      console.warn(`Hylo Pro subscription ${subscription.id} (customer ${customerId}) is not for group ${group.id}'s customer here, skipping`)
+      return null
+    }
+
     const item = subscription.items?.data?.[0]
     const price = item?.price
     const now = new Date()
@@ -452,7 +522,7 @@ module.exports = {
       source: HyloProSubscription.SOURCE_STRIPE,
       status: subscription.status,
       interval: price?.recurring?.interval || null,
-      stripe_customer_id: idOf(subscription.customer),
+      stripe_customer_id: customerId,
       stripe_subscription_id: subscription.id,
       stripe_price_id: price?.id || null,
       // Since API 2025-03-31 the billing period lives on the subscription item
@@ -464,7 +534,6 @@ module.exports = {
       updated_at: now
     }
 
-    const knex = transacting || bookshelf.knex
     const [row] = await knex('hylo_pro_subscriptions')
       .insert({ ...attrs, created_at: now })
       .onConflict('stripe_subscription_id')
