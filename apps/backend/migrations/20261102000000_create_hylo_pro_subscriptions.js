@@ -21,6 +21,8 @@ exports.up = async function (knex) {
     table.string('stripe_customer_id', 255).nullable().comment('Customer (cus_...) on the platform account')
     table.string('stripe_subscription_id', 255).nullable().unique()
     table.string('stripe_price_id', 255).nullable()
+    table.timestamp('current_period_start', { useTz: true }).nullable()
+      .comment('Start of the current billing period: when its renewal payment was first attempted')
     table.timestamp('current_period_end', { useTz: true }).nullable()
     table.boolean('cancel_at_period_end').notNullable().defaultTo(false)
     table.timestamp('cancel_at', { useTz: true }).nullable().comment('When a scheduled cancellation takes effect')

@@ -1720,6 +1720,7 @@ CREATE TABLE public.hylo_pro_subscriptions (
     stripe_customer_id character varying(255),
     stripe_subscription_id character varying(255),
     stripe_price_id character varying(255),
+    current_period_start timestamp with time zone,
     current_period_end timestamp with time zone,
     cancel_at_period_end boolean DEFAULT false NOT NULL,
     cancel_at timestamp with time zone,

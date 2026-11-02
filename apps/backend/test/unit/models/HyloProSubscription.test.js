@@ -10,7 +10,7 @@ const FUTURE = new Date('2026-07-01T00:00:00Z')
 const DAY = 24 * 60 * 60 * 1000
 // A period that ended within the grace period, and one that ended exactly at its edge
 // (functions: model globals aren't loaded yet when this file is required)
-const grace = () => HyloProSubscription.STRIPE_PERIOD_GRACE_DAYS * DAY
+const grace = () => HyloProSubscription.STRIPE_GRACE_DAYS * DAY
 const RECENT = () => new Date(NOW.getTime() - grace() + DAY)
 const GRACE_EDGE = () => new Date(NOW.getTime() - grace())
 // For tests that use the real clock
@@ -29,8 +29,20 @@ describe('HyloProSubscription', () => {
     })
 
     it('is not active for other Stripe statuses', () => {
-      for (const status of ['past_due', 'unpaid', 'canceled', 'incomplete', 'incomplete_expired', 'paused']) {
+      for (const status of ['unpaid', 'canceled', 'incomplete', 'incomplete_expired', 'paused']) {
         expect(isActive(stripeRow({ status, current_period_end: FUTURE })), status).to.be.false
+      }
+    })
+
+    it('keeps Pro for a grace period after a renewal payment fails (past_due)', () => {
+      // The renewal was billed at current_period_start
+      expect(isActive(stripeRow({ status: 'past_due', current_period_start: RECENT(), current_period_end: FUTURE }))).to.be.true
+      expect(isActive(stripeRow({ status: 'past_due', current_period_start: GRACE_EDGE(), current_period_end: FUTURE }))).to.be.false
+      expect(isActive(stripeRow({ status: 'past_due', current_period_start: PAST, current_period_end: FUTURE }))).to.be.false
+      expect(isActive(stripeRow({ status: 'past_due', current_period_end: FUTURE }))).to.be.false
+      // Only past_due gets the grace period
+      for (const status of ['unpaid', 'incomplete', 'paused']) {
+        expect(isActive(stripeRow({ status, current_period_start: RECENT(), current_period_end: FUTURE })), status).to.be.false
       }
     })
 
@@ -173,6 +185,12 @@ describe('HyloProSubscription', () => {
         stripeRow({ current_period_end: GRACE_EDGE() }),
         stripeRow({ cancel_at_period_end: true, current_period_end: RECENT() }),
         stripeRow({ status: 'past_due' }),
+        stripeRow({ status: 'past_due', current_period_end: FUTURE }),
+        stripeRow({ status: 'past_due', current_period_start: RECENT(), current_period_end: FUTURE }),
+        stripeRow({ status: 'past_due', current_period_start: GRACE_EDGE(), current_period_end: FUTURE }),
+        stripeRow({ status: 'past_due', current_period_start: PAST, current_period_end: FUTURE }),
+        stripeRow({ status: 'past_due', current_period_start: RECENT(), current_period_end: FUTURE, ended_at: PAST }),
+        stripeRow({ status: 'unpaid', current_period_start: RECENT(), current_period_end: FUTURE }),
         stripeRow({ status: 'paused' }),
         stripeRow({ status: 'canceled', ended_at: PAST }),
         stripeRow({ cancel_at_period_end: true, current_period_end: FUTURE }),

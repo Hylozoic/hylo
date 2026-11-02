@@ -14,17 +14,20 @@ const SOURCE_MANUAL = 'manual'
 const ACTIVE_STRIPE_STATUSES = ['active', 'trialing']
 // Stripe statuses where the subscription still exists but isn't paid up: a failed or pending
 // payment Stripe is still retrying (past_due, unpaid, incomplete), or a paused subscription.
-// These don't give Pro, but the group must manage that subscription rather than start another.
+// These don't give Pro (except past_due during its grace period, see isActive), but the group must
+// manage that subscription rather than start another.
 const OPEN_UNPAID_STRIPE_STATUSES = ['past_due', 'unpaid', 'incomplete', 'paused']
 // Statuses where the customer has to act (pay or update the card) to keep the subscription
 const NEEDS_PAYMENT_STRIPE_STATUSES = ['past_due', 'unpaid', 'incomplete']
 // Stripe statuses a subscription can never leave
 const TERMINAL_STRIPE_STATUSES = ['canceled', 'incomplete_expired']
-// How long past current_period_end a Stripe row keeps Pro without being re-synced. A renewal moves
-// the period forward (via webhook), so a row this far past its period end means we missed the
-// renewal or the deletion; it stops granting Pro instead of granting it forever.
-const STRIPE_PERIOD_GRACE_DAYS = 3
-const STRIPE_PERIOD_GRACE_MS = STRIPE_PERIOD_GRACE_DAYS * 24 * 60 * 60 * 1000
+// Grace period for Stripe rows, used two ways:
+// - a past_due subscription (its renewal payment failed; Stripe is retrying) keeps Pro this long
+//   after the payment was first attempted (current_period_start, when the renewal was billed)
+// - a row this long past current_period_end means we missed the renewal or the deletion webhook;
+//   it stops granting Pro instead of granting it forever
+const STRIPE_GRACE_DAYS = 4
+const STRIPE_GRACE_MS = STRIPE_GRACE_DAYS * 24 * 60 * 60 * 1000
 
 function toDate (value) {
   if (!value) return null
@@ -34,9 +37,10 @@ function toDate (value) {
 /**
  * Whether a row grants Pro at `now`. Works on a model or a plain row object.
  *
- * - stripe: status active/trialing, current_period_end set and less than STRIPE_PERIOD_GRACE_DAYS
- *   ago, and no scheduled cancellation (cancel_at, or cancel_at_period_end + current_period_end)
- *   or end that has already passed. A subscription canceled at period end stays 'active' in Stripe
+ * - stripe: status active/trialing, or past_due for less than STRIPE_GRACE_DAYS since
+ *   current_period_start; current_period_end set and less than STRIPE_GRACE_DAYS ago; and no
+ *   scheduled cancellation (cancel_at, or cancel_at_period_end + current_period_end) or end that
+ *   has already passed. A subscription canceled at period end stays 'active' in Stripe
  *   until the period is over, so it keeps Pro until then. The period checks cover a missed
  *   customer.subscription.deleted (or a missed renewal, which re-syncs on the next Checkout attempt).
  * - manual: status active and expires_at unset or in the future.
@@ -54,13 +58,17 @@ function isActive (row, now = new Date()) {
     return attrs.status === 'active' && !passed(attrs.expires_at)
   }
 
-  if (!ACTIVE_STRIPE_STATUSES.includes(attrs.status)) return false
+  const withinGrace = value => {
+    const date = toDate(value)
+    return !!date && date.getTime() + STRIPE_GRACE_MS > nowTime
+  }
+
+  const pastDueInGrace = attrs.status === 'past_due' && withinGrace(attrs.current_period_start)
+  if (!ACTIVE_STRIPE_STATUSES.includes(attrs.status) && !pastDueInGrace) return false
   if (passed(attrs.ended_at)) return false
   if (passed(attrs.cancel_at)) return false
-  const periodEnd = toDate(attrs.current_period_end)
-  if (!periodEnd) return false
-  if (attrs.cancel_at_period_end && periodEnd.getTime() <= nowTime) return false
-  return periodEnd.getTime() + STRIPE_PERIOD_GRACE_MS > nowTime
+  if (attrs.cancel_at_period_end && passed(attrs.current_period_end)) return false
+  return withinGrace(attrs.current_period_end)
 }
 
 /**
@@ -80,6 +88,7 @@ function isOpenStripeSubscription (row, now = new Date()) {
  * Restricts a knex query to rows that grant Pro at `now` — the SQL version of isActive.
  */
 function whereActive (q, now = new Date()) {
+  const graceStart = new Date(toDate(now).getTime() - STRIPE_GRACE_MS)
   q.where(function () {
     this.where(function () {
       this.where('source', SOURCE_MANUAL)
@@ -87,11 +96,11 @@ function whereActive (q, now = new Date()) {
         .where(q2 => q2.whereNull('expires_at').orWhere('expires_at', '>', now))
     }).orWhere(function () {
       this.where('source', SOURCE_STRIPE)
-        .whereIn('status', ACTIVE_STRIPE_STATUSES)
+        .where(q2 => q2.whereIn('status', ACTIVE_STRIPE_STATUSES)
+          .orWhere(q3 => q3.where('status', 'past_due').where('current_period_start', '>', graceStart)))
         .where(q2 => q2.whereNull('ended_at').orWhere('ended_at', '>', now))
         .where(q2 => q2.whereNull('cancel_at').orWhere('cancel_at', '>', now))
-        .whereNotNull('current_period_end')
-        .where('current_period_end', '>', new Date(toDate(now).getTime() - STRIPE_PERIOD_GRACE_MS))
+        .where('current_period_end', '>', graceStart)
         .where(q2 => q2.where('cancel_at_period_end', false).orWhere('current_period_end', '>', now))
     })
   })
@@ -129,7 +138,7 @@ module.exports = bookshelf.Model.extend({
   OPEN_UNPAID_STRIPE_STATUSES,
   NEEDS_PAYMENT_STRIPE_STATUSES,
   TERMINAL_STRIPE_STATUSES,
-  STRIPE_PERIOD_GRACE_DAYS,
+  STRIPE_GRACE_DAYS,
 
   isActive,
   isOpenStripeSubscription,

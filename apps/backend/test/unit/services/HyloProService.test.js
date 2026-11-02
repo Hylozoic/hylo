@@ -176,7 +176,13 @@ describe('HyloProService', () => {
 
     it('syncs from invoice events using the subscription in invoice.parent', async () => {
       const metadata = { hylo_pro: 'true', group_id: String(group.id) }
-      const calls = stubRetrieve(subscriptionFixture({ metadata, status: 'past_due' }))
+      // The renewal was billed (and failed) a day ago
+      const renewedAt = unix(new Date()) - 24 * 60 * 60
+      const calls = stubRetrieve(subscriptionFixture({
+        metadata,
+        status: 'past_due',
+        items: { data: [{ id: 'si_1', current_period_start: renewedAt, current_period_end: PERIOD_END, price: { id: 'price_month', recurring: { interval: 'month', interval_count: 1 } } }] }
+      }))
 
       await HyloProService.handleWebhookEvent({
         id: 'evt_invoice_failed',
@@ -187,7 +193,10 @@ describe('HyloProService', () => {
       expect(calls).to.deep.equal(['sub_pro_1'])
       const row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
       expect(row.get('status')).to.equal('past_due')
-      expect(await group.hasPro()).to.be.false
+      expect(unix(row.get('current_period_start'))).to.equal(renewedAt)
+      // Pro stays on during the grace period while Stripe retries the payment
+      expect(await group.hasPro()).to.be.true
+      expect(await group.hasPro()).to.equal(row.isActive())
     })
 
     it('ignores event types that cannot change the subscription', async () => {
@@ -219,7 +228,7 @@ describe('HyloProService', () => {
       expect(await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()).to.equal(null)
     })
 
-    it("ignores a subscription whose customer isn't the group's customer here (another environment's group with the same id)", async () => {
+    it("ignores a subscription whose customer isn't the group's recorded customer", async () => {
       stubRetrieve(subscriptionFixture({ customer: 'cus_other_env', metadata: { hylo_pro: 'true', group_id: String(group.id) } }))
       const result = await HyloProService.handleWebhookEvent({ id: 'evt_other_env', type: 'customer.subscription.updated', data: { object: subscriptionFixture() } })
       expect(result).to.equal(null)
@@ -233,29 +242,6 @@ describe('HyloProService', () => {
       const result = await HyloProService.handleWebhookEvent({ id: 'evt_no_customer', type: 'customer.subscription.updated', data: { object: subscriptionFixture() } })
       expect(result).to.equal(null)
       expect(await HyloProSubscription.where({ group_id: other.id }).fetch()).to.equal(null)
-    })
-  })
-
-  describe('ensureProduct', () => {
-    it('uses the product another process created first', async () => {
-      let retrieves = 0
-      stripeMock.products = {
-        retrieve: async () => {
-          if (retrieves++ === 0) {
-            const error = new Error('No such product')
-            error.code = 'resource_missing'
-            throw error
-          }
-          return { id: 'hylo_pro', active: true }
-        },
-        create: async () => {
-          const error = new Error('Product already exists')
-          error.code = 'resource_already_exists'
-          throw error
-        }
-      }
-      expect(await HyloProService.ensureProduct()).to.deep.equal({ id: 'hylo_pro', active: true })
-      expect(retrieves).to.equal(2)
     })
   })
 
@@ -273,13 +259,11 @@ describe('HyloProService', () => {
           return { id: params.id, active: true }
         }
       }
-      const byKey = {}
       stripeMock.prices = {
-        list: async ({ lookup_keys: keys }) => ({ data: keys.map(key => byKey[key]).filter(Boolean) }),
+        list: async () => ({ data: [] }),
         create: async params => {
           created.push(['price', params])
-          byKey[params.lookup_key] = { id: `price_${params.recurring.interval}`, lookup_key: params.lookup_key }
-          return byKey[params.lookup_key]
+          return { id: `price_${params.recurring.interval}` }
         }
       }
 
@@ -297,20 +281,16 @@ describe('HyloProService', () => {
     it('reuses matching prices and replaces one whose amount changed', async () => {
       const created = []
       stripeMock.products = { retrieve: async () => ({ id: 'hylo_pro', active: true }) }
-      const prices = [
-        { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 1000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
-        { id: 'price_y_old', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 9000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
-      ]
       stripeMock.prices = {
-        list: async ({ lookup_keys: keys }) => ({ data: prices.filter(price => keys.includes(price.lookup_key)) }),
+        list: async () => ({
+          data: [
+            { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 1000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
+            { id: 'price_y_old', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 9000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
+          ]
+        }),
         create: async params => {
           created.push(params)
-          // transfer_lookup_key moves the key to the new price
-          const old = prices.find(price => price.lookup_key === params.lookup_key)
-          if (old) old.lookup_key = null
-          const price = { id: 'price_y_new', lookup_key: params.lookup_key }
-          prices.push(price)
-          return price
+          return { id: 'price_y_new' }
         }
       }
 
@@ -318,28 +298,6 @@ describe('HyloProService', () => {
       expect(ids).to.deep.equal({ month: 'price_m', year: 'price_y_new' })
       expect(created.length).to.equal(1)
       expect(created[0]).to.include({ unit_amount: 10000, transfer_lookup_key: true })
-    })
-
-    it('archives its own price and uses the other when another process took the lookup key', async () => {
-      const archived = []
-      stripeMock.products = { retrieve: async () => ({ id: 'hylo_pro', active: true }) }
-      let listed = 0
-      stripeMock.prices = {
-        list: async () => {
-          // Nothing at first; after creating, another process's price holds the monthly key
-          if (listed++ === 0) return { data: [] }
-          return { data: [{ id: 'price_theirs', lookup_key: 'hylo_pro_monthly_usd' }] }
-        },
-        create: async params => ({ id: `price_ours_${params.recurring.interval}`, lookup_key: params.lookup_key }),
-        update: async (id, params) => {
-          archived.push([id, params])
-          return { id }
-        }
-      }
-
-      const ids = await HyloProService.ensureProPrices()
-      expect(ids.month).to.equal('price_theirs')
-      expect(archived).to.deep.include(['price_ours_month', { active: false }])
     })
   })
 

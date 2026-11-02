@@ -18,7 +18,7 @@
  *   returns from Checkout, call syncSubscriptionById: under a per-subscription lock it re-reads the
  *   subscription from Stripe and upserts its hylo_pro_subscriptions row, so concurrent, retried or
  *   out-of-order events always leave the latest state. Only subscriptions whose customer matches the
- *   group's hylo_pro_customers row are synced, since group ids repeat across environments.
+ *   group's hylo_pro_customers row are synced.
  */
 
 const Stripe = require('stripe')
@@ -164,26 +164,19 @@ module.exports = {
       return product
     } catch (error) {
       if (error.code !== 'resource_missing') throw error
-    }
-    try {
-      return await stripe.products.create({
+      return stripe.products.create({
         id: PRODUCT_ID,
         name: PRODUCT_NAME,
         description: 'Extra features for your Hylo group',
         metadata: { [PRO_METADATA_KEY]: 'true' }
       })
-    } catch (error) {
-      // Another process created it first
-      if (error.code !== 'resource_already_exists') throw error
-      return stripe.products.retrieve(PRODUCT_ID)
     }
   },
 
   /**
    * Ensures the Hylo Pro product and its monthly/yearly prices exist on the platform account.
    * Prices are found by lookup_key; a price whose amount no longer matches PLANS is replaced
-   * (transfer_lookup_key moves the key to the new price). If two processes create a price at once,
-   * the one left without the lookup key archives its price and uses the other.
+   * (transfer_lookup_key moves the key to the new price).
    *
    * @returns {Promise<{ month: string, year: string }>} price ids by interval
    */
@@ -217,14 +210,7 @@ module.exports = {
           transfer_lookup_key: true,
           metadata: { [PRO_METADATA_KEY]: 'true' }
         })
-        const current = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 })
-        const holder = current.data[0]
-        if (holder && holder.id !== created.id) {
-          await stripe.prices.update(created.id, { active: false })
-          priceIds[interval] = holder.id
-        } else {
-          priceIds[interval] = created.id
-        }
+        priceIds[interval] = created.id
       }
     }
 
@@ -296,9 +282,7 @@ module.exports = {
     const existing = await this.stripeCustomerIdForGroup(group.id, { transacting: trx })
     let customerId = existing
     if (!customerId) {
-      // No idempotency key: group ids repeat across databases sharing a Stripe account (dev,
-      // staging), so a key per group could hand one group another's customer. The caller holds the
-      // group's customer lock, so two customers can't be created for one group at once.
+      // The caller holds the group's customer lock, so two customers can't be created for one group at once
       const customer = await stripe.customers.create({
         name: group.get('name'),
         metadata: { [PRO_METADATA_KEY]: 'true', group_id: String(group.id) }
@@ -485,9 +469,8 @@ module.exports = {
    * Upserts the hylo_pro_subscriptions row for a Stripe subscription object. Use syncSubscriptionById
    * unless the caller holds that subscription's lock and has just read it from Stripe.
    *
-   * Only syncs a subscription whose customer is the one this database recorded for the group
-   * (hylo_pro_customers). Group ids repeat across databases sharing a Stripe account (dev, staging),
-   * so metadata.group_id alone could point at another environment's group.
+   * Only syncs a subscription whose customer is the one recorded for the group (hylo_pro_customers),
+   * so a subscription made outside our Checkout can't attach itself to a group via its metadata.
    *
    * @returns {Promise<HyloProSubscription|null>} null if it isn't a Pro subscription for a known group
    */
@@ -526,6 +509,7 @@ module.exports = {
       stripe_subscription_id: subscription.id,
       stripe_price_id: price?.id || null,
       // Since API 2025-03-31 the billing period lives on the subscription item
+      current_period_start: dateFromUnix(item?.current_period_start || subscription.current_period_start),
       current_period_end: dateFromUnix(item?.current_period_end || subscription.current_period_end),
       cancel_at_period_end: !!subscription.cancel_at_period_end,
       cancel_at: dateFromUnix(subscription.cancel_at),

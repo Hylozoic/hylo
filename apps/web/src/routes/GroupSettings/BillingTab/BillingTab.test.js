@@ -120,6 +120,17 @@ describe('BillingTab', () => {
     expect(screen.getByTestId('billing-manage')).toBeInTheDocument()
   })
 
+  it('keeps Pro during the grace period after a failed payment, asking for a new card', async () => {
+    mockBillingApi({ billing: billingFor({ subscription: stripeSub({ status: 'past_due', active: true }) }) })
+    renderTab()
+
+    expect(await screen.findByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (monthly)')
+    expect(screen.getByTestId('billing-payment-failed')).toHaveTextContent('Your last payment failed. Update your payment method to keep Hylo Pro.')
+    expect(screen.queryByTestId('billing-plan-detail')).not.toBeInTheDocument()
+    expect(screen.getByTestId('billing-manage')).toBeInTheDocument()
+    expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
+  })
+
   it('asks for a new card when a payment failed, instead of offering a second subscription', async () => {
     mockBillingApi({ billing: billingFor({ subscription: stripeSub({ status: 'past_due', active: false }) }) })
     renderTab()

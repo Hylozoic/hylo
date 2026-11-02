@@ -173,9 +173,10 @@ export default function BillingTab ({ group }) {
   let planDetail = null
   if (paidActive) {
     planName = subscription.interval === 'year' ? t('Hylo Pro (yearly)') : t('Hylo Pro (monthly)')
+    // A failed renewal keeps Pro for a short grace period; the payment-failed banner explains it
     planDetail = subscription.cancelAtPeriodEnd
       ? t('Cancels on {{date}}. Pro features stay on until then.', { date: formatDate(subscription.endsAt || subscription.currentPeriodEnd) })
-      : subscription.currentPeriodEnd && t('Renews on {{date}}', { date: formatDate(subscription.currentPeriodEnd) })
+      : !billing.needsPaymentUpdate && subscription.currentPeriodEnd && t('Renews on {{date}}', { date: formatDate(subscription.currentPeriodEnd) })
   } else if (grant) {
     planName = t('Hylo Pro (granted by Hylo)')
     planDetail = grant.endsAt
