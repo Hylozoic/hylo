@@ -234,5 +234,15 @@ describe('Search', function () {
         expect(users.length).to.equal(0)
       })
     })
+
+    it('omits active members of an excluded group and returns a non-member', async () => {
+      const users = await Search.forUsers({
+        term: 'mister',
+        excludeGroupId: mouseGroup.id
+      }).fetchAll()
+      const names = users.map(user => user.get('name'))
+      expect(names).to.include('Mister Dog')
+      expect(names).to.not.include('Mister Mouse')
+    })
   })
 })

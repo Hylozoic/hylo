@@ -25,7 +25,7 @@ import {
   getSearchError,
   formatSearchErrorMessage
 } from './Search.store'
-import { personUrl } from '@hylo/navigation'
+import { groupUrl, personUrl } from '@hylo/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -318,6 +318,7 @@ function SearchResult ({
         <div className='mb-4'>
           <GroupCard
             group={content}
+            to={groupUrl(content.slug)}
           />
         </div>
       )

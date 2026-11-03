@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { CreditCard, Hand, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus, Users } from 'lucide-react'
+import { CreditCard, HeartHandshake, ImagePlus, LayoutGrid, MapPin, Trash2, UserPlus, Users } from 'lucide-react'
 
 import { AdvancedPill, AdvancedSection } from 'components/AdvancedSettings/AdvancedSettings'
 import Button from 'components/ui/button'
@@ -39,7 +39,7 @@ import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
 import AutoAddMembersSetting from './AutoAddMembersSetting'
-import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toIsoOrNull } from './spaceFormConstants'
+import { SPACE_ICON_SUGGESTIONS, accessOptionsForGroup, accessValueForSpace, toMinuteIsoOrNull } from './spaceFormConstants'
 import { geoShapeForApi, groupFieldLoaded, spaceLocation } from './spaceLocation'
 
 function toDateOrNull (value) {
@@ -528,10 +528,10 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
       if (fundingRound?.id) {
         await dispatch(updateFundingRound({
           id: fundingRound.id,
-          submissionsOpenAt: toIsoOrNull(frSubmissionsOpenAt),
-          submissionsCloseAt: toIsoOrNull(frSubmissionsCloseAt),
-          votingOpensAt: toIsoOrNull(frVotingOpensAt),
-          votingClosesAt: toIsoOrNull(frVotingClosesAt),
+          submissionsOpenAt: toMinuteIsoOrNull(frSubmissionsOpenAt),
+          submissionsCloseAt: toMinuteIsoOrNull(frSubmissionsCloseAt),
+          votingOpensAt: toMinuteIsoOrNull(frVotingOpensAt),
+          votingClosesAt: toMinuteIsoOrNull(frVotingClosesAt),
           votingMethod: frVotingMethod,
           totalTokens: frTotalTokens === '' ? null : Number(frTotalTokens),
           tokenType: frTokenType,
@@ -617,7 +617,7 @@ export default function SpaceSettingsModal ({ space: spaceProp, view, parentGrou
     },
     {
       key: 'welcome',
-      icon: Hand,
+      icon: HeartHandshake,
       label: 'Welcome',
       defaultSummary: welcomeView ? null : t('No welcome page'),
       render: () => (

@@ -10,6 +10,7 @@ import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
 import RoundImage from 'components/RoundImage'
+import SpaceGlobalNavPinButton from 'components/SpaceGlobalNavPinButton'
 import Button from 'components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
 import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
@@ -213,7 +214,9 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
         </AboutCard>
       )}
       {membership && (
-        <div className='border-2 border-dashed border-foreground/15 rounded-xl p-4 flex justify-center min-w-0'>
+        <div className='border-2 border-dashed border-foreground/15 rounded-xl p-4 flex flex-wrap items-center justify-center gap-3 min-w-0'>
+          {/* A member can pin a space to the global nav from here */}
+          {isSpace && <SpaceGlobalNavPinButton membership={membership} />}
           <Button
             variant='outline'
             onClick={onLeave}

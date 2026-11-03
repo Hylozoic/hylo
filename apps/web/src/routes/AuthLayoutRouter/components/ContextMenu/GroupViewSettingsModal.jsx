@@ -9,7 +9,7 @@ import { Input } from 'components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from 'components/ui/tooltip'
 import CustomViewFormFields from 'components/CustomViewForm/CustomViewFormFields'
 import {
-  CUSTOM_VIEW_DEFAULT_POST_TYPES,
+  DEFAULT_SELECTED_POST_TYPES,
   CUSTOM_VIEW_DEFAULT_VIEW_MODE
 } from 'components/CustomViewForm/customViewFormConstants'
 import HyloEditor from 'components/HyloEditor'
@@ -31,7 +31,7 @@ function customViewFormState (view) {
   return {
     name: view?.name || '',
     icon: view?.icon || 'ListFilter',
-    postTypes: settings.postTypes?.length ? settings.postTypes : CUSTOM_VIEW_DEFAULT_POST_TYPES,
+    postTypes: settings.postTypes?.length ? settings.postTypes : DEFAULT_SELECTED_POST_TYPES,
     topics: (view?.topics || []).map(name => ({ name })),
     searchText: settings.searchText || '',
     defaultViewMode: settings.defaultViewMode || CUSTOM_VIEW_DEFAULT_VIEW_MODE
