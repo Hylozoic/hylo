@@ -48,6 +48,8 @@ const HyloEditor = React.forwardRef(({
   onEscape,
   onFocus,
   onBlur,
+  // Optional: handles the toolbar's emoji button instead of inserting into this editor
+  onInsertEmoji,
   placeholder,
   readOnly,
   showMenu = false,
@@ -305,7 +307,7 @@ const HyloEditor = React.forwardRef(({
   return (
     <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
-        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} className={menuClassName} />
+        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} className={menuClassName} onInsertEmoji={onInsertEmoji} />
       )}
       <EditorContent
         className={cn(

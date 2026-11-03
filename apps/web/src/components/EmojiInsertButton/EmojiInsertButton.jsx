@@ -18,6 +18,7 @@ import { cn } from 'util/index'
 export default function EmojiInsertButton ({
   onSelect,
   className,
+  contentClassName,
   iconClassName = 'w-6 h-6',
   dataTestId = 'emoji-insert-button',
   side = 'top',
@@ -39,6 +40,7 @@ export default function EmojiInsertButton ({
       <PopoverTrigger asChild>
         <button
           type='button'
+          tabIndex={-1}
           aria-label={t('Add emoji')}
           title={t('Add emoji')}
           data-testid={dataTestId}
@@ -50,7 +52,7 @@ export default function EmojiInsertButton ({
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className='w-auto p-0'
+        className={cn('w-auto p-0', contentClassName)}
         side={side}
         align={align}
         arrow={false}

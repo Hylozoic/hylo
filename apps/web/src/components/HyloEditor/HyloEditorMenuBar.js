@@ -9,6 +9,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import Button from 'components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
+import EmojiInsertButton from 'components/EmojiInsertButton'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { cn } from 'util/index'
 import { getVideoEmbedUrl } from 'util/isPlayableVideoUrl'
@@ -67,7 +68,7 @@ function setVideo (editor) {
   }
 }
 
-export default function HyloEditorMenuBar ({ className, editor, extendedMenu, type, id }) {
+export default function HyloEditorMenuBar ({ className, editor, extendedMenu, type, id, onInsertEmoji }) {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [linkPopoverMode, setLinkPopoverMode] = useState('add')
   const { t } = useTranslation()
@@ -161,6 +162,18 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
           </PopoverContent>
         </Popover>
       </div>
+
+      {/* Mouse/trackpad only: on touch devices the keyboard has emoji */}
+      <EmojiInsertButton
+        onSelect={onInsertEmoji || (emoji => editor.chain().focus().insertContent(emoji).run())}
+        className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 text-foreground'
+        iconClassName='w-4 h-4'
+        // Page/welcome dialogs portal at z-[1100]; default popover z-[200] opens behind them.
+        contentClassName='z-[1200]'
+        dataTestId='editor-toolbar-emoji-button'
+        side='bottom'
+        align='start'
+      />
 
       {extendedMenu && (
         <UploadAttachmentButton
