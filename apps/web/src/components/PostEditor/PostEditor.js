@@ -1675,6 +1675,7 @@ function PostEditorInner ({
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
               onFocus={handleDetailsFocus}
+              onInsertEmoji={handleInsertEmoji}
               contentHTML={editorInitialContent}
               groupIds={groupIds}
               showMenu
@@ -2123,7 +2124,6 @@ function PostEditorInner ({
         loading={loading}
         submitting={postPending}
         myAdminGroups={myAdminGroups}
-        onInsertEmoji={handleInsertEmoji}
         doSave={doSave}
         save={save}
         setAnnouncementSelected={setAnnouncementSelected}
