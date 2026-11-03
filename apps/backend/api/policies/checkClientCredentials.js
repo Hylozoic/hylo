@@ -13,6 +13,7 @@ module.exports = async (req, res, next) => {
   let clientId
   if (match) {
     const token = match[1]
+    UserSession.keepOutOfCookieSession(req)
 
     try {
       // Look for a JWT for API clients using the Client Credentials oAuth flow

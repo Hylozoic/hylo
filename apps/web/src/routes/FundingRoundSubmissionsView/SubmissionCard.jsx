@@ -188,7 +188,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
     >
       <div className='flex flex-col flex-1 gap-2 py-2 px-2 sm:px-3'>
         <div className='flex flex-row gap-1 items-center min-w-0'>
-          <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-1 shrink-0')} medium />
+          <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} url={creatorUrl} className={cn('mr-1 shrink-0')} medium />
           <div
             className='flex flex-wrap items-baseline gap-x-2 gap-y-0.5 flex-1 min-w-0 mr-1'
             onClick={openPostDetails}

@@ -6,7 +6,8 @@ import { cn } from 'util/index'
 import Tooltip from 'components/Tooltip'
 
 /**
- * Displays event start/end times in the event timezone, with optional secondary display or tooltip for the viewer's timezone.
+ * Post details lead with the viewer's time, then the event's local time when the zones differ.
+ * The "Your time" label is omitted when both zones match. Cards show the viewer's time only.
  */
 export default function EventTimeDisplay ({
   startTime,
@@ -14,23 +15,16 @@ export default function EventTimeDisplay ({
   timezone,
   showSecondary = false,
   showTooltip = false,
-  showTimezoneLabel = true,
   tooltipId: tooltipIdProp,
   className,
-  secondaryClassName,
-  timezoneLabelClassName
+  secondaryClassName
 }) {
   const { t } = useTranslation()
   const generatedTooltipId = useId()
   const tooltipId = tooltipIdProp || generatedTooltipId
   const locale = getLocaleFromLocalStorage()
 
-  const {
-    primary,
-    secondary,
-    eventTimezoneLabel,
-    userTimezoneLabel
-  } = useMemo(
+  const { primary, secondary } = useMemo(
     () => DateTimeHelpers.formatEventTimeDisplay({
       start: startTime,
       end: endTime,
@@ -42,41 +36,35 @@ export default function EventTimeDisplay ({
 
   if (!startTime) return null
 
-  const primaryIncludesTimezone = eventTimezoneLabel && primary.includes(eventTimezoneLabel)
-  const eventTimeLabel = showTimezoneLabel && !primaryIncludesTimezone && (
-    <span className={cn('text-foreground/50 text-[10px] leading-tight', timezoneLabelClassName)}>
-      {t('Event time ({{timezone}})', { timezone: eventTimezoneLabel })}
-    </span>
-  )
+  const viewerTime = secondary || primary
+  const yourTimeLabel = t('Your time: {{time}}', { time: viewerTime })
+  const localTimeLabel = secondary
+    ? t('Local time: {{time}}', { time: primary })
+    : null
 
-  const secondaryTimeLabel = secondary && t('Your time ({{timezone}}): {{time}}', {
-    timezone: userTimezoneLabel,
-    time: secondary
-  })
-
-  if (showSecondary && secondary) {
+  if (showSecondary) {
     return (
       <div className={cn('flex flex-col gap-0.5', className)}>
-        <span>{primary}</span>
-        {eventTimeLabel}
-        <span className={cn('text-foreground/50 text-xs', secondaryClassName)}>
-          {secondaryTimeLabel}
-        </span>
+        <span>{localTimeLabel ? yourTimeLabel : viewerTime}</span>
+        {localTimeLabel && (
+          <span className={cn('text-foreground/50 text-xs', secondaryClassName)}>
+            {localTimeLabel}
+          </span>
+        )}
       </div>
     )
   }
 
-  if (showTooltip && secondary) {
+  if (showTooltip && localTimeLabel) {
     return (
       <>
         <div className={cn('flex flex-col gap-0.5', className)}>
           <span
             data-tooltip-id={tooltipId}
-            data-tooltip-content={secondaryTimeLabel}
+            data-tooltip-content={localTimeLabel}
           >
-            {primary}
+            {viewerTime}
           </span>
-          {eventTimeLabel}
         </div>
         <Tooltip delay={550} id={tooltipId} position='top' />
       </>
@@ -85,8 +73,7 @@ export default function EventTimeDisplay ({
 
   return (
     <div className={cn('flex flex-col gap-0.5', className)}>
-      <span>{primary}</span>
-      {eventTimeLabel}
+      <span>{viewerTime}</span>
     </div>
   )
 }

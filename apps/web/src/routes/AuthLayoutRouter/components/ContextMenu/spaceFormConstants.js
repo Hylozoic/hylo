@@ -100,8 +100,15 @@ export function accessValueForSpace ({ visibility, accessibility, requiredRoles,
 }
 
 /** Serializes a date for FundingRound GraphQL Date inputs (ISO string). */
-export function toIsoOrNull (value) {
+/**
+ * Date (or date string) -> ISO string truncated to the minute, or null. Funding round dates
+ * are picked to the minute, so seconds left over from older values (or from `new Date()`
+ * defaults) are dropped on save.
+ */
+export function toMinuteIsoOrNull (value) {
   if (!value) return null
-  const date = value instanceof Date ? value : new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  date.setSeconds(0, 0)
+  return date.toISOString()
 }

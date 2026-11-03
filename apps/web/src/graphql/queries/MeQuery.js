@@ -38,6 +38,7 @@ export default gql`
     }
     email
     emailValidated
+    pendingEmail
     bannerUrl
     bio
     contactEmail

@@ -6,6 +6,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.9] - 2026-10-28
+
+### Added
+- New group setting to allow any member of a group to invite others to join the group, instead of just stewards being able to invite. This means that any member can see the Invite form and invite by link, email or direct Hylo notification.
+- In-app system for managing requets for a Group to be visible in the Hylo Commons group explorer. Replaces a google form and manual system.
+- On mobile, long press on reactions to show a drawer with all reactions and who has reacted to the post.
+
+### Changed
+- Many changes to how group join links work. They are now called Invite Links and you can have multiple of them. You can also name them and specify that certain ones assign a role to people who join through it. Groups that are restricted and Protected or Hidden also have View Links that allow someone to see the group and request to join, as opposed to an invite link that gives direct access.
+
+### Fixed
+- Ensure post filters work in all views
+- Align naming of view modes in Custom View creation modal and in the view filters.
+- Non event posts that ended now show that correctly.
+- Refresh open DM thread and inbox when returning to the app
+
+## [7.1.8] - 2026-10-27
+
+### Added
+- Ability to pin spaces to global navigation. This is accomplished from the About page of the space
+
+### Changed
+- Use native date/time pickers on touch devices for time pickers
+- Improved display of date/time fields for posts on mobile
+- Space boundaries appear on top of parent group on map
+- Center map on a space or group boundary when it has no location address set
+- Switch the Welcome icon from the waving hand to HeartHandshake
+- Verify a new account email before it replaces the old one
+- Show post times in user's timezone first, then local time zone second
+
+### Fixed
+- Show space avatars in the map drawer
+- Make sure new posts load as you scroll in map drawer
+- Several errors reported to Sentry
+- Stop reporting browser failing to hit our backend errors in Sentry
+- Removing responsibilities from custom roles
+- Allow for posts to link to hylo landing page static pages
+
 ## [7.1.7] - 2026-10-20
 
 ### Added

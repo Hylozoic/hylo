@@ -111,19 +111,19 @@ export default function FundingRoundSettingsFields ({
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3' data-tour='round-schedule'>
         <div>
           <label className='text-sm text-foreground/70'>{t('Submissions open')}</label>
-          <DateTimePicker value={submissionsOpenAt} onChange={setSubmissionsOpenAt} />
+          <DateTimePicker value={submissionsOpenAt} onChange={setSubmissionsOpenAt} granularity='minute' label={t('Submissions open')} />
         </div>
         <div>
           <label className='text-sm text-foreground/70'>{t('Submissions close')}</label>
-          <DateTimePicker value={submissionsCloseAt} onChange={setSubmissionsCloseAt} />
+          <DateTimePicker value={submissionsCloseAt} onChange={setSubmissionsCloseAt} granularity='minute' label={t('Submissions close')} />
         </div>
         <div>
           <label className='text-sm text-foreground/70'>{t('Voting opens')}</label>
-          <DateTimePicker value={votingOpensAt} onChange={setVotingOpensAt} />
+          <DateTimePicker value={votingOpensAt} onChange={setVotingOpensAt} granularity='minute' label={t('Voting opens')} />
         </div>
         <div>
           <label className='text-sm text-foreground/70'>{t('Voting closes')}</label>
-          <DateTimePicker value={votingClosesAt} onChange={setVotingClosesAt} />
+          <DateTimePicker value={votingClosesAt} onChange={setVotingClosesAt} granularity='minute' label={t('Voting closes')} />
         </div>
       </div>
 

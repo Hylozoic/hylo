@@ -44,6 +44,7 @@ export default function JoinGroupScreen () {
 
           if (isAuthorized) {
             const { data } = await acceptInvitation(invitationTokenAndCode)
+
             const newMembership = data?.useInvitation?.membership
             const groupSlug = newMembership?.group?.slug
 

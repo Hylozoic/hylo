@@ -8,7 +8,7 @@ import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import { ImageUp, Info } from 'lucide-react'
-import { CUSTOM_VIEW_DEFAULT_POST_TYPES } from 'components/CustomViewForm/customViewFormConstants'
+import { DEFAULT_SELECTED_POST_TYPES } from 'components/CustomViewForm/customViewFormConstants'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import EditableMap from 'components/Map/EditableMap/EditableMap'
 import EditableMapModal from 'components/Map/EditableMap/EditableMapModal'
@@ -86,7 +86,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     return {
       edits: {
         aboutVideoUri: (aboutVideoUri && trim(aboutVideoUri)) || '',
-        acceptedPostTypes: normalizeAcceptedPostTypes(acceptedPostTypes) || [...CUSTOM_VIEW_DEFAULT_POST_TYPES],
+        acceptedPostTypes: normalizeAcceptedPostTypes(acceptedPostTypes) || [...DEFAULT_SELECTED_POST_TYPES],
         avatarUrl: avatarUrl || DEFAULT_AVATAR,
         bannerUrl: bannerUrl || DEFAULT_BANNER,
         description: description || '',

@@ -16,7 +16,6 @@ const VIEW_TYPE_TO_ICON_NAME = {
   resources: 'Document',
   'track-actions': 'Shapes',
   tracks: 'Shapes',
-  welcome: 'Hand',
   custom: 'Filter'
 }
 
@@ -116,7 +115,7 @@ export const COMMON_VIEWS = {
   },
   welcome: {
     name: 'Welcome',
-    iconName: 'Hand'
+    lucideIcon: 'HeartHandshake'
   },
   page: {
     name: 'Page',
@@ -143,7 +142,8 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   resources: 'PackageOpen',
   'requests-and-offers': 'Heart',
   text: 'Type',
-  separator: 'Minus'
+  separator: 'Minus',
+  welcome: 'HeartHandshake'
 }
 
 /** Explicit icon names that map to Lucide (not the Hylo icon font). */
@@ -159,6 +159,7 @@ const LUCIDE_ICON_NAMES = new Set([
   'FilePenLine',
   'FileText',
   'Grid3x3',
+  'HeartHandshake',
   'Languages',
   'Layers',
   'LogOut',

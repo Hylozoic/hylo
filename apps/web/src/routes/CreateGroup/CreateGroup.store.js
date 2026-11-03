@@ -97,6 +97,7 @@ export function createGroup (data) {
       query: `mutation ($data: GroupInput) {
         createGroup(data: $data) {
           id
+          allowInPublic
           homeRoute
           name
           purpose

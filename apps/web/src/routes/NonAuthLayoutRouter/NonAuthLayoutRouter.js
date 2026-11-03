@@ -98,7 +98,19 @@ export default function NonAuthLayoutRouter (props) {
               element={<JoinGroup />}
             />
             <Route
+              path='invite/:accessCode'
+              element={<JoinGroup />}
+            />
+            <Route
+              path='view/:accessCode'
+              element={<JoinGroup />}
+            />
+            <Route
               path='h/use-invitation'
+              element={<JoinGroup />}
+            />
+            <Route
+              path='h/invitation'
               element={<JoinGroup />}
             />
             {/*

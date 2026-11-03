@@ -21,7 +21,7 @@ function assertValidOfferingDurationForAccessGrants (accessGrants, duration) {
   }
 }
 
-/* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount, User, Queue, Frontend */
+/* global StripeProduct, Responsibility, Group, GroupMembership, GroupRole, StripeAccount, User, Queue, Frontend */
 
 /**
  * Helper function to convert a database account ID to an external Stripe account ID
@@ -315,6 +315,7 @@ module.exports = {
 
       const { cleanAccessGrants, offeringMetadata } = extractOfferingPresentationFields(accessGrants)
       assertValidOfferingDurationForAccessGrants(cleanAccessGrants, duration)
+      await GroupRole.assertAssignableRoleIds(cleanAccessGrants.groupRoleIds)
 
       // Create the product on the connected account
       const product = await StripeService.createProduct({
@@ -422,6 +423,9 @@ module.exports = {
         : existingAccessGrants
       const effectiveDuration = duration !== undefined ? duration : product.get('duration')
       assertValidOfferingDurationForAccessGrants(effectiveAccessGrants, effectiveDuration)
+      if (accessGrants !== undefined) {
+        await GroupRole.assertAssignableRoleIds(effectiveAccessGrants.groupRoleIds)
+      }
 
       // Prepare update attributes (only include provided fields)
       const updateAttrs = {}
