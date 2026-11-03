@@ -38,6 +38,7 @@ export default function fetchGroupSpaces (groupId) {
                 }
               }
               acceptedPostTypes
+              chatConverted
               visibility
               accessibility
               requiredRoles
