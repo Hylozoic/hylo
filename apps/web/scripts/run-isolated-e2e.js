@@ -320,6 +320,12 @@ const runE2E = async () => {
     HEROKU_AVAILABLE_PARALLELISM: '1',
     /** Skip Segment (api/services/Analytics.js); isolated API has no SEGMENT_KEY. */
     DISABLE_SEGMENT: '1',
+    /**
+     * Never send email (#1722): a sendwithus test key in the local .env delivers to the account owner.
+     * Email.js skips sending under DISABLE_EMAIL_SENDING; the blank key (dotenv never overrides a set var) is a backstop.
+     */
+    DISABLE_EMAIL_SENDING: '1',
+    SENDWITHUS_KEY: '',
     STRIPE_WEBHOOK_BYPASS_SIGNATURE: 'true',
     /**
      * StripeService loads Stripe at require time; CI has no repo secret by default.
