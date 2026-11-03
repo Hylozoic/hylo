@@ -103,6 +103,12 @@ describe('run-isolated-e2e.js process lifecycle', () => {
     expect(isAlive(backendPid)).toBe(false)
   })
 
+  it('starts the backend with email sending disabled, whatever SENDWITHUS_KEY the env holds', async () => {
+    const { exited, output } = await startRunner({ FAKE_PLAYWRIGHT_EXIT_CODE: '0', SENDWITHUS_KEY: 'test_dummy' })
+    expect((await exited).code).toBe(0)
+    expect(output()).toContain('FAKE_BACKEND_EMAIL_ENV {"SENDWITHUS_KEY":"","DISABLE_EMAIL_SENDING":"1"}')
+  })
+
   it('stops the backend and keeps the exit code when Playwright fails', async () => {
     const { exited, backendPid } = await startRunner({ FAKE_PLAYWRIGHT_EXIT_CODE: '3' })
     expect((await exited).code).toBe(3)
