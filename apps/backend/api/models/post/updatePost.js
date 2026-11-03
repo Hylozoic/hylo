@@ -35,6 +35,9 @@ export default function updatePost (userId, id, params) {
           throw new GraphQLError("This post can't be modified")
         }
 
+        // Another group admin may be editing: the post keeps its creator
+        delete attrs.user_id
+
         if (!isEqual(post.details(), paramsForUpdate.description) || !isEqual(post.title(), paramsForUpdate.name)) {
           attrs.edited_at = new Date()
         }

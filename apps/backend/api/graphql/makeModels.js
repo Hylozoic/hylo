@@ -21,6 +21,7 @@ import {
 } from './filters'
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
+import { canEditPost } from '../models/post/postEditPermissions'
 import InvitationService from '../services/InvitationService'
 import {
   filterAndSortContentAccess,
@@ -752,6 +753,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'end_time',
         'flagged_groups',
         'fulfilled_at',
+        'group_admins_can_edit',
         'is_public',
         'link_preview_featured',
         'location',
@@ -769,6 +771,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'voting_method'
       ],
       getters: {
+        canEdit: p => canEditPost(userId, p),
         clickthrough: p => p.clickthroughForUser(userId),
         commenters: (p, { first }) => p.getCommenters(first, userId),
         completedAt: p => p.completedAtForUser(userId),

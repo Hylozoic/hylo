@@ -7,6 +7,11 @@ import {
   assertCanFulfillPost,
   notifyAuthorOfModeratorFulfillment
 } from '../../models/post/postFulfillmentPermissions'
+import {
+  assertCanAllowGroupAdminEdits,
+  assertCanEditPost,
+  isPostCreator
+} from '../../models/post/postEditPermissions'
 import { deletePostDraftForCreate } from './draft'
 
 export async function completePost (userId, postId, completionResponse) {
@@ -33,6 +38,7 @@ export async function completePost (userId, postId, completionResponse) {
 export function createPost (userId, data) {
   return convertGraphqlPostData(data)
     .tap(convertedData => validatePostData(userId, convertedData))
+    .tap(convertedData => convertedData.groupAdminsCanEdit && assertCanAllowGroupAdminEdits(userId, convertedData.group_ids))
     .then(async validatedData => {
       const createdPost = await underlyingCreatePost(userId, validatedData)
       await deletePostDraftForCreate(userId, {
@@ -62,10 +68,27 @@ export function deletePost (userId, postId) {
     })
 }
 
-export function updatePost (userId, { id, data }) {
-  return convertGraphqlPostData(data)
-    .tap(convertedData => validatePostData(userId, convertedData))
-    .then(validatedData => underlyingUpdatePost(userId, id, validatedData))
+export async function updatePost (userId, { id, data }) {
+  const post = id && await Post.find(id)
+  if (!post) throw new GraphQLError('Post not found')
+  await assertCanEditPost(userId, post)
+
+  const convertedData = await convertGraphqlPostData(data)
+  if (isPostCreator(userId, post)) {
+    await validatePostData(userId, convertedData)
+    if (convertedData.groupAdminsCanEdit && !post.get('group_admins_can_edit')) {
+      await assertCanAllowGroupAdminEdits(userId, convertedData.group_ids)
+    }
+  } else {
+    // Other editors can change the content, but only the creator decides where it is
+    // posted and who else can edit it. The post stays in its groups, so they don't need
+    // to be a member of every one of them.
+    await post.load('groups')
+    convertedData.group_ids = post.relations.groups.pluck('id')
+    delete convertedData.groupAdminsCanEdit
+    await validatePostData(userId, convertedData, { skipMembershipCheck: true })
+  }
+  return underlyingUpdatePost(userId, id, convertedData)
 }
 
 export async function fulfillPost (userId, postId) {
@@ -167,15 +190,11 @@ export async function swapProposalVote ({ userId, postId, removeOptionId, addOpt
   }
 }
 
-export function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
-  return Post.find(postId)
-    .then(post => {
-      if (post.get('user_id') !== userId) {
-        throw new GraphQLError("You don't have permission to modify this post")
-      }
-      return post.updateProposalOutcome(proposalOutcome)
-    })
-    .then(() => ({ success: true }))
+export async function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
+  const post = await Post.find(postId)
+  await assertCanEditPost(userId, post)
+  await post.updateProposalOutcome(proposalOutcome)
+  return { success: true }
 }
 
 export async function pinPost (userId, postId, viewId) {
