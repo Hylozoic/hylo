@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import { SendHorizontal } from 'lucide-react'
 import { sendIsTyping } from 'client/websockets'
+import AttachmentDropZone from 'components/AttachmentDropZone'
 import AttachmentManager from 'components/AttachmentManager'
 import { addAttachment, getAttachments, clearAttachments } from 'components/AttachmentManager/AttachmentManager.store'
 import Button from 'components/ui/button'
@@ -62,7 +63,8 @@ const CommentForm = forwardRef(function CommentForm ({
 
   const currentUser = useSelector(getMe)
   const attachments = useSelector(
-    state => getAttachments(state, { type: 'comment', id: 'new', attachmentType: 'image' }),
+    // Images and files: the upload button and drag and drop accept both
+    state => getAttachments(state, { type: 'comment', id: 'new' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
   const sendIsTypingAction = useCallback((isTyping) => sendIsTyping(postId, isTyping), [postId])
@@ -211,76 +213,87 @@ const CommentForm = forwardRef(function CommentForm ({
 
   return (
     <>
-      <div
-        className={cn(
-          'CommentForm flex flex-col items-start justify-between bg-input items-center rounded-lg p-2 border-2 border-transparent',
-          { 'border-2 border-focus': isFocused },
-          className
-        )}
+      <AttachmentDropZone
+        type='comment'
+        id='new'
+        onAttachment={addAttachmentAction}
+        disabled={!currentUser}
+        className='w-full'
       >
         <div
-          className={cn('ml-0 mr-0 w-full cursor-text flex items-center overflow-x-hidden', { [classes.disabled]: !currentUser })}
-          onMouseDown={focusEditorFromContainerTap}
-          onTouchStart={focusEditorFromContainerTap}
+          className={cn(
+            'CommentForm flex flex-col items-start justify-between bg-input items-center rounded-lg p-2 border-2 border-transparent',
+            { 'border-2 border-focus': isFocused },
+            className
+          )}
         >
-          {currentUser
-            ? <RoundImage url={currentUser.avatarUrl} small className='w-6 h-6' />
-            : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
+          <div
+            className={cn('ml-0 mr-0 w-full cursor-text flex items-center overflow-x-hidden', { [classes.disabled]: !currentUser })}
+            onMouseDown={focusEditorFromContainerTap}
+            onTouchStart={focusEditorFromContainerTap}
+          >
+            {currentUser
+              ? <RoundImage url={currentUser.avatarUrl} small className='w-6 h-6' />
+              : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
 
-          <HyloEditor
-            contentHTML={hyloContentHTML}
-            onAltEnter={handleSubmit}
-            containerClassName='min-w-0'
-            className='w-full min-w-0 max-h-[200px] overflow-y-auto cursor-text [&_.ProseMirror]:w-full'
-            groupIds={groupIds}
-            readOnly={!currentUser}
-            blurOnScroll={false}
-            onUpdate={handleEditorUpdate}
-            onFocus={handleFocus}
-            onBlur={() => setIsFocused(false)}
-            placeholder={placeholderText}
-            ref={editor}
-          />
+            <HyloEditor
+              contentHTML={hyloContentHTML}
+              onAltEnter={handleSubmit}
+              containerClassName='min-w-0'
+              className='w-full min-w-0 max-h-[200px] overflow-y-auto cursor-text [&_.ProseMirror]:w-full'
+              groupIds={groupIds}
+              readOnly={!currentUser}
+              blurOnScroll={false}
+              onUpdate={handleEditorUpdate}
+              onFocus={handleFocus}
+              onBlur={() => setIsFocused(false)}
+              placeholder={placeholderText}
+              ref={editor}
+            />
 
-          {!currentUser
-            ? (
-              <Link
-                to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`}
-                target={inIframe() ? '_blank' : ''}
-                className={classes.signupButton}
-              >
-                {t('Sign up to reply')}
-              </Link>
-              )
-            : (
-              <div className='flex items-center gap-2'>
-                <div>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    onClick={() => handleSubmit(editor.current.getHTML())}
-                    className='bg-selected text-foreground hover:scale-102 focus-visible:outline-none'
-                    tooltip={t('You need to include text to post a comment')}
-                  >
-                    <SendHorizontal size={18} color='white' />
-                  </Button>
+            {!currentUser
+              ? (
+                <Link
+                  to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`}
+                  target={inIframe() ? '_blank' : ''}
+                  className={classes.signupButton}
+                >
+                  {t('Sign up to reply')}
+                </Link>
+                )
+              : (
+                <div className='flex items-center gap-2'>
+                  <div>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      onClick={() => handleSubmit(editor.current.getHTML())}
+                      className='bg-selected text-foreground hover:scale-102 focus-visible:outline-none'
+                      tooltip={t('You need to include text to post a comment')}
+                    >
+                      <SendHorizontal size={18} color='white' />
+                    </Button>
+                  </div>
+                  <UploadAttachmentButton
+                    type='comment'
+                    id='new'
+                    allowMultiple
+                    onSuccess={addAttachmentAction}
+                    customRender={renderProps => (
+                      <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
+                    )}
+                  />
                 </div>
-                <UploadAttachmentButton
-                  type='comment'
-                  id='new'
-                  allowMultiple
-                  onSuccess={addAttachmentAction}
-                  customRender={renderProps => (
-                    <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
-                  )}
-                />
-              </div>
-              )}
+                )}
+          </div>
+          {currentUser && (
+            <>
+              <AttachmentManager type='comment' id='new' attachmentType='image' />
+              <AttachmentManager type='comment' id='new' attachmentType='file' />
+            </>
+          )}
         </div>
-        {currentUser && (
-          <AttachmentManager type='comment' id='new' attachmentType='image' />
-        )}
-      </div>
+      </AttachmentDropZone>
       <p className='text-xs text-foreground/50 text-end'>
         {!isMobile.any && (navigator.platform.includes('Mac') ? t('Press Option-Enter to comment') : t('Press Alt-Enter to comment'))}
       </p>
