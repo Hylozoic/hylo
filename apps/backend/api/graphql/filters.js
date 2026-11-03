@@ -165,14 +165,11 @@ async function activeMemberGroupIds (userId) {
  */
 async function groupIdsByResponsibilities (userId, responsibilityTitles) {
   const knex = bookshelf.knex
-  const roleGroupIds = knex('group_memberships_group_roles as mgr')
+  const roleGroupIds = knex('group_member_effective_roles as mgr')
     .join('group_roles_responsibilities as grr', 'grr.group_role_id', 'mgr.group_role_id')
     .join('responsibilities as r', 'r.id', 'grr.responsibility_id')
     .where('mgr.user_id', userId)
     .whereIn('r.title', responsibilityTitles)
-    .where(function () {
-      this.where('mgr.active', true).orWhereNull('mgr.active')
-    })
     .select('mgr.group_id')
 
   const rows = await knex('group_memberships')

@@ -10,6 +10,7 @@ import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
 import isPendingFor from 'store/selectors/isPendingFor'
 import useDebounce from 'hooks/useDebounce'
+import useRefreshOnReturn from 'hooks/useRefreshOnReturn'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import {
@@ -76,6 +77,11 @@ function ThreadList () {
     [hasMoreThreads, threads.length, fetchThreadsAction]
   )
   const setThreadSearchAction = useCallback((search) => dispatch(setThreadSearch(search)), [dispatch])
+
+  // Threads that got new messages while the socket was down (e.g. the mobile app was
+  // in the background) would otherwise keep a stale preview, order and unread count
+  const refreshThreads = useCallback(() => fetchThreadsAction(0), [fetchThreadsAction])
+  useRefreshOnReturn(refreshThreads)
 
   const closeNavMenuAction = useCallback(() => dispatch(toggleNavMenu(false)), [dispatch])
 

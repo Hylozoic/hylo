@@ -11,6 +11,8 @@ async function assertNotSpace (groupId) {
   }
 }
 
+const RESERVED_TITLE_ERROR = 'A built-in responsibility already has this title'
+
 /**
  * Find a role by id that belongs to this group, rejecting system (common) roles,
  * whose responsibilities cannot be edited.
@@ -31,6 +33,7 @@ export async function addGroupResponsibility ({ groupId, title, description, use
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+      if (await Responsibility.isSystemTitle(title)) throw new GraphQLError(RESERVED_TITLE_ERROR)
       return Responsibility.forge({ group_id: groupId, title, description, type: 'group' }).save().then((savedGroupResponsibility) => savedGroupResponsibility)
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to create group responsibility')
@@ -49,6 +52,8 @@ export async function updateGroupResponsibility ({ responsibilityId, title, desc
       return bookshelf.transaction(async transacting => {
         const groupResponsibility = await Responsibility.where({ id: responsibilityId, group_id: groupId }).fetch({ transacting })
         if (!groupResponsibility) throw new GraphQLError('Responsibility not found in this group')
+        const titleChanged = title && title.trim().toLowerCase() !== (groupResponsibility.get('title') || '').trim().toLowerCase()
+        if (titleChanged && await Responsibility.isSystemTitle(title)) throw new GraphQLError(RESERVED_TITLE_ERROR)
         const updatedAttributes = {
           title: title || groupResponsibility.get('title'),
           description: description || groupResponsibility.get('description')
@@ -92,6 +97,7 @@ export async function addResponsibilityToRole ({ userId, responsibilityId, roleI
     await assertNotSpace(groupId)
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
     if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+      await GroupRole.assertAssignableRoleIds([roleId])
       await findEditableRoleInGroup(roleId, groupId)
       // Only system responsibilities and this group's own responsibilities can be added
       const responsibility = await Responsibility.query(q => {
@@ -125,6 +131,7 @@ export async function removeResponsibilityFromRole ({ userId, roleResponsibility
       })
         .fetch()
       if (!roleResponsibility) throw new GraphQLError('Role responsibility not found in this group')
+      await GroupRole.assertAssignableRoleIds([roleResponsibility.get('group_role_id')])
       await findEditableRoleInGroup(roleResponsibility.get('group_role_id'), groupId)
       await roleResponsibility.destroy()
       return { success: true }

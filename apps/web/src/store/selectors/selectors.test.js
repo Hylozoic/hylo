@@ -5,6 +5,7 @@ import getTopicForCurrentRoute from './getTopicForCurrentRoute'
 import getMyMemberships from './getMyMemberships'
 import { getMyGroups, getMyGroupsWithChildren, getMyGlobalNavItems } from './getMyGroups'
 import hasResponsibilityForGroup from './hasResponsibilityForGroup'
+import getRolesForGroup from './getRolesForGroup'
 import { getLastViewedGroupPath } from './getLastViewedGroup'
 
 describe('getMe', () => {
@@ -172,6 +173,25 @@ describe('hasResponsibilityForGroup', () => {
     const state = { orm: session.state }
     const props = { person: me, groupId: space.id, responsibility: 'Administration' }
     expect(hasResponsibilityForGroup(state, props)).toEqual(true)
+  })
+})
+
+describe('getRolesForGroup', () => {
+  it('omits the implicit All Members role that carries invite permission', () => {
+    const session = orm.session(orm.getEmptyState())
+    session.Group.create({ id: '1' })
+    session.Me.create({
+      id: '1',
+      groupRoles: {
+        items: [
+          { id: '9', groupId: '1', name: 'All Members', emoji: '' },
+          { id: '3', groupId: '1', name: 'Host', emoji: '🏠' }
+        ]
+      }
+    })
+
+    const roles = getRolesForGroup({ orm: session.state }, { groupId: '1' })
+    expect(roles.map(role => role.name)).toEqual(['Host'])
   })
 })
 
