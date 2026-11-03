@@ -49,7 +49,8 @@ export {
   deleteSpace,
   joinSpace,
   convertSpaceToChildGroup,
-  convertGroupToSpace
+  convertGroupToSpace,
+  convertChatSpaceToDiscussion
 } from './spaces'
 export {
   respondToEvent,
