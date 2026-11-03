@@ -13,6 +13,7 @@ import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { cn } from 'util/index'
 import { getVideoEmbedUrl } from 'util/isPlayableVideoUrl'
 import { normalizeUserLinkHref } from 'util/url'
+import useInlineImageDrop from './useInlineImageDrop'
 
 // export function addIframe (editor) {
 //   const url = window.prompt('URL of video or content to embed')
@@ -71,6 +72,8 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [linkPopoverMode, setLinkPopoverMode] = useState('add')
   const { t } = useTranslation()
+  // Images dropped or pasted into a page/welcome editor go where they're dropped, like the Image button
+  useInlineImageDrop(editor, { type, id, enabled: extendedMenu })
 
   if (!editor) return null
 
