@@ -216,6 +216,67 @@ describe('graphql request handler', () => {
     })
   })
 
+  describe('Hylo Pro management', () => {
+    let staff, steward, proGroup, oldAdmins
+
+    before(async () => {
+      staff = await factories.user().save()
+      steward = await factories.user().save()
+      proGroup = await factories.group().save()
+      await steward.joinGroup(proGroup, { assignAdministrator: true })
+      oldAdmins = process.env.HYLO_ADMINS
+      process.env.HYLO_ADMINS = String(staff.id)
+    })
+
+    after(async () => {
+      process.env.HYLO_ADMINS = oldAdmins
+      await HyloProSubscription.query().where({ group_id: proGroup.id }).del()
+    })
+
+    const as = person => {
+      req.session.userId = person.id
+      req.user = person
+    }
+
+    it("refuses a group's own stewards", async () => {
+      as(steward)
+      const { executionResult } = await handler.inject({ document: '{ hyloProMetrics { activeGroups } }', serverContext: { req, res } })
+      expect(executionResult.errors[0].message).to.match(/Admin access required/)
+      expect(executionResult.data.hyloProMetrics).to.equal(null)
+
+      const mutation = `mutation { grantHyloPro(groupId: "${proGroup.id}") { id } }`
+      const result = await handler.inject({ document: mutation, serverContext: { req, res } })
+      expect(result.executionResult.errors[0].message).to.match(/Admin access required/)
+      expect(await proGroup.hasPro()).to.be.false
+    })
+
+    it('lets Hylo staff grant Pro and see it in the list and metrics', async () => {
+      as(staff)
+      const grant = await handler.inject({
+        document: `mutation { grantHyloPro(groupId: "${proGroup.get('slug')}", expiresAt: "2099-01-01T00:00:00Z", note: "pilot") {
+          source status active note expiresAt group { id } grantedBy { id }
+        } }`,
+        serverContext: { req, res }
+      })
+      expect(grant.executionResult.errors).to.be.undefined
+      expect(grant.executionResult.data.grantHyloPro).to.deep.include({ source: 'manual', status: 'active', active: true, note: 'pilot' })
+      expect(grant.executionResult.data.grantHyloPro.group.id).to.equal(String(proGroup.id))
+      expect(grant.executionResult.data.grantHyloPro.grantedBy.id).to.equal(String(staff.id))
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          hyloProMetrics { activeGroups manualGroups months { month grants } }
+          hyloProSubscriptions(filter: "manual", search: "${proGroup.get('slug')}") { total items { note group { slug } } }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.hyloProMetrics.activeGroups).to.be.at.least(1)
+      expect(executionResult.data.hyloProMetrics.months).to.have.length(6)
+      expect(executionResult.data.hyloProSubscriptions).to.deep.equal({ total: 1, items: [{ note: 'pilot', group: { slug: proGroup.get('slug') } }] })
+    })
+  })
+
   describe('retained paid access for former members', () => {
     const grantGroupScope = (userId, groupId, sourceId, expiresAt = null) =>
       bookshelf.knex('user_scopes').insert({

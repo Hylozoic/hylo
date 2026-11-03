@@ -188,6 +188,16 @@ import {
   activateHyloProCheckoutSession,
   createHyloProCheckoutSession,
   createHyloProPortalSession,
+  hyloProMetrics,
+  hyloProSubscriptions,
+  hyloProPayments,
+  grantHyloPro,
+  updateHyloProGrant,
+  revokeHyloProGrant,
+  cancelHyloProSubscription,
+  resumeHyloProSubscription,
+  extendHyloProSubscription,
+  refundHyloProPayment,
   membershipChangeCommit,
   verifyEmail,
   verifyEmailChange
@@ -631,7 +641,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       const banners = await SiteBanner.all()
       return banners.toModelArray ? banners.toModelArray() : banners
     },
-    publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status)
+    publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status),
+    hyloProMetrics: (root, args, context) => hyloProMetrics(context.currentUserId),
+    hyloProSubscriptions: (root, args, context) => hyloProSubscriptions(context.currentUserId, args),
+    hyloProPayments: (root, { groupId }, context) => hyloProPayments(context.currentUserId, { groupId })
   }
 }
 
@@ -908,6 +921,15 @@ export function makeMutations ({ fetchOne }) {
     createHyloProPortalSession: (root, { groupId }, context) => createHyloProPortalSession(context.currentUserId, { groupId }),
 
     activateHyloProCheckoutSession: (root, { groupId, sessionId }, context) => activateHyloProCheckoutSession(context.currentUserId, { groupId, sessionId }),
+
+    // Hylo Pro management (Hylo staff only)
+    grantHyloPro: (root, args, context) => grantHyloPro(context.currentUserId, args),
+    updateHyloProGrant: (root, args, context) => updateHyloProGrant(context.currentUserId, args),
+    revokeHyloProGrant: (root, { id }, context) => revokeHyloProGrant(context.currentUserId, { id }),
+    cancelHyloProSubscription: (root, { id, immediately }, context) => cancelHyloProSubscription(context.currentUserId, { id, immediately }),
+    resumeHyloProSubscription: (root, { id }, context) => resumeHyloProSubscription(context.currentUserId, { id }),
+    extendHyloProSubscription: (root, { id, days }, context) => extendHyloProSubscription(context.currentUserId, { id, days }),
+    refundHyloProPayment: (root, args, context) => refundHyloProPayment(context.currentUserId, args),
 
     membershipChangeCommit: (root, { groupId, fromOfferingId, toOfferingId, newQuantity }, context) =>
       membershipChangeCommit(context.currentUserId, { groupId, fromOfferingId, toOfferingId, newQuantity }),
