@@ -19,8 +19,9 @@ function mockFinePointer (matches) {
 }
 
 function mockEditor () {
-  const chain = { focus: jest.fn(), insertContent: jest.fn(), run: jest.fn() }
+  const chain = { focus: jest.fn(), command: jest.fn(), insertContent: jest.fn(), run: jest.fn() }
   chain.focus.mockReturnValue(chain)
+  chain.command.mockReturnValue(chain)
   chain.insertContent.mockReturnValue(chain)
   return { editor: { chain: () => chain, isActive: () => false, getAttributes: () => ({}) }, chain }
 }
@@ -46,6 +47,10 @@ describe('HyloEditorMenuBar emoji button', () => {
     pickEmoji()
     expect(chain.insertContent).toHaveBeenCalledWith('🎉')
     expect(chain.run).toHaveBeenCalled()
+    // Starts a new undo group so Cmd-Z removes just the emoji
+    const tr = { setMeta: jest.fn() }
+    expect(chain.command.mock.calls[0][0]({ tr })).toBe(true)
+    expect(tr.setMeta).toHaveBeenCalled()
   })
 
   it('hands the emoji to onInsertEmoji when given', () => {

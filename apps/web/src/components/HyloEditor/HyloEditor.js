@@ -12,6 +12,7 @@ import PeopleMentions from './extensions/PeopleMentions'
 import TopicMentions from './extensions/TopicMentions'
 import Video from './extensions/Video'
 import HyloEditorMenuBar from './HyloEditorMenuBar'
+import insertContentAsUndoStep from './insertContentAsUndoStep'
 import 'tippy.js/dist/tippy.css'
 import { shouldBailTextSelectionGesture } from 'util/textSelectionTouch'
 import classes from './HyloEditor.module.scss'
@@ -271,11 +272,9 @@ const HyloEditor = React.forwardRef(({
     getText: () => {
       return editorRef.current.getText()
     },
-    // Inserts at the editor's cursor (or replaces the selection) as one undoable step
+    // Inserts at the editor's cursor (or replaces the selection) as its own undo step
     insertContent: content => {
-      if (editorRef.current) {
-        editorRef.current.chain().focus().insertContent(content).run()
-      }
+      if (editorRef.current) insertContentAsUndoStep(editorRef.current, content)
     },
     isEmpty: () => {
       return editorRef.current ? editorRef.current.isEmpty : true
