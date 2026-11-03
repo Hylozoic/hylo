@@ -3277,5 +3277,8 @@
   "reactionCount_one": "{{count}} réaction",
   "reactionCount_other": "{{count}} réactions",
   "Tap to remove": "Touchez pour retirer",
-  "reactionCount_many": "{{count}} réactions"
+  "reactionCount_many": "{{count}} réactions",
+  "Topics": "Sujets",
+  "Give this view a name of at least 2 characters": "Donnez à cette vue un nom d'au moins 2 caractères",
+  "Choose at least one post type": "Choisissez au moins un type de publication"
 }

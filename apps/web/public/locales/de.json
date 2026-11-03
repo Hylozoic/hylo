@@ -3277,5 +3277,8 @@
   "Message to the requester (optional), included in the email": "Nachricht an die anfragende Person (optional), wird in die E-Mail aufgenommen",
   "reactionCount_one": "{{count}} Reaktion",
   "reactionCount_other": "{{count}} Reaktionen",
-  "Tap to remove": "Zum Entfernen tippen"
+  "Tap to remove": "Zum Entfernen tippen",
+  "Topics": "Themen",
+  "Give this view a name of at least 2 characters": "Gib dieser Ansicht einen Namen mit mindestens 2 Zeichen",
+  "Choose at least one post type": "Wähle mindestens einen Beitragstyp aus"
 }
