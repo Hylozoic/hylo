@@ -161,6 +161,7 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Invitation, 'email', 'email')
       .query({ where: { used_by_id: null, expired_by_id: null } })
       .orderBy('created_at', 'desc')
+      .orderBy('id', 'desc')
   },
 
   /**
