@@ -1,4 +1,4 @@
-/* global Track, Group, GroupMembership, Responsibility */
+/* global Track, Group, GroupMembership, GroupRole, Responsibility */
 import { omit } from 'lodash'
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
@@ -6,6 +6,7 @@ import convertGraphqlData from './convertGraphqlData'
 export async function createTrack (userId, data) {
   return bookshelf.transaction(async transacting => {
     const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
+    await GroupRole.assertAssignableRoleIds(attrs.completion_role_id, { transacting })
 
     const spaceId = data.groupId
     if (spaceId) {
@@ -90,6 +91,7 @@ export async function updateTrack (userId, id, data) {
   }
 
   const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
+  await GroupRole.assertAssignableRoleIds(attrs.completion_role_id)
   await track.save(attrs)
   return track
 }

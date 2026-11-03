@@ -109,6 +109,11 @@ exports.hi = {
     }
     return `${reminderMessages[reminderType] || 'समय सीमा निकट है'}`
   },
+  publicListingApprovedSubject: (name) => `आपका समूह ${name} कॉमन्स में जोड़ दिया गया है`,
+  publicListingDeniedSubject: (name) => `${name} को कॉमन्स में जोड़ने के आपके अनुरोध पर अपडेट`,
+  publicListingApprovedBody: (name) => `खुशखबरी! ${name} को कॉमन्स में जोड़ दिया गया है। आपका समूह अब सार्वजनिक ग्रुप एक्सप्लोरर और सार्वजनिक मानचित्र पर दिखाई देता है, और सदस्य सार्वजनिक स्ट्रीम में पोस्ट साझा कर सकते हैं।`,
+  publicListingDeniedBody: (name) => `${name} को कॉमन्स में जोड़ने का अनुरोध करने के लिए धन्यवाद। आपके अनुरोध की समीक्षा के बाद, Hylo टीम ने अभी इसे न जोड़ने का निर्णय लिया है। आपका समूह अपरिवर्तित है, और आप अपने समूह की गोपनीयता और पहुंच सेटिंग्स से नया अनुरोध भेज सकते हैं।`,
+  publicListingReviewerNote: () => 'Hylo टीम की ओर से एक नोट:',
   theTeamAtHylo: 'Hylo की टीम',
   stripeContributionProductName: () => 'अपना Hylo योगदान चुनें',
   stripeContributionProductDescription: () => 'Hylo प्लेटफ़ॉर्म को सहयोग देने के लिए अपना योगदान स्तर चुनें।',

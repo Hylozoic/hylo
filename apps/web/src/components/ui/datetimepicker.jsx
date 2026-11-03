@@ -14,11 +14,10 @@ import { cn } from '@/lib/utils'
 import {
   applyDateInputValue,
   applyTimeInputValue,
-  prefersNativeDateTimePicker,
-  subscribeToPointerChanges,
   toDateInputValue,
   toTimeInputValue
 } from './nativeDateTimePicker'
+import usePrefersNativeDateTimePicker from './usePrefersNativeDateTimePicker'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -589,7 +588,7 @@ const TimePicker = React.forwardRef(({ date, onChange, onEnter, hourCycle = 24, 
   )
 })
 TimePicker.displayName = 'TimePicker'
-const PopoverDateTimePicker = React.forwardRef(({ locale: localeProp, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle: hourCycleProp, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+const PopoverDateTimePicker = React.forwardRef(({ locale: localeProp, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle: hourCycleProp, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, endAdornment, ...props }, ref) => {
   const locale = localeProp ?? getDateLocale()
   const hourCycle = hourCycleProp ?? getHourCycle()
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
@@ -699,18 +698,33 @@ const PopoverDateTimePicker = React.forwardRef(({ locale: localeProp, defaultPop
     }
   }, [popoverOpen])
 
+  const trigger = (
+    <PopoverTrigger asChild disabled={disabled}>
+      <Button variant='outline' className={cn('min-h-11 sm:min-h-10 max-w-full justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', endAdornment && 'pr-10 sm:pr-9', className)} ref={buttonRef}>
+        <CalendarIcon className='mr-2 h-4 w-4' />
+        {displayDate
+          ? (DateTimeHelpers.toDateTime(displayDate, {
+              locale
+            }).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12))
+          : (<span>{placeholder}</span>)}
+      </Button>
+    </PopoverTrigger>
+  )
+
   return (
     <Popover open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
-      <PopoverTrigger asChild disabled={disabled}>
-        <Button variant='outline' className={cn('min-h-11 sm:min-h-10 max-w-full justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
-          <CalendarIcon className='mr-2 h-4 w-4' />
-          {displayDate
-            ? (DateTimeHelpers.toDateTime(displayDate, {
-                locale
-              }).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12))
-            : (<span>{placeholder}</span>)}
-        </Button>
-      </PopoverTrigger>
+      {endAdornment
+        ? (
+          // The adornment (e.g. a clear button) can't go inside the trigger <button>, so it's
+          // overlaid on the trigger's right padding; as a sibling, clicking it doesn't open the popover
+          <div className='relative inline-flex min-w-0 max-w-full'>
+            {trigger}
+            <div className='absolute inset-y-0 right-1 flex items-center' data-testid='datetime-picker-end-adornment'>
+              {endAdornment}
+            </div>
+          </div>
+          )
+        : trigger}
       <PopoverContent
         ref={popoverContentRef}
         container={popoverSurface}
@@ -756,7 +770,7 @@ PopoverDateTimePicker.displayName = 'PopoverDateTimePicker'
  * Clearing an input (iOS "Reset", Android "Clear") is ignored and the input snaps back,
  * matching the popover picker, which has no way to clear a value either.
  */
-const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = false, granularity = 'second', placeholder = 'Pick a date', label, id, className }, ref) => {
+const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = false, granularity = 'second', placeholder = 'Pick a date', label, id, className, endAdornment }, ref) => {
   const { t } = useTranslation()
   const [current, setCurrent] = React.useState(value ?? undefined)
   const generatedId = React.useId()
@@ -794,6 +808,17 @@ const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = fal
     '[color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-focus disabled:opacity-50'
   )
   const emptyClass = 'text-transparent'
+  // The adornment (e.g. a clear button) sits inside the last input's box, over its right
+  // padding. That input drops the browser's own picker icon (Chrome shows one; iOS and Android
+  // don't, and tapping the field opens the picker anyway), which would otherwise crowd the
+  // value out of a phone-width field.
+  const adornmentPadding = 'pr-10 sm:pr-9 [&::-webkit-calendar-picker-indicator]:hidden'
+  const adornment = endAdornment && (
+    <div className='absolute inset-y-0 right-1 z-10 flex items-center' data-testid='datetime-picker-end-adornment'>
+      {endAdornment}
+    </div>
+  )
+  const hasTimeInput = granularity !== 'day'
   const overlayClass = 'pointer-events-none absolute inset-y-0 left-2 flex items-center text-base text-foreground/50'
 
   // A grid with minmax(0, 1fr) tracks, so the columns are sized by the container and never by
@@ -807,27 +832,29 @@ const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = fal
           id={`${baseId}-date`}
           data-testid='native-date-input'
           aria-label={`${accessibleName}, ${t('Date')}`}
-          className={cn(inputClass, !dateValue && emptyClass)}
+          className={cn(inputClass, !dateValue && emptyClass, endAdornment && !hasTimeInput && adornmentPadding)}
           value={dateValue}
           onChange={(e) => handleChange(applyDateInputValue(current, e.target.value), e.target, dateValue)}
           disabled={disabled}
         />
         {!dateValue && <span className={overlayClass} aria-hidden='true'>{placeholder}</span>}
+        {!hasTimeInput && adornment}
       </div>
-      {granularity !== 'day' && (
+      {hasTimeInput && (
         <div className='relative min-w-0 max-w-full overflow-hidden rounded-md'>
           <input
             type='time'
             id={`${baseId}-time`}
             data-testid='native-time-input'
             aria-label={`${accessibleName}, ${t('Time')}`}
-            className={cn(inputClass, !timeValue && emptyClass)}
+            className={cn(inputClass, !timeValue && emptyClass, endAdornment && adornmentPadding)}
             step={withSeconds ? 1 : 60}
             value={timeValue}
             onChange={(e) => handleChange(applyTimeInputValue(current, e.target.value), e.target, timeValue)}
             disabled={disabled}
           />
           {!timeValue && <span className={overlayClass} aria-hidden='true'>--:--</span>}
+          {adornment}
         </div>
       )}
     </div>
@@ -836,24 +863,11 @@ const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = fal
 NativeDateTimePicker.displayName = 'NativeDateTimePicker'
 
 /**
- * Whether this device should get the native pickers. Re-evaluated when the pointer media
- * queries change (e.g. a trackpad is attached to a tablet).
- */
-function usePrefersNativeDateTimePicker () {
-  const [prefersNative, setPrefersNative] = React.useState(() => prefersNativeDateTimePicker())
-  React.useEffect(() => {
-    const update = () => setPrefersNative(prefersNativeDateTimePicker())
-    update()
-    return subscribeToPointerChanges(update)
-  }, [])
-  return prefersNative
-}
-
-/**
  * Date + time picker. Touch devices get the OS pickers (NativeDateTimePicker); devices with a
  * mouse or trackpad get the popover calendar (PopoverDateTimePicker). Both take and emit
  * wall-clock Dates; `label` names the native inputs for screen readers (falls back to
- * `placeholder`).
+ * `placeholder`). `endAdornment` (e.g. a small clear button) is shown inside the field, at its
+ * trailing edge.
  */
 const DateTimePicker = React.forwardRef(({ label, ...props }, ref) => {
   const prefersNative = usePrefersNativeDateTimePicker()
@@ -862,4 +876,4 @@ const DateTimePicker = React.forwardRef(({ label, ...props }, ref) => {
     : <PopoverDateTimePicker {...props} ref={ref} />
 })
 DateTimePicker.displayName = 'DateTimePicker'
-export { DateTimePicker, NativeDateTimePicker, PopoverDateTimePicker, TimePickerInput, TimePicker, usePrefersNativeDateTimePicker }
+export { DateTimePicker, NativeDateTimePicker, PopoverDateTimePicker, TimePickerInput, TimePicker }

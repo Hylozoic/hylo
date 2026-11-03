@@ -10,6 +10,12 @@ export default gql`
       isSpace
       parentGroupSlug
       parentGroupName
+      grantAccess
+      groupRoles {
+        id
+        name
+        emoji
+      }
     }
   }
 `

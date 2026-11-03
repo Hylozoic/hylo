@@ -101,6 +101,7 @@ before(function (done) {
 
       setup.createSchema()
         .then(async () => {
+          // Insertion order sets the ids, which Group.moderators() and stewards() hard-code
           const systemResponsibilities = [
             'Administration',
             'Add Members',

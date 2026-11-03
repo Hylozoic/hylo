@@ -320,13 +320,21 @@ const runE2E = async () => {
     HEROKU_AVAILABLE_PARALLELISM: '1',
     /** Skip Segment (api/services/Analytics.js); isolated API has no SEGMENT_KEY. */
     DISABLE_SEGMENT: '1',
+    /**
+     * Never send email (#1722): a sendwithus test key in the local .env delivers to the account owner.
+     * Email.js skips sending under DISABLE_EMAIL_SENDING; the blank key (dotenv never overrides a set var) is a backstop.
+     */
+    DISABLE_EMAIL_SENDING: '1',
+    SENDWITHUS_KEY: '',
     STRIPE_WEBHOOK_BYPASS_SIGNATURE: 'true',
     /**
      * StripeService loads Stripe at require time; CI has no repo secret by default.
      * Same placeholders as `apps/backend/test/setup/index.js` — E2E does not call live Stripe.
      */
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_fake_key_for_testing_purposes',
-    STRIPE_API_KEY: process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes'
+    STRIPE_API_KEY: process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes',
+    /** authenticated.invite-policy.spec.js needs it on even when a local .env names another environment */
+    FEATURE_FLAG_MEMBER_INVITES: process.env.FEATURE_FLAG_MEMBER_INVITES || 'on'
   }
 
   if (skipDb) {
@@ -360,6 +368,8 @@ const runE2E = async () => {
     PORT: e2eWebPort,
     /** Pipe `[Hylo GraphQL]` / `[Hylo checkLogin]` from the browser to the test runner terminal */
     E2E_FORWARD_BROWSER_LOGS: process.env.E2E_FORWARD_BROWSER_LOGS || '',
+    /** Vite reads VITE_* from the environment; matches the backend's member invites flag */
+    VITE_FEATURE_FLAG_MEMBER_INVITES: process.env.VITE_FEATURE_FLAG_MEMBER_INVITES || 'on',
     ...(e2eNotificationJwt ? { E2E_NOTIFICATION_PAGE_JWT: e2eNotificationJwt } : {})
   }
 

@@ -150,6 +150,8 @@ export default function AuthLayoutRouter (props) {
     const matches = [
       { path: `${POST_DETAIL_MATCH}` },
       { path: 'groups/:joinGroupSlug/join/:accessCode', context: 'groups' },
+      { path: 'invite/:accessCode', context: 'groups' },
+      { path: 'view/:accessCode', context: 'groups' },
       { path: 'groups/:groupSlug/spaces/:spaceSlug/*', context: 'groups' },
       { path: 'groups/:groupSlug/:view/*', context: 'groups' },
       { path: 'groups/:groupSlug/*', context: 'groups' },
@@ -1095,7 +1097,10 @@ export default function AuthLayoutRouter (props) {
                 {/* **** Group Routes **** */}
                 <Route path='create-group/*' element={<CreateGroup />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
+                <Route path='invite/:accessCode' element={<JoinGroup />} />
+                <Route path='view/:accessCode' element={<JoinGroup />} />
                 <Route path='h/use-invitation' element={<JoinGroup />} />
+                <Route path='h/invitation' element={<JoinGroup />} />
                 <Route
                   path='groups/:groupSlug/*'
                   element={

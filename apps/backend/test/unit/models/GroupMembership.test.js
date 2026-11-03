@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 const root = require('root-path')
 const setup = require(root('test/setup'))
 const { spyify, unspyify } = require(root('test/setup/helpers'))
@@ -54,6 +55,41 @@ describe('GroupMembership', () => {
       await gm.updateAndSave({ active: false })
       const actual = await GroupMembership.hasActiveMembership(u, g1)
       expect(actual).to.equal(false)
+    })
+  })
+
+  describe('everyone invite policy', () => {
+    let group, space, administrator, member
+
+    before(async () => {
+      group = await factories.group().save()
+      space = await factories.group({ type: 'space', parent_id: group.id }).save()
+      administrator = await factories.user().save()
+      member = await factories.user().save()
+      await administrator.joinGroup(group, { assignAdministrator: true })
+      await member.joinGroup(group)
+      await member.joinGroup(space)
+    })
+
+    afterEach(() => GroupRole.setInvitePolicy(group.id, 'stewards'))
+
+    it('gives every active member Add Members, including in a child space', async () => {
+      expect(await GroupMembership.hasResponsibility(member.id, group, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.false
+
+      await GroupRole.setInvitePolicy(group.id, 'everyone')
+      expect(await GroupMembership.hasResponsibility(member.id, group.id, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.true
+      expect(await GroupMembership.hasResponsibility(member.id, space.id, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.true
+      expect(await GroupMembership.hasResponsibility(administrator.id, group.id, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.true
+    })
+
+    it('does not give Add Members to someone who left or is inactive', async () => {
+      const leaver = await factories.user().save()
+      const membership = await leaver.joinGroup(group)
+      await GroupRole.setInvitePolicy(group.id, 'everyone')
+      expect(await GroupMembership.hasResponsibility(leaver.id, group.id, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.true
+
+      await membership.save({ active: false }, { patch: true })
+      expect(await GroupMembership.hasResponsibility(leaver.id, group.id, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.false
     })
   })
 

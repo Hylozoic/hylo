@@ -3,6 +3,7 @@ import { uniqueId } from 'lodash'
 import React, { forwardRef, useState, useRef, useCallback } from 'react'
 import { Tooltip } from 'react-tooltip'
 import Icon from 'components/Icon'
+import useTouchLongPress from 'hooks/useTouchLongPress'
 import { cn } from 'util/index'
 
 // Renders a pill-style label that can be removed or tapped for search while showing a tooltip.
@@ -14,12 +15,15 @@ const Pill = forwardRef(({
   editable,
   darkText = false,
   onClick,
+  // Touch long press. When set it replaces the default "show the tooltip" long press.
+  onLongPress,
   tooltipContent = 'Click to Search'
 }, ref) => {
   const [removing, setRemoving] = useState(false)
   const [isTooltipOpen, setIsTooltipOpen] = useState(false)
   const longPressTimerRef = useRef(null)
   const skipNextClickRef = useRef(false)
+  const { handlers: longPressHandlers, consumeLongPress } = useTouchLongPress(onLongPress ? () => onLongPress(id, label) : null)
 
   const deletePill = () => {
     if (editable && onRemove) {
@@ -39,6 +43,7 @@ const Pill = forwardRef(({
           skipNextClickRef.current = false
           return
         }
+        if (consumeLongPress()) return
 
         onClick(id, label)
       }
@@ -110,9 +115,9 @@ const Pill = forwardRef(({
           : {})}
         className='text-inherit'
         onClick={providedOnClick}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchCancel}
+        {...(onLongPress
+          ? { ...longPressHandlers, style: { WebkitTouchCallout: 'none' } }
+          : { onTouchStart: handleTouchStart, onTouchEnd: handleTouchEnd, onTouchCancel: handleTouchCancel })}
       >
         {label}
       </span>
