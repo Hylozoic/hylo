@@ -4,7 +4,8 @@
  * Titled "capture screenshot" so the default e2e run skips it: the page is for Hylo staff, which
  * needs HYLO_ADMINS to include the e2e user's id, and the spec writes rows with psql, e.g.
  *   HYLO_ADMINS=1 E2E_DATABASE_URL=... yarn node scripts/run-isolated-e2e.js hylo-pro-management --project=chromium
- * The Stripe rows are fake (no Stripe calls are made), so Payments isn't opened.
+ * The Stripe rows are fake (no Stripe calls are made), so Payments isn't opened. /management is a
+ * desktop tool (its menu covers the page at phone width), so there's no phone screenshot.
  */
 import { test, expect } from '@playwright/test'
 import { execFileSync } from 'child_process'
@@ -36,6 +37,7 @@ function cleanUp () {
 }
 
 test('capture screenshot hylo pro management', async ({ page }) => {
+  test.setTimeout(240000)
   test.skip(!process.env.E2E_DATABASE_URL, 'needs E2E_DATABASE_URL to seed rows')
   fs.mkdirSync(screenshotDir, { recursive: true })
   await page.goto('/management/paid-content/hylo-pro')
@@ -57,7 +59,7 @@ test('capture screenshot hylo pro management', async ({ page }) => {
 
     await page.setViewportSize({ width: 1280, height: 1400 })
     await page.reload()
-    await expect(page.getByTestId('hylo-pro-metrics')).toBeVisible()
+    await expect(page.getByTestId('hylo-pro-metrics')).toBeVisible({ timeout: 90000 }) // cold Vite can be slow
     // All three give Pro now: the past_due one is still inside its grace period
     await expect(page.getByTestId('hylo-pro-row')).toHaveCount(3)
 
@@ -101,12 +103,6 @@ test('capture screenshot hylo pro management', async ({ page }) => {
     const grant = page.getByTestId('hylo-pro-row').filter({ hasText: NOTE })
     await grant.getByRole('button', { name: 'Revoke' }).click()
     await expect(grant).toContainText('Revoked')
-
-    // Phone width
-    await page.setViewportSize({ width: 390, height: 844 })
-    await page.getByRole('tab', { name: 'Has Pro now' }).click()
-    await page.mouse.move(0, 0)
-    await page.screenshot({ path: path.resolve(screenshotDir, 'issue-1712-pro-management-mobile.png') })
   } finally {
     cleanUp()
   }
