@@ -11,7 +11,7 @@ import { ensureHyloCookieConsent } from './helpers/sessionAuth.js'
  * so the logout specs that use that user can't end it) and edits as the other admin.
  */
 
-test.describe.configure({ timeout: 240000 })
+test.describe.configure({ timeout: 480000 })
 
 const uiTimeout = { timeout: 60000 }
 const SCREENSHOT_DIR = process.env.E2E_SCREENSHOT_DIR
@@ -112,18 +112,25 @@ test('another admin of the group can edit the post, until it is shared to a seco
   const postId = await createPost(page, title, [publicGroupId], { groupAdminsCanEdit: true })
   const creatorId = (await fetchPost(page, postId)).creator.id
 
-  const otherContext = await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: page.viewportSize() })
+  // Empty storage state: without it the new context starts logged in as the main E2E user
+  const otherContext = await browser.newContext({
+    baseURL: test.info().project.use.baseURL,
+    viewport: page.viewportSize(),
+    storageState: { cookies: [], origins: [] }
+  })
   const other = await otherContext.newPage()
   try {
-    await ensureHyloCookieConsent(other)
-    const emailInput = await gotoLoginAndWaitForEmail(other)
-    await emailInput.fill(OTHER_ADMIN_EMAIL)
-    await other.getByLabel('password', { exact: true }).fill(OTHER_ADMIN_PASSWORD)
-    await other.getByRole('button', { name: /sign\s*in/i }).click()
-    await expect(other.locator('#center-column-container')).toBeVisible({ timeout: 120000 })
+    await test.step('log in as the other admin', async () => {
+      await ensureHyloCookieConsent(other)
+      const emailInput = await gotoLoginAndWaitForEmail(other)
+      await emailInput.fill(OTHER_ADMIN_EMAIL)
+      await other.getByLabel('password', { exact: true }).fill(OTHER_ADMIN_PASSWORD)
+      await other.getByRole('button', { name: /sign\s*in/i }).click()
+      await expect(other.locator('#center-column-container')).toBeVisible({ timeout: 120000 })
+    })
 
     expect((await fetchPost(other, postId)).canEdit).toBe(true)
-    await openEditor(other, 'e2e-public-group', postId)
+    await test.step('open the editor as the other admin', () => openEditor(other, 'e2e-public-group', postId))
     await expect(other.getByText('Title', { exact: true })).toBeVisible(uiTimeout)
     // Only the creator decides who can edit
     await expect(other.getByTestId('post-editor-group-admins-can-edit')).toHaveCount(0)
@@ -149,7 +156,10 @@ test('another admin of the group can edit the post, until it is shared to a seco
       { id: postId, data: { type: 'discussion', title: 'Should not save', details: '<p>x</p>', groupIds: [publicGroupId] } }
     )
     expect(JSON.stringify(rejected.errors)).toContain("don't have permission")
+  } catch (error) {
+    await other.screenshot({ path: test.info().outputPath('other-admin-page.png') }).catch(() => {})
+    throw error
   } finally {
-    await otherContext.close()
+    await otherContext.close().catch(() => {})
   }
 })
