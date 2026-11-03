@@ -77,6 +77,38 @@ describe('updatePost', () => {
   })
 })
 
+describe('updatePost with start and end times', () => {
+  let user, post
+  const startTime = new Date('2030-05-01T10:00:00Z')
+  const endTime = new Date('2030-05-01T12:00:00Z')
+
+  beforeEach(async () => {
+    user = await factories.user().save()
+    post = await factories.post({ type: Post.Type.REQUEST, user_id: user.id, start_time: startTime, end_time: endTime }).save()
+  })
+
+  it('clears both times when they are saved as null', async () => {
+    await updatePost(user.id, post.id, { name: post.get('name'), startTime: null, endTime: null })
+    const updated = await Post.find(post.id)
+    expect(updated.get('start_time')).to.equal(null)
+    expect(updated.get('end_time')).to.equal(null)
+  })
+
+  it('clears only the end time when only the end time is null', async () => {
+    await updatePost(user.id, post.id, { name: post.get('name'), startTime: startTime.getTime(), endTime: null })
+    const updated = await Post.find(post.id)
+    expect(updated.get('start_time').getTime()).to.equal(startTime.getTime())
+    expect(updated.get('end_time')).to.equal(null)
+  })
+
+  it('keeps the times when they are saved again', async () => {
+    await updatePost(user.id, post.id, { name: post.get('name'), startTime: startTime.getTime(), endTime: endTime.getTime() })
+    const updated = await Post.find(post.id)
+    expect(updated.get('start_time').getTime()).to.equal(startTime.getTime())
+    expect(updated.get('end_time').getTime()).to.equal(endTime.getTime())
+  })
+})
+
 describe('afterUpdatingPost', () => {
   let u1, u2, post
 
