@@ -327,6 +327,10 @@ describe('InvitationService', () => {
       const used = await create(member, 'used@member-list.com')
       await used.save({ used_by_id: other.id, used_at: new Date() }, { patch: true })
       await memberInvitations[2].expire(member.id)
+      // Give "first" and "second" the same timestamp so the expected newest-first order
+      // depends on the id tie-breaker, not on how fast they were created
+      const sameTime = new Date()
+      await Promise.all(memberInvitations.slice(0, 2).map(i => i.save({ created_at: sameTime }, { patch: true })))
     })
 
     it('gives the full list with who sent each invitation, and respects the limit', async () => {

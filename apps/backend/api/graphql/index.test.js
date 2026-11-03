@@ -124,6 +124,23 @@ describe('graphql request handler', () => {
     })
   })
 
+  describe('Person.canMessage', () => {
+    it('is true for a fellow group member and false for yourself', async () => {
+      const { executionResult } = await handler.inject({
+        document: `{
+          other: person(id: "${user2.id}") { canMessage }
+          self: person(id: "${user.id}") { canMessage }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data).to.deep.equal({
+        other: { canMessage: true },
+        self: { canMessage: false }
+      })
+    })
+  })
+
   describe('retained paid access for former members', () => {
     const grantGroupScope = (userId, groupId, sourceId, expiresAt = null) =>
       bookshelf.knex('user_scopes').insert({
@@ -1157,6 +1174,12 @@ describe('graphql request handler', () => {
     })
 
     it('works', async () => {
+      const oldSession = req.session
+      oldSession.regenerate = spy(cb => {
+        req.session = {}
+        cb()
+      })
+
       const { executionResult } = await handler.inject({
         document: `
           mutation {
@@ -1184,6 +1207,8 @@ describe('graphql request handler', () => {
         }
       })
       // expect(user.get('email_validated')).to.be.true
+      expect(oldSession.regenerate).to.have.been.called()
+      expect(req.session).to.not.equal(oldSession)
       expect(req.session.userId).to.equal(user.id)
     })
 

@@ -82,6 +82,7 @@ export const verifyEmail = (fetchOne) => async (_, { email: providedEmail, code:
 
     await user.save({ email_validated: true })
 
+    await UserSession.regenerate(context.req, user.id)
     context.req.session.userId = user.id
 
     return { me: fetchOne('Me', user.id) }

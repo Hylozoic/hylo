@@ -23,7 +23,7 @@ import SwitchStyled from 'components/SwitchStyled'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
-import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
+import { DEFAULT_SELECTED_POST_TYPES, ACCEPTED_POST_TYPE_PILLS } from 'components/CustomViewForm/customViewFormConstants'
 import { addQuerystringToPath, localSpaceSlug, spaceHomeUrl, spaceUrl } from '@hylo/navigation'
 import { nameToSlug } from 'routes/CreateGroup/slug'
 import { createSpace, createGroupView, updateGroupView } from 'store/actions/groupViews'
@@ -106,7 +106,7 @@ function defaultsForSpaceType (spaceType) {
       }
     default:
       return {
-        postTypes: [...CUSTOM_VIEW_DEFAULT_POST_TYPES],
+        postTypes: [...DEFAULT_SELECTED_POST_TYPES],
         standardViewTypes: null,
         icon: 'Circle'
       }
@@ -122,7 +122,7 @@ function htmlHasText (html) {
 /** Post-type-derived views for Custom Space (All Activity, Chat, Members, then type views). */
 function customSpaceStandardViews (postTypes, removedStandardTypes) {
   const base = ['all', 'chat', 'members']
-  const postTypeViews = CUSTOM_VIEW_POST_TYPE_OPTIONS
+  const postTypeViews = ACCEPTED_POST_TYPE_PILLS
     .filter(option => option.postTypes.every(type => postTypes.includes(type)))
     .map(option => POST_TYPE_TO_VIEW_TYPE[option.postTypes[0]])
   return [...base, ...postTypeViews].filter(type => !removedStandardTypes.has(type))
