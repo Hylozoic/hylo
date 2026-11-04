@@ -70,9 +70,7 @@ export function deletePost (userId, postId) {
 
 export async function updatePost (userId, { id, data }) {
   const post = id && await Post.find(id)
-  if (!post) throw new GraphQLError('Post not found')
   await assertCanEditPost(userId, post)
-
   const convertedData = await convertGraphqlPostData(data)
   if (isPostCreator(userId, post)) {
     await validatePostData(userId, convertedData)
@@ -147,8 +145,7 @@ export async function removeProposalVote ({ userId, postId, optionId }) {
 
 export async function setProposalOptions ({ userId, postId, options }) {
   if (!userId || !postId || !options) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
-  const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLError("You don't have permission to modify this post")
+  await assertCanEditPost(userId, await Post.find(postId))
   return Post.find(postId)
     .then(post => {
       if (post.get('proposal_status') !== Post.Proposal_Status.DISCUSSION) throw new GraphQLError("Proposal options cannot be changed unless the proposal is in 'discussion'")
@@ -160,8 +157,7 @@ export async function setProposalOptions ({ userId, postId, options }) {
 
 export async function updateProposalOptions ({ userId, postId, options }) {
   if (!userId || !postId || !options) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
-  const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLError("You don't have permission to modify this post")
+  await assertCanEditPost(userId, await Post.find(postId))
   return Post.find(postId)
     .then(post => {
       if (post.get('proposal_status') === Post.Proposal_Status.COMPLETED && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLError("Proposal options cannot be changed once a proposal is complete'")

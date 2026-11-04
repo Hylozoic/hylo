@@ -6,7 +6,8 @@ import { uniq } from 'lodash'
  * - its creator
  * - when the creator turned on `group_admins_can_edit` and the post lives in exactly one group
  *   (that group and/or any of its spaces): members with Manage Content or Administration in that group
- * - track actions: anyone with Administration in one of the action's groups (track editors)
+ * - for track actions: anyone with Administration in one of the action's groups
+ *   (track stewards edit actions that another steward created)
  */
 
 /** Post types whose co-editing toggle is offered. Chats are quick messages; actions and submissions have their own flows. */
@@ -50,7 +51,7 @@ export async function canManageContentInGroup (userId, groupId) {
 }
 
 export function isPostCreator (userId, post) {
-  return !!userId && String(post.get('user_id')) === String(userId)
+  return !!userId && !!post && String(post.get('user_id')) === String(userId)
 }
 
 /** True when another group admin can edit this post because its creator allowed it. */
@@ -63,14 +64,14 @@ export async function canEditAsGroupAdmin (userId, post) {
 }
 
 /** Track actions are managed by the track's stewards, who may not have created every action. */
-async function canEditTrackAction (userId, post) {
-  if (post.get('type') !== Post.Type.ACTION) return false
+export async function canEditAsTrackSteward (userId, post) {
+  if (!userId || post.get('type') !== Post.Type.ACTION) return false
   await post.load('groups')
   const groups = post.relations.groups?.models || []
-  const { RESP_ADMINISTRATION } = Responsibility.constants
   for (const group of groups) {
+    // Spaces use their parent group's roles
     const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, group.id)
-    if (responsibilities.includes(RESP_ADMINISTRATION)) return true
+    if (responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) return true
   }
   return false
 }
@@ -79,7 +80,7 @@ export async function canEditPost (userId, post) {
   if (!userId || !post) return false
   if (isPostCreator(userId, post)) return true
   if (await canEditAsGroupAdmin(userId, post)) return true
-  return canEditTrackAction(userId, post)
+  return canEditAsTrackSteward(userId, post)
 }
 
 export async function assertCanEditPost (userId, post) {
