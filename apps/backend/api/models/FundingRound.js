@@ -382,7 +382,7 @@ module.exports = bookshelf.Model.extend({
       return membership
     }
 
-    const created = await space.addMembers([userId], {}, { transacting })
+    const created = await space.addMembers([userId], { joinSource: GroupMembership.JoinSource.FUNDING_ROUND }, { transacting })
     membership = created[0] || await GroupMembership.forPair(userId, space).fetch({ transacting })
     await membership.save({ created_at: new Date() }, { patch: true, transacting })
     await round.save({ num_participants: (round.get('num_participants') || 0) + 1 }, { transacting })
