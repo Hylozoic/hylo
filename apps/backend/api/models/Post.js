@@ -21,8 +21,25 @@ import ProjectMixin from './project/mixin'
 import EventMixin, { eventClassMethods } from './event/mixin'
 import { defaultTimezone, wherePostedInGroups } from '../../lib/group/digest2/util'
 import { publishPostUpdate } from '../../lib/postSubscriptionPublisher'
+import { EVENT_TYPES } from '../../lib/analytics/trackActivity'
+import { groupIdsForPost, track } from '../../lib/analytics/track'
 
 init({ data })
+
+/** Records a proposal vote after it has been saved. */
+function recordProposalVote (post, userId, vote) {
+  groupIdsForPost(post.id).then(groupIds => {
+    track({
+      type: EVENT_TYPES.PROPOSAL_VOTE,
+      userId,
+      groupIds,
+      object: { type: 'proposal_vote', id: vote.id },
+      targetUserId: post.get('user_id'),
+      postType: 'proposal',
+      occurredAt: vote.get('created_at') || new Date()
+    })
+  }).catch(() => {})
+}
 
 export const POSTS_USERS_ATTR_UPDATE_WHITELIST = [
   'project_role_id',
@@ -504,6 +521,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async addProposalVote ({ userId, optionId }) {
     const result = await ProposalVote.forge({ post_id: this.id, user_id: userId, option_id: optionId, created_at: new Date() }).save()
     Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    recordProposalVote(this, userId, result)
     return result
   },
 

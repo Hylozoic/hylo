@@ -7,6 +7,8 @@ import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { clearDataLoaderCaches } from '../../lib/graphql-bookshelf-bridge/util/initDataLoaders'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import mixpanel from '../../lib/mixpanel'
+import { readGroupMetrics, readPlatformMetrics } from '../../lib/analytics/readMetrics'
+import { readActivityCounts } from '../../lib/analytics/dailyCounts'
 import { createGroupScope } from '../../lib/scopes'
 import {
   saveDraft,
@@ -332,9 +334,14 @@ async function buildGraphqlSchema (req) {
     }
   }
 
+  const mergedResolvers = Object.assign(allResolvers, resolvers)
+  mergedResolvers.Group = Object.assign({}, mergedResolvers.Group, {
+    metrics: (group, args, context) => readGroupMetrics(group, args, context)
+  })
+
   const schema = createSchema({
     typeDefs: [schemaText],
-    resolvers: Object.assign(allResolvers, resolvers)
+    resolvers: mergedResolvers
   })
   schema[SCHEMA_LOADERS] = loaders
   return schema
@@ -574,6 +581,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     // you can query by id or email, with id taking preference
     person: (root, { id, email }) => fetchOne('Person', id || email, id ? 'id' : 'email'),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
+    platformMetrics: (root, args, context) => readPlatformMetrics(context.currentUserId, args),
+    activityCounts: (root, args, context) => readActivityCounts(context.currentUserId, args),
     post: (root, { id }) => fetchOne('Post', id),
     posts: (root, args) => fetchMany('Post', args),
     responsibilities: (root, args) => Responsibility.fetchAll(args),

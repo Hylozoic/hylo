@@ -3299,5 +3299,18 @@
   "reactionCount_one": "{{count}} réaction",
   "reactionCount_other": "{{count}} réactions",
   "Tap to remove": "Touchez pour retirer",
-  "reactionCount_many": "{{count}} réactions"
+  "reactionCount_many": "{{count}} réactions",
+  "Insights": "Indicateurs",
+  "Platform health": "Santé de la plateforme",
+  "Monthly": "Mensuel",
+  "Active people": "Personnes actives",
+  "Weekly active people": "Personnes actives chaque semaine",
+  "Monthly active people": "Personnes actives chaque mois",
+  "Contributors": "Contributeurs",
+  "Connected members": "Membres reliés",
+  "New members": "Nouveaux membres",
+  "Signups": "Inscriptions",
+  "Came back the next week": "De retour la semaine suivante",
+  "Not enough activity in this period yet": "Pas encore assez d'activité sur cette période",
+  "Activity is recorded as it happens. Older weeks fill in after the history backfill, and visits start the day this ships.": "L'activité est enregistrée au moment où elle a lieu. Les semaines plus anciennes se remplissent après le rattrapage de l'historique, et les visites commencent le jour de la mise en ligne."
 }

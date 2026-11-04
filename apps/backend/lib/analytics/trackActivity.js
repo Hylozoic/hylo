@@ -17,6 +17,7 @@ export const EVENT_TYPES = {
   INVITATION_ACCEPTED: 'invitation_accepted',
   ROLE_GRANTED: 'role_granted',
   ROLE_REVOKED: 'role_revoked',
+  GROUP_CREATED: 'group_created',
   SIGNUP_COMPLETED: 'signup_completed',
   ACCOUNT_DEACTIVATED: 'account_deactivated',
   ACCOUNT_DELETED: 'account_deleted',
@@ -64,7 +65,7 @@ export function trackActivity (knex, event, { log = () => {} } = {}) {
 
   return knex('activity_events')
     .insert(rows, COLUMNS)
-    .onConflict(knex.raw('(event_type, object_id, user_id, group_id)')).ignore()
+    .onConflict(['event_type', 'object_id', 'user_id', 'group_id', 'occurred_at']).ignore()
     .then(() => rows.length)
     .catch(err => {
       log(err)

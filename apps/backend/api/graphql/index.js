@@ -9,6 +9,7 @@ import { createGroupVisibilityLoader } from './filters'
 import sentry from '../../lib/sentry'
 import { touchLastActiveAt } from './touchLastActiveAt'
 import { recordActivityDay, parseGroupSlug, platformFromHeaders } from '../../lib/analytics/recordActivityDay'
+import { runWithRequestContext } from '../../lib/analytics/requestContext'
 import { flattenImageUrlVariables } from '../../lib/uploader/rehostRemoteMedia'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
@@ -56,7 +57,10 @@ const graphqlSentryContextPlugin = {
       return graphqlRequestStore.run({
         currentUserId: contextValue?.currentUserId,
         operationName: executionArgs?.operationName || args.operationName
-      }, () => executeFn(executionArgs))
+      }, () => runWithRequestContext(
+        { platform: contextValue?.analyticsPlatform || null },
+        () => executeFn(executionArgs)
+      ))
     })
   }
 }
@@ -112,6 +116,7 @@ export const yoga = createYoga({
       pubSub: RedisPubSub,
       socket: req.socket,
       currentUserId: req.session.userId,
+      analyticsPlatform: platformFromHeaders(req.headers),
       groupVisibilityLoader: createGroupVisibilityLoader()
     }
   },

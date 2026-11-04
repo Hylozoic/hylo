@@ -3295,5 +3295,18 @@
   "Message to the requester (optional), included in the email": "Message to the requester (optional), included in the email",
   "reactionCount_one": "{{count}} reaction",
   "reactionCount_other": "{{count}} reactions",
-  "Tap to remove": "Tap to remove"
+  "Tap to remove": "Tap to remove",
+  "Insights": "Insights",
+  "Platform health": "Platform health",
+  "Monthly": "Monthly",
+  "Active people": "Active people",
+  "Weekly active people": "Weekly active people",
+  "Monthly active people": "Monthly active people",
+  "Contributors": "Contributors",
+  "Connected members": "Connected members",
+  "New members": "New members",
+  "Signups": "Signups",
+  "Came back the next week": "Came back the next week",
+  "Not enough activity in this period yet": "Not enough activity in this period yet",
+  "Activity is recorded as it happens. Older weeks fill in after the history backfill, and visits start the day this ships.": "Activity is recorded as it happens. Older weeks fill in after the history backfill, and visits start the day this ships."
 }

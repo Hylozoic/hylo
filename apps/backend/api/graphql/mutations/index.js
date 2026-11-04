@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import convertGraphqlData from './convertGraphqlData'
 import { startEmailChange, validateEmailChange } from './emailChange'
 import { pushToSockets, userRoom } from '../../services/Websockets'
+import { groupIdsForPost, trackReaction } from '../../../lib/analytics/track'
 
 export {
   createAffiliation,
@@ -524,6 +525,21 @@ async function pushCommentReactionUpdate (comment, userId) {
     pushToSockets(userRoom(participantId), 'messageUpdated', response))
 }
 
+/** Looks up the reaction row just saved and writes it to the activity log. */
+function recordReaction (userId, entity, entityType) {
+  const write = async () => {
+    const reaction = await bookshelf.knex('reactions')
+      .where({ user_id: userId, entity_id: entity.id, entity_type: entityType })
+      .orderBy('id', 'desc')
+      .first()
+    if (!reaction) return
+    const post = entityType === 'comment' ? await Post.find(entity.get('post_id')) : entity
+    const groupIds = post ? await groupIdsForPost(post.id) : []
+    trackReaction({ userId, reaction, post, groupIds, targetUserId: entity.get('user_id') })
+  }
+  write().catch(() => {})
+}
+
 export function reactOn (userId, entityId, data, context) {
   const lookUp = {
     post: Post,
@@ -536,6 +552,7 @@ export function reactOn (userId, entityId, data, context) {
   return lookUp[entityType].find(entityId)
     .then(async entity => {
       const result = await entity.addReaction(userId, data.emojiFull)
+      if (result) recordReaction(userId, entity, entityType)
 
       // Note subscriptions for reactions on posts are handled by the postUpdates subscription
 
