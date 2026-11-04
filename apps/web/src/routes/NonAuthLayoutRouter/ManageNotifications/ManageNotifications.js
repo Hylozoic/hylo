@@ -29,9 +29,9 @@ export default function ManageNotifications (props) {
   const token = routeParams.token
 
   const [settings, setSettings] = useState({ allGroupNotifications: 'keep' })
+  const [changedSettings, setChangedSettings] = useState({})
   const [unsubscribeAll, setUnsubscribeAll] = useState(false)
 
-  // TODO: switch to group settings
   const { commentNotifications, dmNotifications, digestFrequency, postNotifications, allGroupNotifications } = settings
 
   useEffect(() => {
@@ -40,10 +40,11 @@ export default function ManageNotifications (props) {
 
   const updateSetting = setting => value => {
     setSettings({ ...settings, [setting]: value })
+    setChangedSettings({ ...changedSettings, [setting]: value })
   }
 
   const submit = () => {
-    dispatch(updateNotificationSettings(token, unsubscribeAll, digestFrequency, dmNotifications, commentNotifications, postNotifications, allGroupNotifications))
+    dispatch(updateNotificationSettings(token, { unsubscribeAll, ...changedSettings }))
   }
 
   const notificationOptions = [
@@ -81,6 +82,7 @@ export default function ManageNotifications (props) {
                     <SelectItem value='daily'>{t('Daily')}</SelectItem>
                     <SelectItem value='weekly'>{t('Weekly')}</SelectItem>
                     <SelectItem value='never'>{t('Never')}</SelectItem>
+                    {digestFrequency === 'mixed' && <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -98,6 +100,7 @@ export default function ManageNotifications (props) {
                     <SelectItem value='none'>{t('No Posts')}</SelectItem>
                     <SelectItem value='important'>{t('Announcements & Mentions only')}</SelectItem>
                     <SelectItem value='all'>{t('Every Post')}</SelectItem>
+                    {postNotifications === 'mixed' && <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
