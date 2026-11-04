@@ -8,6 +8,7 @@ import {
   updateFollowers
 } from './util'
 import { partitionImageUrls } from '../../../lib/uploader/rehostRemoteMedia'
+import { assertCanEditPost } from './postEditPermissions'
 
 export default function updatePost (userId, id, params) {
   if (!id) throw new GraphQLError('updatePost called with no ID')
@@ -17,8 +18,9 @@ export default function updatePost (userId, id, params) {
     : params
   return setupPostAttrs(userId, paramsForUpdate)
     .then(attrs => bookshelf.transaction(transacting =>
-      Post.find(id).then(post => {
+      Post.find(id).then(async post => {
         if (!post) throw new GraphQLError('Post not found')
+        await assertCanEditPost(userId, post)
         const updatableTypes = [
           Post.Type.ACTION,
           Post.Type.CHAT,
@@ -34,6 +36,9 @@ export default function updatePost (userId, id, params) {
         if (!updatableTypes.includes(post.get('type'))) {
           throw new GraphQLError("This post can't be modified")
         }
+
+        // Keep the original author when someone else (e.g. a track steward) updates the post
+        delete attrs.user_id
 
         if (!isEqual(post.details(), paramsForUpdate.description) || !isEqual(post.title(), paramsForUpdate.name)) {
           attrs.edited_at = new Date()
