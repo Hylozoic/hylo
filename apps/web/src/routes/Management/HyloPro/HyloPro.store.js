@@ -104,6 +104,8 @@ export function fetchHyloProPayments (groupId, after) {
             refunded
             disputed
             disputeStatus
+            refundBlock
+            subscriptionId
             description
             createdAt
           }

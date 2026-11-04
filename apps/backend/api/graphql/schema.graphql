@@ -4158,10 +4158,14 @@ type HyloProPayment {
   status: String
   paid: Boolean
   refunded: Boolean
-  # Whether the payment has been disputed (a chargeback); a disputed payment can't be refunded
+  # Whether the payment has ever been disputed (an inquiry or a chargeback, open or closed)
   disputed: Boolean
-  # The latest dispute's Stripe status, e.g. needs_response, under_review, won or lost
+  # The latest dispute's Stripe status, e.g. warning_needs_response, needs_response, under_review, won or lost
   disputeStatus: String
+  # Why the dispute stops a refund: dispute_open (an open chargeback) or dispute_lost; null if it doesn't
+  refundBlock: String
+  # The Stripe subscription this payment paid for, if any
+  subscriptionId: String
   description: String
   createdAt: Date
 }

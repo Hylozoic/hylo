@@ -46,7 +46,7 @@ const row = attrs => ({
   ...attrs
 })
 
-const PAYMENT = { id: 'ch_1', amount: 1000, amountRefunded: 0, currency: 'usd', status: 'succeeded', paid: true, refunded: false, disputed: false, disputeStatus: null, description: 'Subscription creation', createdAt: '2026-11-01T00:00:00.000Z' }
+const PAYMENT = { id: 'ch_1', amount: 1000, amountRefunded: 0, currency: 'usd', status: 'succeeded', paid: true, refunded: false, disputed: false, disputeStatus: null, refundBlock: null, subscriptionId: 'sub_1', description: 'Subscription creation', createdAt: '2026-11-01T00:00:00.000Z' }
 
 const ROWS = [
   row(),
@@ -279,7 +279,7 @@ describe('HyloPro management page', () => {
 
   it('marks disputed payments with their status and offers no refund for them', async () => {
     mockApi({
-      HyloProPayments: () => HttpResponse.json({ data: { hyloProPayments: { hasMore: false, items: [{ ...PAYMENT, id: 'ch_d', description: 'Renewal', disputed: true, disputeStatus: 'needs_response' }, PAYMENT] } } })
+      HyloProPayments: () => HttpResponse.json({ data: { hyloProPayments: { hasMore: false, items: [{ ...PAYMENT, id: 'ch_d', description: 'Renewal', disputed: true, disputeStatus: 'needs_response', refundBlock: 'dispute_open' }, PAYMENT] } } })
     })
     renderPage()
     const sub = await findRow('Paying Group')
@@ -292,6 +292,103 @@ describe('HyloPro management page', () => {
     expect(within(disputed).getByText('Handle in Stripe')).toBeInTheDocument()
     expect(within(normal).queryByTestId('hylo-pro-disputed')).not.toBeInTheDocument()
     expect(within(normal).getByRole('button', { name: 'Refund' })).toBeInTheDocument()
+  })
+
+  it('offers refunds on inquiries and won disputes, keeping the marker, and explains lost ones', async () => {
+    mockApi({
+      HyloProPayments: () => HttpResponse.json({
+        data: {
+          hyloProPayments: {
+            hasMore: false,
+            items: [
+              { ...PAYMENT, id: 'ch_inquiry', disputed: true, disputeStatus: 'warning_closed', refundBlock: null },
+              { ...PAYMENT, id: 'ch_won', disputed: true, disputeStatus: 'won', refundBlock: null },
+              { ...PAYMENT, id: 'ch_lost', disputed: true, disputeStatus: 'lost', refundBlock: 'dispute_lost' }
+            ]
+          }
+        }
+      })
+    })
+    renderPage()
+    const sub = await findRow('Paying Group')
+
+    fireEvent.click(within(sub).getByRole('button', { name: 'Payments' }))
+    await within(sub).findByTestId('hylo-pro-payments')
+    const [inquiry, won, lost] = within(sub).getAllByTestId('hylo-pro-payment')
+    expect(within(inquiry).getByTestId('hylo-pro-disputed')).toHaveTextContent('Disputed: Closed')
+    expect(within(inquiry).getByRole('button', { name: 'Refund' })).toBeInTheDocument()
+    expect(within(won).getByTestId('hylo-pro-disputed')).toHaveTextContent('Disputed: Won')
+    expect(within(won).getByRole('button', { name: 'Refund' })).toBeInTheDocument()
+    expect(within(won).queryByText('Handle in Stripe')).not.toBeInTheDocument()
+    expect(within(lost).getByTestId('hylo-pro-disputed')).toHaveTextContent('Disputed: Lost')
+    expect(within(lost).queryByRole('button', { name: 'Refund' })).not.toBeInTheDocument()
+    expect(within(lost).getByText('Dispute lost: already returned to the customer')).toBeInTheDocument()
+  })
+
+  it("offers to cancel the subscription only on payments for this row's subscription", async () => {
+    mockApi({
+      HyloProPayments: () => HttpResponse.json({
+        data: {
+          hyloProPayments: {
+            hasMore: false,
+            items: [
+              PAYMENT,
+              { ...PAYMENT, id: 'ch_old', description: 'Earlier subscription', subscriptionId: 'sub_old' },
+              { ...PAYMENT, id: 'ch_none', description: 'Not a subscription', subscriptionId: null }
+            ]
+          }
+        }
+      })
+    })
+    renderPage()
+    const sub = await findRow('Paying Group')
+
+    fireEvent.click(within(sub).getByRole('button', { name: 'Payments' }))
+    await within(sub).findByTestId('hylo-pro-payments')
+    const [mine, old, none] = within(sub).getAllByTestId('hylo-pro-payment')
+    expect(within(mine).getByTestId('hylo-pro-refund-cancel')).toBeInTheDocument()
+    expect(within(old).queryByTestId('hylo-pro-refund-cancel')).not.toBeInTheDocument()
+    expect(within(none).queryByTestId('hylo-pro-refund-cancel')).not.toBeInTheDocument()
+    expect(within(old).getByRole('button', { name: 'Refund' })).toBeInTheDocument()
+  })
+
+  it('keeps payments loaded with "Load more" after a refund, updating the refunded one', async () => {
+    const requests = mockApi({
+      HyloProPayments: ({ after }) => HttpResponse.json({
+        data: { hyloProPayments: after ? { hasMore: false, items: [{ ...PAYMENT, id: 'ch_old', description: 'Older payment' }] } : { hasMore: true, items: [PAYMENT] } }
+      })
+    })
+    renderPage()
+    const sub = await findRow('Paying Group')
+
+    fireEvent.click(within(sub).getByRole('button', { name: 'Payments' }))
+    const payments = await within(sub).findByTestId('hylo-pro-payments')
+    fireEvent.click(within(payments).getByRole('button', { name: 'Load more' }))
+    const older = (await within(payments).findByText('Older payment')).closest('[data-testid="hylo-pro-payment"]')
+
+    fireEvent.change(within(older).getByLabelText('Amount to refund'), { target: { value: '4' } })
+    fireEvent.click(within(older).getByRole('button', { name: 'Refund' }))
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Refunded $4.00'))
+    await waitFor(() => expect(within(older).getByText('$4.00')).toBeInTheDocument())
+    expect(within(payments).getByText('Subscription creation')).toBeInTheDocument()
+    expect(within(payments).getByText('Older payment')).toBeInTheDocument()
+    expect(requests.HyloProPayments.map(v => v.after)).toEqual([null, 'ch_1'])
+  })
+
+  it('shows an error, not an empty list, when the list fails to load', async () => {
+    mockApi({
+      HyloProSubscriptions: ({ filter }) => filter === 'past_due'
+        ? HttpResponse.json({ errors: [{ message: 'Database unavailable' }] })
+        : HttpResponse.json({ data: { hyloProSubscriptions: { total: ROWS.length, hasMore: false, items: ROWS } } })
+    })
+    renderPage()
+    await findRow('Paying Group')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Payment failed' }))
+    expect(await screen.findByTestId('hylo-pro-rows-error')).toHaveTextContent('Database unavailable')
+    expect(screen.queryByText('Nothing here.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Paying Group')).not.toBeInTheDocument()
   })
 
   it('loads more payments after the last one shown', async () => {

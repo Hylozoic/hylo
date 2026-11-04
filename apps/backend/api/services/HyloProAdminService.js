@@ -77,10 +77,20 @@ function monthlyAmount (interval) {
   return interval === 'year' ? Math.round(plan.unitAmount / 12) : plan.unitAmount
 }
 
+const MAX_BIGINT = BigInt('9223372036854775807')
+
+// An all-digit string as a group id in canonical form ('007' -> '7'), or null when it isn't one
+// or is too big for a bigint id (which would be a database error rather than "not found")
+function canonicalId (value) {
+  if (!/^\d+$/.test(value)) return null
+  const id = BigInt(value)
+  return id > MAX_BIGINT ? null : id.toString()
+}
+
 // A group id as given to the API, which must be numeric (never a slug), or throws
 function groupIdOf (groupId) {
-  const id = String(groupId ?? '').trim()
-  if (!/^\d+$/.test(id)) throw new GraphQLError('Group not found')
+  const id = canonicalId(String(groupId ?? '').trim())
+  if (!id) throw new GraphQLError('Group not found')
   return id
 }
 
@@ -91,7 +101,8 @@ async function findGroupById (groupId) {
 }
 
 async function findRow (id, { transacting, source } = {}) {
-  const row = id && await HyloProSubscription.where({ id }).fetch({ transacting })
+  const rowId = canonicalId(String(id ?? '').trim())
+  const row = rowId && await HyloProSubscription.where({ id: rowId }).fetch({ transacting })
   if (!row) throw new GraphQLError('Hylo Pro subscription or grant not found')
   if (source && row.get('source') !== source) {
     throw new GraphQLError(source === HyloProSubscription.SOURCE_MANUAL
@@ -118,6 +129,50 @@ async function resync (row) {
   const synced = await HyloProService.syncSubscriptionById(row.get('stripe_subscription_id'))
   // syncSubscription skips subscriptions that aren't this group's customer's; fall back to a fresh read of our row
   return synced || HyloProSubscription.where({ id: row.id }).fetch()
+}
+
+// Dispute statuses (https://docs.stripe.com/api/disputes/object) that still allow a refund:
+// inquiries (warning_*, not chargebacks), disputes we won, and disputes prevented from becoming a
+// chargeback. While a chargeback is open (needs_response, under_review, appeal_*) Stripe settles
+// it through the dispute, and after a lost one the money has already gone back to the customer.
+// Unknown statuses are treated as open, so nothing is refunded twice.
+const REFUNDABLE_DISPUTE_STATUSES = ['warning_needs_response', 'warning_under_review', 'warning_closed', 'won', 'prevented']
+
+/**
+ * Why a charge's dispute stops it being refunded: 'dispute_open', 'dispute_lost', or null when it
+ * doesn't (no dispute, or one in REFUNDABLE_DISPUTE_STATUSES). A disputed charge whose dispute
+ * couldn't be read counts as open.
+ */
+function disputeRefundBlock (charge, dispute) {
+  if (!charge.disputed) return null
+  const status = dispute?.status
+  if (status === 'lost') return 'dispute_lost'
+  return REFUNDABLE_DISPUTE_STATUSES.includes(status) ? null : 'dispute_open'
+}
+
+/**
+ * The id of the Stripe subscription a charge paid for (charge -> invoice payment -> invoice ->
+ * subscription), or null if it wasn't a subscription invoice payment or the lookup failed. Since
+ * API 2025-03-31.basil charges have no `invoice` field; the link is the InvoicePayment, and the
+ * invoice's subscription is under parent.subscription_details. stripe-node 17 has no
+ * invoicePayments resource, hence rawRequest.
+ */
+async function chargeSubscriptionId (charge) {
+  const paymentIntent = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id
+  const payment = paymentIntent
+    ? `payment[type]=payment_intent&payment[payment_intent]=${encodeURIComponent(paymentIntent)}`
+    : `payment[type]=charge&payment[charge]=${encodeURIComponent(charge.id)}`
+  try {
+    const result = await stripe.rawRequest('GET', `/v1/invoice_payments?${payment}&expand[]=data.invoice&limit=10`, null)
+    for (const invoicePayment of result?.data || []) {
+      const subscription = invoicePayment.invoice?.parent?.subscription_details?.subscription
+      if (subscription) return typeof subscription === 'string' ? subscription : subscription.id
+    }
+    return null
+  } catch (error) {
+    console.error(`Hylo Pro: couldn't find the subscription for charge ${charge.id}:`, error.message)
+    return null
+  }
 }
 
 // The most recent dispute on a disputed charge, or null if it can't be read
@@ -271,7 +326,7 @@ module.exports = {
     if (!value) return []
     const [bySlug, byId] = await Promise.all([
       Group.where({ slug: value, active: true }).fetch(),
-      /^\d+$/.test(value) ? Group.where({ id: value, active: true }).fetch() : null
+      canonicalId(value) ? Group.where({ id: canonicalId(value), active: true }).fetch() : null
     ])
     if (bySlug && byId && bySlug.id === byId.id) return [bySlug]
     return [bySlug, byId].filter(Boolean)
@@ -442,7 +497,10 @@ module.exports = {
   /**
    * Payments (charges) by the group's Hylo Pro customer, newest first, a page at a time: pass the
    * last charge id seen as `after` for the next page. That customer is only used for Hylo Pro, so
-   * all its charges are Pro payments. Disputed charges carry their latest dispute's status.
+   * all its charges are Pro payments. Disputed charges carry their latest dispute's status and
+   * refundBlock says whether that dispute stops a refund (see disputeRefundBlock). subscriptionId is
+   * the Stripe subscription the charge paid for, if any: only that subscription can be cancelled
+   * together with a refund of it.
    */
   async listPayments ({ groupId, after }) {
     const customerId = await HyloProService.stripeCustomerIdForGroup(groupIdOf(groupId))
@@ -450,7 +508,10 @@ module.exports = {
     const params = { customer: customerId, limit: PAYMENTS_PAGE_SIZE }
     if (after) params.starting_after = after
     const charges = await stripe.charges.list(params)
-    const disputes = await Promise.all(charges.data.map(charge => charge.disputed ? latestDispute(charge.id) : null))
+    const [disputes, subscriptionIds] = await Promise.all([
+      Promise.all(charges.data.map(charge => charge.disputed ? latestDispute(charge.id) : null)),
+      Promise.all(charges.data.map(chargeSubscriptionId))
+    ])
     return {
       items: charges.data.map((charge, i) => ({
         id: charge.id,
@@ -462,6 +523,8 @@ module.exports = {
         refunded: !!charge.refunded,
         disputed: !!charge.disputed,
         disputeStatus: disputes[i]?.status || null,
+        refundBlock: disputeRefundBlock(charge, disputes[i]),
+        subscriptionId: subscriptionIds[i],
         description: charge.description,
         createdAt: new Date(charge.created * 1000)
       })),
@@ -471,12 +534,14 @@ module.exports = {
 
   /**
    * Refunds a Pro payment, in full or `amount` cents of it. The charge must belong to the group's
-   * Pro customer, and can't be disputed (Stripe returns disputed money through the dispute).
+   * Pro customer, and its dispute, if any, must allow a refund (see disputeRefundBlock: not while a
+   * chargeback is open, and not after one was lost).
    *
    * A refund on its own doesn't change the subscription. Pass `cancelSubscriptionId` (one of the
-   * group's Stripe rows) to also cancel that subscription immediately once the refund has
-   * succeeded. If that cancellation fails the refund still stands: the result then has
-   * subscriptionCanceled false and cancelError set, so staff can cancel it separately.
+   * group's Stripe rows, and the subscription this charge paid for) to also cancel that
+   * subscription immediately once the refund has succeeded. If that cancellation fails the refund
+   * still stands: the result then has subscriptionCanceled false and cancelError set, so staff can
+   * cancel it separately.
    */
   async refundPayment ({ adminId, groupId, chargeId, amount, cancelSubscriptionId }) {
     const groupIdString = groupIdOf(groupId)
@@ -500,7 +565,12 @@ module.exports = {
     }
     const chargeCustomer = typeof charge.customer === 'string' ? charge.customer : charge.customer?.id
     if (chargeCustomer !== customerId) throw new GraphQLError("This payment isn't one of this group's Hylo Pro payments")
-    if (charge.disputed) throw new GraphQLError("This payment is disputed, so it can't be refunded. Handle the dispute in Stripe.")
+    const block = disputeRefundBlock(charge, charge.disputed ? await latestDispute(charge.id) : null)
+    if (block === 'dispute_lost') throw new GraphQLError("This payment's dispute was lost, so the money has already gone back to the customer. Nothing can be refunded.")
+    if (block) throw new GraphQLError("This payment has an open dispute, so it can't be refunded. Handle the dispute in Stripe.")
+    if (cancelRow && await chargeSubscriptionId(charge) !== cancelRow.get('stripe_subscription_id')) {
+      throw new GraphQLError("This payment isn't for that subscription, so it can't be cancelled with this refund")
+    }
 
     const refundable = charge.amount - charge.amount_refunded
     if (!charge.paid || refundable <= 0) throw new GraphQLError('Nothing left to refund on this payment')

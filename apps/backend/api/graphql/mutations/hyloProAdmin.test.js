@@ -23,7 +23,7 @@ const Stripe = require('stripe')
 
 // test/setup/core makes every `new Stripe()` return this one shared mock client
 const stripeMock = new Stripe('sk_test_fake')
-const STUBBED_NAMESPACES = ['subscriptions', 'charges', 'refunds', 'disputes']
+const STUBBED_NAMESPACES = ['subscriptions', 'charges', 'refunds', 'disputes', 'rawRequest']
 
 const DAY = 24 * 60 * 60
 const PERIOD_END = 4102444800 // 2100-01-01, so rows stay active whatever the real date
@@ -70,7 +70,7 @@ function stripeSubscription (attrs) {
 }
 
 describe('Hylo Pro management', () => {
-  let staff, groupAdmin, member, group, otherGroup, saved, oldAdmins, stripeCalls, subscription, charges
+  let staff, groupAdmin, member, group, otherGroup, saved, oldAdmins, stripeCalls, subscription, charges, disputeStatus, invoiceSubscriptions
 
   before(async () => {
     await setup.clearDb()
@@ -96,8 +96,11 @@ describe('Hylo Pro management', () => {
     stripeCalls = []
     subscription = stripeSubscription({ metadata: { hylo_pro: 'true', group_id: String(group.id) } })
     charges = [
-      { id: 'ch_1', customer: 'cus_1', amount: 1000, amount_refunded: 0, currency: 'usd', status: 'succeeded', paid: true, refunded: false, description: 'Subscription creation', created: 1793748670 }
+      { id: 'ch_1', customer: 'cus_1', amount: 1000, amount_refunded: 0, currency: 'usd', status: 'succeeded', paid: true, refunded: false, description: 'Subscription creation', created: 1793748670, payment_intent: 'pi_1' }
     ]
+    disputeStatus = 'needs_response'
+    // Payment intent (or charge) id -> the subscription whose invoice it paid
+    invoiceSubscriptions = { pi_1: 'sub_1' }
     stripeMock.subscriptions = {
       retrieve: async id => {
         stripeCalls.push(['retrieve', id])
@@ -143,8 +146,21 @@ describe('Hylo Pro management', () => {
     stripeMock.disputes = {
       list: async params => {
         stripeCalls.push(['disputes.list', params])
-        return { data: [{ id: 'dp_1', charge: params.charge, status: 'needs_response' }] }
+        if (disputeStatus === 'unreadable') throw new Error('Stripe is down')
+        return { data: [{ id: 'dp_1', charge: params.charge, status: disputeStatus }] }
       }
+    }
+    // GET /v1/invoice_payments?payment[type]=...&payment[payment_intent|charge]=..., the clover API's
+    // charge -> invoice link; the invoice's subscription is under parent.subscription_details
+    stripeMock.rawRequest = async (method, path, params) => {
+      stripeCalls.push(['rawRequest', method, path])
+      const query = new URLSearchParams(path.split('?')[1])
+      const paymentId = query.get('payment[payment_intent]') || query.get('payment[charge]')
+      const sub = invoiceSubscriptions[paymentId]
+      if (!path.startsWith('/v1/invoice_payments?') || method !== 'GET' || params !== null || query.get('expand[]') !== 'data.invoice') {
+        throw new Error(`Unexpected rawRequest ${method} ${path}`)
+      }
+      return { data: sub ? [{ id: 'inpay_1', invoice: { id: 'in_1', parent: { subscription_details: { subscription: sub } } } }] : [] }
     }
   })
 
@@ -231,6 +247,9 @@ describe('Hylo Pro management', () => {
     it('grants by id only, so an all-digit slug can never pick the wrong group', async () => {
       await expect(grantHyloPro(staff.id, { groupId: group.get('slug') })).to.be.rejectedWith(/Group not found/)
       await expect(grantHyloPro(staff.id, { groupId: '1e3' })).to.be.rejectedWith(/Group not found/)
+      // Too big for a bigint id: not found, rather than a database error
+      await expect(grantHyloPro(staff.id, { groupId: '99999999999999999999' })).to.be.rejectedWith(/^Group not found$/)
+      await expect(hyloProPayments(staff.id, { groupId: '9223372036854775808' })).to.be.rejectedWith(/^Group not found$/)
       expect(await group.hasPro()).to.be.false
     })
 
@@ -241,6 +260,9 @@ describe('Hylo Pro management', () => {
       expect((await hyloProGroups(staff.id, { slugOrId: String(otherGroup.id) })).map(g => g.id)).to.deep.equal([otherGroup.id])
       expect(await hyloProGroups(staff.id, { slugOrId: 'no-such-group-slug' })).to.deep.equal([])
       expect(await hyloProGroups(staff.id, { slugOrId: '  ' })).to.deep.equal([])
+      // All digits but too big for an id: only a slug could match
+      expect(await hyloProGroups(staff.id, { slugOrId: '99999999999999999999' })).to.deep.equal([])
+      expect((await hyloProGroups(staff.id, { slugOrId: `00${otherGroup.id}` })).map(g => g.id)).to.deep.equal([otherGroup.id])
 
       // A group whose slug is another group's id
       const digits = await factories.group({ slug: String(otherGroup.id) }).save()
@@ -325,6 +347,7 @@ describe('Hylo Pro management', () => {
       expect(await group.hasPro()).to.be.false
 
       await expect(revokeHyloProGrant(staff.id, { id: grant.id })).to.be.rejectedWith(/already revoked/)
+      await expect(revokeHyloProGrant(staff.id, { id: '99999999999999999999' })).to.be.rejectedWith(/^Hylo Pro subscription or grant not found$/)
       await expect(updateHyloProGrant(staff.id, { id: grant.id, expiresAt: null })).to.be.rejectedWith(/was revoked/)
     })
 
@@ -450,9 +473,10 @@ describe('Hylo Pro management', () => {
       await stripeRow()
       const payments = await hyloProPayments(staff.id, { groupId: group.id })
       expect(stripeCalls[0]).to.deep.equal(['charges.list', { customer: 'cus_1', limit: 20 }])
+      expect(stripeCalls[1]).to.deep.equal(['rawRequest', 'GET', '/v1/invoice_payments?payment[type]=payment_intent&payment[payment_intent]=pi_1&expand[]=data.invoice&limit=10'])
       expect(payments.hasMore).to.be.false
       expect(payments.items).to.have.length(1)
-      expect(payments.items[0]).to.include({ id: 'ch_1', amount: 1000, amountRefunded: 0, paid: true, disputed: false, disputeStatus: null })
+      expect(payments.items[0]).to.include({ id: 'ch_1', amount: 1000, amountRefunded: 0, paid: true, disputed: false, disputeStatus: null, refundBlock: null, subscriptionId: 'sub_1' })
     })
 
     it('pages through charges with `after`', async () => {
@@ -462,7 +486,7 @@ describe('Hylo Pro management', () => {
       expect(first.items).to.have.length(20)
       expect(first.hasMore).to.be.true
       const second = await hyloProPayments(staff.id, { groupId: group.id, after: first.items[19].id })
-      expect(stripeCalls[1]).to.deep.equal(['charges.list', { customer: 'cus_1', limit: 20, starting_after: 'ch_19' }])
+      expect(stripeCalls.filter(c => c[0] === 'charges.list')[1]).to.deep.equal(['charges.list', { customer: 'cus_1', limit: 20, starting_after: 'ch_19' }])
       expect(second.items.map(p => p.id)).to.deep.equal(['ch_20', 'ch_21', 'ch_22', 'ch_23', 'ch_24'])
       expect(second.hasMore).to.be.false
     })
@@ -471,8 +495,46 @@ describe('Hylo Pro management', () => {
       await stripeRow()
       charges.push({ id: 'ch_disputed', customer: 'cus_1', amount: 1000, amount_refunded: 0, currency: 'usd', status: 'succeeded', paid: true, disputed: true, created: 1793748600 })
       const payments = await hyloProPayments(staff.id, { groupId: group.id })
-      expect(payments.items.find(p => p.id === 'ch_disputed')).to.include({ disputed: true, disputeStatus: 'needs_response' })
+      expect(payments.items.find(p => p.id === 'ch_disputed')).to.include({ disputed: true, disputeStatus: 'needs_response', refundBlock: 'dispute_open' })
       expect(stripeCalls.filter(c => c[0] === 'disputes.list')).to.deep.equal([['disputes.list', { charge: 'ch_disputed', limit: 1 }]])
+    })
+
+    it('says which disputes block a refund: open chargebacks and lost ones, not inquiries or won disputes', async () => {
+      await stripeRow()
+      charges.push({ id: 'ch_disputed', customer: 'cus_1', amount: 1000, amount_refunded: 0, currency: 'usd', status: 'succeeded', paid: true, disputed: true, created: 1793748600 })
+      const expected = {
+        needs_response: 'dispute_open',
+        under_review: 'dispute_open',
+        appeal_needs_response: 'dispute_open',
+        appeal_under_review: 'dispute_open',
+        unreadable: 'dispute_open',
+        lost: 'dispute_lost',
+        warning_needs_response: null,
+        warning_under_review: null,
+        warning_closed: null,
+        won: null,
+        prevented: null
+      }
+      for (const [status, block] of Object.entries(expected)) {
+        disputeStatus = status
+        const payments = await hyloProPayments(staff.id, { groupId: group.id })
+        expect(payments.items.find(p => p.id === 'ch_disputed').refundBlock, status).to.equal(block)
+      }
+    })
+
+    it('gives each charge the subscription it paid for, looking up charges without a payment intent by charge id', async () => {
+      await stripeRow()
+      charges.push({ id: 'ch_old', customer: 'cus_1', amount: 1000, amount_refunded: 0, currency: 'usd', status: 'succeeded', paid: true, created: 1793748600, payment_intent: null })
+      charges.push({ id: 'ch_none', customer: 'cus_1', amount: 1000, amount_refunded: 0, currency: 'usd', status: 'succeeded', paid: true, created: 1793748500, payment_intent: 'pi_none' })
+      invoiceSubscriptions.ch_old = 'sub_old'
+      const payments = await hyloProPayments(staff.id, { groupId: group.id })
+      expect(payments.items.map(p => [p.id, p.subscriptionId])).to.deep.equal([['ch_1', 'sub_1'], ['ch_old', 'sub_old'], ['ch_none', null]])
+      expect(stripeCalls).to.deep.include(['rawRequest', 'GET', '/v1/invoice_payments?payment[type]=charge&payment[charge]=ch_old&expand[]=data.invoice&limit=10'])
+
+      // A failed lookup leaves the subscription unknown rather than failing the list
+      stripeMock.rawRequest = async () => { throw new Error('Stripe is down') }
+      const again = await hyloProPayments(staff.id, { groupId: group.id })
+      expect(again.items.map(p => p.subscriptionId)).to.deep.equal([null, null, null])
     })
 
     it('returns no payments for a group without a Pro customer', async () => {
@@ -509,8 +571,27 @@ describe('Hylo Pro management', () => {
       await expect(refundHyloProPayment(staff.id, { groupId: group.id, chargeId: 'ch_missing' })).to.be.rejectedWith(/Payment not found/)
       await expect(refundHyloProPayment(staff.id, { groupId: otherGroup.id, chargeId: 'ch_1' })).to.be.rejectedWith(/no Hylo Pro payments/)
       charges.push({ id: 'ch_disputed', customer: 'cus_1', amount: 1000, amount_refunded: 0, paid: true, disputed: true })
-      await expect(refundHyloProPayment(staff.id, { groupId: group.id, chargeId: 'ch_disputed' })).to.be.rejectedWith(/disputed/)
+      await expect(refundHyloProPayment(staff.id, { groupId: group.id, chargeId: 'ch_disputed' })).to.be.rejectedWith(/open dispute/)
       expect(stripeCalls.filter(c => c[0] === 'refunds.create')).to.deep.equal([])
+    })
+
+    it('refuses refunds while a chargeback is open or after it was lost, and allows them for inquiries and won disputes', async () => {
+      await stripeRow()
+      charges.push({ id: 'ch_disputed', customer: 'cus_1', amount: 1000, amount_refunded: 0, paid: true, disputed: true })
+      for (const status of ['needs_response', 'under_review', 'appeal_needs_response', 'appeal_under_review', 'unreadable']) {
+        disputeStatus = status
+        await expect(refundHyloProPayment(staff.id, { groupId: group.id, chargeId: 'ch_disputed' }), status).to.be.rejectedWith(/open dispute/)
+      }
+      disputeStatus = 'lost'
+      await expect(refundHyloProPayment(staff.id, { groupId: group.id, chargeId: 'ch_disputed' })).to.be.rejectedWith(/dispute was lost/)
+      expect(stripeCalls.filter(c => c[0] === 'refunds.create')).to.deep.equal([])
+
+      const allowed = ['warning_needs_response', 'warning_under_review', 'warning_closed', 'won', 'prevented']
+      for (const status of allowed) {
+        disputeStatus = status
+        expect(await refundHyloProPayment(staff.id, { groupId: group.id, chargeId: 'ch_disputed', amount: 100 }), status).to.include({ id: 're_1' })
+      }
+      expect(stripeCalls.filter(c => c[0] === 'refunds.create')).to.have.length(allowed.length)
     })
 
     it('refunds and then cancels the subscription now when asked', async () => {
@@ -542,6 +623,32 @@ describe('Hylo Pro management', () => {
       const grant = await grantRow()
       await expect(refundHyloProPayment(staff.id, { groupId: group.id, chargeId: 'ch_1', cancelSubscriptionId: grant.id })).to.be.rejectedWith(/not a Stripe subscription/)
       expect(stripeCalls.filter(c => ['refunds.create', 'cancel'].includes(c[0]))).to.deep.equal([])
+    })
+
+    it("refuses to cancel a subscription the refunded payment didn't pay for, before refunding", async () => {
+      const sub = await stripeRow()
+      // A payment for the group's earlier subscription, and one that wasn't for a subscription
+      charges.push({ id: 'ch_old', customer: 'cus_1', amount: 1000, amount_refunded: 0, paid: true, payment_intent: 'pi_old' })
+      charges.push({ id: 'ch_none', customer: 'cus_1', amount: 1000, amount_refunded: 0, paid: true, payment_intent: 'pi_none' })
+      invoiceSubscriptions.pi_old = 'sub_old'
+      for (const chargeId of ['ch_old', 'ch_none']) {
+        await expect(refundHyloProPayment(staff.id, { groupId: group.id, chargeId, cancelSubscriptionId: sub.id }), chargeId).to.be.rejectedWith(/isn't for that subscription/)
+      }
+      // When the lookup fails the link can't be confirmed, so nothing happens either
+      const rawRequest = stripeMock.rawRequest
+      stripeMock.rawRequest = async () => { throw new Error('Stripe is down') }
+      await expect(refundHyloProPayment(staff.id, { groupId: group.id, chargeId: 'ch_1', cancelSubscriptionId: sub.id })).to.be.rejectedWith(/isn't for that subscription/)
+      stripeMock.rawRequest = rawRequest
+      expect(stripeCalls.filter(c => ['refunds.create', 'cancel'].includes(c[0]))).to.deep.equal([])
+
+      // Without cancelling, those payments can still be refunded
+      expect(await refundHyloProPayment(staff.id, { groupId: group.id, chargeId: 'ch_old' })).to.include({ id: 're_1', subscriptionCanceled: false })
+    })
+
+    it('accepts a group id with leading zeros as the same group', async () => {
+      const sub = await stripeRow()
+      const result = await refundHyloProPayment(staff.id, { groupId: `00${group.id}`, chargeId: 'ch_1', cancelSubscriptionId: sub.id })
+      expect(result).to.include({ id: 're_1', subscriptionCanceled: true })
     })
   })
 

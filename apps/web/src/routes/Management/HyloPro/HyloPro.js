@@ -28,6 +28,7 @@ export default function HyloPro () {
   const [total, setTotal] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [loadingRows, setLoadingRows] = useState(true)
+  const [rowsError, setRowsError] = useState(null)
   // Only the latest list request may update the rows: an older one (an earlier filter or search)
   // can finish last, and staff would then act on rows from the wrong list
   const latestRowsRequest = useRef(0)
@@ -59,8 +60,17 @@ export default function HyloPro () {
       setRows(existing => offset === 0 ? result.items : existing.concat(result.items))
       setTotal(result.total)
       setHasMore(result.hasMore)
+      setRowsError(null)
     } catch (e) {
-      if (isLatest()) toast.error(e?.message || t('Something went wrong'))
+      if (!isLatest()) return
+      // A failed first page (or refresh) shows an error in place of the list, rather than "Nothing
+      // here." or stale rows; a failed "Load more" keeps the rows shown
+      if (offset === 0) {
+        setRows([])
+        setRowsError(e?.message || t('Something went wrong'))
+      } else {
+        toast.error(e?.message || t('Something went wrong'))
+      }
     } finally {
       if (isLatest()) setLoadingRows(false)
     }
@@ -70,6 +80,9 @@ export default function HyloPro () {
   // A new filter or search: drop the old list right away rather than leave it actionable while loading
   useEffect(() => {
     setRows([])
+    setTotal(0)
+    setHasMore(false)
+    setRowsError(null)
     loadRows(0)
   }, [loadRows])
 
@@ -126,21 +139,23 @@ export default function HyloPro () {
 
         {loadingRows && rows.length === 0
           ? <Loading />
-          : rows.length === 0
-            ? <div className='text-foreground/50 p-4 border border-foreground/20 rounded-md'>{t('Nothing here.')}</div>
-            : (
-              <>
-                <p className='text-xs text-foreground/50 m-0'>{t('{{count}} results', { count: total })}</p>
-                <ul className='divide-y divide-foreground/10 border border-foreground/20 rounded-md p-0 m-0' data-testid='hylo-pro-rows'>
-                  {rows.map(row => <SubscriptionRow key={row.id} row={row} onChanged={refresh} />)}
-                </ul>
-                {hasMore && (
-                  <Button variant='outline' size='sm' disabled={loadingRows} onClick={() => loadRows(rows.length)}>
-                    {t('Load more')}
-                  </Button>
+          : rowsError && rows.length === 0
+            ? <div className='text-red-500 p-4 border border-foreground/20 rounded-md' data-testid='hylo-pro-rows-error'>{rowsError}</div>
+            : rows.length === 0
+              ? <div className='text-foreground/50 p-4 border border-foreground/20 rounded-md'>{t('Nothing here.')}</div>
+              : (
+                <>
+                  <p className='text-xs text-foreground/50 m-0'>{t('{{count}} results', { count: total })}</p>
+                  <ul className='divide-y divide-foreground/10 border border-foreground/20 rounded-md p-0 m-0' data-testid='hylo-pro-rows'>
+                    {rows.map(row => <SubscriptionRow key={row.id} row={row} onChanged={refresh} />)}
+                  </ul>
+                  {hasMore && (
+                    <Button variant='outline' size='sm' disabled={loadingRows} onClick={() => loadRows(rows.length)}>
+                      {t('Load more')}
+                    </Button>
+                  )}
+                </>
                 )}
-              </>
-              )}
       </section>
     </div>
   )

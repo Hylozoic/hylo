@@ -92,11 +92,12 @@ test('capture screenshot hylo pro management', async ({ page }) => {
     await page.mouse.move(0, 0)
     await monthRow.screenshot({ path: path.resolve(screenshotDir, 'issue-1712-pro-management-extend.png') })
 
-    // Payments: a disputed charge is marked and can't be refunded; refunds can also cancel now.
+    // Payments: an open chargeback is marked and can't be refunded, a won dispute is marked and can;
+    // refunds of this subscription's payments can also cancel it now (not of another subscription's).
     // Only the payments query is stubbed (the fake rows have no Stripe customer)
     await page.route('**/noo/graphql', async route => {
       if (!(route.request().postData() || '').includes('HyloProPayments')) return route.fallback()
-      const payment = (id, days, attrs = {}) => ({ id, amount: 1000, amountRefunded: 0, currency: 'usd', status: 'succeeded', paid: true, refunded: false, disputed: false, disputeStatus: null, description: 'Subscription update', createdAt: new Date(Date.now() - days * 86400000).toISOString(), ...attrs })
+      const payment = (id, days, attrs = {}) => ({ id, amount: 1000, amountRefunded: 0, currency: 'usd', status: 'succeeded', paid: true, refunded: false, disputed: false, disputeStatus: null, refundBlock: null, subscriptionId: `${SUB_PREFIX}month`, description: 'Subscription update', createdAt: new Date(Date.now() - days * 86400000).toISOString(), ...attrs })
       await route.fulfill({
         json: {
           data: {
@@ -104,8 +105,9 @@ test('capture screenshot hylo pro management', async ({ page }) => {
               hasMore: true,
               items: [
                 payment('ch_e2e_1', 10),
-                payment('ch_e2e_2', 40, { disputed: true, disputeStatus: 'needs_response' }),
-                payment('ch_e2e_3', 70, { description: 'Subscription creation', amountRefunded: 500 })
+                payment('ch_e2e_2', 40, { disputed: true, disputeStatus: 'needs_response', refundBlock: 'dispute_open' }),
+                payment('ch_e2e_3', 70, { disputed: true, disputeStatus: 'won', amountRefunded: 500 }),
+                payment('ch_e2e_4', 400, { description: 'Earlier subscription', subscriptionId: 'sub_e2e_1712_earlier' })
               ]
             }
           }
@@ -114,9 +116,13 @@ test('capture screenshot hylo pro management', async ({ page }) => {
     })
     await monthRow.getByRole('button', { name: 'Payments' }).click()
     const payments = monthRow.getByTestId('hylo-pro-payments')
-    await expect(payments.getByTestId('hylo-pro-disputed')).toHaveText('Disputed: Needs response')
-    await expect(payments.getByTestId('hylo-pro-payment').nth(1).getByRole('button', { name: 'Refund' })).toHaveCount(0)
-    await payments.getByLabel('Also cancel the subscription now (after the refund)').check()
+    const paymentRows = payments.getByTestId('hylo-pro-payment')
+    await expect(paymentRows.nth(1).getByTestId('hylo-pro-disputed')).toHaveText('Disputed: Needs response')
+    await expect(paymentRows.nth(1).getByRole('button', { name: 'Refund' })).toHaveCount(0)
+    await expect(paymentRows.nth(2).getByTestId('hylo-pro-disputed')).toHaveText('Disputed: Won')
+    await expect(paymentRows.nth(2).getByRole('button', { name: 'Refund' })).toHaveCount(1)
+    await expect(paymentRows.nth(3).getByTestId('hylo-pro-refund-cancel')).toHaveCount(0)
+    await paymentRows.nth(0).getByLabel('Also cancel the subscription now (after the refund)').check()
     await page.mouse.move(0, 0)
     await monthRow.screenshot({ path: path.resolve(screenshotDir, 'issue-1712-pro-management-payments.png') })
     await page.unroute('**/noo/graphql')

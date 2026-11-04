@@ -30,9 +30,12 @@ function disputeStatusLabel (status, t) {
     case 'warning_needs_response': return t('Needs response')
     case 'under_review':
     case 'warning_under_review': return t('Under review')
+    case 'appeal_needs_response': return t('Appeal needs response')
+    case 'appeal_under_review': return t('Appeal under review')
     case 'won': return t('Won')
     case 'lost': return t('Lost')
     case 'warning_closed': return t('Closed')
+    case 'prevented': return t('Prevented')
     default: return status
   }
 }
@@ -246,8 +249,10 @@ function ExtendPanel ({ row, busy, run }) {
 
 /**
  * The group's Pro payments, newest first, a page at a time, with refunds. Disputed payments are
- * marked with the dispute's status and can't be refunded (Stripe settles them through the dispute).
- * "Also cancel the subscription now" cancels this row's subscription once the refund succeeds.
+ * marked with the dispute's status; the server's refundBlock says when that stops a refund (an open
+ * chargeback, which Stripe settles through the dispute, or a lost one, already paid back).
+ * "Also cancel the subscription now" cancels this row's subscription once the refund succeeds, and
+ * is only offered on payments for this row's subscription.
  */
 function PaymentsPanel ({ row, canCancel, onRefunded }) {
   const { t, i18n } = useTranslation()
@@ -257,10 +262,13 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)
   const [amounts, setAmounts] = useState({})
-  const [cancelToo, setCancelToo] = useState(false)
+  const [cancelToo, setCancelToo] = useState({})
   const [refundingId, setRefundingId] = useState(null)
   const groupId = row.group?.id
   const groupName = row.group?.name
+
+  // Cancelling with a refund only makes sense for a payment of this row's subscription (the server checks too)
+  const canCancelWith = payment => canCancel && !!payment.subscriptionId && payment.subscriptionId === row.stripeSubscriptionId
 
   // Reloads the first page (after = null) or adds the next page after the last payment shown
   const load = useCallback(async after => {
@@ -293,7 +301,7 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
       return
     }
     const amountText = formatMoney(cents, payment.currency, i18n.language)
-    const cancel = canCancel && cancelToo
+    const cancel = canCancelWith(payment) && !!cancelToo[payment.id]
     const question = cancel
       ? t('Refund {{amount}} to {{name}} and cancel the subscription now? Pro stops immediately.', { amount: amountText, name: groupName })
       : t('Refund {{amount}} to {{name}}? This does not cancel the subscription.', { amount: amountText, name: groupName })
@@ -316,8 +324,14 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
         toast.error(t('Refunded {{amount}}, but cancelling the subscription failed: {{error}}. Use Cancel now to try again.', { amount: amountText, error: result?.cancelError || t('Something went wrong') }))
       }
       setAmounts(a => ({ ...a, [payment.id]: '' }))
-      setCancelToo(false)
-      await load()
+      setCancelToo(c => ({ ...c, [payment.id]: false }))
+      // Update the refunded payment in place, keeping any pages loaded with "Load more"
+      const refunded = result?.amount ?? cents
+      setPayments(list => list.map(p => {
+        if (p.id !== payment.id) return p
+        const amountRefunded = p.amountRefunded + refunded
+        return { ...p, amountRefunded, refunded: amountRefunded >= p.amount }
+      }))
       onRefunded()
     } catch (e) {
       toast.error(e?.message || t('Something went wrong'))
@@ -332,12 +346,6 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
 
   return (
     <div className='mt-3 overflow-x-auto bg-card rounded-md p-3 border border-foreground/10 space-y-2' data-testid='hylo-pro-payments'>
-      {canCancel && (
-        <label className='flex items-center gap-2 text-sm text-foreground'>
-          <input type='checkbox' checked={cancelToo} onChange={e => setCancelToo(e.target.checked)} data-testid='hylo-pro-refund-cancel' />
-          <span>{t('Also cancel the subscription now (after the refund)')}</span>
-        </label>
-      )}
       <table className='w-full text-sm text-left border-collapse'>
         <thead>
           <tr className='border-b border-foreground/10 text-foreground/50 text-xs uppercase'>
@@ -350,7 +358,7 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
         </thead>
         <tbody>
           {payments.map(payment => {
-            const refundable = payment.paid && !payment.disputed ? payment.amount - payment.amountRefunded : 0
+            const refundable = payment.paid && !payment.refundBlock ? payment.amount - payment.amountRefunded : 0
             return (
               <tr key={payment.id} className='border-b border-foreground/5' data-testid='hylo-pro-payment'>
                 <td className='py-2 pr-4 text-foreground'>{formatDate(payment.createdAt, i18n.language)}</td>
@@ -368,7 +376,7 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
                 <td className='py-2 pr-4 text-right text-foreground'>{payment.amountRefunded ? formatMoney(payment.amountRefunded, payment.currency, i18n.language) : '—'}</td>
                 <td className='py-2 pr-4'>
                   {refundable > 0 && (
-                    <div className='flex items-center gap-2'>
+                    <div className='flex flex-wrap items-center gap-2'>
                       <Input
                         className='h-8 w-24'
                         inputMode='decimal'
@@ -380,9 +388,21 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
                       <Button size='sm' variant='outline' disabled={refundingId === payment.id} onClick={() => handleRefund(payment)}>
                         {t('Refund')}
                       </Button>
+                      {canCancelWith(payment) && (
+                        <label className='flex items-center gap-1 text-xs text-foreground'>
+                          <input
+                            type='checkbox'
+                            checked={!!cancelToo[payment.id]}
+                            onChange={e => setCancelToo(c => ({ ...c, [payment.id]: e.target.checked }))}
+                            data-testid='hylo-pro-refund-cancel'
+                          />
+                          <span>{t('Also cancel the subscription now (after the refund)')}</span>
+                        </label>
+                      )}
                     </div>
                   )}
-                  {payment.disputed && <span className='text-xs text-foreground/50'>{t('Handle in Stripe')}</span>}
+                  {payment.refundBlock === 'dispute_open' && <span className='text-xs text-foreground/50'>{t('Handle in Stripe')}</span>}
+                  {payment.refundBlock === 'dispute_lost' && <span className='text-xs text-foreground/50'>{t('Dispute lost: already returned to the customer')}</span>}
                 </td>
               </tr>
             )
