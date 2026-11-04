@@ -494,6 +494,16 @@ type Query {
 
   # Groups that have asked to be added to the commons, filtered by request status: pending, approved or denied. Omit status for all (admin only)
   publicListingRequests(status: String): [Group]
+
+  # Hylo Pro management (Hylo staff only)
+  # Counts and recurring revenue derived from Hylo Pro subscriptions and grants
+  hyloProMetrics: HyloProMetrics
+  # Subscription and grant rows, newest first. filter: active (default), past_due, manual, stripe or all. search matches the group's name or slug
+  hyloProSubscriptions(filter: String, search: String, first: Int, offset: Int): HyloProAdminSubscriptionQuerySet
+  # Active groups matching a slug or (all-digit) id typed by staff: the slug match and the id match, both when they differ
+  hyloProGroups(slugOrId: String!): [HyloProAdminGroup]
+  # Hylo Pro payments by a group's platform Stripe customer, newest first. groupId is the group's id (not a slug); after = the last charge id seen, for the next page
+  hyloProPayments(groupId: ID!, after: String): HyloProPaymentPage
 }
 
 union Update = Message | MessageThread | Notification
@@ -3833,6 +3843,23 @@ type Mutation {
   # Sync the subscription from a completed Checkout (session_id from the success URL), so Pro activates without waiting for the webhook
   activateHyloProCheckoutSession(groupId: ID!, sessionId: String!): HyloProActivationResult
 
+  # Hylo Pro management mutations (Hylo staff only)
+  # Grant a group Pro outside of payments. groupId is the group's id (not a slug; see hyloProGroups); expiresAt null = no end date
+  grantHyloPro(groupId: ID!, expiresAt: Date, note: String): HyloProAdminSubscription
+  # Change an active grant's end date (null = no end date) and/or note; extending an expired grant re-activates it
+  updateHyloProGrant(id: ID!, expiresAt: Date, note: String): HyloProAdminSubscription
+  # End a grant now
+  revokeHyloProGrant(id: ID!): HyloProAdminSubscription
+  # Cancel a Stripe subscription at the end of its paid period, or immediately (nothing is refunded)
+  cancelHyloProSubscription(id: ID!, immediately: Boolean): HyloProAdminSubscription
+  # Undo a Stripe subscription's scheduled cancellation
+  resumeHyloProSubscription(id: ID!): HyloProAdminSubscription
+  # Give a Stripe subscription `days` free days by pushing its next payment back (trial_end)
+  extendHyloProSubscription(id: ID!, days: Int!): HyloProAdminSubscription
+  # Refund a Hylo Pro payment (a charge on the group's platform customer), in full or `amount` cents.
+  # cancelSubscriptionId (a HyloProAdminSubscription id of the group's) also cancels that subscription immediately once the refund succeeds
+  refundHyloProPayment(groupId: ID!, chargeId: String!, amount: Int, cancelSubscriptionId: ID): HyloProRefund
+
   # Stripe Connect mutations
   # Create a Stripe Connected Account for a group
   createStripeConnectedAccount(
@@ -4035,6 +4062,128 @@ type HyloProActivationResult {
   success: Boolean
   # Whether the subscription gives the group Pro now (false while a payment is still processing)
   active: Boolean
+}
+
+# A Hylo Pro subscription or grant as Hylo staff see it on the management page
+type HyloProAdminSubscription {
+  id: ID
+  # 'stripe' or 'manual'
+  source: String
+  status: String
+  # Whether this row gives the group Pro now
+  active: Boolean
+  interval: String
+  group: HyloProAdminGroup
+  # Who made a manual grant
+  grantedBy: HyloProAdminUser
+  # Why a grant was made
+  note: String
+  # End of a manual grant; null = no end date
+  expiresAt: Date
+  stripeSubscriptionId: String
+  stripeCustomerId: String
+  currentPeriodEnd: Date
+  cancelAtPeriodEnd: Boolean
+  # When Pro access stops if nothing changes; null when it renews or has no end date
+  endsAt: Date
+  canceledAt: Date
+  endedAt: Date
+  createdAt: Date
+}
+
+type HyloProAdminGroup {
+  id: ID
+  name: String
+  slug: String
+  # 'space' for spaces, which can't have Pro
+  type: String
+}
+
+type HyloProAdminUser {
+  id: ID
+  name: String
+}
+
+type HyloProAdminSubscriptionQuerySet {
+  items: [HyloProAdminSubscription]
+  total: Int
+  hasMore: Boolean
+}
+
+type HyloProMetricsMonth {
+  # YYYY-MM (UTC)
+  month: String
+  # Stripe subscriptions started this month
+  newSubscriptions: Int
+  # Stripe subscriptions whose cancellation was requested this month (they may run to the end of the period)
+  cancellations: Int
+  # Stripe subscriptions that ended this month
+  ended: Int
+  # Manual grants made this month
+  grants: Int
+}
+
+type HyloProMetrics {
+  # Groups with Pro now, from any source
+  activeGroups: Int
+  # Groups with Pro from a Stripe subscription
+  stripeGroups: Int
+  # Groups with Pro from a manual grant
+  manualGroups: Int
+  # Paying subscriptions (active, or past_due within the grace period) — the ones MRR counts; trialing ones are not included
+  monthlySubscriptions: Int
+  yearlySubscriptions: Int
+  # Active subscriptions that are trialing (e.g. extended by Hylo) and paying nothing now
+  trialing: Int
+  # Active subscriptions set to cancel
+  cancelling: Int
+  # Subscriptions whose payment failed and that haven't ended
+  pastDue: Int
+  # Active grants ending within 30 days
+  grantsExpiringSoon: Int
+  # Monthly recurring revenue in cents (yearly plans count 1/12)
+  mrrCents: Int
+  currency: String
+  # The last six months, oldest first
+  months: [HyloProMetricsMonth]
+}
+
+type HyloProPayment {
+  # Stripe charge id
+  id: ID
+  # In cents
+  amount: Int
+  amountRefunded: Int
+  currency: String
+  status: String
+  paid: Boolean
+  refunded: Boolean
+  # Whether the payment has ever been disputed (an inquiry or a chargeback, open or closed)
+  disputed: Boolean
+  # The latest dispute's Stripe status, e.g. warning_needs_response, needs_response, under_review, won or lost
+  disputeStatus: String
+  # Why the dispute stops a refund: dispute_open (an open chargeback) or dispute_lost; null if it doesn't
+  refundBlock: String
+  # The Stripe subscription this payment paid for, if any
+  subscriptionId: String
+  description: String
+  createdAt: Date
+}
+
+type HyloProPaymentPage {
+  items: [HyloProPayment]
+  hasMore: Boolean
+}
+
+type HyloProRefund {
+  id: ID
+  amount: Int
+  currency: String
+  status: String
+  # Whether the subscription was also cancelled (only when cancelSubscriptionId was passed)
+  subscriptionCanceled: Boolean
+  # Why cancelling failed after a successful refund; the refund still stands
+  cancelError: String
 }
 
 type HyloProSessionResult {

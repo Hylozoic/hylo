@@ -143,6 +143,7 @@ module.exports = {
   CURRENCY,
   ALREADY_SUBSCRIBED,
   alreadySubscribedError,
+  withLock,
 
   // Plans in display order, for the Billing page
   plans () {
