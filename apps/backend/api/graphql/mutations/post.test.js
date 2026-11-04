@@ -93,7 +93,7 @@ describe('ProposalVote', () => {
         option3 = { post_id: post.id, text: 'third' }
         option4 = { post_id: post.id, text: 'fourth' }
         option5 = { post_id: post.id, text: 'five' }
-        await post.save({ proposal_status: Post.Proposal_Status.DISCUSSION }, { patch: true })
+        await post.save({ user_id: user.id, proposal_status: Post.Proposal_Status.DISCUSSION }, { patch: true })
 
         return post.setProposalOptions({ options: [option1, option2] })
       })

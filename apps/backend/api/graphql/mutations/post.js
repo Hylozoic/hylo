@@ -7,6 +7,7 @@ import {
   assertCanFulfillPost,
   notifyAuthorOfModeratorFulfillment
 } from '../../models/post/postFulfillmentPermissions'
+import { assertCanEditPost } from '../../models/post/postEditPermissions'
 import { deletePostDraftForCreate } from './draft'
 
 export async function completePost (userId, postId, completionResponse) {
@@ -62,10 +63,12 @@ export function deletePost (userId, postId) {
     })
 }
 
-export function updatePost (userId, { id, data }) {
-  return convertGraphqlPostData(data)
-    .tap(convertedData => validatePostData(userId, convertedData))
-    .then(validatedData => underlyingUpdatePost(userId, id, validatedData))
+export async function updatePost (userId, { id, data }) {
+  const post = id && await Post.find(id)
+  await assertCanEditPost(userId, post)
+  const convertedData = await convertGraphqlPostData(data)
+  await validatePostData(userId, convertedData)
+  return underlyingUpdatePost(userId, id, convertedData)
 }
 
 export async function fulfillPost (userId, postId) {
@@ -124,8 +127,7 @@ export async function removeProposalVote ({ userId, postId, optionId }) {
 
 export async function setProposalOptions ({ userId, postId, options }) {
   if (!userId || !postId || !options) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
-  const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLError("You don't have permission to modify this post")
+  await assertCanEditPost(userId, await Post.find(postId))
   return Post.find(postId)
     .then(post => {
       if (post.get('proposal_status') !== Post.Proposal_Status.DISCUSSION) throw new GraphQLError("Proposal options cannot be changed unless the proposal is in 'discussion'")
@@ -137,8 +139,7 @@ export async function setProposalOptions ({ userId, postId, options }) {
 
 export async function updateProposalOptions ({ userId, postId, options }) {
   if (!userId || !postId || !options) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
-  const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLError("You don't have permission to modify this post")
+  await assertCanEditPost(userId, await Post.find(postId))
   return Post.find(postId)
     .then(post => {
       if (post.get('proposal_status') === Post.Proposal_Status.COMPLETED && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLError("Proposal options cannot be changed once a proposal is complete'")
@@ -167,15 +168,11 @@ export async function swapProposalVote ({ userId, postId, removeOptionId, addOpt
   }
 }
 
-export function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
-  return Post.find(postId)
-    .then(post => {
-      if (post.get('user_id') !== userId) {
-        throw new GraphQLError("You don't have permission to modify this post")
-      }
-      return post.updateProposalOutcome(proposalOutcome)
-    })
-    .then(() => ({ success: true }))
+export async function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
+  const post = await Post.find(postId)
+  await assertCanEditPost(userId, post)
+  await post.updateProposalOutcome(proposalOutcome)
+  return { success: true }
 }
 
 export async function pinPost (userId, postId, viewId) {
