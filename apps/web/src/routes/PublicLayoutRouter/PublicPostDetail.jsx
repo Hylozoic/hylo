@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react'
 import Div100vh from 'react-div-100vh'
 import { useDispatch } from 'react-redux'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { AnalyticsEvents } from '@hylo/shared'
 import Loading from 'components/Loading'
 import PostDetail from 'routes/PostDetail'
 import checkIsPostPublic from 'store/actions/checkIsPostPublic'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import PublicPageHeader from './PublicPageHeader'
 import { DETAIL_COLUMN_ID } from 'util/scrolling'
 
@@ -23,6 +25,7 @@ export default function PublicPostDetail (props) {
       const result = await dispatch(checkIsPostPublic(postId))
       const isPublicPost = result?.payload?.data?.post?.id
       if (!isPublicPost) {
+        dispatch(trackAnalyticsEvent(AnalyticsEvents.LOGIN_WALL_HIT, { kind: 'post' }))
         navigate('/login?returnToUrl=' + location.pathname + location.search, { replace: true })
       }
 

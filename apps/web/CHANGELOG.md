@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Administrators can convert a chat room into a discussion post from an Advanced menu in space settings, or from Related Groups when chat rooms are blocking a group from becoming a space. The chat-room action is only shown for chat-only spaces, and the room is removed as part of the conversion. The new discussion is dated today.
+
 ## [7.1.9] - 2026-10-28
 
 ### Added
