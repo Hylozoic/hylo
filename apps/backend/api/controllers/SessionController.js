@@ -258,6 +258,8 @@ module.exports = {
       const user = await User.find(accessToken.accountId, {}, false)
       if (!user) return res.status(401).json({ error: 'Unknown user' })
 
+      // the WebView may still have another user's cookie, so never reuse its session
+      await UserSession.regenerate(req, user.id)
       await UserSession.login(req, user, 'token')
       return res.ok({ success: true })
     } catch (err) {
@@ -395,32 +397,11 @@ module.exports = {
     }
   },
 
-  // TODO: remove once we are all switched to JWTs
-  createWithToken: async function (req, res) {
-    // Web links will go directly to the server and redirects from here,
-    // Native does a POST as an API call and this should not redirect
-    const shouldRedirect = req.method === 'GET'
-    const requestedNextUrl = safeNextUrl(req.param('n'))
-    const nextUrl = requestedNextUrl || Frontend.Route.evo.passwordSetting()
-    try {
-      const user = await User.find(req.param('u'))
-      if (!user) return res.status(422).send('Link expired')
-      const match = await user.checkToken(req.param('t'))
-      if (match) {
-        UserSession.login(req, user, 'password')
-        return shouldRedirect
-          ? res.redirect(nextUrl)
-          : res.ok({ success: true })
-      } else {
-        // still redirect, to give the user a chance to log in manually
-        // if a specific URL other than the default was the entry point
-        return shouldRedirect && requestedNextUrl
-          ? res.redirect(nextUrl)
-          : res.status(422).send('Link expired')
-      }
-    } catch (e) {
-      return res.serverError
-    }
+  // Old emails (before March 2025) link here with tokens that never expire and can be forwarded,
+  // so these links no longer log anyone in. Web links still go on to the linked page.
+  createWithToken: function (req, res) {
+    if (req.method !== 'GET') return res.status(422).send('Link expired')
+    return res.redirect(safeNextUrl(req.param('n')) || `${Frontend.Route.prefix}/login`)
   },
 
   // these are here for testing

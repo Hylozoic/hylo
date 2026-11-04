@@ -23,7 +23,7 @@ import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Button from 'components/ui/button'
 import { INPUT_CLASS } from 'components/ui/form-field'
 import InfoButton from 'components/ui/info'
-import { CUSTOM_VIEW_DEFAULT_POST_TYPES, CUSTOM_VIEW_POST_TYPE_OPTIONS } from 'components/CustomViewForm/customViewFormConstants'
+import { DEFAULT_SELECTED_POST_TYPES, ACCEPTED_POST_TYPE_PILLS } from 'components/CustomViewForm/customViewFormConstants'
 import { createGroupView, updateGroupView } from 'store/actions/groupViews'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { requestPublicListing } from 'store/actions/publicListingRequests'
@@ -338,7 +338,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   )
   const [agreements, setAgreements] = useState([])
   const [joinQuestions, setJoinQuestions] = useState([])
-  const [postTypes, setPostTypes] = useState([...CUSTOM_VIEW_DEFAULT_POST_TYPES])
+  const [postTypes, setPostTypes] = useState([...DEFAULT_SELECTED_POST_TYPES])
   const [removedStandardTypes, setRemovedStandardTypes] = useState(new Set())
   const [manualViews, setManualViews] = useState([])
   const [welcomeExtras, setWelcomeExtras] = useState(null)
@@ -399,7 +399,7 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
   const homeViewType = HOME_VIEW_OPTIONS.find(option => option.value === homeView)?.viewType
 
   const standardViewTypes = useMemo(() => {
-    const postTypeViews = CUSTOM_VIEW_POST_TYPE_OPTIONS
+    const postTypeViews = ACCEPTED_POST_TYPE_PILLS
       .filter(option => option.postTypes.every(type => postTypes.includes(type)))
       .map(option => POST_TYPE_TO_VIEW_TYPE[option.postTypes[0]])
     const base = ['all', 'chat', ...postTypeViews, 'map', 'members'].filter(type => !removedStandardTypes.has(type))
@@ -653,8 +653,8 @@ const CreateGroupForm = forwardRef(function CreateGroupForm ({ onClose, bodyClas
     if (agreements.length > 0) return true
     if (joinQuestions.length > 0) return true
     if (
-      postTypes.length !== CUSTOM_VIEW_DEFAULT_POST_TYPES.length ||
-      postTypes.some(type => !CUSTOM_VIEW_DEFAULT_POST_TYPES.includes(type))
+      postTypes.length !== DEFAULT_SELECTED_POST_TYPES.length ||
+      postTypes.some(type => !DEFAULT_SELECTED_POST_TYPES.includes(type))
     ) return true
     if (welcomeEnabled || removedStandardTypes.size > 0 || manualViews.length > 0) return true
     if (htmlHasText(welcomeEditorRef.current?.getHTML?.()) || htmlHasText(welcomeExtras?.pageContent)) return true

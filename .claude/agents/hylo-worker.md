@@ -39,8 +39,10 @@ Also never: push to `dev`/`main`, force-push, merge PRs, close issues, edit `.gi
    # web + backend only: workers never touch mobile-leap/desktop, and skipping them saves ~1.4 GB.
    # root-workspace-0b6124 is Yarn's name for the unnamed root workspace (brings in standard, tsc).
    yarn workspaces focus root-workspace-0b6124 web backend && yarn build-packages
-   cp ~/dev/hylo-mobile-chaos/apps/web/.env apps/web/.env
-   cp ~/dev/hylo-mobile-chaos/apps/backend/.env apps/backend/.env   # gitignored — never commit
+   # the main checkout holds this machine's real .env files, wherever it lives
+   MAIN=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   cp "$MAIN/apps/web/.env" apps/web/.env
+   cp "$MAIN/apps/backend/.env" apps/backend/.env   # gitignored — never commit
    ```
    Run every later command inside `$WT`. For new work, if a branch for this issue already exists, stop and report `blocked` — don't reuse or delete someone else's work.
 

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Input } from 'components/ui/input'
 import LucideIconPicker from 'components/LucideIconPicker/LucideIconPicker'
 import PostTypePills from 'components/PostTypePills/PostTypePills'
+import { CUSTOM_STREAM_POST_TYPE_PILLS } from 'components/CustomViewForm/customViewFormConstants'
 import TopicSelector from 'components/TopicSelector/TopicSelector'
 import DefaultViewModePicker from './DefaultViewModePicker'
 
@@ -37,7 +38,11 @@ export default function CustomViewFormFields ({
         <LucideIconPicker value={icon} onChange={onIconChange} />
       </div>
 
-      <PostTypePills postTypes={postTypes} onPostTypesChange={onPostTypesChange} />
+      <PostTypePills
+        postTypes={postTypes}
+        onPostTypesChange={onPostTypesChange}
+        options={CUSTOM_STREAM_POST_TYPE_PILLS}
+      />
 
       <div className='flex flex-col gap-1'>
         <label className='text-sm text-foreground/70'>{t('Topics')}</label>

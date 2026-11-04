@@ -106,13 +106,8 @@ describe('InviteSettingsTab', () => {
 
   it('uses the same invite link explainer for protected and hidden closed groups', () => {
     for (const visibility of [GROUP_VISIBILITY.Protected, GROUP_VISIBILITY.Hidden]) {
-      const { unmount } = render(<InviteSettingsTab group={{
-        id: 1,
-        name: 'Hylo',
-        slug: 'hylo',
-        visibility,
-        accessibility: GROUP_ACCESSIBILITY.Closed
-      }} />)
+      const group = { id: 1, name: 'Hylo', slug: 'hylo', visibility, accessibility: GROUP_ACCESSIBILITY.Closed }
+      const { unmount } = render(<InviteSettingsTab group={group} />)
 
       expect(screen.getByText('Grant access to the group.')).toBeInTheDocument()
       expect(screen.queryByText('Because this group is Closed, even if someone can see this group they still need an invite to join.')).not.toBeInTheDocument()
@@ -173,13 +168,8 @@ describe('InviteSettingsTab', () => {
       })
     )
 
-    render(<InviteSettingsTab group={{
-      id: '42',
-      name: 'Hylo',
-      slug: 'hylo',
-      visibility: GROUP_VISIBILITY.Protected,
-      accessibility: GROUP_ACCESSIBILITY.Restricted
-    }} />)
+    const group = { id: '42', name: 'Hylo', slug: 'hylo', visibility: GROUP_VISIBILITY.Protected, accessibility: GROUP_ACCESSIBILITY.Restricted }
+    render(<InviteSettingsTab group={group} />)
 
     await waitFor(() => {
       const recent = queries.find(q => q.query.includes('connections') && String(q.variables?.excludeGroupId) === '42')
@@ -284,7 +274,7 @@ describe('InviteSettingsTab pending invites', () => {
 
     const name = screen.getByText('Front door')
     const url = screen.getByText(/\/invite\/Abcdefghij/)
-    expect(name.compareDocumentPosition(url) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(name.compareDocumentPosition(url) & window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByText('Grants Role(s):')).toBeInTheDocument()
     expect(screen.getByText('👋 Host')).toBeInTheDocument()
     expect(screen.getByTestId('invite-link-grants-access')).toHaveAttribute(
@@ -323,7 +313,7 @@ describe('InviteSettingsTab pending invites', () => {
 
     const viewUrl = screen.getByText(/\/view\/ViewCode11/)
     const inviteUrl = screen.getByText(/\/invite\/InviteCode/)
-    expect(viewUrl.compareDocumentPosition(inviteUrl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(viewUrl.compareDocumentPosition(inviteUrl) & window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.queryByText(/\/invite\/ViewCode11/)).not.toBeInTheDocument()
   })
 
@@ -337,13 +327,8 @@ describe('InviteSettingsTab pending invites', () => {
       })
     )
 
-    render(<InviteSettingsTab group={{
-      id: 1,
-      name: 'Hylo',
-      slug: 'hylo',
-      visibility: GROUP_VISIBILITY.Protected,
-      accessibility: GROUP_ACCESSIBILITY.Restricted
-    }} />)
+    const group = { id: 1, name: 'Hylo', slug: 'hylo', visibility: GROUP_VISIBILITY.Protected, accessibility: GROUP_ACCESSIBILITY.Restricted }
+    render(<InviteSettingsTab group={group} />)
 
     expect(await screen.findAllByTestId('loading-indicator')).not.toHaveLength(0)
     expect(screen.getByRole('heading', { name: 'View Links' })).toBeInTheDocument()
@@ -463,7 +448,7 @@ describe('InviteSettingsTab pending invites', () => {
 
     const viewHeading = screen.getByRole('heading', { name: 'View Links' })
     const inviteHeading = screen.getByRole('heading', { name: 'Invite Links' })
-    expect(viewHeading.compareDocumentPosition(inviteHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(viewHeading.compareDocumentPosition(inviteHeading) & window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByText('Let someone see the group and request to join.')).toBeInTheDocument()
     expect(screen.getByText('Grant access to the group without a request.')).toBeInTheDocument()
     expect(screen.getByText('Invite people on Hylo')).toBeInTheDocument()

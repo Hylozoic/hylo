@@ -21,6 +21,7 @@ import {
 } from './filters'
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
+import { listBlockingSpaces } from '../models/space/convertChatSpaceToDiscussion'
 import InvitationService from '../services/InvitationService'
 import {
   filterAndSortContentAccess,
@@ -584,6 +585,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           await p.load('locationObject')
           return p.relations.locationObject
         },
+        // Whether the viewer may start a DM with this person (same rule as the recipient search)
+        canMessage: p => userId ? User.canMessage(userId, p.id) : false,
         membershipCommonRoles: emptyQuerySet,
         messageThreadId: p => userId ? p.getMessageThreadWith(userId).then(post => post ? post.id : null) : null,
         // Never expose null names to clients — they call .split() etc.
@@ -1259,6 +1262,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
         eventCalendarUrl: g => g.eventCalendarUrl(),
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,
+        chatConverted: g => Boolean(g && g.getSetting('chat_converted_to_post_id')),
+        chatSpacesBlockingConversion: async g => {
+          if (!userId || !g) return []
+          const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, g.id)
+          if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) return []
+          const blocking = await listBlockingSpaces(g.id)
+          return blocking.filter(space => space.chatOnly)
+        },
         hasValidScope: g => userId && g ? UserScope.canAccess(userId, createGroupScope(g.id)) : false,
         currentUserMembershipActive: async g => {
           if (!userId || !g) return null
