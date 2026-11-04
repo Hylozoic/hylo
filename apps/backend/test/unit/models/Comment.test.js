@@ -40,6 +40,38 @@ describe('Comment', () => {
     })
   })
 
+  describe('createActivities', () => {
+    let author, other, post
+
+    beforeEach(async () => {
+      await setup.clearDb()
+      author = await factories.user().save()
+      other = await factories.user().save()
+      const group = await factories.group().save()
+      post = await factories.post({ user_id: other.id }).save()
+      await group.posts().attach(post)
+      await post.addFollowers([author.id, other.id])
+    })
+
+    const mention = user => `<a class="mention" data-type="mention" data-id="${user.id}" data-label="${user.get('name')}">${user.get('name')}</a>`
+
+    it('does not notify the commenter about mentioning themselves', async () => {
+      const comment = await factories.comment({
+        post_id: post.id,
+        user_id: Number(author.id),
+        text: `note to self ${mention(author)} and ${mention(other)}`
+      }).save()
+
+      await comment.createActivities()
+
+      const authorActivities = await Activity.where({ comment_id: comment.id, reader_id: author.id }).fetchAll()
+      expect(authorActivities.length).to.equal(0)
+
+      const otherActivity = await Activity.where({ comment_id: comment.id, reader_id: other.id }).fetch()
+      expect(otherActivity.get('meta').reasons).to.include('commentMention')
+    })
+  })
+
   describe('sendDigests', () => {
     let u1, u2, post, comments, log, now, group
     let originalEmailNotificationsEnabled

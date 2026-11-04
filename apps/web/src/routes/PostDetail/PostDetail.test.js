@@ -1,11 +1,15 @@
 import React from 'react'
-import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { toast } from 'sonner'
+import { act, AllTheProviders, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import { graphql, HttpResponse, delay } from 'msw'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import extractModelsForTest from 'util/testing/extractModelsForTest'
 import { DETAIL_COLUMN_ID } from 'util/scrolling'
 import PostDetail from './PostDetail'
+
+const mockNavigate = jest.fn()
+let mockSearch = ''
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -14,8 +18,15 @@ jest.mock('react-router-dom', () => ({
     postId: '91'
   }),
   useLocation: () => ({
-    pathname: '/group/foo/post/91'
-  })
+    pathname: '/group/foo/post/91',
+    search: mockSearch
+  }),
+  useNavigate: () => mockNavigate
+}))
+
+jest.mock('sonner', () => ({
+  ...jest.requireActual('sonner'),
+  toast: Object.assign(jest.fn(), { error: jest.fn() })
 }))
 
 const post = {
@@ -78,6 +89,106 @@ describe('PostDetail', () => {
       expect(screen.getByText('Test Post')).toBeInTheDocument()
       expect(screen.getByText('the body of the post')).toBeInTheDocument()
       expect(screen.getByTestId('post-detail-close')).toBeInTheDocument()
+    })
+  })
+
+  describe('opened from an email unfollow link', () => {
+    let unfollowedPostIds, followedPostIds
+
+    const mockFollowMutations = ({ unfollowFails = false, followFails = false } = {}) => {
+      mockGraphqlServer.use(
+        graphql.query('FetchPost', () => HttpResponse.json({
+          data: { post }
+        })),
+        graphql.mutation('UnfollowPost', ({ variables }) => {
+          unfollowedPostIds.push(variables.postId)
+          if (unfollowFails) return HttpResponse.json({ errors: [{ message: 'Post not found' }] })
+          return HttpResponse.json({ data: { unfollowPost: { id: '91', isFollowing: false } } })
+        }),
+        graphql.mutation('FollowPost', ({ variables }) => {
+          followedPostIds.push(variables.postId)
+          if (followFails) return HttpResponse.json({ errors: [{ message: 'Post not found' }] })
+          return HttpResponse.json({ data: { followPost: { id: '91', isFollowing: true } } })
+        })
+      )
+    }
+
+    const renderPostDetail = () => {
+      const ormSession = orm.session(orm.getEmptyState())
+      ormSession.Me.create({ id: '1', name: 'Me' })
+      extractModelsForTest({
+        posts: [post]
+      }, 'Post', ormSession)
+      extractModelsForTest({
+        groups: [{ id: '109', slug: 'foo' }]
+      }, 'Group', ormSession)
+
+      render(
+        <PostDetail />,
+        { wrapper: AllTheProviders({ orm: ormSession.state, pending: {} }) }
+      )
+    }
+
+    const clickUndo = async () => {
+      await waitFor(() => {
+        expect(toast).toHaveBeenCalledWith(
+          "You won't get notifications for new comments on this post",
+          expect.objectContaining({ action: expect.objectContaining({ label: 'Undo' }) })
+        )
+      })
+      const [, { action: undo }] = toast.mock.calls[0]
+      await act(async () => { undo.onClick() })
+    }
+
+    beforeEach(() => {
+      mockSearch = '?action=unfollow&ctt=post_email'
+      unfollowedPostIds = []
+      followedPostIds = []
+      toast.mockClear()
+      toast.error.mockClear()
+      mockNavigate.mockClear()
+    })
+
+    afterEach(() => {
+      mockSearch = ''
+    })
+
+    it('unfollows the post once, drops the param, and Undo follows it again', async () => {
+      mockFollowMutations()
+      renderPostDetail()
+
+      await clickUndo()
+      expect(unfollowedPostIds).toEqual(['91'])
+      expect(mockNavigate).toHaveBeenCalledWith(
+        { pathname: '/group/foo/post/91', search: '?ctt=post_email' },
+        { replace: true, state: undefined }
+      )
+      await waitFor(() => {
+        expect(followedPostIds).toEqual(['91'])
+      })
+      expect(unfollowedPostIds).toEqual(['91'])
+      expect(toast.error).not.toHaveBeenCalled()
+    })
+
+    it('says so when the unfollow fails', async () => {
+      mockFollowMutations({ unfollowFails: true })
+      renderPostDetail()
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Couldn't turn off notifications for this post")
+      })
+      expect(toast).not.toHaveBeenCalled()
+    })
+
+    it('says so when Undo fails', async () => {
+      mockFollowMutations({ followFails: true })
+      renderPostDetail()
+
+      await clickUndo()
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Couldn't turn notifications for this post back on")
+      })
+      expect(followedPostIds).toEqual(['91'])
     })
   })
 

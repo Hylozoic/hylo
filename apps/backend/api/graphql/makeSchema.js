@@ -91,6 +91,7 @@ import {
   findOrCreateLocation,
   findOrCreateThread,
   flagInappropriateContent,
+  followPost,
   fulfillPost,
   grantContentAccess,
   inviteGroupToGroup,
@@ -153,6 +154,7 @@ import {
   subscribe,
   swapProposalVote,
   unblockUser,
+  unfollowPost,
   unfulfillPost,
   unlinkAccount,
   unsavePost,
@@ -827,6 +829,8 @@ export function makeMutations ({ fetchOne }) {
 
     flagInappropriateContent: (root, { data }, context) => flagInappropriateContent(context.currentUserId, data),
 
+    followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
+
     fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
@@ -940,6 +944,8 @@ export function makeMutations ({ fetchOne }) {
     swapProposalVote: (root, { postId, removeOptionId, addOptionId }, context) => swapProposalVote({ userId: context.currentUserId, postId, removeOptionId, addOptionId }),
 
     unblockUser: (root, { blockedUserId }, context) => unblockUser(context.currentUserId, blockedUserId),
+
+    unfollowPost: (root, { postId }, context) => unfollowPost(context.currentUserId, postId),
 
     unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
 

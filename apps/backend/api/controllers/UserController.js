@@ -1,9 +1,24 @@
-import { filter, isEmpty, mapKeys, merge, pick, snakeCase } from 'lodash'
+import { filter, includes, isEmpty, mapKeys, merge, omitBy, pick, snakeCase, uniq } from 'lodash'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 import InvitationService from '../services/InvitationService'
 import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { decodeHyloJWT } from '../../lib/HyloJWT'
 import { joinRoom, leaveRoom } from '../services/Websockets'
+
+// Values each membership-level setting accepts, with what a missing key behaves as
+// (no digest is sent and new posts are not notified).
+const MEMBERSHIP_SETTING_VALUES = {
+  digestFrequency: { values: ['daily', 'weekly', 'never'], missing: 'never' },
+  postNotifications: { values: ['none', 'important', 'all'], missing: 'none' }
+}
+
+const MIXED = 'mixed'
+
+function sharedMembershipSetting (memberships, key, fallback) {
+  if (memberships.length === 0) return fallback
+  const values = uniq(memberships.map(m => m.getSetting(key) || MEMBERSHIP_SETTING_VALUES[key].missing))
+  return values.length === 1 ? values[0] : MIXED
+}
 
 module.exports = {
 
@@ -96,17 +111,18 @@ module.exports = {
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
-    const memberships = await user.memberships().fetch()
+    const memberships = await user.memberships().fetch({ withRelated: 'group' })
     const emailable = filter(memberships.models, mem => mem.getSetting('sendEmail'))
     const pushable = filter(memberships.models, mem => mem.getSetting('sendPushNotifications'))
-
-    // TODO: how to handle shift to groups?
+    // Spaces are included in their parent group's digest and have none of their own
+    const digestMemberships = filter(memberships.models, mem => mem.related('group').get('type') !== 'space')
+    const userSettings = user.get('settings') || {}
 
     return res.ok({
-      digestFrequency: user.get('settings')?.digest_frequency || 'daily',
-      dmNotifications: user.get('settings')?.dm_notifications || 'both',
-      commentNotifications: user.get('settings')?.comment_notifications || 'both',
-      postNotifications: user.get('settings')?.post_notifications || 'important',
+      digestFrequency: sharedMembershipSetting(digestMemberships, 'digestFrequency', userSettings.digest_frequency || null),
+      dmNotifications: userSettings.dm_notifications || 'both',
+      commentNotifications: userSettings.comment_notifications || 'both',
+      postNotifications: sharedMembershipSetting(memberships.models, 'postNotifications', userSettings.post_notifications || null),
       sendEmail: !isEmpty(emailable),
       sendPushNotifications: !isEmpty(pushable),
       hasDevice: false // DEPRECATED, remove after 2025-08-15
@@ -132,6 +148,18 @@ module.exports = {
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
+    // 'mixed' is what getNotificationSettings reports when memberships differ; sending it back means unchanged
+    const requested = omitBy(
+      pick(req.body, ['digestFrequency', 'dmNotifications', 'commentNotifications', 'postNotifications']),
+      value => value === undefined || value === null || value === MIXED
+    )
+    const membershipSettings = pick(requested, Object.keys(MEMBERSHIP_SETTING_VALUES))
+    for (const [key, value] of Object.entries(membershipSettings)) {
+      if (!includes(MEMBERSHIP_SETTING_VALUES[key].values, value)) {
+        return res.status(400).json({ error: `Invalid value for ${key}` })
+      }
+    }
+
     // Update the user's notification settings
     const userSettings = unsubscribeAll
       ? {
@@ -140,9 +168,16 @@ module.exports = {
           comment_notifications: 'none',
           post_notifications: 'none'
         }
-      : mapKeys(pick(req.body, ['digestFrequency', 'dmNotifications', 'commentNotifications', 'postNotifications']), (v, k) => snakeCase(k))
+      : mapKeys(requested, (v, k) => snakeCase(k))
 
     await user.save({ settings: merge({}, user.get('settings'), userSettings) }, { patch: true })
+
+    // Digests and new-post notifications read these from each membership, not from the user
+    if (!unsubscribeAll && !isEmpty(membershipSettings)) {
+      await bookshelf.knex('group_memberships')
+        .where({ user_id: user.id, active: true })
+        .update({ settings: bookshelf.knex.raw('settings || ?::jsonb', [JSON.stringify(membershipSettings)]) })
+    }
 
     let newMembershipSettings = false
 
