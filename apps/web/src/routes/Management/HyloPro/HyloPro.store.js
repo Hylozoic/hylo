@@ -3,6 +3,7 @@ export const MODULE_NAME = 'HyloProManagement'
 
 export const FETCH_HYLO_PRO_METRICS = `${MODULE_NAME}/FETCH_HYLO_PRO_METRICS`
 export const FETCH_HYLO_PRO_SUBSCRIPTIONS = `${MODULE_NAME}/FETCH_HYLO_PRO_SUBSCRIPTIONS`
+export const FETCH_HYLO_PRO_GROUPS = `${MODULE_NAME}/FETCH_HYLO_PRO_GROUPS`
 export const FETCH_HYLO_PRO_PAYMENTS = `${MODULE_NAME}/FETCH_HYLO_PRO_PAYMENTS`
 export const GRANT_HYLO_PRO = `${MODULE_NAME}/GRANT_HYLO_PRO`
 export const UPDATE_HYLO_PRO_GRANT = `${MODULE_NAME}/UPDATE_HYLO_PRO_GRANT`
@@ -72,24 +73,43 @@ export function fetchHyloProSubscriptions ({ filter, search, first, offset } = {
   }
 }
 
-export function fetchHyloProPayments (groupId) {
+// The groups a typed slug or id could mean (both when an all-digit slug differs from the id)
+export function fetchHyloProGroups (slugOrId) {
+  return {
+    type: FETCH_HYLO_PRO_GROUPS,
+    graphql: {
+      query: `query HyloProGroups ($slugOrId: String!) {
+        hyloProGroups(slugOrId: $slugOrId) { id name slug type }
+      }`,
+      variables: { slugOrId }
+    }
+  }
+}
+
+// groupId is the group's id; after = the last charge id already shown, for the next page
+export function fetchHyloProPayments (groupId, after) {
   return {
     type: FETCH_HYLO_PRO_PAYMENTS,
     graphql: {
-      query: `query HyloProPayments ($groupId: ID!) {
-        hyloProPayments(groupId: $groupId) {
-          id
-          amount
-          amountRefunded
-          currency
-          status
-          paid
-          refunded
-          description
-          createdAt
+      query: `query HyloProPayments ($groupId: ID!, $after: String) {
+        hyloProPayments(groupId: $groupId, after: $after) {
+          hasMore
+          items {
+            id
+            amount
+            amountRefunded
+            currency
+            status
+            paid
+            refunded
+            disputed
+            disputeStatus
+            description
+            createdAt
+          }
         }
       }`,
-      variables: { groupId }
+      variables: { groupId, after: after || null }
     }
   }
 }
@@ -167,20 +187,22 @@ export function extendHyloProSubscription (id, days) {
   }
 }
 
-// amount in cents; omit for a full refund
-export function refundHyloProPayment ({ groupId, chargeId, amount }) {
+// amount in cents; omit for a full refund. cancelSubscriptionId: also cancel that subscription now, after the refund
+export function refundHyloProPayment ({ groupId, chargeId, amount, cancelSubscriptionId }) {
   return {
     type: REFUND_HYLO_PRO_PAYMENT,
     graphql: {
-      query: `mutation RefundHyloProPayment ($groupId: ID!, $chargeId: String!, $amount: Int) {
-        refundHyloProPayment(groupId: $groupId, chargeId: $chargeId, amount: $amount) {
+      query: `mutation RefundHyloProPayment ($groupId: ID!, $chargeId: String!, $amount: Int, $cancelSubscriptionId: ID) {
+        refundHyloProPayment(groupId: $groupId, chargeId: $chargeId, amount: $amount, cancelSubscriptionId: $cancelSubscriptionId) {
           id
           amount
           currency
           status
+          subscriptionCanceled
+          cancelError
         }
       }`,
-      variables: { groupId, chargeId, amount: amount ?? null }
+      variables: { groupId, chargeId, amount: amount ?? null, cancelSubscriptionId: cancelSubscriptionId || null }
     }
   }
 }

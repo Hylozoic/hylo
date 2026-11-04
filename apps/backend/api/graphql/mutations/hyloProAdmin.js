@@ -52,9 +52,16 @@ export async function hyloProSubscriptions (userId, { filter, search, first, off
   return { items: await Promise.all(items.map(presentAdminSubscription)), total, hasMore }
 }
 
-export async function hyloProPayments (userId, { groupId }) {
+// Groups a "slug or ID" typed by staff could mean, so they confirm the group before granting
+export async function hyloProGroups (userId, { slugOrId }) {
   await requireStaff(userId)
-  return HyloProAdminService.listPayments({ groupId })
+  const groups = await HyloProAdminService.findGroups(slugOrId)
+  return groups.map(group => ({ id: group.id, name: group.get('name'), slug: group.get('slug'), type: group.get('type') }))
+}
+
+export async function hyloProPayments (userId, { groupId, after }) {
+  await requireStaff(userId)
+  return HyloProAdminService.listPayments({ groupId, after })
 }
 
 export async function grantHyloPro (userId, { groupId, expiresAt, note }) {
@@ -87,7 +94,7 @@ export async function extendHyloProSubscription (userId, { id, days }) {
   return presentAdminSubscription(await HyloProAdminService.extendSubscription({ adminId: userId, id, days }))
 }
 
-export async function refundHyloProPayment (userId, { groupId, chargeId, amount }) {
+export async function refundHyloProPayment (userId, { groupId, chargeId, amount, cancelSubscriptionId }) {
   await requireStaff(userId)
-  return HyloProAdminService.refundPayment({ adminId: userId, groupId, chargeId, amount })
+  return HyloProAdminService.refundPayment({ adminId: userId, groupId, chargeId, amount, cancelSubscriptionId })
 }

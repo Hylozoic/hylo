@@ -1,5 +1,5 @@
 import React from 'react'
-import { graphql, HttpResponse } from 'msw'
+import { delay, graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { AllTheProviders, fireEvent, render, screen, waitFor, within } from 'util/testing/reactTestingLibraryExtended'
 import { toast } from 'sonner'
@@ -46,6 +46,8 @@ const row = attrs => ({
   ...attrs
 })
 
+const PAYMENT = { id: 'ch_1', amount: 1000, amountRefunded: 0, currency: 'usd', status: 'succeeded', paid: true, refunded: false, disputed: false, disputeStatus: null, description: 'Subscription creation', createdAt: '2026-11-01T00:00:00.000Z' }
+
 const ROWS = [
   row(),
   row({ id: '2', source: 'manual', status: 'active', interval: null, group: { id: '11', name: 'Partner Group', slug: 'partner' }, grantedBy: { id: '7', name: 'Staff Person' }, note: 'Pilot partner', stripeSubscriptionId: null, stripeCustomerId: null, currentPeriodEnd: null, expiresAt: '2027-02-01T00:00:00.000Z', endsAt: '2027-02-01T00:00:00.000Z' })
@@ -61,11 +63,12 @@ function mockApi (overrides = {}) {
       switch (operationName) {
         case 'HyloProMetrics': return HttpResponse.json({ data: { hyloProMetrics: METRICS } })
         case 'HyloProSubscriptions': return HttpResponse.json({ data: { hyloProSubscriptions: { total: ROWS.length, hasMore: false, items: ROWS } } })
-        case 'HyloProPayments': return HttpResponse.json({ data: { hyloProPayments: [{ id: 'ch_1', amount: 1000, amountRefunded: 0, currency: 'usd', status: 'succeeded', paid: true, refunded: false, description: 'Subscription creation', createdAt: '2026-11-01T00:00:00.000Z' }] } })
+        case 'HyloProPayments': return HttpResponse.json({ data: { hyloProPayments: { hasMore: false, items: [PAYMENT] } } })
+        case 'HyloProGroups': return HttpResponse.json({ data: { hyloProGroups: [{ id: '12', name: 'New Group', slug: 'new-group', type: null }] } })
         case 'GrantHyloPro': return HttpResponse.json({ data: { grantHyloPro: row({ id: '3', source: 'manual', group: { id: '12', name: 'New Group', slug: 'new-group' } }) } })
         case 'ExtendHyloProSubscription': return HttpResponse.json({ data: { extendHyloProSubscription: row({ status: 'trialing' }) } })
         case 'CancelHyloProSubscription': return HttpResponse.json({ data: { cancelHyloProSubscription: row({ cancelAtPeriodEnd: true }) } })
-        case 'RefundHyloProPayment': return HttpResponse.json({ data: { refundHyloProPayment: { id: 're_1', amount: 400, currency: 'usd', status: 'succeeded' } } })
+        case 'RefundHyloProPayment': return HttpResponse.json({ data: { refundHyloProPayment: { id: 're_1', amount: 400, currency: 'usd', status: 'succeeded', subscriptionCanceled: !!variables.cancelSubscriptionId, cancelError: null } } })
         default: return HttpResponse.json({ data: {} })
       }
     })
@@ -127,7 +130,25 @@ describe('HyloPro management page', () => {
     await waitFor(() => expect(requests.HyloProSubscriptions.at(-1)).toMatchObject({ filter: 'past_due', search: 'partner' }))
   })
 
-  it('grants Pro with an end date and note, then reloads', async () => {
+  it('ignores a slow response for an earlier filter that arrives after the current one', async () => {
+    mockApi({
+      HyloProSubscriptions: async ({ filter }) => {
+        // The first list (active) is slow; the grants list answers at once
+        if (filter === 'active') await delay(300)
+        const items = filter === 'active' ? [ROWS[0]] : [ROWS[1]]
+        return HttpResponse.json({ data: { hyloProSubscriptions: { total: 1, hasMore: false, items } } })
+      }
+    })
+    renderPage()
+    fireEvent.click(await screen.findByRole('tab', { name: 'Grants' }))
+
+    await findRow('Partner Group')
+    await new Promise(resolve => setTimeout(resolve, 400))
+    expect(screen.queryByText('Paying Group')).not.toBeInTheDocument()
+    expect(screen.getByText('Partner Group')).toBeInTheDocument()
+  })
+
+  it('finds the group first, then grants Pro to it by id with an end date and note, then reloads', async () => {
     const requests = mockApi()
     const { container } = renderPage()
     await findRow('Paying Group')
@@ -136,13 +157,52 @@ describe('HyloPro management page', () => {
     fireEvent.change(within(form).getByPlaceholderText('my-group'), { target: { value: ' new-group ' } })
     fireEvent.change(container.querySelector('[data-testid="hylo-pro-grant-form"] input[type="date"]'), { target: { value: '2027-03-31' } })
     fireEvent.change(within(form).getByLabelText('Note (why it was granted)'), { target: { value: 'Pilot' } })
-    fireEvent.click(within(form).getByRole('button', { name: 'Grant Pro' }))
+    fireEvent.click(within(form).getByRole('button', { name: 'Find group' }))
+
+    const matches = await within(form).findByTestId('hylo-pro-grant-matches')
+    expect(requests.HyloProGroups).toEqual([{ slugOrId: 'new-group' }])
+    expect(within(matches).getByText('Slug new-group · ID 12')).toBeInTheDocument()
+    expect(requests.GrantHyloPro).toBeUndefined()
+    fireEvent.click(within(matches).getByRole('button', { name: 'Grant Pro to New Group' }))
 
     await waitFor(() => expect(requests.GrantHyloPro).toHaveLength(1))
     const variables = requests.GrantHyloPro[0]
-    expect(variables).toMatchObject({ groupId: 'new-group', note: 'Pilot' })
+    expect(variables).toMatchObject({ groupId: '12', note: 'Pilot' })
     expect(new Date(variables.expiresAt).getTime()).toBe(new Date('2027-03-31T23:59:59').getTime())
     await waitFor(() => expect(requests.HyloProMetrics.length).toBe(2))
+  })
+
+  it('shows both groups when an all-digit value matches one group by slug and another by id, and grants the one chosen', async () => {
+    const requests = mockApi({
+      HyloProGroups: () => HttpResponse.json({ data: { hyloProGroups: [{ id: '57', name: 'Class of 2024', slug: '2024', type: null }, { id: '2024', name: 'Other Group', slug: 'other', type: null }] } })
+    })
+    renderPage()
+    await findRow('Paying Group')
+
+    const form = screen.getByTestId('hylo-pro-grant-form')
+    fireEvent.change(within(form).getByPlaceholderText('my-group'), { target: { value: '2024' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Find group' }))
+
+    const matches = await within(form).findByTestId('hylo-pro-grant-matches')
+    expect(within(matches).getByText('"2024" matches more than one group. Choose the one you mean:')).toBeInTheDocument()
+    fireEvent.click(within(matches).getByRole('button', { name: 'Grant Pro to Other Group' }))
+    await waitFor(() => expect(requests.GrantHyloPro).toEqual([expect.objectContaining({ groupId: '2024' })]))
+  })
+
+  it('says when no group matches, and offers no grant for a space', async () => {
+    mockApi({ HyloProGroups: ({ slugOrId }) => HttpResponse.json({ data: { hyloProGroups: slugOrId === 'a-space' ? [{ id: '5', name: 'A Space', slug: 'a-space', type: 'space' }] : [] } }) })
+    renderPage()
+    await findRow('Paying Group')
+    const form = screen.getByTestId('hylo-pro-grant-form')
+
+    fireEvent.change(within(form).getByPlaceholderText('my-group'), { target: { value: 'nope' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Find group' }))
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('No group found for "nope"'))
+
+    fireEvent.change(within(form).getByPlaceholderText('my-group'), { target: { value: 'a-space' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Find group' }))
+    expect(await within(form).findByText("Spaces can't have Hylo Pro")).toBeInTheDocument()
+    expect(within(form).queryByRole('button', { name: /Grant Pro to/ })).not.toBeInTheDocument()
   })
 
   it('extends a subscription by the chosen number of days', async () => {
@@ -182,7 +242,75 @@ describe('HyloPro management page', () => {
     fireEvent.change(within(payments).getByLabelText('Amount to refund'), { target: { value: '4' } })
     fireEvent.click(within(payments).getByRole('button', { name: 'Refund' }))
 
-    await waitFor(() => expect(requests.RefundHyloProPayment).toEqual([{ groupId: '10', chargeId: 'ch_1', amount: 400 }]))
+    await waitFor(() => expect(requests.RefundHyloProPayment).toEqual([{ groupId: '10', chargeId: 'ch_1', amount: 400, cancelSubscriptionId: null }]))
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('This does not cancel the subscription'))
+  })
+
+  it('refunds and also cancels the subscription now when the box is ticked', async () => {
+    const requests = mockApi()
+    renderPage()
+    const sub = await findRow('Paying Group')
+
+    fireEvent.click(within(sub).getByRole('button', { name: 'Payments' }))
+    const payments = await within(sub).findByTestId('hylo-pro-payments')
+    fireEvent.click(within(payments).getByLabelText('Also cancel the subscription now (after the refund)'))
+    fireEvent.click(within(payments).getByRole('button', { name: 'Refund' }))
+
+    await waitFor(() => expect(requests.RefundHyloProPayment).toEqual([{ groupId: '10', chargeId: 'ch_1', amount: null, cancelSubscriptionId: '1' }]))
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('cancel the subscription now? Pro stops immediately.'))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Refunded $10.00 and cancelled the subscription'))
+  })
+
+  it('says clearly when the refund worked but the cancellation failed', async () => {
+    mockApi({
+      RefundHyloProPayment: () => HttpResponse.json({ data: { refundHyloProPayment: { id: 're_1', amount: 1000, currency: 'usd', status: 'succeeded', subscriptionCanceled: false, cancelError: 'Stripe is down' } } })
+    })
+    renderPage()
+    const sub = await findRow('Paying Group')
+
+    fireEvent.click(within(sub).getByRole('button', { name: 'Payments' }))
+    const payments = await within(sub).findByTestId('hylo-pro-payments')
+    fireEvent.click(within(payments).getByLabelText('Also cancel the subscription now (after the refund)'))
+    fireEvent.click(within(payments).getByRole('button', { name: 'Refund' }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Refunded $10.00, but cancelling the subscription failed: Stripe is down. Use Cancel now to try again.'))
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  it('marks disputed payments with their status and offers no refund for them', async () => {
+    mockApi({
+      HyloProPayments: () => HttpResponse.json({ data: { hyloProPayments: { hasMore: false, items: [{ ...PAYMENT, id: 'ch_d', description: 'Renewal', disputed: true, disputeStatus: 'needs_response' }, PAYMENT] } } })
+    })
+    renderPage()
+    const sub = await findRow('Paying Group')
+
+    fireEvent.click(within(sub).getByRole('button', { name: 'Payments' }))
+    await within(sub).findByTestId('hylo-pro-payments')
+    const [disputed, normal] = within(sub).getAllByTestId('hylo-pro-payment')
+    expect(within(disputed).getByTestId('hylo-pro-disputed')).toHaveTextContent('Disputed: Needs response')
+    expect(within(disputed).queryByRole('button', { name: 'Refund' })).not.toBeInTheDocument()
+    expect(within(disputed).getByText('Handle in Stripe')).toBeInTheDocument()
+    expect(within(normal).queryByTestId('hylo-pro-disputed')).not.toBeInTheDocument()
+    expect(within(normal).getByRole('button', { name: 'Refund' })).toBeInTheDocument()
+  })
+
+  it('loads more payments after the last one shown', async () => {
+    const requests = mockApi({
+      HyloProPayments: ({ after }) => HttpResponse.json({
+        data: { hyloProPayments: after ? { hasMore: false, items: [{ ...PAYMENT, id: 'ch_old', description: 'Older payment' }] } : { hasMore: true, items: [PAYMENT] } }
+      })
+    })
+    renderPage()
+    const sub = await findRow('Paying Group')
+
+    fireEvent.click(within(sub).getByRole('button', { name: 'Payments' }))
+    const payments = await within(sub).findByTestId('hylo-pro-payments')
+    fireEvent.click(within(payments).getByRole('button', { name: 'Load more' }))
+
+    expect(await within(payments).findByText('Older payment')).toBeInTheDocument()
+    expect(within(payments).getByText('Subscription creation')).toBeInTheDocument()
+    expect(requests.HyloProPayments.map(v => v.after)).toEqual([null, 'ch_1'])
+    expect(within(payments).queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
   })
 
   it('shows the server error when an action is refused', async () => {
@@ -196,5 +324,18 @@ describe('HyloPro management page', () => {
     fireEvent.click(within(sub).getAllByRole('button', { name: 'Extend' })[1])
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Only an active or trialing subscription can be extended. Grant Pro instead.'))
+  })
+
+  it("explains Stripe's trial limit with the days left, from the error's code", async () => {
+    mockApi({
+      ExtendHyloProSubscription: () => HttpResponse.json({ errors: [{ message: 'server text', extensions: { code: 'HYLO_PRO_EXTEND_LIMIT', maxDays: 12, maxTrialDays: 730 } }] })
+    })
+    renderPage()
+    const sub = await findRow('Paying Group')
+
+    fireEvent.click(within(sub).getByRole('button', { name: 'Extend' }))
+    fireEvent.click(within(sub).getAllByRole('button', { name: 'Extend' })[1])
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Stripe allows free time up to 730 days from today, so this subscription can be extended by at most 12 more days.'))
   })
 })

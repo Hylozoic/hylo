@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -7,7 +7,7 @@ import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
 import { cn } from 'util/index'
 import SubscriptionRow from './SubscriptionRow'
-import { fetchHyloProMetrics, fetchHyloProSubscriptions, grantHyloPro } from './HyloPro.store'
+import { fetchHyloProGroups, fetchHyloProMetrics, fetchHyloProSubscriptions, grantHyloPro } from './HyloPro.store'
 import { endOfDayIso, formatMoney, runGraphql } from './util'
 
 const PAGE_SIZE = 50
@@ -28,6 +28,9 @@ export default function HyloPro () {
   const [total, setTotal] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [loadingRows, setLoadingRows] = useState(true)
+  // Only the latest list request may update the rows: an older one (an earlier filter or search)
+  // can finish last, and staff would then act on rows from the wrong list
+  const latestRowsRequest = useRef(0)
 
   const filters = [
     { value: 'active', label: t('Has Pro now') },
@@ -47,21 +50,28 @@ export default function HyloPro () {
   }, [dispatch])
 
   const loadRows = useCallback(async (offset = 0) => {
+    const request = ++latestRowsRequest.current
+    const isLatest = () => request === latestRowsRequest.current
     setLoadingRows(true)
     try {
       const result = await runGraphql(dispatch, fetchHyloProSubscriptions({ filter, search: appliedSearch, first: PAGE_SIZE, offset }), 'hyloProSubscriptions')
+      if (!isLatest()) return
       setRows(existing => offset === 0 ? result.items : existing.concat(result.items))
       setTotal(result.total)
       setHasMore(result.hasMore)
     } catch (e) {
-      toast.error(e?.message || t('Something went wrong'))
+      if (isLatest()) toast.error(e?.message || t('Something went wrong'))
     } finally {
-      setLoadingRows(false)
+      if (isLatest()) setLoadingRows(false)
     }
   }, [dispatch, filter, appliedSearch])
 
   useEffect(() => { loadMetrics() }, [loadMetrics])
-  useEffect(() => { loadRows(0) }, [loadRows])
+  // A new filter or search: drop the old list right away rather than leave it actionable while loading
+  useEffect(() => {
+    setRows([])
+    loadRows(0)
+  }, [loadRows])
 
   // After any change: refresh the numbers, and the list (a row may have left the current filter)
   const refresh = useCallback(() => {
@@ -152,9 +162,10 @@ function Metrics ({ metrics, error, t, language }) {
       detail: t('Yearly plans count 1/12. Trialing not included.')
     },
     {
+      // The same subscriptions MRR counts: paying now (including failed payments still in grace), not trialing
       label: t('Paid subscriptions'),
       value: metrics.monthlySubscriptions + metrics.yearlySubscriptions,
-      detail: t('{{monthly}} monthly · {{yearly}} yearly', { monthly: metrics.monthlySubscriptions, yearly: metrics.yearlySubscriptions })
+      detail: t('{{monthly}} monthly · {{yearly}} yearly. Trialing not included.', { monthly: metrics.monthlySubscriptions, yearly: metrics.yearlySubscriptions })
     },
     { label: t('Payment failed'), value: metrics.pastDue, highlight: metrics.pastDue > 0 },
     { label: t('Set to cancel'), value: metrics.cancelling },
@@ -207,24 +218,51 @@ function formatMonth (month, language) {
   return new Date(Date.UTC(year, monthIndex - 1, 1)).toLocaleDateString(language, { month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
+/**
+ * Granting is two steps: find the group from the slug or ID typed, then grant to the group shown.
+ * A slug can be all digits, so a value can match one group by slug and another by ID; both are
+ * shown and staff choose. The grant itself is always made by group ID.
+ */
 function GrantForm ({ onGranted }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const [groupId, setGroupId] = useState('')
+  const [slugOrId, setSlugOrId] = useState('')
   const [expiresOn, setExpiresOn] = useState('')
   const [note, setNote] = useState('')
+  const [matches, setMatches] = useState(null) // groups found for the typed value, null = not looked up yet
+  const [searching, setSearching] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const handleSubmit = async event => {
+  const changeSlugOrId = value => {
+    setSlugOrId(value)
+    setMatches(null)
+  }
+
+  const handleFind = async event => {
     event.preventDefault()
-    if (!groupId.trim()) return
+    const value = slugOrId.trim()
+    if (!value) return
+    setSearching(true)
+    try {
+      const groups = await runGraphql(dispatch, fetchHyloProGroups(value), 'hyloProGroups') || []
+      if (groups.length === 0) toast.error(t('No group found for "{{value}}"', { value }))
+      setMatches(groups)
+    } catch (e) {
+      toast.error(e?.message || t('Something went wrong'))
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const handleGrant = async group => {
     setSaving(true)
     try {
-      const row = await runGraphql(dispatch, grantHyloPro({ groupId: groupId.trim(), expiresAt: endOfDayIso(expiresOn), note }), 'grantHyloPro')
+      const row = await runGraphql(dispatch, grantHyloPro({ groupId: group.id, expiresAt: endOfDayIso(expiresOn), note }), 'grantHyloPro')
       toast.success(t('Hylo Pro granted to {{name}}', { name: row.group?.name }))
-      setGroupId('')
+      setSlugOrId('')
       setExpiresOn('')
       setNote('')
+      setMatches(null)
       onGranted()
     } catch (e) {
       toast.error(e?.message || t('Something went wrong'))
@@ -237,10 +275,10 @@ function GrantForm ({ onGranted }) {
     <section className='space-y-3'>
       <h2 className='text-lg font-semibold text-foreground'>{t('Grant Hylo Pro')}</h2>
       <p className='text-sm text-foreground/60 m-0'>{t('Give a group Pro without a payment, e.g. for partners or pilots. Leave the end date empty for no end date.')}</p>
-      <form className='grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-3 bg-card rounded-lg p-4 border border-foreground/10' onSubmit={handleSubmit} data-testid='hylo-pro-grant-form'>
+      <form className='grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-3 bg-card rounded-lg p-4 border border-foreground/10' onSubmit={handleFind} data-testid='hylo-pro-grant-form'>
         <label className='text-sm text-foreground space-y-1'>
           <span>{t('Group slug or ID')}</span>
-          <Input value={groupId} onChange={e => setGroupId(e.target.value)} placeholder='my-group' required />
+          <Input value={slugOrId} onChange={e => changeSlugOrId(e.target.value)} placeholder='my-group' required />
         </label>
         <label className='text-sm text-foreground space-y-1'>
           <span>{t('Ends on (optional)')}</span>
@@ -251,8 +289,34 @@ function GrantForm ({ onGranted }) {
           <Input value={note} onChange={e => setNote(e.target.value)} maxLength={1000} />
         </label>
         <div className='sm:col-span-2'>
-          <Button type='submit' disabled={saving || !groupId.trim()}>{saving ? t('Saving...') : t('Grant Pro')}</Button>
+          <Button type='submit' variant='outline' disabled={searching || saving || !slugOrId.trim()}>{searching ? t('Searching...') : t('Find group')}</Button>
         </div>
+        {matches && matches.length > 0 && (
+          <div className='sm:col-span-2 space-y-2' data-testid='hylo-pro-grant-matches'>
+            <p className='text-sm text-foreground/70 m-0'>
+              {matches.length > 1
+                ? t('"{{value}}" matches more than one group. Choose the one you mean:', { value: slugOrId.trim() })
+                : t('Check this is the right group:')}
+            </p>
+            <ul className='p-0 m-0 space-y-2'>
+              {matches.map(group => (
+                <li key={group.id} className='list-none flex flex-wrap items-center gap-3 rounded-md border border-foreground/20 p-3'>
+                  <div className='min-w-0 flex-1'>
+                    <div className='font-bold text-foreground'>{group.name}</div>
+                    <div className='text-xs text-foreground/60'>{t('Slug {{slug}} · ID {{id}}', { slug: group.slug, id: group.id })}</div>
+                  </div>
+                  {group.type === 'space'
+                    ? <span className='text-xs text-foreground/60'>{t("Spaces can't have Hylo Pro")}</span>
+                    : (
+                      <Button type='button' size='sm' disabled={saving} onClick={() => handleGrant(group)}>
+                        {saving ? t('Saving...') : t('Grant Pro to {{name}}', { name: group.name })}
+                      </Button>
+                      )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </form>
     </section>
   )

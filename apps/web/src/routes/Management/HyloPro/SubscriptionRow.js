@@ -21,6 +21,21 @@ import { endOfDayIso, formatDate, formatMoney, runGraphql, toDateInputValue } fr
 
 const ENDED_STRIPE_STATUSES = ['canceled', 'incomplete_expired']
 const EXTENDABLE_STRIPE_STATUSES = ['active', 'trialing']
+// GraphQL error code for an extension past Stripe's trial limit (HyloProAdminService.EXTEND_LIMIT)
+const EXTEND_LIMIT = 'HYLO_PRO_EXTEND_LIMIT'
+
+function disputeStatusLabel (status, t) {
+  switch (status) {
+    case 'needs_response':
+    case 'warning_needs_response': return t('Needs response')
+    case 'under_review':
+    case 'warning_under_review': return t('Under review')
+    case 'won': return t('Won')
+    case 'lost': return t('Lost')
+    case 'warning_closed': return t('Closed')
+    default: return status
+  }
+}
 
 function statusLabel (row, t) {
   if (row.source === 'manual') {
@@ -54,8 +69,9 @@ export default function SubscriptionRow ({ row, onChanged }) {
 
   const togglePanel = name => setPanel(current => current === name ? null : name)
 
-  // Runs a mutation, then reloads the page's data; returns true on success
-  const run = useCallback(async (action, field, successMessage) => {
+  // Runs a mutation, then reloads the page's data; returns true on success. errorMessage(e) can
+  // replace the server's message, e.g. to translate an error with a known code
+  const run = useCallback(async (action, field, successMessage, errorMessage) => {
     setBusy(true)
     try {
       await runGraphql(dispatch, action, field)
@@ -64,7 +80,7 @@ export default function SubscriptionRow ({ row, onChanged }) {
       onChanged()
       return true
     } catch (e) {
-      toast.error(e?.message || t('Something went wrong'))
+      toast.error(errorMessage?.(e) || e?.message || t('Something went wrong'))
       return false
     } finally {
       setBusy(false)
@@ -135,7 +151,7 @@ export default function SubscriptionRow ({ row, onChanged }) {
 
       {panel === 'endDate' && <EndDatePanel row={row} busy={busy} run={run} />}
       {panel === 'extend' && <ExtendPanel row={row} busy={busy} run={run} />}
-      {panel === 'payments' && <PaymentsPanel row={row} onRefunded={onChanged} />}
+      {panel === 'payments' && <PaymentsPanel row={row} canCancel={stripeOpen} onRefunded={onChanged} />}
     </li>
   )
 }
@@ -197,12 +213,21 @@ function ExtendPanel ({ row, busy, run }) {
   const count = Number(days)
   const valid = Number.isInteger(count) && count >= 1 && count <= 366
 
+  // Stripe can't push the next payment more than 730 days ahead; the server says how many days are left
+  const limitMessage = e => {
+    const extensions = e?.extensions
+    if (extensions?.code !== EXTEND_LIMIT) return null
+    return extensions.maxDays > 0
+      ? t('Stripe allows free time up to {{limit}} days from today, so this subscription can be extended by at most {{days}} more days.', { limit: extensions.maxTrialDays, days: extensions.maxDays })
+      : t('This subscription is already extended as far as Stripe allows ({{limit}} days from today).', { limit: extensions.maxTrialDays })
+  }
+
   return (
     <form
       className='mt-3 space-y-2 bg-card rounded-md p-3 border border-foreground/10'
       onSubmit={e => {
         e.preventDefault()
-        if (valid) run(extendHyloProSubscription(row.id, count), 'extendHyloProSubscription', t('Subscription extended'))
+        if (valid) run(extendHyloProSubscription(row.id, count), 'extendHyloProSubscription', t('Subscription extended'), limitMessage)
       }}
     >
       <p className='text-xs text-foreground/60 m-0'>
@@ -219,25 +244,45 @@ function ExtendPanel ({ row, busy, run }) {
   )
 }
 
-function PaymentsPanel ({ row, onRefunded }) {
+/**
+ * The group's Pro payments, newest first, a page at a time, with refunds. Disputed payments are
+ * marked with the dispute's status and can't be refunded (Stripe settles them through the dispute).
+ * "Also cancel the subscription now" cancels this row's subscription once the refund succeeds.
+ */
+function PaymentsPanel ({ row, canCancel, onRefunded }) {
   const { t, i18n } = useTranslation()
   const dispatch = useDispatch()
   const [payments, setPayments] = useState(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)
   const [amounts, setAmounts] = useState({})
+  const [cancelToo, setCancelToo] = useState(false)
   const [refundingId, setRefundingId] = useState(null)
   const groupId = row.group?.id
+  const groupName = row.group?.name
 
-  const load = useCallback(async () => {
+  // Reloads the first page (after = null) or adds the next page after the last payment shown
+  const load = useCallback(async after => {
     try {
-      setPayments(await runGraphql(dispatch, fetchHyloProPayments(groupId), 'hyloProPayments') || [])
+      const page = await runGraphql(dispatch, fetchHyloProPayments(groupId, after), 'hyloProPayments')
+      const items = page?.items || []
+      setPayments(existing => after ? (existing || []).concat(items) : items)
+      setHasMore(!!page?.hasMore)
       setError(null)
     } catch (e) {
-      setError(e?.message || t('Something went wrong'))
+      if (after) toast.error(e?.message || t('Something went wrong'))
+      else setError(e?.message || t('Something went wrong'))
     }
   }, [dispatch, groupId])
 
   useEffect(() => { load() }, [load])
+
+  const loadMore = async () => {
+    setLoadingMore(true)
+    await load(payments[payments.length - 1].id)
+    setLoadingMore(false)
+  }
 
   const handleRefund = async payment => {
     const refundable = payment.amount - payment.amountRefunded
@@ -248,13 +293,30 @@ function PaymentsPanel ({ row, onRefunded }) {
       return
     }
     const amountText = formatMoney(cents, payment.currency, i18n.language)
-    if (!window.confirm(t('Refund {{amount}} to {{name}}? This does not cancel the subscription.', { amount: amountText, name: row.group?.name }))) return
+    const cancel = canCancel && cancelToo
+    const question = cancel
+      ? t('Refund {{amount}} to {{name}} and cancel the subscription now? Pro stops immediately.', { amount: amountText, name: groupName })
+      : t('Refund {{amount}} to {{name}}? This does not cancel the subscription.', { amount: amountText, name: groupName })
+    if (!window.confirm(question)) return
 
     setRefundingId(payment.id)
     try {
-      await runGraphql(dispatch, refundHyloProPayment({ groupId, chargeId: payment.id, amount: cents === refundable ? null : cents }), 'refundHyloProPayment')
-      toast.success(t('Refunded {{amount}}', { amount: amountText }))
+      const result = await runGraphql(dispatch, refundHyloProPayment({
+        groupId,
+        chargeId: payment.id,
+        amount: cents === refundable ? null : cents,
+        cancelSubscriptionId: cancel ? row.id : null
+      }), 'refundHyloProPayment')
+      if (!cancel) {
+        toast.success(t('Refunded {{amount}}', { amount: amountText }))
+      } else if (result?.subscriptionCanceled) {
+        toast.success(t('Refunded {{amount}} and cancelled the subscription', { amount: amountText }))
+      } else {
+        // The refund went through but the cancellation didn't: say so, so staff cancel it separately
+        toast.error(t('Refunded {{amount}}, but cancelling the subscription failed: {{error}}. Use Cancel now to try again.', { amount: amountText, error: result?.cancelError || t('Something went wrong') }))
+      }
       setAmounts(a => ({ ...a, [payment.id]: '' }))
+      setCancelToo(false)
       await load()
       onRefunded()
     } catch (e) {
@@ -269,7 +331,13 @@ function PaymentsPanel ({ row, onRefunded }) {
   if (payments.length === 0) return <div className='mt-3 text-sm text-foreground/50'>{t('No payments yet.')}</div>
 
   return (
-    <div className='mt-3 overflow-x-auto bg-card rounded-md p-3 border border-foreground/10' data-testid='hylo-pro-payments'>
+    <div className='mt-3 overflow-x-auto bg-card rounded-md p-3 border border-foreground/10 space-y-2' data-testid='hylo-pro-payments'>
+      {canCancel && (
+        <label className='flex items-center gap-2 text-sm text-foreground'>
+          <input type='checkbox' checked={cancelToo} onChange={e => setCancelToo(e.target.checked)} data-testid='hylo-pro-refund-cancel' />
+          <span>{t('Also cancel the subscription now (after the refund)')}</span>
+        </label>
+      )}
       <table className='w-full text-sm text-left border-collapse'>
         <thead>
           <tr className='border-b border-foreground/10 text-foreground/50 text-xs uppercase'>
@@ -282,11 +350,20 @@ function PaymentsPanel ({ row, onRefunded }) {
         </thead>
         <tbody>
           {payments.map(payment => {
-            const refundable = payment.paid ? payment.amount - payment.amountRefunded : 0
+            const refundable = payment.paid && !payment.disputed ? payment.amount - payment.amountRefunded : 0
             return (
-              <tr key={payment.id} className='border-b border-foreground/5'>
+              <tr key={payment.id} className='border-b border-foreground/5' data-testid='hylo-pro-payment'>
                 <td className='py-2 pr-4 text-foreground'>{formatDate(payment.createdAt, i18n.language)}</td>
-                <td className='py-2 pr-4 text-foreground/70'>{payment.description || payment.id}{!payment.paid && ` (${payment.status})`}</td>
+                <td className='py-2 pr-4 text-foreground/70'>
+                  {payment.description || payment.id}{!payment.paid && ` (${payment.status})`}
+                  {payment.disputed && (
+                    <span className='ml-2 text-xs rounded-full px-2 py-0.5 bg-red-500/15 text-red-600 whitespace-nowrap' data-testid='hylo-pro-disputed'>
+                      {payment.disputeStatus
+                        ? t('Disputed: {{status}}', { status: disputeStatusLabel(payment.disputeStatus, t) })
+                        : t('Disputed')}
+                    </span>
+                  )}
+                </td>
                 <td className='py-2 pr-4 text-right text-foreground'>{formatMoney(payment.amount, payment.currency, i18n.language)}</td>
                 <td className='py-2 pr-4 text-right text-foreground'>{payment.amountRefunded ? formatMoney(payment.amountRefunded, payment.currency, i18n.language) : '—'}</td>
                 <td className='py-2 pr-4'>
@@ -305,12 +382,16 @@ function PaymentsPanel ({ row, onRefunded }) {
                       </Button>
                     </div>
                   )}
+                  {payment.disputed && <span className='text-xs text-foreground/50'>{t('Handle in Stripe')}</span>}
                 </td>
               </tr>
             )
           })}
         </tbody>
       </table>
+      {hasMore && (
+        <Button size='sm' variant='outline' disabled={loadingMore} onClick={loadMore}>{t('Load more')}</Button>
+      )}
     </div>
   )
 }

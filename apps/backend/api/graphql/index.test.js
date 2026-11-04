@@ -252,8 +252,16 @@ describe('graphql request handler', () => {
 
     it('lets Hylo staff grant Pro and see it in the list and metrics', async () => {
       as(staff)
+      // The grant form first resolves what staff typed, then grants by id
+      const lookup = await handler.inject({
+        document: `{ hyloProGroups(slugOrId: "${proGroup.get('slug')}") { id name slug } }`,
+        serverContext: { req, res }
+      })
+      expect(lookup.executionResult.errors, JSON.stringify(lookup.executionResult.errors)).to.be.undefined
+      expect(lookup.executionResult.data.hyloProGroups).to.deep.equal([{ id: String(proGroup.id), name: proGroup.get('name'), slug: proGroup.get('slug') }])
+
       const grant = await handler.inject({
-        document: `mutation { grantHyloPro(groupId: "${proGroup.get('slug')}", expiresAt: "2099-01-01T00:00:00Z", note: "pilot") {
+        document: `mutation { grantHyloPro(groupId: "${lookup.executionResult.data.hyloProGroups[0].id}", expiresAt: "2099-01-01T00:00:00Z", note: "pilot") {
           source status active note expiresAt group { id } grantedBy { id }
         } }`,
         serverContext: { req, res }

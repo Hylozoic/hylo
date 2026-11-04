@@ -190,6 +190,7 @@ import {
   createHyloProPortalSession,
   hyloProMetrics,
   hyloProSubscriptions,
+  hyloProGroups,
   hyloProPayments,
   grantHyloPro,
   updateHyloProGrant,
@@ -644,7 +645,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status),
     hyloProMetrics: (root, args, context) => hyloProMetrics(context.currentUserId),
     hyloProSubscriptions: (root, args, context) => hyloProSubscriptions(context.currentUserId, args),
-    hyloProPayments: (root, { groupId }, context) => hyloProPayments(context.currentUserId, { groupId })
+    hyloProGroups: (root, { slugOrId }, context) => hyloProGroups(context.currentUserId, { slugOrId }),
+    hyloProPayments: (root, { groupId, after }, context) => hyloProPayments(context.currentUserId, { groupId, after })
   }
 }
 

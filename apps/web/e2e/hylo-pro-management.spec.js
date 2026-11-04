@@ -4,8 +4,9 @@
  * Titled "capture screenshot" so the default e2e run skips it: the page is for Hylo staff, which
  * needs HYLO_ADMINS to include the e2e user's id, and the spec writes rows with psql, e.g.
  *   HYLO_ADMINS=1 E2E_DATABASE_URL=... yarn node scripts/run-isolated-e2e.js hylo-pro-management --project=chromium
- * The Stripe rows are fake (no Stripe calls are made), so Payments isn't opened. /management is a
- * desktop tool (its menu covers the page at phone width), so there's no phone screenshot.
+ * The Stripe rows are fake (no Stripe calls are made), so the Payments panel is shown with a stubbed
+ * HyloProPayments response and nothing is refunded. /management is a desktop tool (its menu covers
+ * the page at phone width), so there's no phone screenshot.
  */
 import { test, expect } from '@playwright/test'
 import { execFileSync } from 'child_process'
@@ -68,10 +69,14 @@ test('capture screenshot hylo pro management', async ({ page }) => {
     await form.getByPlaceholder('my-group').fill(groups[3].slug)
     await form.locator('input[type="date"]').fill('2027-06-30')
     await form.getByLabel('Note (why it was granted)').fill(NOTE)
+    await form.getByRole('button', { name: 'Find group' }).click()
+    // The group found is shown for confirmation before anything is granted
+    const matches = form.getByTestId('hylo-pro-grant-matches')
+    await expect(matches).toContainText(`Slug ${groups[3].slug} · ID ${groups[3].id}`)
     await page.mouse.move(0, 0)
     await page.screenshot({ path: path.resolve(screenshotDir, 'issue-1712-pro-management-grant-form.png') })
 
-    await form.getByRole('button', { name: 'Grant Pro' }).click()
+    await matches.getByRole('button', { name: /^Grant Pro to / }).click()
     const grantRow = page.getByTestId('hylo-pro-row').filter({ hasText: NOTE })
     await expect(grantRow).toBeVisible()
     await expect(grantRow).toContainText('Granted by')
@@ -86,6 +91,35 @@ test('capture screenshot hylo pro management', async ({ page }) => {
     await monthRow.scrollIntoViewIfNeeded()
     await page.mouse.move(0, 0)
     await monthRow.screenshot({ path: path.resolve(screenshotDir, 'issue-1712-pro-management-extend.png') })
+
+    // Payments: a disputed charge is marked and can't be refunded; refunds can also cancel now.
+    // Only the payments query is stubbed (the fake rows have no Stripe customer)
+    await page.route('**/noo/graphql', async route => {
+      if (!(route.request().postData() || '').includes('HyloProPayments')) return route.fallback()
+      const payment = (id, days, attrs = {}) => ({ id, amount: 1000, amountRefunded: 0, currency: 'usd', status: 'succeeded', paid: true, refunded: false, disputed: false, disputeStatus: null, description: 'Subscription update', createdAt: new Date(Date.now() - days * 86400000).toISOString(), ...attrs })
+      await route.fulfill({
+        json: {
+          data: {
+            hyloProPayments: {
+              hasMore: true,
+              items: [
+                payment('ch_e2e_1', 10),
+                payment('ch_e2e_2', 40, { disputed: true, disputeStatus: 'needs_response' }),
+                payment('ch_e2e_3', 70, { description: 'Subscription creation', amountRefunded: 500 })
+              ]
+            }
+          }
+        }
+      })
+    })
+    await monthRow.getByRole('button', { name: 'Payments' }).click()
+    const payments = monthRow.getByTestId('hylo-pro-payments')
+    await expect(payments.getByTestId('hylo-pro-disputed')).toHaveText('Disputed: Needs response')
+    await expect(payments.getByTestId('hylo-pro-payment').nth(1).getByRole('button', { name: 'Refund' })).toHaveCount(0)
+    await payments.getByLabel('Also cancel the subscription now (after the refund)').check()
+    await page.mouse.move(0, 0)
+    await monthRow.screenshot({ path: path.resolve(screenshotDir, 'issue-1712-pro-management-payments.png') })
+    await page.unroute('**/noo/graphql')
 
     // Grant's end date panel
     await grantRow.getByRole('button', { name: 'Change end date' }).click()

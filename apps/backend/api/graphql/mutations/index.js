@@ -202,6 +202,7 @@ export {
 export {
   hyloProMetrics,
   hyloProSubscriptions,
+  hyloProGroups,
   hyloProPayments,
   grantHyloPro,
   updateHyloProGrant,
