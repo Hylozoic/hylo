@@ -308,6 +308,37 @@ ALTER SEQUENCE public.activity_events_id_seq OWNED BY public.activity_events.id;
 
 
 --
+-- Name: metric_snapshots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.metric_snapshots (
+    group_id bigint NOT NULL,
+    metric text NOT NULL,
+    dimension text DEFAULT ''::text NOT NULL,
+    period text NOT NULL,
+    period_start date NOT NULL,
+    value numeric(18,4) NOT NULL,
+    computed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: activity_daily_counts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.activity_daily_counts (
+    day date NOT NULL,
+    group_id bigint DEFAULT 0 NOT NULL,
+    event_type text NOT NULL,
+    post_type text DEFAULT ''::text NOT NULL,
+    platform text DEFAULT ''::text NOT NULL,
+    join_source text DEFAULT ''::text NOT NULL,
+    is_public text DEFAULT ''::text NOT NULL,
+    events integer NOT NULL
+);
+
+
+--
 -- Name: agreements; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4267,6 +4298,22 @@ ALTER TABLE ONLY public.activity_events
 
 
 --
+-- Name: metric_snapshots metric_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.metric_snapshots
+    ADD CONSTRAINT metric_snapshots_pkey PRIMARY KEY (group_id, metric, period, period_start, dimension);
+
+
+--
+-- Name: activity_daily_counts activity_daily_counts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activity_daily_counts
+    ADD CONSTRAINT activity_daily_counts_pkey PRIMARY KEY (day, group_id, event_type, post_type, platform, join_source, is_public);
+
+
+--
 -- Name: agreements agreements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5181,7 +5228,7 @@ CREATE INDEX activity_days_user_id_day_index ON public.activity_days USING btree
 -- Name: activity_events_dedupe_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX activity_events_dedupe_index ON public.activity_events USING btree (event_type, object_id, user_id, group_id);
+CREATE UNIQUE INDEX activity_events_dedupe_index ON public.activity_events USING btree (event_type, object_id, user_id, group_id, occurred_at);
 
 
 --

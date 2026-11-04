@@ -392,13 +392,14 @@ module.exports = bookshelf.Model.extend(merge({
     return normalizeLocaleToFull(this.getSetting('locale') || 'en-US')
   },
 
-  joinGroup: async function (group, { assignAdministrator = false, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {
+  joinGroup: async function (group, { assignAdministrator = false, fromInvitation = false, questionAnswers = [], analyticsSource = null, transacting = null } = {}) {
     const groupSettings = group.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
 
     const memberships = await group.addMembers([this.id],
       {
         assignAdministrator,
+        analyticsSource: analyticsSource || (fromInvitation ? 'invitation' : 'open'),
         settings: {
           // Set joinQuestionsAnsweredAt if user answered questions during the join flow
           joinQuestionsAnsweredAt: questionAnswers.length > 0 ? new Date() : null,

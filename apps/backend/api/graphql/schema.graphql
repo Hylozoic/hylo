@@ -1,6 +1,34 @@
 scalar Date
 scalar JSON
 
+type MetricPoint {
+  periodStart: String
+  value: Float
+}
+
+type MetricSeries {
+  metric: String
+  points: [MetricPoint]
+}
+
+input ActivityCountFilter {
+  eventTypes: [String]
+  postTypes: [String]
+  platforms: [String]
+  joinSources: [String]
+  isPublic: Boolean
+}
+
+type ActivityCount {
+  periodStart: String
+  eventType: String
+  postType: String
+  platform: String
+  joinSource: String
+  isPublic: Boolean
+  value: Float
+}
+
 enum LocationDisplayPrecision {
   precise
   near
@@ -292,6 +320,14 @@ type Query {
 
   # Query for all platform agreements
   platformAgreements: [PlatformAgreement]
+
+  # Stored platform metrics (Hylo admins only). period is day, week, month or year.
+  platformMetrics(metrics: [String]!, period: String!, from: String!, to: String!): [MetricSeries]
+
+  # Summed activity counts. Omit groupId for the platform (Hylo admins). A group id
+  # is limited to that group's stewards. groupBy may be eventType, postType,
+  # platform, joinSource or isPublic. period is day, week, month or year.
+  activityCounts(groupId: ID, filter: ActivityCountFilter, groupBy: [String], period: String!, from: String!, to: String!): [ActivityCount]
 
   # Query for people
   people(
@@ -1025,6 +1061,9 @@ type Group {
 
   # Questions that must be answered when someone requests to join this group
   joinQuestions: GroupJoinQuestionQuerySet
+
+  # Stored metrics for this group (group stewards only)
+  metrics(metrics: [String]!, period: String!, from: String!, to: String!): [MetricSeries]
 
   # Group members
   members(

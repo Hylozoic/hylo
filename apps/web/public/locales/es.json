@@ -3306,5 +3306,18 @@
   "Message to the requester (optional), included in the email": "Mensaje para el solicitante (opcional), incluido en el correo",
   "reactionCount_one": "{{count}} reacción",
   "reactionCount_other": "{{count}} reacciones",
-  "Tap to remove": "Toca para quitar"
+  "Tap to remove": "Toca para quitar",
+  "Insights": "Indicadores",
+  "Platform health": "Salud de la plataforma",
+  "Monthly": "Mensual",
+  "Active people": "Personas activas",
+  "Weekly active people": "Personas activas semanalmente",
+  "Monthly active people": "Personas activas mensualmente",
+  "Contributors": "Colaboradores",
+  "Connected members": "Miembros conectados",
+  "New members": "Nuevos miembros",
+  "Signups": "Registros",
+  "Came back the next week": "Volvieron la semana siguiente",
+  "Not enough activity in this period yet": "Aún no hay suficiente actividad en este período",
+  "Activity is recorded as it happens. Older weeks fill in after the history backfill, and visits start the day this ships.": "La actividad se registra cuando ocurre. Las semanas anteriores se completan tras la carga del historial, y las visitas empiezan el día del lanzamiento."
 }

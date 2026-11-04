@@ -5,6 +5,8 @@ import { Validators } from '@hylo/shared'
 import { decodeHyloJWT } from '../../../lib/HyloJWT'
 import { RATE_LIMITED_ERROR, authenticateWithRateLimit, isRateLimited, recordAttempt } from '../../../lib/rateLimit'
 import sentry from '../../../lib/sentry'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { track } from '../../../lib/analytics/track'
 
 // Sign-up Related
 
@@ -114,6 +116,12 @@ export const register = (fetchOne) => async (_, { name, password }, context) => 
       await UserSession.login(context.req, user, 'password', { transacting }) // XXX: this does another save of the user, ideally we just do one of those
       await LinkedAccount.create(context.currentUserId, { type: 'password', password }, { transacting })
       await Analytics.trackSignup(user.id, context.req)
+      track({
+        type: EVENT_TYPES.SIGNUP_COMPLETED,
+        userId: user.id,
+        object: { type: 'user', id: user.id },
+        occurredAt: user.get('created_at') || new Date()
+      })
     })
 
     return { me: fetchOne('Me', user.id) }
@@ -176,6 +184,12 @@ export async function deactivateUser ({ userId, sessionId }) {
   const user = await User.find(userId)
 
   await user.deactivate(sessionId)
+  track({
+    type: EVENT_TYPES.ACCOUNT_DEACTIVATED,
+    userId,
+    object: { type: 'user', id: userId },
+    occurredAt: new Date()
+  })
 
   return { success: true }
 }
@@ -192,6 +206,13 @@ export async function deleteUser ({ userId, sessionId }) {
   const user = await User.find(userId, {}, false)
 
   await user.sanelyDeleteUser({ sessionId })
+  // The deletion removes this person's earlier events. Record the deletion after that.
+  track({
+    type: EVENT_TYPES.ACCOUNT_DELETED,
+    userId,
+    object: { type: 'user', id: userId },
+    occurredAt: new Date()
+  })
 
   return { success: true }
 }

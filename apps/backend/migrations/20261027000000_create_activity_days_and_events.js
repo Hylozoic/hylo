@@ -41,9 +41,9 @@ exports.up = async function (knex) {
       table.index(['occurred_at', 'event_type'])
       table.index(['user_id', 'occurred_at'])
     })
-    // Lets repeated inserts and re-run backfills be no-ops. object_id is null
-    // for events without an object, and nulls never collide, so those always insert.
-    await knex.raw('create unique index activity_events_dedupe_index on activity_events (event_type, object_id, user_id, group_id)')
+    // Same action at the same time is a no-op, so live writes and a re-run backfill
+    // don't double count. A repeat at a later time (rejoining a group) still inserts.
+    await knex.raw('create unique index activity_events_dedupe_index on activity_events (event_type, object_id, user_id, group_id, occurred_at)')
   }
 }
 
