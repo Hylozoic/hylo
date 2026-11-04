@@ -7,7 +7,11 @@ import {
   assertCanFulfillPost,
   notifyAuthorOfModeratorFulfillment
 } from '../../models/post/postFulfillmentPermissions'
-import { assertCanEditPost } from '../../models/post/postEditPermissions'
+import {
+  assertCanAllowGroupAdminEdits,
+  assertCanEditPost,
+  isPostCreator
+} from '../../models/post/postEditPermissions'
 import { deleteDraftAfterCreate, deletePostDraftForCreate } from './draft'
 
 export async function completePost (userId, postId, completionResponse) {
@@ -34,6 +38,7 @@ export async function completePost (userId, postId, completionResponse) {
 export function createPost (userId, data) {
   return convertGraphqlPostData(data)
     .tap(convertedData => validatePostData(userId, convertedData))
+    .tap(convertedData => convertedData.groupAdminsCanEdit && assertCanAllowGroupAdminEdits(userId, convertedData.group_ids))
     .then(async validatedData => {
       const createdPost = await underlyingCreatePost(userId, validatedData)
       await deleteDraftAfterCreate(() => deletePostDraftForCreate(userId, {
@@ -67,7 +72,20 @@ export async function updatePost (userId, { id, data }) {
   const post = id && await Post.find(id)
   await assertCanEditPost(userId, post)
   const convertedData = await convertGraphqlPostData(data)
-  await validatePostData(userId, convertedData)
+  if (isPostCreator(userId, post)) {
+    await validatePostData(userId, convertedData)
+    if (convertedData.groupAdminsCanEdit && !post.get('group_admins_can_edit')) {
+      await assertCanAllowGroupAdminEdits(userId, convertedData.group_ids)
+    }
+  } else {
+    // Other editors can change the content, but only the creator decides where it is
+    // posted and who else can edit it. The post stays in its groups, so they don't need
+    // to be a member of every one of them.
+    await post.load('groups')
+    convertedData.group_ids = post.relations.groups.pluck('id')
+    delete convertedData.groupAdminsCanEdit
+    await validatePostData(userId, convertedData, { skipMembershipCheck: true })
+  }
   return underlyingUpdatePost(userId, id, convertedData)
 }
 

@@ -79,6 +79,8 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   isAnonymousVote
   isPublic
   fulfilledAt
+  canEdit
+  groupAdminsCanEdit
   startTime
   endTime
   timezone

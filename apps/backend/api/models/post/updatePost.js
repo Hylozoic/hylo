@@ -37,7 +37,7 @@ export default function updatePost (userId, id, params) {
           throw new GraphQLError("This post can't be modified")
         }
 
-        // Keep the original author when someone else (e.g. a track steward) updates the post
+        // Keep the original author when someone else (a group admin the creator allowed, or a track steward) updates the post
         delete attrs.user_id
 
         if (!isEqual(post.details(), paramsForUpdate.description) || !isEqual(post.title(), paramsForUpdate.name)) {

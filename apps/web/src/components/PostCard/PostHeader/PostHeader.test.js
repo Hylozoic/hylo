@@ -79,6 +79,20 @@ describe('PostHeader', () => {
 })
 
 describe('PostHeader with announcement', () => {
+  describe('when someone other than the creator views a completed proposal (#1727)', () => {
+    const proposal = overrides => buildPost({ type: 'proposal', fulfilledAt: '2024-07-23T16:30:00Z', ...overrides })
+
+    it('lets them edit the outcome when the server says they can edit', () => {
+      render(<PostHeader {...defaultProps} expanded post={proposal({ canEdit: true })} />)
+      expect(screen.getByPlaceholderText('Summarize the outcome')).toBeInTheDocument()
+    })
+
+    it('does not otherwise', () => {
+      render(<PostHeader {...defaultProps} expanded post={proposal({ canEdit: false })} />)
+      expect(screen.queryByPlaceholderText('Summarize the outcome')).not.toBeInTheDocument()
+    })
+  })
+
   it('renders announcement icon', () => {
     render(
       <PostHeader
