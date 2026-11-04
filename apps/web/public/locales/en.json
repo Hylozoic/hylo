@@ -3293,5 +3293,8 @@
   "Message to the requester (optional), included in the email": "Message to the requester (optional), included in the email",
   "reactionCount_one": "{{count}} reaction",
   "reactionCount_other": "{{count}} reactions",
-  "Tap to remove": "Tap to remove"
+  "Tap to remove": "Tap to remove",
+  "Topics": "Topics",
+  "Give this view a name of at least 2 characters": "Give this view a name of at least 2 characters",
+  "Choose at least one post type": "Choose at least one post type"
 }
