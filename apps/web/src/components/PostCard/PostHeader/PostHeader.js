@@ -112,6 +112,7 @@ function PostHeader (props) {
     timezone,
     fulfilledAt,
     savedAt,
+    canEdit: canEditFromServer,
     groups: postGroups = []
   } = post
 
@@ -135,7 +136,8 @@ function PostHeader (props) {
     ? spaceUrl(parentGroupSlug, spaceSlug, '/moderation')
     : groupModerationUrl
   const isCreator = currentUser && creator && currentUser.id === creator.id
-  const canEdit = isCreator
+  // Other group admins can edit too when the creator allowed it (#1727); the server decides
+  const canEdit = isCreator || !!canEditFromServer
   const canFlag = !isCreator
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
   const pinnableView = useCurrentPinnableView()
@@ -261,9 +263,9 @@ function PostHeader (props) {
   }, [unsavePostProp, id, dispatch])
 
   const updateProposalOutcome = useCallback((proposalOutcome) => {
-    if (!isCreator) return
+    if (!canEdit) return
     dispatch(updateProposalOutcomeAction(id, proposalOutcome))
-  }, [isCreator, id, dispatch])
+  }, [canEdit, id, dispatch])
 
   const flagPostFunc = () =>
     canFlag ? () => { setFlaggingVisible(true) } : undefined

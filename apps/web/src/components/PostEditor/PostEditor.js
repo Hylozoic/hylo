@@ -15,6 +15,8 @@ import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupCon
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
+import { createSelector as ormCreateSelector } from 'redux-orm'
+import orm from 'store/models'
 import { getHourCycle } from 'components/Calendar/calendar-util'
 import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
@@ -40,6 +42,7 @@ import usePrefersNativeDateTimePicker from 'components/ui/usePrefersNativeDateTi
 import TimezoneSelect from 'components/TimezoneSelect/TimezoneSelect'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
+import GroupAdminsCanEditToggle from './GroupAdminsCanEditToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
@@ -77,6 +80,7 @@ import {
   CREATE_PROJECT,
   FETCH_POST,
   RESP_ADMINISTRATION,
+  RESP_MANAGE_CONTENT,
   UPDATE_POST
 } from 'store/constants'
 import createPost from 'store/actions/createPost'
@@ -131,6 +135,21 @@ function isSpaceGroup (group) {
   return !!group && group.type === GROUP_TYPES.space
 }
 
+/** The group a destination belongs to: a space's parent group, otherwise the group itself. */
+export function rootGroupIdOf (group) {
+  if (!group?.id) return null
+  return String(isSpaceGroup(group) && group.parentId ? group.parentId : group.id)
+}
+
+/** The single group these destinations belong to (several spaces of one group count once), or null. */
+export function singleRootGroupId (groups = []) {
+  const ids = [...new Set((groups || []).map(rootGroupIdOf).filter(Boolean))]
+  return ids.length === 1 ? ids[0] : null
+}
+
+/** Post types whose creator can let other group admins edit them (mirrors the backend). */
+const GROUP_ADMIN_EDITABLE_TYPES = ['discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource']
+
 /** Compares group ids as strings so GraphQL/ORM number vs string ids still match. */
 function sameGroupId (a, b) {
   return a != null && b != null && String(a) === String(b)
@@ -138,6 +157,12 @@ function sameGroupId (a, b) {
 
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
 const MAX_TITLE_LENGTH = 80
+
+const getGroupNameForId = ormCreateSelector(
+  orm,
+  (state, id) => id,
+  ({ Group }, id) => (id ? Group.safeGet({ id })?.name : null) || null
+)
 
 const getMyAdminGroups = createSelector(
   [
@@ -620,6 +645,21 @@ function PostEditorInner ({
       g && currentPost.groups.some((g2) => g2 && sameGroupId(g.id, g2.id))
     )
   }, [currentPost?.groups, groupOptions])
+
+  // Someone other than the creator editing (a group admin the creator allowed, #1727): they can
+  // change the content, but only the creator decides where it is posted and who else can edit
+  const editingCreatorId = editingPost?.creator?.id
+  const isOtherEditor = !!(editing && editingCreatorId && currentUser?.id &&
+    String(editingCreatorId) !== String(currentUser.id))
+  const isCreatorEditing = !!(editing && editingCreatorId && currentUser?.id &&
+    String(editingCreatorId) === String(currentUser.id))
+  // Offered only while the post is in a single group (and/or its spaces), to its admins
+  const groupAdminsGroupId = singleRootGroupId(currentPost.groups)
+  const groupAdminsGroupName = useSelector(state => getGroupNameForId(state, groupAdminsGroupId))
+  const canManageContentInPostGroup = useSelector(state => !!(groupAdminsGroupId && currentUser &&
+    hasResponsibilityForGroup(state, { person: currentUser, groupId: groupAdminsGroupId, responsibility: [RESP_MANAGE_CONTENT, RESP_ADMINISTRATION] })))
+  const showGroupAdminsCanEdit = (!editing || isCreatorEditing) && canManageContentInPostGroup &&
+    GROUP_ADMIN_EDITABLE_TYPES.includes(currentPost.type)
 
   // Extract groupIds array for scoping topic and mention searches
   // Priority:
@@ -1183,6 +1223,10 @@ function PostEditorInner ({
     setCurrentPost(prev => ({ ...prev, isAnonymousVote: !prev.isAnonymousVote }))
   }, [setCurrentPost])
 
+  const toggleGroupAdminsCanEdit = useCallback(() => {
+    setCurrentPost(prev => ({ ...prev, groupAdminsCanEdit: !prev.groupAdminsCanEdit }))
+  }, [setCurrentPost])
+
   // const toggleStrictProposal = () => {
   //   const { isStrictProposal } = currentPost
   //   setCurrentPost({ ...currentPost, isStrictProposal: !isStrictProposal })
@@ -1271,6 +1315,7 @@ function PostEditorInner ({
         donationsLink,
         endTime,
         eventInvitations,
+        groupAdminsCanEdit,
         groups,
         id,
         isAnonymousVote,
@@ -1300,8 +1345,8 @@ function PostEditorInner ({
       const topicNames = topics?.map((t) => t.name)
       const memberIds = members?.map((m) => m.id) || []
       if (type === 'project') {
-        // Add the current user to the project members
-        memberIds.push(currentUser.id)
+        // Add the creator to the project members (another admin may be editing)
+        memberIds.push(isOtherEditor ? editingPost.creator.id : currentUser.id)
       }
       const eventInviteeIds =
         eventInvitations && eventInvitations.map((m) => m.id)
@@ -1333,6 +1378,8 @@ function PostEditorInner ({
         fileAttachments, // For optimistic display of the new post
         fileUrls,
         fundingRoundId: currentFundingRound?.id,
+        // Only sent while the toggle is offered; otherwise the server keeps the current setting
+        groupAdminsCanEdit: showGroupAdminsCanEdit ? !!groupAdminsCanEdit : undefined,
         groups,
         imageAttachments, // For optimistic display of the new post
         imageUrls,
@@ -1392,7 +1439,7 @@ function PostEditorInner ({
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, editingPost?.creator?.id, fileAttachments, imageAttachments, isEditing, isOtherEditor, onSave, selectedLocation, setIsDirty, showGroupAdminsCanEdit, syncDetailsToCurrentPost, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -1607,7 +1654,7 @@ function PostEditorInner ({
               selected={selectedToOptions}
               onChange={handleAddToOption}
               onDelete={handleToOptionDelete}
-              readOnly={loading}
+              readOnly={loading || isOtherEditor}
               ref={toFieldRef}
               onFocus={() => setToFieldFocused(true)}
               onBlur={() => setToFieldFocused(false)}
@@ -1721,6 +1768,15 @@ function PostEditorInner ({
             togglePublic={togglePublic}
             isPublic={!!currentPost.isPublic}
             selectedGroups={selectedGroups}
+          />
+        </div>
+      )}
+      {showGroupAdminsCanEdit && (
+        <div className='PostEditorGroupAdminsCanEdit flex w-full items-center bg-input rounded p-1'>
+          <GroupAdminsCanEditToggle
+            groupAdminsCanEdit={!!currentPost.groupAdminsCanEdit}
+            toggleGroupAdminsCanEdit={toggleGroupAdminsCanEdit}
+            groupName={groupAdminsGroupName || ''}
           />
         </div>
       )}

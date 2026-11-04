@@ -31,10 +31,12 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', groups = [{ id: '1', name: 'Test Group' }], details, postAttrs: extraPostAttrs = {} } = {}) {
+function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', groups = [{ id: '1', name: 'Test Group' }], details, postAttrs: extraPostAttrs = {}, meAttrs = {}, extraGroups = [], people = [] } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
-  ormSession.Me.create({ id: '1' })
+  ormSession.Me.create({ id: '1', ...meAttrs })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
+  extraGroups.forEach(group => ormSession.Group.create(group))
+  people.forEach(person => ormSession.Person.create(person))
   const postAttrs = { id: '1', title, type: postType, groups, topics: [{ name: 'design' }], ...(details ? { details } : {}), ...extraPostAttrs }
   if (withLinkPreview) {
     ormSession.LinkPreview.create({
@@ -331,6 +333,82 @@ describe('PostEditor', () => {
       await screen.findByText('Timeframe')
       expect(screen.queryByTestId('post-editor-clear-start-time')).not.toBeInTheDocument()
       expect(screen.queryByTestId('post-editor-clear-end-time')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('letting group admins edit (#1727)', () => {
+    const manageContentIn = groupId => ({
+      groupRoles: { items: [{ id: 'r1', groupId, responsibilities: { items: [{ id: 'resp1', title: 'Manage Content' }] } }] }
+    })
+    const renderForEdit = ({ postAttrs = {}, meAttrs = manageContentIn('1'), extraGroups = [], ref } = {}) => {
+      jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
+      return renderComponent({ editing: true, ref }, {
+        postType: 'discussion',
+        meAttrs,
+        extraGroups,
+        people: [{ id: '1', name: 'Me' }, { id: '2', name: 'Creator' }],
+        postAttrs: { groups: ['1'], creator: '1', ...postAttrs }
+      })
+    }
+
+    beforeEach(() => {
+      updatePost.mockClear()
+    })
+
+    it('lets a creator who manages content in the group turn it on', async () => {
+      const ref = React.createRef()
+      renderForEdit({ ref })
+      const user = userEvent.setup()
+
+      const toggle = await screen.findByTestId('post-editor-group-admins-can-edit')
+      expect(toggle).toHaveAttribute('aria-checked', 'false')
+      await user.click(toggle)
+      expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+      await act(async () => { ref.current.submit() })
+      await waitFor(() => expect(updatePost).toHaveBeenCalled())
+      expect(updatePost.mock.calls[0][0]).toMatchObject({ id: '1', groupAdminsCanEdit: true })
+    })
+
+    it('treats a group and its spaces as one group', async () => {
+      renderForEdit({
+        extraGroups: [{ id: '2', name: 'A Space', slug: 'a-space', type: 'space', parentId: '1' }],
+        postAttrs: { groups: ['1', '2'] }
+      })
+      expect(await screen.findByTestId('post-editor-group-admins-can-edit')).toBeInTheDocument()
+    })
+
+    it('is not offered without Manage Content in the group', async () => {
+      renderForEdit({ meAttrs: {} })
+      await screen.findByText('Title')
+      expect(screen.queryByTestId('post-editor-group-admins-can-edit')).not.toBeInTheDocument()
+    })
+
+    it('is not offered while the post is in more than one group, and leaves the setting unchanged', async () => {
+      const ref = React.createRef()
+      renderForEdit({
+        ref,
+        meAttrs: manageContentIn('1'),
+        extraGroups: [{ id: '3', name: 'Other Group', slug: 'other-group' }],
+        postAttrs: { groups: ['1', '3'], groupAdminsCanEdit: true }
+      })
+      await screen.findByText('Title')
+      expect(screen.queryByTestId('post-editor-group-admins-can-edit')).not.toBeInTheDocument()
+
+      await act(async () => { ref.current.submit() })
+      await waitFor(() => expect(updatePost).toHaveBeenCalled())
+      expect(updatePost.mock.calls[0][0].groupAdminsCanEdit).toBeUndefined()
+    })
+
+    it('is not offered to another admin editing the post', async () => {
+      const ref = React.createRef()
+      renderForEdit({ ref, postAttrs: { creator: '2', groupAdminsCanEdit: true } })
+      await screen.findByText('Title')
+      expect(screen.queryByTestId('post-editor-group-admins-can-edit')).not.toBeInTheDocument()
+
+      await act(async () => { ref.current.submit() })
+      await waitFor(() => expect(updatePost).toHaveBeenCalled())
+      expect(updatePost.mock.calls[0][0].groupAdminsCanEdit).toBeUndefined()
     })
   })
 

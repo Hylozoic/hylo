@@ -62,7 +62,7 @@ export async function assertGroupsAcceptPostType (groupIds, postType) {
   }
 }
 
-export default function validatePostData (userId, data) {
+export default function validatePostData (userId, data, { skipMembershipCheck = false } = {}) {
   const allowedTypes = [Post.Type.ACTION, Post.Type.CHAT, Post.Type.REQUEST, Post.Type.OFFER, Post.Type.DISCUSSION, Post.Type.PROJECT, Post.Type.EVENT, Post.Type.RESOURCE, Post.Type.PROPOSAL, Post.Type.SUBMISSION]
   if (data.type && !includes(allowedTypes, data.type)) {
     throw new GraphQLError('not a valid type')
@@ -79,6 +79,8 @@ export default function validatePostData (userId, data) {
   if (data.topicNames && data.topicNames.length > 3) {
     throw new GraphQLError('too many topics in post, maximum 3')
   }
+
+  if (skipMembershipCheck) return Promise.resolve()
 
   return Group.allHaveMember(data.group_ids, userId)
     .then(ok => ok ? Promise.resolve() : Promise.reject(new GraphQLError('unable to post to all those groups')))
