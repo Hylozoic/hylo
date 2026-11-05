@@ -7,6 +7,12 @@ import nock from 'nock'
 import './core'
 const mock = require('mock-require')
 const skiff = require('../../lib/skiff')
+
+// Modules such as the OpenID Connect provider read the site URL when they load, so it must be set
+// before any test file requires them. Values from the environment or .env.test (loaded by skiff) win.
+process.env.PROTOCOL = process.env.PROTOCOL || 'http'
+process.env.DOMAIN = process.env.DOMAIN || 'localhost:3000'
+
 const fs = require('fs')
 const path = require('path')
 const Promise = require('bluebird')
