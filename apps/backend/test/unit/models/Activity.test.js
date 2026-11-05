@@ -230,6 +230,104 @@ describe('Activity', function () {
     })
   })
 
+  describe('.generateNotificationMedia for a post in a space', () => {
+    const parentGroup = { id: 1 }
+    const space = { id: 2, type: 'space', parent_id: 1 }
+
+    const spacePostActivity = memberships => model({
+      meta: { reasons: ['newPost: 2'] },
+      post_id: 1,
+      relations: {
+        post: {
+          relations: {
+            groups: [{ id: 2 }]
+          }
+        },
+        reader: mockUser(memberships)
+      }
+    })
+
+    it("uses the parent group's email setting instead of the space membership's", async () => {
+      const memberships = [
+        { settings: { sendEmail: false, sendPushNotifications: true }, relations: { group: parentGroup } },
+        { settings: { sendEmail: true, sendPushNotifications: true, postNotifications: 'all' }, relations: { group: space } }
+      ]
+      const actual = await Activity.generateNotificationMedia(spacePostActivity(memberships))
+      expect(actual).to.deep.equal([Notification.MEDIUM.Push, Notification.MEDIUM.InApp])
+    })
+
+    it("uses the parent group's push setting instead of the space membership's", async () => {
+      const memberships = [
+        { settings: { sendEmail: true, sendPushNotifications: false }, relations: { group: parentGroup } },
+        { settings: { sendEmail: true, sendPushNotifications: true, postNotifications: 'all' }, relations: { group: space } }
+      ]
+      const actual = await Activity.generateNotificationMedia(spacePostActivity(memberships))
+      expect(actual).to.deep.equal([Notification.MEDIUM.Email, Notification.MEDIUM.InApp])
+    })
+
+    it('turns channels on for a space when the parent group has them on', async () => {
+      const memberships = [
+        { settings: { sendEmail: true, sendPushNotifications: true }, relations: { group: parentGroup } },
+        { settings: { sendEmail: false, sendPushNotifications: false, postNotifications: 'all' }, relations: { group: space } }
+      ]
+      const actual = await Activity.generateNotificationMedia(spacePostActivity(memberships))
+      expect(actual).to.deep.equal([Notification.MEDIUM.Email, Notification.MEDIUM.Push, Notification.MEDIUM.InApp])
+    })
+
+    it("falls back to the space membership's settings without a parent membership", async () => {
+      const memberships = [
+        { settings: { sendEmail: true, sendPushNotifications: false, postNotifications: 'all' }, relations: { group: space } }
+      ]
+      const actual = await Activity.generateNotificationMedia(spacePostActivity(memberships))
+      expect(actual).to.deep.equal([Notification.MEDIUM.Email, Notification.MEDIUM.InApp])
+    })
+
+    it("still uses the space membership's post setting", async () => {
+      const memberships = [
+        { settings: { sendEmail: true, sendPushNotifications: true, postNotifications: 'all' }, relations: { group: parentGroup } },
+        { settings: { sendEmail: true, sendPushNotifications: true, postNotifications: 'none' }, relations: { group: space } }
+      ]
+      const actual = await Activity.generateNotificationMedia(spacePostActivity(memberships))
+      expect(actual).to.deep.equal([])
+    })
+  })
+
+  describe('.generateNotificationMedia email medium', () => {
+    const memberships = [
+      { settings: { sendEmail: true, sendPushNotifications: true, postNotifications: 'all' }, relations: { group: { id: 1 } } }
+    ]
+
+    const activityFor = reasons => model({
+      meta: { reasons },
+      post_id: 1,
+      relations: {
+        post: {
+          relations: {
+            groups: [{ id: 1 }]
+          }
+        },
+        reader: mockUser(memberships)
+      }
+    })
+
+    for (const reasons of [['newComment'], ['commentMention'], ['voteReset'], ['newContribution']]) {
+      it(`is not added for ${reasons[0]}, which has no email`, async () => {
+        const actual = await Activity.generateNotificationMedia(activityFor(reasons))
+        expect(actual).to.deep.equal([Notification.MEDIUM.Push, Notification.MEDIUM.InApp])
+      })
+    }
+
+    it('is added for a new post', async () => {
+      const actual = await Activity.generateNotificationMedia(activityFor(['newPost: 1']))
+      expect(actual).to.deep.equal([Notification.MEDIUM.Email, Notification.MEDIUM.Push, Notification.MEDIUM.InApp])
+    })
+
+    it('is added for a mention in a new post', async () => {
+      const actual = await Activity.generateNotificationMedia(activityFor(['mention', 'newPost: 1']))
+      expect(actual).to.deep.equal([Notification.MEDIUM.Email, Notification.MEDIUM.Push, Notification.MEDIUM.InApp])
+    })
+  })
+
   describe('#createWithNotifications', () => {
     let fixtures
 
