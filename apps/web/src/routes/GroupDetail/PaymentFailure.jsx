@@ -36,7 +36,7 @@ export default function PaymentFailure () {
         <p className='text-foreground/70 mb-4'>
           {t('Your payment was cancelled. No charges were made to your account.')}
         </p>
-        <p className='text-sm text-foreground/60 mb-6'>
+        <p className='text-sm text-foreground-muted mb-6'>
           {t('If you experienced any issues during checkout, please try again or contact support for assistance.')}
         </p>
         <div className='flex flex-col sm:flex-row gap-4 justify-center'>

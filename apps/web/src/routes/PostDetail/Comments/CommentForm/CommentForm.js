@@ -284,7 +284,7 @@ const CommentForm = forwardRef(function CommentForm ({
                     'flex items-center justify-center w-6 h-6 p-0 shrink-0 rounded-md transition-colors',
                     showToolbar
                       ? 'bg-foreground/15 text-foreground'
-                      : 'text-foreground/50 hover:text-foreground hover:bg-foreground/5'
+                      : 'text-foreground-muted hover:text-foreground hover:bg-foreground/5'
                   )}
                   aria-label={t('Toggle formatting toolbar')}
                   aria-pressed={showToolbar}
@@ -299,7 +299,7 @@ const CommentForm = forwardRef(function CommentForm ({
           <AttachmentManager type='comment' id='new' attachmentType='image' />
         )}
       </div>
-      <p className='text-xs text-foreground/50 text-end'>
+      <p className='text-xs text-foreground-muted text-end'>
         {!isMobile.any && (navigator.platform.includes('Mac') ? t('Press Option-Enter to comment') : t('Press Alt-Enter to comment'))}
       </p>
     </>

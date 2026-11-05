@@ -20,7 +20,7 @@ export default function LinkPreview ({ className, title, url, imageUrl, descript
         <div className='text-foreground p-2'>
           <div className='text-sm font-bold flex items-center gap-1'><Link className='w-3 h-3' />{title}</div>
           <div className='text-xs line-clamp-2'>{description}</div>
-          <div className='text-xs text-foreground/50'>{domain}</div>
+          <div className='text-xs text-foreground-muted'>{domain}</div>
         </div>
       </div>
     </a>

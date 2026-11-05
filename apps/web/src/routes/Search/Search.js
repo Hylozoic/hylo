@@ -258,7 +258,7 @@ function SearchStatus ({ imageSrc, message, subtitle, variant = 'empty' }) {
         {message}
       </p>
       {subtitle && (
-        <p className='text-sm text-foreground/60 mt-2 max-w-md'>
+        <p className='text-sm text-foreground-muted mt-2 max-w-md'>
           {subtitle}
         </p>
       )}
@@ -350,7 +350,7 @@ function PersonCard ({ person, showPerson, highlightProps }) {
         <Highlight {...highlightProps}>
           <div className='text-lg font-bold text-base'>{person.name}</div>
         </Highlight>
-        <div className='text-sm text-foreground/50'>{person.location}</div>
+        <div className='text-sm text-foreground-muted'>{person.location}</div>
       </div>
       {matchingSkill && <Pill label={matchingSkill} className={classes.personSkill} small />}
     </div>
