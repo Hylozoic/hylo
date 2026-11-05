@@ -1174,6 +1174,12 @@ describe('graphql request handler', () => {
     })
 
     it('works', async () => {
+      const oldSession = req.session
+      oldSession.regenerate = spy(cb => {
+        req.session = {}
+        cb()
+      })
+
       const { executionResult } = await handler.inject({
         document: `
           mutation {
@@ -1201,6 +1207,8 @@ describe('graphql request handler', () => {
         }
       })
       // expect(user.get('email_validated')).to.be.true
+      expect(oldSession.regenerate).to.have.been.called()
+      expect(req.session).to.not.equal(oldSession)
       expect(req.session.userId).to.equal(user.id)
     })
 

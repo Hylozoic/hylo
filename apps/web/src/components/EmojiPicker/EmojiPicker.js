@@ -12,7 +12,7 @@ import { isMobileDevice } from 'util/mobile'
 import classes from './EmojiPicker.module.scss'
 
 /** Shadow-DOM search focus looks like an outside focus to the popover and would dismiss the keyboard. */
-const preventFocusSteal = (event) => {
+export const preventFocusSteal = (event) => {
   event.preventDefault()
 }
 
@@ -76,7 +76,7 @@ function useRetainEmojiSearchFocus (open) {
 }
 
 export default function EmojiPicker (props) {
-  const { handleRemoveReaction, myEmojis, handleReaction, forReactions = true, emoji, onOpenChange } = props
+  const { handleRemoveReaction, myEmojis, handleReaction, forReactions = true, emoji, onOpenChange, triggerLabel, triggerTestId } = props
   const [modalOpen, setModalOpen] = useState(false)
   useRetainEmojiSearchFocus(modalOpen)
 
@@ -131,7 +131,15 @@ export default function EmojiPicker (props) {
       <div onClick={stopPropagation} className={cn(classes.emojiPickerContainer, props.className)}>
         <Popover onOpenChange={handleOpenChange} open={modalOpen}>
           <PopoverTrigger asChild>
-            <span onClick={toggleModalOpen}>{emoji || '?'}</span>
+            <span
+              role='button'
+              aria-label={triggerLabel}
+              title={triggerLabel}
+              data-testid={triggerTestId}
+              onClick={toggleModalOpen}
+            >
+              {emoji || <SmilePlus className='h-[20px] w-[20px] text-foreground/60' />}
+            </span>
           </PopoverTrigger>
           <PopoverContent className='w-auto p-0' sideOffset={0} onOpenAutoFocus={preventFocusSteal} onFocusOutside={preventFocusSteal}>
             <EmojiPickerContent {...props} onEmojiSelect={handleSelection} />
@@ -141,7 +149,7 @@ export default function EmojiPicker (props) {
       )
 }
 
-function EmojiPickerContent (props) {
+export function EmojiPickerContent (props) {
   const [data, setData] = useState()
   useEffect(() => {
     const getData = async () => {

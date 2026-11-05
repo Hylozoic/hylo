@@ -47,10 +47,11 @@ const emptyRole = {
   active: ''
 }
 
-const validateRole = ({ name, emoji }) => {
-  if (name.length < 3) return false
-  if (emoji === '') return false
-  return true
+// Returns a message describing the first problem, or null when the role can be saved
+const roleValidationError = ({ name, emoji }, t) => {
+  if (emoji === '') return t('Please choose an emoji for this role/badge by clicking the box next to its name')
+  if (name.length < 3) return t('A role/badge name must be at least 3 characters long')
+  return null
 }
 
 /**
@@ -156,14 +157,15 @@ function RolesSettingsTab ({ group, slug, updateGroupSettings }) {
 
   const saveRole = (i) => () => {
     const role = { ...roles[i] }
-    if (validateRole(role)) {
+    const error = roleValidationError(role, t)
+    if (!error) {
       dispatch(addGroupRole({ ...role, groupId: group?.id })).then((response) => {
         const saved = response.payload.data.addGroupRole
         setRolesOverride(prev => (prev ?? customRolesFromGroup).map((r, idx) => idx === i ? { ...saved } : r))
         if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     } else {
-      window.alert(t('A role must have a valid emoji and name to be saved'))
+      window.alert(error)
     }
   }
 
@@ -176,14 +178,15 @@ function RolesSettingsTab ({ group, slug, updateGroupSettings }) {
 
   const updateRole = (i) => () => {
     const role = { ...roles[i] }
-    if (validateRole(role)) {
+    const error = roleValidationError(role, t)
+    if (!error) {
       dispatch(updateGroupRole({ ...role, groupId: group?.id, groupRoleId: role.id })).then((response) => {
         const saved = response.payload.data.updateGroupRole
         setRolesOverride(prev => (prev ?? customRolesFromGroup).map((r, idx) => idx === i ? { ...saved } : r))
         if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     } else {
-      window.alert(t('A role must have a valid emoji and name to be updated'))
+      window.alert(error)
     }
   }
 
@@ -299,8 +302,18 @@ function RoleRow ({
           )}
         </div>}
       <div className='flex flex-col relative w-full p-2'>
-        <EmojiPicker forReactions={false} emoji={emoji} handleReaction={onChange('emoji')} className='absolute top-[2.7rem] left-[1rem] w-[40px] h-[40px] bg-foreground/5 rounded flex items-center justify-center cursor-pointer hover:bg-foreground/10 hover:shadow-xl border-2 border-foreground/50 hover:border-foreground/50 transition-all' />
+        <EmojiPicker
+          forReactions={false}
+          emoji={emoji}
+          handleReaction={onChange('emoji')}
+          triggerLabel={t('Choose an emoji for this role/badge')}
+          triggerTestId='role-emoji-trigger'
+          className='absolute top-[2.7rem] left-[1rem] w-[40px] h-[40px] bg-foreground/5 rounded flex items-center justify-center cursor-pointer hover:bg-foreground/10 hover:shadow-xl border-2 border-foreground/50 hover:border-foreground/50 transition-all'
+        />
         <SettingsControl label='Name & Badge' onChange={onChange('name')} value={name} inputStyle={{ paddingLeft: '3.5rem' }} />
+        {!isSystemRole && !emoji && (
+          <div className='text-foreground/70 text-xs'>{t('Click the box to choose an emoji for this role/badge')}</div>
+        )}
       </div>
       <div className='p-2'>
         <SettingsControl label='Description' onChange={onChange('description')} value={description} type='textarea' />
