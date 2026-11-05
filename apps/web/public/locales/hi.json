@@ -1917,6 +1917,8 @@
   "Subscribe to calendar": "कैलेंडर की सदस्यता लें",
   "Subscribe to your RSVPs": "अपने RSVP की सदस्यता लें",
   "Add your RSVPs to your calendar?": "अपने RSVP अपने कैलेंडर में जोड़ें?",
+  "Add this event to your calendar?": "इस कार्यक्रम को अपने कैलेंडर में जोड़ें?",
+  "Or keep all your RSVPs in sync": "या अपने सभी RSVP सिंक में रखें",
   "Subscribe once and every Hylo event you RSVP to will stay in sync with your calendar app.": "एक बार सदस्यता लें, और जिस भी Hylo इवेंट का आप RSVP करेंगे, वह आपके कैलेंडर ऐप के साथ सिंक रहेगा।",
   "Don't ask again": "फिर से न पूछें",
   "Not now": "अभी नहीं",
