@@ -2,8 +2,8 @@ import { test, expect, devices } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
- * Subscribe-to-calendar in the events view header (#1669, #1700), and the prompt to subscribe
- * to the RSVP calendar feed after a positive RSVP.
+ * Subscribe-to-calendar in the events view header (#1669, #1700), and the prompt after a positive
+ * RSVP to add that event to a calendar or subscribe to the RSVP calendar feed.
  */
 
 test.describe.configure({ timeout: 180000 })
@@ -57,7 +57,7 @@ async function resetRsvpCalendarPromptSettings (page) {
   )
 }
 
-async function createEvent (page) {
+async function createEvent (page, title = `E2E RSVP calendar prompt (${test.info().project.name})`) {
   const { group } = await gql(page, 'query ($slug: String) { group(slug: $slug) { id } }', { slug: PUBLIC_GROUP_SLUG })
   const start = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   const end = new Date(start.getTime() + 2 * 60 * 60 * 1000)
@@ -67,7 +67,7 @@ async function createEvent (page) {
     {
       data: {
         type: 'event',
-        title: `E2E RSVP calendar prompt (${test.info().project.name})`,
+        title,
         details: '<p>Bring a snack.</p>',
         groupIds: [group.id],
         startTime: start.toISOString(),
@@ -76,7 +76,7 @@ async function createEvent (page) {
       }
     }
   )
-  return createPost.id
+  return { postId: createPost.id, start, end }
 }
 
 // The prompt opens when the RSVP response lands; give it a moment before asserting it did NOT open
@@ -131,7 +131,9 @@ test('subscribe to RSVPs button sits in the /all/events header', async ({ page }
 })
 
 test.describe('RSVP calendar prompt', () => {
-  // The prompt's "Don't ask again" is saved on the shared E2E user, so only one project may run this
+  // The prompt's "Don't ask again" is saved on the shared E2E user, so only one project may run
+  // these, and one at a time
+  test.describe.configure({ mode: 'serial' })
   test.beforeEach(() => {
     test.skip(test.info().project.name !== 'chromium', 'mutates the shared E2E user settings')
   })
@@ -144,7 +146,7 @@ test.describe('RSVP calendar prompt', () => {
     await page.goto('/')
     await waitPastRootSessionLoading(page)
     await resetRsvpCalendarPromptSettings(page)
-    const postId = await createEvent(page)
+    const { postId } = await createEvent(page)
 
     await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/post/${postId}`)
     await waitPastRootSessionLoading(page)
@@ -158,7 +160,7 @@ test.describe('RSVP calendar prompt', () => {
 
     await rsvp(page, 'Going')
     await expect(prompt).toBeVisible(uiTimeout)
-    await expect(prompt).toContainText('Add your RSVPs to your calendar?')
+    await expect(prompt).toContainText('Add this event to your calendar?')
     if (SCREENSHOT_DIR) {
       await prompt.evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)))
       await page.screenshot({ path: `${SCREENSHOT_DIR}/issue-1669-rsvp-prompt-${test.info().project.name}.png` })
@@ -203,5 +205,87 @@ test.describe('RSVP calendar prompt', () => {
     await expect(page.getByTestId('event-rsvp')).toContainText('Interested')
     await settle(page)
     await expect(prompt).toHaveCount(0)
+  })
+  test('adds just the RSVPed event to Google Calendar or as an .ics file', async ({ page }) => {
+    // Don't load Google in the test: only check the link the popup opens
+    await page.context().route('https://calendar.google.com/**', route => route.fulfill({ body: 'google calendar' }))
+    await page.goto('/')
+    await waitPastRootSessionLoading(page)
+    await resetRsvpCalendarPromptSettings(page)
+    const title = 'E2E add one event; to a calendar'
+    const { postId, start, end } = await createEvent(page, title)
+    const utc = date => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+
+    await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/post/${postId}`)
+    await waitPastRootSessionLoading(page)
+    await expect(page.getByText('Bring a snack.')).toBeVisible(uiTimeout)
+
+    const prompt = page.getByTestId('rsvp-calendar-prompt')
+    await rsvp(page, 'Going')
+    await expect(prompt).toBeVisible(uiTimeout)
+    await expect(prompt.getByTestId('rsvp-calendar-prompt-event-title')).toHaveText(title)
+    // The subscription is still offered, as the secondary option
+    await expect(prompt.getByRole('button', { name: 'Subscribe' })).toBeVisible()
+    await expect(prompt).toContainText('Or keep all your RSVPs in sync')
+
+    // Google Calendar: opens a prefilled "new event" page in a new tab, then closes the prompt
+    const popupPromise = page.context().waitForEvent('page')
+    await prompt.getByRole('button', { name: 'Add to Google Calendar' }).click()
+    const popup = await popupPromise
+    await popup.waitForURL(/calendar\.google\.com/)
+    const googleUrl = new URL(popup.url())
+    expect(googleUrl.searchParams.get('action')).toBe('TEMPLATE')
+    expect(googleUrl.searchParams.get('text')).toBe(title)
+    expect(googleUrl.searchParams.get('dates')).toBe(`${utc(start)}/${utc(end)}`)
+    expect(googleUrl.searchParams.get('details')).toContain('Bring a snack.')
+    expect(googleUrl.searchParams.get('details')).toContain(`/post/${postId}`)
+    await popup.close()
+    await expect(prompt).toHaveCount(0)
+
+    // .ics: downloads the event, then closes the prompt. Adding one event doesn't stop the prompt
+    await rsvp(page, 'Interested')
+    await expect(prompt).toBeVisible(uiTimeout)
+    const downloadPromise = page.waitForEvent('download')
+    await prompt.getByRole('button', { name: 'Add to Apple or Outlook' }).click()
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toBe('e2e-add-one-event-to-a-calendar.ics')
+    const fs = await import('node:fs/promises')
+    const ics = (await fs.readFile(await download.path(), 'utf8')).replace(/\r\n /g, '')
+    expect(ics).toContain(`UID:event-${postId}-hylo.com`)
+    expect(ics).toContain('SUMMARY:E2E add one event\\; to a calendar')
+    expect(ics).toContain(`DTSTART:${utc(start)}`)
+    expect(ics).toContain(`DTEND:${utc(end)}`)
+    await expect(prompt).toHaveCount(0)
+
+    // Nothing was saved on the account
+    const { me } = await gql(page, '{ me { id settings { hideRsvpCalendarPrompt rsvpCalendarSub } } }')
+    expect(me.settings.hideRsvpCalendarPrompt).toBeFalsy()
+    expect(me.settings.rsvpCalendarSub).toBeFalsy()
+
+    if (SCREENSHOT_DIR) {
+      await rsvp(page, 'Going')
+      await expect(prompt).toBeVisible(uiTimeout)
+      await prompt.evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)))
+      await page.screenshot({ path: `${SCREENSHOT_DIR}/issue-1669-rsvp-add-event-${test.info().project.name}.png` })
+      const phone = await page.context().browser().newContext({ ...devices['Pixel 5'], storageState: './e2e/.auth/session.json', baseURL: new URL(page.url()).origin })
+      const phonePage = await phone.newPage()
+      await phonePage.goto(new URL(page.url()).pathname)
+      await waitPastRootSessionLoading(phonePage)
+      await expect(phonePage.getByText('Bring a snack.')).toBeVisible(uiTimeout)
+      await rsvp(phonePage, 'Interested')
+      const phonePrompt = phonePage.getByTestId('rsvp-calendar-prompt')
+      await expect(phonePrompt).toBeVisible(uiTimeout)
+      await phonePrompt.evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)))
+      // Every action fits on the phone screen
+      const viewport = phonePage.viewportSize()
+      for (const name of ['Add to Google Calendar', 'Add to Apple or Outlook', 'Subscribe', 'Not now']) {
+        const box = await phonePrompt.getByRole('button', { name }).boundingBox()
+        expect(box.x + box.width).toBeLessThanOrEqual(viewport.width)
+        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height)
+      }
+      await phonePage.screenshot({ path: `${SCREENSHOT_DIR}/issue-1669-rsvp-add-event-mobile.png` })
+      await phonePrompt.getByRole('button', { name: 'Not now' }).click()
+      await phone.close()
+    }
   })
 })

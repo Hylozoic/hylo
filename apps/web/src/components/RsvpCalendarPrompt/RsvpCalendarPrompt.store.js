@@ -17,15 +17,15 @@ export function shouldOfferRsvpCalendar (settings) {
   return !settings.hideRsvpCalendarPrompt
 }
 
-export const initialState = { open: false }
+export const initialState = { open: false, postId: null }
 
 // Every RSVP control dispatches respondToEvent, so a successful positive RSVP from any of
-// them (post card, grid item, post detail) requests the prompt
+// them (post card, grid item, post detail) requests the prompt, for the event just RSVPed to
 export default function reducer (state = initialState, action) {
   if (action.error) return state
 
   if (action.type === RESPOND_TO_EVENT && POSITIVE_RSVP_RESPONSES.includes(action.meta?.response)) {
-    return { ...state, open: true }
+    return { ...state, open: true, postId: action.meta.id }
   }
 
   if (action.type === CLOSE_RSVP_CALENDAR_PROMPT) {
@@ -40,3 +40,5 @@ export function closeRsvpCalendarPrompt () {
 }
 
 export const getRsvpCalendarPromptOpen = state => Boolean(state[MODULE_NAME]?.open)
+
+export const getRsvpCalendarPromptPostId = state => state[MODULE_NAME]?.postId || null

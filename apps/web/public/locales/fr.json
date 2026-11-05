@@ -1883,6 +1883,8 @@
   "Subscribe to calendar": "S'abonner au calendrier",
   "Subscribe to your RSVPs": "S'abonner à vos réponses",
   "Add your RSVPs to your calendar?": "Ajouter vos réponses à votre calendrier ?",
+  "Add this event to your calendar?": "Ajouter cet événement à votre calendrier ?",
+  "Or keep all your RSVPs in sync": "Ou gardez toutes vos réponses synchronisées",
   "Subscribe once and every Hylo event you RSVP to will stay in sync with your calendar app.": "Abonnez-vous une fois et chaque événement Hylo auquel vous répondez restera synchronisé avec votre application de calendrier.",
   "Don't ask again": "Ne plus demander",
   "Not now": "Pas maintenant",
