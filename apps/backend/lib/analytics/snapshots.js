@@ -25,10 +25,12 @@ const CONNECTION = `
 async function writeRows (knex, rows) {
   const prepared = rows.filter(row => row.value !== null && row.value !== undefined)
   for (let i = 0; i < prepared.length; i += 500) {
+    // Knex 0.21 treats merge(['col']) as updates to columns named "0", "1".
+    // merge() with no arguments copies every inserted column from excluded.
     await knex('metric_snapshots')
       .insert(prepared.slice(i, i + 500))
       .onConflict(['group_id', 'metric', 'period', 'period_start', 'dimension'])
-      .merge(['value', 'computed_at'])
+      .merge()
   }
 }
 
