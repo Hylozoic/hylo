@@ -203,7 +203,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
             </Link>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className='text-foreground/50 text-2xs whitespace-nowrap shrink-0' onClick={openPostDetails}>
+                <span className='text-foreground-muted text-2xs whitespace-nowrap shrink-0' onClick={openPostDetails}>
                   {createdTimestamp}
                 </span>
               </TooltipTrigger>
@@ -242,7 +242,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
       </div>
       {currentPhase === 'voting' && canVote && (
         <div className='flex flex-col justify-center items-center gap-2 bg-foreground/5 p-2 sm:p-4 rounded-r-lg w-[100px] sm:w-[120px]'>
-          <label className='text-xs font-bold text-foreground/60 uppercase'>
+          <label className='text-xs font-bold text-foreground-muted uppercase'>
             {t('Your {{tokenType}}', { tokenType: tokenLabel })}
           </label>
           <input
@@ -267,12 +267,12 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
             </span>
           )}
           {!round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id) && (
-            <span className='text-xs text-foreground/60 text-center max-w-[100px] sm:max-w-[120px] leading-tight'>
+            <span className='text-xs text-foreground-muted text-center max-w-[100px] sm:max-w-[120px] leading-tight'>
               {t('Cannot vote on your own submission')}
             </span>
           )}
           {round.showRealtimeVotes && (
-            <span className='text-[11px] text-foreground/60 text-center leading-tight'>
+            <span className='text-[11px] text-foreground-muted text-center leading-tight'>
               {t('Total Votes: {{count}}', { count: realtimeTotalVotes })}
             </span>
           )}
@@ -284,7 +284,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
             ? (
               // Show only user's votes when results are hidden from participants
               <div className='flex flex-col items-end gap-1'>
-                <label className='text-xs font-semibold text-foreground/60 uppercase tracking-wide'>
+                <label className='text-xs font-semibold text-foreground-muted uppercase tracking-wide'>
                   {t('Your {{tokenType}}', { tokenType: tokenLabel })}
                 </label>
                 <div
@@ -303,7 +303,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className='flex flex-col items-end gap-1 cursor-help'>
-                      <label className='text-xs font-semibold text-foreground/60 uppercase tracking-wide'>
+                      <label className='text-xs font-semibold text-foreground-muted uppercase tracking-wide'>
                         {t('Total {{tokenType}}', { tokenType: tokenLabel })}
                       </label>
                       <div
@@ -324,7 +324,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
                         return (
                           <div key={`${allocation?.user?.id || 'anon'}-${index}`} className='flex items-center gap-2'>
                             <span className='font-semibold'>{name}</span>
-                            <span className='text-foreground/60'>{tokens} {tokenLabel}</span>
+                            <span className='text-foreground-muted'>{tokens} {tokenLabel}</span>
                           </div>
                         )
                       })}
@@ -335,7 +335,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
               : (
                 // Default: show total tokens (when results are not hidden, or manager without allocations)
                 <div className='flex flex-col items-end gap-1'>
-                  <label className='text-xs font-semibold text-foreground/60 uppercase tracking-wide'>
+                  <label className='text-xs font-semibold text-foreground-muted uppercase tracking-wide'>
                     {t('Total {{tokenType}}', { tokenType: tokenLabel })}
                   </label>
                   <div

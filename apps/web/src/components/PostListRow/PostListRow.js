@@ -61,7 +61,7 @@ const PostListRow = (props) => {
     )
   } else if (post.type !== 'event') {
     subtitle = (
-      <span className='text-xs text-foreground/50 line-clamp-1'>
+      <span className='text-xs text-foreground-muted line-clamp-1'>
         {TextHelpers.presentHTMLToText(details, { truncate: 150 })}
       </span>
     )
@@ -86,7 +86,7 @@ const PostListRow = (props) => {
         <span className={cn('text-base text-foreground truncate font-bold', { 'font-bold': unread })}>
           {creator.name}
         </span>
-        <div className='flex items-center gap-1 text-xs text-foreground/50 min-w-0'>
+        <div className='flex items-center gap-1 text-xs text-foreground-muted min-w-0'>
           <Icon name={typeName} className='w-3 h-3 shrink-0' />
           <span className='capitalize shrink-0'>{typeLowercase}</span>
           {groupLabel && (
@@ -116,7 +116,7 @@ const PostListRow = (props) => {
       </div>
 
       {/* Column 3: Timestamp */}
-      <div className='text-xs text-foreground/50 whitespace-nowrap h-full flex items-center'>
+      <div className='text-xs text-foreground-muted whitespace-nowrap h-full flex items-center'>
         {createdTimestamp}
       </div>
     </div>

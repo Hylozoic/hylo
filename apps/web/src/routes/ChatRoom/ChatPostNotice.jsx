@@ -91,7 +91,7 @@ export default function ChatPostNotice ({ post, highlighted, className }) {
       )}
       <div className='w-full flex items-center gap-3 min-w-0'>
         {(commentsTotal > 0 || timeRange) && (
-          <span className='text-sm text-foreground/60 truncate'>
+          <span className='text-sm text-foreground-muted truncate'>
             {commentsTotal > 0 && <>{commentsTotal} {commentsTotal === 1 ? t('reply') : t('replies')}</>}
             {commentsTotal > 0 && timeRange && ' · '}
             {timeRange}

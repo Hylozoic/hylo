@@ -168,7 +168,7 @@ class TagInput extends Component {
               ? (
                 <>
                   <span className='truncate min-w-0'>{parentName}</span>
-                  <span className='text-foreground/50 shrink-0'>/</span>
+                  <span className='text-foreground-muted shrink-0'>/</span>
                   {t.icon && (
                     <LucideIcon name={t.icon} className='h-3.5 w-3.5 shrink-0' />
                   )}

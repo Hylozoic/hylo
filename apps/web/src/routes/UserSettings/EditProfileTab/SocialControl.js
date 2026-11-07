@@ -86,7 +86,7 @@ class SocialControl extends Component {
             <div className='flex flex-col'>
               <span className='text-sm font-medium text-foreground'>{label}</span>
               {linked && (
-                <span className='text-xs text-foreground/50 truncate max-w-[200px]'>{value}</span>
+                <span className='text-xs text-foreground-muted truncate max-w-[200px]'>{value}</span>
               )}
             </div>
             {linked && (
@@ -95,7 +95,7 @@ class SocialControl extends Component {
               </div>
             )}
             {!linked && (
-              <div className='flex items-center ml-2 text-foreground/50 gap-1 text-sm p-2 bg-darkening/20 rounded-lg'>
+              <div className='flex items-center ml-2 text-foreground-muted gap-1 text-sm p-2 bg-darkening/20 rounded-lg'>
                 <Link2Off className='w-4 h-4' /> {t('Not Linked')}
               </div>
             )}
