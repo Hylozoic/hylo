@@ -1,4 +1,4 @@
-/* global GroupToGroupJoinQuestion, Location, Slack, FundingRound */
+/* global GroupToGroupJoinQuestion, Location, Slack, FundingRound, HyloProSubscription */
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
@@ -98,6 +98,13 @@ module.exports = bookshelf.Model.extend(merge({
       formatted.required_roles = JSON.stringify(formatted.required_roles)
     }
     return formatted
+  },
+
+  /**
+   * Whether this group currently has Hylo Pro (a paid subscription or a manual grant)
+   */
+  hasPro () {
+    return HyloProSubscription.groupHasPro(this.id)
   },
 
   /**
