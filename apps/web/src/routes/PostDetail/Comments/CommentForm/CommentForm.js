@@ -3,7 +3,7 @@ import React, { useRef, useCallback, useEffect, useState, useImperativeHandle, f
 import { throttle, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
-import { SendHorizontal } from 'lucide-react'
+import { CaseSensitive, SendHorizontal } from 'lucide-react'
 import { sendIsTyping } from 'client/websockets'
 import AttachmentDropZone from 'components/AttachmentDropZone'
 import AttachmentManager from 'components/AttachmentManager'
@@ -56,6 +56,7 @@ const CommentForm = forwardRef(function CommentForm ({
   const commentEditorInitialHtmlRef = useRef({ postId: null, html: null })
 
   const [isFocused, setIsFocused] = useState(false)
+  const [showToolbar, setShowToolbar] = useState(false)
   const hasUserInteracted = useRef(false)
   const mountTime = useRef(Date.now())
   /** True after the editor has had visible text this visit — delete server draft when cleared. */
@@ -248,6 +249,7 @@ const CommentForm = forwardRef(function CommentForm ({
               onFocus={handleFocus}
               onBlur={() => setIsFocused(false)}
               placeholder={placeholderText}
+              showMenu={showToolbar}
               ref={editor}
             />
 
@@ -263,6 +265,31 @@ const CommentForm = forwardRef(function CommentForm ({
                 )
               : (
                 <div className='flex items-center gap-2'>
+                  <button
+                    type='button'
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => setShowToolbar(v => !v)}
+                    className={cn(
+                      'flex items-center justify-center w-6 h-6 p-0 shrink-0 rounded-md transition-colors',
+                      showToolbar
+                        ? 'bg-foreground/15 text-foreground'
+                        : 'text-foreground/50 hover:text-foreground hover:bg-foreground/5'
+                    )}
+                    aria-label={t('Toggle formatting toolbar')}
+                    aria-pressed={showToolbar}
+                    data-testid='comment-toolbar-toggle'
+                  >
+                    <CaseSensitive className='w-5 h-5' />
+                  </button>
+                  <UploadAttachmentButton
+                    type='comment'
+                    id='new'
+                    allowMultiple
+                    onSuccess={addAttachmentAction}
+                    customRender={renderProps => (
+                      <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
+                    )}
+                  />
                   <div>
                     <Button
                       variant='ghost'
@@ -274,15 +301,6 @@ const CommentForm = forwardRef(function CommentForm ({
                       <SendHorizontal size={18} color='white' />
                     </Button>
                   </div>
-                  <UploadAttachmentButton
-                    type='comment'
-                    id='new'
-                    allowMultiple
-                    onSuccess={addAttachmentAction}
-                    customRender={renderProps => (
-                      <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
-                    )}
-                  />
                 </div>
                 )}
           </div>

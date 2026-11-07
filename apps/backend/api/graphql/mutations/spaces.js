@@ -2,6 +2,11 @@ import { GraphQLError } from 'graphql'
 import { v4 as uuidv4 } from 'uuid'
 import { localSpaceSlug, storedSpaceSlug } from '@hylo/navigation'
 import InvitationService from '../../services/InvitationService'
+import {
+  abandonQueuedConversion,
+  convertChatSpaceToDiscussion as runChatSpaceConversion,
+  listBlockingSpaces
+} from '../../models/space/convertChatSpaceToDiscussion'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
 
 // Space mutations — see docs/spaces-and-views-engineering-spec.md section 4.4 / 10
@@ -487,6 +492,37 @@ async function convertChildGroupViewToSpaceView (parentId, childId, groupName, {
 }
 
 /**
+ * Turn a chat-only space into one discussion post in its parent group.
+ * Each chat message becomes a comment. Large rooms finish in a background job.
+ * @param {string|number} userId
+ * @param {object} args
+ * @param {object} context
+ */
+export async function convertChatSpaceToDiscussion (userId, { spaceId, title, dryRun }, context) {
+  const result = await runChatSpaceConversion(userId, { spaceId, title, dryRun })
+
+  if (result.queued && result.post) {
+    try {
+      await Queue.classMethod('Group', 'convertChatSpaceMessages', {
+        spaceId,
+        postId: result.post.id,
+        userId
+      }, 0)
+    } catch (err) {
+      await abandonQueuedConversion({ spaceId, postId: result.post.id })
+      throw new GraphQLError('Could not start the conversion. Please try again.')
+    }
+  }
+
+  if (!dryRun && result.parentGroup) {
+    notifyGroupUpdated(context, result.parentGroup, result.parentId)
+    notifyGroupUpdated(context, result.space, spaceId)
+  }
+
+  return result
+}
+
+/**
  * Convert a child group with exactly one parent into a space of that parent.
  * Sets type/parent_id, deactivates the relationship, unpins it from GlobalNav,
  * and turns a parent menu group view into a space view (or creates an off-menu
@@ -547,11 +583,15 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
     throw new GraphQLError('Cannot convert a group that has child or peer groups to a space')
   }
 
-  const spaceCount = await Group.query(q => {
-    q.where({ parent_id: id, type: 'space', active: true })
-  }).count()
-  if (Number(spaceCount) > 0) {
-    throw new GraphQLError('Cannot convert a group that has spaces to a space')
+  const blockingSpaces = await listBlockingSpaces(id)
+  if (blockingSpaces.length > 0) {
+    const names = blockingSpaces.map(space => space.name).filter(Boolean).join(', ')
+    throw new GraphQLError(
+      names
+        ? `Cannot convert a group that has spaces to a space: ${names}`
+        : 'Cannot convert a group that has spaces to a space',
+      { extensions: { code: 'HAS_NESTED_SPACES', blockingSpaces } }
+    )
   }
 
   const parentGroup = await Group.findActive(parentGroupId)

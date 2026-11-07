@@ -879,6 +879,10 @@ type Group {
   numPrerequisitesLeft: Int
   # Spaces & Views: parent Group id when this Group is a Space; null for top-level groups
   parentId: ID
+  # True when this chat space was converted into a discussion post
+  chatConverted: Boolean
+  # Chat rooms that must be converted before this group can become a space. Empty unless the viewer administers the group.
+  chatSpacesBlockingConversion: [BlockingSpace]
   # Whether this group requires purchased membership (paywall enabled)
   paywall: Boolean
   # Total number of posts in this group
@@ -3484,6 +3488,13 @@ type Mutation {
   convertSpaceToChildGroup(id: ID!): Group
   # Convert a child Group into a Space of its single parent
   convertGroupToSpace(id: ID!, parentGroupId: ID!): Group
+  # Turn a chat-only space into one discussion post. Chat messages become comments. The room is removed. No notifications are sent.
+  convertChatSpaceToDiscussion(
+    spaceId: ID!
+    title: String
+    # When true, return counts and write nothing
+    dryRun: Boolean
+  ): ConvertChatSpaceToDiscussionResult
   # Join a Space (creates a group membership + per-view unread rows).
   # accessCode or invitationToken pre-approves Closed and Restricted spaces, but not role-gated ones; a member's invitation never does.
   joinSpace(spaceId: ID!, accessCode: String, invitationToken: String): Membership
@@ -3897,6 +3908,30 @@ type CreatedGroupRelationshipInvite {
   groupRelationship: GroupRelationship
   # If the invite was to a group the user is not a steward of then return the new GroupRelationshipInvite
   groupRelationshipInvite: GroupRelationshipInvite
+}
+
+# A child space that blocks turning a group into a space
+type BlockingSpace {
+  id: ID
+  name: String
+  slug: String
+  # True when the space only accepts chat posts
+  chatOnly: Boolean
+}
+
+# Counts, and the discussion post when the conversion was not a dry run
+type ConvertChatSpaceToDiscussionResult {
+  dryRun: Boolean
+  # True when the room was large enough that comments are copied by a background job
+  queued: Boolean
+  messageCount: Int
+  authorCount: Int
+  attachmentCount: Int
+  reactionCount: Int
+  replyCount: Int
+  firstMessageAt: Date
+  lastMessageAt: Date
+  post: Post
 }
 
 # A generic result of a mutation
