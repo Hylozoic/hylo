@@ -32,7 +32,7 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', groups = [{ id: '1', name: 'Test Group' }], details, postAttrs: extraPostAttrs = {} } = {}) {
+function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', groups = [{ id: '1', name: 'Test Group' }], details, postAttrs: extraPostAttrs = {}, eventInvitees = [] } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
@@ -48,7 +48,11 @@ function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Tes
     postAttrs.linkPreview = 'lp1'
     postAttrs.linkPreviewFeatured = false
   }
-  ormSession.Post.create(postAttrs)
+  const post = ormSession.Post.create(postAttrs)
+  eventInvitees.forEach(invitee => {
+    const person = ormSession.Person.create(invitee)
+    ormSession.EventInvitation.create({ response: 'yes', person, event: post })
+  })
   const reduxState = { orm: ormSession.state }
 
   return AllTheProviders(reduxState)
@@ -136,6 +140,46 @@ describe('PostEditor', () => {
         expect(screen.getByText('Timeframe')).toBeInTheDocument()
         expect(screen.getByText('Venue')).toBeInTheDocument()
       })
+    })
+  })
+
+  describe('duplicating a post', () => {
+    afterEach(() => {
+      require('react-router-dom').useLocation.mockReturnValue({ pathname: '', search: '' })
+    })
+
+    it('does not copy event invites from the original post', async () => {
+      require('react-router-dom').useLocation.mockReturnValue({
+        pathname: '/',
+        search: '?fromPostId=1&create=post'
+      })
+      const ref = React.createRef()
+      render(
+        <PostEditor {...baseProps} ref={ref} />,
+        {
+          wrapper: testProviders({
+            postType: 'event',
+            title: 'Garden party',
+            postAttrs: {
+              groups: ['1'],
+              startTime: '2030-05-01T10:00:00.000Z',
+              endTime: '2030-05-01T12:00:00.000Z',
+              timezone: 'UTC'
+            },
+            eventInvitees: [{ id: '42', name: 'Invited Person' }]
+          })
+        }
+      )
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Copy of Garden party')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('Invited Person')).not.toBeInTheDocument()
+
+      createPost.mockClear()
+      await act(async () => { ref.current.submit() })
+      await waitFor(() => expect(createPost).toHaveBeenCalled())
+      expect(createPost.mock.calls[0][0].eventInviteeIds).toEqual([])
     })
   })
 

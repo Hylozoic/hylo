@@ -349,8 +349,12 @@ function PostEditorInner ({
     inputPost = editingPost
     isEditing = !!editingPost || loading
   } else if (fromPostId && fromPost) {
-    inputPost = fromPost
-    inputPost.title = `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`
+    // A duplicate is a new post. Keep the content, drop the original event invites.
+    inputPost = {
+      ...fromPost,
+      title: `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`,
+      eventInvitations: []
+    }
   }
 
   const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending
