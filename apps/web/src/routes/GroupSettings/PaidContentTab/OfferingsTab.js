@@ -30,6 +30,7 @@ import useDebounce from 'hooks/useDebounce'
 import { parseAccessGrants, offeringHasGroupAccess, offeringHasRoleAccess } from 'util/accessGrants'
 import { queryHyloAPI } from 'util/graphql'
 import { formatLocalizedDate } from 'util/dateFormat'
+import formatPrice from 'util/formatPrice'
 import { stripHtml } from 'hooks/useDraft'
 
 const EMPTY_LINE_ITEMS = { spaces: [], groups: [], roles: [] }
@@ -1231,25 +1232,21 @@ function OfferingListItem ({ offering, onEdit, group, childSpaces = [], isEditin
     if (!slidingScale?.enabled) return null
     if (!offering.priceInCents) return null
 
-    const unitAmount = offering.priceInCents / 100
     const currencyCode = offering.currency?.toUpperCase() || 'USD'
 
     const minQuantity = slidingScale.minimum != null ? Number(slidingScale.minimum) : 1
     const maxQuantity = slidingScale.maximum != null ? Number(slidingScale.maximum) : null
 
-    const minAmount = unitAmount * minQuantity
+    const minAmount = formatPrice(offering.priceInCents * minQuantity, currencyCode)
     if (maxQuantity != null) {
-      const maxAmount = unitAmount * maxQuantity
-      return t('Pay {{min}} - {{max}} {{currency}} (your choice)', {
-        min: minAmount.toFixed(2),
-        max: maxAmount.toFixed(2),
-        currency: currencyCode
+      return t('Pay {{min}} - {{max}} (your choice)', {
+        min: minAmount,
+        max: formatPrice(offering.priceInCents * maxQuantity, currencyCode)
       })
     }
 
-    return t('Pay at least {{min}} {{currency}} (your choice)', {
-      min: minAmount.toFixed(2),
-      currency: currencyCode
+    return t('Pay at least {{min}} (your choice)', {
+      min: minAmount
     })
   }, [accessGrants.slidingScale, accessGrants.sliding_scale, offering.priceInCents, offering.currency, t])
 
@@ -1288,7 +1285,7 @@ function OfferingListItem ({ offering, onEdit, group, childSpaces = [], isEditin
               <span>{slidingScaleDisplay}</span>
             )}
             {!slidingScaleDisplay && offering.priceInCents && (
-              <span>{t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}</span>
+              <span>{t('Price')}: {formatPrice(offering.priceInCents, offering.currency)}</span>
             )}
             {offering.duration && (
               <span>
