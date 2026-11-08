@@ -109,6 +109,7 @@ import insertTextAtSelection from 'util/insertTextAtSelection'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+import postSaveErrorMessage from './postSaveErrorMessage'
 
 /** Chat, action, and submission are not limited by a group's acceptedPostTypes. */
 const UNRESTRICTED_POST_TYPES = ['action', 'chat', 'submission']
@@ -215,7 +216,7 @@ function PostEditorInner ({
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
   const nativeTimePickers = usePrefersNativeDateTimePicker()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const currentUser = useSelector(getMe)
 
@@ -373,8 +374,12 @@ function PostEditorInner ({
     inputPost = editingPost
     isEditing = !!editingPost || loading
   } else if (fromPostId && fromPost) {
-    inputPost = fromPost
-    inputPost.title = `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`
+    // A duplicate is a new post. Keep the content, drop the original event invites.
+    inputPost = {
+      ...fromPost,
+      title: `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`,
+      eventInvitations: []
+    }
   }
 
   const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending
@@ -444,6 +449,8 @@ function PostEditorInner ({
   const submissionCriteriaRef = useRef(null)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
+  // Error returned by the server when saving fails (e.g. the space doesn't accept this post type)
+  const [saveError, setSaveError] = useState(null)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
   // Joined groups and spaces, plus the current parent group. Unjoined spaces are omitted.
@@ -483,6 +490,11 @@ function PostEditorInner ({
       })
     }
   }, [])
+
+  // A save error is about the type/destinations chosen at the time; drop it once they change.
+  useEffect(() => {
+    setSaveError(null)
+  }, [currentPost.type, currentPost.groups])
 
   // Debounced write of editor HTML into React state. Typing stays in TipTap + detailsHtmlRef;
   // this only syncs for draft persistence (avoids re-rendering the whole form per keystroke).
@@ -1305,6 +1317,7 @@ function PostEditorInner ({
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
     isSubmittingRef.current = true
+    setSaveError(null)
 
     try {
       const {
@@ -1422,8 +1435,14 @@ function PostEditorInner ({
       syncDetailsToCurrentPost.cancel()
       cancelPendingSave()
 
-      const savedPost = await dispatch(saveFunc(postToSave))
-      if (!savedPost.error) {
+      // The GraphQL middleware rejects on server errors; it can also resolve with `error` set.
+      let savedPost
+      try {
+        savedPost = await dispatch(saveFunc(postToSave))
+      } catch (error) {
+        savedPost = { error: true, payload: error }
+      }
+      if (!savedPost?.error) {
         await clearDraft()
         setIsDirty(false)
         if (afterSave) {
@@ -1434,12 +1453,15 @@ function PostEditorInner ({
         }
       } else {
         isSubmittingRef.current = false
+        // Keep the user's work: let draft saves resume and show why the save failed.
+        isSubmittedRef.current = false
+        setSaveError(postSaveErrorMessage(savedPost?.payload, t, i18n?.language))
       }
     } catch (error) {
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, editingPost?.creator?.id, fileAttachments, imageAttachments, isEditing, isOtherEditor, onSave, selectedLocation, setIsDirty, showGroupAdminsCanEdit, syncDetailsToCurrentPost, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, editingPost?.creator?.id, fileAttachments, imageAttachments, isEditing, isOtherEditor, onSave, selectedLocation, setIsDirty, showGroupAdminsCanEdit, syncDetailsToCurrentPost, t, i18n?.language, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -2143,6 +2165,11 @@ function PostEditorInner ({
               disabled={loading}
             />
           </div>
+        </div>
+      )}
+      {saveError && (
+        <div role='alert' data-testid='post-editor-save-error' className='text-white bg-destructive w-full py-1 px-[10px] rounded-[7px]'>
+          {saveError}
         </div>
       )}
       <ActionsBar
