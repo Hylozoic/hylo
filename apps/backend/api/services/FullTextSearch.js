@@ -1,5 +1,6 @@
 /* globals bookshelf, Group */
-import { compact, omit } from 'lodash'
+import { omit } from 'lodash'
+import prefixTsQuery from './Search/prefixTsQuery'
 
 const tableName = 'search_index'
 const columnName = 'document'
@@ -197,18 +198,10 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
 
 const recencyRankSql = `(rank * case when sort_ts is null then 1 else exp(-extract(epoch from (now() - sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
 
-// Strip characters that are tsquery operators or punctuation so user input
-// like "#release!" does not produce a syntax error in to_tsquery.
-const sanitizeTsQueryTerm = (rawTerm) => {
-  return compact(String(rawTerm || '').split(/\s+/))
-    .map(w => w.replace(/[,;|:&()!\\#'"<>*]+/g, ''))
-    .filter(Boolean)
-    .map(w => w + ':*')
-    .join(' & ')
-}
-
 const search = (opts) => {
-  const term = sanitizeTsQueryTerm(opts.term)
+  // Strips tsquery operators and punctuation so user input like "#release!"
+  // does not produce a syntax error in to_tsquery
+  const term = prefixTsQuery(opts.term)
 
   const lang = opts.lang || defaultLang
   const tsquery = term ? `to_tsquery('${lang}', '${term}')` : null

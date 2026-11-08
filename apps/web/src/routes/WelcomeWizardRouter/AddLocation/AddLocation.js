@@ -24,6 +24,10 @@ function AddLocation () {
   const fetchLocation = useCallback((loc) => dispatch(fetchLocationAction(loc)), [dispatch])
 
   useEffect(() => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.WELCOME_WIZARD_STEP_VIEWED, { step: 'add-location' }))
+  }, [])
+
+  useEffect(() => {
     if (currentUser && currentUser.location) {
       setLocationId(currentUser.locationObject ? currentUser.locationObject.id : null)
       setLocation(currentUser.location)
@@ -42,6 +46,9 @@ function AddLocation () {
   }, [dispatch, returnToPath])
 
   const submit = async () => {
+    if (!location?.trim()) {
+      dispatch(trackAnalyticsEvent(AnalyticsEvents.WELCOME_WIZARD_STEP_SKIPPED, { step: 'add-location' }))
+    }
     const coordLocationId = await ensureLocationIdIfCoordinate({ fetchLocation, location, locationId })
     const changes = Object.assign({ location, locationId: coordLocationId }, { settings: { signupInProgress: false } })
 
