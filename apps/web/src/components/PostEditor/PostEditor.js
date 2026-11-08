@@ -101,9 +101,11 @@ import { setQuerystringParam } from '@hylo/navigation'
 import { isMeetingUrl, sanitizeURL } from 'util/url'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
+import insertTextAtSelection from 'util/insertTextAtSelection'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+import postSaveErrorMessage from './postSaveErrorMessage'
 
 /** Chat, action, and submission are not limited by a group's acceptedPostTypes. */
 const UNRESTRICTED_POST_TYPES = ['action', 'chat', 'submission']
@@ -189,7 +191,7 @@ function PostEditorInner ({
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
   const nativeTimePickers = usePrefersNativeDateTimePicker()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const currentUser = useSelector(getMe)
 
@@ -347,14 +349,20 @@ function PostEditorInner ({
     inputPost = editingPost
     isEditing = !!editingPost || loading
   } else if (fromPostId && fromPost) {
-    inputPost = fromPost
-    inputPost.title = `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`
+    // A duplicate is a new post. Keep the content, drop the original event invites.
+    inputPost = {
+      ...fromPost,
+      title: `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`,
+      eventInvitations: []
+    }
   }
 
   const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending
   const showFiles = !isEmpty(fileAttachments) || uploadFileAttachmentPending
 
   const titleInputRef = useRef()
+  // Which field the emoji button inserts into: 'title' or 'details' (never link or other fields)
+  const lastFocusedTextFieldRef = useRef('details')
   const editorRef = useRef()
   const toFieldRef = useRef()
   const endTimeRef = useRef()
@@ -393,6 +401,9 @@ function PostEditorInner ({
       type: createPostType,
       votingMethod: VOTING_METHOD_SINGLE,
       ...(inputPost || {}),
+      // The chat room loads its posts without their groups. A chat only lives in its
+      // room's group, which the route gives us, so use that (as the inline chat edit does)
+      ...(editing && inputPost?.type === 'chat' && isEmpty(inputPost.groups) && currentGroup ? { groups: [currentGroup] } : {}),
       ...prefilledEventTimes,
       location: inputPost?.location || selectedLocation || '',
       locationId: inputPost?.locationId || null,
@@ -413,6 +424,8 @@ function PostEditorInner ({
   const submissionCriteriaRef = useRef(null)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
+  // Error returned by the server when saving fails (e.g. the space doesn't accept this post type)
+  const [saveError, setSaveError] = useState(null)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
   // Joined groups and spaces, plus the current parent group. Unjoined spaces are omitted.
@@ -452,6 +465,11 @@ function PostEditorInner ({
       })
     }
   }, [])
+
+  // A save error is about the type/destinations chosen at the time; drop it once they change.
+  useEffect(() => {
+    setSaveError(null)
+  }, [currentPost.type, currentPost.groups])
 
   // Debounced write of editor HTML into React state. Typing stays in TipTap + detailsHtmlRef;
   // this only syncs for draft persistence (avoids re-rendering the whole form per keystroke).
@@ -958,6 +976,31 @@ function PostEditorInner ({
     setCurrentPost(prev => (title === prev.title ? prev : { ...prev, title }))
   }, [setCurrentPost])
 
+  const handleTitleFocus = useCallback(() => {
+    setTitleFocused(true)
+    lastFocusedTextFieldRef.current = 'title'
+  }, [])
+
+  const handleDetailsFocus = useCallback(() => {
+    lastFocusedTextFieldRef.current = 'details'
+  }, [])
+
+  const handleInsertEmoji = useCallback((emoji) => {
+    const input = titleInputRef.current
+    if (lastFocusedTextFieldRef.current === 'title' && input) {
+      const { value, caret } = insertTextAtSelection(input.value, input.selectionStart, input.selectionEnd, emoji)
+      if (value.length > MAX_TITLE_LENGTH) return
+      handleTitleChange({ target: { value } })
+      // Put the cursor back after the emoji once React has applied the new value
+      window.requestAnimationFrame(() => {
+        input.focus()
+        input.setSelectionRange(caret, caret)
+      })
+      return
+    }
+    editorRef.current?.insertContent?.(emoji)
+  }, [handleTitleChange])
+
   /**
    * TipTap onUpdate handler. Avoid putting full HTML into React state on every keystroke —
    * that re-renders the entire PostEditor and causes typing lag / out-of-order characters
@@ -1230,6 +1273,7 @@ function PostEditorInner ({
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
     isSubmittingRef.current = true
+    setSaveError(null)
 
     try {
       const {
@@ -1344,8 +1388,14 @@ function PostEditorInner ({
       syncDetailsToCurrentPost.cancel()
       cancelPendingSave()
 
-      const savedPost = await dispatch(saveFunc(postToSave))
-      if (!savedPost.error) {
+      // The GraphQL middleware rejects on server errors; it can also resolve with `error` set.
+      let savedPost
+      try {
+        savedPost = await dispatch(saveFunc(postToSave))
+      } catch (error) {
+        savedPost = { error: true, payload: error }
+      }
+      if (!savedPost?.error) {
         await clearDraft()
         setIsDirty(false)
         if (afterSave) {
@@ -1356,12 +1406,15 @@ function PostEditorInner ({
         }
       } else {
         isSubmittingRef.current = false
+        // Keep the user's work: let draft saves resume and show why the save failed.
+        isSubmittedRef.current = false
+        setSaveError(postSaveErrorMessage(savedPost?.payload, t, i18n?.language))
       }
     } catch (error) {
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, t, i18n?.language, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -1597,7 +1650,7 @@ function PostEditorInner ({
             disabled={loading}
             ref={titleInputRef}
             maxLength={MAX_TITLE_LENGTH}
-            onFocus={() => setTitleFocused(true)}
+            onFocus={handleTitleFocus}
             onBlur={() => setTitleFocused(false)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && event.altKey) {
@@ -1625,6 +1678,8 @@ function PostEditorInner ({
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
+              onFocus={handleDetailsFocus}
+              onInsertEmoji={handleInsertEmoji}
               contentHTML={editorInitialContent}
               groupIds={groupIds}
               showMenu
@@ -2054,6 +2109,11 @@ function PostEditorInner ({
               disabled={loading}
             />
           </div>
+        </div>
+      )}
+      {saveError && (
+        <div role='alert' data-testid='post-editor-save-error' className='text-white bg-destructive w-full py-1 px-[10px] rounded-[7px]'>
+          {saveError}
         </div>
       )}
       <ActionsBar
