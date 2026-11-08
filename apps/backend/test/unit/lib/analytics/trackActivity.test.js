@@ -12,7 +12,7 @@ describe('buildEventRows', () => {
       properties: { a: 1 }
     })
     expect(rows.map(r => r.group_id)).to.deep.equal(['10', '11'])
-    expect(rows[0]).to.include({ event_type: 'post_created', user_id: 1, object_type: 'post', object_id: 99, post_type: 'request', source: 'live' })
+    expect(rows[0]).to.include({ event_type: 'post_created', user_id: 1, object_type: 'post', object_id: 99, post_type: 'request', source: 'live', post_id: null })
     expect(rows[0].properties).to.equal('{"a":1}')
   })
 
@@ -20,6 +20,19 @@ describe('buildEventRows', () => {
     const rows = buildEventRows({ type: EVENT_TYPES.SIGNUP_COMPLETED, userId: 1 })
     expect(rows).to.have.length(1)
     expect(rows[0].group_id).to.equal('0')
+  })
+
+  it('keeps the post an action belongs to', () => {
+    const rows = buildEventRows({
+      type: EVENT_TYPES.COMMENT_CREATED,
+      userId: 2,
+      groupIds: [4],
+      object: { type: 'comment', id: 8 },
+      postId: 15,
+      properties: { commentId: 8 }
+    })
+    expect(rows[0].post_id).to.equal(15)
+    expect(rows[0].properties).to.equal('{"commentId":8}')
   })
 
   it('returns nothing without a type or user', () => {

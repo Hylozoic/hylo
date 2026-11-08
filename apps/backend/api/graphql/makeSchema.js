@@ -122,6 +122,9 @@ import {
   reactivateUser,
   rejoinGroup,
   recordClickthrough,
+  recordEvents,
+  metricPeople,
+  retentionExplore,
   recordStripePurchase,
   createGroupInviteLink,
   updateGroupInviteLink,
@@ -486,7 +489,9 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
     posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true })),
     publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
-    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId })
+    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId }),
+    metricPeople: () => { throw new GraphQLError('Unauthorized') },
+    retentionExplore: () => { throw new GraphQLError('Unauthorized') }
   }
 }
 
@@ -582,6 +587,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     person: (root, { id, email }) => fetchOne('Person', id || email, id ? 'id' : 'email'),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
     platformMetrics: (root, args, context) => readPlatformMetrics(context.currentUserId, args),
+    metricPeople,
+    retentionExplore,
     activityCounts: (root, args, context) => readActivityCounts(context.currentUserId, args),
     post: (root, { id }) => fetchOne('Post', id),
     posts: (root, args) => fetchMany('Post', args),
@@ -648,6 +655,7 @@ export function makePublicMutations ({ fetchOne }) {
     sendEmailVerification,
     sendPasswordReset,
     register: register(fetchOne),
+    recordEvents,
     verifyEmail: verifyEmail(fetchOne),
     createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata })
   }

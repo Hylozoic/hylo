@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { queryHyloAPI } from 'util/graphql'
 import Loading from 'components/Loading'
+import { AVOID, GAPS, SECTIONS, VITAL, metricsForPeriod } from './metricsCatalog'
 
 const PLATFORM_QUERY = `query PlatformMetrics($metrics: [String]!, $period: String!, $from: String!, $to: String!) {
   platformMetrics(metrics: $metrics, period: $period, from: $from, to: $to) {
     metric
-    points { periodStart value }
+    dimension
+    points { periodStart value dimension }
   }
 }`
 
@@ -14,12 +16,17 @@ const GROUP_QUERY = `query GroupMetrics($id: ID!, $metrics: [String]!, $period: 
   group(id: $id) {
     metrics(metrics: $metrics, period: $period, from: $from, to: $to) {
       metric
-      points { periodStart value }
+      dimension
+      points { periodStart value dimension }
     }
   }
 }`
 
-const METRICS = ['active_users', 'contributors', 'connected_members', 'posts', 'comments', 'reactions', 'joins']
+const PEOPLE_QUERY = `query MetricPeople($metric: String!, $groupId: ID, $period: String!, $periodStart: String!) {
+  metricPeople(metric: $metric, groupId: $groupId, period: $period, periodStart: $periodStart) {
+    people { id name avatarUrl count }
+  }
+}`
 
 const RANGES = [
   { id: '7D', label: '7D', period: 'day' },
@@ -49,7 +56,98 @@ const EXPLAINERS = {
   comments: 'Comments that were written.',
   reactions: 'Reactions that were added.',
   joins: 'People who joined a group.',
-  signups: 'Accounts that were created.'
+  signups: 'Accounts that were created.',
+  stickiness: 'Daily active people divided by people active in the last 30 days.',
+  contributors_30d: 'Distinct people who contributed in the last 30 days.',
+  contributors_posting: 'Distinct people who posted or commented.',
+  connected_beyond_reaction: 'People connected by a comment, RSVP, vote, or project join.',
+  live_groups: 'Groups with at least 3 people posting or commenting in 28 days.',
+  coordinating_members: 'People on either side of a connection on an event, request, offer, proposal, or project.',
+  weekly_missed_connections: 'People none of whose posts that week were answered within 7 days.',
+  feed_post_response_rate_7d: 'Feed posts that got a response within 7 days.',
+  signup_joined_group_7d: 'New accounts that joined a group within 7 days.',
+  signup_contributed_30d: 'New accounts that contributed within 30 days.',
+  new_member_contributed_14d: 'New members who posted, commented, or reacted in that group within 14 days.',
+  new_contributor_retention: 'First-time contributors who contributed again between day 8 and day 35.',
+  account_deactivations: 'Accounts that were deactivated or deleted.',
+  contributor_wow_retention: 'Of the people who contributed the week before, the share who contributed again this week.',
+  live_group_survival: 'Live groups that were still live the following week.',
+  connection_concentration: 'The share of connections that happened in the 10 most connected groups.',
+  live_groups_linked: 'Live groups that are linked to another group.',
+  multi_group_weavers: 'People who posted or commented in more than one group over 90 days.',
+  where_connections_are_missed: 'The share of posts that went unanswered within 7 days, split by where they were.',
+  after_a_missed_connection: 'People whose first post of the month was answered or missed, and who came back the next month.',
+  new_groups_second_voice_30d: 'New groups that had a second person post or comment within 30 days.',
+  invite_acceptance_14d: 'Invites, excluding bulk senders, that were accepted within 14 days.',
+  groupless_active_users: 'People active in the last 30 days who belong to no group.',
+  first_post_answered_7d: 'First posts that got a response within 7 days.',
+  reciprocal_tie_members: 'People who both acted with the same other person in 90 days.',
+  needs_answered_14d: 'Requests and offers that got a comment within 14 days.',
+  events_that_gathered: 'Events with at least one RSVP from someone other than the host.',
+  decisions_made: 'Proposals that got votes from at least two people.',
+  projects_with_second_contributor: 'Projects that someone other than the author joined.',
+  place_coverage_live_groups: 'Live groups that have a place set.',
+  tended_groups_share: 'Groups whose steward visited in the last 30 days.',
+  join_request_decision_time: 'Median hours from a join request to a decision.',
+  join_requests_unanswered_7d: 'Join requests that were still open 7 days later.',
+  stale_join_request_backlog: 'Join requests that have been waiting more than 7 days.',
+  steward_coverage: 'Groups that have a steward.',
+  moderation_health: 'Moderation items that are still open.',
+  outbound_to_dormant_share: 'Yesterday\'s notifications sent to people with no visit in 30 days.',
+  new_member_notification_turndown: 'New members who turned notifications down.',
+  unsubscribe_all_leak: 'People whose email digest is set to never.',
+  ignored_email_preferences: 'People who turned direct-message notifications off.',
+  notification_pipeline_integrity: 'Notifications from yesterday that were not marked sent.',
+  mixpanel_blind_spot: 'The share of people who opted out of analytics.',
+  data_quality_tripwires: 'Checks that the stored numbers are complete and consistent.'
+}
+
+const HEALTH_LABELS = {
+  stickiness: 'Stickiness',
+  contributors_30d: 'Contributors in 30 days',
+  contributors_posting: 'Posted or commented',
+  connected_beyond_reaction: 'Connected by more than a reaction',
+  live_groups: 'Live groups',
+  coordinating_members: 'Coordinating members',
+  weekly_missed_connections: 'Missed connections',
+  feed_post_response_rate_7d: 'Posts answered in 7 days',
+  signup_joined_group_7d: 'Joined a group in 7 days',
+  signup_contributed_30d: 'Contributed in 30 days',
+  new_member_contributed_14d: 'New members who contributed',
+  new_contributor_retention: 'New contributors who returned',
+  account_deactivations: 'Deactivated accounts',
+  contributor_wow_retention: 'Came back the next week',
+  live_group_survival: 'Live groups still live next week',
+  connection_concentration: 'Connections in the busiest groups',
+  live_groups_linked: 'Live groups linked to another',
+  multi_group_weavers: 'People active in several groups',
+  where_connections_are_missed: 'Where connections are missed',
+  after_a_missed_connection: 'Coming back after a missed connection',
+  new_groups_second_voice_30d: 'New groups with a second voice',
+  invite_acceptance_14d: 'Invites accepted in 14 days',
+  groupless_active_users: 'Active people without a group',
+  first_post_answered_7d: 'First posts answered in 7 days',
+  reciprocal_tie_members: 'People tied both ways',
+  needs_answered_14d: 'Needs answered in 14 days',
+  events_that_gathered: 'Events that gathered',
+  decisions_made: 'Decisions made',
+  projects_with_second_contributor: 'Projects with a second contributor',
+  place_coverage_live_groups: 'Live groups with a place',
+  tended_groups_share: 'Tended groups',
+  join_request_decision_time: 'Time to decide a join request',
+  join_requests_unanswered_7d: 'Join requests unanswered for 7 days',
+  stale_join_request_backlog: 'Stale join requests',
+  steward_coverage: 'Groups with a steward',
+  moderation_health: 'Open moderation items',
+  outbound_to_dormant_share: 'Mail sent to quiet people',
+  new_member_notification_turndown: 'New members who turn notifications down',
+  unsubscribe_all_leak: 'People who get no digest',
+  ignored_email_preferences: 'People who turned off direct messages',
+  notification_pipeline_integrity: 'Notifications that were not sent',
+  mixpanel_blind_spot: 'People Mixpanel cannot see',
+  data_quality_tripwires: 'Data quality checks',
+  'Monthly active contributors': 'Monthly active contributors',
+  'Weekly active contributors': 'Weekly active contributors'
 }
 
 const COMPARE_LABELS = {
@@ -60,47 +158,9 @@ const COMPARE_LABELS = {
   '12M': 'Previous year'
 }
 
-const COMPARE_NOTES = {
-  '7D': 'The dotted line is the same count from the week before.',
-  '30D': 'The dotted line is the same count from the month before.',
-  '3M': 'The dotted line is the same count from the year before.',
-  '6M': 'The dotted line is the same count from the year before.',
-  '12M': 'The dotted line is the same count from the year before.'
-}
-
-const RANGE_NOTES = {
-  '7D': 'Each point is the count for one day, over the last 7 days. Dates run left to right and the scale is the count.',
-  '30D': 'Each point is the count for one day, over the last 30 days. Dates run left to right and the scale is the count.',
-  '3M': 'Each point is the count for one week, over the last 3 months. Dates run left to right and the scale is the count.',
-  '6M': 'Each point is the count for one month, over the last 6 months. Dates run left to right and the scale is the count.',
-  '12M': 'Each point is the count for one month, over the last 12 months. Dates run left to right and the scale is the count.'
-}
-
 /** UTC calendar day as YYYY-MM-DD. */
 function utcDay (date) {
   return date.toISOString().slice(0, 10)
-}
-
-/**
- * 7D and 30D are daily points, 3M is weekly points, 6M and 12M are monthly
- * points. `to` is today, and the month ranges start on the first of the month.
- */
-function rangeFor (rangeId) {
-  const today = new Date()
-  const to = utcDay(today)
-  if (rangeId === '7D' || rangeId === '30D') {
-    const from = new Date(today.getTime())
-    from.setUTCDate(from.getUTCDate() - (rangeId === '7D' ? 6 : 29))
-    return { from: utcDay(from), to }
-  }
-  if (rangeId === '3M') {
-    const from = new Date(today.getTime())
-    from.setUTCMonth(from.getUTCMonth() - 3)
-    return { from: utcDay(from), to }
-  }
-  const monthsBack = rangeId === '6M' ? 5 : 11
-  const from = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - monthsBack, 1))
-  return { from: utcDay(from), to }
 }
 
 /** Monday for a week, or the first of the month, so it matches the stored snapshot. */
@@ -115,35 +175,47 @@ function alignStart (day, period) {
   return utcDay(date)
 }
 
-/** The same point in the comparison window: a week, a month, or a year earlier. */
-function shiftStart (day, rangeId) {
+/** The same point one comparison step earlier. Days step by the range. Weeks and months step by a year. */
+function previousDay (day, period, rangeId) {
   const date = new Date(`${day}T00:00:00Z`)
-  if (rangeId === '7D') date.setUTCDate(date.getUTCDate() - 7)
-  else if (rangeId === '30D') date.setUTCDate(date.getUTCDate() - 30)
-  else if (rangeId === '3M') date.setUTCDate(date.getUTCDate() - 364)
+  if (period === 'day') date.setUTCDate(date.getUTCDate() - (rangeId === '7D' ? 7 : 30))
+  else if (period === 'week') date.setUTCDate(date.getUTCDate() - 364)
   else date.setUTCFullYear(date.getUTCFullYear() - 1)
   return utcDay(date)
 }
 
-/** Fetches the displayed window plus the earlier window the dotted line compares against. */
-function queryRange (rangeId) {
-  const display = rangeFor(rangeId)
-  const period = RANGES.find(item => item.id === rangeId).period
-  return { from: shiftStart(alignStart(display.from, period), rangeId), to: display.to }
+/** The visible window for a period, plus the earlier stretch the dotted line reads. */
+function queryWindow (period, rangeId) {
+  const today = utcDay(new Date())
+  let displayFrom
+  if (period === 'day') {
+    const start = new Date(`${today}T00:00:00Z`)
+    start.setUTCDate(start.getUTCDate() - (rangeId === '7D' ? 6 : 29))
+    displayFrom = utcDay(start)
+  } else if (period === 'week') {
+    const weeks = rangeId === '12M' ? 52 : rangeId === '6M' ? 26 : 16
+    const start = new Date(`${alignStart(today, 'week')}T00:00:00Z`)
+    start.setUTCDate(start.getUTCDate() - (weeks - 1) * 7)
+    displayFrom = utcDay(start)
+  } else {
+    const months = rangeId === '12M' ? 11 : 5
+    const now = new Date()
+    displayFrom = utcDay(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months, 1)))
+  }
+  return { from: previousDay(displayFrom, period, rangeId), to: today, displayFrom }
 }
 
 /**
- * Keeps the points in the selected window and attaches the matching earlier
+ * Keeps the points in the visible window and attaches the matching earlier
  * value, looked up from the longer series the query returned.
  */
-function chartPoints (points, rangeId, period) {
-  const start = alignStart(rangeFor(rangeId).from, period)
+function chartPoints (points, displayFrom, period, rangeId) {
   const byDay = new Map((points || []).map(point => [String(point.periodStart).slice(0, 10), point.value]))
   return (points || [])
-    .filter(point => String(point.periodStart).slice(0, 10) >= start)
+    .filter(point => String(point.periodStart).slice(0, 10) >= displayFrom)
     .map(point => {
       const periodStart = String(point.periodStart).slice(0, 10)
-      const previousStart = shiftStart(periodStart, rangeId)
+      const previousStart = previousDay(periodStart, period, rangeId)
       return {
         periodStart,
         value: point.value,
@@ -151,6 +223,25 @@ function chartPoints (points, rangeId, period) {
         previous: byDay.has(previousStart) ? byDay.get(previousStart) : null
       }
     })
+}
+
+/** Whether a change moved the way this metric wants, and by how much. */
+function changeTone (current, previous) {
+  if (current === null || current === undefined || previous === null || previous === undefined) return null
+  const delta = current - previous
+  const direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'
+  return { delta, direction }
+}
+
+/** The share of one week's contributors who contributed again the next week. */
+function retentionRates (cohortPoints, retainedPoints) {
+  const retainedByDay = new Map((retainedPoints || []).map(point => [String(point.periodStart).slice(0, 10), point.value]))
+  return (cohortPoints || []).map(point => {
+    const periodStart = String(point.periodStart).slice(0, 10)
+    const cohort = point.value
+    const cameBack = retainedByDay.get(periodStart)
+    return { periodStart, value: cohort ? (cameBack || 0) / cohort : null, dimension: '' }
+  })
 }
 
 /** The newest stored value in the visible window, skipping periods that were never computed. */
@@ -208,8 +299,15 @@ function formatCount (value) {
 }
 
 /** The vertical scale: the max, the middle, and zero, with duplicates removed. */
-function yTicks (max) {
+function yTicks (max, unit) {
+  if (unit === 'percent') return [1, 0.5, 0]
   return [...new Set([max, max / 2, 0].map(value => Math.round(value)))]
+}
+
+/** An axis label. Rates are percents; counts stay whole numbers. */
+function formatAxis (value, unit) {
+  if (unit === 'percent') return `${Math.round(value * 100)}%`
+  return formatCount(value)
 }
 
 /** Which points get a date label. Short series are named in full. Longer ones get four labels. */
@@ -238,9 +336,10 @@ function linePath (points, valueKey, xAt, yAt) {
   return path
 }
 
-/** A line with a count scale and a date scale. Missing periods leave a gap. */
-function LineChart ({ points, period, compare }) {
-  const [hoverKey, setHoverKey] = useState(null)
+/** A line with a count scale and a date scale. Missing periods leave a gap. Extra lines share the same dates. */
+function LineChart ({ points, period, compare, lines = [], unit }) {
+  const { t } = useTranslation()
+  const [hover, setHover] = useState(null)
   if (!points.length) return null
   const width = 520
   const height = 176
@@ -252,7 +351,12 @@ function LineChart ({ points, period, compare }) {
     if (point.value !== null) values.push(point.value)
     if (compare && point.previous !== null && point.previous !== undefined) values.push(point.previous)
   })
-  const max = Math.max(...values, 1)
+  lines.forEach(line => {
+    line.points.forEach(point => {
+      if (point.value !== null && point.value !== undefined) values.push(point.value)
+    })
+  })
+  const max = unit === 'percent' ? 1 : Math.max(...values, 1)
   const step = points.length === 1 ? 0 : plotWidth / (points.length - 1)
   const xAt = index => pad.left + index * step
   const yAt = value => pad.top + plotHeight - (value / max) * plotHeight
@@ -260,31 +364,37 @@ function LineChart ({ points, period, compare }) {
   const previousPath = compare ? linePath(points, 'previous', xAt, yAt) : ''
   const dots = []
   points.forEach((point, index) => {
-    const hoverValue = point.value !== null ? point.value : (compare ? point.previous : null)
-    if (hoverValue === null || hoverValue === undefined) return
+    const hasValue = point.value !== null && point.value !== undefined
+    const hasPrevious = compare && point.previous !== null && point.previous !== undefined
+    if (!hasValue && !hasPrevious) return
     dots.push({
       x: xAt(index),
-      y: yAt(point.value !== null ? point.value : point.previous),
       key: point.periodStart,
       value: point.value,
       previous: point.previous,
       previousStart: point.previousStart,
-      hasValue: point.value !== null
+      hasValue,
+      hasPrevious
     })
   })
-  const hover = dots.find(dot => dot.key === hoverKey)
-  const hoverShift = !hover
+  const active = hover && dots.find(dot => dot.key === hover.key)
+  const activeY = !active
     ? null
-    : hover.x > width * 0.75
+    : hover.series === 'previous'
+      ? yAt(active.previous)
+      : yAt(active.value)
+  const hoverShift = !active
+    ? null
+    : active.x > width * 0.75
       ? 'translate(-100%, calc(-100% - 8px))'
-      : hover.x < width * 0.25
+      : active.x < width * 0.25
         ? 'translate(0, calc(-100% - 8px))'
         : 'translate(-50%, calc(-100% - 8px))'
 
   return (
     <div className='relative'>
       <svg viewBox={`0 0 ${width} ${height}`} className='w-full h-40 text-foreground/50' role='img'>
-        {yTicks(max).map(tick => (
+        {yTicks(max, unit).map(tick => (
           <g key={tick}>
             <line
               x1={pad.left}
@@ -295,7 +405,7 @@ function LineChart ({ points, period, compare }) {
               strokeOpacity='0.25'
             />
             <text x={pad.left - 6} y={yAt(tick) + 4} textAnchor='end' fontSize='12' fill='currentColor'>
-              {formatCount(tick)}
+              {formatAxis(tick, unit)}
             </text>
           </g>
         ))}
@@ -315,47 +425,85 @@ function LineChart ({ points, period, compare }) {
         {previousPath && (
           <path d={previousPath} fill='none' stroke='hsl(var(--foreground))' strokeOpacity='0.7' strokeWidth='2' strokeDasharray='4 3' />
         )}
-        {dots.map(dot => (
-          <g key={dot.key}>
-            {compare && dot.previous !== null && dot.previous !== undefined && (
-              <circle cx={dot.x} cy={yAt(dot.previous)} r='3' fill='none' stroke='hsl(var(--foreground))' strokeOpacity='0.7' strokeWidth='1.5' />
-            )}
-            {dot.hasValue && (
-              <circle cx={dot.x} cy={yAt(dot.value)} r={hoverKey === dot.key ? 5 : 3} fill='hsl(var(--focus))' />
-            )}
-            <circle
-              cx={dot.x}
-              cy={dot.y}
-              r='14'
-              fill='transparent'
-              className='cursor-pointer'
-              onMouseEnter={() => setHoverKey(dot.key)}
-              onMouseLeave={() => setHoverKey(null)}
-            />
-          </g>
+        {lines.map(line => (
+          <path
+            key={line.label}
+            d={linePath(line.points, 'value', xAt, yAt)}
+            fill='none'
+            stroke='hsl(var(--foreground))'
+            strokeOpacity={line.opacity}
+            strokeWidth='1.5'
+            strokeDasharray={line.dash === '0' ? undefined : line.dash}
+          />
         ))}
+        {dots.map(dot => {
+          const valueHot = hover?.key === dot.key && hover.series === 'value'
+          const previousHot = hover?.key === dot.key && hover.series === 'previous'
+          return (
+            <g key={dot.key}>
+              {dot.hasPrevious && (
+                <circle cx={dot.x} cy={yAt(dot.previous)} r={previousHot ? 5 : 3} fill={previousHot ? 'hsl(var(--foreground))' : 'none'} stroke='hsl(var(--foreground))' strokeOpacity='0.7' strokeWidth='1.5' />
+              )}
+              {dot.hasValue && (
+                <circle cx={dot.x} cy={yAt(dot.value)} r={valueHot ? 5 : 3} fill='hsl(var(--focus))' />
+              )}
+              {dot.hasPrevious && (
+                <circle
+                  cx={dot.x}
+                  cy={yAt(dot.previous)}
+                  r='14'
+                  fill='transparent'
+                  className='cursor-pointer'
+                  onMouseEnter={() => setHover({ key: dot.key, series: 'previous' })}
+                  onMouseLeave={() => setHover(null)}
+                />
+              )}
+              {dot.hasValue && (
+                <circle
+                  cx={dot.x}
+                  cy={yAt(dot.value)}
+                  r='14'
+                  fill='transparent'
+                  className='cursor-pointer'
+                  onMouseEnter={() => setHover({ key: dot.key, series: 'value' })}
+                  onMouseLeave={() => setHover(null)}
+                />
+              )}
+            </g>
+          )
+        })}
       </svg>
-      {hover && (
+      {active && (
         <div
           className='pointer-events-none absolute z-10 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md'
           style={{
-            left: `${(hover.x / width) * 100}%`,
-            top: `${(hover.y / height) * 100}%`,
+            left: `${(active.x / width) * 100}%`,
+            top: `${(activeY / height) * 100}%`,
             transform: hoverShift
           }}
         >
-          {hover.value !== null && (
+          {hover.series === 'previous' && (
             <>
-              <div>{periodRange(hover.key, period)}</div>
-              <div className='font-semibold'>{formatCount(hover.value)}</div>
+              <div>{periodRange(active.previousStart, period)}</div>
+              <div className='font-semibold'>{formatValue(active.previous, unit, t)}</div>
+              {active.hasValue && (
+                <>
+                  <div className='mt-1 opacity-80'>{periodRange(active.key, period)}</div>
+                  <div className='font-semibold'>{formatValue(active.value, unit, t)}</div>
+                </>
+              )}
             </>
           )}
-          {compare && hover.previous !== null && hover.previous !== undefined && (
+          {hover.series === 'value' && (
             <>
-              <div className={hover.value !== null ? 'mt-1 opacity-80' : undefined}>
-                {periodRange(hover.previousStart, period)}
-              </div>
-              <div className='font-semibold'>{formatCount(hover.previous)}</div>
+              <div>{periodRange(active.key, period)}</div>
+              <div className='font-semibold'>{formatValue(active.value, unit, t)}</div>
+              {active.hasPrevious && (
+                <>
+                  <div className='mt-1 opacity-80'>{periodRange(active.previousStart, period)}</div>
+                  <div className='font-semibold'>{formatValue(active.previous, unit, t)}</div>
+                </>
+              )}
             </>
           )}
         </div>
@@ -364,15 +512,105 @@ function LineChart ({ points, period, compare }) {
   )
 }
 
-/** One metric: its latest value and the series behind it. */
-function MetricCard ({ label, explainer, value, when, points, period, compare }) {
+/** Shows a rate as a percent, a duration as hours, and a count with thousands separators. */
+function formatValue (value, unit, t) {
+  if (value === null || value === undefined) return '—'
+  if (unit === 'hours') return t('{{count}} hours', { count: Math.round(value).toLocaleString() })
+  if (unit === 'percent') return `${Math.round(value * 100)}%`
+  return Math.round(value).toLocaleString()
+}
+
+/** Scrollable list of the people counted in a metric, anchored under its Who link. */
+function PeoplePopover ({ people }) {
+  const { t } = useTranslation()
   return (
-    <div className='rounded-lg border border-foreground/10 bg-card p-3'>
-      <div className='text-xs text-foreground/60'>{label}</div>
-      {explainer && <div className='text-xs text-foreground/50 mt-0.5 mb-1'>{explainer}</div>}
-      <div className='text-2xl font-semibold text-foreground'>{value === null ? '—' : Math.round(value).toLocaleString()}</div>
+    <div
+      data-testid='who-people'
+      className='absolute left-0 top-full z-20 mt-1 max-h-60 w-64 overflow-y-auto rounded-md border border-foreground/10 bg-card p-2 shadow-md'
+    >
+      {people.loading && <Loading type='inline' />}
+      {!people.loading && people.rows.length === 0 && <p className='text-sm text-foreground/60'>{t('No people to show')}</p>}
+      <ul>
+        {people.rows.map(person => (
+          <li key={person.id} className='flex items-center gap-2 py-1.5 text-sm'>
+            <span className='text-foreground'>{person.name}</span>
+            <span className='ml-auto text-foreground/60'>{person.count}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** The size of a change. Rates are percentage points. */
+function formatDelta (delta, unit, t) {
+  const magnitude = Math.abs(delta)
+  if (unit === 'percent') return t('{{value}} pts', { value: (magnitude * 100).toFixed(1) })
+  if (unit === 'hours') return t('{{count}} hours', { count: Math.round(magnitude).toLocaleString() })
+  return Math.round(magnitude).toLocaleString()
+}
+
+/** Green when the number moved the way this metric wants. A fall can be the good direction. */
+function ChangeNote ({ value, previous, unit, good, comparable, compare }) {
+  const { t } = useTranslation()
+  if (!compare) return null
+  if (comparable === false) return <div className='text-xs text-foreground/50'>{t('Earlier period: not available')}</div>
+  const change = changeTone(value, previous)
+  if (!change) return null
+  let tone = 'text-red-700 dark:text-red-400'
+  if (change.direction === 'flat' || good === 'neutral') tone = 'text-foreground/60'
+  else if (change.direction === good) tone = 'text-green-700 dark:text-green-400'
+  let word = t('worse')
+  if (change.direction === 'flat') word = t('no change')
+  else if (change.direction === good) word = t('better')
+  else if (good === 'neutral') word = ''
+  const arrow = change.direction === 'up' ? '▲' : change.direction === 'down' ? '▼' : '■'
+  return (
+    <div className={`text-xs font-medium ${tone}`}>
+      {arrow} {change.direction === 'flat' ? word : formatDelta(change.delta, unit, t)} {change.direction === 'flat' ? '' : word}
+    </div>
+  )
+}
+
+/** One metric: its latest value, the change from the earlier period, and the series behind it. */
+function MetricCard ({ label, explainer, value, when, points, period, compare, unit, good, comparable, lines, breakdown, onWho, whoLabel, people, anchorRef }) {
+  const { t } = useTranslation()
+  const [openInfo, setOpenInfo] = useState(false)
+  const open = Boolean(people)
+  const previous = points && points.length ? latestValue(points)?.previous : null
+  return (
+    <div className={open ? 'relative z-20 rounded-lg border border-foreground/10 bg-card p-3' : 'relative rounded-lg border border-foreground/10 bg-card p-3'}>
+      <div className='flex items-start gap-2'>
+        <div className='text-sm text-foreground/60'>{label}</div>
+        {explainer && (
+          <button
+            type='button'
+            aria-expanded={openInfo}
+            aria-label={t('About this metric')}
+            className='ml-auto h-5 w-5 shrink-0 rounded-full border border-foreground/20 text-[11px] text-foreground/60'
+            onClick={() => setOpenInfo(current => !current)}
+          >
+            i
+          </button>
+        )}
+      </div>
+      {openInfo && explainer && <div className='text-xs text-foreground/60 mt-1 mb-1'>{explainer}</div>}
+      {value !== null && value !== undefined && (
+        <div className='text-2xl font-semibold text-foreground'>{formatValue(value, unit, t)}</div>
+      )}
+      <ChangeNote value={value} previous={previous} unit={unit} good={good} comparable={comparable} compare={compare} />
+      {onWho && (
+        <div ref={anchorRef} className='relative mb-1'>
+          <button type='button' aria-expanded={open} className='text-xs text-foreground/70 underline' onClick={onWho}>{whoLabel}</button>
+          {open && <PeoplePopover people={people} />}
+        </div>
+      )}
       {when && <div className='text-xs text-foreground/60 mb-1'>{when}</div>}
-      <LineChart points={points || []} period={period} compare={compare} />
+      {breakdown}
+      {points && <LineChart points={points} period={period} compare={compare} lines={lines} unit={unit} />}
+      {lines && lines.length > 0 && (
+        <div className='mt-1 text-[11px] text-foreground/50'>{t('Also shown')}: {lines.map(line => line.label).join(', ')}</div>
+      )}
     </div>
   )
 }
@@ -385,50 +623,168 @@ export default function MetricsPanel ({ groupId, signupMetric = false }) {
   const { t } = useTranslation()
   const [rangeId, setRangeId] = useState('30D')
   const [compare, setCompare] = useState(false)
-  const [series, setSeries] = useState(null)
+  const [byPeriod, setByPeriod] = useState(null)
   const [error, setError] = useState(null)
-
-  const choice = RANGES.find(item => item.id === rangeId)
-  const period = choice.period
-  const metrics = METRICS.concat(
-    period === 'week' ? ['contributor_cohort', 'contributor_retained'] : [],
-    signupMetric ? ['signups'] : []
-  )
+  const [people, setPeople] = useState(null)
+  const peopleRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
-    const { from, to } = queryRange(rangeId)
-    setSeries(null)
+    setByPeriod(null)
     setError(null)
-    const request = groupId
-      ? queryHyloAPI({ query: GROUP_QUERY, variables: { id: groupId, metrics, period, from, to } })
-      : queryHyloAPI({ query: PLATFORM_QUERY, variables: { metrics, period, from, to } })
-    request.then(result => {
-      if (cancelled) return
-      const next = groupId ? result?.data?.group?.metrics : result?.data?.platformMetrics
-      if (!next) {
-        setError(result?.errors?.[0]?.message || t('Not enough activity in this period yet'))
-        setSeries([])
-        return
-      }
-      setSeries(next)
+    setPeople(null)
+    Promise.all(['day', 'week', 'month'].map(period => {
+      const { from, to } = queryWindow(period, rangeId)
+      const metrics = metricsForPeriod(period, { signupMetric })
+      const request = groupId
+        ? queryHyloAPI({ query: GROUP_QUERY, variables: { id: groupId, metrics, period, from, to } })
+        : queryHyloAPI({ query: PLATFORM_QUERY, variables: { metrics, period, from, to } })
+      return request.then(result => {
+        const next = groupId ? result?.data?.group?.metrics : result?.data?.platformMetrics
+        if (!next) throw new Error(result?.errors?.[0]?.message || 'Not enough activity in this period yet')
+        return [period, next]
+      })
+    })).then(entries => {
+      if (!cancelled) setByPeriod(Object.fromEntries(entries))
     }).catch(err => {
       if (!cancelled) {
         setError(err.message)
-        setSeries([])
+        setByPeriod({ day: [], week: [], month: [] })
       }
     })
     return () => { cancelled = true }
   }, [groupId, rangeId, signupMetric])
 
-  const pointsFor = metric => chartPoints(
-    (series || []).find(item => item.metric === metric)?.points || [],
-    rangeId,
-    period
-  )
-  const cohort = latestValue(pointsFor('contributor_cohort'))
-  const retained = latestValue(pointsFor('contributor_retained'))
-  const retention = cohort ? Math.round((retained?.value || 0) / cohort.value * 100) : null
+  const rawSeries = (metric, period, dimension = '') => {
+    const matches = (byPeriod?.[period] || []).filter(item => item.metric === metric && (item.dimension || '') === dimension)
+    return matches[0] || null
+  }
+
+  const shownFor = (metric, period) => {
+    const { displayFrom } = queryWindow(period, rangeId)
+    if (metric === 'contributor_wow_retention') {
+      return chartPoints(
+        retentionRates(rawSeries('contributor_cohort', 'week')?.points, rawSeries('contributor_retained', 'week')?.points),
+        displayFrom,
+        'week',
+        rangeId
+      )
+    }
+    return chartPoints(rawSeries(metric, period, '')?.points || [], displayFrom, period, rangeId)
+  }
+
+  /** Loads the people counted in the latest point of a person metric, or closes that list. */
+  const handleWho = (metric, period, periodStart) => {
+    const key = `${metric}:${period}`
+    if (people?.key === key) {
+      setPeople(null)
+      return
+    }
+    setPeople({ key, loading: true, rows: [] })
+    queryHyloAPI({
+      query: PEOPLE_QUERY,
+      variables: { metric, groupId: groupId || null, period, periodStart }
+    }).then(result => {
+      setPeople(current => current?.key === key
+        ? { key, loading: false, rows: result?.data?.metricPeople?.people || [] }
+        : current)
+    }).catch(() => {
+      setPeople(current => current?.key === key ? { key, loading: false, rows: [] } : current)
+    })
+  }
+
+  const labelFor = spec => t(spec.label || HEALTH_LABELS[spec.id] || LABELS[spec.id] || spec.id)
+  const explainerFor = spec => {
+    const text = EXPLAINERS[spec.id]
+    return text ? t(text) : null
+  }
+
+  /** The lines, table, or headline points for one catalog metric. */
+  const viewFor = spec => {
+    const points = shownFor(spec.id, spec.period)
+    const point = latestValue(points)
+    const { displayFrom } = queryWindow(spec.period, rangeId)
+    const lines = (spec.lines || []).map((line, index) => {
+      const styles = [{ opacity: '0.4', dash: '2 2' }, { opacity: '0.65', dash: '0' }, { opacity: '0.9', dash: '6 3' }]
+      const seriesPoints = chartPoints(rawSeries(spec.id, spec.period, line.dimension)?.points || [], displayFrom, spec.period, rangeId)
+      const byDay = new Map(seriesPoints.map(item => [item.periodStart, item.value]))
+      return {
+        label: t(line.label),
+        ...styles[index] || styles[0],
+        points: points.map(item => ({ ...item, value: byDay.has(item.periodStart) ? byDay.get(item.periodStart) : null }))
+      }
+    })
+    let breakdown = null
+    if (spec.view === 'latest') {
+      const rows = spec.rows.map(row => ({
+        label: row.label,
+        value: latestValue(chartPoints(rawSeries(spec.id, spec.period, row.dimension)?.points || [], displayFrom, spec.period, rangeId))?.value
+      })).filter(row => row.value !== null && row.value !== undefined)
+      if (rows.length) {
+        breakdown = (
+          <table className='w-full text-xs mb-2'>
+            <tbody>
+              {rows.map(row => (
+                <tr key={row.label}>
+                  <td className='py-0.5 pr-2 text-foreground/70'>{t(row.label)}</td>
+                  <td className='py-0.5 text-right text-foreground'>{formatValue(row.value, spec.unit || 'count', t)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+      }
+    }
+    if (spec.view === 'months') {
+      const series = spec.rows.map(row => ({
+        label: row.label,
+        points: chartPoints(rawSeries(spec.id, spec.period, row.dimension)?.points || [], displayFrom, spec.period, rangeId)
+      }))
+      const dates = (series[0]?.points || []).map(item => item.periodStart).slice(-6)
+      if (dates.length) {
+        breakdown = (
+          <table className='w-full text-xs mb-2'>
+            <thead>
+              <tr className='text-foreground/50'>
+                <th className='py-0.5 text-left font-normal' />
+                {series.map(row => <th key={row.label} className='py-0.5 text-right font-normal'>{t(row.label)}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {dates.map(date => (
+                <tr key={date}>
+                  <td className='py-0.5 text-foreground/70'>{formatWhen(date, 'month')}</td>
+                  {series.map(row => {
+                    const value = row.points.find(item => item.periodStart === date)?.value
+                    return <td key={row.label} className='py-0.5 text-right text-foreground'>{formatValue(value, spec.unit || 'count', t)}</td>
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+      }
+    }
+    const hasBreakdown = Boolean(breakdown)
+    return { points, point, lines, breakdown, hasBreakdown }
+  }
+
+  useEffect(() => {
+    if (!people) return undefined
+    const handleMouseDown = (event) => {
+      if (peopleRef.current?.contains(event.target)) return
+      setPeople(null)
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setPeople(null)
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [people])
 
   return (
     <div className='p-4 max-w-5xl'>
@@ -457,45 +813,117 @@ export default function MetricsPanel ({ groupId, signupMetric = false }) {
         </button>
       </div>
       <p className='text-sm text-foreground/60 mb-4'>
-        {t(RANGE_NOTES[rangeId])}
-        {compare && ` ${t(COMPARE_NOTES[rangeId])}`}
+        {t('The range sets how much history the charts show. Daily numbers compare with the previous week or month. Weekly and monthly numbers compare with a year earlier.')}
       </p>
       {error && <p className='text-sm text-accent mb-3'>{error}</p>}
-      {!series && <Loading />}
-      {series && (
+      {!byPeriod && <Loading />}
+      {byPeriod && (
         <>
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-            {metrics.filter(metric => LABELS[metric] || metric === 'signups').map(metric => {
-              const points = pointsFor(metric)
+          <NorthStar
+            t={t}
+            compare={compare}
+            points={shownFor('connected_members', 'week')}
+            extra={shownFor('connected_beyond_reaction', 'week')}
+          />
+          <div className='grid grid-cols-2 sm:grid-cols-3 gap-3 mb-2'>
+            {VITAL.map(spec => {
+              const points = shownFor(spec.id, spec.period)
               const point = latestValue(points)
-              const when = !point
-                ? null
-                : period === 'week'
-                  ? t('Week of {{date}}', { date: formatWhen(point.periodStart, 'day') })
-                  : formatWhen(point.periodStart, period)
+              if (!point || point.value === null) return null
               return (
-                <MetricCard
-                  key={metric}
-                  label={t(metric === 'signups' ? 'Signups' : LABELS[metric])}
-                  explainer={t(EXPLAINERS[metric])}
-                  value={point ? point.value : null}
-                  when={when}
-                  points={points}
-                  period={period}
-                  compare={compare}
-                />
+                <div key={`${spec.id}:${spec.period}`} className='rounded-lg border border-foreground/10 bg-card p-3'>
+                  <div className='text-sm text-foreground/60'>{labelFor(spec)}</div>
+                  <div className='text-2xl font-semibold text-foreground'>{formatValue(point.value, spec.unit, t)}</div>
+                  <ChangeNote value={point.value} previous={point.previous} unit={spec.unit} good={spec.good} comparable={spec.comparable} compare={compare} />
+                </div>
               )
             })}
           </div>
-          {period === 'week' && (
-            <p className='text-sm text-foreground/70 mt-4'>
-              {retention === null
-                ? t('Not enough activity in this period yet')
-                : t('Came back the next week') + `: ${retention}%`}
-            </p>
+          {SECTIONS.map(section => {
+            const cards = section.metrics.filter(spec => !spec.signup || signupMetric).map(spec => {
+              const view = viewFor(spec)
+              if ((!view.point || view.point.value === null) && !view.hasBreakdown) return null
+              const when = !view.point
+                ? null
+                : spec.period === 'week'
+                  ? t('Week of {{date}}', { date: formatWhen(view.point.periodStart, 'day') })
+                  : formatWhen(view.point.periodStart, spec.period)
+              const key = `${spec.id}:${spec.period}`
+              return (
+                <MetricCard
+                  key={key}
+                  label={labelFor(spec)}
+                  explainer={explainerFor(spec)}
+                  value={view.point ? view.point.value : null}
+                  when={when}
+                  points={spec.view ? null : view.points}
+                  period={spec.period}
+                  compare={compare}
+                  unit={spec.unit}
+                  good={spec.good}
+                  comparable={spec.comparable}
+                  lines={spec.lines ? view.lines : []}
+                  breakdown={view.breakdown}
+                  whoLabel={t('Who')}
+                  people={people?.key === key ? people : null}
+                  anchorRef={people?.key === key ? peopleRef : null}
+                  onWho={spec.people && view.point ? () => handleWho(spec.id, spec.period, view.point.periodStart) : null}
+                />
+              )
+            }).filter(Boolean)
+            if (!cards.length) return null
+            return (
+              <section key={section.id} className='mt-8'>
+                <h2 className='text-lg font-semibold text-foreground'>{t(section.title)}</h2>
+                <p className='text-sm text-foreground/60 mb-3'>{t(section.question)}</p>
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>{cards}</div>
+              </section>
+            )
+          })}
+          {!groupId && (
+            <>
+              <section className='mt-8'>
+                <h2 className='text-lg font-semibold text-foreground'>{t('What we do not optimize')}</h2>
+                <ul className='mt-2 list-disc pl-5 text-sm text-foreground/70 space-y-1'>
+                  {AVOID.map(item => <li key={item}>{t(item)}</li>)}
+                </ul>
+              </section>
+              <section className='mt-6 mb-4'>
+                <h2 className='text-lg font-semibold text-foreground'>{t('What we cannot measure yet')}</h2>
+                <ul className='mt-2 list-disc pl-5 text-sm text-foreground/70 space-y-1'>
+                  {GAPS.map(item => <li key={item}>{t(item)}</li>)}
+                </ul>
+              </section>
+            </>
           )}
         </>
       )}
     </div>
+  )
+}
+
+/** The headline metric: people on either side of a real interaction. */
+function NorthStar ({ t, compare, points, extra }) {
+  const point = latestValue(points)
+  if (!point || point.value === null) return null
+  const byDay = new Map((extra || []).map(item => [item.periodStart, item.value]))
+  const lines = [{
+    label: t('Connected by more than a reaction'),
+    opacity: '0.7',
+    dash: '0',
+    points: points.map(item => ({ ...item, value: byDay.has(item.periodStart) ? byDay.get(item.periodStart) : null }))
+  }]
+  return (
+    <section className='mb-4 rounded-lg border border-foreground/10 bg-card p-4'>
+      <div className='text-xs tracking-wide text-foreground/50'>{t('North star')}</div>
+      <h2 className='text-lg font-semibold text-foreground'>{t('Weekly connected members')}</h2>
+      <div className='text-3xl font-semibold text-foreground'>{formatValue(point.value, 'count', t)}</div>
+      <ChangeNote value={point.value} previous={point.previous} good='up' compare={compare} />
+      <div className='text-xs text-foreground/60 mb-2'>{t('Week of {{date}}', { date: formatWhen(point.periodStart, 'day') })}</div>
+      <p className='text-sm text-foreground/70 mb-2'>{t('People on either side of an interaction between two people in a week: a comment, reaction, RSVP, vote, or project join. Both people count. Direct messages and the Axolotl bot are left out.')}</p>
+      <p className='text-sm text-foreground/70 mb-3'>{t('This is the moment Hylo creates value: someone showed up and someone else answered. Notification blasts and empty signups do not raise it.')}</p>
+      <LineChart points={points} period='week' compare={compare} lines={lines} />
+      <div className='mt-1 text-[11px] text-foreground/50'>{t('The second line is people connected by more than a reaction.')}</div>
+    </section>
   )
 }

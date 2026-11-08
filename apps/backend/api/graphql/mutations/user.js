@@ -7,6 +7,7 @@ import { RATE_LIMITED_ERROR, authenticateWithRateLimit, isRateLimited, recordAtt
 import sentry from '../../../lib/sentry'
 import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
 import { track } from '../../../lib/analytics/track'
+import { linkAnonymousEvents } from '../../../lib/analytics/clientEvents'
 
 // Sign-up Related
 
@@ -93,7 +94,7 @@ export const verifyEmail = (fetchOne) => async (_, { email: providedEmail, code:
   }
 }
 
-export const register = (fetchOne) => async (_, { name, password }, context) => {
+export const register = (fetchOne) => async (_, { name, password, anonymousId }, context) => {
   try {
     const user = await User.find(context.currentUserId, {}, false)
 
@@ -123,6 +124,7 @@ export const register = (fetchOne) => async (_, { name, password }, context) => 
         occurredAt: user.get('created_at') || new Date()
       })
     })
+    await linkAnonymousEvents(bookshelf.knex, user.id, anonymousId)
 
     return { me: fetchOne('Me', user.id) }
   } catch (error) {
@@ -218,7 +220,14 @@ export async function deleteUser ({ userId, sessionId }) {
 }
 
 export async function blockUser (userId, blockedUserId) {
-  await BlockedUser.create(userId, blockedUserId)
+  const blocked = await BlockedUser.create(userId, blockedUserId)
+  track({
+    type: EVENT_TYPES.USER_BLOCKED,
+    userId,
+    object: { type: 'blocked_user', id: blocked && blocked.id },
+    targetUserId: blockedUserId,
+    occurredAt: (blocked && blocked.get && blocked.get('created_at')) || new Date()
+  })
 
   return { success: true }
 }
@@ -227,6 +236,13 @@ export async function unblockUser (userId, blockedUserId) {
   const blockedUser = await BlockedUser.find(userId, blockedUserId)
 
   if (!blockedUser) throw new GraphQLError('user is not blocked')
+
+  track({
+    type: EVENT_TYPES.USER_UNBLOCKED,
+    userId,
+    object: { type: 'blocked_user', id: blockedUser.id },
+    targetUserId: blockedUserId
+  })
 
   await blockedUser.destroy()
 

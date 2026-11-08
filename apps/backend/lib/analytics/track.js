@@ -38,6 +38,7 @@ export function trackPostCreated (post, groupIds) {
     userId: post.get('user_id'),
     groupIds: groupIds || [],
     object: { type: 'post', id: post.id },
+    postId: post.id,
     postType,
     properties: { isPublic: !!post.get('is_public') },
     occurredAt: post.get('created_at') || new Date()
@@ -53,13 +54,15 @@ export function trackComment (comment, post, groupIds) {
     groupIds: isThread ? [] : groupIds,
     object: { type: 'comment', id: comment.id },
     targetUserId: post.get('user_id'),
+    postId: post.id,
     postType: post.get('type'),
+    properties: { commentId: comment.id },
     occurredAt: comment.get('created_at') || new Date()
   })
 }
 
 /** Records a reaction. `reaction` is the reactions row that was just saved. */
-export function trackReaction ({ userId, reaction, post, groupIds, targetUserId }) {
+export function trackReaction ({ userId, reaction, post, groupIds, targetUserId, commentId = null }) {
   const isThread = post && post.get('type') === 'thread'
   track({
     type: EVENT_TYPES.REACTION_ADDED,
@@ -67,7 +70,9 @@ export function trackReaction ({ userId, reaction, post, groupIds, targetUserId 
     groupIds: isThread ? [] : groupIds,
     object: { type: 'reaction', id: reaction.id },
     targetUserId,
+    postId: post ? post.id : null,
     postType: post ? post.get('type') : null,
+    properties: commentId ? { commentId } : null,
     occurredAt: reaction.date_reacted || new Date()
   })
 }

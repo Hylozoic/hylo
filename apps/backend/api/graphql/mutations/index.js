@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 import convertGraphqlData from './convertGraphqlData'
 import { startEmailChange, validateEmailChange } from './emailChange'
 import { pushToSockets, userRoom } from '../../services/Websockets'
-import { groupIdsForPost, trackReaction } from '../../../lib/analytics/track'
+import { groupIdsForPost, track, trackReaction } from '../../../lib/analytics/track'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
 
 export {
   createAffiliation,
@@ -163,6 +164,7 @@ export {
   leaveFundingRound,
   updateFundingRound
 } from './fundingRound'
+export { metricPeople, recordEvents, retentionExplore } from './analytics'
 export {
   blockUser,
   deactivateUser,
@@ -535,7 +537,14 @@ function recordReaction (userId, entity, entityType) {
     if (!reaction) return
     const post = entityType === 'comment' ? await Post.find(entity.get('post_id')) : entity
     const groupIds = post ? await groupIdsForPost(post.id) : []
-    trackReaction({ userId, reaction, post, groupIds, targetUserId: entity.get('user_id') })
+    trackReaction({
+      userId,
+      reaction,
+      post,
+      groupIds,
+      targetUserId: entity.get('user_id'),
+      commentId: entityType === 'comment' ? entity.id : null
+    })
   }
   write().catch(() => {})
 }
@@ -591,7 +600,23 @@ export function deleteReaction (userId, entityId, data, context) {
   }
   return lookUp[entityType].find(entityId)
     .then(async entity => {
+      const reaction = await bookshelf.knex('reactions')
+        .where({ user_id: userId, entity_id: entity.id, entity_type: entityType })
+        .first()
       const result = await entity.deleteReaction(userId, data.emojiFull)
+      if (reaction) {
+        const post = entityType === 'comment' ? await Post.find(entity.get('post_id')) : entity
+        const groupIds = post ? await groupIdsForPost(post.id) : []
+        track({
+          type: EVENT_TYPES.REACTION_REMOVED,
+          userId,
+          groupIds: post && post.get('type') === 'thread' ? [] : groupIds,
+          object: { type: 'reaction', id: reaction.id },
+          postId: post ? post.id : null,
+          postType: post ? post.get('type') : null,
+          properties: entityType === 'comment' ? { commentId: entity.id } : null
+        })
+      }
 
       // Note subscriptions for reactions on posts are handled by the postUpdates subscription
 

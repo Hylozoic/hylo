@@ -22,14 +22,14 @@ import EventMixin, { eventClassMethods } from './event/mixin'
 import { defaultTimezone, wherePostedInGroups } from '../../lib/group/digest2/util'
 import { publishPostUpdate } from '../../lib/postSubscriptionPublisher'
 import { EVENT_TYPES } from '../../lib/analytics/trackActivity'
-import { groupIdsForPost, track } from '../../lib/analytics/track'
+import { groupIdsForPost, track as recordActivity } from '../../lib/analytics/track'
 
 init({ data })
 
 /** Records a proposal vote after it has been saved. */
 function recordProposalVote (post, userId, vote) {
   groupIdsForPost(post.id).then(groupIds => {
-    track({
+    recordActivity({
       type: EVENT_TYPES.PROPOSAL_VOTE,
       userId,
       groupIds,
@@ -1233,6 +1233,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
       // Completion roles and steward notifications live on the parent group
       const notifyGroupId = spaceGroup.get('parent_id') || spaceGroup.id
+      recordActivity({
+        type: EVENT_TYPES.TRACK_COMPLETED,
+        userId,
+        groupIds: [notifyGroupId],
+        object: { type: 'track', id: track.id }
+      })
       const notifyGroup = spaceGroup.get('parent_id')
         ? await Group.find(spaceGroup.get('parent_id'), { transacting: trx })
         : spaceGroup

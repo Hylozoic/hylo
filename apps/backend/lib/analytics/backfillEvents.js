@@ -1,5 +1,6 @@
 import { AXOLOTL_ID } from './snapshots'
 import { windows } from './periods'
+import { fillEventLinks } from './rollups'
 
 const INSERT = `insert into activity_events
   (occurred_at, event_type, user_id, group_id, object_type, object_id, target_user_id, post_type, source)
@@ -135,7 +136,33 @@ const SIGNUPS = `${INSERT}
   where u.created_at >= ? and u.created_at < ? and u.email_validated and u.id <> ${AXOLOTL_ID}
   ${DONE}`
 
-const STATEMENTS = [POSTS, COMMENTS, MESSAGES, POST_REACTIONS, COMMENT_REACTIONS, RSVPS, VOTES, PROJECTS, JOINS, REQUESTS, DECISIONS, INVITES_SENT, INVITES_ACCEPTED, ROLES, GROUPS, SIGNUPS]
+const TRACKS = `${INSERT}
+  select t.created_at, 'track_created', g.created_by_id, coalesce(g.parent_id, t.group_id, 0), 'track', t.id, null, null, 'backfill'
+  from tracks t
+  join groups g on g.id = t.group_id
+  where t.created_at >= ? and t.created_at < ? and g.created_by_id is not null
+  ${DONE}`
+
+const BLOCKS = `${INSERT}
+  select created_at, 'user_blocked', user_id, 0, 'blocked_user', id, blocked_user_id, null, 'backfill'
+  from blocked_users
+  where created_at >= ? and created_at < ?
+  ${DONE}`
+
+const TOPICS = `${INSERT}
+  select created_at, 'topic_created', user_id, group_id, 'tag', tag_id, null, null, 'backfill'
+  from groups_tags
+  where created_at >= ? and created_at < ? and user_id is not null
+  ${DONE}`
+
+const CANCELED = `${INSERT}
+  select coalesce(updated_at, created_at), 'join_request_canceled', user_id, group_id, 'join_request', id, null, null, 'backfill'
+  from join_requests
+  where status = 3 and user_id is not null
+    and coalesce(updated_at, created_at) >= ? and coalesce(updated_at, created_at) < ?
+  ${DONE}`
+
+const STATEMENTS = [POSTS, COMMENTS, MESSAGES, POST_REACTIONS, COMMENT_REACTIONS, RSVPS, VOTES, PROJECTS, JOINS, REQUESTS, DECISIONS, INVITES_SENT, INVITES_ACCEPTED, ROLES, GROUPS, SIGNUPS, TRACKS, BLOCKS, TOPICS, CANCELED]
 
 /**
  * Copies historical actions into activity_events. Safe to run again: a row
@@ -149,5 +176,6 @@ export async function backfillEvents (knex, { from, to, log = () => {} }) {
       await knex.raw(sql, [chunk.from, chunk.to])
     }
   }
+  await fillEventLinks(knex)
   return chunks.length
 }

@@ -57,6 +57,22 @@ export function fillPoints (points, { from, to, period }) {
   return filled
 }
 
+/**
+ * Half-open UTC bounds for a YYYY-MM-DD range. Date-only strings are midnight
+ * UTC. Leaving them for Postgres to cast uses the session time zone, which
+ * pulls the next UTC day into a chunk that did not delete it.
+ */
+export function utcRange (from, to) {
+  const fromDay = utcDay(parseDay(String(from).slice(0, 10)))
+  const toDay = utcDay(parseDay(String(to).slice(0, 10)))
+  return {
+    fromDay,
+    toDay,
+    fromTs: `${fromDay}T00:00:00.000Z`,
+    toTs: `${toDay}T00:00:00.000Z`
+  }
+}
+
 /** Day windows of at most `days` length, from `from` up to `to` (exclusive end). */
 export function windows (from, to, days = 31) {
   let cursor = parseDay(from)

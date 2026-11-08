@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { fillPoints, utcDay, windows, startOfWeek } from '../../../../lib/analytics/periods'
+import { fillPoints, utcDay, utcRange, windows, startOfWeek } from '../../../../lib/analytics/periods'
 import { hideSmallCohorts, MIN_COHORT } from '../../../../lib/analytics/readMetrics'
 
 describe('fillPoints', () => {
@@ -13,6 +13,17 @@ describe('fillPoints', () => {
 
   it('starts a week on Monday', () => {
     expect(utcDay(startOfWeek(new Date('2026-10-28T00:00:00Z')))).to.equal('2026-10-26')
+  })
+})
+
+describe('utcRange', () => {
+  it('treats a date-only range as midnight UTC', () => {
+    expect(utcRange('2014-01-01', '2015-01-01')).to.deep.equal({
+      fromDay: '2014-01-01',
+      toDay: '2015-01-01',
+      fromTs: '2014-01-01T00:00:00.000Z',
+      toTs: '2015-01-01T00:00:00.000Z'
+    })
   })
 })
 

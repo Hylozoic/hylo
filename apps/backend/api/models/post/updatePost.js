@@ -8,6 +8,8 @@ import {
   updateFollowers
 } from './util'
 import { partitionImageUrls } from '../../../lib/uploader/rehostRemoteMedia'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { groupIdsForPost, track } from '../../../lib/analytics/track'
 
 export default function updatePost (userId, id, params) {
   if (!id) throw new GraphQLError('updatePost called with no ID')
@@ -56,12 +58,24 @@ export default function updatePost (userId, id, params) {
       }
       return post
     })
+    .then(async post => {
+      const groupIds = await groupIdsForPost(post.id)
+      track({
+        type: EVENT_TYPES.POST_UPDATED,
+        userId,
+        groupIds,
+        object: { type: 'post', id: post.id },
+        postId: post.id,
+        postType: post.get('type')
+      })
+      return post
+    })
 }
 
 export function afterUpdatingPost (post, opts) {
   const {
     params,
-    params: { requests, group_ids, topicNames, memberIds, eventInviteeIds, proposalOptions },
+    params: { requests, group_ids, topicNames, memberIds, eventInviteeIds, proposalOptions }, // eslint-disable-line camelcase
     userId,
     eventChanges,
     transacting
@@ -81,7 +95,7 @@ export function afterUpdatingPost (post, opts) {
     .then(() => Post.afterRelatedMutation(post.id, { changeContext: 'edit' }))
 }
 
-export function getEventChanges({ post, params }) {
+export function getEventChanges ({ post, params }) {
   return {
     start_time: post.get('start_time').getTime() !== params.startTime.getTime() && params.startTime,
     end_time: post.get('end_time').getTime() !== params.endTime.getTime() && params.endTime,

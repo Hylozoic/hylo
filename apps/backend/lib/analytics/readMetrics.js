@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
-import { METRIC_IDS } from './snapshots'
 import { fillPoints, parseDay } from './periods'
+import { METRICS, metricIds, sourceMetric, storedIdsFor } from './metrics/registry'
 
 export const MIN_COHORT = 5
 const PERIODS = ['day', 'week', 'month', 'year']
@@ -35,31 +35,65 @@ function assertRange (period, from, to) {
  * Reads stored metric values for one group (or the platform when groupId is 0).
  * Periods that were never computed come back as null, not zero.
  */
+/** Stickiness is daily active people divided by the 30-day active people. */
+function stickinessPoints (active, monthly) {
+  return active.map((point, index) => {
+    const base = monthly[index]
+    if (!point || point.value === null || !base || !base.value) return { periodStart: point.periodStart, value: null, dimension: '' }
+    return { periodStart: point.periodStart, value: point.value / base.value, dimension: '' }
+  })
+}
+
+/**
+ * Reads stored metric values for one group (or the platform when groupId is 0).
+ * Periods that were never computed come back as null, not zero. A metric can
+ * have several series, one per dimension. The empty dimension is the headline.
+ */
 export async function readSeries ({ knex, groupId, metrics, period, from, to }) {
   assertRange(period, from, to)
   const requested = metrics && metrics.length ? metrics : ['active_users']
-  const unknown = requested.filter(metric => !METRIC_IDS.includes(metric))
+  const unknown = requested.filter(metric => !metricIds().includes(metric))
   if (unknown.length) throw new GraphQLError(`unknown metric ${unknown[0]}`)
 
+  const stored = storedIdsFor(requested)
   const rows = await knex('metric_snapshots')
     .where({ group_id: groupId, period })
-    .whereIn('metric', requested)
-    .where('dimension', '')
+    .whereIn('metric', stored)
     .where('period_start', '>=', from)
     .where('period_start', '<=', to)
-    .select('metric', 'period_start', 'value')
+    .select('metric', 'dimension', 'period_start', 'value')
 
-  const byMetric = new Map(requested.map(metric => [metric, []]))
+  const byKey = new Map()
   for (const row of rows) {
+    const dimension = row.dimension || ''
+    const key = `${row.metric}\0${dimension}`
+    if (!byKey.has(key)) byKey.set(key, [])
     const value = row.value === null ? null : Number(row.value)
     const periodStart = row.period_start instanceof Date ? row.period_start.toISOString().slice(0, 10) : String(row.period_start).slice(0, 10)
-    byMetric.get(row.metric).push({ periodStart, value })
+    byKey.get(key).push({ periodStart, value, dimension })
   }
 
-  const series = requested.map(metric => ({
-    metric,
-    points: fillPoints(byMetric.get(metric), { from, to, period })
-  }))
+  const filled = (metric, dimension = '') => fillPoints(byKey.get(`${metric}\0${dimension}`) || [], { from, to, period })
+    .map(point => ({ ...point, dimension }))
+
+  const series = []
+  for (const metric of requested) {
+    const entry = METRICS[metric]
+    if (entry.kind === 'derived' && metric === 'stickiness') {
+      series.push({ metric, dimension: '', points: stickinessPoints(filled('active_users'), filled('mau')) })
+      continue
+    }
+    if (entry.kind === 'display') {
+      for (const need of entry.needs) series.push({ metric: need, dimension: '', points: filled(need) })
+      continue
+    }
+    const source = sourceMetric(metric)
+    const dimensions = [...byKey.keys()].filter(key => key.startsWith(`${source}\0`)).map(key => key.split('\0')[1])
+    const shown = dimensions.length ? dimensions : ['']
+    for (const dimension of shown) {
+      series.push({ metric, dimension, points: filled(source, dimension) })
+    }
+  }
   return hideSmallCohorts(series, groupId)
 }
 

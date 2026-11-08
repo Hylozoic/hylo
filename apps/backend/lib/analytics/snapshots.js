@@ -1,7 +1,9 @@
 import { addPeriod, parseDay, utcDay } from './periods'
+import { AXOLOTL_ID } from './constants'
+import { refreshDailyRollups } from './rollups'
+import { computeRecentHealth, computeStateMetrics } from './metrics/health'
 
-// The Axolotl bot. Kept here so the cron and the CLI can run without Sails.
-export const AXOLOTL_ID = 13986
+export { AXOLOTL_ID }
 
 export const METRIC_IDS = [
   'active_users', 'wau', 'mau', 'contributors', 'connected_members',
@@ -15,11 +17,16 @@ const CONTRIBUTION = `
   and coalesce(post_type, '') not in ('thread','chat_activity','welcome')
   and user_id <> ${AXOLOTL_ID}`
 
-const CONNECTION = `
-  event_type in ('comment_created','reaction_added','event_rsvp','proposal_vote','project_joined')
-  and coalesce(post_type, '') not in ('thread','chat_activity','welcome')
-  and target_user_id is not null and target_user_id <> user_id
-  and user_id <> ${AXOLOTL_ID}`
+const E_CONNECTION = `
+  e.event_type in ('comment_created','reaction_added','event_rsvp','proposal_vote','project_joined')
+  and coalesce(e.post_type, '') not in ('thread','chat_activity','welcome')
+  and e.target_user_id is not null and e.target_user_id <> e.user_id
+  and e.user_id <> ${AXOLOTL_ID}
+  and (
+    e.post_id is null
+    or e.occurred_at <= (select p.created_at from posts p where p.id = e.post_id) +
+      case when coalesce(e.post_type, '') in ('event','proposal','project') then interval '30 days' else interval '14 days' end
+  )`
 
 /** Inserts or overwrites snapshot rows. */
 async function writeRows (knex, rows) {
@@ -45,15 +52,19 @@ async function store (knex, { sql, bindings, metric, period, periodStart, dimens
     period,
     period_start: periodStart,
     value: row.value,
+    definition_version: row.definition_version || 1,
     computed_at: now
   })))
 }
 
 /** Counts an event type per group, plus one platform row (group 0) of distinct objects. */
 function eventCountSql (eventType, { distinct = false } = {}) {
-  const perGroup = `select group_id, count(*)::int as value from activity_events
-    where event_type = '${eventType}' and occurred_at >= ? and occurred_at < ? and user_id <> ${AXOLOTL_ID} and group_id <> 0
-    group by group_id`
+  const perGroup = `select case when g.type = 'space' and g.parent_id is not null then g.parent_id else e.group_id end as group_id,
+    count(*)::int as value
+    from activity_events e
+    left join groups g on g.id = e.group_id
+    where e.event_type = '${eventType}' and e.occurred_at >= ? and e.occurred_at < ? and e.user_id <> ${AXOLOTL_ID} and e.group_id <> 0
+    group by 1`
   const platform = distinct
     ? `select 0 as group_id, count(distinct object_id)::int as value from activity_events
         where event_type = '${eventType}' and occurred_at >= ? and occurred_at < ? and user_id <> ${AXOLOTL_ID}`
@@ -79,8 +90,13 @@ export async function computePeriod (knex, { period, periodStart, rolling = fals
     period,
     periodStart,
     bindings: dayRange,
-    sql: `select group_id, count(distinct user_id)::int as value from activity_days
-      where day >= ? and day < ? and user_id <> ${AXOLOTL_ID} group by group_id`
+    sql: `select case when d.group_id = 0 then 0 when g.type = 'space' and g.parent_id is not null then g.parent_id else d.group_id end as group_id,
+      count(distinct d.user_id)::int as value
+      from activity_days d
+      join users u on u.id = d.user_id and u.active is not false
+      left join groups g on g.id = d.group_id
+      where d.day >= ? and d.day < ? and d.user_id <> ${AXOLOTL_ID}
+      group by 1`
   })
 
   if (rolling && period === 'day') {
@@ -89,16 +105,26 @@ export async function computePeriod (knex, { period, periodStart, rolling = fals
       period,
       periodStart,
       bindings: [periodStart, periodStart],
-      sql: `select group_id, count(distinct user_id)::int as value from activity_days
-        where day > (?::date - interval '7 days') and day <= ?::date and user_id <> ${AXOLOTL_ID} group by group_id`
+      sql: `select case when d.group_id = 0 then 0 when g.type = 'space' and g.parent_id is not null then g.parent_id else d.group_id end as group_id,
+        count(distinct d.user_id)::int as value
+        from activity_days d
+        join users u on u.id = d.user_id and u.active is not false
+        left join groups g on g.id = d.group_id
+        where d.day > (?::date - interval '7 days') and d.day <= ?::date and d.user_id <> ${AXOLOTL_ID}
+        group by 1`
     })
     await store(knex, {
       metric: 'mau',
       period,
       periodStart,
       bindings: [periodStart, periodStart],
-      sql: `select group_id, count(distinct user_id)::int as value from activity_days
-        where day > (?::date - interval '30 days') and day <= ?::date and user_id <> ${AXOLOTL_ID} group by group_id`
+      sql: `select case when d.group_id = 0 then 0 when g.type = 'space' and g.parent_id is not null then g.parent_id else d.group_id end as group_id,
+        count(distinct d.user_id)::int as value
+        from activity_days d
+        join users u on u.id = d.user_id and u.active is not false
+        left join groups g on g.id = d.group_id
+        where d.day > (?::date - interval '30 days') and d.day <= ?::date and d.user_id <> ${AXOLOTL_ID}
+        group by 1`
     })
   }
 
@@ -107,11 +133,21 @@ export async function computePeriod (knex, { period, periodStart, rolling = fals
     period,
     periodStart,
     bindings: [...range, ...range],
-    sql: `select group_id, count(distinct user_id)::int as value from activity_events
-      where ${CONTRIBUTION} and occurred_at >= ? and occurred_at < ? and group_id <> 0 group by group_id
+    sql: `select group_id, count(distinct user_id)::int as value from (
+        select case when g.type = 'space' and g.parent_id is not null then g.parent_id else e.group_id end as group_id, e.user_id
+        from activity_events e
+        join users u on u.id = e.user_id and u.active is not false
+        left join groups g on g.id = e.group_id
+        where e.event_type in ('post_created','comment_created','reaction_added','event_rsvp','proposal_vote','project_joined')
+          and coalesce(e.post_type, '') not in ('thread','chat_activity','welcome')
+          and e.user_id <> ${AXOLOTL_ID} and e.occurred_at >= ? and e.occurred_at < ? and e.group_id <> 0
+      ) people group by group_id
       union all
-      select 0, count(distinct user_id)::int from activity_events
-      where ${CONTRIBUTION} and occurred_at >= ? and occurred_at < ?`
+      select 0, count(distinct e.user_id)::int from activity_events e
+      join users u on u.id = e.user_id and u.active is not false
+      where e.event_type in ('post_created','comment_created','reaction_added','event_rsvp','proposal_vote','project_joined')
+        and coalesce(e.post_type, '') not in ('thread','chat_activity','welcome')
+        and e.user_id <> ${AXOLOTL_ID} and e.occurred_at >= ? and e.occurred_at < ?`
   })
 
   await store(knex, {
@@ -120,17 +156,27 @@ export async function computePeriod (knex, { period, periodStart, rolling = fals
     periodStart,
     bindings: [...range, ...range, ...range, ...range],
     sql: `select group_id, count(distinct person)::int as value from (
-        select group_id, user_id as person from activity_events
-          where ${CONNECTION} and occurred_at >= ? and occurred_at < ? and group_id <> 0
+        select case when g.type = 'space' and g.parent_id is not null then g.parent_id else e.group_id end as group_id, e.user_id as person
+        from activity_events e
+        join users u on u.id = e.user_id and u.active is not false
+        left join groups g on g.id = e.group_id
+        where ${E_CONNECTION} and e.occurred_at >= ? and e.occurred_at < ? and e.group_id <> 0
         union
-        select group_id, target_user_id from activity_events
-          where ${CONNECTION} and occurred_at >= ? and occurred_at < ? and group_id <> 0
+        select case when g.type = 'space' and g.parent_id is not null then g.parent_id else e.group_id end, e.target_user_id
+        from activity_events e
+        join users u on u.id = e.target_user_id and u.active is not false
+        left join groups g on g.id = e.group_id
+        where ${E_CONNECTION} and e.occurred_at >= ? and e.occurred_at < ? and e.group_id <> 0
       ) people group by group_id
       union all
       select 0, count(distinct person)::int from (
-        select user_id as person from activity_events where ${CONNECTION} and occurred_at >= ? and occurred_at < ?
+        select e.user_id as person from activity_events e
+        join users u on u.id = e.user_id and u.active is not false
+        where ${E_CONNECTION} and e.occurred_at >= ? and e.occurred_at < ?
         union
-        select target_user_id from activity_events where ${CONNECTION} and occurred_at >= ? and occurred_at < ?
+        select e.target_user_id from activity_events e
+        join users u on u.id = e.target_user_id and u.active is not false
+        where ${E_CONNECTION} and e.occurred_at >= ? and e.occurred_at < ?
       ) people`
   })
 
@@ -221,6 +267,8 @@ export async function computePeriod (knex, { period, periodStart, rolling = fals
  */
 export async function computeDueSnapshots (knex, now = new Date()) {
   const yesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1))
+  const today = utcDay(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())))
+  await refreshDailyRollups(knex, utcDay(yesterday), today)
   await computePeriod(knex, { period: 'day', periodStart: utcDay(yesterday), rolling: true, state: true })
 
   if (yesterday.getUTCDay() === 0) {
@@ -237,6 +285,9 @@ export async function computeDueSnapshots (knex, now = new Date()) {
       await computePeriod(knex, { period: 'year', periodStart: `${yesterday.getUTCFullYear()}-01-01` })
     }
   }
+
+  await computeRecentHealth(knex, now)
+  await computeStateMetrics(knex, utcDay(yesterday))
 }
 
 /**
