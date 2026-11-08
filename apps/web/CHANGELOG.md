@@ -6,8 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.10] - 2026-11-04
+
 ### Added
+- Profile hover card on person avatars
+- Emoji button in text editor toolbar to insert emojis
+- Formatting toolbar for comments
 - Administrators can convert a chat room into a discussion post from an Advanced menu in space settings, or from Related Groups when chat rooms are blocking a group from becoming a space. The chat-room action is only shown for chat-only spaces, and the room is removed as part of the conversion. The new discussion is dated today.
+
+### Changed
+- Make the role/badge emoji box explain itself better
+- Add X buttons to clear a start or end time on a post
+- Split requests and offers as post type options in custom post stream view filters
+
+### Fixed
+- Stop mobile WebView session recovery stalling on Android
+- Clicking on group in search results correctly goes to group
+- Wrap long unbroken text in post detail and comments
 
 ## [7.1.9] - 2026-10-28
 
