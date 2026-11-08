@@ -6,8 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.10] - 2026-11-04
+
 ### Added
 - Administrators can convert a chat room (a chat-only space) into a discussion post. Each chat message becomes a comment, with attachments, reactions and replies kept. The discussion is dated today; comments keep the original message times. Other posts are left in place. The chat room is removed, so it no longer blocks turning its parent group into a space. No notifications are sent.
+- System for generating demo groups. Generation happens locally and creates .json files which can then be used to create the group in local database, staging or prod
+-  Profile hover card on person avatars
 
 ## [7.1.9] - 2026-10-28
 
