@@ -1,4 +1,4 @@
-import { sid } from './helpers'
+import { materializeLocalTime, sid } from './helpers'
 
 describe('sandbox sid()', () => {
   it('returns numeric ids', () => {
@@ -19,6 +19,11 @@ describe('sandbox sid()', () => {
     expect(sid('post', 'chat-001')).toBe(sid('post', 'chat', '001'))
   })
 
+  it('pins a local clock time onto one Pacific calendar day', () => {
+    const iso = materializeLocalTime({ days: 1, hour: 10, minute: 30 }, Date.UTC(2026, 9, 20, 22, 0, 0))
+    expect(iso).toBe('2026-10-21T17:30:00.000Z')
+  })
+
   it('keeps compound view tokens unique (staff-chat vs staff-events)', () => {
     const staffViews = [
       'staff-chat',
@@ -30,6 +35,8 @@ describe('sandbox sid()', () => {
     const simpleViews = [
       'simple-chat',
       'simple-all',
+      'simple-map',
+      'simple-events',
       'simple-requests',
       'simple-projects',
       'simple-members'

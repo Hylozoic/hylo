@@ -35,6 +35,7 @@ import {
   INVITE_PEER_RELATIONSHIP,
   JOIN_PROJECT_PENDING,
   LEAVE_GROUP,
+  LEAVE_GROUP_PENDING,
   LEAVE_PROJECT_PENDING,
   PROCESS_STRIPE_TOKEN_PENDING,
   REACT_ON_POST_PENDING,
@@ -64,7 +65,6 @@ import {
   MUTE_MESSAGE_THREAD,
   UNMUTE_MESSAGE_THREAD,
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
-  UPDATE_WIDGET,
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
   UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
@@ -1010,12 +1010,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case LEAVE_GROUP_PENDING:
     case LEAVE_GROUP: {
       me = Me.first()
       membership = find(m => m.group.id === meta.id, me.memberships.toModelArray())
       if (membership) membership.delete()
       membership = Membership.safeGet({ group: meta.id, person: me.id })
       if (membership) membership.delete()
+      group = Group.safeGet({ id: meta.id })
+      if (group) group.update({ currentUserMembershipActive: false })
       break
     }
 
@@ -1476,11 +1479,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         }
       }
       me.update(changes)
-      break
-    }
-
-    case UPDATE_WIDGET: {
-      clearCacheFor(Group, payload.data.updateWidget.group.id)
       break
     }
 

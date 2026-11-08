@@ -4,6 +4,9 @@ import factories from '../../../test/setup/factories'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import { mockify, unspyify } from '../../../test/setup/helpers'
 import { archiveSpace, convertGroupToSpace, convertSpaceToChildGroup, createSpace, deleteSpace, joinSpace, updateSpace } from './spaces'
+import { createInvitation } from './invitation'
+
+const MEMBER_ROLE_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
 
 describe('space mutations', () => {
   let administrator, member, parentGroup
@@ -17,6 +20,47 @@ describe('space mutations', () => {
   })
 
   after(async () => setup.clearDb())
+
+  describe('createSpace geoShape', () => {
+    it('stores a GeoJSON boundary on the new space', async () => {
+      const polygon = { type: 'Polygon', coordinates: [[[-122.5, 37.7], [-122.4, 37.7], [-122.4, 37.8], [-122.5, 37.7]]] }
+      const space = await createSpace(administrator.id, {
+        parentGroupId: parentGroup.id,
+        name: 'Shaped Space',
+        geoShape: JSON.stringify(polygon)
+      }, {})
+
+      const saved = await Group.find(space.id)
+      expect(saved.get('geo_shape').type).to.equal('Polygon')
+      expect(saved.get('geo_shape').coordinates).to.deep.equal(polygon.coordinates)
+      await deleteSpace(administrator.id, space.id, {})
+    })
+  })
+
+  describe('updateSpace geoShape', () => {
+    it('stores a boundary and can clear it without touching other updates', async () => {
+      const polygon = { type: 'Polygon', coordinates: [[[-122.5, 37.7], [-122.4, 37.7], [-122.4, 37.8], [-122.5, 37.7]]] }
+      const space = await createSpace(administrator.id, {
+        parentGroupId: parentGroup.id,
+        name: 'Editable Shape'
+      }, {})
+
+      await updateSpace(administrator.id, { id: space.id, geoShape: JSON.stringify(polygon) }, {})
+      const saved = await Group.find(space.id)
+      expect(saved.get('geo_shape').type).to.equal('Polygon')
+      expect(saved.get('geo_shape').coordinates).to.deep.equal(polygon.coordinates)
+
+      await updateSpace(administrator.id, { id: space.id, name: 'Renamed Shape' }, {})
+      const renamed = await Group.find(space.id)
+      expect(renamed.get('name')).to.equal('Renamed Shape')
+      expect(renamed.get('geo_shape').type).to.equal('Polygon')
+
+      await updateSpace(administrator.id, { id: space.id, geoShape: null }, {})
+      const cleared = await Group.find(space.id)
+      expect(cleared.get('geo_shape')).to.equal(null)
+      await deleteSpace(administrator.id, space.id, {})
+    })
+  })
 
   describe('createSpace slug', () => {
     it('stores {parentSlug}-{localSlug} to avoid collisions across groups', async () => {
@@ -182,7 +226,6 @@ describe('space mutations', () => {
       }, {})
       const round = await FundingRound.forge({
         group_id: space.id,
-        title: 'Round Space',
         voting_method: 'quadratic',
         created_at: new Date(),
         updated_at: new Date()
@@ -210,6 +253,28 @@ describe('space mutations', () => {
       }
 
       expect(await Group.find(space.id)).to.not.be.null
+      await deleteSpace(administrator.id, space.id, {})
+    })
+  })
+
+  describe('requiredRoles', () => {
+    it('rejects the Member role when creating or updating a space', async () => {
+      const memberRole = await GroupRole.findAllMembersRole(parentGroup.id)
+      const name = `Member Gated ${Date.now()}`
+      await expect(createSpace(administrator.id, { parentGroupId: parentGroup.id, name, requiredRoles: [memberRole.id] }, {}))
+        .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+      expect(await Group.where({ parent_id: parentGroup.id, name }).fetch()).to.be.null
+
+      const moderatorRole = await GroupRole.findSystemRole(parentGroup.id, 'Moderator')
+      const space = await createSpace(administrator.id, {
+        parentGroupId: parentGroup.id,
+        name: `Moderator Gated ${Date.now()}`,
+        requiredRoles: [moderatorRole.id]
+      }, {})
+      await expect(updateSpace(administrator.id, { id: space.id, requiredRoles: [moderatorRole.id, memberRole.id] }, {}))
+        .to.be.rejectedWith(MEMBER_ROLE_ERROR)
+      await space.refresh()
+      expect(space.get('required_roles')).to.deep.equal([moderatorRole.id])
       await deleteSpace(administrator.id, space.id, {})
     })
   })
@@ -386,6 +451,51 @@ describe('space mutations', () => {
       }).fetch()).to.not.be.null
     })
 
+    describe('invite policy', () => {
+      afterEach(() => GroupRole.setInvitePolicy(parentGroup.id, 'stewards'))
+
+      async function convertNewSpace () {
+        const space = await createSpace(administrator.id, {
+          parentGroupId: parentGroup.id,
+          name: `Policy Convert ${Date.now()}`
+        }, {})
+        expect(await GroupRole.findAllMembersRole(space.id)).to.be.null
+        return convertSpaceToChildGroup(administrator.id, space.id, {})
+      }
+
+      it('creates an All Members role and copies an everyone policy', async () => {
+        await GroupRole.setInvitePolicy(parentGroup.id, 'everyone')
+
+        const converted = await convertNewSpace()
+        const memberRole = await GroupRole.findAllMembersRole(converted.id)
+        expect(memberRole).to.exist
+        expect(await GroupRole.getInvitePolicy(converted.id)).to.equal('everyone')
+      })
+
+      it('copies a stewards policy', async () => {
+        const converted = await convertNewSpace()
+        expect(await GroupRole.findAllMembersRole(converted.id)).to.exist
+        expect(await GroupRole.getInvitePolicy(converted.id)).to.equal('stewards')
+      })
+
+      it('replaces the policy a group had before it became a space', async () => {
+        const child = await factories.group().save()
+        await assignAdministrator(administrator, child)
+        await parentGroup.addChild(child)
+        const invitee = await factories.user().save()
+        await invitee.joinGroup(child)
+        await GroupRole.setInvitePolicy(child.id, 'everyone')
+        expect(await GroupMembership.hasResponsibility(invitee.id, child, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.true
+
+        await convertGroupToSpace(administrator.id, { id: child.id, parentGroupId: parentGroup.id }, {})
+        expect(await GroupRole.getInvitePolicy(child.id)).to.be.null
+
+        await convertSpaceToChildGroup(administrator.id, child.id, {})
+        expect(await GroupRole.getInvitePolicy(child.id)).to.equal('stewards')
+        expect(await GroupMembership.hasResponsibility(invitee.id, child, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.false
+      })
+    })
+
     it('rejects track and funding round spaces', async () => {
       const space = await createSpace(administrator.id, {
         parentGroupId: parentGroup.id,
@@ -393,7 +503,6 @@ describe('space mutations', () => {
       }, {})
       const round = await FundingRound.forge({
         group_id: space.id,
-        title: 'Round Convert',
         voting_method: 'quadratic',
         created_at: new Date(),
         updated_at: new Date()
@@ -460,6 +569,17 @@ describe('space mutations', () => {
       }).fetch()
       expect(menuEntry.get('type')).to.equal(GroupView.Type.SPACE)
       expect(menuEntry.get('order')).to.not.equal(null)
+    })
+
+    it('leaves pending invitations in place when a group becomes a space', async () => {
+      const child = await createChildGroup()
+      const sender = await factories.user().save()
+      await sender.joinGroup(child)
+      const invitation = await Invitation.create({ userId: sender.id, groupId: child.id, email: 'pending@converted-group.com' })
+
+      await convertGroupToSpace(administrator.id, { id: child.id, parentGroupId: parentGroup.id }, {})
+
+      expect((await Invitation.find(invitation.id)).get('expired_by_id')).to.be.null
     })
 
     it('unpins the converted group and compact remaining pin order', async () => {
@@ -686,6 +806,20 @@ describe('space mutations', () => {
       expect(invitation.get('used_by_id')).to.equal(member.id)
     })
 
+    it('lets an email invitation pre-approve a closed space', async () => {
+      const space = await createAndLeaveSpace({ accessibility: Group.Accessibility.CLOSED })
+      const invitation = await Invitation.create({
+        userId: administrator.id,
+        groupId: space.id,
+        email: member.get('email')
+      })
+
+      const membership = await joinSpace(member.id, space.id, null, invitation.get('token'))
+      expect(membership).to.be.ok
+      await invitation.refresh()
+      expect(invitation.get('used_by_id')).to.equal(member.id)
+    })
+
     it('lets Administration join a role-gated space without the required role', async () => {
       const gatedRole = await GroupRole.forge({
         group_id: parentGroup.id,
@@ -707,6 +841,73 @@ describe('space mutations', () => {
       } catch (e) {
         expect(e.message).to.match(/required role/)
       }
+    })
+
+    it('rejects inviting a member to a role-gated space via people picker', async () => {
+      const gatedRole = await GroupRole.forge({
+        group_id: parentGroup.id,
+        name: 'Gated',
+        emoji: '🔑',
+        type: GroupRole.TYPE_CUSTOM
+      }).save()
+      const space = await createAndLeaveSpace({
+        accessibility: Group.Accessibility.OPEN,
+        requiredRoles: [gatedRole.id]
+      })
+
+      try {
+        await createInvitation(administrator.id, space.id, {
+          userIds: [member.id]
+        })
+        expect.fail('should throw')
+      } catch (e) {
+        expect(e.message).to.match(/does not have the required role/)
+      }
+    })
+
+    it('rejects joining a role-gated space via invite link when user lacks the role', async () => {
+      const gatedRole = await GroupRole.forge({
+        group_id: parentGroup.id,
+        name: 'Gated',
+        emoji: '🔑',
+        type: GroupRole.TYPE_CUSTOM
+      }).save()
+      const space = await createAndLeaveSpace({
+        accessibility: Group.Accessibility.OPEN,
+        requiredRoles: [gatedRole.id]
+      })
+      const accessCode = space.get('access_code')
+
+      try {
+        await joinSpace(member.id, space.id, accessCode)
+        expect.fail('should throw')
+      } catch (e) {
+        expect(e.message).to.match(/required role/)
+      }
+    })
+
+    it('lets a member with the required role join a role-gated space via invite link', async () => {
+      const gatedRole = await GroupRole.forge({
+        group_id: parentGroup.id,
+        name: 'Gated',
+        emoji: '🔑',
+        type: GroupRole.TYPE_CUSTOM
+      }).save()
+      const space = await createAndLeaveSpace({
+        accessibility: Group.Accessibility.OPEN,
+        requiredRoles: [gatedRole.id]
+      })
+
+      // Give member the required role
+      await MemberGroupRole.forge({
+        user_id: member.id,
+        group_id: parentGroup.id,
+        group_role_id: gatedRole.id,
+        active: true
+      }).save()
+
+      const membership = await joinSpace(member.id, space.id, space.get('access_code'))
+      expect(membership).to.be.ok
     })
   })
 

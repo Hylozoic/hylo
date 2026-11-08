@@ -3,7 +3,7 @@
 import root from 'root-path'
 import setup from '../../setup'
 import factories from '../../setup/factories'
-import { expectEqualQuery, spyify, unspyify } from '../../setup/helpers'
+import { expectEqualQuery, mockify, spyify, unspyify } from '../../setup/helpers'
 
 export function myGroupIdsSqlFragment (userId) {
   return `(select "groups"."id" from "group_memberships"
@@ -61,6 +61,50 @@ describe('Group', function () {
     expect(calendarToken).to.be.a('string')
     // UUID v4 format: 8-4-4-4-12 hexadecimal characters
     expect(calendarToken).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+  })
+
+  it('can be created with a geo_shape boundary', async function () {
+    const polygon = { type: 'Polygon', coordinates: [[[-122.5, 37.7], [-122.4, 37.7], [-122.4, 37.8], [-122.5, 37.7]]] }
+    const data = { name: 'my group', slug: 'shaped1', geo_shape: JSON.stringify(polygon) }
+
+    const user = await new User({ name: 'username', email: 'shaped1@foo.com', active: true }).save()
+    await Group.create(user.id, data)
+    const savedGroup = await Group.find('shaped1')
+    expect(savedGroup.get('geo_shape').type).to.equal('Polygon')
+    expect(savedGroup.get('geo_shape').coordinates).to.deep.equal(polygon.coordinates)
+  })
+
+  describe('notifyAboutCreate', function () {
+    beforeEach(function () {
+      mockify(Email, 'sendRawEmail', () => Promise.resolve(true))
+    })
+
+    afterEach(function () {
+      unspyify(Email, 'sendRawEmail')
+    })
+
+    it('does not email when the group is a space', async function () {
+      const creator = await factories.user().save()
+      const parent = await factories.group().save()
+      const space = await factories.group({
+        type: 'space',
+        parent_id: parent.id,
+        created_by_id: creator.id
+      }).save()
+
+      await Group.notifyAboutCreate({ groupId: space.id })
+
+      expect(Email.sendRawEmail).not.to.have.been.called()
+    })
+
+    it('emails when the group is not a space', async function () {
+      const creator = await factories.user().save()
+      const group = await factories.group({ created_by_id: creator.id }).save()
+
+      await Group.notifyAboutCreate({ groupId: group.id })
+
+      expect(Email.sendRawEmail).to.have.been.called()
+    })
   })
 
   it('can be created with group extension data', async function () {
@@ -206,6 +250,25 @@ describe('Group', function () {
     })
   })
 
+  describe('moderators and stewards', function () {
+    it('include Administrators and Moderators but not Hosts or plain members, even when everyone can invite', async function () {
+      const group = await factories.group().save()
+      const [administrator, moderator, host, member] = await Promise.all([1, 2, 3, 4].map(() => factories.user().save()))
+      await group.addMembers([administrator, moderator, host, member])
+      await GroupMembership.assignAdministratorRole(administrator.id, group.id)
+      for (const [user, roleName] of [[moderator, 'Moderator'], [host, 'Host']]) {
+        const role = await GroupRole.findSystemRole(group.id, roleName)
+        await MemberGroupRole.forge({ user_id: user.id, group_id: group.id, group_role_id: role.id, active: true }).save()
+      }
+      await GroupRole.setInvitePolicy(group.id, GroupRole.InvitePolicy.EVERYONE)
+
+      const ids = async users => (await users.fetch()).map(user => user.id).sort()
+      const expected = [administrator.id, moderator.id].sort()
+      expect(await ids(group.moderators())).to.deep.equal(expected)
+      expect(await ids(group.stewards())).to.deep.equal(expected)
+    })
+  })
+
   describe('removeMembers', function () {
     it('removes child members', async function () {
       const group = await factories.group().save()
@@ -272,6 +335,21 @@ describe('Group', function () {
 
       const otherSpaceMembership = await GroupMembership.forPair(otherUser, space).fetch()
       expect(otherSpaceMembership).to.not.exist
+    })
+
+    it('leaves pending invitations in place when someone leaves', async function () {
+      const group = await factories.group().save()
+      const leaver = await factories.user().save()
+      await group.addMembers([leaver.id])
+      const invitation = await Invitation.create({
+        userId: leaver.id,
+        groupId: group.id,
+        email: 'pending@leaver-invites.com'
+      })
+
+      await group.removeMembers([leaver.id])
+
+      expect((await Invitation.find(invitation.id)).get('expired_by_id')).to.be.null
     })
 
     it('does not deactivate parent membership when leaving a space only', async function () {
@@ -356,7 +434,7 @@ describe('Group', function () {
 
     it('settles track enrollment when leaving a track space', async function () {
       const group = await factories.group().save()
-      const track = await Track.forge({ group_id: null, name: 'Test Track' }).save()
+      const track = await Track.forge({ group_id: null }).save()
       const space = await factories.group({
         type: 'space',
         parent_id: group.id,
@@ -390,7 +468,6 @@ describe('Group', function () {
       }).save()
       const round = await FundingRound.forge({
         group_id: space.id,
-        title: 'Test Round',
         voting_method: 'quadratic',
         num_participants: 1,
         created_at: new Date(),
@@ -416,7 +493,7 @@ describe('Group', function () {
 
     it('does not decrement participation for an already inactive member', async function () {
       const group = await factories.group().save()
-      const track = await Track.forge({ group_id: null, name: 'Test Track' }).save()
+      const track = await Track.forge({ group_id: null }).save()
       const space = await factories.group({
         type: 'space',
         parent_id: group.id,
@@ -699,7 +776,7 @@ describe('Group', function () {
       calendarContent = null
       // Mock writeStringToS3 to capture calendar content
       storageModule = require(root('lib/uploader/storage'))
-      spyify(storageModule, 'writeStringToS3', async (content) => {
+      mockify(storageModule, 'writeStringToS3', async (content) => {
         calendarContent = content
         return Promise.resolve({ url: 'https://example.com/calendar.ics' })
       })
@@ -878,6 +955,78 @@ describe('Group', function () {
 
       const addedMembership = await GroupMembership.forPair(neverJoined, space).fetch()
       expect(addedMembership.get('active')).to.be.true
+      expect(addedMembership.getSetting('postNotifications')).to.equal('all')
+      expect(addedMembership.getSetting('digestFrequency')).to.equal('daily')
+      expect(addedMembership.getSetting('sendEmail')).to.equal(true)
+      expect(addedMembership.getSetting('sendPushNotifications')).to.equal(true)
+    })
+
+    it('copies each parent membership notification settings onto the space', async function () {
+      const quiet = await factories.user().save()
+      const chatty = await factories.user().save()
+      await parent.addMembers([quiet.id, chatty.id])
+
+      const quietParent = await GroupMembership.forPair(quiet, parent).fetch()
+      quietParent.addSetting({
+        postNotifications: 'none',
+        digestFrequency: 'weekly',
+        sendEmail: false,
+        sendPushNotifications: false
+      })
+      await quietParent.save()
+
+      const chattyParent = await GroupMembership.forPair(chatty, parent).fetch()
+      chattyParent.addSetting({
+        postNotifications: 'important',
+        digestFrequency: 'daily',
+        sendEmail: true,
+        sendPushNotifications: false
+      })
+      await chattyParent.save()
+
+      await Group.addEligibleMembersToSpace({ spaceId: space.id, userIds: [quiet.id, chatty.id] })
+
+      const quietSpace = await GroupMembership.forPair(quiet, space).fetch()
+      expect(quietSpace.getSetting('postNotifications')).to.equal('none')
+      expect(quietSpace.getSetting('digestFrequency')).to.equal('weekly')
+      expect(quietSpace.getSetting('sendEmail')).to.equal(false)
+      expect(quietSpace.getSetting('sendPushNotifications')).to.equal(false)
+
+      const chattySpace = await GroupMembership.forPair(chatty, space).fetch()
+      expect(chattySpace.getSetting('postNotifications')).to.equal('important')
+      expect(chattySpace.getSetting('digestFrequency')).to.equal('daily')
+      expect(chattySpace.getSetting('sendEmail')).to.equal(true)
+      expect(chattySpace.getSetting('sendPushNotifications')).to.equal(false)
+    })
+
+    it('copies current parent notification settings when reactivating a space membership', async function () {
+      const member = await factories.user().save()
+      await parent.addMembers([member.id])
+      await space.addMembers([member.id])
+      await parent.removeMembers([member.id])
+      await parent.addMembers([member.id])
+
+      const parentMembership = await GroupMembership.forPair(member, parent).fetch()
+      parentMembership.addSetting({
+        postNotifications: 'important',
+        digestFrequency: 'weekly',
+        sendEmail: false,
+        sendPushNotifications: true
+      })
+      await parentMembership.save()
+
+      await Group.afterAddMembers({
+        groupId: parent.id,
+        newUserIds: [],
+        reactivatedUserIds: [member.id]
+      })
+
+      const spaceMembership = await GroupMembership.forPair(member, space).fetch()
+      expect(spaceMembership.get('active')).to.be.true
+      expect(spaceMembership.getSetting('postNotifications')).to.equal('important')
+      expect(spaceMembership.getSetting('digestFrequency')).to.equal('weekly')
+      expect(spaceMembership.getSetting('sendEmail')).to.equal(false)
+      expect(spaceMembership.getSetting('sendPushNotifications')).to.equal(true)
     })
 
     it('adds a newly joined parent member and still skips people who left', async function () {

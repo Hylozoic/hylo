@@ -1,15 +1,22 @@
 import { get } from 'lodash/fp'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
+import { AnalyticsEvents } from '@hylo/shared'
 import { bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { createGroupModalUrl } from '@hylo/navigation'
 
 const WelcomeExplore = () => {
+  const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const { t } = useTranslation()
+
+  useEffect(() => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.WELCOME_WIZARD_STEP_VIEWED, { step: 'explore' }))
+  }, [])
 
   const getValue = (field) => {
     return get(field, currentUser)
@@ -18,7 +25,7 @@ const WelcomeExplore = () => {
   const currentAvatarUrl = getValue('avatarUrl')
 
   return (
-    <div className='bg-card shadow-md w-[360px] mx-auto rounded-lg'>
+    <div className='bg-card shadow-md w-full mx-auto rounded-lg'>
       <div className='p-4 sm:p-8 flex flex-col justify-center min-h-[480px]'>
         <div className='text-center mb-6'>
           <h3 className='text-2xl font-bold text-foreground mb-2'>{t('Welcome to Hylo!')}</h3>

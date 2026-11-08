@@ -1,7 +1,8 @@
 import { GraphQLError } from 'graphql'
-import { chain, curry, includes, isEmpty, values } from 'lodash'
+import { curry, includes, isEmpty, values } from 'lodash'
 import { DateTime } from 'luxon'
 import addTermToQueryBuilder from './addTermToQueryBuilder'
+import prefixTsQuery from './prefixTsQuery'
 
 export const filterAndSortPosts = curry((opts, q) => {
   const {
@@ -15,7 +16,9 @@ export const filterAndSortPosts = curry((opts, q) => {
     isAnnouncement,
     isFulfilled,
     order,
+    rsvpResponse,
     savedBy,
+    currentUserId,
     search,
     sortBy = 'updated',
     topic,
@@ -115,6 +118,19 @@ export const filterAndSortPosts = curry((opts, q) => {
     ))
   }
 
+  // Filter by RSVP response for events
+  if (rsvpResponse && currentUserId) {
+    q.join('event_invitations', function () {
+      this.on('event_invitations.event_id', '=', 'posts.id')
+        .andOn('event_invitations.user_id', '=', bookshelf.knex.raw('?', [currentUserId]))
+    })
+    if (rsvpResponse === 'yes+interested') {
+      q.whereIn('event_invitations.response', ['yes', 'interested'])
+    } else {
+      q.where('event_invitations.response', rsvpResponse)
+    }
+  }
+
   const streamTypes = [DISCUSSION, REQUEST, OFFER, PROJECT, PROPOSAL, EVENT, RESOURCE]
   const streamTypesWithNotices = [...streamTypes, ...Post.NOTICE_TYPES]
 
@@ -125,6 +141,9 @@ export const filterAndSortPosts = curry((opts, q) => {
     q.whereIn('posts.type', streamTypesWithNotices)
   } else if ((!type || type === 'all') && !(types && types.length)) {
     q.whereIn('posts.type', streamTypes)
+  } else if (types && types.length && type && type !== 'chat' && includes(values(Post.Type), type)) {
+    // A specific type filter narrows the view's allowed types rather than being overridden by them
+    q.whereIn('posts.type', types.filter(t => t === type))
   } else if (types && types.length) {
     q.whereIn('posts.type', types)
   } else if (type === 'chat') {
@@ -213,28 +232,34 @@ function applyFundingRoundCapabilityFilter (q, groupId, capability) {
   `, [groupId])
 }
 
-export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, order, search, sortBy, trackCompleted, fundingRoundCapability }, q) => {
+export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }, q) => {
   if (autocomplete) {
-    const query = chain(autocomplete.split(/\s*\s/)) // split on whitespace
-      .map(word => word.replace(/[,;|:&()!\\]+/, ''))
-      .reject(isEmpty)
-      .map(word => word + ':*') // add prefix matching
-      .reduce((result, word) => {
-        // build the tsquery string using logical AND operands
-        result += ' & ' + word
-        return result
-      }).value()
+    // Special characters split words, so "o'brien" matches "O'Brien" (indexed as "o" and "brien")
+    const query = prefixTsQuery(autocomplete, { splitWords: true })
 
-    q.whereRaw('to_tsvector(\'simple\', users.name) @@ to_tsquery(\'simple\', ?)', [query])
-    q.orderByRaw('ts_rank_cd(to_tsvector(\'simple\', users.name), to_tsquery(\'simple\', ?)) DESC', [query])
+    // Input with no usable words (only whitespace or punctuation) skips the name filter
+    if (query) {
+      q.whereRaw('to_tsvector(\'simple\', users.name) @@ to_tsquery(\'simple\', ?)', [query])
+      q.orderByRaw('ts_rank_cd(to_tsvector(\'simple\', users.name), to_tsquery(\'simple\', ?)) DESC', [query])
+    }
   }
 
-  if (groupRoleId) {
+  // Collect all role IDs from single groupRoleId and/or groupRoleIds array, deduplicated
+  const roleFilterIds = []
+  if (groupRoleId) roleFilterIds.push(groupRoleId)
+  if (Array.isArray(groupRoleIds)) roleFilterIds.push(...groupRoleIds)
+
+  if (roleFilterIds.length > 0) {
+    const dedupedIds = [...new Set(roleFilterIds.map(id => String(id)))]
     q.leftJoin('group_memberships_group_roles', 'group_memberships_group_roles.user_id', '=', 'users.id')
     // A group_role_id belongs to exactly one group, so it scopes itself; adding
     // the queried group's id here broke spaces, whose role assignments live on
     // the parent group while the membership being filtered is the space's own
-    q.where('group_memberships_group_roles.group_role_id', '=', groupRoleId)
+    if (dedupedIds.length === 1) {
+      q.where('group_memberships_group_roles.group_role_id', '=', dedupedIds[0])
+    } else {
+      q.whereIn('group_memberships_group_roles.group_role_id', dedupedIds)
+    }
   }
 
   // Track space membership: completedAt lives on group_memberships.settings
@@ -272,7 +297,10 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   if (sortBy === 'join') {
     q.orderBy('group_memberships.created_at', order || 'desc')
   } else if (!sortBy || sortBy === 'name') {
-    q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
+    // Users with no name (null, empty or whitespace only) always go last,
+    // whichever direction the names are sorted in
+    q.orderByRaw('(coalesce("users"."name", \'\') !~ \'\\S\') asc')
+    q.orderByRaw(`lower(trim("users"."name")) ${order || 'asc'}`)
   } else {
     q.orderByRaw(`${sortBy} ${order || 'asc'} NULLS LAST`)
   }

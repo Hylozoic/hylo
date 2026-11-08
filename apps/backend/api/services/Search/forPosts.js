@@ -88,6 +88,19 @@ export default function forPosts (opts) {
       qb.whereIn('activities.reader_id', opts.mentionsOf)
     }
 
+    // Filter by RSVP response for events
+    if (opts.rsvpResponse) {
+      qb.join('event_invitations', function () {
+        this.on('event_invitations.event_id', '=', 'posts.id')
+          .andOn('event_invitations.user_id', '=', bookshelf.knex.raw('?', [opts.currentUserId]))
+      })
+      if (opts.rsvpResponse === 'yes+interested') {
+        qb.whereIn('event_invitations.response', ['yes', 'interested'])
+      } else {
+        qb.where('event_invitations.response', opts.rsvpResponse)
+      }
+    }
+
     filterAndSortPosts(Object.assign({}, opts, {
       search: opts.term,
       sortBy: opts.sort

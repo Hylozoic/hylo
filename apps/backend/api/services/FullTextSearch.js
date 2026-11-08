@@ -1,5 +1,6 @@
 /* globals bookshelf, Group */
-import { compact, omit } from 'lodash'
+import { omit } from 'lodash'
+import prefixTsQuery from './Search/prefixTsQuery'
 
 const tableName = 'search_index'
 const columnName = 'document'
@@ -32,6 +33,7 @@ const createView = (lang, knex) => {
       p.id as post_id,
       null::bigint as user_id,
       null::bigint as comment_id,
+      null::bigint as group_id,
       p.updated_at as sort_ts,
       ${wv('p.name', 'B')} ||
       ${wv("coalesce(p.description, '')", 'C')} ||
@@ -46,6 +48,7 @@ const createView = (lang, knex) => {
       null as post_id,
       u.id as user_id,
       null as comment_id,
+      null::bigint as group_id,
       coalesce(
         (
           select max(gm.created_at)
@@ -70,12 +73,27 @@ const createView = (lang, knex) => {
       null as post_id,
       null as user_id,
       c.id as comment_id,
+      null::bigint as group_id,
       c.created_at as sort_ts,
       ${wv('c.text', 'C')} ||
       ${wv('u.name', 'D')} as ${columnName}
     from comments c
     join users u on u.id = c.user_id
     where c.active = true and u.active = true
+  ) union (
+    select
+      ('group-' || g.id::text) as row_key,
+      null::bigint as post_id,
+      null::bigint as user_id,
+      null::bigint as comment_id,
+      g.id as group_id,
+      coalesce(g.updated_at, g.created_at) as sort_ts,
+      ${wv('g.name', 'A')} ||
+      ${wv("coalesce(g.description, '')", 'B')} ||
+      ${wv("coalesce(g.location, '')", 'C')} as ${columnName}
+    from groups g
+    where g.active = true
+      and (g.type is null or g.type != 'space')
   )`, knex)
     .then(() => raw(`create unique index idx_search_index_unique on ${tableName} (row_key)`, knex))
     .then(() => raw(`create index idx_fts_search on ${tableName}
@@ -83,6 +101,7 @@ const createView = (lang, knex) => {
     .then(() => raw(`create index idx_search_index_post_id on ${tableName} (post_id) where post_id is not null`, knex))
     .then(() => raw(`create index idx_search_index_user_id on ${tableName} (user_id) where user_id is not null`, knex))
     .then(() => raw(`create index idx_search_index_comment_id on ${tableName} (comment_id) where comment_id is not null`, knex))
+    .then(() => raw(`create index idx_search_index_group_id on ${tableName} (group_id) where group_id is not null`, knex))
 }
 
 const applyMemberGroupFilter = (subquery, groupAccess) => {
@@ -130,23 +149,59 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
             .where({ 'p.is_public': true, 'c.active': true })
         })
     }
+
+    // Group rows only. Posts, people, and comments store a null group_id, and are
+    // already included by the clauses above. A "group_id is null" pass would match
+    // every one of them and drop the group scope.
+    this.orWhere(function () {
+      if (hasExplicitGroupIds) {
+        // Scoped to explicit groupIds only
+        this.whereIn('group_id', groupAccess.groupIds)
+      } else if (groupAccess.userId) {
+        // Authenticated: show PUBLIC groups + groups the user is a member of
+        // + PROTECTED groups connected via relationships to the user's groups
+        var memberGroupsSubquery = Group.selectIdsForMember(groupAccess.userId)
+        var accessibleGroupIds = bookshelf.knex.select('id').from('groups').where(function () {
+          this.where('groups.visibility', 2) // PUBLIC
+            .orWhereIn('groups.id', memberGroupsSubquery)
+            .orWhere(function () {
+              // Any active relationship (parent/child or peer), in either direction
+              this.where('groups.visibility', Group.Visibility.PROTECTED)
+                .whereIn('groups.id', function () {
+                  this.select('child_group_id').from('group_relationships')
+                    .where('group_relationships.active', true)
+                    .whereIn('parent_group_id', memberGroupsSubquery)
+                    .union(function () {
+                      this.select('parent_group_id').from('group_relationships')
+                        .where('group_relationships.active', true)
+                        .whereIn('child_group_id', memberGroupsSubquery)
+                    })
+                })
+            })
+        }).where('groups.active', true)
+        .where(function () {
+          this.whereNull('groups.type').orWhere('groups.type', '<>', 'space')
+        })
+        this.whereIn('group_id', accessibleGroupIds)
+      } else {
+        // Anonymous: only public groups
+        this.whereIn('group_id', function () {
+          this.select('id').from('groups').where({ active: true, visibility: 2 })
+            .where(function () {
+              this.whereNull('groups.type').orWhere('groups.type', '<>', 'space')
+            })
+        })
+      }
+    })
   })
 }
 
 const recencyRankSql = `(rank * case when sort_ts is null then 1 else exp(-extract(epoch from (now() - sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
 
-// Strip characters that are tsquery operators or punctuation so user input
-// like "#release!" does not produce a syntax error in to_tsquery.
-const sanitizeTsQueryTerm = (rawTerm) => {
-  return compact(String(rawTerm || '').split(/\s+/))
-    .map(w => w.replace(/[,;|:&()!\\#'"<>*]+/g, ''))
-    .filter(Boolean)
-    .map(w => w + ':*')
-    .join(' & ')
-}
-
 const search = (opts) => {
-  const term = sanitizeTsQueryTerm(opts.term)
+  // Strips tsquery operators and punctuation so user input like "#release!"
+  // does not produce a syntax error in to_tsquery
+  const term = prefixTsQuery(opts.term)
 
   const lang = opts.lang || defaultLang
   const tsquery = term ? `to_tsquery('${lang}', '${term}')` : null
@@ -160,10 +215,11 @@ const search = (opts) => {
     columns = {
       person: 'user_id',
       post: 'post_id',
-      comment: 'comment_id'
+      comment: 'comment_id',
+      group: 'group_id'
     }[opts.type]
   } else {
-    columns = raw(`post_id, comment_id, user_id, sort_ts, ${rank} as rank`)
+    columns = raw(`post_id, comment_id, user_id, group_id, sort_ts, ${rank} as rank`)
   }
 
   let query = bookshelf.knex
@@ -173,9 +229,9 @@ const search = (opts) => {
     .where(raw({
       person: 'user_id is not null',
       post: 'post_id is not null',
-      comment: 'comment_id is not null'
+      comment: 'comment_id is not null',
+      group: 'group_id is not null'
     }[opts.type] || true))
-
   if (opts.groupAccess) {
     applyGroupAccessFilter(query, opts.groupAccess)
   }
@@ -206,6 +262,7 @@ const buildSearchInGroupsQuery = (groupAccess, opts) => {
       `${alias}.post_id`,
       `${alias}.comment_id`,
       `${alias}.user_id`,
+      `${alias}.group_id`,
       `${alias}.rank`
     )
     .from(search({ ...omit(opts, 'limit', 'offset'), groupAccess, skipOrder: true }).as(alias))

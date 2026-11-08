@@ -12,6 +12,8 @@ import CookiePreferencesPanel from 'components/CookiePreferencesPanel'
 import store, { history, sandboxBasename } from '../store'
 import RootRouter from 'routes/RootRouter'
 import SandboxBanner from 'sandbox/SandboxBanner'
+import SandboxNoticeModal from 'sandbox/SandboxNoticeModal'
+import SandboxTimedModal from 'sandbox/SandboxTimedModal'
 import { Helmet } from 'react-helmet'
 import { cn } from 'util/index'
 
@@ -45,7 +47,13 @@ export default function App () {
             <ViewHeaderProvider>
               <DropdownProvider>
                 <div className={cn(sandboxBasename ? 'flex flex-col h-[100dvh]' : 'h-full')}>
-                  {sandboxBasename && <SandboxBanner />}
+                  {sandboxBasename && (
+                    <>
+                      <SandboxBanner />
+                      <SandboxNoticeModal />
+                      <SandboxTimedModal />
+                    </>
+                  )}
                   {/* Keep a bounded height: h-full to #root, or flex-1 under the sandbox banner. */}
                   <div className={cn(sandboxBasename ? 'flex-1 min-h-0 overflow-hidden' : 'h-full')}>
                     <Router history={history} basename={sandboxBasename}>

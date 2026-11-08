@@ -2,6 +2,7 @@ import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase, size, trim } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import convertGraphqlData from './convertGraphqlData'
+import { startEmailChange, validateEmailChange } from './emailChange'
 import { pushToSockets, userRoom } from '../../services/Websockets'
 
 export {
@@ -48,7 +49,8 @@ export {
   deleteSpace,
   joinSpace,
   convertSpaceToChildGroup,
-  convertGroupToSpace
+  convertGroupToSpace,
+  convertChatSpaceToDiscussion
 } from './spaces'
 export {
   respondToEvent,
@@ -66,7 +68,9 @@ export {
   deleteGroupTopic,
   inviteGroupToGroup,
   joinGroup,
-  regenerateAccessCode,
+  createGroupInviteLink,
+  updateGroupInviteLink,
+  deleteGroupInviteLink,
   rejectGroupRelationshipInvite,
   removeMember,
   updateGroup,
@@ -88,7 +92,7 @@ export {
 export {
   findOrCreateLocation
 } from './location'
-export { updateAllMemberships, updateMembership } from './membership'
+export { rejoinGroup, updateAllMemberships, updateMembership } from './membership'
 export { registerDevice } from './mobile'
 export {
   completePost,
@@ -174,6 +178,10 @@ export {
   verifyEmail
 } from './user'
 export {
+  cancelEmailChange,
+  verifyEmailChange
+} from './emailChange'
+export {
   createZapierTrigger,
   deleteZapierTrigger
 } from './zapier'
@@ -201,12 +209,25 @@ export {
   deleteSiteBanner,
   dismissSiteBanner
 } from './siteBanners'
+export {
+  requestPublicListing,
+  reviewPublicListingRequest,
+  publicListingRequests
+} from './publicListingRequest'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
 export { muteMessageThread, unmuteMessageThread } from './messageThread'
 
-export async function updateMe (sessionId, userId, changes) {
+export async function updateMe (sessionId, userId, changes, { ip } = {}) {
   const user = await User.find(userId)
   const convertedChanges = convertGraphqlData(changes)
+
+  // A new email address only replaces the current one once it has been verified (see ./emailChange).
+  // Check it before saving anything else, so an invalid or duplicate email still fails the whole update.
+  let newEmail
+  if (convertedChanges.email !== undefined) {
+    newEmail = await validateEmailChange(user, convertedChanges.email, { ip })
+    delete convertedChanges.email
+  }
 
   // Generate calendar token if RSVP calendar subscription is enabled and token doesn't exist
   if (convertedChanges.settings?.rsvp_calendar_sub) {
@@ -218,10 +239,15 @@ export async function updateMe (sessionId, userId, changes) {
     Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId: user.id })
   }
 
-  return user.validateAndSave(sessionId, convertedChanges)
+  const savedUser = await user.validateAndSave(sessionId, convertedChanges)
+  if (newEmail) await startEmailChange(savedUser, newEmail, { ip })
+  return savedUser
 }
 
-export function allowGroupInvites (groupId, data) {
+export async function allowGroupInvites (userId, groupId, data) {
+  if (!await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)) {
+    throw new GraphQLError('You do not have permission to do that')
+  }
   return Group.where('id', groupId).fetch()
     .then(g => g.addSetting({ allow_group_invites: data }, true))
     .then(() => ({ success: true }))
@@ -261,9 +287,14 @@ export async function findOrCreateLinkPreviewByUrl ({ url }) {
   return preview
 }
 
-export function updateGroupTopic (id, data) {
+export async function updateGroupTopic (userId, id, data) {
   const whitelist = mapKeys(pick(data, ['visibility', 'isDefault']), (v, k) => snakeCase(k))
-  if (isEmpty(whitelist)) return Promise.resolve(null)
+  if (isEmpty(whitelist)) return null
+
+  const groupTag = await GroupTag.where({ id }).fetch()
+  if (!groupTag || !await GroupMembership.hasResponsibility(userId, groupTag.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
+    throw new GraphQLError('You do not have permission to do that')
+  }
 
   return GroupTag.query().where({ id }).update(whitelist)
     .then(() => ({ success: true }))
@@ -375,7 +406,7 @@ export async function addSkillToLearn (userId, name) {
 export async function addSuggestedSkillToGroup (userId, groupId, name) {
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLError('Invalid group')
-  const isAdministrator = GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION, {})
+  const isAdministrator = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION, {})
   if (!isAdministrator) throw new GraphQLError('You don\'t have permission to add skill to group')
 
   const skill = await createSkill(name)
@@ -412,7 +443,7 @@ export function removeSkillToLearn (userId, skillIdOrName) {
 export async function removeSuggestedSkillFromGroup (userId, groupId, skillIdOrName) {
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLError('Invalid group')
-  const isAdministrator = GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION)
+  const isAdministrator = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION)
   if (!isAdministrator) throw new GraphQLError('You don\'t have permission to remove skill from group')
 
   return Skill.find(skillIdOrName)
@@ -457,6 +488,42 @@ export function messageGroupStewards (userId, groupId) {
   return Group.messageStewards(userId, groupId)
 }
 
+// Notify other people in a direct-message thread that reactions on a message changed
+async function pushCommentReactionUpdate (comment, userId) {
+  const postId = comment.get('post_id')
+  if (!postId) return
+
+  const thread = await Post.find(postId)
+  if (!thread) return
+  const followers = await thread.followers().fetch().then(x => x.models)
+  const excludingSender = followers.map(x => x.id).filter(id => id !== userId)
+
+  await comment.load(['reactions.user'])
+  const commentReactions = comment.related('reactions').map(reaction => {
+    const user = reaction.related('user')
+    return {
+      id: reaction.id,
+      emojiFull: reaction.get('emoji_full'),
+      user: user?.id
+        ? { id: user.id, name: user.get('name') }
+        : null
+    }
+  })
+
+  const response = {
+    id: comment.id,
+    createdAt: (comment.get('created_at') || new Date()).toString(),
+    editedAt: comment.get('edited_at') ? comment.get('edited_at').toString() : undefined,
+    creator: comment.get('user_id'),
+    messageThread: postId,
+    text: comment.get('text'),
+    commentReactions
+  }
+
+  excludingSender.forEach(participantId =>
+    pushToSockets(userRoom(participantId), 'messageUpdated', response))
+}
+
 export function reactOn (userId, entityId, data, context) {
   const lookUp = {
     post: Post,
@@ -489,24 +556,7 @@ export function reactOn (userId, entityId, data, context) {
           context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
         }
 
-        // Push messageUpdated socket event for real-time DM updates (receivers)
-        if (comment.get('post_id')) {
-          const thread = await Post.find(postId)
-          const followers = await thread.followers().fetch().then(x => x.models)
-          const excludingSender = followers.map(x => x.id).filter(id => id !== userId)
-
-          const response = {
-            id: comment.id,
-            createdAt: (comment.get('created_at') || new Date()).toString(),
-            editedAt: comment.get('edited_at') ? comment.get('edited_at').toString() : undefined,
-            creator: comment.get('user_id'),
-            messageThread: comment.get('post_id'),
-            text: comment.get('text')
-          }
-
-          excludingSender.forEach(participantId =>
-            pushToSockets(userRoom(participantId), 'messageUpdated', response))
-        }
+        await pushCommentReactionUpdate(comment, userId)
       }
 
       return result
@@ -545,24 +595,7 @@ export function deleteReaction (userId, entityId, data, context) {
           context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
         }
 
-        // Push messageUpdated socket event for real-time DM updates (receivers)
-        if (comment.get('post_id')) {
-          const thread = await Post.find(postId)
-          const followers = await thread.followers().fetch().then(x => x.models)
-          const excludingSender = followers.map(x => x.id).filter(id => id !== userId)
-
-          const response = {
-            id: comment.id,
-            createdAt: (comment.get('created_at') || new Date()).toString(),
-            editedAt: comment.get('edited_at') ? comment.get('edited_at').toString() : undefined,
-            creator: comment.get('user_id'),
-            messageThread: comment.get('post_id'),
-            text: comment.get('text')
-          }
-
-          excludingSender.forEach(participantId =>
-            pushToSockets(userRoom(participantId), 'messageUpdated', response))
-        }
+        await pushCommentReactionUpdate(comment, userId)
       }
 
       return result
@@ -580,8 +613,4 @@ export async function removePost (userId, postId, groupIdOrSlug) {
       return post.removeFromGroup(groupIdOrSlug)
     })
     .then(() => ({ success: true }))
-}
-
-export function updateWidget (id, changes) {
-  return GroupWidget.update(id, convertGraphqlData(changes))
 }

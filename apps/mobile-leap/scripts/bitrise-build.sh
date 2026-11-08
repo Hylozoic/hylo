@@ -109,6 +109,10 @@ fi
 
 if [ "$PLATFORM" = "ios" ]; then
   bash "$SCRIPT_DIR/patch-ios-hylo-signing.sh"
+  
+  echo "--- Entitlements after prebuild+patch, before archive:"
+  cat ios/Hylo/Hylo.entitlements
+
   echo "--- pod install"
   npx pod-install ios
 fi

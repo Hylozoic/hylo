@@ -69,7 +69,7 @@ export const CARD_LABEL_TOP_CLASS = 'top-[calc(50%+28px)] max-sm:top-[calc(50%+2
  */
 export const CARD_SIZE_CLASS = 'w-[calc(50%-0.375rem)] aspect-[14/13] sm:w-[168px] sm:h-[156px] sm:aspect-auto'
 
-export const CARD_CLASS = `group relative flex flex-col overflow-hidden rounded-2xl border transition-all ${CARD_SIZE_CLASS} cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]`
+export const CARD_CLASS = `group relative flex flex-col overflow-hidden rounded-2xl border transition-all ${CARD_SIZE_CLASS} cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:[transition-duration:50ms]`
 
 /**
  * For a card rendered inside a wrapper that carries CARD_SIZE_CLASS itself (the

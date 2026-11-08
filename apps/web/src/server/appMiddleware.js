@@ -4,6 +4,8 @@ import lodash from 'lodash'
 import { withPublicPostMetaTags } from './postMetaTags.js'
 
 export default async function appMiddleware (req, res, next) {
+  // The shell names hashed assets. It must revalidate on every load so a deploy is picked up.
+  res.setHeader('Cache-Control', 'no-cache')
   const page = await withPublicPostMetaTags(html(''), req)
   return res.status(200).send(page)
 }

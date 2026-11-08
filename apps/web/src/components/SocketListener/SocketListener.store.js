@@ -174,7 +174,10 @@ export function ormSessionReducer (session, { meta, type, payload }) {
           text: updatedMessage.text,
           editedAt: updatedMessage.editedAt
             ? new Date(updatedMessage.editedAt).toString()
-            : undefined
+            : undefined,
+          ...(Array.isArray(updatedMessage.commentReactions)
+            ? { commentReactions: updatedMessage.commentReactions }
+            : {})
         })
       }
       break

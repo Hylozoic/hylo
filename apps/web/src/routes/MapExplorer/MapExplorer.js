@@ -23,6 +23,8 @@ import LocationInput from 'components/LocationInput'
 import Map from 'components/Map/Map'
 import { buildClusterLayerData, createIconLayerFromPostsAndMembers } from 'components/Map/layers/clusterLayer'
 import { createIconLayerFromGroups } from 'components/Map/layers/iconLayer'
+import { useCircularMarkerVersion } from 'components/Map/layers/iconLayer/circularMarkerDataUrl'
+import { useLucideIconsLoaded } from 'components/LucideIcon/lucideIconSet'
 import { createPolygonLayerFromGroups } from 'components/Map/layers/polygonLayer'
 import SwitchStyled from 'components/SwitchStyled'
 import Tooltip from 'components/Tooltip'
@@ -31,7 +33,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { locationObjectToViewport } from 'util/geo'
+import { locationObjectToViewport, shapeCenter } from 'util/geo'
 import { isMobileDevice } from 'util/mobile'
 import { generateViewParams } from 'util/savedSearch'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
@@ -115,6 +117,11 @@ function getLocationCenter (entity) {
   return entity.ref?.locationObject?.center || null
 }
 
+/** Location pin, or the center of the boundary when a group has no pin. */
+function getGroupMapCenter (entity) {
+  return getLocationCenter(entity) || shapeCenter(entity?.geoShape || entity?.ref?.geoShape)
+}
+
 /** True when a location center falls inside [west, south, east, north]. */
 function centerWithinBounds (locationObject, boundingBox) {
   if (!boundingBox) return false
@@ -126,8 +133,18 @@ function centerWithinBounds (locationObject, boundingBox) {
   return lng >= west && lng <= east && lat >= south && lat <= north
 }
 
+/** True when any vertex of a polygon lies inside [west, south, east, north]. */
+function shapeMeetsBox (geoShape, boundingBox) {
+  const ring = geoShape?.coordinates?.[0]
+  if (!Array.isArray(ring) || !boundingBox) return false
+  const [west, south, east, north] = boundingBox
+  return ring.some(coord => Array.isArray(coord) && coord[0] >= west && coord[0] <= east && coord[1] >= south && coord[1] <= north)
+}
+
 function MapExplorer (props) {
   const { t } = useTranslation()
+  const lucideIconsLoaded = useLucideIconsLoaded()
+  const circularMarkerVersion = useCircularMarkerVersion()
 
   // First-visit tour of the map's floating controls, offered by invitation
   const mapTourStepList = useMemo(() => mapTourSteps(t), [t])
@@ -269,7 +286,7 @@ function MapExplorer (props) {
   useEffect(() => {
     if (!centerParam &&
         !(scopedMapState && reduxState.centerLocation) &&
-        !getLocationCenter(group) &&
+        !getGroupMapCenter(group) &&
         !getLocationCenter(currentUser)) {
       navigator.geolocation.getCurrentPosition((position) => {
         setBrowserLocation({
@@ -286,7 +303,7 @@ function MapExplorer (props) {
     }
   }, [])
 
-  const groupCenter = getLocationCenter(group)
+  const groupCenter = getGroupMapCenter(group)
   const userCenter = getLocationCenter(currentUser)
   const centerParam = getQuerystringParam('center', location)
   const centerLocation = useMemo(() => {
@@ -295,8 +312,8 @@ function MapExplorer (props) {
       return { lat: parseFloat(decodedCenter[0]), lng: parseFloat(decodedCenter[1]) }
     }
 
-    // Prefer scoped redux center, then group location, so maps aren't stuck on
-    // a previous scope's pan or the Africa fallback (35.44, 7.92).
+    // Prefer a saved pan, then the group's pin or boundary center, so maps
+    // aren't stuck on a previous scope's pan or the Africa fallback (35.44, 7.92).
     return (scopedMapState && reduxState.centerLocation) ||
       groupCenter ||
       userCenter ||
@@ -562,12 +579,8 @@ function MapExplorer (props) {
 
   const viewGroups = useMemo(() => {
     if (!currentBoundingBox) return withCurrentGroup([], group)
-    const [west, south, east, north] = currentBoundingBox
     return withCurrentGroup(groups.filter(mapGroup => {
-      if (mapGroup.geoShape) {
-        return mapGroup.geoShape.coordinates[0].some(([lng, lat]) =>
-          lng >= west && lng <= east && lat >= south && lat <= north)
-      }
+      if (shapeMeetsBox(mapGroup.geoShape, currentBoundingBox)) return true
       return centerWithinBounds(mapGroup.locationObject, currentBoundingBox)
     }), group)
       .map(mapGroup => {
@@ -596,18 +609,21 @@ function MapExplorer (props) {
       groups: viewGroups,
       onHover: onMapHover,
       onClick: onMapClick,
-      boundingBox: currentBoundingBox
+      boundingBox: currentBoundingBox,
+      lucideIconsLoaded,
+      circularMarkerVersion
     })
-  }, [viewGroups, currentBoundingBox, onMapHover, onMapClick])
+  }, [viewGroups, currentBoundingBox, onMapHover, onMapClick, lucideIconsLoaded, circularMarkerVersion])
 
-  const polygonLayer = useMemo(() => {
-    if (!currentBoundingBox || context === 'public') return null
+  const polygonLayers = useMemo(() => {
+    if (!currentBoundingBox || context === 'public') return []
     return createPolygonLayerFromGroups({
       groups: viewGroups,
       onHover: onMapHover,
-      boundingBox: currentBoundingBox
+      boundingBox: currentBoundingBox,
+      t
     })
-  }, [viewGroups, currentBoundingBox, onMapHover, context])
+  }, [viewGroups, currentBoundingBox, onMapHover, context, t])
 
   const updateViewportWithBbox = useCallback((bbox, zoom = false) => {
     if (zoom) {
@@ -842,7 +858,7 @@ function MapExplorer (props) {
         {mapTourInvitation}
         <Map
           baseLayerStyle={baseLayerStyle}
-          hyloLayers={[polygonLayer, groupIconLayer, clusterLayer]}
+          hyloLayers={[...polygonLayers, groupIconLayer, clusterLayer]}
           isAddingItemToMap={isAddingItemToMap}
           otherLayers={Object.keys(otherLayers)}
           ref={mapRef}
@@ -895,7 +911,7 @@ function MapExplorer (props) {
           topics={topicsFromPosts}
         />
       )}
-      <div className='absolute top-5 left-[74px]'>
+      <div className='absolute top-5 left-[74px] w-80 max-w-[calc(100%-6rem)]'>
         <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-md text-base h-9 text-foreground placeholder-foreground/40 w-full px-2 py-0 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
       <button className={cn('border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} data-tour='map-features' onClick={toggleFeatureFilters}>

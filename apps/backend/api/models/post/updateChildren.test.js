@@ -10,9 +10,11 @@ describe('updateChildren', () => {
   before(() => {
     post = factories.post()
     children = times(3, () => factories.post())
-    return post.save()
-    .then(() => Promise.all(children.map(c =>
-      c.save({parent_post_id: post.id}))))
+    // Child requests are tagged "request". Test setup only seeds "general".
+    return Tag.findOrCreate('request')
+      .then(() => post.save())
+      .then(() => Promise.all(children.map(c =>
+        c.save({ parent_post_id: post.id }))))
   })
 
   it('creates, updates, and removes child posts', () => {

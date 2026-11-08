@@ -58,9 +58,7 @@ const testProviders = () => {
 }
 
 describe('MessagesDropdown', () => {
-
   it('renders correctly with an empty list', async () => {
-
     mockGraphqlServer.use(
       graphql.query('MessageThreadsQuery', ({ query, variables }) => {
         return HttpResponse.json({

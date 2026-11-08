@@ -34,10 +34,6 @@ module.exports.policies = {
     '*': true
   },
 
-  SubscriptionController: {
-    '*': true
-  },
-
   CookieConsentController: {
     '*': true
   },

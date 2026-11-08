@@ -62,7 +62,6 @@ export default function presentGroup (group) {
           primaryImage: p.attachments.length > 0 ? p.attachments[0].url : false
         }
       })
-      : [],
-    widgets: group.widgets ? group.widgets.toRefArray() : []
+      : []
   }
 }

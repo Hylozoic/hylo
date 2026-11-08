@@ -14,8 +14,8 @@ import TextInput from 'components/TextInput'
 import { cn, validateEmail } from 'util/index'
 export default function Signup (props) {
   const dispatch = useDispatch()
-  const [email, setEmail] = useState()
   const location = useLocation()
+  const [email, setEmail] = useState(location.state?.email)
   const [error, setError] = useState(getQuerystringParam('error', location))
   const [redirectTo, setRedirectTo] = useState()
   const { t } = useTranslation()
@@ -77,7 +77,7 @@ export default function Signup (props) {
     }
   }
 
-  const canSubmit = email?.length > 0
+  const canSubmit = !!email && validateEmail(email)
 
   if (redirectTo) return <Navigate to={redirectTo} replace />
 
@@ -112,6 +112,7 @@ export default function Signup (props) {
           variant='highVisibility'
           className={cn('w-full mt-2 rounded-md p-2 text-foreground mb-4 text-base', { 'bg-selected': canSubmit, 'bg-foreground/10 text-foreground/80': !canSubmit })}
           onClick={canSubmit ? () => submit() : null}
+          disabled={!canSubmit}
         >
           {t('Create account')}
         </Button>

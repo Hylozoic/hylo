@@ -10,6 +10,25 @@ module.exports = bookshelf.Model.extend(Object.assign({
   requireFetch: false,
   hasTimestamps: true,
 
+  initialize: function () {
+    this.on('saving', function (model, attrs, options) {
+      return model.dropRolesOnDeactivate(options)
+    })
+  },
+
+  /**
+   * Delete this member's role assignments on this group when the membership is turned off.
+   * Assignments are stored on this membership's group id, so deactivating a space membership
+   * leaves roles on the parent group in place.
+   */
+  async dropRolesOnDeactivate (options = {}) {
+    if (!this.hasChanged('active') || this.get('active') !== false) return
+    await MemberGroupRole.where({
+      user_id: this.get('user_id'),
+      group_id: this.get('group_id')
+    }).destroy({ require: false, transacting: options.transacting })
+  },
+
   agreements () {
     return this.belongsToMany(Agreement, 'users_groups_agreements', 'group_id', 'agreement_id', 'group_id')
       .through(UserGroupAgreement, 'group_id', 'agreement_id')

@@ -37,7 +37,7 @@ export function formatBoundingBox (bbox) {
   return bbox ? [{ lng: bbox[0], lat: bbox[1] }, { lng: bbox[2], lat: bbox[3] }] : bbox
 }
 
-const groupPostsQuery = (postsFragment) => `query (
+const groupPostsQuery = (postsFragment, extraVariables = '') => `query (
   $activePostsOnly: Boolean,
   $afterTime: Date,
   $beforeTime: Date,
@@ -56,7 +56,7 @@ const groupPostsQuery = (postsFragment) => `query (
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String]${extraVariables ? `\n  ${extraVariables}` : ''}
 ) {
   group(slug: $slug, updateLastViewed: true) {
     id
@@ -68,7 +68,7 @@ const groupPostsQuery = (postsFragment) => `query (
   }
 }`
 
-const postsQuery = (postsFragment) => `query (
+const postsQuery = (postsFragment, extraVariables = '') => `query (
   $activePostsOnly: Boolean,
   $afterTime: Date,
   $announcementsOnly: Boolean,
@@ -92,7 +92,7 @@ const postsQuery = (postsFragment) => `query (
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String]${extraVariables ? `\n  ${extraVariables}` : ''}
 ) {
   ${postsFragment}
 }`
@@ -361,12 +361,13 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
 export function fetchPostsForDrawer ({ activePostsOnly, childPostInclusion = 'yes', context, currentBoundingBox, filter, groupSlugs, offset = 0, replace, slug, sortBy, search, topics, types }) {
   let query, extractModel, getItems
 
+  // Post list fragments reference $rsvpResponse. Pin queries do not, so only the drawer declares it.
   if (context === 'groups') {
-    query = groupPostsQuery(groupViewPostsQueryFragment(childPostInclusion === 'yes'))
+    query = groupPostsQuery(groupViewPostsQueryFragment(childPostInclusion === 'yes'), '$rsvpResponse: String')
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')
   } else if (context === 'all' || context === 'public') {
-    query = postsQuery(postsQueryFragment)
+    query = postsQuery(postsQueryFragment, '$rsvpResponse: String')
     extractModel = 'Post'
     getItems = get('payload.data.posts')
   } else {

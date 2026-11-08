@@ -31,6 +31,7 @@ export default function CalendarHeaderActionsMode () {
               key={modeValue}
               layout
               className='flex-1 flex divide-x'
+              initial={false}
               animate={{ flex: isSelected ? 1.6 : 1 }}
               transition={{
                 flex: {
@@ -83,7 +84,7 @@ export default function CalendarHeaderActionsMode () {
                   >
                     {calendarModeIconMap[modeValue]}
                   </motion.div>
-                  <AnimatePresence mode='popLayout'>
+                  <AnimatePresence mode='popLayout' initial={false}>
                     {isSelected && (
                       <motion.p
                         layout='position'

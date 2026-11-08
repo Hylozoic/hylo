@@ -5,12 +5,14 @@ import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { formatLocalizedDate } from 'util/dateFormat'
 import { CircleOff } from 'lucide-react'
+import { AnalyticsEvents } from '@hylo/shared'
 import GroupButton from 'components/GroupButton'
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
 import { currentUserSettingsUrl, personUrl, groupUrl, spaceHomeUrl } from '@hylo/navigation'
 import acceptInvitation from 'store/actions/acceptInvitation'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { FETCH_MY_REQUESTS_AND_INVITES } from 'store/constants'
 import { isSpaceGroup } from 'store/selectors/getMyGroups'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -59,10 +61,14 @@ function ManageInvitesTab () {
       return
     }
     dispatch(acceptInvitation({ invitationToken }))
-      .then(() => dispatch(push(destinationAfterInvite(group))))
+      .then(result => {
+        const { membership } = result?.payload?.data?.useInvitation || {}
+        if (membership) dispatch(trackAnalyticsEvent(AnalyticsEvents.GROUP_INVITATION_ACCEPTED))
+        dispatch(push(destinationAfterInvite(group)))
+      })
   }
 
-  const handleCancelJoinRequest = (params) => dispatch(cancelJoinRequest(params))
+  const handleCancelJoinRequest = (id, groupId) => dispatch(cancelJoinRequest(id, groupId))
   const handleDeclineInvite = (inviteId) => dispatch(declineInvite(inviteId))
 
   useEffect(() => {
@@ -245,7 +251,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
 
   const cancel = () => {
     if (window.confirm(t('Are you sure you want to cancel your request to join {{groupName}}?', { groupName: group.name }))) {
-      cancelJoinRequest(id)
+      cancelJoinRequest(id, group.id)
     }
   }
 

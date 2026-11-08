@@ -60,6 +60,35 @@ describe('RichText', function () {
       const actual = RichText.processHTML(unsafe, { insaneOptions: { allowTags: ['p'], allowedAttributes: { p: ['id'] } } })
       expect(actual).to.equal(expected)
     })
+
+    it('only keeps YouTube and Vimeo iframes', () => {
+      const actual = RichText.processHTML(
+        '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe><iframe src="https://evil.example/"></iframe>'
+      )
+      expect(actual).to.equal('<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>')
+    })
+  })
+
+  describe('sanitizeHTML', () => {
+    it('strips scripts, event handlers and javascript: links', () => {
+      const actual = RichText.sanitizeHTML(
+        '<p>Hi<script>alert(1)</script></p><img src="x" onerror="alert(2)"><a href="javascript:alert(3)">x</a>'
+      )
+      expect(actual).to.equal('<p>Hi</p><img src="x"/><a>x</a>')
+    })
+
+    it('keeps YouTube and Vimeo embeds and drops other video sources', () => {
+      const actual = RichText.sanitizeHTML(
+        '<video data-type="embed" src="https://player.vimeo.com/video/70509133"></video>' +
+        '<video data-type="embed" src="javascript:alert(1)"></video>' +
+        '<iframe src="https://evil.example/"></iframe>'
+      )
+      expect(actual).to.equal('<video data-type="embed" src="https://player.vimeo.com/video/70509133"></video>')
+    })
+
+    it('returns empty values unchanged', () => {
+      expect(RichText.sanitizeHTML(null)).to.equal(null)
+    })
   })
 
   describe('.qualifyLinks', function () {

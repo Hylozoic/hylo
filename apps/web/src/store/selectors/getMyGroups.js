@@ -8,7 +8,7 @@ export function isSpaceGroup (group) {
   return group?.type === GROUP_TYPES.space
 }
 
-/** Sorts groups by nav pin order, then alphabetically by name. */
+/** Sorts navigation entries by pin order, then alphabetically by name. */
 function sortGroups (a, b) {
   const aOrder = a.navOrder ?? Infinity
   const bOrder = b.navOrder ?? Infinity
@@ -34,6 +34,7 @@ function toNestedGroupSummary (group, extras = {}) {
     avatarUrl: group.avatarUrl,
     slug: group.slug,
     type: group.type,
+    icon: group.icon,
     parentId: group.parentId,
     ...extras
   }
@@ -86,6 +87,7 @@ function buildMyGroupsTree (session, memberships) {
 
     return {
       ...group,
+      avatarUrl: group.avatarUrl,
       membershipId: membership.id,
       newPostCount: parentNavNewPostCount(membership.newPostCount, spaces),
       navOrder: membership.navOrder,
@@ -100,6 +102,7 @@ function buildMyGroupsTree (session, memberships) {
     if (!parentGroup) continue
     groups.push({
       ...parentGroup.ref,
+      avatarUrl: parentGroup.avatarUrl,
       membershipId: null,
       newPostCount: parentNavNewPostCount(0, spaces),
       navOrder: null,
@@ -130,6 +133,40 @@ export const getMyGroupsWithChildren = createSelector(
   orm,
   getMyMemberships,
   buildMyGroupsTree
+)
+
+/**
+ * Navigation destinations: all top-level group memberships plus only pinned
+ * space memberships. Space membership summaries already come from MeQuery, so
+ * this does not fetch parent groups' full spaces collections.
+ */
+export const getMyGlobalNavItems = createSelector(
+  orm,
+  getMyMemberships,
+  (session, memberships) => {
+    const groups = buildMyGroupsTree(session, memberships)
+    const groupItems = groups
+      .filter(group => !isSpaceGroup(group))
+      .map(group => ({ ...group, navItemType: 'group' }))
+    const pinnedSpaceItems = groups.flatMap(parent =>
+      (parent.spaces || [])
+        .filter(space => space.navOrder != null)
+        .map(space => ({
+          ...space,
+          navItemType: 'space',
+          parentSlug: parent.slug,
+          parentGroup: {
+            id: parent.id,
+            name: parent.name,
+            slug: parent.slug,
+            avatarUrl: parent.avatarUrl
+          },
+          childGroups: []
+        }))
+    )
+
+    return [...groupItems, ...pinnedSpaceItems].sort(sortGroups)
+  }
 )
 
 export default getMyGroups

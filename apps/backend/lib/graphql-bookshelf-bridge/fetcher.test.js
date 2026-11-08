@@ -7,11 +7,13 @@ import Promise from 'bluebird'
 
 const setupLoaders = models => {
   const makeLoader = () => {
-    return {
+    const loader = {
       load: spy(id => Promise.resolve({id})),
       loadMany: spy(ids => Promise.resolve(ids.map(id => ({id})))),
-      prime: spy(obj => Promise.resolve(obj))
+      clear: spy(() => loader),
+      prime: spy(() => loader)
     }
+    return loader
   }
 
   const loaders = mapValues(models, makeLoader)

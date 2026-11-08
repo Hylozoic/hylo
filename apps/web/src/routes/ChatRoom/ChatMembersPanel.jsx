@@ -20,7 +20,7 @@ import {
   getMembers,
   getRecentlyActiveMembers
 } from 'routes/Members/Members.store'
-import { messagePersonUrl, personUrl } from '@hylo/navigation'
+import { addQuerystringToPath, groupUrl, messagePersonUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import { getRoomPresence } from './RoomPresence.store'
 
@@ -52,7 +52,7 @@ export default function ChatMembersPanel ({ group, latestPost }) {
   }, [search])
 
   const fetchParams = useMemo(
-    () => getMemberQueryProps({ slug, search: debouncedSearch || undefined, sortBy: 'name', groupRoleId: null }),
+    () => getMemberQueryProps({ slug, search: debouncedSearch || undefined, sortBy: 'name', groupRoleIds: null }),
     [slug, debouncedSearch]
   )
   const members = useSelector(state => getMembers(state, fetchParams))
@@ -61,7 +61,7 @@ export default function ChatMembersPanel ({ group, latestPost }) {
 
   const fetchPage = useCallback((offset = 0) => {
     if (!slug || !group?.id) return
-    dispatch(fetchMembers({ slug, groupId: group.id, sortBy: 'name', offset, search: debouncedSearch || undefined, groupRoleId: null }))
+    dispatch(fetchMembers({ slug, groupId: group.id, sortBy: 'name', offset, search: debouncedSearch || undefined, groupRoleIds: null }))
   }, [dispatch, slug, group?.id, debouncedSearch])
 
   // Directory page for the drawer; the presence strip uses a separate lean fetch.
@@ -189,7 +189,8 @@ export default function ChatMembersPanel ({ group, latestPost }) {
 
   const openProfile = useCallback((person) => {
     close()
-    navigate(personUrl(person.id, routeParams.groupSlug))
+    const baseUrl = groupUrl(routeParams.groupSlug, 'members')
+    navigate(addQuerystringToPath(baseUrl, { highlightMember: person.id }))
   }, [close, navigate, routeParams.groupSlug])
 
   const openDM = useCallback((e, person) => {

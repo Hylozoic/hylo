@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import Header from './Header'
 
 describe('Header', () => {

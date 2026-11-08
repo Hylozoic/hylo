@@ -2,7 +2,8 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
@@ -52,6 +53,16 @@ function sortViewsByOrder (views) {
   return sortViewsByMenuOrder(views)
 }
 
+// Mouse drags start as soon as the pointer travels a few pixels. Touch needs the
+// hold instead, because a finger moving over a card is a scroll until proven
+// otherwise — which is also why the cards need no touch-action override.
+const MOUSE_ACTIVATION = { distance: 5 }
+const TOUCH_ACTIVATION = { delay: 180, tolerance: 8 }
+
+// A hold that starts a touch drag is also the gesture iOS uses to select text,
+// so the loupe appears and a selection is left behind on release.
+const NO_TEXT_SELECT = 'select-none [-webkit-touch-callout:none]'
+
 // Pointer devices keep the hover-reveal; touch has no hover, so the icons stay up.
 const EDIT_ACTIONS_CLASS = 'opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'
 
@@ -72,6 +83,7 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
 
   const rowClass = cn(
     'list-none flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group',
+    NO_TEXT_SELECT,
     isFlashing && MENU_FLASH_CLASS
   )
   const flashProps = isFlashing ? { 'data-menu-flash': String(view.id) } : {}
@@ -268,7 +280,7 @@ function SortableSpaceEditRow ({
   }, [navigate, groupSlug, spaceGroup])
 
   return (
-    <li ref={setNodeRef} style={style} className='list-none'>
+    <li ref={setNodeRef} style={style} className={cn('list-none', NO_TEXT_SELECT)}>
       <div className='flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'>
         <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
@@ -322,7 +334,8 @@ export default function GroupViewEditList ({ views, group, groupSlug, onSettings
   }, [visibleViews])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 

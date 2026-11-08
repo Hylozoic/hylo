@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
-import fetch from 'node-fetch'
+import { safeFetch } from '../../lib/safeFetch'
 import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
 import { GraphQLError } from 'graphql'
@@ -13,6 +13,13 @@ import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
+
+// Join table for groupRoles(). The view has no id column; Bookshelf joins it on
+// user_id and group_role_id, which this view does have.
+const GroupMemberEffectiveRole = bookshelf.Model.extend({
+  tableName: 'group_member_effective_roles',
+  requireFetch: false
+})
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -154,11 +161,17 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Invitation, 'email', 'email')
       .query({ where: { used_by_id: null, expired_by_id: null } })
       .orderBy('created_at', 'desc')
+      .orderBy('id', 'desc')
   },
 
+  /**
+   * Roles this person holds. Assigned roles come from group_memberships_group_roles.
+   * Every active member also holds the group's All Members role, so a responsibility
+   * linked to it (Add Members, when everyone can invite) shows up here without an assignment.
+   */
   groupRoles () {
     return this.belongsToMany(GroupRole)
-      .through(MemberGroupRole, 'user_id', 'group_role_id')
+      .through(GroupMemberEffectiveRole, 'user_id', 'group_role_id')
       .where('groups_roles.active', true)
   },
 
@@ -282,7 +295,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   deactivate: async function (sessionId) {
-    Queue.classMethod('User', 'clearSessionsFor', { userId: this.get('user_id'), sessionId })
+    Queue.classMethod('User', 'clearSessionsFor', { userId: this.id, sessionId })
     return this.save({ active: false })
   },
 
@@ -309,7 +322,7 @@ module.exports = bookshelf.Model.extend(merge({
     */
 
     await this.deleteUserMedia()
-    Queue.classMethod('User', 'clearSessionsFor', { userId: this.get('user_id'), sessionId })
+    Queue.classMethod('User', 'clearSessionsFor', { userId: this.id, sessionId })
     // TODO RESP: will need to add responsibilies, roles, etc to here, where they are missing (some roles are already handled)
     const query = `
     BEGIN;
@@ -420,6 +433,8 @@ module.exports = bookshelf.Model.extend(merge({
   setSanely: function (attrs) {
     const saneAttrs = omit(attrs, 'settings')
 
+    if (typeof saneAttrs.name === 'string') saneAttrs.name = saneAttrs.name.trim()
+
     if (!isEmpty(saneAttrs.twitter_name)) {
       if (saneAttrs.twitter_name.match(/^\s*$/)) {
         saneAttrs.twitter_name = null
@@ -517,8 +532,8 @@ module.exports = bookshelf.Model.extend(merge({
     // TODO maybe throw an error if a non-whitelisted field is supplied (besides
     // tags and password, which are used later)
     const whitelist = pick(changes, [
-      'avatar_url', 'banner_url', 'bio', 'email', 'contact_email', 'contact_phone',
-      'extra_info', 'facebook_url', 'intention', 'linkedin_url', 'location', 'location_id',
+      'avatar_url', 'banner_url', 'bio', 'contact_email', 'contact_phone',
+      'extra_info', 'facebook_url', 'intention', 'is_profile_public', 'linkedin_url', 'location', 'location_id',
       'name', 'password', 'settings', 'tagline', 'twitter_name', 'url', 'work',
       'new_notification_count', 'calendar_token'
     ])
@@ -670,6 +685,42 @@ module.exports = bookshelf.Model.extend(merge({
 }, HasSettings), {
   AXOLOTL_ID: '13986',
 
+  /**
+   * Whether `viewerId` may start a direct message with `targetId`. Mirrors who the
+   * new-message recipient search offers (members of the viewer's groups, plus the
+   * viewer's connections), so a profile card never offers messaging the search wouldn't:
+   * an active user, not the viewer, not blocked in either direction, who is an active
+   * member of a group the viewer is an active member of or is one of the viewer's
+   * connections. Stricter than findOrCreateThread's personFilter check, so anything
+   * this allows the backend also accepts.
+   */
+  async canMessage (viewerId, targetId) {
+    if (!viewerId || !targetId || String(viewerId) === String(targetId)) return false
+    const knex = bookshelf.knex
+    const sharedGroupMembers = knex('group_memberships as gm_target')
+      .join('group_memberships as gm_viewer', 'gm_viewer.group_id', 'gm_target.group_id')
+      .join('groups', 'groups.id', 'gm_target.group_id')
+      .where({
+        'gm_viewer.user_id': viewerId,
+        'gm_viewer.active': true,
+        'gm_target.active': true,
+        'groups.active': true
+      })
+      .select('gm_target.user_id')
+    const connections = knex('user_connections').where('user_id', viewerId).select('other_user_id')
+    const row = await knex('users')
+      .where('users.id', targetId)
+      .where('users.active', true)
+      .whereNotIn('users.id', BlockedUser.blockedFor(viewerId))
+      .where(q => q.whereIn('users.id', sharedGroupMembers).orWhereIn('users.id', connections))
+      .first('users.id')
+    return Boolean(row)
+  },
+
+  // One message for every failure, so login can't be used to find out which emails have accounts.
+  // Clients match on this exact string.
+  INVALID_LOGIN_ERROR: 'Incorrect email or password',
+
   authenticate: Promise.method(function (email, password) {
     const compare = Promise.promisify(bcrypt.compare, bcrypt)
 
@@ -679,17 +730,14 @@ module.exports = bookshelf.Model.extend(merge({
     return User.query('whereRaw', 'lower(email) = lower(?)', email)
       .fetch({ withRelated: ['linkedAccounts'] })
       .then(function (user) {
-        if (!user) throw new GraphQLError('email not found')
+        if (!user) throw new GraphQLError(User.INVALID_LOGIN_ERROR)
 
         const account = user.relations.linkedAccounts.find(a => a.get('provider_key') === 'password')
 
-        if (!account) {
-          const keys = user.relations.linkedAccounts.pluck('provider_key')
-          throw new GraphQLError(`password account not found. available: [${keys.join(',')}]`)
-        }
+        if (!account) throw new GraphQLError(User.INVALID_LOGIN_ERROR)
 
         return compare(password, account.get('provider_user_id')).then(function (match) {
-          if (!match) throw new GraphQLError('password does not match')
+          if (!match) throw new GraphQLError(User.INVALID_LOGIN_ERROR)
 
           return user
         })
@@ -793,7 +841,7 @@ module.exports = bookshelf.Model.extend(merge({
   isEmailUnique: function (email, excludeEmail, { transacting } = {}) {
     let query = bookshelf.knex('users')
       .whereRaw('lower(email) = lower(?)', email).count('*')
-      .transacting(transacting)
+    if (transacting) query = query.transacting(transacting)
     if (excludeEmail) query = query.andWhere('email', '!=', excludeEmail)
     return query.then(rows => Number(rows[0].count) === 0)
   },
@@ -897,7 +945,7 @@ module.exports = bookshelf.Model.extend(merge({
       const group = await Group.find(groupId)
       if (user && group) {
         for (const trigger of zapierTriggers) {
-          await fetch(trigger.get('target_url'), {
+          await safeFetch(trigger.get('target_url'), {
             method: 'post',
             body: JSON.stringify({
               id: user.id,
@@ -922,7 +970,7 @@ module.exports = bookshelf.Model.extend(merge({
         const zapierTriggers = await ZapierTrigger.forTypeAndGroups('member_updated', membership.get('group_id')).fetchAll()
         for (const trigger of zapierTriggers) {
           const joinQuestions = await GroupJoinQuestionAnswer.latestAnswersFor(membership.get('group_id'), user.id)
-          await fetch(trigger.get('target_url'), {
+          await safeFetch(trigger.get('target_url'), {
             method: 'post',
             body: JSON.stringify(Object.assign({ id: user.id, profileUrl: Frontend.Route.profile(user, membership.relations.group) }, changes, { joinQuestions })),
             headers: { 'Content-Type': 'application/json' }

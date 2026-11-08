@@ -14,11 +14,12 @@ import NonAuthLayoutRouter from 'routes/NonAuthLayoutRouter'
 import OAuthLayoutRouter from 'routes/OAuth/OAuthLayoutRouter'
 import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
+import PublicMemberProfile from 'routes/PublicLayoutRouter/PublicMemberProfile'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getSignupState'
-import { getAuthSessionUnknown } from 'store/selectors/getAuthSession'
+import { getAuthSessionCheckedAt, getAuthSessionUnknown } from 'store/selectors/getAuthSession'
 import {
   clearMobileWebViewUserLogout,
   isMobileWebViewUserLogoutInProgress,
@@ -72,7 +73,7 @@ function writeMobileReauthAttempts (n) {
  * During `checkLogin`, avoid BootstrapShell (logged-in nav + feed-shaped skeleton) for URLs
  * that render login, signup, or other non-auth layouts so the flash matches those pages.
  */
-function isNeutralRootSessionLoadingPath (pathname) {
+export function isNeutralRootSessionLoadingPath (pathname) {
   if (pathname === '/' || pathname === '/login' || pathname === '/reset-password' || pathname === '/notifications') {
     return true
   }
@@ -80,8 +81,8 @@ function isNeutralRootSessionLoadingPath (pathname) {
   if (pathname === '/public' || pathname.startsWith('/public/')) return true
   if (pathname.startsWith('/post/')) return true
   if (pathname.startsWith('/oauth/')) return true
-  if (pathname === '/h/use-invitation') return true
-  if (pathname.includes('/join/')) return true
+  if (pathname === '/h/use-invitation' || pathname === '/h/invitation') return true
+  if (pathname.includes('/join/') || pathname.startsWith('/invite/') || pathname.startsWith('/view/')) return true
   // Single-segment paths that are not obvious “main app” entry slugs resolve to non-auth (e.g. → /login); avoid auth-shaped skeleton while checkLogin runs
   const oneSeg = pathname.match(/^\/([^/]+)$/)
   if (oneSeg) {
@@ -96,6 +97,7 @@ export default function RootRouter () {
   const dispatch = useDispatch()
   const isAuthorized = useSelector(getAuthorized)
   const isAuthSessionUnknown = useSelector(getAuthSessionUnknown)
+  const authCheckedAt = useSelector(getAuthSessionCheckedAt)
   const [mobileRecovering, setMobileRecovering] = useState(
     () => typeof window !== 'undefined' && window.HyloMobileV2 && readMobileRecovering()
   )
@@ -173,6 +175,10 @@ export default function RootRouter () {
   // - unauthorized → ask native to re-mint the session (VERIFY_AUTH). Native syncs
   //   cookies and posts SESSION_READY so we can retry in place. After MAX failures,
   //   send LOGOUT so native shows its login UI.
+  // Keyed on authCheckedAt so it re-runs after every checkLogin, including a retry that
+  // comes back anonymous again: isAuthSessionUnknown/isAuthorized don't change then, and
+  // Android's WebView doesn't reload on SESSION_READY (same URL), so without it the
+  // retry was never counted and the app sat on the spinner forever (#1711).
   useEffect(() => {
     if (isAuthSessionUnknown) return
     if (!window.HyloMobileV2) return
@@ -200,7 +206,7 @@ export default function RootRouter () {
     }
     writeMobileReauthAttempts(attempts + 1)
     sendMessageToWebView(WebViewMessageTypes.VERIFY_AUTH)
-  }, [isAuthSessionUnknown, isAuthorized])
+  }, [isAuthSessionUnknown, isAuthorized, authCheckedAt])
 
   // Boot loading screen milestones (the loader lives in index.html so it can
   // start before React mounts): React has mounted, then the session is known —
@@ -272,8 +278,13 @@ export default function RootRouter () {
           <Route path='/groups/:groupSlug/chat/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
           <Route path='/groups/:groupSlug/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
 
+          <Route path='/members/:personId/*' element={<PublicMemberProfile />} />
+          <Route path='/all/members/:personId/*' element={<PublicMemberProfile />} />
+
           {/* XXX: sending join page directly to JoinGroup, before all other group pages go to the public group detail */}
           <Route path='/groups/:groupSlug/join/:accessCode/*' element={<JoinGroup />} />
+          <Route path='/invite/:accessCode/*' element={<JoinGroup />} />
+          <Route path='/view/:accessCode/*' element={<JoinGroup />} />
           {/* Must be before `/groups/:groupSlug/*` → PublicGroupDetail so offering URLs resolve here */}
           <Route path='/groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
           <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />

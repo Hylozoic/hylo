@@ -20,10 +20,8 @@ export default function PrimaryWebViewScreen () {
   const webViewRef = useRef<WebView>(null)
   const logout = useLogout()
   const { isConnected, isInternetReachable } = useNetworkConnectivity()
-  const { backgroundColor, colorScheme, setTheme, hydrate } = useThemeStore()
+  const { backgroundColor, colorScheme, setTheme } = useThemeStore()
   const insets = useSafeAreaInsets()
-
-  useEffect(() => { hydrate() }, [hydrate])
 
   // Apply the bottom inset as an explicit style, never via SafeAreaView's native
   // 'bottom' edge. SafeAreaView computes insets per-instance on the native side

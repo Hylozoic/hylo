@@ -13,6 +13,7 @@ export default function updateUserSettings (changes) {
             email
             emailValidated
             hasRegistered
+            isProfilePublic
             name
             rsvpCalendarUrl
             settings {
@@ -21,6 +22,7 @@ export default function updateUserSettings (changes) {
               colorScheme
               dmNotifications
               commentNotifications
+              unifiedEmailDigest
               globalNavStyle
               groupNavStyle
               rsvpCalendarSub

@@ -8,6 +8,12 @@ process.env.PUSH_NOTIFICATIONS_ENABLED = process.env.PUSH_NOTIFICATIONS_ENABLED 
 process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED = process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED || 'true'
 process.env.HYLO_TESTER_IDS = process.env.HYLO_TESTER_IDS || '1'
 
+// Tests must never send email (#1722): sendwithus delivers mail sent with a *test* key to the account owner.
+// Blank the key before lib/skiff.js runs dotenv (dotenv never overrides a variable that is already set), and give
+// anything that requires 'sendwithus' a client that refuses to send (see the require hook below).
+// api/services/Email.js also refuses to send under NODE_ENV=test.
+process.env.SENDWITHUS_KEY = ''
+
 // just set up the test globals, not the test database
 
 const chai = require('chai')
@@ -71,10 +77,17 @@ const mockStripeClient = {
   }
 }
 
-// Mock require.cache for 'stripe' module
+function stubSendwithusClient () {
+  return {
+    send: (opts, callback) => callback(new Error('sendwithus is stubbed in tests (test/setup/core.js)'))
+  }
+}
+
+// Mock require.cache for 'stripe' and 'sendwithus' modules
 const Module = require('module')
 const originalRequire = Module.prototype.require
 Module.prototype.require = function (id) {
+  if (id === 'sendwithus') return stubSendwithusClient
   if (id === 'stripe') {
     return function () {
       return mockStripeClient

@@ -68,7 +68,7 @@ export const sendDigests = async () => {
 
     const numSends = await Promise.all(posts.map(async post => {
       const { comments } = post.relations
-      if (comments.length === 0) return []
+      if (comments.length === 0) return 0
 
       const followers = await post.followers().fetch()
 

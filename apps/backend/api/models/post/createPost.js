@@ -11,13 +11,14 @@ import {
 } from '@hylo/shared'
 
 export default async function createPost (userId, params) {
+  await assertCanCreateSilentPost(userId, params)
   await assertGroupsAcceptPostType(params.group_ids, params.type)
   const { hosted: hostedImageUrls, remote: remoteImageUrls } = partitionImageUrls(params.imageUrls)
   return setupPostAttrs(userId, merge(Post.newPostAttrs(), params), true)
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'markAsReadTopicName', 'skip_link_preview'),
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'markAsReadTopicName', 'skip_link_preview', 'silent'),
           { imageUrls: hostedImageUrls, children: params.requests, transacting }
         ))))
       .then(function (inserts) {
@@ -35,11 +36,37 @@ export default async function createPost (userId, params) {
           startPosition: (hostedImageUrls || []).length
         }, 0)
       }
-      if (post.get('type') === Post.Type.CHAT) {
+      if (post.get('type') === Post.Type.CHAT && !params.silent) {
         Queue.classMethod('Post', 'upsertChatActivityNotice', { postId: post.id }, 0)
       }
       return post
     })
+}
+
+/**
+ * Rejects silent creates from anyone who is not a steward of every destination group.
+ * A silent post also cannot be an announcement.
+ * @param {string|number} userId
+ * @param {object} params
+ * @returns {Promise<void>}
+ */
+async function assertCanCreateSilentPost (userId, params) {
+  if (!params.silent) return
+  if (params.announcement) {
+    throw new GraphQLError('A silent post cannot be an announcement')
+  }
+
+  const groupIds = uniq(params.group_ids || [])
+  for (const groupId of groupIds) {
+    const isSteward = await GroupMembership.hasResponsibility(
+      userId,
+      groupId,
+      Responsibility.constants.RESP_ADMINISTRATION
+    )
+    if (!isSteward) {
+      throw new GraphQLError('Only a group steward can create a silent post')
+    }
+  }
 }
 
 export function afterCreatingPost (post, opts) {
@@ -103,18 +130,18 @@ export function afterCreatingPost (post, opts) {
     opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
     .then(() => post.isProject() && post.setProjectMembers(opts.memberIds || [], trxOpts))
-    .then(() => post.isEvent() && Queue.classMethod('Post', 'processEventCreated', { postId: post.id, eventInviteeIds: opts.eventInviteeIds, userId, params: opts.params }))
+    .then(() => post.isEvent() && Queue.classMethod('Post', 'processEventCreated', { postId: post.id, eventInviteeIds: opts.eventInviteeIds, userId, params: opts.params, silent: !!opts.silent }))
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
     .then(() => attachOrQueueLinkPreview(post, trx, opts.skip_link_preview))
-    .then(() => notifyAndMarkAuthorRead(post, opts.localId, trx))
+    .then(() => notifyAndMarkAuthorRead(post, opts.localId, trx, { silent: !!opts.silent }))
     // Mass GroupMembership / GroupViewUser new_post_count updates can touch thousands of
-    // rows. Run in the background like delete.
-    .then(() => Queue.classMethod('Post', 'incrementNewPostCountForCreatedPost', { postId: post.id }, 0))
-    .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
-    .then(() => opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
-    .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
-    .then(() => Queue.classMethod('Post', 'zapierTriggers', { postId: post.id }))
+    // rows. Run in the background like delete. Silent posts skip the member fan-out.
+    .then(() => !opts.silent && Queue.classMethod('Post', 'incrementNewPostCountForCreatedPost', { postId: post.id }, 0))
+    .then(() => !opts.silent && Queue.classMethod('Post', 'createActivities', { postId: post.id }))
+    .then(() => !opts.silent && opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
+    .then(() => !opts.silent && Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
+    .then(() => !opts.silent && Queue.classMethod('Post', 'zapierTriggers', { postId: post.id }))
     .catch((err) => {
       console.error('afterCreatingPost failed: ', err)
       throw new GraphQLError(`afterCreatingPost failed: ${err}`)
@@ -242,45 +269,52 @@ export async function incrementNewPostCount (post) {
 /**
  * After tags are synced: notify sockets, bump GroupTag freshness, and mark the
  * author's matching views read up to this post (typed common view + chat when applicable).
+ * Silent posts still mark the author read, and skip the live newPost socket.
+ * @param {object} post
+ * @param {string} [localId]
+ * @param {object} [trx]
+ * @param {{ silent?: boolean }} [options]
  */
-async function notifyAndMarkAuthorRead (post, localId, trx) {
+async function notifyAndMarkAuthorRead (post, localId, trx, { silent = false } = {}) {
   await post.load([
     'media', 'groups', 'linkPreview', 'tags', 'user'
   ], { transacting: trx })
 
   const { tags, groups } = post.relations
 
-  // NOTE: the payload object is released to many users, so it cannot be
-  // subject to the usual permissions checks (which groups
-  // the user is allowed to view, etc). This means we either omit the
-  // information, or (as below) we only post group data for the socket
-  // room it's being pushed to.
-  const payload = post.getNewPostSocketPayload()
-  payload.localId = localId
-  const rooms = new Set()
   const notifySockets = []
-  payload.groups.forEach(g => {
-    rooms.add(String(g.id))
-    notifySockets.push(pushToSockets(
-      groupRoom(g.id),
-      'newPost',
-      Object.assign({}, payload, { groups: [g] })
-    ))
-  })
-  // Space posts also go to the parent room so the parent menu can badge
-  // without every client joining every space room.
-  groups.models.forEach(group => {
-    const parentId = group.get('parent_id')
-    if (!parentId || rooms.has(String(parentId))) return
-    rooms.add(String(parentId))
-    const g = payload.groups.find(p => String(p.id) === String(group.id))
-    if (!g) return
-    notifySockets.push(pushToSockets(
-      groupRoom(parentId),
-      'newPost',
-      Object.assign({}, payload, { groups: [g] })
-    ))
-  })
+  if (!silent) {
+    // NOTE: the payload object is released to many users, so it cannot be
+    // subject to the usual permissions checks (which groups
+    // the user is allowed to view, etc). This means we either omit the
+    // information, or (as below) we only post group data for the socket
+    // room it's being pushed to.
+    const payload = post.getNewPostSocketPayload()
+    payload.localId = localId
+    const rooms = new Set()
+    payload.groups.forEach(g => {
+      rooms.add(String(g.id))
+      notifySockets.push(pushToSockets(
+        groupRoom(g.id),
+        'newPost',
+        Object.assign({}, payload, { groups: [g] })
+      ))
+    })
+    // Space posts also go to the parent room so the parent menu can badge
+    // without every client joining every space room.
+    groups.models.forEach(group => {
+      const parentId = group.get('parent_id')
+      if (!parentId || rooms.has(String(parentId))) return
+      rooms.add(String(parentId))
+      const g = payload.groups.find(p => String(p.id) === String(group.id))
+      if (!g) return
+      notifySockets.push(pushToSockets(
+        groupRoom(parentId),
+        'newPost',
+        Object.assign({}, payload, { groups: [g] })
+      ))
+    })
+  }
 
   const groupTagsQuery = GroupTag.query(q => {
     q.whereIn('tag_id', tags.map('id'))

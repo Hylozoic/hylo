@@ -1,7 +1,6 @@
-import { cn } from 'util/index'
+import { cn, bgImageStyle } from 'util/index'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { bgImageStyle } from 'util/index'
 
 import classes from './ModalSidebar.module.scss'
 

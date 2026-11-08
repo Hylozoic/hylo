@@ -38,6 +38,8 @@ export default function FundingRoundSettingsFields ({
   setHideFinalResults,
   requireBudget,
   setRequireBudget,
+  showRealtimeSubmissions,
+  setShowRealtimeSubmissions,
   showRealtimeVotes,
   setShowRealtimeVotes,
   submitterRoles,
@@ -109,19 +111,19 @@ export default function FundingRoundSettingsFields ({
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3' data-tour='round-schedule'>
         <div>
           <label className='text-sm text-foreground/70'>{t('Submissions open')}</label>
-          <DateTimePicker value={submissionsOpenAt} onChange={setSubmissionsOpenAt} />
+          <DateTimePicker value={submissionsOpenAt} onChange={setSubmissionsOpenAt} granularity='minute' label={t('Submissions open')} />
         </div>
         <div>
           <label className='text-sm text-foreground/70'>{t('Submissions close')}</label>
-          <DateTimePicker value={submissionsCloseAt} onChange={setSubmissionsCloseAt} />
+          <DateTimePicker value={submissionsCloseAt} onChange={setSubmissionsCloseAt} granularity='minute' label={t('Submissions close')} />
         </div>
         <div>
           <label className='text-sm text-foreground/70'>{t('Voting opens')}</label>
-          <DateTimePicker value={votingOpensAt} onChange={setVotingOpensAt} />
+          <DateTimePicker value={votingOpensAt} onChange={setVotingOpensAt} granularity='minute' label={t('Voting opens')} />
         </div>
         <div>
           <label className='text-sm text-foreground/70'>{t('Voting closes')}</label>
-          <DateTimePicker value={votingClosesAt} onChange={setVotingClosesAt} />
+          <DateTimePicker value={votingClosesAt} onChange={setVotingClosesAt} granularity='minute' label={t('Voting closes')} />
         </div>
       </div>
 
@@ -176,6 +178,20 @@ export default function FundingRoundSettingsFields ({
           <Label htmlFor='fr-require-budget' className='cursor-pointer font-normal'>
             {t('Show budget field for submissions')}
           </Label>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Checkbox
+            id='fr-show-realtime-submissions'
+            checked={!!showRealtimeSubmissions}
+            onCheckedChange={checked => setShowRealtimeSubmissions(!!checked)}
+          />
+          <Label htmlFor='fr-show-realtime-submissions' className='cursor-pointer font-normal'>
+            {t('Show all submissions to members during the submissions phase')}
+          </Label>
+          <InfoButton
+            className='text-foreground/50'
+            content={t('By default, members only see their own submissions until submissions close. Admins always see every submission.')}
+          />
         </div>
         <div className='flex items-center gap-2'>
           <Checkbox

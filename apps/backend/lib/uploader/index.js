@@ -4,6 +4,7 @@ import mime from 'mime-types'
 import request from 'request'
 import sharp from 'sharp'
 import { PassThrough } from 'stream'
+import { safeFetch } from '../safeFetch'
 
 import { createConverterStream } from './converter'
 import { createPostImporter } from './postImporter'
@@ -60,12 +61,15 @@ export function upload (args) {
   }
   if (typeof filename === 'string') filename = filename.replace(/\s+/g, '-')
   return validate(args)
-    .then(() => {
+    // Wikimedia and similar CDNs 403 the default User-Agent.
+    .then(() => url
+      ? safeFetch(encodeURI(url), { headers: REMOTE_FETCH_HEADERS }).then(response => {
+          if (!response.ok) throw new Error(`Download failed (${response.status})`)
+          return response.body
+        })
+      : stream)
+    .then(source => {
       let passthrough, converter, storage, didSetup, sourceHasError
-      // Wikimedia and similar CDNs 403 the default `request` User-Agent.
-      const source = url
-        ? request({ url: encodeURI(url), headers: REMOTE_FETCH_HEADERS })
-        : stream
       if (!filename) filename = url
       function setupStreams (data, resolve, reject) {
         didSetup = true
@@ -128,17 +132,6 @@ export function upload (args) {
       }
 
       return new Promise((resolve, reject) => {
-        if (url && typeof source.on === 'function') {
-          source.on('response', response => {
-            if (response.statusCode < 200 || response.statusCode >= 300) {
-              sourceHasError = true
-              const err = new Error(`Download failed (${response.statusCode})`)
-              if (typeof source.abort === 'function') source.abort()
-              reject(err)
-            }
-          })
-        }
-
         source.on('data', data => {
           if (sourceHasError) return
 

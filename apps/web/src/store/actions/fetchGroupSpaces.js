@@ -28,11 +28,17 @@ export default function fetchGroupSpaces (groupId) {
               description
               purpose
               location
+              geoShape
               locationObject {
                 id
                 fullText
+                center {
+                  lat
+                  lng
+                }
               }
               acceptedPostTypes
+              chatConverted
               visibility
               accessibility
               requiredRoles

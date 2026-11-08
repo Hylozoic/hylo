@@ -2,12 +2,14 @@ import React, { useMemo, useCallback, useState } from 'react'
 import { cn } from 'util/index'
 import EmojiPicker from 'components/EmojiPicker'
 import EmojiPill from 'components/EmojiPill'
+import ReactionsDrawer, { ALL_REACTIONS } from 'components/ReactionsDrawer'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger
 } from 'components/ui/popover'
 import useReactionActions from 'hooks/useReactionActions'
+import useTouchLongPress from 'hooks/useTouchLongPress'
 
 export default function EmojiRow (props) {
   const {
@@ -24,9 +26,14 @@ export default function EmojiRow (props) {
   } = props
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
   const [overflowOpen, setOverflowOpen] = useState(false)
+  // Emoji the reactions drawer opened on (ALL_REACTIONS for every emoji), null when closed
+  const [drawerEmoji, setDrawerEmoji] = useState(null)
 
   const entityType = comment ? 'comment' : 'post'
-  const myReactions = useMemo(() => (comment ? comment.commentReactions?.filter(reaction => reaction.user.id === currentUser?.id) : post.postReactions?.filter(reaction => reaction.user.id === currentUser?.id)) || [], [comment, post, currentUser])
+  const myReactions = useMemo(() => (comment
+    ? comment.commentReactions?.filter(reaction => reaction.user?.id === currentUser?.id)
+    : post.postReactions?.filter(reaction => reaction.user?.id === currentUser?.id)
+  ) || [], [comment, post, currentUser])
   const myEmojis = useMemo(() => myReactions.map((reaction) => reaction.emojiFull), [myReactions])
   const entityReactions = useMemo(() => (comment ? comment.commentReactions : post.postReactions) || [], [comment, post])
   const groupIds = useMemo(() => (post.groups || []).map(g => g.id), [post])
@@ -41,27 +48,50 @@ export default function EmojiRow (props) {
     removeReactOnEntity({ commentId: comment?.id, emojiFull, entityType, postId: post.id })
   }, [comment, post, currentUser, onRemoveReaction, removeReactOnEntity, entityType, groupIds])
 
+  // Anonymous viewers get counts only — never reactor names in tooltips
   const usersReactions = useMemo(() => entityReactions.reduce((accum, entityReaction) => {
+    const name = currentUser ? entityReaction.user?.name : null
     if (accum[entityReaction.emojiFull]) {
-      const { userList } = accum[entityReaction.emojiFull]
-      accum[entityReaction.emojiFull] = { emojiFull: entityReaction.emojiFull, userList: [...userList, entityReaction.user.name] }
+      const existing = accum[entityReaction.emojiFull]
+      accum[entityReaction.emojiFull] = {
+        emojiFull: entityReaction.emojiFull,
+        count: existing.count + 1,
+        userList: name ? [...existing.userList, name] : existing.userList
+      }
     } else {
-      accum[entityReaction.emojiFull] = { emojiFull: entityReaction.emojiFull, userList: [entityReaction.user.name] }
+      accum[entityReaction.emojiFull] = {
+        emojiFull: entityReaction.emojiFull,
+        count: 1,
+        userList: name ? [name] : []
+      }
     }
 
-    if (myEmojis.includes(entityReaction.emojiFull)) accum[entityReaction.emojiFull] = { ...accum[entityReaction.emojiFull], loggedInUser: true }
+    if (myEmojis.includes(entityReaction.emojiFull)) {
+      accum[entityReaction.emojiFull] = { ...accum[entityReaction.emojiFull], loggedInUser: true }
+    }
 
     return accum
   }, {}), [entityReactions, myEmojis, currentUser])
 
+  // Touch long press on a reaction opens the drawer of who reacted. Taps still toggle your
+  // reaction and desktop keeps the hover tooltip. Anonymous viewers never see reactor names.
+  const openDrawer = useCallback((emojiFull) => {
+    setOverflowOpen(false)
+    setDrawerEmoji(emojiFull)
+  }, [])
+  const handleLongPress = currentUser ? openDrawer : undefined
+  const { handlers: overflowLongPressHandlers, consumeLongPress: consumeOverflowLongPress } =
+    useTouchLongPress(currentUser ? () => openDrawer(ALL_REACTIONS) : null)
+
   // Sort reactions by count (most popular first)
   const sortedReactions = useMemo(() =>
-    Object.values(usersReactions).sort((a, b) => b.userList.length - a.userList.length),
+    Object.values(usersReactions).sort((a, b) => b.count - a.count),
   [usersReactions])
 
-  const topReaction = sortedReactions[0]
-  const overflowReactions = sortedReactions.slice(1)
-  const overflowCount = overflowReactions.reduce((sum, r) => sum + r.userList.length, 0)
+  // Two emoji types stay as two pills. A third type is what collapses the rest into the overflow pill.
+  const visibleReactions = sortedReactions.length === 2 ? sortedReactions : sortedReactions.slice(0, 1)
+  const overflowReactions = sortedReactions.length > 2 ? sortedReactions.slice(1) : []
+  const overflowCount = overflowReactions.reduce((sum, r) => sum + r.count, 0)
   const hasAnySelected = overflowReactions.some(r => r.loggedInUser)
 
   return (
@@ -69,17 +99,18 @@ export default function EmojiRow (props) {
       {entityReactions && (
         <div className='transition-all duration-250 ease-in-out flex relative items-center flex-nowrap'>
           {currentUser && alignLeft ? <EmojiPicker handleReaction={handleReaction} myEmojis={myEmojis} handleRemoveReaction={handleRemoveReaction} onOpenChange={onOpenChange} /> : ''}
-          {topReaction && (
+          {visibleReactions.map(reaction => (
             <EmojiPill
-              onClick={currentUser ? topReaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
-              key={topReaction.emojiFull}
-              emojiFull={topReaction.emojiFull}
-              count={topReaction.userList.length}
-              selected={topReaction.loggedInUser}
-              toolTip={topReaction.userList.join('<br>')}
+              onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
+              onLongPress={handleLongPress}
+              key={reaction.emojiFull}
+              emojiFull={reaction.emojiFull}
+              count={reaction.count}
+              selected={reaction.loggedInUser}
+              toolTip={currentUser ? reaction.userList.join('<br>') : undefined}
               className={pillClassName}
             />
-          )}
+          ))}
           {overflowReactions.length > 0 && (
             <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
               <PopoverTrigger asChild>
@@ -89,10 +120,15 @@ export default function EmojiRow (props) {
                     { 'bg-selected text-foreground': hasAnySelected },
                     pillClassName
                   )}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (consumeOverflowLongPress()) e.preventDefault()
+                  }}
+                  {...overflowLongPressHandlers}
+                  style={currentUser ? { WebkitTouchCallout: 'none' } : undefined}
                 >
-                  <span className='sm:hidden'>{overflowReactions.slice(0, 2).map(r => r.emojiFull).join('')}{overflowReactions.length > 2 && '…'}</span>
-                  <span className='hidden sm:inline'>{overflowReactions.slice(0, 3).map(r => r.emojiFull).join('')}{overflowReactions.length > 3 && '…'}</span>
+                  <span className='inline-block translate-y-px leading-none sm:hidden'>{overflowReactions.slice(0, 2).map(r => r.emojiFull).join('')}{overflowReactions.length > 2 && '…'}</span>
+                  <span className='hidden translate-y-px leading-none sm:inline-block'>{overflowReactions.slice(0, 3).map(r => r.emojiFull).join('')}{overflowReactions.length > 3 && '…'}</span>
                   <span className='ml-1'>{overflowCount}</span>
                 </div>
               </PopoverTrigger>
@@ -101,11 +137,12 @@ export default function EmojiRow (props) {
                   {overflowReactions.map(reaction => (
                     <EmojiPill
                       onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
+                      onLongPress={handleLongPress}
                       key={reaction.emojiFull}
                       emojiFull={reaction.emojiFull}
-                      count={reaction.userList.length}
+                      count={reaction.count}
                       selected={reaction.loggedInUser}
-                      toolTip={reaction.userList.join('<br>')}
+                      toolTip={currentUser ? reaction.userList.join('<br>') : undefined}
                     />
                   ))}
                 </div>
@@ -114,6 +151,16 @@ export default function EmojiRow (props) {
           )}
           {currentUser && !alignLeft ? <EmojiPicker handleReaction={handleReaction} myEmojis={myEmojis} handleRemoveReaction={handleRemoveReaction} onOpenChange={onOpenChange} /> : ''}
         </div>
+      )}
+      {currentUser && (
+        <ReactionsDrawer
+          open={!!drawerEmoji}
+          onOpenChange={(open) => { if (!open) setDrawerEmoji(null) }}
+          reactions={entityReactions}
+          currentUser={currentUser}
+          initialEmoji={drawerEmoji}
+          onRemoveReaction={handleRemoveReaction}
+        />
       )}
     </div>
   )

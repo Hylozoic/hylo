@@ -75,7 +75,9 @@ export default function SiteBanners () {
     }
   }, [handleDismiss, navigate])
 
-  if (banners.length === 0) return null
+  // Signup already has a full-screen step dialog. A banner scrim on top of it
+  // takes the Next tap on Android, so people get stuck on Add Location.
+  if (banners.length === 0 || location.pathname.startsWith('/welcome')) return null
 
   const visible = banners.slice(0, MAX_VISIBLE_PEEK)
 

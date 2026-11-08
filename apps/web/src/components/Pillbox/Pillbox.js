@@ -53,7 +53,7 @@ class Pillbox extends Component {
     if (filter) filter(event)
   }
 
-  select = choice => {
+  handleSelect = choice => {
     this.props.handleAddition(choice)
     this.resetInput()
   }
@@ -150,7 +150,7 @@ class Pillbox extends Component {
                     item: 'px-3 py-2 text-sm text-foreground/80 hover:bg-card/50 cursor-pointer [&_a]:text-foreground/100',
                     itemActive: 'bg-primary/10'
                   }}
-                  onChange={this.select}
+                  onChange={this.handleSelect}
                   ref={this.list}
                 />
               </div>

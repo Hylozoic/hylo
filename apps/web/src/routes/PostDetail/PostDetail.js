@@ -136,14 +136,16 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
   // Fetch post; include action-completion fields only for action posts.
   // Deep-linked actions may fetch twice: once without type, again once type is known.
+  // Anonymous viewers skip comments/commenter identities (counts only).
   useEffect(() => {
     if (!postId) return
     const isAction = post?.type === 'action'
     dispatch(fetchPost(postId, {
+      withComments: !!currentUser,
       withCompletion: isAction,
       withCompletionResponses: isAction && hasTracksResponsibility
     }))
-  }, [postId, post?.type, hasTracksResponsibility])
+  }, [postId, post?.type, hasTracksResponsibility, currentUser])
 
   useEffect(() => {
     if (!post) return
@@ -163,14 +165,14 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     if (!isIsolatedPostView) return
     const postType = post?.type || 'post'
     setHeaderDetails({
-      title: t(postType) + ': ' + post?.title,
+      title: post ? t(postType) + ': ' + (post.title || '') : t('Post loading...'),
       icon: getPostTypeIcon(postType),
       info: '',
       search: false,
       mobileBackButton: true,
       backTo: postDetailCloseDestination
     })
-  }, [isIsolatedPostView, post?.type, post?.title, t, setHeaderDetails, postDetailCloseDestination])
+  }, [isIsolatedPostView, post, t, setHeaderDetails, postDetailCloseDestination])
 
   const handleSetComponentPositions = useCallback(() => {
     const container = document.getElementById(DETAIL_COLUMN_ID)
@@ -565,7 +567,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         pullTouchRef.current = node
       }}
       id={`post-detail-container-${post.id}`}
-      className={cn('PostDetail max-w-[960px] mx-auto min-w-[290px] sm:min-w-[350px] relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}
+      className={cn('PostDetail w-full max-w-[960px] mx-auto min-w-[290px] sm:min-w-[350px] relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}
     >
       <Helmet>
         <title>

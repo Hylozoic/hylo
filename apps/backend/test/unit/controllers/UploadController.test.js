@@ -1,6 +1,7 @@
 /* globals UploadController */
 
 var root = require('root-path')
+var nock = require('nock')
 require(root('test/setup'))
 var factories = require(root('test/setup/factories'))
 
@@ -57,8 +58,13 @@ describe('UploadController', () => {
   })
 
   describe('uploading via file', () => {
+    let s3Requests
+
     beforeEach(() => {
       req.headers['content-type'] = 'multipart/form-data; boundary=125b0ae93a754d0ba988b98b397d587f'
+      // never upload to a real S3 bucket from tests (nock intercepts HTTP for every module instance)
+      s3Requests = 0
+      nock(/amazonaws\.com/).put(/.*/).reply(200, () => { s3Requests++; return '' }, { ETag: '"test"' })
     })
 
     it('parses a multipart request', () => {
@@ -66,9 +72,8 @@ describe('UploadController', () => {
       req.session.userId = '42'
       return UploadController.create(req, res)
       .then(() => {
-        // this error is thrown by createS3StorageStream; the fact that it is
-        // thrown confirms that busboy was able to parse the request and set up
-        // the stream pipeline.
+        // busboy parsed the fields and piped the file through to (mocked) S3
+        expect(s3Requests).to.equal(1)
         expect(res.body.type).to.equal('userAvatar')
       })
     })

@@ -43,7 +43,7 @@ test('space modals carry the group creation form treatment', async ({ page }) =>
   const searchIcons = page.getByRole('button', { name: 'Search Icons' })
   await expect(searchIcons).toBeVisible()
   await expect(page.getByText('Handle', { exact: true })).toBeVisible()
-  await expect(page.locator('text=hylo.com/groups/e2e-public-group/spaces/')).toBeVisible()
+  await expect(page.locator('[title^="hylo.com/groups/e2e-public-group/spaces/"]')).toBeVisible()
 
   // Icon suggestions all sit on one line: same vertical position as the picker button
   const iconButtons = page.locator('button[aria-label="Circle"], button[aria-label="Globe"]')

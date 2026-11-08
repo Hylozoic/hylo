@@ -10,13 +10,13 @@ export const PLACEHOLDER_NAME = '%%%%%%%%%%%%'
 export const PLACEHOLDER_COPY = '*'.repeat(100)
 
 /** Stable slug for the primary demo group */
-export const MAIN_GROUP_SLUG = 'terran-collective'
+export const MAIN_GROUP_SLUG = 'community-hub'
 
 /** Stable slug for the simpler community group */
-export const SIMPLE_GROUP_SLUG = 'eastbayconnect'
+export const SIMPLE_GROUP_SLUG = 'local-sharing-network'
 
 /** Stable slug for the worker-owned staff cooperative */
-export const STAFF_GROUP_SLUG = 'holistica-staff'
+export const STAFF_GROUP_SLUG = 'worker-coop-staff'
 
 /** Main group member count (includes sandbox Me) */
 export const MAIN_GROUP_MEMBER_COUNT = 127

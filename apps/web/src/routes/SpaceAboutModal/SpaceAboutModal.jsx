@@ -28,7 +28,7 @@ export default function SpaceAboutModal ({ onClose }) {
 
   useEffect(() => {
     if (spaceFullSlug && !detailsLoaded) {
-      dispatch(fetchGroupDetails({ slug: spaceFullSlug, withWidgets: false, withPrerequisites: false }))
+      dispatch(fetchGroupDetails({ slug: spaceFullSlug, withPrerequisites: false }))
     }
   }, [dispatch, spaceFullSlug, detailsLoaded])
 

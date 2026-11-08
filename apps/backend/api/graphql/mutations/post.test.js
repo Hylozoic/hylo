@@ -2,8 +2,8 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
-import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, deletePost, fulfillPost, unfulfillPost } from './post'
-import { spyify, unspyify } from '../../../test/setup/helpers'
+import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, deletePost, fulfillPost, unfulfillPost, completePost } from './post'
+import { mockify, spyify, unspyify } from '../../../test/setup/helpers'
 
 describe('pinPost', () => {
   var user, group, post, view
@@ -425,5 +425,69 @@ describe('fulfillPost and unfulfillPost', () => {
     expect(requestPost.get('fulfilled_at')).to.not.exist
     expect(Queue.classMethod).to.have.been.called.with('Post', 'publishPostUpdates', { postId: requestPost.id, options: { changeContext: 'completion' } })
     expect(Activity.saveForReasons).to.have.been.called
+  })
+})
+
+describe('completePost', () => {
+  let user
+
+  before(async () => {
+    user = await factories.user().save()
+  })
+
+  beforeEach(() => {
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+  })
+
+  afterEach(() => {
+    unspyify(Queue, 'classMethod')
+  })
+
+  it('keeps formatting in text responses and strips unsafe HTML', async () => {
+    const post = await factories.post({ type: 'action', completion_action: 'text' }).save()
+    const html = '<p>First line</p><p><strong>Second</strong> line<br>third</p><img src="x" onerror="alert(1)"><script>alert(1)</script>'
+
+    await completePost(user.id, post.id, JSON.stringify([html]))
+
+    const response = await post.completionResponseForUser(user.id)
+    expect(response).to.deep.equal(['<p>First line</p><p><strong>Second</strong> line<br/>third</p><img src="x"/>'])
+  })
+
+  it('stores a non-JSON string as a single sanitized text response', async () => {
+    const post = await factories.post({ type: 'action', completion_action: 'text' }).save()
+
+    await completePost(user.id, post.id, 'Plain answer <script>alert(1)</script>')
+
+    const response = await post.completionResponseForUser(user.id)
+    expect(response).to.deep.equal(['Plain answer '])
+  })
+
+  it('sanitizes legacy unsanitized text responses when they are read', async () => {
+    const post = await factories.post({ type: 'action', completion_action: 'text' }).save()
+    const otherUser = await factories.user().save()
+    // Inserted directly, as rows saved before responses were sanitized on write
+    await PostUser.forge({
+      post_id: post.id,
+      user_id: otherUser.id,
+      completed_at: new Date(),
+      completion_response: JSON.stringify(['<p>Hi<img src="x" onerror="alert(1)"></p><script>alert(1)</script>'])
+    }).save()
+    const expected = ['<p>Hi<img src="x"/></p>']
+
+    expect(await post.completionResponseForUser(otherUser.id)).to.deep.equal(expected)
+
+    const responses = await post.completionResponses().fetch()
+    const row = responses.find(pu => pu.get('user_id') === otherUser.id)
+    expect(row.get('completion_response')[0]).to.contain('onerror')
+    expect(await row.completionResponseForDisplay()).to.deep.equal(expected)
+  })
+
+  it('leaves selected options unchanged', async () => {
+    const post = await factories.post({ type: 'action', completion_action: 'selectOne' }).save()
+
+    await completePost(user.id, post.id, JSON.stringify(['Cats & dogs']))
+
+    const response = await post.completionResponseForUser(user.id)
+    expect(response).to.deep.equal(['Cats & dogs'])
   })
 })

@@ -14,6 +14,7 @@ export default gql`
       colorScheme
       dmNotifications
       commentNotifications
+      unifiedEmailDigest
       locale
       globalNavStyle
       groupNavStyle

@@ -19,3 +19,8 @@
 .picker-icon {
   color: rgba(125, 140, 155, 1.0);
 }
+
+/* Search input is calc(var(--font-size) - 1px). 17px keeps it at 16px so iOS does not zoom and blur it. */
+:global(em-emoji-picker) {
+  --font-size: 17px !important;
+}

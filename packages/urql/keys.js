@@ -20,7 +20,6 @@ export default {
   // which return Union types. We are for now just leaving these warnings, as they seem to be causing
   // no harm, and I think are preferable to id'ing these results in terms of potential caching side-effects.
   GroupTopic: data => data?.id || data?.topic?.id,
-  GroupWidgetQuerySet: () => null,
   GroupSettings: () => null,
   GroupTopicQuerySet: () => null,
   JoinRequestQuerySet: () => null,

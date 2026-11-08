@@ -1,6 +1,8 @@
 import { isTest } from 'config/index'
 import { loadSandboxSeed } from './seed'
 import { handleGraphql } from './handlers'
+import { parseGraphql } from './parseGraphql'
+import { SANDBOX_MUTATION_EVENT } from './isSandbox'
 
 const MIN_DELAY_MS = 150
 const MAX_DELAY_MS = 250
@@ -27,7 +29,9 @@ export async function sandboxTransport (path, params, method = 'POST') {
   if (path === '/noo/graphql' || path?.endsWith('/noo/graphql')) {
     const seed = await getSandboxSeed()
     try {
-      return handleGraphql(params || {}, seed)
+      const result = handleGraphql(params || {}, seed)
+      notifyMutation(params?.query, result)
+      return result
     } catch (err) {
       console.error('[sandbox GraphQL]', err)
       return {
@@ -60,4 +64,15 @@ function delay () {
   if (isTest) return Promise.resolve()
   const ms = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS)
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * Tell the demo-notice modal (SandboxNoticeModal) that a mutation succeeded,
+ * passing the root field so it can tailor its call to action.
+ */
+function notifyMutation (query, result) {
+  if (typeof window === 'undefined' || result?.errors) return
+  const { kind, rootField } = parseGraphql(query)
+  if (kind !== 'mutation') return
+  window.dispatchEvent(new CustomEvent(SANDBOX_MUTATION_EVENT, { detail: { rootField } }))
 }

@@ -206,6 +206,28 @@ describe('Search', () => {
     expect(mockFetchSearchResults).not.toHaveBeenCalled()
   })
 
+  it('links a group result to the group page', () => {
+    const mockResults = [{
+      id: 'group-1',
+      type: 'Group',
+      content: {
+        id: 9,
+        name: 'River City Mutual Aid',
+        slug: 'river-city-mutual-aid',
+        avatarUrl: 'group.png',
+        memberCount: 12,
+        visibility: 1,
+        accessibility: 1
+      }
+    }]
+
+    __setMockResults(mockResults)
+
+    render(<Search />, { wrapper: testProviders(mockResults) })
+
+    expect(screen.getByRole('link', { name: /River City Mutual Aid/ })).toHaveAttribute('href', '/groups/river-city-mutual-aid')
+  })
+
   it('navigates to person profile when clicked', () => {
     const mockResults = [{
       id: '77',

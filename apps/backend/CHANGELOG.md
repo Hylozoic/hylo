@@ -6,6 +6,126 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.10] - 2026-11-04
+
+### Added
+- Administrators can convert a chat room (a chat-only space) into a discussion post. Each chat message becomes a comment, with attachments, reactions and replies kept. The discussion is dated today; comments keep the original message times. Other posts are left in place. The chat room is removed, so it no longer blocks turning its parent group into a space. No notifications are sent.
+- System for generating demo groups. Generation happens locally and creates .json files which can then be used to create the group in local database, staging or prod
+-  Profile hover card on person avatars
+
+## [7.1.9] - 2026-10-28
+
+### Added
+- New group setting to allow any member of a group to invite others to join the group, instead of just stewards being able to invite. This means that any member can see the Invite form and invite by link, email or direct Hylo notification.
+- In-app system for managing requets for a Group to be visible in the Hylo Commons group explorer. Replaces a google form and manual system.
+
+### Changed
+- Many changes to how group join links work. They are now called Invite Links and you can have multiple of them. You can also name them and specify that certain ones assign a role to people who join through it. Groups that are restricted and Protected or Hidden also have View Links that allow someone to see the group and request to join, as opposed to an invite link that gives direct access.
+
+### Fixed
+- Ensure post filters work in all views
+
+## [7.1.8] - 2026-10-27
+
+### Added
+- Ability to pin spaces to global navigation. This is accomplished from the About page of the space
+
+### Changed
+- Verify a new account email before it replaces the old one
+- Don't send new group email to hylo team for new spaces
+
+### Fixed
+- Display of posts in collections
+- Removing responsibilities from custom roles
+
+## [7.1.7] - 2026-10-20
+
+### Added
+- Can add geo boundaries to spaces. Edit geo boundaries in space and group creation and settings.
+
+### Changed
+- People who leave a group they paid for access to can rejoin without paying again
+
+### Fixed
+- Fix bug where all searches leaked outside of current group
+
+## [7.1.6] - 2026-10-15
+
+### Added
+- Search will now surface groups that match the search terms alongside posts, comments and people.
+- Filter to calendar view mode to only show events you RSVPed to, or not.
+- Public Profiles: you can turn this on in your profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Changed
+- New post emails in spaces show group name > space name instead of just space name in email subject
+- Fix crash in sentry when backend server is timing out
+
+### Fixed
+- Fix home route for groups when set to a post or member view
+
+## [7.1.5] - 2026-10-08
+
+### Added
+- Allow for a user to make their profile public in their profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Fixed
+- Post notifications display the post correctly when the group's home view is a page view or welcome page. Open a post in a modal over the home view when that view is a stream, chat or map. When home view is a page, welcome, or other static view then open posts in a standalone post URL.
+
+## [7.1.4] - 2026-10-07
+
+### Added
+- Add 'silent' parameter to createPost to enable stewards to create posts without sending notifications. Only used for importing a lot of posts via zapier for now.
+
+### Changed
+- Flatten imageUrls on postinput to support nested array formats coming from zapier
+- Performance improvements:
+- Don't wait on db update of user.last_active_at on every query. Only update database every 5 minutes. Don't await on the query.
+- Improve compression of data sent by the server to the browser. Use brotli instead of gzip when the client accepts it
+- Add some additional database indexes for common reads
+
+### Fixed
+- Ensure that when someone leaves a group, the roles associated with their membership are deleted. So if they rejoin, they dont have those roles already. Also fixes a bug where deactivated stewards were getting join notifications.
+
+
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Changed
+- In daily digest dont show X comments in post rows for new posts that day. Also dont show comments from blocked users or comments on posts from blocked users
+
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
+### Fixed
+- When auto adding people to a space give them same notification settings as they have in parent group
+- Crash when using older Hylo app
+
+## [7.1.0] - 2026-09-25
+
+### Changed
+- Refine role-gated space invite dialog
+
+### Fixed
+- Many security related fixes and updates. Details to come soon.
+- Fix notifications when accepting a group to group invite. Before it was not sending the notification to the invited user.
+
+### Cleanup
+- Dropped leftover spaces-and-views tables (`tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`, `context_widgets`, `custom_views`, `custom_view_topics`, `collections`, `groups_tracks`, `networks`, `networks_users`) and the explore-page `widgets` / `group_widgets` tables
+- Dropped display columns on `tracks` and `funding_rounds`. Names, banners, and descriptions live on the space group
+- Removed the `Widget` and `GroupWidget` models, the `group.widgets` field, and the `updateWidget` mutation. New groups no longer seed explore widgets
+
+## [7.0.8] - 2026-09-23
+
+### Added
+- Reactions support to Direct Messages, at last!
+
+### Changed
+- Keep loading member activity at bottom of member profile as you scroll down. Also fix Recent Activity to show correct posts alongside comments as you scroll
+
 ## [7.0.7] - 2026-09-20
 
 ### Fixed

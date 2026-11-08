@@ -14,8 +14,8 @@ describe('AccessTokenAuth', function () {
   describe('.checkAndSetAuthenticated', () => {
     var userWithToken, generatedToken = '1234'
 
-    before(() => {
-      setup.clearDb()
+    before(async () => {
+      await setup.clearDb()
       UserSession.login = spy(UserSession.login)
       return factories.user()
       .save()
@@ -23,6 +23,29 @@ describe('AccessTokenAuth', function () {
         userWithToken = u
         return LinkedAccount.create(u.id, {type: 'token',token: generatedToken})
       })
+    })
+
+    // TODO from assistant: the tests below don't return their promises, so their expectations never run
+    // (req.session.authenticated is no longer set by UserSession.login).
+    it('authenticates only this request, without saving it to the cookie session', () => {
+      const req = factories.mock.request()
+      req.sessionID = 'anon:abc'
+      req.query.access_token = generatedToken
+      return AccessTokenAuth.checkAndSetAuthenticated(req)
+        .then(() => {
+          expect(req.session.userId).to.equal(userWithToken.id)
+          expect(req.sessionID).to.equal(undefined)
+        })
+    })
+
+    it('leaves the cookie session alone when no user has the token', () => {
+      const req = factories.mock.request()
+      req.sessionID = 'anon:abc'
+      req.query.access_token = 'not-a-token'
+      return AccessTokenAuth.checkAndSetAuthenticated(req)
+        .then(() => {
+          expect(req.sessionID).to.equal('anon:abc')
+        })
     })
 
     it('will set the user based on the access token from the req.body', () => {

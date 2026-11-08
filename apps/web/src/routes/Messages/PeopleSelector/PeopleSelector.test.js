@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLib
 import PeopleSelector from './PeopleSelector'
 
 beforeAll(() => {
-  Element.prototype.scrollTo = jest.fn()
+  window.Element.prototype.scrollTo = jest.fn()
 })
 
 const defaultProps = {

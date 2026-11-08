@@ -7,15 +7,24 @@ import {
   assertCanFulfillPost,
   notifyAuthorOfModeratorFulfillment
 } from '../../models/post/postFulfillmentPermissions'
-import { deletePostDraftForCreate } from './draft'
+import { deleteDraftAfterCreate, deletePostDraftForCreate } from './draft'
 
 export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
   if (!post) throw new GraphQLError('Post not found')
 
-  const jsonResponse = typeof completionResponse === 'string'
-    ? completionResponse
-    : JSON.stringify(completionResponse)
+  let response = completionResponse
+  if (typeof completionResponse === 'string') {
+    try {
+      response = JSON.parse(completionResponse)
+    } catch (e) {
+      // Not JSON (the column is jsonb, so it can't be stored as is): treat it as a single response
+      response = [completionResponse]
+    }
+  }
+
+  // Text responses are rich text editor HTML, which clients render as HTML
+  const jsonResponse = JSON.stringify(Post.sanitizeCompletionResponse(post.get('completion_action'), response))
 
   await post.complete(userId, jsonResponse)
   return Post.find(postId)
@@ -26,11 +35,11 @@ export function createPost (userId, data) {
     .tap(convertedData => validatePostData(userId, convertedData))
     .then(async validatedData => {
       const createdPost = await underlyingCreatePost(userId, validatedData)
-      await deletePostDraftForCreate(userId, {
+      await deleteDraftAfterCreate(() => deletePostDraftForCreate(userId, {
         groupId: validatedData.group_ids?.[0],
         topicName: validatedData.type === 'chat' ? validatedData.topicNames?.[0] : null,
         postType: validatedData.type || null
-      })
+      }))
       return createdPost
     })
 }

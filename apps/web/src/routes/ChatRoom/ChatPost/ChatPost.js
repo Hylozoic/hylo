@@ -23,6 +23,7 @@ import { savePost, unsavePost } from 'components/PostCard/PostHeader/PostHeader.
 import LinkPreview from 'components/LinkPreview'
 import Tooltip from 'components/Tooltip'
 import useReactionActions from 'hooks/useReactionActions'
+import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
@@ -30,7 +31,7 @@ import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { groupUrl, personUrl, spaceUrl } from '@hylo/navigation'
+import { editPostUrl, groupUrl, personUrl, spaceUrl } from '@hylo/navigation'
 import { useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { hasActiveTextSelection, hasReadableContentSelection } from 'util/textSelectionTouch'
@@ -42,15 +43,17 @@ import { cn } from 'util/index'
 // Tall messages are clipped to this height until the reader asks for the rest,
 // so one long post can't push the rest of the conversation off screen
 const MAX_COLLAPSED_DETAILS_HEIGHT = 200
-// Only clip when doing so buys back meaningful height — a message a hair over
-// the limit would otherwise gain a "See More" that hides a single line
+// Only collapse when doing so buys back meaningful height. A message within
+// this slack of the cap is shown in full: clipping it would cut the last line,
+// and there is no "See More" to bring that line back.
 const COLLAPSE_SLACK = 40
+const COLLAPSE_LIMIT = MAX_COLLAPSED_DETAILS_HEIGHT + COLLAPSE_SLACK
 // Fade the clipped text itself rather than painting a gradient over it: the
 // row's background shifts between default, hover and highlighted states
 const COLLAPSED_DETAILS_FADE = 'linear-gradient(to bottom, black calc(100% - 40px), transparent)'
-// Always clip until expanded so Virtuoso measures the collapsed height on first
-// paint. Measuring full height and then collapsing fights atBottom / shortSizeAlign
-// in a loop at the bottom of the list.
+// Clip from the first layout so Virtuoso measures the collapsed height.
+// Measuring the full height of a long post and then collapsing fights
+// atBottom / shortSizeAlign in a loop at the bottom of the list.
 const clippedDetailsStyle = {
   maxHeight: MAX_COLLAPSED_DETAILS_HEIGHT,
   overflow: 'hidden'
@@ -89,6 +92,7 @@ export default function ChatPost ({
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const routeParams = useRouteParams()
   const ref = useRef()
   const editorRef = useRef()
   const isPressDevice = !window.matchMedia('(hover: hover) and (pointer: fine)').matches
@@ -104,7 +108,12 @@ export default function ChatPost ({
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
   const [detailsOverflowing, setDetailsOverflowing] = useState(false)
   const [detailsExpanded, setDetailsExpanded] = useState(false)
+  // Which `details` string the overflow measurement belongs to. A new message
+  // stays clipped until its own height is known, so a long edit doesn't paint
+  // at full height first.
+  const [measuredDetails, setMeasuredDetails] = useState(null)
   const detailsRef = useRef()
+  const detailsMeasured = measuredDetails === details
 
   const isCreator = currentUser.id === creator.id
   const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id)), [group, post.flaggedGroups])
@@ -130,12 +139,18 @@ export default function ChatPost ({
 
   // Measure rather than count characters: what matters is the height on screen,
   // which shifts with images, embeds and the reader's chosen stream width.
-  // useLayoutEffect so See More is decided before paint — the clip itself is
-  // already on from the first render (see clippedDetailsStyle).
+  // useLayoutEffect so the clip is corrected before paint.
   useLayoutEffect(() => {
     const element = detailsRef.current
     if (!element) return
-    const measure = () => setDetailsOverflowing(element.offsetHeight > MAX_COLLAPSED_DETAILS_HEIGHT + COLLAPSE_SLACK)
+    const measure = () => {
+      const height = element.offsetHeight
+      // Zero means layout hasn't happened yet. Stay clipped until a real height
+      // arrives so we don't flash a long post and then collapse it.
+      if (!height) return
+      setMeasuredDetails(details)
+      setDetailsOverflowing(height > COLLAPSE_LIMIT)
+    }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(element)
@@ -158,8 +173,9 @@ export default function ChatPost ({
       !editing &&
       // closest: the click often lands on an icon or span inside the link
       !event.target.closest?.('a[target="_blank"]') &&
-      !event.target.className.includes('image') &&
-      !event.target.className.includes('icon-Smiley')
+      // closest, not className.includes: on SVG elements className is an
+      // SVGAnimatedString, which has no includes (HYLO-24Z)
+      !event.target.closest?.('.image, .icon-Smiley')
     ) {
       showPost()
     }
@@ -172,7 +188,8 @@ export default function ChatPost ({
   const bindLongPress = useLongPress(() => {
     setIsLongPress(false)
   }, {
-    filterEvents: (e) => !e.target?.closest?.('.global-postContent'),
+    // A long press on an avatar opens its profile card instead of the post's action bar
+    filterEvents: (e) => !e.target?.closest?.('.global-postContent, [data-profile-hover-card-trigger]'),
     onFinish: () => {
       if (isPressDevice) setIsLongPress(true)
     }
@@ -191,13 +208,21 @@ export default function ChatPost ({
 
   const editPost = useCallback((event) => {
     setIsHovered(false)
+    event.stopPropagation()
+    // Touch devices get the full post editor (the same one the post detail's
+    // Edit opens), which has explicit Save/Cancel buttons and handles the
+    // on-screen keyboard. Closing it returns to the chat room.
+    if (isPressDevice) {
+      setIsLongPress(false)
+      navigate(editPostUrl(id, routeParams))
+      return true
+    }
     setEditing(true)
     setTimeout(() => {
       editorRef.current.focus('end')
     }, 500)
-    event.stopPropagation()
     return true
-  }, [])
+  }, [id, isPressDevice, navigate, routeParams])
 
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
   const handleReaction = (emojiFull) => {
@@ -291,8 +316,8 @@ export default function ChatPost ({
   const actionItems = filter(item => isFunction(item.onClick) || item.disabled, [
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
     { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: showPost, tooltip: 'Reply to post' },
-    // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
-    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator && !isLongPress) ? editPost : null, tooltip: 'Edit post' },
+    // Long press only happens on touch devices, where Edit opens the post editor route instead of editing inline
+    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: isCreator ? editPost : null, tooltip: 'Edit post' },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: savedAt ? 'Unsave post' : 'Save post' },
     { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinAtCap ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : null, disabled: pinAtCap, tooltip: pinAtCap ? t('You can only pin 3 posts') : (pinned ? t('Unpin from View') : t('Pin to View')) },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => { setFlaggingVisible(true) } : null, tooltip: 'Flag post' },
@@ -348,6 +373,7 @@ export default function ChatPost ({
           }
         )}
         ref={ref}
+        data-testid='chat-post'
         {...bindLongPress()}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -404,7 +430,7 @@ export default function ChatPost ({
           <div className='relative z-0' onClick={handleClick}>
             {/* Avatar top-aligns with the name so the message text tucks in beside it */}
             <div onClick={showCreator} className='absolute left-0 top-0.5 cursor-pointer'>
-              <Avatar avatarUrl={creator.avatarUrl} medium />
+              <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} medium />
             </div>
             <div className='ml-[42px] flex items-baseline gap-2'>
               <div className='font-bold cursor-pointer flex items-center gap-1.5' onClick={showCreator}>
@@ -462,7 +488,7 @@ export default function ChatPost ({
                   <div
                     data-testid='chat-post-details'
                     className={cn('ml-[42px] max-w-[calc(var(--chat-stream-width,750px)-50px)] cursor-text select-text break-words', { 'blur-sm pointer-events-none select-none': isFlagged })}
-                    style={!detailsExpanded
+                    style={!detailsExpanded && (!detailsMeasured || detailsOverflowing)
                       ? (detailsOverflowing
                           ? { ...clippedDetailsStyle, ...collapsedDetailsFadeStyle }
                           : clippedDetailsStyle)
@@ -517,7 +543,7 @@ export default function ChatPost ({
               <div onClick={handleClick}>
                 <EmojiRow
                   className='!mr-0'
-                  pillClassName='m-0 mr-1 mb-0 py-0 px-2 h-[22px] rounded-full text-xs items-center'
+                  pillClassName='m-0 mr-1 mb-0 py-0.5 px-2 h-[26px] rounded-full text-xs items-center'
                   post={post}
                   currentUser={currentUser}
                   onAddReaction={onAddReaction}

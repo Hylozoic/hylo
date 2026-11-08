@@ -23,7 +23,9 @@ export default {
     '<rootDir>/config/jest/afterTestEnvSetup.js'
   ],
   testPathIgnorePatterns: [
-    '<rootDir>[/\\\\](build|dist|docs|e2e|node_modules|scripts|es5)[/\\\\]'
+    '<rootDir>[/\\\\](build|dist|docs|e2e|node_modules|es5)[/\\\\]',
+    // scripts/ holds build tooling; only its __tests__ run under Jest
+    '<rootDir>[/\\\\]scripts[/\\\\](?!__tests__[/\\\\])'
   ],
   moduleDirectories: [
     'node_modules',

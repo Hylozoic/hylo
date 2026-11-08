@@ -54,7 +54,7 @@ const LocationInput = forwardRef(function LocationInput (props, ref) {
   const resolvedPlaceholder = placeholder ?? t('Search for a location...')
 
   return (
-    <div className='w-full text-foreground'>
+    <div className='w-full min-w-0 max-w-full text-foreground'>
       <Geocoder
         ref={ref}
         id={props.id}

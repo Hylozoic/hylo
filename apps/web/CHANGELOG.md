@@ -6,6 +6,169 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.10] - 2026-11-04
+
+### Added
+- Profile hover card on person avatars
+- Emoji button in text editor toolbar to insert emojis
+- Formatting toolbar for comments
+- Administrators can convert a chat room into a discussion post from an Advanced menu in space settings, or from Related Groups when chat rooms are blocking a group from becoming a space. The chat-room action is only shown for chat-only spaces, and the room is removed as part of the conversion. The new discussion is dated today.
+
+### Changed
+- Make the role/badge emoji box explain itself better
+- Add X buttons to clear a start or end time on a post
+- Split requests and offers as post type options in custom post stream view filters
+
+### Fixed
+- Stop mobile WebView session recovery stalling on Android
+- Clicking on group in search results correctly goes to group
+- Wrap long unbroken text in post detail and comments
+
+## [7.1.9] - 2026-10-28
+
+### Added
+- New group setting to allow any member of a group to invite others to join the group, instead of just stewards being able to invite. This means that any member can see the Invite form and invite by link, email or direct Hylo notification.
+- In-app system for managing requets for a Group to be visible in the Hylo Commons group explorer. Replaces a google form and manual system.
+- On mobile, long press on reactions to show a drawer with all reactions and who has reacted to the post.
+
+### Changed
+- Many changes to how group join links work. They are now called Invite Links and you can have multiple of them. You can also name them and specify that certain ones assign a role to people who join through it. Groups that are restricted and Protected or Hidden also have View Links that allow someone to see the group and request to join, as opposed to an invite link that gives direct access.
+
+### Fixed
+- Ensure post filters work in all views
+- Align naming of view modes in Custom View creation modal and in the view filters.
+- Non event posts that ended now show that correctly.
+- Refresh open DM thread and inbox when returning to the app
+
+## [7.1.8] - 2026-10-27
+
+### Added
+- Ability to pin spaces to global navigation. This is accomplished from the About page of the space
+
+### Changed
+- Use native date/time pickers on touch devices for time pickers
+- Improved display of date/time fields for posts on mobile
+- Space boundaries appear on top of parent group on map
+- Center map on a space or group boundary when it has no location address set
+- Switch the Welcome icon from the waving hand to HeartHandshake
+- Verify a new account email before it replaces the old one
+- Show post times in user's timezone first, then local time zone second
+
+### Fixed
+- Show space avatars in the map drawer
+- Make sure new posts load as you scroll in map drawer
+- Several errors reported to Sentry
+- Stop reporting browser failing to hit our backend errors in Sentry
+- Removing responsibilities from custom roles
+- Allow for posts to link to hylo landing page static pages
+
+## [7.1.7] - 2026-10-20
+
+### Added
+- Can add geo boundaries to spaces. Edit geo boundaries in space and group creation and settings.
+- Keep formatting in track action text responses
+
+### Changed
+- Clicking an active member in group menu goes to memberlist, not to individual profile
+- Never show members with blank names
+- Show a confirmation toast after saving profile edits
+- Sandbox demo: sign-up prompts after changes and after 100 seconds, generic group names, the demo user is now an administrator of Community Hub with working group settings, and all Appearance settings apply live
+
+### Fixed
+- Make sure all group avatars are circular
+- Map tooltips are over other map features
+
+## [7.1.6] - 2026-10-15
+
+### Added
+- Search will now surface groups that match the search terms alongside posts, comments and people.
+- Filter to calendar view mode to only show events you RSVPed to, or not.
+- Public Profiles: you can turn this on in your profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Fixed
+- Fix off by 1 error on calendar dates in certain locales
+
+## [7.1.5] - 2026-10-08
+
+### Added
+- Allow for a user to make their profile public in their profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Fixed
+- Post notifications display the post correctly when the group's home view is a page view or welcome page. Open a post in a modal over the home view when that view is a stream, chat or map. When home view is a page, welcome, or other static view then open posts in a standalone post URL.
+- Make context menu edit draggable on mobile
+
+## [7.1.4] - 2026-10-01
+
+### Changed
+- **Performance improvements:**
+- Long cache headers for content hashed build files, so browser caches the files until next deploy
+- Load lucide icons dynamically in its own chunk
+- Speed up filtering/loading of posts on the front-end
+
+## [7.1.3] - 2026-10-04
+
+### Fixed
+- Editing a chat post from the post details doesn't convert it to a discussion
+- Don't let people post to a space they have not joined
+- Fix occasional stuck on add location during welcome flow on android
+- Don't save a post draft until there is title or body content
+- Calendar view more flicker on month view
+
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Fixed
+- Fix submission posts not getting created correctly when other post types are on in the funding round space
+- Fix issue where multi day events would only show last day on the calendar
+- Add some top and bottom margin around link preview in the PostCard
+- Space location always displays correctly in space settings if set
+- Long space URL slugs don't shrink space name field to very small. In space settings modal.
+
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
+## [7.1.0] - 2026-09-25
+
+### Changed
+- Don't enable Create Account button until email field is valid
+- The people selector in the invite form allows you to invite anyone that is visible to you on hylo. Before it was only allowing you to invite people you had messaged or interacted with.
+- Remove the Farms tab in the Group Explorer for now. It's not being used yet.
+- Refine role-gated space invite dialog
+
+### Fixed
+- Many security related fixes and updates. Details to come soon.
+- Fix display of video embeds in page type views that have little text. Ensure width is wide enough to see the video.
+- Fix searching for emojis on mobile
+
+### Cleanup
+- Removed the old group Explore landing page. `/groups/:slug/explore` redirects to the group home
+- Farm profiles still use the remaining Widget components. The explore-only widgets and the steward visibility editor are gone
+- Sandbox track and funding-round display fields now come from the space group, matching the API
+
+## [7.0.8] - 2026-09-23
+
+### Added
+- Reactions support to Direct Messages, at last!
+- Auto-fill event meeting link from a Zoom/Meet/Jitsi/Microsoft Teams URL in the description
+
+### Changed
+- Keep loading member activity at bottom of member profile as you scroll down. Also fix Recent Activity to show correct posts alongside comments as you scroll
+- Completed post notices appear grayed out with check mark in Chat
+- Don't show search on member profile if looking at own profile. It was conflicting with Edit Profile button
+- Only bundle reactions when there are more than 2 types, not when there are 2.
+- Move affiliations editing from My Groups to Edit Profile
+
+### Fixed
+- Map menus being behind map content
+- Wrap comment cards on mobile, so the header doesnt overflow the container. For user profiles and search results.
+- Stuck loop when opening a post from a member profile and trying to go back
+- Some chat messages were being cut off on the last line
+- Don't flash post: undefined when loading post as individual view
+
 ## [7.0.7] - 2026-09-20
 
 ### Fixed
@@ -16,8 +179,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Link editor in page view type editor
 - Post editor readding current path group/space too often and erasing choices in the To field
 - Move AAPA to .well-known
-
-### Fixed
 
 ## [7.0.6] - 2026-09-13
 

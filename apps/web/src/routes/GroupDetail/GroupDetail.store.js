@@ -1,3 +1,4 @@
+import { AnalyticsEvents } from '@hylo/shared'
 import { CREATE_JOIN_REQUEST, FETCH_MY_JOIN_REQUESTS } from 'store/constants'
 import fetchMyPendingJoinRequestsQuery from '@graphql/queries/fetchMyPendingJoinRequestsQuery'
 
@@ -60,17 +61,32 @@ export function joinGroup (groupId, questionAnswers, accessCode, invitationToken
     meta: {
       extractModel: 'Membership',
       groupId,
-      optimistic: true
+      optimistic: true,
+      ...(accessCode || invitationToken
+        ? {
+            analytics: {
+              eventName: AnalyticsEvents.GROUP_INVITATION_ACCEPTED,
+              groupId,
+              method: invitationToken ? 'email' : 'link'
+            }
+          }
+        : {})
     }
   }
 }
 
-export function createJoinRequest (groupId, questionAnswers) {
+/**
+ * Ask to join a group whose stewards approve new people.
+ * @param groupId {string} the group to join
+ * @param questionAnswers {array} answers to join questions
+ * @param invitationToken {string} optional token of the member invitation that led to this request, so stewards see who invited the person
+ */
+export function createJoinRequest (groupId, questionAnswers, invitationToken) {
   return {
     type: CREATE_JOIN_REQUEST,
     graphql: {
-      query: `mutation ($groupId: ID, $questionAnswers: [QuestionAnswerInput]) {
-        createJoinRequest(groupId: $groupId, questionAnswers: $questionAnswers) {
+      query: `mutation CreateJoinRequest ($groupId: ID, $questionAnswers: [QuestionAnswerInput], $invitationToken: String) {
+        createJoinRequest(groupId: $groupId, questionAnswers: $questionAnswers, invitationToken: $invitationToken) {
           request {
             id
             user {
@@ -85,11 +101,15 @@ export function createJoinRequest (groupId, questionAnswers) {
           }
         }
       }`,
-      variables: { groupId, questionAnswers }
+      variables: { groupId, questionAnswers, invitationToken }
     },
     meta: {
       groupId,
-      optimistic: true
+      optimistic: true,
+      analytics: {
+        eventName: AnalyticsEvents.JOIN_REQUEST_CREATED,
+        groupId
+      }
     }
   }
 }

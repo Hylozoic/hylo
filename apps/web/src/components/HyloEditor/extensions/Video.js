@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core'
+import { TextHelpers } from '@hylo/shared'
 
 const Video = Node.create({
   name: 'video',
@@ -41,7 +42,8 @@ const Video = Node.create({
       iframe.height = '360'
       iframe.frameBorder = '0'
       iframe.allowFullscreen = true
-      iframe.src = node.attrs.src
+      // Pasted HTML can carry any src, including javascript: URLs
+      if (TextHelpers.isVideoEmbedURL(node.attrs.src)) iframe.src = node.attrs.src
 
       div.append(iframe)
 

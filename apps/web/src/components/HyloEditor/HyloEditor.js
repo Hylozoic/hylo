@@ -12,6 +12,7 @@ import PeopleMentions from './extensions/PeopleMentions'
 import TopicMentions from './extensions/TopicMentions'
 import Video from './extensions/Video'
 import HyloEditorMenuBar from './HyloEditorMenuBar'
+import insertContentAsUndoStep from './insertContentAsUndoStep'
 import 'tippy.js/dist/tippy.css'
 import { shouldBailTextSelectionGesture } from 'util/textSelectionTouch'
 import classes from './HyloEditor.module.scss'
@@ -48,6 +49,8 @@ const HyloEditor = React.forwardRef(({
   onEscape,
   onFocus,
   onBlur,
+  // Optional: handles the toolbar's emoji button instead of inserting into this editor
+  onInsertEmoji,
   placeholder,
   readOnly,
   showMenu = false,
@@ -269,6 +272,10 @@ const HyloEditor = React.forwardRef(({
     getText: () => {
       return editorRef.current.getText()
     },
+    // Inserts at the editor's cursor (or replaces the selection) as its own undo step
+    insertContent: content => {
+      if (editorRef.current) insertContentAsUndoStep(editorRef.current, content)
+    },
     isEmpty: () => {
       return editorRef.current ? editorRef.current.isEmpty : true
     },
@@ -299,7 +306,7 @@ const HyloEditor = React.forwardRef(({
   return (
     <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
-        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} className={menuClassName} />
+        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} className={menuClassName} onInsertEmoji={onInsertEmoji} />
       )}
       <EditorContent
         className={cn(

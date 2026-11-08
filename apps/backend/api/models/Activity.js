@@ -10,6 +10,8 @@ const isMention = activity => {
   return filter(reasons, reason => reason.match(/^mention/)).length > 0
 }
 
+// TODO: Remove this unused helper after confirming no legacy activity path needs it.
+/* eslint-disable-next-line no-unused-vars */
 const isJustNewPost = activity => {
   const reasons = activity.get('meta').reasons
   return reasons.every(reason => reason.match(/^newPost/))
@@ -20,15 +22,17 @@ const isAnnouncement = activity => {
   return filter(reasons, reason => reason.match(/^announcement/)).length > 0
 }
 
-const isTopic = activity => {
-  const reasons = activity.get('meta').reasons
-  const t = filter(reasons, reason => reason.match(/^tag/)).length > 0
-  return t
-}
-
 const isChat = activity => {
   const reasons = activity.get('meta').reasons
   const t = filter(reasons, reason => reason.match(/^chat/)).length > 0
+  return t
+}
+
+// TODO: Remove this unused helper after confirming tag activity handling no longer needs it.
+/* eslint-disable-next-line no-unused-vars */
+const isTopic = activity => {
+  const reasons = activity.get('meta').reasons
+  const t = filter(reasons, reason => reason.match(/^tag/)).length > 0
   return t
 }
 
@@ -288,6 +292,27 @@ module.exports = bookshelf.Model.extend({
       .tap(() => Queue.classMethod('Notification', 'sendUnsent'))
   },
 
+  /**
+   * Of the given users, returns the ids (as strings) of those who used to be members of these
+   * groups but have left them all: an inactive membership in at least one and an active
+   * membership in none. Former members can't be mentioned or invited to events in those groups,
+   * and aren't notified about their posts or comments. People who were never members aren't
+   * included (e.g. someone following a public post).
+   */
+  formerMemberIds: async function (userIds, groupIds, trx) {
+    if (isEmpty(userIds) || isEmpty(groupIds)) return new Set()
+    const query = bookshelf.knex('group_memberships')
+      .whereIn('user_id', userIds)
+      .whereIn('group_id', groupIds)
+      .select('user_id', 'active')
+    if (trx) query.transacting(trx)
+    const memberships = await query
+    const activeMemberIds = new Set(memberships.filter(m => m.active).map(m => String(m.user_id)))
+    return new Set(memberships
+      .filter(m => !m.active && !activeMemberIds.has(String(m.user_id)))
+      .map(m => String(m.user_id)))
+  },
+
   groupIds: function (activity) {
     if (activity.get('post_id')) {
       return get(activity, 'relations.post.relations.groups', []).map(g => g.id)
@@ -326,6 +351,13 @@ module.exports = bookshelf.Model.extend({
 
     const relevantMemberships = filter(memberships.models, mem =>
       includes(groups, mem.related('group').id))
+    // People who left every group this post is in get no notifications about it or its comments.
+    // Post.createActivities already drops mentions and event invites for them, but this is the
+    // one place every post and comment notification passes through: new comments on posts they
+    // still follow, mentions added when a post is edited, event invites sent later, vote resets.
+    if (relevantMemberships.length === 0 && (await Activity.formerMemberIds([user.id], groups)).size > 0) {
+      return []
+    }
 
     const membershipsPermitting = key =>
       filter(relevantMemberships, mem => mem.getSetting(key))

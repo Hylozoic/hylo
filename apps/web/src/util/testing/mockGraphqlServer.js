@@ -25,10 +25,6 @@ const handlers = [
     io.on('hello', (event, name) => {
       console.log('client sent hello:', name)
     })
-
-    event.onopen = () => console.log('WebSocket connection established')
-    event.onerror = (error) => console.error('WebSocket error:', error)
-    event.onclose = () => console.log('WebSocket connection closed')
   })
 ]
 

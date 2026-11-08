@@ -64,11 +64,11 @@ describe('graphql request handler', () => {
     req.method = 'POST'
     req.headers = {
       'Content-Type': 'application/json'
-    },
+    }
     req.session = {
       userId: user.id,
       destroy: () => {}
-    },
+    }
     req.user = user
     res = factories.mock.response()
   })
@@ -77,7 +77,7 @@ describe('graphql request handler', () => {
     it('responds as expected', async () => {
       // TODO: .inject is no longer provided with Yoga 3.x forward ref. here for what to do instead:
       // https://the-guild.dev/graphql/yoga-server/v3/migration/migration-from-yoga-v2#removed-inject-method
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           me {
             name
@@ -124,14 +124,242 @@ describe('graphql request handler', () => {
     })
   })
 
+  describe('Person.canMessage', () => {
+    it('is true for a fellow group member and false for yourself', async () => {
+      const { executionResult } = await handler.inject({
+        document: `{
+          other: person(id: "${user2.id}") { canMessage }
+          self: person(id: "${user.id}") { canMessage }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data).to.deep.equal({
+        other: { canMessage: true },
+        self: { canMessage: false }
+      })
+    })
+  })
+
+  describe('retained paid access for former members', () => {
+    const grantGroupScope = (userId, groupId, sourceId, expiresAt = null) =>
+      bookshelf.knex('user_scopes').insert({
+        user_id: userId,
+        scope: `group:${groupId}`,
+        expires_at: expiresAt,
+        source_kind: 'grant',
+        source_id: sourceId,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+    const fetchGroupAs = async (viewer, slug) => {
+      req.session.userId = viewer.id
+      req.user = viewer
+      const { executionResult } = await handler.inject({
+        document: `{
+          group(slug: "${slug}") {
+            id
+            name
+            hasValidScope
+            currentUserMembershipActive
+            posts { total items { id } }
+            viewPosts { total items { id } }
+            members { total items { id } }
+            memberships { items { id } }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(executionResult.errors).to.not.exist
+      return executionResult.data.group
+    }
+
+    it('returns a hidden paid group to a former member with a valid scope, without its content', async () => {
+      const formerMember = await factories.user().save()
+      const activeMember = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.HIDDEN })
+      const groupPost = await factories.post({ type: Post.Type.DISCUSSION }).save({ user_id: activeMember.id })
+      await paidGroup.posts().attach(groupPost)
+      await paidGroup.addMembers([formerMember, activeMember])
+      await paidGroup.removeMembers([formerMember])
+      await grantGroupScope(formerMember.id, paidGroup.id, 999999998)
+
+      const result = await fetchGroupAs(formerMember, paidGroup.get('slug'))
+      expect(result).to.deep.include({
+        id: paidGroup.id,
+        name: paidGroup.get('name'),
+        hasValidScope: true,
+        currentUserMembershipActive: false
+      })
+      expect(result.posts).to.deep.equal({ total: 0, items: [] })
+      expect(result.viewPosts).to.deep.equal({ total: 0, items: [] })
+      expect(result.members.items).to.deep.equal([])
+      expect(result.memberships.items).to.deep.equal([])
+
+      // An active member sees the same content, so the empty lists above come from the access checks
+      const asActiveMember = await fetchGroupAs(activeMember, paidGroup.get('slug'))
+      expect(asActiveMember.posts.items.map(p => p.id)).to.include(groupPost.id)
+      expect(asActiveMember.members.items.map(m => m.id)).to.include(activeMember.id)
+    })
+
+    it('does not return a hidden paid group once the former member\'s scope has expired', async () => {
+      const formerMember = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.HIDDEN })
+      await paidGroup.addMembers([formerMember])
+      await paidGroup.removeMembers([formerMember])
+      await grantGroupScope(formerMember.id, paidGroup.id, 999999994, new Date(Date.now() - 86400000))
+
+      expect(await fetchGroupAs(formerMember, paidGroup.get('slug'))).to.equal(null)
+    })
+
+    it('does not return a hidden paid group to someone with a scope who was never a member', async () => {
+      const outsider = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.HIDDEN })
+      await grantGroupScope(outsider.id, paidGroup.id, 999999993)
+
+      expect(await fetchGroupAs(outsider, paidGroup.get('slug'))).to.equal(null)
+    })
+
+    it('does not return a hidden group that is not paywalled to a former member', async () => {
+      const formerMember = await factories.user().save()
+      const freeGroup = await factories.group().save({ paywall: false, visibility: Group.Visibility.HIDDEN })
+      await freeGroup.addMembers([formerMember])
+      await freeGroup.removeMembers([formerMember])
+      await grantGroupScope(formerMember.id, freeGroup.id, 999999992)
+
+      expect(await fetchGroupAs(formerMember, freeGroup.get('slug'))).to.equal(null)
+    })
+
+    it('exposes scope and prior-membership state through GroupDetails fields', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PUBLIC })
+      await paidGroup.addMembers([paidUser])
+      await paidGroup.removeMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+      await bookshelf.knex('user_scopes').insert({
+        user_id: paidUser.id,
+        scope: `group:${paidGroup.id}`,
+        expires_at: null,
+        source_kind: 'grant',
+        source_id: 999999996,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          group(slug: "${paidGroup.get('slug')}") {
+            hasValidScope
+            currentUserMembershipActive
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.exist
+      expect(executionResult.data.group).to.deep.equal({
+        hasValidScope: true,
+        currentUserMembershipActive: false
+      })
+    })
+
+    it('distinguishes active, inactive, and absent current-user memberships', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PUBLIC })
+      await paidGroup.addMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+      await bookshelf.knex('user_scopes').insert({
+        user_id: paidUser.id,
+        scope: `group:${paidGroup.id}`,
+        expires_at: null,
+        source_kind: 'grant',
+        source_id: 999999995,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+      const readGroupAccess = async () => {
+        const { executionResult } = await handler.inject({
+          document: `{
+            group(slug: "${paidGroup.get('slug')}") {
+              hasValidScope
+              currentUserMembershipActive
+            }
+          }`,
+          serverContext: { req, res }
+        })
+        expect(executionResult.errors).to.not.exist
+        return executionResult.data.group
+      }
+
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: true, currentUserMembershipActive: true })
+      await paidGroup.removeMembers([paidUser])
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: true, currentUserMembershipActive: false })
+      await bookshelf.knex('user_scopes').where({ user_id: paidUser.id, scope: `group:${paidGroup.id}` }).del()
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: false, currentUserMembershipActive: false })
+
+      const neverMember = await factories.user().save()
+      req.session.userId = neverMember.id
+      req.user = neverMember
+      expect(await readGroupAccess()).to.deep.equal({ hasValidScope: false, currentUserMembershipActive: null })
+    })
+
+    it('does not return a protected paid group to a former member without a valid scope', async () => {
+      const formerMember = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true, visibility: Group.Visibility.PROTECTED })
+      await paidGroup.addMembers([formerMember])
+      await paidGroup.removeMembers([formerMember])
+
+      expect(await fetchGroupAs(formerMember, paidGroup.get('slug'))).to.equal(null)
+    })
+
+    it('reactivates the existing membership through the GraphQL mutation', async () => {
+      const paidUser = await factories.user().save()
+      const paidGroup = await factories.group().save({ paywall: true })
+      await paidGroup.addMembers([paidUser])
+      const originalMembership = await GroupMembership.forPair(paidUser, paidGroup).fetch()
+      await paidGroup.removeMembers([paidUser])
+      req.session.userId = paidUser.id
+      req.user = paidUser
+      await bookshelf.knex('user_scopes').insert({
+        user_id: paidUser.id,
+        scope: `group:${paidGroup.id}`,
+        expires_at: null,
+        source_kind: 'grant',
+        source_id: 999999997,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+
+      const { executionResult } = await handler.inject({
+        document: `mutation {
+          rejoinGroup(groupId: "${paidGroup.id}") {
+            id
+            groupId
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.exist
+      expect(executionResult.data.rejoinGroup).to.deep.equal({
+        id: originalMembership.id,
+        groupId: paidGroup.id
+      })
+    })
+  })
+
   describe('with a complex query', function () {
     this.timeout(10000)
-    var thread, message
+    let thread, message
 
     before(async () => {
-      thread = factories.post({type: Post.Type.THREAD})
+      thread = factories.post({ type: Post.Type.THREAD })
       await thread.save()
-      await comment.save({user_id: user2.id})
+      await comment.save({ user_id: user2.id })
 
       message = await factories.comment({
         post_id: thread.id,
@@ -142,9 +370,8 @@ describe('graphql request handler', () => {
       await thread.addFollowers([user.id, user2.id])
     })
 
-
     it('responds as expected', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           me {
             name
@@ -309,7 +536,7 @@ describe('graphql request handler', () => {
 
   describe('querying Comment attachments', () => {
     it('responds as expected', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           post (id: ${post.id}) {
             comments {
@@ -358,7 +585,7 @@ describe('graphql request handler', () => {
     })
 
     it('shows "not logged in" errors for most queries', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           me {
             name
@@ -378,8 +605,215 @@ describe('graphql request handler', () => {
       })
     })
 
+    it('does not return group members or their contact details', async () => {
+      const publicGroup = await factories.group({
+        visibility: Group.Visibility.PUBLIC,
+        settings: { public_member_directory: true }
+      }).save()
+      const privateDirectory = await factories.group({
+        visibility: Group.Visibility.PUBLIC,
+        settings: { public_member_directory: false }
+      }).save()
+      const member = await factories.user({
+        contact_email: 'member@example.com',
+        contact_phone: '5551212',
+        location: 'Barcelona, Spain',
+        bio: 'secret bio',
+        facebook_url: 'https://facebook.com/member',
+        linkedin_url: 'https://linkedin.com/in/member',
+        twitter_name: 'member',
+        last_active_at: new Date()
+      }).save()
+      await publicGroup.addMembers([member.id])
+      await privateDirectory.addMembers([member.id])
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          groups(first: 10) {
+            items {
+              id
+              members(first: 5) {
+                items { id name contactEmail contactPhone location bio facebookUrl linkedinUrl twitterName lastActiveAt }
+              }
+            }
+          }
+          group(id: "${publicGroup.id}") {
+            members(first: 5) {
+              items { id name contactEmail contactPhone lastActiveAt }
+            }
+          }
+          privateDirectory: group(slug: "${privateDirectory.get('slug')}") {
+            settings { publicMemberDirectory }
+            members(first: 5, offset: 0) {
+              items { id name contactEmail contactPhone location bio }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.be.ok
+      const listed = executionResult.data.groups.items.find(item => item.id === String(publicGroup.id))
+      expect(listed.members.items).to.deep.equal([])
+      expect(executionResult.data.group.members.items).to.deep.equal([])
+      expect(executionResult.data.privateDirectory.settings.publicMemberDirectory).to.equal(false)
+      expect(executionResult.data.privateDirectory.members.items).to.deep.equal([])
+    })
+
+    it('only shows who wrote public posts and comments, not their profile', async () => {
+      const author = await factories.user({
+        name: 'Public Author',
+        tagline: 'hello',
+        contact_email: 'author@example.com',
+        contact_phone: '5551212',
+        location: 'Barcelona, Spain',
+        bio: 'secret bio',
+        facebook_url: 'https://facebook.com/author',
+        linkedin_url: 'https://linkedin.com/in/author',
+        twitter_name: 'author',
+        url: 'https://author.example.com',
+        last_active_at: new Date()
+      }).save()
+      const authorGroup = await factories.group().save()
+      await authorGroup.addMembers([author.id])
+      const publicPost = await factories.post({ user_id: author.id, is_public: true }).save()
+      await authorGroup.posts().attach(publicPost)
+      await factories.comment({ post_id: publicPost.id, user_id: author.id }).save()
+
+      const profileFields = `id name tagline contactEmail contactPhone location bio facebookUrl linkedinUrl twitterName url lastActiveAt
+        locationObject { id } memberships { id } membershipsTotal groupRoles { items { id } } skills { items { name } } posts { items { id } }`
+      const { executionResult } = await handler.inject({
+        document: `{
+          post(id: "${publicPost.id}") {
+            creator { ${profileFields} }
+            comments { items { creator { ${profileFields} } } }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.be.ok
+      const hiddenProfile = {
+        id: String(author.id),
+        name: 'Public Author',
+        tagline: 'hello',
+        contactEmail: null,
+        contactPhone: null,
+        location: null,
+        bio: null,
+        facebookUrl: null,
+        linkedinUrl: null,
+        twitterName: null,
+        url: null,
+        lastActiveAt: null,
+        locationObject: null,
+        memberships: [],
+        membershipsTotal: 0,
+        groupRoles: { items: [] },
+        skills: { items: [] },
+        posts: { items: [] }
+      }
+      expect(executionResult.data.post.creator).to.deep.equal(hiddenProfile)
+      expect(executionResult.data.post.comments.items[0].creator).to.deep.equal(hiddenProfile)
+    })
+
+    it('shows skills and public groups on an opted-in public profile', async () => {
+      const suffix = randomUUID().slice(0, 8)
+      const person = await factories.user({
+        name: 'Public Profile',
+        tagline: 'hello there',
+        bio: 'Visible bio',
+        contact_email: 'hidden@example.com',
+        facebook_url: 'https://facebook.com/public',
+        is_profile_public: true
+      }).save()
+      const skill = await factories.skill({ name: `dreaming-${suffix}` }).save()
+      await skill.users().attach({ user_id: person.id })
+      const publicGroup = await factories.group({
+        name: `Public Group ${suffix}`,
+        visibility: Group.Visibility.PUBLIC
+      }).save()
+      const privateGroup = await factories.group({
+        name: `Private Group ${suffix}`,
+        visibility: Group.Visibility.PROTECTED
+      }).save()
+      await publicGroup.addMembers([person.id])
+      await privateGroup.addMembers([person.id])
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          person(id: "${person.id}") {
+            id
+            name
+            tagline
+            bio
+            contactEmail
+            facebookUrl
+            skills { items { name } }
+            memberships { id group { name } }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.be.ok
+      const profile = executionResult.data.person
+      expect(profile).to.include({
+        id: String(person.id),
+        name: 'Public Profile',
+        tagline: 'hello there',
+        bio: 'Visible bio',
+        contactEmail: null,
+        facebookUrl: 'https://facebook.com/public'
+      })
+      expect(profile.skills.items.map(item => item.name)).to.include(`dreaming-${suffix}`)
+      const groupNames = profile.memberships.map(membership => membership.group.name)
+      expect(groupNames).to.include(`Public Group ${suffix}`)
+      expect(groupNames).to.not.include(`Private Group ${suffix}`)
+    })
+
+    it('shows only public posts on an opted-in public profile', async () => {
+      const person = await factories.user({
+        name: 'Public Poster',
+        is_profile_public: true
+      }).save()
+      const group = await factories.group({ visibility: Group.Visibility.PUBLIC }).save()
+      await group.addMembers([person.id])
+      const publicPost = await factories.post({
+        user_id: person.id,
+        type: Post.Type.DISCUSSION,
+        is_public: true,
+        name: 'Visible post'
+      }).save()
+      const privatePost = await factories.post({
+        user_id: person.id,
+        type: Post.Type.DISCUSSION,
+        is_public: false,
+        name: 'Hidden post'
+      }).save()
+      await group.posts().attach(publicPost)
+      await group.posts().attach(privatePost)
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          person(id: "${person.id}") {
+            posts(first: 10, order: "desc", sortBy: "created") {
+              items { id isPublic }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.be.ok
+      const ids = executionResult.data.person.posts.items.map(post => post.id)
+      expect(ids).to.include(String(publicPost.id))
+      expect(ids).to.not.include(String(privatePost.id))
+      expect(executionResult.data.person.posts.items.every(post => post.isPublic)).to.equal(true)
+    })
+
     it('allows checkInvitation', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           checkInvitation(invitationToken: "foo") {
             valid
@@ -400,7 +834,7 @@ describe('graphql request handler', () => {
 
   describe('querying group data', () => {
     it('works as expected', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           group(id: "${group.id}") {
             slug
@@ -431,21 +865,21 @@ describe('graphql request handler', () => {
             slug: group.get('slug'),
             members: {
               items: [
-                {name: user2.get('name')},
-                {name: user.get('name')}
+                { name: user2.get('name') },
+                { name: user.get('name') }
               ]
             },
             posts: {
               items: [
-                {title: post2.get('name')}
+                { title: post2.get('name') }
               ]
             },
             groupExtensions: {
               items: [
                 {
-                  type:'test',
+                  type: 'test',
                   data: {
-                    "key-test": "value-test"
+                    'key-test': 'value-test'
                   }
                 }
               ]
@@ -455,9 +889,72 @@ describe('graphql request handler', () => {
       })
     })
 
+    it('returns sanitized page content for page views', async () => {
+      const view = await GroupView.forge({
+        group_id: group.id,
+        type: 'page',
+        name: 'About',
+        page_content: '<p>Hello<img src="x" onerror="alert(1)"></p><script>alert(2)</script>'
+      }).save()
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          group(id: "${group.id}") {
+            groupViews(id: "${view.id}") { items { pageContent } }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      await view.destroy()
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.group.groupViews.items).to.deep.equal([
+        { pageContent: '<p>Hello<img src="x"/></p>' }
+      ])
+    })
+
+    it('returns collection posts in manual order from viewPosts', async () => {
+      const firstPost = await factories.post({ type: Post.Type.DISCUSSION, user_id: user.id }).save()
+      const secondPost = await factories.post({ type: Post.Type.DISCUSSION, user_id: user.id }).save()
+      const childGroup = await factories.group().save()
+      await group.addChild(childGroup)
+      await childGroup.addMembers([user.id])
+      await group.posts().attach([firstPost, secondPost])
+      // Same post in a child group duplicates the groups_posts join. Manual order
+      // still has to return one row, in collection order.
+      await childGroup.posts().attach(secondPost)
+
+      const view = await GroupView.forge({
+        group_id: group.id,
+        type: GroupView.Type.COLLECTION,
+        name: 'Collection'
+      }).save()
+      await CollectionPost.create({ view_id: view.id, post_id: secondPost.id, user_id: user.id, order: 0 })
+      await CollectionPost.create({ view_id: view.id, post_id: firstPost.id, user_id: user.id, order: 1 })
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          group(id: "${group.id}") {
+            viewPosts(forCollection: "${view.id}", sortBy: "order", first: 10) {
+              total
+              items { id }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.group.viewPosts.items.map(item => item.id)).to.deep.equal([
+        String(secondPost.id),
+        String(firstPost.id)
+      ])
+      expect(executionResult.data.group.viewPosts.total).to.equal(2)
+    })
+
     describe('with an invalid sort option', () => {
       it('shows an error', async () => {
-        const { response, executionResult } = await handler.inject({
+        const { executionResult } = await handler.inject({
           document: `{
             group(id: "${group.id}") {
               members(first: 2, sortBy: "height") {
@@ -483,17 +980,23 @@ describe('graphql request handler', () => {
   })
 
   describe('search', () => {
+    let searchTitle
+
     beforeEach(async () => {
+      // FTS is prefix match over every post the user can see. A faker word in the
+      // shared post title (e.g. "parse") also hits other posts, and a stop word
+      // matches nothing. A unique token avoids both.
+      searchTitle = `zzsearch${randomUUID().replace(/-/g, '')}0`
+      const searchable = await factories.post({ type: Post.Type.DISCUSSION, name: searchTitle }).save({ user_id: user.id })
+      await group.posts().attach(searchable)
       await FullTextSearch.dropView()
       await FullTextSearch.createView()
     })
 
     it('works', async () => {
-      // First 4 chars can be an English stop-word prefix (e.g. "withdraw…" → "with") and match nothing in FTS.
-      const searchTerm = post.get('name').trim().split(/\s+/)[0].replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
-          search(term: "${searchTerm}", type: "post") {
+          search(term: "${searchTitle}", type: "post") {
             items {
               content {
                 __typename
@@ -514,7 +1017,7 @@ describe('graphql request handler', () => {
               {
                 content: {
                   __typename: 'Post',
-                  title: post.get('name')
+                  title: searchTitle
                 }
               }
             ]
@@ -525,7 +1028,7 @@ describe('graphql request handler', () => {
   })
 
   describe('removeSkill', () => {
-    var skill1, skill2
+    let skill1, skill2
 
     before(() => {
       const suffix = randomUUID()
@@ -545,7 +1048,7 @@ describe('graphql request handler', () => {
     })
 
     it('removes a skill with an id', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `mutation {
           removeSkill(id: ${skill1.id}) {
             success
@@ -562,13 +1065,13 @@ describe('graphql request handler', () => {
             success: true
           }
         }
-       })
-       expect(user.relations.skills.length).to.equal(1)
-       expect(user.relations.skills.first().id).to.equal(skill2.id)
+      })
+      expect(user.relations.skills.length).to.equal(1)
+      expect(user.relations.skills.first().id).to.equal(skill2.id)
     })
 
     it('removes a skill with a name', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `mutation {
           removeSkill(name: "${skill2.get('name')}") {
             success
@@ -593,7 +1096,7 @@ describe('graphql request handler', () => {
 
   describe('sendEmailVerification', function () {
     it('returns `success: true` if new user', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             sendEmailVerification(email: "person@blah.com") {
@@ -615,7 +1118,7 @@ describe('graphql request handler', () => {
 
     it('returns `success: true` if existing user with an unverified email', async () => {
       const testUser = await factories.user().save()
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             sendEmailVerification(email: "${testUser.get('email')}") {
@@ -637,10 +1140,10 @@ describe('graphql request handler', () => {
 
     it('returns `success: true` if existing user with an already verified email', async () => {
       const testUser = await factories.user({
-        'email_validated': true
+        email_validated: true
       }).save()
 
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             sendEmailVerification(email: "${testUser.get('email')}") {
@@ -671,7 +1174,13 @@ describe('graphql request handler', () => {
     })
 
     it('works', async () => {
-      const { response, executionResult } = await handler.inject({
+      const oldSession = req.session
+      oldSession.regenerate = spy(cb => {
+        req.session = {}
+        cb()
+      })
+
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             verifyEmail(code: "${code}", email: "${user.get('email')}") {
@@ -698,11 +1207,13 @@ describe('graphql request handler', () => {
         }
       })
       // expect(user.get('email_validated')).to.be.true
+      expect(oldSession.regenerate).to.have.been.called()
+      expect(req.session).to.not.equal(oldSession)
       expect(req.session.userId).to.equal(user.id)
     })
 
     it('returns invalid-code error when code is not valid', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             verifyEmail(code: "booop", email: "${user.get('email')}") {
@@ -736,7 +1247,7 @@ describe('graphql request handler', () => {
         code
       }, Buffer.from(process.env.OIDC_KEYS.split(',')[0], 'base64'), { algorithm: 'RS256' })
 
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             verifyEmail(token: "${testToken}", email: "${user.get('email')}") {
@@ -762,7 +1273,7 @@ describe('graphql request handler', () => {
     })
 
     it('validates email and creates user session on valid token', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             verifyEmail(token: "${token}", email: "${user.get('email')}") {
@@ -786,7 +1297,6 @@ describe('graphql request handler', () => {
           }
         }
       })
-      expect(req.session.userId).to.equal(user.id)
     })
   })
 
@@ -803,19 +1313,19 @@ describe('graphql request handler', () => {
       return Promise.each(Object.keys(mutations), key => {
         const fn = mutations[key]
         return Promise.resolve()
-        .then(() => fn(root, args))
-        .catch(err => {
-          if (some(pattern => err.message.match(pattern), [
-            /is not a function/,
-            /is not defined/
-          ])) {
-            expect.fail(null, null, `Mutation "${key}" is not imported correctly: ${err.message}`)
-          }
+          .then(() => fn(root, args))
+          .catch(err => {
+            if (some(pattern => err.message.match(pattern), [
+              /is not a function/,
+              /is not defined/
+            ])) {
+              expect.fail(null, null, `Mutation "${key}" is not imported correctly: ${err.message}`)
+            }
 
           // FIXME: the console.log below shows a number of places where we need
           // more validation and/or are exposing SQL errors to the end-user
           // console.log(`${key}: ${err.message}`)
-        })
+          })
       })
     })
   })
@@ -834,20 +1344,20 @@ describe('makeAuthenticatedQueries', () => {
   describe('groupExists', () => {
     it('throws an error if slug is invalid', () => {
       expect(() => {
-        queries.groupExists(null, {slug: 'a b'})
+        queries.groupExists(null, { slug: 'a b' })
       }).to.throw()
     })
 
     it('returns true if the slug is in use', () => {
       const group = factories.group()
       return group.save()
-      .then(() => queries.groupExists(null, {slug: group.get('slug')}))
-      .then(result => expect(result.exists).to.be.true)
+        .then(() => queries.groupExists(null, { slug: group.get('slug') }))
+        .then(result => expect(result.exists).to.be.true)
     })
 
     it('returns false if the slug is not in use', () => {
-      return queries.groupExists(null, {slug: 'sofadogtotherescue'})
-      .then(result => expect(result.exists).to.be.false)
+      return queries.groupExists(null, { slug: 'sofadogtotherescue' })
+        .then(result => expect(result.exists).to.be.false)
     })
   })
 
@@ -856,17 +1366,17 @@ describe('makeAuthenticatedQueries', () => {
     afterEach(() => unspyify(User, 'query'))
 
     it('resets new notification count if requested', () => {
-      return queries.notifications(null, {resetCount: true})
-      .then(() => {
-        expect(User.resetNewNotificationCount).to.have.been.called.with(user.id)
-      })
+      return queries.notifications(null, { resetCount: true })
+        .then(() => {
+          expect(User.resetNewNotificationCount).to.have.been.called.with(user.id)
+        })
     })
 
     it('does not reset new notification count if not requested', () => {
       return queries.notifications(null, {})
-      .then(() => {
-        expect(User.resetNewNotificationCount).not.to.have.been.called()
-      })
+        .then(() => {
+          expect(User.resetNewNotificationCount).not.to.have.been.called()
+        })
     })
   })
 
@@ -882,7 +1392,7 @@ describe('makeAuthenticatedQueries', () => {
 
     it('updates last viewed time', async () => {
       mockify(GroupMembership, 'updateLastViewedAt', (user, group) => {
-         return true
+        return true
       })
       await queries.group(null, {
         id: group.id,
@@ -901,5 +1411,414 @@ describe('makeAuthenticatedQueries', () => {
       })
       expect(result).to.exist
     })
+  })
+})
+
+describe('admin-only relation filters', () => {
+  let handler, admin, member, parent, action
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    parent = await factories.group().save()
+    await admin.joinGroup(parent, { assignAdministrator: true })
+    await member.joinGroup(parent)
+
+    action = await factories.post({ type: Post.Type.ACTION, user_id: admin.id }).save()
+    await action.groups().attach(parent)
+    await factories.postUser({ post_id: action.id, user_id: admin.id, completed_at: new Date(), completion_response: JSON.stringify(['admin']) }).save()
+    await factories.postUser({ post_id: action.id, user_id: member.id, completed_at: new Date(), completion_response: JSON.stringify(['member']) }).save()
+  })
+
+  const responsesQuery = () => `{ post(id: ${action.id}) { completionResponses { items { user { id } } } } }`
+
+  it('only shows a non-admin their own completion response', async () => {
+    const data = await run(member.id, responsesQuery())
+    expect(data.post.completionResponses.items.map(i => i.user.id)).to.deep.equal([String(member.id)])
+  })
+
+  it('shows admins every completion response', async () => {
+    const data = await run(admin.id, responsesQuery())
+    expect(data.post.completionResponses.items.map(i => i.user.id)).to.have.members([String(admin.id), String(member.id)])
+  })
+})
+
+describe('steward-only group data', () => {
+  let handler, admin, member, requester, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    return executionResult
+  }
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    requester = await factories.user().save()
+    group = await factories.group().save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await member.joinGroup(group)
+
+    await new JoinRequest({ group_id: group.id, user_id: requester.id, status: JoinRequest.STATUS.Pending, created_at: new Date() }).save()
+    await Invitation.create({ userId: admin.id, groupId: group.id, email: 'invitee@example.com' })
+    await ContentAccess.grantAccess({ userId: member.id, grantedByGroupId: group.id, groupId: group.id, grantedById: admin.id })
+  })
+
+  describe('joinRequests', () => {
+    const query = () => `{ joinRequests(groupId: ${group.id}) { items { user { id } } } }`
+
+    it('is refused for a member without the Add Members responsibility', async () => {
+      const result = await run(member.id, query())
+      expect(result.errors[0].message).to.equal('You do not have permission to do that')
+    })
+
+    it('is refused without a groupId', async () => {
+      const result = await run(admin.id, '{ joinRequests { items { id } } }')
+      expect(result.errors[0].message).to.equal('You do not have permission to do that')
+    })
+
+    it('returns the requests to a group admin', async () => {
+      const result = await run(admin.id, query())
+      expect(result.errors).to.be.undefined
+      expect(result.data.joinRequests.items.map(i => i.user.id)).to.deep.equal([String(requester.id)])
+    })
+  })
+
+  describe('Group.pendingInvitations', () => {
+    const query = () => `{ group(id: ${group.id}) { pendingInvitations { total items { email } } } }`
+
+    it('is empty for a member without the Add Members responsibility', async () => {
+      const result = await run(member.id, query())
+      expect(result.errors).to.be.undefined
+      expect(result.data.group.pendingInvitations).to.deep.equal({ total: 0, items: [] })
+    })
+
+    it('lists invitations for a group admin', async () => {
+      const result = await run(admin.id, query())
+      expect(result.data.group.pendingInvitations.items.map(i => i.email)).to.deep.equal(['invitee@example.com'])
+    })
+  })
+
+  describe('contentAccess', () => {
+    const rootQuery = groupIds => `{ contentAccess(groupIds: [${groupIds}]) { items { user { id } } } }`
+
+    it('is refused on the root query for a non-admin', async () => {
+      const result = await run(member.id, rootQuery(group.id))
+      expect(result.errors[0].message).to.equal('You do not have permission to do that')
+    })
+
+    it('is refused on the root query without groupIds', async () => {
+      const result = await run(admin.id, '{ contentAccess { items { id } } }')
+      expect(result.errors[0].message).to.equal('You do not have permission to do that')
+    })
+
+    it('returns records on the root query to a group admin', async () => {
+      const result = await run(admin.id, rootQuery(group.id))
+      expect(result.errors).to.be.undefined
+      expect(result.data.contentAccess.items.map(i => i.user.id)).to.deep.equal([String(member.id)])
+    })
+
+    it('rejects a sort order that is not asc or desc', async () => {
+      const result = await run(admin.id, `{ contentAccess(groupIds: [${group.id}], sortBy: "user_name", order: "asc, (select 1)") { items { id } } }`)
+      expect(result.errors[0].message).to.equal('Cannot use sort order "asc, (select 1)"')
+    })
+  })
+})
+
+describe('Group.groupRoles', () => {
+  let handler, admin, member, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    group = await factories.group().save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await member.joinGroup(group)
+    await GroupRole.forge({ group_id: group.id, name: 'Greeter', emoji: '👋', type: GroupRole.TYPE_CUSTOM, active: true }).save()
+  })
+
+  it('lists system and custom roles but never the implicit All Members role', async () => {
+    expect(await GroupRole.findAllMembersRole(group.id)).to.exist
+
+    for (const viewer of [admin, member]) {
+      const data = await run(viewer.id, `{ group(id: "${group.id}") { groupRoles { total items { name type } } } }`)
+      const roles = data.group.groupRoles
+      expect(roles.items.map(role => role.name)).to.have.members(['Administrator', 'Moderator', 'Host', 'Greeter'])
+      expect(roles.items.map(role => role.type)).to.not.include(GroupRole.TYPE_ALL_MEMBERS)
+      expect(roles.total).to.equal(4)
+    }
+  })
+})
+
+describe('group invite policy fields', () => {
+  let handler, admin, host, member, group, space
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  const policyQuery = groupId => `{
+    group(id: "${groupId}") {
+      myInviteAllowance
+      invitePath
+      invitePolicy
+    }
+  }`
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    host = await factories.user().save()
+    member = await factories.user().save()
+    group = await factories.group().save()
+    space = await factories.group({ type: 'space', parent_id: group.id }).save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await host.joinGroup(group)
+    await member.joinGroup(group)
+    await member.joinGroup(space)
+    const hostRole = await GroupRole.findSystemRole(group.id, 'Host')
+    await MemberGroupRole.forge({ user_id: host.id, group_id: group.id, group_role_id: hostRole.id, active: true }).save()
+  })
+
+  afterEach(() => GroupRole.setInvitePolicy(group.id, 'stewards'))
+
+  it('lets stewards invite and hides the allowance from members on the stewards policy', async () => {
+    expect((await run(admin.id, policyQuery(group.id))).group.myInviteAllowance).to.be.a('number')
+    expect((await run(host.id, policyQuery(group.id))).group.myInviteAllowance).to.be.a('number')
+    expect((await run(member.id, policyQuery(group.id))).group.myInviteAllowance).to.be.null
+  })
+
+  it('lets every member invite when the policy is everyone', async () => {
+    await GroupRole.setInvitePolicy(group.id, 'everyone')
+
+    const data = await run(member.id, policyQuery(group.id))
+    expect(data.group.myInviteAllowance).to.be.a('number')
+    expect(data.group.invitePolicy).to.be.null
+  })
+
+  it('shows the policy only to Administrators', async () => {
+    await GroupRole.setInvitePolicy(group.id, 'everyone')
+
+    const data = await run(admin.id, policyQuery(group.id))
+    expect(data.group.invitePolicy).to.equal('everyone')
+
+    for (const viewer of [host, member]) {
+      const hidden = await run(viewer.id, policyQuery(group.id))
+      expect(hidden.group.invitePolicy).to.be.null
+    }
+  })
+
+  it('has no policy of its own in a space', async () => {
+    await GroupRole.setInvitePolicy(group.id, 'everyone')
+
+    const adminView = await run(admin.id, policyQuery(space.id))
+    expect(adminView.group.invitePolicy).to.be.null
+    expect(adminView.group.myInviteAllowance).to.be.a('number')
+
+    expect((await run(member.id, policyQuery(space.id))).group.myInviteAllowance).to.be.a('number')
+  })
+
+  it('sets the policy through updateGroupSettings and createGroup', async () => {
+    const updated = await run(admin.id, `mutation {
+      updateGroupSettings(id: "${group.id}", changes: { invitePolicy: "everyone" }) {
+        invitePolicy
+      }
+    }`)
+    expect(updated.updateGroupSettings.invitePolicy).to.equal('everyone')
+
+    const slug = `graphql-policy-${Date.now()}`
+    const created = await run(admin.id, `mutation {
+      createGroup(data: { name: "GraphQL Policy", slug: "${slug}", invitePolicy: "stewards" }) {
+        id
+        invitePolicy
+      }
+    }`)
+    expect(created.createGroup.invitePolicy).to.equal('stewards')
+  })
+})
+
+describe('pending invitations through GraphQL', () => {
+  let handler, admin, member, other, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    expect(executionResult.errors).to.be.undefined
+    return executionResult.data
+  }
+
+  const pendingQuery = (first = 20, onlyMine = false) => `{
+    group(id: "${group.id}") {
+      myInviteAllowance
+      pendingInvitations(first: ${first}, onlyMine: ${onlyMine}) {
+        total
+        items { email name userId creator { id name } }
+      }
+    }
+  }`
+
+  const invite = (userId, emails) => run(userId, `mutation {
+    createInvitation(groupId: "${group.id}", data: { emails: ${JSON.stringify(emails)} }) {
+      invitations { id email error }
+    }
+  }`)
+
+  before(async () => {
+    handler = createRequestHandler()
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    other = await factories.user().save()
+    group = await factories.group().save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await member.joinGroup(group)
+    await other.joinGroup(group)
+    await GroupRole.setInvitePolicy(group.id, 'everyone')
+  })
+
+  after(() => unspyify(Queue, 'classMethod'))
+
+  it('sends invitations, counts down the allowance and can list only the current user', async () => {
+    expect((await run(member.id, pendingQuery())).group.myInviteAllowance).to.equal(100)
+
+    const created = await invite(member.id, ['first@graphql-member.com', other.get('email'), 'nope'])
+    expect(created.createInvitation.invitations.map(invitation => invitation.email.toLowerCase())).to.deep.equal([
+      'first@graphql-member.com', other.get('email').toLowerCase(), 'nope'
+    ])
+    expect(created.createInvitation.invitations[0].id).to.exist
+    expect(created.createInvitation.invitations[2].error).to.equal('not a valid email address')
+    await invite(member.id, ['second@graphql-member.com'])
+    await invite(other.id, ['from-other@graphql-member.com'])
+
+    const mine = (await run(member.id, pendingQuery(20, true))).group
+    expect(mine.myInviteAllowance).to.equal(97)
+    expect(mine.pendingInvitations.total).to.equal(3)
+    expect(mine.pendingInvitations.items.map(item => item.email)).to.have.members([
+      'second@graphql-member.com',
+      other.get('email').toLowerCase(),
+      'first@graphql-member.com'
+    ])
+    expect((await run(member.id, pendingQuery(1, true))).group.pendingInvitations.items).to.have.lengthOf(1)
+  })
+
+  it('shows every pending invitation to someone with Add Members', async () => {
+    await run(admin.id, `mutation {
+      createInvitation(groupId: "${group.id}", data: { emails: ["steward@graphql-member.com"] }) { invitations { id } }
+    }`)
+
+    const adminView = (await run(admin.id, pendingQuery())).group
+    expect(adminView.myInviteAllowance).to.equal(99)
+    const byEmail = Object.fromEntries(adminView.pendingInvitations.items.map(item => [item.email, item]))
+    expect(Object.keys(byEmail)).to.have.members([
+      'first@graphql-member.com',
+      other.get('email').toLowerCase(),
+      'second@graphql-member.com',
+      'from-other@graphql-member.com',
+      'steward@graphql-member.com'
+    ])
+    expect(byEmail['first@graphql-member.com'].creator).to.deep.equal({ id: String(member.id), name: member.get('name') })
+    expect(byEmail['steward@graphql-member.com'].creator.id).to.equal(String(admin.id))
+    expect((await run(admin.id, pendingQuery(2))).group.pendingInvitations.items).to.have.lengthOf(2)
+  })
+
+  it('gives members no list and no allowance under the stewards policy', async () => {
+    await GroupRole.setInvitePolicy(group.id, 'stewards')
+    expect((await run(member.id, pendingQuery())).group).to.deep.equal({
+      myInviteAllowance: null,
+      pendingInvitations: { total: 0, items: [] }
+    })
+  })
+})
+
+describe('invitation checks through GraphQL', () => {
+  let handler, admin, invitee, group
+
+  const run = async (userId, document) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = userId ? { userId, destroy: () => {} } : {}
+    const { executionResult } = await handler.inject({ document, serverContext: { req, res: factories.mock.response() } })
+    return executionResult
+  }
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    invitee = await factories.user().save()
+    group = await factories.group({ accessibility: Group.Accessibility.RESTRICTED }).save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+  })
+
+  it('checks an email invitation as granting access and joins with it', async () => {
+    const invitation = await Invitation.create({ userId: admin.id, groupId: group.id, email: invitee.get('email') })
+    const token = invitation.get('token')
+
+    const checked = await run(null, `{ checkInvitation(invitationToken: "${token}") { valid groupSlug grantAccess groupRoles { id } } }`)
+    expect(checked.errors).to.be.undefined
+    expect(checked.data.checkInvitation).to.deep.equal({
+      valid: true,
+      groupSlug: group.get('slug'),
+      grantAccess: true,
+      groupRoles: []
+    })
+
+    const used = await run(invitee.id, `mutation { useInvitation(invitationToken: "${token}") { error membership { id } } }`)
+    expect(used.errors).to.be.undefined
+    expect(used.data.useInvitation.error).to.be.null
+    expect(used.data.useInvitation.membership.id).to.exist
+  })
+
+  it('checks a view-only link as not granting access', async () => {
+    const link = await GroupInviteLink.createForGroup(group.id, {
+      userId: admin.id,
+      grantAccess: false,
+      accessCode: 'ViewGraphL'
+    })
+    const checked = await run(null, `{ checkInvitation(accessCode: "${link.get('access_code')}") { valid grantAccess } }`)
+    expect(checked.errors).to.be.undefined
+    expect(checked.data.checkInvitation).to.deep.equal({ valid: true, grantAccess: false })
   })
 })

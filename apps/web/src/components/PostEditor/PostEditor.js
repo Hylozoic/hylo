@@ -36,6 +36,7 @@ import {
 } from 'components/ui/dialog'
 import LinkPreview from './LinkPreview'
 import { DateTimePicker } from 'components/ui/datetimepicker'
+import usePrefersNativeDateTimePicker from 'components/ui/usePrefersNativeDateTimePicker'
 import TimezoneSelect from 'components/TimezoneSelect/TimezoneSelect'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
@@ -100,9 +101,14 @@ import { setQuerystringParam } from '@hylo/navigation'
 import { isMeetingUrl, sanitizeURL } from 'util/url'
 import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 import ActionsBar from './ActionsBar'
+import insertTextAtSelection from 'util/insertTextAtSelection'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+import postSaveErrorMessage from './postSaveErrorMessage'
+
+/** Chat, action, and submission are not limited by a group's acceptedPostTypes. */
+const UNRESTRICTED_POST_TYPES = ['action', 'chat', 'submission']
 
 /** First post type as shown in PostTypeSelect (POST_TYPES order), among allowed types. */
 function firstDropdownPostType (allowedPostTypes) {
@@ -114,6 +120,7 @@ function firstDropdownPostType (allowedPostTypes) {
 /** Returns true when a group/space accepts the given post type (null acceptedPostTypes = all). */
 function groupAcceptsPostType (group, postType) {
   if (!group || !postType) return false
+  if (UNRESTRICTED_POST_TYPES.includes(postType)) return true
   const types = normalizeAcceptedPostTypes(group.acceptedPostTypes)
   if (types == null) return true
   if (types.length === 0) return false
@@ -183,7 +190,8 @@ function PostEditorInner ({
   const groupSlug = spaceAwareGroupSlug || routeParams.groupSlug || parsedRouteParams.groupSlug
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
-  const { t } = useTranslation()
+  const nativeTimePickers = usePrefersNativeDateTimePicker()
+  const { t, i18n } = useTranslation()
 
   const currentUser = useSelector(getMe)
 
@@ -224,9 +232,10 @@ function PostEditorInner ({
     if (fromGroup == null) return fromView
     // Typed views (track-actions, funding-round-submissions) keep their post type even when
     // the space has empty acceptedPostTypes (track/FR spaces do not use stream post types).
+    // Submission, action, and chat stay available even when the space lists other types.
     if (fromView != null) {
       if (fromGroup.length === 0) return fromView
-      return fromView.filter(type => fromGroup.includes(type))
+      return fromView.filter(type => fromGroup.includes(type) || UNRESTRICTED_POST_TYPES.includes(type))
     }
     return fromGroup
   }, [editing, allowedPostTypesForView, currentGroup?.acceptedPostTypes])
@@ -249,6 +258,7 @@ function PostEditorInner ({
   const createPostType = (() => {
     const fallback = firstDropdownPostType(allowedPostTypes)
     if (!postType) return fallback
+    if (UNRESTRICTED_POST_TYPES.includes(postType)) return postType
     if (allowedPostTypes != null && !allowedPostTypes.includes(postType)) return fallback
     return postType
   })()
@@ -339,14 +349,20 @@ function PostEditorInner ({
     inputPost = editingPost
     isEditing = !!editingPost || loading
   } else if (fromPostId && fromPost) {
-    inputPost = fromPost
-    inputPost.title = `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`
+    // A duplicate is a new post. Keep the content, drop the original event invites.
+    inputPost = {
+      ...fromPost,
+      title: `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`,
+      eventInvitations: []
+    }
   }
 
   const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending
   const showFiles = !isEmpty(fileAttachments) || uploadFileAttachmentPending
 
   const titleInputRef = useRef()
+  // Which field the emoji button inserts into: 'title' or 'details' (never link or other fields)
+  const lastFocusedTextFieldRef = useRef('details')
   const editorRef = useRef()
   const toFieldRef = useRef()
   const endTimeRef = useRef()
@@ -385,6 +401,9 @@ function PostEditorInner ({
       type: createPostType,
       votingMethod: VOTING_METHOD_SINGLE,
       ...(inputPost || {}),
+      // The chat room loads its posts without their groups. A chat only lives in its
+      // room's group, which the route gives us, so use that (as the inline chat edit does)
+      ...(editing && inputPost?.type === 'chat' && isEmpty(inputPost.groups) && currentGroup ? { groups: [currentGroup] } : {}),
       ...prefilledEventTimes,
       location: inputPost?.location || selectedLocation || '',
       locationId: inputPost?.locationId || null,
@@ -405,9 +424,11 @@ function PostEditorInner ({
   const submissionCriteriaRef = useRef(null)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
+  // Error returned by the server when saving fails (e.g. the space doesn't accept this post type)
+  const [saveError, setSaveError] = useState(null)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
-  // Memberships plus the current parent group and its spaces (menu + off-menu).
+  // Joined groups and spaces, plus the current parent group. Unjoined spaces are omitted.
   // Reads Group inside an ORM selector so parentId hydrates when spaces load.
   const destinationGroups = useSelector(state => getPostEditorDestinationGroups(state, currentParentGroupId))
   const groupOptions = useMemo(() => {
@@ -415,15 +436,18 @@ function PostEditorInner ({
     const ensureGroup = (group) => {
       if (!group?.id || group.status === 'archived') return
       if (groups.some(g => sameGroupId(g.id, group.id))) return
+      // Once we know the user, only spaces they have joined are destinations.
+      if (isSpaceGroup(group) && currentUser && !destinationGroups.some(g => sameGroupId(g.id, group.id))) return
       groups.push(group)
     }
     ensureGroup(currentGroup)
     // Always keep the parent group available as a To destination when in a space
     if (inSpace) ensureGroup(routeParentGroup)
     return groups
-  }, [destinationGroups, currentGroup, inSpace, routeParentGroup])
+  }, [destinationGroups, currentGroup, currentUser, inSpace, routeParentGroup])
   const isAction = currentPost.type === 'action'
   const isSubmission = currentPost.type === 'submission'
+  const isChat = currentPost.type === 'chat'
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
@@ -441,6 +465,11 @@ function PostEditorInner ({
       })
     }
   }, [])
+
+  // A save error is about the type/destinations chosen at the time; drop it once they change.
+  useEffect(() => {
+    setSaveError(null)
+  }, [currentPost.type, currentPost.groups])
 
   // Debounced write of editor HTML into React state. Typing stays in TipTap + detailsHtmlRef;
   // this only syncs for draft persistence (avoids re-rendering the whole form per keystroke).
@@ -512,19 +541,41 @@ function PostEditorInner ({
       return
     }
 
-    const mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
+    let mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
+    // Chat edits only restore the body. Type and the other post fields stay as saved.
+    if (editing && initialPost.type === 'chat') {
+      mergedPost = {
+        ...initialPost,
+        details: mergedPost.details,
+        linkPreview: mergedPost.linkPreview,
+        linkPreviewFeatured: mergedPost.linkPreviewFeatured,
+        skipLinkPreview: mergedPost.skipLinkPreview,
+        type: 'chat'
+      }
+    }
     applyPostToEditor(mergedPost)
   }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON])
 
   useEffect(() => {
     if (editing || !currentGroup?.id) return
     if (toFieldTouchedRef.current) return
+    const currentSpaceIsJoined = !isSpaceGroup(currentGroup) ||
+      !currentUser ||
+      destinationGroups.some(g => sameGroupId(g.id, currentGroup.id))
+    if (!currentSpaceIsJoined) {
+      setCurrentPost(prev => {
+        const groups = (prev.groups || []).filter(g => !sameGroupId(g?.id, currentGroup.id))
+        if (groups.length === (prev.groups || []).length) return prev
+        return { ...prev, groups }
+      })
+      return
+    }
     setCurrentPost(prev => {
       const hasCurrentGroup = prev.groups?.some(g => sameGroupId(g?.id, currentGroup.id))
       if (hasCurrentGroup) return prev
       return { ...prev, groups: [currentGroup, ...(prev.groups || [])] }
     })
-  }, [currentGroup, editing, setCurrentPost])
+  }, [currentGroup, currentUser, destinationGroups, editing, setCurrentPost])
 
   // Flush pending details into currentPost on unmount so drafts are not truncated.
   useEffect(() => () => {
@@ -705,7 +756,13 @@ function PostEditorInner ({
 
   useEffect(() => {
     if (autoFocus) {
-      setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+      setTimeout(() => {
+        if (initialPost.type === 'chat') {
+          editorRef.current?.focus?.('end')
+        } else if (titleInputRef.current) {
+          titleInputRef.current.focus()
+        }
+      }, 100)
     }
     return () => {
       dispatch(clearLinkPreview())
@@ -713,7 +770,8 @@ function PostEditorInner ({
     }
   }, [])
 
-  // Membership spaces (every group) plus the current parent's space list for siblings
+  // Membership groups and spaces, plus the current parent's space list so joined
+  // spaces pick up parentId for the To field.
   const hasFetchedToFieldDataRef = useRef(false)
   useEffect(() => {
     if (hasFetchedToFieldDataRef.current) return
@@ -825,11 +883,20 @@ function PostEditorInner ({
     setIsDirty(false)
     if (autoFocus) {
       toFieldRef?.current?.reset()
-      setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+      setTimeout(() => {
+        if (initialPost.type === 'chat') {
+          editorRef.current?.focus?.('end')
+        } else if (titleInputRef.current) {
+          titleInputRef.current.focus()
+        }
+      }, 100)
     } else {
       toFieldRef?.current?.reset()
     }
   }, [clearDraft, initialPost, autoFocus, selectedLocation, setCurrentPost, syncDetailsToCurrentPost])
+
+  // Events require a start and an end time (see isValid); other post types' times are optional
+  const timesAreClearable = currentPost.type !== 'event'
 
   /**
    * Calculates an end time based on start time, preserving duration if both times exist
@@ -909,6 +976,31 @@ function PostEditorInner ({
     setCurrentPost(prev => (title === prev.title ? prev : { ...prev, title }))
   }, [setCurrentPost])
 
+  const handleTitleFocus = useCallback(() => {
+    setTitleFocused(true)
+    lastFocusedTextFieldRef.current = 'title'
+  }, [])
+
+  const handleDetailsFocus = useCallback(() => {
+    lastFocusedTextFieldRef.current = 'details'
+  }, [])
+
+  const handleInsertEmoji = useCallback((emoji) => {
+    const input = titleInputRef.current
+    if (lastFocusedTextFieldRef.current === 'title' && input) {
+      const { value, caret } = insertTextAtSelection(input.value, input.selectionStart, input.selectionEnd, emoji)
+      if (value.length > MAX_TITLE_LENGTH) return
+      handleTitleChange({ target: { value } })
+      // Put the cursor back after the emoji once React has applied the new value
+      window.requestAnimationFrame(() => {
+        input.focus()
+        input.setSelectionRange(caret, caret)
+      })
+      return
+    }
+    editorRef.current?.insertContent?.(emoji)
+  }, [handleTitleChange])
+
   /**
    * TipTap onUpdate handler. Avoid putting full HTML into React state on every keystroke —
    * that re-renders the entire PostEditor and causes typing lag / out-of-order characters
@@ -951,11 +1043,61 @@ function PostEditorInner ({
   const handleStartTimeChange = (pickerStart) => {
     const tz = getPostTimezone()
     const startTime = DateTimeHelpers.fromPickerDate(pickerStart, tz)
-    const endTime = calcEndTime(startTime)
+    // A post that has a start but its end was removed keeps having no end
+    const keepWithoutEnd = timesAreClearable && currentPost.startTime && !currentPost.endTime
+    const endTime = keepWithoutEnd ? null : calcEndTime(startTime)
     validateTimeChange(startTime, endTime)
     setCurrentPost(prev => ({ ...prev, startTime, endTime }))
-    endTimeRef.current?.setValue(DateTimeHelpers.toPickerDate(endTime, tz))
+    if (endTime) endTimeRef.current?.setValue(DateTimeHelpers.toPickerDate(endTime, tz))
   }
+
+  /**
+   * Removes the start time. The end time can't exist without a start, so it goes too.
+   * Saved as null, which clears the stored times.
+   */
+  const handleClearStartTime = useCallback(() => {
+    setDateError(false)
+    setCurrentPost(prev => ({ ...prev, startTime: null, endTime: null }))
+  }, [setCurrentPost])
+
+  const handleClearEndTime = useCallback(() => {
+    setDateError(false)
+    setCurrentPost(prev => ({ ...prev, endTime: null }))
+  }, [setCurrentPost])
+
+  /**
+   * A proposal's voting window drives its status (see the backend's setupPostAttrs and
+   * Post.updateProposalStatuses), so removing part of it asks first and says what will happen:
+   * - no start time: a casual proposal, with no voting
+   * - a start but no end: the status job never moves it on, so voting that has started stays
+   *   open forever, and voting that hasn't started never opens on its own
+   */
+  const [timeRemovalConfirm, setTimeRemovalConfirm] = useState(null)
+
+  const handleRequestClearStartTime = useCallback(() => {
+    if (currentPost.type === 'proposal') {
+      setTimeRemovalConfirm('start')
+    } else {
+      handleClearStartTime()
+    }
+  }, [currentPost.type, handleClearStartTime])
+
+  const handleRequestClearEndTime = useCallback(() => {
+    if (currentPost.type === 'proposal' && currentPost.startTime) {
+      setTimeRemovalConfirm(new Date(currentPost.startTime) <= new Date() ? 'end-started' : 'end-not-started')
+    } else {
+      handleClearEndTime()
+    }
+  }, [currentPost.type, currentPost.startTime, handleClearEndTime])
+
+  const handleConfirmTimeRemoval = useCallback(() => {
+    if (timeRemovalConfirm === 'start') {
+      handleClearStartTime()
+    } else {
+      handleClearEndTime()
+    }
+    setTimeRemovalConfirm(null)
+  }, [timeRemovalConfirm, handleClearStartTime, handleClearEndTime])
 
   const handleEndTimeChange = useCallback((pickerEnd) => {
     const tz = getPostTimezone()
@@ -1070,6 +1212,7 @@ function PostEditorInner ({
    * Determines if the current form state is valid for submission
    * Checks various conditions based on post type and sets error messages
    */
+  const attachmentCount = imageAttachments.length + fileAttachments.length
   const isValid = useMemo(() => {
     const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, meetingLink, proposalOptions } = currentPost
 
@@ -1096,7 +1239,12 @@ function PostEditorInner ({
         break
     }
 
-    if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
+    if (type === 'chat') {
+      // Chat posts have no title. Text or an attachment is enough.
+      if (!hasDescription && attachmentCount === 0) {
+        errorMessages.push(t('Chat must have text or an attachment'))
+      }
+    } else if (title?.length === 0 || title?.length > MAX_TITLE_LENGTH) {
       errorMessages.push(t('Title is required'))
     }
 
@@ -1109,7 +1257,7 @@ function PostEditorInner ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions])
+  }, [attachmentCount, hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.meetingLink, currentPost.proposalOptions])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -1125,6 +1273,7 @@ function PostEditorInner ({
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
     isSubmittingRef.current = true
+    setSaveError(null)
 
     try {
       const {
@@ -1154,9 +1303,13 @@ function PostEditorInner ({
         timezone,
         title,
         topics,
-        type
+        type: postType
       } = currentPost
-      const details = editorRef.current.getHTML()
+      // Editing a chat never converts it to another post type.
+      const type = editing && editingPost?.type === 'chat' ? 'chat' : postType
+      const rawDetails = editorRef.current.getHTML()
+      // Empty TipTap HTML would render as a blank line on attachment-only chat posts.
+      const details = type === 'chat' && !hasDraftContent(rawDetails) ? '' : rawDetails
       const topicNames = topics?.map((t) => t.name)
       const memberIds = members?.map((m) => m.id) || []
       if (type === 'project') {
@@ -1197,7 +1350,7 @@ function PostEditorInner ({
         imageAttachments, // For optimistic display of the new post
         imageUrls,
         isAnonymousVote,
-        isPublic,
+        isPublic: type === 'submission' ? false : isPublic,
         isStrictProposal,
         linkPreview,
         linkPreviewFeatured,
@@ -1235,8 +1388,14 @@ function PostEditorInner ({
       syncDetailsToCurrentPost.cancel()
       cancelPendingSave()
 
-      const savedPost = await dispatch(saveFunc(postToSave))
-      if (!savedPost.error) {
+      // The GraphQL middleware rejects on server errors; it can also resolve with `error` set.
+      let savedPost
+      try {
+        savedPost = await dispatch(saveFunc(postToSave))
+      } catch (error) {
+        savedPost = { error: true, payload: error }
+      }
+      if (!savedPost?.error) {
         await clearDraft()
         setIsDirty(false)
         if (afterSave) {
@@ -1247,12 +1406,15 @@ function PostEditorInner ({
         }
       } else {
         isSubmittingRef.current = false
+        // Keep the user's work: let draft saves resume and show why the save failed.
+        isSubmittedRef.current = false
+        setSaveError(postSaveErrorMessage(savedPost?.payload, t, i18n?.language))
       }
     } catch (error) {
       isSubmittingRef.current = false
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, t, i18n?.language, viewId])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -1322,7 +1484,7 @@ function PostEditorInner ({
    * @returns {boolean} - True if user has admin rights in all selected groups
    */
   const canMakeAnnouncement = useCallback(() => {
-    if (currentPost.type === 'action' || currentPost.type === 'submission') return false
+    if (currentPost.type === 'action' || currentPost.type === 'submission' || currentPost.type === 'chat') return false
     const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
     for (let index = 0; index < groups.length; index++) {
@@ -1331,7 +1493,7 @@ function PostEditorInner ({
     return true
   }, [currentPost, myAdminGroups])
 
-  const canHaveTimes = !['discussion', 'action', 'submission'].includes(currentPost.type)
+  const canHaveTimes = !['discussion', 'action', 'submission', 'chat'].includes(currentPost.type)
   const eventTimezone = currentPost.timezone || DateTimeHelpers.getCurrentTimezone()
   const startTimePickerValue = currentPost.startTime
     ? DateTimeHelpers.toPickerDate(currentPost.startTime, eventTimezone)
@@ -1339,6 +1501,23 @@ function PostEditorInner ({
   const endTimePickerValue = currentPost.endTime
     ? DateTimeHelpers.toPickerDate(currentPost.endTime, eventTimezone)
     : undefined
+  // Remove buttons, shown inside each picker's field (see DateTimePicker's endAdornment)
+  const clearStartTimeButton = timesAreClearable && currentPost.startTime && (
+    <ClearTimeButton
+      label={t('Remove start time')}
+      testId='post-editor-clear-start-time'
+      onClick={handleRequestClearStartTime}
+      disabled={loading}
+    />
+  )
+  const clearEndTimeButton = timesAreClearable && currentPost.endTime && (
+    <ClearTimeButton
+      label={t('Remove end time')}
+      testId='post-editor-clear-end-time'
+      onClick={handleRequestClearEndTime}
+      disabled={loading}
+    />
+  )
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal'
     ? t('Is there a relevant location for this proposal?')
@@ -1379,7 +1558,7 @@ function PostEditorInner ({
   }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30')}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30 min-w-0 max-w-full')} data-testid='post-editor'>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
@@ -1389,23 +1568,27 @@ function PostEditorInner ({
       />
       {editorTourInvitation}
       <div className={cn('PostEditorHeader relative')} data-tour='post-type'>
-        {isAction
+        {isChat
           ? (
-            <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
+            <div>{t('Editing Chat')}</div>
             )
-          : isSubmission
+          : isAction
             ? (
-              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') })}</div>
+              <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
               )
-            : (
-              <PostTypeSelect
-                allowedPostTypes={allowedPostTypes}
-                disabled={loading}
-                postType={currentPost.type}
-                setPostType={handlePostTypeSelection}
-                className={cn({ hidden: !!currentFundingRound })}
-              />
-              )}
+            : isSubmission
+              ? (
+                <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor || t('Submission') })}</div>
+                )
+              : (
+                <PostTypeSelect
+                  allowedPostTypes={allowedPostTypes}
+                  disabled={loading}
+                  postType={currentPost.type}
+                  setPostType={handlePostTypeSelection}
+                  className={cn({ hidden: !!currentFundingRound })}
+                />
+                )}
       </div>
       {showSubmissionCriteria && (
         <div className='flex flex-col gap-2 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-xs text-foreground/80'>
@@ -1433,7 +1616,7 @@ function PostEditorInner ({
           )}
         </div>
       )}
-      {!isAction && !isSubmission && (
+      {!isAction && !isSubmission && !isChat && (
         <div
           className={cn('PostEditorTo flex w-full items-center bg-input rounded p-1 border-2 border-transparent transition-all', { 'border-2 border-focus': toFieldFocused })}
           data-tour='post-to'
@@ -1455,28 +1638,31 @@ function PostEditorInner ({
           </div>
         </div>
       )}
-      <div className={cn('PostEditorTitle flex w-full items-center bg-input rounded p-1 transition-all border-2 border-transparent', { 'border-2 border-focus': titleFocused })}>
-        <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
-        <input
-          type='text'
-          className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
-          value={currentPost.title || ''}
-          onChange={handleTitleChange}
-          disabled={loading}
-          ref={titleInputRef}
-          maxLength={MAX_TITLE_LENGTH}
-          onFocus={() => setTitleFocused(true)}
-          onBlur={() => setTitleFocused(false)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && event.altKey) {
-              doSave()
-            }
-          }}
-        />
-        {titleLengthError && (
-          <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
-        )}
-      </div>
+      {!isChat && (
+        <div className={cn('PostEditorTitle flex w-full items-center bg-input rounded p-1 transition-all border-2 border-transparent', { 'border-2 border-focus': titleFocused })}>
+          <div className='text-xs text-foreground/50 px-2'>{t('Title')}</div>
+          <input
+            type='text'
+            data-testid='post-editor-title'
+            className='bg-transparent focus:outline-none flex-1 placeholder:text-foreground/50 border-transparent'
+            value={currentPost.title || ''}
+            onChange={handleTitleChange}
+            disabled={loading}
+            ref={titleInputRef}
+            maxLength={MAX_TITLE_LENGTH}
+            onFocus={handleTitleFocus}
+            onBlur={() => setTitleFocused(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && event.altKey) {
+                doSave()
+              }
+            }}
+          />
+          {titleLengthError && (
+            <span className='text-black bg-[#FFB949] w-full relative -top-[15px] pb-[2px] px-[10px] rounded-[7px]'>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>
+          )}
+        </div>
+      )}
       <div
         className={cn(
           'PostEditorContent w-full bg-input rounded p-1',
@@ -1492,6 +1678,8 @@ function PostEditorInner ({
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
+              onFocus={handleDetailsFocus}
+              onInsertEmoji={handleInsertEmoji}
               contentHTML={editorInitialContent}
               groupIds={groupIds}
               showMenu
@@ -1549,7 +1737,7 @@ function PostEditorInner ({
           />
         </div>
       </div> */}
-      {!isAction && !isSubmission && (
+      {!isAction && !isSubmission && !isChat && (
         <div className='PostEditorPublic flex w-full items-center bg-input rounded p-1' data-tour='post-public'>
           <PublicToggle
             togglePublic={togglePublic}
@@ -1726,32 +1914,68 @@ function PostEditorInner ({
       )} */}
       {canHaveTimes && (
         <>
-          <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0'>
-            <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-            <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
-              <DateTimePicker
-                hourCycle={hourCycle}
-                granularity='minute'
-                value={startTimePickerValue}
-                placeholder={t('Select Start')}
-                onChange={handleStartTimeChange}
-                onMonthChange={() => {}}
-              />
-              <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
-              <DateTimePicker
-                ref={endTimeRef}
-                hourCycle={hourCycle}
-                granularity='minute'
-                value={endTimePickerValue}
-                placeholder={t('Select End')}
-                onChange={handleEndTimeChange}
-                onMonthChange={() => {}}
-              />
-            </div>
-          </div>
-          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2'>
-            <div className='text-xs text-foreground/50 shrink-0'>{t('Timezone')}</div>
+          {nativeTimePickers
+            ? (
+              <div className='flex flex-col border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0' data-testid='post-editor-timeframe'>
+                <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+                {/* Touch devices: OS date/time pickers, one full-width row each for start and end */}
+                <div className='grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2'>
+                  <span aria-hidden='true' />
+                  <DateTimePicker
+                    id='post-editor-start-time'
+                    label={t('Select Start')}
+                    granularity='minute'
+                    value={startTimePickerValue}
+                    placeholder={t('Select Start')}
+                    onChange={handleStartTimeChange}
+                    endAdornment={clearStartTimeButton}
+                  />
+                  <div className='text-xs text-foreground/50'>{t('to')}</div>
+                  <DateTimePicker
+                    id='post-editor-end-time'
+                    ref={endTimeRef}
+                    label={t('Select End')}
+                    granularity='minute'
+                    value={endTimePickerValue}
+                    placeholder={t('Select End')}
+                    onChange={handleEndTimeChange}
+                    endAdornment={clearEndTimeButton}
+                  />
+                </div>
+              </div>
+              )
+            : (
+              <div className='flex flex-wrap items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 min-w-0' data-testid='post-editor-timeframe'>
+                <div className='text-xs text-foreground/50 shrink-0'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
+                <div className='flex flex-1 flex-wrap items-center gap-1 min-w-0'>
+                  <DateTimePicker
+                    hourCycle={hourCycle}
+                    granularity='minute'
+                    value={startTimePickerValue}
+                    placeholder={t('Select Start')}
+                    onChange={handleStartTimeChange}
+                    onMonthChange={() => {}}
+                    endAdornment={clearStartTimeButton}
+                  />
+                  <div className='text-xs text-foreground/50 shrink-0'>{t('to')}</div>
+                  <DateTimePicker
+                    ref={endTimeRef}
+                    hourCycle={hourCycle}
+                    granularity='minute'
+                    value={endTimePickerValue}
+                    placeholder={t('Select End')}
+                    onChange={handleEndTimeChange}
+                    onMonthChange={() => {}}
+                    endAdornment={clearEndTimeButton}
+                  />
+                </div>
+              </div>
+              )}
+          {/* Grid, not flex: the select's column is capped by the card (minmax(0, 1fr)) whatever the trigger's intrinsic width */}
+          <div className='grid grid-cols-[auto_minmax(0,1fr)] items-center border-2 border-transparent transition-all bg-input rounded-md py-0 px-2 gap-2 min-w-0 max-w-full' data-testid='post-editor-timezone-row'>
+            <div className='text-xs text-foreground/50'>{t('Timezone')}</div>
             <TimezoneSelect
+              data-testid='post-editor-timezone'
               className='border-none bg-transparent'
               value={eventTimezone}
               onChange={handleTimezoneChange}
@@ -1772,7 +1996,7 @@ function PostEditorInner ({
           setCurrentPost={setCurrentPost}
         />
       )}
-      {showLocation && (
+      {showLocation && !isChat && (
         <div className={cn('flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2')}>
           <div className='text-xs text-foreground/50'>{locationLabel}</div>
           <LocationInput
@@ -1887,6 +2111,11 @@ function PostEditorInner ({
           </div>
         </div>
       )}
+      {saveError && (
+        <div role='alert' data-testid='post-editor-save-error' className='text-white bg-destructive w-full py-1 px-[10px] rounded-[7px]'>
+          {saveError}
+        </div>
+      )}
       <ActionsBar
         id={currentPost.id}
         addAttachment={addAttachment}
@@ -1939,7 +2168,63 @@ function PostEditorInner ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={!!timeRemovalConfirm} onOpenChange={(open) => !open && setTimeRemovalConfirm(null)}>
+        <DialogContent data-testid='post-editor-remove-voting-time-dialog'>
+          <DialogHeader>
+            <DialogTitle>{timeRemovalConfirm === 'start' ? t('Remove the voting window?') : t('Remove the voting end time?')}</DialogTitle>
+            <DialogDescription>
+              {timeRemovalConfirm === 'start'
+                ? t('This makes it a casual proposal: there will be no voting period and no deadline.')
+                : timeRemovalConfirm === 'end-started'
+                  ? t('Voting will stay open with no deadline, and the proposal will never be marked as complete.')
+                  : t('Without an end time, voting will not open on its own at the start time, and there will be no deadline.')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type='button'
+              className='rounded-lg px-4 py-2 text-sm border border-foreground/20 hover:bg-foreground/10 transition-colors'
+              onClick={() => setTimeRemovalConfirm(null)}
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              type='button'
+              data-testid='post-editor-confirm-remove-voting-time'
+              className='rounded-lg px-4 py-2 text-sm font-medium text-white bg-destructive hover:bg-destructive/80 transition-colors'
+              onClick={handleConfirmTimeRemoval}
+            >
+              {t('Remove')}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+/**
+ * Small "x" button, shown inside a date/time field, that removes the start or end time.
+ * It sits over the field but isn't part of the picker, so its click mustn't reach the picker.
+ */
+function ClearTimeButton ({ label, testId, onClick, disabled }) {
+  return (
+    <button
+      type='button'
+      aria-label={label}
+      title={label}
+      data-testid={testId}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onClick()
+      }}
+      disabled={disabled}
+      className='flex items-center justify-center shrink-0 h-8 w-8 sm:h-7 sm:w-7 rounded-full text-foreground/50 hover:text-foreground hover:bg-foreground/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50 touch-manipulation'
+    >
+      <X className='h-4 w-4' />
+    </button>
   )
 }
 

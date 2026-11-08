@@ -1,3 +1,4 @@
+import centroid from '@turf/centroid'
 import WebMercatorViewport from '@math.gl/web-mercator'
 
 /**
@@ -10,6 +11,32 @@ export function locationCenter (locationObject) {
   const lng = parseFloat(center.lng)
   if (Number.isNaN(lat) || Number.isNaN(lng)) return null
   return { lat, lng }
+}
+
+/**
+ * Center of a group boundary. Used when a group has a geoShape but no location pin.
+ * Accepts a GeoJSON geometry, a Feature, or a JSON string of either.
+ */
+export function shapeCenter (geoShape) {
+  if (!geoShape) return null
+  let geometry = geoShape
+  if (typeof geoShape === 'string') {
+    try {
+      geometry = JSON.parse(geoShape)
+    } catch (e) {
+      return null
+    }
+  }
+  const coordinates = geometry?.coordinates || geometry?.geometry?.coordinates
+  if (!coordinates) return null
+  try {
+    const feature = geometry.type ? geometry : { type: 'Polygon', coordinates }
+    const [lng, lat] = centroid(feature).geometry.coordinates
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+    return { lat, lng }
+  } catch (e) {
+    return null
+  }
 }
 
 export function locationObjectToViewport (priorViewport, locationObject) {

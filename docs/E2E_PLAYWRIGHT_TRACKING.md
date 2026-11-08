@@ -199,9 +199,9 @@ Optional env vars:
 
 - `E2E_BACKEND_PORT` — pin the API port; **if unset**, the runner scans **`E2E_BACKEND_PORT_RANGE_LO`–`E2E_BACKEND_PORT_RANGE_HI`** (default **3101–3199**) for the first free port so a stray process on 3101 does not fail the run with `EADDRINUSE`
 - `E2E_WEB_PORT` (default **`3330`** — avoids clashing with `yarn dev` on `3000`)
-- `E2E_DB_NAME` (default `hylo_e2e`)
-- `E2E_DATABASE_URL` — **set this to match Docker Postgres** (host, port, user, password). The **last path segment is the database name** used for `dropdb` / `createdb` / `psql` / backend (they must stay in sync). Prefer a dedicated DB, e.g. `.../hylo_e2e`, not your main `hylo` dev DB. Local Docker usually has **no TLS** — isolated tooling defaults `PGSSLMODE` to `disable`; set `PGSSLMODE=require` only if your DB expects SSL.
-- `E2E_ALLOW_DANGEROUS_DB=1` — only if you intentionally point E2E at a blocked name (`hylo`, `hylo_test`, `postgres`, templates).
+- `E2E_DB_NAME` (default `hylo_e2e_test`)
+- `E2E_DATABASE_URL` — **set this to match Docker Postgres** (host, port, user, password). The **last path segment is the database name** used for `dropdb` / `createdb` / `psql` / backend (they must stay in sync). Prefer a dedicated DB, e.g. `.../hylo_e2e_test`, not your main `hylo` dev DB. Local Docker usually has **no TLS** — isolated tooling defaults `PGSSLMODE` to `disable`; set `PGSSLMODE=require` only if your DB expects SSL.
+- Database name **must contain `test`** (e.g. `hylo_e2e_test`). The runner and seed script refuse anything else; there is no override.
 - `E2E_SEED_PROFILE` (default `e2e`; set to `none` to skip seeding, or `development`/`dummy` only if you explicitly need those profiles)
 - `E2E_KEEP_DB=1` (keep DB for debugging after run)
 
@@ -210,8 +210,8 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 ### Troubleshooting isolated runs
 
 - **`/notifications` E2E skipped or notification API 403** — The manage-notifications page needs a real RS256 `notification_settings` JWT. The isolated runner loads `apps/backend/.env` and, after seeding, runs `scripts/print-e2e-notification-jwt.js` to set `E2E_NOTIFICATION_PAGE_JWT` for Playwright. Ensure **`OIDC_KEYS`** is set in backend env (same as local API). Without it, that test is skipped and malformed tokens no longer spam the server log (controller returns 403).
-- **`dropdb: database "hylo_e2e" is being accessed by other users`** — Usually a leftover Sails (`node app.js`), TablePlus, or a prior interrupted run. The runner now runs `pg_terminate_backend` on that DB before `dropdb`, and waits for the isolated API process to exit (then `SIGKILL` if needed) before dropping at the end. If you still see this, disconnect GUI clients or run manually (as a superuser / owner):  
-  `psql "$E2E_DATABASE_URL" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'hylo_e2e' AND pid <> pg_backend_pid();"`  
+- **`dropdb: database "hylo_e2e_test" is being accessed by other users`** — Usually a leftover Sails (`node app.js`), TablePlus, or a prior interrupted run. The runner now runs `pg_terminate_backend` on that DB before `dropdb`, and waits for the isolated API process to exit (then `SIGKILL` if needed) before dropping at the end. If you still see this, disconnect GUI clients or run manually (as a superuser / owner):  
+  `psql "$E2E_DATABASE_URL" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'hylo_e2e_test' AND pid <> pg_backend_pid();"`  
   (adjust URL / name to match your env).
 - **`materialized view "search_index" has not been populated`** — Fresh DBs load `search_index` **WITH NO DATA** from `schema.sql`. The `e2e` seed runs `REFRESH MATERIALIZED VIEW search_index` after inserting baseline rows. If you skip seed or use a custom profile, refresh manually: `psql "$E2E_DATABASE_URL" -c 'REFRESH MATERIALIZED VIEW search_index'`.
 - **Deep link under `/groups/:slug/…` jumps to `…/stream`** — `AuthLayoutRouter` treats a missing membership `lastReadAt` as a first visit and navigates to the group home. Baseline seed sets `lastReadAt` on seeded memberships so E2E can open `/moderation`, `/settings`, etc. directly.

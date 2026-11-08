@@ -10,6 +10,8 @@ const { expect } = require('chai')
 
 /* global ContentAccess, StripeProduct, Track, GroupRole */
 
+const MEMBER_ROLE_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
+
 describe('Content Access Mutations', () => {
   let user, adminUser, group, product, track
 
@@ -29,8 +31,7 @@ describe('Content Access Mutations', () => {
       publish_status: 'published'
     }).save()
     track = await Track.forge({
-      group_id: group.id,
-      name: 'Test Track'
+      group_id: group.id
     }).save()
 
     // Add admin user as group administrator
@@ -206,6 +207,21 @@ describe('Content Access Mutations', () => {
           reason: 'Test'
         })
       ).to.be.rejectedWith('Must specify either groupId, productId, or groupRoleId')
+    })
+  })
+
+  describe('grantContentAccess with a role', () => {
+    it('rejects the Member role', async () => {
+      const memberRole = await GroupRole.findAllMembersRole(group.id)
+      await expect(grantContentAccess(adminUser.id, {
+        userId: user.id,
+        grantedByGroupId: group.id,
+        groupRoleId: memberRole.id,
+        reason: 'Everyone'
+      })).to.be.rejectedWith(MEMBER_ROLE_ERROR)
+
+      const grants = await ContentAccess.where({ group_role_id: memberRole.id }).count()
+      expect(Number(grants)).to.equal(0)
     })
   })
 

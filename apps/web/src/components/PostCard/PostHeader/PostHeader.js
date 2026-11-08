@@ -339,18 +339,23 @@ function PostHeader (props) {
       }
     : null
 
-  const dropdownItems = filter([
-    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: canEdit ? editPost : undefined },
-    { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
-    { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
-    { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
-    { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
-    { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
-    addToCollectionItem,
-    removeFromCollectionItem,
-    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Delete'), onClick: isCreator ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
-    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: canModerate ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
-  ], item => item && (isFunction(item.onClick) || item.disabled || item.items?.length))
+  const copyLinkItem = { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink }
+
+  // Logged-out viewers only get a shareable link; auth-only actions stay hidden
+  const dropdownItems = !currentUser
+    ? [copyLinkItem]
+    : filter([
+      { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: canEdit ? editPost : undefined },
+      copyLinkItem,
+      { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
+      { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
+      { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
+      { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
+      addToCollectionItem,
+      removeFromCollectionItem,
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Delete'), onClick: isCreator ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: canModerate ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
+    ], item => item && (isFunction(item.onClick) || item.disabled || item.items?.length))
 
   const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
   const canHaveTimes = typesWithTimes.includes(type)
@@ -374,11 +379,16 @@ function PostHeader (props) {
         ? t('Started: {{from}}', { from })
         : false
 
+  // When no start string is shown, `to` may be time-only (same-day range), so format the end with its full date
+  const endDisplay = !startString && actualEndTime
+    ? formatUserDatePair({ start: actualEndTime, timezone, returnAsObj: true }).from
+    : to
+
   let endString = false
   if (fulfilledAt && fulfilledAt <= endTime) {
-    endString = t('Completed: {{endTime}}', { endTime: to })
+    endString = t('Completed: {{endTime}}', { endTime: endDisplay })
   } else {
-    endString = TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: to }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: to }) : false
+    endString = TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: endDisplay }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: endDisplay }) : false
   }
 
   let timeWindow = ''
@@ -399,7 +409,7 @@ function PostHeader (props) {
     <div className={cn('PostHeader relative !bg-transparent', { 'mb-0 px-2': constrained }, className)}>
       <div className='w-full rounded-t-lg'>
         <div className='flex justify-start items-center p-2'>
-          <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
+          <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
           <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
             <Highlight {...highlightProps}>
               <div className='flex flex-col min-w-0'>

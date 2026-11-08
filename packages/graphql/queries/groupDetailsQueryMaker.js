@@ -5,11 +5,9 @@ import groupGroupTopicsFieldsFragment from '../fragments/groupGroupTopicsFieldsF
 import groupJoinQuestionsFieldsFragment from '../fragments/groupJoinQuestionsFieldsFragment'
 import groupPendingInvitationsFieldsFragment from '../fragments/groupPendingInvitationsFieldsFragment'
 import groupPrerequisiteGroupsFieldsFragment from '../fragments/groupPrerequisiteGroupsFieldsFragment'
-import groupWidgetsFieldsFragment from '../fragments/groupWidgetsFieldsFragment'
 
 export default function groupDetailsQueryMaker ({
   withExtensions = false,
-  withWidgets = false,
   withTopics = false,
   withJoinQuestions = false,
   withPrerequisiteGroups = false,
@@ -20,7 +18,6 @@ export default function groupDetailsQueryMaker ({
       group(slug: $slug, id: $id) {
         ...GroupFieldsFragment
         ${withExtensions ? '...GroupGroupExtensionsFieldsFragment' : ''}
-        ${withWidgets ? '...GroupWidgetsFieldsFragment' : ''}
         ${withTopics ? '...GroupGroupTopicsFieldsFragment' : ''}
         ${withJoinQuestions ? '...GroupJoinQuestionsFieldsFragment' : ''}
         ${withPrerequisiteGroups ? '...GroupPrerequisiteGroupsFieldsFragment' : ''}
@@ -29,7 +26,6 @@ export default function groupDetailsQueryMaker ({
     }
     ${groupFieldsFragment}
     ${withExtensions ? groupGroupExtensionsFieldsFragment : ''}
-    ${withWidgets ? groupWidgetsFieldsFragment : ''}
     ${withTopics ? groupGroupTopicsFieldsFragment : ''}
     ${withJoinQuestions ? groupJoinQuestionsFieldsFragment : ''}
     ${withPrerequisiteGroups ? groupPrerequisiteGroupsFieldsFragment : ''}

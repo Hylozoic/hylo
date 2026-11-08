@@ -56,6 +56,16 @@ export default function fetchGroupViews (groupId) {
                 requiredRoles
                 paywall
                 acceptedPostTypes
+                location
+                geoShape
+                locationObject {
+                  id
+                  fullText
+                  center {
+                    lat
+                    lng
+                  }
+                }
                 track {
                   id
                   actionDescriptor

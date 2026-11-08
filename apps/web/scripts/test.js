@@ -1,14 +1,14 @@
-process.env.NODE_ENV = 'test'
-process.env.PUBLIC_URL = ''
-
 // Load environment variables from .env file. Suppress warnings using silent
 // if this file is missing. dotenv will never modify any environment variables
 // that have already been set.
 // https://github.com/motdotla/dotenv
 import dotenv from 'dotenv'
-dotenv.config({ silent: true })
 
 import jest from 'jest'
+
+process.env.NODE_ENV = 'test'
+process.env.PUBLIC_URL = ''
+dotenv.config({ silent: true })
 const argv = process.argv.slice(2)
 
 // Custom config file location
