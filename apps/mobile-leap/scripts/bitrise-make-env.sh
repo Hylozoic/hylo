@@ -9,10 +9,13 @@ set -euo pipefail
 APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="$APP_ROOT/.env"
 
+# Unset/empty vars are omitted: an empty KEY= overrides defaults (app.config.ts uses ??) and
+# sentry-cli, which loads this .env from its cwd, fails on SENTRY_URL= ("API URL was incorrectly formatted").
 write_var () {
   local key="$1"
   # shellcheck disable=SC2154
-  printf '%s=%s\n' "$key" "${!key:-}"
+  [ -n "${!key:-}" ] || return 0
+  printf '%s=%s\n' "$key" "${!key}"
 }
 
 {

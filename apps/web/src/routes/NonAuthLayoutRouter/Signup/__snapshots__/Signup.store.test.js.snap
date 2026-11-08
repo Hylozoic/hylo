@@ -31,6 +31,7 @@ Object {
                 theme
               }
             }
+            error
           }
         }
       ",
@@ -40,9 +41,6 @@ Object {
     },
   },
   "meta": Object {
-    "analytics": Object {
-      "eventName": "Registered",
-    },
     "extractModel": Array [
       Object {
         "getRoot": [Function],

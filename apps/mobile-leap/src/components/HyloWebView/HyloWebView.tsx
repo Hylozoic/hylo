@@ -20,6 +20,7 @@ import {
   sessionCookieFromToken
 } from 'util/session'
 import getNativeSessionId from 'util/nativeSessionId'
+import { buildInjectedJavaScriptBeforeContentLoaded } from './injectedScripts'
 import { parseWebViewMessage } from './parseWebViewMessage'
 import { sendMessageFromWebView } from './sendMessageFromWebView'
 import { externalUrlForNavigation, isHyloWebUrl, shouldLoadInWebView } from './linkNavigation'
@@ -69,14 +70,13 @@ const HyloWebView = forwardRef<WebView, HyloWebViewProps>(function HyloWebView (
     : baseUri
   const { isAuthenticated, logout } = useAuth()
 
-  const injectedJavaScriptBeforeContentLoaded = useMemo(() => {
-    const trimmed = mobileAppVersion != null ? String(mobileAppVersion).trim() : ''
-    const versionLine = trimmed !== ''
-      ? `window.HyloMobileAppVersion=${JSON.stringify(trimmed)};`
-      : ''
-    const sessionIdLine = `window.HyloNativeSessionId=${JSON.stringify(getNativeSessionId())};`
-    return `${versionLine}${sessionIdLine}window.HyloWebView=true;window.HyloMobileV2=true;true;`
-  }, [mobileAppVersion])
+  // Recomputed per uri so each page load gets the native trace that is current when it loads.
+  // Sentry's script needs an onMessage handler to run on Android; handleMessage below covers that.
+  const injectedJavaScriptBeforeContentLoaded = useMemo(() => buildInjectedJavaScriptBeforeContentLoaded({
+    mobileAppVersion,
+    nativeSessionId: getNativeSessionId(),
+    webBaseUrl: HYLO_WEB_BASE_URL
+  }), [mobileAppVersion, uri])
 
   const injectedJavaScript = useMemo(() => {
     return `(function(){var s=document.createElement('style');s.innerHTML=${JSON.stringify(baseInjectedStyle)};document.head.appendChild(s);})();true;`

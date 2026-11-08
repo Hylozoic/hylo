@@ -16,6 +16,7 @@ import mixpanel from '../../lib/mixpanel'
 import { AnalyticsEvents, LocationHelpers, POST_TYPE_TO_TYPED_VIEW } from '@hylo/shared'
 import HasSettings from './mixins/HasSettings'
 import findOrCreateThread from './post/findOrCreateThread'
+import { finishQueuedChatSpaceConversion } from './space/convertChatSpaceToDiscussion'
 import { groupFilter } from '../graphql/filters'
 import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
@@ -2101,5 +2102,13 @@ module.exports = bookshelf.Model.extend(merge({
         sails.log.error('broadcastOpenJoinRequestCount failed', err)
       }
     }
+  },
+
+  /**
+   * Background job: copy a large chat room's messages onto its discussion post.
+   * @param {object} data
+   */
+  convertChatSpaceMessages (data) {
+    return finishQueuedChatSpaceConversion(data)
   }
 })

@@ -57,7 +57,23 @@ module.exports = {
     return user.save(updates, { patch: true, autoRefresh: true, transacting })
   },
 
+  /**
+   * Gives the request a new session ID (prefixed with userId) before a user is written into it.
+   * For login paths that set up the session themselves instead of calling login.
+   */
+  regenerate: regenerateSession,
+
   isLoggedIn: function (req) {
     return !!req?.session?.userId
+  },
+
+  /**
+   * For requests authenticated by an API token: the session can still be read and changed
+   * for this request, but is never saved to Redis or sent back as a cookie, so a token
+   * can't take over the session of the browser it was sent from.
+   */
+  keepOutOfCookieSession: function (req) {
+    // express-session skips saving, touching and Set-Cookie when req.sessionID is not a string
+    req.sessionID = undefined
   }
 }
