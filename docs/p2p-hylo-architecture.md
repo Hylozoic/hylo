@@ -58,6 +58,46 @@ Root identity (person-controlled, durable, rotatable)
 
 ---
 
+## 2b. Personas and profiles: unique relationships without re-entering profiles
+
+In the DTG/VTC model, **each relationship with a community is cryptographically unique, but profile data is entered once and reused.** People never retype their profile per community.
+
+Sources: the DTG credentials spec (`issuerScope`, VPC), the First Person Project white paper (persona management, r-cards), and the Trust Task families `persona/*` and `vtc/directory/*`.
+
+### What is unique per community (the relationship)
+- **An identifier just for that community.** It is a `pairwise` or `directed` DID, plus a private channel. The spec says a pairwise identifier "MUST NOT be used with more than one counterparty." OpenVTC: "each community can get a separate identity to prevent cross-community linking."
+- **A membership credential pair.** The community issues a membership credential (VMC) to the member, and the member issues one back as consent.
+- **Roles.** Authority and delegation credentials (VACs/VDCs) are issued per community.
+- **Facts the community asserts about the member.** These are admin-sourced directory fields (`vtc/directory/card`) that the member can read but not change.
+- **Why:** reusing one identifier everywhere would let communities collude to map a person's whole life. Separate identifiers make linking impossible unless the person chooses a shared persona.
+
+### What is shared (the profile), held by the person's agent
+1. **Attribute pool:** each fact (name, photo, bio, contact details, skills, location) is stored **once** (`persona/attribute/*`).
+2. **Faces (profiles):** named compositions that **reference** pool facts rather than copying them (`persona/profile/*`). Changing a fact updates every face that uses it. Faces can be grouped into parts of life, such as Work, Home or Play (`persona/facet/*`, `persona/world/*`).
+3. **Bindings:** the person chooses which face a given community sees (`persona/binding/set`). Wearing the same face in several communities is **intentional correlation**, asserted with a Verifiable Persona Credential (VPC).
+
+### Supporting behaviour in the specs
+- **Self-updating r-cards.** Recipients file each change as a new revision (`persona/contact/put`), so updates propagate and silent changes become visible.
+- **Preview before disclosure.** Nothing is shared without a human-readable summary first (`persona/disclosure/preview` → `present`). The person also gets a history of what was shared with whom.
+- **Correlation analysis.** The agent shows where the person's identities link, and warns when a link crosses parts of life they keep separate (`persona/correlation/analyze`).
+- **Up-front directory disclosure.** A community publishes what its member directory reveals, and to whom, so applicants can read it before joining (`vtc/directory/disclosure`). The credentials spec also requires a VTC to publish whether member identifiers are disclosed beyond its VTA.
+- **Context-local faces.** A face can be composed on the spot when a community asks for something specific (`persona/profile/compose`), and later promoted for reuse elsewhere.
+
+### Implications for Hylo
+- **Default experience unchanged.** Today's global Hylo profile becomes the person's **public face**, worn in every group unless they choose otherwise.
+- **"Join as…" picker** when joining a group: my usual profile, a face just for this group, or a pseudonymous face.
+- **Separate identifiers under the hood.** Hylo always mints a separate identifier per group. Groups can only link a person if the face they chose links them.
+- **Per-group profile fields.** Stewards can define extra profile fields per group, and steward-written fields about members. Both map to `vtc/directory/fields` and `vtc/directory/card`.
+- **No per-group profile copies.** Faces are views over one attribute pool. Making people maintain copies is the bad UX to avoid.
+- **Hylo as the agent for people without one.** For hosted users without their own agent, Hylo holds the attribute pool and faces on their behalf, with export and migration to the person's own agent later.
+- **Data-model sketch:**
+  - `person_attributes` (the pool);
+  - `person_faces` (references into the pool, plus face-local overrides);
+  - `group_memberships.face_id` and `group_memberships.member_did` (pairwise or directed);
+  - a disclosure log.
+
+---
+
 ## 3. One dial: how much of a group Hylo runs
 
 Every group, hosted or P2P, has two parts: a **membership authority** (who is in, who holds which role) and a **content set** (posts, chat, events). The group types differ only in who holds each part:
