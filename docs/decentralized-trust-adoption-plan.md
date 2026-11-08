@@ -15,6 +15,7 @@
   - issue credentials alongside it,
   - become the human-friendly front end on top of it,
   - or rebuild itself edge-first as a fork.
+- **Positioning (decided):** Hylo is an **alternative to OpenVTC** at the community layer. It aligns with OpenVTC's standards wherever possible (DIDs, DTG credentials, Trust Tasks), so that Hylo groups are VTC-compatible. Eventually Hylo should also be able to act as a **social layer on top of an OpenVTC community**. The P2P/hosted hybrid direction is explored in `docs/p2p-hylo-architecture.md`.
 - **Recommendation:** stage it. Do a short discovery phase. Then build **Option A** (accept DIDs and credentials) and **Option B** (Hylo issues membership, role and badge credentials on behalf of groups). Run both with one pilot community, and keep the data model compatible with **Option C** (groups backed by real VTCs). Treat a full edge-first fork (**Option D**) as a separately funded research track.
 - **KERI is complementary, not a substitute** for the community layer. It is a strong option for key management under group and organisation identifiers (stewards co-signing M-of-N, spaces delegated from their parent group, a principled path from custodial keys to self-custody) and for organisational identity (GLEIF's vLEI). Replacing the VTC/W3C-VC stack with a KERI/ACDC stack would cut Hylo off from the DTG Trust Task ecosystem (OpenVTC, Keyring, the First Person Network). Keep Hylo's identity layer **DID-method agnostic** so that KERI identifiers (`did:webs`) can be accepted wherever VTC policy allows.
 
@@ -104,7 +105,9 @@ A fork in which:
 *Pros:* the full vision. *Cons:* effectively a new product, with the hardest UX problems (key recovery, multi-device, offline). It is not compatible with Hylo's current server-centric architecture.
 
 ### Recommendation
-**Do A and B in stages, with one pilot community, and design the schema so that C is a configuration rather than a rewrite.** Possible pilots: a bioregional network that overlaps the Cascadia pilot, or an open-source or cooperative group already near the First Person Cooperative. Revisit C after the pilot. Fund D separately if at all.
+**Do A and B in stages, with one pilot community, and design the schema so that C is a configuration rather than a rewrite.** Possible pilots: a bioregional network that overlaps the Cascadia pilot, or an open-source or cooperative group already near the First Person Cooperative. Revisit C after the pilot.
+
+**Update:** D is no longer just a separate fork. `docs/p2p-hylo-architecture.md` proposes hosted and P2P groups running **side by side in one Hylo**, sharing a single person-held identity. The Hylo server becomes, per group, the authority, a delegated peer, a blind relay, or absent.
 
 ---
 
