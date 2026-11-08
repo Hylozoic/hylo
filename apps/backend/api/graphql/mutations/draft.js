@@ -1,5 +1,6 @@
 /* global Draft Tag */
 import { GraphQLError } from 'graphql'
+import sentry from '../../../lib/sentry'
 
 /**
  * The `drafts.data` column is jsonb, so values must be valid JSON text. Post drafts are
@@ -111,7 +112,8 @@ export async function deleteDraft (userId, id) {
   if (String(draft.get('user_id')) !== String(userId)) {
     throw new GraphQLError("You don't have permission to delete this draft")
   }
-  await draft.destroy()
+  // require: false — the row may have been deleted since we fetched it (e.g. by a send)
+  await draft.destroy({ require: false })
   return { success: true }
 }
 
@@ -119,8 +121,23 @@ export async function deleteDraft (userId, id) {
 export async function deleteDraftForContext (userId, { type, postId, groupId, topicId, messageThreadId, postType, isEdit = false }) {
   const draft = await Draft.findForContext(userId, { type, postId, groupId, topicId, messageThreadId, postType, isEdit })
   if (!draft) return { success: true }
-  await draft.destroy()
+  // require: false — the row may have been deleted since we found it (two quick sends, or
+  // the client clearing its own draft); Bookshelf would otherwise throw NoRowsDeletedError
+  await draft.destroy({ require: false })
   return { success: true }
+}
+
+/**
+ * Removes the draft for a post, comment or message that has just been created. Cleanup is
+ * best-effort: an error is reported, never thrown, so it can't fail the mutation that
+ * already created the record (the client would show an error and the user might resend).
+ */
+export async function deleteDraftAfterCreate (cleanup) {
+  try {
+    await cleanup()
+  } catch (err) {
+    sentry.error(err, null, { context: 'draft cleanup after create' })
+  }
 }
 
 /** Best-effort cleanup for new post drafts after a post is created. */
