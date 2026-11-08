@@ -30,7 +30,7 @@ export function AdvancedPill ({ isOpen, icon: Icon, label, defaultSummary, onCli
     <Tooltip>
       <TooltipTrigger asChild>{pill}</TooltipTrigger>
       <TooltipContent className='flex flex-col items-start gap-0.5 py-1.5'>
-        <span className='text-[9px] font-bold tracking-widest text-foreground/50'>{t('DEFAULT')}</span>
+        <span className='text-[9px] font-bold tracking-widest text-foreground-muted'>{t('DEFAULT')}</span>
         <span className='text-xs font-semibold'>{defaultSummary}</span>
       </TooltipContent>
     </Tooltip>
@@ -49,7 +49,7 @@ export function AdvancedSection ({ settingKey, icon: Icon, label, onHide, childr
           type='button'
           onClick={onHide}
           aria-label={t('Hide {{label}}', { label: t(label) })}
-          className='text-foreground/50 hover:text-foreground transition-colors'
+          className='text-foreground-muted hover:text-foreground transition-colors'
         >
           <X className='w-3.5 h-3.5' />
         </button>

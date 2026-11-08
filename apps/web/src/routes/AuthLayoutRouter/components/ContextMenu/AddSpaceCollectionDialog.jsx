@@ -221,7 +221,7 @@ export default function AddSpaceCollectionDialog ({ group, view, onCancel, onCre
 
           <div className='flex flex-col gap-1'>
             <label className='text-sm text-foreground/70'>{t('Spaces')}</label>
-            <p className='text-xs text-foreground/50 mb-1'>
+            <p className='text-xs text-foreground-muted mb-1'>
               <span>{spaces.length}</span> <span>{t('spaces in this collection')}</span>
             </p>
             <SpaceSelector

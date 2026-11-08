@@ -78,14 +78,14 @@ export default function ChatActivityCard ({
           <MessageSquareMore className='w-3.5 h-3.5' />
         </span>
         <div className='flex-1 min-w-0 text-sm truncate'>
-          <span className='text-foreground/50'>{t('Recent chats in')}</span>
+          <span className='text-foreground-muted'>{t('Recent chats in')}</span>
           {groupName && (
             <span className='font-bold text-foreground'> {groupName}</span>
           )}
         </div>
         {timestamp && (
           <span
-            className='text-foreground/50 text-2xs whitespace-nowrap shrink-0'
+            className='text-foreground-muted text-2xs whitespace-nowrap shrink-0'
             data-tooltip-id={dateTipId}
             data-tooltip-content={exactTimestamp}
           >

@@ -316,7 +316,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
           />
           <GroupViewIcon view={presentedView} className='w-4 h-4 shrink-0 text-foreground/70' />
           <span className='flex-1 text-base text-foreground truncate'>{label}</span>
-          <span className='text-xs text-foreground/50 shrink-0 max-w-[40%] text-right truncate'>
+          <span className='text-xs text-foreground-muted shrink-0 max-w-[40%] text-right truncate'>
             {descriptionForViewType(type, t)}
           </span>
         </button>
@@ -417,7 +417,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
           <div className='flex flex-col gap-1 overflow-y-auto flex-1 min-h-0'>
             {commonViewTypes.length > 0 && (
               <section>
-                <h3 className='text-xs font-semibold uppercase tracking-wide text-foreground/50 px-2 py-1.5'>
+                <h3 className='text-xs font-semibold uppercase tracking-wide text-foreground-muted px-2 py-1.5'>
                   {t('Common Views')}
                 </h3>
                 {commonViewTypes.map(type => renderTypeRow(type))}
@@ -426,7 +426,7 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
             {customViewTypes.length > 0 && (
               <section>
                 <h3 className={cn(
-                  'text-xs font-semibold uppercase tracking-wide text-foreground/50 px-2 py-1.5',
+                  'text-xs font-semibold uppercase tracking-wide text-foreground-muted px-2 py-1.5',
                   commonViewTypes.length > 0 && 'mt-2'
                 )}
                 >

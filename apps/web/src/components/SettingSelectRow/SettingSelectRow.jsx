@@ -93,7 +93,7 @@ export default function SettingSelectRow ({ value, onChange, options, label, pop
             })}
           </PopoverContent>
         </Popover>
-        <p className='text-[13px] leading-snug text-foreground/60 mt-0.5 mb-0'>{t(selected.description)}</p>
+        <p className='text-[13px] leading-snug text-foreground-muted mt-0.5 mb-0'>{t(selected.description)}</p>
       </div>
     </div>
   )

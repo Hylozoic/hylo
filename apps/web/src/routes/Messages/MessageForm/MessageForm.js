@@ -107,7 +107,7 @@ const MessageForm = forwardRef((props, ref) => {
           <PopoverTrigger asChild>
             <button
               type='button'
-              className='p-1.5 mb-0.5 shrink-0 text-foreground/50 hover:text-foreground transition-colors'
+              className='p-1.5 mb-0.5 shrink-0 text-foreground-muted hover:text-foreground transition-colors'
               aria-label={t('Add attachment')}
               data-testid='upload-button'
             >
@@ -174,7 +174,7 @@ const MessageForm = forwardRef((props, ref) => {
         {busy
           ? (
             <div
-              className='flex items-center gap-1 p-1.5 mb-0.5 text-sm text-foreground/50 shrink-0'
+              className='flex items-center gap-1 p-1.5 mb-0.5 text-sm text-foreground-muted shrink-0'
               data-testid='message-form-spinner'
               role='status'
               aria-label={props.pending ? t('Sending...') : t('Loading...')}

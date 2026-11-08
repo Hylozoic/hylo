@@ -196,14 +196,14 @@ export default function SiteBanners () {
               onChange={e => setDraft(d => ({ ...d, actionUrl: e.target.value }))}
               placeholder='https://... or /groups/...'
             />
-            {actionHint && <p className='text-xs text-foreground/50 mt-1'>{actionHint}</p>}
+            {actionHint && <p className='text-xs text-foreground-muted mt-1'>{actionHint}</p>}
           </div>
         </div>
 
         <div className='flex items-center justify-between gap-4 mb-4'>
           <div className='space-y-1'>
             <label className='block text-sm font-medium'>{t('Show to new users')}</label>
-            <p className='text-xs text-foreground/50'>
+            <p className='text-xs text-foreground-muted'>
               {t('People who join Hylo after this banner is published will also see it.')}
             </p>
           </div>
@@ -254,7 +254,7 @@ export default function SiteBanners () {
         {loading
           ? <Loading />
           : banners.length === 0
-            ? <div className='text-foreground/50 p-4 border border-foreground/20 rounded-md'>{t('No banners yet.')}</div>
+            ? <div className='text-foreground-muted p-4 border border-foreground/20 rounded-md'>{t('No banners yet.')}</div>
             : (
               <ul className='divide-y divide-foreground/10 border border-foreground/20 rounded-md'>
                 {banners.map(banner => (
@@ -264,11 +264,11 @@ export default function SiteBanners () {
                         {banner.title && <p className='font-bold mb-1'>{banner.title}</p>}
                         <HyloHTML className='text-sm mb-1' html={banner.text} />
                         {banner.actionText && (
-                          <p className='text-xs text-foreground/50 mb-1'>
+                          <p className='text-xs text-foreground-muted mb-1'>
                             {t('Button')}: {banner.actionText} &rarr; {banner.actionUrl}
                           </p>
                         )}
-                        <p className='text-xs text-foreground/50'>
+                        <p className='text-xs text-foreground-muted'>
                           {statusLabel(banner)}
                           {banner.creator?.name && ` · ${t('by')} ${banner.creator.name}`}
                           {typeof banner.dismissedCount === 'number' && banner.publishedAt && ` · ${t('{{count}} dismissed', { count: banner.dismissedCount })}`}

@@ -405,7 +405,7 @@ export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, clas
           <TooltipTrigger asChild>
             <button
               type='button'
-              className='p-1 text-foreground/50 hover:text-foreground rounded'
+              className='p-1 text-foreground-muted hover:text-foreground rounded'
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSettings(view) }}
               aria-label={t('Settings')}
             >
@@ -420,7 +420,7 @@ export function GroupViewEditActions ({ view, onSettings, onHide, onDelete, clas
           <TooltipTrigger asChild>
             <button
               type='button'
-              className='p-1 text-foreground/50 hover:text-destructive rounded'
+              className='p-1 text-foreground-muted hover:text-destructive rounded'
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onHide(view) }}
               aria-label={t('Move to More Spaces')}
             >

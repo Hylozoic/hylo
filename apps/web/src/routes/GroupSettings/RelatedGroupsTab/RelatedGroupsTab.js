@@ -400,7 +400,7 @@ function RelatedGroupsTab () {
                 <span className='text-sm truncate'>{room.name}</span>
                 <button
                   type='button'
-                  className='text-xs text-foreground/60 hover:text-foreground underline shrink-0'
+                  className='text-xs text-foreground-muted hover:text-foreground underline shrink-0'
                   onClick={() => setRoomToConvert(room)}
                 >
                   {t('Convert to discussion')}
