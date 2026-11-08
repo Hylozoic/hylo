@@ -7,7 +7,7 @@ import {
   assertCanFulfillPost,
   notifyAuthorOfModeratorFulfillment
 } from '../../models/post/postFulfillmentPermissions'
-import { deletePostDraftForCreate } from './draft'
+import { deleteDraftAfterCreate, deletePostDraftForCreate } from './draft'
 
 export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
@@ -35,11 +35,11 @@ export function createPost (userId, data) {
     .tap(convertedData => validatePostData(userId, convertedData))
     .then(async validatedData => {
       const createdPost = await underlyingCreatePost(userId, validatedData)
-      await deletePostDraftForCreate(userId, {
+      await deleteDraftAfterCreate(() => deletePostDraftForCreate(userId, {
         groupId: validatedData.group_ids?.[0],
         topicName: validatedData.type === 'chat' ? validatedData.topicNames?.[0] : null,
         postType: validatedData.type || null
-      })
+      }))
       return createdPost
     })
 }
