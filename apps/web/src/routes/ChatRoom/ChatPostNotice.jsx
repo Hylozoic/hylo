@@ -20,12 +20,14 @@ export default function ChatPostNotice ({ post, highlighted, className }) {
   const { effectiveColorScheme } = useAppearance()
   const isDark = effectiveColorScheme === 'dark'
   const viewPostDetails = useViewPostDetails()
-  const { commentsTotal, creator, fulfilledAt, startTime, endTime, timezone, title, type } = post
+  const { commentsTotal, creator, fulfilledAt, startTime, endTime, title, type } = post
 
   const postTypeLabel = t(type)
   const accent = POST_TYPES[type]?.primaryColor || POST_TYPES.discussion.primaryColor
+  // Wall-clock time in the viewer's zone. Omitting the post timezone keeps the card
+  // aligned with other compact cards, which show the viewer's time only.
   const timeRange = startTime
-    ? formatUserDatePair({ start: startTime, end: endTime, timezone })
+    ? formatUserDatePair({ start: startTime, end: endTime })
     : null
 
   const handleClick = () => viewPostDetails(post)

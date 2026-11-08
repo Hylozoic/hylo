@@ -256,26 +256,6 @@ const CommentForm = forwardRef(function CommentForm ({
               )
             : (
               <div className='flex items-center gap-2'>
-                <div>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    onClick={() => handleSubmit(editor.current.getHTML())}
-                    className='bg-selected text-foreground hover:scale-102 focus-visible:outline-none'
-                    tooltip={t('You need to include text to post a comment')}
-                  >
-                    <SendHorizontal size={18} color='white' />
-                  </Button>
-                </div>
-                <UploadAttachmentButton
-                  type='comment'
-                  id='new'
-                  allowMultiple
-                  onSuccess={addAttachmentAction}
-                  customRender={renderProps => (
-                    <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
-                  )}
-                />
                 <button
                   type='button'
                   onMouseDown={(event) => event.preventDefault()}
@@ -292,6 +272,26 @@ const CommentForm = forwardRef(function CommentForm ({
                 >
                   <CaseSensitive className='w-5 h-5' />
                 </button>
+                <UploadAttachmentButton
+                  type='comment'
+                  id='new'
+                  allowMultiple
+                  onSuccess={addAttachmentAction}
+                  customRender={renderProps => (
+                    <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
+                  )}
+                />
+                <div>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    onClick={() => handleSubmit(editor.current.getHTML())}
+                    className='bg-selected text-foreground hover:scale-102 focus-visible:outline-none'
+                    tooltip={t('You need to include text to post a comment')}
+                  >
+                    <SendHorizontal size={18} color='white' />
+                  </Button>
+                </div>
               </div>
               )}
         </div>

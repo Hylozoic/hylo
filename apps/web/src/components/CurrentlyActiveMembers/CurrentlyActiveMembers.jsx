@@ -15,9 +15,9 @@ import {
 import { cn, isRecentlyActive } from 'util/index'
 
 /**
- * Currently-active members widget: overlapping avatars, a count pill that opens
- * the members view, and an invite control for stewards (hover on pointer, always
- * visible on touch). Fetches only `max` people from the API.
+ * Currently-active members widget: overlapping avatars (a profile card on hover),
+ * a count pill that opens the members view, and an invite control for stewards
+ * (hover on pointer, always visible on touch). Fetches only `max` people from the API.
  * Pass `stacked` to put the count under the avatar row (one-column cards).
  */
 export default function CurrentlyActiveMembers ({
@@ -178,6 +178,7 @@ export default function CurrentlyActiveMembers ({
           max={max}
           onPersonClick={handlePersonClick}
           interactive={interactive}
+          profileHoverCard
         />
       </div>
       {countEl}
