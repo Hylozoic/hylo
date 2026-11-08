@@ -6,6 +6,7 @@ import { render, screen, waitFor, act, AllTheProviders } from 'util/testing/reac
 import userEvent from '@testing-library/user-event'
 import updatePost from 'store/actions/updatePost'
 import orm from 'store/models'
+import createPost from 'store/actions/createPost'
 import PostEditor from './PostEditor'
 import ActionsBar from './ActionsBar'
 
@@ -31,7 +32,7 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', groups = [{ id: '1', name: 'Test Group' }], details, postAttrs: extraPostAttrs = {} } = {}) {
+function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', groups = [{ id: '1', name: 'Test Group' }], details, postAttrs: extraPostAttrs = {}, eventInvitees = [] } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
@@ -47,7 +48,11 @@ function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Tes
     postAttrs.linkPreview = 'lp1'
     postAttrs.linkPreviewFeatured = false
   }
-  ormSession.Post.create(postAttrs)
+  const post = ormSession.Post.create(postAttrs)
+  eventInvitees.forEach(invitee => {
+    const person = ormSession.Person.create(invitee)
+    ormSession.EventInvitation.create({ response: 'yes', person, event: post })
+  })
   const reduxState = { orm: ormSession.state }
 
   return AllTheProviders(reduxState)
@@ -138,6 +143,46 @@ describe('PostEditor', () => {
     })
   })
 
+  describe('duplicating a post', () => {
+    afterEach(() => {
+      require('react-router-dom').useLocation.mockReturnValue({ pathname: '', search: '' })
+    })
+
+    it('does not copy event invites from the original post', async () => {
+      require('react-router-dom').useLocation.mockReturnValue({
+        pathname: '/',
+        search: '?fromPostId=1&create=post'
+      })
+      const ref = React.createRef()
+      render(
+        <PostEditor {...baseProps} ref={ref} />,
+        {
+          wrapper: testProviders({
+            postType: 'event',
+            title: 'Garden party',
+            postAttrs: {
+              groups: ['1'],
+              startTime: '2030-05-01T10:00:00.000Z',
+              endTime: '2030-05-01T12:00:00.000Z',
+              timezone: 'UTC'
+            },
+            eventInvitees: [{ id: '42', name: 'Invited Person' }]
+          })
+        }
+      )
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Copy of Garden party')).toBeInTheDocument()
+      })
+      expect(screen.queryByText('Invited Person')).not.toBeInTheDocument()
+
+      createPost.mockClear()
+      await act(async () => { ref.current.submit() })
+      await waitFor(() => expect(createPost).toHaveBeenCalled())
+      expect(createPost.mock.calls[0][0].eventInviteeIds).toEqual([])
+    })
+  })
+
   describe('editing a post', () => {
     const editProps = {
       editing: true,
@@ -169,6 +214,110 @@ describe('PostEditor', () => {
         expect(screen.getByText('Example Site')).toBeInTheDocument()
         expect(screen.getByText('example.com')).toBeInTheDocument()
       })
+    })
+  })
+
+  describe('when the server rejects a new post', () => {
+    const newPostProps = {
+      post: { type: 'discussion', title: 'Hello', groups: [{ id: '1', name: 'Test Group' }] }
+    }
+    const threeDestinations = [
+      { id: '1', name: 'Test Group' },
+      { id: '3', name: 'Other Group' },
+      { id: '2', name: 'partnerships', type: 'space', parentId: '1' }
+    ]
+
+    // Run the real createPost action against an msw CreatePost response with these errors
+    function rejectCreatePost (errors) {
+      createPost.mockImplementationOnce(jest.requireActual('store/actions/createPost').default)
+      mockGraphqlServer.use(
+        graphql.mutation('CreatePost', () => HttpResponse.json({ data: null, errors }))
+      )
+    }
+
+    // The backend's post-type rejection: structured data plus an English fallback message
+    const postTypeRejection = (destinations, postType = 'discussion') => ({
+      message: 'English fallback from the server',
+      path: ['createPost'],
+      extensions: { code: 'POST_TYPE_NOT_ACCEPTED', postType, destinations }
+    })
+
+    // useTranslation is mocked globally (t returns the key); use real i18next for these tests
+    async function withRealTranslation (lng) {
+      const i18next = require('i18next')
+      const i18n = i18next.createInstance()
+      await i18n.init({
+        lng,
+        fallbackLng: 'en',
+        resources: {
+          en: { translation: require('../../../public/locales/en.json') },
+          de: { translation: require('../../../public/locales/de.json') }
+        },
+        keySeparator: false,
+        nsSeparator: false,
+        interpolation: { escapeValue: false }
+      })
+      return jest.spyOn(require('react-i18next'), 'useTranslation')
+        .mockReturnValue({ t: i18n.t.bind(i18n), i18n })
+    }
+
+    async function submitAndGetBanner () {
+      const submit = await screen.findByTestId('post-editor-submit')
+      await waitFor(() => expect(submit).not.toBeDisabled())
+      await userEvent.click(submit)
+      return screen.findByTestId('post-editor-save-error')
+    }
+
+    let translationSpy
+    afterEach(() => {
+      if (translationSpy) translationSpy.mockRestore()
+      translationSpy = null
+    })
+
+    it('builds the message from the error data, naming only the blocking space', async () => {
+      translationSpy = await withRealTranslation('en-US')
+      rejectCreatePost([postTypeRejection(['Test Group / partnerships'])])
+      const afterSave = jest.fn()
+      renderComponent({ post: { type: 'discussion', title: 'Hello', groups: threeDestinations }, afterSave })
+
+      const banner = await submitAndGetBanner()
+      expect(banner.textContent).toBe('Test Group / partnerships does not accept Discussion posts')
+      expect(banner).not.toHaveTextContent('Other Group')
+      expect(afterSave).not.toHaveBeenCalled()
+    })
+
+    it('joins two blockers and uses the plural verb', async () => {
+      translationSpy = await withRealTranslation('en-US')
+      rejectCreatePost([postTypeRejection(['Test Group / partnerships', 'Other Group'])])
+      renderComponent({ post: { type: 'discussion', title: 'Hello', groups: threeDestinations } })
+
+      const banner = await submitAndGetBanner()
+      expect(banner.textContent).toBe('Test Group / partnerships and Other Group do not accept Discussion posts')
+    })
+
+    it("builds the message in the user's language", async () => {
+      translationSpy = await withRealTranslation('de-DE')
+      rejectCreatePost([postTypeRejection(['Test Group / partnerships', 'Other Group'])])
+      renderComponent({ post: { type: 'discussion', title: 'Hello', groups: threeDestinations } })
+
+      const banner = await submitAndGetBanner()
+      expect(banner.textContent).toBe('Test Group / partnerships und Other Group akzeptieren keine Beiträge vom Typ „Diskussion“')
+    })
+
+    it("shows the server's message for other errors", async () => {
+      rejectCreatePost([{ message: 'unable to post to all those groups', path: ['createPost'] }])
+      renderComponent(newPostProps)
+
+      const banner = await submitAndGetBanner()
+      expect(banner.textContent).toBe('unable to post to all those groups')
+    })
+
+    it('shows a generic error when the action resolves with an error and no message', async () => {
+      createPost.mockImplementationOnce(() => ({ type: 'CREATE_POST', error: true, payload: {} }))
+      renderComponent(newPostProps)
+
+      const banner = await submitAndGetBanner()
+      expect(banner).toHaveTextContent('There was an error, please try again.')
     })
   })
 
