@@ -1,15 +1,22 @@
 import { get } from 'lodash/fp'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
+import { AnalyticsEvents } from '@hylo/shared'
 import { bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { createGroupModalUrl } from '@hylo/navigation'
 
 const WelcomeExplore = () => {
+  const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const { t } = useTranslation()
+
+  useEffect(() => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.WELCOME_WIZARD_STEP_VIEWED, { step: 'explore' }))
+  }, [])
 
   const getValue = (field) => {
     return get(field, currentUser)

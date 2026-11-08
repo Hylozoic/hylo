@@ -12,7 +12,7 @@ import { isMobileDevice } from 'util/mobile'
 import classes from './EmojiPicker.module.scss'
 
 /** Shadow-DOM search focus looks like an outside focus to the popover and would dismiss the keyboard. */
-const preventFocusSteal = (event) => {
+export const preventFocusSteal = (event) => {
   event.preventDefault()
 }
 
@@ -149,7 +149,7 @@ export default function EmojiPicker (props) {
       )
 }
 
-function EmojiPickerContent (props) {
+export function EmojiPickerContent (props) {
   const [data, setData] = useState()
   useEffect(() => {
     const getData = async () => {
