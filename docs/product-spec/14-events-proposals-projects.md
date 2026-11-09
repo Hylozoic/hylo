@@ -372,3 +372,157 @@ Same as request/offer: optional timeframe, location shown by default, fulfilment
 - `action` posts (track steps) carry `completionAction` ∈ `button | comment | reaction | selectMultiple | selectOne | text | uploadFile` and `completionActionSettings` `{ instructions, options? }`. Editor section "How can people complete this {{actionDescriptor}}?" with labels `Mark complete / Done button`, `Leave a Comment`, `Emoji Reaction`, `Multiple Choice - Select Multiple`, `Multiple Choice - Select One`, `Respond to a question or prompt`, `Upload attachment`; per-type default instructions (`postCompletionActions.<type>.instructions`). Completion stored on `posts_users.completed_at/completion_response` (JSON array; text responses sanitized HTML). Reaction/comment actions complete automatically when the user reacts/comments. Stewards (tracks responsibility) see `ActionCompletionsSection` (`No one has completed this action yet` / `… have completed this action`, button `View All Responses`) opening `ActionCompletionResponsesDialog` titled `Completions: By Button|By Comment|By Reaction|By Selected Options|By Selected Option|By Text Reflection|By File Upload`, one row per response (avatar, name, completed date, rendered response). `completionResponses` GraphQL relation: admins of any of the post's groups see all, others only their own. Full spec: [21-tracks.md](21-tracks.md).
 - `submission` posts belong to a funding round; editor header `Add/Edit {{submissionDescriptor}}`, criteria box, optional Budget Total, always non-public, no notifications to group members. Full spec: [22-funding-rounds.md](22-funding-rounds.md).
 - Requests/offers have **no** completion actions; the "completion" concept for them is fulfilment (§4.4.2).
+
+---
+
+## 5. Business rules & side effects
+
+### 5.1 Events
+
+#### 5.1.1 Create (`createPost` with `type: 'event'`)
+After the generic create (13), inside `afterCreatingPost`:
+1. Queue `Post.processEventCreated({ postId, eventInviteeIds, userId, silent })`:
+   - Create the creator's own invitation: `inviter_id = user_id = creator`, `response = 'yes'` (creator is automatically "Going").
+   - `updateEventInvitees(uniq([creator, ...eventInviteeIds]))` — adds missing invitations (`response NULL`, `inviter_id = creator`), removes any not in the list.
+   - `createGroupEventCalendarSubscriptions()` → for each of the post's groups queue `Group.createEventCalendarSubscription`.
+   - Unless `silent`: `sendUserRsvp(ownerInvitation, { new: true })` → creator receives an RSVP email with `invite.ics`.
+   - Queue `User.createRsvpCalendarSubscription({ userId: creator })`.
+2. Unless silent, queue `Post.createActivities`: besides the generic `newPost`/mention/announcement activities, one activity per existing invitation with reason `eventInvitation` (reader = invitee, actor = inviter). Former members of all the post's groups and the author are dropped. (Race: this job reads invitations independently of `processEventCreated`; invitees whose rows are not yet written are missed.)
+
+#### 5.1.2 RSVP (`respondToEvent(id, response)`)
+- `response` must be one of `yes|no|interested` → else error `response must be one of yes,no,interested. received <x>`. Event must exist (`Event not found`). No visibility/membership check.
+- Upsert invitation: update `response` on the existing row, or create one with `inviter_id = user_id`.
+- `sendRsvp` when the "going" state flips (`going = yes|interested`):
+
+| previous \ new | yes | interested | no |
+|---|---|---|---|
+| none / NULL / no | email `{new:true}` + rebuild user feed | same | nothing |
+| yes / interested | nothing | nothing | email `{deleted:true}` (cancel) + rebuild user feed |
+
+  Emails are sent even if the user has a calendar feed. Group feed is not rebuilt on RSVP.
+- Returns `{ success: true }`.
+
+#### 5.1.3 Invite (`invitePeopleToEvent(eventId, inviteeIds)`)
+- For each invitee without an invitation, create one (`inviter_id = caller`, `response NULL`). Runs as un-awaited `forEach(async)` — the mutation can return before rows exist.
+- Then `createInviteNotifications(caller, inviteeIds)` → `eventInvitation` activity for **every** id passed (including people already invited). No permission check (any logged-in user, any event id).
+- Returns the event Post (client re-reads `eventInvitations`).
+
+#### 5.1.4 Update (`updatePost` on an event)
+- Before saving, `getEventChanges` compares: `start_time`, `end_time` (ms equality), `location` (string), `meeting_link` (string). Each key holds the new value if changed, else `false` (an empty new location/link counts as "not changed").
+- Queue `Post.processEventUpdated`:
+  - `updateEventInvitees(eventInviteeIds)` — add new invitees silently (**no notification**), and **delete** invitations (including RSVPs and the creator's own) for anyone not in the list.
+  - Rebuild all yes/interested users' RSVP feeds and all groups' feeds.
+  - If any of time/location/link changed → `sendUserRsvps({ eventChanges })`: update email (`sendEventRsvpUpdateEmail`) to every yes/interested invitee, with `newDate` (formatted pair) when a time changed and `newLocation` when venue/link changed.
+- Title/description changes alone send nothing.
+
+#### 5.1.5 Delete (`deletePost`, creator only)
+Deactivate post, then queue `processEventDeleted`: rebuild yes/interested users' feeds and groups' feeds (deleted events drop out), and send a cancellation email (`sendEventRsvpCancelEmail`, METHOD:CANCEL) to every yes/interested invitee. (Moderator "remove from group" does not trigger this.)
+
+#### 5.1.6 RSVP email (`sendUserRsvp`)
+Template chosen by `eventChanges`: `new` → `sendEventRsvpEmail`; `deleted` → `sendEventRsvpCancelEmail`; otherwise `sendEventRsvpUpdateEmail` (SendWithUs templates). Payload `data`:
+
+| field | value |
+|---|---|
+| `date` | `formatDatePair(start, end, event timezone, recipient locale)` |
+| `user_name` | recipient name |
+| `event_name` | title |
+| `event_description` | processed HTML details |
+| `event_location` | venue; venue + `\nJoin online: <link>` if both; or just the link |
+| `event_url` | post URL in its first group |
+| `response` | `Going to` / `Not Going to` / `Interested in` |
+| `group_names` | comma-joined names of all groups |
+| `newDate`, `newLocation` | only for updates |
+
+`sender.name` = group-branded sender name (`senderNameForGroup(firstGroup, locale)`). Attachment `invite.ics` (base64) built by `createCalInvite`. After queuing, the invitation's `ical_sequence` is incremented.
+
+#### 5.1.7 iCalendar event data (`getCalEventData`) — used by emails and both feeds
+| iCal field | value |
+|---|---|
+| UID | `event-<postId>-hylo.com` |
+| SUMMARY | post title |
+| DESCRIPTION | details as plain text; if both venue and link: `<text>\n\nJoin online: <link>` |
+| LOCATION | venue, else meeting link, else empty |
+| DTSTART/DTEND | stored UTC instants (new values when announcing a change); no TZID |
+| STATUS | `CANCELLED` if deleted or recipient's response is `no`; `CONFIRMED` if yes/interested; omitted otherwise (group feed) |
+| METHOD (calendar) | `CANCEL` if deleted/`no`, else `REQUEST` |
+| SEQUENCE | invitation's `ical_sequence`, falling back to the post's |
+| URL | post URL (omitted when deleted) |
+| ORGANIZER | creator name + **email** |
+Calendar scale `GREGORIAN`.
+
+#### 5.1.8 Calendar feeds
+- **Group feed** (`Group.createEventCalendarSubscription`, queued per group on event create/update/delete): ensure token; select the group's active `event` posts with `start_time > now − 1 year`; calendar name `All Events for <group name>`, description `All the events in group <group name> on Hylo`; write to S3 path `…/group/<id>/calendar-<token>.ics`, `Content-Type: text/calendar`. Includes events regardless of post `is_public`. The file does not exist until the first event job runs for that group.
+- **User RSVP feed** (`User.createRsvpCalendarSubscription`): returns early if the user has no `calendar_token`. If `settings.rsvp_calendar_sub` is true: all the user's invitations with response yes/interested on active events with `start_time >= now − 1 year`; else an **empty** calendar (how "turning off" works). Calendar name `My Hylo Events`, description `All the events I have RSVPed to on Hylo`. Each entry uses the user's invitation (status/sequence) and URL in the event's first group. Triggered by: RSVP flips, event create (creator), event update/delete (all yes/interested), and `updateMe` toggling `rsvpCalendarSub` (true: creates token if missing).
+- Feeds are rebuilt in full each time; external calendar apps poll the static URL.
+
+#### 5.1.9 Reminders
+No event-specific reminder notifications or cron. The only "reminder" is the group digest (§5.3.3).
+
+### 5.2 Proposals
+
+#### 5.2.1 Status computation on create **and every update** (`setupPostAttrs`, applied to all post types)
+```
+if no startTime:                status = 'casual'
+else if startTime < now:        status = 'voting'   else 'discussion'
+if endTime && endTime < now:    status = 'completed'   (only if startTime set)
+```
+So editing a completed proposal and moving its end into the future reopens it (`voting`); removing the start makes it `casual`.
+
+#### 5.2.2 Cron (`every10minutes` → `Post.updateProposalStatuses`)
+SQL on `type='proposal'` rows with both times set and status not in (`casual`,`completed`): now between start and end → `voting`; now > end → `completed`. Never moves anything out of `completed`/`casual`; proposals with a start but no end are never updated (stay `discussion` or `voting` forever). Granularity ≈ 10 min, so status can lag the window. No notification is sent on status changes (no "voting opened/closed" or quorum alerts).
+
+#### 5.2.3 Voting mutations
+| Mutation | Rules |
+|---|---|
+| `addProposalVote(postId, optionId)` | all args required (`Missing required parameters: …`); `Post.isVisibleToUser` (public, or member of a post group, or follower) else `You don't have permission to vote on this post`; status must be `voting` or `casual` else `Cannot vote on a proposal that is in discussion or completed`; voter becomes a follower; inserts a vote (no single-vote or duplicate check server-side); errors wrapped as `adding of vote failed: …`. |
+| `removeProposalVote(postId, optionId)` | same checks; deletes the voter's vote on that option (returns success even if none). |
+| `swapProposalVote(postId, removeOptionId, addOptionId)` | same checks; ids must differ (`You cannot swap a vote for the same option`); remove then add. |
+| `setProposalOptions(postId, options)` | visible-to-user; status must be `discussion` else `Proposal options cannot be changed unless the proposal is in 'discussion'`; raw SQL delete + insert. Not used by web. |
+| `updateProposalOptions(postId, options)` | visible-to-user (not author-only!); rejected only when status is `completed`; see 5.2.4. Not used by web directly (web goes through `updatePost`). |
+| `updateProposalOutcome(postId, proposalOutcome)` | author only (`You don't have permission to modify this post`); stores any string. |
+
+Fulfilled-but-casual proposals still accept votes server-side (only the UI blocks them).
+
+All vote/option/outcome changes call `Post.afterRelatedMutation(changeContext: 'vote')` → real-time post update to subscribers (13/01).
+
+#### 5.2.4 Options on create/update
+- Create: `setProposalOptions` inserts all given options (`color`/`emoji` default `''`).
+- Update via `updatePost` with `proposalOptions` → `updateProposalOptions`: if the new list is non-empty and options exist → (a) `voteReset` activity for every distinct past voter (actor = post author), (b) **delete all votes**, (c) delete all options, (d) insert the new list (ids from the client are kept). If the new list is empty, nothing changes.
+- `voteReset` activities: reason not in `Notification.priorityReason`'s list, so no push/email is ever produced and the in-app presenter has no text for it → effectively invisible (push text `<person> changed the options for proposal: "<title>" in <group>. This has reset the votes` exists but is unreachable).
+
+#### 5.2.5 Quorum & outcome
+Quorum is purely presentational (client QuorumBar). The server never evaluates quorum, never sets `proposal_outcome` automatically, and never notifies stewards. `proposalOutcome`/`proposalStatus` arguments on post queries are accepted but not applied by the search layer.
+
+### 5.3 Requests, offers, resources, projects, proposals: fulfilment & expiry
+
+#### 5.3.1 `fulfillPost` / `unfulfillPost`
+- Allowed types: `offer, request, resource, project, proposal` (proposal only when status `completed` or `casual`).
+- Permission: the author, or a user with `Administration` or `Manage Content` in **any** of the post's groups (`You don't have permission to modify this post`; missing post `Post does not exist`). Note the author path skips the type check.
+- `fulfill`: sets `fulfilled_at = now` (and would create `Contribution` rows + `newContribution` activities for `contributorIds`, which the GraphQL mutation never passes). `unfulfill`: clears `fulfilled_at`, removes contributions and their activities.
+- Real-time update (`changeContext: 'completion'`).
+- Moderator action (actor ≠ author): activity to the author with reason `postFulfilled` / `postUnfulfilled` (group = first post group) → in-app `<strong>{{name}}</strong> closed your post` / `reopened your post` with body `"<post summary>"`; push `<actor> closed your post "<title>"` / `reopened …`; email subject `Your post was closed` / `Your post was reopened`, body `<actor> closed your post "<title>" in group <group>. \n<post url>` (subject to the author's membership email/push settings).
+
+#### 5.3.2 Expiry semantics (end time)
+No job changes a post when its `end_time` passes. Instead queries treat it as done:
+- `isFulfilled: true` → `fulfilled_at IS NOT NULL OR end_time < today` ; `isFulfilled: false` / `activePostsOnly` → `fulfilled_at IS NULL AND (end_time IS NULL OR end_time >= today)` (date compared at day precision, UTC date string).
+- UI shows `Ended: …` in the header pill.
+
+#### 5.3.3 Digest reminders (`Post.upcomingPostReminders`, used by daily/weekly group digests, 19)
+Window = now → end of day (America/Los_Angeles) + 2 days (daily) or + 7 days (weekly); groups = the group and its spaces; active, unfulfilled posts only.
+- **Starting soon** (`upcoming`): types event, offer, project, proposal, resource, request with `start_time` in the window, ascending.
+- **Ending soon** (`ending`): types request, offer, resource, proposal with `end_time` in the window **and** `start_time < now` (posts with no start time are never included), ascending.
+Rendered in the digest as one-line items (`start_time`/`end_time` formatted pairs). Digests are sent hourly-cron at 12:00 LA time (daily; weekly on Wednesday). There are no reminders addressed to the post creator.
+
+### 5.4 Projects
+- `createPost(type: 'project')` → after create `setProjectMembers(memberIds)`; `updatePost` with `memberIds` → `setProjectMembers` again (removes every current member — `project_role_id = null`, `following = false` — then re-adds the given list with the `member` role and `following = true`). Side effect: members not resent lose membership and stop following the post.
+- `joinProject(id)`: `addProjectMembers([me])` — upsert `posts_users` with member role, `following=true`, `active=true`. No checks (visibility, type, group membership). Returns `{success:true}`.
+- `leaveProject(id)`: sets `project_role_id = null`, `following = false` for me.
+- `Person.projects` = active `posts_users` rows with non-null `project_role_id` on project posts.
+- No notifications for join/leave.
+- **Stripe contributions (legacy, flag `PROJECT_CONTRIBUTIONS`)**: `processStripeToken(postId, token, amount)` — requires `STRIPE_SECRET_KEY` (`Stripe is not configured…`), project exists (`Can't find project with that id`), creator has a connected Stripe account (`This user does not have a connected Stripe account`). Creates a USD charge of `amount×100` cents on the creator's connected account with 1% application fee, description `<contributor> contributing to project <name> - project id: <id>`; stores `project_contributions.amount` in cents; activities `donation to` (reader = contributor) and `donation from` (reader = creator) → emails `sendDonationToEmail`/`sendDonationFromEmail`, push `You contributed $<amount> to "<title>"` / `<name> contributed $<amount> to "<title>"`, in-app `<strong>You</strong> contributed to a project` / `<strong>{{name}}</strong> contributed to your project`.
+
+### 5.5 Legacy project roles (dead)
+`createProjectRole(projectId, roleName)` (error `A role with that name already exists in this project`), `deleteProjectRole(id)`, `addPeopleToProjectRole(peopleIds, projectRoleId)`. Moderation check `getModeratedProject`: author, or `Administration` responsibility looked up with the **project id as group id** (bug noted in code). `addPeopleToProjectRole` calls group-membership APIs on a post and cannot work. `createProject(data)` mutation (adds creator to members) is marked unused; web uses `createPost`.
+
+### 5.6 Silent posts
+A steward-only `silent: true` create skips the event creator's RSVP email and all `eventInvitation`/newPost activities (but invitations and feeds are still created).

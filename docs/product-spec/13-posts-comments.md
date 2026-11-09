@@ -545,3 +545,293 @@ Loading: `PostDetailSkeleton`; not found / not visible: `NotFound`. A `chat_acti
 - **ReactionsDrawer** (logged-in; touch long-press on a pill or overflow pill): bottom sheet (max-h 75vh, max-w lg, rounded-t-2xl, drag handle; swipe down ≥80px closes; overlay `bg-darkening/40`). Title **"{{count}} reaction(s)"**. Tabs: **"All N"** then one per emoji (count), most popular first. List rows: avatar (fetched lazily in one aliased query, up to 100 people, cached; initial-letter fallback), name ("You" for me with sub-label **"Tap to remove"**), emoji at right. Tapping my row removes that reaction; others link to the person's profile. Closes automatically when no reactions remain.
 - Desktop hover on a pill shows the names tooltip instead of the drawer.
 
+---
+
+## 5. Business rules & side effects
+
+### 5.1 Create post (`createPost` mutation → `models/post/createPost.js`)
+
+Order of operations:
+
+1. `convertGraphqlPostData`: maps `title→name`, `details→description`, `linkPreviewId→link_preview_id`, `linkPreviewFeatured`, `skipLinkPreview`, `groupIds→group_ids`, `locationId`, `meetingLink`, `isPublic`.
+2. `validatePostData`:
+   - type in allow-list else **"not a valid type"**;
+   - proposal with `proposalOptions: []` → **"Proposals need at a least one option"**;
+   - no groups → **"no groups specified"**;
+   - more than 3 `topicNames` → **"too many topics in post, maximum 3"**;
+   - user must be a member of **all** groups → **"unable to post to all those groups"**.
+3. Silent posts (`silent: true`, API only): cannot be announcements (**"A silent post cannot be an announcement"**); creator must have Administration in every destination (**"Only a group steward can create a silent post"**).
+4. `assertGroupsAcceptPostType`: for restricted types, every destination must accept it; else `GraphQLError("<A>, <B> and <C> do(es) not accept <type> posts")` with `extensions {code:'POST_TYPE_NOT_ACCEPTED', postType, destinations}` (destinations in the order given, spaces labelled `Parent / Space`).
+5. `setupPostAttrs`: `is_public` forced false unless some destination has `allow_in_public`; times converted from epoch ms; proposal status computed; `user_id` = caller.
+6. In a transaction: insert post, then `afterCreatingPost`:
+   - attach `groups_posts` (deduped);
+   - **followers** = creator + every user mentioned in details (`posts_users.following=true, active=true`);
+   - media rows: `imageUrls` (type `image`, position = index), `fileUrls` (type `file`), legacy `imageUrl`, `videoUrl`, `docs` (gdoc);
+   - `trackId` → `Track.addPost` (module 21); else `viewId` → append to `collections_posts` with `order = max+1`; `fundingRoundId` + submission → `FundingRound.addPost` (module 22);
+   - project → set members; event → queue `processEventCreated` (owner auto-RSVPs yes, invitees, calendar subs, RSVP email unless silent); proposal → insert options;
+   - **topics**: `Tag.updateForPost` — lowercase, dedupe, sort; create missing `tags`; attach `posts_tags`; for each destination group the **editor** is a member of: ensure `groups_tags` row (bumps `updated_at`) and make the post author **follow** the topic in that group (`tag_follows`); write `posts.tag_names`;
+   - link preview: §4.9;
+   - `notifyAndMarkAuthorRead`: unless silent, push socket event **`newPost`** to room `group/<id>` for each destination (payload includes only that group) and also to each space's parent group room; touch `groups_tags.updated_at` for the post's tags (except action/submission); mark the author's typed view (and chat view for chat posts) read up to this post and resync the author's badge counts.
+   - Background (skipped when silent): `incrementNewPostCountForCreatedPost` (per-member unread for the typed view; chat view for chat posts; then membership badge sync), `createActivities`, funding-round steward notice, `notifySlack` (groups with `slack_hook_url`), `zapierTriggers` (`new_post` triggers; optional per-trigger type filter; JSON payload id, announcement, createdAt, creator{name,url}, details, endTime, isPublic, location, startTime, timezone, title, type, url, groups[{id,name,url,postUrl}], topics[{name}]).
+   - Remote image URLs → background `rehostAndAttachImages`; chat posts (not silent) → `upsertChatActivityNotice` (hourly chat-activity notice post, module 17).
+7. After success: delete the matching server **post draft** (`type='post', groupId=first group, topicId (chat only), postType, isEdit=false`). Errors in cleanup are logged, never thrown.
+
+**Activities** (`Post#createActivities`; delivery in module 19). Notice types produce none. Reasons:
+- `mention` — each user @mentioned in details.
+- `chat` (chat posts) — every member of each destination; delivery honours each member's chat notification setting (all/important/none).
+- `newPost: <groupId>` — every member of each destination, for all types **except** `chat`, `action`, `submission`.
+- `announcement: <groupId>` — additionally, when `announcement` is true **and** the creator has Administration in that group.
+- `eventInvitation` — event invitees (actor = inviter).
+Former members (inactive membership in all of the post's groups) are dropped; the creator never gets an activity.
+
+### 5.2 Update post (`updatePost`)
+
+- Same `validatePostData` (incl. membership in all destinations). **No author check on the server** (see §8).
+- Only types `action, chat, discussion, event, offer, project, proposal, request, resource, submission` are editable; others → **"This post can't be modified"**; missing → **"Post not found"**.
+- `edited_at` set when details or title differ from the stored values.
+- Event changes (start, end, location, meeting link) recorded before save → `processEventUpdated` (re-sends RSVP updates when any changed).
+- After save: update project child requests (legacy), **groups diff** (attach new / detach removed), media replace (only for kinds passed: `imageUrls` replaces all images, `fileUrls` all files), topics replaced if `topicNames` passed, **newly mentioned users** become followers and get a `mention` activity; project members (if `memberIds`), proposal options (if passed: when options already existed all votes are deleted and `voteReset` activities created for voters).
+- `Post.afterRelatedMutation(id, {changeContext:'edit'})` → queued `publishPostUpdates` → GraphQL `postUpdates` subscription.
+- Web does not send `announcement` or `skipLinkPreview` on update.
+
+### 5.3 Delete / remove
+
+- `deletePost(id)`: only the **creator** (**"You don't have permission to modify this post"**; missing → **"Post does not exist"**). Soft delete: `active=false, deactivated_at=now`; removes activities for the post; removes it from tracks; queues new-post-count decrement and chat-activity notice rebuild; events → `processEventDeleted` (cancellation RSVP emails, calendars). Returns `{success:true}`.
+- `removePost(postId, groupId|slug)`: requires **Manage Content** in that group; deletes only the `groups_posts` row for that group (post remains elsewhere / for author). Errors: "Couldn't find post with id N", "You don't have permission to remove this post".
+- Web: delete/remove are optimistic and close the detail view.
+
+### 5.4 Fulfil / unfulfil ("completed", "no longer needed")
+
+`fulfillPost` / `unfulfillPost` — allowed for the creator, or a user with Administration or Manage Content in any of the post's groups, for types `offer, request, resource, project, proposal` (proposal only when status `completed`/`casual`). Fulfil sets `fulfilled_at = now` (+ optional contributors → `Contribution` rows); unfulfil clears it and removes contributions & their activities. Moderator actions notify the author (`postFulfilled` / `postUnfulfilled` activity). Publishes `postUpdates` with context `completion`. Details in module 14.
+
+### 5.5 Comments
+
+`createComment(data: {postId, parentCommentId?, text, attachments?})`:
+- Post must be visible to the user (`Post.isVisibleToUser`: public, or in a group of theirs, or they follow it) else **"post not found"**; blank (no text after trim, no attachments) → **"Can't create a blank comment"**. Parent id is not validated against the post.
+- Insert `comments` row (`recent=true`, `created_from` e.g. `'email'`); media from `attachments[{url, attachmentType}]` with positions.
+- Commenter and newly @mentioned users become **post followers**; `UserConnection` "message" rows between commenter and existing followers.
+- Socket `commentAdded` to room `post/<postId>` with `{id, createdAt, creator{id,name,avatarUrl}, post, parentComment, text}`; GraphQL pubsub `comments:postId:<id>` and, for replies, `comments:commentId:<parentId>`.
+- Activities: `newComment` for every follower except the actor; `commentMention` for each mentioned user (includes `parent_comment_id`). (Messages in `thread` posts take the DM path instead — module 18.)
+- Queued `Post.updateFromNewComment`: mark the 2 newest comments `recent`, recount `num_comments` / `num_commenters`, set `posts.updated_at = now`, **mark the post read** for the commenter, complete an `action` post whose completion action is `comment`, publish `postUpdates` (`comment`).
+- Deletes the user's comment draft for that post.
+
+`updateComment(id, data)`: only the creator (**"You don't have permission to edit this comment"**); blank → **"Can't create a blank comment"**; sets `edited_at` if text changed; newly mentioned users followed (no mention activity); attachments replaced only if a non-empty list is passed; publishes to both comment channels.
+
+`deleteComment(id)`: creator, or anyone with **Manage Content** in any of the post's groups. Soft delete (`active=false, recent=false, deactivated_by_id, deactivated_at`), removes its activities, decrements `num_comments`, recounts commenters. Child replies of a deleted comment remain active in the DB but are reached only via the parent (UI hides them).
+
+### 5.6 Reactions
+
+`reactOn(entityId, {entityType:'post'|'comment', emojiFull})` / `deleteReaction(...)`; `entityType` otherwise → error "entityType invalid: you need to say its a post or a comment".
+- One reaction per (user, entity, emoji); duplicates ignored. `emoji_base = emoji_full` (skin-tone base not split); `emoji_label` = emoji-mart shortcodes.
+- Post: reacting makes the user a **follower**; `reactions_summary[emoji]` incremented, `num_people_reacts` +1 if it's their first emoji on the post; deleting decrements (people count only when it was their last). An `action` post with completion action `reaction` is completed. Publishes `postUpdates` (`reaction`).
+- Comment: no counters; publishes to comment subscriptions and pushes a socket reaction update.
+- No notifications for reactions.
+- Legacy `vote(postId, isUpvote)` = 👍 reaction.
+
+### 5.7 Topics
+
+- Name validation `Validators.validateTopicName` (shared) used by `createTopic`; post topic names from the editor are taken from topic nodes; server lowercases.
+- Text pattern recognised for legacy tag parsing: `(?:^| |>)#([A-Za-z][\w_-]+)`.
+- Max 3 topics per post (client and server).
+- `createTopic(topicName, groupId, isDefault, isSubscribing=true)` — member of the group required ("That group does not exist." / "You're not a member of that group."), creates tag, `groups_tags`, and follow.
+- `subscribe(groupId, topicId, isSubscribing)` follows/unfollows a topic in a group (`groups_tags.num_followers` ±1).
+- Topic clicks in post HTML go to search `/search?t=%23<name>[&groupSlug=]` (§9). Topic pages / chat rooms: modules 15/17.
+
+### 5.8 Saving posts
+
+`savePost(postId)` → sets `posts_users.saved_at = now` (creates the row with `following=true, active=true` if absent — i.e. saving also follows); `unsavePost` → `saved_at = null` (following unchanged). Saved posts listed in My Home → Saved (`posts(savedBy)`, module 15). Optimistic in UI.
+
+### 5.9 Following / subscription
+
+`posts_users.following` is set automatically when a user creates, is mentioned in, comments on, reacts to, votes on, or saves a post. Followers receive `newComment` notifications. There is no explicit follow/unfollow control for posts on web (email "unfollow" link uses `Frontend.Route.unfollow`). `muted_at` exists (used for DM threads).
+
+### 5.10 Read / unread
+
+- `posts_users.last_read_at` per user. Marked read by `POST /noo/post/:postId/update-last-read`, and automatically when the user comments. `markAsUnread` sets it to 1ms before the latest comment (used by DM threads).
+- `PostUser.whereUnread`: followed, not muted, `last_read_at` null or older than `posts.updated_at`.
+- Web stream "new" indicators are per **view**, not per post: `GroupViewUser.new_post_count` / `last_read_post_id` (orange dots on typed views, numeric chat badge — module 15/17). Post cards show no unread styling.
+- `unreadCountForUser` = comments created after last read (0 if read after `updated_at`).
+
+### 5.11 Pinning
+
+`pinPost(postId, viewId)` toggles: view type must be in `PINNABLE_VIEW_TYPES` ("Posts cannot be pinned to this view"); caller needs Manage Content in the view's group ("You don't have permission to modify this group"); post must be in that group ("Couldn't find post in this group"); max 3 ("You can pin up to 3 posts in this view"). Stored in `group_view_pins` with `pinned_at`.
+
+### 5.12 Announcements
+
+`announcement=true` stored on the post for anyone, but announcement activities only go to groups where the creator has Administration. Announcements are listable via `posts(announcementsOnly:true)` and show the megaphone icon.
+
+### 5.13 Public posts / The Commons
+
+`is_public=true` (and at least one destination with `allow_in_public`) → visible to anyone including logged-out (`posts`/`post` public queries), listed in `/public` streams/map. Logged-out viewers: see post content, reaction counts (no names), commenter count, Copy Link only; cannot see comments.
+
+### 5.14 Real-time
+
+| Channel | Event | Use |
+|---|---|---|
+| Socket room `group/<id>` | `newPost` | Insert new posts into streams; payload = `getNewPostSocketPayload` (title, details, type, times, location, attachments, creator, groups (one), linkPreview, topics, localId, empty commenters/reactions). |
+| Socket room `post/<id>` | `commentAdded`, `userTyping` | Live comments and typing indicator on post detail. |
+| GraphQL subscription | `comments(postId, parentCommentId)` | New/updated comments & comment reactions. |
+| GraphQL subscription | `postUpdates` | Post edits, reactions, votes, completion, comment counts (used by mobile). |
+| GraphQL subscription | `peopleTyping(postId)` | Typing. |
+
+### 5.15 Drafts
+
+`saveDraft(type, data, postId?, groupId?, topicId?, messageThreadId?, postType?, isEdit?, navigateTo?)` upserts the unique draft for a context:
+- `post` + `isEdit` → keyed by `postId`; `post` new → `groupId` (if given) + `topicId` (or null) + `postType` (or null); `comment` → `postId`; `message` → `messageThreadId`.
+- Refused unless it has content: post drafts need a non-empty title or body text (**"Draft must include a title or body content"**); post data must be JSON (**"Post draft data must be valid JSON"**); comment/message stored as a JSON string.
+- Web post editor saves 1.5s after changes (payload: title, details, type, topics, group ids, isPublic, location(+Id), meetingLink, linkPreview(+Featured, skip), acceptContributions, completionAction(+Settings), proposalOptions, start/end ISO, timezone, donation & PM links, quorum, votingMethod, sendAnnouncement, trackId); restores on open (merging with route defaults); deletes when title and body are emptied; deleted after successful submit. Comment drafts save after 1s.
+- `deleteDraft(id)` (owner only), `draft(...)` query, `navigateTo` lets a drafts list reopen the composer (module 05/06).
+
+---
+
+## 6. Permissions
+
+| Action | Who |
+|---|---|
+| View post | Anyone if public; otherwise members of any of its groups, or a follower; posts by users you blocked (or who blocked you) are hidden. Platform admins bypass. Groups listed on a post are filtered to those visible to the viewer. |
+| View comments | Logged-in viewers who can see the post (comments by blocked users hidden); anonymous only on public posts (web never fetches them for anonymous). |
+| Create post | Member of every destination; type accepted by every destination. Silent: Administration in all. |
+| Mark announcement (UI) | Administration in every selected group. |
+| Edit post | UI: creator only. Server: any member of all destinations (§8). |
+| Duplicate | Any logged-in viewer. |
+| Delete post | Creator. |
+| Remove post from a group | Manage Content in that group (UI hides it for the creator). |
+| Pin / unpin to view | Manage Content in the view's group. |
+| Add/remove from collection | Administration or Manage Content. |
+| Fulfil / unfulfil | Creator, or Administration/Manage Content in any of the post's groups. |
+| Comment / react | Logged-in user who can see the post (reactOn has no visibility check server-side). |
+| Edit comment | Comment creator. |
+| Delete comment | Comment creator, or Manage Content in any of the post's groups (UI: Manage Content in the current group). |
+| Flag | Logged-in non-creator (module 12). |
+| Upload post attachment | New post: anyone; existing post: creator (any user for `action` posts). |
+| See all action completion responses | Administration in a group the post is in; others see only their own. |
+
+---
+
+## 7. API
+
+### Queries
+
+- `post(id)` → `Post` (public resolver for anonymous with `isPublic` filter).
+- `posts(...)` / `group.posts(...)` / `viewPosts` — filters: `activePostsOnly, afterTime, beforeTime, announcementsOnly, boundingBox, collectionToFilterOut, context ('all'|'my'|'public'), createdBy, cursor, filter (type), first, forCollection, groupSlugs, interactedWithBy, isFulfilled, mentionsOf, offset, order, proposalOutcome, proposalStatus, rsvpResponse, savedBy, sortBy, search, topic, topics, types` (module 15).
+- `comment(id)`; `Comment.childComments(cursor, first, order)`.
+- `topics(autocomplete, groupIds, first)`, `topic(id|name)`, `topicFollow(groupId, topicName)`.
+- `people(autocomplete, groupIds, first, offset)` (mention suggestions).
+- `draft(type, postId, groupId, topicId, messageThreadId, postType, isEdit)`.
+
+`Post` fields: see schema excerpt in §2.2 plus `attachments(type)`, `comments(first, cursor, order)`, `commenters(first)` (current user first, blocked excluded), `creator`, `followers`, `followersTotal`, `groups`, `linkPreview`, `moderationActions`, `members`, `postMemberships`, `postReactions`, `myReactions`, `proposalOptions`, `proposalVotes`, `topics` (ordered as `tag_names`), `savedAt`, `clickthrough`, `completedAt`, `completionResponse`, `completionResponses`, `myEventResponse`, `eventInvitations`, `localId`, `tokensAllocated`, `totalTokensAllocated`, `fundingRound`, `noticeData`, `noticePosts`. Dead/unused fields: `acceptContributions`, `totalContributions`, `isStrictProposal`, `attachmentsTotal`, `groupsTotal`, `topicsTotal`, `postReactionsTotal`, `reactionsTotal`.
+
+`Comment` fields: `id, text, createdAt, editedAt, createdFrom, creator, post, parentComment, childComments, attachments(type), attachmentsTotal, commentReactions, myReactions, commentReactionsTotal (unused)`.
+
+`Reaction`: `id, emojiBase, emojiFull, emojiLabel, entityId, entityType, userId, createdAt, post, user`.
+
+`LinkPreview`: `id, url, title, description, imageUrl, imageWidth, imageHeight, status`.
+
+### Mutations
+
+| Mutation | Args | Returns |
+|---|---|---|
+| `createPost` | `data: PostInput` | `Post` |
+| `updatePost` | `id, data: PostInput` | `Post` |
+| `deletePost` | `id` | `GenericResult` |
+| `removePost` | `postId, slug | groupId` | `GenericResult` |
+| `fulfillPost` / `unfulfillPost` | `postId` | `GenericResult` |
+| `completePost` | `postId, completionResponse: JSON` | `Post` (module 21) |
+| `pinPost` | `postId, viewId` | `GenericResult` (toggle) |
+| `savePost` / `unsavePost` | `postId` | `Post` |
+| `createComment` | `data: CommentInput {postId, parentCommentId, text, attachments:[{url, attachmentType}]}` | `Comment` |
+| `updateComment` | `id, data: CommentInput` | `Comment` |
+| `deleteComment` | `id` | `GenericResult` |
+| `reactOn` / `deleteReaction` | `entityId, data: ReactionInput {entityType, emojiFull}` | `Post` (the entity) |
+| `vote` (deprecated) | `postId, isUpvote` | `Post` |
+| `findOrCreateLinkPreviewByUrl` | `data: {url}` | `LinkPreview` or null while pending |
+| `createTopic` | `topicName, groupId, isDefault, isSubscribing` | `Topic` |
+| `subscribe` | `groupId, topicId, isSubscribing` | `GenericResult` |
+| `saveDraft` / `deleteDraft` | see §5.15 | `Draft` / `GenericResult` |
+| `recordClickthrough` | `postId` | `GenericResult` (module 12) |
+| `flagInappropriateContent` | module 12 | |
+| `peopleTyping` | `postId` | `GenericResult` |
+| `addPostToView` / `removePostFromView` / `reorderViewPost` | module 15 | |
+| Proposal & event mutations | module 14 | |
+
+`PostInput` fields: `acceptContributions, announcement, budget, completionAction, completionActionSettings, details, donationsLink, endTime, eventInviteeIds, fileUrls, fundingRoundId, groupIds, imageUrls, isAnonymousVote, isPublic, isStrictProposal, linkPreviewId, linkPreviewFeatured, skipLinkPreview, silent, localId, location, locationId, meetingLink, markAsReadTopicName, memberIds, projectManagementLink, proposalOptions, votingMethod, quorum, startTime, timezone, title, topicNames, trackId, viewId, type`.
+
+---
+
+## 8. Edge cases & known quirks
+
+- **`updatePost` has no server-side author/moderator check** — any user who is a member of all destination groups can edit any post via the API. The UI only offers Edit to the creator.
+- `deleteComment` UI checks Manage Content in the *current route group*, server checks any of the post's groups.
+- `Comment#createActivities` filters mentions with `u.id !== actorId` on plain ids, so self-mentions are not filtered (a user mentioning themselves in a comment gets a `commentMention` activity, though the delivery layer may drop it).
+- Comment attachment update uses `attachment.type`, create uses `attachment.attachmentType`; passing an empty attachments list on update leaves existing attachments untouched (cannot remove all).
+- Web comment composer uploads without restricting MIME type but only sends **image** attachments (`getAttachments(...'image')`); non-image files uploaded in a comment are silently dropped.
+- `num_comments` counts replies too, while `post.comments` returns only top-level comments.
+- `markAsReadTopicName` is accepted by `createPost` but unused.
+- `CreateMenu` filters out `submission`, though `submission` is not in web `POST_TYPES`.
+- The `TopicSelector` row in the editor is commented out; topics are only added through `#` in the body.
+- `StrictProposalToggle` is commented out; `isStrictProposal` has no effect.
+- Every edit of a proposal prompts the "reset votes" confirm, even when options didn't change; the server only resets votes if options are passed and existed.
+- `ShowMore` copy ("View N previous comment(s)") is hard-coded English, as is `editedTimestamp` "Edited …" and the PostHeader outcome placeholder "Summarize the outcome".
+- Copy Link builds `origin + postUrl(routeParams)` (context-relative); chat-mode cards always use `/groups/<slug>/post/<id>` (broken when no group).
+- Posts are soft-deleted; restoring is not exposed.
+- Reactions: `emoji_base` always equals `emoji_full`.
+- `Post.isVisibleToUser` treats followers as viewers even after leaving the group.
+- No post view counter exists.
+- Flag cover reveal is ephemeral per mount (re-shows on reopen), separate from the persisted `clickthrough`.
+- Duplicate truncates the copied title to 72 chars before prefixing "Copy of " (English, not translated).
+
+---
+
+## 9. HTML rendering rules
+
+**Storage**: post `description` and comment `text` are TipTap HTML. Allowed tags on output (`TextHelpers.insaneOptions`): `a, br, em, p, s, strong, li, ol, ul, img, div, iframe, mark, span, blockquote, code, hr, pre, h1–h6` (+ `video` for raw-stored page content; markdown adds `del, table, thead, tbody, tr, th, td`). Allowed attributes: `a`/`span`: `class, target, href, data-type, data-id, data-label, data-user-id, data-entity-type, data-search`; `code`: `class`; `iframe`: `src, title, frameborder, height, width, allow, allowfullscreen`; `div`: `class`; `img`: `src, alt, title, class, width, height`. `iframe`/`video` survive only with https `www.youtube.com`, `youtube.com`, `www.youtube-nocookie.com`, `youtube-nocookie.com` or `player.vimeo.com` sources.
+
+**Server `processHTML` on every read** (`Post#details`, `Comment#text`):
+1. Autolink bare URLs (class `linkified`).
+2. Remove `target` from all anchors; add class `hylo-link` to internal Hylo URLs.
+3. Normalise legacy mentions (`<a data-entity-type="mention" data-user-id>`) to `<span class="mention" data-type="mention" data-id data-label>`; legacy topics (`data-entity-type="#mention"` or href-less `#text`) to `<span class="topic" …>`.
+4. Add class `mention-current-user` to mentions of the requesting user.
+5. Sanitise.
+
+**Email** (`qualifyLinks`): mention/topic spans become absolute links (`/groups/<slug>/members/<id>`, `/groups/<slug>/topics/<name>`, or `/all/...`); relative links prefixed with the site URL.
+
+**Web `HyloHTML`**: wraps HTML in an element with class `global-postContent`; converts `<video data-type="embed" src>` to a responsive 16:9 iframe (`aspect-video`, `my-4`) — dropping non-whitelisted sources; rewrites scheme-less hrefs to `https://`.
+
+**Web `ClickCatcher`** (wraps rendered HTML):
+- Click on `.mention` → navigate to `mentionPath(id, groupSlug)` = `/groups/<slug>/members/<id>` (or `/all/members/<id>` outside a group) — the member profile (module 20 covers hover cards on avatars/names).
+- Click on `.topic` / `.hashtag` → `/search?t=%23<name>[&groupSlug=<slug>]`.
+- Click on `<a>`: same root domain (www-insensitive) and not a static marketing page (`/blog/…` etc.) → SPA navigation; otherwise opens in a new tab (`target=_blank`).
+- Other clicks bubble (cards then open the post).
+
+Card truncation: `truncateHTML(details, 144)` (sanitised). Plain-text summaries: `presentHTMLToText` (links' hrefs ignored). `Post#summary()` = title or first 80 chars of text.
+
+Mobile app renders the same HTML in its own `HyloHTML` (module 25).
+
+---
+
+## 10. Docs vs. code
+
+| Docs say | Code does |
+|---|---|
+| Following a #Topic sends notifications when someone creates a post with that topic. | No `tag` activity is created on post creation; post notifications go to group members by group (`newPost`) and chat-room members. Topic follows drive topic/chat-room lists and unread only. |
+| "To" box lists each chatroom in each group; sending to "#Bugs" adds the topic. | The To field lists groups and **joined spaces** ("Parent / Space"); chat rooms are not destinations. Topics come only from `#` in the body. |
+| A post can be started from a chat message and "expanded" to other types. | Editing a chat keeps type `chat` ("Editing Chat"); type conversion from chat is not offered in the post editor (chat composer flows are in module 17). |
+| Clicking a post opens it in a window to the right side. | Opens a centred overlay dialog (max 750px) over the centre column (map uses a side column — module 16). |
+| Post shows #Topics used (click to go to topic stream). | Cards/detail do not render a topics line (the `TopicsLine` component is unused); topics appear inline in the body and link to search. |
+| Mark request "no longer needed"/offer "Unavailable" by editing. | Done via the completion switch in post detail ("Is this request still needed?"), not the editor. |
+| Any steward post can be an Announcement. | Megaphone shown only when the user has Administration in every selected group and type is not chat/action/submission. |
+| Optimal image ratio guidance. | Images are resized to max width 1200px server-side; no ratio enforcement. |
+| Embedding videos: double-click link → "Add Preview" → hover thumbnail → featured. | Matches; additionally the first video link is auto-previewed and auto-featured. |
+| Project custom icons for GitHub. | PM-tool logos: asana, trello, airtable, clickup, confluence, teamwork, notion, wrike, zoho (no GitHub); donation logos: cash, clover, gofundme, opencollective, paypal, squareup, venmo. |
+
+---
+
+## 11. Source references
+
+Backend: `apps/backend/api/models/Post.js`, `Comment.js`, `Reaction.js`, `PostUser.js`, `PostMembership.js`, `PostTag.js`, `Tag.js`, `TagFollow.js`, `LinkPreview.js`, `Media.js`, `media/util.js`, `Draft.js`, `CollectionPost.js`, `GroupViewPin.js`, `Thank.js`; `api/models/post/{createPost,updatePost,deletePost,setupPostAttrs,validatePostData,util,updateChildren,fulfillPost,postFulfillmentPermissions,rehostAndAttachImages,upsertChatActivityNotice}.js`; `api/models/comment/{createComment,updateComment,deleteComment,util,notifications}.js`; `api/graphql/mutations/{post,comment,draft,savePost,topic,moderation_actions,index}.js`; `api/graphql/{schema.graphql,makeModels.js,makeSchema.js,filters.js}`; `api/services/{RichText,TagManagement}.js`; `api/controllers/PostController.js`; `config/routes.js`; `lib/uploader/{index,validation,converter,types}.js`.
+
+Shared: `packages/shared/src/{TextHelpers.js,viewHelpers.js,constants.js}`; `packages/navigation/src/index.js`.
+
+Web: `apps/web/src/components/{CreateMenu,CreatePostModal,PostEditor (PostEditor.js, ActionsBar.jsx, PostEditor.store.js, postDraftUtils.js, postSaveErrorMessage.js, LinkPreview),PostTypeSelect,PostTypePills,PostCard (PostCard.jsx, PostHeader, PostBody, PostTitle, PostContent, PostFooter, PeopleInfo, PostGroups, PostCompletion, Feature),PostListRow,PostGridItem,PostBigGridItem,PostLabel,PostDialog,HyloEditor,HyloHTML,ClickCatcher,AttachmentManager,UploadAttachmentButton,CardImageAttachments,CardFileAttachments,LinkPreview,EmojiRow,EmojiPicker,EmojiPill,ReactionsDrawer,PublicToggle,SendAnnouncementModal,UnsavedDraftLeaveDialog,FlagBadge}`; `apps/web/src/routes/PostDetail/{PostDetail.js,Comments/*}`; `apps/web/src/store/models/Post.js`; `store/actions/{createPost,updatePost,createComment,fetchComments,fetchChildComments,reactOnEntity,fetchReactorAvatars}.js`; `store/presenters/presentPost.js`; `hooks/useDraft.js`; `client/filestack.js`; `util/{childGroupLabel,url,constants}.js`; `tours/postEditorTour.js`; `graphql/queries/{CommentsQuery,SubCommentsQuery}.js`; `apps/web/public/locales/en.json`.
+
+Docs: gitbook `guides/hylo-user-guide-1/posts*.md`, `topics.md`, `embedding-media-in-hylo.md`.
