@@ -120,3 +120,40 @@ Each group has a configurable **menu** of views (stream, chat rooms, events, pro
 | Funding round | A participatory budgeting process (module 22) |
 | Offering | A paid product (Stripe) granting content access (module 23) |
 | Activity / Notification | A recorded event and its per‑user delivery (module 19) |
+
+---
+
+## Coverage & confidence
+
+Every module follows the template above and was written from the code; the public docs were consulted only for comparison. Some things to know before relying on it:
+
+- **Length is uneven.** Modules are dense (mostly tables) rather than long. The thinnest areas, where a re‑implementer will need to read the cited source files to get pixel‑level layout, are: 07 Search, 08 Design system (only 13 tokens per theme are tabulated — the rest are in `apps/web/src/themes/index.js`), 16 Map, 18 Direct messages, 21 Tracks and 22 Funding rounds. Each module lists its own gaps in its "Edge cases" / gaps notes.
+- **Email bodies are not in this repo.** Transactional and digest emails are SendWithUs templates hosted externally; the spec gives each template ID, subject and the data passed to it, but not the HTML.
+- **Inferred, not verified at runtime.** Nothing was checked in a running app. Statements a module marks as inferred (e.g. some map sprite names, some JSON settings keys in 02, push‑URL parsing on old mobile clients) should be spot‑checked.
+- **The native mobile app is a shell.** After login, `apps/mobile-leap` renders the web app in a WebView; only auth/onboarding screens are native (module 25). So the web modules describe the mobile product too.
+- **Model shifts the public docs haven't caught up with** (the code wins throughout):
+  - Tracks and funding rounds are *spaces* (`groups.type = 'space'`) with a linked `tracks` / funding‑round record, not standalone group features (15, 21, 22).
+  - Chat rooms are one `group_views` row of `type='chat'` per group/space; topic‑based chat and `#general` are gone (17).
+  - The top built‑in role is **Administrator** (legacy "Coordinator"); there are four system responsibilities (`Administration`, `Add Members`, `Remove Members`, `Manage Content`); Manage Tracks/Rounds were folded into Administration (12).
+  - "Networks" are parent/child group relationships (09).
+
+## Appendix: notable code findings
+
+While specifying current behaviour the writers recorded a number of probable bugs. The spec describes what the code *does*; a re‑implementation should decide deliberately whether to reproduce these. The ones with security or data‑integrity impact:
+
+| Area | Finding | Module |
+|------|---------|--------|
+| Posts | `updatePost` has no author/moderator check server‑side — any member of all the post's groups can edit it via the API | 13 |
+| Paid content | `recordStripePurchase` lets any logged‑in user create a paid access record for anyone; checkout metadata user id is client‑overridable; `checkContentAccess` reveals any user's access | 23 |
+| Paid content | `charge.refunded` webhook calls a non‑existent method, so dashboard refunds never revoke access; delete triggers on `content_access` / role assignments read `NEW` so deletes don't clean up scopes | 23, 02 |
+| Search | Global search doesn't validate the `groupIds` argument (can search groups you're not in) and skips the blocked‑user filter | 07 |
+| Profiles | `deleteAffiliation` ownership check is an un‑awaited async call (always truthy) — anyone can delete any affiliation | 05, 20 |
+| Saved searches | `savedSearches(userId)` returns any user's saved searches | 16 |
+| Moderation | Moderation actions list has no permission check; deactivated custom roles still grant their responsibilities | 12 |
+| Proposals / events | Single‑vote and anonymous voting are only enforced in the UI; any proposal edit from the web client deletes all votes; calendar feeds expose the creator's email | 14 |
+| DMs | 20‑participant limit is client‑only; reply‑by‑email skips the block check; inbound email signature check passes when the key is unset | 18, 19 |
+| OAuth / API | OAuth scopes aren't enforced once a token is accepted; LinkedIn/Facebook login routes are broken | 24, 01 |
+| Accounts | `reactivateMe` reads the wrong argument (never works); platform agreement acceptance is never persisted | 04 |
+| Analytics | Mixpanel runs even when analytics cookies are rejected | 07 |
+
+Each module's "Edge cases & known quirks" section has the full list (several dozen more UX‑level quirks, untranslated strings, and dead code).
