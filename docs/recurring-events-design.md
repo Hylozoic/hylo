@@ -25,7 +25,7 @@ There is **no scheduled/cron materialization**. All occurrences are generated at
 
 ## Data model (Phase 1 — implemented)
 
-Migration: `apps/backend/migrations/20260806000000_add-event-series.js` (also folded into `migrations/schema.sql` for the test schema).
+Migration: `apps/backend/migrations/20261110120000_add-event-series.js` (also folded into `migrations/schema.sql` for the test schema).
 
 ```
 event_series
@@ -97,7 +97,7 @@ posts (new columns)
 | Change | File |
 | --- | --- |
 | Recurrence helpers + tests | `packages/shared/src/RecurrenceHelpers/RecurrenceHelpers.ts`, `.test.ts`, exported from `packages/shared/src/index.js` |
-| Migration | `apps/backend/migrations/20260806000000_add-event-series.js` |
+| Migration | `apps/backend/migrations/20261110120000_add-event-series.js` |
 | Test schema | `apps/backend/migrations/schema.sql` (event_series table, posts columns, PK/FKs, index) |
 | Model | `apps/backend/api/models/EventSeries.js` (+ `EventSeries` in `standard.global` in `apps/backend/package.json`) |
 | Post relation | `apps/backend/api/models/event/mixin.js` (`eventSeries()`) |
