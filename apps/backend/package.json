@@ -191,6 +191,7 @@
       "Email",
       "EventInvitation",
       "EventResponse",
+      "EventSeries",
       "ExportService",
       "Extension",
       "FlaggedItem",
