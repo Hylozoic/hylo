@@ -2299,3 +2299,107 @@ A SavedSearch on the Map
 #### QuerySet types
 
 All have `total: Int`, `hasMore: Boolean`, `items: [T]`: `AffiliationQuerySet`, `AgreementQuerySet`, `CommentQuerySet`, `ContentAccessQuerySet`, `EventInvitationQuerySet`, `FundingRoundQuerySet`, `GroupQuerySet`, `GroupViewQuerySet`, `GroupExtensionQuerySet`, `GroupJoinQuestionQuerySet`, `GroupJoinQuestionAnswerQuerySet`, `GroupRelationshipQuerySet`, `GroupRelationshipInviteQuerySet`, `GroupToGroupJoinQuestionQuerySet`, `GroupRoleQuerySet`, `ResponsibilityQuerySet`, `GroupTopicQuerySet`, `InvitationQuerySet`, `JoinRequestQuerySet`, `MembershipQuerySet`, `MembershipAgreementQuerySet`, `MembershipGroupRoleQuerySet`, `MembershipCommonRoleQuerySet`, `MessageQuerySet`, `MessageThreadQuerySet`, `ModerationActionQuerySet`, `NotificationQuerySet`, `PersonQuerySet`, `PersonConnectionQuerySet`, `PostQuerySet`, `PostUserQuerySet`, `ReactionQuerySet`, `SavedSearchQuerySet`, `SearchResultQuerySet`, `SkillQuerySet`, `TopicQuerySet`, `TopicFollowQuerySet`, `TrackQuerySet`, `UserTransactionQuerySet`, `ProposalOptionQuerySet`, `ProposalVoteQuerySet`, `OfferingSubscribersQuerySet`
+
+---
+
+## 6. REST / HTTP endpoints (outside GraphQL)
+
+All under the API host. Policies (`config/policies.js`) default to deny (`'*': false`); each controller action is explicitly opened. Body parsing: JSON and urlencoded (raw for the Stripe webhook).
+
+### 6.1 Session & login (`SessionController`; policy: open unless noted)
+| Method & path | Action | Request | Response |
+|---|---|---|---|
+| `POST /noo/login` | `create` | `email`, `password` | 200 `{}` + session cookie; 422 with error text (e.g. invalid credentials, rate-limit message). |
+| `POST /noo/login/native` | `nativeLogin` | `email`, `password` | 200 token pair `{access_token, refresh_token, token_type:'Bearer', expires_in}`; reactivates self-deactivated account; 422 on error. No cookie. |
+| `POST /noo/session/from-token` | `fromToken` | `Authorization: Bearer <access token>` | 200 `{success:true}` + fresh cookie session (session regenerated); 401 `{error}` when missing/invalid. |
+| `GET|POST /noo/login/jwt` | `createWithJWT` (policy `checkJWT`) | `token` (query or Bearer), `n` (next URL) | GET: redirect to same-origin `n` or password settings page; POST: `{success:true}`; with `X-Hylo-Token-Auth: 1` → token pair. Invalid JWT: GET redirect `/login?error=invalid-link`, POST 403. If no session after policy: GET with `n` redirects anyway, else 422 `Invalid link, please try again`. |
+| `GET|POST /noo/login/token` | `createWithToken` | `n` | Legacy links: GET redirect to safe `n` or `/login`; POST 422 `Link expired`. |
+| `GET /noo/login/google` | `startGoogleOAuth` | `returnDomain`, `authContext` saved in session | Redirect to Google (scope email, profile). |
+| `GET /noo/login/google/oauth` | `finishGoogleOAuth` | OAuth callback | Renders `popupDone` (posts `{error, provider, context}` to opener at `returnDomain`) or JSON if `Accept: application/json`. Error strings: `no user`, `no email`, `linked-account-in-use`. |
+| `GET|POST /noo/login/google-token/oauth` | `finishGoogleTokenOAuth` | `access_token` (Google) | As above; with `X-Hylo-Token-Auth: 1` → token pair. |
+| `POST /noo/login/apple/oauth` | `finishAppleOAuth` | `{nonce, user, identityToken, fullName:{givenName,familyName}}` | 200 user JSON (cookie session) or token pair (`X-Hylo-Token-Auth: 1`); 401 `Invalid Apple identity token`; 422 on other errors. |
+| `GET /noo/login/facebook`, `/facebook/oauth`, `/facebook-token/oauth`; `GET /noo/login/linkedin`, `/linkedin/oauth`, `/linkedin-token/oauth` | Facebook/LinkedIn | — | Legacy; non-functional (no Facebook strategy; LinkedIn finish actions misnamed — see 01 §17). |
+| `GET /noo/logout` | `destroy` | — | Destroys session, redirect `/`. |
+| `DELETE /noo/session` | `destroySession` | — | `{}`. |
+
+### 6.2 OAuth / OpenID Connect provider
+- `GET /.well-known/openid-configuration` → discovery (routed to `/noo/oauth/.well-known/openid-configuration`).
+- `/noo/oauth/{auth, token, token/introspection, token/revocation, me, jwks, session/end, reg, request, device, device/auth, backchannel}` — oidc-provider endpoints (01 §5.5). CORS open to any origin.
+- Interaction (`api/hooks/oidcRoutes.js`): `GET /noo/oidc/interaction/:uid` (redirects to web `/oauth/login/:uid?name=` or `/oauth/consent/:uid?name=&missingScopes=`), `POST /noo/oidc/:uid/login` (`email`, `password`; or existing session) → `{redirectTo}` / 403 `{error}` (`Invalid request, please start over` when the prompt is not login), `POST /noo/oidc/:uid/confirm` → `{redirectTo}` / 500 `{error:'Invalid Request'}`, `POST /noo/oidc/:uid/abort` → `{redirectTo}` with `access_denied` / `End-User aborted interaction`.
+
+### 6.3 Users (`UserController`)
+| Method & path | Policy | Behaviour |
+|---|---|---|
+| `POST /noo/user` | `checkClientCredentials`; requires `req.api_client.super` else 403 | Server-to-server user creation. Params `name`, `email`, `groupId`, `isAdministrator`/`isCoordinator`. Existing user: invites to group if not a member (subject/message from client's `invite_subject`/`invite_message` or localized defaults), returns `{message}` (`User already exists, invite sent to group <name>` / `User already exists, and is already a member of this group` / `User already exists`). New user: created inactive + unverified, queued `Email.sendFinishRegistration` with verify link; returns `{id, name, email}`; 422 `{error}` on failure. See `apps/backend/APIs.md`. |
+| `GET /noo/user/notification-settings?token=` | open; JWT with `action: 'notification_settings'` | Returns `{digestFrequency (default 'daily'), dmNotifications ('both'), commentNotifications ('both'), postNotifications ('important'), sendEmail, sendPushNotifications, hasDevice:false}`; 403 `{error:'Unauthorized'}` on bad token. Used by the email unsubscribe page. |
+| `POST /noo/user/update-notification-settings?token=` | same | Body `unsubscribeAll` (sets digest `never`, dm/comment/post `none`, and all memberships `sendEmail=false`, `sendPushNotifications=false`) or any of `digestFrequency`, `dmNotifications`, `commentNotifications`, `postNotifications`, `allGroupNotifications` (`none`/`email`/`push`/`both` → membership `sendEmail`/`sendPushNotifications` for all groups). Returns `{message:'Notification settings updated'}`. |
+| `POST /noo/user/subscribe` / `unsubscribe` | socket + session | Join/leave personal socket room (unsubscribe bug: leaves `groups/<userId>`). |
+
+### 6.4 Real-time socket routes (socket.io virtual requests)
+`POST /noo/group/:groupId/subscribe|unsubscribe|typing`, `POST /noo/post/:postId/subscribe|unsubscribe|typing` — see 01 §6.1. Non-socket requests → 400.
+
+### 6.5 Posts & comments via HTTP
+| Method & path | Policy | Behaviour |
+|---|---|---|
+| `POST /noo/post/:postId/update-last-read` | `sessionAuth`, `checkAndSetPost` | Marks post read for user (`posts_users.last_read_at`); `{}`. |
+| `POST /noo/hook/comment` | open; SendGrid signature check | Inbound email reply (SendGrid Inbound Parse, multipart). Decodes `to` reply address → post/user; ignores auto-responders (returns 200 `{message:'Autoresponder email detected, no comment created.'}`); creates a comment with `created_from: 'email'`. Errors: 422 `Invalid reply address: <to>`, `valid token, but post not found`, `valid token, but user not found`, `{error:'Invalid Content-Type'}`; 403 `{error:'Invalid signature'}`. |
+| `GET|POST /noo/hook/postForm` | `checkAndDecodeToken` (`token` = `Email.formToken`) | Creates a post from a digest email form: `type` ∈ `offer` (title prefix `I'd like to share`), `request` (`I'm looking for`), `resource` (`I'd like to share`), `intention` (`I'd like to create`); `name`, `description`; topic = type; `created_from: 'email_form'`. Duplicate with same title by same user within 5 minutes → redirect to existing post. Inactive group → redirect root with `?notification=Your post was not created. That group no longer exists.&error=1`. Success → redirect to post URL. |
+| `GET|POST /noo/hook/batchCommentForm` | `checkAndDecodeToken` | Digest email batch reply form: params `post-<postId>` (markdown) create comments on each post; redirects to the group with a notification. |
+
+### 6.6 Uploads & exports
+| Method & path | Policy | Behaviour |
+|---|---|---|
+| `POST /noo/upload` | `sessionAuth` | See 01 §11. Response `{type, id, url, attachmentType}`. |
+| `GET /noo/export/group?groupId=&datasets[]=members` | `sessionAuth`; Administration in group | Queues `ExportService.exportMembers` (CSV emailed to requester). 400 `Please specify group ID` / `Please specify datasets to export`; 403 `{error:'No access'}`; `{}` on success. |
+| `POST /noo/export/user-account` | `sessionAuth` | Queues account export; `{message:"Account export started. You will receive an email when it's ready."}`. |
+
+### 6.7 Payments
+| Method & path | Policy | Behaviour |
+|---|---|---|
+| `POST /noo/stripe/webhook` | open; Stripe signature (`STRIPE_WEBHOOK_SECRET`; bypass when `STRIPE_WEBHOOK_BYPASS_SIGNATURE=true`) | Raw JSON body. Handles `account.updated`, `checkout.session.completed`, `product.updated`, `customer.subscription.created|updated|deleted`, `invoice.paid`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created|updated|closed`. Idempotent via `stripe_webhook_processed_events`. Errors 400 `{error:'Missing webhook payload'|'Invalid webhook payload'|'Missing signature'|'Invalid signature'}`, 500 `{error:'Webhook secret not configured'}`. Details: 23. |
+| `GET /noo/stripe/checkout/success` | open | Post-checkout landing (`session_id`): fulfils access as fallback then redirects to the frontend; 400/500 JSON on errors. |
+| `GET /noo/stripe/checkout/cancel` | open | Redirects to frontend cancel URL. |
+| `GET /noo/stripe/health` | open | Health check JSON. |
+| `GET|POST /noo/payment/registerStripe` | `sessionAuth` | Legacy Stripe OAuth (`code`) for project contributions; redirects to payment settings `?registered=success|error`. |
+
+### 6.8 Mobile app support (`MobileAppController`, open)
+- `GET /noo/mobile/check-should-update?ios-version=|android-version=` → `{success:true}` if version ≥ `MINIMUM_SUPPORTED_MOBILE_VERSION`; otherwise `{type:'force'|'suggest', title, message, link}` (`A new version of the app is available` / `An update is available`; message `The version you are using is no longer up to date. Please go to the <App Store|Play Store> to update.`; link `IOS_APP_STORE_URL`/`ANDROID_APP_STORE_URL`). Non-semver versions force-update, except `test-suggest`.
+- `GET /noo/mobile/auto-update-info` → static `{type:'force', title:'A new version of the app is available', message:'The version you are using is no longer compatible with the site. Please go to the App Store now to update', iTunesItemIdentifier:'1002185140'}`.
+- `POST /noo/mobile/logerror` (`error`, `extra`) → reports to Sentry; `{success:true}`.
+
+### 6.9 Misc
+- `POST /noo/cookie-consent` (open): body `consentId` (UUID, required), `settings` (JSON object, required), `version` (string), `ipAddress`, `userAgent` (default request UA); upserts `cookie_consents` (links current user if logged in); `{success:true, consentId}`; 400 with messages `Missing settings`, `Invalid consentId format - must be a valid UUID`, `Settings must be a valid JSON object`, `Version must be a string`, …
+- `GET /noo/group/:groupSlug/murmurations` (open): Murmurations profile JSON of the group if it publishes one (`settings.publish_murmurations_profile`), else 403.
+- Calendar feeds are **static S3 files**, not API routes: group events `<AWS_S3_CONTENT_URL>/<prefix>/group/<id>/calendar-<token>.ics` (`Group.eventCalendarUrl`), personal RSVPs `<…>/user/<id>/calendar-<token>.ics` (`Me.rsvpCalendarUrl`). See 14.
+
+### 6.10 Admin (`isAdmin` = user id in `HYLO_ADMINS`)
+- `GET /noo/admin/login` → Google admin OAuth; `GET /noo/admin/login/oauth` → on success redirect `/noo/admin/kue` (failure → `/noo/admin/login`); `GET /noo/admin/logout` → redirect `/`.
+- `GET /noo/admin/login-as/:userId` → logs in as that user (`providerKey 'admin'`), redirect `/app`.
+- `GET /noo/admin/raw-metrics` → per-group event streams (users, posts, comments created in last 3 months).
+- `GET /noo/admin/stripe-analytics` → dispute/refund analytics for groups with Stripe accounts (90-day and 7-day windows).
+- `POST /noo/admin/stripe-sales-pause` (`groupId`, `paused`, `reason`) → sets `groups.stripe_sales_paused`, `_at`, `_reason`; 400 `groupId is required`, 404 `Group not found`.
+- `/noo/admin/kue` (UI) and `/noo/admin/kue/api` (Kue JSON API).
+
+### 6.11 Web server routes (apps/web, not API)
+`/noo/*` proxy; marketing pages proxied from `PROXY_HOST`; SPA fallback with OG tags for `/post/:id` (01 §4.2). The SPA's own routes are in [06-app-shell-navigation.md](06-app-shell-navigation.md).
+
+---
+
+## 7. Edge cases & known quirks
+- `vote(postId, isUpvote)` is declared but unresolved (deprecated; use `reactOn`).
+- `reactivateMe` resolver reads `currentUserId` from the args object (bug) — the mutation cannot identify the user.
+- `createStripeConnectedAccount` resolver forwards `existingAccountId` which is not in the schema.
+- `deleteGroupRelationship.relationshipType`, `deactivateMe.id`, `groups.filter`, `people.filter` are accepted but ignored.
+- `people.order` is documented as "Number of People to return" (copy-paste error); it is the sort order.
+- `group(updateLastViewed: true)` marks the group viewed (membership `lastReadAt`, badge sync); failures are swallowed.
+- `notifications(resetCount)` resets the counter after fetching.
+- The `subscriptions-debug` header lets a client receive its own events (testing aid).
+- Anonymous calls to authenticated-only fields return `null` silently.
+
+## 8. Docs vs. code
+- `apps/backend/APIs.md` and public developer docs describe API-key access; code requires OIDC client-credentials JWTs from clients with `role: 'super'` for any API-client access (non-super clients get 403).
+- Schema comments call `updateGroupSettings` "steward only" and `removeMember` "Moderator only"; enforcement is by responsibilities (Administration / Remove Members) — see 12.
+- `unlinkAccount` comment lists providers 'facebook', 'twitter', 'linkedin'; twitter is not a supported provider and Facebook/LinkedIn login are non-functional.
+
+## 9. Source references
+`apps/backend/api/graphql/{schema.graphql,index.js,makeSchema.js,makeSubscriptions.js,makeModels.js,filters.js,touchLastActiveAt.js}`, `apps/backend/api/graphql/mutations/*`, `apps/backend/api/graphql/queries/*`, `apps/backend/lib/graphql-bookshelf-bridge/*`, `apps/backend/config/{routes,policies,customMiddleware}.js`, `apps/backend/api/controllers/*`, `apps/backend/api/policies/*`, `apps/backend/api/hooks/oidcRoutes.js`, `apps/backend/APIs.md`, `packages/urql/makeUrqlClient.js`.
