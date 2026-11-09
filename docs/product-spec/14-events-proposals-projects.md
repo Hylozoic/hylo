@@ -526,3 +526,134 @@ Rendered in the digest as one-line items (`start_time`/`end_time` formatted pair
 
 ### 5.6 Silent posts
 A steward-only `silent: true` create skips the event creator's RSVP email and all `eventInvitation`/newPost activities (but invitations and feeds are still created).
+
+### 5.7 Notification summary (type-specific reasons)
+
+| Reason | Trigger | Reader | In-app (header / body) | Push | Email |
+|---|---|---|---|---|---|
+| `eventInvitation` | event created with invitees; `invitePeopleToEvent` | invitee | `<strong>{{name}}</strong> invited you to an event` / `<strong>{{name}}</strong> invited you to: "{{postSummary}}"` | `<inviter> invited you to "<title>"` | `sendEventInvitationEmail` (post presented for email, reply-to post address, sender `<inviter> via Hylo`) |
+| (RSVP email) | RSVP flip, event create (creator), event update/delete | the responder / all yes+interested | — | — | RSVP new / update / cancel templates with `invite.ics` |
+| `voteReset` | options changed on update | past voters | none (unreachable) | none | none |
+| `postFulfilled` / `postUnfulfilled` | moderator fulfils/unfulfils | author | see §5.3.1 | yes | yes |
+| `donation to` / `donation from` | Stripe contribution | contributor / creator | see §5.4 | yes | yes |
+| `newContribution` | request fulfilled with contributors (legacy) | contributor | — | `You have been added as a contributor to the request "<title>"` | — |
+
+Delivery media are filtered by membership notification settings (19); readers who have left all the post's groups get nothing.
+
+---
+
+## 6. Permissions
+
+| Action | Who |
+|---|---|
+| Create typed post | Member of every destination group, and each group must accept the type (`accepted_post_types`; `requests-and-offers` alias covers request+offer). See 13/11. |
+| Edit / delete post (incl. options, times, invitees, members) | Creator (UI). Delete enforced server-side (author only). |
+| RSVP | Any logged-in user who can load the event (server performs no visibility check). UI hides RSVP for past events and logged-out viewers. |
+| Invite to event | Any logged-in user (UI: anyone who sees the card; server: no check). Invitee picker limited to members of the event's groups. |
+| See attendee/response list | Anyone who can see the post. |
+| Vote / change vote | Anyone to whom the post is visible (public, member of a post group, or follower), during `voting`/`casual`. |
+| Change options via `updateProposalOptions` | Any user who can see the post (server), unless `completed`. |
+| Set proposal outcome | Author only. |
+| Fulfil / unfulfil | Author, or `Administration`/`Manage Content` in any post group. |
+| Join / leave project | Any logged-in user (no server checks). |
+| See group calendar URL | Anyone who can query the group (`eventCalendarUrl` has no extra gate); the feed itself is public to anyone with the URL. |
+| See action completion responses | Admins of a post group see all; others only their own. |
+| Contribute money (legacy) | Users with `PROJECT_CONTRIBUTIONS` flag. |
+
+---
+
+## 7. API
+
+### 7.1 Post fields (type-specific)
+`startTime`, `endTime`, `timezone`, `location`, `locationObject`, `meetingLink`, `myEventResponse`, `eventInvitations(first,cursor,order): EventInvitationQuerySet { total hasMore items { id response person { id name avatarUrl } } }`, `proposalStatus`, `proposalOutcome`, `votingMethod`, `quorum`, `isAnonymousVote`, `anonymousVoting`, `isStrictProposal` (always null), `proposalOptions: ProposalOptionQuerySet { items { id postId text emoji color } }`, `proposalVotes: ProposalVoteQuerySet { items { id optionId createdAt user { id name avatarUrl } } }` (returned **even when anonymous**), `members(first,cursor,order): PersonQuerySet`, `postMembershipsTotal`, `donationsLink`, `projectManagementLink`, `budget`, `acceptContributions`, `totalContributions` (no resolver → null), `fulfilledAt`, `completionAction`, `completionActionSettings`, `completedAt`, `completionResponse`, `completionResponses: PostUserQuerySet`, `numPeopleCompleted`.
+
+### 7.2 PostInput (type-specific)
+`startTime: Date`, `endTime: Date`, `timezone`, `location`, `locationId`, `meetingLink`, `eventInviteeIds: [ID]`, `proposalOptions: [ProposalOptionInput { id text emoji color }]`, `votingMethod`, `quorum: Int`, `isAnonymousVote: Boolean`, `isStrictProposal` (ignored), `memberIds: [ID]`, `donationsLink`, `projectManagementLink`, `budget`, `acceptContributions`, `completionAction`, `completionActionSettings: JSON`, `silent`.
+
+### 7.3 Mutations
+```
+respondToEvent(id: ID, response: String): GenericResult          # 'yes'|'interested'|'no'
+invitePeopleToEvent(eventId: ID, inviteeIds: [ID]): Post
+addProposalVote(postId: ID, optionId: ID): GenericResult
+removeProposalVote(postId: ID, optionId: ID): GenericResult
+swapProposalVote(postId: ID, addOptionId: ID, removeOptionId: ID): GenericResult
+setProposalOptions(postId: ID, options: [ProposalOptionInput]): [ProposalOption]     # returns success object in practice
+updateProposalOptions(postId: ID, options: [ProposalOptionInput]): [ProposalOption]
+updateProposalOutcome(postId: ID, proposalOutcome: String): GenericResult
+fulfillPost(postId: ID): GenericResult
+unfulfillPost(postId: ID): GenericResult
+completePost(postId: ID, completionResponse: JSON): Post          # actions (21)
+joinProject(id: ID): GenericResult
+leaveProject(id: ID): GenericResult
+createProject(data: PostInput): Post                              # unused
+createProjectRole(projectId: ID, roleName: String) / deleteProjectRole(id: ID) / addPeopleToProjectRole(peopleIds: [ID], projectRoleId: ID)   # legacy
+processStripeToken(postId: ID, token: String, amount: Int): GenericResult   # legacy, amount in dollars
+updateMe(changes: { settings: { rsvpCalendarSub: Boolean } })     # RSVP feed toggle (05)
+```
+
+### 7.4 Query filters (posts)
+`afterTime`/`beforeTime` (calendar window), `rsvpResponse` (`yes|no|interested|yes+interested`, current user), `isFulfilled`, `activePostsOnly`, `types`/`filter` (type), `proposalStatus`/`proposalOutcome` (accepted, not applied). `Group.eventCalendarUrl`, `Me.rsvpCalendarUrl`, `Me.settings.rsvpCalendarSub`, `Person.eventsAttending`, `Person.projects`.
+
+### 7.5 Background jobs
+`Post.processEventCreated`, `Post.processEventUpdated`, `Post.processEventDeleted`, `Post.sendUserRsvp` (class method), `User.createRsvpCalendarSubscription`, `Group.createEventCalendarSubscription`, `Post.createActivities`, `Contribution.createActivities`; cron `every10minutes`: `Post.updateProposalStatuses`; digests: `Post.upcomingPostReminders`.
+
+---
+
+## 8. Edge cases & known quirks
+
+1. **Editing an event can drop RSVPs**: the editor's Invite People field contains every invitation; removing someone there deletes their invitation (and their RSVP) with no email/feed cancel. Newly added invitees during edit get no notification.
+2. Duplicating an event drops invitations; the copy gets only the creator's own `yes`.
+3. Event attendee strip counts only `yes`; the Responses dialog lists everyone, including unanswered invites and `no`.
+4. `Upcoming` (≤72 h) / `Happening now!` / `Event ended` are computed at render time from the browser clock; no live refresh.
+5. Changing the editor timezone keeps the wall-clock time, shifting the actual instant.
+6. ICS feeds and RSVP attachments carry UTC times with no TZID; organizer email is published in every feed and invite.
+7. Group feed URL is returned even before the file exists (404 until the first event job runs for the group); RSVP feed similarly until first build.
+8. `invitePeopleToEvent` notifies every id passed, even already-invited people, and may return before invitations are stored.
+9. `respondToEvent` and `joinProject` have no visibility checks.
+10. Proposal: saving **any** edit resets all votes (client always resends options; confirm dialog appears even when only the title changed). `voteReset` notifications are never delivered.
+11. Proposal status is recomputed from times on every save (can reopen completed proposals); cron leaves start-only proposals in `discussion`/`voting` forever.
+12. Single-vote is enforced only in the UI; the API permits multiple/duplicate votes.
+13. Anonymous voting only hides names/avatars/counts in the web UI; `proposalVotes` (with users) is still returned by the API.
+14. QuorumBar's denominator is the sum of `memberCount` over the post's groups (double counts cross-posted members; NaN if counts not loaded); quorum is never evaluated server-side.
+15. Applying a template sets `quorum` to undefined (template has no quorum).
+16. Proposal outcome field saves on every keystroke, is untranslated, and is only visible (as `Outcome: …`) once the proposal is fulfilled. Highlight of winning options also triggers when an outcome text exists.
+17. `proposal_status` is written for every post type (`casual` for untimed posts).
+18. `anonymous_voting` is a text column; `isAnonymousVote` true only when the string is exactly `'true'`.
+19. Project editor always re-adds the creator as a member; `setProjectMembers` resets every member's `following` flag.
+20. Legacy Stripe contributions: never rendered (fragment lacks `acceptContributions`), `totalContributions` unresolved, and `ProjectContributions` calls `processStripeToken(postId, tokenId, amount)` while the parent expects `(token, amount)` — would send wrong arguments.
+21. `meeting_link` is cleared by any create/update that omits `meetingLink` (e.g. API clients/Zapier editing an event).
+22. Event time validation exists only in the client.
+23. Hard-coded English strings: `Invite to event: <title>`, `Subscribe to this Group's Calendar`, `Summarize the outcome`, proposal template option texts and titles.
+24. Fulfilment author path does not check post type (author can "fulfil" a discussion/event via API).
+25. `isFulfilled`/`activePostsOnly` compare `end_time` against today's UTC date string (day precision): a post ending earlier today still counts as active.
+
+---
+
+## 9. Docs vs. code
+
+| Docs claim | Code reality |
+|---|---|
+| Completing requests/offers lets you "select the people who helped" (feature spec, steward guide §12) | No contributor picker; `fulfillPost` takes only `postId`. Contributors model exists but is unreachable. |
+| "If quorum isn't reached, stewards are notified" (feature spec, steward guide §13) | No quorum evaluation or notification anywhere. |
+| Presets "Agree/Disagree, Consent/Block/Abstain, Sense Check, Gradients of Agreement" | Templates are Yes/No, Poll Single Vote, Multiple Choice, Advice, Consent (Consent/Objection), Consensus (Agree/Abstain/Disagree/Block), Gradient of Agreement. No "Sense Check". |
+| "Live indicator … in the stream and calendar" | Only the `Happening now!` badge on event cards/detail; calendar has none. |
+| RSVP "attending (or if they're a maybe)" / schema says `'maybe'` | Values are `yes`, `interested`, `no` (UI: Going / Interested / Not Going). |
+| "Stewards can see the guest list" | Anyone who can see the event sees attendees and the Responses dialog. |
+| "Export events … via calendar invite emails" | True, plus per-group and personal ICS subscription feeds (not documented). |
+| Requests/offers "Expiration and reminders: notifications remind creators" | No creator reminders; only group digest "starting/ending soon" sections; expiry is query-time only. |
+| Projects "Linked content: connect posts, events… to a project" | Not implemented. |
+| "Proposals move through phases automatically, or stewards can manage timing manually" | Automatic via 10-minute cron; manual = author editing times. Stewards have no special controls. |
+| Outcome "displayed on completed proposals" | Displayed only after the proposal is marked fulfilled (`fulfilledAt`), not merely completed. |
+
+---
+
+## 10. Source references
+
+- Backend models: `apps/backend/api/models/Post.js` (status cron SQL, vote methods, options, `upcomingPostReminders`, `processEvent*`), `models/event/mixin.js`, `models/project/mixin.js`, `models/post/{setupPostAttrs,createPost,updatePost,validatePostData,fulfillPost,postFulfillmentPermissions}.js`, `EventInvitation.js`, `EventResponse.js` (dead), `ProposalOption.js`, `ProposalVote.js`, `ProjectRole.js`, `ProjectContribution.js`, `Contribution.js`, `PostUser.js`, `User.js` (`createRsvpCalendarSubscription`, `rsvpCalendarUrl`, `eventsAttending`, `projects`), `Group.js` (`createEventCalendarSubscription`, `eventCalendarUrl`), `Activity.js`, `Notification.js`, `PushNotification.js`.
+- GraphQL: `apps/backend/api/graphql/{schema.graphql,makeModels.js,makeSchema.js}`, `mutations/{event,project,post,index}.js`; search filters `api/services/Search/util.js`.
+- Cron/digests: `apps/backend/cron.js`, `lib/group/digest2/{util,formatData}.js`; i18n `apps/backend/lib/i18n/en.js`; email templates `api/services/Email.js`.
+- Migrations: `20240218134105_proposals.js`, `20240610131324_proposalType-to-votingMethod.js`, `20251020145500_add-calendar-token.js`, `20251206183200_add-calendar-token-to-groups.js`, `20260116120000_backfill_calendar_tokens_for_groups.js`, `20260803120000_add_meeting_link_to_posts.js`, `schema.sql`.
+- Web: `apps/web/src/components/PostEditor/PostEditor.js` (+ `AnonymousVoteToggle`, `StrictProposalToggle`), `components/PostCard/{EventBody,EventDate,EventRSVP,PeopleInfo,PostBodyProposal,PostCompletion,PostHeader,PostBody}`, `components/{EventInviteDialog,EventTimeDisplay,QuorumBar,SliderInput,PostPeopleDialog,ActionCompletionResponsesDialog,PostListRow,PostBigGridItem,Calendar/calendar-event.tsx,TimezoneSelect}`, `routes/PostDetail/{PostDetail.js,ProjectContributions}`, `routes/GroupCalendarSubscribe/GroupCalendarSubscribe.js`, `routes/ViewContent/ViewContent.js`, `store/models/Post.js` (templates/constants), `store/actions/{respondToEvent,joinProject,leaveProject,processStripeToken,updatePost,createPost}.js`, `store/reducers/ormReducer/index.js`, `util/url.js`, `config/featureFlags.js`, `graphql/fragments/postFieldsFragment.js`.
+- Shared: `packages/shared/src/DateTimeHelpers/DateTimeHelpers.ts`, `packages/presenters/src/{EventInvitationPresenter,NotificationPresenter}.js`.
+- Tests: `apps/backend/api/graphql/mutations/{event,project,createPostMeetingLink}.test.js`, `api/models/event/mixin.test.js`, `test/unit/services/digest2.test.js`; e2e `apps/web/e2e/{event-native-time-pickers,post-editor-remove-times}.spec.js`.
+- Public docs: gitbook `product__full-feature-spec.md` (Events, Mutual Support, Projects, Governance), `guides__hylo-user-guide.md` (§13–14, §17), `guides__hylo-steward-guide.md` (§12–13).
