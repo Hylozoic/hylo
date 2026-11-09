@@ -5,20 +5,22 @@ import GroupAdminsCanEditToggle from './GroupAdminsCanEditToggle'
 import { singleRootGroupId } from '../PostEditor'
 
 describe('GroupAdminsCanEditToggle', () => {
-  it('shows its state and calls the toggle when clicked', async () => {
+  it('is an icon toggle button labelled with the group name, and calls the toggle when clicked', async () => {
     const toggle = jest.fn()
-    render(<GroupAdminsCanEditToggle groupAdminsCanEdit={false} toggleGroupAdminsCanEdit={toggle} groupName='Test Group' />)
-    const row = screen.getByTestId('post-editor-group-admins-can-edit')
-    expect(row).toHaveAttribute('aria-checked', 'false')
-    expect(row).toHaveTextContent('Let group admins edit')
-    await userEvent.click(row)
+    render(<GroupAdminsCanEditToggle groupAdminsCanEdit={false} toggleGroupAdminsCanEdit={toggle} groupName='Test Group' activeIconClassName='is-on' />)
+    const button = screen.getByRole('button', { name: 'Allow other members who can manage content in Test Group to edit this post.' })
+    expect(button).toHaveAttribute('aria-pressed', 'false')
+    expect(button).toHaveAttribute('data-tooltip-content', 'Allow other members who can manage content in Test Group to edit this post.')
+    expect(button.querySelector('svg')).not.toHaveClass('is-on')
+    await userEvent.click(button)
     expect(toggle).toHaveBeenCalledTimes(1)
   })
 
-  it('describes the on state', () => {
-    render(<GroupAdminsCanEditToggle groupAdminsCanEdit toggleGroupAdminsCanEdit={jest.fn()} groupName='Test Group' />)
-    expect(screen.getByTestId('post-editor-group-admins-can-edit')).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByTestId('post-editor-group-admins-can-edit')).toHaveTextContent('Group admins can edit')
+  it('shows the on state', () => {
+    render(<GroupAdminsCanEditToggle groupAdminsCanEdit toggleGroupAdminsCanEdit={jest.fn()} groupName='Test Group' activeIconClassName='is-on' />)
+    const button = screen.getByTestId('post-editor-group-admins-can-edit')
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+    expect(button.querySelector('svg')).toHaveClass('is-on')
   })
 })
 

@@ -1,29 +1,39 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { UserPen } from 'lucide-react'
+import Tooltip from 'components/Tooltip'
 import { cn } from 'util/index'
-import SwitchStyled from 'components/SwitchStyled'
 
-/** Lets a group admin allow the other admins (Manage Content) of the post's single group to edit it (#1727). */
-export default function GroupAdminsCanEditToggle ({ groupAdminsCanEdit = false, toggleGroupAdminsCanEdit, groupName }) {
+/**
+ * PostEditor ActionsBar icon toggle: lets a group admin allow the other admins (Manage Content)
+ * of the post's single group to edit it (#1727). Class names come from ActionsBar so it matches
+ * the other action icons.
+ */
+export default function GroupAdminsCanEditToggle ({
+  groupAdminsCanEdit = false,
+  toggleGroupAdminsCanEdit,
+  groupName,
+  className,
+  iconClassName,
+  activeIconClassName
+}) {
   const { t } = useTranslation()
+  const label = t('Allow other members who can manage content in {{groupName}} to edit this post.', { groupName })
   return (
-    <div
-      className={cn('w-full flex gap-2 text-xs cursor-pointer rounded', groupAdminsCanEdit ? 'text-foreground' : 'text-foreground/50 hover:text-foreground')}
-      onClick={toggleGroupAdminsCanEdit}
-      role='switch'
-      aria-checked={groupAdminsCanEdit}
-      data-testid='post-editor-group-admins-can-edit'
-    >
-      <SwitchStyled
-        checked={groupAdminsCanEdit}
-        onChange={toggleGroupAdminsCanEdit}
-        backgroundColor={groupAdminsCanEdit ? 'hsl(var(--selected))' : 'hsl(var(--foreground))'}
-      />
-      <span>
-        {groupAdminsCanEdit
-          ? t('Group admins can edit - Members who manage content in {{groupName}} can also edit this post.', { groupName })
-          : t('Let group admins edit - Allow members who manage content in {{groupName}} to edit this post.', { groupName })}
-      </span>
-    </div>
+    <>
+      <button
+        type='button'
+        className={className}
+        onClick={toggleGroupAdminsCanEdit}
+        aria-pressed={groupAdminsCanEdit}
+        aria-label={label}
+        data-tooltip-content={label}
+        data-tooltip-id='group-admins-can-edit-tt'
+        data-testid='post-editor-group-admins-can-edit'
+      >
+        <UserPen className={cn(iconClassName, { [activeIconClassName]: groupAdminsCanEdit })} aria-hidden='true' />
+      </button>
+      <Tooltip delay={10} id='group-admins-can-edit-tt' />
+    </>
   )
 }

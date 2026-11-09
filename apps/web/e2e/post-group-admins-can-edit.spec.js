@@ -73,20 +73,29 @@ test('a group admin can let the other admins of the group edit their post', asyn
   await openEditor(page, 'e2e-private-group', postId)
   const toggle = page.getByTestId('post-editor-group-admins-can-edit')
   await expect(toggle).toBeVisible(uiTimeout)
-  await expect(toggle).toHaveAttribute('aria-checked', 'false')
-  await expect(toggle).toContainText('E2E Private Group')
+  const label = 'Allow other members who can manage content in E2E Private Group to edit this post.'
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  await expect(toggle).toHaveAttribute('aria-label', label)
   await toggle.scrollIntoViewIfNeeded()
-  if (SCREENSHOT_DIR) await page.screenshot({ path: `${SCREENSHOT_DIR}/issue-1727-toggle-off-${project}.png` })
+  if (SCREENSHOT_DIR) await page.screenshot({ path: `${SCREENSHOT_DIR}/issue-1727-icon-off-${project}.png` })
+
+  // The tooltip is hidden below the sm breakpoint (components/Tooltip), so only check it on wide screens
+  if (page.viewportSize().width >= 640) {
+    await toggle.hover()
+    await expect(page.getByRole('tooltip').filter({ hasText: label })).toBeVisible(uiTimeout)
+    if (SCREENSHOT_DIR) await page.screenshot({ path: `${SCREENSHOT_DIR}/issue-1727-icon-tooltip-${project}.png` })
+  }
 
   await toggle.click()
-  await expect(toggle).toHaveAttribute('aria-checked', 'true')
-  if (SCREENSHOT_DIR) await page.screenshot({ path: `${SCREENSHOT_DIR}/issue-1727-toggle-on-${project}.png` })
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+  await page.mouse.move(0, 0)
+  if (SCREENSHOT_DIR) await page.screenshot({ path: `${SCREENSHOT_DIR}/issue-1727-icon-on-${project}.png` })
   await saveAndWait(page)
   await expect.poll(async () => (await fetchPost(page, postId)).groupAdminsCanEdit).toBe(true)
 
   // Still on after a reload of the editor
   await openEditor(page, 'e2e-private-group', postId)
-  await expect(page.getByTestId('post-editor-group-admins-can-edit')).toHaveAttribute('aria-checked', 'true', uiTimeout)
+  await expect(page.getByTestId('post-editor-group-admins-can-edit')).toHaveAttribute('aria-pressed', 'true', uiTimeout)
 })
 
 test('the toggle is not offered while the post is in more than one group', async ({ page }) => {

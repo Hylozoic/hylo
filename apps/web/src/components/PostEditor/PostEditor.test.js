@@ -510,9 +510,9 @@ describe('PostEditor', () => {
       const user = userEvent.setup()
 
       const toggle = await screen.findByTestId('post-editor-group-admins-can-edit')
-      expect(toggle).toHaveAttribute('aria-checked', 'false')
+      expect(toggle).toHaveAttribute('aria-pressed', 'false')
       await user.click(toggle)
-      expect(toggle).toHaveAttribute('aria-checked', 'true')
+      expect(toggle).toHaveAttribute('aria-pressed', 'true')
 
       await act(async () => { ref.current.submit() })
       await waitFor(() => expect(updatePost).toHaveBeenCalled())
