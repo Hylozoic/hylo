@@ -1,9 +1,9 @@
+import { isPhoneDevice } from 'util/mobile'
+import { closePostOverlay, getPostDetailCloseDestination, isPostOverlayAbovePrevious, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
+
 jest.mock('util/mobile', () => ({
   isPhoneDevice: jest.fn(() => false)
 }))
-
-import { isPhoneDevice } from 'util/mobile'
-import { getPostDetailCloseDestination, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
 
 function meWithGroups (groupIds) {
   return {
@@ -31,23 +31,23 @@ describe('getPostDetailCloseDestination', () => {
     })
   })
 
-  it('single group + not a member + public → /public/stream', () => {
+  it('single group + not a member + public → /public/all', () => {
     const me = meWithGroups([])
     const post = { isPublic: true, groups: [{ id: '10', slug: 'alpha' }] }
     expect(getPostDetailCloseDestination({ ...base, post, me })).toEqual({
-      pathname: '/public/stream',
+      pathname: '/public/all',
       search: ''
     })
   })
 
-  it('many groups + member of none + public → /public/stream', () => {
+  it('many groups + member of none + public → /public/all', () => {
     const me = meWithGroups([])
     const post = {
       isPublic: true,
       groups: [{ id: '1', slug: 'a' }, { id: '2', slug: 'b' }]
     }
     expect(getPostDetailCloseDestination({ ...base, post, me })).toEqual({
-      pathname: '/public/stream',
+      pathname: '/public/all',
       search: ''
     })
   })
@@ -112,5 +112,72 @@ describe('shouldUseSmartPostClose', () => {
 
   it('is false for in-context view on desktop', () => {
     expect(shouldUseSmartPostClose('all')).toBe(false)
+  })
+})
+
+describe('isPostOverlayAbovePrevious', () => {
+  it('is true when the previous page is the same route without the post', () => {
+    expect(isPostOverlayAbovePrevious(
+      '/groups/foo/members/5/post/99',
+      { pathname: '/groups/foo/members/5' }
+    )).toBe(true)
+  })
+
+  it('ignores trailing slashes', () => {
+    expect(isPostOverlayAbovePrevious(
+      '/groups/foo/members/5/post/99/',
+      { pathname: '/groups/foo/members/5/' }
+    )).toBe(true)
+  })
+
+  it('is false when the post was opened from somewhere else', () => {
+    expect(isPostOverlayAbovePrevious(
+      '/groups/foo/members/5/post/99',
+      { pathname: '/groups/foo/all' }
+    )).toBe(false)
+  })
+})
+
+describe('closePostOverlay', () => {
+  it('pops when the post was opened on top of the current page', () => {
+    const navigate = jest.fn()
+    closePostOverlay({
+      navigate,
+      pathname: '/groups/foo/members/5/post/99',
+      search: '?t=1',
+      previousLocation: { pathname: '/groups/foo/members/5', search: '?t=1' },
+      canGoBack: true
+    })
+    expect(navigate).toHaveBeenCalledWith(-1)
+  })
+
+  it('replaces the post entry when it was not opened from the parent page', () => {
+    const navigate = jest.fn()
+    closePostOverlay({
+      navigate,
+      pathname: '/groups/foo/members/5/post/99',
+      search: '',
+      hash: '',
+      previousLocation: { pathname: '/groups/foo/all' },
+      canGoBack: true
+    })
+    expect(navigate).toHaveBeenCalledWith(
+      { pathname: '/groups/foo/members/5', search: '', hash: '' },
+      { replace: true }
+    )
+  })
+
+  it('does not pop off the site when history cannot go back', () => {
+    const navigate = jest.fn()
+    closePostOverlay({
+      navigate,
+      pathname: '/groups/foo/members/5/post/99',
+      previousLocation: { pathname: '/groups/foo/members/5' },
+      canGoBack: false
+    })
+    expect(navigate).toHaveBeenCalledWith(
+      { pathname: '/groups/foo/members/5', search: '', hash: '' },
+      { replace: true }
+    )
   })
 })

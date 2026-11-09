@@ -30,7 +30,9 @@ test.describe('Batch P4: my transactions & payment result pages', () => {
   test('GET group payment success shows confirmation shell', async ({ page }) => {
     await seedGroupMembershipLastViewed(page, PUBLIC_GROUP_SLUG)
     await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/payment/success`)
-    await waitPastRootSessionLoading(page)
+    // Session is already loaded from the seed visit; skip the 15s "wait for
+    // loader to appear" or the 5s auto-redirect wins and the shell is gone.
+    await waitPastRootSessionLoading(page, { waitForLoaderVisibleTimeoutMs: 0 })
 
     await expect(page.getByRole('heading', { name: /Payment Successful!/i })).toBeVisible(uiTimeout)
     await expect(

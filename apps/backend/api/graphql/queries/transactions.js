@@ -242,7 +242,7 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
         q.offset(offset)
       })
       .fetchAll({
-        withRelated: ['product', 'grantedByGroup', 'track', 'groupRole']
+        withRelated: ['product', 'grantedByGroup', 'track', 'track.group', 'groupRole']
       })
 
     // Transform records into UserTransaction format
@@ -285,7 +285,7 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
         group,
         groupName: group && group.get ? group.get('name') : null,
         track: track && track.id ? track : null,
-        trackName: track && track.get ? track.get('name') : null,
+        trackName: track && track.related ? (track.related('group')?.get('name') || null) : null,
         accessType: derivedAccessType,
         status: record.get('status'),
         purchaseDate: record.get('created_at'),

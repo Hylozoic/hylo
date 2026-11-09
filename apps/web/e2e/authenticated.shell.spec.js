@@ -37,10 +37,10 @@ test.describe('Batch A: authenticated shell & redirects', () => {
     await expect(page.getByLabel(/Name/i).first()).toBeVisible(uiTimeout)
   })
 
-  test('GET /public redirects to /public/stream', async ({ page }) => {
+  test('GET /public redirects to /public/all', async ({ page }) => {
     await page.goto('/public')
     await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(/\/public\/stream(\/.*)?$/, navTimeout)
+    await expect(page).toHaveURL(/\/public\/all(\/.*)?$/, navTimeout)
   })
 
   test('GET /all/members redirects to /all', async ({ page }) => {
@@ -57,15 +57,15 @@ test.describe('Batch A: authenticated shell & redirects', () => {
     await expect(page).not.toHaveURL(/\/all\/settings/, navTimeout)
   })
 
-  test('GET /public/members redirects toward public stream', async ({ page }) => {
+  test('GET /public/members redirects toward public All Activity', async ({ page }) => {
     await page.goto('/public/members')
     await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(/\/public\/stream(\/.*)?$/, navTimeout)
+    await expect(page).toHaveURL(/\/public\/all(\/.*)?$/, navTimeout)
   })
 
-  test('GET /public/settings redirects toward public stream', async ({ page }) => {
+  test('GET /public/settings redirects toward public All Activity', async ({ page }) => {
     await page.goto('/public/settings')
     await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(/\/public\/stream(\/.*)?$/, navTimeout)
+    await expect(page).toHaveURL(/\/public\/all(\/.*)?$/, navTimeout)
   })
 })

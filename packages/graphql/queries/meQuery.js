@@ -57,9 +57,11 @@ export default gql`
     }
     settings {
       alreadySeenTour
+      toursSeen
       colorScheme
       dmNotifications
       commentNotifications
+      unifiedEmailDigest
       locale
       mapBaseLayer
       globalNavStyle

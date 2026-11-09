@@ -8,10 +8,21 @@ import { bodyForNotification, titleForNotification, imageForNotification } from 
 import { isMobileDevice } from 'util/mobile'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
+
+/** Escapes a string for safe insertion into HTML; other values pass through. */
+function escapeHTML (value) {
+  return typeof value === 'string' ? value.replace(/[&<>"']/g, char => HTML_ESCAPES[char]) : value
+}
+
 export default function NotificationItem ({ notification, onClick }) {
   const { activity: { unread } } = notification
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  // Names and post text are user input, and these strings are rendered as HTML
+  const tEscaped = (key, values) => t(key, values && Object.fromEntries(
+    Object.entries(values).map(([name, value]) => [name, escapeHTML(value)])
+  ))
 
   const handleClick = (event) => {
     event.stopPropagation()
@@ -43,12 +54,12 @@ export default function NotificationItem ({ notification, onClick }) {
       <div className='flex flex-col align-start px-3 pt-1'>
         <div className={cn('mb-2', { 'font-bold': unread })}>
           <span
-            dangerouslySetInnerHTML={{ __html: titleForNotification(notification, t) }}
+            dangerouslySetInnerHTML={{ __html: titleForNotification(notification, tEscaped) }}
           />
         </div>
         <div>
           <span
-            dangerouslySetInnerHTML={{ __html: bodyForNotification(notification, t) }}
+            dangerouslySetInnerHTML={{ __html: bodyForNotification(notification, tEscaped) }}
           />
         </div>
         <div className='text-xs text-muted-foreground/50'>{TextHelpers.humanDate(notification.createdAt)}</div>

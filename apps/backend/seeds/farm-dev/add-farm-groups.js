@@ -30,7 +30,6 @@ exports.seed = (knex) => seed('locations', knex)
   .then(() => addlocationsToUsers(knex))
   .then(() => addlocationsToGroups(knex))
   .then(() => addlocationsToPosts(knex))
-  .then(() => addWidgetsToGroups(knex))
   .catch(err => {
     let report = err.message
     if (err.message.includes('unique constraint')) {
@@ -478,17 +477,4 @@ function fakeUser () {
     location: faker.address.country(),
     url: faker.internet.url()
   })
-}
-
-function addWidgetsToGroups (knex) {
-  console.info('  --> farm group_widgets')
-  return knex('groups')
-    .select(['id as group_id'])
-    .whereRaw('groups.type = \'farm\'')
-    .then(groupIds => Promise.all(
-      groupIds.map(({ group_id }, index) => Promise.all(
-        [1, 2, 3, 4, 5, 6, 7, 8, 9].map((widget_id) => knex('group_widgets')
-          .insert({ widget_id, group_id, context: 'landing', order: widget_id, is_visible: true })
-        )
-      ))))
 }

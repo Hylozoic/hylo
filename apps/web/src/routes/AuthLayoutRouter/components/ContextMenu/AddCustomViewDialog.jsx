@@ -5,19 +5,19 @@ import { useDispatch } from 'react-redux'
 import Button from 'components/ui/button'
 import CustomViewFormFields from 'components/CustomViewForm/CustomViewFormFields'
 import {
-  CUSTOM_VIEW_DEFAULT_POST_TYPES,
+  DEFAULT_SELECTED_POST_TYPES,
   CUSTOM_VIEW_DEFAULT_VIEW_MODE
 } from 'components/CustomViewForm/customViewFormConstants'
 import { createGroupView } from 'store/actions/groupViews'
 
 /** Modal for configuring a new custom GroupView before creation.
  * Pass `onAdd` to stage the view locally instead of dispatching a mutation (see AddGroupViewDialog). */
-export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd, addToMenu = true }) {
+export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('ListFilter')
-  const [postTypes, setPostTypes] = useState(CUSTOM_VIEW_DEFAULT_POST_TYPES)
+  const [postTypes, setPostTypes] = useState(DEFAULT_SELECTED_POST_TYPES)
   const [topics, setTopics] = useState([])
   const [searchText, setSearchText] = useState('')
   const [defaultViewMode, setDefaultViewMode] = useState(CUSTOM_VIEW_DEFAULT_VIEW_MODE)
@@ -40,7 +40,7 @@ export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd
         defaultViewMode,
         searchText: searchText.trim() || undefined
       },
-      ...(addToMenu ? { addToEnd: true } : { hidden: true })
+      addToEnd: true
     }
 
     if (onAdd) {
@@ -58,12 +58,12 @@ export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd
     } finally {
       setIsSaving(false)
     }
-  }, [addToMenu, canSave, defaultViewMode, dispatch, group?.id, name, icon, topics, postTypes, searchText, onCreated, onAdd])
+  }, [canSave, defaultViewMode, dispatch, group?.id, name, icon, topics, postTypes, searchText, onCreated, onAdd])
 
   return (
-    <div className='fixed inset-0 z-[60] flex items-center justify-center bg-darkening/50 p-4'>
+    <div data-hylo-nested-dialog className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 p-4 pointer-events-auto'>
       <div className='bg-midground rounded-lg shadow-lg p-5 w-full max-w-md max-h-[85vh] flex flex-col'>
-        <h2 className='text-lg font-semibold mb-4'>{t('Custom View')}</h2>
+        <h2 className='text-lg font-semibold mb-4'>{t('Custom Post Stream')}</h2>
 
         <div className='overflow-y-auto flex-1 min-h-0 p-1'>
           <CustomViewFormFields

@@ -25,6 +25,16 @@ export function getRoundPhaseMeta (round) {
   const votingOpensAt = toDateTime(round?.votingOpensAt)
   const votingClosesAt = toDateTime(round?.votingClosesAt)
 
+  if (round?.phase === 'draft' || round?.phase === 'archived') {
+    return {
+      currentPhase: round.phase === 'archived' ? 'archived' : 'draft',
+      submissionsOpenAt,
+      submissionsCloseAt,
+      votingOpensAt,
+      votingClosesAt
+    }
+  }
+
   let currentPhase = 'draft'
 
   if (round?.votingClosesAt && votingClosesAt && votingClosesAt <= now) {
@@ -35,7 +45,7 @@ export function getRoundPhaseMeta (round) {
     currentPhase = 'discussion'
   } else if (round?.submissionsOpenAt && submissionsOpenAt && submissionsOpenAt <= now) {
     currentPhase = 'submissions'
-  } else if (round?.publishedAt && round.publishedAt <= now) {
+  } else if (round?.phase && round.phase !== 'draft' && round.phase !== 'archived') {
     currentPhase = 'open'
   }
 

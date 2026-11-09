@@ -68,3 +68,18 @@
     }
   }
 }
+
+/* The plane the inset menu card sits on. Mixing the theme background toward the
+   darkening colour keeps it theme-aware across all palettes while giving the
+   lighter card a surface to read against. Dark mode needs a much stronger pull:
+   its background already sits close to the darkening colour, so the same 18%
+   that clearly separates the two in light mode is barely visible. */
+.plane {
+  --menu-plane: color-mix(in srgb, hsl(var(--background)), hsl(var(--darkening)) 18%);
+
+  background-color: var(--menu-plane);
+}
+
+:global(.dark) .plane {
+  --menu-plane: color-mix(in srgb, hsl(var(--background)), hsl(var(--darkening)) 45%);
+}

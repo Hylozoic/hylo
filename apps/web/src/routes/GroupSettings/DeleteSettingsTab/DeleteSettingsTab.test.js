@@ -44,4 +44,3 @@ describe('DeleteSettingsTab', () => {
     expect(deleteGroup).toHaveBeenCalled()
   })
 })
-

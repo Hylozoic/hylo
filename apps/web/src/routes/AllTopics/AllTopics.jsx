@@ -82,11 +82,11 @@ function AllTopics (props) {
 
   useEffect(() => {
     setHeaderDetails({
-      title: 'All Topics',
+      title: t('All Topics'),
       icon: 'Topics',
       search: true
     })
-  }, [])
+  }, [t])
 
   const updateTopicsCache = () => {
     setTotalTopicsCached(totalTopics)

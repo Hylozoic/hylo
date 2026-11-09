@@ -1,8 +1,8 @@
-/* global GroupToGroupJoinQuestion, Location, Slack, Widget, FundingRound */
+/* global GroupToGroupJoinQuestion, Location, Slack, FundingRound */
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
-import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
+import { clone, defaults, difference, escape, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
 import { v4 as uuidv4 } from 'uuid'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
 import fetch from 'node-fetch'
@@ -10,16 +10,19 @@ import randomstring from 'randomstring'
 import wkx from 'wkx'
 import ical from 'ical-generator'
 import { writeStringToS3 } from '../../lib/uploader/storage'
+import { safeFetch } from '../../lib/safeFetch'
 
 import mixpanel from '../../lib/mixpanel'
 import { AnalyticsEvents, LocationHelpers, POST_TYPE_TO_TYPED_VIEW } from '@hylo/shared'
 import HasSettings from './mixins/HasSettings'
 import findOrCreateThread from './post/findOrCreateThread'
+import { finishQueuedChatSpaceConversion } from './space/convertChatSpaceToDiscussion'
 import { groupFilter } from '../graphql/filters'
 import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import { getLocaleStrings } from '../../lib/i18n/locales'
+import { groupRoom, userRoom, pushToSockets } from '../services/Websockets'
 const { createGroupScope } = require('../../lib/scopes')
 
 export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
@@ -30,10 +33,28 @@ export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'nav_order'
 ]
 
+// Notification prefs to copy from a parent membership onto an auto-added space membership.
+// addMembers replaces its default settings when callers pass settings, so these must be included.
+// Missing keys fall back to the same defaults a normal join would get.
+function notificationSettingsFromMembership (membership) {
+  const settings = (membership && membership.get('settings')) || {}
+  return {
+    postNotifications: settings.postNotifications != null ? settings.postNotifications : 'all',
+    digestFrequency: settings.digestFrequency || 'daily',
+    sendEmail: settings.sendEmail !== false,
+    sendPushNotifications: settings.sendPushNotifications !== false
+  }
+}
+
 // For files in the public directory, reference them with the base URL
 const DEFAULT_BANNER = '/default-group-banner.svg'
 const DEFAULT_AVATAR = '/default-group-avatar.svg'
-const DEFAULT_CHAT_ROOM = 'general'
+
+// GroupInput.invitePolicy is 'everyone' or 'stewards'
+function invitePolicyFromData (policy) {
+  if (policy && typeof policy === 'object') return policy.mode
+  return policy
+}
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'groups',
@@ -46,6 +67,21 @@ module.exports = bookshelf.Model.extend(merge({
       const b = Buffer.from(response.geo_shape, 'hex')
       const parsedGeo = wkx.Geometry.parse(b)
       response.geo_shape = parsedGeo.toGeoJSON()
+    }
+
+    // format() JSON.stringifies jsonb arrays for knex. RETURNING / fetch can
+    // still hand back a string; GraphQL [String]/[Int] fields need a real array.
+    if (typeof response.accepted_post_types === 'string') {
+      try {
+        const parsed = JSON.parse(response.accepted_post_types)
+        if (Array.isArray(parsed)) response.accepted_post_types = parsed
+      } catch (e) {}
+    }
+    if (typeof response.required_roles === 'string') {
+      try {
+        const parsed = JSON.parse(response.required_roles)
+        if (Array.isArray(parsed)) response.required_roles = parsed
+      } catch (e) {}
     }
 
     return response
@@ -112,7 +148,14 @@ module.exports = bookshelf.Model.extend(merge({
 
   // ******** Getters ******* //
 
+  /**
+   * Active agreements for this group. Spaces inherit the parent group's agreements.
+   */
   agreements: function () {
+    const parentId = this.get('parent_id')
+    if (parentId) {
+      return Group.forge({ id: parentId }).agreements()
+    }
     return this.belongsToMany(Agreement).through(GroupAgreement)
       .where('groups_agreements.active', true)
       .withPivot(['order']).query(q => {
@@ -120,8 +163,10 @@ module.exports = bookshelf.Model.extend(merge({
       })
   },
 
-  // The full tree of child groups + grandchild groups, etc. includes the root group too
+  // The full tree of child groups + grandchild groups, etc. includes the root group too.
+  // Parent-child only — peer relationships share this table and must not appear in streams.
   allChildGroups () {
+    const parentChild = Group.RelationshipType.PARENT_CHILD
     return Group.collection().query(q => {
       q.where('groups.active', true)
 
@@ -129,23 +174,19 @@ module.exports = bookshelf.Model.extend(merge({
       q.whereRaw(`groups.id in (
         WITH RECURSIVE group_nodes(id, child, all_child_ids) AS (
             SELECT id, child_group_id, ARRAY[child_group_id]
-            FROM group_relationships WHERE parent_group_id = ? and active = true
+            FROM group_relationships
+            WHERE parent_group_id = ? AND active = true AND relationship_type = ?
         UNION ALL
             SELECT child_nodes.id, child_nodes.child_group_id, all_child_ids||child_nodes.child_group_id
             FROM group_relationships child_nodes
             JOIN group_nodes n
               ON n.child = child_nodes.parent_group_id
               AND child_nodes.active = true
+              AND child_nodes.relationship_type = ?
               AND child_nodes.child_group_id <> ALL (all_child_ids)
         )
         select distinct unnest(all_child_ids) as child_id from group_nodes order by child_id
-      )`, [this.id])
-    })
-  },
-
-  chatRooms () {
-    return this.hasMany(ContextWidget).query(q => {
-      q.whereNotNull('view_chat_id')
+      )`, [this.id, parentChild, parentChild])
     })
   },
 
@@ -159,13 +200,17 @@ module.exports = bookshelf.Model.extend(merge({
           'groups.active': true
         }
       })
+      .query(q => Group.excludeSpaces(q))
       .orderBy('groups.name', 'asc')
   },
 
   // Spaces & Views: all child spaces of this group/space, via groups.parent_id
-  // (includes archived spaces — filter on active where needed) (spec section 3.4)
+  // (includes archived spaces; excludes deleted active=false spaces)
   spaces () {
-    return this.hasMany(Group, 'parent_id').query(q => q.where('type', 'space'))
+    return this.hasMany(Group, 'parent_id').query(q => {
+      q.where('type', 'space')
+      q.where('active', true)
+    })
   },
 
   comments: function () {
@@ -178,16 +223,8 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
-  contextWidgets () {
-    return this.hasMany(ContextWidget)
-  },
-
   creator: function () {
     return this.belongsTo(User, 'created_by_id')
-  },
-
-  customViews () {
-    return this.hasMany(CustomView)
   },
 
   fundingRounds () {
@@ -251,28 +288,6 @@ module.exports = bookshelf.Model.extend(merge({
     return process.env.PROTOCOL + '://' + process.env.DOMAIN + '/noo/group/' + this.get('slug') + '/murmurations'
   },
 
-  hasChatFor (topic) {
-    return this.chatRooms().where('view_chat_id', topic.id).fetch()
-  },
-
-  homeWidget () {
-    return ContextWidget.query(q => {
-      q.with('home_widget', qb => {
-        qb.from('context_widgets')
-          .where({
-            group_id: this.id,
-            type: 'home'
-          })
-          .select('id')
-      })
-        .from('context_widgets')
-        .whereRaw('parent_id = (select id from home_widget)')
-        .andWhere('group_id', this.id)
-        .orderBy('order', 'asc')
-        .limit(1)
-    }).fetch()
-  },
-
   isHidden () {
     return this.get('visibility') === Group.Visibility.HIDDEN
   },
@@ -324,6 +339,11 @@ module.exports = bookshelf.Model.extend(merge({
 
   memberCount: function () {
     return this.get('num_members')
+  },
+
+  /** Cached count of pending (unprocessed) join requests. */
+  openJoinRequestCount: function () {
+    return this.get('num_open_join_requests') || 0
   },
 
   // This returns all members with the given responsibilities (ids or title strings)
@@ -394,6 +414,7 @@ module.exports = bookshelf.Model.extend(merge({
           'groups.active': true
         }
       })
+      .query(q => Group.excludeSpaces(q))
       .withPivot(['settings'])
       .orderBy('groups.name', 'asc')
   },
@@ -430,7 +451,8 @@ module.exports = bookshelf.Model.extend(merge({
         .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
         .where('groups.active', true)
         .where('groups.id', '!=', groupId)
-        .orderBy('groups.name', 'asc')
+      Group.excludeSpaces(qb)
+      qb.orderBy('groups.name', 'asc')
     })
   },
 
@@ -490,7 +512,8 @@ module.exports = bookshelf.Model.extend(merge({
             qb4.andWhere(groupId, 'in', selectStewardedGroupIds)
           })
         })
-        .orderBy('groups.name', 'asc')
+      Group.excludeSpaces(qb)
+      qb.orderBy('groups.name', 'asc')
     })
   },
 
@@ -566,12 +589,15 @@ module.exports = bookshelf.Model.extend(merge({
 
   // The posts to show for a particular user viewing a group's stream or map
   // includes direct posts to this group + posts to child groups (group_relationships)
-  // and child spaces (groups.parent_id) the user is a member of
+  // and child spaces (groups.parent_id) the user is an active member of
   viewPosts (userId) {
     const treeOfGroupsForMember = this.allChildGroups().query(q => {
       q.select('groups.id')
       q.join('group_memberships', 'group_memberships.group_id', 'groups.id')
-      q.where('group_memberships.user_id', userId)
+      q.where({
+        'group_memberships.user_id': userId,
+        'group_memberships.active': true
+      })
     })
 
     // Spaces link via parent_id, not group_relationships (see spaces() / spec §3.4)
@@ -582,12 +608,12 @@ module.exports = bookshelf.Model.extend(merge({
         'groups.parent_id': this.id,
         'groups.type': 'space',
         'groups.active': true,
-        'group_memberships.user_id': userId
+        'group_memberships.user_id': userId,
+        'group_memberships.active': true
       })
     })
 
     return Post.collection().query(q => {
-      q.queryContext({ primaryGroupId: this.id }) // To help with sorting pinned posts
       q.join('users', 'posts.user_id', 'users.id')
       q.where('users.active', true)
       q.andWhere(q2 => {
@@ -597,16 +623,12 @@ module.exports = bookshelf.Model.extend(merge({
             q4.whereIn('groups_posts.group_id', treeOfGroupsForMember.query())
             q4.orWhereIn('groups_posts.group_id', childSpacesForMember.query())
           })
-          q3.andWhere('posts.user_id', '!=', User.AXOLOTL_ID)
+          q3.andWhere(q5 => {
+            q5.where('posts.user_id', '!=', User.AXOLOTL_ID)
+              .orWhereIn('posts.type', Post.NOTICE_TYPES)
+          })
         })
       })
-    })
-  },
-
-  widgets: function () {
-    return this.hasMany(GroupWidget).query(q => {
-      q.select(['widgets.name'])
-      q.join('widgets', 'widgets.id', 'group_widgets.widget_id')
     })
   },
 
@@ -636,7 +658,7 @@ module.exports = bookshelf.Model.extend(merge({
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
     const groupSettings = this.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
-    const { assignCoordinator, ...membershipAttrs } = attrs
+    const { assignAdministrator, ...membershipAttrs } = attrs
 
     const updatedAttribs = Object.assign(
       {},
@@ -653,11 +675,15 @@ module.exports = bookshelf.Model.extend(merge({
       pick(omitBy(membershipAttrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
     )
 
-    const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
+    // Normalize to strings: pg bigint ids are strings, but callers (e.g. Stripe
+    // checkout grant) often pass parseInt numbers. lodash difference is strict,
+    // so mismatched types treat returning members as "new", hit the unique
+    // constraint after reactivation, and skip the num_members increment.
+    const userIds = usersOrIds.map(x => String(x instanceof User ? x.id : x))
     const existingMemberships = await this.memberships(true)
       .query(q => q.whereIn('user_id', userIds)).fetch({ transacting })
-    const reactivatedUserIds = existingMemberships.filter(m => !m.get('active')).map(m => m.get('user_id'))
-    const existingUserIds = existingMemberships.pluck('user_id')
+    const reactivatedUserIds = existingMemberships.filter(m => !m.get('active')).map(m => String(m.get('user_id')))
+    const existingUserIds = existingMemberships.pluck('user_id').map(id => String(id))
     const newUserIds = difference(userIds, existingUserIds)
     const updatedMemberships = await this.updateMembers(existingUserIds, updatedAttribs, { transacting })
 
@@ -683,16 +709,18 @@ module.exports = bookshelf.Model.extend(merge({
       await User.followTags(id, this.id, defaultTagIds, transacting)
     }
 
-    if (assignCoordinator) {
+    if (assignAdministrator) {
       for (const id of userIds) {
-        await GroupMembership.assignCoordinatorRole(id, this.id, { transacting })
+        await GroupMembership.assignAdministratorRole(id, this.id, { transacting })
       }
     }
 
     // Increment num_members
     // XXX: num_members is updated every 10 minutes via cron, we are doing this here too for the case that someone joins a group and moderator looks immediately at member count after that
+    // Coalesce: groups created without the column set (early spaces) carried NULL,
+    // and NULL + n is NULL — the count could never self-heal through joins
     if (newUserIds.length > 0 || reactivatedUserIds.length > 0) {
-      await this.save({ num_members: this.get('num_members') + newUserIds.length + reactivatedUserIds.length }, { transacting })
+      await this.save({ num_members: (this.get('num_members') || 0) + newUserIds.length + reactivatedUserIds.length }, { transacting })
     }
 
     Queue.classMethod('Group', 'afterAddMembers', {
@@ -702,22 +730,6 @@ module.exports = bookshelf.Model.extend(merge({
     })
 
     return updatedMemberships.concat(newMemberships)
-  },
-
-  // TODO: remove this, replaced by functionality in setupContextWidgets
-  createDefaultTopics: async function (group_id, user_id, transacting) {
-    return Tag.where({ name: DEFAULT_CHAT_ROOM }).fetch({ transacting })
-      .then(generalTag => {
-        return GroupTag.create({ updated_at: new Date(), group_id, tag_id: generalTag.get('id'), user_id, is_default: true }, { transacting })
-      })
-  },
-
-  createInitialWidgets: async function (transacting) {
-    // In the future this will have to look up the template of whatever group is being created and add widgets based on that
-    const initialWidgets = await Widget.query(q => q.whereIn('id', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 19, 20, 21])).fetchAll({ transacting })
-    Promise.map(initialWidgets.models, async (widget) => {
-      await GroupWidget.create({ group_id: this.id, widget_id: widget.id, order: widget.id, context: widget.id > 10 ? 'group_profile' : 'landing' }, { transacting })
-    })
   },
 
   // TODO: remove this, we are not using it right now
@@ -746,11 +758,30 @@ module.exports = bookshelf.Model.extend(merge({
       }))
   },
 
-  async removeMembers (usersOrIds, { transacting } = {}) {
+  async removeMembers (usersOrIds, { transacting, fromParentLeave = false } = {}) {
     const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
     const roleScopeId = await Group.roleScopeId(this)
 
-    await this.updateMembers(usersOrIds, { active: false, nav_order: null }, { transacting })
+    // Runs first, while the memberships it settles are still active
+    await this.settleParticipation(userIds, { transacting })
+
+    const leaveAttrs = { active: false, nav_order: null }
+    // Opt out of auto-add only when leaving the space itself. Parent-group leave
+    // deactivates space memberships too, but those people should be re-added if they rejoin.
+    if (this.get('type') === 'space' && !fromParentLeave) {
+      leaveAttrs.settings = { leftSpace: true }
+    }
+    await this.updateMembers(usersOrIds, leaveAttrs, { transacting })
+
+    // Per-view unread rows would otherwise survive as frozen badge signals: unread
+    // increments skip inactive members, but the parent group's badge check matches
+    // group_views_users on user_id alone, so a leftover count can never be cleared.
+    const viewUsersQuery = bookshelf.knex('group_views_users')
+      .whereIn('user_id', userIds)
+      .whereIn('view_id', bookshelf.knex('group_views').where('group_id', this.id).select('id'))
+      .del()
+    if (transacting) viewUsersQuery.transacting(transacting)
+    await viewUsersQuery
 
     // Role assignments live on the role-scope group (parent for spaces). Only revoke when
     // leaving that group — not when leaving a child space while still in the parent.
@@ -773,11 +804,62 @@ module.exports = bookshelf.Model.extend(merge({
         const spaceMemberships = await GroupMembership.forIds(userIds, space.id, { multiple: true }).fetch({ transacting })
         const activeSpaceUserIds = spaceMemberships.pluck('user_id')
         if (activeSpaceUserIds.length === 0) return
-        await space.removeMembers(activeSpaceUserIds, { transacting })
+        await space.removeMembers(activeSpaceUserIds, { transacting, fromParentLeave: true })
       })
     }
 
-    return this.save({ num_members: this.get('num_members') - usersOrIds.length }, { transacting })
+    return this.save({ num_members: Math.max(0, (this.get('num_members') || 0) - usersOrIds.length) }, { transacting })
+  },
+
+  /**
+   * Settle track enrollment / funding round participation for members leaving this space.
+   * Lives here rather than in Track.leave / FundingRound.leave so every departure path is
+   * covered — direct leave, moderator removal, and the parent-group cascade in removeMembers.
+   * Must be called before memberships are deactivated: only currently active members count.
+   * For funding rounds, also zeroes any tokens the leavers allocated to submissions so a
+   * later rejoin cannot keep those votes.
+   */
+  async settleParticipation (userIds, { transacting } = {}) {
+    const participation = [
+      this.get('track_id') && { table: 'tracks', column: 'num_people_enrolled', id: this.get('track_id'), setting: 'completedAt' },
+      this.get('funding_round_id') && { table: 'funding_rounds', column: 'num_participants', id: this.get('funding_round_id'), setting: 'tokensRemaining' }
+    ].filter(Boolean)
+    if (participation.length === 0) return
+
+    const memberships = await GroupMembership.forIds(userIds, this.id, { multiple: true }).fetch({ transacting })
+    if (memberships.length === 0) return
+
+    const fundingRoundId = this.get('funding_round_id')
+    if (fundingRoundId) {
+      const submissionIdsQuery = bookshelf.knex('groups_posts')
+        .join('posts', 'posts.id', 'groups_posts.post_id')
+        .where('groups_posts.group_id', this.id)
+        .where('posts.type', Post.Type.SUBMISSION)
+        .pluck('posts.id')
+      if (transacting) submissionIdsQuery.transacting(transacting)
+      const submissionIds = await submissionIdsQuery
+      if (submissionIds.length > 0) {
+        const votesQuery = bookshelf.knex('posts_users')
+          .whereIn('post_id', submissionIds)
+          .whereIn('user_id', userIds)
+          .update({ tokens_allocated_to: 0 })
+        if (transacting) votesQuery.transacting(transacting)
+        await votesQuery
+      }
+    }
+
+    await Promise.map(memberships.models, async membership => {
+      participation.forEach(({ setting }) => membership.removeSetting(setting))
+      await membership.save({ settings: membership.get('settings') }, { patch: true, transacting })
+    })
+
+    await Promise.map(participation, async ({ table, column, id }) => {
+      const query = bookshelf.knex(table)
+        .where('id', id)
+        .update({ [column]: bookshelf.knex.raw('greatest(0, coalesce(??, 0) - ?)', [column, memberships.length]) })
+      if (transacting) query.transacting(transacting)
+      await query
+    })
   },
 
   async toMurmurationsObject () {
@@ -813,7 +895,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   async updateMembers (usersOrIds, attrs, { transacting } = {}) {
-    const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
+    const userIds = usersOrIds.map(x => String(x instanceof User ? x.id : x))
 
     const existingMemberships = await this.memberships(true)
       .query(q => q.whereIn('user_id', userIds)).fetch({ transacting })
@@ -822,6 +904,11 @@ module.exports = bookshelf.Model.extend(merge({
     const joinFlowReset = { joinQuestionsAnsweredAt: null, showJoinForm: true }
     if (pickedAttrs.active === false || pickedAttrs.active === true) {
       joinFlowReset.agreementsAcceptedAt = null
+      // Treat leave/rejoin as a first visit so welcome ("show to new members") shows again
+      joinFlowReset.lastReadAt = null
+    }
+    if (pickedAttrs.active === true && this.get('type') === 'space') {
+      joinFlowReset.leftSpace = false
     }
     const updatedAttribs = Object.assign(
       {},
@@ -829,144 +916,13 @@ module.exports = bookshelf.Model.extend(merge({
       {
         settings: merge(
           {},
-          pickedAttrs.settings || {},
-          joinFlowReset
+          joinFlowReset,
+          pickedAttrs.settings || {}
         )
-      } // updateAndSave will merge these with existing settings
+      } // caller settings win so auto-add can skip the join form / emails
     )
 
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, { transacting }))
-  },
-
-  async setupContextWidgets (trx) {
-    // First check if widgets already exist for this group
-    const existingWidgets = await ContextWidget.where({ group_id: this.id }).fetchAll({ transacting: trx })
-    if (existingWidgets.length > 0) {
-      return // Group already has widgets set up
-    }
-
-    // Get homeView from settings (defaults to 'CHAT' for backward compatibility)
-    const homeView = this.getSetting('homeView') || 'CHAT'
-
-    // Create home widget first
-    // TODO: this should be default view instead of home
-    const homeWidget = await ContextWidget.forge({
-      group_id: this.id,
-      type: 'home',
-      title: 'widget-home',
-      order: 1,
-      created_at: new Date(),
-      updated_at: new Date()
-    }).save(null, { transacting: trx })
-
-    // Get general tag id for the general chat
-    const generalTag = await Tag.where({ name: DEFAULT_CHAT_ROOM }).fetch({ transacting: trx })
-
-    // XXX: make sure there is a general tag for every group
-    const generalGroupTag = await GroupTag.where({ group_id: this.id, tag_id: generalTag.id }).fetch({ transacting: trx })
-    if (!generalGroupTag) {
-      await GroupTag.create({ group_id: this.id, tag_id: generalTag.id, user_id: this.get('created_by_id'), is_default: true }, { transacting: trx })
-    }
-
-    // Create home view widget based on homeView setting
-    if (homeView === 'CHAT') {
-      // Create general chat widget as child of home widget
-      await ContextWidget.forge({
-        group_id: this.id,
-        type: 'viewChat',
-        view_chat_id: generalTag.id,
-        parent_id: homeWidget.id,
-        order: 1,
-        created_at: new Date(),
-        updated_at: new Date()
-      }).save(null, { transacting: trx })
-    } else if (homeView === 'STREAM') {
-      // Create stream widget as child of home widget
-      await ContextWidget.forge({
-        group_id: this.id,
-        title: 'widget-stream',
-        view: 'stream',
-        parent_id: homeWidget.id,
-        order: 1,
-        created_at: new Date(),
-        updated_at: new Date()
-      }).save(null, { transacting: trx })
-    } else if (homeView === 'MAP') {
-      // Create map widget as child of home widget
-      await ContextWidget.forge({
-        group_id: this.id,
-        title: 'widget-map',
-        type: 'map',
-        view: 'map',
-        parent_id: homeWidget.id,
-        order: 1,
-        created_at: new Date(),
-        updated_at: new Date()
-      }).save(null, { transacting: trx })
-    }
-
-    // These are displayed in the menu, with the caveat being that the auto-view is hidden until it has child views
-    const orderedWidgets = [
-      { title: 'widget-chats', type: 'chats', order: 2 },
-      { title: 'widget-auto-view', type: 'auto-view', order: 3 },
-      { title: 'widget-members', type: 'members', view: 'members', order: 4 },
-      { title: 'widget-setup', type: 'setup', visibility: 'admin', order: 5 },
-      { title: 'widget-custom-views', type: 'custom-views', order: 6 }
-    ]
-
-    // These are accessible in the all view
-    // Filter out widgets that are already created as the home widget to avoid duplicates
-    // Also add general chat widget to unorderedWidgets when homeView is STREAM or MAP
-    const baseUnorderedWidgets = [
-      { title: 'widget-about', type: 'about', view: 'about' },
-      { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
-      { title: 'widget-events', type: 'events', view: 'events' },
-      { title: 'widget-groups', type: 'groups', view: 'groups' },
-      { title: 'widget-map', type: 'map', view: 'map' },
-      { title: 'widget-moderation', type: 'moderation', view: 'moderation' },
-      { title: 'widget-projects', type: 'projects', view: 'projects' },
-      { title: 'widget-proposals', type: 'proposals', view: 'proposals' },
-      { title: 'widget-requests-and-offers', view: 'requests-and-offers' },
-      { title: 'widget-resources', type: 'resources', view: 'resources' },
-      { title: 'widget-stream', view: 'stream' },
-      { title: 'widget-topics', type: 'topics', view: 'topics' },
-      { title: 'widget-tracks', type: 'tracks', view: 'tracks', visibility: 'admin' },
-      { title: 'widget-funding-rounds', type: 'funding-rounds', view: 'funding-rounds', visibility: 'admin' }
-    ]
-
-    // Add general chat widget to unorderedWidgets when homeView is STREAM or MAP
-    // (when homeView is CHAT, it's already created as child of home widget above)
-    if (homeView === 'STREAM' || homeView === 'MAP') {
-      baseUnorderedWidgets.push({
-        type: 'viewChat',
-        view_chat_id: generalTag.id,
-        title: generalTag.get('name') || DEFAULT_CHAT_ROOM
-      })
-    }
-
-    const unorderedWidgets = baseUnorderedWidgets.filter(widget => {
-      // Exclude stream widget if it's already the home view
-      if (homeView === 'STREAM' && widget.view === 'stream' && widget.title === 'widget-stream') {
-        return false
-      }
-      // Exclude map widget if it's already the home view
-      if (homeView === 'MAP' && widget.type === 'map' && widget.view === 'map' && widget.title === 'widget-map') {
-        return false
-      }
-      return true
-    })
-
-    await Promise.all([
-      ...orderedWidgets,
-      ...unorderedWidgets
-    ].map(widget =>
-      ContextWidget.forge({
-        group_id: this.id,
-        created_at: new Date(),
-        updated_at: new Date(),
-        ...widget
-      }).save(null, { transacting: trx })
-    ))
   },
 
   update: async function (changes, updatedByUserId) {
@@ -980,28 +936,37 @@ module.exports = bookshelf.Model.extend(merge({
 
     const attributes = mapValues(pick(changes, whitelist), (v, k) => trimAttrs.includes(k) ? trim(v) : v)
     const saneAttrs = clone(attributes)
+    const wasAutoAdd = this.get('type') === 'space' && !!this.getSetting('auto_add_members')
 
     if (attributes.settings) {
-      saneAttrs.settings = merge({}, this.get('settings'), attributes.settings)
+      // The commons request is only changed through requestPublicListing / reviewPublicListingRequest
+      const { public_listing_request: _ignored, ...settingsChanges } = attributes.settings
+      saneAttrs.settings = merge({}, this.get('settings'), settingsChanges)
     }
 
     // If location_id is explicitly set to something empty then set it to null
     // Otherwise leave it alone
-    saneAttrs.location_id = saneAttrs.hasOwnProperty('location_id') && isEmpty(saneAttrs.location_id) ? null : saneAttrs.location_id
+    saneAttrs.location_id = Object.prototype.hasOwnProperty.call(saneAttrs, 'location_id') && isEmpty(saneAttrs.location_id) ? null : saneAttrs.location_id
 
     // Make sure geometry column goes into the database correctly, converting from GeoJSON
     if (!isEmpty(attributes.geo_shape)) {
-      const st = knexPostgis(bookshelf.knex)
-      saneAttrs.geo_shape = st.geomFromGeoJSON(attributes.geo_shape)
-    } else if (saneAttrs.hasOwnProperty('geo_shape')) {
+      saneAttrs.geo_shape = Group.geoShapeFromGeoJSON(attributes.geo_shape)
+    } else if (Object.prototype.hasOwnProperty.call(saneAttrs, 'geo_shape')) {
       // if geo_shape is explicitly set to an empty value then unset it
       saneAttrs.geo_shape = null
     }
 
     this.set(saneAttrs)
     await this.validate()
+    const becomingAutoAdd = this.get('type') === 'space' &&
+      !!this.getSetting('auto_add_members') &&
+      !wasAutoAdd
     await bookshelf.transaction(async transacting => {
-      if (changes.agreements) {
+      if (changes.invite_policy) {
+        await GroupRole.setInvitePolicy(this.id, invitePolicyFromData(changes.invite_policy), { transacting })
+      }
+
+      if (changes.agreements && this.get('type') !== 'space' && !this.get('parent_id')) {
         const currentAgreementIds = (await this.agreements().fetch({ transacting })).pluck('id')
         const newAgreementIds = []
 
@@ -1079,69 +1044,28 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
 
-      if (changes.custom_views) {
-        const newViews = changes.custom_views.filter(cv => trim(cv.name) !== '')
-        const existingViews = (await this.customViews().fetch({ transacting })).models
-        const existingById = {}
-        for (const view of existingViews) {
-          existingById[view.id] = view
-        }
-        const keptIds = new Set()
-
-        for (const incoming of newViews) {
-          const topics = incoming.topics
-          const incomingData = { ...incoming }
-          delete incomingData.topics
-          const incomingId = incomingData.id
-          delete incomingData.id
-          if (incomingData.order == null) incomingData.order = 1
-
-          let currentView
-          const existingView = incomingId && (existingById[incomingId] || existingById[parseInt(incomingId, 10)])
-          if (existingView) {
-            currentView = existingView
-            await currentView.save(incomingData, { transacting })
-            keptIds.add(currentView.id)
-
-            const collection = await currentView.collection().fetch()
-            if (collection && collection.get('name') !== currentView.get('name')) {
-              await collection.save({ name: currentView.get('name') })
-            }
-          } else {
-            currentView = await CustomView.forge({ ...incomingData, group_id: this.id }).save({}, { transacting })
-            keptIds.add(currentView.id)
-          }
-
-          await currentView.updateTopics(topics, transacting)
-        }
-
-        for (const view of existingViews) {
-          if (!keptIds.has(view.id)) {
-            await ContextWidget.where({ group_id: this.id, custom_view_id: view.id }).destroy({ transacting })
-            await view.destroy({ transacting })
-          }
-        }
-      }
-
       if (changes.settings && typeof changes.settings.show_welcome_page === 'boolean') {
-        // Add welcome view/widget if it doesn't exist
-        let welcomeWidget = await ContextWidget.where({ group_id: this.id, type: 'welcome' }).fetch({ transacting })
-        if (!welcomeWidget) {
-          welcomeWidget = await ContextWidget.forge({
-            group_id: this.id,
-            type: 'welcome',
-            title: 'widget-welcome',
-            view: 'welcome'
-          }).save({}, { transacting })
+        let welcomeView = await GroupView.where({ group_id: this.id, type: 'welcome' }).fetch({ transacting })
+        if (changes.settings.show_welcome_page) {
+          if (!welcomeView) {
+            welcomeView = await GroupView.appendToMenu({
+              group_id: this.id,
+              type: 'welcome'
+            }, { transacting })
+          } else if (welcomeView.get('order') == null) {
+            await GroupView.reorder({ id: welcomeView.id, addToEnd: true, trx: transacting })
+          }
         }
-        // Hide or show it based on the setting
-        await welcomeWidget.save({ visibility: changes.settings.show_welcome_page ? 'all' : 'none' }, { transacting })
       }
       await this.save({}, { transacting })
     })
     // If a new location is being passed in but not a new location_id then we geocode on the server
     if (changes.location && changes.location !== this.get('location') && !changes.location_id) {
       await Queue.classMethod('Group', 'geocodeLocation', { groupId: this.id })
+    }
+
+    if (becomingAutoAdd) {
+      Queue.classMethod('Group', 'addEligibleMembersToSpace', { spaceId: this.id })
     }
 
     if (this.hasMurmurationsProfile()) {
@@ -1170,6 +1094,22 @@ module.exports = bookshelf.Model.extend(merge({
 }, HasSettings), {
   // ****** Class constants ****** //
 
+  Status: {
+    DRAFT: 'draft',
+    PUBLISHED: 'published',
+    SUBMISSIONS: 'submissions',
+    DISCUSSION: 'discussion',
+    VOTING: 'voting',
+    COMPLETED: 'completed',
+    ARCHIVED: 'archived'
+  },
+
+  /** Statuses that count as published (visible content, not draft or archived). */
+  PUBLISHED_STATUSES: ['published', 'submissions', 'discussion', 'voting', 'completed'],
+
+  /** Funding-round-only statuses past published. */
+  FUNDING_ROUND_LIFECYCLE_STATUSES: ['submissions', 'discussion', 'voting', 'completed'],
+
   Visibility: {
     HIDDEN: 0,
     PROTECTED: 1,
@@ -1195,6 +1135,18 @@ module.exports = bookshelf.Model.extend(merge({
 
     const members = await User.query(q => q.whereIn('id', newUserIds.concat(reactivatedUserIds))).fetchAll()
     const group = await Group.find(groupId)
+
+    // Auto-add new/reactivated parent-group members to spaces with autoAddMembers
+    if (group && group.get('type') !== 'space') {
+      const candidateIds = (newUserIds || []).concat(reactivatedUserIds || [])
+      if (candidateIds.length > 0) {
+        const spaces = await group.spaces().fetch()
+        await Promise.map(spaces.models, space => {
+          if (!space.getSetting('auto_add_members')) return
+          return Group.addEligibleMembersToSpace({ spaceId: space.id, userIds: candidateIds })
+        })
+      }
+    }
 
     // Publish group membership updates for new and reactivated members
     if (group && members.length > 0) {
@@ -1223,7 +1175,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     if (zapierTriggers && zapierTriggers.length > 0) {
       for (const trigger of zapierTriggers) {
-        await fetch(trigger.get('target_url'), {
+        await safeFetch(trigger.get('target_url'), {
           method: 'post',
           body: JSON.stringify(members.map(m => ({
             id: m.id,
@@ -1256,6 +1208,92 @@ module.exports = bookshelf.Model.extend(merge({
         groupId: [groupId]
       })
     }
+  },
+
+  /**
+   * Create per-view unread rows for users in a space. Chat starts at the latest
+   * post so joining does not dump people at the oldest message.
+   */
+  async ensureSpaceViewUsers (spaceId, userIds, { transacting } = {}) {
+    if (!userIds || userIds.length === 0) return
+    const views = await GroupView.findForGroup(spaceId, { transacting })
+    for (const userId of userIds) {
+      for (const view of views.models) {
+        if (view.get('type') === 'chat') {
+          await GroupViewUser.markRead(view.id, userId, { transacting })
+        } else {
+          await GroupViewUser.findOrCreate(view.id, userId, { transacting })
+        }
+      }
+    }
+  },
+
+  /**
+   * Add parent-group members to a space with autoAddMembers. Skips people who
+   * already belong and people who left the space (leftSpace). Inactive memberships
+   * from leaving the parent group are reactivated. When userIds is omitted, all
+   * current parent members are considered. Each new space membership gets the
+   * same notification settings as that person's parent-group membership.
+   */
+  async addEligibleMembersToSpace ({ spaceId, userIds } = {}) {
+    const space = await Group.find(spaceId)
+    if (!space || space.get('type') !== 'space' || !space.get('active')) return
+    if (!space.getSetting('auto_add_members')) return
+    if (space.get('status') === Group.Status.ARCHIVED) return
+
+    const parentId = space.get('parent_id')
+    if (!parentId) return
+
+    let candidateIds
+    if (userIds == null) {
+      const parent = await Group.find(parentId)
+      if (!parent) return
+      const parentMemberships = await parent.memberships().fetch()
+      candidateIds = parentMemberships.pluck('user_id')
+    } else {
+      candidateIds = userIds.filter(Boolean)
+    }
+    if (candidateIds.length === 0) return
+
+    const existing = await space.memberships(true)
+      .query(q => q.whereIn('user_id', candidateIds))
+      .fetch()
+    const skipIds = new Set(
+      existing
+        .filter(m => m.get('active') || m.getSetting('leftSpace'))
+        .map(m => String(m.get('user_id')))
+    )
+    const toAdd = candidateIds.filter(id => !skipIds.has(String(id)))
+    if (toAdd.length === 0) return
+
+    const parentMemberships = await GroupMembership.forIds(toAdd, parentId, { multiple: true }).fetch()
+    const notificationSettingsByUserId = {}
+    for (const membership of parentMemberships.models) {
+      notificationSettingsByUserId[String(membership.get('user_id'))] = notificationSettingsFromMembership(membership)
+    }
+
+    const usersBySettings = {}
+    for (const userId of toAdd) {
+      const notificationSettings = notificationSettingsByUserId[String(userId)] || notificationSettingsFromMembership(null)
+      const key = JSON.stringify(notificationSettings)
+      if (!usersBySettings[key]) usersBySettings[key] = { notificationSettings, userIds: [] }
+      usersBySettings[key].userIds.push(userId)
+    }
+
+    const joinedAt = new Date()
+    for (const { notificationSettings, userIds: ids } of Object.values(usersBySettings)) {
+      await space.addMembers(ids, {
+        lastReadAt: joinedAt,
+        settings: {
+          showJoinForm: false,
+          agreementsAcceptedAt: joinedAt,
+          joinQuestionsAnsweredAt: joinedAt,
+          ...notificationSettings
+        }
+      })
+    }
+
+    await Group.ensureSpaceViewUsers(spaceId, toAdd)
   },
 
   // create a calendar subscription for group events
@@ -1298,6 +1336,9 @@ module.exports = bookshelf.Model.extend(merge({
   // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)
   async afterFinishedJoining ({ userId, groupId }) {
     const group = await Group.find(groupId)
+    if (!group) return
+    // Auto-add spaces put people in without a join flow; don't email stewards "X joined"
+    if (group.get('type') === 'space' && group.getSetting('auto_add_members')) return
 
     const moderators = await group.moderators().fetch()
 
@@ -1309,6 +1350,12 @@ module.exports = bookshelf.Model.extend(merge({
     }))
 
     Activity.saveForReasons(activities)
+  },
+
+  /** Convert a GeoJSON geometry (object or JSON string) into a value for the geo_shape column. */
+  geoShapeFromGeoJSON (geoJSON) {
+    const st = knexPostgis(bookshelf.knex)
+    return st.geomFromGeoJSON(geoJSON)
   },
 
   async create (userId, data) {
@@ -1335,6 +1382,11 @@ module.exports = bookshelf.Model.extend(merge({
       }
     )
 
+    // Convert the GeoJSON boundary into the geometry column's format
+    if (!isEmpty(data.geo_shape)) {
+      attrs.geo_shape = Group.geoShapeFromGeoJSON(data.geo_shape)
+    }
+
     // XXX: for now groups by default cannot post to public on production
     attrs.allow_in_public = process.env.NODE_ENV === 'development'
 
@@ -1349,7 +1401,7 @@ module.exports = bookshelf.Model.extend(merge({
     const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/all'
 
     // eslint-disable-next-line camelcase
-    const access_code = attrs.access_code || await Group.getNewAccessCode()
+    const access_code = attrs.access_code || await GroupInviteLink.generateCode()
     const group = new Group(merge(attrs, {
       access_code,
       created_at: new Date(),
@@ -1363,6 +1415,18 @@ module.exports = bookshelf.Model.extend(merge({
       await group.save(null, { transacting: trx })
 
       await GroupRole.setupSystemRoles(group.id, { transacting: trx })
+      await GroupInviteLink.createForGroup(group.id, {
+        userId,
+        accessCode: group.get('access_code'),
+        grantAccess: true,
+        system: true
+      }, { transacting: trx })
+
+      if (data.invite_policy) {
+        await GroupRole.setInvitePolicy(group.id, invitePolicyFromData(data.invite_policy), { transacting: trx })
+      } else if (group.get('type') !== 'space') {
+        await GroupRole.setInvitePolicy(group.id, GroupRole.DEFAULT_NEW_GROUP_INVITE_POLICY, { transacting: trx })
+      }
 
       if (data.group_extensions) {
         for (const extData of data.group_extensions) {
@@ -1376,20 +1440,12 @@ module.exports = bookshelf.Model.extend(merge({
         }
       }
 
-      // TODO: remove? we arent sure if we are using explore page anymore
-      await group.createInitialWidgets(trx)
-
-      await group.setupContextWidgets(trx)
-
-      // Spaces & Views: also seed real GroupView rows from the creator's chosen Included Views
-      // list (see routes/CreateGroup.jsx) so the new group menu works under the new system too.
-      if (data.view_types) {
-        await Group.setupSpaceViews(group.id, attrs.accepted_post_types, data.view_types, { transacting: trx })
-      }
-      await GroupView.ensureOffMenuSystemViews(group.id, { transacting: trx })
+      // Seed GroupView rows from the creator's chosen Included Views
+      // list (see routes/CreateGroup.jsx). Defaults to all/chat/members when omitted.
+      await Group.setupSpaceViews(group.id, attrs.accepted_post_types, data.view_types, { transacting: trx })
 
       // Set lastReadAt when creating a new group to mark creator as having viewed the group already
-      await group.addMembers([userId], { assignCoordinator: true, lastReadAt: new Date() }, { transacting: trx })
+      await group.addMembers([userId], { assignAdministrator: true, lastReadAt: new Date() }, { transacting: trx })
 
       // Have to add/request add to parent group after admin has been added to the group
       if (data.parent_ids) {
@@ -1397,6 +1453,8 @@ module.exports = bookshelf.Model.extend(merge({
           const parent = await Group.findActive(parentId, { transacting: trx })
 
           if (parent) {
+            // Spaces are containers inside a group — they can never parent a group
+            if (parent.get('type') === 'space') continue
             // Only allow for adding parent groups that the creator is a moderator of or that are Open
             const parentGroupMembership = await GroupMembership.forIds(userId, parentId, {
               query: q => { q.select('group_memberships.*', 'groups.accessibility as accessibility', 'groups.visibility as visibility') }
@@ -1419,7 +1477,10 @@ module.exports = bookshelf.Model.extend(merge({
       await Queue.classMethod('Group', 'geocodeLocation', { groupId: group.id })
     }
 
-    await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
+    // Internal alert to NEW_GROUP_EMAIL. Spaces are not new top-level groups.
+    if (group.get('type') !== 'space') {
+      await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
+    }
 
     // Send email to creator
     await Queue.classMethod('Group', 'sendGroupCreatedEmail', { groupId: group.id })
@@ -1437,7 +1498,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   /**
    * Permanently delete a space group row and related non-CASCADE FK rows.
-   * Archive (active = false) is handled separately via archiveSpace / deactivate.
+   * Soft-delete (active = false) is handled via deleteSpace. Archive is status=archived.
    */
   async destroySpace (id, { transacting } = {}) {
     const space = await Group.find(id, { transacting })
@@ -1452,9 +1513,6 @@ module.exports = bookshelf.Model.extend(merge({
       const fundingRoundIds = await knex('funding_rounds').where({ group_id: spaceId }).pluck('id')
       if (fundingRoundIds.length > 0) {
         await knex('activities').whereIn('funding_round_id', fundingRoundIds).update({ funding_round_id: null })
-        await knex('context_widgets').whereIn('view_funding_round_id', fundingRoundIds).update({ view_funding_round_id: null })
-        await knex('funding_rounds_posts').whereIn('funding_round_id', fundingRoundIds).del()
-        await knex('funding_rounds_users').whereIn('funding_round_id', fundingRoundIds).del()
         await knex('groups').where({ id: spaceId }).update({ funding_round_id: null })
         await knex('funding_rounds').whereIn('id', fundingRoundIds).del()
       }
@@ -1469,21 +1527,9 @@ module.exports = bookshelf.Model.extend(merge({
         await knex('activities').whereIn('id', activityIds).del()
       }
 
-      const collectionIds = await knex('collections').where({ group_id: spaceId }).pluck('id')
-      if (collectionIds.length > 0) {
-        await knex('collections_posts').whereIn('collection_id', collectionIds).del()
-        await knex('collections').whereIn('id', collectionIds).del()
-      }
-
       await knex('content_access').where(builder => {
         builder.where({ group_id: spaceId }).orWhere({ granted_by_group_id: spaceId })
       }).del()
-
-      const customViewIds = await knex('custom_views').where({ group_id: spaceId }).pluck('id')
-      if (customViewIds.length > 0) {
-        await knex('custom_view_topics').whereIn('custom_view_id', customViewIds).del()
-        await knex('custom_views').whereIn('id', customViewIds).del()
-      }
 
       await knex('drafts').where({ group_id: spaceId }).del()
       await knex('group_extensions').where({ group_id: spaceId }).del()
@@ -1497,12 +1543,10 @@ module.exports = bookshelf.Model.extend(merge({
         builder.where({ parent_group_id: spaceId }).orWhere({ child_group_id: spaceId })
       }).del()
       await knex('group_to_group_join_questions').where({ group_id: spaceId }).del()
-      await knex('group_widgets').where({ group_id: spaceId }).del()
       await knex('groups_agreements').where({ group_id: spaceId }).del()
       await knex('groups_posts').where({ group_id: spaceId }).del()
       await knex('groups_suggested_skills').where({ group_id: spaceId }).del()
       await knex('groups_tags').where({ group_id: spaceId }).del()
-      await knex('groups_tracks').where({ group_id: spaceId }).del()
       await knex('join_requests').where({ group_id: spaceId }).del()
       await knex('tag_follows').where({ group_id: spaceId }).del()
       await knex('users_groups_agreements').where({ group_id: spaceId }).del()
@@ -1524,10 +1568,16 @@ module.exports = bookshelf.Model.extend(merge({
         await knex('responsibilities').whereIn('id', responsibilityIds).del()
       }
 
+      const parentId = space.get('parent_id')
+
       // Explicit even though CASCADE — menu rows on the parent and space views.
       await knex('group_views').where(builder => {
         builder.where({ group_id: spaceId }).orWhere({ linked_group_id: spaceId })
       }).del()
+
+      if (parentId) {
+        await GroupView.syncMenuViewCount(parentId, { transacting: trx })
+      }
 
       await knex('groups').where({ id: spaceId }).del()
       return true
@@ -1546,8 +1596,8 @@ module.exports = bookshelf.Model.extend(merge({
    * When `viewTypes` is omitted: `all` (order 0, home), `chat`, `members`, then one view per
    * accepted post type. When `viewTypes` is provided, seeds that ordered list instead
    * (used when the creator has customized the Included Views in the space creation dialog).
-   * Always sets `groups.home_route` from the order-0 view. Idempotent — does nothing if the
-   * space already has views.
+   * Always sets `groups.home_route` from the order-0 view and `menu_view_count`.
+   * Idempotent — does nothing if the space already has views.
    */
   async setupSpaceViews (spaceId, acceptedPostTypes = [], viewTypes, { transacting } = {}) {
     const existing = await GroupView.where({ group_id: spaceId }).fetchAll({ transacting })
@@ -1585,15 +1635,17 @@ module.exports = bookshelf.Model.extend(merge({
       }).save(null, { transacting })
     }
 
-    await GroupView.ensureOffMenuSystemViews(spaceId, { transacting })
-
-    // Persist home_route from the order-0 view so redirects work without loading all views
-    if (rows.length > 0) {
-      const homeRoute = GroupView.computeHomeRoutePath({ type: rows[0].type })
-      const update = bookshelf.knex('groups').where({ id: spaceId }).update({ home_route: homeRoute })
-      if (transacting) update.transacting(transacting)
-      await update
-    }
+    // Persist home_route and menu_view_count so the parent menu can open a
+    // single-view space without loading nested views.
+    const homeRoute = rows.length > 0
+      ? GroupView.computeHomeRoutePath({ type: rows[0].type })
+      : null
+    const update = bookshelf.knex('groups').where({ id: spaceId }).update({
+      ...(homeRoute ? { home_route: homeRoute } : {}),
+      menu_view_count: rows.length
+    })
+    if (transacting) update.transacting(transacting)
+    await update
   },
 
   find (idOrSlug, opts = {}) {
@@ -1613,7 +1665,7 @@ module.exports = bookshelf.Model.extend(merge({
   /**
    * Check if a user has a responsibility that grants full access to group content
    * Full-access responsibilities: Administration, Manage Content
-   * Limited responsibilities (no content access): Manage Spaces, Add Members, etc.
+   * Limited responsibilities (no content access): Add Members, etc.
    *
    * @param {String|Number} userId - User ID to check
    * @param {String|Number} groupId - Group ID to check
@@ -1685,6 +1737,7 @@ module.exports = bookshelf.Model.extend(merge({
   notifyAboutCreate: function (opts) {
     return Group.find(opts.groupId, { withRelated: ['creator'] })
       .then(g => {
+        if (!g || g.get('type') === 'space') return
         const creator = g.relations.creator
         const recipient = process.env.NEW_GROUP_EMAIL
         const L = getLocaleStrings(creator.getLocale())
@@ -1708,6 +1761,108 @@ module.exports = bookshelf.Model.extend(merge({
           }
         })
       })
+  },
+
+  // Tells the Hylo team (NEW_GROUP_EMAIL) that a group wants to be added to the commons.
+  // Runs as its own job, separate from messageAdminsAboutPublicListingRequest, so a
+  // retry after a failed send can't repeat the admins' in-app message.
+  notifyAboutPublicListingRequest: async function ({ groupId }) {
+    const recipient = process.env.NEW_GROUP_EMAIL
+    if (!recipient) {
+      sails.log.warn(`Group.notifyAboutPublicListingRequest: NEW_GROUP_EMAIL is not set, no email sent for group ${groupId}`)
+      return false
+    }
+    const { group, request } = await Group.findPublicListingRequest(groupId, 'notifyAboutPublicListingRequest')
+    if (!request) return false
+    const requester = await User.find(request.requested_by_id)
+    const sent = await Email.sendRawEmail({
+      email: recipient,
+      data: {
+        subject: `Commons request: ${group.get('name')}`,
+        body: [
+          `Group: ${escape(group.get('name'))}`,
+          `URL: ${Frontend.Route.group(group)}`,
+          requester && `Requested by: ${escape(requester.get('name'))} (${escape(requester.get('email'))})`,
+          request.message && `Message: ${escape(request.message)}`,
+          '',
+          `Review requests: ${Frontend.Route.managementCommonsRequests()}`
+        ].filter(line => typeof line === 'string').join('<br/>\n')
+      },
+      extraOptions: {
+        sender: {
+          name: 'Hylobot',
+          address: 'dev+bot@hylo.com'
+        }
+      }
+    })
+    // sendRawEmail swallows SendWithUs errors; throw so the job is retried and reported
+    if (!sent) throw new Error(`Group.notifyAboutPublicListingRequest: email for group ${groupId} failed to send`)
+    return sent
+  },
+
+  // Sends every Hylo admin (HYLO_ADMINS) one Axolotl direct message about a new commons
+  // request, in a single thread like flagged-content alerts (flaggedItem/notifyUtils)
+  messageAdminsAboutPublicListingRequest: async function ({ groupId }) {
+    const adminIds = (process.env.HYLO_ADMINS || '').split(',').map(id => Number(id.trim())).filter(id => id > 0)
+    if (adminIds.length === 0) {
+      sails.log.warn(`Group.messageAdminsAboutPublicListingRequest: HYLO_ADMINS is not set, no message sent for group ${groupId}`)
+      return false
+    }
+    const { group, request } = await Group.findPublicListingRequest(groupId, 'messageAdminsAboutPublicListingRequest')
+    if (!request) return false
+    const requester = await User.find(request.requested_by_id)
+    const text = [
+      `${escape(requester ? requester.get('name') : 'Someone')} asked to add ${escape(group.get('name'))} to the commons.`,
+      request.message && `Message: ${escape(request.message)}`,
+      `Review requests: ${Frontend.Route.managementCommonsRequests()}`
+    ].filter(Boolean).join('\n')
+    return MessagingService.sendMessageFromAxolotl(adminIds, text)
+  },
+
+  // Loads a group's commons request for a notification job, warning when it's gone
+  findPublicListingRequest: async function (groupId, jobName) {
+    const group = await Group.find(groupId)
+    const request = group && group.getSetting('public_listing_request')
+    if (!request) {
+      sails.log.warn(`Group.${jobName}: no commons request found for group ${groupId}`)
+    }
+    return { group, request }
+  },
+
+  // Emails the steward who asked to join the commons whether they were approved or denied
+  sendPublicListingDecision: async function ({ groupId }) {
+    const { group, request } = await Group.findPublicListingRequest(groupId, 'sendPublicListingDecision')
+    if (!request) return false
+    if (!['approved', 'denied'].includes(request.status)) {
+      sails.log.warn(`Group.sendPublicListingDecision: commons request for group ${groupId} is ${request.status}, not reviewed`)
+      return false
+    }
+    const requester = await User.find(request.requested_by_id)
+    if (!requester || !requester.get('email')) {
+      sails.log.warn(`Group.sendPublicListingDecision: requester ${request.requested_by_id} for group ${groupId} has no email`)
+      return false
+    }
+    const L = getLocaleStrings(requester.getLocale())
+    const approved = request.status === 'approved'
+    const groupName = escape(group.get('name'))
+    const body = [
+      approved ? L.publicListingApprovedBody(groupName) : L.publicListingDeniedBody(groupName),
+      request.review_message && `<br/>\n${L.publicListingReviewerNote()}<br/>\n${escape(request.review_message)}`,
+      `<br/>\n${Frontend.Route.groupSettings(group)}/privacy`
+    ].filter(Boolean).join('<br/>\n')
+    const sent = await Email.sendRawEmail({
+      email: requester.get('email'),
+      data: {
+        subject: approved ? L.publicListingApprovedSubject(group.get('name')) : L.publicListingDeniedSubject(group.get('name')),
+        body
+      },
+      extraOptions: {
+        sender: { name: L.theTeamAtHylo }
+      }
+    })
+    // sendRawEmail swallows SendWithUs errors; throw so the job is retried and reported
+    if (!sent) throw new Error(`Group.sendPublicListingDecision: email for group ${groupId} failed to send`)
+    return sent
   },
 
   sendGroupCreatedEmail: function (opts) {
@@ -1802,22 +1957,34 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   /**
+   * Restrict a groups query to non-space rows. Matches digest recipient
+   * filtering: type is null or anything other than 'space'. Do not filter on
+   * parent_id — list UIs that fetch by id (featured, menu preload) and any
+   * top-level group that happens to have parent_id set must still appear.
+   */
+  excludeSpaces (q) {
+    q.where(function () {
+      this.whereNull('groups.type').orWhere('groups.type', '<>', 'space')
+    })
+    return q
+  },
+
+  /**
    * Group/space ids where the user is a member and holds any of the responsibilities.
    * Spaces inherit role assignments from their parent group.
    */
   selectIdsByResponsibilities (userOrId, responsibilities) {
     const useTitles = responsibilities.some(r => typeof r === 'string' && Number.isNaN(Number(r)))
-    const throughGroupRole = MemberGroupRole.collection().query(q => {
-      q.select('group_memberships_group_roles.group_id')
-      whereId(q, userOrId, 'group_memberships_group_roles.user_id')
-      q.join('group_roles_responsibilities', 'group_roles_responsibilities.group_role_id', 'group_memberships_group_roles.group_role_id')
-      if (useTitles) {
-        q.join('responsibilities', 'responsibilities.id', 'group_roles_responsibilities.responsibility_id')
-        q.whereIn('responsibilities.title', responsibilities)
-      } else {
-        q.whereIn('group_roles_responsibilities.responsibility_id', responsibilities)
-      }
-    })
+    const throughGroupRole = bookshelf.knex('group_member_effective_roles as mgr')
+      .select('mgr.group_id')
+    whereId(throughGroupRole, userOrId, 'mgr.user_id')
+    throughGroupRole.join('group_roles_responsibilities', 'group_roles_responsibilities.group_role_id', 'mgr.group_role_id')
+    if (useTitles) {
+      throughGroupRole.join('responsibilities', 'responsibilities.id', 'group_roles_responsibilities.responsibility_id')
+      throughGroupRole.whereIn('responsibilities.title', responsibilities)
+    } else {
+      throughGroupRole.whereIn('group_roles_responsibilities.responsibility_id', responsibilities)
+    }
 
     return GroupMembership.forIds(userOrId, null, {
       query: q => {
@@ -1826,8 +1993,8 @@ module.exports = bookshelf.Model.extend(merge({
         q.where('groups.active', true)
         // Direct role on this group, or (for spaces) role on parent_id
         q.where(function () {
-          this.whereIn('groups.id', throughGroupRole.query())
-            .orWhereIn('groups.parent_id', throughGroupRole.query())
+          this.whereIn('groups.id', throughGroupRole)
+            .orWhereIn('groups.parent_id', throughGroupRole.clone())
         })
       },
       multiple: true
@@ -1838,7 +2005,7 @@ module.exports = bookshelf.Model.extend(merge({
    * Group id whose groups_roles / role assignments apply for this group.
    * Spaces use parent_id; top-level groups use their own id.
    */
-  async roleScopeId (groupOrId) {
+  async roleScopeId (groupOrId, { transacting } = {}) {
     const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
     if (!groupId) return groupId
     if (groupOrId instanceof Group && groupOrId.get('parent_id') != null) {
@@ -1847,7 +2014,9 @@ module.exports = bookshelf.Model.extend(merge({
     if (groupOrId instanceof Group && groupOrId.has('parent_id')) {
       return groupOrId.id
     }
-    const row = await bookshelf.knex('groups').where('id', groupId).select('id', 'parent_id').first()
+    let query = bookshelf.knex('groups').where('id', groupId).select('id', 'parent_id')
+    if (transacting) query = query.transacting(transacting)
+    const row = await query.first()
     if (!row) return groupId
     return row.parent_id || row.id
   },
@@ -1879,5 +2048,67 @@ module.exports = bookshelf.Model.extend(merge({
 
   updateAllMemberCounts () {
     return bookshelf.knex.raw('update groups set num_members = (select count(group_memberships.*) from group_memberships inner join users on users.id = group_memberships.user_id where group_memberships.active = true and users.active = true and group_memberships.group_id = groups.id)')
+  },
+
+  /**
+   * Atomically adjust the cached pending join-request count.
+   * Uses increment / GREATEST so concurrent create/accept cannot race a read-modify-write.
+   */
+  async adjustOpenJoinRequestCount (groupId, delta, transacting) {
+    if (!groupId || !delta) return
+    const knex = transacting || bookshelf.knex
+    if (delta > 0) {
+      await knex('groups').where('id', groupId).increment('num_open_join_requests', delta)
+    } else {
+      await knex.raw(
+        'UPDATE groups SET num_open_join_requests = GREATEST(0, COALESCE(num_open_join_requests, 0) + ?) WHERE id = ?',
+        [delta, groupId]
+      )
+    }
+    if (!transacting) await Group.broadcastOpenJoinRequestCount(groupId)
+  },
+
+  /**
+   * Push the current open join-request count to group/parent rooms and stewards.
+   */
+  async broadcastOpenJoinRequestCount (groupId) {
+    try {
+      const row = await bookshelf.knex('groups')
+        .where('id', groupId)
+        .select('id', 'parent_id', 'num_open_join_requests')
+        .first()
+      if (!row) return
+
+      const payload = {
+        groupId: String(row.id),
+        openJoinRequestCount: Number(row.num_open_join_requests) || 0
+      }
+      const rooms = [groupRoom(row.id)]
+      if (row.parent_id) rooms.push(groupRoom(row.parent_id))
+
+      const stewardRows = await Responsibility.fetchForGroup(groupId)
+      const stewardIds = [...new Set(
+        stewardRows
+          .filter(r => r.responsibility_title === Responsibility.constants.RESP_ADD_MEMBERS)
+          .map(r => r.user_id)
+      )]
+
+      await Promise.all([
+        ...rooms.map(room => pushToSockets(room, 'openJoinRequestCountUpdated', payload)),
+        ...stewardIds.map(id => pushToSockets(userRoom(id), 'openJoinRequestCountUpdated', payload))
+      ])
+    } catch (err) {
+      if (typeof sails !== 'undefined' && sails.log) {
+        sails.log.error('broadcastOpenJoinRequestCount failed', err)
+      }
+    }
+  },
+
+  /**
+   * Background job: copy a large chat room's messages onto its discussion post.
+   * @param {object} data
+   */
+  convertChatSpaceMessages (data) {
+    return finishQueuedChatSpaceConversion(data)
   }
 })

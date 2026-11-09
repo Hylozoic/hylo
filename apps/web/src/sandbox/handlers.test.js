@@ -1,0 +1,468 @@
+import { iconForView } from '@hylo/presenters/GroupViewPresenter'
+import { loadSandboxSeedSync } from './seed'
+import { buildEnSeed } from './seed/en'
+import { handleGraphql } from './handlers'
+import { ME_ID } from './seed/en/people'
+import { MAIN_GROUP_ID, MAIN_ADMINISTRATOR_ROLE_ID, MAIN_MODERATOR_ROLE_ID, SIMPLE_GROUP_ID, STAFF_GROUP_ID } from './seed/en/groups'
+import { MAIN_GROUP_SLUG, SIMPLE_GROUP_SLUG } from './seed/constants'
+
+describe('sandbox GraphQL handlers', () => {
+  let seed
+
+  beforeEach(() => {
+    seed = loadSandboxSeedSync(buildEnSeed)
+  })
+
+  it('answers CheckLogin with a fully authorized me', () => {
+    const result = handleGraphql({
+      query: 'query CheckLogin { me { id emailValidated hasRegistered } }'
+    }, seed)
+
+    expect(result.data.me.id).toBe(ME_ID)
+    expect(result.data.me.emailValidated).toBe(true)
+    expect(result.data.me.hasRegistered).toBe(true)
+    expect(result.data.me.settings.signupInProgress).toBe(false)
+    expect(result.data.me.memberships.length).toBe(6)
+  })
+
+  it('makes me an administrator of the main group only', () => {
+    const { me } = handleGraphql({ query: 'query MeQuery { me { id } }' }, seed).data
+    const titlesFor = groupId => me.groupRoles.items
+      .filter(role => String(role.groupId) === String(groupId))
+      .flatMap(role => role.responsibilities.items.map(r => r.title))
+
+    expect(titlesFor(MAIN_GROUP_ID)).toEqual(expect.arrayContaining(['Administration', 'Add Members', 'Remove Members', 'Manage Content']))
+    expect(titlesFor(SIMPLE_GROUP_ID)).toEqual([])
+    expect(titlesFor(STAFF_GROUP_ID)).toEqual([])
+  })
+
+  it('answers responsibilities queries with plain lists', () => {
+    const forGroup = handleGraphql({
+      query: 'query fetchResponsibiltiesForGroup ($groupId: ID) { responsibilities (groupId: $groupId) { id title type } }',
+      variables: { groupId: MAIN_GROUP_ID }
+    }, seed).data.responsibilities
+    expect(Array.isArray(forGroup)).toBe(true)
+    expect(forGroup.map(r => r.title)).toContain('Administration')
+    expect(new Set(forGroup.map(r => r.id)).size).toBe(forGroup.length)
+
+    const forRole = handleGraphql({
+      query: 'query fetchResponsibilitiesForGroupRole ($groupRoleId: ID) { responsibilities (groupRoleId: $groupRoleId) { id title responsibilityId } }',
+      variables: { groupRoleId: MAIN_ADMINISTRATOR_ROLE_ID }
+    }, seed).data.responsibilities
+    expect(forRole.length).toBe(forGroup.length)
+    expect(forRole[0].responsibilityId).toBe(forRole[0].id)
+  })
+
+  it('filters group members by role', () => {
+    const query = `query fetchMembersForGroupRole ($id: ID, $groupRoleIds: [ID], $first: Int, $offset: Int) {
+      group (id: $id) { id members (first: $first, offset: $offset, groupRoleIds: $groupRoleIds) { items { id } } }
+    }`
+    const admins = handleGraphql({ query, variables: { id: MAIN_GROUP_ID, groupRoleIds: [MAIN_ADMINISTRATOR_ROLE_ID], first: 20, offset: 0 } }, seed)
+    expect(admins.data.group.members.items.map(p => p.id)).toEqual([ME_ID])
+
+    const moderators = handleGraphql({ query, variables: { id: MAIN_GROUP_ID, groupRoleIds: [MAIN_MODERATOR_ROLE_ID], first: 20, offset: 0 } }, seed)
+    expect(moderators.data.group.members.items).toEqual([])
+
+    const details = handleGraphql({
+      query: `query fetchGroupRoleDetails ($id: ID, $groupRoleIds: [ID], $groupRoleId: ID, $first: Int, $offset: Int) {
+        group (id: $id) { id members (first: $first, offset: $offset, groupRoleIds: $groupRoleIds) { items { id } } }
+        responsibilities (groupRoleId: $groupRoleId) { id title responsibilityId }
+      }`,
+      variables: { id: MAIN_GROUP_ID, groupRoleIds: [MAIN_ADMINISTRATOR_ROLE_ID], groupRoleId: MAIN_ADMINISTRATOR_ROLE_ID, first: 20, offset: 0 }
+    }, seed)
+    expect(details.data.group.members.items.map(p => p.id)).toEqual([ME_ID])
+    expect(details.data.responsibilities.map(r => r.title)).toContain('Administration')
+
+    const counts = handleGraphql({
+      query: `query FetchRoleMemberCounts ($slug: String) {
+        group (slug: $slug) {
+          id
+          r${MAIN_ADMINISTRATOR_ROLE_ID}: members (first: 1, groupRoleIds: ["${MAIN_ADMINISTRATOR_ROLE_ID}"]) { total }
+          r${MAIN_MODERATOR_ROLE_ID}: members (first: 1, groupRoleIds: ["${MAIN_MODERATOR_ROLE_ID}"]) { total }
+        }
+      }`,
+      variables: { slug: MAIN_GROUP_SLUG }
+    }, seed)
+    expect(counts.data.group[`r${MAIN_ADMINISTRATOR_ROLE_ID}`].total).toBe(1)
+    expect(counts.data.group[`r${MAIN_MODERATOR_ROLE_ID}`].total).toBe(0)
+  })
+
+  it('merges user setting changes without dropping other settings', () => {
+    const before = seed.me.settings
+    const result = handleGraphql({
+      query: 'mutation ($changes: MeInput) { updateMe(changes: $changes) { id settings { theme colorScheme } } }',
+      variables: { changes: { settings: { theme: 'forest' } } }
+    }, seed)
+
+    expect(result.data.updateMe.settings.theme).toBe('forest')
+    expect(result.data.updateMe.settings.colorScheme).toBe(before.colorScheme)
+    expect(result.data.updateMe.settings.groupNavStyle).toBe(before.groupNavStyle)
+  })
+
+  it('returns group stream posts for GroupPostsQuery', () => {
+    const result = handleGraphql({
+      query: 'query GroupPostsQuery ($slug: String) { group(slug: $slug) { id posts { items { id } } } }',
+      variables: { slug: MAIN_GROUP_SLUG }
+    }, seed)
+
+    expect(result.data.group.slug).toBe(MAIN_GROUP_SLUG)
+    expect(result.data.group.posts.items.length).toBeGreaterThan(0)
+    expect(result.data.group.canAccess).toBe(true)
+    expect(/^\d+$/.test(result.data.group.posts.items[0].id)).toBe(true)
+  })
+
+  it('pages Local Sharing Network chat by id so a return visit does not repeat the room', () => {
+    const query = `query GroupPostsQuery ($slug: String, $cursor: ID, $order: String, $sortBy: String, $filter: String, $types: [String], $first: Int) {
+      group(slug: $slug) { posts(cursor: $cursor, order: $order, sortBy: $sortBy, filter: $filter, types: $types, first: $first) { hasMore items { id } } }
+    }`
+    const base = { slug: SIMPLE_GROUP_SLUG, sortBy: 'id', filter: 'chat', types: ['chat'], first: 25 }
+
+    const past = handleGraphql({ query, variables: { ...base, order: 'desc' } }, seed)
+    const pastIds = past.data.group.posts.items.map(post => post.id)
+    expect(pastIds).toEqual([...seed.posts.simpleGroupChat].map(post => post.id).sort((a, b) => Number(b) - Number(a)))
+    expect(new Set(pastIds).size).toBe(pastIds.length)
+
+    const newestId = pastIds[0]
+    const newer = handleGraphql({
+      query,
+      variables: { ...base, order: 'asc', cursor: newestId }
+    }, seed)
+    expect(newer.data.group.posts.items).toEqual([])
+    expect(newer.data.group.posts.hasMore).toBe(false)
+
+    const older = handleGraphql({
+      query,
+      variables: { ...base, order: 'desc', cursor: pastIds[pastIds.length - 1] }
+    }, seed)
+    expect(older.data.group.posts.items).toEqual([])
+
+    const middle = pastIds[Math.floor(pastIds.length / 2)]
+    const before = handleGraphql({
+      query,
+      variables: { ...base, order: 'desc', cursor: String(Number(middle) + 1) }
+    }, seed).data.group.posts.items.map(post => post.id)
+    const after = handleGraphql({
+      query,
+      variables: { ...base, order: 'asc', cursor: middle }
+    }, seed).data.group.posts.items.map(post => post.id)
+    expect(before.filter(id => after.includes(id))).toEqual([])
+    expect(before.length + after.length).toBe(pastIds.length)
+  })
+
+  it('returns only located posts for anonymous MapExplorer group/viewPosts queries', () => {
+    const result = handleGraphql({
+      query: `query (
+        $boundingBox: [PointInput],
+        $first: Int,
+        $slug: String
+      ) {
+        group(slug: $slug, updateLastViewed: true) {
+          id
+          slug
+          posts: viewPosts(boundingBox: $boundingBox, first: $first) {
+            hasMore
+            total
+            items { id title type locationObject { id center { lat lng } } }
+          }
+        }
+      }`,
+      variables: { slug: MAIN_GROUP_SLUG, first: 500 }
+    }, seed)
+
+    expect(result.data.group.slug).toBe(MAIN_GROUP_SLUG)
+    expect(result.data.group.posts.items.length).toBeGreaterThan(0)
+    expect(result.data.group.posts.items.every(post => {
+      const { lat, lng } = post.locationObject?.center || {}
+      return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
+    })).toBe(true)
+    expect(result.data.group.posts.items.length).toBeLessThan(seed.posts.mainStream.length)
+  })
+
+  it('does not attach posts to anonymous group queries that only ask for group fields', () => {
+    const result = handleGraphql({
+      query: 'query ($slug: String) { group(slug: $slug) { id slug name } }',
+      variables: { slug: MAIN_GROUP_SLUG }
+    }, seed)
+
+    expect(result.data.group.slug).toBe(MAIN_GROUP_SLUG)
+    expect(result.data.group.posts).toBeUndefined()
+  })
+
+  it('creates a post that then appears in the stream', () => {
+    const created = handleGraphql({
+      query: 'mutation CreatePost { createPost(data: {}) { id title } }',
+      variables: { title: 'Hello sandbox', details: '<p>hi</p>', type: 'discussion', groupIds: [MAIN_GROUP_ID] }
+    }, seed)
+
+    expect(created.data.createPost.title).toBe('Hello sandbox')
+
+    const listed = handleGraphql({
+      query: 'query GroupPostsQuery ($slug: String) { group(slug: $slug) { posts { items { id title } } } }',
+      variables: { slug: MAIN_GROUP_SLUG }
+    }, seed)
+
+    expect(listed.data.group.posts.items[0].id).toBe(created.data.createPost.id)
+  })
+
+  it('gives Community Hub a chat view and an Introductions space', () => {
+    const names = seed.groupViews[MAIN_GROUP_ID].map(view => view.name)
+    expect(names).toEqual(expect.arrayContaining(['Chat', 'Introductions']))
+    expect(seed.groups.spaces.chat.slug).toBe('introductions')
+
+    const chat = handleGraphql({
+      query: 'query GroupPostsQuery ($slug: String, $filter: String, $sortBy: String, $order: String) { group(slug: $slug) { posts(filter: $filter, sortBy: $sortBy, order: $order) { items { details } } } }',
+      variables: { slug: MAIN_GROUP_SLUG, filter: 'chat', sortBy: 'id', order: 'desc' }
+    }, seed)
+    expect(chat.data.group.posts.items.some(post => post.details.includes('Good morning'))).toBe(true)
+
+    const intros = handleGraphql({
+      query: 'query GroupPostsQuery ($slug: String) { group(slug: $slug) { name posts { items { details } } } }',
+      variables: { slug: 'introductions' }
+    }, seed)
+    expect(intros.data.group.name).toBe('Introductions')
+    expect(intros.data.group.posts.items.some(post => post.details.includes('I&#39;m Kai'))).toBe(true)
+  })
+
+  it('has unique ids across seeded posts, people, groups, comments, and threads', () => {
+    const postIds = Object.keys(seed.posts.byId)
+    expect(postIds.length).toBe(
+      seed.posts.mainStream.length +
+      seed.posts.hubChat.length +
+      seed.posts.chatSpace.length +
+      seed.posts.simpleGroupChat.length +
+      (seed.posts.simpleGroupStream || []).length +
+      (seed.posts.staffGroupChat || []).length +
+      (seed.posts.staffGroupStream || []).length +
+      seed.posts.fundingSubmissions.length +
+      seed.track.actions.length
+    )
+    expect(postIds.length).toBe(new Set(postIds).size)
+
+    const streamIds = seed.posts.mainStream.map(p => String(p.id))
+    const chatIds = seed.posts.chatSpace.map(p => String(p.id))
+    const simpleIds = seed.posts.simpleGroupChat.map(p => String(p.id))
+    const fundingIds = seed.posts.fundingSubmissions.map(p => String(p.id))
+    const overlap = (a, b) => a.filter(id => b.includes(id))
+    expect(overlap(streamIds, chatIds)).toEqual([])
+    expect(overlap(streamIds, simpleIds)).toEqual([])
+    expect(overlap(streamIds, fundingIds)).toEqual([])
+    expect(overlap(chatIds, simpleIds)).toEqual([])
+
+    const peopleIds = [seed.ids.me, ...seed.people.map(p => String(p.id))]
+    expect(peopleIds.length).toBe(new Set(peopleIds).size)
+
+    const groupIds = seed.groups.all.map(g => String(g.id))
+    expect(groupIds.length).toBe(new Set(groupIds).size)
+
+    const commentIds = Object.values(seed.posts.byId).flatMap(p =>
+      (p.comments?.items || []).map(c => String(c.id))
+    )
+    expect(commentIds.length).toBe(new Set(commentIds).size)
+
+    const threadIds = seed.messageThreads.map(t => String(t.id))
+    expect(threadIds.length).toBe(new Set(threadIds).size)
+
+    const messageIds = seed.messageThreads.flatMap(t =>
+      (t.messages?.items || []).map(m => String(m.id))
+    )
+    expect(messageIds.length).toBe(new Set(messageIds).size)
+  })
+
+  it('exposes commenters and comments on Community Hub stream posts', () => {
+    const withComments = seed.posts.mainStream.filter(p => (p.comments?.items || []).length > 0)
+    expect(withComments.length).toBeGreaterThan(0)
+    expect(withComments[0].commenters.length).toBeGreaterThan(0)
+    expect(withComments[0].comments.items[0].parentComment).toBe(null)
+
+    const listed = handleGraphql({
+      query: 'query GroupPostsQuery ($slug: String) { group(slug: $slug) { posts { items { id commentersTotal comments { items { id } } } } } }',
+      variables: { slug: MAIN_GROUP_SLUG }
+    }, seed)
+
+    const streamPost = listed.data.group.posts.items.find(p => p.comments?.items?.length > 0)
+    expect(streamPost.commentersTotal).toBeGreaterThan(0)
+  })
+
+  it('returns the bioregional grants funding round with submissions', () => {
+    const result = handleGraphql({
+      query: 'query ($id: ID) { fundingRound(id: $id) { id group { name bannerUrl } numSubmissions submissions { items { id title } } } }',
+      variables: { id: seed.ids.fundingRound }
+    }, seed)
+
+    expect(result.data.fundingRound.group.name).toBe('Bioregional Grants Round 1')
+    expect(result.data.fundingRound.group.bannerUrl).toContain('BF-Logo_W')
+    expect(result.data.fundingRound.numSubmissions).toBe(5)
+    expect(result.data.fundingRound.submissions.items.length).toBe(5)
+  })
+
+  it('resolves chat and requests views to icons the menu can draw', () => {
+    const views = [
+      seed.groups.spaces.chat.id,
+      seed.groups.spaces.track.id,
+      seed.groups.simple.id,
+      seed.groups.staff.id
+    ].flatMap(groupId => seed.groupViews[groupId] || [])
+
+    const chat = views.filter(view => view.type === 'chat')
+    const requests = views.filter(view => view.type === 'requests-and-offers')
+
+    expect(chat.length).toBeGreaterThan(0)
+    expect(requests.length).toBeGreaterThan(0)
+    chat.forEach(view => {
+      expect(iconForView(view)).toEqual({ iconName: null, lucideIcon: 'MessageCircleMore' })
+    })
+    requests.forEach(view => {
+      expect(iconForView(view)).toEqual({ iconName: null, lucideIcon: 'Heart' })
+    })
+  })
+
+  it('centers Local Sharing Network on North Berkeley with a map, events, and nearby asks', () => {
+    const views = seed.groupViews[SIMPLE_GROUP_ID].map(view => view.type)
+    expect(views).toEqual(['chat', 'all', 'map', 'events', 'requests-and-offers', 'projects', 'members'])
+    expect(seed.groups.simple.location).toBe('North Berkeley, California, United States')
+    expect(seed.groups.simple.locationObject.center).toEqual({ lat: 37.8801, lng: -122.2693 })
+
+    const stream = seed.posts.simpleGroupStream
+    const nearGroup = post => {
+      const center = post.locationObject?.center
+      if (!center) return false
+      return Math.abs(center.lat - 37.8801) < 0.02 && Math.abs(center.lng - -122.2693) < 0.03
+    }
+    expect(stream.filter(post => post.type === 'event' && nearGroup(post)).length).toBe(4)
+    expect(stream.filter(post => (post.type === 'request' || post.type === 'offer') && nearGroup(post)).length).toBeGreaterThanOrEqual(8)
+
+    const upcoming = handleGraphql({
+      query: 'query ($slug: String, $types: [String], $afterTime: Date, $sortBy: String, $order: String) { group(slug: $slug) { posts(types: $types, afterTime: $afterTime, sortBy: $sortBy, order: $order) { items { title startTime locationObject { center { lat lng } } } } } }',
+      variables: {
+        slug: SIMPLE_GROUP_SLUG,
+        types: ['event'],
+        afterTime: new Date().toISOString(),
+        sortBy: 'start_time',
+        order: 'asc'
+      }
+    }, seed)
+
+    expect(upcoming.data.group.posts.items.map(post => post.title)).toEqual([
+      'North Shattuck produce swap',
+      'Tool library open hours',
+      'Cedar-Rose neighbourhood potluck'
+    ])
+    upcoming.data.group.posts.items.forEach(post => {
+      expect(post.locationObject.center.lat).toBeGreaterThan(37.86)
+    })
+  })
+
+  it('returns orientation steps as collectionPosts on the track space', () => {
+    const trackSpace = seed.groups.spaces.track
+    const result = handleGraphql({
+      query: 'query ($groupId: ID) { group(id: $groupId) { id track { id space { name } } groupViews { items { id type collectionPosts { id title type completionAction } } } } }',
+      variables: { groupId: trackSpace.id }
+    }, seed)
+
+    expect(result.data.group.track.space.name).toBe('New Member Orientation')
+    const actionsView = result.data.group.groupViews.items.find(view => view.type === 'track-actions')
+    expect(actionsView.collectionPosts.length).toBe(5)
+    expect(actionsView.collectionPosts[0].title).toBe('Introduce yourself')
+    expect(actionsView.collectionPosts[0].type).toBe('action')
+    expect(actionsView.collectionPosts.map(post => post.completionAction)).toEqual([
+      'comment',
+      'reaction',
+      'selectOne',
+      'selectMultiple',
+      'button'
+    ])
+  })
+
+  it('keeps track orientation steps when parent menu data is refetched', () => {
+    const parentResult = handleGraphql({
+      query: 'query FetchGroupsMenuData { groups(first: 10) { items { id groupViews { items { type linkedGroup { id groupViews { items { type collectionPosts { id title } } } track { id space { name } isEnrolled } } } } } } }'
+    }, seed)
+
+    const trackSpaceId = String(seed.groups.spaces.track.id)
+    const parent = parentResult.data.groups.items.find(g => g.slug === MAIN_GROUP_SLUG)
+    const trackSpaceView = parent.groupViews.items.find(view =>
+      view.type === 'space' && String(view.linkedGroup?.id) === trackSpaceId
+    )
+
+    expect(trackSpaceView.linkedGroup.track.space.name).toBe('New Member Orientation')
+    expect(trackSpaceView.linkedGroup.track.isEnrolled).toBe(true)
+    const actionsView = trackSpaceView.linkedGroup.groupViews.items.find(view => view.type === 'track-actions')
+    expect(actionsView.collectionPosts.length).toBe(5)
+  })
+
+  it('persists track step completion in the sandbox seed', () => {
+    const actionId = seed.track.actions[0].id
+    const result = handleGraphql({
+      query: 'mutation CompletePost ($postId: ID, $completionResponse: JSON) { completePost(postId: $postId, completionResponse: $completionResponse) { id completedAt } }',
+      variables: { postId: actionId, completionResponse: JSON.stringify(['done']) }
+    }, seed)
+
+    expect(result.data.completePost.completedAt).toBeTruthy()
+    expect(seed.posts.byId[actionId].completedAt).toBeTruthy()
+    expect(seed.track.actions[0].completedAt).toBeTruthy()
+  })
+
+  it('gives me full invite access in the groups it presents', () => {
+    const result = handleGraphql({
+      query: 'query FetchForGroup ($slug: String) { group(slug: $slug) { id myInviteAccess } }',
+      variables: { slug: MAIN_GROUP_SLUG }
+    }, seed)
+
+    expect(result.data.group.myInviteAccess).toBe('full')
+  })
+
+  it('returns siteBanners as a plain array, not a QuerySet', () => {
+    const result = handleGraphql({
+      query: 'query { siteBanners { id title text type } }'
+    }, seed)
+
+    expect(Array.isArray(result.data.siteBanners)).toBe(true)
+    expect(result.data.siteBanners).toEqual([])
+  })
+
+  it('updates toursSeen on me via updateMe', () => {
+    const result = handleGraphql({
+      query: 'mutation ($changes: MeInput) { updateMe(changes: $changes) { id settings { toursSeen } } }',
+      variables: { changes: { settings: { toursSeen: ['global-chrome', 'group-home'] } } }
+    }, seed)
+
+    expect(result.data.updateMe.settings.toursSeen).toEqual(['global-chrome', 'group-home'])
+    expect(seed.me.settings.toursSeen).toEqual(['global-chrome', 'group-home'])
+  })
+
+  it('returns local search hits for people, posts, and comments', () => {
+    const result = handleGraphql({
+      query: `query Search ($search: String, $type: String) {
+        search(term: $search, first: 20, type: $type) {
+          total
+          hasMore
+          items {
+            id
+            content {
+              __typename
+              ... on Person { id name }
+              ... on Post { id title }
+              ... on Comment { id text }
+            }
+          }
+        }
+      }`,
+      variables: { search: 'forest' }
+    }, seed)
+
+    expect(result.data.search.total).toBeGreaterThan(0)
+    const types = new Set(result.data.search.items.map(item => item.content.__typename))
+    expect(types.has('Post') || types.has('Comment')).toBe(true)
+
+    const peopleOnly = handleGraphql({
+      query: `query Search ($search: String, $type: String) {
+        search(term: $search, first: 20, type: $type) {
+          items { content { __typename ... on Person { id name } } }
+        }
+      }`,
+      variables: { search: 'Elena', type: 'person' }
+    }, seed)
+    expect(peopleOnly.data.search.items.length).toBeGreaterThan(0)
+    expect(peopleOnly.data.search.items.every(i => i.content.__typename === 'Person')).toBe(true)
+  })
+})

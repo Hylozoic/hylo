@@ -1,4 +1,5 @@
-import { makeFilterToggle } from './filters'
+/* eslint-disable no-unused-expressions */
+import { groupFilter, isGroupVisibleToViewer, loadGroupVisibilityContext, makeFilterToggle } from './filters'
 import makeModels from './makeModels'
 import { expectEqualQuery } from '../../test/setup/helpers'
 import {
@@ -8,7 +9,7 @@ import factories from '../../test/setup/factories'
 
 const myId = '42'
 
-var models, sharedMemberships
+let models, sharedMemberships
 
 const setupBlockedUserData = async () => {
   const u1 = factories.user()
@@ -27,7 +28,7 @@ const setupBlockedUserData = async () => {
   await u4.joinGroup(group)
   await BlockedUser.create(u1.id, u2.id)
   await BlockedUser.create(u3.id, u1.id)
-  return {u1, u2, u3, u4, group}
+  return { u1, u2, u3, u4, group }
 }
 
 export function blockedUserSqlFragment (userId) {
@@ -43,8 +44,8 @@ export function blockedUserSqlFragment (userId) {
 }
 
 describe('makeFilterToggle', () => {
-  var filterFn = relation => relation.query(q => 'filtered')
-  var relation = {query: fn => fn()}
+  const filterFn = relation => relation.query(q => 'filtered')
+  const relation = { query: fn => fn() }
 
   it('adds a filter when enabled', () => {
     expect(makeFilterToggle(true)(filterFn)(relation)).to.equal('filtered')
@@ -75,7 +76,7 @@ describe('model filters', () => {
   })
 
   describe('Person', () => {
-    var u1, u4;
+    let u1, u4
 
     before(async () => {
       const blockedUserData = await setupBlockedUserData()
@@ -113,12 +114,13 @@ describe('model filters', () => {
             (select "group_memberships"."user_id"
             from "group_memberships"
             where "group_memberships"."group_id" in ${myGroupIdsSqlFragment(myId)})
-          or "users"."id" in (select "other_user_id" from "user_connections" where "user_connections"."user_id" = '${myId}'))`)
+          or "users"."id" in (select "other_user_id" from "user_connections" where "user_connections"."user_id" = '${myId}')
+          or "users"."is_profile_public" = true)`)
     })
   })
 
   describe('Post', () => {
-    var u1, u2, u3, u4, group;
+    let u1, u2, u3, u4, group
 
     before(async () => {
       const blockedUserData = await setupBlockedUserData()
@@ -127,14 +129,14 @@ describe('model filters', () => {
       u3 = blockedUserData.u3
       u4 = blockedUserData.u4
       group = blockedUserData.group
-      const p1 = factories.post({user_id: u2.id})
-      const p2 = factories.post({user_id: u3.id})
-      const p3 = factories.post({user_id: u4.id})
-      await p1.save({active: true})
+      const p1 = factories.post({ user_id: u2.id })
+      const p2 = factories.post({ user_id: u3.id })
+      const p3 = factories.post({ user_id: u4.id })
+      await p1.save({ active: true })
       await p1.groups().attach(group)
-      await p2.save({active: true})
+      await p2.save({ active: true })
       await p2.groups().attach(group)
-      await p3.save({active: true})
+      await p3.save({ active: true })
       await p3.groups().attach(group)
     })
 
@@ -182,3 +184,171 @@ describe('model filters', () => {
   })
 })
 
+describe('isGroupVisibleToViewer', () => {
+  const HIDDEN = 0
+  const PROTECTED = 1
+  const PUBLIC = 2
+  const fakeGroup = (attrs) => ({
+    id: attrs.id,
+    get: key => attrs[key]
+  })
+  const emptyCtx = {
+    memberIds: new Set(),
+    parentIds: new Set(),
+    childIds: new Set(),
+    peerIds: new Set(),
+    stewardChildIds: new Set(),
+    stewardPeerIds: new Set(),
+    joinManagerIds: new Set()
+  }
+
+  it('shows public groups to anyone', () => {
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '1', visibility: PUBLIC }), null, null)).to.equal(true)
+  })
+
+  it('hides a protected group with no relationship', () => {
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '9', visibility: PROTECTED }), emptyCtx, '42')).to.equal(false)
+  })
+
+  it('shows a protected group the viewer belongs to', () => {
+    const ctx = { ...emptyCtx, memberIds: new Set(['9']) }
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '9', visibility: PROTECTED }), ctx, '42')).to.equal(true)
+  })
+
+  it('shows a protected parent of a group the viewer belongs to', () => {
+    const ctx = { ...emptyCtx, parentIds: new Set(['3']) }
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '3', visibility: PROTECTED }), ctx, '42')).to.equal(true)
+  })
+
+  it('shows a protected child of a group the viewer belongs to', () => {
+    const ctx = { ...emptyCtx, childIds: new Set(['4']) }
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '4', visibility: PROTECTED }), ctx, '42')).to.equal(true)
+  })
+
+  it('hides a hidden child unless the viewer stewards the parent', () => {
+    const child = fakeGroup({ id: '5', visibility: HIDDEN })
+    expect(isGroupVisibleToViewer(child, { ...emptyCtx, childIds: new Set(['5']) }, '42')).to.equal(false)
+    expect(isGroupVisibleToViewer(child, { ...emptyCtx, stewardChildIds: new Set(['5']) }, '42')).to.equal(true)
+  })
+
+  it('shows a protected peer of a group the viewer belongs to', () => {
+    const ctx = { ...emptyCtx, peerIds: new Set(['6']) }
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '6', visibility: PROTECTED }), ctx, '42')).to.equal(true)
+  })
+
+  it('shows a hidden space when the viewer can manage the parent', () => {
+    const space = fakeGroup({ id: '7', visibility: HIDDEN, type: 'space', parent_id: '1' })
+    expect(isGroupVisibleToViewer(space, { ...emptyCtx, memberIds: new Set(['1']) }, '42')).to.equal(false)
+    expect(isGroupVisibleToViewer(space, { ...emptyCtx, joinManagerIds: new Set(['1']) }, '42')).to.equal(true)
+  })
+
+  it('does not treat every non-hidden group as visible when childIds is polluted', () => {
+    const ctx = { ...emptyCtx, childIds: new Set(['99']) }
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '99', visibility: PROTECTED }), ctx, '42')).to.equal(true)
+    expect(isGroupVisibleToViewer(fakeGroup({ id: '88', visibility: PROTECTED }), ctx, '42')).to.equal(false)
+  })
+})
+
+describe('loadGroupVisibilityContext', () => {
+  it('does not include an unrelated protected parent of someone else\'s group', async () => {
+    const viewer = await factories.user().save()
+    const myGroup = await factories.group().save()
+    await viewer.joinGroup(myGroup)
+
+    const stranger = await factories.user().save()
+    const protectedParent = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    const protectedChild = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    await stranger.joinGroup(protectedChild)
+    await protectedParent.addChild(protectedChild)
+
+    const ctx = await loadGroupVisibilityContext(viewer.id)
+    expect(ctx.memberIds.has(String(myGroup.id))).to.equal(true)
+    expect(ctx.parentIds.has(String(protectedParent.id))).to.equal(false)
+    expect(ctx.childIds.has(String(protectedChild.id))).to.equal(false)
+    expect(isGroupVisibleToViewer({
+      id: protectedParent.id,
+      get: key => key === 'visibility' ? Group.Visibility.PROTECTED : null
+    }, ctx, viewer.id)).to.equal(false)
+  })
+
+  it('does not treat an inactive parent membership as related', async () => {
+    const viewer = await factories.user().save()
+    const parent = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    const child = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    await parent.addChild(child)
+    await viewer.joinGroup(parent)
+    await parent.removeMembers([viewer.id])
+
+    const ctx = await loadGroupVisibilityContext(viewer.id)
+    expect(ctx.memberIds.has(String(parent.id))).to.equal(false)
+    expect(ctx.childIds.has(String(child.id))).to.equal(false)
+    expect(ctx.stewardChildIds.has(String(child.id))).to.equal(false)
+    expect(isGroupVisibleToViewer({
+      id: child.id,
+      get: key => key === 'visibility' ? Group.Visibility.PROTECTED : null
+    }, ctx, viewer.id)).to.equal(false)
+  })
+
+  it('shows hidden spaces to members when everyone can add members', async () => {
+    const viewer = await factories.user().save()
+    const host = await factories.user().save()
+    const parent = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    const hiddenSpace = await factories.group({
+      visibility: Group.Visibility.HIDDEN,
+      type: 'space',
+      parent_id: parent.id
+    }).save()
+    await viewer.joinGroup(parent)
+    await host.joinGroup(parent)
+    await GroupRole.setupSystemRoles(parent.id)
+    const hostRole = await GroupRole.findSystemRole(parent.id, 'Host')
+    await MemberGroupRole.forge({ user_id: host.id, group_id: parent.id, group_role_id: hostRole.id, active: true }).save()
+    await GroupRole.setInvitePolicy(parent.id, 'everyone')
+    expect(await GroupMembership.hasResponsibility(viewer.id, parent, Responsibility.constants.RESP_ADD_MEMBERS)).to.be.true
+
+    const visibleSpaceIds = async userId => {
+      const groups = await groupFilter(userId)(Group.collection().query(q => q.where('groups.id', hiddenSpace.id))).fetch()
+      return groups.map(g => g.id)
+    }
+    expect(await visibleSpaceIds(viewer.id)).to.deep.equal([hiddenSpace.id])
+    expect(await visibleSpaceIds(host.id)).to.deep.equal([hiddenSpace.id])
+
+    const ctx = await loadGroupVisibilityContext(viewer.id)
+    expect(ctx.memberIds.has(String(parent.id))).to.equal(true)
+    expect(ctx.joinManagerIds.has(String(parent.id))).to.equal(true)
+    expect(isGroupVisibleToViewer({
+      id: hiddenSpace.id,
+      get: key => {
+        if (key === 'visibility') return Group.Visibility.HIDDEN
+        if (key === 'type') return 'space'
+        if (key === 'parent_id') return parent.id
+        return null
+      }
+    }, ctx, viewer.id)).to.equal(true)
+  })
+
+  it('does not show a protected space after leaving the parent', async () => {
+    const viewer = await factories.user().save()
+    const parent = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+    const space = await factories.group({
+      visibility: Group.Visibility.PROTECTED,
+      type: 'space',
+      parent_id: parent.id
+    }).save()
+    await viewer.joinGroup(parent)
+    await parent.removeMembers([viewer.id])
+
+    const ctx = await loadGroupVisibilityContext(viewer.id)
+    expect(ctx.memberIds.has(String(parent.id))).to.equal(false)
+    expect(ctx.joinManagerIds.has(String(parent.id))).to.equal(false)
+    expect(isGroupVisibleToViewer({
+      id: space.id,
+      get: key => {
+        if (key === 'visibility') return Group.Visibility.PROTECTED
+        if (key === 'type') return 'space'
+        if (key === 'parent_id') return parent.id
+        return null
+      }
+    }, ctx, viewer.id)).to.equal(false)
+  })
+})

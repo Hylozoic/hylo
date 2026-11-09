@@ -1,8 +1,10 @@
-import { afterCreatingPost } from './createPost'
+/* eslint-disable no-unused-expressions */
+import createPost, { afterCreatingPost } from './createPost'
+import * as Websockets from '../../services/Websockets'
 const rootPath = require('root-path')
 const setup = require(rootPath('test/setup'))
 const factories = require(rootPath('test/setup/factories'))
-const { spyify, stubGetImageSize, unspyify } = require(rootPath('test/setup/helpers'))
+const { spyify, stubGetImageSize, mockify, unspyify } = require(rootPath('test/setup/helpers'))
 
 describe('afterCreatingPost', () => {
   let post
@@ -12,7 +14,7 @@ describe('afterCreatingPost', () => {
     setup.clearDb()
       .then(() => Promise.props({
         requestTag: Tag.forge({ name: 'request' }).save(),
-        u1: new User({ name: 'U1', email: 'a@b.c', active: true }).save(),
+        u1: new User({ name: 'U1', email: 'a@b.c', active: true }).save()
       }))
       .then(props => {
         post = factories.post({ user_id: props.u1.id, description: 'wow!', link_preview_id: null })
@@ -61,15 +63,426 @@ describe('afterCreatingPost', () => {
       })
   })
 
+  it('does not notify members when silent', () => {
+    spyify(Websockets, 'pushToSockets')
+    const c = factories.group()
+    const silentPost = factories.post({ user_id: post.get('user_id'), description: 'quiet', link_preview_id: null })
+    return c.save()
+      .then(() => silentPost.save())
+      .then(() => afterCreatingPost(silentPost, { group_ids: [c.id], silent: true }))
+      .then(() => {
+        expect(Websockets.pushToSockets).not.to.have.been.called
+        expect(Queue.classMethod).not.to.have.been.called
+          .with('Post', 'incrementNewPostCountForCreatedPost', { postId: silentPost.id }, 0)
+        expect(Queue.classMethod).not.to.have.been.called
+          .with('Post', 'createActivities', { postId: silentPost.id })
+        expect(Queue.classMethod).not.to.have.been.called
+          .with('Post', 'notifySlack', { postId: silentPost.id })
+        expect(Queue.classMethod).not.to.have.been.called
+          .with('Post', 'zapierTriggers', { postId: silentPost.id })
+      })
+      .finally(() => unspyify(Websockets, 'pushToSockets'))
+  })
+
+  it('pushes a newPost socket when the post is not silent', () => {
+    spyify(Websockets, 'pushToSockets')
+    const c = factories.group()
+    const loudPost = factories.post({ user_id: post.get('user_id'), description: 'loud', link_preview_id: null })
+    return c.save()
+      .then(() => loudPost.save())
+      .then(() => afterCreatingPost(loudPost, { group_ids: [c.id] }))
+      .then(() => {
+        expect(Websockets.pushToSockets).to.have.been.called
+      })
+      .finally(() => unspyify(Websockets, 'pushToSockets'))
+  })
+
   it('ignores duplicate group ids', () => {
     const c = factories.group()
     return c.save()
-    .then(() => post.save())
-    .then(() => afterCreatingPost(post, {group_ids: [c.id, c.id]}))
-    .then(() => post.load('groups'))
-    .then(() => expect(post.relations.groups.length).to.equal(1))
-    .catch(err => {
-      throw err
+      .then(() => post.save())
+      .then(() => afterCreatingPost(post, { group_ids: [c.id, c.id] }))
+      .then(() => post.load('groups'))
+      .then(() => expect(post.relations.groups.length).to.equal(1))
+      .catch(err => {
+        throw err
+      })
+  })
+
+  it('queues a link preview when the post has a URL and no preview', () => {
+    const linkedPost = factories.post({
+      user_id: post.get('user_id'),
+      description: 'Check https://example.com/from-zapier',
+      link_preview_id: null
     })
+    return linkedPost.save()
+      .then(() => afterCreatingPost(linkedPost, { group_ids: [] }))
+      .then(() => {
+        expect(Queue.classMethod).to.have.been.called
+          .with('Post', 'generateLinkPreview', { postId: linkedPost.id, url: 'https://example.com/from-zapier' })
+      })
+  })
+
+  it('attaches an existing populated preview instead of queuing', async () => {
+    const url = 'https://example.com/already-cached'
+    const preview = await LinkPreview.forge({ url, title: 'Cached', done: true }).save()
+    const linkedPost = await factories.post({
+      user_id: post.get('user_id'),
+      description: `See ${url}`,
+      link_preview_id: null
+    }).save()
+
+    await afterCreatingPost(linkedPost, { group_ids: [] })
+    await linkedPost.refresh()
+
+    expect(String(linkedPost.get('link_preview_id'))).to.equal(String(preview.id))
+    expect(Queue.classMethod).not.to.have.been.called.with('Post', 'generateLinkPreview')
+  })
+
+  it('does not queue a link preview when one is already set', async () => {
+    const preview = await LinkPreview.forge({
+      url: 'https://example.com/skip-me',
+      title: 'Skip',
+      done: true
+    }).save()
+    const previewedPost = await factories.post({
+      user_id: post.get('user_id'),
+      description: 'Check https://example.com/skip-me',
+      link_preview_id: preview.id
+    }).save()
+
+    await afterCreatingPost(previewedPost, { group_ids: [] })
+    expect(Queue.classMethod).not.to.have.been.called.with('Post', 'generateLinkPreview')
+  })
+
+  it('does not attach or queue a preview when skip_link_preview is set', async () => {
+    const url = 'https://example.com/manually-removed'
+    await LinkPreview.forge({ url, title: 'Cached', done: true }).save()
+    const linkedPost = await factories.post({
+      user_id: post.get('user_id'),
+      description: `See ${url}`,
+      link_preview_id: null
+    }).save()
+
+    await afterCreatingPost(linkedPost, { group_ids: [], skip_link_preview: true })
+    await linkedPost.refresh()
+
+    expect(linkedPost.get('link_preview_id')).to.not.exist
+    expect(Queue.classMethod).not.to.have.been.called.with('Post', 'generateLinkPreview')
+  })
+})
+
+describe('Post.generateLinkPreview', () => {
+  let user
+
+  before(() =>
+    setup.clearDb()
+      .then(() => new User({ name: 'U1', email: 'lp@b.c', active: true }).save())
+      .then(u => { user = u })
+  )
+
+  it('attaches a populated preview to the post', async () => {
+    const url = 'https://example.com/from-job'
+    const linkedPost = await factories.post({
+      user_id: user.id,
+      description: `See ${url}`,
+      link_preview_id: null
+    }).save()
+
+    mockify(LinkPreview, 'findOrCreateAndPopulate', async () => {
+      return LinkPreview.forge({ url, title: 'From job', done: true }).save()
+    })
+    try {
+      await Post.generateLinkPreview({ postId: linkedPost.id, url })
+      await linkedPost.refresh()
+      const preview = await LinkPreview.find(linkedPost.get('link_preview_id'))
+      expect(preview.get('title')).to.equal('From job')
+    } finally {
+      unspyify(LinkPreview, 'findOrCreateAndPopulate')
+    }
+  })
+
+  it('does nothing when the preview has no title', async () => {
+    const url = 'https://example.com/no-title'
+    const linkedPost = await factories.post({
+      user_id: user.id,
+      description: `See ${url}`,
+      link_preview_id: null
+    }).save()
+
+    mockify(LinkPreview, 'findOrCreateAndPopulate', async () => {
+      return LinkPreview.forge({ url, done: true }).save()
+    })
+    try {
+      await Post.generateLinkPreview({ postId: linkedPost.id, url })
+      await linkedPost.refresh()
+      expect(linkedPost.get('link_preview_id')).to.not.exist
+    } finally {
+      unspyify(LinkPreview, 'findOrCreateAndPopulate')
+    }
+  })
+
+  it('throws when the post is not found so the job can retry', async () => {
+    try {
+      await Post.generateLinkPreview({ postId: 999999999, url: 'https://example.com/retry' })
+      expect.fail('should throw')
+    } catch (e) {
+      expect(e.message).to.match(/post 999999999 not found/)
+    }
+  })
+})
+
+describe('createPost silent', () => {
+  let steward, member, group
+
+  before(() =>
+    setup.clearDb()
+      .then(() => Promise.props({
+        steward: new User({ name: 'Steward', email: 'silent-steward@b.c', active: true }).save(),
+        member: new User({ name: 'Member', email: 'silent-member@b.c', active: true }).save(),
+        group: new Group({ slug: 'silent-group', name: 'Silent Group' }).save()
+      }))
+      .then(props => {
+        steward = props.steward
+        member = props.member
+        group = props.group
+        return Promise.join(
+          group.addMembers([steward.id], { assignAdministrator: true }),
+          member.joinGroup(group)
+        )
+      })
+  )
+
+  beforeEach(() => {
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('rejects a silent post from a member who is not a steward', () => {
+    return createPost(member.id, {
+      name: 'Nope',
+      group_ids: [group.id],
+      silent: true
+    })
+      .then(() => expect.fail('should reject'))
+      .catch(e => expect(e.message).to.match(/steward/))
+  })
+
+  it('rejects a silent announcement', () => {
+    return createPost(steward.id, {
+      name: 'Loud',
+      group_ids: [group.id],
+      silent: true,
+      announcement: true
+    })
+      .then(() => expect.fail('should reject'))
+      .catch(e => expect(e.message).to.match(/announcement/))
+  })
+
+  it('creates the post without queuing member notifications', () => {
+    return createPost(steward.id, {
+      name: 'Quiet import',
+      group_ids: [group.id],
+      silent: true
+    }).then(created => {
+      expect(created).to.exist
+      expect(created.get('name')).to.equal('Quiet import')
+      expect(Queue.classMethod).not.to.have.been.called.with('Post', 'incrementNewPostCountForCreatedPost')
+      expect(Queue.classMethod).not.to.have.been.called.with('Post', 'createActivities')
+      expect(Queue.classMethod).not.to.have.been.called.with('Post', 'notifySlack')
+      expect(Queue.classMethod).not.to.have.been.called.with('Post', 'zapierTriggers')
+    })
+  })
+})
+
+describe('createPost accepted_post_types', () => {
+  let user, restrictedGroup
+
+  before(() =>
+    setup.clearDb()
+      .then(() => Promise.props({
+        u: new User({ name: 'U1', email: 'apt@b.c', active: true }).save(),
+        g: new Group({ slug: 'apt-events-only', name: 'Events Only', accepted_post_types: ['event'] }).save()
+      }))
+      .then(props => {
+        user = props.u
+        restrictedGroup = props.g
+        return user.joinGroup(restrictedGroup)
+      })
+  )
+
+  it('rejects a type the destination group does not accept', () => {
+    return createPost(user.id, {
+      name: 'Nope',
+      type: Post.Type.DISCUSSION,
+      group_ids: [restrictedGroup.id]
+    })
+      .then(() => expect.fail('should reject'))
+      .catch(e => expect(e.message).to.match(/Events Only does not accept discussion posts/))
+  })
+
+  it('creates the post when the group accepts the type', () => {
+    return createPost(user.id, {
+      name: 'Party',
+      type: Post.Type.EVENT,
+      group_ids: [restrictedGroup.id],
+      startTime: Date.now() + 86400000,
+      endTime: Date.now() + 90000000
+    }).then(post => {
+      expect(post).to.exist
+      expect(post.get('type')).to.equal(Post.Type.EVENT)
+    })
+  })
+})
+
+describe('createPost imageUrls', () => {
+  let user, group
+  const hostedUrl = 'https://cdn.hylo.com/evo-uploads/user/1/post/new/hosted.png'
+  const remoteUrl = 'https://v5.airtableusercontent.com/v1/foo/photo.jpg'
+
+  before(() =>
+    setup.clearDb()
+      .then(() => Promise.props({
+        u: new User({ name: 'U1', email: 'img@b.c', active: true }).save(),
+        g: new Group({ slug: 'img-group', name: 'Img Group' }).save()
+      }))
+      .then(props => {
+        user = props.u
+        group = props.g
+        return user.joinGroup(group)
+      })
+  )
+
+  beforeEach(() => {
+    mockify(Queue, 'classMethod', () => Promise.resolve())
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('attaches already-hosted Hylo URLs and does not queue a rehost job', async () => {
+    stubGetImageSize(hostedUrl)
+    const created = await createPost(user.id, {
+      name: 'With hosted image',
+      group_ids: [group.id],
+      imageUrls: [hostedUrl]
+    })
+
+    await created.load('media')
+    const images = created.relations.media.filter(m => m.get('type') === 'image')
+    expect(images.length).to.equal(1)
+    expect(images[0].get('url')).to.equal(hostedUrl)
+    expect(Queue.classMethod).not.to.have.been.called.with('Post', 'rehostAndAttachImages')
+  })
+
+  it('queues remote URLs and does not store them as media on create', async () => {
+    const created = await createPost(user.id, {
+      name: 'With remote image',
+      group_ids: [group.id],
+      imageUrls: [remoteUrl]
+    })
+
+    await created.load('media')
+    expect(created.relations.media.length).to.equal(0)
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl],
+      startPosition: 0
+    }, 0)
+  })
+
+  it('attaches hosted URLs immediately and queues remaining remote URLs', async () => {
+    stubGetImageSize(hostedUrl)
+    const created = await createPost(user.id, {
+      name: 'Mixed images',
+      group_ids: [group.id],
+      imageUrls: [hostedUrl, remoteUrl]
+    })
+
+    await created.load('media')
+    const images = created.relations.media.filter(m => m.get('type') === 'image')
+    expect(images.length).to.equal(1)
+    expect(images[0].get('url')).to.equal(hostedUrl)
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl],
+      startPosition: 1
+    }, 0)
+  })
+
+  it('flattens a nested imageUrls list before queueing the remote URL', async () => {
+    const created = await createPost(user.id, {
+      name: 'Nested remote image',
+      group_ids: [group.id],
+      imageUrls: [[remoteUrl]]
+    })
+
+    await created.load('media')
+    expect(created.relations.media.length).to.equal(0)
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl],
+      startPosition: 0
+    }, 0)
+  })
+
+  it('queues every remote URL when several are passed', async () => {
+    const secondRemote = 'https://upload.wikimedia.org/wikipedia/commons/cow.jpg'
+    const created = await createPost(user.id, {
+      name: 'Two remotes',
+      group_ids: [group.id],
+      imageUrls: [remoteUrl, secondRemote]
+    })
+
+    expect(Queue.classMethod).to.have.been.called.with('Post', 'rehostAndAttachImages', {
+      postId: created.id,
+      userId: user.id,
+      imageUrls: [remoteUrl, secondRemote],
+      startPosition: 0
+    }, 0)
+  })
+})
+
+describe('Post.createActivities', () => {
+  it('does not notify a former group member about a mention in that group', async () => {
+    const author = await factories.user().save()
+    const formerMember = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([author, formerMember])
+    await group.removeMembers([formerMember])
+
+    const post = await factories.post({
+      user_id: author.id,
+      type: Post.Type.DISCUSSION,
+      description: `<span class="mention" data-type="mention" data-id="${formerMember.id}" data-label="person">person</span>`
+    }).save()
+    await group.posts().attach(post)
+
+    await post.createActivities()
+
+    const activities = await Activity.where({ reader_id: formerMember.id, post_id: post.id }).fetchAll()
+    expect(activities.some(activity => activity.get('meta')?.reasons?.includes('mention'))).to.equal(false)
+  })
+
+  it('still notifies an active group member about a mention', async () => {
+    const author = await factories.user().save()
+    const member = await factories.user().save()
+    const group = await factories.group().save()
+    await group.addMembers([author, member])
+
+    const post = await factories.post({
+      user_id: author.id,
+      type: Post.Type.DISCUSSION,
+      description: `<span class="mention" data-type="mention" data-id="${member.id}" data-label="person">person</span>`
+    }).save()
+    await group.posts().attach(post)
+
+    await post.createActivities()
+
+    const activities = await Activity.where({ reader_id: member.id, post_id: post.id }).fetchAll()
+    expect(activities.some(activity => activity.get('meta')?.reasons?.includes('mention'))).to.equal(true)
   })
 })

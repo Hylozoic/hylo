@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 import '../../setup'
 import Frontend from '../../../api/services/Frontend'
 import * as RichText from '../../../api/services/RichText'
@@ -8,7 +9,7 @@ describe('RichText', function () {
   describe('processHTML', () => {
     it('leaves long link text intact', () => {
       const processResult = RichText.processHTML(
-        '<a href="https://hylo.com/0123456789001234567890012345678900123456789001234567890">https://hylo.com/0123456789001234567890012345678900123456789001234567890</a>',
+        '<a href="https://hylo.com/0123456789001234567890012345678900123456789001234567890">https://hylo.com/0123456789001234567890012345678900123456789001234567890</a>'
       )
       expect(processResult).to.equal(
         '<a href="https://hylo.com/0123456789001234567890012345678900123456789001234567890" class="hylo-link">https://hylo.com/0123456789001234567890012345678900123456789001234567890</a>'
@@ -59,6 +60,35 @@ describe('RichText', function () {
       const actual = RichText.processHTML(unsafe, { insaneOptions: { allowTags: ['p'], allowedAttributes: { p: ['id'] } } })
       expect(actual).to.equal(expected)
     })
+
+    it('only keeps YouTube and Vimeo iframes', () => {
+      const actual = RichText.processHTML(
+        '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe><iframe src="https://evil.example/"></iframe>'
+      )
+      expect(actual).to.equal('<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>')
+    })
+  })
+
+  describe('sanitizeHTML', () => {
+    it('strips scripts, event handlers and javascript: links', () => {
+      const actual = RichText.sanitizeHTML(
+        '<p>Hi<script>alert(1)</script></p><img src="x" onerror="alert(2)"><a href="javascript:alert(3)">x</a>'
+      )
+      expect(actual).to.equal('<p>Hi</p><img src="x"/><a>x</a>')
+    })
+
+    it('keeps YouTube and Vimeo embeds and drops other video sources', () => {
+      const actual = RichText.sanitizeHTML(
+        '<video data-type="embed" src="https://player.vimeo.com/video/70509133"></video>' +
+        '<video data-type="embed" src="javascript:alert(1)"></video>' +
+        '<iframe src="https://evil.example/"></iframe>'
+      )
+      expect(actual).to.equal('<video data-type="embed" src="https://player.vimeo.com/video/70509133"></video>')
+    })
+
+    it('returns empty values unchanged', () => {
+      expect(RichText.sanitizeHTML(null)).to.equal(null)
+    })
   })
 
   describe('.qualifyLinks', function () {
@@ -81,20 +111,51 @@ describe('RichText', function () {
 
   describe('getUserMentions', () => {
     it("doesn't fail if no mentions are found", () => {
-      const text = `<p>test text</p>`
+      const text = '<p>test text</p>'
 
       expect(RichText.getUserMentions(text)).to.be.empty
-    }),
+    })
 
     it('gets all the mentions', () => {
       const text = `<p><a href="${prefix}/all/topics/hashtag" class="topic" data-type="topic" data-id="hashtag" data-label="#hashtag">#hashtag</a>, ` +
         `<a href="${prefix}/all/topics/anotherhashtag" class="topic" data-type="topic" data-id="anotherhashtag" data-label="#anotherhashtag">#anotherhashtag</a>, ` +
-        `<a href="https://www.metafilter.com/wooooo" class="linkified" target="_blank">https://www.metafilter.com/wooooo</a></p>` +
+        '<a href="https://www.metafilter.com/wooooo" class="linkified" target="_blank">https://www.metafilter.com/wooooo</a></p>' +
         `<p>a paragraph, and of course <a href="${prefix}/all/members/5942" class="mention" data-type="mention" data-id="5942" data-label="@Minda Myers">@Minda Myers</a>&nbsp;` +
         `<a href="${prefix}/all/members/8781" class="mention" data-type="mention" data-id="8781" data-label="@Ray Hylo">@Ray Hylo</a>&nbsp;` +
         `<a href="${prefix}/all/topics/boom" class="topic" data-type="topic" data-id="boom" data-label="#boom">#boom</a>.</p><p>danke</p>`
 
       expect(RichText.getUserMentions(text)).to.have.members(['5942', '8781'])
+    })
+  })
+
+  describe('getFirstExternalUrl', () => {
+    it('returns null when there is no content', () => {
+      expect(RichText.getFirstExternalUrl()).to.equal(null)
+      expect(RichText.getFirstExternalUrl('')).to.equal(null)
+    })
+
+    it('finds a plain-text URL', () => {
+      expect(RichText.getFirstExternalUrl('Check this https://example.com/article')).to.equal('https://example.com/article')
+    })
+
+    it('finds the first href in HTML', () => {
+      const html = '<p>See <a href="https://example.com/one">one</a> and <a href="https://example.com/two">two</a></p>'
+      expect(RichText.getFirstExternalUrl(html)).to.equal('https://example.com/one')
+    })
+
+    it('skips mailto links', () => {
+      expect(RichText.getFirstExternalUrl('Email <a href="mailto:hi@example.com">hi</a> then https://example.com')).to.equal('https://example.com/')
+    })
+
+    it('skips mention and topic anchors so the first real URL is used', () => {
+      const html = '<p><a class="mention" href="/all/members/1">@Ada</a> see ' +
+        '<a class="topic" href="/all/topics/news">#news</a> then https://example.com/story</p>'
+      expect(RichText.getFirstExternalUrl(html)).to.equal('https://example.com/story')
+    })
+
+    it('finds a URL in Zapier-style HTML with line breaks', () => {
+      const html = '<p>Hello from the newsletter</p><p>https://www.example.com/from-zapier</p>'
+      expect(RichText.getFirstExternalUrl(html)).to.equal('https://www.example.com/from-zapier')
     })
   })
 })

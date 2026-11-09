@@ -79,8 +79,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
         await TagFollow.findOrCreate({
           tagId: this.get('tag_id'),
           userId,
-          groupId: this.get('group_id'),
-        }, { transacting})
+          groupId: this.get('group_id')
+        }, { transacting })
       } catch (err) {
         // do nothing if the tag follow already exists
         if (!err.message || !err.message.includes('duplicate key value')) {
@@ -98,8 +98,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   expire: function (userId, opts = {}) {
     const { transacting } = opts
-    return this.save({expired_by_id: userId, expired_at: new Date()},
-      {patch: true, transacting})
+    return this.save({ expired_by_id: userId, expired_at: new Date() },
+      { patch: true, transacting })
   },
 
   send: function () {
@@ -114,7 +114,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           inviter_avatar_url: creator.get('avatar_url'),
           inviter_name: creator.get('name'),
           inviter_email: creator.get('email'),
-          locale: creator.get('settings').locale || 'en',
+          locale: creator.getLocale(),
           group_name: group.get('name'),
           group_avatar_url: group.get('avatar_url'),
           group_url: Frontend.Route.group(group),
@@ -139,19 +139,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
   }
 
 }, EnsureLoad), {
-
   find: (idOrToken, opts) => {
     if (!idOrToken) return Promise.resolve(null)
     const attr = isNaN(Number(idOrToken)) ? 'token' : 'id'
     return Invitation.where(attr, idOrToken).fetch(opts)
   },
 
-  create: async function (opts) {
+  create: async function (opts, { transacting } = {}) {
     let groupRoleId = opts.groupRoleId || null
-    if (opts.assignCoordinator && !groupRoleId) {
+    if (opts.assignAdministrator && !groupRoleId) {
       await GroupRole.setupSystemRoles(opts.groupId)
-      const coordinator = await GroupRole.findSystemRole(opts.groupId, 'Coordinator')
-      groupRoleId = coordinator ? coordinator.id : null
+      const administrator = await GroupRole.findSystemRole(opts.groupId, 'Administrator')
+      groupRoleId = administrator ? administrator.id : null
     }
 
     return new Invitation({
@@ -164,35 +163,39 @@ module.exports = bookshelf.Model.extend(Object.assign({
       created_at: new Date(),
       subject: opts.subject,
       message: opts.message
-    }).save()
+    }).save(null, { transacting })
   },
 
-  createAndSend: function ({invitation}) {
+  createAndSend: function ({ invitation }) {
     return Invitation.find(invitation.id)
       .then(invitation =>
         invitation.send()
       )
   },
 
+  // Member invitations are left to the automatic reminders
   reinviteAll: function (opts) {
     const { groupId } = opts
-    return Invitation.where({group_id: groupId, used_by_id: null, expired_by_id: null})
-    .fetchAll({withRelated: ['creator', 'group', 'tag']})
-    .then(invitations =>
-      Promise.map(invitations.models, invitation => invitation.send()))
+    return Invitation.where({ group_id: groupId, used_by_id: null, expired_by_id: null })
+      .fetchAll({ withRelated: ['creator', 'group', 'tag'] })
+      .then(invitations =>
+        Promise.map(invitations.models, invitation => invitation.send()))
   },
 
-  resendAllReady () {
-    return Invitation.query(q => {
+  /**
+   * Send the automatic reminders that are due.
+   */
+  async resendAllReady () {
+    const invitations = await Invitation.query(q => {
       const whereClause = "((sent_count=1 and last_sent_at < now() - interval '4 day') or " +
         "(sent_count=2 and last_sent_at < now() - interval '9 day'))"
       q.whereRaw(whereClause)
       q.whereNull('used_by_id')
       q.whereNull('expired_by_id')
-    })
-    .fetchAll({withRelated: ['creator', 'group', 'tag']})
-    .tap(invitations => Promise.map(invitations.models, i => i.send()))
-    .then(invitations => invitations.pluck('id'))
+    }).fetchAll({ withRelated: ['creator', 'group', 'tag'] })
+
+    await Promise.map(invitations.models, invitation => invitation.send())
+    return invitations.map(invitation => invitation.id)
   }
 
 })

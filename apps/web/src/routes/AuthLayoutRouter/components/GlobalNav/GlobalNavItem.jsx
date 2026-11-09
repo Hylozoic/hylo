@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { cn } from 'util/index'
-import { baseUrl } from '@hylo/navigation'
+import { baseUrl, myHomeLandingUrl, isMyHomeContext, localSpaceSlug } from '@hylo/navigation'
 
 /**
  * GlobalNavItem component renders a navigation item with tooltip and hover animations
@@ -27,25 +27,46 @@ import { baseUrl } from '@hylo/navigation'
  * @param {boolean} showTooltip - Whether parent is triggering tooltip cascade
  * @param {number} index - Position in nav list for staggered animations
  * @param {Array} childGroups - Subgroups; when present the item shows a stack of avatars and opens a dropdown on click
+ * @param {ReactNode} cornerBadge - Small tile drawn over the avatar's bottom-right corner (a pinned space's icon over its parent group's avatar)
+ * @param {boolean} selectionHeldBySpace - This group's pinned space is open, so the space item shows as selected instead
+ * @param {string} avatarName - Name whose initials stand in for a default avatar; defaults to the tooltip
  */
 export default function GlobalNavItem ({
   children,
   className,
   badgeCount = 0,
+  // System buttons (create, notifications, messages, commons) keep the dark-mode
+  // tile in both schemes — the light tiles read as too loud on the rail
+  darkTile = false,
   img,
   tooltip,
   url,
   showTooltip: parentShowTooltip,
   index = 0,
   isPinned = false,
-  childGroups = []
+  navItemType,
+  parentSlug,
+  slug,
+  childGroups = [],
+  cornerBadge,
+  avatarName,
+  selectionHeldBySpace = false,
+  dataTour,
+  dataTestId
 }) {
   const navigate = useNavigate()
   const routeParams = useRouteParams()
   const hasChildren = childGroups && childGroups.length > 0
   // A stack is selected when its parent group is active OR when one of its stacked subgroups is the active group.
-  const selected = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug }) === url ||
-    (hasChildren && childGroups.some(child => child.slug === routeParams.groupSlug))
+  const selected = !selectionHeldBySpace && (url === myHomeLandingUrl()
+    ? isMyHomeContext(routeParams.context)
+    : navItemType === 'space'
+      ? routeParams.groupSlug === parentSlug &&
+        routeParams.spaceSlug === localSpaceSlug(parentSlug, slug)
+      : (
+          baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug }) === url ||
+          (hasChildren && childGroups.some(child => child.slug === routeParams.groupSlug))
+        ))
   const [isHovered, setIsHovered] = useState(false)
   const [open, setOpen] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -230,7 +251,7 @@ export default function GlobalNavItem ({
         'rounded-lg opacity-85 hover:opacity-100',
         'scale-90 hover:scale-100 text-3xl',
         // Stacks read like the TopNav tabs: no tile background or shadow, just the layered avatars.
-        !hasChildren && 'bg-primary drop-shadow-md hover:drop-shadow-lg',
+        !hasChildren && cn('drop-shadow-md hover:drop-shadow-lg', darkTile ? 'bg-[hsl(0_0%_17%)] text-white' : 'bg-primary'),
         {
           'border-3 border-selected opacity-100 scale-110 hover:scale-110': selected,
           'border-3 border-accent opacity-100 scale-100 hover:scale-105': badgeCount > 0 || badgeCount === '!' || badgeCount === '-',
@@ -246,6 +267,9 @@ export default function GlobalNavItem ({
         msUserSelect: 'none'
       }}
       role='button'
+      aria-label={tooltip}
+      data-testid={dataTestId}
+      data-tour={dataTour}
     >
       {hasChildren
         ? (
@@ -282,11 +306,16 @@ export default function GlobalNavItem ({
               />
             )}
             {children}
-            {isDefaultAvatar && <span className='GlobalNavItemDefaultAvatarText relative z-10 text-center text-white text-2xl drop-shadow-md'>{tooltip?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
+            {isDefaultAvatar && <span className='GlobalNavItemDefaultAvatarText relative z-10 text-center text-white text-2xl drop-shadow-md'>{(avatarName || tooltip)?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
           </>
           )}
       {badgeCount > 0 && <Badge number={badgeCount} className='absolute -top-3 -left-3' expanded />}
       {badgeCount === '-' && <Badge number='-' className='absolute -top-3 -left-3 scale-[70%]' expanded />}
+      {cornerBadge && !hasChildren && (
+        <div className='absolute -bottom-1.5 -right-1.5 z-20 pointer-events-none'>
+          {cornerBadge}
+        </div>
+      )}
     </div>
   )
 

@@ -12,9 +12,12 @@ Invitation.modelName = 'Invitation'
 Invitation.fields = {
   id: attr(),
   email: attr(),
+  name: attr(),
+  userId: attr(),
   createdAt: attr(),
   creator: fk('Person', 'createdInvites'),
   group: fk('Group', 'pendingInvitations'),
+  inviterAccess: attr(),
   lastSentAt: attr(),
   resent: attr(),
   token: attr()

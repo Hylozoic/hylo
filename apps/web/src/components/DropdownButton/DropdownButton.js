@@ -23,7 +23,7 @@ export default class DropdownButton extends Component {
   /**
    * Toggles the expanded state of the dropdown menu
    */
-  toggleExpanded = () => {
+  handleToggleExpanded = () => {
     const { expanded } = this.state
     this.setState({
       expanded: !expanded
@@ -69,7 +69,7 @@ export default class DropdownButton extends Component {
             },
             className
           )}
-          onClick={this.toggleExpanded}
+          onClick={this.handleToggleExpanded}
           data-position={position}
         >
           {label}&nbsp;&nbsp;|&nbsp;&nbsp;▾

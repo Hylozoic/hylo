@@ -24,6 +24,8 @@ export default
           name
           slug
           visibility
+          type
+          parentId
         }
       }
     }
@@ -45,6 +47,13 @@ export default
           name
           slug
           visibility
+          type
+          parentId
+          homeRoute
+          parentGroup {
+            id
+            slug
+          }
         }
         token
       }

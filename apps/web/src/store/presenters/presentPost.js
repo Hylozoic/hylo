@@ -2,6 +2,24 @@ import { DateTimeHelpers } from '@hylo/shared'
 import presentTopic from 'store/presenters/presentTopic'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
+/** Parses noticeData whether the API returned an object or a JSON string. */
+function parseNoticeData (value) {
+  if (!value) return null
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch (e) {
+      return null
+    }
+  }
+  return value
+}
+
+/** True when value is a nested GraphQL/Location payload with coordinates. */
+function isPlainLocation (value) {
+  return value && typeof value === 'object' && value.center != null
+}
+
 export default function presentPost (post, groupId) {
   if (!post) return null
 
@@ -16,14 +34,15 @@ export default function presentPost (post, groupId) {
 
     const finalPost = {
       ...(rawPost ? post : post.ref),
-      attachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).sort((a, b) => a.position - b.position),
+      attachments: (rawPost ? post.attachments || [] : (post.attachments?.toModelArray?.() || [])).sort((a, b) => a.position - b.position),
       createdTimestamp: createdAtHumanDate,
       createdTimestampShort: createdAtHumanDateShort,
       creator: post.creator, // needed to load the creator object
-      commenters: (rawPost ? post.commenters?.items || [] : post.commenters.toModelArray()),
+      postMemberships: (rawPost ? post.postMemberships?.items || post.postMemberships || [] : (post.postMemberships?.toRefArray?.() || [])),
+      commenters: (rawPost ? post.commenters?.items || [] : (post.commenters?.toModelArray?.() || [])),
       completionResponses: (rawPost ? post.completionResponses?.items || [] : post.completionResponses?.toModelArray() || []),
       editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,
-      eventInvitations: (rawPost ? post.eventInvitations?.items || [] : post.eventInvitations.toModelArray()).map(eventInvitation => {
+      eventInvitations: (rawPost ? post.eventInvitations?.items || [] : (post.eventInvitations?.toModelArray?.() || [])).map(eventInvitation => {
         const person = rawPost ? eventInvitation.person : eventInvitation.person.ref
         return {
           eventInvitationId: eventInvitation.id,
@@ -33,19 +52,27 @@ export default function presentPost (post, groupId) {
       }),
       exactCreatedTimestamp: DateTimeHelpers.toDateTime(post.createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('D t ZZZZ'),
       exactEditedTimestamp: DateTimeHelpers.toDateTime(post.editedAt, { locale: getLocaleFromLocalStorage() }).toFormat('D t ZZZZ'),
-      fileAttachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).filter(a => a.type === 'file').sort((a, b) => a.position - b.position),
-      imageAttachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).filter(a => a.type === 'image').sort((a, b) => a.position - b.position),
-      groups: (rawPost ? post.groups || [] : post.groups.toModelArray()),
-      linkPreview: post.linkPreview, // needed to load the link preview object
+      fileAttachments: (rawPost ? post.attachments || [] : (post.attachments?.toModelArray?.() || [])).filter(a => a.type === 'file').sort((a, b) => a.position - b.position),
+      imageAttachments: (rawPost ? post.attachments || [] : (post.attachments?.toModelArray?.() || [])).filter(a => a.type === 'image').sort((a, b) => a.position - b.position),
+      groups: (rawPost ? post.groups || [] : (post.groups?.toModelArray?.() || [])),
+      // Accessing the relation loads it; prefer .ref so url/title are plain fields
+      linkPreview: rawPost ? post.linkPreview : (post.linkPreview?.ref || post.linkPreview),
+      linkPreviewFeatured: !!(rawPost ? post.linkPreviewFeatured : post.ref?.linkPreviewFeatured),
       location: post.location, // needed to load the location object
-      members: (rawPost ? post.members?.items || [] : post.members.toModelArray()).map(person => {
+      // Prefer the Location relation; ref.locationObject is only the FK id after extraction
+      locationObject: rawPost
+        ? post.locationObject
+        : (post.locationObject?.ref || (isPlainLocation(post.ref?.locationObject) ? post.ref.locationObject : null)),
+      members: (rawPost ? post.members?.items || [] : (post.members?.toModelArray?.() || [])).map(person => {
         return {
           ...(rawPost ? person : person.ref),
-          skills: (rawPost ? person.skills?.items || [] : person.skills.toModelArray())
+          skills: (rawPost ? person.skills?.items || [] : (person.skills?.toModelArray?.() || []))
         }
       }),
-      proposalOptions: (rawPost ? post.proposalOptions?.items || [] : post.proposalOptions.toModelArray()),
-      topics: (rawPost ? post.topics || [] : post.topics.toModelArray().map(topic => presentTopic(topic, {})))
+      noticeData: parseNoticeData(rawPost ? post.noticeData : post.ref?.noticeData),
+      noticePosts: rawPost ? (post.noticePosts || []) : (post.ref?.noticePosts || post.noticePosts || []),
+      proposalOptions: (rawPost ? post.proposalOptions?.items || [] : (post.proposalOptions?.toModelArray?.() || [])),
+      topics: (rawPost ? post.topics || [] : (post.topics?.toModelArray?.() || []).map(topic => presentTopic(topic, {})))
     }
     return finalPost
   } catch (e) {

@@ -101,6 +101,14 @@ msgstr "Aqui está o que aconteceu nos últimos "
 msgid "in "
 msgstr "em "
 
+#, python-format
+msgid "in %(post_space)s"
+msgstr "em %(post_space)s"
+
+#, python-format
+msgid "in %(post_space_name)s"
+msgstr "em %(post_space_name)s"
+
 msgid "Jump to "
 msgstr "Ir para "
 
@@ -114,6 +122,14 @@ msgstr "%(topic_num_new_chats)s novos chats em"
 #, python-format
 msgid "%(topic_num_new_chats)s new chat in"
 msgstr "%(topic_num_new_chats)s novo chat em"
+
+#, python-format
+msgid "%(room_num_new_chats)s new chats in"
+msgstr "%(room_num_new_chats)s novos chats em"
+
+#, python-format
+msgid "%(room_num_new_chats)s new chat in"
+msgstr "%(room_num_new_chats)s novo chat em"
 
 #, python-format
 msgid "%(post_comment_count)s new comments in"
@@ -214,6 +230,24 @@ msgstr "Ofertas"
 msgid "Resources"
 msgstr "Recursos"
 
+msgid "Discussions"
+msgstr "Discussões"
+
+msgid "Events"
+msgstr "Eventos"
+
+msgid "Projects"
+msgstr "Projetos"
+
+msgid "Proposals"
+msgstr "Propostas"
+
+msgid "Upcoming Reminders"
+msgstr "Lembretes próximos"
+
+msgid "Ending Soon"
+msgstr "Encerrando em breve"
+
 msgid "All Topics"
 msgstr "Todos os tópicos"
 
@@ -245,6 +279,9 @@ msgstr "Votar"
 
 msgid "Reply"
 msgstr "Responder"
+
+msgid "View"
+msgstr "Ver"
 
 msgid "Jump to section:"
 msgstr "Ir para a seção:"
@@ -730,8 +767,8 @@ msgstr "%(subject_formatted)s"
 msgid "Your request to join %(group_pill)s was approved by %(approver_pill)s!"
 msgstr "Seu pedido para participar de %(group_pill)s foi aprovado por %(approver_pill)s!"
 
-msgid "Now's a great time to introduce yourself in the chat."
-msgstr "Agora é uma ótima hora para se apresentar no chat."
+msgid "Introduce yourself to the group"
+msgstr "Apresente-se ao grupo"
 
 msgid "Jump in"
 msgstr "Participar"
@@ -811,8 +848,8 @@ msgid "Join the conversation or change your notifications"
 msgstr "Participar da conversa ou alterar suas notificações"
 
 #, python-format
-msgid "New chats in %(group_name)s #%(chat_topic)s"
-msgstr "Novos chats em %(group_name)s #%(chat_topic)s"
+msgid "New chats in %(group_name)s"
+msgstr "Novos chats em %(group_name)s"
 
 #, python-format
 msgid "%(count)s new comments on"
@@ -1229,3 +1266,106 @@ msgstr "Participar da Próxima Chamada →"
 #, python-format
 msgid "Congratulations on creating %(group_name)s!"
 msgstr "Parabéns por criar %(group_name)s!"
+
+#, python-format
+msgid "Someone asked to change the email address for your Hylo account to %(masked_new_email)s. Nothing changes unless that address is verified."
+msgstr "Alguém pediu para alterar o endereço de e-mail da sua conta Hylo para %(masked_new_email)s. Nada muda a menos que esse endereço seja verificado."
+
+msgid "If this wasn’t you, sign in and cancel the change in your account settings, change your password, and contact us."
+msgstr "Se não foi você, entre na sua conta e cancele a alteração nas configurações da conta, altere sua senha e entre em contato conosco."
+
+msgid "Review your account settings"
+msgstr "Revisar as configurações da sua conta"
+
+msgid "If you made this request, there’s nothing else to do here. Just enter the code we sent to your new address."
+msgstr "Se você fez esta solicitação, não precisa fazer mais nada aqui. Basta inserir o código que enviamos para o seu novo endereço."
+
+msgid "A change to your Hylo account email was requested"
+msgstr "Foi solicitada uma alteração do e-mail da sua conta Hylo"
+
+# Strings SendWithUs uses that later edits dropped from this file; translations restored from git history
+msgid "Your access to"
+msgstr "Seu acesso a"
+
+msgid "has expired."
+msgstr "expirou."
+
+msgid "Expired:"
+msgstr "Expirado:"
+
+msgid "We'd love to have you back! Renew your access to continue enjoying this content."
+msgstr "Adoraríamos tê-lo de volta! Renove seu acesso para continuar aproveitando este conteúdo."
+
+msgid "Available Options:"
+msgstr "Opções disponíveis:"
+
+msgid "Renew Access"
+msgstr "Renovar acesso"
+
+msgid "Email settings"
+msgstr ""
+
+msgid "View this email in a browser"
+msgstr ""
+
+#, python-format
+msgid "Your access to %(offering_name_var)s has expired"
+msgstr ""
+
+#, python-format
+msgid "In %(groups_label)s"
+msgstr ""
+
+msgid "in your Hylo groups"
+msgstr ""
+
+#, python-format
+msgid "in %(post_location)s"
+msgstr ""
+
+#, python-format
+msgid "in %(groups_label)s"
+msgstr ""
+
+msgid "Thank you for your generous donation of "
+msgstr "Obrigado pela sua generosa doação de "
+
+msgid "Donation Date:"
+msgstr "Data da doação:"
+
+msgid "Donation Type:"
+msgstr "Tipo de doação:"
+
+msgid "Tax-Deductible Donation"
+msgstr "Doação dedutível do imposto"
+
+#, python-format
+msgid "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
+msgstr "Sua doação é dedutível do imposto nos EUA. O Hylo é patrocinado fiscalmente por %(fiscal_sponsor_name_var)s, organização sem fins lucrativos 501(c)(3)."
+
+msgid "This is a recurring donation that will automatically repeat "
+msgstr "Esta é uma doação recorrente que será repetida automaticamente "
+
+msgid "Next Donation:"
+msgstr "Próxima doação:"
+
+msgid "Manage Recurring Donation"
+msgstr "Gerenciar doação recorrente"
+
+#, python-format
+msgid "This donation was made as part of your %(purchase_context_var)s."
+msgstr "Esta doação foi feita como parte do seu %(purchase_context_var)s."
+
+msgid "Thank you for your donation to Hylo"
+msgstr "Obrigado pela sua doação ao Hylo"
+
+msgid " via Hylo"
+msgstr ""
+
+#, python-format
+msgid ". \n\nManage their request [ %(settings_url)s ] "
+msgstr ". \n\nGerenciar sua solicitação [ %(settings_url)s ] "
+
+#, python-format
+msgid "New chats in %(group_name)s #%(chat_topic)s"
+msgstr "Novos chats em %(group_name)s #%(chat_topic)s"

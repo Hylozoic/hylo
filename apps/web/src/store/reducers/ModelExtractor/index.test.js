@@ -139,6 +139,22 @@ it('handles null children', () => {
   expect(extractor.mergedNodes()).toMatchSnapshot()
 })
 
+it('handles a null many-relation without throwing', () => {
+  const extractor = new ModelExtractor(orm.session(orm.getEmptyState()))
+  extractor.walk({
+    id: '1',
+    title: 'Hello',
+    groups: null,
+    topics: { items: null }
+  }, 'Post')
+  expect(extractor.mergedNodes()).toEqual([
+    {
+      modelName: 'Post',
+      payload: { id: '1', title: 'Hello', groups: [], topics: [] }
+    }
+  ])
+})
+
 it('creates a polymorphicChildId when __typename field is present', () => {
   const extractor = new ModelExtractor(orm.session(orm.getEmptyState()))
   extractor.walk(testPayloads.FETCH_SEARCH.data.search, 'SearchResult')
@@ -181,5 +197,61 @@ describe('append option', () => {
     const post = session.Post.withId('1')
     expect(post.groups.toRefArray().map(c => c.id))
       .toEqual(['3', '4', '5'])
+  })
+})
+
+describe('locationObject foreign key', () => {
+  it('omits nested location when GraphQL omits location id', () => {
+    const session = orm.session(orm.getEmptyState())
+    const extractor = new ModelExtractor(session)
+    extractor.walk({
+      id: '10',
+      title: 'Has a place',
+      locationObject: {
+        center: { lat: 37.7, lng: -122.4 }
+      }
+    }, 'Post')
+    expect(extractor.mergedNodes()).toEqual([
+      {
+        modelName: 'Post',
+        payload: {
+          id: '10',
+          title: 'Has a place'
+        }
+      }
+    ])
+  })
+
+  it('extracts Location and stores its id on the post when location includes id', () => {
+    const session = orm.session(orm.getEmptyState())
+    const extractor = new ModelExtractor(session)
+    extractor.walk({
+      id: '10',
+      title: 'Has a place',
+      locationObject: {
+        id: '99',
+        center: { lat: 37.7, lng: -122.4 }
+      }
+    }, 'Post')
+    expect(extractor.mergedNodes()).toEqual([
+      {
+        modelName: 'Location',
+        payload: {
+          center: {
+            lat: 37.7,
+            lng: -122.4
+          },
+          id: '99'
+        }
+      },
+      {
+        modelName: 'Post',
+        payload: {
+          id: '10',
+          locationObject: '99',
+          title: 'Has a place'
+        }
+      }
+    ])
   })
 })

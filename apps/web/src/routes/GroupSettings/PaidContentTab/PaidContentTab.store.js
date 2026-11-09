@@ -206,9 +206,11 @@ export function fetchOfferings (groupId, accountId) {
             buyButtonText
             tracks {
               id
-              name
-              bannerUrl
-              description
+              space {
+                name
+                bannerUrl
+                description
+              }
             }
           }
           success
@@ -277,6 +279,7 @@ export function fetchContentAccess ({
   status = null,
   offeringId = null,
   trackId = null,
+  groupId = null,
   groupRoleId = null,
   first = 20,
   offset = 0,
@@ -294,6 +297,7 @@ export function fetchContentAccess ({
         status,
         offeringId,
         trackId,
+        groupId,
         groupRoleId,
         first,
         offset,

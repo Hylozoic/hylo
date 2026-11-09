@@ -23,7 +23,6 @@ import {
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { CREATE_POST } from 'store/constants'
 import createPost from 'store/actions/createPost'
 import {
   addAttachment,
@@ -43,6 +42,7 @@ import { MAX_POST_TOPICS } from 'util/constants'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import LinkPreview from 'components/PostEditor/LinkPreview'
 import { buildPostDraftPayload, mergeDraftIntoPost } from 'components/PostEditor/postDraftUtils'
+import isPlayableVideoUrl from 'util/isPlayableVideoUrl'
 
 /**
  * Inline chat composer for ChatRoom — creates chat posts with draft persistence.
@@ -104,7 +104,11 @@ function ChatEditorInner ({
 
   const linkPreview = useSelector(state => getLinkPreview(state))
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
-  const uploadAttachmentPending = useSelector(getUploadAttachmentPending)
+  // Local batch flag stays true until every selected file finishes uploading.
+  // Redux UPLOAD_ATTACHMENT pending clears between each file, so it alone is
+  // not enough to keep send disabled during multi-image picks.
+  const [attachmentUploading, setAttachmentUploading] = useState(false)
+  const [uploadingAttachmentType, setUploadingAttachmentType] = useState(null)
 
   const uploadFileAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: undefined, attachmentType: 'file' }))
   const uploadImageAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: undefined, attachmentType: 'image' }))
@@ -116,11 +120,10 @@ function ChatEditorInner ({
     state => getAttachments(state, { type: 'post', id: undefined, attachmentType: 'file' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
-  const postPending = useSelector(state => isPendingFor(CREATE_POST, state))
-  const loading = !!uploadAttachmentPending
+  const loading = attachmentUploading || !!uploadImageAttachmentPending || !!uploadFileAttachmentPending
 
-  const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending
-  const showFiles = !isEmpty(fileAttachments) || uploadFileAttachmentPending
+  const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending || (attachmentUploading && uploadingAttachmentType === 'image')
+  const showFiles = !isEmpty(fileAttachments) || uploadFileAttachmentPending || (attachmentUploading && uploadingAttachmentType === 'file')
 
   const editorRef = useRef()
 
@@ -139,7 +142,6 @@ function ChatEditorInner ({
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState('')
-  const [invalidMessage, setInvalidMessage] = useState('')
   const [hasDescription, setHasDescription] = useState(false)
   // Formatting toolbar is hidden by default; the CaseSensitive button in the composer toggles it
   const [showToolbar, setShowToolbar] = useState(false)
@@ -240,11 +242,6 @@ function ChatEditorInner ({
   }, [autoFocus, draftContextKey])
 
   useEffect(() => {
-    if (autoFocus) {
-      setTimeout(() => {
-        editorRef.current && editorRef.current.focus()
-      }, 500)
-    }
     return () => {
       dispatch(clearLinkPreview())
       dispatch(clearAttachments('post', 'new', 'image'))
@@ -252,7 +249,21 @@ function ChatEditorInner ({
   }, [])
 
   useEffect(() => {
-    setCurrentPost(prev => (prev.linkPreview === linkPreview ? prev : { ...prev, linkPreview }))
+    setCurrentPost(prev => {
+      if (prev.linkPreview === linkPreview) return prev
+      if (linkPreview) {
+        const isNewPreview = !prev.linkPreview || prev.linkPreview.id !== linkPreview.id
+        return {
+          ...prev,
+          linkPreview,
+          skipLinkPreview: false,
+          linkPreviewFeatured: isNewPreview && isPlayableVideoUrl(linkPreview.url || linkPreview.ref?.url)
+            ? true
+            : prev.linkPreviewFeatured
+        }
+      }
+      return { ...prev, linkPreview }
+    })
   }, [linkPreview, setCurrentPost])
 
   const reset = useCallback(() => {
@@ -268,9 +279,9 @@ function ChatEditorInner ({
     isSubmittedRef.current = false
     setIsDirty(false)
     if (autoFocus) {
-      setTimeout(() => {
-        editorRef.current && editorRef.current.focus()
-      }, 500)
+      // Immediate end-focus. A delayed focus() defaults to the start and jumps
+      // the caret after the next message has already begun.
+      editorRef.current?.focus('end')
     }
   }, [autoFocus, clearDraft, dispatch, initialPost, setCurrentPost, setIsDirty])
 
@@ -319,26 +330,33 @@ function ChatEditorInner ({
 
   const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
-    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false }))
+    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false, skipLinkPreview: true }))
   }, [dispatch, setCurrentPost])
 
-  const isValid = useMemo(() => {
+  const handleAttachmentLoadingChange = useCallback((next, attachmentType) => {
+    setAttachmentUploading(next)
+    setUploadingAttachmentType(next ? attachmentType : null)
+    if (next) setAttachMenuOpen(false)
+  }, [])
+
+  const hasAttachments = !isEmpty(imageAttachments) || !isEmpty(fileAttachments)
+
+  const invalidMessage = useMemo(() => {
     const errorMessages = []
 
-    if (!hasDescription) {
-      errorMessages.push(t('Chat must have content'))
+    // Allow attachment-only chat posts (images and/or files) with no text.
+    if (!hasDescription && !hasAttachments) {
+      errorMessages.push(t('Chat must have text or an attachment'))
     }
 
     if (currentPost.groups?.length === 0) {
       errorMessages.push(t('At least one group required'))
     }
 
-    if (errorMessages.length > 0) {
-      setInvalidMessage(errorMessages.join('<br />'))
-    }
+    return errorMessages.join('<br />')
+  }, [currentPost.groups, hasAttachments, hasDescription, t])
 
-    return errorMessages.length === 0
-  }, [currentPost.groups, hasDescription, t])
+  const isValid = !invalidMessage
 
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
@@ -350,10 +368,14 @@ function ChatEditorInner ({
         isPublic,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         timezone,
         title
       } = currentPost
-      const details = editorRef.current.getHTML()
+      const rawDetails = editorRef.current.getHTML()
+      // Don't persist empty TipTap shells ("<p></p>") — they render as a blank
+      // line above attachment-only chat posts.
+      const details = hasDraftContent(rawDetails) ? rawDetails : ''
       const imageUrls = imageAttachments && imageAttachments.map((attachment) => attachment.url)
       const fileUrls = fileAttachments && fileAttachments.map((attachment) => attachment.url)
 
@@ -371,6 +393,7 @@ function ChatEditorInner ({
         isPublic,
         linkPreview,
         linkPreviewFeatured,
+        skipLinkPreview,
         localId: uniqueId('post_'),
         pending: true,
         timezone,
@@ -384,6 +407,8 @@ function ChatEditorInner ({
       cancelPendingSave()
       stopTyping()
       reset()
+      // The next message can be composed and sent while this request is in flight.
+      isSubmittingRef.current = false
 
       const savedPost = await dispatch(createPost(postToSave))
       if (!savedPost.error) {
@@ -393,7 +418,6 @@ function ChatEditorInner ({
           afterSave(savedPost?.payload?.data?.createPost)
         }
       }
-      isSubmittingRef.current = false
     } catch (error) {
       isSubmittingRef.current = false
       throw error
@@ -401,9 +425,9 @@ function ChatEditorInner ({
   }, [afterSave, cancelPendingSave, clearDraft, currentPost, currentUser, dispatch, fileAttachments, imageAttachments, onSave, reset, setIsDirty, stopTyping])
 
   const doSave = useEventCallback(() => {
-    if (!isValid || loading || postPending) return
+    if (!isValid || loading) return
     save()
-  }, [isValid, loading, postPending, save])
+  }, [isValid, loading, save])
 
   useImperativeHandle(ref, () => ({
     submit: () => doSave(),
@@ -411,20 +435,18 @@ function ChatEditorInner ({
   }))
 
   const groupIds = currentGroup?.id ? [currentGroup.id] : undefined
-  const canSubmit = isValid && !loading && !postPending
+  const canSubmit = isValid && !loading
 
   return (
     <div className='flex flex-col relative gap-2'>
       <div className='ChatEditorContent w-full bg-foreground/5 border border-foreground/10 rounded-xl p-1.5 flex flex-col !items-start transition-all duration-200 overflow-x-hidden max-h-[300px] focus-within:border-foreground/20'>
-        {/* items-end pins the controls to the container bottom as the input grows;
-            the small bottom margins center them against a single-line input */}
-        <div className='w-full flex items-end gap-1'>
+        <div className='w-full flex items-center gap-1'>
           {/* Attachment menu — plain + icon before the input text */}
           <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
             <PopoverTrigger asChild>
               <button
                 type='button'
-                className='p-1.5 mb-1 shrink-0 sticky bottom-1 text-foreground/50 hover:text-foreground transition-colors'
+                className='p-1.5 shrink-0 text-foreground/50 hover:text-foreground transition-colors'
                 aria-label={t('Add attachment')}
                 data-testid='chat-attach-button'
               >
@@ -439,8 +461,8 @@ function ChatEditorInner ({
                 onSuccess={(attachment) => {
                   dispatch(addAttachment('post', currentPost.id, attachment))
                   setIsDirty(true)
-                  setAttachMenuOpen(false)
                 }}
+                onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
                 allowMultiple
                 disable={showImages}
                 className='w-full'
@@ -457,8 +479,8 @@ function ChatEditorInner ({
                 onSuccess={(attachment) => {
                   dispatch(addAttachment('post', currentPost.id, attachment))
                   setIsDirty(true)
-                  setAttachMenuOpen(false)
                 }}
+                onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
                 allowMultiple
                 disable={showFiles}
                 className='w-full'
@@ -475,7 +497,7 @@ function ChatEditorInner ({
             {currentPost.details === null || loading
               ? <div><Loading /></div>
               : <HyloEditor
-                  placeholder={t('Send a chat to {{groupName}}', { groupName: currentGroup?.name })}
+                  placeholder={t('Chat with {{groupName}}', { groupName: currentGroup?.name })}
                   onUpdate={handleDetailsChange}
                   onAltEnter={doSave}
                   onAddTopic={handleAddTopic}
@@ -495,7 +517,7 @@ function ChatEditorInner ({
             type='button'
             onClick={() => setShowToolbar(v => !v)}
             className={cn(
-              'p-1.5 mb-1 shrink-0 sticky bottom-1 rounded-md transition-colors',
+              'p-1.5 shrink-0 rounded-md transition-colors',
               showToolbar
                 ? 'bg-foreground/15 text-foreground'
                 : 'text-foreground/40 hover:text-foreground hover:bg-foreground/5'
@@ -506,12 +528,18 @@ function ChatEditorInner ({
           >
             <CaseSensitive className='w-6 h-6' />
           </button>
+          {/* Ready-to-send fills with the selected colour. */}
           <button
             type='button'
             onClick={doSave}
             disabled={!canSubmit}
             title={!isValid ? invalidMessage.replace(/<br \/>/g, ', ') : undefined}
-            className='p-1.5 mb-0.5 mr-0.5 shrink-0 sticky bottom-1 rounded-lg border border-foreground/20 text-highlight hover:border-foreground/40 disabled:text-muted-foreground disabled:cursor-not-allowed disabled:hover:border-foreground/20 transition-colors'
+            className={cn(
+              'p-1.5 shrink-0 rounded-lg border transition-colors',
+              canSubmit
+                ? 'bg-selected border-selected text-white hover:bg-selected/90'
+                : 'border-foreground/20 text-muted-foreground cursor-not-allowed'
+            )}
             aria-label={t('Post')}
             data-testid='chat-send-button'
           >
@@ -534,6 +562,8 @@ function ChatEditorInner ({
           showAddButton
           showLabel
           showLoading
+          uploadAttachmentPending={loading && uploadingAttachmentType === 'image'}
+          onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
         />
         <AttachmentManager
           type='post'
@@ -542,6 +572,8 @@ function ChatEditorInner ({
           showAddButton
           showLabel
           showLoading
+          uploadAttachmentPending={loading && uploadingAttachmentType === 'file'}
+          onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
         />
       </div>
     </div>

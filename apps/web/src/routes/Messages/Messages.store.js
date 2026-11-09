@@ -184,14 +184,15 @@ export function fetchMessages (id, opts = {}) {
   }
 }
 
-export function createMessage (messageThreadId, messageText, forNewThread) {
+export function createMessage (messageThreadId, messageText, forNewThread, attachments) {
   return {
     type: CREATE_MESSAGE,
     graphql: {
       query: CreateMessageMutation,
       variables: {
         messageThreadId,
-        text: messageText
+        text: messageText,
+        attachments
       }
     },
     meta: {
@@ -200,6 +201,8 @@ export function createMessage (messageThreadId, messageText, forNewThread) {
       tempId: uniqueId(`messageThread${messageThreadId}_`),
       messageThreadId,
       messageText,
+      text: messageText,
+      attachments,
       forNewThread,
       analytics: AnalyticsEvents.DIRECT_MESSAGE_SENT
     }

@@ -77,6 +77,7 @@ describe('PostDetail', () => {
     await waitFor(() => {
       expect(screen.getByText('Test Post')).toBeInTheDocument()
       expect(screen.getByText('the body of the post')).toBeInTheDocument()
+      expect(screen.getByTestId('post-detail-close')).toBeInTheDocument()
     })
   })
 

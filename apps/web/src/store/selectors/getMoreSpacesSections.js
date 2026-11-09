@@ -1,6 +1,5 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import orm from 'store/models'
-import { SOFT_REMOVE_VIEW_TYPES, viewAcceptedByPostTypes } from 'store/models/GroupView'
 
 /** Returns ids of space groups linked from ordered (in-menu) space views only. */
 export function getMenuSpaceIds (groupViews) {
@@ -12,8 +11,16 @@ export function getMenuSpaceIds (groupViews) {
   )
 }
 
-/** Splits off-menu spaces into Tracks, Funding Rounds, other Spaces, and Archived. */
+function withDraftFlag (space) {
+  return {
+    ...space,
+    isDraft: space.status === 'draft'
+  }
+}
+
+/** Splits off-menu spaces into Drafts, Tracks, Funding Rounds, other Spaces, and Archived. */
 export function categorizeOffMenuSpaces (spaces, menuSpaceIds) {
+  const draftSpaces = []
   const trackSpaces = []
   const fundingRoundSpaces = []
   const otherSpaces = []
@@ -21,86 +28,74 @@ export function categorizeOffMenuSpaces (spaces, menuSpaceIds) {
 
   for (const space of spaces || []) {
     if (menuSpaceIds.has(String(space.id))) continue
+    if (space.active === false) continue
 
-    if (space.active === false) {
-      archivedSpaces.push(space)
+    if (space.status === 'archived') {
+      archivedSpaces.push(withDraftFlag(space))
+      continue
+    }
+
+    if (space.status === 'draft') {
+      draftSpaces.push(withDraftFlag(space))
       continue
     }
 
     if (space.fundingRound) {
-      fundingRoundSpaces.push(space)
+      fundingRoundSpaces.push(withDraftFlag(space))
     } else if (space.track) {
-      trackSpaces.push({
-        ...space,
-        isDraft: !space.track.publishedAt
-      })
+      trackSpaces.push(withDraftFlag(space))
     } else {
-      otherSpaces.push(space)
+      otherSpaces.push(withDraftFlag(space))
     }
   }
 
   const sortByName = (a, b) => (a.name || '').localeCompare(b.name || '')
+  draftSpaces.sort(sortByName)
   trackSpaces.sort(sortByName)
   fundingRoundSpaces.sort(sortByName)
   otherSpaces.sort(sortByName)
   archivedSpaces.sort(sortByName)
 
-  return { trackSpaces, fundingRoundSpaces, otherSpaces, archivedSpaces }
+  return { draftSpaces, trackSpaces, fundingRoundSpaces, otherSpaces, archivedSpaces }
 }
 
-/** Off-menu soft-removable GroupViews (order = null), excluding space rows. */
-export function getOffMenuViews (groupViews, acceptedPostTypes) {
-  const items = Array.isArray(groupViews) ? groupViews : (groupViews?.items || [])
-  return items
-    .filter(view => view.order == null)
-    .filter(view => view.type !== 'space')
-    .filter(view => SOFT_REMOVE_VIEW_TYPES.has(view.type))
-    .filter(view => viewAcceptedByPostTypes(view.type, acceptedPostTypes))
-    .sort((a, b) => (a.name || a.type || '').localeCompare(b.name || b.type || ''))
-}
+/** Builds a fresh getMoreSpacesSections selector.
+ * redux-orm memoizes exactly one result per selector, so components that render many
+ * instances against different groups evict each other's cache and get a new object every
+ * render. Those should hold their own instance — see useMoreSpacesSections. */
+export function makeGetMoreSpacesSections () {
+  return ormCreateSelector(
+    orm,
+    (state, group) => group,
+    (session, group) => {
+      if (!group) {
+        return {
+          draftSpaces: [],
+          trackSpaces: [],
+          fundingRoundSpaces: [],
+          otherSpaces: [],
+          archivedSpaces: [],
+          hasAny: false
+        }
+      }
 
-/** Returns sections for More Views and Spaces (views + off-menu spaces). */
-export const getMoreViewsSections = ormCreateSelector(
-  orm,
-  (state, group) => group,
-  (session, group) => {
-    if (!group) {
+      const menuSpaceIds = getMenuSpaceIds(group.groupViews)
+      const spaces = group.spaces?.items || []
+      const spaceSections = categorizeOffMenuSpaces(spaces, menuSpaceIds)
+
+      const hasAny = spaceSections.draftSpaces.length +
+        spaceSections.trackSpaces.length +
+        spaceSections.fundingRoundSpaces.length +
+        spaceSections.otherSpaces.length +
+        spaceSections.archivedSpaces.length > 0
+
       return {
-        offMenuViews: [],
-        trackSpaces: [],
-        fundingRoundSpaces: [],
-        otherSpaces: [],
-        archivedSpaces: [],
-        hasAny: false
+        ...spaceSections,
+        hasAny
       }
     }
+  )
+}
 
-    const menuSpaceIds = getMenuSpaceIds(group.groupViews)
-    const spaces = group.spaces?.items || []
-    const spaceSections = categorizeOffMenuSpaces(spaces, menuSpaceIds)
-    const offMenuViews = getOffMenuViews(group.groupViews, group.acceptedPostTypes)
-    // Fold archived into Other Spaces for the page (no separate Archived section).
-    const otherSpaces = [...spaceSections.otherSpaces, ...spaceSections.archivedSpaces]
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-
-    const hasAny = offMenuViews.length +
-      spaceSections.trackSpaces.length +
-      spaceSections.fundingRoundSpaces.length +
-      otherSpaces.length > 0
-
-    return {
-      offMenuViews,
-      trackSpaces: spaceSections.trackSpaces,
-      fundingRoundSpaces: spaceSections.fundingRoundSpaces,
-      otherSpaces,
-      archivedSpaces: [],
-      hasAny
-    }
-  }
-)
-
-/** @deprecated Use getMoreViewsSections — kept for transitional callers. */
-export const getMoreSpacesSections = getMoreViewsSections
-
-/** @deprecated Edit menu now uses the same More Views sections. */
-export const getEditMenuOffMenuSections = getMoreViewsSections
+/** Returns sections for More Spaces (off-menu spaces only). */
+export const getMoreSpacesSections = makeGetMoreSpacesSections()

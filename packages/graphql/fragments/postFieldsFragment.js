@@ -45,6 +45,7 @@ export const postFieldsFragment = gql`
     }
     linkPreviewFeatured
     location
+    meetingLink
     locationObject {
       id
       addressNumber

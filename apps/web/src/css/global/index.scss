@@ -106,6 +106,10 @@
   }
 
   .global-postContent {
+    // An unbroken run (a long URL, a keysmash) must wrap instead of pushing
+    // the post body wider than the page
+    overflow-wrap: break-word;
+
     h1, h2, h3, h4, h5, h6 {
       margin-bottom: 15px;
     }
@@ -149,6 +153,17 @@
     ol {
       list-style-type: decimal;
     }
+  }
+
+  // Page/welcome HTML: keep images at their intrinsic width (capped at the
+  // column) and center them. Overrides the w-full class TipTap used to save.
+  .hylo-page-html img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   @media (max-width: 640px) {
@@ -202,4 +217,18 @@ input[type="number"] {
   html {
     font-size: 14px;
   }
+}
+
+// The Filestack picker mounts itself on <body>, outside any Radix dialog. A modal
+// Radix dialog sets `pointer-events: none` on the body and aria-hides its siblings,
+// which left the picker visible but dead to clicks when opened from inside one
+// (Create Group). Give it back its interactivity and put it above the dialog.
+[class^="fsp-"],
+[class*=" fsp-"] {
+  pointer-events: auto;
+}
+
+.fsp-picker,
+.fsp-modal {
+  z-index: 1200;
 }

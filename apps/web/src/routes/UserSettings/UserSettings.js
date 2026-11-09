@@ -52,6 +52,9 @@ const UserSettings = () => {
     dispatch(fetchUserSettings())
   }, [])
 
+  // Logout deletes Me before this route unmounts. Building tabs below reads currentUser.id.
+  if (!currentUser) return null
+
   const setConfirm = newState => {
     if (newState === confirm) return
     return dispatch(setConfirmBeforeClose(newState))
@@ -74,7 +77,7 @@ const UserSettings = () => {
       )
     },
     {
-      name: t('Groups & Affiliations'),
+      name: t('Groups'),
       path: 'groups',
       component: <UserGroupsTab personId={currentUser.id} />
     },

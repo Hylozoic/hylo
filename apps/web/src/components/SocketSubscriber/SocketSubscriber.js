@@ -15,9 +15,13 @@ export default function SocketSubscriber ({ id, type }) {
     }
 
     const socket = getSocket()
+    if (!socket) return undefined
 
     const subscribe = (oldHandler) => {
-      if (oldHandler) socket.off('reconnect', oldHandler)
+      if (oldHandler) {
+        socket.off('connect', oldHandler)
+        socket.off('reconnect', oldHandler)
+      }
 
       const newHandler = () => {
         const label = `SocketSubscriber(${type})`
@@ -31,6 +35,11 @@ export default function SocketSubscriber ({ id, type }) {
         })
       }
 
+      // 'connect' fires on every successful connection, including reconnections
+      // after a server restart — 'reconnect' alone never reached this socket, so
+      // rooms silently stayed unjoined until a hard refresh. Subscribing twice is
+      // harmless: joins are idempotent server-side.
+      socket.on('connect', newHandler)
       socket.on('reconnect', newHandler)
       newHandler()
 
@@ -39,13 +48,24 @@ export default function SocketSubscriber ({ id, type }) {
 
     const unsubscribe = (oldHandler) => {
       const s = getSocket()
+      s.off('connect', oldHandler)
       s.off('reconnect', oldHandler)
       s.post(socketUrl(`/noo/${type}/${id}/unsubscribe`))
     }
 
     const reconnectHandler = subscribe()
 
-    return () => unsubscribe(reconnectHandler)
+    // Waking the tab re-posts the (idempotent) subscribe: the server answers
+    // with a fresh roster, reconciling any presence events missed while asleep
+    const handleVisible = () => {
+      if (document.visibilityState === 'visible') reconnectHandler()
+    }
+    document.addEventListener('visibilitychange', handleVisible)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisible)
+      unsubscribe(reconnectHandler)
+    }
   }, [id, type])
 
   return null

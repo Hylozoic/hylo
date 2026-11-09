@@ -533,11 +533,6 @@ export default {
       }
     },
 
-    addPostToCollection: (result, args, cache, info) => {
-      const { collectionId } = args
-      cache.invalidate({ __typename: 'Collection', id: collectionId })
-    },
-
     addRoleToMember: (result, args, cache, info) => {
       const { groupId } = args
       cache.invalidate({ __typename: 'Group', id: groupId })

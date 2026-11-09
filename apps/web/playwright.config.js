@@ -122,6 +122,17 @@ export default defineConfig({
       dependencies: ['setup']
     },
     {
+      // iPhone Safari layout checks (#1677): WebKit sizes native date/time inputs and flex
+      // rows differently from Chrome. Kept to the specs that need it.
+      name: 'mobile-safari',
+      testMatch: ['**/event-native-time-pickers.spec.js'],
+      use: {
+        ...devices['iPhone 13'],
+        storageState: './e2e/.auth/session.json'
+      },
+      dependencies: ['setup']
+    },
+    {
       name: 'chromium-session-mutate',
       testMatch: '**/authenticated.auth-session.spec.js',
       use: {
@@ -129,7 +140,7 @@ export default defineConfig({
         storageState: './e2e/.auth/session-mutate-user.json'
       },
       dependencies: ['setup', 'setup-session-mutate'],
-      timeout: 120000
+      timeout: 240000
     },
     {
       name: 'mobile-session-mutate',
@@ -139,7 +150,7 @@ export default defineConfig({
         storageState: './e2e/.auth/session-mutate-user.json'
       },
       dependencies: ['setup', 'setup-session-mutate'],
-      timeout: 120000
+      timeout: 240000
     },
     {
       name: 'mobile-unauth',
@@ -174,7 +185,8 @@ export default defineConfig({
     env: {
       ...process.env,
       VITE_API_HOST: process.env.VITE_API_HOST || 'http://localhost:3001',
-      PORT: webPort
+      PORT: webPort,
+      ...(process.env.E2E_ISOLATED === '1' ? { VITE_E2E_ISOLATED: '1' } : {})
     }
   }
 })

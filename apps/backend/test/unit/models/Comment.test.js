@@ -11,17 +11,17 @@ describe('Comment', () => {
   describe('cleanEmailText', () => {
     it('wraps content in <p> tags and handles weird newlines', () => {
       const text = 'Ok then\r\nAll right\r\rSo it shall be'
-      expect(Comment.cleanEmailText(user, text)).to.equal('<p>Ok then<br>All right</p>\n<p>So it shall be</p>\n')
+      expect(Comment.cleanEmailText(user, text)).to.equal('<p>Ok then<br/>All right</p>\n<p>So it shall be</p>\n')
     })
 
     it("cuts off at the sender's name", () => {
       const text = "Wow!\rThat's great!\rBob A"
-      expect(Comment.cleanEmailText(user, text)).to.equal('<p>Wow!<br>That&#39;s great!</p>\n')
+      expect(Comment.cleanEmailText(user, text)).to.equal('<p>Wow!<br/>That&#39;s great!</p>\n')
     })
 
     it("cuts off at the sender's name preceded by dashes", () => {
       const text = "Wow!\rThat's great!\r--Bob A"
-      expect(Comment.cleanEmailText(user, text)).to.equal('<p>Wow!<br>That&#39;s great!</p>\n')
+      expect(Comment.cleanEmailText(user, text)).to.equal('<p>Wow!<br/>That&#39;s great!</p>\n')
     })
 
     it('removes a common signature pattern with two dashes', () => {
@@ -36,7 +36,7 @@ describe('Comment', () => {
 
     it('removes even a mangled divider', () => {
       const text = 'yoyo\nMeow!-----+Only+text+above+the+dashed+line+will+be+included lol\nok'
-      expect(Comment.cleanEmailText(user2, text)).to.equal('<p>yoyo<br>Meow!</p>\n')
+      expect(Comment.cleanEmailText(user2, text)).to.equal('<p>yoyo<br/>Meow!</p>\n')
     })
   })
 
@@ -206,6 +206,24 @@ describe('Comment', () => {
           const send2 = log.find(l => l.email === u2.get('email'))
           expect(send2.data.subject_prefix).to.match(/You were mentioned/)
         })
+      })
+
+      it('uses parent > space as the sender name for comments in a space', async () => {
+        const parentGroup = await factories.group({ name: 'Parent Group', slug: `parent-comment-${Date.now()}` }).save()
+        const space = await factories.group({
+          name: 'The Space',
+          slug: `space-comment-${Date.now()}`,
+          type: 'space',
+          parent_id: parentGroup.id
+        }).save()
+        await space.addMembers([u1.id, u2.id])
+        await group.posts().detach(post)
+        await space.posts().attach(post)
+
+        await Comment.sendDigests()
+
+        const send1 = log.find(l => l.email === u1.get('email'))
+        expect(send1.sender.name).to.equal('Parent Group > The Space (via Hylo)')
       })
     })
   })

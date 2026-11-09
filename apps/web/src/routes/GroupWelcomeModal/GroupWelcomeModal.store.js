@@ -49,6 +49,15 @@ export const groupWelcomeQuery = `
           person {
             id
           }
+          joinQuestionAnswers {
+            items {
+              id
+              answer
+              question {
+                id
+              }
+            }
+          }
           settings {
             joinQuestionsAnsweredAt
             agreementsAcceptedAt

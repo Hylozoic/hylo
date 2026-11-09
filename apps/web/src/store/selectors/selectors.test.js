@@ -3,8 +3,9 @@ import getMe from './getMe'
 import getGroupTopicForCurrentRoute from './getGroupTopicForCurrentRoute'
 import getTopicForCurrentRoute from './getTopicForCurrentRoute'
 import getMyMemberships from './getMyMemberships'
-import { getMyGroups, getMyGroupsWithChildren } from './getMyGroups'
+import { getMyGroups, getMyGroupsWithChildren, getMyGlobalNavItems } from './getMyGroups'
 import hasResponsibilityForGroup from './hasResponsibilityForGroup'
+import getRolesForGroup from './getRolesForGroup'
 import { getLastViewedGroupPath } from './getLastViewedGroup'
 
 describe('getMe', () => {
@@ -31,6 +32,53 @@ describe('getMyMemberships', () => {
     const me = session.Me.create({ id: 1 })
     session.Membership.create({ id: 'm2', group: group2.id, person: me.id })
     expect(getMyMemberships({ orm: session.state }, {})).toHaveLength(1)
+  })
+})
+
+describe('getMyGlobalNavItems', () => {
+  it('merges pinned spaces into the shared pin order without including unpinned spaces', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent', slug: 'parent', avatarUrl: 'parent.png' })
+    const pinnedSpace = session.Group.create({
+      id: '2',
+      name: 'Pinned Space',
+      slug: 'parent-pinned-space',
+      type: 'space',
+      parentId: parent.id,
+      avatarUrl: 'space.png',
+      icon: 'Sparkles'
+    })
+    const unpinnedSpace = session.Group.create({
+      id: '3',
+      name: 'Unpinned Space',
+      slug: 'parent-unpinned-space',
+      type: 'space',
+      parentId: parent.id
+    })
+    const other = session.Group.create({ id: '4', name: 'Other Group', slug: 'other' })
+    const unpinned = session.Group.create({ id: '5', name: 'Unpinned Group', slug: 'unpinned' })
+    session.Membership.create({ id: 'm-parent', group: parent.id, person: me.id, navOrder: 0 })
+    session.Membership.create({ id: 'm-pinned-space', group: pinnedSpace.id, person: me.id, navOrder: 1, newPostCount: 3 })
+    session.Membership.create({ id: 'm-unpinned-space', group: unpinnedSpace.id, person: me.id, navOrder: null })
+    session.Membership.create({ id: 'm-other', group: other.id, person: me.id, navOrder: 2 })
+    session.Membership.create({ id: 'm-unpinned', group: unpinned.id, person: me.id, navOrder: null })
+
+    const result = getMyGlobalNavItems({ orm: session.state })
+
+    expect(result.map(item => [item.navItemType, item.id])).toEqual([
+      ['group', '1'],
+      ['space', '2'],
+      ['group', '4'],
+      ['group', '5']
+    ])
+    expect(result[1]).toMatchObject({
+      parentSlug: 'parent',
+      parentGroup: { avatarUrl: 'parent.png' },
+      slug: 'parent-pinned-space',
+      icon: 'Sparkles',
+      newPostCount: 3
+    })
   })
 })
 
@@ -94,12 +142,11 @@ describe('hasResponsibilityForGroup', () => {
         items: [{
           id: 1,
           groupId: group.id,
-          name: 'Coordinator',
+          name: 'Administrator',
           responsibilities: {
             items: [
               { id: 1, title: 'Administration' },
-              { id: 2, title: 'Manage Content' },
-              { id: 3, title: 'Manage Spaces' }
+              { id: 2, title: 'Manage Content' }
             ]
           }
         }]
@@ -124,8 +171,27 @@ describe('hasResponsibilityForGroup', () => {
   it('inherits parent roles when checking a space', () => {
     const space = session.Group.create({ id: 10, type: 'space', parentId: group.id })
     const state = { orm: session.state }
-    const props = { person: me, groupId: space.id, responsibility: 'Manage Spaces' }
+    const props = { person: me, groupId: space.id, responsibility: 'Administration' }
     expect(hasResponsibilityForGroup(state, props)).toEqual(true)
+  })
+})
+
+describe('getRolesForGroup', () => {
+  it('omits the implicit All Members role that carries invite permission', () => {
+    const session = orm.session(orm.getEmptyState())
+    session.Group.create({ id: '1' })
+    session.Me.create({
+      id: '1',
+      groupRoles: {
+        items: [
+          { id: '9', groupId: '1', name: 'All Members', emoji: '' },
+          { id: '3', groupId: '1', name: 'Host', emoji: '🏠' }
+        ]
+      }
+    })
+
+    const roles = getRolesForGroup({ orm: session.state }, { groupId: '1' })
+    expect(roles.map(role => role.name)).toEqual(['Host'])
   })
 })
 
@@ -171,6 +237,32 @@ describe('getLastViewedGroupPath', () => {
 
     expect(getLastViewedGroupPath({ orm: session.state })).toEqual('/groups/parent-group')
   })
+
+  it('returns top-level path for a converted child group that still has parentId', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const child = session.Group.create({
+      id: '2',
+      name: 'Former Space',
+      slug: 'parent-group-swwww',
+      parentId: parent.id
+    })
+    session.Membership.create({
+      id: 'm1',
+      group: parent.id,
+      person: me.id,
+      lastViewedAt: '2020-01-01T00:00:00.000Z'
+    })
+    session.Membership.create({
+      id: 'm2',
+      group: child.id,
+      person: me.id,
+      lastViewedAt: '2024-01-01T00:00:00.000Z'
+    })
+
+    expect(getLastViewedGroupPath({ orm: session.state })).toEqual('/groups/parent-group-swwww')
+  })
 })
 
 describe('getMyGroupsWithChildren', () => {
@@ -202,5 +294,59 @@ describe('getMyGroupsWithChildren', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0].slug).toEqual('parent-group')
+  })
+
+  it('treats a group with parentId but no space type as a top-level group', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const child = session.Group.create({ id: '2', name: 'Former Space', slug: 'former-space', parentId: parent.id })
+    session.Membership.create({ id: 'm1', group: parent.id, person: me.id })
+    session.Membership.create({ id: 'm2', group: child.id, person: me.id })
+
+    const result = getMyGroups({ orm: session.state })
+
+    expect(result.map(g => g.slug)).toEqual(['former-space', 'parent-group'])
+  })
+
+  it('shows a parent nav badge when a nested space has unread', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const space = session.Group.create({ id: '2', name: 'Alpha Space', slug: 'alpha-space', type: 'space', parentId: parent.id })
+    session.Membership.create({ id: 'm1', group: parent.id, person: me.id, newPostCount: 0 })
+    session.Membership.create({ id: 'm2', group: space.id, person: me.id, newPostCount: 5 })
+
+    const result = getMyGroupsWithChildren({ orm: session.state })
+
+    expect(result[0].newPostCount).toEqual(1)
+    expect(result[0].spaces[0].newPostCount).toEqual(5)
+  })
+
+  it('keeps the parent membership count when the parent itself has unread', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const space = session.Group.create({ id: '2', name: 'Alpha Space', slug: 'alpha-space', type: 'space', parentId: parent.id })
+    session.Membership.create({ id: 'm1', group: parent.id, person: me.id, newPostCount: 4 })
+    session.Membership.create({ id: 'm2', group: space.id, person: me.id, newPostCount: 5 })
+
+    const result = getMyGroupsWithChildren({ orm: session.state })
+
+    expect(result[0].newPostCount).toEqual(4)
+  })
+
+  it('excludes a pinned space from the top-level list', () => {
+    const session = orm.session(orm.getEmptyState())
+    const me = session.Me.create({ id: 1 })
+    const parent = session.Group.create({ id: '1', name: 'Parent Group', slug: 'parent-group' })
+    const space = session.Group.create({ id: '2', name: 'Pinned Space', slug: 'pinned-space', type: 'space', parentId: parent.id })
+    session.Membership.create({ id: 'm1', group: parent.id, person: me.id, navOrder: 0 })
+    session.Membership.create({ id: 'm2', group: space.id, person: me.id, navOrder: 1 })
+
+    const result = getMyGroupsWithChildren({ orm: session.state })
+
+    expect(result.map(g => g.slug)).toEqual(['parent-group'])
+    expect(result[0].spaces.map(s => s.slug)).toEqual(['pinned-space'])
   })
 })

@@ -1,5 +1,18 @@
+import { GraphQLError } from 'graphql'
 import { pipe } from 'graphql-yoga'
 import { get } from 'lodash/fp'
+
+/**
+ * Throws unless the current user can see the post (or message thread) being subscribed to.
+ * When only a comment id is given, the comment's post is checked.
+ */
+async function requireVisiblePost (context, { postId, commentId }) {
+  const comment = !postId && commentId ? await Comment.find(commentId) : null
+  const visiblePostId = postId || comment?.get('post_id')
+  if (!await Post.isVisibleToUser(visiblePostId, context.currentUserId)) {
+    throw new GraphQLError('You do not have permission to do that')
+  }
+}
 
 /**
  * Filters out subscription events where the current user is the creator.
@@ -29,28 +42,34 @@ const withDontSendToCreator = ({ context, getter } = {}) => {
 export default function makeSubscriptions () {
   return {
     comments: {
-      subscribe: (parent, { id, postId, commentId }, context) => pipe(
-        context.pubSub.subscribe(
-          commentId ? `comments:commentId:${commentId}` : `comments:postId:${postId}`
-        ),
-        withDontSendToCreator({ context })
-      ),
+      subscribe: async (parent, { postId, parentCommentId }, context) => {
+        await requireVisiblePost(context, { postId, commentId: parentCommentId })
+        return pipe(
+          context.pubSub.subscribe(
+            parentCommentId ? `comments:commentId:${parentCommentId}` : `comments:postId:${postId}`
+          ),
+          withDontSendToCreator({ context })
+        )
+      },
       resolve: (payload) => {
         return new Comment(payload.comment)
       }
     },
 
     peopleTyping: {
-      subscribe: (parent, { messageThreadId, postId, commentId }, context) => pipe(
-        context.pubSub.subscribe(
-          messageThreadId
-            ? `peopleTyping:messageThreadId:${messageThreadId}`
-            : postId
-              ? `peopleTyping:postId:${postId}`
-              : `peopleTyping:commentId:${commentId}`
-        ),
-        withDontSendToCreator({ context, getter: get('user.id') })
-      ),
+      subscribe: async (parent, { messageThreadId, postId, commentId }, context) => {
+        await requireVisiblePost(context, { postId: messageThreadId || postId, commentId })
+        return pipe(
+          context.pubSub.subscribe(
+            messageThreadId
+              ? `peopleTyping:messageThreadId:${messageThreadId}`
+              : postId
+                ? `peopleTyping:postId:${postId}`
+                : `peopleTyping:commentId:${commentId}`
+          ),
+          withDontSendToCreator({ context, getter: get('user.id') })
+        )
+      },
       resolve: (payload) => {
         return User.find(payload.user.id)
       }

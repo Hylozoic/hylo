@@ -1,16 +1,30 @@
 import { GraphQLError } from 'graphql'
+import { PINNABLE_VIEW_TYPES, MAX_PINNED_POSTS_PER_VIEW } from '@hylo/shared'
 import validatePostData from '../../models/post/validatePostData'
 import underlyingCreatePost from '../../models/post/createPost'
 import underlyingUpdatePost from '../../models/post/updatePost'
-import { deletePostDraftForCreate } from './draft'
+import {
+  assertCanFulfillPost,
+  notifyAuthorOfModeratorFulfillment
+} from '../../models/post/postFulfillmentPermissions'
+import { deleteDraftAfterCreate, deletePostDraftForCreate } from './draft'
 
 export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
   if (!post) throw new GraphQLError('Post not found')
 
-  const jsonResponse = typeof completionResponse === 'string'
-    ? completionResponse
-    : JSON.stringify(completionResponse)
+  let response = completionResponse
+  if (typeof completionResponse === 'string') {
+    try {
+      response = JSON.parse(completionResponse)
+    } catch (e) {
+      // Not JSON (the column is jsonb, so it can't be stored as is): treat it as a single response
+      response = [completionResponse]
+    }
+  }
+
+  // Text responses are rich text editor HTML, which clients render as HTML
+  const jsonResponse = JSON.stringify(Post.sanitizeCompletionResponse(post.get('completion_action'), response))
 
   await post.complete(userId, jsonResponse)
   return Post.find(postId)
@@ -21,11 +35,11 @@ export function createPost (userId, data) {
     .tap(convertedData => validatePostData(userId, convertedData))
     .then(async validatedData => {
       const createdPost = await underlyingCreatePost(userId, validatedData)
-      await deletePostDraftForCreate(userId, {
+      await deleteDraftAfterCreate(() => deletePostDraftForCreate(userId, {
         groupId: validatedData.group_ids?.[0],
         topicName: validatedData.type === 'chat' ? validatedData.topicNames?.[0] : null,
         postType: validatedData.type || null
-      })
+      }))
       return createdPost
     })
 }
@@ -54,26 +68,28 @@ export function updatePost (userId, { id, data }) {
     .then(validatedData => underlyingUpdatePost(userId, id, validatedData))
 }
 
-export function fulfillPost (userId, postId) {
-  return Post.find(postId)
-    .then(post => {
-      if (post.get('user_id') !== userId) {
-        throw new GraphQLError("You don't have permission to modify this post")
-      }
-      return post.fulfill()
-    })
-    .then(() => ({ success: true }))
+export async function fulfillPost (userId, postId) {
+  const post = await Post.find(postId)
+  await assertCanFulfillPost(userId, post)
+  const isModeratorAction = post.get('user_id') !== userId
+  await post.fulfill()
+  Post.afterRelatedMutation(postId, { changeContext: 'completion' })
+  if (isModeratorAction) {
+    await notifyAuthorOfModeratorFulfillment({ post, actorId: userId, fulfilled: true })
+  }
+  return { success: true }
 }
 
-export function unfulfillPost (userId, postId) {
-  return Post.find(postId)
-    .then(post => {
-      if (post.get('user_id') !== userId) {
-        throw new GraphQLError("You don't have permission to modify this post")
-      }
-      return post.unfulfill()
-    })
-    .then(() => ({ success: true }))
+export async function unfulfillPost (userId, postId) {
+  const post = await Post.find(postId)
+  await assertCanFulfillPost(userId, post)
+  const isModeratorAction = post.get('user_id') !== userId
+  await post.unfulfill()
+  Post.afterRelatedMutation(postId, { changeContext: 'completion' })
+  if (isModeratorAction) {
+    await notifyAuthorOfModeratorFulfillment({ post, actorId: userId, fulfilled: false })
+  }
+  return { success: true }
 }
 
 export async function addProposalVote ({ userId, postId, optionId }) {
@@ -162,18 +178,38 @@ export function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
     .then(() => ({ success: true }))
 }
 
-export async function pinPost (userId, postId, groupId) {
-  const group = await Group.find(groupId)
-  return GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_CONTENT)
-    .then(isModerator => {
-      if (!isModerator) throw new GraphQLError("You don't have permission to modify this group")
-      return PostMembership.find(postId, groupId)
-        .then(postMembership => {
-          if (!postMembership) throw new GraphQLError("Couldn't find postMembership")
-          return postMembership.togglePinned()
-        })
-        .then(() => ({ success: true }))
-    })
+export async function pinPost (userId, postId, viewId) {
+  const view = await GroupView.where({ id: viewId }).fetch()
+  if (!view) throw new GraphQLError("Couldn't find view")
+
+  if (!PINNABLE_VIEW_TYPES.includes(view.get('type'))) {
+    throw new GraphQLError('Posts cannot be pinned to this view')
+  }
+
+  const group = await Group.find(view.get('group_id'))
+  const isModerator = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_CONTENT)
+  if (!isModerator) throw new GraphQLError("You don't have permission to modify this group")
+
+  const postMembership = await PostMembership.find(postId, group.id)
+  if (!postMembership) throw new GraphQLError("Couldn't find post in this group")
+
+  const existing = await GroupViewPin.find(viewId, postId)
+  if (existing) {
+    await existing.destroy()
+    return { success: true }
+  }
+
+  const count = await GroupViewPin.countForView(viewId)
+  if (count >= MAX_PINNED_POSTS_PER_VIEW) {
+    throw new GraphQLError('You can pin up to 3 posts in this view')
+  }
+
+  await GroupViewPin.create({
+    view_id: viewId,
+    post_id: postId,
+    pinned_at: new Date()
+  })
+  return { success: true }
 }
 
 // converts input data from the way it's received in GraphQL to the format that
@@ -185,10 +221,12 @@ function convertGraphqlPostData (data) {
     description: data.details,
     link_preview_id: data.linkPreviewId,
     link_preview_featured: data.linkPreviewFeatured,
+    skip_link_preview: data.skipLinkPreview,
     group_ids: data.groupIds,
     parent_post_id: data.parentPostId,
     location_id: data.locationId,
     location: data.location,
+    meeting_link: data.meetingLink,
     is_public: data.isPublic
   }, data))
 }

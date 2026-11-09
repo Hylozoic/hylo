@@ -17,4 +17,11 @@ describe('PostCompletion', () => {
     expect(screen.getByText('Is this resource still available?')).toBeInTheDocument()
     expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
   })
+
+  it('renders moderator styling when isModerator is true', () => {
+    render(<PostCompletion isFulfilled={false} type='request' isModerator />)
+
+    expect(screen.getByText('Moderator')).toBeInTheDocument()
+    expect(screen.getByText('Is this request still needed?')).toBeInTheDocument()
+  })
 })

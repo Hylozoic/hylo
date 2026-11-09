@@ -30,24 +30,34 @@ const memberPostsQuery =
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String],
+  $rsvpResponse: String
 ) {
   person (id: $id) {
     id
+    name
+    avatarUrl
     ${postsQueryFragment}
   }
 }`
 
-export function fetchMemberPosts (id, first = 20, query = memberPostsQuery) {
+const PAGE_SIZE = 20
+
+/**
+ * Fetch a page of a member's posts (public filter applies automatically when unauthenticated).
+ */
+export function fetchMemberPosts (id, first = PAGE_SIZE, offset = 0, query = memberPostsQuery) {
   return {
     type: FETCH_MEMBER_POSTS,
     graphql: {
       query,
-      variables: { id, first }
+      variables: { id, first, offset, order: 'desc', sortBy: 'created' }
     },
     meta: { extractModel: 'Person' }
   }
 }
+
+export { PAGE_SIZE }
 
 export const getMemberPosts = ormCreateSelector(
   orm,

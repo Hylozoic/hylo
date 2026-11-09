@@ -4,17 +4,25 @@ import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import { ImageUp } from 'lucide-react'
 import { Helmet } from 'react-helmet'
+import { useDispatch } from 'react-redux'
+import { toast } from 'sonner'
 import SettingsControl from 'components/SettingsControl'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
 import Button from 'components/ui/button'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Loading from 'components/Loading'
+import { Switch } from 'components/ui/switch'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { DEFAULT_BANNER } from 'store/models/Me'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import SocialControl from './SocialControl'
+import Affiliation from 'components/Affiliation'
+import { AddAffiliation, Message } from '../UserGroupsTab/UserGroupsTab'
+import { createAffiliation, deleteAffiliation } from '../UserGroupsTab/UserGroupsTab.store'
+import { CREATE_AFFILIATION, DELETE_AFFILIATION } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
+import { personUrl } from '@hylo/navigation'
 
 export const validateName = name => name && name.match(/\S/gm)
 
@@ -74,8 +82,14 @@ function EditProfileTab ({
       url: url || '',
       facebookUrl,
       twitterName,
-      linkedinUrl
+      linkedinUrl,
+      isProfilePublic: !!currentUser.isProfilePublic
     })
+  }
+
+  const handleProfilePublicChange = (checked) => {
+    setEdits(prev => ({ ...prev, isProfilePublic: checked }))
+    updateUserSettings({ isProfilePublic: checked })
   }
 
   const updateSetting = (key, shouldSetChanged = true) => async event => {
@@ -105,8 +119,78 @@ function EditProfileTab ({
   const save = useCallback(() => {
     setChanged(false)
     setConfirm(false)
-    updateUserSettings(edits)
-  }, [edits, setConfirm, updateUserSettings])
+    // Persist profile fields only — public toggle saves immediately on change
+    const { isProfilePublic, ...profileEdits } = edits
+    Promise.resolve(updateUserSettings(profileEdits))
+      .then(res => {
+        if (res?.error) {
+          toast.error(t('There was a problem saving your changes'))
+        } else {
+          toast.success(t('Your changes have been saved'))
+        }
+      })
+      .catch(() => {
+        toast.error(t('There was a problem saving your changes'))
+      })
+  }, [edits, setConfirm, updateUserSettings, t])
+
+  const dispatch = useDispatch()
+
+  const [affiliations, setAffiliations] = useState(currentUser?.affiliations?.items || [])
+  const [showAddAffiliations, setShowAddAffiliations] = useState(false)
+  const [affiliationError, setAffiliationError] = useState(undefined)
+  const [affiliationSuccess, setAffiliationSuccess] = useState(undefined)
+  const [affiliationAction, setAffiliationAction] = useState(null)
+
+  useEffect(() => {
+    setAffiliations(currentUser?.affiliations?.items || [])
+  }, [currentUser])
+
+  const resetAffiliationMessage = useCallback(() => {
+    setAffiliationError(undefined)
+    setAffiliationSuccess(undefined)
+  }, [])
+
+  const toggleAddAffiliations = useCallback(() => {
+    setShowAddAffiliations(!showAddAffiliations)
+  }, [showAddAffiliations])
+
+  const saveAffiliation = useCallback(({ role, preposition, orgName, url }) => {
+    setAffiliationAction(CREATE_AFFILIATION)
+    dispatch(createAffiliation({ role, preposition, orgName, url }))
+      .then(res => {
+        const affiliation = get(res, 'payload.data.createAffiliation')
+        if (affiliation) {
+          setAffiliationSuccess(t('Your affiliation was added'))
+          const updatedItems = [...affiliations, affiliation]
+          setAffiliations(updatedItems)
+          setShowAddAffiliations(false)
+          setAffiliationError('')
+        }
+      })
+      .catch((e) => {
+        setAffiliationError(e.message)
+        setShowAddAffiliations(true)
+      })
+  }, [affiliations, dispatch, t])
+
+  const deleteAffiliationHandler = useCallback((affiliationId) => {
+    setAffiliationAction(DELETE_AFFILIATION)
+    dispatch(deleteAffiliation(affiliationId))
+      .then(res => {
+        if (res.error) {
+          setAffiliationError(t('Error deleting this affiliation.'))
+          return
+        }
+
+        const deletedAffiliationId = get(res, 'payload.data.deleteAffiliation')
+        if (deletedAffiliationId) {
+          setAffiliationSuccess(t('Your affiliation was deleted'))
+          const updatedItems = affiliations.filter((a) => a.id !== deletedAffiliationId)
+          setAffiliations([...updatedItems])
+        }
+      })
+  }, [affiliations, dispatch, t])
 
   const canSave = changed && validateName(edits.name)
 
@@ -136,10 +220,13 @@ function EditProfileTab ({
   const {
     name, avatarUrl, bannerUrl, tagline, bio,
     contactEmail, contactPhone, location, url,
-    facebookUrl, twitterName, linkedinUrl
+    facebookUrl, twitterName, linkedinUrl, isProfilePublic
   } = edits
 
   const locationObject = currentUser.locationObject
+  const publicProfileUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}${personUrl(currentUser.id)}`
+    : personUrl(currentUser.id)
 
   return (
     <div className='max-w-3xl mx-auto px-4 py-6'>
@@ -279,6 +366,57 @@ function EditProfileTab ({
               />
             </div>
           </div>
+
+          <div className='border-t border-foreground/10 pt-6'>
+            <h2 className='text-xl font-bold mb-4 text-foreground'>{t('Other Affiliations')}</h2>
+
+            {affiliationAction && (affiliationError || affiliationSuccess) && (
+              <Message errorMessage={affiliationError} successMessage={affiliationSuccess} reset={resetAffiliationMessage} />
+            )}
+
+            {affiliations && affiliations.length > 0 && affiliations.map((a, index) =>
+              <Affiliation
+                affiliation={a}
+                archive={deleteAffiliationHandler}
+                key={a.id}
+                index={index}
+              />
+            )}
+
+            {affiliations && affiliations.length === 0 && (
+              <p className='text-foreground/70 mb-3'>{t('Add your affiliations')}</p>
+            )}
+
+            {showAddAffiliations
+              ? <AddAffiliation close={toggleAddAffiliations} save={saveAffiliation} />
+              : (
+                <div
+                  className='flex items-center gap-2 p-4 rounded-lg bg-card/60 hover:bg-card/100 cursor-pointer transition-all shadow-lg hover:shadow-xl hover:scale-102'
+                  onClick={toggleAddAffiliations}
+                >
+                  <div className='flex items-center justify-center w-8 h-8 rounded-full bg-selected text-foreground font-bold'>+</div>
+                  <div className='text-foreground'>{t('Add new affiliation')}</div>
+                </div>
+                )}
+          </div>
+        </div>
+
+        <div className='flex items-center justify-between gap-4 border border-foreground/10 rounded-lg p-4'>
+          <div className='space-y-1'>
+            <h4 className='text-foreground font-medium'>{t('Make my profile public')}</h4>
+            <p className='text-foreground/70 text-sm'>
+              {t('When enabled, anyone with the link can view your profile without logging in to Hylo.')}
+            </p>
+            {isProfilePublic && (
+              <p className='text-xs text-muted-foreground mt-1 break-all'>
+                {t('Shareable link')}: {publicProfileUrl}
+              </p>
+            )}
+          </div>
+          <Switch
+            checked={!!isProfilePublic}
+            onCheckedChange={handleProfilePublicChange}
+          />
         </div>
       </div>
 

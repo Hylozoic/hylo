@@ -13,14 +13,12 @@ import Button from 'components/Button'
 import Icon from 'components/Icon'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import { RESP_MANAGE_CONTENT } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
-import { baseUrl, createGroupUrl, groupUrl } from '@hylo/navigation'
+import { baseUrl, createGroupModalUrl, groupUrl, myHomeLandingUrl, isMyHomePath } from '@hylo/navigation'
 
 // import s from './Drawer.module.scss' // eslint-disable-line no-unused-vars
 import s from './Drawer.module.scss'
-
-const myPath = '/my'
 
 export default function Drawer (props) {
   const navigate = useNavigate()
@@ -31,6 +29,8 @@ export default function Drawer (props) {
   const groups = useSelector(getMyGroups)
   const { group, className } = props
   const responsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group?.id })).map(r => r.title)
+  // The same people GroupSettings lets in
+  const canOpenSettings = responsibilities.includes(RESP_ADMINISTRATION) || responsibilities.includes(RESP_ADD_MEMBERS)
   const defaultContexts = [
     {
       id: PUBLIC_CONTEXT_ID,
@@ -69,14 +69,15 @@ export default function Drawer (props) {
     id: MY_HOME_ID,
     name: t('My Home'),
     groups: [],
-    explicitPath: myPath,
+    explicitPath: myHomeLandingUrl(),
     avatarUrl: MY_HOME_AVATAR_PATH
   }
 
   const toggleDrawer = () => dispatch(toggleDrawerAction())
 
   const goToCreateGroup = () => {
-    navigate(createGroupUrl({ context: props.context }))
+    dispatch(toggleDrawerAction())
+    navigate(createGroupModalUrl(currentLocation))
     return null
   }
 
@@ -97,7 +98,7 @@ export default function Drawer (props) {
             <Icon name='Ex' className={s.closeDrawer} onClick={toggleDrawer} />
           </div>
           <Logo group={group} />
-          {responsibilities.length !== 0 && !responsibilities.includes(RESP_MANAGE_CONTENT) && (
+          {canOpenSettings && (
             <Link className={s.settingsLink} to={groupUrl(group.slug, 'settings')}>
               <Icon name='Settings' className={s.settingsIcon} /> <span>{t('Group Settings')}</span>
             </Link>
@@ -144,8 +145,10 @@ export function ContextRow ({
   const imageStyle = bgImageStyle(avatarUrl || DEFAULT_AVATAR)
   const showBadge = newPostCount > 0
   const path = explicitPath || baseUrl({ context, groupSlug: slug })
+  const isCurrent = currentLocation?.pathname === path ||
+    (explicitPath === myHomeLandingUrl() && isMyHomePath(currentLocation?.pathname))
   return (
-    <li className={cn(s.contextRow, { [s.currentContext]: currentLocation?.pathname === path || (path.includes(myPath) && currentLocation?.pathname.includes(myPath)) })}>
+    <li className={cn(s.contextRow, { [s.currentContext]: isCurrent })}>
       <Link to={path} className={s.contextRowLink} title={name}>
         <div className={s.contextRowAvatar} style={imageStyle} />
         <span className={s.groupName}>{name}</span>

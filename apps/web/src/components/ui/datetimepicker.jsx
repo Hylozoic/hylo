@@ -7,9 +7,17 @@ import Button from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { getLocaleForDayPicker } from '@/components/Calendar/calendar-util'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { getHourCycle, getLocaleForDayPicker } from '@/components/Calendar/calendar-util'
+import { getDateLocale } from 'util/locale'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import {
+  applyDateInputValue,
+  applyTimeInputValue,
+  toDateInputValue,
+  toTimeInputValue
+} from './nativeDateTimePicker'
+import usePrefersNativeDateTimePicker from './usePrefersNativeDateTimePicker'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -211,8 +219,12 @@ function genYears (yearRange = 50) {
 }
 // ---------- utils end ----------
 /**
- * Returns the nearest dialog/modal DOM node so the popover can portal into it.
- * When body scroll is locked, portaling to `document.body` lets the panel extend past the visible dialog; anchoring to this surface keeps collision detection aligned with what the user actually sees (Post dialog, CreateModal, ModalDialog inner, Radix dialog content).
+ * Returns the nearest dialog DOM node so the popover can portal into it.
+ * CreatePostModal is skipped on purpose: it uses `overflow` + `backdrop-filter`, which
+ * in Safari becomes a containing block for `position: fixed` and shifts the calendar
+ * to the right of its trigger. Portaling to `document.body` keeps coordinates
+ * viewport-relative, matching Chrome. Radix dialogs (Post dialog, ModalDialog) still
+ * need an in-dialog portal because they lock body scroll.
  */
 function getPopoverSurfaceFromTrigger (triggerEl) {
   if (!triggerEl || typeof triggerEl.closest !== 'function') {
@@ -220,17 +232,58 @@ function getPopoverSurfaceFromTrigger (triggerEl) {
   }
   return (
     triggerEl.closest('#post-dialog-content') ||
-    triggerEl.closest('#create-modal-content') ||
     triggerEl.closest('[data-testid="popup-inner"]') ||
     triggerEl.closest('[role="dialog"][data-state="open"]') ||
     undefined
   )
 }
 
-function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, ...props }) {
+/**
+ * Shifts the calendar so its box stays inside the visual viewport. Radix flip/shift
+ * only moves it to the other side of the trigger, so a tall picker can still hang
+ * off the top or bottom of the screen.
+ */
+function clampPopoverToViewport (contentEl, padding = 12) {
+  if (!contentEl) return
+  const wrapper = contentEl.parentElement
+  if (!wrapper) return
+  if (wrapper.style.transform?.includes('-200%')) return
+
+  const visualViewport = window.visualViewport
+  const viewportTop = visualViewport?.offsetTop ?? 0
+  const viewportLeft = visualViewport?.offsetLeft ?? 0
+  const viewportHeight = visualViewport?.height ?? window.innerHeight
+  const viewportWidth = visualViewport?.width ?? window.innerWidth
+  const minTop = viewportTop + padding
+  const minLeft = viewportLeft + padding
+  const maxBottom = viewportTop + viewportHeight - padding
+  const maxRight = viewportLeft + viewportWidth - padding
+
+  const rect = wrapper.getBoundingClientRect()
+  let shiftY = 0
+  let shiftX = 0
+  if (rect.bottom > maxBottom) {
+    shiftY = maxBottom - rect.bottom
+  }
+  if (rect.top + shiftY < minTop) {
+    shiftY = minTop - rect.top
+  }
+  if (rect.right > maxRight) {
+    shiftX = maxRight - rect.right
+  }
+  if (rect.left + shiftX < minLeft) {
+    shiftX = minLeft - rect.left
+  }
+
+  contentEl.style.position = 'relative'
+  contentEl.style.top = `${shiftY}px`
+  contentEl.style.left = `${shiftX}px`
+}
+
+function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, dateLocale = getDateLocale(), ...props }) {
   const MONTHS = React.useMemo(() => {
-    return genMonths(DateTimeHelpers.getLocaleAsString())
-  }, [])
+    return genMonths(dateLocale)
+  }, [dateLocale])
   const YEARS = React.useMemo(() => genYears(yearRange), [])
   const disableLeftNavigation = () => {
     const today = new Date()
@@ -363,9 +416,32 @@ const TimePeriodSelect = React.forwardRef(({ period, setPeriod, date, onDateChan
   )
 })
 TimePeriodSelect.displayName = 'TimePeriodSelect'
-const TimePickerInput = React.forwardRef(({ className, type = 'tel', value, id, name, date = new Date(new Date().setMinutes(0, 0, 0)), onDateChange, onChange, onKeyDown, picker, period, onLeftFocus, onRightFocus, ...props }, ref) => {
+/**
+ * Text the browser just inserted into an input, worked out by diffing the old and new value
+ * (used when the input event carries no `data`).
+ */
+function insertedText (oldValue = '', newValue = '') {
+  let start = 0
+  while (start < oldValue.length && start < newValue.length && oldValue[start] === newValue[start]) start++
+  let end = 0
+  while (end < oldValue.length - start && end < newValue.length - start &&
+    oldValue[oldValue.length - 1 - end] === newValue[newValue.length - 1 - end]) end++
+  return newValue.slice(start, newValue.length - end)
+}
+
+/**
+ * Android soft keyboards (and IMEs generally) report keydown as `Unidentified`/`Process`
+ * (keyCode 229) and only deliver the character through the input event.
+ */
+function isImeKeyDown (e) {
+  return e.key === 'Unidentified' || e.key === 'Process' || e.keyCode === 229 || !!e.nativeEvent?.isComposing
+}
+
+const TimePickerInput = React.forwardRef(({ className, type = 'tel', value, id, name, date = new Date(new Date().setMinutes(0, 0, 0)), onDateChange, onChange, onKeyDown, onEnter, picker, period, onLeftFocus, onRightFocus, ...props }, ref) => {
   const [flag, setFlag] = React.useState(false)
   const [prevIntKey, setPrevIntKey] = React.useState('0')
+  // Set when keydown already applied a digit, so a stray input event for it isn't applied twice
+  const digitHandledByKeyDown = React.useRef(false)
   /**
    * allow the user to enter the second digit within 2 seconds
    * otherwise start again with entering first digit
@@ -393,11 +469,31 @@ const TimePickerInput = React.forwardRef(({ className, type = 'tel', value, id, 
     }
     return !flag ? `0${key}` : calculatedValue.slice(1, 2) + key
   }
+  const handleDigit = (key) => {
+    if (picker === '12hours') {
+      setPrevIntKey(key)
+    }
+    const newValue = calculateNewValue(key)
+    if (flag) {
+      onRightFocus?.()
+    }
+    setFlag((prev) => !prev)
+    const tempDate = date ? new Date(date) : new Date()
+    onDateChange?.(setDateByType(tempDate, newValue, picker, period))
+  }
   const handleKeyDown = (e) => {
     if (e.key === 'Tab') {
       return
     }
+    if (isImeKeyDown(e)) {
+      // Let the input event deliver the character (see handleInput)
+      return
+    }
     e.preventDefault()
+    if (e.key === 'Enter') {
+      onEnter?.()
+      return
+    }
     if (e.key === 'ArrowRight') {
       onRightFocus?.()
     }
@@ -414,24 +510,32 @@ const TimePickerInput = React.forwardRef(({ className, type = 'tel', value, id, 
       onDateChange?.(setDateByType(tempDate, newValue, picker, period))
     }
     if (e.key >= '0' && e.key <= '9') {
-      if (picker === '12hours') {
-        setPrevIntKey(e.key)
-      }
-      const newValue = calculateNewValue(e.key)
-      if (flag) {
-        onRightFocus?.()
-      }
-      setFlag((prev) => !prev)
-      const tempDate = date ? new Date(date) : new Date()
-      onDateChange?.(setDateByType(tempDate, newValue, picker, period))
+      digitHandledByKeyDown.current = true
+      handleDigit(e.key)
+    }
+  }
+  /**
+   * Typed text that arrived without a usable keydown (Android soft keyboards). The input is
+   * controlled, so whatever the browser inserted is replaced by the computed value on render.
+   */
+  const handleInput = (e) => {
+    if (digitHandledByKeyDown.current) {
+      digitHandledByKeyDown.current = false
+      return
+    }
+    const inserted = e.nativeEvent?.data ?? insertedText(value || calculatedValue, e.target.value)
+    const digits = (inserted || '').replace(/\D/g, '')
+    if (digits) {
+      handleDigit(digits[digits.length - 1])
     }
   }
   return (
     <Input
       ref={ref} id={id || picker} name={name || picker} className={cn('w-[56px] sm:w-[48px] h-11 sm:h-10 text-center font-mono text-base tabular-nums caret-transparent focus:bg-selected focus:text-accent-foreground touch-manipulation [&::-webkit-inner-spin-button]:appearance-none', className)} value={value || calculatedValue} onChange={(e) => {
         e.preventDefault()
+        handleInput(e)
         onChange?.(e)
-      }} type={type} inputMode='decimal' onKeyDown={(e) => {
+      }} type={type} inputMode='decimal' enterKeyHint='done' onKeyUp={() => { digitHandledByKeyDown.current = false }} onKeyDown={(e) => {
         onKeyDown?.(e)
         handleKeyDown(e)
       }} {...props}
@@ -439,7 +543,7 @@ const TimePickerInput = React.forwardRef(({ className, type = 'tel', value, id, 
   )
 })
 TimePickerInput.displayName = 'TimePickerInput'
-const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granularity = 'second' }, ref) => {
+const TimePicker = React.forwardRef(({ date, onChange, onEnter, hourCycle = 24, granularity = 'second' }, ref) => {
   const minuteRef = React.useRef(null)
   const hourRef = React.useRef(null)
   const secondRef = React.useRef(null)
@@ -456,16 +560,16 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
       <label htmlFor='datetime-picker-hour-input' className='cursor-pointer'>
         <Clock className='mr-2 h-4 w-4' />
       </label>
-      <TimePickerInput picker={hourCycle === 24 ? 'hours' : '12hours'} date={date} id='datetime-picker-hour-input' onDateChange={onChange} ref={hourRef} period={period} onRightFocus={() => minuteRef?.current?.focus()} />
+      <TimePickerInput picker={hourCycle === 24 ? 'hours' : '12hours'} date={date} id='datetime-picker-hour-input' onDateChange={onChange} onEnter={onEnter} ref={hourRef} period={period} onRightFocus={() => minuteRef?.current?.focus()} />
       {(granularity === 'minute' || granularity === 'second') && (
         <>
           :
-          <TimePickerInput picker='minutes' date={date} onDateChange={onChange} ref={minuteRef} onLeftFocus={() => hourRef?.current?.focus()} onRightFocus={() => secondRef?.current?.focus()} />
+          <TimePickerInput picker='minutes' date={date} onDateChange={onChange} onEnter={onEnter} ref={minuteRef} onLeftFocus={() => hourRef?.current?.focus()} onRightFocus={() => secondRef?.current?.focus()} />
         </>)}
       {granularity === 'second' && (
         <>
           :
-          <TimePickerInput picker='seconds' date={date} onDateChange={onChange} ref={secondRef} onLeftFocus={() => minuteRef?.current?.focus()} onRightFocus={() => periodRef?.current?.focus()} />
+          <TimePickerInput picker='seconds' date={date} onDateChange={onChange} onEnter={onEnter} ref={secondRef} onLeftFocus={() => minuteRef?.current?.focus()} onRightFocus={() => periodRef?.current?.focus()} />
         </>)}
       {hourCycle === 12 && (
         <div className='grid gap-1 text-center'>
@@ -484,12 +588,15 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
   )
 })
 TimePicker.displayName = 'TimePicker'
-const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsString(), defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+const PopoverDateTimePicker = React.forwardRef(({ locale: localeProp, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle: hourCycleProp, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, endAdornment, ...props }, ref) => {
+  const locale = localeProp ?? getDateLocale()
+  const hourCycle = hourCycleProp ?? getHourCycle()
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
   const [popoverOpen, setPopoverOpen] = React.useState(false)
   const [popoverSurface, setPopoverSurface] = React.useState(undefined)
+  const popoverContentRef = useRef(null)
   onMonthChange ||= onChange
 
   // Sync internal state when value prop changes externally (e.g., when cleared)
@@ -516,7 +623,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
     }
     const diff = newDay.getTime() - defaultPopupValue.getTime()
     const diffInDays = diff / (1000 * 60 * 60 * 24)
-    const newDateFull = DateTimeHelpers.toDateTime(defaultPopupValue, { locale: getLocaleFromLocalStorage() }).plus({ days: Math.ceil(diffInDays) }).toJSDate()
+    const newDateFull = DateTimeHelpers.toDateTime(defaultPopupValue, { locale }).plus({ days: Math.ceil(diffInDays) }).toJSDate()
     newDateFull.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
     onMonthChange?.(newDay)
     setMonth(newDateFull)
@@ -546,7 +653,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
   }
 
   /**
-   * Resolves portal + collision boundary to the visible dialog surface when the trigger sits inside a modal so the calendar is not positioned against the full viewport while scroll is locked on `body`.
+   * Resolves portal + collision boundary to the visible dialog surface when the trigger sits inside a Radix dialog so the calendar is not positioned against the full viewport while scroll is locked on `body`.
    */
   const handlePopoverOpenChange = React.useCallback((nextOpen) => {
     setPopoverOpen(nextOpen)
@@ -558,19 +665,68 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
     }
   }, [])
 
+  /**
+   * After Radix places the calendar, keep it fully on-screen by shifting it toward
+   * the middle of the visual viewport whenever it would overflow the top or bottom.
+   */
+  React.useLayoutEffect(() => {
+    if (!popoverOpen) return undefined
+
+    let observer
+    const runClamp = () => {
+      clampPopoverToViewport(popoverContentRef.current)
+      const wrapper = popoverContentRef.current?.parentElement
+      if (wrapper && !observer) {
+        observer = new window.MutationObserver(runClamp)
+        observer.observe(wrapper, { attributes: true, attributeFilter: ['style'] })
+      }
+    }
+    runClamp()
+    const rafId = window.requestAnimationFrame(runClamp)
+    const visualViewport = window.visualViewport
+    window.addEventListener('resize', runClamp)
+    window.addEventListener('scroll', runClamp, true)
+    visualViewport?.addEventListener('resize', runClamp)
+    visualViewport?.addEventListener('scroll', runClamp)
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      observer?.disconnect()
+      window.removeEventListener('resize', runClamp)
+      window.removeEventListener('scroll', runClamp, true)
+      visualViewport?.removeEventListener('resize', runClamp)
+      visualViewport?.removeEventListener('scroll', runClamp)
+    }
+  }, [popoverOpen])
+
+  const trigger = (
+    <PopoverTrigger asChild disabled={disabled}>
+      <Button variant='outline' className={cn('min-h-11 sm:min-h-10 max-w-full justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', endAdornment && 'pr-10 sm:pr-9', className)} ref={buttonRef}>
+        <CalendarIcon className='mr-2 h-4 w-4' />
+        {displayDate
+          ? (DateTimeHelpers.toDateTime(displayDate, {
+              locale
+            }).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12))
+          : (<span>{placeholder}</span>)}
+      </Button>
+    </PopoverTrigger>
+  )
+
   return (
     <Popover open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
-      <PopoverTrigger asChild disabled={disabled}>
-        <Button variant='outline' className={cn('min-h-11 sm:min-h-10 justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
-          <CalendarIcon className='mr-2 h-4 w-4' />
-          {displayDate
-            ? (DateTimeHelpers.toDateTime(displayDate, {
-                locale: getLocaleFromLocalStorage()
-              }).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12))
-            : (<span>{placeholder}</span>)}
-        </Button>
-      </PopoverTrigger>
+      {endAdornment
+        ? (
+          // The adornment (e.g. a clear button) can't go inside the trigger <button>, so it's
+          // overlaid on the trigger's right padding; as a sibling, clicking it doesn't open the popover
+          <div className='relative inline-flex min-w-0 max-w-full'>
+            {trigger}
+            <div className='absolute inset-y-0 right-1 flex items-center' data-testid='datetime-picker-end-adornment'>
+              {endAdornment}
+            </div>
+          </div>
+          )
+        : trigger}
       <PopoverContent
+        ref={popoverContentRef}
         container={popoverSurface}
         collisionBoundary={popoverSurface}
         sticky='always'
@@ -578,9 +734,10 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
         align='start'
         sideOffset={6}
         collisionPadding={12}
-        className='w-auto p-0 z-[1100] max-h-[min(85dvh,560px)] overflow-y-auto'
+        className='w-auto p-0 z-[1100] max-h-[min(560px,calc(100dvh-24px))] overflow-y-auto'
       >
         <Calendar
+          dateLocale={locale}
           mode='single' selected={displayDate} month={month} onSelect={(newDate) => {
             if (newDate) {
               newDate.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
@@ -597,12 +754,126 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
                 if (value) {
                   setMonth(value)
                 }
-              }} date={month} hourCycle={hourCycle} granularity={granularity}
+              }} onEnter={() => setPopoverOpen(false)} date={month} hourCycle={hourCycle} granularity={granularity}
             />
           </div>)}
       </PopoverContent>
     </Popover>
   )
 })
+PopoverDateTimePicker.displayName = 'PopoverDateTimePicker'
+
+/**
+ * Touch-device picker: the OS date and time pickers (iOS wheel/calendar, Android Material
+ * dialogs), so no soft keyboard opens. Same contract as the popover picker: wall-clock Dates
+ * in and out, and a ref with `value` / `setValue`.
+ * Clearing an input (iOS "Reset", Android "Clear") is ignored and the input snaps back,
+ * matching the popover picker, which has no way to clear a value either.
+ */
+const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = false, granularity = 'second', placeholder = 'Pick a date', label, id, className, endAdornment }, ref) => {
+  const { t } = useTranslation()
+  const [current, setCurrent] = React.useState(value ?? undefined)
+  const generatedId = React.useId()
+  const baseId = id || `native-datetime-${generatedId.replace(/:/g, '')}`
+  const accessibleName = label || placeholder
+  const withSeconds = granularity === 'second'
+
+  React.useEffect(() => {
+    setCurrent(value ?? undefined)
+  }, [value])
+
+  useImperativeHandle(ref, () => ({
+    value: current,
+    setValue: (val) => setCurrent(val ?? undefined)
+  }), [current])
+
+  const handleChange = (next, input, previousValue) => {
+    if (!next) {
+      // Empty or unparseable: keep the current value and put it back in the input
+      input.value = previousValue
+      return
+    }
+    setCurrent(next)
+    onChange?.(next)
+  }
+
+  const dateValue = toDateInputValue(current)
+  const timeValue = toTimeInputValue(current, { seconds: withSeconds })
+  // iOS gives date/time inputs an intrinsic width and its own centred layout, so they can
+  // poke out of a narrow container: drop the native appearance, size by the box (border-box,
+  // block, 100% / max 100%, min 0) and left-align the value.
+  const inputClass = cn(
+    'relative box-border block min-h-11 sm:min-h-10 w-full min-w-0 max-w-full appearance-none overflow-hidden rounded-md border border-foreground/20 bg-background px-2 py-2.5 sm:py-2 text-left text-base leading-6 text-foreground',
+    '[&::-webkit-date-and-time-value]:m-0 [&::-webkit-date-and-time-value]:min-h-[1.5em] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:p-0',
+    '[color-scheme:light] dark:[color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-focus disabled:opacity-50'
+  )
+  const emptyClass = 'text-transparent'
+  // The adornment (e.g. a clear button) sits inside the last input's box, over its right
+  // padding. That input drops the browser's own picker icon (Chrome shows one; iOS and Android
+  // don't, and tapping the field opens the picker anyway), which would otherwise crowd the
+  // value out of a phone-width field.
+  const adornmentPadding = 'pr-10 sm:pr-9 [&::-webkit-calendar-picker-indicator]:hidden'
+  const adornment = endAdornment && (
+    <div className='absolute inset-y-0 right-1 z-10 flex items-center' data-testid='datetime-picker-end-adornment'>
+      {endAdornment}
+    </div>
+  )
+  const hasTimeInput = granularity !== 'day'
+  const overlayClass = 'pointer-events-none absolute inset-y-0 left-2 flex items-center text-base text-foreground/50'
+
+  // A grid with minmax(0, 1fr) tracks, so the columns are sized by the container and never by
+  // the inputs' intrinsic width (which WebKit on iOS computes its own way). Date and time sit
+  // side by side from 390px up, and stack on narrower phones.
+  return (
+    <div className={cn('grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)] min-[390px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-2', className)} data-testid='native-datetime-picker'>
+      <div className='relative min-w-0 max-w-full overflow-hidden rounded-md'>
+        <input
+          type='date'
+          id={`${baseId}-date`}
+          data-testid='native-date-input'
+          aria-label={`${accessibleName}, ${t('Date')}`}
+          className={cn(inputClass, !dateValue && emptyClass, endAdornment && !hasTimeInput && adornmentPadding)}
+          value={dateValue}
+          onChange={(e) => handleChange(applyDateInputValue(current, e.target.value), e.target, dateValue)}
+          disabled={disabled}
+        />
+        {!dateValue && <span className={overlayClass} aria-hidden='true'>{placeholder}</span>}
+        {!hasTimeInput && adornment}
+      </div>
+      {hasTimeInput && (
+        <div className='relative min-w-0 max-w-full overflow-hidden rounded-md'>
+          <input
+            type='time'
+            id={`${baseId}-time`}
+            data-testid='native-time-input'
+            aria-label={`${accessibleName}, ${t('Time')}`}
+            className={cn(inputClass, !timeValue && emptyClass, endAdornment && adornmentPadding)}
+            step={withSeconds ? 1 : 60}
+            value={timeValue}
+            onChange={(e) => handleChange(applyTimeInputValue(current, e.target.value), e.target, timeValue)}
+            disabled={disabled}
+          />
+          {!timeValue && <span className={overlayClass} aria-hidden='true'>--:--</span>}
+          {adornment}
+        </div>
+      )}
+    </div>
+  )
+})
+NativeDateTimePicker.displayName = 'NativeDateTimePicker'
+
+/**
+ * Date + time picker. Touch devices get the OS pickers (NativeDateTimePicker); devices with a
+ * mouse or trackpad get the popover calendar (PopoverDateTimePicker). Both take and emit
+ * wall-clock Dates; `label` names the native inputs for screen readers (falls back to
+ * `placeholder`). `endAdornment` (e.g. a small clear button) is shown inside the field, at its
+ * trailing edge.
+ */
+const DateTimePicker = React.forwardRef(({ label, ...props }, ref) => {
+  const prefersNative = usePrefersNativeDateTimePicker()
+  return prefersNative
+    ? <NativeDateTimePicker {...props} label={label} ref={ref} />
+    : <PopoverDateTimePicker {...props} ref={ref} />
+})
 DateTimePicker.displayName = 'DateTimePicker'
-export { DateTimePicker, TimePickerInput, TimePicker }
+export { DateTimePicker, NativeDateTimePicker, PopoverDateTimePicker, TimePickerInput, TimePicker }

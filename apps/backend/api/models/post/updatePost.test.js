@@ -77,6 +77,38 @@ describe('updatePost', () => {
   })
 })
 
+describe('updatePost with start and end times', () => {
+  let user, post
+  const startTime = new Date('2030-05-01T10:00:00Z')
+  const endTime = new Date('2030-05-01T12:00:00Z')
+
+  beforeEach(async () => {
+    user = await factories.user().save()
+    post = await factories.post({ type: Post.Type.REQUEST, user_id: user.id, start_time: startTime, end_time: endTime }).save()
+  })
+
+  it('clears both times when they are saved as null', async () => {
+    await updatePost(user.id, post.id, { name: post.get('name'), startTime: null, endTime: null })
+    const updated = await Post.find(post.id)
+    expect(updated.get('start_time')).to.equal(null)
+    expect(updated.get('end_time')).to.equal(null)
+  })
+
+  it('clears only the end time when only the end time is null', async () => {
+    await updatePost(user.id, post.id, { name: post.get('name'), startTime: startTime.getTime(), endTime: null })
+    const updated = await Post.find(post.id)
+    expect(updated.get('start_time').getTime()).to.equal(startTime.getTime())
+    expect(updated.get('end_time')).to.equal(null)
+  })
+
+  it('keeps the times when they are saved again', async () => {
+    await updatePost(user.id, post.id, { name: post.get('name'), startTime: startTime.getTime(), endTime: endTime.getTime() })
+    const updated = await Post.find(post.id)
+    expect(updated.get('start_time').getTime()).to.equal(startTime.getTime())
+    expect(updated.get('end_time').getTime()).to.equal(endTime.getTime())
+  })
+})
+
 describe('afterUpdatingPost', () => {
   let u1, u2, post
 
@@ -117,12 +149,14 @@ describe('getEventChanges', () => {
         if (key === 'start_time') return baseStartTime
         if (key === 'end_time') return baseEndTime
         if (key === 'location') return baseLocation
+        if (key === 'meeting_link') return 'https://zoom.us/j/123'
       }
     }
     params = {
       startTime: baseStartTime,
       endTime: baseEndTime,
-      location: baseLocation
+      location: baseLocation,
+      meetingLink: 'https://zoom.us/j/123'
     }
   })
 
@@ -132,6 +166,7 @@ describe('getEventChanges', () => {
     expect(result.start_time).to.equal(false)
     expect(result.end_time).to.equal(false)
     expect(result.location).to.equal(false)
+    expect(result.meeting_link).to.equal(false)
   })
 
   it('returns new value for start_time when it has changed', () => {
@@ -161,12 +196,22 @@ describe('getEventChanges', () => {
     expect(result.location).to.equal(newLocation)
   })
 
+  it('returns new value for meeting_link when it has changed', () => {
+    const newMeetingLink = 'https://meet.google.com/abc-defg-hij'
+    params.meetingLink = newMeetingLink
+
+    const result = getEventChanges({ post, params })
+
+    expect(result.meeting_link).to.equal(newMeetingLink)
+  })
+
   describe('edge cases', () => {
     beforeEach(() => {
       // Reset params to base values before each test
       params.startTime = baseStartTime
       params.endTime = baseEndTime
       params.location = baseLocation
+      params.meetingLink = 'https://zoom.us/j/123'
     })
 
     it('handles empty string location change', () => {

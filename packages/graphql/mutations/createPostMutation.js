@@ -19,6 +19,7 @@ export default gql`
     $details: String,
     $linkPreviewId: String,
     $linkPreviewFeatured: Boolean,
+    $skipLinkPreview: Boolean,
     $groupIds: [ID],
     $imageUrls: [String],
     $fileUrls: [String],
@@ -34,6 +35,7 @@ export default gql`
     $timezone: String,
     $location: String,
     $locationId: ID,
+    $meetingLink: String,
     $isPublic: Boolean,
     $fundingRoundId: ID,
     $markAsReadTopicName: String
@@ -44,6 +46,7 @@ export default gql`
       details: $details,
       linkPreviewId: $linkPreviewId,
       linkPreviewFeatured: $linkPreviewFeatured,
+      skipLinkPreview: $skipLinkPreview,
       groupIds: $groupIds,
       imageUrls: $imageUrls,
       fileUrls: $fileUrls,
@@ -59,6 +62,7 @@ export default gql`
       timezone: $timezone,
       location: $location,
       locationId: $locationId,
+      meetingLink: $meetingLink,
       isPublic: $isPublic,
       fundingRoundId: $fundingRoundId,
       markAsReadTopicName: $markAsReadTopicName

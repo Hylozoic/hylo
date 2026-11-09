@@ -6,10 +6,10 @@ describe('Search', function () {
   describe('.forPosts', function () {
     // TODO: fix this by reorganizing the search and filter code for posts to join groups_posts in the right place
     it.skip('produces the expected SQL for a complex query', function () {
-      var start = DateTime.fromISO('2015-03-24 19:54:12-04:00')
-      var end = DateTime.fromISO('2015-03-31 19:54:12-04:00')
-      var startAsString = start.toFormat('yyyy-MM-dd HH:mm:ss.SSS')
-      var endAsString = end.toFormat('yyyy-MM-dd HH:mm:ss.SSS')
+      const start = DateTime.fromISO('2015-03-24 19:54:12-04:00')
+      const end = DateTime.fromISO('2015-03-31 19:54:12-04:00')
+      const startAsString = start.toFormat('yyyy-MM-dd HH:mm:ss.SSS')
+      const endAsString = end.toFormat('yyyy-MM-dd HH:mm:ss.SSS')
 
       const search = Search.forPosts({
         limit: 5,
@@ -19,8 +19,8 @@ describe('Search', function () {
         follower: 37,
         term: 'milk toast',
         type: 'request',
-        start_time: startTime.toDate(),
-        end_time: endTime.toDate(),
+        start_time: start.toDate(),
+        end_time: end.toDate(),
         sort: 'posts.updated_at'
       })
 
@@ -47,14 +47,25 @@ describe('Search', function () {
         offset 7`)
     })
 
-    it('includes only basic post types by default', () => {
-      var query = Search.forPosts({groups: 9}).query().toString()
+    it('includes stream post types without notices by default', () => {
+      const query = Search.forPosts({ groups: 9 }).query().toString()
       expect(query).to.contain('"posts"."type" in (\'discussion\', \'request\', \'offer\', \'project\', \'proposal\', \'event\', \'resource\')')
     })
 
-    it('includes only basic post types when type is "all"', () => {
-      var query = Search.forPosts({groups: 9, type: 'all'}).query().toString()
+    it('includes stream post types without notices when type is "all"', () => {
+      const query = Search.forPosts({ groups: 9, type: 'all' }).query().toString()
       expect(query).to.contain('"posts"."type" in (\'discussion\', \'request\', \'offer\', \'project\', \'proposal\', \'event\', \'resource\')')
+    })
+
+    it('includes stream post types and notices when type is "all+notices"', () => {
+      const query = Search.forPosts({ groups: 9, type: 'all+notices' }).query().toString()
+      expect(query).to.contain('"posts"."type" in (\'discussion\', \'request\', \'offer\', \'project\', \'proposal\', \'event\', \'resource\', \'chat_activity\')')
+    })
+
+    it('keeps Axolotl notice posts in multi-group streams', () => {
+      const query = Search.forPosts({ groupIds: [9, 12] }).query().toString()
+      expect(query).to.contain(`"posts"."user_id" != '${User.AXOLOTL_ID}'`)
+      expect(query).to.contain("'chat_activity'")
     })
 
     it('accepts an option to change the name of the total column', () => {
@@ -74,7 +85,8 @@ describe('Search', function () {
 
       expectEqualQuery(search, `select groups.*, count(*) over () as total
         from "groups"
-        where (((to_tsvector('english', groups.name) @@ to_tsquery('milk:* & toast:*'))
+        where ("groups"."type" is null or "groups"."type" <> 'space')
+        and (((to_tsvector('english', groups.name) @@ to_tsquery('milk:* & toast:*'))
         or (to_tsvector('english', groups.description) @@ to_tsquery('milk:* & toast:*'))
         or (to_tsvector('english', groups.location) @@ to_tsquery('milk:* & toast:*'))))
         order by "name" asc
@@ -82,8 +94,36 @@ describe('Search', function () {
         offset 20`)
     })
 
+    it('includes spaces when parentSlugs is given', () => {
+      const query = Search.forGroups({
+        limit: 10,
+        parentSlugs: ['house']
+      }).query().toString()
+      expect(query).to.contain('"groups"."type" = \'space\'')
+      expect(query).to.contain('"groups"."parent_id"')
+      expect(query).to.not.match(/"groups"\."type" is null or "groups"\."type" <> 'space'/)
+    })
+
+    it('includes spaces when groupType is space', () => {
+      const query = Search.forGroups({
+        limit: 10,
+        groupType: 'space'
+      }).query().toString()
+      expect(query).to.contain('"groups"."type" = \'space\'')
+      expect(query).to.not.match(/"groups"\."type" is null or "groups"\."type" <> 'space'/)
+    })
+
+    it('includes spaces when fetching explicit groupIds', () => {
+      const query = Search.forGroups({
+        limit: 10,
+        groupIds: ['1', '2']
+      }).query().toString()
+      expect(query).to.contain('"groups"."id" in')
+      expect(query).to.not.match(/"groups"\."type" is null or "groups"\."type" <> 'space'/)
+    })
+
     it('includes nearest if nearCoord is passed in', () => {
-      var query = Search.forGroups({
+      const query = Search.forGroups({
         limit: 10,
         offset: 20,
         term: 'milk toast',
@@ -94,7 +134,7 @@ describe('Search', function () {
     })
 
     it('includes group membership count if sorting by size', () => {
-      var query = Search.forGroups({
+      const query = Search.forGroups({
         limit: 10,
         offset: 20,
         term: 'milk toast',
@@ -105,27 +145,27 @@ describe('Search', function () {
   })
 
   describe('.forUsers', () => {
-    var cat, dog, catdog, house, mouse, mouseGroup
+    let cat, dog, catdog, house, mouse, mouseGroup
 
     before(() => {
-      cat = new User({name: 'Mister Cat', email: 'iam@cat.org', active: true})
-      dog = new User({name: 'Mister Dog', email: 'iam@dog.org', active: true})
-      mouse = new User({name: 'Mister Mouse', email: 'iam@mouse.org', active: true})
-      catdog = new User({name: 'Cat Dog', email: 'iam@catdog.org', active: true})
+      cat = new User({ name: 'Mister Cat', email: 'iam@cat.org', active: true })
+      dog = new User({ name: 'Mister Dog', email: 'iam@dog.org', active: true })
+      mouse = new User({ name: 'Mister Mouse', email: 'iam@mouse.org', active: true })
+      catdog = new User({ name: 'Cat Dog', email: 'iam@catdog.org', active: true })
       house = new Group({ name: 'House', slug: 'House' })
       mouseGroup = new Group({ name: 'MouseGroup', slug: 'MouseGroup' })
 
       return setup.clearDb()
-      .then(() => cat.save())
-      .then(() => dog.save())
-      .then(() => catdog.save())
-      .then(() => mouse.save())
-      .then(() => house.save())
-      .then(() => mouseGroup.save())
-      .then(() => cat.joinGroup(house))
-      .then(() => mouse.joinGroup(mouseGroup))
-      .then(() => FullTextSearch.dropView().catch(err => {})) // eslint-disable-line handle-callback-err
-      .then(() => FullTextSearch.createView())
+        .then(() => cat.save())
+        .then(() => dog.save())
+        .then(() => catdog.save())
+        .then(() => mouse.save())
+        .then(() => house.save())
+        .then(() => mouseGroup.save())
+        .then(() => cat.joinGroup(house))
+        .then(() => mouse.joinGroup(mouseGroup))
+        .then(() => FullTextSearch.dropView().catch(err => {})) // eslint-disable-line n/handle-callback-err
+        .then(() => FullTextSearch.createView())
     })
 
     function userSearchTests (key) {
@@ -159,10 +199,31 @@ describe('Search', function () {
     describe('for a group', () => {
       it('finds members', () => {
         return Search.forUsers({term: 'mister', groups: [house.id]}).fetchAll()
-        .then(users => {
-          expect(users.length).to.equal(1)
-          expect(users.first().get('name')).to.equal('Mister Cat')
-        })
+          .then(users => {
+            expect(users.length).to.equal(1)
+            expect(users.first().get('name')).to.equal('Mister Cat')
+          })
+      })
+
+      it('sorts members with no name last, in either name order', async () => {
+        const sortGroup = await new Group({ name: 'SortGroup', slug: 'sort-group' }).save()
+        const named = ['Bea', 'alex', 'Cy']
+        const blank = [null, '', '   ']
+        for (const [i, name] of [...named, ...blank].entries()) {
+          const user = await new User({ name, email: `sort${i}@example.org`, active: true }).save()
+          await user.joinGroup(sortGroup)
+        }
+
+        const names = async order => (await Search.forUsers({ groups: [sortGroup.id], sort: 'name', order }).fetchAll())
+          .map(u => u.get('name'))
+
+        const asc = await names('asc')
+        expect(asc.slice(0, 3)).to.deep.equal(['alex', 'Bea', 'Cy'])
+        expect(asc.slice(3)).to.have.members(blank)
+
+        const desc = await names('desc')
+        expect(desc.slice(0, 3)).to.deep.equal(['Cy', 'Bea', 'alex'])
+        expect(desc.slice(3)).to.have.members(blank)
       })
 
       it('excludes inactive members', async () => {
@@ -172,6 +233,16 @@ describe('Search', function () {
         }).fetchAll()
         expect(users.length).to.equal(0)
       })
+    })
+
+    it('omits active members of an excluded group and returns a non-member', async () => {
+      const users = await Search.forUsers({
+        term: 'mister',
+        excludeGroupId: mouseGroup.id
+      }).fetchAll()
+      const names = users.map(user => user.get('name'))
+      expect(names).to.include('Mister Dog')
+      expect(names).to.not.include('Mister Mouse')
     })
   })
 })

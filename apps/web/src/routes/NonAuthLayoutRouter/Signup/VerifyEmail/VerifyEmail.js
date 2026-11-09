@@ -3,11 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import VerificationInput from 'react-verification-input'
+import { AnalyticsEvents } from '@hylo/shared'
 import { formatError } from '../../util'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { sendEmailVerification as sendEmailVerificationAction, verifyEmail } from '../Signup.store'
 import Loading from 'components/Loading'
+
+const VERIFICATION_FAILURE_REASONS = ['invalid-code', 'invalid-link']
 
 export default function VerifyEmail (props) {
   const dispatch = useDispatch()
@@ -51,8 +55,13 @@ export default function VerifyEmail (props) {
 
       if (error) {
         setError(error)
+        dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_FAILED, {
+          reason: VERIFICATION_FAILURE_REASONS.includes(error) ? error : 'other'
+        }))
         return
       }
+
+      dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_EMAIL_VERIFIED))
 
       // Next signup step (agreements). Do not rely only on SignupRouter + getSignupState so a
       // sync gap or selector edge case cannot leave the user on this screen with no feedback.
@@ -76,7 +85,7 @@ export default function VerifyEmail (props) {
   if (loading) return <Loading />
 
   return (
-    <div className='bg-background/100 rounded-md p-4 w-full max-w-[320px] mx-auto'>
+    <div className='bg-midground shadow-md rounded-md p-4 w-full max-w-[320px] mx-auto'>
       <Link to='/signup' className='text-foreground/80 text-sm mb-2 inline-block'>&#8592; {t('back')}</Link>
       <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('Check your email')}</h1>
       {notice && <p className='text-accent text-center text-sm'>{notice}</p>}
@@ -89,7 +98,7 @@ export default function VerifyEmail (props) {
           onChange={handleChange}
           classNames={{
             container: 'flex gap-2',
-            character: 'w-10 h-12 rounded-md border border-foreground/20 text-2xl text-center bg-input text-foreground transition-all duration-200',
+            character: 'w-10 h-12 rounded-md border border-foreground/20 text-2xl text-center bg-card text-foreground transition-all duration-200',
             characterInactive: 'bg-background/60',
             characterSelected: 'border-selected',
             characterFilled: 'bg-selected/20'

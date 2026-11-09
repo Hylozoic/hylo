@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 const rootPath = require('root-path')
 const setup = require(rootPath('test/setup'))
 const factories = require(rootPath('test/setup/factories'))
@@ -21,7 +22,7 @@ function attachMultipartEmailFields (req, fields) {
 }
 
 describe('CommentController', function () {
-  var fixtures, req, res
+  let fixtures, req, res
 
   before(() =>
     setup.clearDb().then(() => Promise.props({
@@ -33,14 +34,14 @@ describe('CommentController', function () {
       g1: factories.group().save(),
       cm1: factories.comment().save()
     }))
-    .then(props => {
-      fixtures = props
-    })
-    .then(() => Promise.join(
-      fixtures.p1.groups().attach(fixtures.g1.id),
-      fixtures.p1.comments().create(fixtures.cm1),
-      fixtures.g1.addMembers([fixtures.u1.id])
-    )))
+      .then(props => {
+        fixtures = props
+      })
+      .then(() => Promise.join(
+        fixtures.p1.groups().attach(fixtures.g1.id),
+        fixtures.p1.comments().create(fixtures.cm1),
+        fixtures.g1.addMembers([fixtures.u1.id])
+      )))
 
   beforeEach(() => {
     req = factories.mock.request()
@@ -57,7 +58,7 @@ describe('CommentController', function () {
 
     it('raises an error with an invalid address', function () {
       const send = spy(() => {})
-      res.status = spy(() => ({send}))
+      res.status = spy(() => ({ send }))
       return CommentController.createFromEmail(req, res).then(() => {
         expect(res.status).to.have.been.called.with(422)
         expect(send).to.have.been.called.with('Invalid reply address: wa')
@@ -72,15 +73,67 @@ describe('CommentController', function () {
       })
 
       return CommentController.createFromEmail(req, res)
-      .then(async () => {
-        expect(Analytics.track).to.have.been.called()
+        .then(async () => {
+          expect(Analytics.track).to.have.been.called()
+          expect(res.ok).to.have.been.called()
+          const comments = await fixtures.p1.comments().fetch()
+          const comment = comments.last()
+          expect(comment).to.exist
+          expect(comment.text()).to.equal('<p>foo bar baz</p>\n')
+          expect(comment.get('user_id')).to.equal(fixtures.u3.id)
+          expect(comment.get('created_from')).to.equal('email')
+        })
+    })
+
+    describe('with a SendGrid signing key configured', () => {
+      const crypto = require('crypto')
+      const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
+      const sign = (timestamp, body) =>
+        crypto.sign('sha256', Buffer.concat([Buffer.from(timestamp), body]), privateKey).toString('base64')
+
+      before(() => {
+        process.env.SENDGRID_INBOUND_PARSE_PUBLIC_KEY = publicKey.export({ format: 'der', type: 'spki' }).toString('base64')
+      })
+
+      after(() => {
+        delete process.env.SENDGRID_INBOUND_PARSE_PUBLIC_KEY
+      })
+
+      beforeEach(() => {
+        attachMultipartEmailFields(req, {
+          'stripped-text': 'signed reply',
+          to: Email.postReplyAddress(fixtures.p2.id, fixtures.u3.id)
+        })
+      })
+
+      it('creates the comment when the signature matches the raw body', async () => {
+        const timestamp = String(Math.floor(Date.now() / 1000))
+        req.headers['x-twilio-email-event-webhook-timestamp'] = timestamp
+        req.headers['x-twilio-email-event-webhook-signature'] = sign(timestamp, req.body)
+
+        await CommentController.createFromEmail(req, res)
         expect(res.ok).to.have.been.called()
-        const comments = await fixtures.p1.comments().fetch()
-        const comment = comments.last()
-        expect(comment).to.exist
-        expect(comment.text()).to.equal('<p>foo bar baz</p>\n')
-        expect(comment.get('user_id')).to.equal(fixtures.u3.id)
-        expect(comment.get('created_from')).to.equal('email')
+        const comments = await fixtures.p2.comments().fetch()
+        expect(comments.last().text()).to.equal('<p>signed reply</p>\n')
+      })
+
+      it('refuses unsigned requests', async () => {
+        const send = spy(() => {})
+        res.status = spy(() => ({ send }))
+
+        await CommentController.createFromEmail(req, res)
+        expect(res.status).to.have.been.called.with(403)
+      })
+
+      it('refuses a signature made for a different body', async () => {
+        const send = spy(() => {})
+        res.status = spy(() => ({ send }))
+        const timestamp = String(Math.floor(Date.now() / 1000))
+        req.headers['x-twilio-email-event-webhook-timestamp'] = timestamp
+        req.headers['x-twilio-email-event-webhook-signature'] = sign(timestamp, Buffer.from('something else'))
+
+        await CommentController.createFromEmail(req, res)
+        expect(res.status).to.have.been.called.with(403)
       })
     })
 
@@ -89,48 +142,48 @@ describe('CommentController', function () {
         'stripped-text': 'foo bar baz',
         to: Email.postReplyAddress(fixtures.p1.id, fixtures.u3.id)
       })
-      return fixtures.p1.save({type: Post.Type.THREAD}, {patch: true})
-      .then(() => CommentController.createFromEmail(req, res))
-      .then(() => fixtures.p1.comments().fetch())
-      .then(comments => {
-        const comment = comments.last()
-        expect(comment).to.exist
-        expect(comment.text()).to.equal('foo bar baz')
-      })
+      return fixtures.p1.save({ type: Post.Type.THREAD }, { patch: true })
+        .then(() => CommentController.createFromEmail(req, res))
+        .then(() => fixtures.p1.comments().fetch())
+        .then(comments => {
+          const comment = comments.last()
+          expect(comment).to.exist
+          expect(comment.text()).to.equal('foo bar baz')
+        })
     })
   })
 
   describe('createBatchFromEmailForm', () => {
-    var p1, p2, p3
+    let p1, p2, p3
 
     beforeEach(() => {
-      p1 = factories.post({user_id: fixtures.u1.id, created_at: new Date('2020-12-12 00:00:00')})
-      p2 = factories.post({user_id: fixtures.u2.id, created_at: new Date('2020-12-12 00:00:00')})
-      p3 = factories.post({user_id: fixtures.u1.id})
+      p1 = factories.post({ user_id: fixtures.u1.id, created_at: new Date('2020-12-12 00:00:00') })
+      p2 = factories.post({ user_id: fixtures.u2.id, created_at: new Date('2020-12-12 00:00:00') })
+      p3 = factories.post({ user_id: fixtures.u1.id })
       res.serverError = spy()
       res.locals.tokenData = {
         groupId: fixtures.g1.id,
         userId: fixtures.u1.id
       }
       return Promise.join(p1.save(), p2.save(), p3.save())
-      .then(() => Promise.join(
-        p1.groups().attach(fixtures.g1),
-        p2.groups().attach(fixtures.g1),
-        p3.groups().attach(fixtures.g1)))
+        .then(() => Promise.join(
+          p1.groups().attach(fixtures.g1),
+          p2.groups().attach(fixtures.g1),
+          p3.groups().attach(fixtures.g1)))
     })
 
     it('creates comments', () => {
       req.params[`post-${p1.id}`] = 'Reply to first post'
       req.params[`post-${p2.id}`] = 'Reply to second post'
       return CommentController.createBatchFromEmailForm(req, res)
-      .then(() => Promise.join(p1.load('comments'), p2.load('comments'), p3.load('comments')))
-      .then(() => {
-        expect(p1.relations.comments.length).to.equal(1)
-        expect(p1.relations.comments.first().get('text')).to.equal('<p>Reply to first post</p>\n')
-        expect(p2.relations.comments.length).to.equal(1)
-        expect(p2.relations.comments.first().get('text')).to.equal('<p>Reply to second post</p>\n')
-        expect(p3.relations.comments.length).to.equal(0)
-      })
+        .then(() => Promise.join(p1.load('comments'), p2.load('comments'), p3.load('comments')))
+        .then(() => {
+          expect(p1.relations.comments.length).to.equal(1)
+          expect(p1.relations.comments.first().get('text')).to.equal('<p>Reply to first post</p>\n')
+          expect(p2.relations.comments.length).to.equal(1)
+          expect(p2.relations.comments.first().get('text')).to.equal('<p>Reply to second post</p>\n')
+          expect(p3.relations.comments.length).to.equal(0)
+        })
     })
   })
 })

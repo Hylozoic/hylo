@@ -27,7 +27,7 @@ export default function useMyTracks ({
   }
 
   const tracks = (data?.me?.tracksEnrolledIn?.items || [])
-    .filter(track => track.publishedAt)
+    .filter(track => track.space?.status && track.space.status !== 'draft' && track.space.status !== 'archived')
     .map(track => TrackPresenter(track))
 
   return [tracks, { fetching, error }, reQuery]

@@ -14,8 +14,8 @@ import TextInput from 'components/TextInput'
 import { cn, validateEmail } from 'util/index'
 export default function Signup (props) {
   const dispatch = useDispatch()
-  const [email, setEmail] = useState()
   const location = useLocation()
+  const [email, setEmail] = useState(location.state?.email)
   const [error, setError] = useState(getQuerystringParam('error', location))
   const [redirectTo, setRedirectTo] = useState()
   const { t } = useTranslation()
@@ -77,7 +77,7 @@ export default function Signup (props) {
     }
   }
 
-  const canSubmit = email?.length > 0
+  const canSubmit = !!email && validateEmail(email)
 
   if (redirectTo) return <Navigate to={redirectTo} replace />
 
@@ -86,7 +86,7 @@ export default function Signup (props) {
       <Helmet>
         <title>{t('Sign up for Hylo')}</title>
       </Helmet>
-      <div className='bg-background/100 rounded-md p-4 w-full max-w-[320px] mx-auto'>
+      <div className='bg-midground shadow-md rounded-md p-4 w-full max-w-[320px] mx-auto'>
         <h1 className='text-2xl font-bold mb-0 text-foreground text-center'>{t('Welcome to Hylo')}</h1>
         <p className='mb-4 text-foreground/80 text-center mt-0'>{t('Enter your email to get started:')}</p>
 
@@ -102,8 +102,8 @@ export default function Signup (props) {
           internalLabel={t('Your email address')}
           onChange={handleEmailChange}
           onEnter={submit}
-          className='bg-input rounded-md mb-3'
-          inputClassName='p-4 text-foreground bg-input w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
+          className='bg-card border-2 border-foreground/20 rounded-md mb-3'
+          inputClassName='p-4 text-foreground bg-card w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
           type='text'
           value={email || ''}
         />
@@ -112,6 +112,7 @@ export default function Signup (props) {
           variant='highVisibility'
           className={cn('w-full mt-2 rounded-md p-2 text-foreground mb-4 text-base', { 'bg-selected': canSubmit, 'bg-foreground/10 text-foreground/80': !canSubmit })}
           onClick={canSubmit ? () => submit() : null}
+          disabled={!canSubmit}
         >
           {t('Create account')}
         </Button>

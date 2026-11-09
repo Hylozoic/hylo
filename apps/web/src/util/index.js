@@ -46,7 +46,30 @@ export const validateEmail = email => {
   return re.test(email.toLowerCase())
 }
 
-export const cleanCustomView = customView => {
-  delete customView.collection
-  return customView
+/**
+ * Parse a date value coming from the API. Date fields are declared as GraphQL
+ * `String`, so they arrive as epoch milliseconds in a string ("1787331729720")
+ * rather than ISO — `new Date()` cannot parse that form on its own.
+ * Returns null for missing or unparseable values.
+ */
+export function parseApiDate (value) {
+  if (!value) return null
+  const date = value instanceof Date
+    ? value
+    : /^\d+$/.test(String(value))
+      ? new Date(parseInt(value, 10))
+      : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+/** lastActiveAt within this window counts as currently active. */
+export const RECENTLY_ACTIVE_MS = 15 * 60 * 1000
+
+/**
+ * True when a person's lastActiveAt falls inside the currently-active window.
+ */
+export function isRecentlyActive (person, now = Date.now()) {
+  const date = parseApiDate(person?.lastActiveAt)
+  if (!date) return false
+  return now - date.getTime() < RECENTLY_ACTIVE_MS
 }

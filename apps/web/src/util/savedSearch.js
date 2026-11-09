@@ -1,5 +1,4 @@
-import { DateTimeHelpers } from '@hylo/shared'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import { formatLocalizedDate } from 'util/dateFormat'
 import { groupUrl } from '@hylo/navigation'
 
 const parsegroup = group => `Group: ${group.name}`
@@ -27,7 +26,7 @@ export function currentFilters (filters) {
 export function formatParams (search) {
   const { group, context, createdAt, postTypes, searchText, topics } = search
   return [
-    `Created on ${DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('MMMM d yyyy')}`,
+    `Created on ${formatLocalizedDate(createdAt, { style: 'long' })}`,
     ['all', 'public'].includes(context) ? `Context: ${context}` : '',
     group ? parsegroup(group) : '',
     searchText ? parseSearch(searchText) : '',

@@ -19,12 +19,14 @@ const SELECT_ITEM_CLASS = 'pl-2 pr-8 [&>span:first-child]:left-auto [&>span:firs
  * postNotifications also controls the hourly chat digest (all / important / none).
  *
  * @param {boolean} compact - Tighter padding/text and stacked channel toggles (popover layout)
+ * @param {boolean} postsOnly - Spaces only control post notifications; channel + digest are group settings
  */
 export default function GroupMembershipNotificationSettings ({
   id,
   settings,
   update,
   compact = false,
+  postsOnly = false,
   showMixed = false,
   receiveByInfo
 }) {
@@ -33,7 +35,7 @@ export default function GroupMembershipNotificationSettings ({
   const rowClass = cn(
     'flex items-center justify-between gap-2',
     compact ? 'py-2' : 'py-3',
-    'border-b-2 border-foreground/20'
+    !postsOnly && 'border-b-2 border-foreground/20'
   )
   const lastRowClass = cn(
     'flex items-center justify-between gap-2',
@@ -43,20 +45,22 @@ export default function GroupMembershipNotificationSettings ({
 
   return (
     <div>
-      <div className={cn(compact ? 'py-2' : 'py-3', 'border-b-2 border-foreground/20')}>
-        <SettingsToggles
-          id={id}
-          settings={settings}
-          update={update}
-          stacked={compact}
-          label={
-            <span className={cn(labelClass, 'inline-flex items-center gap-1')}>
-              {t('Receive group notifications by')}
-              <InfoButton content={infoContent} />
-            </span>
-          }
-        />
-      </div>
+      {!postsOnly && (
+        <div className={cn(compact ? 'py-2' : 'py-3', 'border-b-2 border-foreground/20')}>
+          <SettingsToggles
+            id={id}
+            settings={settings}
+            update={update}
+            stacked={compact}
+            label={
+              <span className={cn(labelClass, 'inline-flex items-center gap-1')}>
+                {t('Receive group notifications by')}
+                <InfoButton content={infoContent} />
+              </span>
+            }
+          />
+        </div>
+      )}
       <div className={rowClass}>
         <span className={labelClass}>{t('Receive new post notifications for')}</span>
         <Select
@@ -74,23 +78,25 @@ export default function GroupMembershipNotificationSettings ({
           </SelectContent>
         </Select>
       </div>
-      <div className={lastRowClass}>
-        <span className={labelClass}>{t('Receive an email digest summarizing group activity')}</span>
-        <Select
-          value={settings.digestFrequency}
-          onValueChange={value => update({ digestFrequency: value })}
-        >
-          <SelectTrigger className='inline-flex w-auto'>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className='!z-[300]'>
-            <SelectItem value='daily'>{t('Daily')}</SelectItem>
-            <SelectItem value='weekly'>{t('Weekly')}</SelectItem>
-            <SelectItem value='never'>{t('Never')}</SelectItem>
-            {showMixed && <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>}
-          </SelectContent>
-        </Select>
-      </div>
+      {!postsOnly && (
+        <div className={lastRowClass}>
+          <span className={labelClass}>{t('Receive an email digest summarizing group activity')}</span>
+          <Select
+            value={settings.digestFrequency}
+            onValueChange={value => update({ digestFrequency: value })}
+          >
+            <SelectTrigger className='inline-flex w-auto'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className='!z-[300]'>
+              <SelectItem value='daily'>{t('Daily')}</SelectItem>
+              <SelectItem value='weekly'>{t('Weekly')}</SelectItem>
+              <SelectItem value='never'>{t('Never')}</SelectItem>
+              {showMixed && <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   )
 }

@@ -23,8 +23,10 @@ export const buildPostDraftPayload = (post = {}) => ({
   isPublic: !!post.isPublic,
   location: post.location || '',
   locationId: post.locationId || null,
+  meetingLink: post.meetingLink || '',
   linkPreview: post.linkPreview || null,
   linkPreviewFeatured: !!post.linkPreviewFeatured,
+  skipLinkPreview: !!post.skipLinkPreview,
   acceptContributions: !!post.acceptContributions,
   completionAction: post.completionAction || null,
   completionActionSettings: post.completionActionSettings || null,
@@ -42,7 +44,8 @@ export const buildPostDraftPayload = (post = {}) => ({
 
 export const mergeDraftIntoPost = (base, draft, groupOptions = []) => {
   if (!draft) return base
-  const resolveGroup = (id) => groupOptions.find(group => group.id === id) || base.groups?.find(group => group.id === id) || { id }
+  const sameGroupId = (a, b) => a != null && b != null && String(a) === String(b)
+  const resolveGroup = (id) => groupOptions.find(group => sameGroupId(group.id, id)) || base.groups?.find(group => sameGroupId(group.id, id)) || { id }
   const draftGroups = Array.isArray(draft.groups) && draft.groups.length > 0
     ? draft.groups.map(resolveGroup)
     : base.groups
@@ -53,6 +56,11 @@ export const mergeDraftIntoPost = (base, draft, groupOptions = []) => {
     groups: draftGroups,
     proposalOptions: draft.proposalOptions?.length ? draft.proposalOptions.map(option => ({ ...option })) : base.proposalOptions,
     startTime: draft.startTime ? new Date(draft.startTime) : base.startTime,
-    endTime: draft.endTime ? new Date(draft.endTime) : base.endTime
+    endTime: draft.endTime ? new Date(draft.endTime) : base.endTime,
+    // Keep the post's existing preview unless the user added a new one or removed it
+    linkPreview: draft.skipLinkPreview ? null : (draft.linkPreview || base.linkPreview || null),
+    linkPreviewFeatured: draft.skipLinkPreview
+      ? false
+      : (draft.linkPreview ? !!draft.linkPreviewFeatured : !!base.linkPreviewFeatured)
   }
 }

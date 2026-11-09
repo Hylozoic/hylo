@@ -11,7 +11,8 @@ import {
   receiveMessageUpdated,
   receiveComment,
   receiveNotification,
-  receivePost
+  receivePost,
+  receiveOpenJoinRequestCount
 } from './SocketListener.store'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import getMe from 'store/selectors/getMe'
@@ -19,6 +20,7 @@ import {
   addUserTyping,
   clearUserTyping
 } from 'components/PeopleTyping/PeopleTyping.store'
+import { addMemberPresent, removeMemberPresent, setRoomPresence } from 'routes/ChatRoom/RoomPresence.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
 const SocketListener = (props) => {
@@ -37,8 +39,8 @@ const SocketListener = (props) => {
   const handlers = useMemo(() => ({
     commentAdded: data => dispatch(receiveComment(data)),
     groupUpdated: (data) => {
-      if (!group?.id) return
-      if (data?.groupId && String(data.groupId) !== String(group.id)) return
+      if (!group?.id || !data?.groupId) return
+      if (String(data.groupId) !== String(group.id)) return
       if (data?.updatedByUserId && String(data.updatedByUserId) === String(currentUser?.id)) return
       dispatch(fetchGroupViews(group.id))
     },
@@ -51,27 +53,43 @@ const SocketListener = (props) => {
     },
     messageUpdated: data => dispatch(receiveMessageUpdated(convertToMessage(data))),
     newNotification: data => dispatch(receiveNotification(data)),
+    openJoinRequestCountUpdated: (data) => {
+      if (data?.groupId == null || data?.openJoinRequestCount == null) return
+      dispatch(receiveOpenJoinRequestCount(data.groupId, data.openJoinRequestCount))
+    },
     // Use the post's group from the socket payload — not the currently viewed group.
-    // Space posts arrive on the space room while the parent menu may still be open.
+    // Space posts are also pushed to the parent room so the parent menu can badge
+    // without joining every space room.
     newPost: data => {
       const postGroupId = data?.groups?.[0]?.id
       if (!postGroupId) return
       dispatch(receivePost(data, postGroupId))
     },
     newThread: data => dispatch(receiveThread(convertToThread(data))),
-    userTyping: ({ userId, userName, isTyping }) => {
-      isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
-    }
+    userTyping: ({ userId, userName, isTyping, groupId, postId }) => {
+      isTyping ? dispatch(addUserTyping(userId, userName, { groupId, postId })) : dispatch(clearUserTyping(userId))
+    },
+    // Live room rosters (see RoomPresence.store)
+    roomPresence: ({ groupId, members }) => dispatch(setRoomPresence(groupId, members)),
+    memberPresent: ({ groupId, member }) => dispatch(addMemberPresent(groupId, member)),
+    memberAway: ({ groupId, userId }) => dispatch(removeMemberPresent(groupId, userId))
   }), [currentUser?.id, dispatch, group?.id])
 
   useEffect(() => {
     const socket = getSocket()
+    // Re-subscribe the user room on every (re)connection — after a server
+    // restart the socket comes back but its room memberships do not
+    const resubscribe = () => reconnect(socket)
     reconnect(socket)
+    socket.on('connect', resubscribe)
+    socket.on('reconnect', resubscribe)
 
     Object.keys(handlers).forEach(socketEvent =>
       socket.on(socketEvent, handlers[socketEvent]))
 
     return () => {
+      socket.off('connect', resubscribe)
+      socket.off('reconnect', resubscribe)
       socket.post(socketUrl('/noo/user/unsubscribe'))
       Object.keys(handlers).forEach(socketEvent =>
         socket.off(socketEvent, handlers[socketEvent]))
@@ -102,10 +120,11 @@ function convertToThread (data) {
       ...data,
       createdAt: new Date(data.createdAt).toString(),
       updatedAt: new Date(data.updatedAt).toString(),
-      messages: data.messages.map(({ id, createdAt, text, creator }) => ({
+      messages: data.messages.map(({ id, createdAt, text, creator, attachments }) => ({
         id,
         text,
         creator,
+        attachments,
         createdAt: new Date(createdAt).toString(),
         messageThread: data.id
       })),

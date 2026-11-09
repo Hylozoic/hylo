@@ -20,13 +20,13 @@ export default function SendAnnouncementModal ({
       <div className={classes.modalContainer}>
         <h1 className={classes.modalHeader}>{t('MAKE AN ANNOUNCEMENT')}</h1>
         {groupCount === 1 && canAdminAllGroups &&
-          <p className={classes.modalParagraph}>{t('This means that all members of this group will receive an instant email and push notification about this Post. (This feature is available to moderators only.)')}</p>}
+          <p className={classes.modalParagraph}>{t('This marks the post as important and notifies everyone who hasn\'t turned off post notifications.')}</p>}
         {groupCount > 1 && canAdminAllGroups &&
-          <p className={classes.modalParagraph}>{t('This means that all members of the {{groupCount}} groups selected will receive instant email and push notifications about this Post. (This feature is available to moderators only.)', { groupCount })}</p>}
+          <p className={classes.modalParagraph}>{t('This marks the post as important and notifies everyone in the {{groupCount}} selected groups who hasn\'t turned off post notifications.', { groupCount })}</p>}
 
         {!canAdminAllGroups &&
           <span>
-            <p className={classes.modalParagraph}>{t('This means that all members of the {{groupCount}} groups selected will receive an instant email and push notification about this Post.', { groupCount })}</p>
+            <p className={classes.modalParagraph}>{t('This marks the post as important and notifies everyone in the {{groupCount}} selected groups who hasn\'t turned off post notifications.', { groupCount })}</p>
             <p className={classes.modalParagraph}>{t('This will only be sent as an Announcement to the groups where you are a Moderator. For other groups it will be shared as a regular Post.')}</p>
           </span>}
         <div>

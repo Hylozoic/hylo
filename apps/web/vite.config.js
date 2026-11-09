@@ -30,7 +30,17 @@ export default defineConfig(({ command }) => ({
     minify: true,
     // Gzipping every chunk to print sizes is expensive on large bundles and
     // contributed to Heroku build OOMs (~2.5GB heap limit).
-    reportCompressedSize: false
+    reportCompressedSize: false,
+    rollupOptions: {
+      output: {
+        // Hash is its own dot segment (`name.<hash>.js`) so the static server
+        // can cache those files forever without also caching unhashed files
+        // that live under public/assets (fonts, logos).
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash][extname]'
+      }
+    }
   },
   plugins: [
     patchCssModules(),
@@ -85,7 +95,7 @@ export default defineConfig(({ command }) => ({
   // It enforces the same host check as the dev server, so it needs the same list.
   preview: {
     host: '0.0.0.0',
-    allowedHosts: ['.local', '.ts.net']
+    allowedHosts: ['.local', '.ts.net', '.trycloudflare.com']
   },
   server: {
     // XXX: fix issues finding aliases?
@@ -97,11 +107,13 @@ export default defineConfig(({ command }) => ({
     // (which Vite allows unconditionally):
     //   .local  — Bonjour/mDNS, for a phone on the same wifi
     //   .ts.net — Tailscale MagicDNS, for a phone anywhere
-    // A leading dot matches any name under that suffix, so neither needs
+    //   .trycloudflare.com — cloudflared quick tunnels, for anyone anywhere
+    //     (cloudflared tunnel --url http://localhost:3000; random public URL)
+    // A leading dot matches any name under that suffix, so none needs
     // per-machine configuration. Note @virtuoso.dev/message-list only treats
     // localhost and *.local as development, so the chat list carries its
     // missing-license watermark over Tailscale until VITE_VIRTUOSO_KEY is set.
-    allowedHosts: ['.local', '.ts.net'],
+    allowedHosts: ['.local', '.ts.net', '.trycloudflare.com'],
     // https: process.env.HTTPS === 'true' ? {
     //   key: fs.readFileSync(path.resolve(__dirname, `./config/ssl/${process.env.LOCAL_CERT}.key`)),
     //   cert: fs.readFileSync(path.resolve(__dirname, `./config/ssl/${process.env.LOCAL_CERT}.crt`)),
@@ -159,6 +171,8 @@ export default defineConfig(({ command }) => ({
       router: path.resolve(__dirname, 'src/router'),
       routes: path.resolve(__dirname, 'src/routes'),
       store: path.resolve(__dirname, 'src/store'),
+      sandbox: path.resolve(__dirname, 'src/sandbox'),
+      tours: path.resolve(__dirname, 'src/tours'),
       util: path.resolve(__dirname, 'src/util'),
       '@hylo/contexts': path.resolve(__dirname, '../../packages/contexts'),
       '@hylo/graphql': path.resolve(__dirname, '../../packages/graphql'),

@@ -38,6 +38,7 @@ export default gql`
     }
     email
     emailValidated
+    pendingEmail
     bannerUrl
     bio
     contactEmail
@@ -49,12 +50,15 @@ export default gql`
     url
     intercomHash
     hasStripeAccount
+    isProfilePublic
     rsvpCalendarUrl
     settings {
       alreadySeenTour
+      toursSeen
       colorScheme
       dmNotifications
       commentNotifications
+      unifiedEmailDigest
       locale
       mapBaseLayer
       globalNavStyle
@@ -119,6 +123,7 @@ export default gql`
         avatarUrl
         bannerUrl
         homeRoute
+        moreSpacesCount
         icon
         name
         memberCount
@@ -129,6 +134,7 @@ export default gql`
           showSuggestedSkills
           showWelcomePage
           layout
+          autoAddMembers
         }
         slug
         type

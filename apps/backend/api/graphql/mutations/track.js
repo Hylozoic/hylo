@@ -1,14 +1,12 @@
-/* global Track, Group, GroupMembership, Responsibility */
+/* global Track, Group, GroupMembership, GroupRole, Responsibility */
 import { omit } from 'lodash'
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
 
 export async function createTrack (userId, data) {
   return bookshelf.transaction(async transacting => {
-    const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt'))
-    if (data.publishedAt) {
-      attrs.published_at = new Date(Number(data.publishedAt)) // XXX: because convertGraphqlData messes up dates
-    }
+    const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
+    await GroupRole.assertAssignableRoleIds(attrs.completion_role_id, { transacting })
 
     const spaceId = data.groupId
     if (spaceId) {
@@ -92,8 +90,8 @@ export async function updateTrack (userId, id, data) {
     throw new GraphQLError('You do not have permission to edit this track')
   }
 
-  const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt'))
-  attrs.published_at = data.publishedAt ? new Date(Number(data.publishedAt)) : null
+  const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
+  await GroupRole.assertAssignableRoleIds(attrs.completion_role_id)
   await track.save(attrs)
   return track
 }
@@ -102,12 +100,12 @@ export async function updateTrack (userId, id, data) {
 async function canEdit (track, userId) {
   const space = await track.group().fetch()
   if (!space) return false
-  if (await GroupMembership.hasResponsibility(userId, space.id, Responsibility.constants.RESP_MANAGE_SPACES)) {
+  if (await GroupMembership.hasResponsibility(userId, space.id, Responsibility.constants.RESP_ADMINISTRATION)) {
     return true
   }
-  // Allow parent Manage Spaces without space membership (stewards managing from parent menu)
+  // Allow parent Administration without space membership (stewards managing from parent menu)
   const parentId = space.get('parent_id')
   if (!parentId) return false
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
-  return responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES)
+  return responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
 }

@@ -6,9 +6,12 @@ import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
 // import PropTypes from 'prop-types'
 import { useSelector, useDispatch } from 'react-redux'
+import { toast } from 'sonner'
 import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
+import { Bell, BellOff, Megaphone } from 'lucide-react'
 import Avatar from 'components/Avatar'
 import BadgeEmoji from 'components/BadgeEmoji'
+import SegmentedPicker from 'components/SegmentedPicker/SegmentedPicker'
 import ClickCatcher from 'components/ClickCatcher'
 import FarmGroupDetailBody from 'components/FarmGroupDetailBody'
 import GroupAboutVideoEmbed from 'components/GroupAboutVideoEmbed'
@@ -17,8 +20,8 @@ import Icon from 'components/Icon'
 import SocketSubscriber from 'components/SocketSubscriber'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
-import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
 import Button from 'components/ui/button'
+import RetainedAccessPanel from 'components/RetainedAccessPanel/RetainedAccessPanel'
 import {
   Dialog,
   DialogContent,
@@ -27,18 +30,12 @@ import {
   DialogHeader,
   DialogTitle
 } from 'components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from 'components/ui/select'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import checkInvitation from 'store/actions/checkInvitation'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
+import rejoinGroup from 'store/actions/rejoinGroup'
 import { FETCH_GROUP_DETAILS, RESP_ADMINISTRATION } from 'store/constants'
 import {
   accessibilityDescription,
@@ -47,6 +44,7 @@ import {
   DEFAULT_BANNER,
   DEFAULT_AVATAR,
   GROUP_TYPES,
+  isRetainedAccessGroup,
   visibilityDescription,
   visibilityIcon,
   visibilityString
@@ -61,9 +59,11 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
-import { groupUrl, personUrl, removeGroupFromUrl, spaceUrl } from '@hylo/navigation'
+import { groupUrl, localSpaceSlug, personUrl, removeGroupFromUrl, spaceHomeRoutePath, spaceUrl } from '@hylo/navigation'
+import joinSpace from 'store/actions/joinSpace'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import { INVALID_INVITE_TOAST_ID } from 'routes/JoinGroup/JoinGroup'
 
 import {
   createJoinRequest,
@@ -74,6 +74,7 @@ import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.stor
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
+import SpaceSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/SpaceSettingsModal'
 
 import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
@@ -127,6 +128,11 @@ function GroupDetail ({ forCurrentGroup = false }) {
     : (routeParams.detailGroupSlug || routeParams.groupSlug)
   const groupSelector = useSelector(state => getGroupForSlug(state, slug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
+  const parentGroup = useSelector(state => {
+    if (group?.type !== GROUP_TYPES.space || !routeParams.groupSlug) return null
+    if (routeParams.groupSlug === slug) return null
+    return getGroupForSlug(state, routeParams.groupSlug)
+  })
   const isAboutCurrentGroup = forCurrentGroup || routeParams.groupSlug === routeParams.detailGroupSlug
   const myMemberships = useSelector(state => getMyMemberships(state))
   const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
@@ -143,24 +149,33 @@ function GroupDetail ({ forCurrentGroup = false }) {
   // For email invites, fetch the associated email and role from backend (not URL for security)
   const [invitationEmail, setInvitationEmail] = useState(null)
   const [invitationRole, setInvitationRole] = useState(null)
+  const [grantAccess, setGrantAccess] = useState(true)
   const [invitationChecked, setInvitationChecked] = useState(false)
+  const [linkedSpaceName, setLinkedSpaceName] = useState(null)
+  const [linkedSpaceSlug, setLinkedSpaceSlug] = useState(null)
+  const [linkedSpaceId, setLinkedSpaceId] = useState(null)
 
   useEffect(() => {
-    if (invitationToken && currentUser && !invitationChecked) {
-      (async () => {
-        const result = await dispatch(checkInvitation({ invitationToken }))
-        const checkResult = result?.payload?.data?.checkInvitation
-        if (checkResult?.email) {
-          setInvitationEmail(checkResult.email)
-        }
-        // Set invitation role from groupRole on the invite
-        if (checkResult?.groupRole) {
-          setInvitationRole(checkResult.groupRole)
-        }
-        setInvitationChecked(true)
-      })()
-    }
-  }, [invitationToken, currentUser, invitationChecked, dispatch])
+    if (!(invitationToken || accessCode) || invitationChecked) return
+    (async () => {
+      const result = await dispatch(checkInvitation({ invitationToken, accessCode }))
+      const checkResult = result?.payload?.data?.checkInvitation
+      if (checkResult?.email) {
+        setInvitationEmail(checkResult.email)
+      }
+      // Set invitation role from groupRole on the invite
+      if (checkResult?.groupRole) {
+        setInvitationRole(checkResult.groupRole)
+      }
+      if (accessCode) setGrantAccess(checkResult?.grantAccess !== false)
+      if (checkResult?.isSpace && checkResult?.parentGroupSlug === slug) {
+        setLinkedSpaceName(checkResult.groupName)
+        setLinkedSpaceSlug(checkResult.groupSlug)
+        setLinkedSpaceId(checkResult.groupId)
+      }
+      setInvitationChecked(true)
+    })()
+  }, [invitationToken, accessCode, invitationChecked, dispatch, slug])
 
   // For email invites, validate that logged-in user's email matches the invitation email
   const hasEmailInvite = !!(invitationToken && invitationEmail)
@@ -173,8 +188,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
       slug,
       accessCode,
       invitationToken,
-      withContextWidgets: false,
-      withWidgets: true,
       withPrerequisites: !!currentUser
     }))
   }, [dispatch, slug, accessCode, invitationToken, currentUser])
@@ -190,13 +203,21 @@ function GroupDetail ({ forCurrentGroup = false }) {
     ))
     if (isWebView()) {
       sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
+    } else if (linkedSpaceSlug) {
+      if (linkedSpaceId) {
+        await dispatch(joinSpace(linkedSpaceId, accessCode, invitationToken)).catch(() => {})
+      }
+      navigate(spaceUrl(group.slug, localSpaceSlug(group.slug, linkedSpaceSlug)))
     } else {
       navigate(groupUrl(group.slug))
     }
-  }, [dispatch, group, accessCode, invitationToken])
+  }, [dispatch, group, accessCode, invitationToken, linkedSpaceSlug, linkedSpaceId])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
-    dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
+    dispatch(createJoinRequest(
+      groupId,
+      questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))
+    ))
   }, [dispatch])
 
   const updateMySettings = useCallback(changes => {
@@ -207,7 +228,31 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const agreementsSectionRef = useRef(null)
   const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [showSpaceSettings, setShowSpaceSettings] = useState(false)
   const isSpace = group?.type === GROUP_TYPES.space
+  const hasActiveParentMembership = !isSpace || myMemberships.some(m => String(m.group?.id) === String(parentGroup?.id))
+  const hasRetainedAccess = isRetainedAccessGroup(group)
+  const [rejoining, setRejoining] = useState(false)
+  const [rejoinError, setRejoinError] = useState(false)
+
+  const handleRejoin = useCallback(async () => {
+    if (!group?.id || !hasActiveParentMembership) return
+    setRejoinError(false)
+    setRejoining(true)
+    try {
+      await dispatch(rejoinGroup(group.id))
+      if (isSpace && parentGroup?.slug) {
+        const localSlug = localSpaceSlug(parentGroup.slug, group.slug)
+        navigate(spaceUrl(parentGroup.slug, localSlug, spaceHomeRoutePath(group)))
+      } else {
+        navigate(`/groups/${group.slug}${group.homeRoute || '/all'}`)
+      }
+    } catch (error) {
+      setRejoinError(true)
+    } finally {
+      setRejoining(false)
+    }
+  }, [dispatch, group, hasActiveParentMembership, isSpace, navigate, parentGroup?.slug])
 
   const handleCopyAgreementsLink = useCallback(() => {
     const url = `${window.location.origin}${groupUrl(group.slug, 'about')}#agreements`
@@ -229,6 +274,13 @@ function GroupDetail ({ forCurrentGroup = false }) {
     })
   }, [dispatch, group?.id, isSpace, navigate, routeParams.groupSlug, routeParams.spaceSlug])
 
+  const invalidInvite = Boolean(location.state?.invalidInvite)
+  useEffect(() => {
+    if (!invalidInvite) return
+    toast.error(t('Sorry, your invitation to this group is expired, has already been used, or is invalid. Please contact a group Host for another one.'), { id: INVALID_INVITE_TOAST_ID })
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+  }, [invalidInvite])
+
   useEffect(() => {
     if (location.hash !== '#agreements') return
     if (!group?.agreements?.length) return
@@ -239,16 +291,17 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [location.hash, group?.agreements?.length])
 
   useEffect(() => {
+    if (!currentUser?.id) return
     dispatch(fetchJoinRequests())
     dispatch(fetchForCurrentUser())
-  }, [dispatch])
+  }, [dispatch, currentUser?.id])
 
   useEffect(() => {
     fetchGroup()
   }, [fetchGroup])
 
   const closeDetailModal = () => {
-    const newUrl = removeGroupFromUrl(window.location.pathname)
+    const newUrl = removeGroupFromUrl(`${location.pathname}`)
     navigate(newUrl)
   }
 
@@ -297,39 +350,49 @@ function GroupDetail ({ forCurrentGroup = false }) {
         <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
       </Helmet>
 
-      {!isAboutCurrentGroup && (
-        <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
-          {/* DEPRECATED: Now always show close button when not fullPage */}
-          {!fullPage && /* !isWebView() && */ (
-            <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
-          )}
-          <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />
-          <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
-            <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
-            <div>
-              <div className='text-white font-bold text-2xl text-center'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
-              <div className='text-center'>
-                <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
-                  <span className={g.groupPrivacy}>
-                    <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
-                    <div className={g.privacyTooltip}>
-                      <div>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</div>
-                    </div>
-                  </span>
-                  <span className={g.groupPrivacy}>
-                    <Icon name={accessibilityIcon(group.accessibility)} className={g.privacyIcon} />
-                    <div className={g.privacyTooltip}>
-                      <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
-                    </div>
-                  </span>
-                  <span className={g.memberCount}>{t('{{count}} Members', { count: group.memberCount })}</span>
-                </div>
-                <span className='text-white/70 text-sm'>{group.location}</span>
+      {/* Banner header on every About, including the current group's own — the
+          sidebar shows the banner too, but this page should stand on its own */}
+      <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
+        {/* DEPRECATED: Now always show close button when not fullPage */}
+        {!fullPage && /* !isWebView() && */ (
+          <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
+        )}
+        <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />
+        <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
+          <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
+          <div>
+            <div className='text-white font-bold text-2xl text-center'>{group.name}</div>
+            {isSpace && isAboutCurrentGroup && responsibilityTitles.includes(RESP_ADMINISTRATION) && (
+              <div className='flex justify-center mt-2'>
+                <Button
+                  variant='secondary'
+                  onClick={() => setShowSpaceSettings(true)}
+                >
+                  {t('Space Settings')}
+                </Button>
               </div>
+            )}
+            <div className='text-center'>
+              <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
+                <span className={g.groupPrivacy}>
+                  <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
+                  <div className={g.privacyTooltip}>
+                    <div>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</div>
+                  </div>
+                </span>
+                <span className={g.groupPrivacy}>
+                  <Icon name={accessibilityIcon(group.accessibility)} className={g.privacyIcon} />
+                  <div className={g.privacyTooltip}>
+                    <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
+                  </div>
+                </span>
+                <span className={g.memberCount}>{t('{{count}} Members', { count: group.memberCount })}</span>
+              </div>
+              <span className='text-white/70 text-sm'>{group.location}</span>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       <div className='p-4'>
         {group.type === GROUP_TYPES.default && defaultGroupBody({ group, isAboutCurrentGroup, t, responsibilityTitles })}
@@ -405,26 +468,22 @@ function GroupDetail ({ forCurrentGroup = false }) {
             </div>)
           : ''}
         {isMember?.settings && (
-          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-            <h3 className='text-xl font-bold py-2'>{t('Notification Settings')}</h3>
+          <div className='rounded-xl border border-foreground/10 bg-foreground/5 p-4 mb-4'>
+            <div className='flex items-center gap-2 mb-1.5'>
+              <Bell className='w-4 h-4 text-selected' />
+              <span className='text-sm font-bold text-foreground'>{t('Notification Settings')}</span>
+            </div>
             {isSpace
               ? (
-                <div className='flex items-center justify-between gap-2 py-2'>
-                  <span>{t('Receive new post notifications in this space for')}</span>
-                  <Select
-                    value={isMember.settings.postNotifications}
-                    onValueChange={value => updateMySettings({ postNotifications: value })}
-                  >
-                    <SelectTrigger className='inline-flex w-auto'>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='none'>{t('No Posts')}</SelectItem>
-                      <SelectItem value='important'>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
-                      <SelectItem value='all'>{t('Every Post')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <SegmentedPicker
+                  value={isMember.settings.postNotifications}
+                  onChange={value => updateMySettings({ postNotifications: value })}
+                  options={[
+                    { value: 'none', label: t('Mute'), icon: BellOff, description: t("You won't hear about new posts in this space.") },
+                    { value: 'important', label: t('Important'), icon: Megaphone, description: t('Only announcements and posts that mention you.') },
+                    { value: 'all', label: t('All'), icon: Bell, description: t('Every new post in this space.') }
+                  ]}
+                />
                 )
               : (
                 <GroupMembershipNotificationSettings
@@ -446,22 +505,33 @@ function GroupDetail ({ forCurrentGroup = false }) {
             </Button>
           </div>
         )}
-        {!isAboutCurrentGroup
+        {hasRetainedAccess && (
+          <RetainedAccessPanel
+            group={group}
+            isSpace={isSpace}
+            parentGroup={parentGroup}
+            hasActiveParentMembership={hasActiveParentMembership}
+            onRejoin={handleRejoin}
+            rejoining={rejoining}
+            error={rejoinError}
+          />
+        )}
+        {!hasRetainedAccess && !isAboutCurrentGroup
           ? group.paywall
             ? (
               <div>
                 <JoinSection
                   accessCode={accessCode}
-                  addSkill={addSkill}
                   currentUser={currentUser}
                   fullPage={fullPage}
                   group={group}
                   groupsWithPendingRequests={groupsWithPendingRequests}
+                  grantAccess={grantAccess}
                   invitationRole={invitationRole}
                   invitationToken={invitationToken}
                   joinGroup={joinGroupHandler}
+                  linkedSpaceName={linkedSpaceName}
                   requestToJoinGroup={requestToJoinGroup}
-                  removeSkill={removeSkill}
                   routeParams={routeParams}
                   t={t}
                 />
@@ -484,16 +554,16 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     <div>
                       <JoinSection
                         accessCode={accessCode}
-                        addSkill={addSkill}
                         currentUser={currentUser}
                         fullPage={fullPage}
                         group={group}
                         groupsWithPendingRequests={groupsWithPendingRequests}
+                        grantAccess={grantAccess}
                         invitationRole={invitationRole}
                         invitationToken={invitationToken}
                         joinGroup={joinGroupHandler}
+                        linkedSpaceName={linkedSpaceName}
                         requestToJoinGroup={requestToJoinGroup}
-                        removeSkill={removeSkill}
                         routeParams={routeParams}
                         t={t}
                       />
@@ -501,6 +571,13 @@ function GroupDetail ({ forCurrentGroup = false }) {
                     )
           : ''}
       </div>
+      {showSpaceSettings && parentGroup && (
+        <SpaceSettingsModal
+          space={group}
+          parentGroup={parentGroup}
+          onClose={() => setShowSpaceSettings(false)}
+        />
+      )}
       <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
         <DialogContent>
           <DialogHeader>
@@ -552,11 +629,11 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
       )}
       {isAboutCurrentGroup && (!group.purpose && !group.description) && responsibilityTitles.includes(RESP_ADMINISTRATION)
         ? (
-          <div className={g.noDescription}>
-            <div>
+          <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
+            <div className={g.noDescription}>
               <h4 className='text-xl font-bold py-2'>{t('Your group doesn\'t have a purpose or description')}</h4>
-              <p>{t('Add a purpose, description, location, and more in your group settings')}</p>
-              <Link to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
+              <p className='text-foreground'>{t('Add a purpose, description, location, and more in your group settings')}</p>
+              <Link className='text-foreground border-foreground' to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
             </div>
           </div>
           )

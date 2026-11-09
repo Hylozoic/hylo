@@ -57,6 +57,8 @@ const mockT = (str, params) => {
 
 jest.mock('react-i18next', () => ({
   ...jest.requireActual('react-i18next'),
+  // useTranslation is stubbed, so the real Trans has no i18n instance and warns.
+  Trans: ({ children }) => children,
   withTranslation: () => Component => {
     const ComponentWithTranslation = (props) => <Component {...props} t={mockT} />
     return ComponentWithTranslation

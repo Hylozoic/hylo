@@ -4,7 +4,9 @@ import factories from '../../../test/setup/factories'
 import mock from 'mock-require'
 const { expect } = require('chai')
 
-/* global StripeAccount, GroupMembership, StripeProduct */
+/* global StripeAccount, StripeProduct */
+
+const MEMBER_ROLE_ERROR = 'The All Members role cannot be edited, assigned or used as a requirement'
 
 // Mock StripeService to avoid real API calls
 let lastCreateCheckoutSessionArgs = null
@@ -122,7 +124,7 @@ describe('Stripe Mutations', () => {
     group = await factories.group().save()
 
     // Add admin user as group administrator
-    await adminUser.joinGroup(group, { assignCoordinator: true })
+    await adminUser.joinGroup(group, { assignAdministrator: true })
     // Add regular user as group member
     await user.joinGroup(group)
   })
@@ -132,7 +134,7 @@ describe('Stripe Mutations', () => {
   describe('createStripeConnectedAccount', () => {
     it('creates a connected account for group admins', async () => {
       const testGroup = await factories.group().save()
-      await adminUser.joinGroup(testGroup, { assignCoordinator: true })
+      await adminUser.joinGroup(testGroup, { assignAdministrator: true })
 
       const result = await createStripeConnectedAccount(adminUser.id, {
         groupId: testGroup.id,
@@ -148,7 +150,7 @@ describe('Stripe Mutations', () => {
 
     it('uses group email and name as defaults', async () => {
       const testGroup = await factories.group({ name: 'Default Group' }).save()
-      await adminUser.joinGroup(testGroup, { assignCoordinator: true })
+      await adminUser.joinGroup(testGroup, { assignAdministrator: true })
 
       const result = await createStripeConnectedAccount(adminUser.id, {
         groupId: testGroup.id,
@@ -196,7 +198,7 @@ describe('Stripe Mutations', () => {
 
     it('rejects connection if group already has Stripe account', async () => {
       const testGroup = await factories.group().save()
-      await adminUser.joinGroup(testGroup, { assignCoordinator: true })
+      await adminUser.joinGroup(testGroup, { assignAdministrator: true })
 
       // First, create an account
       await createStripeConnectedAccount(adminUser.id, {
@@ -354,6 +356,42 @@ describe('Stripe Mutations', () => {
       ).to.be.rejectedWith('You must be a group administrator to create offerings')
     })
 
+    it('rejects the Member role in access grants', async () => {
+      const memberRole = await GroupRole.findAllMembersRole(group.id)
+      const countOfferings = () => StripeProduct.where({ group_id: group.id }).count().then(Number)
+      const before = await countOfferings()
+
+      await expect(
+        createStripeOffering(adminUser.id, {
+          groupId: group.id,
+          accountId: 'acct_test_123',
+          name: 'Member Grant',
+          priceInCents: 1000,
+          accessGrants: { groupIds: [group.id], groupRoleIds: [memberRole.id] }
+        })
+      ).to.be.rejectedWith(MEMBER_ROLE_ERROR)
+      expect(await countOfferings()).to.equal(before)
+    })
+
+    it('rejects role ids that are not plain decimal digits in access grants', async () => {
+      const memberRole = await GroupRole.findAllMembersRole(group.id)
+      const countOfferings = () => StripeProduct.where({ group_id: group.id }).count().then(Number)
+      const before = await countOfferings()
+
+      for (const roleId of [`+${memberRole.id}`, `${memberRole.id}x`, `${memberRole.id}.5`]) {
+        await expect(
+          createStripeOffering(adminUser.id, {
+            groupId: group.id,
+            accountId: 'acct_test_123',
+            name: 'Member Grant',
+            priceInCents: 1000,
+            accessGrants: { groupIds: [group.id], groupRoleIds: [roleId] }
+          }),
+          roleId
+        ).to.be.rejectedWith('Invalid role id')
+      }
+      expect(await countOfferings()).to.equal(before)
+    })
   })
 
   describe('updateStripeOffering', () => {
@@ -432,6 +470,22 @@ describe('Stripe Mutations', () => {
       // Verify the changes were saved
       await testProduct.refresh()
       expect(testProduct.get('access_grants')).to.deep.equal(newAccessGrants)
+    })
+
+    it('rejects the Member role in access grants', async () => {
+      const memberRole = await GroupRole.findAllMembersRole(group.id)
+      await testProduct.refresh()
+      const before = testProduct.get('access_grants')
+
+      await expect(
+        updateStripeOffering(adminUser.id, {
+          offeringId: testProduct.id,
+          accessGrants: { groupIds: [group.id], groupRoleIds: [String(memberRole.id)] }
+        })
+      ).to.be.rejectedWith(MEMBER_ROLE_ERROR)
+
+      await testProduct.refresh()
+      expect(testProduct.get('access_grants')).to.deep.equal(before)
     })
 
     it('updates renewal policy and duration', async () => {
@@ -526,7 +580,7 @@ describe('Stripe Mutations', () => {
     it('rejects update when group has no Stripe account', async () => {
       // Create a group without a Stripe account
       const groupWithoutStripe = await factories.group().save()
-      await adminUser.joinGroup(groupWithoutStripe, { assignCoordinator: true })
+      await adminUser.joinGroup(groupWithoutStripe, { assignAdministrator: true })
 
       const productWithoutStripe = await StripeProduct.create({
         group_id: groupWithoutStripe.id,
@@ -749,7 +803,7 @@ describe('Stripe Mutations', () => {
       await otherGroup.save({ stripe_account_id: otherStripeAccount.id })
 
       // Make adminUser an admin of otherGroup so they can create an offering
-      await adminUser.joinGroup(otherGroup, { assignCoordinator: true })
+      await adminUser.joinGroup(otherGroup, { assignAdministrator: true })
 
       const otherOffering = await createStripeOffering(adminUser.id, {
         groupId: otherGroup.id,

@@ -53,14 +53,14 @@ Hardcoded by name. Responsibilities looked up by `name AND type = 'system'` (nev
 
 ## Group creation
 
-`Group.create` calls `GroupRole.setupSystemRoles(groupId)` before adding the creator as a member. Steward assignment uses the per-group Coordinator system role via `assignCoordinator: true`.
+`Group.create` calls `GroupRole.setupSystemRoles(groupId)` before adding the creator as a member. Steward assignment uses the per-group Administrator system role via `assignAdministrator: true`.
 
-## Coordinator assignment API
+## Administrator assignment API
 
-- `GroupMembership.assignCoordinatorRole(userId, groupId)` — assigns per-group Coordinator system role
-- `User.joinGroup(group, { assignCoordinator: true })` — join + assign Coordinator
-- `Group.addMembers(ids, { assignCoordinator: true })` — bulk join + assign Coordinator
-- GraphQL `addMember(assignCoordinator: Boolean)` — replaces legacy role flag
+- `GroupMembership.assignAdministratorRole(userId, groupId)` — assigns per-group Administrator system role
+- `User.joinGroup(group, { assignAdministrator: true })` — join + assign Administrator
+- `Group.addMembers(ids, { assignAdministrator: true })` — bulk join + assign Administrator
+- GraphQL `addMember(assignAdministrator: Boolean)` — replaces legacy role flag
 
 ## GraphQL
 

@@ -11,5 +11,9 @@ export default LinkPreview
 LinkPreview.modelName = 'LinkPreview'
 
 LinkPreview.fields = {
-  id: attr()
+  id: attr(),
+  description: attr(),
+  imageUrl: attr(),
+  title: attr(),
+  url: attr()
 }

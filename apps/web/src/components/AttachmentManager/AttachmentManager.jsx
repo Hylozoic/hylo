@@ -19,11 +19,13 @@ function AttachmentManager (props) {
     id = ID_FOR_NEW,
     attachmentType,
     showLoading,
-    onChange
+    onChange,
+    onLoadingChange
   } = props
 
   const dispatch = useDispatch()
-  const uploadAttachmentPending = useSelector(state => getUploadAttachmentPending(state, props))
+  const uploadAttachmentPendingFromStore = useSelector(state => getUploadAttachmentPending(state, props))
+  const uploadAttachmentPending = props.uploadAttachmentPending ?? uploadAttachmentPendingFromStore
   const attachments = useSelector(state => getAttachments(state, props))
   const attachmentsFromObject = useSelector(state => getAttachmentsFromObject(state, props))
 
@@ -56,9 +58,9 @@ function AttachmentManager (props) {
   return (
     <>
       {showImages &&
-        <ImageManager {...props} showLoading={showLoading} attachments={imageAttachments} onChange={onChange} />}
+        <ImageManager {...props} showLoading={showLoading} uploadAttachmentPending={uploadAttachmentPending} attachments={imageAttachments} onChange={onChange} onLoadingChange={onLoadingChange} />}
       {showFiles &&
-        <FileManager {...props} showLoading={showLoading} attachments={fileAttachments} onChange={onChange} />}
+        <FileManager {...props} showLoading={showLoading} uploadAttachmentPending={uploadAttachmentPending} attachments={fileAttachments} onChange={onChange} onLoadingChange={onLoadingChange} />}
     </>
   )
 }
@@ -70,7 +72,9 @@ AttachmentManager.propTypes = {
   showAddButton: PropTypes.bool,
   showLabel: PropTypes.bool,
   showLoading: PropTypes.bool,
-  onChange: PropTypes.func
+  uploadAttachmentPending: PropTypes.bool,
+  onChange: PropTypes.func,
+  onLoadingChange: PropTypes.func
 }
 
 export default AttachmentManager

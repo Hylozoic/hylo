@@ -2,14 +2,16 @@ import { cn } from 'util/index'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { CircleCheckBig } from 'lucide-react'
+import { CircleCheckBig, Pin } from 'lucide-react'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
 import EventDate from 'components/PostCard/EventDate'
 import EventRSVP from 'components/PostCard/EventRSVP'
 import Icon from 'components/Icon'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import useViewPostDetails from 'hooks/useViewPostDetails'
+import childGroupLabel from 'util/childGroupLabel'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
 
@@ -29,6 +31,8 @@ export default function PostBigGridItem ({
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe) || propCurrentUser
   const viewPostDetails = useViewPostDetails()
+  const pinnableView = useCurrentPinnableView()
+  const pinnedInView = (pinnableView?.pinnedPostIds || []).map(pid => String(pid)).includes(String(post.id))
 
   const handleRespondToEvent = useCallback((response) => {
     dispatch(respondToEvent(post, response))
@@ -48,16 +52,13 @@ export default function PostBigGridItem ({
   const hasFile = firstAttachment?.type === 'file'
   const numAttachments = attachments?.length || 0
 
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(currentGroupId))
   const isEvent = post.type === 'event'
   // Match the stream card (EventBody): no RSVP on past events or signed-out views
   const isPastEvent = post.endTime && new Date(post.endTime) < new Date()
   const showRSVP = isEvent && currentUser && !isPastEvent
 
-  // Child posts carry only their own groups, never the one being viewed
-  const childGroupName = childPost
-    ? ((post.groups || []).find(g => g.type === 'space') || (post.groups || [])[0])?.name
-    : null
+  const groupLabel = childPost ? childGroupLabel(post, t) : null
 
   // Donation link detection
   const donationMatch = post.donationsLink?.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/)
@@ -112,16 +113,17 @@ export default function PostBigGridItem ({
 
           <div className='flex items-center gap-2 text-white min-w-0'>
             <div className='flex items-center gap-1 text-white font-bold h-6 text-xs min-w-0'>
-              <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
+              <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} tiny className='flex-shrink-0' />
               <span className='truncate font-bold'>{creator.name}</span>
             </div>
             <span className='text-white/50 text-xs flex-shrink-0'>{createdTimestampShort}</span>
           </div>
-          {childGroupName && (
-            <div className='text-white/70 text-xs truncate'>{t('in {{groupName}}', { groupName: childGroupName })}</div>
+          {groupLabel && (
+            <div className='text-white/70 text-xs truncate'>{groupLabel}</div>
           )}
           <h3 className='text-white font-bold text-lg line-clamp-2 drop-shadow-md mb-1 mt-0 leading-tight'>
             <span className={cn('flex items-center', { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt })}>
+              {pinnedInView && <Pin className='w-4 h-4 mr-1 shrink-0 text-[hsl(45_80%_70%)]' strokeWidth={2.5} aria-hidden='true' />}
               {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
               {title}
             </span>
@@ -187,14 +189,15 @@ export default function PostBigGridItem ({
           {isEvent && <EventDate {...post} />}
           <div className='flex-1 min-w-0'>
             <div className='flex items-center gap-2 text-xs text-foreground/60 min-w-0'>
-              <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
+              <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} tiny className='flex-shrink-0' />
               <span className='font-bold text-foreground truncate'>{creator.name}</span>
               <span className='flex-shrink-0'>{createdTimestampShort}</span>
             </div>
-            {childGroupName && (
-              <div className='text-xs text-foreground/50 truncate'>{t('in {{groupName}}', { groupName: childGroupName })}</div>
+            {groupLabel && (
+              <div className='text-xs text-foreground/50 truncate'>{groupLabel}</div>
             )}
             <h3 className='flex items-center text-foreground font-bold text-lg line-clamp-2 mb-1 mt-0 leading-tight'>
+              {pinnedInView && <Pin className='w-4 h-4 mr-1 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />}
               {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
               {title}
             </h3>

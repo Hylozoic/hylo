@@ -1,9 +1,14 @@
 export const RESP_ADD_MEMBERS = 'Add Members'
 export const RESP_ADMINISTRATION = 'Administration'
+export const RESP_INVITE_MEMBERS = 'Invite Members'
 export const RESP_MANAGE_CONTENT = 'Manage Content'
 export const RESP_REMOVE_MEMBERS = 'Remove Members'
 
-export const SYSTEM_ROLE_NAMES = ['Coordinator', 'Moderator', 'Host']
+export const INVITE_ACCESS = { full: 'full', limited: 'limited' }
+export const INVITE_POLICY = { everyone: 'everyone', stewards: 'stewards', roles: 'roles' }
+
+export const SYSTEM_ROLE_NAMES = ['Administrator', 'Moderator', 'Host']
+const LEGACY_SYSTEM_ROLE_NAMES = { Coordinator: 'Administrator' }
 
 /**
  * Whether a group role is a built-in system role.
@@ -13,15 +18,55 @@ export function isSystemGroupRole (role) {
 }
 
 /**
- * Sort system group roles in Coordinator, Moderator, Host order.
+ * Whether a group role is the group's implicit Member role, which everyone in the group holds
+ * without being assigned it.
+ */
+export function isMemberGroupRole (role) {
+  return role?.type === 'member' || role?.type === 'all_members'
+}
+
+/**
+ * A role every member holds without being assigned it. It can carry responsibilities
+ * but is not a badge. Payloads that omit type still match the All Members role by name.
+ */
+export function isImplicitMemberRole (role) {
+  if (isMemberGroupRole(role)) return true
+  return role?.name === 'All Members' && !role.emoji
+}
+
+/**
+ * Current system role name, mapping legacy Coordinator to Administrator.
+ */
+function canonicalSystemRoleName (name) {
+  return LEGACY_SYSTEM_ROLE_NAMES[name] || name
+}
+
+/**
+ * Sort system group roles in Administrator, Moderator, Host order.
  */
 export function sortSystemGroupRoles (roles) {
   return [...(roles || [])].filter(isSystemGroupRole).sort((a, b) => {
-    const aIndex = SYSTEM_ROLE_NAMES.indexOf(a.name)
-    const bIndex = SYSTEM_ROLE_NAMES.indexOf(b.name)
+    const aIndex = SYSTEM_ROLE_NAMES.indexOf(canonicalSystemRoleName(a.name))
+    const bIndex = SYSTEM_ROLE_NAMES.indexOf(canonicalSystemRoleName(b.name))
     return (aIndex === -1 ? SYSTEM_ROLE_NAMES.length : aIndex) -
       (bIndex === -1 ? SYSTEM_ROLE_NAMES.length : bIndex)
   })
+}
+
+/**
+ * Active group roles for pickers: system roles (Administrator, Moderator, Host) first, then custom.
+ */
+export function groupRolesForPicker (roles) {
+  const active = (roles || []).filter(role => role?.id != null && role.active !== false && !isMemberGroupRole(role))
+    .map(role => SYSTEM_ROLE_NAMES.includes(canonicalSystemRoleName(role.name)) ? { ...role, type: 'system' } : role)
+  return [
+    ...sortSystemGroupRoles(active),
+    ...sortCustomGroupRoles(active.filter(role => !isSystemGroupRole(role)))
+  ].map(role => ({
+    ...role,
+    id: String(role.id),
+    label: `${role.emoji || ''} ${role.name}`.trim()
+  }))
 }
 
 /**

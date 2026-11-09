@@ -170,16 +170,28 @@ export function JoinBarriers ({ group, onBarriersStateChange, joinIntroCopy = fa
   )
 }
 
-export default function JoinSection ({ accessCode, addSkill, currentUser, fullPage, group, groupsWithPendingRequests, invitationRole, invitationToken, joinGroup, requestToJoinGroup, removeSkill, routeParams, t }) {
+export default function JoinSection ({ accessCode, currentUser, fullPage, group, groupsWithPendingRequests, grantAccess = true, invitationRole, invitationToken, joinGroup, linkedSpaceName, requestToJoinGroup, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
-  // User arrived with a join link (accessCode) or email invite link (token) — pre-approved for Closed/Restricted
-  const hasJoinOrInviteLink = !!(accessCode || invitationToken)
+  // A granting link or an email invite lets the person join even when the group is Restricted or Closed.
+  // A view-only link (grantAccess false) still means they request to join.
+  const hasJoinOrInviteLink = (!!accessCode && grantAccess !== false) || !!invitationToken
+
+  const linkedSpaceNotice = linkedSpaceName
+    ? (
+      <div className='bg-selected/10 border border-selected/30 rounded-xl p-4 mb-4 text-center'>
+        <span className='font-medium text-foreground'>
+          {t('You will also be added to space {{name}} on joining', { name: linkedSpaceName })}
+        </span>
+      </div>
+      )
+    : null
 
   // If group has paywall, show paywall offerings with nested barriers
   if (group.paywall) {
     return (
       <div className={cn('JoinSection requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>
+        {linkedSpaceNotice}
         <PaywallOfferingsSection group={group} />
       </div>
     )
@@ -198,8 +210,7 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
           </div>
         </div>
       )}
-      {group.suggestedSkills && group.suggestedSkills.length > 0 &&
-        <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
+      {linkedSpaceNotice}
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
         ? (
           <div className='w-full mb-[100px] border border-dashed p-3 rounded bg-midground'>
@@ -257,36 +268,65 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
         : group.numPrerequisitesLeft
           ? t('This group has prerequisite groups you cannot see, you cannot join this group at this time')
           : group.accessibility === GROUP_ACCESSIBILITY.Open
-            ? <JoinQuestionsAndButtons group={group} joinGroup={joinGroup} joinText={t('Join {{group.name}}', { group })} t={t} />
+            ? (
+              <JoinQuestionsAndButtons
+                currentUser={currentUser}
+                group={group}
+                joinGroup={joinGroup}
+                joinText={t('Join {{group.name}}', { group })}
+                t={t}
+              />
+              )
             : group.accessibility === GROUP_ACCESSIBILITY.Restricted ||
               group.accessibility === GROUP_ACCESSIBILITY.Closed
               ? hasJoinOrInviteLink
-                ? <JoinQuestionsAndButtons group={group} joinGroup={joinGroup} joinText={t('Join {{group.name}}', { group })} t={t} />
-                : group.accessibility === GROUP_ACCESSIBILITY.Restricted
-                  ? hasPendingRequest
-                    ? (
-                      <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
-                        <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
-                        <span> {t('You will be sent an email and notified on your device when the request is approved.')}</span>
-                      </div>
-                      )
-                    : <JoinQuestionsAndButtons group={group} joinGroup={requestToJoinGroup} joinText={t('Request Membership in {{group.name}}', { group })} t={t} />
-                  : (
-                    <div className='border-2 border-dashed border-foreground/20 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
-                      <p className='m-0'>{t('This group is invite only. You require a join or invite link in order to join.')}</p>
+                ? (
+                  <JoinQuestionsAndButtons
+                    currentUser={currentUser}
+                    group={group}
+                    joinGroup={joinGroup}
+                    joinText={t('Join {{group.name}}', { group })}
+                    t={t}
+                  />
+                  )
+                : hasPendingRequest
+                  ? (
+                    <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
+                      <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
+                      <span> {t('You will be sent an email and notified on your device when the request is approved.')}</span>
                     </div>
                     )
+                  : group.accessibility === GROUP_ACCESSIBILITY.Restricted
+                    ? (
+                      <>
+                        <JoinQuestionsAndButtons
+                          currentUser={currentUser}
+                          group={group}
+                          joinGroup={requestToJoinGroup}
+                          joinText={t('Request Membership in {{group.name}}', { group })}
+                          t={t}
+                        />
+                      </>
+                      )
+                    : (
+                      <div className='border-2 border-dashed border-foreground/20 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
+                        <p className='m-0'>{t('This group is invite only. You require a join or invite link in order to join.')}</p>
+                      </div>
+                      )
               : null}
     </div>
   )
 }
 
-function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
+function JoinQuestionsAndButtons ({ currentUser, group, joinGroup, joinText, t }) {
   const agreements = group.agreements || []
   const hasAgreements = agreements.length > 0
   const hasRequiredQuestions = group.settings?.askJoinQuestions && group.joinQuestions?.length > 0
+  const hasSuggestedSkills = group.suggestedSkills?.length > 0
   const hasBarriers = hasAgreements || hasRequiredQuestions
-  const [barriersExpanded, setBarriersExpanded] = useState(!hasBarriers)
+  // Expand for agreements/questions and/or skills — skills stay hidden until Join is clicked
+  const hasExpandableContent = hasBarriers || hasSuggestedSkills
+  const [formExpanded, setFormExpanded] = useState(!hasExpandableContent)
 
   const [barriersState, setBarriersState] = useState(null)
 
@@ -318,26 +358,24 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
   }
 
   const handleButtonClick = () => {
-    if (hasBarriers && !barriersExpanded) {
-      setBarriersExpanded(true)
+    if (hasExpandableContent && !formExpanded) {
+      setFormExpanded(true)
     } else if (canJoin) {
       joinGroup(group.id, hasBarriers ? (barriersState?.questionAnswers ?? []) : [])
     }
   }
 
-  const getButtonText = () => {
-    if (hasBarriers && !barriersExpanded) {
-      return joinText
-    }
-    return joinText
-  }
-
-  const isButtonDisabled = barriersExpanded && !canJoin
+  const isButtonDisabled = formExpanded && !canJoin
 
   return (
     <div className='JoinSection-QuestionsAndButton border-2 border-dashed border-foreground/20 rounded-xl p-4 w-full mt-4 mb-8'>
-      {barriersExpanded && (
-        <JoinBarriers group={group} onBarriersStateChange={handleBarriersStateChange} joinIntroCopy />
+      {formExpanded && (
+        <>
+          {hasBarriers &&
+            <JoinBarriers group={group} onBarriersStateChange={handleBarriersStateChange} joinIntroCopy />}
+          {hasSuggestedSkills &&
+            <SuggestedSkills currentUser={currentUser} group={group} />}
+        </>
       )}
 
       <Button
@@ -348,7 +386,7 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
         data-tooltip-content={isButtonDisabled ? getDisabledReason() : ''}
         data-tooltip-id='join-tip'
       >
-        {getButtonText()}
+        {joinText}
       </Button>
     </div>
   )

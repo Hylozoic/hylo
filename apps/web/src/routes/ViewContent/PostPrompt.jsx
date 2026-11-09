@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { SquarePen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { createPostModalUrl } from '@hylo/navigation'
 import { cn } from 'util/index'
 
 /**
@@ -18,13 +19,11 @@ export default function PostPrompt (props) {
   const type = useMemo(() => postTypesAvailable && postTypesAvailable.length === 1 ? postTypesAvailable[0] : 'default', [postTypesAvailable])
   const newPostType = postTypesAvailable?.[0]
   const createPostPath = useMemo(() => {
-    const basePath = location.pathname.replace(/\/create\/.*$/, '')
-    const params = new URLSearchParams()
-    if (newPostType) params.set('newPostType', newPostType)
-    if (eventDate) params.set('eventDate', eventDate)
-    const query = params.toString()
-    return `${basePath}/create/post${query ? `?${query}` : ''}`
-  }, [location.pathname, newPostType, eventDate])
+    const extra = {}
+    if (newPostType) extra.newPostType = newPostType
+    if (eventDate) extra.eventDate = eventDate
+    return createPostModalUrl(location, extra)
+  }, [location, newPostType, eventDate])
 
   const postPromptString = useMemo(() => {
     const postPrompts = {
@@ -44,16 +43,18 @@ export default function PostPrompt (props) {
       to={createPostPath}
       aria-label={postPromptString}
       title={postPromptString}
+      data-tour='new-post'
       className={cn(
-        // rounded-md, matching the group context menu's controls
-        'inline-flex items-center gap-1.5 h-9 px-4 shrink-0 rounded-md box-border',
+        // rounded-md, matching the group context menu's controls.
+        // Icon-only on phones; the label costs width the control row lacks there
+        'inline-flex items-center gap-1.5 h-9 px-4 max-sm:px-2.5 shrink-0 rounded-md box-border',
         'bg-background border-2 border-selected text-foreground text-sm font-bold',
         'transition-all hover:scale-105 hover:no-underline',
         className
       )}
     >
       <SquarePen className='w-4 h-4' />
-      {t('New')}
+      <span className='max-sm:hidden'>{t('New')}</span>
     </Link>
   )
 }

@@ -3,9 +3,16 @@ import { homeRoutePathForView } from '@hylo/navigation'
 /** Merge menu patch fields onto a view row (deep-merge linkedGroup when present). */
 function mergeViewMenuPatch (view, updates) {
   if (!updates) return view
-  const merged = { ...view, ...updates }
-  if (updates.linkedGroup) {
-    merged.linkedGroup = { ...(view.linkedGroup || {}), ...updates.linkedGroup }
+  // Skip undefined so a last-read patch cannot wipe type/order/linkedGroup
+  // (spreading `{ linkedGroup: undefined }` would hide the space from the menu).
+  const definedUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([, value]) => value !== undefined)
+  )
+  const merged = { ...view, ...definedUpdates }
+  if (definedUpdates.linkedGroup) {
+    merged.linkedGroup = { ...(view.linkedGroup || {}), ...definedUpdates.linkedGroup }
+  } else if (view.type === 'space' && view.linkedGroup) {
+    merged.linkedGroup = view.linkedGroup
   }
   return merged
 }
@@ -122,6 +129,7 @@ export function appendGroupViewToMenu (group, newView) {
 /**
  * Optimistically hide (order = null) or show (append) a view in the embedded menu.
  * When hiding, compact remaining ordered views to contiguous 0..n.
+ * Also updates nested space menus under type=space linkedGroup.groupViews.
  */
 export function setGroupViewHiddenInMenu (group, viewId, hidden) {
   if (!group || !viewId) return
@@ -181,23 +189,137 @@ export function setGroupViewHiddenInMenu (group, viewId, hidden) {
   }
 }
 
-/** Remove a view from a group's embedded menu list. */
+/**
+ * Hide/show a view across every loaded group's menu — including nested under a
+ * parent's type=space linkedGroup.groupViews (ContextMenu expanded spaces read that copy).
+ */
+export function setGroupViewHiddenInAllMenus (groups, viewId, hidden) {
+  if (!viewId || typeof hidden !== 'boolean') return
+  const list = typeof groups?.toModelArray === 'function'
+    ? groups.toModelArray()
+    : (groups || [])
+  list.forEach(group => setGroupViewHiddenInMenu(group, viewId, hidden))
+}
+
+/** Remove a view from a group's embedded menu list (or nested space menu). */
 export function removeGroupViewFromMenu (group, viewId) {
   if (!group || !viewId) return
-  const items = (group.groupViews?.items || []).filter(view => String(view.id) !== String(viewId))
-  group.update({ groupViews: { items: structuredClone(items) } })
+  const items = group.groupViews?.items || []
+  const topLevel = items.filter(view => String(view.id) !== String(viewId))
+  if (topLevel.length !== items.length) {
+    group.update({ groupViews: { items: structuredClone(topLevel) } })
+    return
+  }
+
+  let changed = false
+  const newItems = items.map(view => {
+    if (view.type !== 'space' || !view.linkedGroup?.groupViews?.items) return view
+    const nested = view.linkedGroup.groupViews.items.filter(
+      nestedView => String(nestedView.id) !== String(viewId)
+    )
+    if (nested.length === view.linkedGroup.groupViews.items.length) return view
+    changed = true
+    return {
+      ...view,
+      linkedGroup: {
+        ...view.linkedGroup,
+        groupViews: { items: structuredClone(nested) }
+      }
+    }
+  })
+  if (changed) {
+    group.update({ groupViews: { items: structuredClone(newItems) } })
+  }
+}
+
+/**
+ * Remove a view across every loaded group's menu — including nested space menus.
+ */
+export function removeGroupViewFromAllMenus (groups, viewId) {
+  if (!viewId) return
+  const list = typeof groups?.toModelArray === 'function'
+    ? groups.toModelArray()
+    : (groups || [])
+  list.forEach(group => removeGroupViewFromMenu(group, viewId))
+}
+
+/**
+ * Sync a space's acceptedPostTypes onto the space Group and every embedded copy
+ * (parent menu linkedGroup + parent.spaces list) so typed-view filters update immediately.
+ */
+export function syncAcceptedPostTypesInMenus (groups, spaceId, acceptedPostTypes) {
+  if (!spaceId || acceptedPostTypes === undefined) return
+  const list = typeof groups?.toModelArray === 'function'
+    ? groups.toModelArray()
+    : (groups || [])
+
+  list.forEach(group => {
+    if (!group) return
+
+    if (String(group.id) === String(spaceId)) {
+      group.update({ acceptedPostTypes })
+    }
+
+    const menuItems = group.groupViews?.items
+    if (menuItems?.length) {
+      let menuChanged = false
+      const newMenuItems = menuItems.map(view => {
+        if (view.type !== 'space' || String(view.linkedGroup?.id) !== String(spaceId)) return view
+        menuChanged = true
+        return {
+          ...view,
+          linkedGroup: {
+            ...view.linkedGroup,
+            acceptedPostTypes
+          }
+        }
+      })
+      if (menuChanged) {
+        group.update({ groupViews: { items: structuredClone(newMenuItems) } })
+      }
+    }
+
+    const spaces = group.spaces?.items || group.spaces
+    if (Array.isArray(spaces) && spaces.length) {
+      let spacesChanged = false
+      const newSpaces = spaces.map(space => {
+        if (String(space?.id) !== String(spaceId)) return space
+        spacesChanged = true
+        return { ...space, acceptedPostTypes }
+      })
+      if (spacesChanged) {
+        if (group.spaces?.items) {
+          group.update({ spaces: { ...group.spaces, items: structuredClone(newSpaces) } })
+        } else {
+          group.update({ spaces: structuredClone(newSpaces) })
+        }
+      }
+    }
+  })
+}
+
+/**
+ * Merge a reordered in-menu list with existing off-menu views (order = null).
+ * Reorder UIs only pass ordered rows; replacing the whole blob would wipe off-menu spaces.
+ */
+export function mergeReorderedWithHidden (existingItems, reorderedItems) {
+  const itemsWithOrder = (reorderedItems || []).map((view, index) => ({ ...view, order: index }))
+  const orderedIds = new Set(itemsWithOrder.map(view => String(view.id)))
+  const hidden = (existingItems || []).filter(view =>
+    view.order == null && !orderedIds.has(String(view.id))
+  )
+  return [...itemsWithOrder, ...hidden]
 }
 
 /** Write a reordered view list into a Group's embedded groupViews (or nested space views). */
 export function applyGroupViewsOrder ({ group, parentGroupId, targetGroupId, reorderedItems, updateHomeRoute = false }) {
   if (!group) return
 
-  const itemsWithOrder = reorderedItems.map((view, index) => ({ ...view, order: index }))
-
   if (String(parentGroupId) === String(targetGroupId)) {
-    const updates = { groupViews: { items: structuredClone(itemsWithOrder) } }
-    if (updateHomeRoute && itemsWithOrder[0]) {
-      updates.homeRoute = homeRoutePathForView(itemsWithOrder[0])
+    const merged = mergeReorderedWithHidden(group.groupViews?.items, reorderedItems)
+    const updates = { groupViews: { items: structuredClone(merged) } }
+    if (updateHomeRoute && merged[0]) {
+      updates.homeRoute = homeRoutePathForView(merged[0])
     }
     group.update(updates)
     return
@@ -206,11 +328,12 @@ export function applyGroupViewsOrder ({ group, parentGroupId, targetGroupId, reo
   const items = group.groupViews?.items || []
   const newItems = items.map(view => {
     if (view.type === 'space' && String(view.linkedGroup?.id) === String(targetGroupId)) {
+      const merged = mergeReorderedWithHidden(view.linkedGroup?.groupViews?.items, reorderedItems)
       return {
         ...view,
         linkedGroup: {
           ...view.linkedGroup,
-          groupViews: { items: structuredClone(itemsWithOrder) }
+          groupViews: { items: structuredClone(merged) }
         }
       }
     }
@@ -279,5 +402,58 @@ export function syncFundingRoundEmbeddedData (session, fundingRoundId, patch) {
     if (Object.keys(updates).length > 0) {
       group.update(updates)
     }
+  })
+}
+
+/** Keep loaded view posts when groupViews are refreshed without collectionPosts/pinnedPosts. */
+export function preserveViewLoadedPosts (existingItems, newItems) {
+  if (!existingItems?.length || !newItems?.length) return newItems
+
+  const existingById = new Map(existingItems.map(view => [String(view.id), view]))
+
+  return newItems.map(newView => {
+    const existing = existingById.get(String(newView.id))
+    if (!existing) return newView
+
+    const merged = { ...newView }
+    // A just-advanced last-read can lose to an in-flight fetchGroupViews that still
+    // has the old cursor and unread count — keep the newer local position.
+    const existingLastRead = parseInt(existing.lastReadPostId, 10)
+    const incomingLastRead = parseInt(newView.lastReadPostId, 10)
+    const lastReadAdvanced = Number.isFinite(incomingLastRead) &&
+      (!Number.isFinite(existingLastRead) || incomingLastRead > existingLastRead)
+    if (Number.isFinite(existingLastRead) &&
+        (!Number.isFinite(incomingLastRead) || existingLastRead > incomingLastRead)) {
+      merged.lastReadPostId = existing.lastReadPostId
+      if (existing.newPostCount !== undefined) {
+        merged.newPostCount = existing.newPostCount
+      }
+    } else if (!lastReadAdvanced &&
+        existing.newPostCount !== undefined &&
+        (newView.newPostCount === undefined || newView.newPostCount < existing.newPostCount)) {
+      // Parent/spaces extracts and stale fetches can replace unread with 0
+      // without the user opening the view. Keep the higher local count unless
+      // last-read actually moved forward.
+      merged.newPostCount = existing.newPostCount
+    }
+    if (existing.collectionPosts !== undefined && newView.collectionPosts === undefined) {
+      merged.collectionPosts = existing.collectionPosts
+    }
+    if (existing.pinnedPosts !== undefined && newView.pinnedPosts === undefined) {
+      merged.pinnedPosts = existing.pinnedPosts
+    }
+    if (newView.type === 'space' && (existing.linkedGroup || newView.linkedGroup)) {
+      const existingSpaceItems = existing.linkedGroup?.groupViews?.items
+      const newSpaceItems = newView.linkedGroup?.groupViews?.items
+      merged.linkedGroup = { ...(existing.linkedGroup || {}), ...(newView.linkedGroup || {}) }
+      if (existingSpaceItems?.length && newSpaceItems?.length) {
+        merged.linkedGroup.groupViews = {
+          items: preserveViewLoadedPosts(existingSpaceItems, newSpaceItems)
+        }
+      } else if (existingSpaceItems?.length && !newSpaceItems) {
+        merged.linkedGroup.groupViews = { items: existingSpaceItems }
+      }
+    }
+    return merged
   })
 }

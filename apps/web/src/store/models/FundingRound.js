@@ -2,7 +2,7 @@ import { attr, fk, many, Model } from 'redux-orm'
 
 class FundingRound extends Model {
   toString () {
-    return `FundingRound: ${this.title}`
+    return `FundingRound: ${this.group?.name || this.id}`
   }
 }
 
@@ -12,13 +12,12 @@ FundingRound.modelName = 'FundingRound'
 
 FundingRound.fields = {
   id: attr(),
+  allowLateJoiners: attr(),
   allowSelfVoting: attr(),
-  bannerUrl: attr(),
   canSubmit: attr(),
   canVote: attr(),
   createdAt: attr(),
   criteria: attr(),
-  description: attr(),
   group: fk('Group', 'fundingRounds'),
   hideFinalResultsFromParticipants: attr(),
   isParticipating: attr(),
@@ -27,15 +26,15 @@ FundingRound.fields = {
   numParticipants: attr(),
   numSubmissions: attr(),
   phase: attr(),
-  publishedAt: attr(),
   requireBudget: attr(),
+  showRealtimeSubmissions: attr(),
+  showRealtimeVotes: attr(),
   submissionDescriptor: attr(),
   submissionDescriptorPlural: attr(),
   submissions: many('Post'),
   submissionsCloseAt: attr(),
   submissionsOpenAt: attr(),
   submitterRoles: many('Role', 'roundsCanSubmit'),
-  title: attr(),
   tokenType: attr(),
   tokensRemaining: attr(),
   totalTokens: attr(),

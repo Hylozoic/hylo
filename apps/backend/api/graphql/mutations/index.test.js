@@ -4,7 +4,8 @@ import {
   removeSkill,
   removeSkillToLearn,
   flagInappropriateContent,
-  allowGroupInvites
+  allowGroupInvites,
+  updateGroupTopic
 } from './index'
 import root from 'root-path'
 require(root('test/setup'))
@@ -43,16 +44,46 @@ describe('mutations/index', () => {
     expect(skill.get('name')).to.equal('New Skill To Learn')
   })
 
-  it('sets allow group invites', async () => {
-    const results = await allowGroupInvites(group.id, true)
-    expect(results.success).to.equal(true)
-    await group.refresh()
-    expect(group.getSetting('allow_group_invites')).to.equal(true)
+  describe('group admin settings', () => {
+    let admin, groupTag
 
-    const results2 = await allowGroupInvites(group.id, false)
-    expect(results2.success).to.equal(true)
-    await group.refresh()
-    expect(group.getSetting('allow_group_invites')).to.equal(false)
+    before(async () => {
+      admin = await factories.user().save()
+      await admin.joinGroup(group, { assignAdministrator: true })
+      const tag = await factories.tag().save()
+      groupTag = await GroupTag.create({ group_id: group.id, tag_id: tag.id, visibility: 1, is_default: false })
+    })
+
+    it('sets allow group invites', async () => {
+      const results = await allowGroupInvites(admin.id, group.id, true)
+      expect(results.success).to.equal(true)
+      await group.refresh()
+      expect(group.getSetting('allow_group_invites')).to.equal(true)
+
+      const results2 = await allowGroupInvites(admin.id, group.id, false)
+      expect(results2.success).to.equal(true)
+      await group.refresh()
+      expect(group.getSetting('allow_group_invites')).to.equal(false)
+    })
+
+    it('does not let a non-admin set allow group invites', async () => {
+      await expect(allowGroupInvites(u1.id, group.id, true)).to.be.rejectedWith('You do not have permission to do that')
+      await group.refresh()
+      expect(group.getSetting('allow_group_invites')).to.equal(false)
+    })
+
+    it('lets an admin update a group topic', async () => {
+      const result = await updateGroupTopic(admin.id, groupTag.id, { isDefault: true })
+      expect(result.success).to.equal(true)
+      await groupTag.refresh()
+      expect(groupTag.get('is_default')).to.equal(true)
+    })
+
+    it('does not let a non-admin update a group topic', async () => {
+      await expect(updateGroupTopic(u1.id, groupTag.id, { isDefault: false })).to.be.rejectedWith('You do not have permission to do that')
+      await groupTag.refresh()
+      expect(groupTag.get('is_default')).to.equal(true)
+    })
   })
 
   it('fails when adding a skill with 0 length', async () => {

@@ -19,14 +19,27 @@ describe('Uploader.storage.makePath', () => {
     .to.match(/all-the-things\/user\/41\/communityAvatar\/17\/\d{13}_\d{4}\.png/)
   })
 
-  it('uses an existing filename if present', () => {
-    expect(makePath('post', 17, {userId: 41, filename: 'http://wow.com/foo.pdf?bar=1'}))
-    .to.equal('all-the-things/user/41/post/17/foo.pdf')
+  it('uses a unique suffix when a filename is present', () => {
+    const result = makePath('post', 17, { userId: 41, filename: 'http://wow.com/foo.pdf?bar=1' })
+    expect(result).to.match(/all-the-things\/user\/41\/post\/17\/foo_\d+_[a-z0-9]+\.pdf/)
   })
 
-  it('uses default values', () => {
-    expect(makePath('post', null, {filename: 'foo.pdf'}))
-    .to.equal('all-the-things/user/system/post/new/foo.pdf')
+  it('uses default values with a unique suffix', () => {
+    const result = makePath('post', null, { filename: 'foo.pdf' })
+    expect(result).to.match(/all-the-things\/user\/system\/post\/new\/foo_\d+_[a-z0-9]+\.pdf/)
+  })
+
+  it('does not uniquify avatar uploads so they can be replaced', () => {
+    expect(makePath('userAvatar', 41, { userId: 41, filename: 'avatar.jpg' }))
+      .to.equal('all-the-things/user/41/userAvatar/41/avatar.jpg')
+  })
+
+  it('uniquifies comment uploads with the same filename', () => {
+    const first = makePath('comment', 'new', { userId: 41, filename: 'report.pdf' })
+    const second = makePath('comment', 'new', { userId: 41, filename: 'report.pdf' })
+    expect(first).to.match(/report_\d+_[a-z0-9]+\.pdf/)
+    expect(second).to.match(/report_\d+_[a-z0-9]+\.pdf/)
+    expect(first).not.to.equal(second)
   })
 })
 

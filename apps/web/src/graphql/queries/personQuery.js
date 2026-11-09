@@ -14,6 +14,7 @@ export default
     url
     tagline
     location
+    isProfilePublic
     locationObject {
       id
       addressNumber
@@ -68,6 +69,7 @@ export default
         id
         name
         slug
+        avatarUrl
       }
       person {
         id
@@ -105,6 +107,14 @@ export default
       }
     }
     skills (first: 100) {
+      total
+      hasMore
+      items {
+        id
+        name
+      }
+    }
+    skillsToLearn (first: 100) {
       total
       hasMore
       items {

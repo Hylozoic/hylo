@@ -39,7 +39,7 @@ export function getPostTypeIcon (type) {
   const typeIconMap = {
     chat: 'Messages',
     offer: 'Offer',
-    request: 'HandRaised',
+    request: 'Heart',
     resource: 'Resource',
     project: 'Project',
     proposal: 'Proposal',
@@ -105,7 +105,11 @@ Post.fields = {
   fulfilledAt: attr(),
   groupsTotal: attr(),
   isPublic: attr(),
+  linkPreviewFeatured: attr(),
   location: attr(),
+  meetingLink: attr(),
+  // Plain data, not a relation: the flag badge tooltip reads reasons off it
+  moderationActions: attr(),
   peopleReactedTotal: attr(),
   projectManagementLink: attr(),
   sortOrder: attr(),
@@ -115,6 +119,8 @@ Post.fields = {
   tokensAllocated: attr(), // Tokens allocated by current user in a funding round
   totalTokensAllocated: attr(), // Total tokens allocated to this post in a funding round
   type: attr(),
+  noticeData: attr(),
+  noticePosts: attr(),
   completedAt: attr(),
   completionAction: attr(),
   completionActionSettings: attr(),
@@ -134,7 +140,7 @@ Post.fields = {
     throughFields: ['post', 'follower']
   }),
   groups: many('Group'),
-  locationId: fk({
+  locationObject: fk({
     to: 'Location',
     as: 'locationObject'
   }),

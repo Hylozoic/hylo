@@ -6,7 +6,7 @@ import {
 } from 'store/util/extractNestedGroups'
 
 // Fetches context menu data for a batch of groups.
-// Preloads groupViews, spaces, and legacy contextWidgets so group menus render
+// Preloads groupViews and spaces so group menus render
 // immediately when switching groups, without waiting for per-group fetches.
 // Accepts a subset of groupIds to support pagination (typically 10 at a time).
 export default function fetchGroupsMenuData (groupIds) {
@@ -59,18 +59,26 @@ query FetchGroupsMenuData (
       purpose
       slug
       type
+      status
       parentId
       icon
       homeRoute
+      menuViewCount
+      moreSpacesCount
       visibility
       accessibility
       acceptedPostTypes
       memberCount
       paywall
+      stripeAccountId
+      stripeChargesEnabled
+      stripePayoutsEnabled
+      stripeDetailsSubmitted
       settings {
         allowGroupInvites
         showWelcomePage
         layout
+        autoAddMembers
       }
       groupViews {
         items {
@@ -85,28 +93,43 @@ query FetchGroupsMenuData (
           settings
           newPostCount
           lastReadPostId
+          pinnedPostIds
           linkedGroup {
             id
             name
             slug
             type
+            status
             parentId
             avatarUrl
             bannerUrl
             icon
             homeRoute
+            menuViewCount
+            moreSpacesCount
             description
             purpose
             location
+            geoShape
             locationObject {
               id
               fullText
+              center {
+                lat
+                lng
+              }
             }
             acceptedPostTypes
             visibility
             accessibility
             requiredRoles
             paywall
+            settings {
+              allowGroupInvites
+              showWelcomePage
+              layout
+              autoAddMembers
+            }
             groupRoles {
               items {
                 id
@@ -116,50 +139,16 @@ query FetchGroupsMenuData (
             }
             track {
               id
-              name
               actionDescriptor
               actionDescriptorPlural
-              completionMessage
-              completionRole {
-                id
-                name
-                emoji
-              }
-              publishedAt
               accessControlled
               canAccess
             }
             fundingRound {
               id
-              title
-              publishedAt
               phase
-              allowSelfVoting
-              hideFinalResultsFromParticipants
-              votingMethod
-              totalTokens
-              tokenType
-              maxTokenAllocation
-              minTokenAllocation
-              requireBudget
               submissionDescriptor
               submissionDescriptorPlural
-              submissionsOpenAt
-              submissionsCloseAt
-              votingOpensAt
-              votingClosesAt
-              criteria
-              description
-              submitterRoles {
-                id
-                emoji
-                name
-              }
-              voterRoles {
-                id
-                emoji
-                name
-              }
             }
             groupViews {
               items {
@@ -168,8 +157,10 @@ query FetchGroupsMenuData (
                 name
                 order
                 icon
+                settings
                 newPostCount
                 lastReadPostId
+                pinnedPostIds
                 viewPost {
                   id
                   title
@@ -182,6 +173,7 @@ query FetchGroupsMenuData (
                 linkedGroup {
                   id
                   name
+                  slug
                   avatarUrl
                   icon
                 }
@@ -205,6 +197,7 @@ query FetchGroupsMenuData (
           name
           slug
           type
+          status
           parentId
           avatarUrl
           icon
@@ -212,15 +205,26 @@ query FetchGroupsMenuData (
           description
           purpose
           location
+          geoShape
           locationObject {
             id
             fullText
+            center {
+              lat
+              lng
+            }
           }
           acceptedPostTypes
           visibility
           accessibility
           requiredRoles
           paywall
+          settings {
+            allowGroupInvites
+            showWelcomePage
+            layout
+            autoAddMembers
+          }
           groupRoles {
             items {
               id
@@ -231,6 +235,8 @@ query FetchGroupsMenuData (
           }
           active
           homeRoute
+          menuViewCount
+          moreSpacesCount
           groupViews {
             items {
               id
@@ -238,8 +244,10 @@ query FetchGroupsMenuData (
               name
               order
               icon
+              settings
               newPostCount
               lastReadPostId
+              pinnedPostIds
               pageContent
               viewPost {
                 id
@@ -253,6 +261,7 @@ query FetchGroupsMenuData (
               linkedGroup {
                 id
                 name
+                slug
                 avatarUrl
                 icon
               }
@@ -260,147 +269,16 @@ query FetchGroupsMenuData (
           }
           track {
             id
-            name
             actionDescriptor
             actionDescriptorPlural
-            completionMessage
-            completionRole {
-              id
-              name
-              emoji
-            }
-            publishedAt
             accessControlled
             canAccess
           }
           fundingRound {
             id
-            title
-            publishedAt
             phase
-            allowSelfVoting
-            hideFinalResultsFromParticipants
-            votingMethod
-            totalTokens
-            tokenType
-            maxTokenAllocation
-            minTokenAllocation
-            requireBudget
             submissionDescriptor
             submissionDescriptorPlural
-            submissionsOpenAt
-            submissionsCloseAt
-            votingOpensAt
-            votingClosesAt
-            criteria
-            description
-            submitterRoles {
-              id
-              emoji
-              name
-            }
-            voterRoles {
-              id
-              emoji
-              name
-            }
-          }
-        }
-      }
-      customViews {
-        items {
-          id
-          groupId
-          collectionId
-          externalLink
-          isActive
-          icon
-          name
-          order
-          postTypes
-          topics {
-            id
-            name
-          }
-          type
-        }
-      }
-      contextWidgets {
-        items {
-          id
-          autoAdded
-          title
-          type
-          order
-          visibility
-          view
-          icon
-          highlightNumber
-          secondaryNumber
-          parentId
-          viewGroup {
-            id
-            avatarUrl
-            bannerUrl
-            name
-            memberCount
-            visibility
-            accessibility
-            slug
-          }
-          viewPost {
-            id
-            announcement
-            title
-            details
-            type
-            createdAt
-            startTime
-            endTime
-            isPublic
-          }
-          customView {
-            id
-            groupId
-            collectionId
-            externalLink
-            isActive
-            icon
-            name
-            order
-            postTypes
-            topics {
-              id
-              name
-            }
-            type
-          }
-          viewUser {
-            id
-            name
-            avatarUrl
-          }
-          viewChat {
-            id
-            name
-          }
-          viewFundingRound {
-            id
-            title
-            isParticipating
-            publishedAt
-            submissionsOpenAt
-            submissionsCloseAt
-            votingOpensAt
-            votingClosesAt
-          }
-          viewTrack {
-            id
-            name
-            didComplete
-            isEnrolled
-            numActions
-            publishedAt
           }
         }
       }

@@ -1,4 +1,5 @@
-/* global FundingRound, Group, GroupMembership, Responsibility, Queue, bookshelf, Post, PostUser */
+/* global FundingRound, Group, GroupMembership, GroupRole, Responsibility, Queue, bookshelf, Post, PostUser */
+import { omit } from 'lodash'
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
 
@@ -18,7 +19,6 @@ function parseFundingRoundDate (value) {
 // XXX: convertGraphqlData turns Date objects into {} — re-parse from original input
 const fixDateFields = (attrs, data) => {
   const dateFields = [
-    { from: 'publishedAt', to: 'published_at' },
     { from: 'votingOpensAt', to: 'voting_opens_at' },
     { from: 'votingClosesAt', to: 'voting_closes_at' },
     { from: 'submissionsOpenAt', to: 'submissions_open_at' },
@@ -33,24 +33,23 @@ const fixDateFields = (attrs, data) => {
 
 /**
  * True if user can manage funding rounds for this group/space.
- * Spaces inherit Manage Spaces from the parent (stewards editing from the parent menu
+ * Spaces inherit Administration from the parent (stewards editing from the parent menu
  * may not have a membership on the space itself).
  */
 async function canManageFundingRounds (userId, group, { transacting } = {}) {
   if (!group) return false
-  if (await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_SPACES, { transacting })) {
+  if (await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADMINISTRATION, { transacting })) {
     return true
   }
   const parentId = group.get('parent_id')
   if (!parentId) return false
   const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, parentId)
-  return responsibilities.includes(Responsibility.constants.RESP_MANAGE_SPACES)
+  return responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)
 }
 
 export async function createFundingRound (userId, data) {
-  const attrs = convertGraphqlData(data)
+  const attrs = convertGraphqlData(omit(data, 'title', 'bannerUrl', 'description', 'publishedAt', 'phase'))
   // Required fields
-  if (!attrs.title) throw new GraphQLError('title is required')
   if (!attrs.group_id) throw new GraphQLError('groupId is required')
   if (!attrs.voting_method) throw new GraphQLError('votingMethod is required')
   if (!attrs.total_tokens) throw new GraphQLError('totalTokens is required')
@@ -61,12 +60,18 @@ export async function createFundingRound (userId, data) {
   if (!(await canManageFundingRounds(userId, group))) {
     throw new GraphQLError('You do not have permission to create funding rounds')
   }
+  await GroupRole.assertAssignableRoleIds([...(data.submitterRoles || []), ...(data.voterRoles || [])])
   // Convert role arrays to JSON format for storage
   if (data.submitterRoles) {
     attrs.submitter_roles = JSON.stringify(data.submitterRoles)
   }
   if (data.voterRoles) {
     attrs.voter_roles = JSON.stringify(data.voterRoles)
+  }
+
+  // Late-joiner token allocation is only valid for a fixed per-voter token count
+  if (attrs.voting_method !== 'token_allocation_constant') {
+    attrs.allow_late_joiners = false
   }
 
   const round = await FundingRound.create(fixDateFields(attrs, data), userId)
@@ -89,8 +94,9 @@ export async function updateFundingRound (userId, id, data) {
     if (!(await canManageFundingRounds(userId, group, { transacting }))) {
       throw new GraphQLError('You do not have permission to update funding rounds')
     }
+    await GroupRole.assertAssignableRoleIds([...(data.submitterRoles || []), ...(data.voterRoles || [])], { transacting })
 
-    const attrs = convertGraphqlData(data)
+    const attrs = convertGraphqlData(omit(data, 'title', 'bannerUrl', 'description', 'publishedAt', 'phase'))
     const updatedAttrs = fixDateFields(attrs, data)
 
     // Convert role arrays to JSON format for storage
@@ -101,10 +107,17 @@ export async function updateFundingRound (userId, id, data) {
       updatedAttrs.voter_roles = JSON.stringify(data.voterRoles || [])
     }
 
+    const votingMethod = updatedAttrs.voting_method !== undefined
+      ? updatedAttrs.voting_method
+      : round.get('voting_method')
+    if (votingMethod !== 'token_allocation_constant') {
+      updatedAttrs.allow_late_joiners = false
+    }
+
     // Check if allow_self_voting is being changed from true to false during voting phase
     const currentAllowSelfVoting = round.get('allow_self_voting')
     const newAllowSelfVoting = updatedAttrs.allow_self_voting !== undefined ? updatedAttrs.allow_self_voting : currentAllowSelfVoting
-    const phase = round.get('phase')
+    const phase = await round.spaceStatus({ transacting })
     const isVotingPhase = phase === FundingRound.PHASES.VOTING || phase === FundingRound.PHASES.COMPLETED
 
     if (currentAllowSelfVoting === true && newAllowSelfVoting === false && isVotingPhase) {
@@ -199,8 +212,7 @@ export async function doPhaseTransition (userId, roundOrId, { transacting } = {}
   if (!round) throw new GraphQLError('FundingRound not found')
 
   const now = new Date()
-  const currentPhase = round.get('phase')
-  const publishedAt = round.get('published_at')
+  const currentPhase = await round.spaceStatus({ transacting })
   const submissionsOpenAt = round.get('submissions_open_at')
   const submissionsCloseAt = round.get('submissions_close_at')
   const votingOpensAt = round.get('voting_opens_at')
@@ -208,43 +220,33 @@ export async function doPhaseTransition (userId, roundOrId, { transacting } = {}
 
   let newPhase = currentPhase
 
-  // Determine the next phase based on current phase and timestamps
-  if (currentPhase === FundingRound.PHASES.DRAFT && publishedAt && new Date(publishedAt) <= now) {
-    newPhase = FundingRound.PHASES.PUBLISHED
+  // Draft → published is explicit via the space status, not date-driven.
+  if (currentPhase === FundingRound.PHASES.DRAFT || currentPhase === Group.Status.ARCHIVED) {
+    return round
   } else if (currentPhase === FundingRound.PHASES.PUBLISHED && submissionsOpenAt && new Date(submissionsOpenAt) <= now) {
     newPhase = FundingRound.PHASES.SUBMISSIONS
   } else if (currentPhase === FundingRound.PHASES.SUBMISSIONS && submissionsCloseAt && new Date(submissionsCloseAt) <= now) {
     newPhase = FundingRound.PHASES.DISCUSSION
   } else if ((currentPhase === FundingRound.PHASES.SUBMISSIONS || currentPhase === FundingRound.PHASES.DISCUSSION) && votingOpensAt && new Date(votingOpensAt) <= now) {
     newPhase = FundingRound.PHASES.VOTING
-    // Distribute tokens when transitioning to voting
     await FundingRound.distributeTokens(round, { transacting })
   } else if (currentPhase === FundingRound.PHASES.VOTING && votingClosesAt && new Date(votingClosesAt) <= now) {
     newPhase = FundingRound.PHASES.COMPLETED
-  // Check if any of the dates were cleared and we need to go back to a previous phase
   } else if (votingClosesAt === null && currentPhase === FundingRound.PHASES.COMPLETED) {
     newPhase = FundingRound.PHASES.VOTING
   } else if (votingOpensAt === null && (currentPhase === FundingRound.PHASES.VOTING || currentPhase === FundingRound.PHASES.COMPLETED)) {
-    // If clearing votingOpensAt while in voting or completed phase, reset to discussion or submissions
     await FundingRound.clearTokenDistribution(round, { transacting })
-    // Reset phase based on whether submissions are still open
     newPhase = submissionsCloseAt && new Date(submissionsCloseAt) <= new Date()
       ? FundingRound.PHASES.DISCUSSION
       : FundingRound.PHASES.SUBMISSIONS
   } else if (submissionsCloseAt === null && [FundingRound.PHASES.DISCUSSION, FundingRound.PHASES.VOTING, FundingRound.PHASES.COMPLETED].includes(currentPhase)) {
-    // If clearing submissionsCloseAt while in discussion or later, reset to submissions
     newPhase = FundingRound.PHASES.SUBMISSIONS
   } else if (submissionsOpenAt === null && [FundingRound.PHASES.SUBMISSIONS, FundingRound.PHASES.DISCUSSION, FundingRound.PHASES.VOTING, FundingRound.PHASES.COMPLETED].includes(currentPhase)) {
-    // If clearing submissionsOpenAt while in submissions or later, reset to published
     newPhase = FundingRound.PHASES.PUBLISHED
-  } else if (publishedAt === null && currentPhase !== FundingRound.PHASES.DRAFT) {
-    // If clearing publishedAt while not in draft, reset to draft
-    newPhase = FundingRound.PHASES.DRAFT
   }
 
   if (newPhase !== currentPhase) {
-    // Save the new phase
-    await round.save({ phase: newPhase }, { transacting, patch: true })
+    await round.setSpaceStatus(newPhase, { transacting })
     if (newPhase !== FundingRound.PHASES.DRAFT && newPhase !== FundingRound.PHASES.PUBLISHED) {
       Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: newPhase })
     }
@@ -291,7 +293,7 @@ export async function allocateTokensToSubmission (userId, postId, tokens) {
   }
 
   // Check if tokens have been distributed (voting phase has started)
-  const phase = fundingRound.get('phase')
+  const phase = await fundingRound.spaceStatus()
   if (phase !== FundingRound.PHASES.VOTING && phase !== FundingRound.PHASES.COMPLETED) {
     throw new GraphQLError('Voting has not started yet')
   }

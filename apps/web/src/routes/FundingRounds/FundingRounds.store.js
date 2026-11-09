@@ -23,6 +23,11 @@ export const UPDATE_FUNDING_ROUND_PENDING = `${MODULE_NAME}/UPDATE_FUNDING_ROUND
 const PostFieldsFragment = `
   id
   budget
+  commenters(first: 3) {
+    id
+    name
+    avatarUrl
+  }
   commentersTotal
   commentsTotal
   createdAt
@@ -129,13 +134,12 @@ export function fetchFundingRound (id) {
       query: `query ($id: ID) {
         fundingRound (id: $id) {
           id
+          allowLateJoiners
           allowSelfVoting
-          bannerUrl
           canSubmit
           canVote
           createdAt
           criteria
-          description
           hideFinalResultsFromParticipants
           isParticipating
           joinedAt
@@ -144,8 +148,9 @@ export function fetchFundingRound (id) {
           numParticipants
           numSubmissions
           phase
-          publishedAt
           requireBudget
+          showRealtimeSubmissions
+          showRealtimeVotes
           submissionDescriptor
           submissionDescriptorPlural
           submitterRoles {
@@ -155,7 +160,6 @@ export function fetchFundingRound (id) {
           }
           submissionsCloseAt,
           submissionsOpenAt,
-          title,
           tokenType,
           tokensRemaining,
           totalTokens,
@@ -267,21 +271,23 @@ export function createFundingRound (data) {
       query: `mutation CreateFundingRound($data: FundingRoundInput) {
         createFundingRound(data: $data) {
           id,
-          bannerUrl,
+          allowLateJoiners,
           createdAt,
           criteria,
-          description,
           group {
             id
             name
             slug
+            bannerUrl
+            description
           }
           maxTokenAllocation,
           minTokenAllocation,
           numParticipants,
           numSubmissions,
-          publishedAt,
           requireBudget,
+          showRealtimeSubmissions,
+          showRealtimeVotes,
           submissionDescriptor,
           submissionDescriptorPlural,
           submitterRoles {
@@ -291,7 +297,6 @@ export function createFundingRound (data) {
           }
           submissionsCloseAt,
           submissionsOpenAt,
-          title,
           tokenType,
           totalTokens,
           totalTokensAllocated,
@@ -362,6 +367,7 @@ export function joinFundingRound (id) {
           joinFundingRound(id: $id) {
             id
             isParticipating
+            tokensRemaining
           }
         }
       `,
@@ -370,7 +376,8 @@ export function joinFundingRound (id) {
       }
     },
     meta: {
-      id
+      id,
+      extractModel: 'FundingRound'
     }
   }
 }
@@ -422,6 +429,9 @@ export function deleteFundingRound (id) {
 // Determine what phase a funding round should be in based on timestamps
 export function getExpectedPhase (fundingRound) {
   if (!fundingRound) return null
+  if (fundingRound.phase === 'draft' || fundingRound.phase === 'archived') {
+    return fundingRound.phase
+  }
 
   const now = new Date()
 
@@ -438,10 +448,7 @@ export function getExpectedPhase (fundingRound) {
   const submissionsOpenAt = fundingRound.submissionsOpenAt ? new Date(fundingRound.submissionsOpenAt) : null
   if (submissionsOpenAt && submissionsOpenAt <= now) return 'submissions'
 
-  const publishedAt = fundingRound.publishedAt ? new Date(fundingRound.publishedAt) : null
-  if (publishedAt && publishedAt <= now) return 'published'
-
-  return 'draft'
+  return fundingRound.phase || 'published'
 }
 
 // Check if a phase transition is needed
@@ -483,6 +490,7 @@ export function allocateTokensToSubmission (postId, tokens, fundingRoundId) {
           allocateTokensToSubmission(postId: $postId, tokens: $tokens) {
             id
             tokensAllocated
+            totalTokensAllocated
           }
         }
       `,
@@ -573,8 +581,6 @@ export function ormSessionReducer (
       syncFundingRoundEmbeddedData(session, meta.id, {
         submissionDescriptor: data.submissionDescriptor,
         submissionDescriptorPlural: data.submissionDescriptorPlural,
-        publishedAt: data.publishedAt,
-        title: data.title,
         tokenType: data.tokenType,
         votingMethod: data.votingMethod,
         submissionsOpenAt: data.submissionsOpenAt,
@@ -593,8 +599,9 @@ export function ormSessionReducer (
       // Add back the old allocation, then subtract the new allocation
       const oldAllocation = post.tokensAllocated || 0
       const newTokensRemaining = round.tokensRemaining + oldAllocation - meta.tokens
+      const newTotalAllocated = (post.totalTokensAllocated || 0) - oldAllocation + meta.tokens
       round.update({ tokensRemaining: newTokensRemaining })
-      return post.update({ tokensAllocated: meta.tokens })
+      return post.update({ tokensAllocated: meta.tokens, totalTokensAllocated: newTotalAllocated })
     }
 
     case DELETE_FUNDING_ROUND_PENDING: {

@@ -5,11 +5,14 @@ exports.de = {
   clientInviteMessageDefault: ({ userName, groupName }) => `Hallo ${userName}, <br><br> wir freuen uns, dich in unserer Community willkommen zu heißen. Klicke unten, um ${groupName} auf Hylo beizutreten.`,
   CreatorEmail: () => 'E-Mail der Person, die die Gruppe erstellt hat',
   createInvitationSubject: (name) => `Komm zu mir in ${name} auf Hylo!`,
+  createInvitationMessage: (name) => `Hallo!\n\nIch lade dich ein, ${name} auf Hylo beizutreten.\n\n${name} nutzt Hylo für unsere Online-Community: Dies ist unser dedizierter Bereich für Kommunikation und Zusammenarbeit.`,
   CreatorName: () => 'Name der Person, die die Gruppe erstellt hat',
   CreatorURL: () => 'URL der Person, die die Gruppe erstellt hat',
   Group: () => 'Gruppe',
   emailDigestDailySubject: (name) => `Dein täglicher Überblick für ${name}`,
   emailDigestWeeklySubject: (name) => `Dein wöchentlicher Überblick für ${name}`,
+  emailDigestUnifiedDailySubject: () => 'Dein täglicher Hylo-Überblick',
+  emailDigestUnifiedWeeklySubject: () => 'Dein wöchentlicher Hylo-Überblick',
   emailSenderViaHyloSuffix: () => ' (über Hylo)',
   groupCreatedNotifySubject: (name) => `Neue Hylo-Gruppe erstellt: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
@@ -39,6 +42,10 @@ exports.de = {
   moderationYouFlaggedAPost: () => 'Du hast einen Beitrag gemeldet',
   moderationYouFlaggedPostEmailContent: ({ post, group }) => `Du hast den Beitrag „${post.summary()}“ in der Gruppe ${group.get('name')} als Verstoß gegen eine Gruppenvereinbarung gemeldet. \n`,
   moderationYourPostWasFlagged: () => 'Dein Beitrag wurde gemeldet',
+  moderationPostClosedEmailSubject: () => 'Dein Beitrag wurde geschlossen',
+  moderationPostReopenedEmailSubject: () => 'Dein Beitrag wurde wieder geöffnet',
+  moderationPostClosedEmailContent: ({ post, group, actor }) => `${actor.get('name')} hat deinen Beitrag „${post.summary()}“ in der Gruppe ${group.get('name')} geschlossen. \n`,
+  moderationPostReopenedEmailContent: ({ post, group, actor }) => `${actor.get('name')} hat deinen Beitrag „${post.summary()}“ in der Gruppe ${group.get('name')} wieder geöffnet. \n`,
   Name: () => 'Name',
   newSavedSearchResults: (name) => `Neue Ergebnisse für die gespeicherte Suche in ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} hat deine Anfrage angenommen, ${groupName} beizutreten`,
@@ -61,26 +68,37 @@ exports.de = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `Die Gruppe ${childGroup.get('name')} ist deiner Gruppe ${parentGroup.get('name')} beigetreten!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Deine Gruppe ${childGroup.get('name')} ist ${parentGroup.get('name')} beigetreten.`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} hat dich zu „${postName}“ eingeladen`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} hat dich eingeladen, ${groupName} beizutreten`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} hat dich eingeladen, ihnen im Space ${groupName} in ${parentGroupName} beizutreten`
+    : `${actor.get('name')} hat dich eingeladen, ihnen in ${groupName} beizutreten`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} hat deine Einladung angenommen, ${groupName} beizutreten`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} hat deine Gruppe ${toGroup.get('name')} eingeladen, eine Peer-Beziehung mit ${fromGroup.get('name')} zu bilden`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} hat die Peer-Beziehung zwischen ${fromGroup.get('name')} und ${toGroup.get('name')} angenommen`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} möchte ${groupName} beitreten`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} möchte ${groupName} in ${parentGroupName} beitreten`
+    : `${actor.get('name')} möchte ${groupName} beitreten`,
   textForMemberJoinedGroup: ({ group, actor }) => `Neues Mitglied in ${group.get('name')}: ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} hat deinen Beitrag „${postName}“ wieder geöffnet`
+    }
+    return `${actor.get('name')} hat deinen Beitrag „${postName}“ geschlossen`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} hat dich im Beitrag „${postName}“ in ${groupName} erwähnt`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} hat „${postName}“ in ${groupName} veröffentlicht${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `Lernpfad abgeschlossen: „${track.get('name')}“ von ${actor.get('name')} abgeschlossen`,
-  textForTrackEnrollment: ({ actor, track }) => `Lernpfad-Teilnahme: „${track.get('name')}“ von ${actor.get('name')} begonnen`,
+  textForTrackCompleted: ({ actor, trackName }) => `Lernpfad abgeschlossen: „${trackName}“ von ${actor.get('name')} abgeschlossen`,
+  textForTrackEnrollment: ({ actor, trackName }) => `Lernpfad-Teilnahme: „${trackName}“ von ${actor.get('name')} begonnen`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} hat die Optionen für den Vorschlag „${postName}“ in ${groupName} geändert. Die Stimmen wurden zurückgesetzt`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} hat „${post.summary()}“ für „${fundingRound.get('title')}“ eingereicht`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} hat „${post.summary()}“ für „${fundingRoundTitle}“ eingereicht`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'Einreichungen sind jetzt offen',
       discussion: 'Einreichungen sind geschlossen, Diskussionen sind offen',
       voting: 'Abstimmung ist jetzt offen',
       completed: 'Abstimmung ist geschlossen, die Runde ist beendet'
     }
-    return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'Status aktualisiert'}`
+    return `${fundingRoundTitle}: ${phaseMessages[phase] || 'Status aktualisiert'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {
@@ -91,6 +109,11 @@ exports.de = {
     }
     return `${reminderMessages[reminderType] || 'Frist naht'}`
   },
+  publicListingApprovedSubject: (name) => `Deine Gruppe ${name} wurde zu den Commons hinzugefügt`,
+  publicListingDeniedSubject: (name) => `Neuigkeiten zu deiner Anfrage, ${name} zu den Commons hinzuzufügen`,
+  publicListingApprovedBody: (name) => `Gute Nachrichten! ${name} wurde zu den Commons hinzugefügt. Deine Gruppe erscheint jetzt im öffentlichen Gruppen-Explorer und auf der öffentlichen Karte, und Mitglieder können Beiträge im öffentlichen Stream teilen.`,
+  publicListingDeniedBody: (name) => `Danke für deine Anfrage, ${name} zu den Commons hinzuzufügen. Nach Prüfung deiner Anfrage hat das Hylo-Team entschieden, sie vorerst nicht hinzuzufügen. Deine Gruppe bleibt unverändert, und du kannst in den Einstellungen unter Privatsphäre & Zugang deiner Gruppe eine neue Anfrage stellen.`,
+  publicListingReviewerNote: () => 'Eine Nachricht vom Hylo-Team:',
   theTeamAtHylo: 'Das Hylo-Team',
   stripeContributionProductName: () => 'Wähle deinen Hylo-Beitrag',
   stripeContributionProductDescription: () => 'Wähle deine Beitragshöhe, um die Hylo-Plattform zu unterstützen.',

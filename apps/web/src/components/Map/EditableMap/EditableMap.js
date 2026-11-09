@@ -15,7 +15,7 @@ import { mapbox } from 'config/index'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 export default function EditableMap (props) {
-  const { locationObject, polygon, savePolygon, toggleModal } = props
+  const { locationObject, polygon, savePolygon, startInDrawMode, toggleModal } = props
 
   const fallbackCoords = {
     latitude: 35.442845,
@@ -57,18 +57,21 @@ export default function EditableMap (props) {
   }
 
   const [viewport, setViewport] = useState(fallbackCoords)
-  const [mode, setMode] = useState(() => ViewMode)
+  const [mode, setMode] = useState(() => startInDrawMode ? DrawPolygonMode : ViewMode)
   const [selectedFeatureIndexes, setSelectedFeatureIndexes] = useState([])
   const [features, setFeatures] = React.useState(getFormattedPolygon(polygon))
 
   const centerAt = locationObject?.center
   const editorRef = useRef(null)
+  // The shape drawn here last; it round-trips back through `polygon`, and recentering on it would jump the map away from where it was drawn
+  const lastDrawnRef = useRef(null)
 
   useEffect(() => {
     setFeatures(getFormattedPolygon(polygon))
   }, [polygon])
 
   useEffect(() => {
+    if (lastDrawnRef.current && isEqual(features, lastDrawnRef.current)) return
     const polygonCenter = !isEqual(features, emptyFeatures) ? centroid(features.features[0]).geometry.coordinates : null
     const viewportLocation = polygonCenter?.length > 0
       ? {
@@ -84,7 +87,7 @@ export default function EditableMap (props) {
           }
         : fallbackCoords
     setViewport(viewportLocation)
-  }, [features])
+  }, [features, centerAt?.lat, centerAt?.lng])
 
   const toggleMode = () => {
     setMode(mode === ViewMode ? () => DrawPolygonMode : () => ViewMode)
@@ -107,17 +110,18 @@ export default function EditableMap (props) {
     } else {
       setMode(() => ViewMode)
     }
-  }, [selectedFeatureIndexes])
+  }, [selectedFeatureIndexes, savePolygon])
 
   const onUpdate = useCallback((payload) => {
     const { editType, updatedData } = payload
     if (editType === 'addFeature') {
       const polygonToSave = getFormattedPolygon(updatedData.features[updatedData.features.length - 1])
       setMode(() => ViewMode)
+      lastDrawnRef.current = polygonToSave
       savePolygon(polygonToSave)
       setFeatures(polygonToSave)
     }
-  }, [])
+  }, [savePolygon])
 
   const zoomIn = () => {
     setViewport({ ...viewport, zoom: viewport.zoom + 1 })
@@ -218,7 +222,7 @@ export default function EditableMap (props) {
           mapboxAccessToken={mapbox.token}
           attributionControl={false}
         />
-        {drawTools}{zoomTools}{expandTools}
+        {drawTools}{zoomTools}{toggleModal && expandTools}
       </DeckGL>
     </>
 

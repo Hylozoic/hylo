@@ -119,7 +119,7 @@ describe('TopicsLine', () => {
       />
     )
 
-    expect(screen.getByText('#one')).toBeInTheDocument()
-    expect(screen.getByText('#two')).toBeInTheDocument()
+    expect(screen.getByText('#one')).toHaveAttribute('href', '/search?t=%23one&groupSlug=hay')
+    expect(screen.getByText('#two')).toHaveAttribute('href', '/search?t=%23two&groupSlug=hay')
   })
 })

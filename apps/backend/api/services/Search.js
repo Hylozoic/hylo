@@ -20,7 +20,8 @@ module.exports = {
       qb.where('funding_rounds.deactivated_at', null)
 
       if (opts.search) {
-        qb.whereRaw('funding_rounds.title ilike ?', opts.search + '%')
+        qb.join('groups', 'groups.id', 'funding_rounds.group_id')
+        qb.whereRaw('groups.name ilike ?', opts.search + '%')
       }
 
       if (opts.limit || opts.first) {
@@ -31,11 +32,14 @@ module.exports = {
       }
 
       if (!isNil(opts.published)) {
-        if (opts.published) {
-          qb.where('funding_rounds.published_at', 'is not', null)
-        } else {
-          qb.where('funding_rounds.published_at', null)
-        }
+        qb.whereIn('funding_rounds.group_id', function () {
+          this.select('id').from('groups')
+          if (opts.published) {
+            this.whereIn('status', Group.PUBLISHED_STATUSES)
+          } else {
+            this.where('status', Group.Status.DRAFT)
+          }
+        })
       }
 
       qb.orderBy(opts.sortBy || 'id', opts.order || 'asc')
@@ -80,9 +84,26 @@ module.exports = {
       }
 
       if (opts.parentSlugs) {
-        qb.join('group_relationships', 'groups.id', '=', 'group_relationships.child_group_id')
-        qb.join('groups as parent_groups', 'parent_groups.id', '=', 'group_relationships.parent_group_id')
-        qb.whereIn('parent_groups.slug', opts.parentSlugs)
+        // Child groups via group_relationships, plus spaces via groups.parent_id
+        // (spaces are not modeled as relationship children — see Group.spaces / spec §3.4)
+        qb.where(q2 => {
+          q2.whereIn('groups.id', function () {
+            this.select('group_relationships.child_group_id')
+              .from('group_relationships')
+              .join('groups as parent_groups', 'parent_groups.id', '=', 'group_relationships.parent_group_id')
+              .whereIn('parent_groups.slug', opts.parentSlugs)
+          })
+          q2.orWhere(q3 => {
+            q3.where('groups.type', 'space')
+            q3.whereIn('groups.parent_id', function () {
+              this.select('id').from('groups').whereIn('slug', opts.parentSlugs)
+            })
+          })
+        })
+      } else if (opts.groupType !== 'space' && !opts.groupIds) {
+        // List UIs (explore, public map) should not treat spaces as groups.
+        // parentSlugs, groupType='space', and explicit groupIds keep spaces (§3.8).
+        Group.excludeSpaces(qb)
       }
 
       if (typeof opts.allowedInPublic === 'boolean') {
@@ -180,7 +201,8 @@ module.exports = {
       qb.where('tracks.deactivated_at', null)
 
       if (opts.autocomplete) {
-        qb.whereRaw('tracks.name ilike ?', opts.autocomplete + '%')
+        qb.join('groups', 'groups.id', 'tracks.group_id')
+        qb.whereRaw('groups.name ilike ?', opts.autocomplete + '%')
       }
 
       // if (opts.enrolled) {
@@ -195,11 +217,14 @@ module.exports = {
       }
 
       if (!isNil(opts.published)) {
-        if (opts.published) {
-          qb.where('tracks.published_at', 'is not', null)
-        } else {
-          qb.where('tracks.published_at', null)
-        }
+        qb.whereIn('tracks.group_id', function () {
+          this.select('id').from('groups')
+          if (opts.published) {
+            this.whereIn('status', Group.PUBLISHED_STATUSES)
+          } else {
+            this.where('status', Group.Status.DRAFT)
+          }
+        })
       }
 
       qb.orderBy(opts.sortBy || 'id', opts.order || 'asc')
@@ -217,10 +242,10 @@ module.exports = {
         hasMore = hasMore_
 
         const ids = transform(items, (ids, item) => {
-          const type = item.post_id ? 'posts' : item.comment_id ? 'comments' : 'people'
+          const type = item.group_id ? 'groups' : item.post_id ? 'posts' : item.comment_id ? 'comments' : 'people'
 
           if (!ids[type]) ids[type] = []
-          const id = item.post_id || item.comment_id || item.user_id
+          const id = item.group_id || item.post_id || item.comment_id || item.user_id
           ids[type].push(id)
         }, {})
 
@@ -228,8 +253,9 @@ module.exports = {
           ids.posts && Post.where('id', 'in', ids.posts).fetchAll(),
           ids.comments && Comment.where('id', 'in', ids.comments).fetchAll(),
           ids.people && User.where('id', 'in', ids.people).fetchAll(),
-          (posts, comments, people) =>
-            items.map(presentResult(posts, comments, people))
+          ids.groups && Group.where('id', 'in', ids.groups).fetchAll(),
+          (posts, comments, people, groups) =>
+            items.map(presentResult(posts, comments, people, groups))
         )
       })
       .then(models => ({ models, hasMore }))
@@ -237,14 +263,19 @@ module.exports = {
 }
 
 const fetchGroupAccess = (userId, { groupIds }) => {
-  if (groupIds) return Promise.resolve({ groupIds })
+  if (groupIds && groupIds.length > 0) return Promise.resolve({ groupIds })
   return Promise.resolve({ userId })
 }
 
 const obfuscate = text => Buffer.from(text).toString('hex')
 
-const presentResult = (posts, comments, people) => item => {
-  if (item.user_id) {
+const presentResult = (posts, comments, people, groups) => item => {
+  if (item.group_id) {
+    return {
+      id: obfuscate(`group_id-${item.group_id}`),
+      content: groups.find(g => g.id === item.group_id)
+    }
+  } else if (item.user_id) {
     return {
       id: obfuscate(`user_id-${item.user_id}`),
       content: people.find(p => p.id === item.user_id)

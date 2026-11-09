@@ -1,9 +1,10 @@
+import { BadgeCheck, CreditCard, DoorOpen, Lock, Users } from 'lucide-react'
 import { GROUP_ACCESSIBILITY, GROUP_VISIBILITY } from 'store/models/Group'
 
 /** Suggested icons covering common space archetypes (chat, circle, team, local group, etc). */
 export const SPACE_ICON_SUGGESTIONS = [
   'Circle',
-  'MessageCircleMore',
+  'MessageSquareMore',
   'Shapes',
   'BadgeDollarSign',
   'Layers',
@@ -21,6 +22,7 @@ export const SPACE_ICON_SUGGESTIONS = [
 export const ACCESS_OPTIONS = [
   {
     value: 'open',
+    icon: DoorOpen,
     labelKey: 'Open',
     descKey: 'Anyone who can see this space can join it',
     visibility: GROUP_VISIBILITY.Public,
@@ -28,6 +30,7 @@ export const ACCESS_OPTIONS = [
   },
   {
     value: 'request',
+    icon: Lock,
     labelKey: 'Request to Join',
     descKey: 'Must be approved by a group host',
     visibility: GROUP_VISIBILITY.Public,
@@ -35,6 +38,7 @@ export const ACCESS_OPTIONS = [
   },
   {
     value: 'invite',
+    icon: Users,
     labelKey: 'Invite Only',
     descKey: 'Only people who are invited can join',
     visibility: GROUP_VISIBILITY.Hidden,
@@ -42,6 +46,7 @@ export const ACCESS_OPTIONS = [
   },
   {
     value: 'role',
+    icon: BadgeCheck,
     labelKey: 'Role Gated',
     descKey: 'Only members with the selected roles can join',
     visibility: GROUP_VISIBILITY.Hidden,
@@ -49,6 +54,7 @@ export const ACCESS_OPTIONS = [
   },
   {
     value: 'paid',
+    icon: CreditCard,
     labelKey: 'Paid',
     descKey: 'Anyone can see it, but must pay to join',
     visibility: GROUP_VISIBILITY.Protected,
@@ -70,10 +76,15 @@ export function isParentPaidContentReady (group) {
   )
 }
 
-/** Access options available for create/edit, optionally gating Paid on parent Stripe readiness. */
-export function accessOptionsForGroup (group, { includePaid = false } = {}) {
-  if (includePaid || isParentPaidContentReady(group)) return ACCESS_OPTIONS
-  return ACCESS_OPTIONS.filter(option => option.value !== 'paid')
+const PAID_DISABLED_TOOLTIP = 'Paid access requires a connected Stripe account. Finish setup in this group\'s Paid Content settings.'
+
+/** Access options for create/edit. Paid is always listed; disabled until Stripe is ready. */
+export function accessOptionsForGroup (group) {
+  const paidReady = isParentPaidContentReady(group)
+  return ACCESS_OPTIONS.map(option => {
+    if (option.value !== 'paid' || paidReady) return option
+    return { ...option, disabled: true, disabledTooltipKey: PAID_DISABLED_TOOLTIP }
+  })
 }
 
 /** Reverse-maps a space's visibility/accessibility/requiredRoles/paywall onto one of ACCESS_OPTIONS. */
@@ -89,8 +100,15 @@ export function accessValueForSpace ({ visibility, accessibility, requiredRoles,
 }
 
 /** Serializes a date for FundingRound GraphQL Date inputs (ISO string). */
-export function toIsoOrNull (value) {
+/**
+ * Date (or date string) -> ISO string truncated to the minute, or null. Funding round dates
+ * are picked to the minute, so seconds left over from older values (or from `new Date()`
+ * defaults) are dropped on save.
+ */
+export function toMinuteIsoOrNull (value) {
   if (!value) return null
-  const date = value instanceof Date ? value : new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  date.setSeconds(0, 0)
+  return date.toISOString()
 }

@@ -2,10 +2,12 @@ import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { AnalyticsEvents, Validators } from '@hylo/shared'
 import getMe from 'store/selectors/getMe'
 import { register } from '../Signup.store'
 import logout from 'store/actions/logout'
-import Button from 'components/Button'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import Button from 'components/ui/button'
 import Icon from 'components/Icon'
 import TextInput from 'components/TextInput'
 import { formatError } from '../../util'
@@ -24,7 +26,9 @@ export default function FinishRegistration () {
     password: '',
     passwordConfirmation: ''
   })
-  const canSubmit = formValues.name.length > 1 &&
+  const trimmedName = formValues.name.trim()
+  const canSubmit = trimmedName.length > 1 &&
+    Validators.validateUser.name(trimmedName) === null &&
     formValues.password.length > 8 &&
     formValues.passwordConfirmation.length > 8
 
@@ -37,14 +41,20 @@ export default function FinishRegistration () {
   }
 
   const handleSubmit = async () => {
+    if (!canSubmit) return
+
     try {
       if (formValues.password !== formValues.passwordConfirmation) {
         setError(t("Passwords don't match"))
       } else {
-        const result = await dispatch(register(formValues.name, formValues.password))
-        const error = result?.payload?.getData()?.error
+        const result = await dispatch(register(trimmedName, formValues.password))
+        const data = result?.payload?.getData?.()
 
-        if (error) setError(error)
+        if (data?.error) {
+          setError(data.error)
+        } else if (data?.me) {
+          dispatch(trackAnalyticsEvent(AnalyticsEvents.SIGNUP_REGISTERED))
+        }
       }
     } catch (responseError) {
       setError(responseError.message)
@@ -60,7 +70,7 @@ export default function FinishRegistration () {
   }
 
   return (
-    <div className='bg-background shadow-lg rounded-lg w-[320px]'>
+    <div className='bg-midground shadow-md rounded-md w-full max-w-[320px] mx-auto'>
       <div className='relative'>
         <Icon
           name='Ex'
@@ -84,7 +94,8 @@ export default function FinishRegistration () {
             label='name'
             name='name'
             onChange={handleChange}
-            className='mb-5'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3'
+            inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='text'
             value={formValues.name}
           />
@@ -97,7 +108,8 @@ export default function FinishRegistration () {
             label='password'
             name='password'
             onChange={handleChange}
-            className='mb-5'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3'
+            inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='password'
             value={formValues.password}
           />
@@ -111,19 +123,20 @@ export default function FinishRegistration () {
             name='passwordConfirmation'
             onChange={handleChange}
             onEnter={handleSubmit}
-            className='mb-5'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3'
+            inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='password'
             value={formValues.passwordConfirmation}
           />
 
           <Button
-            className={cn(
-              'w-full text-center rounded-2xl flex items-center justify-center px-5 py-2 transition-colors',
-              canSubmit ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-muted text-muted-foreground cursor-not-allowed'
-            )}
-            label={t('Jump in to Hylo!')}
+            variant='highVisibility'
+            className={cn('w-full text-base', canSubmit ? 'bg-selected' : 'bg-gray-400 cursor-not-allowed')}
             onClick={canSubmit ? () => handleSubmit() : null}
-          />
+            disabled={!canSubmit}
+          >
+            {t('Jump in to Hylo!')}
+          </Button>
         </div>
       </div>
     </div>

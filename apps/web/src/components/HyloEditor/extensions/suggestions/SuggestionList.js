@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Avatar from 'components/Avatar'
 import { useInView } from 'react-intersection-observer'
@@ -6,9 +6,10 @@ import { useInView } from 'react-intersection-observer'
 export default forwardRef(({ items: initialItems, command, editor, onLoadMore, ...everything }, ref) => {
   const { t } = useTranslation()
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const [items, setItems] = useState(initialItems.items)
-  const [hasMore, setHasMore] = useState(initialItems.hasMore)
-  const [loading, setLoading] = useState(false)
+  const [items, setItems] = useState(initialItems.items || [])
+  const [hasMore, setHasMore] = useState(initialItems.hasMore || false)
+  const [loading, setLoading] = useState(!!initialItems.loading)
+  const lastRequestIdRef = useRef(-1)
 
   const { ref: loadMoreRef, inView } = useInView()
 
@@ -34,8 +35,14 @@ export default forwardRef(({ items: initialItems, command, editor, onLoadMore, .
   }, [inView])
 
   useEffect(() => {
+    const requestId = initialItems.requestId
+    if (typeof requestId === 'number' && requestId < lastRequestIdRef.current) return
+    if (typeof requestId === 'number') lastRequestIdRef.current = requestId
+
     setItems(initialItems.items || [])
     setHasMore(initialItems.hasMore || false)
+    setLoading(!!initialItems.loading)
+    setSelectedIndex(0)
   }, [initialItems])
 
   const selectItem = index => {
@@ -91,6 +98,8 @@ export default forwardRef(({ items: initialItems, command, editor, onLoadMore, .
     }
   }))
 
+  const showLoading = loading && (!items || items.length === 0)
+
   return (
     <div className='suggestion-list'>
       {items && items.length > 0
@@ -106,7 +115,11 @@ export default forwardRef(({ items: initialItems, command, editor, onLoadMore, .
             {item.suggestionLabel}
           </button>
         ))
-        : <button className='suggestion-list-item suggestion-list-item-no-result'>{t('No result')}</button>}
+        : (
+          <button className='suggestion-list-item suggestion-list-item-no-result'>
+            {showLoading ? t('Loading...') : t('No result')}
+          </button>
+          )}
       {hasMore && (
         <div ref={loadMoreRef} className='loading-more'>
           {loading && t('Loading...')}

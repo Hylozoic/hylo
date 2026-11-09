@@ -70,7 +70,7 @@ export const FETCH_SEARCH = `${MODULE_NAME}/FETCH_SEARCH`
 
 const searchQuery =
 `query Search ($search: String, $type: String, $offset: Int, $groupIds: [ID]) {
-  search(term: $search, first: 10, type: $type, offset: $offset, groupIds: $groupIds ) {
+  search(term: $search, first: 20, type: $type, offset: $offset, groupIds: $groupIds ) {
     total
     hasMore
     items {
@@ -110,6 +110,21 @@ const searchQuery =
             position
             id
           }
+        }
+        ... on Group {
+          id
+          name
+          slug
+          avatarUrl
+          bannerUrl
+          memberCount
+          visibility
+          accessibility
+          paywall
+          location
+          description
+          purpose
+          type
         }
       }
     }
@@ -157,9 +172,13 @@ export function presentSearchResult (searchResult, session) {
       skills: content.skills.toModelArray()
     }
   }
-
   if (type === 'Comment') {
     content = presentComment(content)
+  }
+  if (type === 'Group') {
+    content = {
+      ...content.ref
+    }
   }
 
   return {

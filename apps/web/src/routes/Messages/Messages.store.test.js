@@ -1,4 +1,5 @@
 import orm from 'store/models'
+import ormReducer from 'store/reducers/ormReducer'
 import {
   CREATE_MESSAGE,
   FETCH_MESSAGES,
@@ -141,6 +142,39 @@ describe('fetchThread', () => {
     expect(action.graphql).toBeUndefined()
     expect(action.meta.skipped).toBe(true)
   })
+
+  // Refetching an open thread (e.g. on returning to the app) brings back only the
+  // newest page of messages; older ones the person scrolled back to load must stay
+  it('merges a refetch into the messages already loaded', () => {
+    const session = orm.mutableSession(orm.getEmptyState())
+    session.MessageThread.create({ id: '1' })
+    ;['1', '2', '3', '4'].forEach(id => session.Message.create({ id, messageThread: '1', text: `old ${id}` }))
+
+    const action = {
+      ...fetchThread('1'),
+      payload: {
+        data: {
+          messageThread: {
+            id: '1',
+            unreadCount: 1,
+            messages: {
+              items: [
+                { id: '5', text: 'new 5', creator: { id: '2', name: 'Greg' } },
+                { id: '4', text: 'old 4', creator: { id: '2', name: 'Greg' } }
+              ],
+              total: 5,
+              hasMore: true
+            }
+          }
+        }
+      }
+    }
+    const nextOrm = ormReducer(session.state, action)
+
+    const messages = getMessages({ orm: nextOrm }, { messageThreadId: '1' })
+    expect(messages.map(m => m.id)).toEqual(['1', '2', '3', '4', '5'])
+    expect(messages[4].text).toEqual('new 5')
+  })
 })
 
 describe('fetchMessages', () => {
@@ -155,10 +189,12 @@ describe('fetchMessages', () => {
 describe('createMessage', () => {
   const messageThreadId = '1'
   const text = 'hey you'
-  const action = createMessage(messageThreadId, text)
+  const attachments = [{ attachmentType: 'image', url: 'https://example.com/a.png' }]
+  const action = createMessage(messageThreadId, text, false, attachments)
   it('uses messageThreadId and text as variables in the graphql mutation', () => {
     expect(action.graphql.variables.messageThreadId).toEqual(messageThreadId)
     expect(action.graphql.variables.text).toEqual(text)
+    expect(action.graphql.variables.attachments).toEqual(attachments)
   })
   it('behaves optimistically and generates a temp id for each message namespaced to the thread', () => {
     expect(action.meta.optimistic).toBeTruthy()
@@ -175,6 +211,8 @@ describe('createMessage', () => {
   })
   it('passes the message text as metadata', () => {
     expect(action.meta.messageText).toEqual('hey you')
+    expect(action.meta.text).toEqual('hey you')
+    expect(action.meta.attachments).toEqual(attachments)
   })
 })
 

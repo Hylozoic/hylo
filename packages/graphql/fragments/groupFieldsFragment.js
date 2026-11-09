@@ -28,6 +28,7 @@ export default gql`
       showSuggestedSkills
       showWelcomePage
       layout
+      autoAddMembers
     }
     slug
     type
@@ -57,27 +58,6 @@ export default gql`
         name
         slug
         visibility
-      }
-    }
-    customViews {
-      items {
-        id
-        activePostsOnly
-        collectionId
-        defaultSort
-        defaultViewMode
-        externalLink
-        groupId
-        isActive
-        icon
-        name
-        order
-        postTypes
-        topics {
-          id
-          name
-        }
-        type
       }
     }
     locationObject {

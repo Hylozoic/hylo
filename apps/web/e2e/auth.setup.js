@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import dotenv from 'dotenv'
 import { gotoLoginAndWaitForEmail } from './helpers/waitForLoginEmailVisible.js'
+import { ensureHyloCookieConsent } from './helpers/sessionAuth.js'
 
 dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') })
 
@@ -99,6 +100,7 @@ function forwardBrowserLogsForSetup (page) {
 setup('authenticate', async ({ page }) => {
   attachGraphqlDiagnostics(page)
   forwardBrowserLogsForSetup(page)
+  await ensureHyloCookieConsent(page)
 
   const emailInput = await gotoLoginAndWaitForEmail(page)
 

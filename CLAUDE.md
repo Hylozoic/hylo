@@ -4,7 +4,7 @@
 
 Monorepo with Yarn workspaces:
 - `apps/web` — React web frontend (Vite, port 3000)
-- `apps/mobile` — React Native mobile app
+- `apps/mobile-leap` — Expo / React Native mobile app
 - `apps/backend` — Node.js API server (port 3001)
 - `apps/desktop` — Electron desktop app
 - `packages/` — Shared packages (`shared`, `graphql`, `hooks`, `contexts`, `presenters`, `navigation`, `urql`)

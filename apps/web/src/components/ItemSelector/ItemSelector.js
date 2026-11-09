@@ -6,6 +6,8 @@ import { Search, X } from 'lucide-react'
 import RoundImage from 'components/RoundImage'
 import Loading from 'components/Loading'
 
+const DEFAULT_MIN_SEARCH_LENGTH = 2
+
 /**
  * ItemSelector Component
  *
@@ -14,7 +16,7 @@ import Loading from 'components/Loading'
  *
  * @param {Object} props
  * @param {Array} props.items - Pre-loaded items to display (optional)
- * @param {Array} props.defaultItems - Items to show when no search term
+ * @param {Array} props.defaultItems - Items to show when focused with no/short search term
  * @param {Object} props.selectedItem - Currently selected item (for single select)
  * @param {Function} props.onSelect - Callback when an item is selected
  * @param {Function} props.fetchItems - Redux action creator for fetching items
@@ -24,6 +26,8 @@ import Loading from 'components/Loading'
  * @param {String} props.emptyMessage - Message to show when no items found
  * @param {Function} props.renderItem - Custom item renderer (optional)
  * @param {Function} props.filterItems - Function to filter items (optional)
+ * @param {Number} props.minSearchLength - Characters required before calling fetchItems
+ * @param {Boolean} props.disabled - When true, prevents interaction with the selector
  */
 export default function ItemSelector ({
   items: providedItems,
@@ -36,11 +40,15 @@ export default function ItemSelector ({
   loading: externalLoading = false,
   emptyMessage,
   renderItem: CustomItemRenderer,
-  filterItems
+  filterItems,
+  minSearchLength = DEFAULT_MIN_SEARCH_LENGTH,
+  disabled = false
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const inputRef = useRef(null)
+  const blurTimeoutRef = useRef(null)
+  const isFocusedRef = useRef(false)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [internalLoading, setInternalLoading] = useState(false)
@@ -49,11 +57,13 @@ export default function ItemSelector ({
   const [selectedIndex, setSelectedIndex] = useState(-1)
 
   const loading = externalLoading || internalLoading
+  const hasDefaultItems = defaultItems.length > 0
+  const isSearching = searchTerm.length >= minSearchLength
 
-  // Debounced fetch function
+  // Debounced fetch function for remote search
   const debouncedFetch = useMemo(() =>
     debounce(300, async (term) => {
-      if (fetchItems && term && term.length >= 2) {
+      if (fetchItems && term && term.length >= minSearchLength) {
         setInternalLoading(true)
         try {
           const result = await dispatch(fetchItems({ autocomplete: term }))
@@ -70,26 +80,48 @@ export default function ItemSelector ({
         setFetchedItems([])
       }
     }),
-  [dispatch, fetchItems]
+  [dispatch, fetchItems, minSearchLength]
   )
 
-  // Trigger search when search term changes
+  // Trigger remote search when search term reaches min length
   useEffect(() => {
-    if (searchTerm.length >= 2) {
+    if (isSearching) {
       debouncedFetch(searchTerm)
       setShowDropdown(true)
     } else {
       setFetchedItems([])
-      if (searchTerm.length === 0) {
-        setShowDropdown(false)
-      }
     }
     return () => debouncedFetch.cancel && debouncedFetch.cancel()
-  }, [searchTerm, debouncedFetch])
+  }, [searchTerm, debouncedFetch, isSearching])
+
+  // Open dropdown once default items arrive while the input is focused
+  useEffect(() => {
+    if (isFocusedRef.current && hasDefaultItems && !isSearching) {
+      setShowDropdown(true)
+    }
+  }, [hasDefaultItems, isSearching])
+
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current)
+    }
+  }, [])
 
   // Determine which items to display
   const displayItems = useMemo(() => {
-    let items = providedItems || fetchedItems || defaultItems
+    let items
+
+    if (providedItems) {
+      items = providedItems
+    } else if (isSearching) {
+      items = fetchedItems
+    } else if (searchTerm.length > 0) {
+      // Below remote-search threshold: filter default items locally
+      const lower = searchTerm.toLowerCase()
+      items = defaultItems.filter(item => item.name?.toLowerCase().includes(lower))
+    } else {
+      items = defaultItems
+    }
 
     // Apply custom filter if provided
     if (filterItems && typeof filterItems === 'function') {
@@ -102,12 +134,13 @@ export default function ItemSelector ({
     }
 
     return items
-  }, [providedItems, fetchedItems, defaultItems, filterItems, searchTerm, selectedItem])
+  }, [providedItems, fetchedItems, defaultItems, filterItems, searchTerm, selectedItem, isSearching])
 
   /**
    * Handles item selection
    */
   const handleSelect = useCallback((item) => {
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current)
     if (onSelect) {
       onSelect(item)
     }
@@ -126,6 +159,36 @@ export default function ItemSelector ({
     setSearchTerm('')
     inputRef.current?.focus()
   }, [onSelect])
+
+  /**
+   * Opens the dropdown on focus (shows default items when search is empty)
+   */
+  const handleFocus = useCallback(() => {
+    if (disabled) return
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current)
+    isFocusedRef.current = true
+    setShowDropdown(true)
+  }, [disabled])
+
+  /**
+   * Closes the dropdown after blur, with a short delay so item clicks register
+   */
+  const handleBlur = useCallback(() => {
+    isFocusedRef.current = false
+    blurTimeoutRef.current = setTimeout(() => {
+      setShowDropdown(false)
+      setSelectedIndex(-1)
+    }, 150)
+  }, [])
+
+  // Close dropdown and ignore focus when disabled
+  useEffect(() => {
+    if (disabled) {
+      setShowDropdown(false)
+      setSelectedIndex(-1)
+      isFocusedRef.current = false
+    }
+  }, [disabled])
 
   /**
    * Handles keyboard navigation
@@ -163,6 +226,7 @@ export default function ItemSelector ({
   const DefaultItemRenderer = useCallback(({ item, isSelected, onSelect: handleItemSelect }) => (
     <button
       type='button'
+      onMouseDown={(e) => e.preventDefault()}
       onClick={() => handleItemSelect(item)}
       className={`w-full flex items-center gap-3 p-3 text-left transition-colors ${
         isSelected ? 'bg-accent/20' : 'hover:bg-foreground/5'
@@ -184,8 +248,12 @@ export default function ItemSelector ({
 
   const ItemRenderer = CustomItemRenderer || DefaultItemRenderer
 
+  const showEmptySearchHint = !loading && !hasDefaultItems && !isSearching && searchTerm.length > 0
+  const showTypeToSearchHint = !loading && !hasDefaultItems && searchTerm.length === 0 && showDropdown
+  const showNoResults = !loading && displayItems.length === 0 && (isSearching || hasDefaultItems || searchTerm.length > 0)
+
   return (
-    <div className='relative'>
+    <div className={`relative ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
       {/* Selected Item Display */}
       {selectedItem
         ? (
@@ -194,13 +262,15 @@ export default function ItemSelector ({
               <RoundImage url={selectedItem.avatarUrl} className='w-8 h-8' small />
             )}
             <span className='flex-1 text-foreground'>{selectedItem.name}</span>
-            <button
-              type='button'
-              onClick={handleClear}
-              className='p-1 hover:bg-foreground/10 rounded transition-colors'
-            >
-              <X className='w-4 h-4 text-foreground/60' />
-            </button>
+            {!disabled && (
+              <button
+                type='button'
+                onClick={handleClear}
+                className='p-1 hover:bg-foreground/10 rounded transition-colors'
+              >
+                <X className='w-4 h-4 text-foreground/60' />
+              </button>
+            )}
           </div>
           )
         : (
@@ -212,11 +282,16 @@ export default function ItemSelector ({
                 ref={inputRef}
                 type='text'
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={disabled}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setShowDropdown(true)
+                }}
                 onKeyDown={handleKeyDown}
-                onFocus={() => searchTerm.length >= 2 && setShowDropdown(true)}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 placeholder={searchPlaceholder || t('Search...')}
-                className='w-full pl-10 pr-4 py-2 bg-input border border-foreground/20 rounded-md text-foreground placeholder:text-foreground/50 focus:border-focus focus:outline-none'
+                className='w-full pl-10 pr-4 py-2 bg-input border border-foreground/20 rounded-md text-foreground placeholder:text-foreground/50 focus:border-focus focus:outline-none disabled:cursor-not-allowed'
               />
               {loading && (
                 <div className='absolute right-3 top-1/2 -translate-y-1/2'>
@@ -233,12 +308,12 @@ export default function ItemSelector ({
                     {t('Searching...')}
                   </div>
                 )}
-                {!loading && displayItems.length === 0 && searchTerm.length >= 2 && (
+                {showNoResults && (
                   <div className='p-4 text-center text-foreground/60'>
                     {emptyMessage || t('No results found')}
                   </div>
                 )}
-                {!loading && searchTerm.length < 2 && (
+                {(showEmptySearchHint || showTypeToSearchHint) && (
                   <div className='p-4 text-center text-foreground/60'>
                     {t('Type at least 2 characters to search')}
                   </div>

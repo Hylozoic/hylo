@@ -8,18 +8,6 @@ module.exports = bookshelf.Model.extend({
 
   group: function () {
     return this.belongsTo(Group)
-  },
-
-  pinned: function () {
-    return !!this.get('pinned_at')
-  },
-
-  togglePinned: function () {
-    if (this.pinned()) {
-      return this.save({ pinned_at: null })
-    } else {
-      return this.save({ pinned_at: new Date() })
-    }
   }
 }, {
   find: function (postId, groupIdOrSlug, options) {

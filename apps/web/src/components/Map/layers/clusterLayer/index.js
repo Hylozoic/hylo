@@ -16,9 +16,15 @@ const iconMapping = Object.keys(mapSpriteData).reduce((result, sprite) => {
   return result
 }, {})
 
-export function createIconLayerFromPostsAndMembers ({ boundingBox, members, posts, onHover, onClick }) {
+/**
+ * Flattens posts + members into cluster-layer features. Memoize the result on
+ * the source arrays: a stable identity here is what lets deck.gl skip the
+ * Supercluster index rebuild and GPU re-upload while panning — the layer's
+ * getClusters(boundingBox) handles view filtering, so pass everything.
+ */
+export function buildClusterLayerData ({ posts = [], members = [] }) {
   // TODO: shouldn't need to filter by locationObject, should all have one for map...?
-  let data = posts.filter(post => post.locationObject && post.locationObject.center)
+  const data = posts.filter(post => post.locationObject && post.locationObject.center)
     .map(post => {
       return {
         id: post.id,
@@ -28,15 +34,26 @@ export function createIconLayerFromPostsAndMembers ({ boundingBox, members, post
         coordinates: [parseFloat(post.locationObject.center.lng), parseFloat(post.locationObject.center.lat)]
       }
     })
-  data = data.concat(members.map(member => {
-    return {
-      id: member.id,
-      type: 'member',
-      message: member.name,
-      coordinates: [parseFloat(member.locationObject.center.lng), parseFloat(member.locationObject.center.lat)]
-    }
-  }))
-  return new PostClusterLayer({ boundingBox, data, onHover, onClick, getPosition: d => d.coordinates })
+  return data.concat(members.filter(member => member.locationObject && member.locationObject.center)
+    .map(member => {
+      return {
+        id: member.id,
+        type: 'member',
+        message: member.name,
+        coordinates: [parseFloat(member.locationObject.center.lng), parseFloat(member.locationObject.center.lat)]
+      }
+    }))
+}
+
+export function createIconLayerFromPostsAndMembers ({ boundingBox, data, onHover, onClick }) {
+  return new PostClusterLayer({
+    id: 'post-cluster-layer',
+    boundingBox,
+    data,
+    onHover,
+    onClick,
+    getPosition: d => d.coordinates
+  })
 }
 
 class PostClusterLayer extends CompositeLayer {
@@ -51,21 +68,24 @@ class PostClusterLayer extends CompositeLayer {
       return
     }
 
-    const rebuildIndex = changeFlags.dataChanged
+    const sourceCount = data?.length || 0
+    // dataChanged can be false for a new array of the same length; also rebuild
+    // when FETCH_POSTS_MAP appends features. Panning keeps sourceCount stable.
+    const rebuildIndex = Boolean(changeFlags.dataChanged) || !this.state?.index || sourceCount !== this.state.sourceCount
     if (rebuildIndex) {
       // Radius here also adjusts how aggressively this layer clusters, lower means less clusters
       const index = new Supercluster({ maxZoom: 25, radius: 20 })
       index.load(
-        data.map(d => ({
+        (data || []).map(d => ({
           geometry: { coordinates: getPosition(d) },
           properties: d
         }))
       )
-      this.setState({ index })
+      this.setState({ index, sourceCount })
     }
 
     const z = Math.floor(this.context.viewport.zoom)
-    if (rebuildIndex || z !== this.state.z) {
+    if (rebuildIndex || z !== this.state.z || boundingBox !== oldProps.boundingBox) {
       this.setState({
         data: this.state.index.getClusters(boundingBox, z),
         z

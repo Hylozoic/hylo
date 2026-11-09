@@ -3,8 +3,8 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
 
 /**
  * Batch G — direct messages (`ThreadList` in nav, `Messages` in center).
- * Empty DB has no threads: `/messages` stays on URL with empty state (or redirects to first thread if present).
- * `/messages/new` uses `messageThreadId === 'new'` (see `Messages.js`).
+ * Empty inbox replaces `/messages` with `/messages/new` (composer). When threads
+ * exist, desktop also lands on `/messages/:id`.
  */
 
 test.describe.configure({ timeout: 120000 })
@@ -15,11 +15,21 @@ const uiTimeout = { timeout: 60000 }
 test.describe('Batch G: messages', () => {
   test('GET /messages loads thread list (redirects to first thread when threads exist)', async ({
     page
-  }) => {
+  }, testInfo) => {
     await page.goto('/messages')
     await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(/\/messages(\/\d+)?$/, navTimeout)
-    await expect(page.getByPlaceholder(/Search messages/i)).toBeVisible(uiTimeout)
+    await expect(page).toHaveURL(/\/messages(\/\d+|\/new)?$/, navTimeout)
+    if (testInfo.project.name.includes('mobile')) {
+      // Other specs create DM threads in the shared DB, so mobile may show the thread list
+      // (or a thread) instead of redirecting an empty inbox to the "Messages | Hylo" composer
+      await expect.poll(async () =>
+        /Messages.*Hylo/i.test(await page.title()) ||
+        await page.getByPlaceholder(/Search messages/i).isVisible() ||
+        await page.locator('#message-list').isVisible(),
+      uiTimeout).toBe(true)
+    } else {
+      await expect(page.getByPlaceholder(/Search messages/i)).toBeVisible(uiTimeout)
+    }
   })
 
   test('GET /messages/new loads compose / people-picker shell', async ({ page }) => {

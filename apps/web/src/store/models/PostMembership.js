@@ -11,6 +11,5 @@ export default PostMembership
 PostMembership.modelName = 'PostMembership'
 PostMembership.fields = {
   id: attr(),
-  pinned: attr(),
   group: fk('Group', 'postMemberships')
 }

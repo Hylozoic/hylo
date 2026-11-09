@@ -64,7 +64,8 @@
       },
       "title": "Hylo: bug reports, feature requests, and general",
       "details": "<p>Core Intention: Let's work together to make this thing amazing.<p>",
-      "comments": []
+      "comments": [],
+      "space_name": "Garden"
     },
     {
       "id": 6,
@@ -92,6 +93,28 @@
           }
         }
       ]
+    }
+  ],
+  "chat_rooms": [
+    {
+      "name": "Sandbox",
+      "num_new_chats": 4,
+      "url": "http://localhost:9000/groups/sandbox/chat"
+    },
+    {
+      "name": "Garden",
+      "num_new_chats": 2,
+      "url": "http://localhost:9000/groups/sandbox/spaces/garden/chat",
+      "space_id": 99
+    }
+  ],
+  "posts_with_new_comments": [
+    {
+      "id": 20,
+      "title": "Compost pickup this week",
+      "comment_count": 3,
+      "url": "http://localhost:9000/groups/sandbox/spaces/garden/all/post/20",
+      "space_name": "Garden"
     }
   ]
 }

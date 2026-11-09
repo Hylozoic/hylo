@@ -1,12 +1,12 @@
 import { filter, isFunction } from 'lodash'
-import { Pencil, X } from 'lucide-react'
+import { Pencil, Trash2, X } from 'lucide-react'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useSelector, useDispatch } from 'react-redux'
 import { Tooltip } from 'react-tooltip'
-import { useParams, useNavigate, Routes, Route } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
@@ -15,6 +15,7 @@ import Button from 'components/Button'
 import BadgeEmoji from 'components/BadgeEmoji'
 import ClickCatcher from 'components/ClickCatcher'
 import Dropdown from 'components/Dropdown'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import NotFound from 'components/NotFound'
@@ -23,6 +24,7 @@ import RoundImageRow from 'components/RoundImageRow'
 import Loading from 'components/Loading'
 import RecentActivity from './RecentActivity'
 import MemberPosts from './MemberPosts'
+import { getMemberPosts } from './MemberPosts/MemberPosts.store'
 import MemberComments from './MemberComments'
 import Membership from 'components/Membership'
 import MemberReactions from './MemberReactions'
@@ -31,9 +33,13 @@ import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
+import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import blockUser from 'store/actions/blockUser'
+import { removeMember } from 'routes/Members/Members.store'
+import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
+import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
@@ -48,6 +54,7 @@ import {
   getPresentedPerson
 } from './MemberProfile.store'
 import { cn } from 'util/index'
+import { historyIndexBackDelta, profileDirectLoadBackPath } from 'util/mobileNavBack'
 import {
   currentUserSettingsUrl,
   messagePersonUrl,
@@ -58,21 +65,31 @@ import {
 import styles from './MemberProfile.module.scss'
 
 const GROUPS_DIV_HEIGHT = 200
+const PROJECTS_DIV_HEIGHT = 220
+const EVENTS_DIV_HEIGHT = 220
 
 const MESSAGES = {
   invalid: "That doesn't seem to be a valid person ID."
 }
 
-const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleColumn }) => {
+const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleColumn, context }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routeParams = useParams()
   const { t } = useTranslation()
   const [container, setContainer] = useState(null)
+  const isPublicView = context === 'public'
 
+  const location = useLocation()
+  const { groupSlug: routeGroupSlug } = useRouteParams()
   const personId = routeParams.personId
+  // History index of the page this profile was opened from. Header back returns
+  // there, including after posts opened from the profile have been closed.
+  const entryHistoryIndexRef = useRef(null)
+  const trackedPersonIdRef = useRef(null)
   const error = !Number.isSafeInteger(Number(personId)) ? MESSAGES.invalid : null
   const person = useSelector(state => getPresentedPerson(state, routeParams))
+  const memberPosts = useSelector(state => getMemberPosts(state, { routeParams }))
   const contentLoading = useSelector(state => isPendingFor([
     FETCH_RECENT_ACTIVITY,
     FETCH_MEMBER_POSTS,
@@ -84,42 +101,113 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const roles = useSelector(state => getRolesForGroup(state, { person, groupId: group?.id }))
   const currentUser = useSelector(getMe)
+  const isCurrentUser = currentUser && currentUser.id === personId
   const previousLocation = useSelector(getPreviousLocation) || { pathname: '/' }
+  // Spaces inherit roles/responsibilities from the parent group
+  const roleGroupId = group?.parentId || group?.id
+  const currentUserResponsibilities = useSelector(state =>
+    getResponsibilityTitlesForGroup(state, { person: currentUser, groupId: roleGroupId }))
 
   const fetchPersonAction = (id) => dispatch(fetchPerson(id))
   const blockUserAction = (id) => dispatch(blockUser(id))
+  const removeMemberAction = (id) => dispatch(removeMember(id, group.id, groupSlug))
   const push = (url) => navigate(url)
   const goToPreviousLocation = () => navigate(previousLocation)
 
-  const [currentTabState, setCurrentTabState] = useState(currentTab)
+  const [currentTabState, setCurrentTabState] = useState(context === 'public' ? 'Posts' : currentTab)
   const [showAllGroups, setShowAllGroups] = useState(false)
   const [showExpandGroupsButton, setShowExpandGroupsButton] = useState(false)
   const groupsRef = useRef(null)
 
-  const { setHeaderDetails } = useViewHeader()
+  const [showAllProjects, setShowAllProjects] = useState(false)
+  const [showExpandProjectsButton, setShowExpandProjectsButton] = useState(false)
+  const projectsRef = useRef(null)
+
+  const [showAllEvents, setShowAllEvents] = useState(false)
+  const [showExpandEventsButton, setShowExpandEventsButton] = useState(false)
+  const eventsRef = useRef(null)
+
+  const [showFullBio, setShowFullBio] = useState(false)
+  const [isBioClamped, setIsBioClamped] = useState(false)
+  const bioRef = useRef(null)
+
   useEffect(() => {
+    if (isPublicView) setCurrentTabState('Posts')
+  }, [isPublicView])
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
+
+  const { setHeaderDetails } = useViewHeader()
+  const postOverlayOpen = /\/post\/\d+/.test(location.pathname)
+  useEffect(() => {
+    if (trackedPersonIdRef.current !== personId) {
+      trackedPersonIdRef.current = personId
+      const idx = window.history.state?.idx
+      entryHistoryIndexRef.current = typeof idx === 'number' ? idx - 1 : null
+    }
+    const historyBack = historyIndexBackDelta({
+      currentIndex: window.history.state?.idx,
+      entryIndex: entryHistoryIndexRef.current,
+      postOverlayOpen
+    })
     setHeaderDetails({
       title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
       icon: 'Person',
       info: '',
-      search: true,
+      search: !isCurrentUser,
       backButton: true,
-      mobileBackButton: true
+      mobileBackButton: true,
+      // No earlier history entry (profile opened directly): leave for the group home.
+      backTo: historyBack != null
+        ? historyBack
+        : (postOverlayOpen ? null : profileDirectLoadBackPath({ context, groupSlug: routeGroupSlug }))
     })
-  }, [person])
+  }, [person, personId, postOverlayOpen, context, routeGroupSlug, t])
 
   useEffect(() => {
     if (personId) fetchPersonAction(personId)
+    setShowAllProjects(false)
+    setShowExpandProjectsButton(false)
+    setShowAllEvents(false)
+    setShowExpandEventsButton(false)
     checkGroupsHeight()
   }, [personId])
 
   useEffect(() => {
     checkGroupsHeight()
+    checkProjectsHeight()
+    checkEventsHeight()
   })
+
+  // Only offer the toggle when the bio actually outgrows the clamp. Measured against
+  // the live node and re-checked on resize, since a narrower column costs more lines.
+  useEffect(() => {
+    if (showFullBio) return
+
+    const measure = () => {
+      const node = bioRef.current
+      setIsBioClamped(Boolean(node && node.scrollHeight > node.clientHeight + 1))
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [person?.bio, showFullBio])
 
   const checkGroupsHeight = () => {
     if (groupsRef.current && groupsRef.current.scrollHeight > GROUPS_DIV_HEIGHT && !showExpandGroupsButton) {
       setShowExpandGroupsButton(true)
+    }
+  }
+
+  const checkProjectsHeight = () => {
+    if (projectsRef.current && projectsRef.current.scrollHeight > PROJECTS_DIV_HEIGHT && !showExpandProjectsButton) {
+      setShowExpandProjectsButton(true)
+    }
+  }
+
+  const checkEventsHeight = () => {
+    if (eventsRef.current && eventsRef.current.scrollHeight > EVENTS_DIV_HEIGHT && !showExpandEventsButton) {
+      setShowExpandEventsButton(true)
     }
   }
 
@@ -131,8 +219,21 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     }
   }
 
+  const confirmRemoveMember = () => {
+    setConfirmingRemove(false)
+    removeMemberAction(personId).then(goToPreviousLocation)
+  }
+
   const toggleShowAllGroups = () => {
     setShowAllGroups(!showAllGroups)
+  }
+
+  const toggleShowAllProjects = () => {
+    setShowAllProjects(!showAllProjects)
+  }
+
+  const toggleShowAllEvents = () => {
+    setShowAllEvents(!showAllEvents)
   }
 
   if (error) return <Error>{error}</Error>
@@ -141,31 +242,38 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
 
   const affiliations = person.affiliations && person.affiliations.items
   const events = person.eventsAttending && person.eventsAttending.items
-  const memberships = person.memberships.sort((a, b) => a.group.name.localeCompare(b.group.name))
+  const memberships = (person.memberships || []).sort((a, b) => a.group.name.localeCompare(b.group.name))
   const projects = person.projects && person.projects.items
   const locationWithoutUsa = person.location && person.location.replace(', United States', '')
-  const isCurrentUser = currentUser && currentUser.id === personId
   const isAxolotl = AXOLOTL_ID === personId
+  const canRemove = Boolean(group?.id) && currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)
   const contentDropDownItems = [
-    { id: 'Overview', label: t('Overview'), title: t('{{name}}\'s recent activity', { name: person.name }), component: RecentActivity },
+    !isPublicView && { id: 'Overview', label: t('Overview'), title: t('{{name}}\'s recent activity', { name: person.name }), component: RecentActivity },
     { id: 'Posts', label: t('Posts'), title: t('{{name}}\'s posts', { name: person.name }), component: MemberPosts },
-    { id: 'Comments', label: t('Comments'), title: t('{{name}}\'s comments', { name: person.name }), component: MemberComments },
-    { id: 'Reactions', label: t('Reactions'), title: t('{{name}}\'s reactions', { name: person.name }), component: MemberReactions }
-  ].map(contentDropDownitem => ({
+    !isPublicView && { id: 'Comments', label: t('Comments'), title: t('{{name}}\'s comments', { name: person.name }), component: MemberComments },
+    !isPublicView && { id: 'Reactions', label: t('Reactions'), title: t('{{name}}\'s reactions', { name: person.name }), component: MemberReactions }
+  ].filter(Boolean).map(contentDropDownitem => ({
     ...contentDropDownitem, onClick: () => selectTab(contentDropDownitem.label)
   }))
   const actionButtonsItems = [
-    { iconName: 'Messages', value: t('Message Member'), onClick: () => push(isCurrentUser ? messagesUrl() : messagePersonUrl(person)), hideCopyTip: true },
-    { iconName: 'Phone', value: person.contactPhone, onClick: () => handleContactPhone(person.contactPhone) },
-    { iconName: 'Email', value: person.contactEmail, onClick: () => handleContactEmail(person.contactEmail) },
+    {
+      iconName: 'Messages',
+      value: t('Message Member'),
+      onClick: () => push(isCurrentUser ? messagesUrl() : messagePersonUrl(person)),
+      hideCopyTip: true,
+      placeholder: isPublicView
+    },
+    !isPublicView && { iconName: 'Phone', value: person.contactPhone, onClick: () => handleContactPhone(person.contactPhone) },
+    !isPublicView && { iconName: 'Email', value: person.contactEmail, onClick: () => handleContactEmail(person.contactEmail) },
     { iconName: 'Facebook', value: person.facebookUrl, onClick: () => gotoExternalUrl(person.facebookUrl) },
     { iconName: 'LinkedIn', value: person.linkedinUrl, onClick: () => gotoExternalUrl(person.linkedinUrl) },
     { iconName: 'Twitter', value: twitterUrl(person.twitterName), onClick: () => gotoExternalUrl(twitterUrl(person.twitterName)) },
     { iconName: 'Public', value: person.url, onClick: () => gotoExternalUrl(person.url) }
-  ]
+  ].filter(Boolean)
   const actionDropdownItems = [
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
-    { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl }
+    { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl },
+    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: () => setConfirmingRemove(true), hide: isCurrentUser || isAxolotl || !canRemove }
   ]
   const {
     title: currentContentTitle,
@@ -180,7 +288,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
           <meta name='description' content={`${person.name}: ${t('Member Profile')}`} />
         </Helmet>
         <div className='flex flex-col items-center w-full'>
-          {isCurrentUser &&
+          {isCurrentUser && !isPublicView &&
             <button className='absolute top-2 right-5 z-50 bg-foreground/50 hover:bg-selected/90 transition-all scale-100 hover:scale-105 rounded-lg text-background placeholder-foreground/40 w-[120px] p-1 transition-all outline-none hover:bg-darkening/80' onClick={() => push(currentUserSettingsUrl())}>
               <Icon name='Edit' /> {t('Edit Profile')}
             </button>}
@@ -202,29 +310,92 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
           </div>
           <div className='-mt-5 mb-10 center flex gap-2 flex-row w-full items-center justify-center'>
             <ActionButtons items={actionButtonsItems} />
-            <ActionDropdown items={actionDropdownItems} />
+            <ActionDropdown items={actionDropdownItems} placeholder={isPublicView} />
           </div>
+          {canRemove && (
+            <Dialog open={confirmingRemove} onOpenChange={setConfirmingRemove}>
+              <DialogContent className='max-w-md'>
+                <DialogHeader>
+                  <DialogTitle>{t('Remove member')}</DialogTitle>
+                </DialogHeader>
+                <DialogDescription asChild>
+                  <div className='flex flex-wrap items-center gap-1.5 text-sm text-foreground/80'>
+                    <span>{t('You are about to permanently remove')}</span>
+                    <span className='font-semibold text-foreground'>{person.name}</span>
+                    <span>{t('from the group. Are you sure?')}</span>
+                  </div>
+                </DialogDescription>
+                <DialogFooter>
+                  <button
+                    type='button'
+                    onClick={confirmRemoveMember}
+                    className='rounded-md bg-destructive text-white px-3 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity'
+                  >
+                    {t('Remove')}
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => setConfirmingRemove(false)}
+                    className='rounded-md border-2 border-foreground/20 px-3 py-1.5 text-sm font-medium text-foreground hover:border-foreground/50 transition-all'
+                  >
+                    {t('Cancel')}
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
           {(person.tagline || person.bio) && (
             <div className='flex items-center flex-col mb-4'>
               {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
               {person.bio && (
-                <div className={cn('text-foreground text-center max-w-[720px]')}>
-                  <ClickCatcher>
-                    <HyloHTML element='span' html={TextHelpers.markdown(person.bio)} />
-                  </ClickCatcher>
+                <div className='text-foreground text-center max-w-[720px] flex flex-col items-center'>
+                  <div
+                    ref={bioRef}
+                    className={cn('w-full', !showFullBio && 'line-clamp-6')}
+                  >
+                    <ClickCatcher>
+                      <HyloHTML
+                        element='span'
+                        html={TextHelpers.markdown(person.bio)}
+                        className={cn(!showFullBio && 'child:first:mt-0 child:first:mb-0')}
+                      />
+                    </ClickCatcher>
+                  </div>
+                  {(isBioClamped || showFullBio) && (
+                    <button
+                      type='button'
+                      onClick={() => setShowFullBio(prev => !prev)}
+                      className='mt-1 text-sm font-semibold text-focus hover:underline'
+                    >
+                      {showFullBio ? t('Read less') : t('Read more')}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           )}
           <div className='flex flex-col max-w-[720px] w-full'>
+            {roles.length > 0 && (
+              <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-6'>
+                <div className='bg-midground text-foreground/50 text-sm absolute -top-2.5 left-1/2 uppercase -translate-x-1/2 px-2 text-center'>{t('Roles in {{group}}', { group: group.name })}</div>
+                <div className='flex flex-row flex-wrap items-center w-full relative gap-2 justify-center'>
+                  {roles.map(role => (
+                    <div key={role.id + role.common} className='flex flex-row p-2 bg-background rounded-lg items-center justify-center gap-2'>
+                      <BadgeEmoji expanded {...role} responsibilities={role.responsibilities} id={person.id} />
+                      <div className='text-sm text-foreground/50'>{role.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {person.skills && person.skills.length > 0
               ? (
-                <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 justify-center items-center'>
+                <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 justify-center items-center'>
                   <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Skills & Interests')}</div>
                   <SkillsSection personId={personId} editable={false} t={t} />
                 </div>)
               : (currentUser && currentUser.id === personId && (
-                <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 text-center justify-center items-center'>
+                <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 text-center justify-center items-center'>
                   <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Skills & Interests')}</div>
                   <p className='text-foreground/50 mb-3'>{t('Add your skills and interests to your profile')}</p>
                   <button
@@ -238,7 +409,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                 ))}
 
             {person.skillsToLearn && person.skillsToLearn.length > 0 && (
-              <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
+              <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
                 <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>
                   {t('What I\'m Learning')}
                 </div>
@@ -248,7 +419,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
 
             {memberships && memberships.length > 0
               ? (
-                <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
+                <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
                   <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Hylo Groups')}</div>
                   <div
                     ref={groupsRef}
@@ -271,7 +442,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                     )}
                   </div>
                 </div>)
-              : (
+              : (!isPublicView && (
                 <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 text-center'>
                   <div className='text-sm bg-midground text-foreground/50 absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Hylo Groups')}</div>
                   <p className='text-foreground/50 mb-3'>{t('Find groups to join and collaborate with others')}</p>
@@ -282,30 +453,17 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                     <Icon name='Groups' className='mr-2' />
                     {t('Explore Groups')}
                   </button>
-                </div>)}
-            {roles.length > 0 && (
-              <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-6'>
-                <div className='bg-midground text-foreground/50 text-sm absolute -top-2.5 left-1/2 uppercase -translate-x-1/2 px-2 text-center'>{t('Roles in {{group}}', { group: group.name })}</div>
-                <div className='flex flex-row flex-wrap items-center w-full relative gap-2 justify-center'>
-                  {roles.map(role => (
-                    <div key={role.id + role.common} className='flex flex-row p-2 bg-background rounded-lg items-center justify-center gap-2'>
-                      <BadgeEmoji expanded {...role} responsibilities={role.responsibilities} id={person.id} />
-                      <div className='text-sm text-foreground/50'>{role.name}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                </div>))}
             {affiliations && affiliations.length > 0
               ? (
-                <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-6 items-center justify-center'>
+                <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-6 items-center justify-center'>
                   <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Other Affiliations')}</div>
                   <div className='flex flex-row flex-wrap items-center w-full relative gap-2'>
                     {affiliations.map((a, index) => <Affiliation key={a.id} index={index} affiliation={a} />)}
                   </div>
                 </div>)
               : (currentUser && currentUser.id === personId && (
-                <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 text-center'>
+                <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 text-center'>
                   <div className='sm:text-base text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Other Affiliations')}</div>
                   <p className='text-foreground/50 mb-3'>{t('Add your affiliations')}</p>
                   <button
@@ -317,26 +475,81 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                   </button>
                 </div>))}
 
-            {events && events.length > 0 && <div className='uppercase text-foreground/60 text-xs pt-3 mt-3 mb-3 first-of-type:mt-0 first-of-type:border-t-0'>{t('Upcoming Events')}</div>}
-            {events && events.length > 0 && events.map((e, index) => <Event key={index} memberCap={3} event={e} routeParams={routeParams} />)}
+            {events && events.length > 0 && (
+              <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
+                <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Upcoming Events')}</div>
+                <div
+                  ref={eventsRef}
+                  className='flex flex-col w-full overflow-hidden relative gap-2'
+                  style={{
+                    maxHeight: showAllEvents ? 'none' : `${EVENTS_DIV_HEIGHT}px`,
+                    paddingBottom: showAllEvents ? '60px' : '0px'
+                  }}
+                >
+                  {events.map((e, index) => <Event key={e.id || index} memberCap={3} event={e} routeParams={routeParams} />)}
+                  {showExpandEventsButton && (
+                    <div>
+                      <button
+                        onClick={toggleShowAllEvents}
+                        className='focus:text-foreground absolute bottom-0 left-1/2 -translate-x-1/2 text-sm border-2 border-foreground/20 z-10 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex w-[200px] align-items justify-center mx-auto shadow-lg'
+                      >
+                        {showAllEvents ? t('Show Less') : t('Show more')}
+                      </button>
+                      <div className='w-full h-[60px] bg-gradient-to-t from-midground to-transparent absolute bottom-0 left-0 z-0' />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-            {projects && projects.length > 0 && <div className='uppercase text-foreground/60 text-xs pt-3 mt-3 mb-3 first-of-type:mt-0 first-of-type:border-t-0'>{t('Projects')}</div>}
-            {projects && projects.length > 0 && projects.map((p, index) => <Project key={index} memberCap={3} project={p} routeParams={routeParams} />)}
+            {projects && projects.length > 0 && (
+              <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
+                <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Projects')}</div>
+                <div
+                  ref={projectsRef}
+                  className='flex flex-col w-full overflow-hidden relative gap-2'
+                  style={{
+                    maxHeight: showAllProjects ? 'none' : `${PROJECTS_DIV_HEIGHT}px`,
+                    paddingBottom: showAllProjects ? '60px' : '0px'
+                  }}
+                >
+                  {projects.map((p, index) => <Project key={p.id || index} memberCap={3} project={p} routeParams={routeParams} />)}
+                  {showExpandProjectsButton && (
+                    <div>
+                      <button
+                        onClick={toggleShowAllProjects}
+                        className='focus:text-foreground absolute bottom-0 left-1/2 -translate-x-1/2 text-sm border-2 border-foreground/20 z-10 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex w-[200px] align-items justify-center mx-auto shadow-lg'
+                      >
+                        {showAllProjects ? t('Show Less') : t('Show more')}
+                      </button>
+                      <div className='w-full h-[60px] bg-gradient-to-t from-midground to-transparent absolute bottom-0 left-0 z-0' />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className='flex flex-col align-items-center max-w-[720px] w-full'>
-          <div className='flex flex-row items-center justify-between w-full'>
-            <h2 className='text-sm sm:text-base'>{currentContentTitle}</h2>
-            <Dropdown
-              id='member-profile-content-dropdown'
-              items={contentDropDownItems}
-              toggleChildren={
-                <button className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2'>
-                  {currentTabState} <Icon className='text-foreground' name='ArrowDown' />
-                </button>
-              }
-            />
-          </div>
+          {isPublicView && memberPosts?.length > 0 && (
+            <h2 className='text-sm sm:text-base mb-2'>{t('{{name}}\'s public posts', { name: person.name })}</h2>
+          )}
+          {!isPublicView && (
+            <div className='flex flex-row items-center justify-between w-full'>
+              <h2 className='text-sm sm:text-base'>{currentContentTitle}</h2>
+              {contentDropDownItems.length > 1 && (
+                <Dropdown
+                  id='member-profile-content-dropdown'
+                  items={contentDropDownItems}
+                  toggleChildren={
+                    <button className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2'>
+                      {currentTabState} <Icon className='text-foreground' name='ArrowDown' />
+                    </button>
+                  }
+                />
+              )}
+            </div>
+          )}
           <CurrentContentComponent routeParams={routeParams} loading={contentLoading} />
         </div>
       </div>
@@ -369,8 +582,22 @@ function ActionTooltip ({ content, hideCopyTip, onClick }) {
 }
 
 function ActionButtons ({ items }) {
+  const buttonClassName = 'shadow-lg relative text-base border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground flex items-center justify-center'
+
   return items.map((actionIconItem, index) => {
-    const { iconName, value, onClick, hideCopyTip } = actionIconItem
+    const { iconName, value, onClick, hideCopyTip, placeholder } = actionIconItem
+
+    if (placeholder) {
+      return (
+        <div
+          key={index}
+          className={cn(buttonClassName, 'invisible pointer-events-none')}
+          aria-hidden='true'
+        >
+          <Icon name={iconName} />
+        </div>
+      )
+    }
 
     if (!value) return null
 
@@ -379,7 +606,7 @@ function ActionButtons ({ items }) {
     return (
       <React.Fragment key={index}>
         <button
-          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
+          className={cn(buttonClassName, 'focus:text-foreground hover:border-foreground/50 hover:text-foreground transition-all scale-100 hover:scale-105')}
           onClick={onClick}
           data-tooltip-id={tooltipId}
           data-tooltip-content={value}
@@ -403,7 +630,20 @@ function ActionButtons ({ items }) {
   })
 }
 
-function ActionDropdown ({ items }) {
+function ActionDropdown ({ items, placeholder }) {
+  const toggleClassName = 'shadow-lg relative text-base border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground flex items-center justify-center'
+
+  if (placeholder) {
+    return (
+      <div
+        className={cn(toggleClassName, 'invisible pointer-events-none')}
+        aria-hidden='true'
+      >
+        <Icon className='-mt-[3px] mb-[3px]' name='More' />
+      </div>
+    )
+  }
+
   const activeItems = filter(items, item =>
     isFunction(item.onClick) && !item.hide)
 
@@ -414,7 +654,7 @@ function ActionDropdown ({ items }) {
       items={activeItems}
       toggleChildren={
         <button
-          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
+          className={cn(toggleClassName, 'focus:text-foreground hover:border-foreground/50 hover:text-foreground transition-all scale-100 hover:scale-105')}
         >
           <Icon className='-mt-[3px] mb-[3px]' name='More' />
         </button>
@@ -426,7 +666,7 @@ function Project ({ memberCap, project }) {
   const { title, createdAt, creator, members } = project
   const viewPostDetails = useViewPostDetails()
   return (
-    <div className='bg-background border border-foreground/10 shadow-sm rounded-md cursor-pointer flex items-center justify-between min-h-[60px] p-2 px-3 my-2 mx-auto hover:border-foreground/30 transition-colors' onClick={() => viewPostDetails(project)}>
+    <div className='bg-background border border-foreground/10 shadow-sm rounded-md cursor-pointer flex items-center justify-between min-h-[60px] p-2 px-3 w-full hover:border-foreground/30 transition-colors' onClick={() => viewPostDetails(project)}>
       <div>
         <div className='font-bold text-sm leading-[18px] text-foreground'>{title} </div>
         <div className='text-sm leading-[18px] text-foreground/50'>{creator.name} - {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toRelative()} </div>
@@ -440,7 +680,7 @@ function Event ({ memberCap, event }) {
   const { location, eventInvitations, startTime, title } = event
   const viewPostDetails = useViewPostDetails()
   return (
-    <div className='bg-background border border-foreground/10 shadow-sm rounded-md cursor-pointer flex items-center justify-start pr-3 my-2 mx-auto hover:border-foreground/30 transition-colors' onClick={() => viewPostDetails(event)}>
+    <div className='bg-background border border-foreground/10 shadow-sm rounded-md cursor-pointer flex items-center justify-start pr-3 w-full hover:border-foreground/30 transition-colors' onClick={() => viewPostDetails(event)}>
       <div className='bg-[rgba(254,72,80,0.5)] text-white rounded-l-md py-1 px-2 text-center uppercase min-w-[50px]'>
         <div className='text-sm'>{DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).toFormat('MMM')}</div>
         <div className='text-[28px] leading-[23px]'>{DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).toFormat('dd')}</div>

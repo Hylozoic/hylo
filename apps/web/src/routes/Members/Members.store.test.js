@@ -11,14 +11,16 @@ describe('getMemberQueryProps', () => {
       sortBy: 'name',
       order: 'asc',
       search: undefined,
-      groupRoleId: null
+      groupRoleIds: null,
+      trackCompleted: null,
+      fundingRoundCapability: null
     }
 
     const lookupProps = getMemberQueryProps({
       slug: 'building-hylo',
       sortBy: 'name',
       search: undefined,
-      groupRoleId: null
+      groupRoleIds: null
     })
 
     const storeParams = getMemberQueryProps(variables)
@@ -26,7 +28,10 @@ describe('getMemberQueryProps', () => {
     expect(lookupProps).toEqual({
       slug: 'building-hylo',
       sortBy: 'name',
-      groupRoleId: null,
+      groupRoleIds: null,
+      trackCompleted: null,
+      fundingRoundCapability: null,
+      highlightMemberId: null,
       order: 'asc'
     })
     expect(storeParams).toEqual(lookupProps)
@@ -35,5 +40,15 @@ describe('getMemberQueryProps', () => {
 
   it('uses desc order for join date sort', () => {
     expect(getMemberQueryProps({ slug: 'foo', sortBy: 'join' }).order).toBe('desc')
+  })
+
+  it('keeps a boolean trackCompleted filter in the cache key', () => {
+    expect(getMemberQueryProps({ slug: 'foo', trackCompleted: true }).trackCompleted).toBe(true)
+    expect(getMemberQueryProps({ slug: 'foo', trackCompleted: false }).trackCompleted).toBe(false)
+  })
+
+  it('keeps a fundingRoundCapability filter in the cache key', () => {
+    expect(getMemberQueryProps({ slug: 'foo', fundingRoundCapability: 'submit' }).fundingRoundCapability).toBe('submit')
+    expect(getMemberQueryProps({ slug: 'foo', fundingRoundCapability: 'notSubmit' }).fundingRoundCapability).toBe('notSubmit')
   })
 })

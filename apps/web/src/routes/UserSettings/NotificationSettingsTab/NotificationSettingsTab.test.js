@@ -41,6 +41,8 @@ describe('NotificationSettingsTab', () => {
     expect(screen.getByText('Global notifications')).toBeInTheDocument()
     expect(screen.getByText('Default group notifications')).toBeInTheDocument()
     expect(screen.getByText('Messages')).toBeInTheDocument()
+    expect(screen.getByText('Unified email digest')).toBeInTheDocument()
+    expect(screen.getByTestId('unified-email-digest')).toBeInTheDocument()
   })
 })
 
@@ -54,8 +56,7 @@ describe('MembershipSettingsRow', () => {
           group: {
             id: '1',
             name: 'Foomunity',
-            avatarUrl: 'foo.png',
-            chatRooms: { toModelArray: () => [] }
+            avatarUrl: 'foo.png'
           }
         }}
         updateMembershipSettings={() => {}}

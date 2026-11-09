@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { createPostUrl } from '@hylo/navigation'
-import CreateModal from 'components/CreateModal'
 import Loading from 'components/Loading'
 import PostDialog from 'components/PostDialog'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
@@ -20,7 +19,7 @@ import {
   doPhaseTransition,
   needsPhaseTransition
 } from 'routes/FundingRounds/FundingRounds.store'
-import { RESP_MANAGE_SPACES } from 'store/constants'
+import { RESP_ADMINISTRATION } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getFundingRound from 'store/selectors/getFundingRound'
@@ -35,6 +34,10 @@ import { seededShuffle } from 'util/seededRandom'
 import RoundPhaseStatus from './RoundPhaseStatus'
 import SubmissionCard from './SubmissionCard'
 import { getRoundPhaseMeta } from './phaseUtils'
+
+// Stable reference for the no-round branch below — a fresh [] each call reads as a
+// changed selection and rerenders on every store event.
+const EMPTY_POSTS = []
 
 const getPosts = ormCreateSelector(
   orm,
@@ -70,7 +73,7 @@ export default function FundingRoundSubmissionsView () {
   })
   const roundId = round?.id || group?.fundingRound?.id
   const roleGroupId = group?.parentId || parentGroup?.id || group?.id
-  const canManageRound = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_SPACES, groupId: roleGroupId }))
+  const canManageRound = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: roleGroupId }))
   const isLoadingRound = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND, state))
   const isLoadingSubmissions = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND_SUBMISSIONS, state))
   const [localVoteAmounts, setLocalVoteAmounts] = React.useState({})
@@ -102,7 +105,7 @@ export default function FundingRoundSubmissionsView () {
     }
   }, [
     round?.phase,
-    round?.publishedAt,
+    round?.phase,
     round?.submissionsOpenAt,
     round?.submissionsCloseAt,
     round?.votingOpensAt,
@@ -122,11 +125,14 @@ export default function FundingRoundSubmissionsView () {
 
   const { currentPhase } = getRoundPhaseMeta(round || {})
   const shouldSortByTokens = currentPhase === 'completed' && (!round?.hideFinalResultsFromParticipants || canManageRound)
-  const posts = useSelector(state => round ? getPosts(state, round, shouldSortByTokens) : [])
+  const posts = useSelector(state => round ? getPosts(state, round, shouldSortByTokens) : EMPTY_POSTS)
 
   const postsForDisplay = useMemo(() => {
     if (!round) return []
-    let filtered = ['voting', 'discussion', 'completed'].includes(currentPhase) || canManageRound
+    const showAllSubmissions = canManageRound ||
+      ['voting', 'discussion', 'completed'].includes(currentPhase) ||
+      (currentPhase === 'submissions' && !!round.showRealtimeSubmissions)
+    let filtered = showAllSubmissions
       ? posts
       : posts.filter(post => parseInt(post.creator.id) === parseInt(currentUser.id))
 
@@ -138,7 +144,7 @@ export default function FundingRoundSubmissionsView () {
     }
 
     return filtered
-  }, [canManageRound, posts, currentPhase, currentUser?.id, round?.hideFinalResultsFromParticipants])
+  }, [canManageRound, posts, currentPhase, currentUser?.id, round?.hideFinalResultsFromParticipants, round?.showRealtimeSubmissions])
 
   const allocationsBySubmission = useMemo(() => {
     const map = {}
@@ -248,7 +254,6 @@ export default function FundingRoundSubmissionsView () {
           ))}
         </div>
         <Routes>
-          {['submissions', 'discussion'].includes(currentPhase) && <Route path='post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />}
           <Route path='post/:postId' element={<PostDialog />} />
         </Routes>
       </div>

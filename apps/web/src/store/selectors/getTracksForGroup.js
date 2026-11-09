@@ -11,7 +11,7 @@ const getTracksForGroup = ormCreateSelector(
     const seen = new Set()
     return group.tracks.toModelArray()
       .filter(t => { if (seen.has(t.id)) return false; seen.add(t.id); return true })
-      .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
+      .sort((a, b) => (a.space?.name || '').localeCompare(b.space?.name || ''))
   }
 )
 

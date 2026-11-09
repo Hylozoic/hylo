@@ -16,6 +16,7 @@ export default gql`
       url
       tagline
       location
+      isProfilePublic
       locationObject {
         id
         addressNumber
@@ -85,6 +86,8 @@ export default gql`
           slug
           avatarUrl
           memberCount
+          type
+          parentId
         }
         person {
           id
@@ -106,6 +109,14 @@ export default gql`
         }
       }
       skills (first: 100) {
+        total
+        hasMore
+        items {
+          id
+          name
+        }
+      }
+      skillsToLearn (first: 100) {
         total
         hasMore
         items {

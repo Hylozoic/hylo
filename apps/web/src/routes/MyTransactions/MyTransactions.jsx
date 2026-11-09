@@ -20,6 +20,7 @@ import {
   SelectValue
 } from 'components/ui/select'
 import { cn } from 'util/index'
+import { formatLocalizedDate } from 'util/dateFormat'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchMyTransactions from 'store/actions/fetchMyTransactions'
 import { membershipChangeDefersToPeriodEnd } from 'util/membershipChangeModes'
@@ -43,12 +44,7 @@ const filterSelectTriggerClassName = cn(
  * Formats a date for display
  */
 function formatDate (date) {
-  if (!date) return null
-  return new Date(date).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+  return formatLocalizedDate(date, { style: 'medium' })
 }
 
 /**

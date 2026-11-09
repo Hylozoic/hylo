@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import * as LayoutFlagsContext from 'contexts/LayoutFlagsContext'
-import MapDrawer, { TabBar } from './MapDrawer'
+import MapDrawer from './MapDrawer'
 
 const defaultMinProps = {
   context: 'groups',
@@ -27,8 +27,9 @@ describe('MapDrawer', () => {
   it('renders correctly with minimum props', () => {
     render(<MapDrawer {...defaultMinProps} />)
     expect(screen.getByPlaceholderText('Filter by topics and keywords')).toBeInTheDocument()
-    expect(screen.getByText('Posts')).toBeInTheDocument()
-    expect(screen.getByText('Groups')).toBeInTheDocument()
+    // The result-type tabs live in one lens dropdown now, defaulting to All
+    expect(screen.getByTestId('map-lens-dropdown')).toHaveTextContent('All')
+    expect(screen.getByTestId('map-drawer-close')).toBeInTheDocument()
   })
 
   it('renders correctly with lots of content', () => {
@@ -38,7 +39,7 @@ describe('MapDrawer', () => {
         { id: 1, slug: 'slug2', name: 'group one', avatarUrl: 'https://google.com', description: 'yo', memberCount: 1 }
       ],
       members: [
-        { id: 2, name: 'hello' }
+        { id: '2', name: 'hello' }
       ],
       posts: [
         { id: 1, title: 'Post', type: 'request', groups: [{ id: 1, name: 'group one', slug: 'slug2' }] }
@@ -46,11 +47,31 @@ describe('MapDrawer', () => {
       filters: { sortBy: 'created', search: 'hello', topics: [{ id: 1, name: 'food' }] }
     }
     render(<MapDrawer {...props} />)
+    // The default All lens shows posts, groups and people together
     expect(screen.getByText('Post')).toBeInTheDocument()
     expect(screen.getByText('#food')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByText('Groups'))
     expect(screen.getByText('group one')).toBeInTheDocument()
+    expect(screen.getByText('hello')).toBeInTheDocument()
+  })
+
+  it('shows a space avatar in the drawer', () => {
+    render(
+      <MapDrawer
+        {...defaultMinProps}
+        group={{ id: 9, slug: 'river' }}
+        groups={[{
+          id: 2,
+          slug: 'oak-park',
+          name: 'Oak Park',
+          type: 'space',
+          avatarUrl: 'https://example.com/oak.jpg',
+          parentGroup: { id: 9, slug: 'river' }
+        }]}
+      />
+    )
+
+    const row = screen.getByRole('link', { name: /Oak Park/ })
+    expect(row.querySelector('div').style.backgroundImage).toContain('oak.jpg')
   })
 
   it('updates filters when searching', () => {
@@ -63,19 +84,5 @@ describe('MapDrawer', () => {
     fireEvent.keyUp(searchBox, { key: 'Enter', code: 'Enter', keyCode: 13 })
 
     expect(onUpdateFilters).toHaveBeenCalledWith({ search: 'search' })
-  })
-})
-
-describe('TabBar', () => {
-  it('renders tabs and handles tab selection', () => {
-    const tabs = { Posts: 1, Groups: 2 }
-    const selectTab = jest.fn()
-    render(<TabBar currentTab='Posts' selectTab={selectTab} tabs={tabs} />)
-
-    expect(screen.getByText('Posts').closest('li')).toHaveClass('bg-midground/100')
-    expect(screen.getByText('Groups').closest('li')).not.toHaveClass('bg-midground/100')
-
-    fireEvent.click(screen.getByText('Groups'))
-    expect(selectTab).toHaveBeenCalledWith('Groups')
   })
 })

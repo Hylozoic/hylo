@@ -5,6 +5,15 @@ import { PassThrough } from 'stream'
 import mime from 'mime'
 import sanitize from 'sanitize-filename'
 
+// Avatar/banner uploads intentionally overwrite the previous file at the same path.
+const OVERWRITE_UPLOAD_TYPES = new Set([
+  'userAvatar',
+  'userBanner',
+  'groupAvatar',
+  'groupBanner',
+  'communityAvatar'
+])
+
 export function safeBasename (url = '') {
   url = url.replace(/\?.*$/, '')
   const name = sanitize(path.basename(url))
@@ -13,6 +22,14 @@ export function safeBasename (url = '') {
     return `${Date.now()}_${rand}`
   }
   return name
+}
+
+/** Append a timestamp and random suffix so repeated uploads never share the same S3 key. */
+export function uniqueBasename (basename) {
+  const ext = path.extname(basename)
+  const stem = ext ? basename.slice(0, -ext.length) : basename
+  const suffix = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+  return ext ? `${stem}_${suffix}${ext}` : `${stem}_${suffix}`
 }
 
 export function createS3StorageStream (uploadType, id, { userId, fileType, filename }) {
@@ -117,6 +134,10 @@ export function makePath (type, id, { userId, fileType, filename }) {
   let basename = safeBasename(filename)
   if (fileType) {
     basename = basename.replace(/(\.\w{2,4})?$/, '.' + fileType.ext)
+  }
+
+  if (!OVERWRITE_UPLOAD_TYPES.has(type)) {
+    basename = uniqueBasename(basename)
   }
 
   return path.join(

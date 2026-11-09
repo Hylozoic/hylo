@@ -18,6 +18,7 @@ export default gql`
           showSuggestedSkills
           showWelcomePage
           layout
+          autoAddMembers
         }
         slug
       }

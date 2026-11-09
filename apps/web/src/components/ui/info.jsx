@@ -27,7 +27,7 @@ export default function InfoButton ({ className, content }) {
       >
         <Info className={cn('w-4 h-4 inline-block', className)} />
       </TooltipTrigger>
-      <TooltipContent>
+      <TooltipContent className='z-[1200]'>
         {content}
       </TooltipContent>
     </Tooltip>

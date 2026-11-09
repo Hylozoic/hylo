@@ -4,6 +4,8 @@ import { ChevronLeft } from 'lucide-react'
 import React, { useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import useTour from 'tours/useTour'
+import { GROUP_SETTINGS_TOUR_ID, groupSettingsTourSteps } from 'tours/groupSettingsTour'
 import { useSelector, useDispatch } from 'react-redux'
 
 import { groupUrl } from '@hylo/navigation'
@@ -12,6 +14,7 @@ import MenuLink from './MenuLink'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { GROUP_TYPES } from 'store/models/Group'
 import { cn } from 'util/index'
 
 /** Settings overlay for the ContextMenu panel. Accepts groupSlug directly (no context required). */
@@ -25,6 +28,7 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
 
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
+  const isSpace = group?.type === GROUP_TYPES.space || !!group?.parentId
 
   // XXX: hacky way to track the view we were at before opening the settings menu. also see locationHistory.js
   const previousLocation = useSelector(state => get('locationHistory.currentLocation', state))
@@ -39,20 +43,29 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
 
   const phoneLayout = isPhoneDevice()
 
+  // First-open orientation tour over the settings sections, offered by invitation
+  const settingsTourStepList = useMemo(() => groupSettingsTourSteps(t), [t])
+  const { invitation: settingsTourInvitation } = useTour({
+    id: GROUP_SETTINGS_TOUR_ID,
+    steps: settingsTourStepList,
+    autoStart: true,
+    inviteMessage: t('First time in group settings? Take a quick tour.')
+  })
+
   const settingsMenuItems = useMemo(() => [
     canAdminister && { title: 'Group Details', url: 'settings' },
     canAdminister && { title: 'Agreements', url: 'settings/agreements' },
     canAdminister && { title: 'Responsibilities', url: 'settings/responsibilities' },
     canAdminister && { title: 'Roles & Badges', url: 'settings/roles' },
     canAdminister && { title: 'Privacy & Access', url: 'settings/privacy' },
-    canAddMembers && { title: 'Invitations', url: 'settings/invite' },
-    canAddMembers && { title: 'Join Requests', url: 'settings/requests' },
+    canAddMembers && !isSpace && { title: 'Invitations', url: 'settings/invite' },
+    canAddMembers && { title: 'Join Requests', url: isSpace ? 'requests' : 'settings/requests' },
     canAdminister && { title: 'Related Groups', url: 'settings/relationships' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
     canAdminister && { title: 'Appearance & Layout', url: 'settings/appearance' },
     canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
-  ].filter(Boolean), [canAdminister, canAddMembers])
+  ].filter(Boolean), [canAdminister, canAddMembers, isSpace])
 
   return (
     <div
@@ -69,11 +82,12 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
           phoneLayout ? (isOneColumn ? 'left-0' : 'left-14') : 'left-0'
         )}
       >
+        {settingsTourInvitation}
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}
         </h3>
-        <ul className='flex flex-col gap-2 p-0'>
+        <ul className='flex flex-col gap-2 p-0' data-tour='settings-nav'>
           {settingsMenuItems.map(item => {
             const itemPath = groupUrl(slug, item.url)
             // Group Details uses the /settings prefix shared by all tabs, so only match exactly
@@ -86,6 +100,7 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
                 <MenuLink
                   to={itemPath}
                   isActive={isActive}
+                  data-tour={'settings-nav-' + item.url.split('/').pop()}
                   className={cn(
                     'text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100',
                     { 'border-secondary': isActive }

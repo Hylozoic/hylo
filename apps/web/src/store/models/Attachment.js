@@ -18,5 +18,6 @@ Attachment.fields = {
   thumbnailUrl: attr(),
   post: fk('Post', 'attachments'),
   comment: fk('Comment', 'attachments'),
+  message: fk('Message', 'attachments'),
   createdAt: attr()
 }

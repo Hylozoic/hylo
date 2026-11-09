@@ -58,9 +58,15 @@ class TagInput extends Component {
 
     this.input = React.createRef()
     this.list = React.createRef()
+    this.blurTimeout = null
   }
 
   input = React.createRef()
+
+  componentWillUnmount () {
+    if (this.blurTimeout) clearTimeout(this.blurTimeout)
+  }
+
   focus = () => {
     if (this.input.current && !this.props.readOnly) {
       this.input.current.focus()
@@ -102,6 +108,7 @@ class TagInput extends Component {
   }
 
   select = choice => {
+    if (this.blurTimeout) clearTimeout(this.blurTimeout)
     this.props.handleAddition(choice)
     this.resetInput()
   }
@@ -119,14 +126,18 @@ class TagInput extends Component {
   }
 
   handleFocus = (e) => {
+    if (this.blurTimeout) clearTimeout(this.blurTimeout)
     this.handleChange('')
     this.props.onFocus?.(e) // Propagate focus up
   }
 
   handleBlur = (e) => {
-    this.input.current.value = ''
-    this.handleChange(null)
-    this.props.onBlur?.(e) // Propagate blur up
+    // Delay so a suggestion click can add the tag before the list unmounts
+    this.blurTimeout = setTimeout(() => {
+      if (this.input.current) this.input.current.value = ''
+      this.handleChange(null)
+      this.props.onBlur?.(e)
+    }, 150)
   }
 
   handleChange = debounce(value => {
@@ -150,18 +161,18 @@ class TagInput extends Component {
         : null
 
       return (
-        <li key={t.id} className='inline-flex items-center relative mr-2'>
+        <li key={t.id} className='inline-flex items-center relative pr-2 min-w-0 max-w-full'>
           {t.avatarUrl && <RoundImage url={t.avatarUrl} small className={theme.selectedTagImage} />}
           <span className={cn('text-foreground', { 'inline-flex min-w-0 items-center gap-1.5': t.isSpace })}>
             {t.isSpace
               ? (
                 <>
-                  <span className='truncate'>{parentName}</span>
+                  <span className='truncate min-w-0'>{parentName}</span>
                   <span className='text-foreground/50 shrink-0'>/</span>
                   {t.icon && (
                     <LucideIcon name={t.icon} className='h-3.5 w-3.5 shrink-0' />
                   )}
-                  <span className='truncate'>{spaceName}</span>
+                  <span className='truncate min-w-0'>{spaceName}</span>
                 </>
                 )
               : (
@@ -226,7 +237,10 @@ class TagInput extends Component {
               />
             </div>
             {!isEmpty(suggestionsOrError) &&
-              <div className='TagInput-suggestions absolute top-full left-0 w-full z-10'>
+              <div
+                className='TagInput-suggestions absolute top-full left-0 w-full z-10'
+                onMouseDown={event => event.preventDefault()}
+              >
                 <KeyControlledItemList
                   items={suggestionsOrError}
                   tagType={tagType}

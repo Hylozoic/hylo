@@ -4,7 +4,8 @@ const {
   extractOfferingPresentationFields,
   mergeAccessGrantsForPresentation,
   getBuyButtonTextFromOffering,
-  getSlidingScaleFromOffering
+  getSlidingScaleFromOffering,
+  plainTextOfferingDescription
 } = require('../../../lib/stripeOfferingMetadata')
 
 function mockProduct (attrs) {
@@ -60,6 +61,18 @@ describe('stripeOfferingMetadata', () => {
         metadata: { slidingScale: { enabled: true, minimum: 9 } }
       })
       expect(getSlidingScaleFromOffering(p).minimum).to.equal(9)
+    })
+  })
+
+  describe('plainTextOfferingDescription', () => {
+    it('strips empty editor html', () => {
+      expect(plainTextOfferingDescription('<p></p>')).to.equal('')
+    })
+    it('converts html to plain text', () => {
+      expect(plainTextOfferingDescription('<p>Hello <strong>world</strong></p>')).to.equal('Hello world')
+    })
+    it('decodes common entities', () => {
+      expect(plainTextOfferingDescription('<p>A &amp; B</p>')).to.equal('A & B')
     })
   })
 

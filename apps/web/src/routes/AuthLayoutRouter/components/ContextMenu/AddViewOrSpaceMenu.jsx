@@ -17,7 +17,7 @@ import { AddCard } from './GroupViewCard'
  * keeps the dashed add affordance that menu already used, now as one control
  * instead of a separate button per kind.
  */
-export const AddViewOrSpaceButton = React.forwardRef(({ className, ...props }, ref) => {
+export const AddViewOrSpaceButton = React.forwardRef(({ className, label, ...props }, ref) => {
   const { t } = useTranslation()
   return (
     <button
@@ -30,7 +30,7 @@ export const AddViewOrSpaceButton = React.forwardRef(({ className, ...props }, r
       {...props}
     >
       <Plus className='w-4 h-4' />
-      <span>{t('Add')}</span>
+      <span>{label || t('Add')}</span>
     </button>
   )
 })
@@ -44,18 +44,18 @@ AddViewOrSpaceButton.displayName = 'AddViewOrSpaceButton'
  * Each option carries a line explaining what it is, because the view/space
  * distinction is the part people get wrong.
  */
-export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAddSpace = true, trigger }) {
+export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAddSpace = true, trigger, label }) {
   const { t } = useTranslation()
 
   const options = [
-    {
+    onChooseView && {
       key: 'view',
       Icon: LayoutGrid,
       title: t('Add View'),
       description: t('Show your group\'s content - activity streams, curated lists, links and other ways to surface what should be seen.'),
       onChoose: onChooseView
     },
-    canAddSpace && {
+    canAddSpace && onChooseSpace && {
       key: 'space',
       Icon: Layers,
       title: t('Add Space'),
@@ -65,17 +65,19 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
   ].filter(Boolean)
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        {trigger || <AddCard label={t('Add')} />}
+        {trigger || <AddCard label={label || t('Add')} />}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         // Above the trigger: the Add control sits at the foot of these menus, so a
         // downward menu lands under the editing bar or off the bottom of the screen
         side='top'
         align='start'
+        // The mobile drawer is z-[101]; default menu content is z-50 and opens
+        // behind it. modal={false} keeps the same tap from dismissing instantly.
         className={cn(
-          'max-w-[calc(100vw-2rem)] p-1',
+          'z-[200] max-w-[calc(100vw-2rem)] p-1',
           // In the drill-down menu the trigger is a full-width row, so the menu
           // matches it rather than jutting out past the control that opened it.
           // The card-grid trigger is card-sized, where a fixed width reads better.
@@ -86,7 +88,8 @@ export default function AddViewOrSpaceMenu ({ onChooseView, onChooseSpace, canAd
           <DropdownMenuItem
             key={key}
             onSelect={onChoose}
-            className='flex items-start gap-2.5 p-2.5 cursor-pointer'
+            // Same hover wash as the global + create menu's rows
+            className='flex items-start gap-2.5 p-2.5 cursor-pointer rounded-lg focus:bg-foreground/10 focus:text-foreground'
           >
             <Icon className='w-4 h-4 shrink-0 mt-0.5 text-foreground/70' />
             <span className='flex flex-col gap-0.5 min-w-0'>

@@ -1,6 +1,7 @@
 import { GraphQLError } from 'graphql'
 import GroupService from '../../services/GroupService'
 import InvitationService from '../../services/InvitationService'
+import { joinSpace } from './spaces'
 import convertGraphqlData from './convertGraphqlData'
 import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
 import {
@@ -79,7 +80,9 @@ export async function deleteGroupRelationship (userId, parentId, childId, contex
 
 /**
  * Join a group. For Open groups, anyone can join directly.
- * For Restricted or Closed groups, a valid accessCode or invitationToken is required (pre-approved).
+ * For Restricted or Closed groups, a valid accessCode that grants access, or an
+ * invitationToken, is required (pre-approved). A link that does not grant
+ * access only lets the person see the group.
  * @param groupId {string} the group to join
  * @param userId {string} the user joining
  * @param questionAnswers {array} answers to join questions
@@ -94,15 +97,20 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLError(`Group id ${groupId} not found`)
 
-  // Check if user has a valid invitation for pre-approved join
-  let hasValidInvitation = false
+  // Check if user has a valid invitation for pre-approved join. A space invite
+  // also authorizes joining that space's parent group.
+  let inviteCheck = null
   if (accessCode || invitationToken) {
-    const inviteCheck = await InvitationService.check(invitationToken, accessCode)
-    // Validate the invitation is for this specific group
-    if (inviteCheck?.valid && inviteCheck?.groupSlug === group.get('slug')) {
-      hasValidInvitation = true
-    }
+    inviteCheck = await InvitationService.check(invitationToken, accessCode)
   }
+  const checkedInvitation = inviteCheck?.valid && !accessCode ? await Invitation.find(invitationToken) : null
+  const inviteApproves = !!inviteCheck?.valid && (
+    (!!accessCode && inviteCheck.grantAccess) ||
+    (!accessCode && await InvitationService.preApproves(checkedInvitation, group))
+  )
+  const inviteIsForThisGroup = inviteApproves && inviteCheck.groupSlug === group.get('slug')
+  const inviteIsForChildSpace = inviteApproves && inviteCheck.parentGroupSlug === group.get('slug')
+  const hasValidInvitation = inviteIsForThisGroup || inviteIsForChildSpace
 
   // For non-Open groups, require a valid invitation
   if (group.get('accessibility') !== Group.Accessibility.OPEN && !hasValidInvitation) {
@@ -119,18 +127,32 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
     }
   })
 
+  const wasMember = !!(await GroupMembership.forPair(userId, group.id).fetch())
   const membership = await user.joinGroup(group, { questionAnswers, fromInvitation: hasValidInvitation })
+  if (accessCode && inviteCheck?.grantAccess && inviteIsForThisGroup && !wasMember) {
+    const link = await GroupInviteLink.findActiveByCode(accessCode)
+    if (link && String(link.get('group_id')) === String(group.id)) {
+      await GroupInviteLink.recordJoin(link, userId)
+    }
+  }
 
-  // Record agreement acceptance if user accepted agreements during join flow
+  // Record agreement acceptance if user accepted agreements during join flow.
+  // Keep showJoinForm true so the Welcome/purpose modal still shows, but mark
+  // join questions complete so that modal does not re-ask barriers already done.
   if (acceptAgreements && membership) {
-    await membership.acceptAgreements()
+    await membership.completeJoinBarriers()
   }
 
   // Token invitations can attach a group role (e.g. Host). joinGroup marks invites used by
   // email but does not assign roles — invitation.use() handles role assignment.
-  if (invitationToken && hasValidInvitation) {
-    const invitation = await Invitation.find(invitationToken)
-    if (invitation) {
+  // A space invite also joins that space (view unread rows included via joinSpace).
+  // A member invitation is only used here for the group just joined: using it
+  // joins its own group, which may need approval.
+  if (inviteIsForChildSpace && inviteCheck.groupId) {
+    await joinSpace(userId, inviteCheck.groupId, accessCode, invitationToken)
+  } else if (invitationToken && hasValidInvitation) {
+    const invitation = checkedInvitation || await Invitation.find(invitationToken)
+    if (invitation && String(invitation.get('group_id')) === String(group.id)) {
       await invitation.use(userId)
     }
   }
@@ -140,10 +162,34 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   return membership
 }
 
-export async function regenerateAccessCode (userId, groupId) {
-  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADD_MEMBERS)
-  const code = await Group.getNewAccessCode()
-  return group.save({ access_code: code }, { patch: true }) // eslint-disable-line camelcase
+export async function createGroupInviteLink (userId, groupId, data) {
+  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+  return GroupInviteLink.createForGroup(group.id, {
+    userId,
+    accessCode: data.accessCode,
+    name: data.name,
+    grantAccess: data.grantAccess,
+    grantedRoleIds: data.grantedRoleIds
+  })
+}
+
+export async function updateGroupInviteLink (userId, id, data) {
+  const link = await GroupInviteLink.where({ id }).fetch({ require: false })
+  if (!link || link.get('deleted_at')) throw new GraphQLError('Invite link not found')
+  await getStewardedGroup(userId, link.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
+  return GroupInviteLink.updateLink(link, {
+    name: data.name,
+    grantAccess: data.grantAccess,
+    grantedRoleIds: data.grantedRoleIds
+  })
+}
+
+export async function deleteGroupInviteLink (userId, id) {
+  const link = await GroupInviteLink.where({ id }).fetch({ require: false })
+  if (!link || link.get('deleted_at')) throw new GraphQLError('Invite link not found')
+  await getStewardedGroup(userId, link.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
+  await GroupInviteLink.softDelete(link, userId)
+  return { success: true }
 }
 
 /**
@@ -226,7 +272,7 @@ export async function inviteGroupToGroup (userId, fromId, toId, type, questionAn
 export async function acceptGroupRelationshipInvite (userId, groupRelationshipInviteId, context) {
   const invite = await GroupRelationshipInvite.where({ id: groupRelationshipInviteId }).fetch()
   if (invite) {
-    if (GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
+    if (await GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       const groupRelationship = await invite.accept(userId)
 
       if (groupRelationship) {
@@ -250,7 +296,7 @@ export async function acceptGroupRelationshipInvite (userId, groupRelationshipIn
 export async function cancelGroupRelationshipInvite (userId, groupRelationshipInviteId) {
   const invite = await GroupRelationshipInvite.where({ id: groupRelationshipInviteId }).fetch()
   if (invite) {
-    if (GroupMembership.hasResponsibility(userId, invite.get('from_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
+    if (await GroupMembership.hasResponsibility(userId, invite.get('from_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       return { success: await invite.cancel(userId) }
     } else {
       throw new GraphQLError('You do not have permission to do this')
@@ -263,7 +309,7 @@ export async function cancelGroupRelationshipInvite (userId, groupRelationshipIn
 export async function rejectGroupRelationshipInvite (userId, groupRelationshipInviteId) {
   const invite = await GroupRelationshipInvite.where({ id: groupRelationshipInviteId }).fetch()
   if (invite) {
-    if (GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
+    if (await GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       return { success: await invite.reject(userId) }
     } else {
       throw new GraphQLError('You do not have permission to do this')
@@ -274,13 +320,13 @@ export async function rejectGroupRelationshipInvite (userId, groupRelationshipIn
 }
 
 // API only Group Mutations
-export async function addMember (userId, groupId, assignCoordinator = false) {
+export async function addMember (userId, groupId, assignAdministrator = false) {
   const group = await Group.find(groupId)
   if (!group) {
     return { success: false, error: 'Group not found' }
   }
 
-  await group.addMembers([userId], { assignCoordinator: !!assignCoordinator }, {})
+  await group.addMembers([userId], { assignAdministrator: !!assignAdministrator }, {})
   return { success: true }
 }
 

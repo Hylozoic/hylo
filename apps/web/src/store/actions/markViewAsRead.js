@@ -1,4 +1,3 @@
-import { get } from 'lodash/fp'
 import { MARK_VIEW_AS_READ } from 'store/constants'
 
 /**
@@ -22,13 +21,7 @@ export default function markViewAsRead (viewId, groupId) {
       id: viewId,
       groupId,
       data: { newPostCount: 0 },
-      optimistic: true,
-      extractModel: [
-        {
-          getRoot: get('markViewAsRead'),
-          modelName: 'GroupView'
-        }
-      ]
+      optimistic: true
     }
   }
 }

@@ -5,6 +5,8 @@ import postsQueryFragment from '@graphql/fragments/postsQueryFragment'
 import presentPost from 'store/presenters/presentPost'
 import presentComment from 'store/presenters/presentComment'
 
+const profilePostsFragment = postsQueryFragment.replace('offset: $offset', 'offset: $postsOffset')
+
 export const FETCH_RECENT_ACTIVITY = 'FETCH_RECENT_ACTIVITY'
 
 const recentActivityQuery =
@@ -26,18 +28,21 @@ const recentActivityQuery =
   $interactedWithBy: [ID],
   $isFulfilled: Boolean,
   $mentionsOf: [ID],
-  $offset: Int,
+  $commentsOffset: Int,
+  $postsOffset: Int,
   $order: String,
   $savedBy: [ID],
   $search: String,
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String],
+  $rsvpResponse: String
 ) {
   person (id: $id) {
     id
-    comments (first: $first, order: $order) {
+    comments (first: $first, offset: $commentsOffset, order: $order) {
+      hasMore
       items {
         id
         text
@@ -57,28 +62,28 @@ const recentActivityQuery =
         createdAt
       }
     }
-    ${postsQueryFragment}
+    ${profilePostsFragment}
   }
 }`
 
-export function fetchRecentActivity (id, first = 10, offset = 0, query = recentActivityQuery) {
+export function fetchRecentActivity (id, first = 20, offsets = {}, query = recentActivityQuery) {
+  const postsOffset = typeof offsets === 'number' ? offsets : (offsets?.postsOffset || 0)
+  const commentsOffset = typeof offsets === 'number' ? offsets : (offsets?.commentsOffset || 0)
   return {
     type: FETCH_RECENT_ACTIVITY,
     graphql: {
       query,
-      variables: { id, first, offset, order: 'desc' }
+      variables: {
+        id,
+        first,
+        postsOffset,
+        commentsOffset,
+        order: 'desc',
+        sortBy: 'created'
+      }
     },
     meta: { extractModel: 'Person' }
   }
-}
-
-// Helper to determine if there are more items to fetch
-export function hasMoreActivity (person) {
-  // If either posts or comments has more, return true
-  return (
-    (person?.posts?.hasMore || false) ||
-    (person?.comments?.hasMore || false)
-  )
 }
 
 // Deliberately preserves object references

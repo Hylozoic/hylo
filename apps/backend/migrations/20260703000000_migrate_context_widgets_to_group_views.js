@@ -35,6 +35,8 @@ function homeRoutePathForViewRow (view) {
       return `/custom/${view.id}`
     case 'collection':
       return `/collection/${view.id}`
+    case 'space-collection':
+      return `/space-collection/${view.id}`
     default:
       return view.type ? `/${view.type}` : '/all'
   }
@@ -81,7 +83,8 @@ const DEFAULT_VIEW_NAME_BY_TYPE = {
   about: 'view-about',
   'related-groups': 'view-related-groups',
   'track-actions': 'view-track-actions',
-  'funding-round-submissions': 'view-funding-round-submissions'
+  'funding-round-submissions': 'view-funding-round-submissions',
+  'space-collection': 'view-space-collection'
 }
 
 /** Convert legacy widget-xxx title keys to view-xxx translation keys. */
@@ -110,17 +113,19 @@ function sectionLabelForWidget (widget) {
 }
 
 exports.up = async function (knex) {
-  console.log('[up] 1/6 applying migration defaults…')
+  console.log('[up] 1/7 applying migration defaults…')
   await applyMigrationDefaults(knex)
-  console.log('[up] 2/6 migrating main space views…')
+  console.log('[up] 2/7 migrating main space views…')
   await migrateMainSpaceViews(knex)
-  console.log('[up] 3/6 migrating tracks…')
+  console.log('[up] 3/7 migrating tracks…')
   await migrateTracks(knex)
-  console.log('[up] 4/6 migrating funding rounds…')
+  console.log('[up] 4/7 migrating funding rounds…')
   await migrateFundingRounds(knex)
-  console.log('[up] 5/6 backfilling group_views_users…')
+  console.log('[up] 5/7 backfilling space collections…')
+  await backfillSpaceCollections(knex)
+  console.log('[up] 6/7 backfilling group_views_users…')
   await backfillGroupViewsUsers(knex)
-  console.log('[up] 6/6 updating home routes…')
+  console.log('[up] 7/7 updating home routes…')
   await updateHomeRoutes(knex)
   console.log('[up] done.')
 }
@@ -146,7 +151,7 @@ exports.down = async function (knex) {
   console.log('[down] 6/6 reverting migration defaults…')
   await revertMigrationDefaults(knex)
   console.log('[down] data migration complete.')
-  console.log('[down] note: `yarn rollback` rolls back the whole batch — knex will next run schema migrations (slow, little output). For data-only rollback use `yarn rollback:data`.')
+  console.log('[down] note: `yarn rollback` rolls back the whole batch — knex will next run schema migrations (slow, little output). For one file use `yarn rollback:specific <filename>`.')
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +247,16 @@ async function migrateGroupMenu (trx, group, generalTagId) {
       }
     }
     if (widget.view && SKIPPED_WIDGET_VIEWS.includes(widget.view)) return null
+    if (widget.view === 'tracks' || widget.view === 'funding-rounds') {
+      return {
+        view: {
+          type: 'space-collection',
+          name: viewNameFromWidgetTitle(widget.title),
+          icon: widget.view === 'funding-rounds' ? 'BadgeDollarSign' : 'Shapes',
+          settings: JSON.stringify({ spaceIds: [], migratedFrom: widget.view })
+        }
+      }
+    }
     if (widget.view && SYSTEM_VIEW_TYPE_BY_WIDGET_VIEW[widget.view]) {
       return { view: { type: SYSTEM_VIEW_TYPE_BY_WIDGET_VIEW[widget.view], name: widget.title, icon: widget.icon } }
     }
@@ -745,6 +760,36 @@ async function insertGroupViews (trx, groupId, views) {
   return trx('group_views').insert(rows).returning('*')
 }
 
+/**
+ * Fill space-collection settings.spaceIds after track/round spaces exist.
+ * Skips rows whose spaceIds is already non-empty so re-runs stay idempotent.
+ */
+async function backfillSpaceCollections (knex) {
+  const views = await knex('group_views').where({ type: 'space-collection' })
+  const now = new Date()
+  for (const view of views) {
+    const settings = typeof view.settings === 'string'
+      ? JSON.parse(view.settings || '{}')
+      : (view.settings || {})
+    if (Array.isArray(settings.spaceIds) && settings.spaceIds.length > 0) continue
+
+    const migratedFrom = settings.migratedFrom
+    if (migratedFrom !== 'tracks' && migratedFrom !== 'funding-rounds') continue
+
+    let query = knex('groups').where({ parent_id: view.group_id, type: 'space' })
+    if (migratedFrom === 'tracks') {
+      query = query.whereNotNull('track_id')
+    } else {
+      query = query.whereNotNull('funding_round_id')
+    }
+    const spaces = await query.orderBy('name', 'asc').select('id')
+    await knex('group_views').where({ id: view.id }).update({
+      settings: JSON.stringify({ ...settings, spaceIds: spaces.map(space => String(space.id)) }),
+      updated_at: now
+    })
+  }
+}
+
 // Bulk-creates group_memberships (+ per-view group_views_users rows) for a new
 // space's members, mirroring only the settings fields called out in the spec
 // rather than the full Group.addMembers() side effects (default tag follows,
@@ -1041,8 +1086,10 @@ async function rollbackMigratedSpaces (knex) {
 
       // Wipe remaining non-CASCADE FK rows that point at these spaces.
       // Deferred FKs (activities, tag_follows, …) only fail at outer COMMIT —
-      // cascade-covered tables (group_views, context_widgets, moderation,
-      // stripe_products) and SET NULL (stripe_logs) are fine to leave alone.
+      // cascade-covered tables (group_views, context_widgets, stripe_products)
+      // and SET NULL (stripe_logs) are fine to leave alone. moderation_actions
+      // cascade is not enough — their join tables are cleaned just before the
+      // groups delete.
       const activityIds = await trx('activities').whereIn('group_id', chunk).pluck('id')
       if (activityIds.length > 0) {
         await trx('notifications').whereIn('activity_id', activityIds).delete()
@@ -1092,6 +1139,16 @@ async function rollbackMigratedSpaces (knex) {
       await trx('group_views').where(builder => {
         builder.whereIn('group_id', chunk).orWhereIn('linked_group_id', chunk)
       }).delete()
+
+      // moderation_actions.group_id is ON DELETE CASCADE, but the join tables
+      // that hang off those actions are not — delete them first or group
+      // delete fails with moderation_actions_platform_agreements_…_for.
+      const moderationActionIds = await trx('moderation_actions').whereIn('group_id', chunk).pluck('id')
+      if (moderationActionIds.length > 0) {
+        await trx('moderation_actions_platform_agreements').whereIn('moderation_action_id', moderationActionIds).delete()
+        await trx('moderation_actions_agreements').whereIn('moderation_action_id', moderationActionIds).delete()
+        await trx('moderation_actions').whereIn('id', moderationActionIds).delete()
+      }
 
       await trx('groups').whereIn('id', chunk).delete()
     })

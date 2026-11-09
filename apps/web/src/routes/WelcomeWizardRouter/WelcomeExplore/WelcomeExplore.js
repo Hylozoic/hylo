@@ -1,14 +1,22 @@
 import { get } from 'lodash/fp'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
+import { AnalyticsEvents } from '@hylo/shared'
 import { bgImageStyle } from 'util/index'
 import getMe from 'store/selectors/getMe'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import { createGroupModalUrl } from '@hylo/navigation'
 
 const WelcomeExplore = () => {
+  const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const { t } = useTranslation()
+
+  useEffect(() => {
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.WELCOME_WIZARD_STEP_VIEWED, { step: 'explore' }))
+  }, [])
 
   const getValue = (field) => {
     return get(field, currentUser)
@@ -17,8 +25,8 @@ const WelcomeExplore = () => {
   const currentAvatarUrl = getValue('avatarUrl')
 
   return (
-    <div className='bg-background/50 w-[360px] mx-auto rounded-lg'>
-      <div className='p-4 sm:p-8'>
+    <div className='bg-card shadow-md w-full mx-auto rounded-lg'>
+      <div className='p-4 sm:p-8 flex flex-col justify-center min-h-[480px]'>
         <div className='text-center mb-6'>
           <h3 className='text-2xl font-bold text-foreground mb-2'>{t('Welcome to Hylo!')}</h3>
           <p className='text-muted-foreground'>
@@ -39,7 +47,7 @@ const WelcomeExplore = () => {
           </div>
         </Link>
 
-        <Link to='/public/stream'>
+        <Link to='/public/all'>
           <div className='flex items-center bg-background shadow-lg hover:shadow-xl rounded-lg p-4 mb-4 transition-all duration-300 hover:-translate-y-1 group'>
             <div
               className='min-w-[80px] min-h-[80px] mr-4 rounded-lg transition-all duration-300 shadow-lg group-hover:shadow-[0px_5px_15px_rgba(22,178,190,0.7)] bg-center bg-cover'
@@ -52,7 +60,7 @@ const WelcomeExplore = () => {
           </div>
         </Link>
 
-        <Link to={`/create-group?closePath=${encodeURIComponent('/public')}`}>
+        <Link to={createGroupModalUrl({ pathname: '/public' })}>
           <div className='flex items-center bg-background shadow-lg hover:shadow-xl rounded-lg p-4 mb-4 transition-all duration-300 hover:-translate-y-1 group'>
             <div
               className='min-w-[80px] min-h-[80px] mr-4 rounded-lg transition-all duration-300 shadow-lg group-hover:shadow-[0px_5px_15px_rgba(129,174,101,0.7)] bg-center bg-cover'

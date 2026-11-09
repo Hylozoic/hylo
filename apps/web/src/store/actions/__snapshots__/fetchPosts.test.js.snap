@@ -22,7 +22,8 @@ Object {
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String],
+  $rsvpResponse: String
 ) {
   group(slug: $slug, updateLastViewed: true) {
     id
@@ -49,6 +50,7 @@ posts: viewPosts(
   search: $search,
   topic: $topic,
   topics: $topics,
+  rsvpResponse: $rsvpResponse,
   types: $types
 ) {
   hasMore
@@ -66,12 +68,51 @@ posts: viewPosts(
   editedAt
   endTime
   flaggedGroups
+  moderationActions {
+    id
+    groupId
+    status
+    text
+    anonymous
+    reporter {
+      id
+      name
+    }
+    agreements {
+      id
+      title
+    }
+    platformAgreements {
+      id
+      text
+    }
+  }
   fulfilledAt
   isAnonymousVote
   isPublic
   linkPreviewFeatured
   location
+  meetingLink
+  locationObject {
+    id
+    center {
+      lat
+      lng
+    }
+    fullText
+  }
   myEventResponse
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
   peopleReactedTotal
   projectManagementLink
   proposalOutcome
@@ -105,6 +146,8 @@ posts: viewPosts(
     id
     name
     slug
+    type
+    parentId
   }
 
   eventInvitations {
@@ -194,6 +237,7 @@ posts: viewPosts(
       "mentionsOf": undefined,
       "offset": 20,
       "order": undefined,
+      "rsvpResponse": undefined,
       "savedBy": undefined,
       "search": "gardening",
       "slug": undefined,
@@ -207,7 +251,10 @@ posts: viewPosts(
     "extractModel": "Group",
     "extractQueryResults": Object {
       "getItems": [Function],
+      "getRouteParams": [Function],
+      "replace": false,
     },
+    "groupId": undefined,
     "slug": undefined,
   },
   "type": "FETCH_POSTS",
@@ -241,7 +288,8 @@ Object {
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String],
+  $rsvpResponse: String
 ) {
   
 posts(
@@ -268,6 +316,7 @@ posts(
   search: $search,
   topic: $topic,
   topics: $topics,
+  rsvpResponse: $rsvpResponse,
   types: $types
 ) {
   hasMore
@@ -285,12 +334,51 @@ posts(
   editedAt
   endTime
   flaggedGroups
+  moderationActions {
+    id
+    groupId
+    status
+    text
+    anonymous
+    reporter {
+      id
+      name
+    }
+    agreements {
+      id
+      title
+    }
+    platformAgreements {
+      id
+      text
+    }
+  }
   fulfilledAt
   isAnonymousVote
   isPublic
   linkPreviewFeatured
   location
+  meetingLink
+  locationObject {
+    id
+    center {
+      lat
+      lng
+    }
+    fullText
+  }
   myEventResponse
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
   peopleReactedTotal
   projectManagementLink
   proposalOutcome
@@ -324,6 +412,8 @@ posts(
     id
     name
     slug
+    type
+    parentId
   }
 
   eventInvitations {
@@ -412,6 +502,7 @@ posts(
       "mentionsOf": undefined,
       "offset": 20,
       "order": undefined,
+      "rsvpResponse": undefined,
       "savedBy": undefined,
       "search": "graphic design",
       "slug": undefined,
@@ -425,7 +516,10 @@ posts(
     "extractModel": "Post",
     "extractQueryResults": Object {
       "getItems": [Function],
+      "getRouteParams": [Function],
+      "replace": false,
     },
+    "groupId": undefined,
     "slug": undefined,
   },
   "type": "FETCH_POSTS",

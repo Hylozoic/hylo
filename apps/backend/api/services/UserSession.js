@@ -1,19 +1,36 @@
 import { omitBy, isNil } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
+import sentry from '../../lib/sentry'
+
+/**
+ * Replaces the session with a fresh one (new ID) so a session ID planted before login
+ * can't be reused afterwards (session fixation). Non-auth data such as the OAuth
+ * popup's returnDomain/authContext is carried over. req.userId makes config/session.js
+ * genid prefix the new ID with the user id, which User.clearSessionsFor relies on.
+ */
+function regenerateSession (req, userId) {
+  if (typeof req.session?.regenerate !== 'function') return Promise.resolve()
+  const { cookie, userId: _userId, userEmail, ...carryOver } = req.session
+  req.userId = userId
+  return new Promise(resolve => {
+    req.session.regenerate(err => {
+      if (err) sails.log.error(`UserSession.login: could not regenerate session: ${err.message}`)
+      Object.assign(req.session, carryOver)
+      resolve()
+    })
+  })
+}
 
 module.exports = {
   // logic for setting up the session when a user logs in
   login: async function (req, user, providerKey, { transacting } = {}) {
-    // So when an anonmyous person logs in we generate a new session for them (handles session fixation)
-    // XXX: not working on production for some reason
-    // req.userId = user.id
-    // const regenerateSession = Promise.promisify(req.session.regenerate, req.session)
-    // const session = await regenerateSession()
+    // 'token' authenticates individual API requests, not an interactive login
+    if (providerKey !== 'token') await regenerateSession(req, user.id)
 
     req.session.userId = user.id
     req.session.userEmail = user.get('email')
 
-    req.rollbar_person = user.pick('id', 'name', 'email')
+    sentry.setUser(user.pick('id', 'name', 'email'))
 
     if (providerKey === 'admin' || providerKey === 'token') return
 
@@ -40,7 +57,23 @@ module.exports = {
     return user.save(updates, { patch: true, autoRefresh: true, transacting })
   },
 
+  /**
+   * Gives the request a new session ID (prefixed with userId) before a user is written into it.
+   * For login paths that set up the session themselves instead of calling login.
+   */
+  regenerate: regenerateSession,
+
   isLoggedIn: function (req) {
     return !!req?.session?.userId
+  },
+
+  /**
+   * For requests authenticated by an API token: the session can still be read and changed
+   * for this request, but is never saved to Redis or sent back as a cookie, so a token
+   * can't take over the session of the browser it was sent from.
+   */
+  keepOutOfCookieSession: function (req) {
+    // express-session skips saving, touching and Set-Cookie when req.sessionID is not a string
+    req.sessionID = undefined
   }
 }

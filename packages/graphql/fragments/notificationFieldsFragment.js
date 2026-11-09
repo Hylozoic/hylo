@@ -29,6 +29,12 @@ export default gql`
         name
         slug
         homeRoute
+        type
+        parentId
+        parentGroup {
+          id
+          slug
+        }
       }
       otherGroup {
         id
@@ -37,7 +43,9 @@ export default gql`
       }
       track {
         id
-        name
+        space {
+          name
+        }
       }
       meta {
         reasons

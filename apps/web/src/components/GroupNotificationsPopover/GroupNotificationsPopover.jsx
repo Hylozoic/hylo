@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
 import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import { isSpaceGroup } from 'store/selectors/getMyGroups'
 
 /**
  * Bell button that opens a small dropdown with this group's full notification
@@ -23,7 +24,11 @@ export default function GroupNotificationsPopover ({ group, className = 'w-6 h-6
 
   return (
     <Popover>
-      <PopoverTrigger type='button' aria-label={t('Notification Settings')}>
+      <PopoverTrigger
+        type='button'
+        aria-label={t('Notification Settings')}
+        className='inline-flex items-center justify-center p-0 leading-none [&>svg]:block'
+      >
         <Bell className={className} />
       </PopoverTrigger>
       <PopoverContent align='start' className='w-[21rem]'>
@@ -33,6 +38,7 @@ export default function GroupNotificationsPopover ({ group, className = 'w-6 h-6
           settings={membership.settings}
           update={updateSettings}
           compact
+          postsOnly={isSpaceGroup(group)}
         />
       </PopoverContent>
     </Popover>

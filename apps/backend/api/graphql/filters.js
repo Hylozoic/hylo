@@ -1,23 +1,32 @@
+import DataLoader from 'dataloader'
+
 export const commentFilter = userId => relation => relation.query(q => {
   q.distinct()
   q.where({ 'comments.active': true })
 
-  if (userId) {
-    q.leftJoin('groups_posts', 'comments.post_id', 'groups_posts.post_id')
-    // Only join posts if not already joined (e.g. by the User.comments relation)
+  if (!userId) {
+    // Anonymous viewers only see comments on public posts
     if (!q.queryContext()?.alreadyJoinedPosts) {
-      q.join('posts', 'groups_posts.post_id', 'posts.id')
+      q.join('posts', 'comments.post_id', 'posts.id')
     }
-    q.whereNotIn('comments.user_id', BlockedUser.blockedFor(userId))
-
-    q.where(q2 => {
-      const followedPostIds = PostUser.followedPostIds(userId)
-      q2.whereIn('comments.post_id', followedPostIds)
-        .orWhereIn('groups_posts.group_id', Group.selectIdsForMember(userId))
-        .orWhere('posts.is_public', true)
-    })
-    q.groupBy('comments.id')
+    q.where('posts.is_public', true)
+    return
   }
+
+  q.leftJoin('groups_posts', 'comments.post_id', 'groups_posts.post_id')
+  // Only join posts if not already joined (e.g. by the User.comments relation)
+  if (!q.queryContext()?.alreadyJoinedPosts) {
+    q.join('posts', 'groups_posts.post_id', 'posts.id')
+  }
+  q.whereNotIn('comments.user_id', BlockedUser.blockedFor(userId))
+
+  q.where(q2 => {
+    const followedPostIds = PostUser.followedPostIds(userId)
+    q2.whereIn('comments.post_id', followedPostIds)
+      .orWhereIn('groups_posts.group_id', Group.selectIdsForMember(userId))
+      .orWhere('posts.is_public', true)
+  })
+  q.groupBy('comments.id')
 })
 
 // Which groups are visible to the user?
@@ -41,6 +50,11 @@ export const groupFilter = userId => relation => {
         const selectStewardedGroupIds = Group.selectIdsByResponsibilities(userId, [Responsibility.constants.RESP_ADMINISTRATION])
         const childrenOfStewardedGroupIds = GroupRelationship.childIdsFor(selectStewardedGroupIds)
         const peerGroupsOfStewardedGroupIds = GroupRelationship.peerIdsFor(selectStewardedGroupIds)
+        // Spaces use parent_id, not group_relationships — parent stewards must still fetch them
+        const selectJoinManagerGroupIds = Group.selectIdsByResponsibilities(userId, [
+          Responsibility.constants.RESP_ADMINISTRATION,
+          Responsibility.constants.RESP_ADD_MEMBERS
+        ])
 
         // Can see groups you are a member of...
         q2.whereIn('groups.id', selectIdsForMember)
@@ -62,6 +76,19 @@ export const groupFilter = userId => relation => {
           })
           q6.orWhereIn('groups.id', peerGroupsOfStewardedGroupIds)
         })
+        // + spaces of groups you can add members to / administer (including hidden)
+        q2.orWhere(qSpace => {
+          qSpace.where('groups.type', 'space')
+          qSpace.whereIn('groups.parent_id', selectJoinManagerGroupIds)
+        })
+        // + non-hidden child spaces of groups you belong to (join interstitial, More Spaces,
+        // paywalled tracks). Spaces use parent_id, not group_relationships, so the child-group
+        // clause above never includes them.
+        q2.orWhere(qSpaceMember => {
+          qSpaceMember.where('groups.type', 'space')
+          qSpaceMember.whereIn('groups.parent_id', selectIdsForMember)
+          qSpaceMember.andWhere('groups.visibility', '!=', Group.Visibility.HIDDEN)
+        })
         // + all public groups
         q2.orWhere(q5 => {
           q5.where('groups.visibility', Group.Visibility.PUBLIC)
@@ -69,6 +96,168 @@ export const groupFilter = userId => relation => {
       })
     }
   })
+}
+
+/**
+ * One-shot ID sets matching groupFilter, for filtering an already-loaded
+ * group list (e.g. a post's groups) without re-running that SQL per row.
+ */
+export async function loadGroupVisibilityContext (userId) {
+  if (!userId) return null
+
+  // Explicit knex + active memberships. Bookshelf .query().pluck() has dropped
+  // where / whereIn, which treated leftover (inactive) parent memberships as current.
+  const [memberIds, stewardIdList, joinManagerIdList] = await Promise.all([
+    activeMemberGroupIds(userId),
+    groupIdsByResponsibilities(userId, [Responsibility.constants.RESP_ADMINISTRATION]),
+    groupIdsByResponsibilities(userId, [
+      Responsibility.constants.RESP_ADMINISTRATION,
+      Responsibility.constants.RESP_ADD_MEMBERS
+    ])
+  ])
+
+  const [parentIds, childIds, peerIds, stewardChildIds, stewardPeerIds] = await Promise.all([
+    relatedGroupIds(memberIds, 'parent'),
+    relatedGroupIds(memberIds, 'child'),
+    relatedGroupIds(memberIds, 'peer'),
+    relatedGroupIds(stewardIdList, 'child'),
+    relatedGroupIds(stewardIdList, 'peer')
+  ])
+
+  return {
+    memberIds: new Set(memberIds),
+    parentIds: new Set(parentIds),
+    childIds: new Set(childIds),
+    peerIds: new Set(peerIds),
+    stewardChildIds: new Set(stewardChildIds),
+    stewardPeerIds: new Set(stewardPeerIds),
+    joinManagerIds: new Set(joinManagerIdList)
+  }
+}
+
+/**
+ * Fresh DataLoader for Yoga context. Schema-cached loaders in makeModels
+ * outlive a request and would keep stale memberships after leave.
+ */
+export function createGroupVisibilityLoader () {
+  return new DataLoader(
+    userIds => Promise.all(userIds.map(id => loadGroupVisibilityContext(id))),
+    { cacheKeyFn: id => String(id) }
+  )
+}
+
+/**
+ * Group ids the user currently belongs to (active membership, active group).
+ */
+async function activeMemberGroupIds (userId) {
+  const rows = await bookshelf.knex('group_memberships')
+    .join('groups', 'groups.id', 'group_memberships.group_id')
+    .where('group_memberships.user_id', userId)
+    .andWhere('group_memberships.active', true)
+    .andWhere('groups.active', true)
+    .select('groups.id')
+  return rows.map(row => String(row.id))
+}
+
+/**
+ * Groups the user stewards, requiring an active membership (spaces inherit
+ * roles from parent_id). Same rules as Group.selectIdsByResponsibilities.
+ */
+async function groupIdsByResponsibilities (userId, responsibilityTitles) {
+  const knex = bookshelf.knex
+  const roleGroupIds = knex('group_member_effective_roles as mgr')
+    .join('group_roles_responsibilities as grr', 'grr.group_role_id', 'mgr.group_role_id')
+    .join('responsibilities as r', 'r.id', 'grr.responsibility_id')
+    .where('mgr.user_id', userId)
+    .whereIn('r.title', responsibilityTitles)
+    .select('mgr.group_id')
+
+  const rows = await knex('group_memberships')
+    .join('groups', 'groups.id', 'group_memberships.group_id')
+    .where('group_memberships.user_id', userId)
+    .andWhere('group_memberships.active', true)
+    .andWhere('groups.active', true)
+    .where(function () {
+      this.whereIn('groups.id', roleGroupIds)
+        .orWhereIn('groups.parent_id', roleGroupIds)
+    })
+    .select('groups.id')
+  return rows.map(row => String(row.id))
+}
+
+/**
+ * IDs related to `fromIds` via group_relationships. Uses knex so the whereIn
+ * cannot be dropped (Bookshelf `.query().pluck()` was returning every row).
+ */
+async function relatedGroupIds (fromIds, direction) {
+  if (!fromIds || fromIds.length === 0) return []
+  const knex = bookshelf.knex
+  const parentChild = Group.RelationshipType.PARENT_CHILD
+  const peer = Group.RelationshipType.PEER_TO_PEER
+
+  if (direction === 'parent') {
+    const rows = await knex('group_relationships')
+      .select('parent_group_id')
+      .where({ active: true, relationship_type: parentChild })
+      .whereIn('child_group_id', fromIds)
+    return rows.map(row => String(row.parent_group_id))
+  }
+
+  if (direction === 'child') {
+    const rows = await knex('group_relationships')
+      .select('child_group_id')
+      .where({ active: true, relationship_type: parentChild })
+      .whereIn('parent_group_id', fromIds)
+    return rows.map(row => String(row.child_group_id))
+  }
+
+  const [asParent, asChild] = await Promise.all([
+    knex('group_relationships')
+      .select('child_group_id as group_id')
+      .where({ active: true, relationship_type: peer })
+      .whereIn('parent_group_id', fromIds),
+    knex('group_relationships')
+      .select('parent_group_id as group_id')
+      .where({ active: true, relationship_type: peer })
+      .whereIn('child_group_id', fromIds)
+  ])
+  return [...asParent, ...asChild].map(row => String(row.group_id))
+}
+
+function groupVisibilityValue (group) {
+  const raw = group.get ? group.get('visibility') : group.visibility
+  if (raw === null || raw === undefined || raw === '') return null
+  return Number(raw)
+}
+
+/**
+ * Whether a group should appear on a post the viewer can already see.
+ * Same rules as groupFilter: public, member, parent, protected child/peer
+ * of a membership, hidden child/peer of a stewarded group, and spaces via parent_id.
+ */
+export function isGroupVisibleToViewer (group, ctx, userId) {
+  const visibility = groupVisibilityValue(group)
+  if (visibility === Group.Visibility.PUBLIC) return true
+  if (!userId || !ctx) return false
+
+  const id = String(group.id)
+  if (ctx.memberIds.has(id)) return true
+  // Parents of groups you belong to (including hidden)
+  if (ctx.parentIds.has(id)) return true
+  // Protected children / peers of your groups (not every non-hidden group)
+  if (visibility === Group.Visibility.PROTECTED && ctx.childIds.has(id)) return true
+  if (visibility === Group.Visibility.PROTECTED && ctx.peerIds.has(id)) return true
+  // Hidden children / peers if you steward the related group
+  if (ctx.stewardChildIds.has(id)) return true
+  if (ctx.stewardPeerIds.has(id)) return true
+
+  const type = group.get ? group.get('type') : group.type
+  if (type === 'space') {
+    const parentId = String((group.get ? group.get('parent_id') : group.parentId) || '')
+    if (ctx.joinManagerIds.has(parentId)) return true
+    if (ctx.memberIds.has(parentId) && visibility === Group.Visibility.PROTECTED) return true
+  }
+  return false
 }
 
 export function groupTopicFilter (userId, {
@@ -122,7 +311,15 @@ export const membershipFilter = userId => relation => {
       q.whereIn('group_memberships.group_id', subq)
     })
   }
-  return relation
+  // Anonymous viewers (e.g. public profiles) only see public group memberships.
+  // Use a subquery — User.memberships already left-joins `groups`, so joining again would error.
+  return relation.query(q => {
+    q.whereIn('group_memberships.group_id', Group.query(gq => {
+      gq.select('id')
+      gq.where('active', true)
+      gq.where('visibility', Group.Visibility.PUBLIC)
+    }).query())
+  })
 }
 
 export const messageFilter = userId => relation => relation.query(q => {
@@ -130,25 +327,28 @@ export const messageFilter = userId => relation => relation.query(q => {
 })
 
 export const personFilter = userId => relation => relation.query(q => {
-  if (userId) {
-    q.whereNotIn('users.id', BlockedUser.blockedFor(userId))
-
-    // limit to users that are in those other memberships or are connected some other way
-
-    // find all other memberships of users that are in shared groups
-    const sharedMemberships = GroupMembership.query(q3 => {
-      q3.select('group_memberships.user_id')
-      q3.whereIn('group_memberships.group_id', Group.selectIdsForMember(userId))
-    })
-    const sharedConnections = UserConnection.query(ucq => {
-      ucq.select('other_user_id')
-      ucq.where('user_connections.user_id', userId)
-    })
-    q.where(inner =>
-      inner.where('users.id', User.AXOLOTL_ID)
-        .orWhereIn('users.id', sharedMemberships.query())
-        .orWhereIn('users.id', sharedConnections.query()))
+  if (!userId) {
+    // Anonymous queries can only see opted-in public profiles
+    q.where('users.is_profile_public', true)
+    return
   }
+
+  q.whereNotIn('users.id', BlockedUser.blockedFor(userId))
+
+  // Limit to users in shared groups, connected somehow, Axolotl, or public profiles
+  const sharedMemberships = GroupMembership.query(q3 => {
+    q3.select('group_memberships.user_id')
+    q3.whereIn('group_memberships.group_id', Group.selectIdsForMember(userId))
+  })
+  const sharedConnections = UserConnection.query(ucq => {
+    ucq.select('other_user_id')
+    ucq.where('user_connections.user_id', userId)
+  })
+  q.where(inner =>
+    inner.where('users.id', User.AXOLOTL_ID)
+      .orWhereIn('users.id', sharedMemberships.query())
+      .orWhereIn('users.id', sharedConnections.query())
+      .orWhere('users.is_profile_public', true))
 })
 
 export const postFilter = (userId, isAdmin) => relation => {
@@ -185,10 +385,16 @@ export const reactionFilter = userId => relation => {
     q.join('posts', 'posts.id', 'groups_posts.post_id')
     q.where('posts.active', true)
     q.andWhere('reactions.entity_type', 'post')
+
+    if (!userId) {
+      q.where('posts.is_public', true)
+      return
+    }
+
     q.andWhere(q2 => {
       const selectIdsForMember = Group.selectIdsForMember(userId)
-      q.whereIn('groups_posts.group_id', selectIdsForMember)
-      q.orWhere('posts.is_public', true)
+      q2.whereIn('groups_posts.group_id', selectIdsForMember)
+        .orWhere('posts.is_public', true)
     })
   })
 }

@@ -12,6 +12,7 @@ const {
   resolvePeriodPriceCentsForCredit
 } = require('../../lib/membershipChangeCredit')
 const { getLocaleStrings } = require('../../lib/i18n/locales')
+const { plainTextOfferingDescription } = require('../../lib/stripeOfferingMetadata')
 
 // Initialize Stripe with API version
 // TODO STRIPE: Replace with your actual Stripe secret key
@@ -597,9 +598,10 @@ module.exports = {
       }
 
       // Create product on the connected account using stripeAccount parameter
+      const plainDescription = plainTextOfferingDescription(description)
       const product = await stripe.products.create({
         name,
-        description: description || '',
+        ...(plainDescription ? { description: plainDescription } : {}),
         default_price_data: priceData
       }, {
         stripeAccount: accountId // This header creates the product on the connected account
@@ -652,8 +654,11 @@ module.exports = {
         updateData.name = name
       }
 
-      if (description !== undefined && description !== currentProduct.description) {
-        updateData.description = description || ''
+      if (description !== undefined) {
+        const plainDescription = plainTextOfferingDescription(description)
+        if (plainDescription !== (currentProduct.description || '')) {
+          updateData.description = plainDescription
+        }
       }
 
       // Handle price updates - this requires updating the price, not the product

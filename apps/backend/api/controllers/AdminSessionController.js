@@ -1,4 +1,5 @@
-var passport = require('passport');
+var passport = require('passport')
+var sentry = require('../../lib/sentry')
 
 module.exports = {
 
@@ -18,6 +19,7 @@ module.exports = {
   },
 
   destroy: function (req, res) {
+    sentry.setUser(null)
     req.logout()
     res.redirect('/')
   }

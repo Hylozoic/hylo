@@ -1,4 +1,4 @@
-import rollbar from '../../lib/rollbar'
+import sentry from '../../lib/sentry'
 
 module.exports = ({ statusCode, statusText, logData }) => function (data, options) {
   // Get access to `req`, `res`, & `sails`
@@ -20,7 +20,7 @@ module.exports = ({ statusCode, statusText, logData }) => function (data, option
   // is not set to 'production'.  In production, we shouldn't
   // send back any identifying information about errors.
   if (sails.config.environment === 'production') {
-    if (statusCode === 500) rollbar.error(data, req)
+    if (statusCode === 500) sentry.error(data, req)
     data = undefined
   } else if (logData) {
     sails.log.error(data.stack.split('\n').slice(0, 8).join('\n'))

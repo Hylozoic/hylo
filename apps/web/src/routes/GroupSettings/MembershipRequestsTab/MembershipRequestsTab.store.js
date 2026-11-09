@@ -1,3 +1,4 @@
+import { AnalyticsEvents } from '@hylo/shared'
 import {
   FETCH_JOIN_REQUESTS,
   FETCH_JOIN_REQUESTS_PENDING,
@@ -46,7 +47,12 @@ export function fetchJoinRequests (groupId) {
   }
 }
 
-export function acceptJoinRequest (joinRequestId) {
+function hoursSince (createdAt) {
+  if (!createdAt) return undefined
+  return Math.round((Date.now() - new Date(createdAt).getTime()) / 360000) / 10
+}
+
+export function acceptJoinRequest (joinRequestId, groupId, requestCreatedAt) {
   return {
     type: ACCEPT_JOIN_REQUEST,
     graphql: {
@@ -59,12 +65,18 @@ export function acceptJoinRequest (joinRequestId) {
     },
     meta: {
       joinRequestId,
-      optimistic: true
+      groupId,
+      optimistic: true,
+      analytics: {
+        eventName: AnalyticsEvents.JOIN_REQUEST_APPROVED,
+        groupId,
+        ageHours: hoursSince(requestCreatedAt)
+      }
     }
   }
 }
 
-export function declineJoinRequest (joinRequestId) {
+export function declineJoinRequest (joinRequestId, groupId, requestCreatedAt) {
   return {
     type: DECLINE_JOIN_REQUEST,
     graphql: {
@@ -77,7 +89,13 @@ export function declineJoinRequest (joinRequestId) {
     },
     meta: {
       joinRequestId,
-      optimistic: true
+      groupId,
+      optimistic: true,
+      analytics: {
+        eventName: AnalyticsEvents.JOIN_REQUEST_DECLINED,
+        groupId,
+        ageHours: hoursSince(requestCreatedAt)
+      }
     }
   }
 }

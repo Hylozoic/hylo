@@ -1,5 +1,7 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
 import { slateGrey } from '@hylo/presenters/colors'
+import { DateTimeHelpers } from '@hylo/shared'
+import { getLocaleFromLocalStorage } from 'util/locale'
 
 /**
  * Brand colors for post-type stream views only.
@@ -16,9 +18,23 @@ const POST_TYPE_VIEW_COLOR = {
   decisions: POST_TYPES.proposal.primaryColor
 }
 
-/** Brand color for a view card — post-type colors, or slate grey for everything else. */
+/** Brand color for a view card — post-type colors, or slate grey for everything else.
+ *  Post views take the shared post's own type color. */
 export function viewCardColor (view) {
+  if (view?.type === 'post') {
+    const postTypeColor = POST_TYPES[view.viewPost?.type]?.primaryColor
+    if (postTypeColor) return postTypeColor
+  }
   return POST_TYPE_VIEW_COLOR[view?.type] || slateGrey
+}
+
+/** Start DateTime for an event shared as a post view, or null. */
+export function eventStartForView (view) {
+  if (view?.type !== 'post' || view.viewPost?.type !== 'event' || !view.viewPost.startTime) return null
+  return DateTimeHelpers.toDateTime(view.viewPost.startTime, {
+    timezone: view.viewPost.timezone || DateTimeHelpers.getCurrentTimezone(),
+    locale: getLocaleFromLocalStorage()
+  })
 }
 
 /**
@@ -30,6 +46,15 @@ export const CARD_H = 156
 
 /** Card title. Tight leading so a wrapped two-line title reads as one block. */
 export const CARD_TITLE_CLASS = 'text-sm font-bold line-clamp-2 m-0 leading-[1.1]'
+
+/**
+ * Icon tile on a card. Below sm the cards themselves are smaller, so the tile
+ * slims down — same glyph, less padding — leaving the title room to breathe.
+ */
+export const CARD_TILE_CLASS = 'w-14 h-14 rounded-[15px] max-sm:w-11 max-sm:h-11 max-sm:rounded-xl'
+
+/** Top edge of a card's label block, flush with the icon tile's bottom edge. */
+export const CARD_LABEL_TOP_CLASS = 'top-[calc(50%+28px)] max-sm:top-[calc(50%+22px)]'
 
 /**
  * Shared card footprint and interaction. Cards are deliberately dark in both
@@ -44,7 +69,7 @@ export const CARD_TITLE_CLASS = 'text-sm font-bold line-clamp-2 m-0 leading-[1.1
  */
 export const CARD_SIZE_CLASS = 'w-[calc(50%-0.375rem)] aspect-[14/13] sm:w-[168px] sm:h-[156px] sm:aspect-auto'
 
-export const CARD_CLASS = `group relative flex flex-col overflow-hidden rounded-2xl border transition-all ${CARD_SIZE_CLASS} cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:duration-[50ms]`
+export const CARD_CLASS = `group relative flex flex-col overflow-hidden rounded-2xl border transition-all ${CARD_SIZE_CLASS} cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] active:[transition-duration:50ms]`
 
 /**
  * For a card rendered inside a wrapper that carries CARD_SIZE_CLASS itself (the

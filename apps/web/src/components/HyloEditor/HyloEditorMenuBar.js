@@ -9,8 +9,11 @@ import {
 import { useTranslation } from 'react-i18next'
 import Button from 'components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
+import EmojiInsertButton from 'components/EmojiInsertButton'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { cn } from 'util/index'
+import { getVideoEmbedUrl } from 'util/isPlayableVideoUrl'
+import insertContentAsUndoStep from './insertContentAsUndoStep'
 import { normalizeUserLinkHref } from 'util/url'
 
 // export function addIframe (editor) {
@@ -49,28 +52,14 @@ function setVideo (editor) {
 
   // get the src value from embed code if all pasted in
   const srcCheck = input.match(/src="(?<src>.+?)"/)
-  let src = srcCheck ? srcCheck.groups.src : input
+  const rawSrc = srcCheck ? srcCheck.groups.src : input
+  const src = getVideoEmbedUrl(rawSrc)
 
-  // check youtube url is correct
-  if (input.match(/youtube|youtu\.be/) && !src.match(/^https:\/\/www\.youtube\.com\/embed\//)) {
-    // try to convert regular youtube url to embed url
-    const youtubeMatch = src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)
-    if (youtubeMatch) {
-      src = `https://www.youtube.com/embed/${youtubeMatch[1]}`
-    } else {
-      return window.alert('Sorry, your YouTube URL should be a valid YouTube video URL.')
-    }
-  }
-
-  // check vimeo url is correct
-  if (input.match(/vimeo/) && !src.match(/^https:\/\/player\.vimeo\.com\/video\//)) {
-    // try to convert regular vimeo url to embed url
-    const vimeoMatch = src.match(/vimeo\.com\/(\d+)/)
-    if (vimeoMatch) {
-      src = `https://player.vimeo.com/video/${vimeoMatch[1]}`
-    } else {
+  if (!src) {
+    if (input.match(/vimeo/)) {
       return window.alert('Sorry, your Vimeo URL should be a valid Vimeo video URL.')
     }
+    return window.alert('Sorry, your YouTube URL should be a valid YouTube video URL.')
   }
 
   if (editor.isActive('video')) {
@@ -80,7 +69,7 @@ function setVideo (editor) {
   }
 }
 
-export default function HyloEditorMenuBar ({ className, editor, extendedMenu, type, id }) {
+export default function HyloEditorMenuBar ({ className, editor, extendedMenu, type, id, onInsertEmoji }) {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [linkPopoverMode, setLinkPopoverMode] = useState('add')
   const { t } = useTranslation()
@@ -159,7 +148,12 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
               <Link size={14} />
             </button>
           </PopoverTrigger>
-          <PopoverContent side='right' align='start' className='!p-0 !w-[340px]'>
+          <PopoverContent
+            side='right'
+            align='start'
+            // Page/welcome dialogs portal at z-[1100]; default popover z-[200] opens behind them.
+            className='!p-0 !w-[340px] z-[1200]'
+          >
             <AddLinkBox
               editor={editor}
               setLinkModalOpen={setLinkModalOpen}
@@ -169,6 +163,18 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
           </PopoverContent>
         </Popover>
       </div>
+
+      {/* Mouse/trackpad only: on touch devices the keyboard has emoji */}
+      <EmojiInsertButton
+        onSelect={onInsertEmoji || (emoji => insertContentAsUndoStep(editor, emoji))}
+        className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 text-foreground'
+        iconClassName='w-4 h-4'
+        // Page/welcome dialogs portal at z-[1100]; default popover z-[200] opens behind them.
+        contentClassName='z-[1200]'
+        dataTestId='editor-toolbar-emoji-button'
+        side='bottom'
+        align='start'
+      />
 
       {extendedMenu && (
         <UploadAttachmentButton
@@ -222,16 +228,18 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
         hideOnMobile
       />
 
-      <div className={cn('bg-foreground bg-opacity-30 w-px')} />
+      <div className={cn('bg-foreground bg-opacity-30 w-px hidden xs:block')} />
 
       <HyloEditorMenuBarButton
         Icon={Undo2}
         onClick={() => editor.chain().focus().undo().run()}
+        hideOnMobile
       />
 
       <HyloEditorMenuBarButton
         Icon={Redo2}
         onClick={() => editor.chain().focus().redo().run()}
+        hideOnMobile
       />
 
       <HyloEditorMenuBarButton
@@ -239,6 +247,7 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
         onClick={() => {
           editor.chain().focus().clearNodes().unsetAllMarks().run()
         }}
+        hideOnMobile
       />
     </div>
   )

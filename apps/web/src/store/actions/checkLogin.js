@@ -16,9 +16,11 @@ export default function checkLogin () {
             name
             settings {
               alreadySeenTour
+              toursSeen
               colorScheme
               dmNotifications
               commentNotifications
+              unifiedEmailDigest
               globalNavStyle
               groupNavStyle
               rsvpCalendarSub

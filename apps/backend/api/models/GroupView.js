@@ -1,4 +1,4 @@
-/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupView */
+/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupViewPin, GroupView */
 /* eslint-disable camelcase */
 
 const { homeRoutePathForView } = require('@hylo/navigation')
@@ -30,13 +30,16 @@ module.exports = bookshelf.Model.extend({
     return this.hasMany(CollectionPost, 'view_id').query(q => q.orderBy('order', 'asc'))
   },
 
+  pins () {
+    return this.hasMany(GroupViewPin, 'view_id').query(q => q.orderBy('pinned_at', 'desc'))
+  },
+
   viewsUsers () {
     return this.hasMany(GroupViewUser, 'view_id')
   }
 
 }, {
   Type: {
-    ABOUT: 'about',
     ALL: 'all',
     CHAT: 'chat',
     COLLECTION: 'collection',
@@ -49,81 +52,24 @@ module.exports = bookshelf.Model.extend({
     MAP: 'map',
     MEMBER: 'member',
     MEMBERS: 'members',
-    MODERATION: 'moderation',
+    PAGE: 'page',
     POST: 'post',
     PROJECTS: 'projects',
     PROPOSALS: 'proposals',
-    RELATED_GROUPS: 'related-groups',
     REQUESTS_AND_OFFERS: 'requests-and-offers',
     RESOURCES: 'resources',
     SEPARATOR: 'separator',
     SPACE: 'space',
+    SPACE_COLLECTION: 'space-collection',
     TEXT: 'text',
     TRACK_ACTIONS: 'track-actions',
     WELCOME: 'welcome'
   },
 
-  // Soft-removed from the menu (order = null) and shown in More Views / Spaces.
-  // Text and separator cannot live in More Views — Context Menu or hard delete only.
+  // Only spaces can live off-menu (order = null) — that's More Spaces.
+  // Views are either in the menu or deleted.
   SOFT_REMOVE_TYPES: [
-    'all',
-    'about',
-    'chat',
-    'collection',
-    'custom',
-    'discussions',
-    'events',
-    'group',
-    'link',
-    'map',
-    'member',
-    'members',
-    'moderation',
-    'post',
-    'projects',
-    'proposals',
-    'related-groups',
-    'requests-and-offers',
-    'resources',
-    'space',
-    'welcome'
-  ],
-
-  // System views that must soft-remove only (cannot be hard-deleted).
-  SYSTEM_VIEW_TYPES: [
-    'all',
-    'about',
-    'chat',
-    'discussions',
-    'events',
-    'map',
-    'members',
-    'moderation',
-    'projects',
-    'proposals',
-    'related-groups',
-    'requests-and-offers',
-    'resources',
-    'space',
-    'welcome'
-  ],
-
-  /**
-   * Common views that should always exist as GroupView rows. Missing types are inserted
-   * with order = null (More Views). Types already present (any order) are left alone.
-   */
-  OFF_MENU_COMMON_TYPES: [
-    'discussions',
-    'events',
-    'map',
-    'members',
-    'moderation',
-    'projects',
-    'proposals',
-    'related-groups',
-    'requests-and-offers',
-    'resources',
-    'welcome'
+    'space'
   ],
 
   // View types that are not real routes / don't get their own GroupView page
@@ -152,25 +98,30 @@ module.exports = bookshelf.Model.extend({
       .first()
     const nextOrder = maxOrderRow && maxOrderRow.max_order != null ? Number(maxOrderRow.max_order) + 1 : 0
 
-    return GroupView.forge({
+    const view = await GroupView.forge({
       ...attrs,
       order: nextOrder,
       created_at: now,
       updated_at: now
     }).save(null, { transacting, method: 'insert' })
+    await GroupView.syncMenuViewCount(attrs.group_id, { transacting })
+    return view
   },
 
   /**
-   * Insert a new view off-menu (order = null) for More Views / Spaces.
+   * Insert a new view off-menu (order = null). Used only for space menu rows
+   * that live in More Spaces rather than the parent menu.
    */
   createOffMenu: async function (attrs, { transacting } = {}) {
     const now = new Date()
-    return GroupView.forge({
+    const view = await GroupView.forge({
       ...attrs,
       order: null,
       created_at: now,
       updated_at: now
     }).save(null, { transacting, method: 'insert' })
+    await GroupView.syncMoreSpacesCount(attrs.group_id, { transacting })
+    return view
   },
 
   /**
@@ -186,6 +137,7 @@ module.exports = bookshelf.Model.extend({
   /**
    * Move a view to a new position within its group's single ordered menu list.
    * No nesting — order is just an ascending integer per group, 0 = home.
+   * When the new first row is navigable, also rewrite groups.home_route.
    */
   reorder: async function ({ id, addToEnd, orderInFrontOfViewId, trx: existingTrx }) {
     const doWork = async (trx) => {
@@ -208,6 +160,12 @@ module.exports = bookshelf.Model.extend({
       }
 
       await GroupView.applyOrder(newOrderedIds, { groupId, trx })
+
+      const homeView = await GroupView.where({ id: newOrderedIds[0] }).fetch({ transacting: trx })
+      if (homeView && !GroupView.NON_NAVIGABLE_TYPES.includes(homeView.get('type'))) {
+        const homeRoute = GroupView.computeHomeRoutePath(homeView)
+        await bookshelf.knex('groups').where({ id: groupId }).update({ home_route: homeRoute }).transacting(trx)
+      }
 
       return GroupView.where({ id }).fetch({ transacting: trx })
     }
@@ -259,29 +217,57 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Ensure every common view type exists for the group (order = null → More Views).
-   * Idempotent — skips types that already have a row (in-menu or off-menu).
-   * Called on group/space create and by migrations for existing groups.
+   * Recount on-menu views (order is not null) into groups.menu_view_count.
+   * Call after adding, hiding, showing, or deleting menu rows.
+   * Also refreshes more_spaces_count — hiding or showing a space moves it
+   * between the menu and More Spaces.
    */
-  ensureOffMenuSystemViews: async function (groupId, { transacting } = {}) {
-    if (!groupId) return
+  syncMenuViewCount: async function (groupId, { transacting } = {}) {
+    if (!groupId) return 0
+    const countQuery = bookshelf.knex('group_views')
+      .where({ group_id: groupId })
+      .whereNotNull('order')
+      .count('* as count')
+    if (transacting) countQuery.transacting(transacting)
+    const row = await countQuery.first()
+    const count = parseInt(row?.count || 0, 10)
+    const update = bookshelf.knex('groups').where({ id: groupId }).update({ menu_view_count: count })
+    if (transacting) update.transacting(transacting)
+    await update
+    await GroupView.syncMoreSpacesCount(groupId, { transacting })
+    return count
+  },
 
-    const types = GroupView.OFF_MENU_COMMON_TYPES
-    const existing = await GroupView.where({ group_id: groupId })
-      .query(q => q.whereIn('type', types))
-      .fetchAll({ transacting })
-    const existingTypes = new Set(existing.map(v => v.get('type')))
-    const now = new Date()
-
-    for (const type of types) {
-      if (existingTypes.has(type)) continue
-      await GroupView.forge({
-        group_id: groupId,
-        type,
-        order: null,
-        created_at: now,
-        updated_at: now
-      }).save(null, { transacting, method: 'insert' })
-    }
+  /**
+   * Recount active child spaces that are not on this group's menu into
+   * groups.more_spaces_count. Includes drafts and archived spaces (same
+   * set More Spaces lists). Deleted spaces (active = false) are excluded.
+   */
+  syncMoreSpacesCount: async function (groupId, { transacting } = {}) {
+    if (!groupId) return 0
+    const countQuery = bookshelf.knex('groups as spaces')
+      .where({
+        'spaces.parent_id': groupId,
+        'spaces.type': 'space',
+        'spaces.active': true
+      })
+      .whereNotExists(function () {
+        this.select(bookshelf.knex.raw('1'))
+          .from('group_views as gv')
+          .whereRaw('gv.linked_group_id = spaces.id')
+          .andWhere({
+            'gv.group_id': groupId,
+            'gv.type': 'space'
+          })
+          .whereNotNull('gv.order')
+      })
+      .count('* as count')
+    if (transacting) countQuery.transacting(transacting)
+    const row = await countQuery.first()
+    const count = parseInt(row?.count || 0, 10)
+    const update = bookshelf.knex('groups').where({ id: groupId }).update({ more_spaces_count: count })
+    if (transacting) update.transacting(transacting)
+    await update
+    return count
   }
 })

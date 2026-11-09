@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import dotenv from 'dotenv'
 import { gotoLoginAndWaitForEmail } from './helpers/waitForLoginEmailVisible.js'
+import { ensureHyloCookieConsent } from './helpers/sessionAuth.js'
 
 dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') })
 
@@ -14,6 +15,7 @@ const E2E_LOGIN_PASSWORD = 'e2e-password-123'
 const AUTH_BOOTSTRAP_MS = 120000
 
 setup('authenticate session-mutate user', async ({ page }) => {
+  await ensureHyloCookieConsent(page)
   const emailInput = await gotoLoginAndWaitForEmail(page)
 
   await emailInput.fill(E2E_LOGIN_EMAIL)

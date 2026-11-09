@@ -17,9 +17,10 @@ import {
 } from 'components/ui/tooltip'
 import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
-import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
+import { getMyGlobalNavItems } from 'store/selectors/getMyGroups'
 import useRouteParams from 'hooks/useRouteParams'
-import { baseUrl } from '@hylo/navigation'
+import { baseUrl, myHomeLandingUrl, isMyHomeContext, localSpaceSlug } from '@hylo/navigation'
+import { spaceEntryUrl } from 'routes/AuthLayoutRouter/components/ContextMenu/groupViewMenuUrl'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { SettingsMenu } from '../GlobalNav/GlobalNav'
 import { pinGroup } from 'store/actions/pinGroup'
@@ -180,17 +181,12 @@ export default function TopNav ({ currentUser }) {
   const navigate = useNavigate()
   const routeParams = useRouteParams()
   const stackGroups = currentUser?.settings?.stackGroups === true
-  const sortedGroups = useSelector(getMyGroupsWithChildren)
+  const sortedNavItems = useSelector(getMyGlobalNavItems)
   const tabContainerRef = useRef(null)
-  const [visibleGroupCount, setVisibleGroupCount] = useState(sortedGroups.length)
+  const [visibleGroupCount, setVisibleGroupCount] = useState(sortedNavItems.length)
   const [iconOnly, setIconOnly] = useState(false)
 
   const currentBase = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug })
-
-  // A group tab is active when its own group is open OR when one of its stacked subgroups is the active group.
-  const isGroupTabActive = useCallback((tab) =>
-    currentBase === tab.url || (tab.childGroups || []).some(child => child.slug === routeParams.groupSlug),
-  [currentBase, routeParams.groupSlug])
 
   const handleNavigate = useCallback((url) => {
     if (url) navigate(url)
@@ -198,25 +194,46 @@ export default function TopNav ({ currentUser }) {
 
   // Fixed tabs (always shown)
   const fixedTabs = useMemo(() => [
-    { key: 'home', label: t('My Home'), url: '/my', img: get('avatarUrl', currentUser) },
+    { key: 'home', label: t('My Home'), url: myHomeLandingUrl(), img: get('avatarUrl', currentUser) },
     { key: 'messages', label: t('Messages'), url: '/messages', badgeCount: currentUser?.unseenThreadCount || 0 },
     { key: 'commons', label: t('The Commons'), url: '/public' }
   ], [currentUser, t])
 
-  // Every group the user is a member of gets its own tab — including subgroups.
+  // Every group remains a tab; only pinned spaces join them as standalone tabs.
   // Subgroups also appear in their parent's dropdown (req: don't auto-consolidate).
   const groupTabs = useMemo(() =>
-    sortedGroups.map(group => ({
-      key: `group-${group.id}`,
-      groupId: group.id,
-      label: group.name,
-      url: `/groups/${group.slug}`,
-      img: group.avatarUrl,
-      badgeCount: group.newPostCount ? '-' : 0,
+    sortedNavItems.map(item => ({
+      key: `${item.navItemType}-${item.id}`,
+      groupId: item.id,
+      navItemType: item.navItemType,
+      parentSlug: item.parentSlug,
+      slug: item.slug,
+      label: item.name,
+      url: item.navItemType === 'space' ? spaceEntryUrl(item.parentSlug, item) : `/groups/${item.slug}`,
+      img: item.avatarUrl,
+      badgeCount: item.newPostCount ? '-' : 0,
       // When stacking is off, subgroups don't nest into the parent's stack/dropdown.
-      childGroups: stackGroups ? (group.childGroups || []) : []
+      childGroups: item.navItemType === 'group' && stackGroups ? (item.childGroups || []) : []
     })),
-  [sortedGroups, stackGroups])
+  [sortedNavItems, stackGroups])
+
+  // A group tab is active when its own group (or stacked subgroup) is open.
+  // A pinned space gets its own active state rather than highlighting its parent tab.
+  const isNavTabActive = useCallback((tab) => {
+    if (tab.key === 'home') return isMyHomeContext(routeParams.context)
+    if (tab.navItemType === 'space') {
+      return routeParams.groupSlug === tab.parentSlug &&
+        routeParams.spaceSlug === localSpaceSlug(tab.parentSlug, tab.slug)
+    }
+    const activePinnedSpace = groupTabs.some(spaceTab =>
+      spaceTab.navItemType === 'space' &&
+      routeParams.groupSlug === spaceTab.parentSlug &&
+      routeParams.spaceSlug === localSpaceSlug(spaceTab.parentSlug, spaceTab.slug)
+    )
+    return !activePinnedSpace && (
+      currentBase === tab.url || (tab.childGroups || []).some(child => child.slug === routeParams.groupSlug)
+    )
+  }, [currentBase, groupTabs, routeParams.context, routeParams.groupSlug, routeParams.spaceSlug])
 
   // Measure available space and pick a layout mode like browser tabs:
   // 1. Named: every tab gets at least NAMED_TAB_MIN — names visible, truncated as space tightens.
@@ -352,7 +369,7 @@ export default function TopNav ({ currentUser }) {
             img={tab.img}
             url={tab.url}
             badgeCount={tab.badgeCount}
-            isActive={isGroupTabActive(tab)}
+            isActive={isNavTabActive(tab)}
             onNavigate={handleNavigate}
             iconOnly={iconOnly}
             childGroups={tab.childGroups}
@@ -366,6 +383,7 @@ export default function TopNav ({ currentUser }) {
         <Popover>
           <PopoverTrigger asChild>
             <div
+              data-testid='top-nav-overflow-trigger'
               className={cn(
                 'relative z-10 flex items-center h-full px-2 cursor-pointer select-none shrink-0',
                 'border-r border-foreground/10 transition-colors duration-150',
@@ -391,7 +409,7 @@ export default function TopNav ({ currentUser }) {
                   className={cn(
                     'group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer',
                     'hover:bg-foreground/10 transition-colors',
-                    { 'bg-selected/10': currentBase === tab.url }
+                    { 'bg-selected/10': isNavTabActive(tab) }
                   )}
                 >
                   {tab.img && !isDefaultAvatar

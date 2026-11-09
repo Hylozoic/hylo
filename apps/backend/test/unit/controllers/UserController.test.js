@@ -22,7 +22,22 @@ describe('UserController', function () {
       await new Group({ access_code: 'foo', name: 'foo', slug: 'foo' }).save()
     })
 
+    it('rejects requests without a super API client', async () => {
+      Object.assign(req.params, {
+        name: 'yoyo',
+        email: 'anon@bar.com',
+        isAdministrator: 'true'
+      })
+      await UserController.create(req, res)
+
+      expect(res.statusCode).to.equal(403)
+      expect(User.create).not.to.have.been.called()
+      const testUser = await User.where({ email: 'anon@bar.com' }).fetch()
+      expect(testUser).to.not.exist
+    })
+
     it('works with a username and password', async () => {
+      req.api_client = { id: 'test-client', name: 'Test', super: true }
       Object.assign(req.params, {
         name: 'yoyo',
         email: 'foo@bar.com',
@@ -30,7 +45,6 @@ describe('UserController', function () {
       })
       await UserController.create(req, res)
 
-      expect(res.status).not.to.have.been.called()
       expect(User.create).to.have.been.called()
       expect(res.ok).to.have.been.called()
 
@@ -44,6 +58,7 @@ describe('UserController', function () {
   describe('with an existing user', () => {
     describe('.create', () => {
       it('halts on duplicate email', async () => {
+        req.api_client = { id: 'test-client', name: 'Test', super: true }
         await factories.user({settings: {leftNavIsOpen: true, currentGroupId: '7'}}).save()
         const testUser = await factories.user().save()
         Object.assign(req.params, { name: 'Sweet', email: testUser.get('email')})

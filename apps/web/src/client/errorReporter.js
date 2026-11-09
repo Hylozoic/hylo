@@ -1,4 +1,7 @@
 import * as Sentry from '@sentry/react'
+import continueNativeTrace from 'client/continueNativeTrace'
+import isBrowserNetworkError, { browserNetworkErrorIgnorePatterns } from 'client/isBrowserNetworkError'
+import { isSandboxMode } from 'sandbox/isSandbox'
 
 /*
   Sentry-backed error reporter (replaces the old Rollbar integration).
@@ -33,7 +36,9 @@ if (enabled) {
     debug: SENTRY_DEBUG,
     // Error reporting only -- no performance tracing (keeps quota and bundle impact low)
     tracesSampleRate: 0,
-    maxBreadcrumbs: SENTRY_DEBUG ? 200 : 50
+    maxBreadcrumbs: SENTRY_DEBUG ? 200 : 50,
+    // Drop fetch transport failures (offline, aborted, blocked). No HTTP status, nothing to fix.
+    ignoreErrors: browserNetworkErrorIgnorePatterns()
   })
 
   window.__hyloSentryTest = () => {
@@ -47,6 +52,13 @@ if (enabled) {
   Sentry.setTag('mobileWebView', window.HyloMobileV2 ? 'true' : 'false')
   if (window.HyloMobileAppVersion) Sentry.setTag('mobileAppVersion', window.HyloMobileAppVersion)
   if (window.HyloNativeSessionId) Sentry.setTag('nativeSessionId', window.HyloNativeSessionId)
+  if (isSandboxMode()) Sentry.setTag('sandbox', 'true')
+
+  // Link web errors to the native trace that loaded this page (no spans, so no extra quota).
+  // On Android the meta tags can land after early scripts, so retry once the DOM is parsed.
+  if (window.HyloMobileV2 && !continueNativeTrace() && document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', continueNativeTrace, { once: true })
+  }
 }
 
 /** Records a Sentry breadcrumb (no-op when reporting is disabled) */
@@ -64,6 +76,7 @@ const errorReporter = {
 
   /** Reports an error or message string to Sentry, with optional extra context */
   error (errorOrMessage, context) {
+    if (isBrowserNetworkError(errorOrMessage)) return
     if (!enabled) {
       console.error(errorOrMessage, context)
       return

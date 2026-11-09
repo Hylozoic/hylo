@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import useRouteParams from 'hooks/useRouteParams'
+import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
@@ -29,6 +30,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
   const location = useLocation()
   const navigate = useNavigate()
   const routeParams = useRouteParams()
+  const groupSlug = useEffectiveGroupSlug() || routeParams.groupSlug
   const querystringParams = getQuerystringParam(['tab'], location)
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
@@ -39,10 +41,10 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
 
   const isFlagged = useMemo(() => post.flaggedGroups?.length > 0, [post.flaggedGroups])
   const flagPostData = useMemo(() => ({
-    slug: routeParams.groupSlug,
+    slug: groupSlug,
     id: post.id,
     type: 'post'
-  }), [routeParams.groupSlug, post.id])
+  }), [groupSlug, post.id])
 
   // Calculate available tokens including currently allocated tokens for this submission
   const availableTokens = useMemo(() => {
@@ -57,6 +59,13 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
     return [...submissionAllocations].sort((a, b) => (b?.tokensAllocated || 0) - (a?.tokensAllocated || 0))
   }, [submissionAllocations])
   const hasAllocations = sortedAllocations.length > 0
+  const realtimeTotalVotes = useMemo(() => {
+    const others = (post.totalTokensAllocated || 0) - (post.tokensAllocated || 0)
+    const currentVote = typeof localVoteAmount === 'number'
+      ? localVoteAmount
+      : (parseInt(localVoteAmount, 10) || 0)
+    return Math.max(0, others + currentVote)
+  }, [post.totalTokensAllocated, post.tokensAllocated, localVoteAmount])
 
   const deletePostWithConfirm = useCallback(() => {
     if (window.confirm(t('Are you sure you want to delete this {{submissionDescriptor}}? You cannot undo this.', { submissionDescriptor: round?.submissionDescriptor }))) {
@@ -179,7 +188,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
     >
       <div className='flex flex-col flex-1 gap-2 py-2 px-2 sm:px-3'>
         <div className='flex flex-row gap-1 items-center min-w-0'>
-          <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-1 shrink-0')} medium />
+          <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} url={creatorUrl} className={cn('mr-1 shrink-0')} medium />
           <div
             className='flex flex-wrap items-baseline gap-x-2 gap-y-0.5 flex-1 min-w-0 mr-1'
             onClick={openPostDetails}
@@ -260,6 +269,11 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
           {!round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id) && (
             <span className='text-xs text-foreground/60 text-center max-w-[100px] sm:max-w-[120px] leading-tight'>
               {t('Cannot vote on your own submission')}
+            </span>
+          )}
+          {round.showRealtimeVotes && (
+            <span className='text-[11px] text-foreground/60 text-center leading-tight'>
+              {t('Total Votes: {{count}}', { count: realtimeTotalVotes })}
             </span>
           )}
         </div>

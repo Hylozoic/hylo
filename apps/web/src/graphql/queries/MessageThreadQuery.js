@@ -18,6 +18,12 @@ export const MessageThreadQuery = gql`
         items {
           id
           text
+          attachments {
+            id
+            position
+            type
+            url
+          }
           creator {
             id
             name
@@ -25,6 +31,14 @@ export const MessageThreadQuery = gql`
           }
           createdAt
           editedAt
+          commentReactions {
+            emojiFull
+            id
+            user {
+              id
+              name
+            }
+          }
         }
         total
         hasMore

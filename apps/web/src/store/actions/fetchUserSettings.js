@@ -9,6 +9,8 @@ export default function fetchUserSettings () {
         query UserSettingsQuery {
           me {
             id
+            email
+            pendingEmail
             rsvpCalendarUrl
             affiliations {
               items {
@@ -31,24 +33,6 @@ export default function fetchUserSettings () {
               group {
                 id
                 name
-                chatRooms {
-                  items {
-                    id
-                    groupTopic {
-                      id
-                      topic {
-                        id
-                        name
-                      }
-                    }
-                    topicFollow {
-                      id
-                      settings {
-                        notifications
-                      }
-                    }
-                  }
-                }
               }
             }
           }

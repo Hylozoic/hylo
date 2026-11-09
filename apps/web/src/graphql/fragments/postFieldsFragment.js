@@ -37,6 +37,17 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   title
   details
   type
+  noticeData
+  noticePosts {
+    id
+    details
+    createdAt
+    creator {
+      id
+      name
+      avatarUrl
+    }
+  }
   creator {
     id
     name
@@ -46,6 +57,25 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   clickthrough
   updatedAt
   flaggedGroups
+  moderationActions {
+    id
+    groupId
+    status
+    text
+    anonymous
+    reporter {
+      id
+      name
+    }
+    agreements {
+      id
+      title
+    }
+    platformAgreements {
+      id
+      text
+    }
+  }
   isAnonymousVote
   isPublic
   fulfilledAt
@@ -57,15 +87,15 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   projectManagementLink
   myEventResponse
   savedAt
-  commenters(first: 3) {
+  commentersTotal
+  commentsTotal
+  ${withComments
+? `commenters(first: 3) {
     id
     name
     avatarUrl
   }
-  commentersTotal
-  commentsTotal
-  ${withComments
-? `comments(first: 10, order: "desc") {
+  comments(first: 10, order: "desc") {
     items {
       ${CommentFieldsFragment}
       childComments(first: ${INITIAL_SUBCOMMENTS_DISPLAYED}, order: "desc") {
@@ -113,6 +143,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   linkPreviewFeatured
   localId
   location
+  meetingLink
   locationObject {
     id
     addressNumber
@@ -162,16 +193,19 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   postReactions {
     emojiFull
     id
-    user {
+    ${withComments
+? `user {
       id
       name
-    }
+    }`
+: ''}
   }
   groups {
     id
     name
     slug
     type
+    parentId
   }
   attachments {
     type

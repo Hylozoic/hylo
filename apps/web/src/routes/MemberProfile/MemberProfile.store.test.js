@@ -3,7 +3,7 @@ import testData from './MemberProfile.normalized.test.json'
 import { getPresentedPerson } from './MemberProfile.store'
 
 describe('store & connector', () => {
-  let session, state, selectorProps, props
+  let session, state, selectorProps
 
   beforeEach(() => {
     const {
@@ -17,11 +17,6 @@ describe('store & connector', () => {
     selectorProps = {
       personId: '46816',
       slug: 'wombats'
-    }
-    props = {
-      match: {
-        params: selectorProps
-      }
     }
   })
 

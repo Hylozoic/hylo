@@ -1,8 +1,10 @@
 import {
   POST_TYPE_TO_VIEW_TYPE,
+  membershipBadgeCountFromViews,
   postCountsTowardChatUnread
 } from '@hylo/shared'
 import { updateGroupViewInMenu } from 'store/util/groupViewsOrder'
+import { findViewsForGroupBadge } from 'util/viewUnreadBadges'
 
 const MODULE_NAME = 'SocketListener'
 export const RECEIVE_MESSAGE = `${MODULE_NAME}/RECEIVE_MESSAGE`
@@ -11,6 +13,7 @@ export const RECEIVE_COMMENT = `${MODULE_NAME}/RECEIVE_COMMENT`
 export const RECEIVE_POST = `${MODULE_NAME}/RECEIVE_POST`
 export const RECEIVE_THREAD = `${MODULE_NAME}/RECEIVE_THREAD`
 export const RECEIVE_NOTIFICATION = `${MODULE_NAME}/RECEIVE_NOTIFICATION`
+export const RECEIVE_OPEN_JOIN_REQUEST_COUNT = `${MODULE_NAME}/RECEIVE_OPEN_JOIN_REQUEST_COUNT`
 
 export function receiveMessage (message, opts = {}) {
   return {
@@ -96,11 +99,19 @@ export function receiveNotification (notification) {
   }
 }
 
+/** Set a group's cached open join-request count from a socket payload. */
+export function receiveOpenJoinRequestCount (groupId, openJoinRequestCount) {
+  return {
+    type: RECEIVE_OPEN_JOIN_REQUEST_COUNT,
+    payload: { groupId, openJoinRequestCount }
+  }
+}
+
 /**
  * Bump typed + chat view unread counts for views in `viewItems`, writing through
  * `menuGroup`'s embedded menu (works for top-level and nested space menus).
  */
-function bumpUnreadViewsInMenu (menuGroup, viewItems, postType, showNotices) {
+function bumpUnreadViewsInMenu (menuGroup, viewItems, postType) {
   if (!menuGroup || !viewItems?.length) return
 
   const typedViewType = POST_TYPE_TO_VIEW_TYPE[postType]
@@ -113,7 +124,7 @@ function bumpUnreadViewsInMenu (menuGroup, viewItems, postType, showNotices) {
     }
   }
 
-  if (postCountsTowardChatUnread(postType, showNotices)) {
+  if (postCountsTowardChatUnread(postType)) {
     const chatView = viewItems.find(view => view.type === 'chat')
     if (chatView) {
       updateGroupViewInMenu(menuGroup, chatView.id, {
@@ -163,7 +174,10 @@ export function ormSessionReducer (session, { meta, type, payload }) {
           text: updatedMessage.text,
           editedAt: updatedMessage.editedAt
             ? new Date(updatedMessage.editedAt).toString()
-            : undefined
+            : undefined,
+          ...(Array.isArray(updatedMessage.commentReactions)
+            ? { commentReactions: updatedMessage.commentReactions }
+            : {})
         })
       }
       break
@@ -175,22 +189,14 @@ export function ormSessionReducer (session, { meta, type, payload }) {
       const groupId = payload.groupId
       const creatorId = post.creator?.id || post.creatorId
       if (!currentUser || !groupId || String(creatorId) === String(currentUser.id)) break
-
-      const increment = obj =>
-        obj && obj.update({
-          newPostCount: (obj.newPostCount || 0) + 1
-        })
-
-      // Space/group orange dot — membership for the post's group
-      increment(Membership.safeGet({ group: groupId, person: currentUser.id }))
+      if (post.type === 'chat_activity') break
 
       const postType = post.type
       const postGroup = Group.withId(groupId)
 
       // Direct menu on the post's group (when that group's views are loaded)
       if (postGroup?.groupViews?.items?.length) {
-        const showNotices = postGroup.settings?.showPostNoticesInChat !== false
-        bumpUnreadViewsInMenu(postGroup, postGroup.groupViews.items, postType, showNotices)
+        bumpUnreadViewsInMenu(postGroup, postGroup.groupViews.items, postType)
       }
 
       // Parent menus embed space views under type=space linkedGroup — patch those too
@@ -203,10 +209,19 @@ export function ormSessionReducer (session, { meta, type, payload }) {
           if (String(view.linkedGroup?.id) !== String(groupId)) return
           const nestedItems = view.linkedGroup.groupViews?.items
           if (!nestedItems?.length) return
-          const showNotices = view.linkedGroup.settings?.showPostNoticesInChat !== false
-          bumpUnreadViewsInMenu(parentGroup, nestedItems, postType, showNotices)
+          bumpUnreadViewsInMenu(parentGroup, nestedItems, postType)
         })
       })
+
+      const membership = Membership.safeGet({ group: groupId, person: currentUser.id })
+      if (membership) {
+        const views = findViewsForGroupBadge(session, groupId)
+        if (views?.length) {
+          membership.update({ newPostCount: membershipBadgeCountFromViews(views) })
+        } else if (postCountsTowardChatUnread(postType) || POST_TYPE_TO_VIEW_TYPE[postType]) {
+          membership.update({ newPostCount: (membership.newPostCount || 0) + 1 })
+        }
+      }
       break
     }
 
@@ -222,6 +237,46 @@ export function ormSessionReducer (session, { meta, type, payload }) {
         window.electron.setBadgeCount(currentUser.newNotificationCount)
         window.electron.showNotification(notification)
       }
+      break
+    }
+
+    case RECEIVE_OPEN_JOIN_REQUEST_COUNT: {
+      const { groupId, openJoinRequestCount } = payload
+      if (groupId == null || openJoinRequestCount == null) break
+      const count = Math.max(0, Number(openJoinRequestCount) || 0)
+      if (Group.idExists(groupId)) {
+        Group.withId(groupId).update({ openJoinRequestCount: count })
+      }
+      // Nested menu copies can lag behind the normalized Group record.
+      Group.all().toModelArray().forEach(parent => {
+        const items = parent.groupViews?.items
+        if (items?.length) {
+          let changed = false
+          const nextItems = items.map(view => {
+            if (view.type !== 'space' || String(view.linkedGroup?.id) !== String(groupId)) return view
+            changed = true
+            return {
+              ...view,
+              linkedGroup: { ...view.linkedGroup, openJoinRequestCount: count }
+            }
+          })
+          if (changed) {
+            parent.update({ groupViews: { ...parent.groupViews, items: nextItems } })
+          }
+        }
+        const spaces = parent.spaces?.items
+        if (spaces?.length) {
+          let spacesChanged = false
+          const nextSpaces = spaces.map(space => {
+            if (String(space.id) !== String(groupId)) return space
+            spacesChanged = true
+            return { ...space, openJoinRequestCount: count }
+          })
+          if (spacesChanged) {
+            parent.update({ spaces: { ...parent.spaces, items: nextSpaces } })
+          }
+        }
+      })
       break
     }
   }

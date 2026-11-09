@@ -10,9 +10,11 @@ export default gql`
     name
     settings {
       alreadySeenTour
+      toursSeen
       colorScheme
       dmNotifications
       commentNotifications
+      unifiedEmailDigest
       locale
       globalNavStyle
       groupNavStyle

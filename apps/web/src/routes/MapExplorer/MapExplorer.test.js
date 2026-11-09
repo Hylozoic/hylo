@@ -1,6 +1,6 @@
 import React from 'react'
 import { screen } from '@testing-library/react'
-import { render, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render } from 'util/testing/reactTestingLibraryExtended'
 import MapExplorer from './MapExplorer'
 
 jest.mock('react-router-dom', () => ({
@@ -62,12 +62,13 @@ describe('MapExplorer', () => {
     expect(screen.getByTestId('layers-selector-button')).toBeInTheDocument()
   })
 
-  it('renders the drawer toggle button', () => {
+  it('renders the drawer close button while the drawer is open', () => {
     render(
       <MapExplorer {...defaultProps} />
     )
 
-    expect(screen.getByTestId('drawer-toggle-button')).toBeInTheDocument()
+    expect(screen.getByTestId('map-drawer-close')).toBeInTheDocument()
+    expect(screen.queryByTestId('drawer-toggle-button')).not.toBeInTheDocument()
   })
 
   it('renders the MapDrawer when hideDrawer is false', () => {

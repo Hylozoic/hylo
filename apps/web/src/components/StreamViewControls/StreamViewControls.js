@@ -27,14 +27,13 @@ const TIMEFRAME_OPTIONS = [
   { id: 'past', label: 'Past Events' }
 ]
 
-// Toolbar chrome from the prototype's BDStreamToolbar: a 36px row of segmented
 // groups and pills. The prototype hardcodes a dark palette; these carry the same
 // shapes onto the theme tokens so the bar works in both schemes.
-const GROUP_CLASS = 'inline-flex items-center gap-0.5 h-9 p-[3px] box-border rounded-[9px] bg-background border border-foreground/20'
-const PILL_CLASS = 'inline-flex items-center gap-1.5 h-9 px-3 box-border rounded-[9px] bg-background border border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-colors hover:border-foreground/40'
+const GROUP_CLASS = 'inline-flex items-center gap-0.5 h-8 sm:h-9 p-[3px] box-border rounded-[9px] bg-background border-2 border-foreground/20 shrink-0'
+const PILL_CLASS = 'inline-flex items-center gap-1 sm:gap-1.5 h-8 sm:h-9 px-2 sm:px-3 box-border rounded-[9px] bg-background border-2 border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-colors hover:border-foreground/40 whitespace-nowrap'
 
 /** One segmented-group button. Active reads as the selected green, per the design. */
-function ToolBtn ({ active, onClick, tooltip, children }) {
+function ToolBtn ({ active, onClick, tooltip, children, dataTour }) {
   return (
     <button
       type='button'
@@ -45,6 +44,7 @@ function ToolBtn ({ active, onClick, tooltip, children }) {
       )}
       data-tooltip-content={tooltip}
       data-tooltip-id='stream-controls-tip'
+      data-tour={dataTour}
       aria-pressed={active}
       aria-label={tooltip}
     >
@@ -87,10 +87,12 @@ const makeFilterDropdown = (selected, options, onChange, t, icon, id) => {
       // Pill styling lives on the toggle span: Dropdown forces inline-block on its
       // root, which would defeat the flex centering the pill needs.
       toggleChildren={
+        // On phones the pill is just the current label — the glyph and chevron
+        // spend width the row does not have
         <span className={PILL_CLASS}>
-          {icon}
-          {t(options.find(o => o.id === selected)?.label)}
-          <Icon name='ArrowDown' className='opacity-60' />
+          {icon && <span className='inline-flex items-center max-sm:hidden'>{icon}</span>}
+          <span className='truncate max-sm:max-w-[88px]'>{t(options.find(o => o.id === selected)?.label)}</span>
+          <Icon name='ArrowDown' className='opacity-60 max-sm:hidden' />
         </span>
       }
       items={options.map(({ id, label }) => ({
@@ -101,11 +103,18 @@ const makeFilterDropdown = (selected, options, onChange, t, icon, id) => {
   )
 }
 
+const RSVP_OPTIONS = [
+  { id: undefined, label: 'All Events' },
+  { id: 'yes+interested', label: 'Going/Interested' },
+  { id: 'no', label: 'Not Going' }
+]
+
 const StreamViewControls = ({
   activePostsOnly,
   changeActivePostsOnly,
   changeChildPostInclusion,
   changePostTypeFilter,
+  changeRsvpFilter,
   changeSearch,
   changeSort,
   changeTimeframe,
@@ -115,6 +124,7 @@ const StreamViewControls = ({
   customViewType,
   postTypeFilter,
   postTypesAvailable,
+  rsvpFilter,
   searchValue,
   sortBy,
   timeframe,
@@ -128,8 +138,7 @@ const StreamViewControls = ({
 
   const defaultSortOptions = customViewType === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS
   const postHasDates = view !== 'discussions'
-
-  let filterDropdown, sortDropdown
+  let filterDropdown, sortDropdown, rsvpDropdown
 
   if (!postTypesAvailable || postTypesAvailable.length > 1) {
     const postTypeOptionsForFilter = postTypesAvailable && postTypesAvailable.length > 1
@@ -142,6 +151,14 @@ const StreamViewControls = ({
     sortDropdown = makeFilterDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t, null, 'timeframe-filter')
   } else if (viewMode !== 'calendar') {
     sortDropdown = makeFilterDropdown(sortBy, defaultSortOptions, changeSort, t, SORT_ICON, 'sort-filter')
+  }
+
+  if (view === 'events' && changeRsvpFilter) {
+    // Load RSVP filter option strings
+    t('Going/Interested')
+    t('Not Going')
+    t('All Events')
+    rsvpDropdown = makeFilterDropdown(rsvpFilter, RSVP_OPTIONS, changeRsvpFilter, t, null, 'rsvp-filter')
   }
 
   const handleSearchToggle = () => {
@@ -163,15 +180,36 @@ const StreamViewControls = ({
     <div className={cn('flex flex-col gap-1 sm:gap-2 items-center w-full', { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
       {/* Right-justified in the pinned header row, opposite the New button.
           Sort, filter, lenses, then the display toggles — the prototype's order */}
-      <div className='flex w-full flex-row items-center justify-end flex-wrap gap-2'>
+      <div className='flex w-full flex-row items-center justify-end flex-nowrap sm:flex-wrap min-w-0 gap-1 sm:gap-2'>
         {sortDropdown}
         {filterDropdown}
+        {rsvpDropdown}
 
-        <div className={GROUP_CLASS}>
-          <ToolBtn active={viewMode === 'cards'} onClick={() => changeView('cards')} tooltip={t('Card view')}>
+        {/* Phone: the lens group collapses into a dropdown showing the active lens */}
+        <div className='sm:hidden'>
+          <Dropdown
+            id='view-mode-filter-mobile'
+            toggleChildren={
+              <span className={PILL_CLASS}>
+                {VIEW_MODE_ICONS[viewMode] || VIEW_MODE_ICONS.cards}
+                <Icon name='ArrowDown' className='opacity-60' />
+              </span>
+            }
+            items={[
+              { label: t('Card'), icon: VIEW_MODE_ICONS.cards, onClick: () => changeView('cards') },
+              { label: t('List'), icon: VIEW_MODE_ICONS.list, onClick: () => changeView('list') },
+              { label: t('Large Grid'), icon: VIEW_MODE_ICONS.bigGrid, onClick: () => changeView('bigGrid') },
+              { label: t('Small Grid'), icon: VIEW_MODE_ICONS.grid, onClick: () => changeView('grid') },
+              ...(postHasDates ? [{ label: t('Calendar'), icon: VIEW_MODE_ICONS.calendar, onClick: () => changeView('calendar') }] : [])
+            ]}
+          />
+        </div>
+
+        <div className={cn(GROUP_CLASS, 'max-sm:hidden')} data-testid='stream-view-controls' data-tour='stream-view-modes'>
+          <ToolBtn active={viewMode === 'cards'} onClick={() => changeView('cards')} tooltip={t('Card')}>
             {VIEW_MODE_ICONS.cards}
           </ToolBtn>
-          <ToolBtn active={viewMode === 'list'} onClick={() => changeView('list')} tooltip={t('List view')}>
+          <ToolBtn active={viewMode === 'list'} onClick={() => changeView('list')} tooltip={t('List')}>
             {VIEW_MODE_ICONS.list}
           </ToolBtn>
           <ToolBtn active={viewMode === 'bigGrid'} onClick={() => changeView('bigGrid')} tooltip={t('Large Grid')}>
@@ -190,6 +228,7 @@ const StreamViewControls = ({
         <div className={GROUP_CLASS}>
           <ToolBtn
             active={activePostsOnly}
+            dataTour='stream-active-toggle'
             onClick={handleClickActivePostsOnly}
             tooltip={activePostsOnly ? t('Show both active and completed posts') : t('Hide complete posts, show only active ones')}
           >
@@ -198,6 +237,7 @@ const StreamViewControls = ({
           {showChildPostToggle && (
             <ToolBtn
               active={childPostInclusion === 'yes'}
+              dataTour='stream-child-toggle'
               onClick={handleChildPostInclusion}
               tooltip={childPostInclusion === 'yes' ? t('Hide posts from child groups and spaces you are a member of') : t('Show posts from child groups and spaces you are a member of')}
             >

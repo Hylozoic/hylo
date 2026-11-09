@@ -322,6 +322,24 @@ describe('Post', function () {
         })
     })
 
+    it('creates activity for group members of a chat', () => {
+      const post = factories.post({user_id: u.id, type: Post.Type.CHAT})
+
+      return post.save()
+        .then(() => post.groups().attach(c.id))
+        .then(() => post.createActivities())
+        .then(() => Activity.where({post_id: post.id}).fetchAll())
+        .then(activities => {
+          expect(activities.length).to.equal(2)
+          expect(activities.pluck('reader_id').sort()).to.deep.equal([u2.id, u3.id].sort())
+          activities.forEach(activity => {
+            expect(activity.get('actor_id')).to.equal(u.id)
+            expect(activity.get('meta')).to.deep.equal({reasons: ['chat']})
+            expect(activity.get('unread')).to.equal(true)
+          })
+        })
+    })
+
     it('creates an activity for a tag follower', () => {
       const post = factories.post({
         user_id: u.id
@@ -526,7 +544,7 @@ describe('Post', function () {
 
       expect(updateEventInviteesSpy).to.have.been.called
       expect(updateEventInviteesSpy).to.have.been.called.with({
-        eventInviteeIds: [1, 2, 3],
+        eventInviteeIds: [user.id, 1, 2, 3],
         inviterId: user.id,
         params: { location: 'Test Location' }
       })
@@ -539,6 +557,7 @@ describe('Post', function () {
       postInstance.sendUserRsvp = sendUserRsvpSpy
       postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
       Post.find = spy(() => Promise.resolve(postInstance))
+      spyify(EventInvitation, 'find', () => Promise.resolve(null))
 
       await Post.processEventCreated({
         postId: post.id,
@@ -546,6 +565,8 @@ describe('Post', function () {
         userId: user.id,
         params
       })
+
+      unspyify(EventInvitation, 'find')
 
       expect(sendUserRsvpSpy).to.have.been.called
       expect(sendUserRsvpSpy).to.have.been.called.with({
@@ -592,6 +613,25 @@ describe('Post', function () {
       expect(createGroupEventCalendarSubscriptionsSpy).to.have.been.called
     })
 
+    it('does not email an RSVP when silent', async () => {
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvp = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventCreated({
+        postId: post.id,
+        eventInviteeIds,
+        userId: user.id,
+        params,
+        silent: true
+      })
+
+      expect(postInstance.sendUserRsvp).to.not.have.been.called
+      expect(postInstance.createGroupEventCalendarSubscriptions).to.have.been.called
+    })
+
     it('returns early if post is not found', async () => {
       Post.find = spy(() => Promise.resolve(null))
 
@@ -609,7 +649,7 @@ describe('Post', function () {
       spyify(Queue, 'classMethod')
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.updateEventInvitees = spy(async () => {
         callOrder.push('updateEventInvitees')
       })
@@ -818,7 +858,7 @@ describe('Post', function () {
     it('calls all post methods in correct order when significant change occur', async () => {
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.updateEventInvitees = spy(async () => {
         callOrder.push('updateEventInvitees')
       })
@@ -931,7 +971,7 @@ describe('Post', function () {
     it('calls all post methods in correct order', async () => {
       const callOrder = []
       const postInstance = await Post.find(post.id)
-      
+
       postInstance.sendUserRsvps = spy(async () => {
         callOrder.push('sendUserRsvps')
       })
@@ -1013,12 +1053,11 @@ describe('Post', function () {
     beforeEach(async () => {
       spyify(Queue, 'classMethod', () => Promise.resolve())
       await setup.clearDb()
-      const { assignTrackManager, ensureManageTracksResponsibility } = require('../../setup/roleHelpers')
-      await ensureManageTracksResponsibility()
+      const { assignAdministrator } = require('../../setup/roleHelpers')
       trackManager = await factories.user().save()
       user = await factories.user().save()
       group = await factories.group().save()
-      await assignTrackManager(trackManager, group)
+      await assignAdministrator(trackManager, group)
       await user.joinGroup(group)
       completionRole = await GroupRole.forge({
         group_id: group.id,
@@ -1032,13 +1071,12 @@ describe('Post', function () {
         slug: `track-space-${Date.now()}`
       }).save()
       track = await Track.create({
-        name: 'Test Track',
-        published_at: new Date(),
         completion_role_id: completionRole.id,
         group_id: space.id
       })
+      await space.save({ status: 'published' }, { patch: true })
       await space.save({ track_id: track.id }, { patch: true })
-      await Group.setupSpaceViews(space.id, ['action'], ['about', 'track-actions', 'members'])
+      await Group.setupSpaceViews(space.id, ['action'], ['track-actions', 'members', 'welcome'])
       a1 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
       a2 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
       await a1.groups().attach(space)

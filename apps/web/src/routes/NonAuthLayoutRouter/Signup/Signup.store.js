@@ -53,6 +53,7 @@ export function verifyEmail (email, code, token) {
               name
               settings {
                 alreadySeenTour
+                toursSeen
                 colorScheme
                 dmNotifications
                 commentNotifications
@@ -84,11 +85,7 @@ export function verifyEmail (email, code, token) {
           getRoot: get('verifyEmail.me'),
           modelName: 'Me'
         }
-      ],
-      analytics: {
-        eventName: AnalyticsEvents.SIGNUP_EMAIL_VERIFIED,
-        email
-      }
+      ]
     }
   }
 }
@@ -108,6 +105,7 @@ export function register (name, password) {
               name
               settings {
                 alreadySeenTour
+                toursSeen
                 colorScheme
                 dmNotifications
                 commentNotifications
@@ -123,6 +121,7 @@ export function register (name, password) {
                 theme
               }
             }
+            error
           }
         }
       `,
@@ -137,10 +136,7 @@ export function register (name, password) {
           getRoot: get('register.me'),
           modelName: 'Me'
         }
-      ],
-      analytics: {
-        eventName: AnalyticsEvents.SIGNUP_REGISTERED
-      }
+      ]
     }
   }
 }

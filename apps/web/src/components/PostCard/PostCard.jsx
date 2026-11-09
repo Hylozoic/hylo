@@ -1,5 +1,5 @@
 import { filter, get, isFunction } from 'lodash/fp'
-import { BookmarkCheck, Bookmark, Flag, Megaphone, MessageCircle, Trash2, Pencil } from 'lucide-react'
+import { BookmarkCheck, Bookmark, Flag, Link2, Megaphone, MessageCircle, Trash2, Pencil } from 'lucide-react'
 import PropTypes from 'prop-types'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +14,7 @@ import Tooltip from 'components/Tooltip'
 import useReactionActions from 'hooks/useReactionActions'
 import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
+import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import { POST_PROP_TYPES } from 'store/models/Post'
 import respondToEvent from 'store/actions/respondToEvent'
 import deletePostAction from 'store/actions/deletePost'
@@ -22,13 +23,14 @@ import { savePost, unsavePost } from 'components/PostCard/PostHeader/PostHeader.
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { createSelector } from 'reselect'
-import { RESP_MANAGE_CONTENT } from 'store/constants'
+import { CONTEXT_MY, RESP_MANAGE_CONTENT } from 'store/constants'
 import { groupUrl, personUrl, editPostUrl } from '@hylo/navigation'
 import EventBody from './EventBody'
 import PostBody from './PostBody'
 import PostFooter from './PostFooter'
 import PostHeader from './PostHeader'
 import PostGroups from './PostGroups'
+import childGroupLabel from 'util/childGroupLabel'
 import { cn } from 'util/index'
 
 import classes from './PostCard.module.scss'
@@ -77,11 +79,8 @@ export default function PostCard (props) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  // A child post's groups exclude the group being viewed, so the first one —
-  // preferring the space when the post came from one — is where it lives
-  const childGroupName = childPost
-    ? ((post.groups || []).find(g => g.type === 'space') || (post.groups || [])[0])?.name
-    : null
+  const showPostedInGroups = childPost || [CONTEXT_MY, 'all', 'public'].includes(routeParams.context)
+  const childGroupLabelText = showPostedInGroups ? childGroupLabel(post, t) : null
 
   // Chat mode state
   const [isHovered, setIsHovered] = useState(false)
@@ -156,19 +155,26 @@ export default function PostCard (props) {
     navigator.clipboard.writeText(postUrl)
   }, [postUrl])
 
-  // Chat mode action items
-  const chatActionItems = useMemo(() => filter(item => isFunction(item.onClick), [
-    { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: () => viewPostDetails(post), tooltip: t('Reply to Post') },
-    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator) ? () => navigate(editPostUrl(post.id, routeParams)) : null, tooltip: 'Edit post' },
-    { icon: post.savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: post.savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: post.savedAt ? t('Unsave Post') : t('Save Post') },
-    { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => setFlaggingVisible(true) : null, tooltip: t('Flag Post') },
-    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: t('Delete Post') },
-    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: t('Remove post from group') }
-  ]), [post, isCreator, currentUserResponsibilities, handleSavePost, copyLink, deletePostWithConfirm, removePostWithConfirm, viewPostDetails, t])
+  // Chat mode action items — logged-out viewers only get Copy Link
+  const chatActionItems = useMemo(() => {
+    if (!currentUser) {
+      return [
+        { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink, tooltip: t('Copy Link') }
+      ]
+    }
+    return filter(item => isFunction(item.onClick), [
+      { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: () => viewPostDetails(post), tooltip: t('Reply to Post') },
+      { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator) ? () => navigate(editPostUrl(post.id, routeParams)) : null, tooltip: 'Edit post' },
+      { icon: post.savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: post.savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: post.savedAt ? t('Unsave Post') : t('Save Post') },
+      { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => setFlaggingVisible(true) : null, tooltip: t('Flag Post') },
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: t('Delete Post') },
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: t('Remove post from group') }
+    ])
+  }, [currentUser, post, isCreator, currentUserResponsibilities, handleSavePost, copyLink, deletePostWithConfirm, removePostWithConfirm, viewPostDetails, navigate, routeParams, t])
 
   const myEmojis = useMemo(() =>
     post.postReactions
-      ? post.postReactions.filter(r => r.user.id === currentUser?.id).map(r => r.emojiFull)
+      ? post.postReactions.filter(r => r.user?.id === currentUser?.id).map(r => r.emojiFull)
       : []
   , [post.postReactions, currentUser?.id])
 
@@ -196,9 +202,14 @@ export default function PostCard (props) {
   }, [post, viewPostDetails])
 
   const postType = get('type', post)
+  const pinnableView = useCurrentPinnableView()
+  const pinnedInView = !!(pinnableView?.pinnedPostIds || []).map(pid => String(pid)).includes(String(post.id))
   const postTypeName = postType?.charAt(0).toUpperCase() + postType?.slice(1)
   const isEvent = postType === 'event'
-  const isFlagged = group && post.flaggedGroups && post.flaggedGroups.includes(group.id)
+  const isFlagged = group && post.flaggedGroups && post.flaggedGroups.some(id => String(id) === String(group.id))
+  // Ephemeral: reopening the card (remount) restores the cover
+  const [flagRevealed, setFlagRevealed] = useState(false)
+  const flagObscured = isFlagged && !flagRevealed
 
   const hasImage = post.attachments?.find(a => a.type === 'image') || false
 
@@ -229,7 +240,7 @@ export default function PostCard (props) {
         {/* Chat-style header: Avatar + Name created a PostType + Timestamp + Announcement/Flag */}
         <div className='flex items-center gap-2 mb-2'>
           <div onClick={showCreator} className='cursor-pointer'>
-            <Avatar avatarUrl={post.creator?.avatarUrl} large />
+            <Avatar avatarUrl={post.creator?.avatarUrl} personId={post.creator?.id} large />
           </div>
           <div className='flex items-center gap-1 text-sm flex-1 justify-between'>
             <div className='flex items-center gap-1'>
@@ -309,7 +320,10 @@ export default function PostCard (props) {
         <div
           ref={postCardRef}
           className={cn(
-            'PostCard group/post-card rounded-xl cursor-pointer p-1 ml-12 relative flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
+            // isolate: DropdownButton is z-20; without a stacking context it escapes
+            // the card and paints over the pinned stream header (post type filter).
+            'PostCard group/post-card rounded-xl cursor-pointer p-1 ml-12 relative isolate flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
+            pinnedInView && 'ring-1 ring-inset ring-[hsl(45_60%_45%_/_0.45)]',
             classes[postType],
             {
               [classes.expanded]: expanded,
@@ -342,7 +356,7 @@ export default function PostCard (props) {
                 <CardImageAttachments
                   attachments={post.attachments || []}
                   className='post-card'
-                  isFlagged={isFlagged && !post.clickthrough}
+                  isFlagged={flagObscured}
                 />
               </div>
             )}
@@ -355,7 +369,8 @@ export default function PostCard (props) {
               slug={routeParams.groupSlug}
               respondToEvent={handleRespondToEvent}
               constrained={constrained}
-              isFlagged={isFlagged}
+              isFlagged={flagObscured}
+              onRevealFlagged={() => setFlagRevealed(true)}
             />
           )}
           {!isEvent && (
@@ -366,7 +381,8 @@ export default function PostCard (props) {
                 slug={routeParams.groupSlug}
                 constrained={constrained}
                 currentUser={currentUser}
-                isFlagged={isFlagged}
+                isFlagged={flagObscured}
+                onRevealFlagged={() => setFlagRevealed(true)}
                 highlightProps={highlightProps}
                 mapDrawer={mapDrawer}
                 onAddProposalVote={onAddProposalVote}
@@ -396,7 +412,9 @@ export default function PostCard (props) {
       <div
         ref={postCardRef}
         className={cn(
-          'PostCard group/post-card rounded-xl cursor-pointer p-1 relative flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
+          // isolate: same stacking containment as the chat card above
+          'PostCard group/post-card rounded-xl cursor-pointer p-1 relative isolate flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
+          pinnedInView && 'ring-1 ring-inset ring-[hsl(45_60%_45%_/_0.45)]',
           classes[postType],
           {
             [classes.expanded]: expanded,
@@ -420,7 +438,7 @@ export default function PostCard (props) {
             constrained={constrained}
             hasImage={hasImage}
             onRemovePost={onRemovePost}
-            childGroupName={childGroupName}
+            childGroupLabel={childGroupLabelText}
           />
         </div>
         <div onClick={onClick}>

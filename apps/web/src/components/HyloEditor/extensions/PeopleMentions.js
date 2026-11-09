@@ -1,12 +1,17 @@
 import Mention from '@tiptap/extension-mention'
 import { PluginKey } from 'prosemirror-state'
 import { queryHyloAPI } from 'util/graphql'
-import asyncDebounce from 'util/asyncDebounce'
 import suggestions from './suggestions'
 import findMentions from 'store/actions/findMentions'
 
 const MAX_SUGGESTIONS = 7
 
+let mentionSearchId = 0
+
+/**
+ * Loads people matching `query` for the @-mention dropdown.
+ * Empty query returns members of the post's groups so the list can open immediately.
+ */
 const loadPeople = async (offset = 0, query, editor) => {
   const findMentionsGraphql = findMentions({
     autocomplete: query,
@@ -15,7 +20,7 @@ const loadPeople = async (offset = 0, query, editor) => {
     offset
   }).graphql
 
-  const result = query.length > 0 ? await queryHyloAPI(findMentionsGraphql) : null
+  const result = await queryHyloAPI(findMentionsGraphql)
 
   return {
     items: result?.data?.people?.items?.map(person => ({
@@ -68,12 +73,13 @@ export const PeopleMentions = ({ groupIds, onSelection, suggestionsThemeName }) 
           suggestionsThemeName,
           loadPeople
         ),
-        items: asyncDebounce(200, async ({ query, editor }) => {
+        items: async ({ query, editor }) => {
+          const requestId = ++mentionSearchId
           editor.extensionStorage.mention.loading = true
           const results = await loadPeople(0, query, editor)
           editor.extensionStorage.mention.loading = false
-          return results
-        })
+          return { ...results, requestId }
+        }
       }
     })
 

@@ -2,6 +2,8 @@ import curry from 'lodash/curry'
 import socketIOClient from 'socket.io-client'
 import sailsIOClient from 'sails.io.js'
 
+import { isSandboxMode } from 'sandbox/isSandbox'
+
 const environment = import.meta.env.PROD || 'development'
 
 /**
@@ -22,7 +24,7 @@ const isRemoteDevHost = typeof window !== 'undefined' &&
 const socketHost = isRemoteDevHost
   ? window.location.origin
   : import.meta.env.VITE_SOCKET_HOST
-const isClient = typeof window !== 'undefined' && !window.isMock
+const isClient = typeof window !== 'undefined' && !window.isMock && !isSandboxMode()
 
 let socket // client-side singleton
 let socketHeartbeatStarted = false
@@ -117,6 +119,21 @@ function startSocketHeartbeat () {
       if (document.visibilityState === 'visible') heartbeat()
     })
   }
+}
+
+/**
+ * Drops and reopens the socket connection so its handshake picks up the current session
+ * cookie. Needed after login because the backend issues a new session ID then, and a
+ * socket opened before login would stay attached to the old (now deleted) session.
+ * Subscribers re-join their rooms on the 'connect' event.
+ */
+export function reconnectSocket () {
+  // Mobile WebView connects later (connectSocket), after native has set the session
+  if (!isClient || !socketHeartbeatStarted) return
+  const raw = socket._raw
+  if (!raw || typeof raw.disconnect !== 'function' || typeof raw.connect !== 'function') return
+  raw.disconnect()
+  raw.connect()
 }
 
 export const socketUrl = path => `${socketHost}/${path.replace(/^\//, '')}`

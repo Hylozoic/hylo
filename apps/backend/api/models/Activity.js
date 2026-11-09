@@ -1,4 +1,4 @@
-import { values, omit, filter, includes, isEmpty, get, trim } from 'lodash'
+import { values, omit, filter, includes, isEmpty, get } from 'lodash'
 
 const isNewPost = activity => {
   const reasons = activity.get('meta').reasons
@@ -10,6 +10,8 @@ const isMention = activity => {
   return filter(reasons, reason => reason.match(/^mention/)).length > 0
 }
 
+// TODO: Remove this unused helper after confirming no legacy activity path needs it.
+/* eslint-disable-next-line no-unused-vars */
 const isJustNewPost = activity => {
   const reasons = activity.get('meta').reasons
   return reasons.every(reason => reason.match(/^newPost/))
@@ -20,20 +22,22 @@ const isAnnouncement = activity => {
   return filter(reasons, reason => reason.match(/^announcement/)).length > 0
 }
 
-const isTopic = activity => {
-  const reasons = activity.get('meta').reasons
-  const t = filter(reasons, reason => reason.match(/^tag/)).length > 0
-  return t
-}
-
 const isChat = activity => {
   const reasons = activity.get('meta').reasons
   const t = filter(reasons, reason => reason.match(/^chat/)).length > 0
   return t
 }
 
+// TODO: Remove this unused helper after confirming tag activity handling no longer needs it.
+/* eslint-disable-next-line no-unused-vars */
+const isTopic = activity => {
+  const reasons = activity.get('meta').reasons
+  const t = filter(reasons, reason => reason.match(/^tag/)).length > 0
+  return t
+}
+
 const mergeByReader = activities => {
-  const fields = ['actor_id', 'group_id']
+  const fields = ['actor_id', 'group_id', 'other_group_id']
   const merged = activities.reduce((acc, activity) => {
     const current = acc[activity.reader_id]
     if (acc[activity.reader_id]) {
@@ -43,7 +47,7 @@ const mergeByReader = activities => {
       current.reasons.push(activity.reason)
     } else {
       acc[activity.reader_id] = Object.assign(
-        {reasons: [activity.reason]}, omit(activity, 'reason'))
+        { reasons: [activity.reason] }, omit(activity, 'reason'))
     }
     return acc
   }, {})
@@ -51,15 +55,15 @@ const mergeByReader = activities => {
 }
 
 const removeForRelation = (model) => (id, trx) => {
-  const trxOpt = {transacting: trx, require: false}
+  const trxOpt = { transacting: trx, require: false }
   return Activity.where(`${model}_id`, id).query()
-  .pluck('id').transacting(trx)
-  .then(ids => {
-    // TODO: New Activity count needs to be decremented
-    // if inApp medium is used-- see User#decNewNotificationCount
-    return Notification.where('activity_id', 'in', ids).destroy(trxOpt)
-    .then(() => Activity.where('id', 'in', ids).destroy(trxOpt))
-  })
+    .pluck('id').transacting(trx)
+    .then(ids => {
+      // TODO: New Activity count needs to be decremented
+      // if inApp medium is used-- see User#decNewNotificationCount
+      return Notification.where('activity_id', 'in', ids).destroy(trxOpt)
+        .then(() => Activity.where('id', 'in', ids).destroy(trxOpt))
+    })
 }
 
 module.exports = bookshelf.Model.extend({
@@ -147,7 +151,7 @@ module.exports = bookshelf.Model.extend({
         created_at: new Date(),
         medium,
         user_id: this.get('reader_id')
-      }).save({}, {transacting: trx}))
+      }).save({}, { transacting: trx }))
   },
 
   contributionAmount: async function () {
@@ -168,6 +172,7 @@ module.exports = bookshelf.Model.extend({
     Announcement: 'announcement',
     ApprovedJoinRequest: 'approvedJoinRequest',
     JoinRequest: 'joinRequest',
+    GroupInvitation: 'groupInvitation',
     MemberJoinedGroup: 'memberJoinedGroup',
     GroupChildGroupInvite: 'groupChildGroupInvite',
     GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
@@ -177,33 +182,35 @@ module.exports = bookshelf.Model.extend({
     GroupPeerGroupInviteAccepted: 'groupPeerGroupInviteAccepted',
     TrackCompleted: 'trackCompleted',
     TrackEnrollment: 'trackEnrollment',
+    PostFulfilled: 'postFulfilled',
+    PostUnfulfilled: 'postUnfulfilled',
     FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
     FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
     FundingRoundReminder: 'fundingRoundReminder' // Reminder for funding round deadline
   },
 
   find: function (id, options) {
-    return this.where({id}).fetch(options)
+    return this.where({ id }).fetch(options)
   },
 
   filterInactiveContent: q => {
     q.whereRaw('(comments.active = true or comments.id is null)')
-    .leftJoin('comments', function () {
-      this.on('comments.id', '=', 'activities.comment_id')
-    })
+      .leftJoin('comments', function () {
+        this.on('comments.id', '=', 'activities.comment_id')
+      })
 
     q.whereRaw('(posts.active = true or posts.id is null)')
-    .leftJoin('posts', function () {
-      this.on('posts.id', '=', 'activities.post_id')
-    })
+      .leftJoin('posts', function () {
+        this.on('posts.id', '=', 'activities.post_id')
+      })
   },
 
   joinWithGroup: (groupId, q) => {
     q.where('groups_posts.group_id', groupId)
-    .join('groups_posts', function () {
-      this.on('comments.post_id', 'groups_posts.post_id')
-      .orOn('posts.id', 'groups_posts.post_id')
-    })
+      .join('groups_posts', function () {
+        this.on('comments.post_id', 'groups_posts.post_id')
+          .orOn('posts.id', 'groups_posts.post_id')
+      })
   },
 
   forComment: function (comment, userId, action) {
@@ -218,7 +225,7 @@ module.exports = bookshelf.Model.extend({
       actor_id: comment.get('user_id'),
       comment_id: comment.id,
       post_id: comment.get('post_id'),
-      meta: {reasons: [action]},
+      meta: { reasons: [action] },
       created_at: comment.get('created_at')
     })
   },
@@ -228,7 +235,7 @@ module.exports = bookshelf.Model.extend({
       reader_id: userId,
       actor_id: post.get('user_id'),
       post_id: post.id,
-      meta: {reasons: [this.Reason.Mention]},
+      meta: { reasons: [this.Reason.Mention] },
       created_at: post.get('created_at')
     })
   },
@@ -238,7 +245,7 @@ module.exports = bookshelf.Model.extend({
       reader_id: userId,
       actor_id: follow.get('added_by_id'),
       post_id: follow.get('post_id'),
-      meta: {reasons: [this.Reason.FollowAdd]},
+      meta: { reasons: [this.Reason.FollowAdd] },
       created_at: follow.get('added_at')
     })
   },
@@ -248,7 +255,7 @@ module.exports = bookshelf.Model.extend({
       reader_id: userId,
       actor_id: follow.get('user_id'),
       post_id: follow.get('post_id'),
-      meta: {reasons: [this.Reason.Follow]},
+      meta: { reasons: [this.Reason.Follow] },
       created_at: follow.get('added_at')
     })
   },
@@ -258,7 +265,7 @@ module.exports = bookshelf.Model.extend({
       reader_id: post.get('user_id'),
       actor_id: unfollowerId,
       post_id: post.id,
-      meta: {reasons: [this.Reason.Unfollow]},
+      meta: { reasons: [this.Reason.Unfollow] },
       created_at: new Date()
     })
   },
@@ -285,6 +292,27 @@ module.exports = bookshelf.Model.extend({
       .tap(() => Queue.classMethod('Notification', 'sendUnsent'))
   },
 
+  /**
+   * Of the given users, returns the ids (as strings) of those who used to be members of these
+   * groups but have left them all: an inactive membership in at least one and an active
+   * membership in none. Former members can't be mentioned or invited to events in those groups,
+   * and aren't notified about their posts or comments. People who were never members aren't
+   * included (e.g. someone following a public post).
+   */
+  formerMemberIds: async function (userIds, groupIds, trx) {
+    if (isEmpty(userIds) || isEmpty(groupIds)) return new Set()
+    const query = bookshelf.knex('group_memberships')
+      .whereIn('user_id', userIds)
+      .whereIn('group_id', groupIds)
+      .select('user_id', 'active')
+    if (trx) query.transacting(trx)
+    const memberships = await query
+    const activeMemberIds = new Set(memberships.filter(m => m.active).map(m => String(m.user_id)))
+    return new Set(memberships
+      .filter(m => !m.active && !activeMemberIds.has(String(m.user_id)))
+      .map(m => String(m.user_id)))
+  },
+
   groupIds: function (activity) {
     if (activity.get('post_id')) {
       return get(activity, 'relations.post.relations.groups', []).map(g => g.id)
@@ -299,8 +327,19 @@ module.exports = bookshelf.Model.extend({
 
   generateNotificationMedia: async function (activity) {
     const reasons = activity.get('meta').reasons || []
-    const isJoinRequestRelated = [this.Reason.ApprovedJoinRequest, this.Reason.JoinRequest].includes(reasons[0])
-    if (!isJoinRequestRelated) await activity.load('post.groups')
+    const reason = reasons[0]
+    const skipPostLoad = [
+      this.Reason.ApprovedJoinRequest,
+      this.Reason.JoinRequest,
+      this.Reason.GroupInvitation
+    ].includes(reason)
+    if (!skipPostLoad) await activity.load('post.groups')
+
+    // Invitees are not members yet, so skip membership-based email.
+    // Invitation.send already emails them; in-app (and push) are for existing Hylo users.
+    if (reason === this.Reason.GroupInvitation) {
+      return [Notification.MEDIUM.InApp, Notification.MEDIUM.Push]
+    }
 
     // TODO: rename 'notifications' to 'media'
     const notifications = []
@@ -312,31 +351,28 @@ module.exports = bookshelf.Model.extend({
 
     const relevantMemberships = filter(memberships.models, mem =>
       includes(groups, mem.related('group').id))
+    // People who left every group this post is in get no notifications about it or its comments.
+    // Post.createActivities already drops mentions and event invites for them, but this is the
+    // one place every post and comment notification passes through: new comments on posts they
+    // still follow, mentions added when a post is edited, event invites sent later, vote resets.
+    if (relevantMemberships.length === 0 && (await Activity.formerMemberIds([user.id], groups)).size > 0) {
+      return []
+    }
 
     const membershipsPermitting = key =>
       filter(relevantMemberships, mem => mem.getSetting(key))
 
     let emailable = membershipsPermitting('sendEmail')
-    let pushable = membershipsPermitting('sendPushNotifications')
+    const pushable = membershipsPermitting('sendPushNotifications')
 
     // Send notifications if not just about a new post, or notifications for all new posts are on, or notifications for important posts are on and its an announcement or mention
     let sendNotification = true
     if (isChat(activity)) {
       emailable = false // XXX: we don't send emails for chats, they go out in an hourly digest
+    }
 
-      // Whether to send any notifications for this chat
-      const reasons = activity.get('meta').reasons
-      const topicName = trim(filter(reasons, reason => reason.match(/^chat/))[0].split(':')[1])
-      const topic = await Tag.where({ name: topicName }).fetch()
-      const chatRoom = await TagFollow.where({
-        tag_id: topic.id,
-        group_id: groups[0],
-        user_id: user.id
-      }).fetch()
-      const chatRoomSetting = chatRoom.getSetting('notifications')
-      sendNotification = chatRoomSetting === 'all' || (chatRoomSetting === 'important' && (isAnnouncement(activity) || isMention(activity)))
-    } else if (isNewPost(activity)) {
-      // Whether to send any notifications for this new post
+    if (isChat(activity) || isNewPost(activity)) {
+      // Chat rooms are GroupViews now; use the same membership postNotifications setting as posts
       const newPostsSetting = relevantMemberships.reduce((acc, mem) => {
         const setting = mem.getSetting('postNotifications')
         if (setting === 'all') return 'all'

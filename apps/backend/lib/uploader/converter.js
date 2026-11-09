@@ -11,12 +11,15 @@ const sizes = {
   // TODO keep the original size around but create thumbnails for different
   // purposes, e.g. viewing on a post card
   [types.POST]: {width: 1200},
-  [types.COMMENT]: {width: 1200}
+  [types.COMMENT]: {width: 1200},
+  [types.WELCOME_PAGE]: {width: 1600},
+  [types.FUNDING_ROUND_DESCRIPTION]: {width: 1600},
+  [types.FUNDING_ROUND_CRITERIA]: {width: 1600}
 }
 
 export function createConverterStream (uploadType, id, { fileType }) {
   const size = sizes[uploadType]
-  if (!size || !fileType || !fileType.mime.startsWith('image')) {
+  if (!size || !fileType || !fileType.mime.startsWith('image') || fileType.mime.includes('svg')) {
     return new PassThrough()
   }
 

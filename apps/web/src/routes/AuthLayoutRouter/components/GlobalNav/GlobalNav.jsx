@@ -1,17 +1,21 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
+import { Compass, Globe, HelpCircle, Plus, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
 import React, { Suspense, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import useTour, { driveTour, isTourTestMode } from 'tours/useTour'
+import { GLOBAL_CHROME_TOUR_ID, globalChromeTourSteps } from 'tours/globalChromeTour'
+import { tourCatalog, isTourAvailable } from 'tours/catalog'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { replace } from 'redux-first-history'
 import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
@@ -38,6 +42,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -47,22 +52,35 @@ import {
   DropdownMenuTrigger
 } from 'components/ui/dropdown-menu'
 import BadgedIcon from 'components/BadgedIcon'
-import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
-import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
+import PinnedSpaceBadge from './PinnedSpaceBadge'
+import { DEFAULT_AVATAR } from 'store/models/Group'
+import { getMyGlobalNavItems } from 'store/selectors/getMyGroups'
 import { isCompactLayoutDevice, isMobileDevice, downloadApp } from 'util/mobile'
-import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
+import isWebView, { getMobileAppVersion, logoutFromMobileWebView } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
+import { isSandboxMode } from 'sandbox/isSandbox'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import markGroupAsRead from 'store/actions/markGroupAsRead'
 import logout from 'store/actions/logout'
-import { personUrl } from '@hylo/navigation'
-import { WebViewMessageTypes } from '@hylo/shared'
+import { createGroupModalUrl, createPostModalUrl, newMessageUrl, personUrl, myHomeLandingUrl, localSpaceSlug } from '@hylo/navigation'
+import { spaceEntryUrl } from 'routes/AuthLayoutRouter/components/ContextMenu/groupViewMenuUrl'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import {
+  LOCALE_DE,
+  LOCALE_EN_GB,
+  LOCALE_EN_US,
+  LOCALE_ES,
+  LOCALE_FR,
+  LOCALE_HI,
+  LOCALE_PT
+} from '@hylo/shared'
 import useAppearance from 'hooks/useAppearance'
-import { getLocaleFromLocalStorage } from 'util/locale'
+import useRouteParams from 'hooks/useRouteParams'
+import { getLocaleFromLocalStorage, normalizeLocaleToFull } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
 import { availableThemes, getAppearanceFromSettings } from 'util/appearance'
 import {
@@ -73,8 +91,28 @@ import {
 
 import styles from './GlobalNav.module.scss'
 
+// Mouse drags start once the pointer travels a few pixels. Touch needs a hold
+// instead, because a finger moving over the rail is a scroll until proven
+// otherwise. These have to be separate sensors: a delay on a shared
+// PointerSensor also applies to the mouse, and any movement inside the delay
+// cancels activation so an ordinary press-and-drag never starts.
+const MOUSE_ACTIVATION = { distance: 8 }
+const TOUCH_ACTIVATION = { delay: 500, tolerance: 10 }
+// After a long-press activates, this much movement counts as a drag rather than
+// a press-and-release that should open the context menu.
+const TOUCH_DRAG_SLOP = 10
+
+/**
+ * Returns true when a dnd-kit drag was started by a finger, not a mouse.
+ */
+function isTouchActivatorEvent (event) {
+  if (!event) return false
+  return event.type === 'touchstart' || event.touches != null
+}
+
 // Sortable wrapper for GlobalNavItem
-function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered, groupRefsMap }) {
+function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered, groupRefsMap, selectionHeldBySpace }) {
+  const isSpace = group.navItemType === 'space'
   const {
     attributes,
     listeners,
@@ -113,12 +151,20 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
     >
       <GlobalNavItem
         badgeCount={group.newPostCount ? '-' : 0}
-        img={group.avatarUrl}
+        // A pinned space reads as its parent group, with the space's icon badged in the corner
+        img={isSpace ? (group.parentGroup?.avatarUrl || DEFAULT_AVATAR) : group.avatarUrl}
+        avatarName={isSpace ? group.parentGroup?.name : undefined}
+        cornerBadge={isSpace ? <PinnedSpaceBadge space={group} /> : null}
         tooltip={group.name}
-        url={`/groups/${group.slug}`}
+        url={isSpace ? spaceEntryUrl(group.parentSlug, group) : `/groups/${group.slug}`}
         className={isVisible}
         showTooltip={isContainerHovered}
         childGroups={group.childGroups}
+        navItemType={group.navItemType}
+        parentSlug={group.parentSlug}
+        slug={group.slug}
+        dataTestId={`global-nav-${group.navItemType}-${group.id}`}
+        selectionHeldBySpace={selectionHeldBySpace}
         isPinned
       />
     </div>
@@ -126,6 +172,121 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
 }
 
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
+
+/**
+ * The + menu (per the design): four actions with colored icon tiles instead of
+ * a list of every post type. Controlled popover so choosing a row closes it.
+ */
+function GlobalCreateMenu () {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const location = useLocation()
+  const [open, setOpen] = useState(false)
+  const compactLayout = isCompactLayoutDevice()
+
+  const go = (path) => () => {
+    setOpen(false)
+    dispatch(toggleNavMenu(false))
+    navigate(path)
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger aria-label={t('Create')} data-testid='global-nav-create' data-tour='create'>
+        <div className={cn('bg-[hsl(0_0%_17%)] text-white relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
+          <PlusCircle className='w-7 h-7' />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent
+        side={compactLayout ? 'top' : 'right'}
+        align={compactLayout ? 'center' : 'end'}
+        className='w-[210px] p-1.5 rounded-xl'
+      >
+        <CreateMenuRow
+          onClick={go(createGroupModalUrl(location))}
+          tileClass='bg-[hsl(200_55%_45%)]'
+          icon={<Plus className='w-4 h-4' />}
+          label={t('Create a group')}
+        />
+        <CreateMenuRow
+          onClick={go(createPostModalUrl(location))}
+          tileClass='bg-[hsl(155_51%_34%)]'
+          icon={<Edit className='w-4 h-4' />}
+          label={t('Create a post')}
+        />
+        <CreateMenuRow
+          onClick={go(newMessageUrl())}
+          tileClass='bg-[hsl(280_40%_42%)]'
+          icon={<Mail className='w-4 h-4' />}
+          label={t('New DM')}
+        />
+        <CreateMenuRow
+          onClick={go('/public/groups')}
+          tileClass='bg-[hsl(0_0%_22%)]'
+          icon={<Globe className='w-4 h-4' />}
+          label={t('Explore Groups')}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function CreateMenuRow ({ onClick, tileClass, icon, label }) {
+  return (
+    <button
+      type='button'
+      onClick={onClick}
+      className='w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-semibold text-foreground/90 hover:text-foreground hover:bg-foreground/10 transition-colors text-left'
+    >
+      <span className={cn('w-7 h-7 rounded-lg grid place-items-center text-white shrink-0', tileClass)}>{icon}</span>
+      {label}
+    </button>
+  )
+}
+
+/**
+ * Nested settings. Desktop uses a side flyout; compact expands inline so the
+ * panel never leaves the parent menu (phones have no room to the left or right).
+ */
+function SettingsSubMenu ({ compact, icon, label, children }) {
+  const [open, setOpen] = useState(false)
+
+  if (!compact) {
+    return (
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>
+          {icon}
+          <span>{label}</span>
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className='z-[200] bg-card'>
+          {children}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+    )
+  }
+
+  return (
+    <>
+      <DropdownMenuItem
+        className='flex flex-row items-center'
+        onSelect={(event) => {
+          event.preventDefault()
+          setOpen(prev => !prev)
+        }}
+      >
+        {icon}
+        <span className='flex-1'>{label}</span>
+        <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 transition-transform', open && 'rotate-180')} />
+      </DropdownMenuItem>
+      {open && (
+        <div className='pl-4'>
+          {children}
+        </div>
+      )}
+    </>
+  )
+}
 
 // Settings Menu Component
 function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', contentAlign = 'start' }) {
@@ -137,7 +298,9 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   const { theme } = getAppearanceFromSettings(currentUser?.settings)
   const globalNavStyle = currentUser?.settings?.globalNavStyle === 'tabs' ? 'tabs' : 'sidebar'
   const stackGroups = currentUser?.settings?.stackGroups === true
-  const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
+  const currentLocale = normalizeLocaleToFull(
+    currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage()
+  )
 
   // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
   const [isPhoneViewport, setIsPhoneViewport] = useState(() =>
@@ -152,12 +315,7 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   }, [])
 
   const handleLogout = async () => {
-    await dispatch(logout())
-    if (window.HyloMobileV2) {
-      sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-    } else {
-      dispatch(replace('/login', null))
-    }
+    await logoutFromMobileWebView(dispatch, logout(), replace('/login', null))
   }
 
   const handleViewProfile = () => {
@@ -201,10 +359,11 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
     : ''
 
   const handleLanguageChange = (locale) => {
-    i18n.changeLanguage(locale)
-    getLocaleFromLocalStorage(locale)
+    const normalizedLocale = normalizeLocaleToFull(locale)
+    i18n.changeLanguage(normalizedLocale)
+    getLocaleFromLocalStorage(normalizedLocale)
     if (currentUser) {
-      dispatch(updateUserSettings({ settings: { locale } }))
+      dispatch(updateUserSettings({ settings: { locale: normalizedLocale } }))
     }
   }
 
@@ -269,124 +428,90 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
           <BellIcon className='mr-2 h-4 w-4' />
           <span>{t('Notifications')}</span>
         </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Palette className='mr-2 h-4 w-4' />
-            <span>{t('Appearance')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='z-[200] bg-card'>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Color Mode')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
-                  <DropdownMenuRadioItem value='auto'>
-                    {t('System')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='light'>
-                    {t('Light')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='dark'>
-                    {t('Dark')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Color Theme')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
-                  {availableThemes.map(theme => (
-                    <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
-                      {t(theme)}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            {!isPhoneViewport && (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <span>{t('Global Navigation')}</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className='z-[200] bg-card'>
-                  <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
-                    <DropdownMenuRadioItem value='sidebar'>
-                      {t('Sidebar')}
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value='tabs'>
-                      {t('Topbar')}
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            )}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Group Nav Stacking')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
-                  <DropdownMenuRadioItem value='flat'>
-                    {t('Flat')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value='stacked'>
-                    {t('Stacked')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <span>{t('Group Menu Style')}</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className='z-[200] bg-card'>
-                <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
-                  <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
-                    {t('Group Default')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
-                    {t('Side Menu')}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
-                    {t('Card Menu')}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Languages className='mr-2 h-4 w-4' />
-            <span>{t('Language')}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='z-[200] bg-card'>
-            <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
-              <DropdownMenuRadioItem value='en'>
-                🇬🇧 {t('English')}
+        <SettingsSubMenu compact={compactLayout} icon={<Palette className='mr-2 h-4 w-4' />} label={t('Appearance')}>
+          <SettingsSubMenu compact={compactLayout} label={t('Color Mode')}>
+            <DropdownMenuRadioGroup value={colorScheme} onValueChange={value => handleSettingChange({ colorScheme: value })}>
+              <DropdownMenuRadioItem value='auto'>
+                {t('System')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='es'>
-                🇪🇸 {t('Spanish')}
+              <DropdownMenuRadioItem value='light'>
+                {t('Light')}
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='de'>
-                🇩🇪 {t('German')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='fr'>
-                🇫🇷 {t('French')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='hi'>
-                🇮🇳 {t('Hindi')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='pt'>
-                🇵🇹 {t('Portuguese')}
+              <DropdownMenuRadioItem value='dark'>
+                {t('Dark')}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+          </SettingsSubMenu>
+          <SettingsSubMenu compact={compactLayout} label={t('Color Theme')}>
+            <DropdownMenuRadioGroup value={theme} onValueChange={value => handleSettingChange({ theme: value })}>
+              {availableThemes.map(theme => (
+                <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
+                  {t(theme)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+          {!isPhoneViewport && (
+            <SettingsSubMenu compact={compactLayout} label={t('Global Navigation')}>
+              <DropdownMenuRadioGroup value={globalNavStyle} onValueChange={value => handleSettingChange({ globalNavStyle: value })}>
+                <DropdownMenuRadioItem value='sidebar'>
+                  {t('Sidebar')}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value='tabs'>
+                  {t('Topbar')}
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </SettingsSubMenu>
+          )}
+          <SettingsSubMenu compact={compactLayout} label={t('Group Nav Stacking')}>
+            <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => handleSettingChange({ stackGroups: value === 'stacked' })}>
+              <DropdownMenuRadioItem value='flat'>
+                {t('Flat')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='stacked'>
+                {t('Stacked')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+          <SettingsSubMenu compact={compactLayout} label={t('Group Menu Style')}>
+            <DropdownMenuRadioGroup value={groupNavStyle} onValueChange={value => handleSettingChange({ groupNavStyle: value })}>
+              <DropdownMenuRadioItem value={NAV_STYLE_GROUP_DEFAULT}>
+                {t('Group Default')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={NAV_STYLE_TWO_COLUMN}>
+                {t('Side Menu')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value={NAV_STYLE_ONE_COLUMN}>
+                {t('Card Menu')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </SettingsSubMenu>
+        </SettingsSubMenu>
+        <SettingsSubMenu compact={compactLayout} icon={<Languages className='mr-2 h-4 w-4' />} label={t('Language')}>
+          <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
+            <DropdownMenuRadioItem value={LOCALE_EN_US}>
+              🇺🇸 {t('English')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_EN_GB}>
+              🇬🇧 {t('English (UK)')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_ES}>
+              🇪🇸 {t('Spanish')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_DE}>
+              🇩🇪 {t('German')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_FR}>
+              🇫🇷 {t('French')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_HI}>
+              🇮🇳 {t('Hindi')}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value={LOCALE_PT}>
+              🇵🇹 {t('Portuguese')}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </SettingsSubMenu>
         <DropdownMenuItem onClick={handleBlockedUsers}>
           <UserX className='mr-2 h-4 w-4' />
           <span>{t('Blocked Users')}</span>
@@ -424,20 +549,69 @@ export default function GlobalNav (props) {
   const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
   const stackGroups = currentUser?.settings?.stackGroups === true
-  const rawGroups = useSelector(getMyGroupsWithChildren)
-  // When stacking is off, flatten: every group renders as its own item with no subgroup stack.
-  const sortedGroups = useMemo(
-    () => stackGroups ? rawGroups : rawGroups.map(group => ({ ...group, childGroups: [] })),
-    [rawGroups, stackGroups]
+  const rawNavItems = useSelector(getMyGlobalNavItems)
+  // When stacking is off, flatten group submenus. Pinned spaces are already
+  // individual navigation destinations, while unpinned spaces stay nested.
+  const navItems = useMemo(
+    () => stackGroups
+      ? rawNavItems
+      : rawNavItems.map(item => item.navItemType === 'space' ? item : { ...item, childGroups: [] }),
+    [rawNavItems, stackGroups]
   )
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
-  const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder != null), [sortedGroups])
-  const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder == null), [sortedGroups])
+  const pinnedNavItems = useMemo(() => navItems.filter(item => item.navOrder != null), [navItems])
+  // While a pinned space is open, it alone shows as selected, not its parent group too
+  const { groupSlug: routeGroupSlug, spaceSlug: routeSpaceSlug } = useRouteParams()
+  const activeSpaceParentSlug = useMemo(() => {
+    const activeSpace = pinnedNavItems.find(item =>
+      item.navItemType === 'space' &&
+      routeGroupSlug === item.parentSlug &&
+      routeSpaceSlug === localSpaceSlug(item.parentSlug, item.slug)
+    )
+    return activeSpace?.parentSlug || null
+  }, [pinnedNavItems, routeGroupSlug, routeSpaceSlug])
+  const unpinnedGroups = useMemo(() => navItems.filter(item => item.navOrder == null), [navItems])
   const compactLayout = isCompactLayoutDevice()
   // The store links only go anywhere on a phone or tablet, so don't offer the
   // download at all on desktop
   const showAppStoreLink = isMobileDevice() && !isWebView()
   const { t } = useTranslation()
+  const [helpOpen, setHelpOpen] = useState(false)
+  const tourSteps = useMemo(() => globalChromeTourSteps(t, { sandboxMode: isSandboxMode() }), [t])
+  const { invitation: chromeTourInvitation } = useTour({
+    id: GLOBAL_CHROME_TOUR_ID,
+    steps: tourSteps,
+    autoStart: true,
+    inviteMessage: t('New to Hylo? Let us show you around.')
+  })
+  // The Help menu lists every tour; ones whose anchors aren't on the current
+  // surface are shown disabled. Availability is a DOM question, so it's
+  // measured fresh each time the menu opens
+  const allTours = useMemo(() => tourCatalog(t), [t])
+  const [availableTourIds, setAvailableTourIds] = useState(() => new Set())
+  const handleHelpOpenChange = useCallback((open) => {
+    setHelpOpen(open)
+    if (open) {
+      setAvailableTourIds(new Set(allTours.filter(isTourAvailable).map(tour => tour.id)))
+    }
+  }, [allTours])
+  const toursSeen = currentUser?.settings?.toursSeen
+  const handleRunTour = useCallback((tour) => {
+    setHelpOpen(false)
+    // Let the menu finish closing before the overlay measures the anchors
+    setTimeout(() => {
+      driveTour(tour.steps, {
+        // A finished replay counts as seen, same as an organic run
+        onDestroyed: () => {
+          if (isTourTestMode()) return
+          const seenNow = toursSeen || []
+          if (!seenNow.includes(tour.id)) {
+            dispatch(updateUserSettings({ settings: { toursSeen: [...seenNow, tour.id] } }))
+          }
+        }
+      })
+    }, 150)
+  }, [toursSeen, dispatch])
   const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   // A stack's subgroup menu and the rail's labels are alternatives, never both at
@@ -453,7 +627,6 @@ export default function GlobalNav (props) {
   const hoverDelayTimeoutRef = useRef(null)
   const ignoreTouchRef = useRef(false) // Ignore touch events briefly after nav opens
   const [isOverflowing, setIsOverflowing] = useState(false)
-  const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const [hiddenBadgeCount, setHiddenBadgeCount] = useState(0)
   const navContainerRef = useRef(null)
   const groupRefsMap = useRef(new Map())
@@ -532,49 +705,27 @@ export default function GlobalNav (props) {
     }
   }, [isContainerHovered])
 
-  // Detect scrollbar width and if the nav container is overflowing
+  // Detect if the nav container is overflowing (drives the top fade indicator).
+  // The scrollbar itself is hidden via CSS, so no width compensation is needed
+  // and the icon column stays symmetric inside its padding.
   useEffect(() => {
     const container = navContainerRef.current
     if (!container) return
 
-    const checkOverflowAndScrollbar = () => {
-      const hasOverflow = container.scrollHeight > container.clientHeight
-      setIsOverflowing(hasOverflow)
-
-      if (hasOverflow) {
-        // Detect scrollbar width by comparing offsetWidth (includes scrollbar) with clientWidth (excludes scrollbar)
-        // This tells us if the scrollbar is currently taking up layout space
-        const width = container.offsetWidth - container.clientWidth
-
-        // If width is 0, scrollbar is overlay-only (not taking space)
-        // If width > 0, scrollbar is always visible (taking space) - we need to compensate
-        setScrollbarWidth(width > 0 ? width : 0)
-      } else {
-        setScrollbarWidth(0)
-      }
+    const checkOverflow = () => {
+      setIsOverflowing(container.scrollHeight > container.clientHeight)
     }
 
-    // Initial check
-    checkOverflowAndScrollbar()
-
-    // Use a small delay to ensure layout is complete
-    const timeoutId = setTimeout(checkOverflowAndScrollbar, 100)
-
-    const resizeObserver = new ResizeObserver(() => {
-      // Small delay to ensure scrollbar state is updated
-      setTimeout(checkOverflowAndScrollbar, 50)
-    })
+    checkOverflow()
+    const resizeObserver = new ResizeObserver(checkOverflow)
     resizeObserver.observe(container)
-
-    // Also check on window resize to catch scrollbar visibility changes
-    window.addEventListener('resize', checkOverflowAndScrollbar)
+    window.addEventListener('resize', checkOverflow)
 
     return () => {
-      clearTimeout(timeoutId)
       resizeObserver.disconnect()
-      window.removeEventListener('resize', checkOverflowAndScrollbar)
+      window.removeEventListener('resize', checkOverflow)
     }
-  }, [sortedGroups.length])
+  }, [navItems.length])
 
   // Add effect to handle scroll position updates for tooltips
   useEffect(() => {
@@ -598,8 +749,8 @@ export default function GlobalNav (props) {
 
   // Track groups that have badges (new posts)
   const groupsWithBadges = useMemo(() => {
-    return sortedGroups.filter(group => group.newPostCount > 0)
-  }, [sortedGroups])
+    return navItems.filter(item => item.newPostCount > 0)
+  }, [navItems])
 
   // Calculate how many badged groups are hidden below the fold
   const calculateHiddenBadges = useCallback(() => {
@@ -817,36 +968,74 @@ export default function GlobalNav (props) {
 
   // Drag and drop sensors
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 15
-      }
-    }),
+    useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates
     })
   )
 
-  // Handle drag end for reordering pinned groups
+  /**
+   * Radix opens its context menu after 700ms of a still finger. That fights
+   * the touch drag (long-press then move) and would pop the menu while the
+   * item is picked up. Stopping pointerdown on capture keeps Radix from
+   * starting that timer; TouchSensor listens to touchstart, so the hold is
+   * unaffected. Click still fires, so tapping the group still navigates.
+   */
+  const handlePinnedTriggerPointerDownCapture = (event) => {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return
+    event.stopPropagation()
+  }
+
+  /**
+   * Opens the group's context menu at the original press point after a
+   * long-press that never became a drag.
+   */
+  const openPinnedGroupContextMenu = (groupId, clientX, clientY) => {
+    const node = groupRefsMap.current.get(groupId)
+    if (!node) return
+    node.dispatchEvent(new globalThis.MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX,
+      clientY
+    }))
+  }
+
+  /**
+   * Reorders a pinned group, or opens its context menu when a touch long-press
+   * ended without a drag.
+   */
   const handleDragEnd = (event) => {
-    const { active, over } = event
+    const { active, over, delta, activatorEvent } = event
 
     if (active && over && active.id !== over.id) {
-      const oldIndex = pinnedGroups.findIndex(group => group.id === active.id)
-      const newIndex = pinnedGroups.findIndex(group => group.id === over.id)
+      const oldIndex = pinnedNavItems.findIndex(item => item.id === active.id)
+      const newIndex = pinnedNavItems.findIndex(item => item.id === over.id)
 
       if (oldIndex !== -1 && newIndex !== -1) {
         // Use arrayMove to calculate the new order
-        const newOrder = arrayMove(pinnedGroups, oldIndex, newIndex)
+        const newOrder = arrayMove(pinnedNavItems, oldIndex, newIndex)
 
         // Find the moved group in the new order and get its new position
-        const movedGroup = newOrder.find(group => group.id === active.id)
-        const newNavOrder = newOrder.indexOf(movedGroup)
+        const movedItem = newOrder.find(item => item.id === active.id)
+        const newNavOrder = newOrder.indexOf(movedItem)
 
         // Only update the moved group's navOrder - backend will handle updating others
         dispatch(updateGroupNavOrder(active.id, newNavOrder))
       }
+      return
     }
+
+    const didDrag = Math.abs(delta?.x || 0) > TOUCH_DRAG_SLOP || Math.abs(delta?.y || 0) > TOUCH_DRAG_SLOP
+    if (didDrag || !isTouchActivatorEvent(activatorEvent)) return
+
+    const touch = activatorEvent.touches?.[0] || activatorEvent.changedTouches?.[0]
+    const clientX = touch?.clientX ?? activatorEvent.clientX
+    const clientY = touch?.clientY ?? activatorEvent.clientY
+    // Wait until dnd-kit has detached its window contextmenu listener
+    setTimeout(() => openPinnedGroupContextMenu(active.id, clientX, clientY), 0)
   }
 
   // Prevent default browser context menu on mobile devices
@@ -869,20 +1058,18 @@ export default function GlobalNav (props) {
         boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)'
       }}
     >
+      {chromeTourInvitation}
       <div className='absolute inset-0 bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 z-0' />
       <div className='absolute top-0 right-0 w-4 h-full bg-gradient-to-l from-theme-background/10 to-theme-background/0 z-20' />
       <div
         ref={navContainerRef}
         className={cn(
+          // Scrollbar hidden (scrolling still works) so it never eats layout space
+          // and the tiles stay horizontally centered in the rail
           'pt-4 flex flex-col items-center relative z-10 px-3 overflow-x-visible overflow-y-scroll grow',
+          '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           styles.globalNavContainer
         )}
-        style={{
-          // When scrollbar is taking up space (always visible), add padding to compensate
-          // This keeps content centered regardless of scrollbar visibility mode
-          paddingRight: scrollbarWidth > 0 ? `calc(0.75rem - ${scrollbarWidth}px + 2px)` : undefined,
-          paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
-        }}
         onClick={handleClick}
         onPointerLeave={handleContainerPointerLeave}
         onPointerEnter={handleContainerPointerEnter}
@@ -892,56 +1079,65 @@ export default function GlobalNav (props) {
         <GlobalNavItem
           img={get('avatarUrl', currentUser)}
           tooltip={t('My Home')}
-          url='/my'
+          url={myHomeLandingUrl()}
           className={isVisible(0)}
           showTooltip={showLabels}
+          dataTour='my-home'
         />
 
         <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={showLabels}><Bell className='w-7 h-7' /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
+              darkTile
               tooltip={t('Activity')}
               className={isVisible(1)}
               showTooltip={showLabels}
               badgeCount={showBadge ? '-' : 0}
+              dataTour='activity'
             >
-              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
+              <BadgedIcon name='Notifications' className='!text-white cursor-pointer font-md' />
             </GlobalNavItem>}
           />
         </Suspense>
 
         <GlobalNavItem
+          darkTile
           tooltip={t('Messages')}
           url='/messages'
           className={isVisible(2)}
           showTooltip={showLabels}
           badgeCount={currentUser?.unseenThreadCount || 0}
+          dataTour='messages'
         >
           <MessagesSquare />
         </GlobalNavItem>
 
-        <GlobalNavItem
-          tooltip={t('The Commons')}
-          url='/public'
-          className={isVisible(3)}
-          showTooltip={showLabels}
-        >
-          <Globe color='hsl(var(--primary-foreground))' />
-        </GlobalNavItem>
+        {!isSandboxMode() && (
+          <GlobalNavItem
+            darkTile
+            tooltip={t('The Commons')}
+            url='/public'
+            className={isVisible(3)}
+            showTooltip={showLabels}
+            dataTour='the-commons'
+          >
+            <Globe />
+          </GlobalNavItem>
+        )}
 
-        {/* Pinned Groups Section - Sortable */}
+        {/* Pinned groups and spaces share one sortable section. */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={pinnedGroups.map(group => group.id)}
+            items={pinnedNavItems.map(item => item.id)}
             strategy={verticalListSortingStrategy}
           >
-            {pinnedGroups.map((group, pinnedIndex) => (
+            {pinnedNavItems.map((group, pinnedIndex) => (
               <RightClickMenu key={group.id}>
-                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
+                <RightClickMenuTrigger onPointerDownCapture={handlePinnedTriggerPointerDownCapture}>
                   <SortableGlobalNavItem
                     group={group}
                     index={pinnedIndex}
@@ -949,6 +1145,7 @@ export default function GlobalNav (props) {
                     showTooltip={showLabels}
                     isContainerHovered={showLabels}
                     groupRefsMap={groupRefsMap}
+                    selectionHeldBySpace={group.navItemType !== 'space' && group.slug === activeSpaceParentSlug}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
@@ -960,12 +1157,12 @@ export default function GlobalNav (props) {
           </SortableContext>
         </DndContext>
 
-        {/* Add a divider between pinned and unpinned groups */}
-        {pinnedGroups.length > 0 && <div className='rounded-lg bg-background/50 dark:bg-foreground/20 w-full mb-4 p-[2px]' />}
+        {/* Add a divider between pinned destinations and unpinned groups */}
+        {pinnedNavItems.length > 0 && <div className='rounded-lg bg-background/50 dark:bg-foreground/20 w-full mb-4 p-[2px]' />}
 
         {/* Non-pinned Groups Section */}
         {unpinnedGroups.map((group, unpinnedIndex) => {
-          const actualIndex = pinnedGroups.length + unpinnedIndex
+          const actualIndex = pinnedNavItems.length + unpinnedIndex
           return (
             <div
               key={group.id}
@@ -983,6 +1180,7 @@ export default function GlobalNav (props) {
                     className={isVisible(4 + actualIndex)}
                     showTooltip={showLabels}
                     childGroups={group.childGroups}
+                    selectionHeldBySpace={group.slug === activeSpaceParentSlug}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
@@ -1034,59 +1232,101 @@ export default function GlobalNav (props) {
           </div>
         )}
 
-        <Popover>
-          <PopoverTrigger>
-            <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
-              <PlusCircle className='w-7 h-7' />
-            </div>
-          </PopoverTrigger>
-          <PopoverContent side='right' align='center'>
-            <CreateMenu />
-          </PopoverContent>
-        </Popover>
+        <GlobalCreateMenu />
 
         {/* Settings and help are utilities rather than destinations, so they share a
             row as small dark squares instead of taking a full-width bright tile each */}
         <div className='flex items-center justify-center gap-1.5'>
           <SettingsMenu currentUser={currentUser} triggerClassName={GLOBAL_NAV_UTILITY_BUTTON} />
 
-          <Popover>
-            <PopoverTrigger>
-              <span className={GLOBAL_NAV_UTILITY_BUTTON}>
+          <DropdownMenu open={helpOpen} onOpenChange={handleHelpOpenChange}>
+            <DropdownMenuTrigger asChild>
+              <span className={GLOBAL_NAV_UTILITY_BUTTON} data-tour='help'>
                 <HelpCircle className='w-5 h-5' />
               </span>
-            </PopoverTrigger>
-            <PopoverContent side='right' align='start'>
-              <ul className='flex flex-col gap-2 m-0 p-0'>
-                <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
-                <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
-                <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
-                {showAppStoreLink && <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
-                <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
-              </ul>
-              {showSupportModal && (
-                <ModalDialog
-                  closeModal={() => setShowSupportModal(false)}
-                  showModalTitle={false}
-                  submitButtonAction={() => {
-                    setShowSupportModal(false)
-                    showPreferences()
-                  }}
-                  submitButtonText={t('Edit Cookie Preferences')}
-                >
-                  <div className='p-4'>
-                    <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
-                    <p className='text-foreground/70 mb-4'>
-                      {t('To use the support chat you need to enable support cookies in your cookie preferences')}
-                    </p>
-                    <p className='text-foreground/70 mb-2'>
-                      {t('Click below to edit your cookie preferences')}
-                    </p>
-                  </div>
-                </ModalDialog>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side='right'
+              align='start'
+              className={cn(
+                'z-[200] bg-card',
+                compactLayout
+                  ? 'min-w-[260px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base'
+                  : 'min-w-[260px] sm:min-w-[200px] [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'
               )}
-            </PopoverContent>
-          </Popover>
+            >
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger data-testid='take-a-tour'>
+                  <Compass className='mr-2 h-4 w-4' />
+                  <span>{t('Take a tour')} ({availableTourIds.size})</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className='z-[200] bg-card'>
+                  <DropdownMenuLabel className='text-foreground/60 font-normal'>{t('Tours for this view')}</DropdownMenuLabel>
+                  {allTours.map(tour => (
+                    <DropdownMenuItem
+                      key={tour.id}
+                      disabled={!availableTourIds.has(tour.id)}
+                      onClick={() => handleRunTour(tour)}
+                    >
+                      {tour.title}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSupportClick}>
+                <MessagesSquare className='mr-2 h-4 w-4' />
+                <span>{t('Feedback & Support')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
+                  <BookOpen className='mr-2 h-4 w-4' />
+                  <span>{t('User Guide')}</span>
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href='http://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
+                  <Shield className='mr-2 h-4 w-4' />
+                  <span>{t('Terms & Privacy')}</span>
+                </a>
+              </DropdownMenuItem>
+              {showAppStoreLink && (
+                <DropdownMenuItem onClick={downloadApp}>
+                  <Download className='mr-2 h-4 w-4' />
+                  <span>{t('Download App')}</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem asChild>
+                <a href='https://opencollective.com/hylo' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
+                  <Heart className='mr-2 h-4 w-4' />
+                  <span>{t('Contribute to Hylo')}</span>
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {/* Outside the menu: selecting Feedback & Support closes it, and this
+              dialog has to outlive that close */}
+          {showSupportModal && (
+            <ModalDialog
+              closeModal={() => setShowSupportModal(false)}
+              showModalTitle={false}
+              submitButtonAction={() => {
+                setShowSupportModal(false)
+                showPreferences()
+              }}
+              submitButtonText={t('Edit Cookie Preferences')}
+            >
+              <div className='p-4'>
+                <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
+                <p className='text-foreground/70 mb-4'>
+                  {t('To use the support chat you need to enable support cookies in your cookie preferences')}
+                </p>
+                <p className='text-foreground/70 mb-2'>
+                  {t('Click below to edit your cookie preferences')}
+                </p>
+              </div>
+            </ModalDialog>
+          )}
         </div>
       </div>
     </div>

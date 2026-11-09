@@ -1,4 +1,4 @@
-const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets = false, withContextWidgets = false }) => `
+const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites, withExtensions }) => `
   id
   aboutVideoUri
   accessibility
@@ -10,6 +10,8 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   invitePath
   location
   memberCount
+  openJoinRequestCount
+  openModerationActionCount
   stewardDescriptor
   stewardDescriptorPlural
   name
@@ -26,9 +28,12 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     showSuggestedSkills
     showWelcomePage
     layout
+    autoAddMembers
   }
   slug
   type
+  status
+  active
   parentId
   icon
   acceptedPostTypes
@@ -38,33 +43,59 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   websiteUrl
   paywall
   canAccess
+  hasValidScope
+  currentUserMembershipActive
+  track {
+    id
+    actionDescriptor
+    actionDescriptorPlural
+    completionMessage
+    completionRole {
+      id
+      name
+      emoji
+    }
+    accessControlled
+    canAccess
+  }
+  fundingRound {
+    id
+    phase
+    allowSelfVoting
+    allowLateJoiners
+    hideFinalResultsFromParticipants
+    votingMethod
+    totalTokens
+    tokenType
+    maxTokenAllocation
+    minTokenAllocation
+    requireBudget
+    showRealtimeSubmissions
+    showRealtimeVotes
+    submissionDescriptor
+    submissionDescriptorPlural
+    submissionsOpenAt
+    submissionsCloseAt
+    votingOpensAt
+    votingClosesAt
+    criteria
+    submitterRoles {
+      id
+      emoji
+      name
+    }
+    voterRoles {
+      id
+      emoji
+      name
+    }
+  }
   agreements {
     items {
       id
       description
       order
       title
-    }
-  }
-  customViews {
-    items {
-      id
-      activePostsOnly
-      collectionId
-      defaultSort
-      defaultViewMode
-      externalLink
-      groupId
-      isActive
-      icon
-      name
-      order
-      postTypes
-      topics {
-        id
-        name
-      }
-      type
     }
   }
   locationObject {
@@ -164,6 +195,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           showSuggestedSkills
           showWelcomePage
           layout
+          autoAddMembers
         }
         slug
       }
@@ -182,101 +214,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
       }
     }`
     : ''}
-  ${withWidgets
-    ? `
-    widgets {
-      items {
-        id
-        name
-        context
-        order
-        isVisible
-      }
-    }`
-    : ''}
-    ${withContextWidgets
-      ? `
-      contextWidgets {
-        items {
-          id
-          autoAdded
-          title
-          type
-          order
-          visibility
-          view
-          icon
-          highlightNumber
-          secondaryNumber
-          parentId
-          viewGroup {
-            id
-            avatarUrl
-            bannerUrl
-            name
-            memberCount
-            visibility
-            accessibility
-            slug
-          }
-          viewPost {
-            id
-            announcement
-            title
-            details
-            type
-            createdAt
-            startTime
-            endTime
-            isPublic
-          }
-          customView {
-            id
-            groupId
-            collectionId
-            externalLink
-            isActive
-            icon
-            name
-            order
-            postTypes
-            topics {
-              id
-              name
-            }
-            type
-          }
-          viewUser {
-            id
-            name
-            avatarUrl
-          }
-          viewChat {
-            id
-            name
-          }
-          viewFundingRound {
-            id
-            title
-            isParticipating
-            phase
-            publishedAt
-            submissionsOpenAt
-            submissionsCloseAt
-            votingOpensAt
-            votingClosesAt
-          }
-          viewTrack {
-            id
-            name
-            didComplete
-            isEnrolled
-            numActions
-            publishedAt
-          }
-        }
-      }`
-      : ''}
 `
 
 export default groupFieldsFragment

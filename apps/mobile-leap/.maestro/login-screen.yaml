@@ -1,0 +1,11 @@
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: login-screen
+    timeout: 15000
+- assertVisible: 'Log in to Hylo'
+- assertVisible: 'Email address'
+- assertVisible: 'Sign up now'

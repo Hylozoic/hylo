@@ -55,6 +55,7 @@ function Comment ({
 
   const currentUser = useSelector(state => getMe(state))
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const groupIds = React.useMemo(() => post?.groups?.map(g => g.id).filter(Boolean), [post?.groups])
   const responsibilities = useSelector(state =>
     getResponsibilitiesForGroup(state, { person: currentUser, groupId: group?.id })
   ).map(r => r.title)
@@ -151,13 +152,15 @@ function Comment ({
   return (
     <div
       ref={commentRef}
-      className={cn('CommentContainer px-4 py-1 mb-1', { [styles.selectedComment]: selectedCommentId === comment.id })}
+      // px collapses on phones so the avatar sits on the post's own left edge —
+      // the extra indent doubled up with the column's padding on a narrow screen
+      className={cn('CommentContainer px-4 max-sm:px-0 py-1 mb-1', { [styles.selectedComment]: selectedCommentId === comment.id })}
       onMouseEnter={() => { if (!editing) setShowActions(true) }}
       onMouseLeave={() => { if (!isEmojiPickerOpen) { setShowActions(false) } }}
     >
       <div className='flex flex-row items-center justify-between w-full'>
         <div className='flex flex-row items-center'>
-          <Avatar avatarUrl={creator.avatarUrl} url={profileUrl} medium />
+          <Avatar avatarUrl={creator.avatarUrl} personId={creator.id} url={profileUrl} medium />
           <Link to={profileUrl} className='text-sm font-bold ml-2 text-foreground'>{creator.name}</Link>
         </div>
         <div>
@@ -205,6 +208,7 @@ function Comment ({
           <HyloEditor
             className={styles.editing}
             contentHTML={text}
+            groupIds={groupIds}
             onEscape={handleEditCancel}
             onEnter={handleEditSave}
             blurOnScroll={false}
@@ -231,6 +235,7 @@ function Comment ({
           </ClickCatcher>
           <EmojiRow
             className={cn(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}
+            pillClassName='m-0 mr-1 mb-0 py-0.5 px-2 h-[26px] rounded-full text-xs items-center'
             comment={comment}
             currentUser={currentUser}
             post={post}
@@ -245,6 +250,7 @@ export default function CommentWithReplies (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { comment, post, onReplyThread } = props
+  const groupIds = React.useMemo(() => post?.groups?.map(g => g.id).filter(Boolean), [post?.groups])
   const childCommentsTotal = useSelector(state => getTotalChildComments(state, { id: comment.id }))
   const hasMoreChildComments = useSelector(state => getHasMoreChildComments(state, { id: comment.id }))
 
@@ -323,6 +329,8 @@ export default function CommentWithReplies (props) {
             createComment={createCommentHandler}
             placeholder={`${t('Reply to')} ${comment.creator.name}`}
             editorContent={prefillEditor}
+            groupIds={groupIds}
+            postId={post?.id}
             focusOnRender
           />
         </div>

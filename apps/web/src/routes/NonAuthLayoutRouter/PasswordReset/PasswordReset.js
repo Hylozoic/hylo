@@ -49,7 +49,7 @@ function PasswordReset ({ className }) {
         <title>{t('Reset your Hylo password')}</title>
       </Helmet>
       <div className={className}>
-        <div className='bg-background/100 rounded-md p-4 w-full max-w-[320px] mx-auto'>
+        <div className='bg-midground rounded-md p-4 w-full max-w-[320px] mx-auto'>
           <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('Reset your password')}</h1>
           <div className='mb-4 text-foreground/80 text-center'>
             {t("Enter your email address and we'll send you an email that lets you reset your password.")}
@@ -65,8 +65,8 @@ function PasswordReset ({ className }) {
             noClearButton
             onChange={onChange}
             onEnter={submit}
-            className='bg-input rounded-md mb-3 selected:text-foreground'
-            inputClassName='p-3 text-foreground bg-input w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
+            className='bg-card border-2 border-foreground/20 rounded-md mb-3 selected:text-foreground'
+            inputClassName='p-3 text-foreground bg-card w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
             type='text'
             value={email}
           />

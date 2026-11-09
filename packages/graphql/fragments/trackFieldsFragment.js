@@ -5,10 +5,8 @@ export default gql`
     id
     accessControlled
     canAccess
-    bannerUrl
     actionDescriptor
     actionDescriptorPlural
-    description
     completionMessage
     completionRole {
       id
@@ -26,12 +24,24 @@ export default gql`
       }
     }
     isEnrolled
-    name
     numActions
     numPeopleCompleted
     numPeopleEnrolled
-    publishedAt
     userSettings
-    welcomeMessage
+    space {
+      id
+      name
+      bannerUrl
+      description
+      avatarUrl
+      slug
+      type
+      status
+      homeRoute
+      parentGroup {
+        id
+        slug
+      }
+    }
   }
 `

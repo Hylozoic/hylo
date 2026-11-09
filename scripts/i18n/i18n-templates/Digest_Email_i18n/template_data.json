@@ -210,15 +210,17 @@
   ],
   "subject": "Your Sandbox Daily Digest",
   "time_period": "week",
-  "topics_with_chats": [
+  "chat_rooms": [
     {
-      "name": "bayarea",
+      "name": "Sandbox",
       "num_new_chats": 5,
-      "url": "https://hylo.com"
+      "url": "https://hylo.com/groups/sandbox/chat"
     },
     {
-      "name": "cheese",
-      "num_new_chats": 1
+      "name": "Garden",
+      "num_new_chats": 1,
+      "url": "https://hylo.com/groups/sandbox/spaces/garden/chat",
+      "space_id": 99
     }
   ],
   "tracking_pixel_url": "TODO(tracking_pixel_url)",

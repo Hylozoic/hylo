@@ -11,9 +11,12 @@ export default function useViewPostDetails () {
   const querystringParams = queryString.parse(location.search)
   const navigate = useNavigate()
 
-  const viewPostDetails = useCallback((post) => {
+  // opts.focusComment rides navigation state, not the querystring — this hook
+  // spreads current query params into future post URLs, so a param would
+  // persist and re-trigger on later opens
+  const viewPostDetails = useCallback((post, opts = {}) => {
     const postId = get('id', post) || post
-    navigate(postUrl(postId, routeParams, querystringParams))
+    navigate(postUrl(postId, routeParams, querystringParams), opts.focusComment ? { state: { focusComment: true } } : undefined)
   }, [routeParams, querystringParams])
 
   return viewPostDetails

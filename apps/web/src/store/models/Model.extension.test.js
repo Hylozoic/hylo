@@ -12,7 +12,8 @@ class Dog extends Model {}
 Dog.modelName = 'Dog'
 Dog.fields = {
   id: attr(),
-  legs: many('Limb')
+  legs: many('Limb'),
+  settings: attr()
 }
 let orm
 
@@ -65,5 +66,36 @@ describe('updateAppending', () => {
     session.Dog.withId(1).updateAppending({ legs: [2, 3, 4] })
     expect(session.Dog.withId(1).legs.toRefArray().map(x => x.id))
       .toEqual([1, 2, 3, 4])
+  })
+})
+
+describe('update merges settings', () => {
+  let session
+
+  beforeEach(() => {
+    session = orm.session(orm.getEmptyState())
+    session.Dog.create({
+      id: 1,
+      settings: {
+        askJoinQuestions: true,
+        showSuggestedSkills: true,
+        layout: 'list'
+      }
+    })
+  })
+
+  it('keeps existing settings keys when a partial settings object is applied', () => {
+    session.Dog.withId(1).update({
+      settings: {
+        layout: 'grid',
+        showWelcomePage: true
+      }
+    })
+    expect(session.Dog.withId(1).settings).toEqual({
+      askJoinQuestions: true,
+      showSuggestedSkills: true,
+      layout: 'grid',
+      showWelcomePage: true
+    })
   })
 })

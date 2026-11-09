@@ -23,7 +23,9 @@ html, body {
   display: flex;
   height: 100%;
   width: 100%;
-  overflow: hidden;
+  // clip, not hidden: hidden still allows programmatic scrolling (e.g. focus
+  // scrollIntoView), which could wedge the pane sideways on phones
+  overflow: clip;
   &.map-view {
     width: 100%;
     max-width: 100%;
@@ -382,6 +384,7 @@ $drawer-z-index: 51;
   &.hidden {
     opacity: 0;
     right: -1000px;
+    pointer-events: none;
     transition-delay: 0.0s;
   }
 }

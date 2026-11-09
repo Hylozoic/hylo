@@ -1,8 +1,11 @@
 import React from 'react'
 import { render, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { loadLucideIcons } from 'components/LucideIcon/lucideIconSet'
 import CardIconField from './CardIconField'
 
 const SIZE = { w: 168, h: 156 }
+
+beforeAll(() => loadLucideIcons())
 
 describe('CardIconField', () => {
   it('tiles a Lucide icon from a single pattern definition', () => {

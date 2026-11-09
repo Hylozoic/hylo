@@ -37,7 +37,7 @@ export function formatBoundingBox (bbox) {
   return bbox ? [{ lng: bbox[0], lat: bbox[1] }, { lng: bbox[2], lat: bbox[3] }] : bbox
 }
 
-const groupPostsQuery = (postsFragment) => `query (
+const groupPostsQuery = (postsFragment, extraVariables = '') => `query (
   $activePostsOnly: Boolean,
   $afterTime: Date,
   $beforeTime: Date,
@@ -56,7 +56,7 @@ const groupPostsQuery = (postsFragment) => `query (
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String]${extraVariables ? `\n  ${extraVariables}` : ''}
 ) {
   group(slug: $slug, updateLastViewed: true) {
     id
@@ -68,7 +68,7 @@ const groupPostsQuery = (postsFragment) => `query (
   }
 }`
 
-const postsQuery = (postsFragment) => `query (
+const postsQuery = (postsFragment, extraVariables = '') => `query (
   $activePostsOnly: Boolean,
   $afterTime: Date,
   $announcementsOnly: Boolean,
@@ -92,7 +92,7 @@ const postsQuery = (postsFragment) => `query (
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
-  $types: [String]
+  $types: [String]${extraVariables ? `\n  ${extraVariables}` : ''}
 ) {
   ${postsFragment}
 }`
@@ -121,6 +121,7 @@ const membersFragment = `
         }
       }
       locationObject {
+        id
         center {
           lat
           lng
@@ -177,9 +178,13 @@ const groupsQuery = `query (
       avatarUrl
       description
       geoShape
+      homeRoute
+      icon
       memberCount
       name
+      parentId
       slug
+      type
       locationObject {
         id
         addressNumber
@@ -198,6 +203,10 @@ const groupsQuery = `query (
         locality
         neighborhood
         region
+      }
+      parentGroup {
+        id
+        slug
       }
     }
   }
@@ -238,6 +247,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
         createdAt
         updatedAt
         locationObject {
+          id
           center {
             lat
             lng
@@ -289,6 +299,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
         createdAt
         updatedAt
         locationObject {
+          id
           center {
             lat
             lng
@@ -329,7 +340,19 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
     meta: {
       extractModel,
       extractQueryResults: {
-        getItems
+        getItems,
+        // Omit pagination/geo vars so the lookup key matches MapExplorer selectors
+        // (selectors pass context/slug/groupSlugs/childPostInclusion only).
+        getRouteParams: ({ meta: { graphql: { variables } } }) => ({
+          childPostInclusion: variables.childPostInclusion,
+          context: variables.context,
+          filter: variables.filter,
+          groupSlugs: variables.groupSlugs,
+          search: variables.search,
+          slug: variables.slug,
+          sortBy: variables.sortBy,
+          topics: variables.topics
+        })
       }
     }
   }
@@ -338,12 +361,13 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
 export function fetchPostsForDrawer ({ activePostsOnly, childPostInclusion = 'yes', context, currentBoundingBox, filter, groupSlugs, offset = 0, replace, slug, sortBy, search, topics, types }) {
   let query, extractModel, getItems
 
+  // Post list fragments reference $rsvpResponse. Pin queries do not, so only the drawer declares it.
   if (context === 'groups') {
-    query = groupPostsQuery(groupViewPostsQueryFragment(childPostInclusion === 'yes'))
+    query = groupPostsQuery(groupViewPostsQueryFragment(childPostInclusion === 'yes'), '$rsvpResponse: String')
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')
   } else if (context === 'all' || context === 'public') {
-    query = postsQuery(postsQueryFragment)
+    query = postsQuery(postsQueryFragment, '$rsvpResponse: String')
     extractModel = 'Post'
     getItems = get('payload.data.posts')
   } else {
@@ -376,7 +400,19 @@ export function fetchPostsForDrawer ({ activePostsOnly, childPostInclusion = 'ye
       extractModel,
       extractQueryResults: {
         getItems,
-        replace
+        replace,
+        // Omit pagination/geo vars so the lookup key matches MapExplorer selectors
+        getRouteParams: ({ meta: { graphql: { variables } } }) => ({
+          childPostInclusion: variables.childPostInclusion,
+          context: variables.context,
+          filter: variables.filter,
+          groupSlugs: variables.groupSlugs,
+          search: variables.search,
+          slug: variables.slug,
+          sortBy: variables.sortBy,
+          topics: variables.topics,
+          types: variables.types
+        })
       }
     }
   }
@@ -663,6 +699,7 @@ const DEFAULT_STATE = {
   centerLocation: null,
   totalBoundingBoxLoaded: null,
   zoom: 0,
+  mapScopeKey: null,
   clientFilterParams: {
     currentBoundingBox: null,
     featureTypes: Object.keys(FEATURE_TYPES).filter(t => FEATURE_TYPES[t].map).reduce((types, type) => { types[type] = true; return types }, {}),

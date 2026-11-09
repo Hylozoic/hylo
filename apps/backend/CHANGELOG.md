@@ -6,6 +6,244 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.10] - 2026-11-04
+
+### Added
+- Administrators can convert a chat room (a chat-only space) into a discussion post. Each chat message becomes a comment, with attachments, reactions and replies kept. The discussion is dated today; comments keep the original message times. Other posts are left in place. The chat room is removed, so it no longer blocks turning its parent group into a space. No notifications are sent.
+- System for generating demo groups. Generation happens locally and creates .json files which can then be used to create the group in local database, staging or prod
+-  Profile hover card on person avatars
+
+## [7.1.9] - 2026-10-28
+
+### Added
+- New group setting to allow any member of a group to invite others to join the group, instead of just stewards being able to invite. This means that any member can see the Invite form and invite by link, email or direct Hylo notification.
+- In-app system for managing requets for a Group to be visible in the Hylo Commons group explorer. Replaces a google form and manual system.
+
+### Changed
+- Many changes to how group join links work. They are now called Invite Links and you can have multiple of them. You can also name them and specify that certain ones assign a role to people who join through it. Groups that are restricted and Protected or Hidden also have View Links that allow someone to see the group and request to join, as opposed to an invite link that gives direct access.
+
+### Fixed
+- Ensure post filters work in all views
+
+## [7.1.8] - 2026-10-27
+
+### Added
+- Ability to pin spaces to global navigation. This is accomplished from the About page of the space
+
+### Changed
+- Verify a new account email before it replaces the old one
+- Don't send new group email to hylo team for new spaces
+
+### Fixed
+- Display of posts in collections
+- Removing responsibilities from custom roles
+
+## [7.1.7] - 2026-10-20
+
+### Added
+- Can add geo boundaries to spaces. Edit geo boundaries in space and group creation and settings.
+
+### Changed
+- People who leave a group they paid for access to can rejoin without paying again
+
+### Fixed
+- Fix bug where all searches leaked outside of current group
+
+## [7.1.6] - 2026-10-15
+
+### Added
+- Search will now surface groups that match the search terms alongside posts, comments and people.
+- Filter to calendar view mode to only show events you RSVPed to, or not.
+- Public Profiles: you can turn this on in your profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Changed
+- New post emails in spaces show group name > space name instead of just space name in email subject
+- Fix crash in sentry when backend server is timing out
+
+### Fixed
+- Fix home route for groups when set to a post or member view
+
+## [7.1.5] - 2026-10-08
+
+### Added
+- Allow for a user to make their profile public in their profile settings. When set, the user's profile will be visible to everyone on the internet, not just people who are members of Hylo.
+
+### Fixed
+- Post notifications display the post correctly when the group's home view is a page view or welcome page. Open a post in a modal over the home view when that view is a stream, chat or map. When home view is a page, welcome, or other static view then open posts in a standalone post URL.
+
+## [7.1.4] - 2026-10-07
+
+### Added
+- Add 'silent' parameter to createPost to enable stewards to create posts without sending notifications. Only used for importing a lot of posts via zapier for now.
+
+### Changed
+- Flatten imageUrls on postinput to support nested array formats coming from zapier
+- Performance improvements:
+- Don't wait on db update of user.last_active_at on every query. Only update database every 5 minutes. Don't await on the query.
+- Improve compression of data sent by the server to the browser. Use brotli instead of gzip when the client accepts it
+- Add some additional database indexes for common reads
+
+### Fixed
+- Ensure that when someone leaves a group, the roles associated with their membership are deleted. So if they rejoin, they dont have those roles already. Also fixes a bug where deactivated stewards were getting join notifications.
+
+
+## [7.1.2] - 2026-10-01
+
+### Added
+- Add option to show all submissions to members during the submissions phase in funding round settings
+
+### Changed
+- In daily digest dont show X comments in post rows for new posts that day. Also dont show comments from blocked users or comments on posts from blocked users
+
+## [7.1.1] - 2026-09-29
+
+### Added
+- Add option for unified email digests. When turned on in the user settings, all email digests will be sent as a single email instead of separate emails for each group. Daily digests will be sent together as will weekly digests.
+
+### Fixed
+- When auto adding people to a space give them same notification settings as they have in parent group
+- Crash when using older Hylo app
+
+## [7.1.0] - 2026-09-25
+
+### Changed
+- Refine role-gated space invite dialog
+
+### Fixed
+- Many security related fixes and updates. Details to come soon.
+- Fix notifications when accepting a group to group invite. Before it was not sending the notification to the invited user.
+
+### Cleanup
+- Dropped leftover spaces-and-views tables (`tracks_posts`, `tracks_users`, `funding_rounds_posts`, `funding_rounds_users`, `context_widgets`, `custom_views`, `custom_view_topics`, `collections`, `groups_tracks`, `networks`, `networks_users`) and the explore-page `widgets` / `group_widgets` tables
+- Dropped display columns on `tracks` and `funding_rounds`. Names, banners, and descriptions live on the space group
+- Removed the `Widget` and `GroupWidget` models, the `group.widgets` field, and the `updateWidget` mutation. New groups no longer seed explore widgets
+
+## [7.0.8] - 2026-09-23
+
+### Added
+- Reactions support to Direct Messages, at last!
+
+### Changed
+- Keep loading member activity at bottom of member profile as you scroll down. Also fix Recent Activity to show correct posts alongside comments as you scroll
+
+## [7.0.7] - 2026-09-20
+
+### Fixed
+- Post notification emails now name a group the recipient is a member of, not another group the post was also shared to
+- Collection views sorted by manual order no longer add a second ambiguous `ORDER BY "order"` after joining `collections_posts`
+- Only allowing posting of accepted post types in a group
+- Display sibling spaces in To field when creating a post in a space
+
+## [7.0.6] - 2026-09-13
+
+### Changed
+- Coordinator system role has been renamed to Administrator
+
+## [7.0.5] - 2026-09-11
+
+### Added
+- Site banner setting `showToNewUsers` (default off, including existing banners) so people who join Hylo after a banner is published do not see it unless the setting is turned on
+- Support unlisted vimeo videos in posts
+
+### Fixed
+- Occasional out of memory errors when loading post stream on production
+
+## [7.0.4] - 2026-09-10
+
+### Changed
+- Unread badge counts for spaces now show the number of unread chats, plus the number of unread typed views inside it.
+- Group nav menu badges now appear as long as any view or space has a notification badge in it.
+- Toggle welcome page setting on in group settings adds welcome view to the menu if its not there
+
+### Fixed
+- Unread badge counts for spaces
+- Fix event RSVP emails
+- Fix sender name of emails from activity in spaces to include parent group name. "Parent Group > Space Name (view Hylo)"
+
+## [7.0.3] - 2026-09-09
+
+### Added
+- Space setting **Automatically add group members**: when on, current group members are added in the background (except people who previously left the space), and new members are added when they join the group. Leaving a space deactivates membership so they are not re-added if the setting is toggled off and on. Leaving and rejoining the parent group re-adds people to auto-add spaces.
+- Add new "Page" view type for static HTML content
+
+## [7.0.2] - 2026-09-08
+
+### Added
+- Remote `imageUrls` on create/update post (e.g. Airtable attachments via Zapier) are copied to S3 in a background job instead of storing expiring URLs
+- `groups.more_spaces_count`: cached count of child spaces not on the group menu, so the More Spaces row and badge can render without loading the spaces list
+- Ability to grant access to a paid space to all current members of the parent group
+- Backend tracks errors through Sentry.
+
+### Fixed
+- Adding link previews for posts coming from Zapier
+
+## [7.0.1] - 2026-09-04
+
+### Fixed
+- `convertGroupToSpace` rejects groups that have spaces of their own
+- Converting a child group to a space unpins it from every user's global nav and compact remaining pin order
+- Sanitize search query terms to avoid syntax errors when using special characters
+- For all old posts that had tags added to them that are not in the body, add those tags to the body. So people can see the tags again.
+
+## [7.0.0] - 2026-09-03 - Spaces and Views!
+
+### Added
+- Groups can now contain **Spaces**, which are fully nested child groups accessible directly from the group menu. They are tracked in the database by having type = 'space' and parent_id = group_id. Tracks and Funding Rounds are now types of space and can have custom menus. If a space has a single view in it then clicking on it in the group menu directly opens that view. If it has more than one then the group menu is replaced by the space menu, with a header showing the parent group at the top to go back to the parent group.
+- Groups can use a Lucide Icon instead of an avatar image. Used for spaces.
+- Roles in a space are inherited from the parent group at lookup time (`Group.roleScopeId`)
+- GraphQL for views and spaces: create / update / delete / reorder views, hide a space from the menu, set home view, create / update / archive / delete spaces, join a space, mark a view or group as read
+- Joining a parent group with a space invite also joins the space (including per-view unread rows)
+- Track and funding round enrollment via space membership (`enrolledAt` / `completedAt` / `tokensRemaining` on membership settings)
+- Member directory filters: `trackCompleted`, `fundingRoundCapability`
+- Per-view unread increment on post create and decrement on post delete
+- Chat activity notice posts so All Activity can show hourly "Recently in …" cards
+- Group digest includes posts from child spaces (spaces have no digest of their own); each post is labeled `in {space}`
+- New Funding round setting `allowLateJoiners` to allow people who join during voting to get tokens and vote. Only for funding rounds that have a token allocation constant.
+- New Funding round setting `showRealtimeVotes` to expose running vote totals during voting
+- Per-view pinned posts
+- Ability to turn on/off post types for a group or space
+- Cached `posts.tag_names` and `groups.num_open_join_requests`
+- Paid spaces: track paywalls reminted onto the space (`groups.paywall`, Stripe `access_grants.groupIds`)
+- `space-collection` view type (`settings.spaceIds`)
+- `yarn rollback:specific <filename>` to roll back one recorded migration
+- `groups.menu_view_count`: cached on-menu view count so a parent menu can tell single-view vs multi-view spaces without loading nested views
+- Generate a link preview on the backend when a post is created without one but contains a URL (e.g. via Zapier)
+- `skipLinkPreview` on post create so a manually removed editor preview is not auto-generated
+- Link previews for public Hylo post URLs use the post title, body text, and first attached image
+- `groups.status`: draft / published / archived for all spaces (funding-round phases live here too). Replaces `tracks.published_at` and `funding_rounds.published_at`
+- `toursSeen` user setting for new user guided tours
+- `openModerationActionCount` so the group menu can badge unresolved moderation flags
+- Convert a regular space to a child group, and a child group with one parent to a space (`convertSpaceToChildGroup`, `convertGroupToSpace`)
+- New ability for Hylo stewards to send one-time announcements to all hylo users that appear as a banner at the top of the site.
+- Editing direct messages
+
+### Changed
+- Tracks and funding rounds are spaces. Display name, banner, and description live on the space group (creates still dual-write leftover NOT NULL columns until those drop)
+- Group search includes child spaces; explore / public group search and profile memberships exclude spaces
+- Searching inside a group does not return public posts
+- Join-request approved email no longer tells people to introduce themselves in the chat
+- Chat digest email is now hourly instead of every 10 minutes
+- Allow admins to fulfill/unfulfill posts
+
+### Removed
+- `ContextWidget`, `CustomView`, `Collection`, and `CollectionsPost` GraphQL types and mutations
+- `leaveSpace` mutation
+- The `#general` tag (posts_tags, comments_tags, groups_tags, tag_follows, and `posts.tag_names`)
+- `Manage Tracks` and `Manage Funding Rounds` responsibilities (folded into Administration)
+- `about` and `related-groups` view types
+
+### Fixed
+- @mentions in comments only resolve people in the group
+- Space invitation notifications and accept URLs (accepting a space invite goes to the nested space, not a top-level remount)
+- Related-group streams do not include peer-group posts
+- Weekly group digest fires on every Wednesday instead of once a month
+- Open join request counts stay in sync and broadcast over the socket
+- GraphQL no longer rebuilds a full executable schema on every request. Relation DataLoaders no longer retain every SQL result
+- Approving a join request now records that agreements and join questions were already completed, so the welcome modal does not ask for them again
+- Offering descriptions are stored and sent to Stripe as plain text, so empty editor HTML like `<p></p>` does not appear on Checkout
+- Paying for a space grants membership from the success page (not only the Stripe webhook), including spaces listed in the offering's access grants
+- en locale split into en-US and en-GB locales to respect date formats
+
 ## [6.5.5] - 2026-07-21
 
 ### Fixed

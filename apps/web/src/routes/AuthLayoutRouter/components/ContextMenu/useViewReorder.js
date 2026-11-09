@@ -17,9 +17,25 @@ export function getReorderParams (finalOrder, newIndex) {
   return { orderInFrontOfViewId: finalOrder[newIndex + 1].id }
 }
 
+/**
+ * True when a drop would replace the home row with a type that cannot be home.
+ * A legacy invalid home (e.g. a migrated text label at order 0) does not block
+ * other reorders — including dragging that row down so a real view can take it.
+ */
+export function wouldMakeInvalidHome (finalOrder, previousOrder) {
+  const newHome = finalOrder[0]
+  if (canBeHomeView(newHome)) return false
+  return String(newHome?.id) !== String(previousOrder[0]?.id)
+}
+
 /** Call the reorder or setHomeView mutation — Redux is updated optimistically via _PENDING handlers. */
 export async function persistViewReorder (dispatch, movedView, params, { parentGroupId, targetGroupId, reorderedItems }) {
-  const syncMeta = { parentGroupId, targetGroupId, reorderedItems }
+  const syncMeta = {
+    parentGroupId,
+    targetGroupId,
+    reorderedItems,
+    updateHomeRoute: canBeHomeView(reorderedItems?.[0])
+  }
   if (params.type === 'home') {
     await dispatch(setHomeView({ viewId: movedView.id, groupId: targetGroupId, ...syncMeta }))
     return
@@ -42,8 +58,7 @@ export async function persistViewReorder (dispatch, movedView, params, { parentG
  * have a single implementation.
  */
 async function commitOrder (dispatch, { finalOrder, movedView, newIndex, previousOrder, targetGroupId, parentGroupId, setLocalViews, onReordered }) {
-  // External links (and other non-home types) cannot become the home view.
-  if (!canBeHomeView(finalOrder[0])) {
+  if (wouldMakeInvalidHome(finalOrder, previousOrder)) {
     setLocalViews?.(previousOrder)
     onReordered?.(previousOrder)
     return

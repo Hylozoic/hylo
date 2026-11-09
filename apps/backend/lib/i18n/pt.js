@@ -5,11 +5,14 @@ exports.pt = {
   clientInviteMessageDefault: ({ userName, groupName }) => `Olá, ${userName}, <br><br> Estamos felizes em recebê-lo na nossa comunidade. Clique abaixo para entrar em ${groupName} no Hylo.`,
   CreatorEmail: () => 'E-mail de quem criou',
   createInvitationSubject: (name) => `Junte-se a mim em ${name} no Hylo!`,
+  createInvitationMessage: (name) => `Olá!\n\nEstou convidando você a se juntar a ${name} no Hylo.\n\n${name} está usando o Hylo para nossa comunidade online: este é nosso espaço dedicado à comunicação e à colaboração.`,
   CreatorName: () => 'Nome de quem criou',
   CreatorURL: () => 'URL de quem criou',
   Group: () => 'Grupo',
   emailDigestDailySubject: (name) => `Seu resumo diário de ${name}`,
   emailDigestWeeklySubject: (name) => `Seu resumo semanal de ${name}`,
+  emailDigestUnifiedDailySubject: () => 'Seu resumo diário do Hylo',
+  emailDigestUnifiedWeeklySubject: () => 'Seu resumo semanal do Hylo',
   emailSenderViaHyloSuffix: () => ' (via Hylo)',
   groupCreatedNotifySubject: (name) => `Novo grupo Hylo criado: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
@@ -39,6 +42,10 @@ exports.pt = {
   moderationYouFlaggedAPost: () => 'Você denunciou uma publicação',
   moderationYouFlaggedPostEmailContent: ({ post, group }) => `Você denunciou a publicação “${post.summary()}” no grupo ${group.get('name')} por violar um acordo do grupo. \n`,
   moderationYourPostWasFlagged: () => 'Sua publicação foi denunciada',
+  moderationPostClosedEmailSubject: () => 'Sua publicação foi fechada',
+  moderationPostReopenedEmailSubject: () => 'Sua publicação foi reaberta',
+  moderationPostClosedEmailContent: ({ post, group, actor }) => `${actor.get('name')} fechou sua publicação "${post.summary()}" no grupo ${group.get('name')}. \n`,
+  moderationPostReopenedEmailContent: ({ post, group, actor }) => `${actor.get('name')} reabriu sua publicação "${post.summary()}" no grupo ${group.get('name')}. \n`,
   Name: () => 'Nome',
   newSavedSearchResults: (name) => `Novos resultados da pesquisa salva em ${name}`,
   textForApprovedJoinRequest: ({ actor, groupName }) => `${actor.get('name')} aprovou seu pedido para entrar em ${groupName}`,
@@ -61,26 +68,37 @@ exports.pt = {
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `O grupo ${childGroup.get('name')} acabou de entrar no seu grupo ${parentGroup.get('name')}!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Seu grupo ${childGroup.get('name')} entrou em ${parentGroup.get('name')}.`,
   textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} convidou você para “${postName}”`,
-  textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} convidou você a entrar em ${groupName}`,
+  textForGroupInvitation: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} convidou você para se juntar a eles no espaço ${groupName} em ${parentGroupName}`
+    : `${actor.get('name')} convidou você para se juntar a eles em ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} aceitou seu convite para entrar em ${groupName}`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} convidou seu grupo ${toGroup.get('name')} a formar uma relação de pares com ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} aceitou a relação de pares entre ${fromGroup.get('name')} e ${toGroup.get('name')}`,
-  textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} pediu para entrar em ${groupName}`,
+  textForJoinRequest: ({ actor, groupName, parentGroupName }) => parentGroupName
+    ? `${actor.get('name')} pediu para entrar em ${groupName} em ${parentGroupName}`
+    : `${actor.get('name')} pediu para entrar em ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Novo membro entrou em ${group.get('name')}: ${actor.get('name')}`,
+  textForPostModeratedFulfillment: ({ post, actor, reason }) => {
+    const postName = post.summary()
+    if (reason === 'postUnfulfilled') {
+      return `${actor.get('name')} reabriu a sua publicação "${postName}"`
+    }
+    return `${actor.get('name')} fechou a sua publicação "${postName}"`
+  },
   textForPostMention: ({ groupName, person, postName }) => `${person} mencionou você na publicação “${postName}” em ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} publicou “${postName}” em ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
-  textForTrackCompleted: ({ actor, track }) => `Trilha concluída: “${track.get('name')}” foi concluída por ${actor.get('name')}`,
-  textForTrackEnrollment: ({ actor, track }) => `Inscrição na trilha: “${track.get('name')}” por ${actor.get('name')}`,
+  textForTrackCompleted: ({ actor, trackName }) => `Trilha concluída: “${trackName}” foi concluída por ${actor.get('name')}`,
+  textForTrackEnrollment: ({ actor, trackName }) => `Inscrição na trilha: “${trackName}” por ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} alterou as opções da proposta: “${postName}” em ${groupName}. Os votos foram zerados`,
-  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} enviou “${post.summary()}” para “${fundingRound.get('title')}”`,
-  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+  textForFundingRoundNewSubmission: ({ fundingRoundTitle, post, actor }) => `${actor.get('name')} enviou “${post.summary()}” para “${fundingRoundTitle}”`,
+  textForFundingRoundPhaseTransition: ({ fundingRoundTitle, phase }) => {
     const phaseMessages = {
       submissions: 'As inscrições estão abertas',
       discussion: 'As inscrições encerraram e as discussões estão abertas',
       voting: 'A votação está aberta',
       completed: 'A votação encerrou e a rodada terminou'
     }
-    return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'Status atualizado'}`
+    return `${fundingRoundTitle}: ${phaseMessages[phase] || 'Status atualizado'}`
   },
   textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {
@@ -91,6 +109,11 @@ exports.pt = {
     }
     return `${reminderMessages[reminderType] || 'Prazo se aproximando'}`
   },
+  publicListingApprovedSubject: (name) => `Seu grupo ${name} foi adicionado ao Commons`,
+  publicListingDeniedSubject: (name) => `Atualização sobre seu pedido para adicionar ${name} ao Commons`,
+  publicListingApprovedBody: (name) => `Boas notícias! ${name} foi adicionado ao Commons. Seu grupo agora aparece no Explorador de Grupos público e no mapa público, e os membros podem compartilhar publicações no fluxo público.`,
+  publicListingDeniedBody: (name) => `Obrigado por pedir para adicionar ${name} ao Commons. Após analisar seu pedido, a equipe Hylo decidiu não adicioná-lo neste momento. Seu grupo não foi alterado e você pode enviar um novo pedido nas configurações de Privacidade e Acesso do seu grupo.`,
+  publicListingReviewerNote: () => 'Uma nota da equipe Hylo:',
   theTeamAtHylo: 'A equipe Hylo',
   stripeContributionProductName: () => 'Escolha sua contribuição para a Hylo',
   stripeContributionProductDescription: () => 'Escolha o nível da sua contribuição para apoiar a plataforma Hylo.',

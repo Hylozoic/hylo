@@ -4,8 +4,10 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { merge, reduce } from 'lodash'
 import setupBridge from '../../lib/graphql-bookshelf-bridge'
+import { clearDataLoaderCaches } from '../../lib/graphql-bookshelf-bridge/util/initDataLoaders'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import mixpanel from '../../lib/mixpanel'
+import { createGroupScope } from '../../lib/scopes'
 import {
   saveDraft,
   deleteDraft,
@@ -15,7 +17,6 @@ import {
   addGroupRole,
   addMember,
   addPeopleToProjectRole,
-  addPostToCollection,
   addResponsibilityToRole,
   addProposalVote,
   addRoleToMember,
@@ -27,14 +28,16 @@ import {
   allowGroupInvites,
   archiveSpace,
   blockUser,
+  cancelEmailChange,
   cancelGroupRelationshipInvite,
   cancelJoinRequest,
   clearModerationAction,
   completePost,
+  convertChatSpaceToDiscussion,
+  convertGroupToSpace,
+  convertSpaceToChildGroup,
   createAffiliation,
-  createCollection,
   createComment,
-  createContextWidget,
   createFundingRound,
   createGroup,
   createGroupView,
@@ -56,9 +59,17 @@ import {
   declineJoinRequest,
   addEmailEnabledTester,
   removeEmailEnabledTester,
+  createSiteBanner,
+  updateSiteBanner,
+  publishSiteBanner,
+  unpublishSiteBanner,
+  deleteSiteBanner,
+  dismissSiteBanner,
+  requestPublicListing,
+  reviewPublicListingRequest,
+  publicListingRequests,
   deleteAffiliation,
   deleteComment,
-  deleteContextWidget,
   deleteFundingRound,
   deleteGroup,
   deleteGroupRelationship,
@@ -94,7 +105,6 @@ import {
   muteMessageThread,
   unmuteMessageThread,
   leaveProject,
-  leaveSpace,
   leaveTrack,
   logout,
   markActivityRead,
@@ -108,18 +118,19 @@ import {
   processStripeToken,
   reactOn,
   reactivateUser,
+  rejoinGroup,
   recordClickthrough,
   recordStripePurchase,
-  regenerateAccessCode,
+  createGroupInviteLink,
+  updateGroupInviteLink,
+  deleteGroupInviteLink,
   registerDevice,
   registerStripeAccount,
   reinviteAll,
   rejectGroupRelationshipInvite,
   register,
-  removeWidgetFromMenu,
   removeMember,
   removePost,
-  removePostFromCollection,
   removePostFromView,
   removeResponsibilityFromRole,
   removeRoleFromMember,
@@ -127,9 +138,7 @@ import {
   removeSkill,
   removeSkillToLearn,
   removeSuggestedSkillFromGroup,
-  reorderContextWidget,
   reorderGroupView,
-  reorderPostInCollection,
   reorderViewPost,
   refundContentAccess,
   resendInvitation,
@@ -139,7 +148,6 @@ import {
   sendEmailVerification,
   sendPasswordReset,
   setProposalOptions,
-  setHomeWidget,
   setGroupViewHidden,
   setHomeView,
   subscribe,
@@ -150,7 +158,6 @@ import {
   unsavePost,
   updateAllMemberships,
   updateComment,
-  updateContextWidget,
   updateFundingRound,
   updateGroup,
   updateGroupResponsibility,
@@ -170,7 +177,6 @@ import {
   updateSpace,
   updateStripeAccount,
   updateViewSettings,
-  updateWidget,
   useInvitation,
   createStripeConnectedAccount,
   createStripeAccountLink,
@@ -178,8 +184,10 @@ import {
   updateStripeOffering,
   createStripeCheckoutSession,
   checkStripeStatus,
+  fulfillStripeCheckoutSession,
   membershipChangeCommit,
-  verifyEmail
+  verifyEmail,
+  verifyEmailChange
 } from './mutations'
 import {
   stripeAccountStatus,
@@ -202,7 +210,67 @@ import makeSubscriptions from './makeSubscriptions'
 const schemaText = readFileSync(join(__dirname, 'schema.graphql')).toString()
 let modelToTypeMap
 
+/** Yoga calls makeSchema on every GraphQL request. Rebuilding that executable schema
+ *  is the isolated-E2E OOM (heap hits the 4GB cap). Cache per auth identity; skip in
+ *  unit tests so DataLoaders do not leak across cases. `GRAPHQL_CACHE_SCHEMA=0` disables.
+ *  Loaders are cleared on each request so a reused schema does not serve stale models. */
+const SCHEMA_CACHE_MAX = 16
+const schemaCache = new Map()
+const SCHEMA_LOADERS = Symbol('hyloSchemaLoaders')
+
+/**
+ * Whether this process should reuse GraphQL schemas across requests.
+ */
+function shouldCacheGraphqlSchema () {
+  if (process.env.GRAPHQL_CACHE_SCHEMA === '0') return false
+  if (process.env.NODE_ENV === 'test') return false
+  return true
+}
+
+/**
+ * Cache key: filters and loaders close over userId / admin / API client.
+ * @param {object} req
+ */
+function graphqlSchemaCacheKey (req) {
+  const userId = req?.session?.userId || 'anon'
+  const isAdmin = req && Admin.isSignedIn(req) ? '1' : '0'
+  const apiClientId = req?.api_client?.id || req?.api_client?.client_id || ''
+  return `${userId}|${isAdmin}|${apiClientId}`
+}
+
+/**
+ * LRU insert; drops the oldest entry when over SCHEMA_CACHE_MAX.
+ * @param {string} key
+ * @param {object} schema
+ */
+function rememberGraphqlSchema (key, schema) {
+  if (schemaCache.has(key)) schemaCache.delete(key)
+  schemaCache.set(key, schema)
+  while (schemaCache.size > SCHEMA_CACHE_MAX) {
+    const oldest = schemaCache.keys().next().value
+    schemaCache.delete(oldest)
+  }
+}
+
 export default async function makeSchema ({ req }) {
+  const cache = shouldCacheGraphqlSchema()
+  const key = cache ? graphqlSchemaCacheKey(req) : null
+  if (key && schemaCache.has(key)) {
+    const cached = schemaCache.get(key)
+    rememberGraphqlSchema(key, cached)
+    clearDataLoaderCaches(cached[SCHEMA_LOADERS])
+    return cached
+  }
+  const schema = await buildGraphqlSchema(req)
+  if (key) rememberGraphqlSchema(key, schema)
+  return schema
+}
+
+/**
+ * Build a fresh executable schema for this request's identity.
+ * @param {object} req
+ */
+async function buildGraphqlSchema (req) {
   const userId = req.session.userId
   const isAdmin = Admin.isSignedIn(req)
   const models = makeModels(userId, isAdmin, req.api_client)
@@ -220,7 +288,16 @@ export default async function makeSchema ({ req }) {
         })
         return tagFollow !== null
       }
-     }
+    }
+  }
+
+  if (resolvers.Post && loaders?.tagByName) {
+    resolvers.Post.topics = async (post) => {
+      const names = post.tagNames ? post.tagNames() : (post.get('tag_names') || [])
+      if (!names.length) return []
+      const tags = await Promise.map(names, name => loaders.tagByName.load(name))
+      return tags.filter(Boolean)
+    }
   }
 
   let allResolvers
@@ -255,10 +332,12 @@ export default async function makeSchema ({ req }) {
     }
   }
 
-  return createSchema({
+  const schema = createSchema({
     typeDefs: [schemaText],
     resolvers: Object.assign(allResolvers, resolvers)
   })
+  schema[SCHEMA_LOADERS] = loaders
+  return schema
 }
 
 /**
@@ -268,12 +347,51 @@ export default async function makeSchema ({ req }) {
 function invitationMatchesGroupQuery (inviteCheck, slug, id) {
   if (!inviteCheck?.valid) return false
   if (slug) {
-    return !!(inviteCheck.groupSlug && inviteCheck.groupSlug === slug)
+    return !!(inviteCheck.groupSlug && inviteCheck.groupSlug === slug) ||
+      !!(inviteCheck.parentGroupSlug && inviteCheck.parentGroupSlug === slug)
   }
   if (id != null && id !== '') {
-    return String(inviteCheck.groupId) === String(id)
+    return String(inviteCheck.groupId) === String(id) ||
+      (inviteCheck.parentGroupId != null && String(inviteCheck.parentGroupId) === String(id))
   }
   return false
+}
+
+/**
+ * Someone who leaves a paid group or space keeps their purchased access until it expires, and can
+ * rejoin during that time (see the rejoinGroup mutation). The group filter only shows hidden and
+ * protected groups to active members, so this lets the `group` query return the group to such a
+ * former member so its About page can offer to rejoin. It applies only when the user:
+ * - has an inactive membership in this group (they were a member and left)
+ * - still holds a valid, unexpired group scope for it
+ * and the group is active, paywalled and neither draft nor archived.
+ *
+ * Fields on the returned group that expose content (posts, members, memberships, comments...) still
+ * apply their own active-membership checks, so the former member sees no more of it than a
+ * non-member who can see the group would.
+ */
+async function findGroupWithRetainedPaidAccess (userId, { id, slug }) {
+  if (!userId || (!slug && (id == null || id === ''))) return null
+  const group = await Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
+  if (!group || !group.get('paywall')) return null
+  if ([Group.Status.DRAFT, Group.Status.ARCHIVED].includes(group.get('status'))) return null
+
+  const membership = await GroupMembership.forPair(userId, group, { includeInactive: true }).fetch()
+  if (!membership || membership.get('active')) return null
+  if (!await UserScope.canAccess(userId, createGroupScope(group.id))) return null
+  return group
+}
+
+/**
+ * Throws unless the user holds the responsibility in every listed group (at least one required).
+ */
+async function requireResponsibilityInGroups (userId, groupIds, responsibility) {
+  if (!userId || !groupIds?.length) throw new GraphQLError('You do not have permission to do that')
+  for (const groupId of groupIds) {
+    if (!await GroupMembership.hasResponsibility(userId, groupId, responsibility)) {
+      throw new GraphQLError('You do not have permission to do that')
+    }
+  }
 }
 
 /**
@@ -357,6 +475,7 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
     },
     groups: (root, args) => fetchMany('Group', Object.assign(args, { visibility: Group.Visibility.PUBLIC })),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
+    person: (root, { id }) => fetchOne('Person', id, 'id'),
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
     posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true })),
     publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
@@ -371,11 +490,12 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     checkContentAccess: (root, args, context) => checkContentAccess(context.currentUserId, args),
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
-    collection: (root, { id }) => fetchOne('Collection', id),
     comment: (root, { id }) => fetchOne('Comment', id),
-    customView: (root, { id }) => fetchOne('CustomView', id),
     connections: (root, args) => fetchMany('PersonConnection', args),
-    contentAccess: (root, args) => fetchMany('ContentAccess', args),
+    contentAccess: async (root, args, context) => {
+      await requireResponsibilityInGroups(context.currentUserId, args.groupIds, Responsibility.constants.RESP_ADMINISTRATION)
+      return fetchMany('ContentAccess', args)
+    },
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
     group: async (root, { id, slug, updateLastViewed, accessCode, invitationToken }, context) => {
       let group
@@ -391,9 +511,18 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       if (!group) {
         group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
       }
+      // A former member who still has paid access can load the group even if it is hidden/protected
+      if (!group) {
+        group = await findGroupWithRetainedPaidAccess(context.currentUserId, { id, slug })
+      }
       if (updateLastViewed && group) {
-        // Resets new post count to 0
-        await GroupMembership.updateLastViewedAt(context.currentUserId, group)
+        // Side effect only — a badge-sync failure must not null out the group
+        // (that rejects FETCH_POSTS and the stream looks empty).
+        try {
+          await GroupMembership.updateLastViewedAt(context.currentUserId, group)
+        } catch (err) {
+          sails.log.error('updateLastViewedAt failed:', err)
+        }
       }
       return group
     },
@@ -413,7 +542,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     groupTopic: (root, { topicName, groupSlug }) => GroupTag.findByTagAndGroup(topicName, groupSlug),
     groupTopics: (root, args) => fetchMany('GroupTopic', args),
     groups: (root, args) => fetchMany('Group', args),
-    joinRequests: (root, args) => fetchMany('JoinRequest', args),
+    joinRequests: async (root, args, context) => {
+      await requireResponsibilityInGroups(context.currentUserId, args.groupId ? [args.groupId] : [], Responsibility.constants.RESP_ADD_MEMBERS)
+      return fetchMany('JoinRequest', args)
+    },
     myDrafts: (root, args, context) =>
       Draft.where({ user_id: context.currentUserId }).orderBy('updated_at', 'desc').fetchAll(),
 
@@ -465,7 +597,17 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     offeringSubscribers: (root, { offeringId, groupId, page, pageSize, lapsedOnly }, context) => offeringSubscribers(context.currentUserId, { offeringId, groupId, page, pageSize, lapsedOnly }),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
-    topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
+    topicFollow: async (root, { groupId, topicName }, context) => {
+      if (!groupId || !topicName || !context.currentUserId) return null
+      return TagFollow.query(q => {
+        q.join('tags', 'tags.id', 'tag_follows.tag_id')
+        q.where({
+          'tag_follows.group_id': groupId,
+          'tag_follows.user_id': context.currentUserId
+        })
+        q.whereRaw('lower(tags.name) = lower(?)', topicName)
+      }).fetch()
+    },
     topics: (root, args) => fetchMany('Topic', args),
     track: (root, { id }) => fetchOne('Track', id),
     emailEnabledTesters: async (root, args, context) => {
@@ -474,7 +616,19 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       }
       const testers = await EmailEnabledTester.findAll()
       return testers.toModelArray ? testers.toModelArray() : testers
-    }
+    },
+    siteBanners: async (root, args, context) => {
+      const banners = await SiteBanner.activeForUser(context.currentUserId)
+      return banners.toModelArray ? banners.toModelArray() : banners
+    },
+    allSiteBanners: async (root, args, context) => {
+      if (!(await Admin.isSuperAdmin(context.currentUserId))) {
+        throw new GraphQLError('Unauthorized: Admin access required')
+      }
+      const banners = await SiteBanner.all()
+      return banners.toModelArray ? banners.toModelArray() : banners
+    },
+    publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status)
   }
 }
 
@@ -506,8 +660,6 @@ export function makeMutations ({ fetchOne }) {
 
     addPeopleToProjectRole: (root, { peopleIds, projectRoleId }, context) => addPeopleToProjectRole(context.currentUserId, peopleIds, projectRoleId),
 
-    addPostToCollection: (root, { collectionId, postId }, context) => addPostToCollection(context.currentUserId, collectionId, postId),
-
     addProposalVote: (root, { postId, optionId }, context) => addProposalVote({ userId: context.currentUserId, postId, optionId }),
 
     addResponsibilityToRole: (root, { responsibilityId, roleId, groupId }, context) => addResponsibilityToRole({ userId: context.currentUserId, responsibilityId, roleId, groupId }),
@@ -522,9 +674,11 @@ export function makeMutations ({ fetchOne }) {
 
     allocateTokensToSubmission: (root, { postId, tokens }, context) => allocateTokensToSubmission(context.currentUserId, postId, tokens),
 
-    allowGroupInvites: (root, { groupId, data }) => allowGroupInvites(groupId, data),
+    allowGroupInvites: (root, { groupId, data }, context) => allowGroupInvites(context.currentUserId, groupId, data),
 
     blockUser: (root, { blockedUserId }, context) => blockUser(context.currentUserId, blockedUserId),
+
+    cancelEmailChange: (root, args, context) => cancelEmailChange(context.currentUserId),
 
     cancelGroupRelationshipInvite: (root, { groupRelationshipInviteId }, context) => cancelGroupRelationshipInvite(context.currentUserId, groupRelationshipInviteId),
 
@@ -544,11 +698,7 @@ export function makeMutations ({ fetchOne }) {
 
     createAffiliation: (root, { data }, context) => createAffiliation(context.currentUserId, data),
 
-    createCollection: (root, { data }, context) => createCollection(context.currentUserId, data),
-
     createComment: (root, { data }, context) => createComment(context.currentUserId, data, context),
-
-    createContextWidget: (root, { groupId, data }, context) => createContextWidget({ userId: context.currentUserId, groupId, data, context }),
 
     createFundingRound: (root, { data }, context) => createFundingRound(context.currentUserId, data),
 
@@ -583,23 +733,31 @@ export function makeMutations ({ fetchOne }) {
 
     reorderViewPost: (root, { viewId, postId, order }, context) => reorderViewPost(context.currentUserId, viewId, postId, order),
 
-    createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu }, context) =>
-      createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu }, context),
+    createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context) =>
+      createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context),
 
-    updateSpace: (root, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall }, context) =>
-      updateSpace(context.currentUserId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, purpose, bannerUrl, avatarUrl, paywall }, context),
+    updateSpace: (root, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, geoShape, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context) =>
+      updateSpace(context.currentUserId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, geoShape, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context),
 
     archiveSpace: (root, { id }, context) => archiveSpace(context.currentUserId, id, context),
 
     deleteSpace: (root, { id }, context) => deleteSpace(context.currentUserId, id, context),
 
-    joinSpace: (root, { spaceId }, context) => joinSpace(context.currentUserId, spaceId),
+    convertSpaceToChildGroup: (root, { id }, context) =>
+      convertSpaceToChildGroup(context.currentUserId, id, context),
 
-    leaveSpace: (root, { spaceId }, context) => leaveSpace(context.currentUserId, spaceId),
+    convertGroupToSpace: (root, { id, parentGroupId }, context) =>
+      convertGroupToSpace(context.currentUserId, { id, parentGroupId }, context),
+
+    convertChatSpaceToDiscussion: (root, { spaceId, title, dryRun }, context) =>
+      convertChatSpaceToDiscussion(context.currentUserId, { spaceId, title, dryRun }, context),
+
+    joinSpace: (root, { spaceId, accessCode, invitationToken }, context) =>
+      joinSpace(context.currentUserId, spaceId, accessCode, invitationToken),
 
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
 
-    createJoinRequest: (root, { groupId, questionAnswers }, context) => createJoinRequest(context.currentUserId, groupId, questionAnswers),
+    createJoinRequest: (root, { groupId, questionAnswers, invitationToken }, context) => createJoinRequest(context.currentUserId, groupId, questionAnswers, invitationToken),
 
     createMessage: (root, { data }, context) => createMessage(context.currentUserId, data, context),
 
@@ -619,7 +777,7 @@ export function makeMutations ({ fetchOne }) {
 
     createTopic: (root, { topicName, groupId, isDefault, isSubscribing }, context) => createTopic(context.currentUserId, topicName, groupId, isDefault, isSubscribing),
 
-    deactivateMe: (root, args, context) => deactivateUser({ sessionId: context.req.sessionId, userId: context.currentUserId }),
+    deactivateMe: (root, args, context) => deactivateUser({ sessionId: context.req.sessionID, userId: context.currentUserId }),
 
     declineJoinRequest: (root, { joinRequestId }, context) => declineJoinRequest(context.currentUserId, joinRequestId),
 
@@ -628,8 +786,6 @@ export function makeMutations ({ fetchOne }) {
     deleteComment: (root, { id }, context) => deleteComment(context.currentUserId, id),
 
     deleteDraft: (root, { id }, context) => deleteDraft(context.currentUserId, id),
-
-    deleteContextWidget: (root, { contextWidgetId }, context) => deleteContextWidget(context.currentUserId, contextWidgetId, context),
 
     deleteFundingRound: (root, { id }, context) => deleteFundingRound(context.currentUserId, id),
 
@@ -643,7 +799,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteGroupTopic: (root, { id }, context) => deleteGroupTopic(context.currentUserId, id),
 
-    deleteMe: (root, args, context) => deleteUser({ sessionId: context.req.sessionId, userId: context.currentUserId }),
+    deleteMe: (root, args, context) => deleteUser({ sessionId: context.req.sessionID, userId: context.currentUserId }),
 
     deletePost: (root, { id }, context) => deletePost(context.currentUserId, id),
 
@@ -685,6 +841,8 @@ export function makeMutations ({ fetchOne }) {
 
     joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
 
+    rejoinGroup: (root, { groupId }, context) => rejoinGroup(context.currentUserId, groupId),
+
     leaveFundingRound: (root, { id }, context) => leaveFundingRound(context.currentUserId, id),
 
     leaveGroup: (root, { id }, context) => leaveGroup(context.currentUserId, id),
@@ -707,7 +865,7 @@ export function makeMutations ({ fetchOne }) {
 
     messageGroupStewards: (root, { groupId }, context) => messageGroupStewards(context.currentUserId, groupId),
 
-    pinPost: (root, { postId, groupId }, context) => pinPost(context.currentUserId, postId, groupId),
+    pinPost: (root, { postId, viewId }, context) => pinPost(context.currentUserId, postId, viewId),
 
     peopleTyping,
 
@@ -719,7 +877,9 @@ export function makeMutations ({ fetchOne }) {
 
     recordClickthrough: (root, { postId }, context) => recordClickthrough({ userId: context.currentUserId, postId }),
 
-    regenerateAccessCode: (root, { groupId }, context) => regenerateAccessCode(context.currentUserId, groupId),
+    createGroupInviteLink: (root, { groupId, data }, context) => createGroupInviteLink(context.currentUserId, groupId, data),
+    updateGroupInviteLink: (root, { id, data }, context) => updateGroupInviteLink(context.currentUserId, id, data),
+    deleteGroupInviteLink: (root, { id }, context) => deleteGroupInviteLink(context.currentUserId, id),
 
     // DEPRECATED: This is no longer used, remove after 2025-08-26
     registerDevice: () => registerDevice(),
@@ -738,6 +898,8 @@ export function makeMutations ({ fetchOne }) {
 
     checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
 
+    fulfillStripeCheckoutSession: (root, { sessionId, offeringId }, context) => fulfillStripeCheckoutSession(context.currentUserId, { sessionId, offeringId }),
+
     membershipChangeCommit: (root, { groupId, fromOfferingId, toOfferingId, newQuantity }, context) =>
       membershipChangeCommit(context.currentUserId, { groupId, fromOfferingId, toOfferingId, newQuantity }),
 
@@ -745,13 +907,9 @@ export function makeMutations ({ fetchOne }) {
 
     rejectGroupRelationshipInvite: (root, { groupRelationshipInviteId }, context) => rejectGroupRelationshipInvite(context.currentUserId, groupRelationshipInviteId),
 
-    removeWidgetFromMenu: (root, { contextWidgetId, groupId }, context) => removeWidgetFromMenu({ userId: context.currentUserId, contextWidgetId, groupId, context }),
-
     removeMember: (root, { personId, groupId }, context) => removeMember(context.currentUserId, personId, groupId, context),
 
     removePost: (root, { postId, groupId, slug }, context) => removePost(context.currentUserId, postId, groupId || slug),
-
-    removePostFromCollection: (root, { collectionId, postId }, context) => removePostFromCollection(context.currentUserId, collectionId, postId),
 
     removeResponsibilityFromRole: (root, { roleResponsibilityId, groupId }, context) => removeResponsibilityFromRole({ userId: context.currentUserId, roleResponsibilityId, groupId }),
 
@@ -762,12 +920,6 @@ export function makeMutations ({ fetchOne }) {
     removeSkill: (root, { id, name }, context) => removeSkill(context.currentUserId, id || name),
     removeSkillToLearn: (root, { id, name }, context) => removeSkillToLearn(context.currentUserId, id || name),
     removeSuggestedSkillFromGroup: (root, { groupId, id, name }, context) => removeSuggestedSkillFromGroup(context.currentUserId, groupId, id || name),
-
-    reorderContextWidget: (root, { contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }, context) =>
-      reorderContextWidget({ userId: context.currentUserId, contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd, context }),
-
-    reorderPostInCollection: (root, { collectionId, postId, newOrderIndex }, context) =>
-      reorderPostInCollection(context.currentUserId, collectionId, postId, newOrderIndex),
 
     requestToAddGroupToParent: (root, { parentId, childId, questionAnswers }, context) =>
       inviteGroupToGroup(context.currentUserId, childId, parentId, GroupRelationshipInvite.TYPE.ChildToParent, questionAnswers),
@@ -783,8 +935,6 @@ export function makeMutations ({ fetchOne }) {
 
     setProposalOptions: (root, { postId, options }, context) => setProposalOptions({ userId: context.currentUserId, postId, options }),
 
-    setHomeWidget: (root, { contextWidgetId, groupId }, context) => setHomeWidget({ userId: context.currentUserId, contextWidgetId, groupId, context }),
-
     subscribe: (root, { groupId, topicId, isSubscribing }, context) => subscribe(context.currentUserId, topicId, groupId, isSubscribing),
 
     swapProposalVote: (root, { postId, removeOptionId, addOptionId }, context) => swapProposalVote({ userId: context.currentUserId, postId, removeOptionId, addOptionId }),
@@ -799,8 +949,6 @@ export function makeMutations ({ fetchOne }) {
 
     updateAllMemberships: (root, args, context) => updateAllMemberships(context.currentUserId, args),
 
-    updateContextWidget: (root, { contextWidgetId, data }, context) => updateContextWidget({ userId: context.currentUserId, contextWidgetId, data, context }),
-
     updateFundingRound: (root, { id, data }, context) => updateFundingRound(context.currentUserId, id, data),
 
     updateGroupResponsibility: (root, { groupId, responsibilityId, title, description }, context) =>
@@ -811,13 +959,13 @@ export function makeMutations ({ fetchOne }) {
 
     updateGroupSettings: (root, { id, changes }, context) => updateGroup(context.currentUserId, id, changes, context),
 
-    updateGroupTopic: (root, { id, data }, context) => updateGroupTopic(id, data),
+    updateGroupTopic: (root, { id, data }, context) => updateGroupTopic(context.currentUserId, id, data),
 
     updateGroupTopicFollow: (root, args, context) => updateGroupTopicFollow(context.currentUserId, args),
 
     updateTopicFollow: (root, args, context) => updateTopicFollow(context.currentUserId, args),
 
-    updateMe: (root, { changes }, context) => updateMe(context.req.sessionId, context.currentUserId, changes),
+    updateMe: (root, { changes }, context) => updateMe(context.req.sessionID, context.currentUserId, changes, { ip: context.req?.ip }),
 
     updateMembership: (root, args, context) => updateMembership(context.currentUserId, args),
 
@@ -835,13 +983,29 @@ export function makeMutations ({ fetchOne }) {
 
     updateTrack: (root, { trackId, data }, context) => updateTrack(context.currentUserId, trackId, data),
 
-    updateWidget: (root, { id, changes }, context) => updateWidget(id, changes),
+    verifyEmailChange: (root, args, context) => verifyEmailChange(fetchOne)(context.currentUserId, args, { ip: context.req?.ip }),
 
     useInvitation: (root, { invitationToken, accessCode }, context) => useInvitation(context.currentUserId, invitationToken, accessCode),
 
     addEmailEnabledTester: (root, { userId }, context) => addEmailEnabledTester(context.currentUserId, userId),
 
-    removeEmailEnabledTester: (root, { userId }, context) => removeEmailEnabledTester(context.currentUserId, userId)
+    removeEmailEnabledTester: (root, { userId }, context) => removeEmailEnabledTester(context.currentUserId, userId),
+
+    createSiteBanner: (root, { data }, context) => createSiteBanner(context.currentUserId, data),
+
+    updateSiteBanner: (root, { id, data }, context) => updateSiteBanner(context.currentUserId, id, data),
+
+    publishSiteBanner: (root, { id }, context) => publishSiteBanner(context.currentUserId, id),
+
+    unpublishSiteBanner: (root, { id }, context) => unpublishSiteBanner(context.currentUserId, id),
+
+    deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
+
+    dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    requestPublicListing: (root, { groupId, message }, context) => requestPublicListing(context.currentUserId, groupId, message),
+
+    reviewPublicListingRequest: (root, { groupId, approved, message }, context) => reviewPublicListingRequest(context.currentUserId, groupId, approved, message)
   }
 }
 
@@ -857,7 +1021,7 @@ export function makeApiQueries ({ fetchOne, fetchMany }) {
 
 export function makeApiMutations () {
   return {
-    addMember: (root, { userId, groupId, role }) => addMember(userId, groupId, role),
+    addMember: (root, { userId, groupId, assignAdministrator }) => addMember(userId, groupId, assignAdministrator),
     createGroup: (root, { asUserId, data }) => createGroup(asUserId, data),
     updateGroup: (root, { asUserId, id, changes }) => updateGroup(asUserId, id, changes)
   }

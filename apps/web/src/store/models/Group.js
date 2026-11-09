@@ -1,5 +1,20 @@
 import { attr, many, Model, fk } from 'redux-orm'
 
+/** Parses a group's acceptedPostTypes attr (array, JSON string, or null = all types). */
+export function normalizeAcceptedPostTypes (value) {
+  if (value == null) return null
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : null
+    } catch (e) {
+      return null
+    }
+  }
+  return null
+}
+
 export const GROUP_ACCESSIBILITY = {
   Closed: 0,
   Restricted: 1,
@@ -21,6 +36,35 @@ export function accessibilityDescription (a) {
     case GROUP_ACCESSIBILITY.Open:
       return 'Anyone who can see this group can join it'
   }
+}
+
+export function isRetainedAccessGroup (group) {
+  return Boolean(
+    group?.paywall &&
+    group?.hasValidScope &&
+    group?.currentUserMembershipActive === false &&
+    group?.active !== false &&
+    !['draft', 'archived'].includes(group?.status)
+  )
+}
+
+/**
+ * Human-readable access sentence for a space, shown on the join page and about
+ * modal. requiredRoles are resolved role objects from the parent group.
+ */
+export function spaceAccessDescription ({ space, parentGroupName, requiredRoles = [], t }) {
+  if (space.paywall) return t('A paid membership is required to join this space')
+  if (requiredRoles.length > 0) {
+    const roleNames = requiredRoles.map(role => [role.emoji, role.name].filter(Boolean).join(' ')).join(', ')
+    return t('Only {{roleNames}} may join this space', { roleNames })
+  }
+  if (space.accessibility === GROUP_ACCESSIBILITY.Open) {
+    return t('Anyone in {{groupName}} can access this space', { groupName: parentGroupName })
+  }
+  if (space.accessibility === GROUP_ACCESSIBILITY.Restricted) {
+    return t('Members of {{groupName}} must request to join and be approved', { groupName: parentGroupName })
+  }
+  return t('You must be invited to join this space')
 }
 
 export function accessibilityIcon (a) {
@@ -79,13 +123,6 @@ export const LOCATION_PRECISION = {
   precise: 'Display exact location',
   near: 'Display only nearest city and show nearby location on the map',
   region: 'Display only nearest city and dont show on the map'
-}
-
-export class ChatRoom extends Model { }
-ChatRoom.modelName = 'ChatRoom'
-ChatRoom.fields = {
-  group: fk('Group', 'chatrooms'),
-  topic: fk('GroupTopic', 'chatrooms')
 }
 
 export class GroupSteward extends Model { }
@@ -158,7 +195,6 @@ Group.fields = {
     as: 'announcements',
     relatedName: 'announcementGroups'
   }),
-  chatRooms: many('ChatRoom'),
   childGroups: many({
     to: 'Group',
     relatedName: 'parentGroups',
@@ -166,22 +202,32 @@ Group.fields = {
     throughFields: ['childGroup', 'parentGroup']
   }),
   peerGroups: many('Group'),
-  customViews: many('CustomView'),
   feedOrder: attr(),
   geoShape: attr(),
   groupToGroupJoinQuestions: many('GroupToGroupJoinQuestion'),
+  groupRoles: attr(),
   groupViews: attr(),
   homeRoute: attr(),
+  menuViewCount: attr(),
+  moreSpacesCount: attr(),
   icon: attr(),
   id: attr(),
+  invitePath: attr(),
+  inviteLinks: attr(),
+  invitePolicy: attr(),
   joinQuestions: many('GroupJoinQuestion'),
   location: attr(),
-  locationId: fk({
+  locationObject: fk({
     to: 'Location',
     as: 'locationObject'
   }),
   members: many('Person'),
   memberCount: attr(),
+  memberRole: attr(),
+  myInviteAccess: attr(),
+  myInviteAllowance: attr(),
+  openJoinRequestCount: attr(),
+  openModerationActionCount: attr(),
   stewards: many({
     to: 'Person',
     relatedName: 'stewardedGroups',
@@ -191,6 +237,7 @@ Group.fields = {
   stewardDescriptor: attr(),
   stewardDescriptorPlural: attr(),
   name: attr(),
+  parentGroup: fk({ to: 'Group', as: 'parentGroup', relatedName: 'childSpaceGroups' }),
   parentId: attr(),
   openOffersAndRequests: many({
     to: 'Post',
@@ -210,6 +257,8 @@ Group.fields = {
   settings: attr(),
   slug: attr(),
   spaces: attr(),
+  status: attr(),
+  active: attr(),
   suggestedSkills: many('Skill'),
   track: attr(),
   tracks: many('Track'),
@@ -221,13 +270,14 @@ Group.fields = {
     relatedName: 'eventGroups'
   }),
   visibility: attr(),
-  widgets: many('Widget'),
   stripeAccountId: attr(),
   stripeDashboardUrl: attr(),
   stripeChargesEnabled: attr(),
   stripePayoutsEnabled: attr(),
   stripeDetailsSubmitted: attr(),
-  paywall: attr()
+  paywall: attr(),
+  hasValidScope: attr(),
+  currentUserMembershipActive: attr()
 }
 
 export const DEFAULT_BANNER = '/default-group-banner.svg'

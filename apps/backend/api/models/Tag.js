@@ -64,12 +64,16 @@ const removeFromTaggable = (taggable, tag, opts) => {
 const updateForTaggable = ({ taggable, tagNames, userId, transacting }) => {
   if (tagNames === undefined) return Promise.resolve()
 
-  const lowerTagNames = tagNames.map(name => name.toLowerCase())
+  const lowerTagNames = uniq(tagNames.map(name => name.toLowerCase())).sort()
   return taggable.load('tags', { transacting })
     .then(() => {
       const toRemove = taggable.relations.tags.models
       return Promise.map(toRemove, tag => removeFromTaggable(taggable, tag, { transacting }))
-        .then(() => Promise.map(uniq(lowerTagNames), name => addToTaggable(taggable, name, userId, { transacting })))
+        .then(() => Promise.map(lowerTagNames, name => addToTaggable(taggable, name, userId, { transacting })))
+    })
+    .then(() => {
+      if (taggable.tableName !== 'posts') return
+      return taggable.save({ tag_names: lowerTagNames }, { transacting, patch: true })
     })
 }
 
@@ -113,7 +117,7 @@ module.exports = bookshelf.Model.extend({
   }
 
 }, {
-  addToGroup: ({ group_id, tag_id, user_id, description, is_default, isSubscribing, isChatRoom }, opts) => {
+  addToGroup: ({ group_id, tag_id, user_id, description, is_default, isSubscribing }, opts) => {
     return GroupTag.where({ group_id, tag_id }).fetch(opts)
       .tap(groupTag => groupTag ||
         GroupTag.create({ group_id, tag_id, user_id, description, is_default }, opts)
@@ -123,7 +127,7 @@ module.exports = bookshelf.Model.extend({
       // the result
       .then(groupTag => groupTag && groupTag.save({ updated_at: new Date(), is_default }, opts))
       .then(() => user_id && isSubscribing &&
-        TagFollow.findOrCreate({ groupId: group_id, tagId: tag_id, userId: user_id, isSubscribing, isChatRoom }, opts))
+        TagFollow.findOrCreate({ groupId: group_id, tagId: tag_id, userId: user_id }, opts))
   },
 
   isValidTag (text) {
@@ -164,25 +168,50 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
+  /**
+   * Rebuild posts.tag_names from posts_tags for the given post ids.
+   */
+  rebuildTagNames: async (postIds, transacting) => {
+    const ids = uniq((postIds || []).filter(id => id != null))
+    if (ids.length === 0) return
+    const knex = transacting || bookshelf.knex
+    return knex('posts')
+      .whereIn('id', ids)
+      .update({
+        tag_names: knex.raw(`
+          COALESCE((
+            SELECT array_agg(tags.name ORDER BY tags.name)
+            FROM posts_tags
+            JOIN tags ON tags.id = posts_tags.tag_id
+            WHERE posts_tags.post_id = posts.id
+          ), '{}'::text[])
+        `)
+      })
+  },
+
   merge: (id1, id2) => {
-    return bookshelf.transaction(trx => {
+    return bookshelf.transaction(async trx => {
+      const affectedPostIds = await trx('posts_tags').whereIn('tag_id', [id1, id2]).pluck('post_id')
       const update = (table, uniqueCols) =>
         updateOrRemove(table, 'tag_id', id2, id1, uniqueCols, trx)
 
-      return Promise.join(
+      await Promise.join(
         update('posts_tags', ['post_id']),
         update('groups_tags', ['group_id']),
         update('tag_follows', ['group_id', 'user_id'])
       )
-        .then(() => trx('tags').where('id', id2).del())
+      await trx('tags').where('id', id2).del()
+      await Tag.rebuildTagNames(affectedPostIds, trx)
     })
   },
 
   remove: id => {
-    return bookshelf.transaction(trx => {
+    return bookshelf.transaction(async trx => {
+      const affectedPostIds = await trx('posts_tags').where('tag_id', id).pluck('post_id')
       const tables = ['tag_follows', 'groups_tags', 'posts_tags']
-      return Promise.all(tables.map(t => trx(t).where('tag_id', id).del()))
-        .then(() => trx('tags').where('id', id).del())
+      await Promise.all(tables.map(t => trx(t).where('tag_id', id).del()))
+      await trx('tags').where('id', id).del()
+      await Tag.rebuildTagNames(affectedPostIds, trx)
     })
   },
 

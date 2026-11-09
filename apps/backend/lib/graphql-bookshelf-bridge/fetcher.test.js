@@ -7,11 +7,13 @@ import Promise from 'bluebird'
 
 const setupLoaders = models => {
   const makeLoader = () => {
-    return {
+    const loader = {
       load: spy(id => Promise.resolve({id})),
       loadMany: spy(ids => Promise.resolve(ids.map(id => ({id})))),
-      prime: spy(obj => Promise.resolve(obj))
+      clear: spy(() => loader),
+      prime: spy(() => loader)
     }
+    return loader
   }
 
   const loaders = mapValues(models, makeLoader)
@@ -91,6 +93,22 @@ describe('Fetcher', () => {
           // total column and order-by clause are present.
           expect(sql).to.equal('select wheels.*, count(*) over () as __total from "wheels" order by "wheel_name" asc')
         })
+      })
+    })
+
+    describe('skipTotal', () => {
+      it('omits count(*) over () when skipTotal is true', () => {
+        const bike = new Bike({id: 1})
+        return fetcher.fetchRelation(bike.wheels(), 'Wheel', {
+          sortBy: 'wheelName',
+          skipTotal: true
+        })
+          .then(() => {
+            const { relation } = fetcher.loaders.relations.log[fetcher.loaders.relations.log.length - 1]
+            const { sql } = relation.query().toSQL()
+            expect(sql).to.equal('select * from "wheels" order by "wheel_name" asc')
+            expect(sql).to.not.contain('__total')
+          })
       })
     })
 
