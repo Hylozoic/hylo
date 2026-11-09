@@ -182,7 +182,7 @@ Note: tooltips for Reply/Edit/Flag/Delete are hard‑coded English (`'Edit post'
 
 **Click behaviour**: clicking anywhere on the row (header, body, attachment whitespace, reactions, replies pill) opens the post with comment focus — except when text is selected, when clicking a link that opens in a new tab, an image tile, the emoji icon, or while editing. A long press on touch sets "long‑pressed" (shows action bar) and the next tap clears it instead of opening. Long‑press on an avatar opens the profile hover card instead.
 
-**Inline edit (desktop)**: replaces body with a rich editor (formatting menu shown, placeholder "Edit Post", max height 200 px scrolling) with a ✓ (selected colour, `data-testid=Save`) and ✗ (destructive colour, `data-testid=Cancel`) at top‑right. **Enter saves**, **Escape cancels silently**; clicking ✗ asks `confirm("Do you want to discard your edit?")`. Saving an empty editor is ignored (stays in edit mode? no — returns without saving and exits only when content non‑empty). Save sends `updatePost` with the new `details` and the post's groups. Editing has **no time limit**.
+**Inline edit (desktop)**: replaces body with a rich editor (formatting menu shown, placeholder "Edit Post", max height 200 px scrolling) with a ✓ (selected colour, `data-testid=Save`) and ✗ (destructive colour, `data-testid=Cancel`) at top‑right. **Enter saves**, **Escape cancels silently**; clicking ✗ asks `confirm("Do you want to discard your edit?")`. Saving an empty editor does nothing (editor stays open). Save sends `updatePost` with the new `details` and the post's groups. Editing has **no time limit**.
 
 ### 4.4 Notice card (non‑chat post in chat, `ChatPostNotice`)
 
@@ -472,16 +472,15 @@ REST: `POST /noo/group/:groupId/{subscribe,unsubscribe,typing}`, `POST /noo/user
 
 ## 9. Docs vs. code
 
-| Public docs (gitbook "Topics chat", user guide) | Code |
+| Public docs | Code |
 |---|---|
-| Chat rooms are attached to **topics** (`#general` default; any topic can be a chat room; follow/unfollow topics to join chat rooms). | Topic chat rooms no longer exist. Each group/space has one chat view; old topic rooms became chat **spaces**; `#general` was removed from all posts. Topics are tags only. |
-| Notification settings per chat room/topic (All / Important / None) via the topic's bell. | Notification level is the group/space **membership** `postNotifications` setting; no per‑room control. |
-| Typically: press Enter to send. | Enter = newline; Alt/Option+Enter sends (or click Send). |
-| Chat messages trigger emails. | No per‑message chat emails; hourly digest only. |
+| "#Topics Chat": the #Topics stream "behaves like a chatroom"; tag other #topics to make your chat appear in that topic stream too. | Topic chat rooms no longer exist. Each group/space has one chat view (`group_views.type='chat'`); old topic rooms were migrated into chat **spaces**. Topics are tags/filters only; a chat posted in one room never appears in another room. |
+| "All groups now have a #General topic, which all members are subscribed to." | `#general` was removed from all posts (migration `20260821120000_remove_general_tag.js`); groups whose home was `#general` got the chat view as home. |
+| "Edit or delete a Post or Chat you created by highlighting it and using the pencil or trashcan icon." | Matches (hover action bar). On touch devices Edit opens the full post editor instead of inline editing. |
+| User guide (Group Menu): "In the member-count pill, a green dot means more people are online than fit in the strip." | True for the menu widget (`CurrentlyActiveMembers`: dot = the 6th most‑recent member is active). In the **chat** pill the dot means *anyone other than you is on the live socket roster*. |
+| User guide: single‑view spaces are "often used to create additional chat rooms". | Matches (chat spaces). |
 
-(Where the gitbook mirror is silent on presence, pins, width rail, notices and conversion, the code above is the only source.)
-
----
+Docs say nothing about the Alt/Option+Enter send shortcut, the hourly digest, notices, pins, the width rail or conversion; code is the only source for those.
 
 ## 10. Source references
 

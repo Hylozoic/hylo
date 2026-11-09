@@ -524,3 +524,99 @@ Not part of group settings but the counterpart for commons requests. Route `/man
 - Left menu (250/300px) with dark header "Management" and sections: **SITE** — "Banners" (`/management/site/banners`), "Commons Requests" (`/management/site/commons-requests`); **STAGING** — "Email Testers" (`/management/staging/email-testers`, default redirect); **PAID CONTENT** — "Disputes & Refunds" (`/management/paid-content/stripe-analytics`). Site banners: [06-app-shell-navigation.md](06-app-shell-navigation.md); Stripe analytics: [23-paid-content-stripe.md](23-paid-content-stripe.md); Email testers: [24-integrations-api-embeds.md](24-integrations-api-embeds.md).
 - **Commons Requests** page (max-w-4xl, p-6): `h1` "Commons Requests"; "Groups asking to be added to the commons: the public stream, Group Explorer and public map. Approving or denying emails the person who asked."; status filter tabs Pending (default) / Approved / Denied / All; empty "No requests."; each request shows group, status pill (pending accent, approved selected, denied muted), "Requested {{date}} · by {{name}} · {{count}} members", the requester's message, "Reviewed {{date}} · by {{name}}" when reviewed; for pending: textarea "Message to the requester (optional), included in the email" and buttons "Approve" / "Deny". Toasts "{{name}} was added to the commons" / "{{name}} was not added to the commons" / "Something went wrong saving the decision".
 - `reviewPublicListingRequest(groupId, approved, message)`: super-admin only ("Unauthorized: Admin access required"); must be pending ("This group has no pending request"); sets status approved/denied with `reviewed_at`, `reviewed_by_id`, `review_message`; approval also sets `groups.allow_in_public = true`. Queues `Group.sendPublicListingDecision` → raw email to the requester in their locale: subject "Your group {name} has been added to the commons" / "Update on your request to add {name} to the commons"; body "Good news! {name} has been added to the commons. Your group now appears in the public Group Explorer and on the public map, and members can share posts to the public stream." / "Thanks for asking to add {name} to the commons. After reviewing your request, the Hylo team has decided not to add it at this time. Your group is unchanged, and you can submit a new request from your group's Privacy & Access settings."; optional "A note from the Hylo team:" + message; link `<group settings>/privacy`; sender "The Team at Hylo".
+
+## 19. Permissions (summary)
+
+| Capability | Required responsibility (backend) | UI gate |
+|---|---|---|
+| See settings area at all | — | Administration or Add Members (else redirect to group) |
+| Edit details/privacy/appearance/agreements (`updateGroupSettings`) | Administration | Administration tabs only |
+| Change invite policy (`invitePolicy` in `updateGroupSettings`) | Administration; top-level groups only ("Only top-level groups have an invite policy") | Roles tab, shown only when `group.invitePolicy` returned (Administration) |
+| Create/edit/deactivate roles; add/remove role members; add/remove role responsibilities | Administration (role group must not be a space) | Roles tab |
+| Create/edit/delete custom responsibilities | Administration | Responsibilities tab |
+| Read `inviteLinks`, `invitePath`, `pendingInvitations`, `myInviteAllowance` | Add Members | Invite tab |
+| Create/edit/delete invite & view links | Administration | Admin-only buttons/menus in Invite tab |
+| Send invitations (`createInvitation`), resend, expire, reinviteAll | Add Members (+ Administration to attach a role) | Invite tab |
+| List/accept/decline join requests | Add Members | Join Requests tab |
+| Related-group invites/requests/removal | Administration (in the relevant group(s), see §12) | Related Groups tab |
+| Request commons listing | Administration | Privacy tab |
+| Review commons requests | Hylo super-admin (`HYLO_ADMINS`) | `/management` |
+| Export members | Administration (REST) | Export tab |
+| Delete group | Administration | Delete tab |
+| See exact location when obfuscated | Administration | — |
+
+A responsibility comes from any role the user holds in the group (spaces resolve roles against the parent). Full matrix: [12-roles-permissions-moderation.md](12-roles-permissions-moderation.md) §5.
+
+## 20. API
+
+Queries:
+- `group(slug)` — the settings query (`fetchGroupSettings`) selects: `id, acceptedPostTypes, accessibility, allowInPublic, publicListingRequest{status message requestedAt reviewedAt reviewMessage}, avatarUrl, bannerUrl, description, geoShape, location, locationObject{…}, invitePath, invitePolicy, name, purpose, settings{allowGroupInvites askGroupToGroupJoinQuestions askJoinQuestions defaultDigestFrequency hideExtensionData locationDisplayPrecision publicMemberDirectory publishMurmurationsProfile showSuggestedSkills showWelcomePage showPostNoticesInChat layout autoAddMembers}, type, parentId, slug, visibility, stripe*…, paywall, agreements{items{id description order title}}, childGroups(first:100), groupRelationshipInvitesFrom/To{…, questionAnswers}, groupRoles{items{active id emoji name description type responsibilities{items{id title}}}}, groupToGroupJoinQuestions, joinQuestions, stewards(first:100), parentGroups(first:100), prerequisiteGroups, pendingInvitations, suggestedSkills`. Note `groupRoles` never includes the All Members role.
+- `group(id){ accessibility visibility invitePath myInviteAllowance inviteLinks{id name accessCode url grantAccess numJoinedUsers grantedRoles{id name emoji}} pendingInvitations(first, offset, onlyMine){total hasMore items{id email name userId createdAt lastSentAt creator{id name}}} }`.
+- `responsibilities(groupId, groupRoleId)`; `joinRequests(groupId, status)`; `publicListingRequests(status)` (admin).
+
+Mutations (args → return):
+- `updateGroupSettings(id: ID, changes: GroupInput): Group`
+- `deleteGroup(id: ID): GenericResult`
+- `regenerateAccessCode(groupId)` (legacy; still in store, no UI)
+- `addGroupRole(groupId, color, name, description, emoji)`, `updateGroupRole(groupRoleId, color, name, description, emoji, active, groupId)`, `addRoleToMember(personId, roleId, groupId)`, `removeRoleFromMember(roleId, personId, groupId)`
+- `addGroupResponsibility(groupId, title, description)`, `updateGroupResponsibility(groupId, responsibilityId, title, description)`, `deleteGroupResponsibility(responsibilityId, groupId)`, `addResponsibilityToRole(responsibilityId, roleId, groupId)` → `{id title description type responsibilityId}`, `removeResponsibilityFromRole(roleResponsibilityId, groupId)` → `{success}`
+- `createGroupInviteLink(groupId, data: {accessCode, name, grantAccess, grantedRoleIds})`, `updateGroupInviteLink(id, data)`, `deleteGroupInviteLink(id)`
+- `createInvitation(groupId, data: {emails, userIds, groupRoleId}) → {invitations{id email createdAt lastSentAt error}}`, `expireInvitation(invitationId)`, `resendInvitation(invitationId)`, `reinviteAll(groupId)`
+- `acceptJoinRequest(joinRequestId)`, `declineJoinRequest(joinRequestId)`
+- `requestToAddGroupToParent(parentId, childId, questionAnswers)`, `inviteGroupToJoinParent(parentId, childId)`, `invitePeerRelationship(fromGroupId, toGroupId, description)`, `acceptGroupRelationshipInvite(id)`, `rejectGroupRelationshipInvite(id)`, `cancelGroupRelationshipInvite(id)`, `deleteGroupRelationship(parentId, childId)`, `updatePeerRelationship(relationshipId, description)`, `deletePeerRelationship(relationshipId)`, `convertGroupToSpace(id, parentGroupId)`
+- `requestPublicListing(groupId, message)`, `reviewPublicListingRequest(groupId, approved, message)`
+- API-client-only: `updateGroup(asUserId, id, changes)` (same `updateGroup` resolver), `addMember(userId, groupId, assignAdministrator)`.
+
+REST: `GET /noo/export/group?groupId&datasets[]=members`; `GET /noo/group/:slug/murmurations` (Murmurations profile JSON).
+
+Real-time: `updateGroupSettings` → `publishGroupUpdate` to group members; relationship changes → `publishGroupRelationshipUpdate`.
+
+## 21. Edge cases & known quirks
+
+- Switching tabs never prompts about unsaved edits; only closing settings from the Details tab prompts.
+- The SaveButton is rendered but invisible (scale 0) when unchanged; its button still exists in the DOM.
+- Details: opening and saving persists default steward words "Moderator"/"Moderators" and, if none stored, all seven accepted post types.
+- Details: the location-precision toggle text is untranslated; `settings/details` URL doesn't highlight the nav item.
+- Details: `websiteUrl` and `aboutVideoUri` are not in the settings fetch query; their initial values come from whatever the group store already holds (group detail fetch).
+- Agreements: validation runs against the pre-keystroke state (one keystroke behind); adding an empty agreement alone does not mark the form changed; new unsaved agreements have no `id`, which dnd-kit uses as sortable id (dragging several unsaved rows is unreliable). Editing an agreement's text counts as a change requiring re-acceptance; pure reordering does not.
+- Privacy: rows render in ascending enum order (Hidden→Public, Closed→Open); empty-state copy has a typo "is not a member any groups"; it mentions "Host" though only Administration can add parents.
+- Privacy: the Murmurations switch is disabled based on the *selected* (unsaved) visibility.
+- Roles: system-role inputs look editable but are read-only; deactivating a custom role hides its member list but memberships remain (`group_memberships_group_roles` rows persist and `active` is on the role); server update ignores empty name/description (cannot clear).
+- `removeRoleFromMember` also allows a user to remove a role from **themselves** without Administration.
+- Responsibilities: deleting a custom responsibility that roles use removes it from those roles.
+- Invite tab: the role picker shows all active roles including system roles; "Invites left today" appears only for limited inviters.
+- Join Requests: declining sends no notification. Requests are fetched per tab mount; no pagination.
+- Related Groups: picker lists every group the user is a member of (not only ones they steward); non-admin targets get an invite/request. No cycle detection (TODO in code).
+- Delete: copy says permanent, server only deactivates and removes members.
+- `allowGroupInvites` setting + `allowGroupInvites` mutation are legacy (not used by UI); `RESP_INVITE_MEMBERS` ('Invite Members'), `INVITE_POLICY.roles` and `INVITE_ACCESS` constants in `packages/hooks` have no backend counterpart (dead code).
+- `groups.lift_admin_invite_limits` has no UI.
+- `/management` has no client-side guard; non-admins see an empty/erroring page.
+
+## 22. Docs vs. code
+
+| Docs claim | Code |
+|---|---|
+| Steward guide names default roles "Coordinator, Moderator, Host" | System role renamed **Administrator** (migration `20260912…`); legacy name mapped. |
+| Visibility option "Private" | Code label **Hidden** (value 0). |
+| Commons button "Request to join the Commons"; status "Request sent" | Copy is "Request to join the commons"; status "Request sent on {{date}}". |
+| Appearance "Side Menu" / "Card Menu" | Labels "Two Column" / "One Column". |
+| "Turn on the group setting that lets any member invite" (implied privacy/settings toggle) | It is the "Who can add new members?" selector on **Roles & Badges**; implemented by linking Add Members to the hidden All Members role. |
+| "Find the embed code in your group settings" (map embed) | No embed code UI exists in Group Settings. |
+| Agreements warning "every member … will be notified" | No notification/email is sent; members are prompted by the welcome modal on next visit. |
+| Delete: "permanently delete the group and all of its content" (UI copy itself) | Soft delete (`active=false`) + members removed. |
+| `GroupInput.stewardDescriptor` schema comment default "Steward" | UI default "Moderator"/"Moderators". |
+| Docs list "Create Group Suggested #Topics" as a settings feature | No topics section in current settings tabs (topics managed elsewhere, see 13/17). |
+| Removing-members guide: member directory → ⋮ → "Remove" | Matches (see [12-roles-permissions-moderation.md](12-roles-permissions-moderation.md) §10). |
+
+## 23. Source references
+
+- `apps/web/src/routes/GroupSettings/GroupSettings.js`, `GroupSettings.store.js`, `SaveButton.jsx`, `SettingsSection/SettingsSection.js`
+- `apps/web/src/routes/GroupSettings/{GroupSettingsTab,AgreementsTab,ResponsibilitiesTab,RolesSettingsTab,PrivacySettingsTab (+CommonsRequestSection),InviteSettingsTab,MembershipRequestsTab,RelatedGroupsTab,PaidContentTab,ImportExportSettingsTab,ExportDataTab,AppearanceTab,DeleteSettingsTab}/*`
+- `apps/web/src/routes/AuthLayoutRouter/components/ContextMenu/GroupSettingsMenu.jsx`, `AuthLayoutRouter.js` (space redirect), `routes/FullPageModal/FullPageModal.js`, `tours/groupSettingsTour.js`
+- `apps/web/src/components/{SettingsControl,InvitePolicySelect,SettingSelectRow,PostTypePills}`; `store/models/Group.js`; `packages/hooks/groupRoleHelpers.js`
+- `apps/web/src/routes/Management/*`
+- `apps/backend/api/graphql/mutations/{group,role,responsibilities,invitation,join_request,publicListingRequest}.js`, `api/graphql/makeSchema.js`, `api/graphql/makeModels.js`, `api/graphql/schema.graphql`
+- `apps/backend/api/models/{Group,GroupRole,Responsibility,GroupMembership,JoinRequest,GroupRelationshipInvite,InvitationSend,Agreement,GroupAgreement,UserGroupAgreement}.js`
+- `apps/backend/api/controllers/ExportController.js`, `api/services/ExportService.js`, `api/services/Admin.js`, `lib/uploader/index.js`, `lib/i18n/en.js`
+- Migrations: `20231130142117_responsibilties.js`, `20260625180000_consolidate_common_roles_into_group_roles.js`, `20260810170000_remove_manage_spaces_responsibility.js`, `20260912120000_rename_coordinator_role_to_administrator.js`, `20260927120000_all_members_role.js`, `20260927120100_invite_links_and_limits.js`
+- `apps/web/public/locales/en.json`; public docs `guides__hylo-steward-guide.md`, `guides__list-of-admin-privileges-for-group-stewards.md`

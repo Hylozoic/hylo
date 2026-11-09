@@ -608,3 +608,83 @@ type Subscription { updates: Update  allUpdates: SubscriptionUpdate }  # Notific
 | `newNotification` | `userRoom(userId)` | §4.1 |
 
 ---
+## 8. Edge cases & known quirks
+
+Behaviour a faithful re‑implementation should reproduce (or consciously fix):
+
+1. **Mentions in new posts can be silenced by `postNotifications = none`.** The `mention` and `newPost:` descriptors for the same reader are merged; because a `newPost` reason is present, the `postNotifications` gate applies. With `important` the mention still passes; with `none` the reader gets nothing (no in‑app, email or push).
+2. **Strongest setting wins across groups.** For a post in several groups, the most permissive `postNotifications` among the reader's memberships in those groups decides; email/push are sent if *any* of those memberships allows them.
+3. **`voteReset` is never delivered meaningfully.** `priorityReason` does not list `voteReset`, so `action` is `''`: the push switch hits `default` (nothing sent) and the in‑app row renders with null title/body and no link. The activity and empty in‑app row are still created (and increment the badge).
+4. **Dead reasons**: `tag`, `follow`, `followAdd`, `unfollow` (helpers `Activity.forFollow*`, `forComment`, `forPostMention` are unused), `newContribution` (only via `fulfill({contributorIds})`, never called with ids). `Notification.TYPE.TagFollow`/`Welcome` unused. `Device` model deprecated. `sendTagInvitation` unused.
+5. **Comment activities don't email.** `newComment`/`commentMention` create an Email notification row when `sendEmail` is on, but `sendEmail()` has no case for them; the row is just marked sent. Comment emails come only from the 10‑minute digest.
+6. **Self‑mention in a comment** produces a `commentMention` for the commenter (the filter compares `u.id` on id strings, so it never excludes the actor).
+7. **Child‑group‑invite‑accepted push swaps names.** `sendGroupChildGroupInviteAcceptedPush` treats `activity.group` (the parent/inviting group) as the child and `other_group` as the parent, so push texts and paths for `groupChildGroupInviteAccepted` have parent/child reversed. The email uses the correct mapping.
+8. **`groupChildGroupInvite` in‑app link** goes to `/groups/<group.slug>/settings/relationships` where `group` is the *inviting parent*, i.e. a settings page of a group the reader may not steward; the push goes to the child's `#invites` page.
+9. **In‑app avatar** for `memberJoinedGroup` and funding‑round actions uses `group.avatarUrl`, which the web list query doesn't fetch → default avatar. Live socket payloads also omit it.
+10. **Donation in‑app rows have no link** (`urlForNotification` has no case) and body key `donation from` contains a stray doubled quote.
+11. **Track/funding‑round activity transaction bug.** `Track.enroll`/`checkCompletedTrack` call `Activity.saveForReasons(activities, { transacting: trx })` — an options object where a transaction is expected; the activity inserts are not part of the outer transaction (behaviour depends on Bookshelf's handling).
+12. **Event invitations at creation race.** `Post.createActivities` (queued) reads `event_invitations` while `processEventCreated` (also queued) creates them; invitees may or may not get an `eventInvitation` notification on creation. Inviting later via `invitePeopleToEvent` always notifies every id passed, including already‑invited people.
+13. **Unread counts are approximate.** `new_notification_count` counts deliveries since the bell was last opened, not unread activities; marking read doesn't change it, and deleting posts/comments (`removeForPost`/`removeForComment`) deletes notifications without decrementing (TODO in code).
+14. **"Turn off notifications for this post"** link in post emails is the post URL with `action=unfollow`; the web app does not handle that parameter (it just opens the post).
+15. **Manage Notifications page partially ineffective.** Its *digest* and *new post* selects write `users.settings.digest_frequency` / `post_notifications`, which no delivery code reads (delivery uses per‑membership settings). Only the comment/DM selects, "all my groups" select and "Unsubscribe from all" (which flips `sendEmail`/`sendPushNotifications` on every membership) have effect. Unsubscribe‑all does **not** change membership `digestFrequency` or `postNotifications`, but digests stop because `sendEmail` becomes false. No success feedback is shown.
+16. **Funding‑round digest section missing.** `funding_rounds` counts make a group digest eligible to send, but the Digest template has no section for them; a digest triggered only by submissions renders with just the intro.
+17. **Comment digest subject prefix** (`You were mentioned in` / `New comments on`) and DM push texts (`sent an image`) are hard‑coded English (the template's `{% trans %}` wraps the variable). Comment digest timestamps use `en-US` 12‑hour format in server time.
+18. **Push `contents` always uses the `en` key**, even when the alert text is localized.
+19. **Foreground pushes are hidden** in the mobile app; no in‑app banner is shown.
+20. **6‑hour window.** Unsent notifications older than 6 hours are never sent (e.g. after a long worker outage).
+21. **Inbound email fails open** when `SENDGRID_INBOUND_PARSE_PUBLIC_KEY` is unset.
+22. **Saved‑search digests** only handle `context = 'groups'`; `last_post_id` updates depend on the SendWithUs response having `success`.
+23. **Legacy post‑creation address** encodes `type` via `util.format` extra args (`'%s%s|%s|'` with 4 args), producing `"<salt><groupId>|<userId>| <type>"` — the decoded type has a leading space.
+24. **TopNav bell** never shows the unread badge (its `renderToggleChildren` ignores `showBadge`).
+25. **Blocked users in the in‑app list.** The list query's blocked‑user filter is commented out; rows are only removed if they were blocked at send time. A block created later does not hide past notifications.
+26. Moderator steward targeting uses hard‑coded responsibility ids (`moderators()` = `[3]`, `stewards()` = `[1,3,4]`) that assume seed insertion order (Administration=1, Add Members=2, Remove Members=3, Manage Content=4); comments in code call id 3 "moderator".
+27. `postNotifications` gating applies to in‑app too: a member with `none` sees no in‑app rows for new posts/chats in that group, even though the UI copy only talks about "notifications".
+28. The `TopicFollow.notifications` (`none|important|all`) field on topic follows still exists in the schema but chat delivery now uses membership `postNotifications` (chat rooms are group views).
+
+---
+
+## 9. Docs vs. code
+
+| Public docs (gitbook) | Code (wins) |
+|---|---|
+| "Click on the bell in the **upper right** of your screen" | The bell is in the left global‑nav rail (second tile, tooltip **Activity**) or in the TopNav bar when the tabs nav style is used. |
+| Notification list includes "new posts in your communities, and new comments on posts you are following" | Correct, but subject to the group's `postNotifications` setting; also includes join requests, invitations, events, tracks, funding rounds, relationship events. DMs never appear. |
+| "Reply to the email to add your own comment to the post" (comment emails) | Reply works for comment digests, DM digests, new‑post, announcement, mention and event‑invitation emails, and per‑post reply addresses in group digests. Chat digests and group digests' sender reply‑to is `DoNotReply@hylo.com`. |
+| Group‑specific settings let you "adjust the notification settings for each chatroom in the group" | No per‑chat‑room setting is used by delivery; chats follow the group's (or space's) `postNotifications`. |
+| Default Group Notifications "apply to all your groups … or Mixed" | Matches: bulk update via `updateAllMemberships`; `~ Mixed ~` shown when memberships differ. |
+| "Followed posts are those which you have created or interacted with" | In this module's code paths, followers are added for the author, commenters, users mentioned in posts/comments, and people who explicitly follow; for the full set of follow triggers see module 13. |
+
+---
+
+## 10. Source references
+
+Backend
+- `apps/backend/api/models/Activity.js` — reasons, merge, media selection, former‑member rule
+- `apps/backend/api/models/Notification.js` — send loop, priority reasons, per‑type email/push builders, socket payload
+- `apps/backend/api/models/PushNotification.js`, `apps/backend/api/services/OneSignal.js`, `apps/backend/api/models/Device.js`
+- `apps/backend/api/models/User.js` — `sendPushNotification`, `enabledNotification`, `isTester`, counts, defaults, `joinGroup`
+- `apps/backend/api/services/Email.js` — template ids, reply addresses, defaults
+- `apps/backend/lib/email/senderNameViaHylo.js`, `apps/backend/lib/i18n/{en,de,es,fr,hi,pt,locales}.js`
+- `apps/backend/api/services/Frontend.js` — URL builders, `notificationsSettings`
+- `apps/backend/api/models/Post.js` (`createActivities`, `createVoteResetActivities`, `presentForEmail`, `upcomingPostReminders`, `checkCompletedTrack`, `processEventCreated`), `api/models/post/{createPost,util,postFulfillmentPermissions,fulfillPost}.js`
+- `apps/backend/api/models/Comment.js`, `api/models/comment/{createComment,notifications}.js`
+- `apps/backend/api/models/{JoinRequest,Group,GroupRelationshipInvite,Track,Contribution,GroupViewUser}.js`, `api/models/event/mixin.js`, `api/models/FundingRound/notifications.js`, `api/models/FundingRound.js`
+- `apps/backend/api/services/InvitationService.js`, `api/graphql/mutations/{index,event,project,post,membership,track}.js`
+- `apps/backend/lib/group/digest2/{index,util,formatData,personalizeData,mergeData,savedSearches}.js`
+- `apps/backend/cron.js`, `apps/backend/api/services/Queue.js`
+- `apps/backend/api/controllers/{UserController,CommentController}.js`, `apps/backend/lib/inboundEmailSignature.js`, `apps/backend/config/routes.js`
+- `apps/backend/api/graphql/{schema.graphql,makeSchema.js,makeModels.js}`
+- `scripts/i18n/i18n-templates/*_i18n/` — email templates (subjects/bodies); `docs/SENDWITHUS_I18N_WORKFLOW.md`
+
+Web / shared
+- `packages/presenters/src/NotificationPresenter.js` — in‑app title/body/url/image
+- `apps/web/src/routes/AuthLayoutRouter/components/GlobalNav/NotificationsDropdown/*`, `GlobalNav.jsx`, `GlobalNavItem.jsx`, `components/TopNav/TopNav.jsx`
+- `apps/web/src/components/SocketListener/SocketListener.store.js`, `store/reducers/ormReducer/notifications.js`, `store/actions/checkForNewNotifications.js`, `routes/AuthLayoutRouter/AuthLayoutRouter.js`
+- `apps/web/src/components/GroupNotificationsPopover/GroupNotificationsPopover.jsx`, `routes/UserSettings/NotificationSettingsTab/*`
+- `apps/web/src/routes/NonAuthLayoutRouter/ManageNotifications/ManageNotifications.js`, `store/actions/{fetch,update}NotificationSettings.js`
+
+Desktop / mobile
+- `apps/desktop/main.js`, `apps/desktop/preload.js`
+- `apps/mobile-leap/src/services/onesignal.ts`, `src/hooks/useBindPlatformUser.ts`, `src/services/logoutServices.ts`
+
+Public docs: `guides/hylo-user-guide-1/viewing-notifications`, `…/my-home-includes-my-content-profile-and-account-settings/notifications`.

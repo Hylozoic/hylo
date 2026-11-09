@@ -227,3 +227,88 @@ Rendered under the calendar only in **month** mode:
 - Modal (title = button label; Cancel only): `Calendar subscription URL:` followed by the URL in monospace (click copies; title `Click to copy`), and buttons `Copy`, `Add to Apple or Outlook` (navigates to the URL with `http(s)://` replaced by `webcal://`), `Add to Google Calendar` (copies URL and opens `https://calendar.google.com/calendar/u/0/r/settings/addbyurl` in a new tab).
 - There is no web UI to turn the RSVP feed off (setting can only be set false via API; that empties the file).
 - No per-event "Add to calendar" button exists; per-event calendar entries arrive only as `invite.ics` attachments on RSVP emails.
+
+### 4.2 Proposals
+
+#### 4.2.1 Editor — proposal rows (in order, after Public toggle)
+
+1. **Proposal template** row — shown only while the option list is empty. Label `Proposal template`; select with placeholder `Select a template`. Items (labels = translated template names): `Yes/No`, `Poll, Single Vote`, `Multiple Choice`, `Advice`, `Consent`, `Consensus`, `Gradient of Agreement`.
+2. **Proposal options** row — label `Proposal options*`. Each option: emoji select (trigger shows the emoji or `Emoji`; first item `No emoji`, then the fixed emoji list below), text input placeholder `Describe option`, × to delete. Footer button with + icon: `Add an option to vote on...` (appends a blank option). Warnings: while editing and options differ from the saved ones → `When options are changed, existing votes will be discarded` (accent, triangle icon); with zero options → `Proposals require at least one option`.
+3. **Voting method** row — label `Voting method`; select `Single vote per person` (`single`, default) / `Multiple votes allowed` (`multi-unrestricted`).
+4. **Quorum** row — label `Quorum` + info icon with tooltip `quorumExplainer` = "Quorum is the percentage of members who need to participate in the decision for it to be considered valid"; range slider 0–100 step 1 showing `<n>%` (default 0; track filled `#D9EBF8` up to the value, `#c4c4c4` after).
+5. **Anonymous Vote** toggle — eye-off (`Hidden`) icon, `Anonymous Vote:`, switch (green `#0DC39F` on / grey `#8B96A4` off), guidance `Voting will be anonymous` / `You can see how people voted`. Row background turns "selected" when on.
+6. (Strict Proposal toggle — `Strict Proposal:` / `The proposal has stricter rules about editing. Hover for more details` / `The proposal is informal and easily edited` — component exists but is commented out: **not rendered**.)
+7. **Voting window** row (same pickers as events, label `Voting window`) **with** remove buttons inside each field (× `Remove start time` / `Remove end time`, `data-testid post-editor-clear-start-time|end-time`), then **Timezone** row.
+8. **Location** row (hidden by default; placeholder `Is there a relevant location for this proposal?`).
+
+Emoji list (in order): `1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 ✅✅ 👍 👎 ⁉️ ‼️ ❓ ❗ 🚫 ➡️ 🛑 ✅ 🛑🛑 🌈 🔴 🔵 🟤 🟣 🟢 🟡 🟠 ⚫ ⚪ 🤷🤷 📆 🤔 ❤️ 👏 🎉 🔥 🤣 😢 😡 🤷 💃🕺 ⛔ 🙏 👀 🙌 💯 🔗 🚀 💃 🕺 🫶💯`.
+
+Removing times asks first (dialog `data-testid=post-editor-remove-voting-time-dialog`, buttons `Cancel` / `Remove` (destructive)):
+
+| Action | Title | Body |
+|--------|-------|------|
+| Remove start (also clears end) | `Remove the voting window?` | `This makes it a casual proposal: there will be no voting period and no deadline.` |
+| Remove end, start already passed | `Remove the voting end time?` | `Voting will stay open with no deadline, and the proposal will never be marked as complete.` |
+| Remove end, start in future | `Remove the voting end time?` | `Without an end time, voting will not open on its own at the start time, and there will be no deadline.` |
+
+Other timed non-event types (request/offer/resource/project) remove times immediately without a dialog; removing start also removes end; changing start while there is no end keeps the end empty.
+
+Validation: `At least one proposal option required` (client) and server `Proposals need at a least one option` (only when `proposalOptions` is passed as an empty array). Times are optional.
+
+#### 4.2.2 Templates (exact data, `PROPOSAL_TEMPLATES`)
+
+Applying a template **replaces** the option list, sets `votingMethod`, sets `quorum` to the template's (undefined → slider shows 0, saved as null), and sets the title only if the title is empty.
+
+| Template key / label | Title prefill | Voting method | Options (emoji · text) | Tooltip text (defined, not shown in UI) |
+|---|---|---|---|---|
+| `Yes/No` | `''` | single | 👍 Yes · 👎 No | Simple yes or no poll |
+| `Poll, Single Vote` | `Poll: ` | single | 1️⃣ Option 1 · 2️⃣ Option 2 · 3️⃣ Option 3 | Single vote poll |
+| `Multiple Choice` | `Multiple Choice:` | multi-unrestricted | 1️⃣ Option 1 · 2️⃣ Option 2 · 3️⃣ Option 3 · 4️⃣ Option 4 · 5️⃣ Option 5 | A poll where users can vote multiple times |
+| `Advice` | `Advice: ` | single | ✅ Agree · ❓ Concern | For the Advice Process - gather input before makig a decision |
+| `Consent` | `Consent: ` | single | ✅ Consent · 🔴 Objection | Consent is a lighter weight consensus, is this good enough for now, safe enough to try? |
+| `Consensus` | `Consensus: ` | single | ✅ Agree · ➡️ Abstain · 🟠 Disagree · 🔴 Block | Consensus means that everyone must agree. One block/veto stops the proposal |
+| `Gradient of Agreement` | `''` | single | ✅✅ Strong Agree · ✅ Agree · ❓ Some concerns · ➡️ Abstain · 🔴 Disagree · 🔴🔴 Strong Disagree | Get a weighted opinion on a topic, how much do folks agree or not? |
+
+Option texts are inserted literally (English) — not translated. `PROPOSAL_SCHEDULING = 'Scheduling'` constant exists without a template (dead).
+
+#### 4.2.3 Proposal card section (`PostBodyProposal`, below title/details on card and detail)
+
+A dashed, rounded box (border colour by state, brighter on hover) with a floating centered label straddling the top border:
+
+| State (client) | Box colour | Label text |
+|---|---|---|
+| `discussion` | focus colour | `Discussion in progress` + muted ` • <start–end short range>` |
+| `voting` | selected colour | `Voting open, select one` (single) / `Voting open, select one or more options` (multi) + ` • <range>` |
+| `casual` (and not fulfilled) | selected colour | same as voting; no range (no start time) |
+| complete = `proposal_status === 'completed'` **or** `fulfilledAt` set | neutral | `Voting ended` + end date (short) if it had a start time |
+
+An eye-off icon with tooltip `Anonymous voting` precedes the label when anonymous.
+
+Option rows (one per option, bordered rounded, emoji then text on the left; tally box on the right):
+- Tally box: vote count (hidden while anonymous **and** voting not complete; shown once complete even if anonymous); up to 3 voter avatars (never when anonymous). Hovering the tally shows a tooltip listing voter names one per line (non-anonymous only).
+- Highlighting: options the current user voted for → `bg-selected`. When voting complete **or** an outcome text exists → the top-voted option(s) (ties all highlighted) get a success (green) background.
+- Clicking (only when status `voting`/`casual` and not complete), throttled 200 ms:
+  - `single`: click own voted option → remove vote; no vote yet → add; otherwise → `swapProposalVote` (remove old, add new).
+  - `multi-unrestricted`: toggle add/remove per option.
+  - Optimistic store updates for add/remove/swap.
+- `discussion` status: rows are inert.
+- Quorum bar (§4.2.4) when `quorum > 0`.
+- Outcome line `Outcome: <proposalOutcome>` when an outcome exists **and** `fulfilledAt` is set.
+
+#### 4.2.4 QuorumBar
+Inputs: `totalVoters` = sum of `memberCount` of all the post's groups (members in several groups counted repeatedly; NaN if group member counts are not loaded); `actualVoters` = distinct users among votes; `quorum` %.
+- `votersForQuorum = ceil(quorum/100 × totalVoters)`; `quorumReached = actualVoters ≥ votersForQuorum`.
+- Track: 13 px high, grey (`$color-cloud-grey`), radius 5. Three stacked bars: grey full-width base (z1), quorum bar `$color-regent` width `quorum%` (z2), actual-voters bar `$color-ultramarine` width `actual/total %` (z3).
+- Text inside actual bar (only if quorum > 10): uppercase white 12 px: `Quorum reached` / `Quorum` / (status completed and not reached) `Quorum not reached`; when reached and quorum > 20 appends `voterCount` → `with {{count}} vote(s)` (en `voterCount_one`/`_other`).
+- When not reached: label `<quorum>% (<actual>/<needed>)` positioned just right of the quorum bar (regent colour), or inside it in white when quorum > 70.
+- Info icon with `quorumExplainer` tooltip to the left.
+
+#### 4.2.5 Completion, outcome and header
+- `PostHeader` time-window pill for proposals (and request/offer/resource/project/action): see §4.4.
+- Fulfil toggle (`PostCompletion`, detail view only) appears for proposals only when status is `completed` or `casual`: prompt `Is this proposal still open?` with a Yes/No switch (checked = open).
+- Outcome input: on the detail view, for the **creator** only, when the proposal is fulfilled: a text input, placeholder `Summarize the outcome` (hard-coded, untranslated). Every keystroke calls `updateProposalOutcome` (no debounce, no save button).
+
+#### 4.2.6 Editing a proposal
+- Saving any edit of a proposal shows a browser `confirm`: `Changing proposal options will reset the votes. Are you sure you want to continue?` — regardless of whether options changed.
+- The web client always resends the option list on update, and the server deletes **all** votes whenever a non-empty option list is sent and options already exist (§5.2.4). So every saved edit of a proposal wipes all votes (options are re-inserted keeping their ids).
+- There is no "strict proposal" locking; the creator can edit options, times, voting method, quorum, anonymity at any status.
