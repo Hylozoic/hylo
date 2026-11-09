@@ -336,8 +336,81 @@ function linePath (points, valueKey, xAt, yAt) {
   return path
 }
 
+/** The visible marker for one reading. The main series is painted above a shared dot. */
+function ChartDot ({ reading, x, hot }) {
+  const radius = hot ? 5 : 3
+  if (reading.id === 'value') return <circle cx={x} cy={reading.y} r={radius} fill='hsl(var(--focus))' />
+  if (reading.id === 'previous') {
+    return (
+      <circle
+        cx={x}
+        cy={reading.y}
+        r={radius}
+        fill={hot ? 'hsl(var(--foreground))' : 'none'}
+        stroke='hsl(var(--foreground))'
+        strokeOpacity='0.7'
+        strokeWidth='1.5'
+      />
+    )
+  }
+  return <circle cx={x} cy={reading.y} r={radius} fill='hsl(var(--foreground))' fillOpacity={reading.opacity || '0.7'} />
+}
+
+/** The main value, the earlier period, and any extra line at one date. */
+function chartReadings (point, index, { compare, lines, label, yAt }) {
+  const readings = []
+  if (point.value !== null && point.value !== undefined) {
+    readings.push({ id: 'value', label: label || '', value: point.value, when: point.periodStart })
+  }
+  if (compare && point.previous !== null && point.previous !== undefined) {
+    readings.push({ id: 'previous', label: '', value: point.previous, when: point.previousStart })
+  }
+  lines.forEach((line, lineIndex) => {
+    const value = line.points[index] && line.points[index].value
+    if (value === null || value === undefined) return
+    readings.push({
+      id: `line-${lineIndex}`,
+      label: line.label,
+      value,
+      when: point.periodStart,
+      opacity: line.opacity
+    })
+  })
+  readings.forEach(item => { item.y = yAt(item.value) })
+  return readings
+}
+
+/** The hovered reading, every other series on that same dot, and the comparison period. */
+function hoveredReadings (readings, series) {
+  const anchor = readings.find(item => item.id === series)
+  if (!anchor) return []
+  const ids = new Set(readings.filter(item => Math.abs(item.y - anchor.y) <= 8).map(item => item.id))
+  if (series === 'value' || series === 'previous') {
+    readings.forEach(item => {
+      if (item.id === 'value' || item.id === 'previous') ids.add(item.id)
+    })
+  }
+  const picked = readings.filter(item => ids.has(item.id))
+  return [
+    ...picked.filter(item => item.when === anchor.when && item.id === series),
+    ...picked.filter(item => item.when === anchor.when && item.id !== series),
+    ...picked.filter(item => item.when !== anchor.when)
+  ]
+}
+
+/** Groups tooltip rows that share a period. */
+function readingGroups (items) {
+  const groups = []
+  items.forEach(item => {
+    const last = groups[groups.length - 1]
+    if (last && last.when === item.when) last.items.push(item)
+    else groups.push({ when: item.when, items: [item] })
+  })
+  return groups
+}
+
 /** A line with a count scale and a date scale. Missing periods leave a gap. Extra lines share the same dates. */
-function LineChart ({ points, period, compare, lines = [], unit }) {
+function LineChart ({ points, period, compare, lines = [], unit, label }) {
   const { t } = useTranslation()
   const [hover, setHover] = useState(null)
   if (!points.length) return null
@@ -362,34 +435,18 @@ function LineChart ({ points, period, compare, lines = [], unit }) {
   const yAt = value => pad.top + plotHeight - (value / max) * plotHeight
   const path = linePath(points, 'value', xAt, yAt)
   const previousPath = compare ? linePath(points, 'previous', xAt, yAt) : ''
-  const dots = []
-  points.forEach((point, index) => {
-    const hasValue = point.value !== null && point.value !== undefined
-    const hasPrevious = compare && point.previous !== null && point.previous !== undefined
-    if (!hasValue && !hasPrevious) return
-    dots.push({
-      x: xAt(index),
-      key: point.periodStart,
-      value: point.value,
-      previous: point.previous,
-      previousStart: point.previousStart,
-      hasValue,
-      hasPrevious
-    })
-  })
+  const dots = points.map((point, index) => ({
+    x: xAt(index),
+    key: point.periodStart,
+    readings: chartReadings(point, index, { compare, lines, label, yAt })
+  })).filter(dot => dot.readings.length)
   const active = hover && dots.find(dot => dot.key === hover.key)
-  const activeY = !active
-    ? null
-    : hover.series === 'previous'
-      ? yAt(active.previous)
-      : yAt(active.value)
-  const hoverShift = !active
-    ? null
-    : active.x > width * 0.75
-      ? 'translate(-100%, calc(-100% - 8px))'
-      : active.x < width * 0.25
-        ? 'translate(0, calc(-100% - 8px))'
-        : 'translate(-50%, calc(-100% - 8px))'
+  const shown = active ? hoveredReadings(active.readings, hover.series) : []
+  const anchor = hover ? shown.find(item => item.id === hover.series) : null
+  const activeY = anchor ? anchor.y : null
+  let hoverShift = 'translate(-50%, calc(-100% - 8px))'
+  if (active && active.x > width * 0.75) hoverShift = 'translate(-100%, calc(-100% - 8px))'
+  else if (active && active.x < width * 0.25) hoverShift = 'translate(0, calc(-100% - 8px))'
 
   return (
     <div className='relative'>
@@ -437,43 +494,30 @@ function LineChart ({ points, period, compare, lines = [], unit }) {
           />
         ))}
         {dots.map(dot => {
-          const valueHot = hover?.key === dot.key && hover.series === 'value'
-          const previousHot = hover?.key === dot.key && hover.series === 'previous'
+          const paint = [...dot.readings].reverse()
+          const hotIds = hover?.key === dot.key ? shown.map(item => item.id) : []
           return (
             <g key={dot.key}>
-              {dot.hasPrevious && (
-                <circle cx={dot.x} cy={yAt(dot.previous)} r={previousHot ? 5 : 3} fill={previousHot ? 'hsl(var(--foreground))' : 'none'} stroke='hsl(var(--foreground))' strokeOpacity='0.7' strokeWidth='1.5' />
-              )}
-              {dot.hasValue && (
-                <circle cx={dot.x} cy={yAt(dot.value)} r={valueHot ? 5 : 3} fill='hsl(var(--focus))' />
-              )}
-              {dot.hasPrevious && (
+              {paint.map(reading => (
+                <ChartDot key={reading.id} reading={reading} x={dot.x} hot={hotIds.includes(reading.id)} />
+              ))}
+              {paint.map(reading => (
                 <circle
+                  key={`${reading.id}-hit`}
                   cx={dot.x}
-                  cy={yAt(dot.previous)}
+                  cy={reading.y}
                   r='14'
                   fill='transparent'
                   className='cursor-pointer'
-                  onMouseEnter={() => setHover({ key: dot.key, series: 'previous' })}
+                  onMouseEnter={() => setHover({ key: dot.key, series: reading.id })}
                   onMouseLeave={() => setHover(null)}
                 />
-              )}
-              {dot.hasValue && (
-                <circle
-                  cx={dot.x}
-                  cy={yAt(dot.value)}
-                  r='14'
-                  fill='transparent'
-                  className='cursor-pointer'
-                  onMouseEnter={() => setHover({ key: dot.key, series: 'value' })}
-                  onMouseLeave={() => setHover(null)}
-                />
-              )}
+              ))}
             </g>
           )
         })}
       </svg>
-      {active && (
+      {shown.length > 0 && (
         <div
           className='pointer-events-none absolute z-10 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md'
           style={{
@@ -482,30 +526,17 @@ function LineChart ({ points, period, compare, lines = [], unit }) {
             transform: hoverShift
           }}
         >
-          {hover.series === 'previous' && (
-            <>
-              <div>{periodRange(active.previousStart, period)}</div>
-              <div className='font-semibold'>{formatValue(active.previous, unit, t)}</div>
-              {active.hasValue && (
-                <>
-                  <div className='mt-1 opacity-80'>{periodRange(active.key, period)}</div>
-                  <div className='font-semibold'>{formatValue(active.value, unit, t)}</div>
-                </>
-              )}
-            </>
-          )}
-          {hover.series === 'value' && (
-            <>
-              <div>{periodRange(active.key, period)}</div>
-              <div className='font-semibold'>{formatValue(active.value, unit, t)}</div>
-              {active.hasPrevious && (
-                <>
-                  <div className='mt-1 opacity-80'>{periodRange(active.previousStart, period)}</div>
-                  <div className='font-semibold'>{formatValue(active.previous, unit, t)}</div>
-                </>
-              )}
-            </>
-          )}
+          {readingGroups(shown).map(group => (
+            <div key={group.when} className='mt-1 first:mt-0'>
+              <div>{periodRange(group.when, period)}</div>
+              {group.items.map(item => (
+                <div key={item.id}>
+                  {item.label && <div className='font-normal opacity-80'>{item.label}</div>}
+                  <div className='font-semibold'>{formatValue(item.value, unit, t)}</div>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -607,7 +638,7 @@ function MetricCard ({ label, explainer, value, when, points, period, compare, u
       )}
       {when && <div className='text-xs text-foreground/60 mb-1'>{when}</div>}
       {breakdown}
-      {points && <LineChart points={points} period={period} compare={compare} lines={lines} unit={unit} />}
+      {points && <LineChart points={points} period={period} compare={compare} lines={lines} unit={unit} label={lines.length ? label : ''} />}
       {lines && lines.length > 0 && (
         <div className='mt-1 text-[11px] text-foreground/50'>{t('Also shown')}: {lines.map(line => line.label).join(', ')}</div>
       )}
@@ -922,7 +953,7 @@ function NorthStar ({ t, compare, points, extra }) {
       <div className='text-xs text-foreground/60 mb-2'>{t('Week of {{date}}', { date: formatWhen(point.periodStart, 'day') })}</div>
       <p className='text-sm text-foreground/70 mb-2'>{t('People on either side of an interaction between two people in a week: a comment, reaction, RSVP, vote, or project join. Both people count. Direct messages and the Axolotl bot are left out.')}</p>
       <p className='text-sm text-foreground/70 mb-3'>{t('This is the moment Hylo creates value: someone showed up and someone else answered. Notification blasts and empty signups do not raise it.')}</p>
-      <LineChart points={points} period='week' compare={compare} lines={lines} />
+      <LineChart points={points} period='week' compare={compare} lines={lines} label={t('Weekly connected members')} />
       <div className='mt-1 text-[11px] text-foreground/50'>{t('The second line is people connected by more than a reaction.')}</div>
     </section>
   )
