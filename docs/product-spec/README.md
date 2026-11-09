@@ -26,7 +26,7 @@ The spec is split into modules. Start with the **Product overview** below, then 
 Conventions:
 
 - `Code-formatted` names are exact identifiers (GraphQL fields, DB columns, enum values, route segments).
-- "Copy:" blocks quote UI strings verbatim. Strings are translated into `de`, `es`, `fr`, `hi`, `pt` as well as `en`; a re‑implementation must ship all six locales.
+- "Copy:" blocks quote UI strings verbatim. Strings are translated into German, Spanish, French, Hindi and Portuguese as well as English (UI locales `en-US`, `en-GB`, `es-ES`, `de-DE`, `fr-FR`, `hi-IN`, `pt-BR`, plus legacy short codes `en`, `es`, `de`, `fr`, `hi`, `pt`; translation files are `apps/web/public/locales/{en,de,es,fr,hi,pt}.json`). A re‑implementation must ship all of them — see [08](08-design-system-i18n.md).
 - "Steward" / "Coordinator" / "Admin" — see the Glossary; permission checks are expressed in terms of *responsibilities*, not role names.
 
 ---

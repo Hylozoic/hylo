@@ -230,7 +230,7 @@ Activity reasons: `fundingRoundNewSubmission`, `fundingRoundPhaseTransition:<pha
 5. `numParticipants` reads `groups.num_members` (refreshed by the 10-minute member-count job), so it can lag.
 6. Submission ordering is shuffled per viewer during voting (seed = user id).
 7. Manual "forward" actions overwrite scheduled dates with now; "back" actions erase dates (schedule is lost).
-8. `distributeTokens` with voter roles that match nobody silently leaves the round in its prior phase on the cron path only if it throws; when it returns early the phase still moves to voting with no tokens.
+8. If `distributeTokens` throws (no date, no total, no participants) the cron skips that round (it stays in its phase and is retried every 10 minutes); if voter roles match nobody it returns early without error and the round still moves to `voting` with no tokens distributed.
 9. Several reminder code paths `console.log` debugging output.
 10. `allocations` is exposed to any viewer who can load the round even when results are hidden (UI hides it).
 11. `tokensDistributedAt` is never set.
