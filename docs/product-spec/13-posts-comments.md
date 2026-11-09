@@ -400,3 +400,148 @@ Buttons: **"Go Back"** (primary; closes) and **"Send It"** (secondary; saves).
 - Server: `link_previews.url` unique. Population fetches the URL with UA `Twitterbot/1.0`, 3s timeout, 5MB cap, parses OG via `link-preview-js`; title falls back to hostname (minus `www.`); image = first OG image or favicon. **Hylo post URLs** (`/post/:id` on hylo.com/www/staging/localhost/configured domain) are previewed from the post itself only if the post is **public** (title = summary, description = first 144 chars of text, image = first image); private posts never leak.
 - If a post is created without a preview (API, Zapier, email) and not `skipLinkPreview`, the server reuses a finished preview for the first external URL in details/title or queues `generateLinkPreview` (2s delay).
 
+### 4.10 Post cards (stream view modes)
+
+The stream's view mode (module 15) selects one of four renderers. All cards: clicking anywhere (except links, list items, mention/topic spans, buttons) opens post detail (`viewPostDetails(post)` → `postUrl` on the current base). Cards of fulfilled posts render at 60% opacity. Pinned-in-current-view posts get a gold indicator (§4.10.5).
+
+Derived display fields (`presentPost`): `createdTimestamp` = `humanDate(createdAt)` (relative: "now", "5m ago", "3h ago", "2d ago", "1w ago", "3 mo ago", "1y ago"); `createdTimestampShort` = same without " ago"; `exactCreatedTimestamp` = Luxon `D t ZZZZ` in the user's locale (tooltip); `editedTimestamp` = `Edited <humanDate(editedAt)>` (literal English "Edited"); attachments sorted by `position`.
+
+#### 4.10.1 Card (default) — `PostCard`
+
+Container: `rounded-xl p-1 mb-4 border-2 border-card/30 shadow-xl bg-card/50` (dark: `bg-card`), hover → `bg-card`, `shadow-2xl`, `scale-101`, border `foreground/50`, raised z. Highlighted (deep-linked) → `border-accent/50`. `data-testid='post-card'`.
+
+Top → bottom:
+
+1. **Header** (`PostHeader`, p-2):
+   - Avatar (medium, 40px) linking to the creator's profile (group-scoped when in a group).
+   - Creator name (bold, base size, tooltip = creator tagline). Under it, in My/All/Public contexts or for child-group posts, a grey line **"in {{groupName}}"** / **"in {{groupName}} and 1 other"** / **"in {{groupName}} and {{count}} others"** (space preferred as the named group).
+   - Relative timestamp (`text-2xs`, grey; tooltip exact time).
+   - **Pinned** badge when pinned in the current view: gold pill (`bg hsl(45 45% 90%)`, border `hsl(45 45% 60%)`, text `hsl(45 60% 35%)`; dark variants), pin icon + uppercase "PINNED" (label hidden on phones).
+   - Type pill (not for `submission`): 28px high, rounded-md, 2px border `foreground/20`, type icon + translated type label (capitalised).
+   - Announcement: "•" then megaphone icon (`Announcement`, accent colour), tooltip "Announcement".
+   - Right side: flag badge (red disc) when flagged in the current group (tooltip lists reasons or "See why this post was flagged", links to the group's moderation page); **More** (⋯) dropdown in a 28×28 bordered box (§4.10.6). Hidden when `constrained`.
+   - Time window chip (types `action, offer, request, resource, project, proposal` with times): `bg-selected/10 text-selected text-xs font-bold rounded-lg`, text built as:
+     - start in future → **"Starts: {{from}}"**; else end in future → **"Started: {{from}}"**; nothing if fulfilled.
+     - fulfilled before end → **"Completed: {{endTime}}"**; end in future → **"Ends: {{endTime}}"**; past → **"Ended: {{endTime}}"**.
+     - both → `"<start> / <end>"`. Dates via `formatUserDatePair` (user locale / timezone).
+   - Action posts use a different header (`ActionHeader`): **"✓ Completed"** (secondary border) + "Completed {{date}}" on the right, **"▶ Next {{actionDescriptor}}"** (accent) for the current action, or **"◌ Not Completed"**.
+2. **Images** (`CardImageAttachments` in card mode): first image shown full width, `object-contain`, `max-height: 50vh`, inside a rounded-xl box whose background is the same image blurred (`blur-2xl`, scaled 110%) with a 40% black overlay (letterbox fill). Remaining images as 80px-high thumbnails (2px card border, shadow) in a horizontal row overlaid at the bottom-right (15px from bottom). In card mode clicking images opens the post, not the lightbox. Flagged → images blurred 30px.
+3. **Body** — event posts use `EventBody` (date block + RSVP, module 14); others `PostBody`:
+   - Flag cover (if flagged and not revealed): centered pill "This post may not align with group or platform agreements." + reasons + **"View post"** button; revealing is per-view only.
+   - **Title** (`text-xl font-bold`), preceded by green ✓ (`CircleCheckBig`) when fulfilled; then italic **"Completed {{timestamp}}"** (date format `DD`).
+   - Location line (pin icon, `text-xs` grey) using `LocationHelpers.generalLocationString`; a URL-looking location renders as an external link.
+   - Meeting link line (video icon) **"Join online"** (external link).
+   - **Details**: featured video embed (if `linkPreviewFeatured` and playable) above; then HTML truncated to **144 characters** (`truncateHTML`, sanitised) in cards (full in detail); bottom fade overlay; rendered via `ClickCatcher` + `HyloHTML` (§9).
+   - Edited timestamp (small grey, tooltip exact).
+   - Budget (project/submission, expanded only): **"Budget: <value>"**.
+   - Link preview card (unless featured video) and file attachment rows (`CardFileAttachments`: rounded `bg-midground` link rows with `Document` icon + decoded file name, open in new tab, hover scale 105%).
+   - Proposals: `PostBodyProposal` voting UI (module 14).
+4. **Footer** (`PostFooter`): left — `EmojiRow` (§4.13); right — a `bg-darkening/5 rounded-lg` box with `PeopleInfo` for commenters: up to 3 small round avatars + caption:
+   - 0 → **"Be the first to comment"**; 1 → "<FirstName> commented" ("You commented"); 2 → "<A> and <B> commented"; ≥3 → "<A>, <B> and N other(s) commented". Current user sorted last (first when exactly 2). First names only.
+   - Logged-out: no avatars/names; link to `/login?returnToUrl=…` with **"Be the first to comment"** / **"1 person commented"** / **"{{count}} people commented"**.
+
+**Chat mode** (`chat` prop — used when posts appear as notices inside chat rooms, module 17): above an indented card (`ml-12`) a line with large avatar, **"<Name> created a [type pill]"**, megaphone if announcement, timestamp at right, flag link. On hover a floating toolbar (top-right) offers: **Reply** (opens detail), Edit (creator), Save/Unsave, Flag (non-creator), Delete (creator, red), Remove From Group (non-creator with Manage Content, red), emoji picker. Logged-out: only Copy Link. The inner card omits the header.
+
+#### 4.10.2 List row — `PostListRow`
+
+Gmail-style 3-column grid `160px | 1fr | auto`, gap 12px, `bg-card rounded-md px-4 py-3`, hover scale 102% + border:
+- Col 1: creator name (bold, truncate); below: type icon + lowercase type + child-group label (grey xs).
+- Col 2: flag icon (if flagged), pin icon (gold), fulfilled ✓, **title** (bold, truncate) + comments pill (`text-[10px] rounded-full bg-foreground/10`) "**N comment(s)**" when >0; second line: events → event time display; others → plain-text details truncated to 150 chars (1 line clamp).
+- Col 3: relative timestamp.
+- Opacity 60% when flagged (not clicked through) or fulfilled. (An `unread` bold style exists but is hard-coded false.)
+
+#### 4.10.3 Grid item — `PostGridItem`
+
+- With an image as **first** attachment: 180px-tall tile, image as cover background, bottom gradient (`darkening` 0.9 → 0.4 → transparent), white title (2-line clamp, `text-sm bold`) with pin/✓, footer row: tiny avatar, creator name (bold), optional group label, short timestamp right. Flagged → centred red flag over blurred backdrop.
+- Without image: `bg-card` tile max 180px: title, plain-text details (200 chars), footer row as above.
+- Hover scale 105%.
+
+#### 4.10.4 Big grid item — `PostBigGridItem`
+
+- Image variant: 400px tall, cover image with stronger gradient (0.95/0.6/0.2); bottom overlay: event date badge (events), avatar+name+short time, group label, title (`text-lg`, 2 lines), RSVP box **"Can you go?"** + RSVP control (events, logged in, not past), donation link box (service logo for cash/clover/gofundme/opencollective/paypal/squareup/venmo + **"Contribute"**), `EmojiRow`.
+- Text variant: max 400px card: event date + meta + title, plain-text details (400 chars, 8-line clamp), file indicator ("1 attachment" / "N attachments") when first attachment is a file, RSVP box, donation link, bottom fade, footer (emoji row etc.).
+- Hover scale 102%.
+
+#### 4.10.5 Pin indicators
+
+Card: 1px inset gold ring (`hsl(45 60% 45% / .45)`) + "Pinned" badge; list/grid: gold `Pin` icon before the title. Pinned posts are listed first in the view (module 15).
+
+#### 4.10.6 Post "More" menu (card header and detail header)
+
+Items (shown only when applicable; logged-out → only Copy Link):
+
+| Item | Icon | Shown when | Behaviour |
+|---|---|---|---|
+| Edit | Pencil | viewer is creator | navigate to `editPostUrl` |
+| Copy Link | Link2 | always | copies `origin + postUrl(id, routeParams)` to clipboard (no toast) |
+| Pin to View / Unpin from View | Pin / PinOff | in a group, a pinnable current view exists, viewer has **Manage Content** | toggles via `pinPost`. Disabled with tooltip when the post is from a child group/space ("You cannot pin a post from a child group to this view" / "…from a space to this view") or the view already has 3 pins ("You can only pin 3 posts"). |
+| Save Post / Unsave Post | Bookmark / BookmarkCheck | logged in | §5.8 |
+| Flag | Flag | viewer is not creator | opens `FlagGroupContent` (in a group) or `FlagContent` (module 12) |
+| Duplicate | Copy | logged in | opens editor with `fromPostId` |
+| Add to Collection ▸ | Library | viewer has Administration or Manage Content, not chat, group has ≥1 `collection` view | submenu of collection views; already-added ones disabled and labelled "{{name}} (already added)" |
+| Remove from Collection | LibraryBig | same responsibilities, currently viewing a collection view | confirm "Remove this post from the collection?" |
+| Delete (red) | Trash2 | creator | confirm **"Are you sure you want to delete this post? You cannot undo this."** → `deletePost`; navigates to the URL without `/post/:id` |
+| Remove From Group (red) | Trash2 | not creator, has **Manage Content** in current group | confirm **"Are you sure you want to remove this post? You cannot undo this."** → `removePost(postId, groupSlug)` |
+
+### 4.11 Post detail
+
+Rendered either inside **PostDialog** (overlay on the centre column) or full-page (view `post` — e.g. `/groups/:slug/post/:id`, where the app header shows "<Type>: <title>" with the type icon and a back button, and no close ×).
+
+**PostDialog**: non-modal Radix dialog portalled into `#center-column-container`; backdrop `bg-darkening/50` (dark `/90`) with blur, z 100; content z 101, centered, `min-width 300px`, `width calc(100% - 16px)`, **`max-width 750px`**, `max-height calc(100% - 16px)`, scrollable, `p-3 rounded-md bg-background`; fade + slide-in-from-bottom 300ms. Clicking backdrop / Escape / hardware-back closes (popping history to the previous location when possible). Not dismissed while text is selected, or when interacting with the Filestack picker. If the comment box has unsaved content, closing shows `UnsavedDraftLeaveDialog` "Save draft before closing?" / **"You have unsaved text in your comment. Save it as a draft to continue later, or discard it."**. Touch: pull down at top / pull up at bottom ≥100px (dampened ×0.45) closes with animation.
+
+Layout (`.PostDetail`, max-width 960px, min 290/350px):
+
+1. `PostHeader` in **expanded** mode with close × (`data-testid='post-detail-close'`). Expanded adds:
+   - **Completion toggle** (`PostCompletion`) for request/offer/resource/project and proposal (when status `completed` or `casual`) if viewer is creator or has Administration/Manage Content in any of the post's groups: box with prompt **"Is this request still needed?"**, **"Is this offer still available?"**, **"Is this resource still available?"**, **"Is this project still active?"**, **"Is this proposal still open?"** + Yes/No switch (on = not fulfilled). Moderators (non-creator) see an accent box headed **"Moderator"**.
+   - Proposal outcome input (creator, fulfilled proposal): placeholder "Summarize the outcome" (module 14).
+2. **PostGroups** "To:" strip (`bg-darkening/10 rounded-lg mx-2`), shown if cross-posted or public (i.e. not exactly the current group): "To: GroupA, GroupB and N others ▾"; public posts list a **Public** pseudo-group first (globe icon); first 2 names linked, "and" before last; arrow expands to a full `GroupsList`.
+3. A sticky copy of the header appears when scrolled past it (scroll offset 60px); sticky footer when scrolled past the activity section.
+4. Body card (`bg-card rounded-lg shadow-md`): flag cover (whole card), images (`CardImageAttachments`, lightbox enabled: zoom up to 3×, counter, close on backdrop, z 150), `EventBody` (expanded; RSVP; invitees dialog) or `PostBody` expanded (full details, budget). Events with meeting link: dashed box **"Join this event online"** + **"Join online"** button. Projects: join/leave box ("Join Project" / "Leave Project", members PeopleInfo — "No project members", "is a member", "are members"), PM tool box (logo for asana/trello/airtable/clickup/confluence/teamwork/notion/wrike/zoho: "This project is being managed on <logo>" + "View tasks"; else "View project management tool"), donation box ("Support this project on <logo>" / "Support this project" + "Contribute"). Contributions widget only with feature flag. Actions: `ActionCompletionSection` (module 21). Then `PostFooter`.
+5. For action posts and viewer with Administration: completions box ("No one has completed this action yet" / "has completed this action", **"View All Responses"** → `ActionCompletionResponsesDialog`).
+6. **Comments** section (§4.12).
+7. `PostPeopleDialog` for project members ("Project Members") / event responses ("Responses").
+8. Socket subscription to room `post/<id>` while open.
+
+Document head: `<title>` "<title or first 20 chars of text> | Hylo"; meta description (144 chars). For **public** posts OpenGraph/Twitter tags: `og:type=article`, `og:site_name=Hylo`, `og:title`, `og:description`, `og:image` (first image), `twitter:card` (`summary_large_image` if image else `summary`).
+
+Loading: `PostDetailSkeleton`; not found / not visible: `NotFound`. A `chat_activity` notice post redirects to its chat room. Analytics event `Post Opened`. Deep link `commentId` scrolls the comment to centre (after 500ms) and highlights it (fetching earlier pages until found).
+
+`fetchPost` loads comments only for logged-in viewers.
+
+### 4.12 Comments
+
+**Data shape / ordering**
+- Top-level comments are fetched **10 at a time, newest-first from the server** (`comments(first:10, cursor, order:"desc")`) and **displayed oldest→newest** (newest at the bottom, next to the composer). Each top-level comment includes its latest **4** replies (`childComments(first:4, order:"desc")`).
+- **"View N previous comment(s)"** link at the top (shown while `hasMore`; N = total − loaded; literal English, pluralised with "s") loads the next 10 older (cursor = oldest loaded id).
+- Threading depth: **one level** — replies attach to a top-level comment (`comment_id`). Replying to a reply creates a sibling reply under the same parent, pre-filled with an @mention of the person replied to (`<p><mention>&nbsp;</p>`). Replies show the latest `INITIAL_SUBCOMMENTS_DISPLAYED = 4` (+ any added this session), with their own "View N previous comments" (10 per page) indented `ml-6`.
+
+**Comment row** (`CommentContainer`, px-4, highlighted style when selected):
+- Row 1: medium avatar + **name** (bold sm, links to profile) · relative time (grey xs, tooltip exact `D t ZZZZ`) · "(edited <relative>)" when edited.
+- Hover actions (top-right, logged-in, not editing): Reply (`Replies` icon, tooltip "Reply"), Edit (Pencil, creator only), Delete (Trash red, creator; confirm **"Are you sure you want to delete this comment"**), Remove (Trash red, non-creator with Manage Content in the current group; confirm **"Are you sure you want to remove this comment?"**), emoji picker.
+- Attachments: images (`CardImageAttachments`, lightbox), files (`CardFileAttachments`).
+- Body: `HyloHTML` indented 40px inside `ClickCatcher`.
+- Reactions row (`EmojiRow`, compact 26px pills).
+- **Editing** in place: `HyloEditor` with the current HTML; Enter saves (if not empty), Escape cancels; ✓ / ✕ icons — ✕ confirms **"Do you want to discard your edit?"**. Attachments are not editable in the UI.
+
+**Composer** (`CommentForm`, bottom of thread, `bg-input rounded-lg p-2`, focus border):
+- Current user's small round avatar; `HyloEditor` (max-height 200px, scrolls; mentions/topics scoped to the post's groups); placeholder **"Add a comment..."** (reply box: "Reply to <Name>").
+- Buttons: formatting-toolbar toggle (`CaseSensitive`, aria "Toggle formatting toolbar"), image upload (multiple), send (round `bg-selected`, white arrow).
+- Hint below (desktop only): **"Press Alt-Enter to comment"** / **"Press Option-Enter to comment"**. Alt/Option+Enter submits.
+- Empty submit (no text, no attachments) → `alert("You need to include text to post a comment")`.
+- Typing emits throttled "is typing" (`STARTED_TYPING_INTERVAL`) over the socket; `PeopleTyping` shows "X is typing…" below the composer.
+- Drafts: auto-saved to the server (`type:'comment'`, keyed by post) 1s after typing; restored on reopen; cleared on send; deleted when the text is emptied.
+- Mobile: auto-focus within 500ms of mount is suppressed; on focus the form scrolls into view.
+- Logged-out: comments are **not** fetched; the section shows "No comments yet" / "1 person commented" / "{{count}} people commented" and a **"Log in to see comments"** button (`/login?returnToUrl=…`; new tab in iframes).
+- Creating is optimistic (temp id `post<id>_N`), then scrolls detail to bottom.
+
+### 4.13 Reactions (posts and comments)
+
+- **Any emoji** (emoji-mart picker, full Unicode set incl. skin tones; data loaded from `cdn.jsdelivr.net/npm/@emoji-mart/data`; light theme). Trigger: `SmilePlus` icon (20px).
+- Selecting an emoji you already used removes it; otherwise adds. Picker closes after selection.
+- `EmojiRow`: reactions aggregated by `emojiFull`, sorted by count desc.
+  - If exactly 2 distinct emoji → both pills shown. Otherwise the most popular is shown as a pill and, if there are ≥3 distinct, the rest collapse into one **overflow pill** showing the next 3 emoji (2 on phones) + "…" + their summed count; clicking opens a popover with all the overflow pills.
+  - Pill: emoji (1.25em) + count; selected (mine) → `bg-selected`. Tooltip (logged-in only) lists reactor names separated by `<br>`. Tap toggles my reaction.
+  - Picker button sits after the pills (comments: before, `alignLeft`). Logged-out: counts only, no names, no picker, pills not clickable.
+- **ReactionsDrawer** (logged-in; touch long-press on a pill or overflow pill): bottom sheet (max-h 75vh, max-w lg, rounded-t-2xl, drag handle; swipe down ≥80px closes; overlay `bg-darkening/40`). Title **"{{count}} reaction(s)"**. Tabs: **"All N"** then one per emoji (count), most popular first. List rows: avatar (fetched lazily in one aliased query, up to 100 people, cached; initial-letter fallback), name ("You" for me with sub-label **"Tap to remove"**), emoji at right. Tapping my row removes that reaction; others link to the person's profile. Closes automatically when no reactions remain.
+- Desktop hover on a pill shows the names tooltip instead of the drawer.
+

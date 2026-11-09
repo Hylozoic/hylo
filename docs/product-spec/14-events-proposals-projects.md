@@ -312,3 +312,63 @@ Inputs: `totalVoters` = sum of `memberCount` of all the post's groups (members i
 - Saving any edit of a proposal shows a browser `confirm`: `Changing proposal options will reset the votes. Are you sure you want to continue?` — regardless of whether options changed.
 - The web client always resends the option list on update, and the server deletes **all** votes whenever a non-empty option list is sent and options already exist (§5.2.4). So every saved edit of a proposal wipes all votes (options are re-inserted keeping their ids).
 - There is no "strict proposal" locking; the creator can edit options, times, voting method, quorum, anonymity at any status.
+
+### 4.3 Projects
+
+#### 4.3.1 Editor rows
+1. **Project Members** (right after body/attachments): label `Project Members`, `MemberSelector` limited to members of the selected groups; pre-filled with current members when editing. On save the creator's id is **always appended** to `memberIds` (create and edit), so the creator is always a member.
+2. Timeframe + Timezone (optional, removable).
+3. **Location** (visible by default).
+4. **Accept Contributions** — only when the viewer has feature flag `PROJECT_CONTRIBUTIONS`. If the user has a Stripe account: switch + (when off) `If you turn 'Accept Contributions' on, people will be able to send money to your Stripe connected account to support this project.`; otherwise text "To accept financial contributions for this project, you have to connect a Stripe account. Go to [Settings](/settings/payment) to set it up. (Remember to save your changes before leaving this form)".
+5. **Donation Link** — label `Donation Link`, placeholder `Add a donation link (must be valid URL)`.
+6. **Project Management** — label `Project Management`, placeholder `Add a project management link (must be valid URL)`.
+7. **Budget Total** — free text input (also shown for `submission` when the funding round `requireBudget`).
+
+Link labels turn red when invalid; validation message `Donations and project management links must be valid URLs`. Saved through `sanitizeURL` (adds `https://` if needed; invalid → null).
+
+#### 4.3.2 Project detail (no extra card section in the stream; card shows title/details like a discussion)
+For logged-in viewers, below the body, a column of dashed boxes:
+1. **Join section** (`JoinProjectSection`): `PeopleInfo` of members (captions: `No project members`; `<name> is a member`; `You are a member`; `… are members`) + outline button `Join Project` / `Leave Project` (based on whether the viewer is in `members`). Clicking avatars/caption opens the people dialog titled `Project Members` (no response labels).
+2. **Project management link**: if the URL contains one of `asana|trello|airtable|clickup|confluence|teamwork|notion|wrike|zoho` → `This project is being managed on <logo /assets/pm-tools/<tool>.svg>` + button `View tasks`; otherwise `View project management tool` + `View tasks`. Opens in new tab.
+3. **Donation link**: if URL contains `cash|clover|gofundme|opencollective|paypal|squareup|venmo` → `Support this project on <logo /assets/payment-services/<service>.svg>` + `Contribute`; else `Support this project` + `Contribute`.
+4. (Legacy) `ProjectContributions` Stripe widget — only if `acceptContributions` and flag; in practice never shown because the web post query does not fetch `acceptContributions` (§9).
+
+Big-grid item shows a `Contribute` link chip (with service logo) for any post with a donations link.
+
+Join/leave is optimistic (creates/deletes the local member record).
+
+### 4.4 Requests, offers, resources (and timed projects/proposals): time window & completion
+
+#### 4.4.1 Header time-window pill (`PostHeader`, types `action`, `offer`, `request`, `resource`, `project`, `proposal`; not events/discussions; hidden on constrained cards)
+Computed with `formatUserDatePair` in the post timezone. `actualEnd = fulfilledAt` if fulfilled before `endTime`, else `endTime`.
+- Start part (omitted once fulfilled): start in future → `Starts: {{from}}`; start past but end in future → `Started: {{from}}`; else none.
+- End part: fulfilled on/before end → `Completed: {{endTime}}`; end in future → `Ends: {{endTime}}`; end passed → `Ended: {{endTime}}`.
+- Joined as `Starts: … / Ends: …`. When no start part is shown the end is formatted with its full date. Pill: selected-colour 10% background, bold xs text.
+
+#### 4.4.2 Fulfilment toggle (`PostCompletion`)
+Shown on the **detail** view (expanded header) when the type is in `offer, request, resource, project, proposal` (proposal only if `completed`/`casual`) **and** the viewer is the creator or has `Administration`/`Manage Content` in any of the post's groups:
+
+| type | Prompt |
+|------|--------|
+| request | `Is this request still needed?` |
+| offer | `Is this offer still available?` |
+| resource | `Is this resource still available?` |
+| project | `Is this project still active?` |
+| proposal | `Is this proposal still open?` |
+
+Yes/No switch, checked (= Yes) while not fulfilled. Turning it off → `fulfillPost`; on → `unfulfillPost`. Creator: secondary-coloured box. Non-creator moderator: accent box with uppercase heading `Moderator`.
+
+Fulfilled posts render at 60% opacity in stream cards, list rows and grids, and list/grid titles get a green `CircleCheckBig` icon.
+
+There is no "who helped" contributor picker in the current UI (§9).
+
+### 4.5 Discussions
+No type-specific fields. Discussions cannot have times (`canHaveTimes` excludes `discussion`, `action`, `submission`, `chat` in the editor) and cannot be fulfilled.
+
+### 4.6 Resources
+Same as request/offer: optional timeframe, location shown by default, fulfilment prompt `Is this resource still available?`, included in digest reminders.
+
+### 4.7 Actions & submissions (brief)
+- `action` posts (track steps) carry `completionAction` ∈ `button | comment | reaction | selectMultiple | selectOne | text | uploadFile` and `completionActionSettings` `{ instructions, options? }`. Editor section "How can people complete this {{actionDescriptor}}?" with labels `Mark complete / Done button`, `Leave a Comment`, `Emoji Reaction`, `Multiple Choice - Select Multiple`, `Multiple Choice - Select One`, `Respond to a question or prompt`, `Upload attachment`; per-type default instructions (`postCompletionActions.<type>.instructions`). Completion stored on `posts_users.completed_at/completion_response` (JSON array; text responses sanitized HTML). Reaction/comment actions complete automatically when the user reacts/comments. Stewards (tracks responsibility) see `ActionCompletionsSection` (`No one has completed this action yet` / `… have completed this action`, button `View All Responses`) opening `ActionCompletionResponsesDialog` titled `Completions: By Button|By Comment|By Reaction|By Selected Options|By Selected Option|By Text Reflection|By File Upload`, one row per response (avatar, name, completed date, rendered response). `completionResponses` GraphQL relation: admins of any of the post's groups see all, others only their own. Full spec: [21-tracks.md](21-tracks.md).
+- `submission` posts belong to a funding round; editor header `Add/Edit {{submissionDescriptor}}`, criteria box, optional Budget Total, always non-public, no notifications to group members. Full spec: [22-funding-rounds.md](22-funding-rounds.md).
+- Requests/offers have **no** completion actions; the "completion" concept for them is fulfilment (§4.4.2).

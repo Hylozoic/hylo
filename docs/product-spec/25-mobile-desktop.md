@@ -561,3 +561,203 @@ The web app separately shows a "new version available" toast for web deploys (`u
 - urql cache persistence lets the native `me` query resolve from cache, but the WebView cannot render without network.
 - No background sync, no offline queue, no share extension, no widgets, no app shortcuts, no in‑app purchase (Stripe flows run in the WebView — [23-paid-content-stripe.md](23-paid-content-stripe.md)).
 
+---
+
+## 12. Desktop app (Electron, `apps/desktop`)
+
+Status: **beta** (`productName: Hylo`, version `1.0.0-beta.3`, Electron `^39.1.2`, Node ^24). Changelog: beta.1 (2025‑07‑31) initial — desktop notifications, deep‑linking, mac dock badges; beta.2 (2025‑08‑04) external links open in system browser, opens login page at start; beta.3 (2025‑11‑10) back/forward/refresh title‑bar buttons, `.icns` for macOS Tahoe, Electron 39.
+
+### 12.1 What it wraps
+- A single `BrowserWindow` loading `HOST + '/login'` where `HOST` = `https://hylo.com` when packaged, `http://localhost:3000` in development. Already‑logged‑in users are redirected by the web app from `/login` to their home. Auth is the **normal web cookie session** inside Electron's Chromium (no tokens, no native login UI); login/signup/OAuth are the web pages ([04-accounts-auth-onboarding.md](04-accounts-auth-onboarding.md)). Google OAuth popups are internal URLs and open as Electron child windows.
+- Web features, layout and copy are exactly the desktop‑browser web app (the window is large, so the full desktop layout applies).
+
+### 12.2 Window
+| Property | Value |
+|---|---|
+| Size | Primary display work‑area width × height (effectively maximised, not fullscreen) |
+| Shown | Hidden until `ready-to-show` |
+| Title | "Hylo", then kept in sync with `document.title` |
+| Background | `white` |
+| Icon | macOS `assets/icon.icns`, Windows `assets/icon.ico`, Linux `assets/icon.png`; macOS dock icon set explicitly, app name "Hylo"; `CFBundleIconName: mac` with `assets/mac.icon` / `Assets.car` (macOS 26 icon) |
+| macOS title bar | `titleBarStyle: 'hiddenInset'` (traffic lights inset over content), `titleBarOverlay` white with black symbols, height 36 |
+| Security | `contextIsolation: true`, `nodeIntegration: false`, `webSecurity: true`, preload script; Fuses: RunAsNode off, cookie encryption on, NODE_OPTIONS off, inspect args off, ASAR integrity validation on, only load app from ASAR |
+| Lifecycle | Closing all windows quits on Windows/Linux; on macOS the app stays in the dock and `activate` re‑creates the window |
+| Single instance | A `second-instance` handler restores/focuses the window, but `app.requestSingleInstanceLock()` is never called, so it never fires (see quirks) |
+
+### 12.3 Injected title bar (preload, on `DOMContentLoaded`, every page)
+A fixed bar at the top of the page: height **36 px**, full width, transparent background, `z-index: 2147483647`, `-webkit-app-region: drag` (drags the window), content centred, 12 px side padding. Centre group (no‑drag, 8 px gaps):
+- **`<`** Back, **`>`** Forward, **`↻`** Reload — borderless transparent buttons 32 px tall, min‑width 32, 22 px semibold text. Back/Forward are disabled at 50 % opacity (default cursor) when history can't go that way (state pushed from main on `did-finish-load`, `did-navigate`, `did-navigate-in-page`).
+- Page title text: 16 px semibold, black (`#000`), no wrap; updated by a MutationObserver on `<title>` and also sent to main to set the window title.
+`document.body` gets `padding-top` increased by 36 px so web content starts below the bar. The bar is drawn on all platforms (on Windows/Linux it sits below the native frame). Text colour is fixed black, so it is low‑contrast on dark web themes.
+
+### 12.4 Renderer bridge (`window.electron`)
+Exposed via `contextBridge`:
+
+| Member | Effect |
+|---|---|
+| `desktop: true` | Feature flag for the web app |
+| `setBadgeCount(n)` | `app.setBadgeCount(n)` (macOS dock badge; Linux Unity; no‑op on Windows) |
+| `showNotification(notification)` | Native OS notification (below) |
+| `setTitle(title)` | Window title |
+| `getLocale()` | `app.getLocale()` (not used by web) |
+| `onNavigateTo(cb)` | Receives URLs from notification clicks |
+| `goBack()`, `goForward()`, `onNavigationState(cb)` | History navigation |
+
+Web usage (`apps/web`):
+- On socket event `RECEIVE_NOTIFICATION` the web increments `newNotificationCount`, then `setBadgeCount(newNotificationCount)` and `showNotification(notification)` (the raw notification object incl. `activity`).
+- When the notifications list is fetched with `resetCount` → `setBadgeCount(0)`.
+- RootRouter registers `onNavigateTo(url)` once: strips origin and `navigate(path)` in the SPA.
+
+### 12.5 Native notifications
+Main process formats with the shared presenter (`@hylo/presenters/NotificationPresenter`: `titleForNotification`, `bodyForNotification`, `urlForNotification`) translated with i18next, HTML tags stripped (OS notifications are plain text). Clicking: restore/show/focus the window and send `navigate-to` with the notification URL (same URL mapping as the web notifications list — [19-notifications-email-push.md](19-notifications-email-push.md)). On formatting error, falls back to `{title, body}` of the raw object. Desktop notifications only arrive while the app is running and the socket is connected (no push service). macOS: `NSUserNotificationAlertStyle: alert` (persistent alerts) in Info.plist.
+
+Desktop i18n: i18next with HTTP backend loading **web locale files** from `http://hylo.com/locales/<lng>.json` (packaged; note plain `http`) or `http://localhost:3000/locales/<lng>.json`; language = default (no explicit `lng`; i18next resolves `en-US`), fallback `en-US`, `debug: true`. The user's Hylo locale is not passed to the main process, so notification text is in English unless i18next detection picks otherwise.
+
+### 12.6 Links & protocol
+- `setWindowOpenHandler` / `new-window` / `will-navigate`: a URL is **external** unless it starts with `HOST` (`https://hylo.com`) or `hylo://`. External → `shell.openExternal` (system browser), navigation denied. Internal `target=_blank` → allowed as a new Electron window (`setWindowOpenHandler` returns allow).
+  - Quirk: `HOST` is `https://hylo.com`, so links to `https://www.hylo.com/...` are treated as external and open in the browser.
+- Custom protocol `hylo://` registered (`setAsDefaultProtocolClient('hylo')`; Forge `protocols`; deb `mimeType: x-scheme-handler/hylo`). **No `open-url` / argv handler exists**, so a `hylo://` link only launches/focuses the app; the path is not navigated to.
+- No application menu customisation (Electron default menu), no tray icon, no auto‑update (no `update-electron-app`/Squirrel update feed), no global shortcuts, no offline handling, no spell‑check config (Electron default).
+
+### 12.7 Packaging
+Electron Forge makers: DMG + ZIP (macOS), Squirrel (Windows installer), DEB, RPM (Linux). `asar: true`. macOS signing (`osxSign`, hardened runtime, `entitlements.plist`: JIT, unsigned executable memory, dyld env vars, network client/server, user‑selected & downloads read/write, Apple events, audio input, camera, microphone, bluetooth, address book, calendars, photos library, absolute‑path temp exception `/`) and notarisation via `notarytool` when `APPLE_ID` set. Build step `scripts/copy-shared-packages.js` builds and copies `@hylo/navigation`, `@hylo/presenters` (and their deps) into `node_modules/@hylo/` with file references.
+
+---
+
+## 13. Feature parity matrix (vs. web)
+
+| Feature | Web (browser) | Mobile app (v2) | Desktop app |
+|---|---|---|---|
+| Login / signup / forgot password UI | Web pages | **Native screens** (§4) | Web pages |
+| Google sign‑in | Popup OAuth | Native Google SDK → token | Web popup |
+| Apple sign‑in | Web (module 04) | **iOS native only**; not on Android | Web |
+| Session | Cookie | Bearer tokens + bridged cookie | Cookie |
+| Everything after login | Web | Web in WebView (compact layout) | Web (desktop layout) |
+| Push / OS notifications | Browser: none (in‑app + email) | OneSignal push (background only; suppressed in foreground) | OS notifications while running (socket‑driven) |
+| Badge count | Tab title count (web) | iOS badge from push payload; cleared on app foreground | Dock badge = unread notification count |
+| Deep links | URLs | Universal/App Links + `hyloapp://` | `hylo://` registered but path ignored |
+| External links | New tab | System browser / other app; YouTube/Vimeo/SoundCloud iframes allowed | System browser |
+| Back navigation | Browser back | Android hardware back routed through web; iOS: web chevron | Title‑bar `<` `>` `↻` |
+| Pull‑to‑refresh | No | Yes (web‑side, hold to confirm) — not in chat/messages | No |
+| Cookie‑consent banner | Yes | No | Yes |
+| "Download App" menu item | Mobile browsers only | Hidden | Hidden (not a mobile device) |
+| Forced upgrade | n/a (web deploy toast) | Native alert from `/noo/mobile/check-should-update` | None |
+| Language before login | Web picker | Native `LocaleSelector` (7 locales) | Web picker |
+| Image upload | Web uploader | Web uploader inside WebView (uses WebView file input → OS picker/camera); native picker only for signup avatar | Web uploader |
+| Location permission | Browser prompt | OS prompt (native for signup, WebView geolocation otherwise) | Chromium prompt |
+| Offline | Browser error | "No Internet Connection" screen | Blank/error page |
+| Orientation | Any | Portrait only | n/a |
+
+---
+
+## 14. Edge cases & known quirks
+
+1. **Lower‑cased deep‑link paths**: `getRouteMatchForPath` lower‑cases the pathname before building `originalLinkingPath`; mixed‑case slugs/ids in paths are lower‑cased when opened from a link or push (search string casing is preserved).
+2. **Static pages via universal link** while the app is running are routed into the WebView (React Navigation `subscribe` → `getStateFromPath` catch‑all), but the same URL opened via `openURL` (e.g. a cold‑start stored link, or the Terms link) goes to the system browser.
+3. **Push tap host** is hard‑coded `https://www.hylo.com`; on staging builds this is only used to extract the path, so it still works. `app_url` is `hyloapp:/` + path (= `hyloapp://groups/...`, i.e. the first path segment becomes the URL host) — only meaningful for old apps.
+4. **Foreground pushes are always suppressed** (no in‑app banner from native).
+5. **Version check** runs once per cold start, never on resume; `force` alert can be bypassed by returning to the app. There is no reachable `suggest` threshold.
+6. **`/noo/login/token` links** always fail now → "Link expired, please start over" banner.
+7. **JoinGroup `message` param** ("Signup or login to join this group.") is passed but never displayed.
+8. **Signup "Continue" on avatar step** saves the current avatar URL even if unchanged; if a user taps Continue while an upload is pending the button is disabled.
+9. **Hard‑coded English** natively: "Starting…", "Joining Group...", "Selected:", "(None selected)", `Use "<term>" (without mapping)`, "Choose photo" / "Choose from library" / "Take photo" / "Cancel", "Upload failed", "Update Now" / "Cancel" and server‑provided update texts, "Unknown route", Google Expo‑Go note.
+10. **Mobile locale files contain ~640 keys**, most of them leftovers from the old native app (streams, funding rounds, tracks, moderation…); only ~60 are used by v2 (listed in §16). A re‑implementation needs only those.
+11. **Auth screens ignore dark mode** (hard‑coded white backgrounds).
+12. **pt‑BR shown with 🇵🇹 flag**.
+13. **Desktop `www` host**: links to `https://www.hylo.com` are opened externally because the internal check uses `https://hylo.com`.
+14. **Desktop single‑instance** handler is dead (no lock), and `hylo://` URLs aren't routed.
+15. **Desktop i18n** fetches locales over plain `http://hylo.com` and doesn't follow the user's locale.
+16. **Desktop title bar** text is always black and overlays the top 36 px of every page (body padding pushed down), including on Windows/Linux where a native frame also exists.
+17. **Session recovery loop guard**: web gives up after 3 consecutive anonymous `checkLogin`s and sends `LOGOUT`; counters live in WebView localStorage and reset on success.
+18. **`X-Hylo-Mobile: v2`** request header is sent on the initial WebView request only (not on subsequent in‑page requests) and nothing on the backend reads it.
+19. **Refresh token lifetime**: tokens are 180 days, but the OIDC Grant TTL is configured as 14 days; whether refresh keeps working past 14 days depends on oidc‑provider grant extension (unverified).
+20. **Android back on a chat/primary view** exits the app only on the second press after closing the drawer (step 5 of §7.2), mimicking "press back again to exit" without a toast.
+21. Signup location step requests location permission as soon as it mounts, even before the user types.
+
+---
+
+## 15. Docs vs. code
+
+| Public docs / repo docs | Code (wins) |
+|---|---|
+| GitBook "Mobile Apps" only links the stores (`https://apps.apple.com/app/appname/id1002185140`, Play `com.hylo.hyloandroid`). | Matches ids. No feature description to conflict. |
+| GitBook "Testing Instructions (Mobile)": "The mobile UI currently uses a hybrid of old and new styling"; describes native screens with pending restyling; test builds connect to staging. | v2 has no native content screens — all post‑login UI is the web app; only auth screens are native. Staging builds (`preview`/`staging` EAS profiles) do point to `https://staging.hylo.com`. |
+| `docs/mobile-leap-rebuild-plan.md` says "proposal / planning doc. No implementation commitment"; plans `@react-native-cookies/cookies`, `expo-linking`, a "forced‑update screen", status/navigation bar theming. | Implemented and shipping as the only mobile app (`apps/mobile` removed). Uses `@preeternal/react-native-cookie-manager`, React Native `Linking`, an `Alert` (not a screen) for forced update; only status‑bar style + background are themed. |
+| `WEBVIEW_MIGRATION_CHANGES.md` (old `apps/mobile`): swipe‑from‑left‑edge via `useSwipeGesture` (30 px edge, 50 px distance). | `useSwipeGesture.js` is dead code; replaced by an interactive drag‑to‑open/close drawer gesture in `AuthLayoutRouter` (module 06). Pull‑to‑refresh, hidden "Download App" and other items described there are still accurate. |
+| Desktop CHANGELOG header says "HyloReactNative (the Hylo mobile app)". | Copy‑paste error; it is the desktop changelog. |
+| Desktop CHANGELOG beta.1: "Supports … deep-linking". | Only protocol registration; deep‑link paths are not handled (§12.6). |
+| Desktop README: `yarn desktop`, `yarn desktop:package`, `yarn desktop:build`. | Root `package.json` defines `desktop` and `desktop:build` only; `desktop:package` does not exist (use `yarn workspace desktop package`). |
+
+---
+
+## 16. Copy reference (mobile, keys actually used → English)
+
+Translated into `de`, `es`, `fr`, `hi`, `pt` in `apps/mobile-leap/locales/*.json`.
+
+| Key | English |
+|---|---|
+| `Log in to Hylo` | Log in to Hylo |
+| `Email address` | Email address |
+| `Password` | Password |
+| `Forgot your password?` | Forgot your password? |
+| `Log In` | Log In |
+| `LOGGING IN` | LOGGING IN... |
+| `Or connect with` | Or connect with (rendered with trailing ":") |
+| `Sign in with Google` / `Sign up with Google` | Sign in with Google / Sign up with Google |
+| `Could not sign in with your Apple account` | (same) |
+| `Could not sign in with your Google account` | (same) |
+| `Dont have an account?` | Don't have an account? |
+| `Sign up now` | Sign up now |
+| `Language` | Language |
+| `Reset Your Password` | Reset Your Password |
+| `forgotPasswordDescription` | Enter your email address below and we'll send you an email message with a link for resetting your password. |
+| `Send` | Send |
+| `There was a problem with your request. Please check your email and try again.` | (same) |
+| `A link to reset your password has been sent to you at {{email}}` | (same) |
+| `Back` | Back |
+| `Welcome to Hylo` | Welcome to Hylo |
+| `Stay connected, organized, and engaged with your group` | (same; rendered with trailing ".") |
+| `Enter your email below to get started!` | (same) |
+| `Continue` | Continue |
+| `Saving-ellipsis` | Saving... |
+| `SIGNING UP` | SIGNING UP... |
+| `An account may already exist for this email address, Login or try resetting your password` | (same) |
+| `Already have an account?` | Already have an account? |
+| `Log in now` | Log in now |
+| `Your data is safe with Hylo By clicking the Sign Up button above you are agreeing to these terms:` | Your data is safe with Hylo. By clicking the "Sign Up" button above you are agreeing to these terms: |
+| `Terms of Service + Privacy Policy` | (same) |
+| `Verify Email` | Verify Email |
+| `Check your email` | Check your email |
+| `Weve sent a 6 digit code to` | We've sent a 6 digit code to |
+| `Resend code` | Resend code |
+| `Expired or invalid code` | (same) |
+| `STEP 1/3`, `STEP 2/3`, `STEP 3/3` | (same) |
+| `Lets do this!` | Let's do this! |
+| `Your Full Name` | Your Full Name |
+| `Password (at least 9 characters)` | (same) |
+| `Confirm Password` | Confirm Password |
+| `Password must be at least 9 characters` | (same) |
+| `Passwords must match` | Passwords must match |
+| `Upload a Photo` | Upload a Photo |
+| `Add your location` | Add your location |
+| `Add your location to see more relevant content and find people and projects near you` | (same; trailing ".") |
+| `Search for your location` | Search for your location |
+| `< Back` | < Back |
+| `Finish` | Finish |
+| `No Internet Connection` | No Internet Connection |
+| `Hylo requires an internet connection to work. Please check your connection and try again.` | (same) |
+| `Retry` | Retry |
+| `Oops Something Went Wrong` | Oops. Something Went Wrong |
+| `Restart Hylo` | Restart Hylo |
+| Locale names | English, English (UK), Spanish, German, French, Hindi, Portuguese |
+
+---
+
+## 17. Source references
+
+Mobile: `apps/mobile-leap/{app.config.ts,eas.json,package.json,index.ts,metro.config.js,babel.config.js,tailwind.config.js,plugins/withReassertEntitlements.js,scripts/*}`, `src/App.tsx`, `src/i18n.ts`, `src/navigation/{RootNavigator,AuthNavigator,NonAuthNavigator,SignupNavigator}.tsx`, `src/navigation/headers/ModalHeader.tsx`, `src/navigation/linking/*`, `src/screens/*`, `src/components/*` (esp. `HyloWebView/*`, `SocialAuth.tsx`, `VersionCheck.tsx`, `ImagePicker.tsx`, `LocationSelector.tsx`, `LocaleSelector.tsx`, `auth/AuthScreenParts.tsx`), `src/hooks/*`, `src/services/{onesignal,mixpanel,mapbox,logoutServices}.ts`, `src/store/themeStore.ts`, `src/style/{themes.ts,global.css}`, `src/util/{session,tokenStore,authApi,authAdapter,upload,errorMessages,nativeSessionId}.ts`, `src/config/{index,sentry}.ts`, `locales/*.json`.
+Shared: `packages/contexts/AuthContext.js`, `packages/urql/makeUrqlClient.js`, `packages/shared/src/{constants.js,LocaleHelpers.js}`, `packages/presenters/src/NotificationPresenter.js`.
+Web: `apps/web/src/util/{webView.js,hardwareBackHandler.js,mobile.js,appearance.js,cookieConsent.js}`, `hooks/{useMobileHardwareBack,usePullToRefresh,useMobileNavBack,useSwipeGesture}.js`, `routes/RootRouter/RootRouter.js`, `routes/AuthLayoutRouter/AuthLayoutRouter.js`, `routes/AuthLayoutRouter/components/{GlobalNav/GlobalNav.jsx,ContextMenu/ContextMenu.jsx}`, `routes/HyloEditorMobile/*`, `router/Root.jsx`, `client/{websockets,errorReporter,continueNativeTrace}.js`, `components/SocketListener/SocketListener.store.js`, `store/reducers/ormReducer/notifications.js`, `public/.well-known/{apple-app-site-association,assetlinks.json}`.
+Backend: `apps/backend/config/routes.js`, `api/controllers/{SessionController,MobileAppController}.js`, `api/services/{OIDCTokens,OpenIDConnect,OneSignal}.js`, `api/models/PushNotification.js`, `api/graphql/mutations/mobile.js`, `migrations/20260604120000_seed_native_oidc_client.js`.
+Desktop: `apps/desktop/{main.js,preload.js,i18n.js,forge.config.js,entitlements.plist,package.json,README.md,CHANGELOG}`.
+Docs: `docs/{mobile-leap-rebuild-plan,mobile-auth-cookie-workflow,modern-mobile-auth-options,phase-1-token-auth-implementation-plan,webview-transition-testing}.md`, `WEBVIEW_MIGRATION_CHANGES.md`, GitBook "Mobile Apps" and "Hylo Testing Instructions (Mobile)".
