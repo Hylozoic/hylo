@@ -7500,6 +7500,135 @@ ALTER TABLE ONLY public.zapier_triggers
 
 
 --
+-- Analytics tables added after this dump. The test database loads this file
+-- instead of running migrations, so account deletion can clear these rows.
+--
+
+ALTER TABLE public.activity_events ADD COLUMN post_id bigint;
+
+CREATE INDEX activity_events_post_id_index ON public.activity_events USING btree (post_id);
+
+ALTER TABLE public.metric_snapshots ADD COLUMN definition_version integer DEFAULT 1 NOT NULL;
+
+ALTER TABLE public.users ADD COLUMN analytics_anonymous_id text;
+
+CREATE UNIQUE INDEX users_analytics_anonymous_id_index ON public.users USING btree (analytics_anonymous_id) WHERE (analytics_anonymous_id IS NOT NULL);
+
+CREATE TABLE public.anonymous_events (
+    id bigint NOT NULL,
+    anonymous_id text NOT NULL,
+    event_type text NOT NULL,
+    occurred_at timestamp with time zone NOT NULL,
+    platform text,
+    properties jsonb,
+    user_id bigint,
+    linked_at timestamp with time zone
+);
+
+CREATE SEQUENCE public.anonymous_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.anonymous_events_id_seq OWNED BY public.anonymous_events.id;
+
+ALTER TABLE ONLY public.anonymous_events ALTER COLUMN id SET DEFAULT nextval('public.anonymous_events_id_seq'::regclass);
+
+ALTER TABLE ONLY public.anonymous_events
+    ADD CONSTRAINT anonymous_events_pkey PRIMARY KEY (id);
+
+CREATE INDEX anonymous_events_anonymous_id_occurred_at_index ON public.anonymous_events USING btree (anonymous_id, occurred_at);
+
+CREATE TABLE public.user_day_activity (
+    day date NOT NULL,
+    group_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    posts integer DEFAULT 0 NOT NULL,
+    comments integer DEFAULT 0 NOT NULL,
+    reactions integer DEFAULT 0 NOT NULL,
+    rsvps integer DEFAULT 0 NOT NULL,
+    votes integer DEFAULT 0 NOT NULL,
+    project_joins integer DEFAULT 0 NOT NULL,
+    invites_sent integer DEFAULT 0 NOT NULL,
+    connections integer DEFAULT 0 NOT NULL,
+    received_connections integer DEFAULT 0 NOT NULL,
+    connections_beyond_reaction integer DEFAULT 0 NOT NULL,
+    received_beyond_reaction integer DEFAULT 0 NOT NULL,
+    coordinating integer DEFAULT 0 NOT NULL,
+    received_coordinating integer DEFAULT 0 NOT NULL
+);
+
+ALTER TABLE ONLY public.user_day_activity
+    ADD CONSTRAINT user_day_activity_pkey PRIMARY KEY (day, group_id, user_id);
+
+CREATE INDEX user_day_activity_user_id_day_index ON public.user_day_activity USING btree (user_id, day);
+
+CREATE INDEX user_day_activity_group_id_day_index ON public.user_day_activity USING btree (group_id, day);
+
+CREATE TABLE public.user_milestones (
+    user_id bigint NOT NULL,
+    milestone text NOT NULL,
+    group_id bigint DEFAULT 0 NOT NULL,
+    occurred_on date NOT NULL
+);
+
+ALTER TABLE ONLY public.user_milestones
+    ADD CONSTRAINT user_milestones_pkey PRIMARY KEY (user_id, milestone, group_id);
+
+CREATE INDEX user_milestones_milestone_occurred_on_index ON public.user_milestones USING btree (milestone, occurred_on);
+
+CREATE TABLE public.group_activity_weeks (
+    group_id bigint NOT NULL,
+    week_start date NOT NULL,
+    voices_28d integer DEFAULT 0 NOT NULL,
+    connections_28d integer DEFAULT 0 NOT NULL
+);
+
+ALTER TABLE ONLY public.group_activity_weeks
+    ADD CONSTRAINT group_activity_weeks_pkey PRIMARY KEY (group_id, week_start);
+
+CREATE TABLE public.post_outcomes (
+    post_id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    author_id bigint NOT NULL,
+    post_type text,
+    created_at timestamp with time zone NOT NULL,
+    is_first_post boolean DEFAULT false NOT NULL,
+    author_newcomer boolean DEFAULT false NOT NULL,
+    first_response_hours numeric(12,2),
+    first_comment_hours numeric(12,2),
+    responder_count integer DEFAULT 0 NOT NULL,
+    chat_reply_24h boolean DEFAULT false NOT NULL,
+    event_start timestamp with time zone,
+    other_rsvps integer DEFAULT 0 NOT NULL,
+    proposal_status text,
+    voting_end timestamp with time zone,
+    voter_count integer DEFAULT 0 NOT NULL,
+    project_self_joins integer DEFAULT 0 NOT NULL,
+    project_author_adds integer DEFAULT 0 NOT NULL,
+    group_was_live boolean DEFAULT false NOT NULL,
+    refreshed_at timestamp with time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.post_outcomes
+    ADD CONSTRAINT post_outcomes_pkey PRIMARY KEY (post_id, group_id);
+
+CREATE INDEX post_outcomes_created_at_index ON public.post_outcomes USING btree (created_at);
+
+CREATE INDEX post_outcomes_group_id_created_at_index ON public.post_outcomes USING btree (group_id, created_at);
+
+CREATE TABLE public.retention_cache (
+    cache_key text NOT NULL,
+    result jsonb NOT NULL,
+    computed_at timestamp with time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.retention_cache
+    ADD CONSTRAINT retention_cache_pkey PRIMARY KEY (cache_key);
+
+--
 -- PostgreSQL database dump complete
 --
 

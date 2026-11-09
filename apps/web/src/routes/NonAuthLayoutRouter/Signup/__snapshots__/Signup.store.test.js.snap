@@ -4,8 +4,8 @@ exports[`register should match latest snapshot 1`] = `
 Object {
   "graphql": Object {
     "query": "
-        mutation Register ($name: String!, $password: String!) {
-          register(name: $name, password: $password) {
+        mutation Register ($name: String!, $password: String!, $anonymousId: String) {
+          register(name: $name, password: $password, anonymousId: $anonymousId) {
             me {
               id
               email
@@ -35,6 +35,7 @@ Object {
         }
       ",
     "variables": Object {
+      "anonymousId": "anon-test-id",
       "name": "name",
       "password": "test@hylo.com",
     },
