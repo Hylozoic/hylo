@@ -1905,3 +1905,33 @@ Migration lock.
 |---|---|---|---|
 | `is_locked` | integer | null |  |
 
+
+---
+
+## 7. Invariants & business constraints (enforced in code)
+- One active `group_memberships` row per (user, group); leaving sets `active=false` and keeps settings; rejoining reactivates.
+- Every top-level (non-space, no `parent_id`) group has exactly one `all_members` role (partial unique index); spaces have none. The All Members role cannot be edited, assigned or used as a requirement (`The All Members role cannot be edited, assigned or used as a requirement`).
+- Each group gets system roles Administrator/Moderator/Host on creation (`GroupRole.setupSystemRoles`), a system invite link, `calendar_token` (uuid) and the creator as Administrator member.
+- Space slug must be unique globally (stored as `<parentSlug>-<slug>`); `groups.slug` validated by `Group.isSlugValid` (see 09).
+- Paywalled spaces force `visibility=1` (protected) and `accessibility=1` (restricted).
+- A view of type `space` is the only view type that may have `order IS NULL`; `groups.home_route` mirrors the order-0 view (`/post/<id>`, `/members/<id>`, `/chat/<topic>`, `/map`, `/all`, …).
+- Max 3 pins per view.
+- A `thread` post's participants are its `posts_users` rows; `findOrCreateThread` reuses a thread with exactly the same participant set.
+- Proposal statuses auto-advance via cron (01 §7.3).
+- `content_access` with `status='active'` and unexpired `expires_at` ⇒ matching `user_scopes`; paywalled group access requires scope `group:<id>` (see 23).
+- `num_members` counts active memberships of active users only.
+
+## 8. Edge cases & known quirks
+- `user_scopes` DELETE triggers reference `NEW` and therefore do nothing on row deletion; revocation is done by updating `status`.
+- `groups.access_code` is retained but superseded by `group_invite_links` (migration `20260927120100_invite_links_and_limits`); `groups.welcome_page` remains although a migration named `drop_groups_welcome_page` exists (it dropped the welcome *view*, not the column).
+- Several legacy tables have no current UI: `devices`, `event_responses`, `contributions`, `project_contributions`, `project_roles`, `thanks`, `posts_about_users`, `user_post_relevance`, `comments_tags`.
+- Sequence names reflect old entity names (`community_seq`, `communities_tags_id_seq`, `followed_tags_id_seq`, `group_connections_id_seq`) — irrelevant for re-implementation.
+- Settings key casing is inconsistent (users/groups snake_case, memberships camelCase, groups.settings.homeView camelCase).
+
+## 9. Docs vs. code
+- Public docs refer to "Coordinators"; the system role was renamed **Administrator** (migration `20260912120000_rename_coordinator_role_to_administrator`; legacy name accepted). Code wins.
+- Docs describe tracks and funding rounds as group features; in the data model both are realised as **spaces** (`groups.track_id` / `groups.funding_round_id`), with legacy join tables dropped (`20260921120000_drop_legacy_track_round_join_tables`).
+- Docs mention "networks"; network tables were dropped (`20260921150000_drop_networks_tables`) — networks are parent/child `group_relationships`.
+
+## 10. Source references
+`apps/backend/migrations/schema.sql`, `apps/backend/migrations/*.js` (notably the 2026 spaces/views, roles, invite-link and paid-space migrations), `apps/backend/api/models/*.js` (enum constants in `Group.js`, `Post.js`, `GroupView.js`, `GroupRole.js`, `Responsibility.js`, `Activity.js`, `Notification.js`, `ContentAccess.js`, `StripeProduct.js`, `FlaggedItem.js`, `JoinRequest.js`, `GroupRelationshipInvite.js`, `EventInvitation.js`, `Skill.js`, `media/util.js`), `apps/backend/api/graphql/schema.graphql` (settings types).
