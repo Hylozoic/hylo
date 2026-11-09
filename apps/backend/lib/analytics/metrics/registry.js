@@ -23,7 +23,7 @@ export const METRICS = {
 
   contributors_30d: stored('audience', { people: true, periods: ['day'] }),
   contributors_posting: stored('network_alive', { people: true, periods: ['week', 'month'] }),
-  connected_beyond_reaction: stored('network_alive', { people: true, periods: ['week'] }),
+  connected_beyond_reaction: stored('network_alive', { people: true, periods: ['week'], version: 2 }),
   average_dau: stored('audience', { periods: ['week'] }),
   coordinating_members: stored('real_world_action', { people: true, periods: ['week'] }),
   live_groups: stored('network_alive', { periods: ['week'] }),

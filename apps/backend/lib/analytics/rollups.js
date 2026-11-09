@@ -11,9 +11,12 @@ with base as (
     e.user_id as actor_id,
     e.target_user_id,
     e.event_type,
-    e.post_type
+    e.post_type,
+    (e.post_id is null or e.occurred_at <= p.created_at +
+      case when coalesce(e.post_type, '') in ('event','proposal','project') then interval '30 days' else interval '14 days' end) as fresh
   from activity_events e
   left join groups g on g.id = e.group_id
+  left join posts p on p.id = e.post_id
   join users u on u.id = e.user_id and u.active is not false
   where e.occurred_at >= ? and e.occurred_at < ?
     and e.user_id <> ${AXOLOTL_ID}
@@ -29,9 +32,9 @@ actor as (
     count(*) filter (where event_type = 'project_joined')::int as project_joins,
     count(*) filter (where event_type = 'invitation_sent')::int as invites_sent,
     count(*) filter (where event_type in ('comment_created','reaction_added','event_rsvp','proposal_vote','project_joined')
-      and target_user_id is not null and target_user_id <> actor_id and ${NOT_DM})::int as connections,
+      and target_user_id is not null and target_user_id <> actor_id and ${NOT_DM} and fresh)::int as connections,
     count(*) filter (where event_type in ('comment_created','event_rsvp','proposal_vote','project_joined')
-      and target_user_id is not null and target_user_id <> actor_id and ${NOT_DM})::int as connections_beyond_reaction,
+      and target_user_id is not null and target_user_id <> actor_id and ${NOT_DM} and fresh)::int as connections_beyond_reaction,
     count(*) filter (where target_user_id is not null and target_user_id <> actor_id and (
       (event_type in ('comment_created','reaction_added','event_rsvp','proposal_vote','project_joined') and post_type in ('event','proposal','project'))
       or (event_type = 'comment_created' and post_type in ('request','offer'))
@@ -41,8 +44,8 @@ actor as (
 ),
 received as (
   select b.day, b.group_id, b.target_user_id as user_id,
-    count(*) filter (where b.event_type in ('comment_created','reaction_added','event_rsvp','proposal_vote','project_joined') and coalesce(b.post_type, '') not in ('thread', 'chat_activity', 'welcome'))::int as received_connections,
-    count(*) filter (where b.event_type in ('comment_created','event_rsvp','proposal_vote','project_joined') and coalesce(b.post_type, '') not in ('thread', 'chat_activity', 'welcome'))::int as received_beyond_reaction,
+    count(*) filter (where b.event_type in ('comment_created','reaction_added','event_rsvp','proposal_vote','project_joined') and coalesce(b.post_type, '') not in ('thread', 'chat_activity', 'welcome') and b.fresh)::int as received_connections,
+    count(*) filter (where b.event_type in ('comment_created','event_rsvp','proposal_vote','project_joined') and coalesce(b.post_type, '') not in ('thread', 'chat_activity', 'welcome') and b.fresh)::int as received_beyond_reaction,
     count(*) filter (where (
       (b.event_type in ('comment_created','reaction_added','event_rsvp','proposal_vote','project_joined') and b.post_type in ('event','proposal','project'))
       or (b.event_type = 'comment_created' and b.post_type in ('request','offer'))

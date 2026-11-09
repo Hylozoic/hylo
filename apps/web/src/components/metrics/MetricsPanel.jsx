@@ -45,7 +45,8 @@ const LABELS = {
   posts: 'Posts',
   comments: 'Comments',
   reactions: 'Reactions',
-  joins: 'New members'
+  joins: 'New members',
+  signups: 'Signups'
 }
 
 const EXPLAINERS = {
@@ -384,7 +385,7 @@ function chartReadings (point, index, { compare, lines, label, yAt }) {
 function hoveredReadings (readings, series) {
   const anchor = readings.find(item => item.id === series)
   if (!anchor) return []
-  const ids = new Set(readings.filter(item => Math.abs(item.y - anchor.y) <= 8).map(item => item.id))
+  const ids = new Set(readings.filter(item => Number(item.value) === Number(anchor.value)).map(item => item.id))
   if (series === 'value' || series === 'previous') {
     readings.forEach(item => {
       if (item.id === 'value' || item.id === 'previous') ids.add(item.id)
@@ -450,7 +451,7 @@ function LineChart ({ points, period, compare, lines = [], unit, label }) {
 
   return (
     <div className='relative'>
-      <svg viewBox={`0 0 ${width} ${height}`} className='w-full h-40 text-foreground/50' role='img'>
+      <svg viewBox={`0 0 ${width} ${height}`} className='w-full h-auto text-foreground/50' role='img'>
         {yTicks(max, unit).map(tick => (
           <g key={tick}>
             <line
@@ -818,7 +819,7 @@ export default function MetricsPanel ({ groupId, signupMetric = false }) {
   }, [people])
 
   return (
-    <div className='p-4 max-w-5xl'>
+    <div className='w-full p-4'>
       <div className='flex flex-wrap items-center gap-2 mb-4'>
         {RANGES.map(item => (
           <button

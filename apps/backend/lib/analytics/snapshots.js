@@ -1,5 +1,6 @@
 import { addPeriod, parseDay, utcDay } from './periods'
 import { AXOLOTL_ID } from './constants'
+import { connectedPeopleSql } from './connections'
 import { refreshDailyRollups } from './rollups'
 import { computeRecentHealth, computeStateMetrics } from './metrics/health'
 
@@ -16,17 +17,6 @@ const CONTRIBUTION = `
   event_type in ('post_created','comment_created','reaction_added','event_rsvp','proposal_vote','project_joined')
   and coalesce(post_type, '') not in ('thread','chat_activity','welcome')
   and user_id <> ${AXOLOTL_ID}`
-
-const E_CONNECTION = `
-  e.event_type in ('comment_created','reaction_added','event_rsvp','proposal_vote','project_joined')
-  and coalesce(e.post_type, '') not in ('thread','chat_activity','welcome')
-  and e.target_user_id is not null and e.target_user_id <> e.user_id
-  and e.user_id <> ${AXOLOTL_ID}
-  and (
-    e.post_id is null
-    or e.occurred_at <= (select p.created_at from posts p where p.id = e.post_id) +
-      case when coalesce(e.post_type, '') in ('event','proposal','project') then interval '30 days' else interval '14 days' end
-  )`
 
 /** Inserts or overwrites snapshot rows. */
 async function writeRows (knex, rows) {
@@ -155,29 +145,7 @@ export async function computePeriod (knex, { period, periodStart, rolling = fals
     period,
     periodStart,
     bindings: [...range, ...range, ...range, ...range],
-    sql: `select group_id, count(distinct person)::int as value from (
-        select case when g.type = 'space' and g.parent_id is not null then g.parent_id else e.group_id end as group_id, e.user_id as person
-        from activity_events e
-        join users u on u.id = e.user_id and u.active is not false
-        left join groups g on g.id = e.group_id
-        where ${E_CONNECTION} and e.occurred_at >= ? and e.occurred_at < ? and e.group_id <> 0
-        union
-        select case when g.type = 'space' and g.parent_id is not null then g.parent_id else e.group_id end, e.target_user_id
-        from activity_events e
-        join users u on u.id = e.target_user_id and u.active is not false
-        left join groups g on g.id = e.group_id
-        where ${E_CONNECTION} and e.occurred_at >= ? and e.occurred_at < ? and e.group_id <> 0
-      ) people group by group_id
-      union all
-      select 0, count(distinct person)::int from (
-        select e.user_id as person from activity_events e
-        join users u on u.id = e.user_id and u.active is not false
-        where ${E_CONNECTION} and e.occurred_at >= ? and e.occurred_at < ?
-        union
-        select e.target_user_id from activity_events e
-        join users u on u.id = e.target_user_id and u.active is not false
-        where ${E_CONNECTION} and e.occurred_at >= ? and e.occurred_at < ?
-      ) people`
+    sql: connectedPeopleSql()
   })
 
   for (const [metric, eventType, distinct] of [

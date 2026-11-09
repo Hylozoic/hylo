@@ -3485,5 +3485,7 @@
   "Whether a request was actually fulfilled, and who helped. A comment is only a stand-in.": "क्या कोई अनुरोध सच में पूरा हुआ, और किसने मदद की। टिप्पणी केवल एक विकल्प है।",
   "Whether an event happened and who came. An RSVP is intent.": "क्या कार्यक्रम हुआ और कौन आया। हाज़िरी एक इरादा है।",
   "Where a new member came from, and who invited them, for most joins.": "एक नया सदस्य कहाँ से आया, और किसने बुलाया, ज़्यादातर शामिल होने में।",
-  "Email bounces, spam complaints and push taps. Sending is not the same as arriving.": "ईमेल बाउंस, स्पैम शिकायतें और पुश पर टैप। भेजना पहुँचना नहीं है।"
+  "Email bounces, spam complaints and push taps. Sending is not the same as arriving.": "ईमेल बाउंस, स्पैम शिकायतें और पुश पर टैप। भेजना पहुँचना नहीं है।",
+  "Topics": "विषय",
+  "Track": "ट्रैक"
 }

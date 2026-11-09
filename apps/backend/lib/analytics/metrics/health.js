@@ -1,6 +1,7 @@
 import { AXOLOTL_ID, isSmallCohort } from '../constants'
 import { addPeriod, parseDay, startOfWeek, utcDay } from '../periods'
 import { refreshGroupWeek } from '../rollups'
+import { connectedPeopleSql } from '../connections'
 import { queryRows, saveMetric } from './save'
 
 const CONTRIB = '(posts + comments + reactions + rsvps + votes + project_joins) > 0'
@@ -61,13 +62,13 @@ async function contributors30d (knex, periodStart) {
 
 /** Week-sized people counts and the group activity metrics. */
 async function computeWeek (knex, periodStart, now) {
-  const { end, days } = bounds(periodStart, 'week')
+  const { end, days, iso } = bounds(periodStart, 'week')
   if (end > now) return
   const [from, to] = days
   const twice = [from, to, from, to]
 
   await saveMetric(knex, 'contributors_posting', 'week', periodStart, await queryRows(knex, peopleSql(POSTING), twice))
-  await saveMetric(knex, 'connected_beyond_reaction', 'week', periodStart, await queryRows(knex, peopleSql('(connections_beyond_reaction + received_beyond_reaction) > 0'), twice))
+  await saveMetric(knex, 'connected_beyond_reaction', 'week', periodStart, await queryRows(knex, connectedPeopleSql({ reactions: false }), [...iso, ...iso, ...iso, ...iso]))
   await saveMetric(knex, 'coordinating_members', 'week', periodStart, await queryRows(knex, peopleSql('(coordinating + received_coordinating) > 0'), twice))
 
   const levelRows = await queryRows(knex, `

@@ -3485,5 +3485,7 @@
   "Whether a request was actually fulfilled, and who helped. A comment is only a stand-in.": "Se um pedido foi de fato atendido, e quem ajudou. Um comentário é só um substituto.",
   "Whether an event happened and who came. An RSVP is intent.": "Se um evento aconteceu e quem veio. Uma confirmação é uma intenção.",
   "Where a new member came from, and who invited them, for most joins.": "De onde veio um novo membro, e quem convidou, na maioria das entradas.",
-  "Email bounces, spam complaints and push taps. Sending is not the same as arriving.": "E-mails devolvidos, reclamações de spam e toques em notificações. Enviar não é chegar."
+  "Email bounces, spam complaints and push taps. Sending is not the same as arriving.": "E-mails devolvidos, reclamações de spam e toques em notificações. Enviar não é chegar.",
+  "Topics": "Tópicos",
+  "Track": "Trilha"
 }

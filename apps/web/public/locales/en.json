@@ -3481,5 +3481,8 @@
   "Whether a request was actually fulfilled, and who helped. A comment is only a stand-in.": "Whether a request was actually fulfilled, and who helped. A comment is only a stand-in.",
   "Whether an event happened and who came. An RSVP is intent.": "Whether an event happened and who came. An RSVP is intent.",
   "Where a new member came from, and who invited them, for most joins.": "Where a new member came from, and who invited them, for most joins.",
-  "Email bounces, spam complaints and push taps. Sending is not the same as arriving.": "Email bounces, spam complaints and push taps. Sending is not the same as arriving."
+  "Email bounces, spam complaints and push taps. Sending is not the same as arriving.": "Email bounces, spam complaints and push taps. Sending is not the same as arriving.",
+  "Topics": "Topics",
+  "Chat Space": "Chat Space",
+  "Track": "Track"
 }
