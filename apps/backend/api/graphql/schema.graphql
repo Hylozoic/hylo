@@ -1,6 +1,68 @@
 scalar Date
 scalar JSON
 
+type MetricPoint {
+  periodStart: String
+  value: Float
+  dimension: String
+}
+
+type MetricSeries {
+  metric: String
+  dimension: String
+  points: [MetricPoint]
+}
+
+type MetricPerson {
+  id: ID
+  name: String
+  avatarUrl: String
+  count: Int
+}
+
+type MetricPeopleResult {
+  total: Int
+  people: [MetricPerson]
+}
+
+type RetentionCohort {
+  cohortStart: String
+  size: Int
+  returns: [Int]
+}
+
+type RetentionExploreResult {
+  cohorts: [RetentionCohort]
+}
+
+input ClientEventInput {
+  name: String!
+  occurredAt: String
+  properties: JSON
+}
+
+type RecordEventsResult {
+  recorded: Int
+}
+
+input ActivityCountFilter {
+  eventTypes: [String]
+  postTypes: [String]
+  platforms: [String]
+  joinSources: [String]
+  isPublic: Boolean
+}
+
+type ActivityCount {
+  periodStart: String
+  eventType: String
+  postType: String
+  platform: String
+  joinSource: String
+  isPublic: Boolean
+  value: Float
+}
+
 enum LocationDisplayPrecision {
   precise
   near
@@ -292,6 +354,20 @@ type Query {
 
   # Query for all platform agreements
   platformAgreements: [PlatformAgreement]
+
+  # Stored platform metrics (Hylo admins only). period is day, week, month or year.
+  platformMetrics(metrics: [String]!, period: String!, from: String!, to: String!): [MetricSeries]
+
+  # People counted in a person-based metric. Hylo admins, or a group's stewards.
+  metricPeople(metric: String!, groupId: ID, period: String!, periodStart: String!, offset: Int): MetricPeopleResult
+
+  # A retention question over stored milestones. At most 24 cohorts by 12 periods.
+  retentionExplore(groupId: ID, start: String!, returning: String!, period: String!, cohorts: Int, periods: Int): RetentionExploreResult
+
+  # Summed activity counts. Omit groupId for the platform (Hylo admins). A group id
+  # is limited to that group's stewards. groupBy may be eventType, postType,
+  # platform, joinSource or isPublic. period is day, week, month or year.
+  activityCounts(groupId: ID, filter: ActivityCountFilter, groupBy: [String], period: String!, from: String!, to: String!): [ActivityCount]
 
   # Query for people
   people(
@@ -1025,6 +1101,9 @@ type Group {
 
   # Questions that must be answered when someone requests to join this group
   joinQuestions: GroupJoinQuestionQuerySet
+
+  # Stored metrics for this group (group stewards only)
+  metrics(metrics: [String]!, period: String!, from: String!, to: String!): [MetricSeries]
 
   # Group members
   members(
@@ -3669,7 +3748,9 @@ type Mutation {
   # Reinvite all pending invitations to the current group. Only a group Host can call this.
   reinviteAll(groupId: ID): GenericResult
   # Create a new user account
-  register(name: String!, password: String!): SignupResult
+  register(name: String!, password: String!, anonymousId: String): SignupResult
+  # Record browser and app analytics events. Logged-out callers pass anonymousId.
+  recordEvents(anonymousId: String, events: [ClientEventInput!]!): RecordEventsResult
   # NOT USED RIGHT NOW
   registerStripeAccount(authorizationCode: String): GenericResult
   # Reject a Group's invite or request to connect to one of your groups. Only a group steward can call this.

@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import EnsureLoad from './mixins/EnsureLoad'
+import { EVENT_TYPES } from '../../lib/analytics/trackActivity'
+import { track } from '../../lib/analytics/track'
 
 module.exports = bookshelf.Model.extend(Object.assign({
   tableName: 'group_invites',
@@ -90,7 +92,16 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
 
     if (!this.isUsed()) {
-      await this.save({ used_by_id: userId, used_at: new Date() }, { patch: true, transacting })
+      const usedAt = new Date()
+      await this.save({ used_by_id: userId, used_at: usedAt }, { patch: true, transacting })
+      track({
+        type: EVENT_TYPES.INVITATION_ACCEPTED,
+        userId,
+        groupIds: [this.get('group_id')],
+        object: { type: 'invitation', id: this.id },
+        targetUserId: this.get('invited_by_id'),
+        occurredAt: usedAt
+      })
     }
 
     return membership
@@ -163,7 +174,16 @@ module.exports = bookshelf.Model.extend(Object.assign({
       created_at: new Date(),
       subject: opts.subject,
       message: opts.message
-    }).save(null, { transacting })
+    }).save(null, { transacting }).then(invitation => {
+      track({
+        type: EVENT_TYPES.INVITATION_SENT,
+        userId: invitation.get('invited_by_id'),
+        groupIds: [invitation.get('group_id')],
+        object: { type: 'invitation', id: invitation.id },
+        occurredAt: invitation.get('created_at') || new Date()
+      })
+      return invitation
+    })
   },
 
   createAndSend: function ({ invitation }) {
