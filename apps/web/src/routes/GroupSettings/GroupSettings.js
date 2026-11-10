@@ -19,6 +19,7 @@ import PrivacySettingsTab from './PrivacySettingsTab'
 import RelatedGroupsTab from './RelatedGroupsTab'
 import ResponsibilitiesTab from './ResponsibilitiesTab'
 import ExportDataTab from './ExportDataTab'
+import InsightsTab from './InsightsTab/InsightsTab'
 import PaidContentTab from './PaidContentTab'
 import BillingTab from './BillingTab'
 import Loading from 'components/Loading'
@@ -144,6 +145,7 @@ export default function GroupSettings () {
   // labels and visibility follow the user's permissions automatically.
   const phoneMenuItems = compact([
     canAdminister && { name: t('Group Details'), path: 'details' },
+    canAdminister && { name: t('Insights'), path: 'insights' },
     canAdminister && !isSpace && { name: t('Agreements'), path: 'agreements' },
     canAdminister && { name: t('Responsibilities'), path: 'responsibilities' },
     canAdminister && { name: t('Roles & Badges'), path: 'roles' },
@@ -172,6 +174,12 @@ export default function GroupSettings () {
     name: t('Group Details'),
     path: 'details',
     component: groupDetailsTab
+  }
+
+  const insightsSettings = {
+    name: t('Insights'),
+    path: 'insights',
+    component: <InsightsTab group={group} />
   }
 
   const agreementSettings = {
@@ -258,6 +266,7 @@ export default function GroupSettings () {
       content={compact([
         canAdminister ? overallSettings : null,
         canAdminister ? detailsSettings : null,
+        canAdminister ? insightsSettings : null,
         canAdminister && !isSpace ? agreementSettings : null,
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,

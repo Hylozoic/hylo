@@ -9,6 +9,7 @@ import {
   POST_TYPE_TO_TYPED_VIEW,
   postCountsTowardChatUnread
 } from '@hylo/shared'
+import { trackPostCreated } from '../../../lib/analytics/track'
 
 export default async function createPost (userId, params) {
   await assertCanCreateSilentPost(userId, params)
@@ -39,6 +40,7 @@ export default async function createPost (userId, params) {
       if (post.get('type') === Post.Type.CHAT && !params.silent) {
         Queue.classMethod('Post', 'upsertChatActivityNotice', { postId: post.id }, 0)
       }
+      trackPostCreated(post, params.group_ids)
       return post
     })
 }

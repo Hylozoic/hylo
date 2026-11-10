@@ -8,6 +8,8 @@ import makeSchema from './makeSchema'
 import { createGroupVisibilityLoader } from './filters'
 import sentry from '../../lib/sentry'
 import { touchLastActiveAt } from './touchLastActiveAt'
+import { recordActivityDay, parseGroupSlug, platformFromHeaders } from '../../lib/analytics/recordActivityDay'
+import { runWithRequestContext } from '../../lib/analytics/requestContext'
 import { flattenImageUrlVariables } from '../../lib/uploader/rehostRemoteMedia'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
@@ -55,7 +57,10 @@ const graphqlSentryContextPlugin = {
       return graphqlRequestStore.run({
         currentUserId: contextValue?.currentUserId,
         operationName: executionArgs?.operationName || args.operationName
-      }, () => executeFn(executionArgs))
+      }, () => runWithRequestContext(
+        { platform: contextValue?.analyticsPlatform || null },
+        () => executeFn(executionArgs)
+      ))
     })
   }
 }
@@ -95,12 +100,23 @@ export const yoga = createYoga({
     // oAuth clients are skipped inside touchLastActiveAt
     touchLastActiveAt(req)
 
+    // Daily visit record for analytics; not awaited and never fails the request
+    if (req.session.userId && !req.api_client) {
+      recordActivityDay(bookshelf.knex, {
+        userId: req.session.userId,
+        groupSlug: parseGroupSlug(req.headers['x-hylo-group-slug']),
+        platform: platformFromHeaders(req.headers),
+        log: err => sails.log.error('Could not record activity day', err)
+      })
+    }
+
     // This is unrelated to the above which is using context as a hook,
     // this is putting the subscriptions pubSub method on context
     return {
       pubSub: RedisPubSub,
       socket: req.socket,
       currentUserId: req.session.userId,
+      analyticsPlatform: platformFromHeaders(req.headers),
       groupVisibilityLoader: createGroupVisibilityLoader()
     }
   },

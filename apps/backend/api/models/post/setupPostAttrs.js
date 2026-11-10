@@ -16,6 +16,7 @@ export default async function setupPostAttrs (userId, params, create = false) {
     completion_action_settings: params.completionActionSettings,
     donations_link: params.donationsLink,
     end_time: params.endTime ? new Date(Number(params.endTime)) : null,
+    group_admins_can_edit: params.groupAdminsCanEdit,
     is_public: params.isPublic,
     link_preview_id: params.link_preview_id || getOr(null, 'id', params.linkPreview),
     meeting_link: params.meetingLink ?? params.meeting_link ?? null,

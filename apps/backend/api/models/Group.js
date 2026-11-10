@@ -9,10 +9,13 @@ import fetch from 'node-fetch'
 import randomstring from 'randomstring'
 import wkx from 'wkx'
 import ical from 'ical-generator'
+import { withStandardConference } from './event/mixin'
 import { writeStringToS3 } from '../../lib/uploader/storage'
 import { safeFetch } from '../../lib/safeFetch'
 
 import mixpanel from '../../lib/mixpanel'
+import { EVENT_TYPES } from '../../lib/analytics/trackActivity'
+import { track } from '../../lib/analytics/track'
 import { AnalyticsEvents, LocationHelpers, POST_TYPE_TO_TYPED_VIEW } from '@hylo/shared'
 import HasSettings from './mixins/HasSettings'
 import findOrCreateThread from './post/findOrCreateThread'
@@ -49,6 +52,45 @@ function notificationSettingsFromMembership (membership) {
 // For files in the public directory, reference them with the base URL
 const DEFAULT_BANNER = '/default-group-banner.svg'
 const DEFAULT_AVATAR = '/default-group-avatar.svg'
+
+/** Records new and returning members. A return uses the current time so it is not the same row as the original join. */
+function recordJoins (groupId, newMemberships, existingMemberships, reactivatedUserIds, source) {
+  for (const membership of newMemberships) {
+    track({
+      type: EVENT_TYPES.GROUP_JOINED,
+      userId: membership.get('user_id'),
+      groupIds: [groupId],
+      object: { type: 'group_membership', id: membership.id },
+      occurredAt: membership.get('created_at') || new Date(),
+      properties: { source: source || 'direct' }
+    })
+  }
+  const reactivated = new Set(reactivatedUserIds.map(id => String(id)))
+  for (const membership of existingMemberships.models || existingMemberships) {
+    if (!reactivated.has(String(membership.get('user_id')))) continue
+    track({
+      type: EVENT_TYPES.GROUP_JOINED,
+      userId: membership.get('user_id'),
+      groupIds: [groupId],
+      object: { type: 'group_membership', id: membership.id },
+      occurredAt: new Date(),
+      properties: { source: source || 'direct', reactivated: true }
+    })
+  }
+}
+
+/** Records people leaving a group. */
+function recordLeaves (groupId, userIds) {
+  for (const userId of userIds) {
+    track({
+      type: EVENT_TYPES.GROUP_LEFT,
+      userId,
+      groupIds: [groupId],
+      object: { type: 'group', id: groupId },
+      occurredAt: new Date()
+    })
+  }
+}
 
 // GroupInput.invitePolicy is 'everyone' or 'stewards'
 function invitePolicyFromData (policy) {
@@ -665,7 +707,7 @@ module.exports = bookshelf.Model.extend(merge({
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
     const groupSettings = this.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
-    const { assignAdministrator, ...membershipAttrs } = attrs
+    const { assignAdministrator, analyticsSource, ...membershipAttrs } = attrs
 
     const updatedAttribs = Object.assign(
       {},
@@ -735,6 +777,8 @@ module.exports = bookshelf.Model.extend(merge({
       newUserIds,
       reactivatedUserIds
     })
+
+    recordJoins(this.id, newMemberships, existingMemberships, reactivatedUserIds, analyticsSource)
 
     return updatedMemberships.concat(newMemberships)
   },
@@ -815,6 +859,7 @@ module.exports = bookshelf.Model.extend(merge({
       })
     }
 
+    recordLeaves(this.id, userIds)
     return this.save({ num_members: Math.max(0, (this.get('num_members') || 0) - usersOrIds.length) }, { transacting })
   },
 
@@ -1333,7 +1378,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Write the combined calendar file to S3
     await writeStringToS3(
-      cal.toString(),
+      withStandardConference(cal.toString()),
       group.getEventCalendarPath(), {
         ContentType: 'text/calendar'
       }
@@ -1478,6 +1523,14 @@ module.exports = bookshelf.Model.extend(merge({
           }
         }
       }
+    })
+
+    track({
+      type: EVENT_TYPES.GROUP_CREATED,
+      userId,
+      groupIds: [group.id],
+      object: { type: 'group', id: group.id },
+      occurredAt: group.get('created_at') || new Date()
     })
 
     if (data.location && !data.location_id) {

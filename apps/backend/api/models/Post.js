@@ -21,8 +21,25 @@ import ProjectMixin from './project/mixin'
 import EventMixin, { eventClassMethods } from './event/mixin'
 import { defaultTimezone, wherePostedInGroups } from '../../lib/group/digest2/util'
 import { publishPostUpdate } from '../../lib/postSubscriptionPublisher'
+import { EVENT_TYPES } from '../../lib/analytics/trackActivity'
+import { groupIdsForPost, track as recordActivity } from '../../lib/analytics/track'
 
 init({ data })
+
+/** Records a proposal vote after it has been saved. */
+function recordProposalVote (post, userId, vote) {
+  groupIdsForPost(post.id).then(groupIds => {
+    recordActivity({
+      type: EVENT_TYPES.PROPOSAL_VOTE,
+      userId,
+      groupIds,
+      object: { type: 'proposal_vote', id: vote.id },
+      targetUserId: post.get('user_id'),
+      postType: 'proposal',
+      occurredAt: vote.get('created_at') || new Date()
+    })
+  }).catch(() => {})
+}
 
 export const POSTS_USERS_ATTR_UPDATE_WHITELIST = [
   'project_role_id',
@@ -424,6 +441,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return (pu && pu.get('saved_at')) || null
   },
 
+  /** Whether this user is subscribed to updates on the post. */
+  async followingForUser (userId) {
+    if (!userId) return false
+    const pu = await this.loadPostInfoForUser(userId)
+    return !!(pu && pu.get('following') && pu.get('active'))
+  },
+
   presentForEmail: function ({ clickthroughParams = '', context, fundingRound, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
@@ -504,6 +528,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async addProposalVote ({ userId, optionId }) {
     const result = await ProposalVote.forge({ post_id: this.id, user_id: userId, option_id: optionId, created_at: new Date() }).save()
     Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    recordProposalVote(this, userId, result)
     return result
   },
 
@@ -1215,6 +1240,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
       // Completion roles and steward notifications live on the parent group
       const notifyGroupId = spaceGroup.get('parent_id') || spaceGroup.id
+      recordActivity({
+        type: EVENT_TYPES.TRACK_COMPLETED,
+        userId,
+        groupIds: [notifyGroupId],
+        object: { type: 'track', id: track.id }
+      })
       const notifyGroup = spaceGroup.get('parent_id')
         ? await Group.find(spaceGroup.get('parent_id'), { transacting: trx })
         : spaceGroup

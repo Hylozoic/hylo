@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.11] - 2026-11-09
+
+### Added
+- As a group admin or moderator you can make a post editable by other admins or moderators of the group.
+- The ability to follow or unfollow a post directly from the post three dot menu
+- Platform health metrics, only visible to super admins for now
+- When RSVPing to an event, you can now add it to your calendar instantly
+
+### Changed
+- Put an event's video link in standard ICS conference fields so it shows correctly in calendar apps.
+
+### Fixed
+- Skip people/group name search when the term has no usable words
+
 ## [7.1.10] - 2026-11-04
 
 ### Added

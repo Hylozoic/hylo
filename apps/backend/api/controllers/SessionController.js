@@ -6,6 +6,8 @@ import { Validators } from '@hylo/shared'
 import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { mintTokensForUser } from '../services/OIDCTokens'
 import { authenticateWithRateLimit } from '../../lib/rateLimit'
+import { EVENT_TYPES } from '../../lib/analytics/trackActivity'
+import { track } from '../../lib/analytics/track'
 
 const sentry = require('../../lib/sentry')
 
@@ -107,6 +109,12 @@ const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
 
       const newUser = await User.create(attrs)
       await Analytics.trackSignup(newUser.id, req)
+      track({
+        type: EVENT_TYPES.SIGNUP_COMPLETED,
+        userId: newUser.id,
+        object: { type: 'user', id: newUser.id },
+        occurredAt: newUser.get('created_at') || new Date()
+      })
       if (tokenAuth) {
         await recordTokenLogin(newUser)
       } else {
