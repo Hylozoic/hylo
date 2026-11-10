@@ -3,7 +3,8 @@ export default {
     return this.get('type') === Post.Type.PROJECT
   },
 
-  // Not this.followers(): a member who unfollows the project to stop comment notifications stays a member
+  // Membership is the project role, not the follow flag. Unfollowing a post
+  // must not drop someone from the member list.
   members: function () {
     if (!this.isProject()) return false
     return this.belongsToMany(User).through(PostUser)

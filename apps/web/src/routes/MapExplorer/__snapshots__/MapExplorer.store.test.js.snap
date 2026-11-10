@@ -234,6 +234,7 @@ posts: viewPosts(
     
   id
   announcement
+  canEdit
   clickthrough
   commentersTotal
   commentsTotal
@@ -263,6 +264,7 @@ posts: viewPosts(
     }
   }
   fulfilledAt
+  groupAdminsCanEdit
   isAnonymousVote
   isPublic
   linkPreviewFeatured
@@ -294,6 +296,7 @@ posts: viewPosts(
   proposalStatus
   quorum
   savedAt
+  isFollowing
   startTime
   timezone
   title

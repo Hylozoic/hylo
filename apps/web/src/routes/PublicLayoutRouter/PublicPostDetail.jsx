@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react'
 import Div100vh from 'react-div-100vh'
 import { useDispatch } from 'react-redux'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { AnalyticsEvents } from '@hylo/shared'
 import Loading from 'components/Loading'
 import PostDetail from 'routes/PostDetail'
 import checkIsPostPublic from 'store/actions/checkIsPostPublic'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import PublicPageHeader from './PublicPageHeader'
 import { DETAIL_COLUMN_ID } from 'util/scrolling'
 
@@ -26,6 +28,7 @@ export default function PublicPostDetail (props) {
       // An email unfollow link needs a signed-in reader even when the post is public
       const unfollowRequested = getQuerystringParam('action', location) === 'unfollow'
       if (!isPublicPost || unfollowRequested) {
+        dispatch(trackAnalyticsEvent(AnalyticsEvents.LOGIN_WALL_HIT, { kind: 'post' }))
         navigate('/login?returnToUrl=' + encodeURIComponent(location.pathname + location.search), { replace: true })
       }
 

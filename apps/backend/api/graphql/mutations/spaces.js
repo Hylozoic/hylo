@@ -8,6 +8,8 @@ import {
   listBlockingSpaces
 } from '../../models/space/convertChatSpaceToDiscussion'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { track } from '../../../lib/analytics/track'
 
 // Space mutations — see docs/spaces-and-views-engineering-spec.md section 4.4 / 10
 
@@ -166,6 +168,7 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
 
   const space = await requireSpaceManager(userId, id, 'update this space')
   const wasAutoAdd = !!space.getSetting('auto_add_members')
+  const wasPublished = space.get('status') === Group.Status.PUBLISHED
 
   const changes = {}
   if (name !== undefined && name.trim()) changes.name = name.trim()
@@ -217,6 +220,14 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
 
   if (Object.keys(changes).length > 0) {
     await space.save(changes, { patch: true })
+  }
+  if (space.get('track_id') && changes.status === Group.Status.PUBLISHED && !wasPublished) {
+    track({
+      type: EVENT_TYPES.TRACK_PUBLISHED,
+      userId,
+      groupIds: [space.get('parent_id') || space.id],
+      object: { type: 'track', id: space.get('track_id') }
+    })
   }
 
   if (autoAddMembers && !wasAutoAdd) {

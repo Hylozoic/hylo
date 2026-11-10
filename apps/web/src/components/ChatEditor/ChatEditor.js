@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { throttle } from 'lodash'
 import { CaseSensitive, ImagePlus, Paperclip, Plus, Send } from 'lucide-react'
 import { sendIsTypingGroup } from 'client/websockets'
+import AttachmentDropZone from 'components/AttachmentDropZone'
 import AttachmentManager from 'components/AttachmentManager'
 import HyloEditor from 'components/HyloEditor'
 import Loading from 'components/Loading'
@@ -339,6 +340,11 @@ function ChatEditorInner ({
     if (next) setAttachMenuOpen(false)
   }, [])
 
+  const handleDroppedAttachment = useCallback((attachment) => {
+    dispatch(addAttachment('post', currentPost.id, attachment))
+    setIsDirty(true)
+  }, [currentPost.id, dispatch, setIsDirty])
+
   const hasAttachments = !isEmpty(imageAttachments) || !isEmpty(fileAttachments)
 
   const invalidMessage = useMemo(() => {
@@ -439,143 +445,151 @@ function ChatEditorInner ({
 
   return (
     <div className='flex flex-col relative gap-2'>
-      <div className='ChatEditorContent w-full bg-foreground/5 border border-foreground/10 rounded-xl p-1.5 flex flex-col !items-start transition-all duration-200 overflow-x-hidden max-h-[300px] focus-within:border-foreground/20'>
-        <div className='w-full flex items-center gap-1'>
-          {/* Attachment menu — plain + icon before the input text */}
-          <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type='button'
-                className='p-1.5 shrink-0 text-foreground/50 hover:text-foreground transition-colors'
-                aria-label={t('Add attachment')}
-                data-testid='chat-attach-button'
-              >
-                <Plus className='w-6 h-6' />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent side='top' align='start' className='w-48 p-1'>
-              <UploadAttachmentButton
-                type='post'
-                id={currentPost.id}
-                attachmentType='image'
-                onSuccess={(attachment) => {
-                  dispatch(addAttachment('post', currentPost.id, attachment))
-                  setIsDirty(true)
-                }}
-                onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
-                allowMultiple
-                disable={showImages}
-                className='w-full'
-              >
-                <span className='flex items-center gap-2 w-full px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 text-sm text-foreground' data-testid='add-image-icon'>
-                  <ImagePlus className='w-4 h-4' />
-                  {t('Upload image')}
-                </span>
-              </UploadAttachmentButton>
-              <UploadAttachmentButton
-                type='post'
-                id={currentPost.id}
-                attachmentType='file'
-                onSuccess={(attachment) => {
-                  dispatch(addAttachment('post', currentPost.id, attachment))
-                  setIsDirty(true)
-                }}
-                onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
-                allowMultiple
-                disable={showFiles}
-                className='w-full'
-              >
-                <span className='flex items-center gap-2 w-full px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 text-sm text-foreground' data-testid='add-file-icon'>
-                  <Paperclip className='w-4 h-4' />
-                  {t('Attach file')}
-                </span>
-              </UploadAttachmentButton>
-            </PopoverContent>
-          </Popover>
+      <AttachmentDropZone
+        type='post'
+        id={currentPost.id}
+        onAttachment={handleDroppedAttachment}
+        onLoadingChange={handleAttachmentLoadingChange}
+        className='w-full'
+      >
+        <div className='ChatEditorContent w-full bg-foreground/5 border border-foreground/10 rounded-xl p-1.5 flex flex-col !items-start transition-all duration-200 overflow-x-hidden max-h-[300px] focus-within:border-foreground/20'>
+          <div className='w-full flex items-center gap-1'>
+            {/* Attachment menu — plain + icon before the input text */}
+            <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type='button'
+                  className='p-1.5 shrink-0 text-foreground/50 hover:text-foreground transition-colors'
+                  aria-label={t('Add attachment')}
+                  data-testid='chat-attach-button'
+                >
+                  <Plus className='w-6 h-6' />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side='top' align='start' className='w-48 p-1'>
+                <UploadAttachmentButton
+                  type='post'
+                  id={currentPost.id}
+                  attachmentType='image'
+                  onSuccess={(attachment) => {
+                    dispatch(addAttachment('post', currentPost.id, attachment))
+                    setIsDirty(true)
+                  }}
+                  onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
+                  allowMultiple
+                  disable={showImages}
+                  className='w-full'
+                >
+                  <span className='flex items-center gap-2 w-full px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 text-sm text-foreground' data-testid='add-image-icon'>
+                    <ImagePlus className='w-4 h-4' />
+                    {t('Upload image')}
+                  </span>
+                </UploadAttachmentButton>
+                <UploadAttachmentButton
+                  type='post'
+                  id={currentPost.id}
+                  attachmentType='file'
+                  onSuccess={(attachment) => {
+                    dispatch(addAttachment('post', currentPost.id, attachment))
+                    setIsDirty(true)
+                  }}
+                  onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
+                  allowMultiple
+                  disable={showFiles}
+                  className='w-full'
+                >
+                  <span className='flex items-center gap-2 w-full px-2 py-1.5 rounded-md cursor-pointer hover:bg-foreground/10 text-sm text-foreground' data-testid='add-file-icon'>
+                    <Paperclip className='w-4 h-4' />
+                    {t('Attach file')}
+                  </span>
+                </UploadAttachmentButton>
+              </PopoverContent>
+            </Popover>
 
-          <div className='flex-1 min-w-0'>
-            {currentPost.details === null || loading
-              ? <div><Loading /></div>
-              : <HyloEditor
-                  placeholder={t('Chat with {{groupName}}', { groupName: currentGroup?.name })}
-                  onUpdate={handleDetailsChange}
-                  onAltEnter={doSave}
-                  onAddTopic={handleAddTopic}
-                  onAddLink={handleAddLinkPreview}
-                  onFocus={onComposerFocus}
-                  onBlur={onComposerBlur}
-                  contentHTML={editorInitialContent}
-                  groupIds={groupIds}
-                  showMenu={showToolbar}
-                  readOnly={loading}
-                  ref={editorRef}
-                />}
+            <div className='flex-1 min-w-0'>
+              {currentPost.details === null || loading
+                ? <div><Loading /></div>
+                : <HyloEditor
+                    placeholder={t('Chat with {{groupName}}', { groupName: currentGroup?.name })}
+                    onUpdate={handleDetailsChange}
+                    onAltEnter={doSave}
+                    onAddTopic={handleAddTopic}
+                    onAddLink={handleAddLinkPreview}
+                    onFocus={onComposerFocus}
+                    onBlur={onComposerBlur}
+                    contentHTML={editorInitialContent}
+                    groupIds={groupIds}
+                    showMenu={showToolbar}
+                    readOnly={loading}
+                    ref={editorRef}
+                  />}
+            </div>
+
+            {/* Toolbar toggle + send, inside the input */}
+            <button
+              type='button'
+              onClick={() => setShowToolbar(v => !v)}
+              className={cn(
+                'p-1.5 shrink-0 rounded-md transition-colors',
+                showToolbar
+                  ? 'bg-foreground/15 text-foreground'
+                  : 'text-foreground/40 hover:text-foreground hover:bg-foreground/5'
+              )}
+              aria-label={t('Toggle formatting toolbar')}
+              aria-pressed={showToolbar}
+              data-testid='chat-toolbar-toggle'
+            >
+              <CaseSensitive className='w-6 h-6' />
+            </button>
+            {/* Ready-to-send fills with the selected colour. */}
+            <button
+              type='button'
+              onClick={doSave}
+              disabled={!canSubmit}
+              title={!isValid ? invalidMessage.replace(/<br \/>/g, ', ') : undefined}
+              className={cn(
+                'p-1.5 shrink-0 rounded-lg border transition-colors',
+                canSubmit
+                  ? 'bg-selected border-selected text-white hover:bg-selected/90'
+                  : 'border-foreground/20 text-muted-foreground cursor-not-allowed'
+              )}
+              aria-label={t('Post')}
+              data-testid='chat-send-button'
+            >
+              <Send className='w-5 h-5' />
+            </button>
           </div>
-
-          {/* Toolbar toggle + send, inside the input */}
-          <button
-            type='button'
-            onClick={() => setShowToolbar(v => !v)}
-            className={cn(
-              'p-1.5 shrink-0 rounded-md transition-colors',
-              showToolbar
-                ? 'bg-foreground/15 text-foreground'
-                : 'text-foreground/40 hover:text-foreground hover:bg-foreground/5'
-            )}
-            aria-label={t('Toggle formatting toolbar')}
-            aria-pressed={showToolbar}
-            data-testid='chat-toolbar-toggle'
-          >
-            <CaseSensitive className='w-6 h-6' />
-          </button>
-          {/* Ready-to-send fills with the selected colour. */}
-          <button
-            type='button'
-            onClick={doSave}
-            disabled={!canSubmit}
-            title={!isValid ? invalidMessage.replace(/<br \/>/g, ', ') : undefined}
-            className={cn(
-              'p-1.5 shrink-0 rounded-lg border transition-colors',
-              canSubmit
-                ? 'bg-selected border-selected text-white hover:bg-selected/90'
-                : 'border-foreground/20 text-muted-foreground cursor-not-allowed'
-            )}
-            aria-label={t('Post')}
-            data-testid='chat-send-button'
-          >
-            <Send className='w-5 h-5' />
-          </button>
-        </div>
-        {(currentPost.linkPreview || fetchLinkPreviewPending) && (
-          <LinkPreview
-            loading={fetchLinkPreviewPending}
-            linkPreview={currentPost.linkPreview}
-            featured={currentPost.linkPreviewFeatured}
-            onFeatured={handleFeatureLinkPreview}
-            onClose={handleRemoveLinkPreview}
+          {(currentPost.linkPreview || fetchLinkPreviewPending) && (
+            <LinkPreview
+              loading={fetchLinkPreviewPending}
+              linkPreview={currentPost.linkPreview}
+              featured={currentPost.linkPreviewFeatured}
+              onFeatured={handleFeatureLinkPreview}
+              onClose={handleRemoveLinkPreview}
+            />
+          )}
+          <AttachmentManager
+            type='post'
+            id={currentPost.id}
+            attachmentType='image'
+            showAddButton
+            showLabel
+            showLoading
+            uploadAttachmentPending={loading && uploadingAttachmentType === 'image'}
+            onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
           />
-        )}
-        <AttachmentManager
-          type='post'
-          id={currentPost.id}
-          attachmentType='image'
-          showAddButton
-          showLabel
-          showLoading
-          uploadAttachmentPending={loading && uploadingAttachmentType === 'image'}
-          onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'image')}
-        />
-        <AttachmentManager
-          type='post'
-          id={currentPost.id}
-          attachmentType='file'
-          showAddButton
-          showLabel
-          showLoading
-          uploadAttachmentPending={loading && uploadingAttachmentType === 'file'}
-          onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
-        />
-      </div>
+          <AttachmentManager
+            type='post'
+            id={currentPost.id}
+            attachmentType='file'
+            showAddButton
+            showLabel
+            showLoading
+            uploadAttachmentPending={loading && uploadingAttachmentType === 'file'}
+            onLoadingChange={(next) => handleAttachmentLoadingChange(next, 'file')}
+          />
+        </div>
+      </AttachmentDropZone>
     </div>
   )
 }

@@ -1,4 +1,6 @@
 import { GraphQLError } from 'graphql'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { groupIdsForPost, track } from '../../../lib/analytics/track'
 import { uniq } from 'lodash/fp'
 import { createPost } from './post'
 
@@ -105,7 +107,29 @@ export async function addPeopleToProjectRole (userId, peopleIds, projectRoleId) 
 export async function joinProject (projectId, userId) {
   const project = await Post.find(projectId)
   return project.addProjectMembers([userId])
-    .then(() => ({ success: true }))
+    .then(() => {
+      recordProjectJoin(project, userId)
+      return { success: true }
+    })
+}
+
+/** Records someone joining a project, using the membership row so a backfill of the same row is skipped. */
+function recordProjectJoin (project, userId) {
+  const write = async () => {
+    const row = await bookshelf.knex('posts_users').where({ post_id: project.id, user_id: userId }).first()
+    if (!row || !row.project_role_id) return
+    const groupIds = await groupIdsForPost(project.id)
+    track({
+      type: EVENT_TYPES.PROJECT_JOINED,
+      userId,
+      groupIds,
+      object: { type: 'posts_users', id: row.id },
+      targetUserId: project.get('user_id'),
+      postType: 'project',
+      occurredAt: row.created_at || new Date()
+    })
+  }
+  write().catch(() => {})
 }
 
 export async function leaveProject (projectId, userId) {

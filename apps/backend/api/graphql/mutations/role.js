@@ -1,4 +1,6 @@
 import { GraphQLError } from 'graphql'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { track } from '../../../lib/analytics/track'
 
 /**
  * Reject role mutations targeting a space — roles are only edited on the parent group.
@@ -74,7 +76,18 @@ export async function addRoleToMember ({ userId, roleId, personId, groupId }) {
         user_id: personId,
         active: true,
         group_id: groupId
-      }).save().then((savedRole) => savedRole)
+      }).save().then(savedRole => {
+        track({
+          type: EVENT_TYPES.ROLE_GRANTED,
+          userId: personId,
+          groupIds: [groupId],
+          object: { type: 'member_group_role', id: savedRole.id },
+          targetUserId: userId,
+          occurredAt: savedRole.get('created_at') || new Date(),
+          properties: { roleId }
+        })
+        return savedRole
+      })
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to add role to member')
     }
@@ -96,6 +109,16 @@ export async function removeRoleFromMember ({ userId, roleId, personId, groupId 
           .andWhere('group_role_id', roleId)
           .andWhere('group_id', groupId)
       }).fetch()
+      if (!role) throw new GraphQLError('Role not found')
+      track({
+        type: EVENT_TYPES.ROLE_REVOKED,
+        userId: personId,
+        groupIds: [groupId],
+        object: { type: 'member_group_role', id: role.id },
+        targetUserId: userId,
+        occurredAt: new Date(),
+        properties: { roleId }
+      })
       return role.destroy()
     } else {
       throw new GraphQLError('User doesn\'t have required privileges to remove role from member')

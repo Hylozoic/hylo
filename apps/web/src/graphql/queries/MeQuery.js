@@ -55,6 +55,7 @@ export default gql`
     settings {
       alreadySeenTour
       toursSeen
+      hideRsvpCalendarPrompt
       colorScheme
       dmNotifications
       commentNotifications

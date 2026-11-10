@@ -4,8 +4,8 @@ exports[`register should match latest snapshot 1`] = `
 Object {
   "graphql": Object {
     "query": "
-        mutation Register ($name: String!, $password: String!) {
-          register(name: $name, password: $password) {
+        mutation Register ($name: String!, $password: String!, $anonymousId: String) {
+          register(name: $name, password: $password, anonymousId: $anonymousId) {
             me {
               id
               email
@@ -15,6 +15,7 @@ Object {
               settings {
                 alreadySeenTour
                 toursSeen
+                hideRsvpCalendarPrompt
                 colorScheme
                 dmNotifications
                 commentNotifications
@@ -30,18 +31,17 @@ Object {
                 theme
               }
             }
+            error
           }
         }
       ",
     "variables": Object {
+      "anonymousId": "anon-test-id",
       "name": "name",
       "password": "test@hylo.com",
     },
   },
   "meta": Object {
-    "analytics": Object {
-      "eventName": "Registered",
-    },
     "extractModel": Array [
       Object {
         "getRoot": [Function],

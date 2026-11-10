@@ -11,13 +11,66 @@ function resolveEventChangeValue (eventChanges, key, currentValue) {
 }
 
 function buildCalLocationAndDescription ({ physicalLocation, meetingLink, baseDescription }) {
-  const location = physicalLocation || meetingLink || ''
+  const location = physicalLocation || ''
+  const link = (meetingLink || '').trim()
   let description = baseDescription
-  if (physicalLocation && meetingLink) {
-    const joinLine = `Join online: ${meetingLink}`
+  if (link) {
+    const joinLine = `Join online: ${link}`
     description = description ? `${description}\n\n${joinLine}` : joinLine
   }
-  return { location, description }
+  return { location, description, meetingLink: link }
+}
+
+/** RFC 5545 line folding: at most 75 octets, continued with CRLF + space. */
+function foldIcsLine (line) {
+  const encoder = new TextEncoder()
+  const parts = []
+  let current = ''
+  let currentBytes = 0
+  for (const char of line) {
+    const bytes = encoder.encode(char).length
+    const limit = parts.length === 0 ? 75 : 74
+    if (currentBytes + bytes > limit) {
+      parts.push(current)
+      current = ''
+      currentBytes = 0
+    }
+    current += char
+    currentBytes += bytes
+  }
+  parts.push(current)
+  return parts.join('\r\n ')
+}
+
+function unescapeIcsText (text) {
+  return text.replace(/\\n/g, '\n').replace(/\\([\\;,])/g, '$1')
+}
+
+/**
+ * Adds the RFC 7986 CONFERENCE property next to X-GOOGLE-CONFERENCE.
+ * ical-generator can only emit X- properties, and CONFERENCE is the standard join-link field.
+ */
+export function withStandardConference (ics) {
+  const unfolded = ics.replace(/\r\n[ \t]/g, '')
+  const lines = unfolded.split('\r\n')
+  const out = []
+  let conference = null
+  let hasConference = false
+  for (const line of lines) {
+    if (line === 'BEGIN:VEVENT') {
+      conference = null
+      hasConference = false
+    } else if (line.startsWith('X-GOOGLE-CONFERENCE:')) {
+      conference = unescapeIcsText(line.slice('X-GOOGLE-CONFERENCE:'.length)).replace(/[\r\n]/g, '')
+    } else if (line.startsWith('CONFERENCE:') || line.startsWith('CONFERENCE;')) {
+      hasConference = true
+    } else if (line === 'END:VEVENT' && conference && !hasConference) {
+      out.push(`CONFERENCE;VALUE=URI;FEATURE=AUDIO,VIDEO;LABEL=Join online:${conference}`)
+    }
+    out.push(line)
+  }
+  const bodyLines = out[out.length - 1] === '' ? out.slice(0, -1) : out
+  return bodyLines.map(foldIcsLine).join('\r\n') + '\r\n'
 }
 
 function formatEventLocationForEmail (location, meetingLink) {
@@ -115,6 +168,8 @@ export default {
     cal.method(calEvent.method)
     cal.createEvent(calEvent).uid(calEvent.uid)
     cal.scale('gregorian')
+    const render = cal.toString.bind(cal)
+    cal.toString = () => withStandardConference(render())
 
     return cal
   },
@@ -127,7 +182,7 @@ export default {
     const newEnd = eventChanges?.end_time
     const physicalLocation = resolveEventChangeValue(eventChanges, 'location', this.get('location'))
     const meetingLink = resolveEventChangeValue(eventChanges, 'meeting_link', this.get('meeting_link'))
-    const { location, description } = buildCalLocationAndDescription({
+    const { location, description, meetingLink: conferenceLink } = buildCalLocationAndDescription({
       physicalLocation,
       meetingLink,
       baseDescription: TextHelpers.presentHTMLToText(this.details(forUserId))
@@ -140,6 +195,7 @@ export default {
       summary: this.title(),
       description,
       location,
+      ...(conferenceLink ? { x: { 'X-GOOGLE-CONFERENCE': conferenceLink } } : {}),
       start: newStart || this.get('start_time'),
       end: newEnd || this.get('end_time'),
       // see https://github.com/sebbo2002/ical-generator#-date-time--timezones

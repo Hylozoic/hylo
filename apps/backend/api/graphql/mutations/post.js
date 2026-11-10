@@ -7,7 +7,12 @@ import {
   assertCanFulfillPost,
   notifyAuthorOfModeratorFulfillment
 } from '../../models/post/postFulfillmentPermissions'
-import { deletePostDraftForCreate } from './draft'
+import {
+  assertCanAllowGroupAdminEdits,
+  assertCanEditPost,
+  isPostCreator
+} from '../../models/post/postEditPermissions'
+import { deleteDraftAfterCreate, deletePostDraftForCreate } from './draft'
 
 export async function completePost (userId, postId, completionResponse) {
   const post = await Post.find(postId)
@@ -33,13 +38,14 @@ export async function completePost (userId, postId, completionResponse) {
 export function createPost (userId, data) {
   return convertGraphqlPostData(data)
     .tap(convertedData => validatePostData(userId, convertedData))
+    .tap(convertedData => convertedData.groupAdminsCanEdit && assertCanAllowGroupAdminEdits(userId, convertedData.group_ids))
     .then(async validatedData => {
       const createdPost = await underlyingCreatePost(userId, validatedData)
-      await deletePostDraftForCreate(userId, {
+      await deleteDraftAfterCreate(() => deletePostDraftForCreate(userId, {
         groupId: validatedData.group_ids?.[0],
         topicName: validatedData.type === 'chat' ? validatedData.topicNames?.[0] : null,
         postType: validatedData.type || null
-      })
+      }))
       return createdPost
     })
 }
@@ -62,10 +68,25 @@ export function deletePost (userId, postId) {
     })
 }
 
-export function updatePost (userId, { id, data }) {
-  return convertGraphqlPostData(data)
-    .tap(convertedData => validatePostData(userId, convertedData))
-    .then(validatedData => underlyingUpdatePost(userId, id, validatedData))
+export async function updatePost (userId, { id, data }) {
+  const post = id && await Post.find(id)
+  await assertCanEditPost(userId, post)
+  const convertedData = await convertGraphqlPostData(data)
+  if (isPostCreator(userId, post)) {
+    await validatePostData(userId, convertedData)
+    if (convertedData.groupAdminsCanEdit && !post.get('group_admins_can_edit')) {
+      await assertCanAllowGroupAdminEdits(userId, convertedData.group_ids)
+    }
+  } else {
+    // Other editors can change the content, but only the creator decides where it is
+    // posted and who else can edit it. The post stays in its groups, so they don't need
+    // to be a member of every one of them.
+    await post.load('groups')
+    convertedData.group_ids = post.relations.groups.pluck('id')
+    delete convertedData.groupAdminsCanEdit
+    await validatePostData(userId, convertedData, { skipMembershipCheck: true })
+  }
+  return underlyingUpdatePost(userId, id, convertedData)
 }
 
 export async function fulfillPost (userId, postId) {
@@ -124,8 +145,7 @@ export async function removeProposalVote ({ userId, postId, optionId }) {
 
 export async function setProposalOptions ({ userId, postId, options }) {
   if (!userId || !postId || !options) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
-  const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLError("You don't have permission to modify this post")
+  await assertCanEditPost(userId, await Post.find(postId))
   return Post.find(postId)
     .then(post => {
       if (post.get('proposal_status') !== Post.Proposal_Status.DISCUSSION) throw new GraphQLError("Proposal options cannot be changed unless the proposal is in 'discussion'")
@@ -137,8 +157,7 @@ export async function setProposalOptions ({ userId, postId, options }) {
 
 export async function updateProposalOptions ({ userId, postId, options }) {
   if (!userId || !postId || !options) throw new GraphQLError(`Missing required parameters: ${JSON.stringify({ userId, postId, options })}`)
-  const authorized = await Post.isVisibleToUser(postId, userId)
-  if (!authorized) throw new GraphQLError("You don't have permission to modify this post")
+  await assertCanEditPost(userId, await Post.find(postId))
   return Post.find(postId)
     .then(post => {
       if (post.get('proposal_status') === Post.Proposal_Status.COMPLETED && post.get('proposal_status') !== Post.Proposal_Status.CASUAL) throw new GraphQLError("Proposal options cannot be changed once a proposal is complete'")
@@ -167,15 +186,11 @@ export async function swapProposalVote ({ userId, postId, removeOptionId, addOpt
   }
 }
 
-export function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
-  return Post.find(postId)
-    .then(post => {
-      if (post.get('user_id') !== userId) {
-        throw new GraphQLError("You don't have permission to modify this post")
-      }
-      return post.updateProposalOutcome(proposalOutcome)
-    })
-    .then(() => ({ success: true }))
+export async function updateProposalOutcome ({ userId, postId, proposalOutcome }) {
+  const post = await Post.find(postId)
+  await assertCanEditPost(userId, post)
+  await post.updateProposalOutcome(proposalOutcome)
+  return { success: true }
 }
 
 async function findPostToFollow (userId, postId) {
