@@ -2387,7 +2387,8 @@ CREATE TABLE public.posts (
     budget character varying(255),
     ical_sequence integer,
     tag_names text[] DEFAULT '{}'::text[] NOT NULL,
-    notice_data jsonb
+    notice_data jsonb,
+    group_admins_can_edit boolean DEFAULT false
 );
 
 

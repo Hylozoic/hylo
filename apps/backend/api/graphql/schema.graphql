@@ -2464,6 +2464,8 @@ type Post {
   completionResponse: JSON
   # All the responses from all users who have completed this post - only available to moderators
   completionResponses: PostUserQuerySet
+  # Whether the current user can edit this post: its creator, or a group admin when groupAdminsCanEdit applies
+  canEdit: Boolean
   # If this post has been flagged, this tracks whether the currentuser has clicked through the flag-screen
   clickthrough: Boolean
   createdAt: Date
@@ -2481,6 +2483,8 @@ type Post {
   followersTotal: Int
   # When the posr creator marked it as "fulfilled" or "complete"
   fulfilledAt: Date
+  # Whether the creator lets members who manage content in the post's group edit it (only applies while the post is in a single group)
+  groupAdminsCanEdit: Boolean
   # The funding round this post is associated with
   fundingRound: FundingRound
   # Number of groups this has been posted to
@@ -3204,6 +3208,8 @@ type UserSettings {
   alreadySeenTour: Boolean
   # Ids of in-app guided tours this person has completed or dismissed
   toursSeen: [String]
+  # Has this person chosen "Don't ask again" on the prompt to add RSVP'd events to their calendar
+  hideRsvpCalendarPrompt: Boolean
   # Display mode preference: auto, light, or dark
   colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none
@@ -4600,6 +4606,8 @@ input PostInput {
   # The FundingRound this post is a submission to
   fundingRoundId: ID
   # IDs of the groups to post to
+  # Let members who manage content in the post's single group edit it. Only the creator can change this
+  groupAdminsCanEdit: Boolean
   groupIds: [ID]
   # URLs of images in the post. A flat list of URL strings, or a nested list such as Zapier line items (those are flattened). URLs already on Hylo storage are attached immediately; other URLs (e.g. Airtable attachments) are downloaded and stored on our S3 in the background.
   imageUrls: [String]
@@ -4790,6 +4798,8 @@ input UserSettingsInput {
   alreadySeenTour: Boolean
   # Ids of in-app guided tours this person has completed or dismissed
   toursSeen: [String]
+  # Has this person chosen "Don't ask again" on the prompt to add RSVP'd events to their calendar
+  hideRsvpCalendarPrompt: Boolean
   # Display mode preference: auto, light, or dark
   colorScheme: String
   # How this person wants to receive notifications about new comments on posts they're following? email, push, both, or none

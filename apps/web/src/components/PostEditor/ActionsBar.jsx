@@ -6,12 +6,15 @@ import Button from 'components/Button'
 import Tooltip from 'components/Tooltip'
 import SendAnnouncementModal from 'components/SendAnnouncementModal'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
+import GroupAdminsCanEditToggle from './GroupAdminsCanEditToggle'
 import { cn } from 'util/index'
 
 // Each action is a 24x24 Lucide icon centred in a 32x32 box (matches EmojiInsertButton)
 const actionBoxClasses = 'w-8 h-8 flex items-center justify-center shrink-0'
 const actionIconClasses = 'w-6 h-6 cursor-pointer hover:text-[#0DC39F]'
 const highlightIconClasses = 'text-[#0DC39F] cursor-default'
+// On state of a toggle that stays clickable
+const activeToggleIconClasses = 'text-[#0DC39F]'
 
 export default function ActionsBar ({
   id,
@@ -19,6 +22,8 @@ export default function ActionsBar ({
   announcementSelected,
   canMakeAnnouncement,
   isEditing,
+  groupAdminsCanEdit,
+  groupAdminsGroupName,
   groupCount,
   groups,
   invalidMessage,
@@ -31,11 +36,13 @@ export default function ActionsBar ({
   save, // Does actual save
   setIsDirty,
   showAnnouncementModal,
+  showGroupAdminsCanEdit,
   showLocation,
   showFiles,
   showImages,
   submitButtonLabel,
   toggleAnnouncementModal,
+  toggleGroupAdminsCanEdit,
   type,
   valid
 }) {
@@ -102,6 +109,16 @@ export default function ActionsBar ({
               id='announcement-tt'
             />
           </span>
+        )}
+        {showGroupAdminsCanEdit && (
+          <GroupAdminsCanEditToggle
+            groupAdminsCanEdit={groupAdminsCanEdit}
+            toggleGroupAdminsCanEdit={toggleGroupAdminsCanEdit}
+            groupName={groupAdminsGroupName}
+            className={actionBoxClasses}
+            iconClassName={actionIconClasses}
+            activeIconClassName={activeToggleIconClasses}
+          />
         )}
         {showAnnouncementModal && (
           <SendAnnouncementModal
