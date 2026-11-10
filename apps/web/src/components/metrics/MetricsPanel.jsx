@@ -340,6 +340,7 @@ function linePath (points, valueKey, xAt, yAt) {
 /** The visible marker for one reading. The main series is painted above a shared dot. */
 function ChartDot ({ reading, x, hot }) {
   const radius = hot ? 5 : 3
+  if (reading.stroke) return <circle cx={x} cy={reading.y} r={radius} fill={reading.stroke} />
   if (reading.id === 'value') return <circle cx={x} cy={reading.y} r={radius} fill='hsl(var(--focus))' />
   if (reading.id === 'previous') {
     return (
@@ -374,7 +375,8 @@ function chartReadings (point, index, { compare, lines, label, yAt }) {
       label: line.label,
       value,
       when: point.periodStart,
-      opacity: line.opacity
+      opacity: line.opacity,
+      stroke: line.stroke
     })
   })
   readings.forEach(item => { item.y = yAt(item.value) })
@@ -382,9 +384,16 @@ function chartReadings (point, index, { compare, lines, label, yAt }) {
 }
 
 /** The hovered reading, every other series on that same dot, and the comparison period. */
-function hoveredReadings (readings, series) {
+function hoveredReadings (readings, series, showAll) {
   const anchor = readings.find(item => item.id === series)
   if (!anchor) return []
+  if (showAll) {
+    const sameDay = readings.filter(item => item.when === anchor.when)
+    return [
+      ...sameDay.filter(item => item.id === series),
+      ...sameDay.filter(item => item.id !== series)
+    ]
+  }
   const ids = new Set(readings.filter(item => Number(item.value) === Number(anchor.value)).map(item => item.id))
   if (series === 'value' || series === 'previous') {
     readings.forEach(item => {
@@ -411,7 +420,7 @@ function readingGroups (items) {
 }
 
 /** A line with a count scale and a date scale. Missing periods leave a gap. Extra lines share the same dates. */
-function LineChart ({ points, period, compare, lines = [], unit, label }) {
+function LineChart ({ points, period, compare, lines = [], unit, label, showAll = false }) {
   const { t } = useTranslation()
   const [hover, setHover] = useState(null)
   if (!points.length) return null
@@ -442,7 +451,7 @@ function LineChart ({ points, period, compare, lines = [], unit, label }) {
     readings: chartReadings(point, index, { compare, lines, label, yAt })
   })).filter(dot => dot.readings.length)
   const active = hover && dots.find(dot => dot.key === hover.key)
-  const shown = active ? hoveredReadings(active.readings, hover.series) : []
+  const shown = active ? hoveredReadings(active.readings, hover.series, showAll) : []
   const anchor = hover ? shown.find(item => item.id === hover.series) : null
   const activeY = anchor ? anchor.y : null
   let hoverShift = 'translate(-50%, calc(-100% - 8px))'
@@ -488,9 +497,9 @@ function LineChart ({ points, period, compare, lines = [], unit, label }) {
             key={line.label}
             d={linePath(line.points, 'value', xAt, yAt)}
             fill='none'
-            stroke='hsl(var(--foreground))'
-            strokeOpacity={line.opacity}
-            strokeWidth='1.5'
+            stroke={line.stroke || 'hsl(var(--foreground))'}
+            strokeOpacity={line.stroke ? '1' : line.opacity}
+            strokeWidth={line.stroke ? '2' : '1.5'}
             strokeDasharray={line.dash === '0' ? undefined : line.dash}
           />
         ))}
@@ -908,6 +917,15 @@ export default function MetricsPanel ({ groupId, signupMetric = false }) {
               <section key={section.id} className='mt-8'>
                 <h2 className='text-lg font-semibold text-foreground'>{t(section.title)}</h2>
                 <p className='text-sm text-foreground/60 mb-3'>{t(section.question)}</p>
+                {section.id === 'audience' && (
+                  <ActivePeople
+                    t={t}
+                    group={Boolean(groupId)}
+                    daily={shownFor('active_users', 'day')}
+                    weekly={shownFor('wau', 'day')}
+                    monthly={shownFor('mau', 'day')}
+                  />
+                )}
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>{cards}</div>
               </section>
             )
@@ -931,6 +949,63 @@ export default function MetricsPanel ({ groupId, signupMetric = false }) {
         </>
       )}
     </div>
+  )
+}
+
+/** The stored value of one series on a calendar day. */
+function valueOn (points, day) {
+  const match = (points || []).find(item => item.periodStart === day)
+  return match ? match.value : null
+}
+
+/** Daily, weekly and monthly people who opened Hylo. Looking counts, with or without a post. */
+export function ActivePeople ({ t, group = false, daily = [], weekly = [], monthly = [] }) {
+  const hasValue = [daily, weekly, monthly].some(series => series.some(point => point.value !== null && point.value !== undefined))
+  if (!hasValue) return null
+  const base = [daily, weekly, monthly].reduce((best, series) => series.length > best.length ? series : best, [])
+  const points = base.map(item => ({
+    ...item,
+    value: valueOn(daily, item.periodStart)
+  }))
+  const lines = [
+    {
+      label: t('Weekly active people'),
+      stroke: 'hsl(var(--selected))',
+      dash: '0',
+      points: base.map(item => ({ ...item, value: valueOn(weekly, item.periodStart) }))
+    },
+    {
+      label: t('Monthly active people'),
+      stroke: 'hsl(var(--foreground))',
+      dash: '0',
+      points: base.map(item => ({ ...item, value: valueOn(monthly, item.periodStart) }))
+    }
+  ]
+  const latest = [
+    { label: t('Daily active people'), color: 'hsl(var(--focus))', value: latestValue(daily)?.value },
+    { label: t('Weekly active people'), color: 'hsl(var(--selected))', value: latestValue(weekly)?.value },
+    { label: t('Monthly active people'), color: 'hsl(var(--foreground))', value: latestValue(monthly)?.value }
+  ]
+  const explainer = group
+    ? t('Anyone who opened this group, even just to look. Daily is that day. Weekly is the last 7 days. Monthly is the last 30 days.')
+    : t('Anyone who opened Hylo, even just to look. Daily is that day. Weekly is the last 7 days. Monthly is the last 30 days.')
+  return (
+    <section data-testid='active-audience' className='mb-3 rounded-lg border border-foreground/10 bg-card p-4'>
+      <h3 className='text-base font-semibold text-foreground'>{t('Daily, weekly and monthly active people')}</h3>
+      <p className='text-sm text-foreground/70 mb-2'>{explainer}</p>
+      <div className='mb-2 flex flex-wrap gap-x-4 gap-y-1'>
+        {latest.map(item => (
+          <div key={item.label} className='text-sm text-foreground'>
+            <span className='mr-1 inline-block h-2 w-2 rounded-full' style={{ background: item.color }} />
+            {item.label}
+            {item.value !== null && item.value !== undefined && (
+              <span className='ml-1 font-semibold'>{formatValue(item.value, 'count', t)}</span>
+            )}
+          </div>
+        ))}
+      </div>
+      <LineChart points={points} period='day' lines={lines} label={t('Daily active people')} showAll />
+    </section>
   )
 }
 
