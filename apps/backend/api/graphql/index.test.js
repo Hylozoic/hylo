@@ -5,8 +5,7 @@ import jwt from 'jsonwebtoken'
 import { createRequestHandler, makeMutations, makeAuthenticatedQueries } from './index'
 import '../../test/setup'
 import factories from '../../test/setup/factories'
-import { mockify, spyify, unspyify, withFeatureFlag } from '../../test/setup/helpers'
-import { HYLO_PRO } from '../../lib/featureFlags'
+import { mockify, spyify, unspyify } from '../../test/setup/helpers'
 import { some } from 'lodash/fp'
 import { updateFollowers } from '../models/post/util'
 
@@ -196,15 +195,6 @@ describe('graphql request handler', () => {
         { interval: 'month', unitAmount: 1000, currency: 'usd' },
         { interval: 'year', unitAmount: 10000, currency: 'usd' }
       ])
-    })
-
-    it('hides billing details from stewards while the HYLO_PRO flag is off', async () => {
-      req.session.userId = steward.id
-      req.user = steward
-      const { executionResult } = await withFeatureFlag(HYLO_PRO, 'off', () =>
-        handler.inject({ document: query(proGroup.id), serverContext: { req, res } }))
-      expect(executionResult.errors).to.be.undefined
-      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proBilling: null })
     })
 
     it('hides billing details from other members', async () => {

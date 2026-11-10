@@ -1,8 +1,8 @@
 import { expect } from 'chai'
-import { isFeatureEnabled, HYLO_PRO, MEMBER_INVITES } from '../../../lib/featureFlags'
+import { isFeatureEnabled, MEMBER_INVITES } from '../../../lib/featureFlags'
 
 describe('isFeatureEnabled', () => {
-  const ENV_KEYS = ['FEATURE_FLAG_MEMBER_INVITES', 'FEATURE_FLAG_HYLO_PRO', 'FEATURE_FLAG_SOMETHING_ELSE', 'SENTRY_ENV', 'NODE_ENV']
+  const ENV_KEYS = ['FEATURE_FLAG_MEMBER_INVITES', 'FEATURE_FLAG_SOMETHING_ELSE', 'SENTRY_ENV', 'NODE_ENV']
   let saved
 
   function setEnv (values) {
@@ -50,21 +50,6 @@ describe('isFeatureEnabled', () => {
     expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(false)
     setEnv({ NODE_ENV: 'development', FEATURE_FLAG_MEMBER_INVITES: 'false' })
     expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(false)
-  })
-
-  it('turns Hylo Pro on outside production and off in production unless turned on', () => {
-    for (const NODE_ENV of ['development', 'test']) {
-      setEnv({ NODE_ENV })
-      expect(isFeatureEnabled(HYLO_PRO)).to.equal(true)
-    }
-    setEnv({ NODE_ENV: 'production', SENTRY_ENV: 'staging' })
-    expect(isFeatureEnabled(HYLO_PRO)).to.equal(true)
-    setEnv({ NODE_ENV: 'production' })
-    expect(isFeatureEnabled(HYLO_PRO)).to.equal(false)
-    setEnv({ NODE_ENV: 'production', FEATURE_FLAG_HYLO_PRO: 'on' })
-    expect(isFeatureEnabled(HYLO_PRO)).to.equal(true)
-    setEnv({ NODE_ENV: 'test', FEATURE_FLAG_HYLO_PRO: 'off' })
-    expect(isFeatureEnabled(HYLO_PRO)).to.equal(false)
   })
 
   it('keeps other flags off unless they are turned on', () => {
