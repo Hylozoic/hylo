@@ -1062,6 +1062,7 @@
   "MAKE AN ANNOUNCEMENT": "घोषणा करें",
   "Majority": "बहुमत",
   "Make Public - Currently this post will only be visible within groups you select.": "सार्वजनिक करें - वर्तमान में यह पोस्ट केवल उन समूहों में दिखाई देगी जिन्हें आप चुनते हैं।",
+  "Allow other members who can manage content in {{groupName}} to edit this post.": "{{groupName}} में सामग्री प्रबंधित कर सकने वाले अन्य सदस्यों को इस पोस्ट को संपादित करने की अनुमति दें।",
   "Make Public - Currently, only groups you specify above will see this post": "सार्वजनिक करें - वर्तमान में, केवल ऊपर निर्दिष्ट समूह ही यह पोस्ट देख पाएँगे",
   "Make Public:": "सार्वजनिक करें:",
   "Make sure you trust {{name}} with your information.": "सुनिश्चित करें कि आप {{name}} को अपनी जानकारी सौंपने में भरोसा करते हैं।",

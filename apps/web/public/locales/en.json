@@ -1094,6 +1094,7 @@
   "MAKE AN ANNOUNCEMENT": "MAKE AN ANNOUNCEMENT",
   "Majority": "Majority",
   "Make Public - Currently this post will only be visible within groups you select.": "Make Public - Currently this post will only be visible within groups you select.",
+  "Allow other members who can manage content in {{groupName}} to edit this post.": "Allow other members who can manage content in {{groupName}} to edit this post.",
   "Make Public - Currently, only groups you specify above will see this post": "Make Public - Currently, only groups you specify above will see this post",
   "Make Public:": "Make Public:",
   "Make sure you trust {{name}} with your information.": "Make sure you trust {{name}} with your information.",

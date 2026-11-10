@@ -1089,6 +1089,7 @@
   "MAKE AN ANNOUNCEMENT": "HACER UN ANUNCIO",
   "Majority": "Mayoría",
   "Make Public - Currently this post will only be visible within groups you select.": "Hacer público - Actualmente esta publicación solo será visible dentro de los grupos que selecciones.",
+  "Allow other members who can manage content in {{groupName}} to edit this post.": "Permitir que otros miembros que pueden gestionar el contenido en {{groupName}} editen esta publicación.",
   "Make Public - Currently, only groups you specify above will see this post": "Hacer público - Actualmente, solo los grupos que especifiques arriba verán esta publicación",
   "Make Public:": "Hacer público:",
   "Make sure you trust {{name}} with your information.": "Asegúrate de confiar en {{name}} con tu información",
