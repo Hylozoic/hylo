@@ -88,7 +88,10 @@ test('a group admin can let the other admins of the group edit their post', asyn
 
   await toggle.click()
   await expect(toggle).toHaveAttribute('aria-pressed', 'true')
-  await page.mouse.move(0, 0)
+  // Away from the toggle (and from the global nav, which expands on hover)
+  const { width, height } = page.viewportSize()
+  await page.mouse.move(width - 10, height - 10)
+  await expect(page.getByRole('tooltip').filter({ hasText: label })).toBeHidden(uiTimeout)
   if (SCREENSHOT_DIR) await page.screenshot({ path: `${SCREENSHOT_DIR}/issue-1727-icon-on-${project}.png` })
   await saveAndWait(page)
   await expect.poll(async () => (await fetchPost(page, postId)).groupAdminsCanEdit).toBe(true)
