@@ -182,16 +182,17 @@ test.describe('Batch P2: paywall discovery (unauthenticated)', () => {
   const PAYWALL_GROUP_SLUG = 'e2e-paywall-group'
   const PAYWALL_OFFERING_NAME = 'E2E Paywall Stream Monthly'
 
-  test('GET seeded paywall group shows offering and Sign up to Purchase → login', async ({ page }) => {
+  test('GET seeded paywall group shows offering and Sign up to Purchase → signup', async ({ page }) => {
     await page.goto(`/groups/${PAYWALL_GROUP_SLUG}`, { waitUntil: 'domcontentloaded' })
     await waitPastRootSessionLoading(page)
 
     await expect(page.getByRole('heading', { name: /This group requires a fee to join/i })).toBeVisible(uiTimeout)
     await expect(page.getByText(PAYWALL_OFFERING_NAME)).toBeVisible(uiTimeout)
     await page.getByRole('button', { name: /Sign up to Purchase/i }).click()
-    await expect(page).toHaveURL(/\/login/, routeTimeout)
-    // Paywall sends `/login?returnToUrl=…` then NonAuthLayoutRouter copies return path into Redux and `replace`s to `/login` (no query)
-    await expect(page.getByRole('heading', { name: /Sign in to Hylo/i })).toBeVisible(uiTimeout)
+    await expect(page).toHaveURL(/\/signup/, routeTimeout)
+    expect(new URL(page.url()).pathname).not.toMatch(/^\/login/)
+    // Paywall sends `/signup?returnToUrl=…` then NonAuthLayoutRouter copies return path into Redux and `replace`s to `/signup` (no query)
+    await expect(page.getByRole('heading', { name: /Welcome to Hylo/i })).toBeVisible(uiTimeout)
   })
 })
 
