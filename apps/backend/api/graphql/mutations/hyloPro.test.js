@@ -1,6 +1,8 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
+import { withFeatureFlag } from '../../../test/setup/helpers'
+import { HYLO_PRO } from '../../../lib/featureFlags'
 import HyloProService from '../../services/HyloProService'
 import { activateHyloProCheckoutSession, createHyloProCheckoutSession, createHyloProPortalSession } from './hyloPro'
 
@@ -85,6 +87,41 @@ describe('Hylo Pro mutations', () => {
   })
 
   after(() => setup.clearDb())
+
+  describe('while the HYLO_PRO flag is off', () => {
+    async function expectDisabled (call) {
+      const error = await withFeatureFlag(HYLO_PRO, 'off', call).catch(e => e)
+      expect(error).to.be.an.instanceOf(Error)
+      expect(error.message).to.match(/Hylo Pro is not available/)
+      expect(error.extensions.code).to.equal('HYLO_PRO_DISABLED')
+    }
+
+    it('refuses to start Checkout', async () => {
+      await expectDisabled(() => createHyloProCheckoutSession(admin.id, { groupId: group.id, interval: 'month' }))
+      expect(checkoutCalls).to.deep.equal([])
+    })
+
+    it('refuses to activate a Checkout session', async () => {
+      let retrieved = false
+      stripeMock.checkout = { sessions: { retrieve: async () => { retrieved = true } } }
+      await expectDisabled(() => activateHyloProCheckoutSession(admin.id, { groupId: group.id, sessionId: 'cs_done' }))
+      expect(retrieved).to.be.false
+    })
+
+    it('refuses to open the billing portal', async () => {
+      await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_portal' })
+      await expectDisabled(() => createHyloProPortalSession(admin.id, { groupId: group.id }))
+      expect(portalCalls).to.deep.equal([])
+    })
+
+    it('allows them again once the flag is on', async () => {
+      await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_portal' })
+      const checkout = await withFeatureFlag(HYLO_PRO, 'on', () => createHyloProCheckoutSession(admin.id, { groupId: group.id, interval: 'month' }))
+      expect(checkout.url).to.equal('https://checkout.stripe.com/c/pay/cs_1')
+      const portal = await withFeatureFlag(HYLO_PRO, 'on', () => createHyloProPortalSession(admin.id, { groupId: group.id }))
+      expect(portal.url).to.equal('https://billing.stripe.com/p/session/test_1')
+    })
+  })
 
   describe('createHyloProCheckoutSession', () => {
     it('returns a Checkout URL for a steward with Administration', async () => {
