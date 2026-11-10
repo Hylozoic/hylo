@@ -17,9 +17,15 @@ const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 const SUB_PREFIX = 'sub_e2e_1712_'
 const NOTE = 'Pilot partner for the 2027 regional network'
 
-// An Australian admin: Hylo's UI language is English, the browser's region en-AU, so dates read
-// day-first with 12-hour times in Sydney time (getRegionalLocale)
-test.use({ locale: 'en-AU', timezoneId: 'Australia/Sydney' })
+// An admin in Sydney whose Hylo language is English (UK): dates are formatted from the Hylo setting
+// (getDateLocale), never the browser's locale, so they read day-first with 24-hour times in Sydney time
+test.use({ timezoneId: 'Australia/Sydney' })
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('hylo-i18n-lng', 'en-GB')
+    document.cookie = 'hylo-i18n-lng=en-GB; path=/'
+  })
+})
 
 function sql (query) {
   return execFileSync('psql', [process.env.E2E_DATABASE_URL, '-v', 'ON_ERROR_STOP=1', '-tAc', query], { encoding: 'utf8' }).trim()
@@ -84,6 +90,7 @@ test('capture screenshot hylo pro management', async ({ page }) => {
     const grantRow = page.getByTestId('hylo-pro-row').filter({ hasText: NOTE })
     await expect(grantRow).toBeVisible()
     await expect(grantRow).toContainText('Granted by')
+    await expect(grantRow).toContainText('Ends on 30 Jun 2027, 23:59')
     await expect(page.getByTestId('hylo-pro-rows')).toBeVisible()
     await page.mouse.move(0, 0)
     await page.screenshot({ path: path.resolve(screenshotDir, 'issue-1712-pro-management-overview.png'), fullPage: true })

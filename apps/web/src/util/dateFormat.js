@@ -6,9 +6,7 @@ import { getDateLocale } from './locale'
  * Converts a value to Luxon DateTime using the user's Hylo locale setting.
  */
 export function toUserDateTime (date, locale) {
-  const dt = DateTimeHelpers.toDateTime(date, { locale: locale ?? getDateLocale() })
-  // toDateTime normalizes to Hylo's UI locales (en-AU becomes en-US); keep an explicit regional locale
-  return locale ? dt.setLocale(locale) : dt
+  return DateTimeHelpers.toDateTime(date, { locale: locale ?? getDateLocale() })
 }
 
 /**

@@ -8,7 +8,7 @@ import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
 import { cn } from 'util/index'
-import { getRegionalLocale } from 'util/locale'
+import { getDateLocale } from 'util/locale'
 import {
   cancelHyloProSubscription,
   extendHyloProSubscription,
@@ -63,11 +63,11 @@ function statusLabel (row, t) {
  * One Hylo Pro subscription or grant on the management page, with the actions that apply to it.
  */
 export default function SubscriptionRow ({ row, onChanged }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const [panel, setPanel] = useState(null) // 'endDate' | 'extend' | 'payments'
   const [busy, setBusy] = useState(false)
-  const locale = getRegionalLocale(i18n.language)
+  const locale = getDateLocale()
   const isGrant = row.source === 'manual'
   const stripeOpen = !isGrant && !ENDED_STRIPE_STATUSES.includes(row.status)
 
@@ -256,8 +256,8 @@ function ExtendPanel ({ row, busy, run }) {
  * is only offered on payments for this row's subscription.
  */
 function PaymentsPanel ({ row, canCancel, onRefunded }) {
-  const { t, i18n } = useTranslation()
-  const locale = getRegionalLocale(i18n.language)
+  const { t } = useTranslation()
+  const locale = getDateLocale()
   const dispatch = useDispatch()
   const [payments, setPayments] = useState(null)
   const [hasMore, setHasMore] = useState(false)

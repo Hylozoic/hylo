@@ -6,7 +6,7 @@ import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
 import { cn } from 'util/index'
-import { getRegionalLocale } from 'util/locale'
+import { getDateLocale } from 'util/locale'
 import SubscriptionRow from './SubscriptionRow'
 import { fetchHyloProGroups, fetchHyloProMetrics, fetchHyloProSubscriptions, grantHyloPro } from './HyloPro.store'
 import { endOfDayIso, formatMoney, runGraphql } from './util'
@@ -18,7 +18,7 @@ const PAGE_SIZE = 50
  * Stripe subscriptions (cancel, extend, refund). The server refuses anyone who isn't Hylo staff.
  */
 export default function HyloPro () {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const [metrics, setMetrics] = useState(null)
   const [metricsError, setMetricsError] = useState(null)
@@ -102,7 +102,7 @@ export default function HyloPro () {
         </p>
       </div>
 
-      <Metrics metrics={metrics} error={metricsError} t={t} locale={getRegionalLocale(i18n.language)} />
+      <Metrics metrics={metrics} error={metricsError} t={t} locale={getDateLocale()} />
 
       <GrantForm onGranted={refresh} />
 
