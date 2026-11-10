@@ -89,7 +89,7 @@ export default function LucideIconPicker ({ value, onChange, className, trigger 
         />
         <div className='max-h-64 overflow-y-auto' onScroll={handleScroll}>
           {visibleIcons.length === 0 && (
-            <div className='py-4 text-center text-sm text-foreground/60'>
+            <div className='py-4 text-center text-sm text-foreground-muted'>
               {icons ? t('No icon found') : t('Loading...')}
             </div>
           )}
@@ -116,7 +116,7 @@ export default function LucideIconPicker ({ value, onChange, className, trigger 
             </div>
           </TooltipProvider>
           {hasMoreIcons && (
-            <div className='py-2 text-center text-xs text-foreground/50'>
+            <div className='py-2 text-center text-xs text-foreground-muted'>
               {t('Scroll for more icons')}
             </div>
           )}

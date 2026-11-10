@@ -109,7 +109,7 @@ const DraftCard = ({ draft, onOpen, onDelete, currentUserId }) => {
       }}
       className='DraftCard group text-left w-full rounded-xl border-2 border-foreground/10 bg-card/60 hover:bg-card/90 shadow-md hover:shadow-lg transition-all p-4 flex flex-col gap-2 relative cursor-pointer'
     >
-      <div className='flex items-center justify-between text-xs uppercase tracking-wide text-foreground/60'>
+      <div className='flex items-center justify-between text-xs uppercase tracking-wide text-foreground-muted'>
         <span className='flex items-center gap-2'>
           {icon}
           <span className='flex items-center gap-1'>
@@ -218,7 +218,7 @@ export default function MyDrafts () {
   const content = useMemo(() => {
     if (loading) {
       return (
-        <div className='text-sm text-foreground/60 border-2 border-foreground/10 rounded-xl p-6 bg-card/50 shadow-inner'>
+        <div className='text-sm text-foreground-muted border-2 border-foreground/10 rounded-xl p-6 bg-card/50 shadow-inner'>
           {t('Loading drafts...')}
         </div>
       )
@@ -226,7 +226,7 @@ export default function MyDrafts () {
 
     if (!drafts.length) {
       return (
-        <div className='text-sm text-foreground/60 border-2 border-foreground/10 rounded-xl p-6 bg-card/50 shadow-inner'>
+        <div className='text-sm text-foreground-muted border-2 border-foreground/10 rounded-xl p-6 bg-card/50 shadow-inner'>
           {t('drafts-empty-message')}
         </div>
       )

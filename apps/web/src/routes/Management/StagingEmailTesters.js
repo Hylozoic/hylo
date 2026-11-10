@@ -92,7 +92,7 @@ export default function StagingEmailTesters () {
         {searchTerm && searchTerm.length >= 2 && (
           <div className='mt-2 border border-foreground/20 rounded-md bg-card max-h-60 overflow-y-auto'>
             {filteredPeople.length === 0
-              ? <div className='p-4 text-foreground/50 text-center'>No users found</div>
+              ? <div className='p-4 text-foreground-muted text-center'>No users found</div>
               : (
                 <ul className='p-2'>
                   {filteredPeople.slice(0, 10).map(person => {
@@ -126,7 +126,7 @@ export default function StagingEmailTesters () {
           ? <Loading />
           : testers.length === 0
             ? (
-              <div className='text-foreground/50 p-4 border border-foreground/20 rounded-md'>
+              <div className='text-foreground-muted p-4 border border-foreground/20 rounded-md'>
                 No email-enabled testers configured. Add users above to enable email testing for them.
               </div>
               )
@@ -150,7 +150,7 @@ export default function StagingEmailTesters () {
                           <div>
                             <div className='font-medium text-foreground'>{userName}</div>
                             {tester.createdAt && (
-                              <div className='text-sm text-foreground/50'>
+                              <div className='text-sm text-foreground-muted'>
                                 Added {new Date(tester.createdAt).toLocaleDateString()}
                               </div>
                             )}

@@ -294,7 +294,7 @@ function OfferingCard ({ offering, group, isSpace, checkoutLoading, onPurchase, 
               {stripHtml(offering.description)}
             </div>
           )}
-          <div className='flex items-center gap-4 text-sm text-foreground/60'>
+          <div className='flex items-center gap-4 text-sm text-foreground-muted'>
             {slidingScaleDisplay && (
               <span>{slidingScaleDisplay}</span>
             )}

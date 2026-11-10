@@ -47,7 +47,7 @@ export function ConvertChatSpaceForm ({
         </p>
       )}
 
-      {loading && <p className='m-0 text-sm text-foreground/60'>{t('Loading…')}</p>}
+      {loading && <p className='m-0 text-sm text-foreground-muted'>{t('Loading…')}</p>}
       {previewError && <p className='m-0 text-sm text-destructive'>{previewError}</p>}
       {preview && (
         <div className='flex flex-col gap-0.5 text-sm leading-snug text-foreground/80'>
@@ -70,7 +70,7 @@ export function ConvertChatSpaceForm ({
         />
       </div>
 
-      <p className='m-0 text-xs text-foreground/60'>
+      <p className='m-0 text-xs text-foreground-muted'>
         {t('This cannot be undone here, and no notifications are sent.')}
       </p>
 

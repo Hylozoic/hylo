@@ -46,7 +46,7 @@ export default function EmojiInsertButton ({
           data-testid={dataTestId}
           // Keep focus (and the cursor) in the field being edited
           onMouseDown={(event) => event.preventDefault()}
-          className={cn('shrink-0 flex items-center justify-center cursor-pointer text-foreground/50 hover:text-foreground transition-colors', className)}
+          className={cn('shrink-0 flex items-center justify-center cursor-pointer text-foreground-muted hover:text-foreground transition-colors', className)}
         >
           <SmilePlus className={iconClassName} />
         </button>

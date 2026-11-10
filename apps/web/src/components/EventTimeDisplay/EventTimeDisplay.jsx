@@ -47,7 +47,7 @@ export default function EventTimeDisplay ({
       <div className={cn('flex flex-col gap-0.5', className)}>
         <span>{localTimeLabel ? yourTimeLabel : viewerTime}</span>
         {localTimeLabel && (
-          <span className={cn('text-foreground/50 text-xs', secondaryClassName)}>
+          <span className={cn('text-foreground-muted text-xs', secondaryClassName)}>
             {localTimeLabel}
           </span>
         )}
