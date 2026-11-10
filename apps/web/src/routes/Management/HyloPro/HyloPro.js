@@ -6,6 +6,7 @@ import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
 import { cn } from 'util/index'
+import { getRegionalLocale } from 'util/locale'
 import SubscriptionRow from './SubscriptionRow'
 import { fetchHyloProGroups, fetchHyloProMetrics, fetchHyloProSubscriptions, grantHyloPro } from './HyloPro.store'
 import { endOfDayIso, formatMoney, runGraphql } from './util'
@@ -101,7 +102,7 @@ export default function HyloPro () {
         </p>
       </div>
 
-      <Metrics metrics={metrics} error={metricsError} t={t} language={i18n.language} />
+      <Metrics metrics={metrics} error={metricsError} t={t} locale={getRegionalLocale(i18n.language)} />
 
       <GrantForm onGranted={refresh} />
 
@@ -161,7 +162,7 @@ export default function HyloPro () {
   )
 }
 
-function Metrics ({ metrics, error, t, language }) {
+function Metrics ({ metrics, error, t, locale }) {
   if (error) return <div className='text-red-500'>{error}</div>
   if (!metrics) return <Loading />
 
@@ -173,7 +174,7 @@ function Metrics ({ metrics, error, t, language }) {
     },
     {
       label: t('Monthly recurring revenue'),
-      value: formatMoney(metrics.mrrCents, metrics.currency, language),
+      value: formatMoney(metrics.mrrCents, metrics.currency, locale),
       detail: t('Yearly plans count 1/12. Trialing not included.')
     },
     {
@@ -214,7 +215,7 @@ function Metrics ({ metrics, error, t, language }) {
           <tbody>
             {[...metrics.months].reverse().map(m => (
               <tr key={m.month} className='border-b border-foreground/5'>
-                <td className='py-2 pr-4 text-foreground'>{formatMonth(m.month, language)}</td>
+                <td className='py-2 pr-4 text-foreground'>{formatMonth(m.month, locale)}</td>
                 <td className='py-2 pr-4 text-right text-foreground'>{m.newSubscriptions}</td>
                 <td className='py-2 pr-4 text-right text-foreground'>{m.cancellations}</td>
                 <td className='py-2 pr-4 text-right text-foreground'>{m.ended}</td>
@@ -228,9 +229,9 @@ function Metrics ({ metrics, error, t, language }) {
   )
 }
 
-function formatMonth (month, language) {
+function formatMonth (month, locale) {
   const [year, monthIndex] = month.split('-').map(Number)
-  return new Date(Date.UTC(year, monthIndex - 1, 1)).toLocaleDateString(language, { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  return new Date(Date.UTC(year, monthIndex - 1, 1)).toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
 /**

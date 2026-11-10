@@ -58,6 +58,28 @@ export function getDateLocale () {
   return normalizeLocaleToFull(getLocaleFromLocalStorage())
 }
 
+/**
+ * BCP 47 locale for formatting dates, times and money: the user's Hylo language, refined by the
+ * browser's region when the browser prefers the same language. Hylo only stores one locale per
+ * language (en-AU becomes en-US), so with Hylo set to English and a browser set to en-AU this
+ * returns en-AU (day-first dates, 12-hour times), while with Hylo set to German it stays de-DE.
+ * A region picked in Hylo that isn't its language's default (English (UK), pt-PT) is kept.
+ */
+export function getRegionalLocale (appLocale = getLocaleFromLocalStorage()) {
+  const locale = normalizeLocaleToFull(appLocale)
+  const language = locale.split('-')[0]
+  if (normalizeLocaleToFull(language) !== locale || typeof navigator === 'undefined') return locale
+
+  const browserLocales = navigator.languages?.length ? navigator.languages : [navigator.language]
+  const match = browserLocales.find(l => typeof l === 'string' && l.includes('-') && l.split('-')[0].toLowerCase() === language)
+  if (!match) return locale
+  try {
+    return Intl.getCanonicalLocales(match)[0]
+  } catch (e) {
+    return locale
+  }
+}
+
 export function getLocaleFromLocalStorage (locale) {
   if (typeof window === 'undefined') return LOCALE_EN_US
 

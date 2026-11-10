@@ -17,6 +17,10 @@ const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 const SUB_PREFIX = 'sub_e2e_1712_'
 const NOTE = 'Pilot partner for the 2027 regional network'
 
+// An Australian admin: Hylo's UI language is English, the browser's region en-AU, so dates read
+// day-first with 12-hour times in Sydney time (getRegionalLocale)
+test.use({ locale: 'en-AU', timezoneId: 'Australia/Sydney' })
+
 function sql (query) {
   return execFileSync('psql', [process.env.E2E_DATABASE_URL, '-v', 'ON_ERROR_STOP=1', '-tAc', query], { encoding: 'utf8' }).trim()
 }
@@ -143,6 +147,8 @@ test('capture screenshot hylo pro management', async ({ page }) => {
     const grant = page.getByTestId('hylo-pro-row').filter({ hasText: NOTE })
     await grant.getByRole('button', { name: 'Revoke' }).click()
     await expect(grant).toContainText('Revoked')
+    await page.mouse.move(0, 0)
+    await grant.screenshot({ path: path.resolve(screenshotDir, 'issue-1712-pro-management-revoked.png') })
   } finally {
     cleanUp()
   }

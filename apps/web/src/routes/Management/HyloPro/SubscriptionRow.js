@@ -8,6 +8,7 @@ import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
 import { cn } from 'util/index'
+import { getRegionalLocale } from 'util/locale'
 import {
   cancelHyloProSubscription,
   extendHyloProSubscription,
@@ -17,7 +18,7 @@ import {
   revokeHyloProGrant,
   updateHyloProGrant
 } from './HyloPro.store'
-import { endOfDayIso, formatDate, formatMoney, runGraphql, toDateInputValue } from './util'
+import { endOfDayIso, formatDate, formatDateTime, formatMoney, runGraphql, toDateInputValue } from './util'
 
 const ENDED_STRIPE_STATUSES = ['canceled', 'incomplete_expired']
 const EXTENDABLE_STRIPE_STATUSES = ['active', 'trialing']
@@ -66,7 +67,7 @@ export default function SubscriptionRow ({ row, onChanged }) {
   const dispatch = useDispatch()
   const [panel, setPanel] = useState(null) // 'endDate' | 'extend' | 'payments'
   const [busy, setBusy] = useState(false)
-  const language = i18n.language
+  const locale = getRegionalLocale(i18n.language)
   const isGrant = row.source === 'manual'
   const stripeOpen = !isGrant && !ENDED_STRIPE_STATUSES.includes(row.status)
 
@@ -125,7 +126,7 @@ export default function SubscriptionRow ({ row, onChanged }) {
             </span>
           </div>
           <p className='text-xs text-foreground/60 m-0 mt-1'>
-            {isGrant ? <GrantDetails row={row} t={t} language={language} /> : <SubscriptionDetails row={row} t={t} language={language} />}
+            {isGrant ? <GrantDetails row={row} t={t} locale={locale} /> : <SubscriptionDetails row={row} t={t} locale={locale} />}
           </p>
           {row.note && <p className='text-sm text-foreground/80 m-0 mt-1 whitespace-pre-wrap'>{row.note}</p>}
         </div>
@@ -159,32 +160,32 @@ export default function SubscriptionRow ({ row, onChanged }) {
   )
 }
 
-function GrantDetails ({ row, t, language }) {
+function GrantDetails ({ row, t, locale }) {
   const parts = [
     row.grantedBy
-      ? t('Granted by {{name}} on {{date}}', { name: row.grantedBy.name, date: formatDate(row.createdAt, language) })
-      : t('Granted on {{date}}', { date: formatDate(row.createdAt, language) })
+      ? t('Granted by {{name}} on {{date}}', { name: row.grantedBy.name, date: formatDate(row.createdAt, locale) })
+      : t('Granted on {{date}}', { date: formatDate(row.createdAt, locale) })
   ]
-  if (row.status !== 'active') parts.push(t('Revoked on {{date}}', { date: formatDate(row.endedAt, language) }))
-  else if (row.expiresAt) parts.push(t('Ends on {{date}}', { date: formatDate(row.expiresAt, language) }))
+  if (row.status !== 'active') parts.push(t('Revoked on {{date}}', { date: formatDateTime(row.endedAt, locale) }))
+  else if (row.expiresAt) parts.push(t('Ends on {{date}}', { date: formatDateTime(row.expiresAt, locale) }))
   else parts.push(t('No end date'))
   return parts.join(' · ')
 }
 
-function SubscriptionDetails ({ row, t, language }) {
+function SubscriptionDetails ({ row, t, locale }) {
   const parts = []
   if (row.interval === 'month') parts.push(t('Monthly'))
   if (row.interval === 'year') parts.push(t('Yearly'))
   if (row.endedAt) {
-    parts.push(t('Ended on {{date}}', { date: formatDate(row.endedAt, language) }))
+    parts.push(t('Ended on {{date}}', { date: formatDateTime(row.endedAt, locale) }))
   } else if (row.endsAt) {
-    parts.push(t('Ends on {{date}}', { date: formatDate(row.endsAt, language) }))
+    parts.push(t('Ends on {{date}}', { date: formatDate(row.endsAt, locale) }))
   } else if (row.currentPeriodEnd) {
     parts.push(row.status === 'trialing'
-      ? t('Next payment on {{date}}', { date: formatDate(row.currentPeriodEnd, language) })
-      : t('Renews on {{date}}', { date: formatDate(row.currentPeriodEnd, language) }))
+      ? t('Next payment on {{date}}', { date: formatDate(row.currentPeriodEnd, locale) })
+      : t('Renews on {{date}}', { date: formatDate(row.currentPeriodEnd, locale) }))
   }
-  parts.push(t('Started {{date}}', { date: formatDate(row.createdAt, language) }))
+  parts.push(t('Started {{date}}', { date: formatDate(row.createdAt, locale) }))
   if (row.stripeSubscriptionId) parts.push(row.stripeSubscriptionId)
   return parts.join(' · ')
 }
@@ -256,6 +257,7 @@ function ExtendPanel ({ row, busy, run }) {
  */
 function PaymentsPanel ({ row, canCancel, onRefunded }) {
   const { t, i18n } = useTranslation()
+  const locale = getRegionalLocale(i18n.language)
   const dispatch = useDispatch()
   const [payments, setPayments] = useState(null)
   const [hasMore, setHasMore] = useState(false)
@@ -297,10 +299,10 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
     const typed = (amounts[payment.id] || '').trim()
     const cents = typed ? Math.round(Number(typed) * 100) : refundable
     if (!Number.isInteger(cents) || cents < 1 || cents > refundable) {
-      toast.error(t('Enter an amount up to {{amount}}', { amount: formatMoney(refundable, payment.currency, i18n.language) }))
+      toast.error(t('Enter an amount up to {{amount}}', { amount: formatMoney(refundable, payment.currency, locale) }))
       return
     }
-    const amountText = formatMoney(cents, payment.currency, i18n.language)
+    const amountText = formatMoney(cents, payment.currency, locale)
     const cancel = canCancelWith(payment) && !!cancelToo[payment.id]
     const question = cancel
       ? t('Refund {{amount}} to {{name}} and cancel the subscription now? Pro stops immediately.', { amount: amountText, name: groupName })
@@ -361,7 +363,7 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
             const refundable = payment.paid && !payment.refundBlock ? payment.amount - payment.amountRefunded : 0
             return (
               <tr key={payment.id} className='border-b border-foreground/5' data-testid='hylo-pro-payment'>
-                <td className='py-2 pr-4 text-foreground'>{formatDate(payment.createdAt, i18n.language)}</td>
+                <td className='whitespace-nowrap py-2 pr-4 text-foreground'>{formatDateTime(payment.createdAt, locale)}</td>
                 <td className='py-2 pr-4 text-foreground/70'>
                   {payment.description || payment.id}{!payment.paid && ` (${payment.status})`}
                   {payment.disputed && (
@@ -372,8 +374,8 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
                     </span>
                   )}
                 </td>
-                <td className='py-2 pr-4 text-right text-foreground'>{formatMoney(payment.amount, payment.currency, i18n.language)}</td>
-                <td className='py-2 pr-4 text-right text-foreground'>{payment.amountRefunded ? formatMoney(payment.amountRefunded, payment.currency, i18n.language) : '—'}</td>
+                <td className='py-2 pr-4 text-right text-foreground'>{formatMoney(payment.amount, payment.currency, locale)}</td>
+                <td className='py-2 pr-4 text-right text-foreground'>{payment.amountRefunded ? formatMoney(payment.amountRefunded, payment.currency, locale) : '—'}</td>
                 <td className='py-2 pr-4'>
                   {refundable > 0 && (
                     <div className='flex flex-wrap items-center gap-2'>

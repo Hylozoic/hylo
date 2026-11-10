@@ -14,6 +14,17 @@ describe('formatLocalizedDate', () => {
     expect(formatLocalizedDate(date, { style: 'medium', locale: 'en-GB' })).toBe('16 Mar 2026')
   })
 
+  it('keeps an explicit regional locale that Hylo has no UI locale for', () => {
+    expect(formatLocalizedDate(date, { style: 'medium', locale: 'en-AU' })).toBe('16 Mar 2026')
+  })
+
+  it('formats medium dates with times per locale, 12- or 24-hour (Jest runs in UTC)', () => {
+    const format = locale => formatLocalizedDate('2026-03-16T14:05:00.000Z', { style: 'mediumDateTime', locale }).replace(/\s/g, ' ')
+    expect(format('en-US')).toBe('Mar 16, 2026, 2:05 PM')
+    expect(format('en-AU')).toBe('16 Mar 2026, 2:05 pm')
+    expect(format('de-DE')).toBe('16. März 2026, 14:05')
+  })
+
   it('returns null for empty input', () => {
     expect(formatLocalizedDate(null, { style: 'short', locale: 'en-US' })).toBeNull()
   })

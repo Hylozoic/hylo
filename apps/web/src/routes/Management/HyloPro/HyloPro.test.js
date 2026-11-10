@@ -5,6 +5,8 @@ import { AllTheProviders, fireEvent, render, screen, waitFor, within } from 'uti
 import { toast } from 'sonner'
 import HyloPro from './HyloPro'
 
+const reactI18next = require('react-i18next')
+
 jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
 const METRICS = {
@@ -434,5 +436,59 @@ describe('HyloPro management page', () => {
     fireEvent.click(within(sub).getAllByRole('button', { name: 'Extend' })[1])
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Stripe allows free time up to 730 days from today, so this subscription can be extended by at most 12 more days.'))
+  })
+  describe('dates, times and money in the viewer\'s locale (Jest runs in UTC)', () => {
+    // The global react-i18next mock has no i18n.language; give it one, and set the browser's locales
+    function setLocales (language, browserLocales) {
+      const { t } = reactI18next.useTranslation()
+      jest.spyOn(reactI18next, 'useTranslation').mockReturnValue({ t, i18n: { language } })
+      jest.spyOn(window.navigator, 'languages', 'get').mockReturnValue(browserLocales)
+    }
+    const plain = el => el.textContent.replace(/\s/g, ' ')
+
+    afterEach(() => jest.restoreAllMocks())
+
+    async function renderAndOpenPayments () {
+      mockApi()
+      renderPage()
+      const grant = await findRow('Partner Group')
+      const sub = await findRow('Paying Group')
+      fireEvent.click(within(sub).getByRole('button', { name: 'Payments' }))
+      const payments = await within(sub).findByTestId('hylo-pro-payments')
+      return { metrics: screen.getByTestId('hylo-pro-metrics'), grant, sub, payments }
+    }
+
+    it("uses the browser's region (en-AU) when Hylo is set to English", async () => {
+      setLocales('en-US', ['en-AU', 'en'])
+      const { metrics, grant, sub, payments } = await renderAndOpenPayments()
+
+      expect(plain(metrics)).toContain('USD 18.33')
+      expect(plain(grant)).toContain('Granted by Staff Person on 1 Nov 2026')
+      expect(plain(grant)).toContain('Ends on 1 Feb 2027, 12:00 am')
+      expect(plain(sub)).toContain('Renews on 1 Jan 2027')
+      expect(plain(payments)).toContain('1 Nov 2026, 12:00 am')
+      expect(plain(payments)).toContain('USD 10.00')
+    })
+
+    it('uses US formats for an en-US browser', async () => {
+      setLocales('en-US', ['en-US', 'en'])
+      const { metrics, grant, sub, payments } = await renderAndOpenPayments()
+
+      expect(plain(metrics)).toContain('$18.33')
+      expect(plain(grant)).toContain('Ends on Feb 1, 2027, 12:00 AM')
+      expect(plain(sub)).toContain('Renews on Jan 1, 2027')
+      expect(plain(payments)).toContain('Nov 1, 2026, 12:00 AM')
+    })
+
+    it('uses German formats when Hylo is set to German, even in an en-AU browser', async () => {
+      setLocales('de-DE', ['en-AU', 'en'])
+      const { metrics, grant, sub, payments } = await renderAndOpenPayments()
+
+      expect(plain(metrics)).toContain('18,33 $')
+      expect(plain(metrics)).toContain('November 2026')
+      expect(plain(grant)).toContain('Ends on 1. Feb. 2027, 00:00')
+      expect(plain(sub)).toContain('Renews on 1. Jan. 2027')
+      expect(plain(payments)).toContain('1. Nov. 2026, 00:00')
+    })
   })
 })
