@@ -112,6 +112,10 @@ export {
   pinPost
 } from './post'
 export {
+  followPost,
+  unfollowPost
+} from './followPost'
+export {
   savePost,
   unsavePost
 } from './savePost'

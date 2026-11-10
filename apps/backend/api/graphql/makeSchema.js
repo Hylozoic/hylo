@@ -93,6 +93,7 @@ import {
   findOrCreateLocation,
   findOrCreateThread,
   flagInappropriateContent,
+  followPost,
   fulfillPost,
   grantContentAccess,
   inviteGroupToGroup,
@@ -159,6 +160,7 @@ import {
   swapProposalVote,
   unblockUser,
   unfulfillPost,
+  unfollowPost,
   unlinkAccount,
   unsavePost,
   updateAllMemberships,
@@ -948,6 +950,8 @@ export function makeMutations ({ fetchOne }) {
     saveDraft: (root, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }, context) =>
       saveDraft(context.currentUserId, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }),
 
+    followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
+
     savePost: (root, { postId }, context) => savePost(context.currentUserId, postId),
 
     setProposalOptions: (root, { postId, options }, context) => setProposalOptions({ userId: context.currentUserId, postId, options }),
@@ -959,6 +963,8 @@ export function makeMutations ({ fetchOne }) {
     unblockUser: (root, { blockedUserId }, context) => unblockUser(context.currentUserId, blockedUserId),
 
     unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
+
+    unfollowPost: (root, { postId }, context) => unfollowPost(context.currentUserId, postId),
 
     unlinkAccount: (root, { provider }, context) => unlinkAccount(context.currentUserId, provider),
 

@@ -74,6 +74,7 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
   proposalStatus
   quorum
   savedAt
+  following
   startTime
   timezone
   title
