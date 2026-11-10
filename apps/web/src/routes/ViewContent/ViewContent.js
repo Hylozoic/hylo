@@ -451,6 +451,8 @@ export default function ViewContent (props) {
   const [fetchError, setFetchError] = useState(false)
   const postsQueryKey = useMemo(() => buildKey(FETCH_POSTS, fetchPostsParam), [fetchPostsParam])
   const [resolvedPostsQueryKey, setResolvedPostsQueryKey] = useState(null)
+  // Set by the queryResults reducer when a new post belongs in this list but its position isn't known
+  const postsStale = useSelector(state => Boolean(state.queryResults[postsQueryKey]?.stale))
 
   const collectionSensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: MOUSE_ACTIVATION }),
@@ -494,7 +496,8 @@ export default function ViewContent (props) {
     return Promise.resolve(dispatch(fetchPosts({
       offset,
       // Keep the current month on screen until this page arrives, then swap it in.
-      replaceResults: isCalendarViewMode && !offset,
+      // A stale list is replaced too, so a new post lands where the server sorts it.
+      replaceResults: (isCalendarViewMode || postsStale) && !offset,
       ...fetchPostsParam
     })))
       .then(action => {
@@ -506,7 +509,7 @@ export default function ViewContent (props) {
         if (!isRetry) return fetchPostsFrom(offset, true)
         setFetchError(true)
       })
-  }, [dispatch, pending, hasMore, fetchPostsParam, isCalendarViewMode])
+  }, [dispatch, pending, hasMore, fetchPostsParam, isCalendarViewMode, postsStale])
 
   useEffect(() => {
     if (view !== 'custom' || !customViewId || !streamViewConfig) return
@@ -546,6 +549,15 @@ export default function ViewContent (props) {
       fetchPostsFrom(0)
     }
   }, [fetchPostsParam, isDraftsView])
+
+  // A post was just created into this list while it was on screen — reload its first page.
+  // (A list that went stale while unmounted is replaced by the fetch above.)
+  const lastPostsStale = useRef({ key: postsQueryKey, stale: postsStale })
+  useEffect(() => {
+    const prev = lastPostsStale.current
+    lastPostsStale.current = { key: postsQueryKey, stale: postsStale }
+    if (prev.key === postsQueryKey && postsStale && !prev.stale && !isDraftsView) fetchPostsFrom(0)
+  }, [postsQueryKey, postsStale])
 
   useEffect(() => {
     if (!isCalendarViewMode || isDraftsView) return
