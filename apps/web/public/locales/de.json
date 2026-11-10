@@ -3300,5 +3300,12 @@
   "Message to the requester (optional), included in the email": "Nachricht an die anfragende Person (optional), wird in die E-Mail aufgenommen",
   "reactionCount_one": "{{count}} Reaktion",
   "reactionCount_other": "{{count}} Reaktionen",
-  "Tap to remove": "Zum Entfernen tippen"
+  "Tap to remove": "Zum Entfernen tippen",
+  "Drop image here": "Bild hier ablegen",
+  "Drop file here": "Datei hier ablegen",
+  "Uploading...": "Wird hochgeladen...",
+  "That type of file can't be attached": "Dieser Dateityp kann nicht angehängt werden",
+  "Files must be smaller than 50 MB": "Dateien müssen kleiner als 50 MB sein",
+  "You can attach up to {{max}} files at a time": "Du kannst bis zu {{max}} Dateien auf einmal anhängen",
+  "Upload failed. Please try again.": "Hochladen fehlgeschlagen. Bitte versuche es erneut."
 }

@@ -44,6 +44,20 @@ export const FILESTACK_ACCEPTED_MIME_TYPES = [
 
 export const ACCEPTED_ATTACHMENT_TYPES = ['csv', 'image', 'file']
 
+// Same per-file limit the Filestack picker enforces (50 MB)
+export const MAX_UPLOAD_FILE_SIZE = 52428800
+
+/**
+ * True when `mimetype` matches one of the accepted patterns (exact, or `root/*`).
+ */
+export function isAcceptedMimeType (mimetype, accept = FILESTACK_ACCEPTED_MIME_TYPES) {
+  if (!mimetype) return false
+  const type = mimetype.toLowerCase()
+  return accept.some(pattern => pattern.endsWith('/*')
+    ? getRootMimeType(type) === getRootMimeType(pattern)
+    : type === pattern)
+}
+
 export function getRootMimeType (mimetype = '') {
   return mimetype.split('/')[0]
 }
@@ -132,6 +146,30 @@ function sandboxFilePicker ({
   }
 }
 
+/**
+ * Uploads a File (from drag and drop or the clipboard) without the picker UI.
+ * Resolves to the same shape the picker passes to onFileUploadFinished.
+ */
+export async function uploadFile (file) {
+  if (isSandboxMode()) {
+    return transformFile({
+      url: URL.createObjectURL(file),
+      filename: file.name,
+      mimetype: file.type || 'application/octet-stream',
+      handle: null
+    })
+  }
+
+  // Resolves to a filestack-js File: filename and mimetype are prototype getters, so pick fields explicitly
+  const uploaded = await filestack.upload(file)
+  return transformFile({
+    url: uploaded.url,
+    handle: uploaded.handle,
+    filename: uploaded.filename || file.name,
+    mimetype: uploaded.mimetype || file.type
+  })
+}
+
 export function filestackPicker ({
   attachmentType = 'image',
   maxFiles = 1,
@@ -158,7 +196,7 @@ export function filestackPicker ({
     },
     fromSources: FILESTACK_FROM_SOURCES[attachmentType],
     maxFiles,
-    maxSize: 52428800,
+    maxSize: MAX_UPLOAD_FILE_SIZE,
     onFileUploadFinished: fileUploaded =>
       onFileUploadFinished(transformFile(fileUploaded)),
     onUploadDone: ({ filesUploaded, ...rest }) => {

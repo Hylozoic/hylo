@@ -3300,5 +3300,12 @@
   "Message to the requester (optional), included in the email": "Mensagem para quem fez o pedido (opcional), incluída no e-mail",
   "reactionCount_one": "{{count}} reação",
   "reactionCount_other": "{{count}} reações",
-  "Tap to remove": "Toque para remover"
+  "Tap to remove": "Toque para remover",
+  "Drop image here": "Solte a imagem aqui",
+  "Drop file here": "Solte o arquivo aqui",
+  "Uploading...": "Enviando...",
+  "That type of file can't be attached": "Esse tipo de arquivo não pode ser anexado",
+  "Files must be smaller than 50 MB": "Os arquivos devem ter menos de 50 MB",
+  "You can attach up to {{max}} files at a time": "Você pode anexar até {{max}} arquivos de uma vez",
+  "Upload failed. Please try again.": "Falha no envio. Tente novamente."
 }

@@ -3296,5 +3296,12 @@
   "Message to the requester (optional), included in the email": "Message to the requester (optional), included in the email",
   "reactionCount_one": "{{count}} reaction",
   "reactionCount_other": "{{count}} reactions",
-  "Tap to remove": "Tap to remove"
+  "Tap to remove": "Tap to remove",
+  "Drop image here": "Drop image here",
+  "Drop file here": "Drop file here",
+  "Uploading...": "Uploading...",
+  "That type of file can't be attached": "That type of file can't be attached",
+  "Files must be smaller than 50 MB": "Files must be smaller than 50 MB",
+  "You can attach up to {{max}} files at a time": "You can attach up to {{max}} files at a time",
+  "Upload failed. Please try again.": "Upload failed. Please try again."
 }

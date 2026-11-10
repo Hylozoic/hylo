@@ -18,6 +18,7 @@ import { createSelector } from 'reselect'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import orm from 'store/models'
 import { getHourCycle } from 'components/Calendar/calendar-util'
+import AttachmentDropZone from 'components/AttachmentDropZone'
 import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
 import LocationInput from 'components/LocationInput'
@@ -1462,6 +1463,12 @@ function PostEditorInner ({
     }
   }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, editingPost?.creator?.id, fileAttachments, imageAttachments, isEditing, isOtherEditor, onSave, selectedLocation, setIsDirty, showGroupAdminsCanEdit, syncDetailsToCurrentPost, t, i18n?.language, viewId])
 
+  /** Adds an image or file dropped or pasted onto the description as an attachment */
+  const handleDroppedAttachment = useCallback((attachment) => {
+    dispatch(addAttachment('post', currentPost.id, attachment))
+    setIsDirty(true)
+  }, [currentPost.id, dispatch, setIsDirty])
+
   /**
    * Initiates the save process with validation and confirmation checks
    * Shows announcement modal or warning if needed
@@ -1709,55 +1716,63 @@ function PostEditorInner ({
           )}
         </div>
       )}
-      <div
-        className={cn(
-          'PostEditorContent w-full bg-input rounded p-1',
-          'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
-        )}
-        data-tour='post-body'
+      <AttachmentDropZone
+        type='post'
+        id={currentPost.id}
+        onAttachment={handleDroppedAttachment}
+        disabled={loading}
+        className='w-full'
       >
-        {currentPost.details === null || loading
-          ? <div><Loading /></div>
-          : <HyloEditor
-              placeholder={t('Add a description')}
-              onUpdate={handleDetailsChange}
-              onAltEnter={doSave}
-              onAddTopic={handleAddTopic}
-              onAddLink={handleAddLinkPreview}
-              onFocus={handleDetailsFocus}
-              onInsertEmoji={handleInsertEmoji}
-              contentHTML={editorInitialContent}
-              groupIds={groupIds}
-              showMenu
-              readOnly={loading}
-              ref={editorRef}
-            />}
-        {(currentPost.linkPreview || fetchLinkPreviewPending) && (
-          <LinkPreview
-            loading={fetchLinkPreviewPending}
-            linkPreview={currentPost.linkPreview}
-            featured={currentPost.linkPreviewFeatured}
-            onFeatured={handleFeatureLinkPreview}
-            onClose={handleRemoveLinkPreview}
+        <div
+          className={cn(
+            'PostEditorContent w-full bg-input rounded p-1',
+            'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
+          )}
+          data-tour='post-body'
+        >
+          {currentPost.details === null || loading
+            ? <div><Loading /></div>
+            : <HyloEditor
+                placeholder={t('Add a description')}
+                onUpdate={handleDetailsChange}
+                onAltEnter={doSave}
+                onAddTopic={handleAddTopic}
+                onAddLink={handleAddLinkPreview}
+                onFocus={handleDetailsFocus}
+                onInsertEmoji={handleInsertEmoji}
+                contentHTML={editorInitialContent}
+                groupIds={groupIds}
+                showMenu
+                readOnly={loading}
+                ref={editorRef}
+              />}
+          {(currentPost.linkPreview || fetchLinkPreviewPending) && (
+            <LinkPreview
+              loading={fetchLinkPreviewPending}
+              linkPreview={currentPost.linkPreview}
+              featured={currentPost.linkPreviewFeatured}
+              onFeatured={handleFeatureLinkPreview}
+              onClose={handleRemoveLinkPreview}
+            />
+          )}
+          <AttachmentManager
+            type='post'
+            id={currentPost.id}
+            attachmentType='image'
+            showAddButton
+            showLabel
+            showLoading
           />
-        )}
-        <AttachmentManager
-          type='post'
-          id={currentPost.id}
-          attachmentType='image'
-          showAddButton
-          showLabel
-          showLoading
-        />
-        <AttachmentManager
-          type='post'
-          id={currentPost.id}
-          attachmentType='file'
-          showAddButton
-          showLabel
-          showLoading
-        />
-      </div>
+          <AttachmentManager
+            type='post'
+            id={currentPost.id}
+            attachmentType='file'
+            showAddButton
+            showLabel
+            showLoading
+          />
+        </div>
+      </AttachmentDropZone>
       {currentPost.type === 'project' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50 w-[120px]'>{t('Project Members')}</div>
