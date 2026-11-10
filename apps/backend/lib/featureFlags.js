@@ -11,11 +11,7 @@
 // and the limited invite access they give
 export const MEMBER_INVITES = 'MEMBER_INVITES'
 
-// Hylo Pro: groups paying for Pro from their Billing settings. Stripe webhooks for
-// Pro subscriptions are processed whether this is on or off
-export const HYLO_PRO = 'HYLO_PRO'
-
-const ON_OUTSIDE_PRODUCTION = [MEMBER_INVITES, HYLO_PRO]
+const ON_OUTSIDE_PRODUCTION = [MEMBER_INVITES]
 const NON_PRODUCTION_ENVIRONMENTS = ['development', 'test', 'staging']
 
 export function isFeatureEnabled (name) {

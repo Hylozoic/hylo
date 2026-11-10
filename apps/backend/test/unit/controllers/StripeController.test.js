@@ -2,8 +2,6 @@
 const root = require('root-path')
 const setup = require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
-const { withFeatureFlag } = require(root('test/setup/helpers'))
-const { HYLO_PRO } = require(root('lib/featureFlags'))
 /* global ContentAccess, StripeAccount, StripeProduct, SubscriptionChangeEvent */
 
 let currentWebhookEvent = null
@@ -306,18 +304,6 @@ describe('StripeController.webhook', () => {
 
       const stored = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: 'evt_pro_updated' }).first()
       expect(stored).to.not.equal(undefined)
-    })
-
-    it('keeps syncing Pro events while the HYLO_PRO flag is off', async () => {
-      const retrieved = []
-      stripeMock.subscriptions = { retrieve: async id => { retrieved.push(id); return proSubscription() } }
-      currentWebhookEvent = { id: 'evt_pro_flag_off', type: 'customer.subscription.updated', data: { object: proSubscription() } }
-
-      await withFeatureFlag(HYLO_PRO, 'off', () => StripeController.webhook(req, res))
-
-      expect(res.body.received).to.equal(true)
-      expect(retrieved).to.deep.equal(['sub_pro_webhook'])
-      expect(await group.hasPro()).to.be.true
     })
 
     it('skips a Pro event already processed', async () => {
