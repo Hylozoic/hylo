@@ -1,6 +1,7 @@
 /**
  * New posts show up straight away, at the top, in the view they belong in (#1695, #593):
  * My Posts, a group stream, a common view and a custom view — without a reload.
+ * In All Activity a new post also goes above the Chat Activity card of an earlier chat.
  *
  * Posts are created in `e2e-private-group` so public-group specs keep their seeded stream.
  * Navigation between views is in-app (history.pushState + popstate) so the Redux store survives.
@@ -120,4 +121,34 @@ test('a new post is first in a custom view that includes its type (#593)', async
   } finally {
     psql(`DELETE FROM group_views WHERE id = ${viewId}`)
   }
+})
+
+test('a new post goes above the Chat Activity card of an earlier chat in All Activity (#1695)', async ({ page }) => {
+  // One card per group per hour holds the newest chat: a chat from the other project
+  // posted after this test's post would rightly move the card back above it
+  test.skip(test.info().project.name !== 'chromium', 'chats into the shared group hour card')
+  const allPath = `/groups/${GROUP_SLUG}/all`
+  await page.goto(`/groups/${GROUP_SLUG}/chat`)
+  await waitPastRootSessionLoading(page)
+
+  const chatText = `E2E chat before a post ${Date.now()}`
+  const editor = page.locator('.ChatEditorContent .ProseMirror')
+  await expect(editor).toBeVisible(uiTimeout)
+  await editor.click()
+  await page.keyboard.type(chatText)
+  await page.getByTestId('chat-send-button').click()
+  await expect(page.getByTestId('chat-post').filter({ hasText: chatText })).toBeVisible(uiTimeout)
+
+  await goInApp(page, allPath)
+  const card = page.getByTestId('chat-activity-card').filter({ hasText: chatText })
+  await expect(card).toBeVisible(uiTimeout)
+
+  const title = uniqueTitle('after-chat')
+  await createDiscussion(page, allPath, title)
+  const postTop = await topOf(page, title)
+  await expect(card).toBeVisible(uiTimeout)
+  expect(postTop).toBeLessThan((await card.boundingBox()).y)
+
+  fs.mkdirSync(screenshotDir, { recursive: true })
+  await page.screenshot({ path: path.resolve(screenshotDir, 'issue-1695-all-activity-chat-card.png') })
 })
