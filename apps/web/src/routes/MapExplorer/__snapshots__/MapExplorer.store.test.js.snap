@@ -296,6 +296,7 @@ posts: viewPosts(
   proposalStatus
   quorum
   savedAt
+  following
   startTime
   timezone
   title

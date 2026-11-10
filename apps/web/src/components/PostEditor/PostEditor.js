@@ -43,7 +43,6 @@ import usePrefersNativeDateTimePicker from 'components/ui/usePrefersNativeDateTi
 import TimezoneSelect from 'components/TimezoneSelect/TimezoneSelect'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
-import GroupAdminsCanEditToggle from './GroupAdminsCanEditToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
@@ -1808,15 +1807,6 @@ function PostEditorInner ({
           />
         </div>
       )}
-      {showGroupAdminsCanEdit && (
-        <div className='PostEditorGroupAdminsCanEdit flex w-full items-center bg-input rounded p-1'>
-          <GroupAdminsCanEditToggle
-            groupAdminsCanEdit={!!currentPost.groupAdminsCanEdit}
-            toggleGroupAdminsCanEdit={toggleGroupAdminsCanEdit}
-            groupName={groupAdminsGroupName || ''}
-          />
-        </div>
-      )}
       {currentPost.type === 'proposal' && currentPost.proposalOptions.length === 0 && (
         <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2'>
           <div className='text-xs text-foreground/50'>{t('Proposal template')}</div>
@@ -2192,6 +2182,8 @@ function PostEditorInner ({
         addAttachment={addAttachment}
         announcementSelected={announcementSelected}
         canMakeAnnouncement={canMakeAnnouncement()}
+        groupAdminsCanEdit={!!currentPost.groupAdminsCanEdit}
+        groupAdminsGroupName={groupAdminsGroupName || ''}
         groupCount={get('groups', currentPost).length}
         groups={currentPost.groups}
         invalidMessage={invalidMessage}
@@ -2205,11 +2197,13 @@ function PostEditorInner ({
         setIsDirty={setIsDirty}
         setShowLocation={setShowLocation}
         showAnnouncementModal={showAnnouncementModal}
+        showGroupAdminsCanEdit={showGroupAdminsCanEdit}
         showFiles={showFiles}
         showImages={showImages}
         showLocation={showLocation}
         submitButtonLabel={buttonLabel()}
         toggleAnnouncementModal={toggleAnnouncementModal}
+        toggleGroupAdminsCanEdit={toggleGroupAdminsCanEdit}
         type={currentPost.type}
         valid={isValid}
       />

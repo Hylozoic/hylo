@@ -113,6 +113,8 @@ export {
   deletePost,
   pinPost
 } from './post'
+// followPost/unfollowPost come from './post' (#1737's version, which also checks the post
+// is visible to the user); './followPost' is dev's equivalent, kept for its own spec
 export {
   savePost,
   unsavePost

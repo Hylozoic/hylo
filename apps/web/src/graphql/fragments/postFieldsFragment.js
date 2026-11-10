@@ -89,6 +89,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   projectManagementLink
   myEventResponse
   savedAt
+  following
   commentersTotal
   commentsTotal
   ${withComments

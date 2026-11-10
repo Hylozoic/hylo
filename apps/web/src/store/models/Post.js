@@ -104,6 +104,7 @@ Post.fields = {
   donationsLink: attr(),
   endsAt: attr(),
   fulfilledAt: attr(),
+  following: attr(), // Whether the current user is following this post
   groupAdminsCanEdit: attr(),
   groupsTotal: attr(),
   isPublic: attr(),

@@ -818,6 +818,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         savedAt: p => p.savedAtForUser(userId),
+        following: p => p.followingForUser(userId),
         tokensAllocated: async p => {
           if (!userId) return null
           const postUser = await PostUser.find(p.get('id'), userId)

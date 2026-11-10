@@ -1,9 +1,13 @@
+import { uniq } from 'lodash/fp'
+import { isProjectMember } from '../group/queryUtils'
+
 export default {
   isProject () {
     return this.get('type') === Post.Type.PROJECT
   },
 
-  // Not this.followers(): a member who unfollows the project to stop comment notifications stays a member
+  // Membership is the project role, not the follow flag. Unfollowing a post
+  // must not drop someone from the member list.
   members: function () {
     if (!this.isProject()) return false
     return this.belongsToMany(User).through(PostUser)
@@ -13,7 +17,7 @@ export default {
 
   addProjectMembers: async function (usersOrIds, opts) {
     // need to fetchId for ProjectRole
-    const projectRole = await this.getOrCreateMemberProjectRole(opts)
+    const projectRole =  await this.getOrCreateMemberProjectRole(opts)
     return this.addFollowers(usersOrIds, {
       project_role_id: projectRole.id,
       following: true

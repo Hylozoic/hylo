@@ -11,7 +11,8 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  *   `filestack.upload()` code path runs in the browser.
  * - /noo/upload: answers like the backend after storing the file, with a URL
  *   on e2e-uploads.hylo.test, which is served the test PNG.
- * Nothing is posted, so no seeded data changes.
+ * Composers are not submitted. The comment case creates its own discussion so it
+ * does not share seeded post 1 (also used by logged-out tests).
  */
 
 test.describe.configure({ timeout: 180000 })
@@ -19,7 +20,22 @@ test.describe.configure({ timeout: 180000 })
 const uiTimeout = { timeout: 60000 }
 const SCREENSHOT_DIR = process.env.E2E_SCREENSHOT_DIR
 const PUBLIC_GROUP = 'e2e-public-group'
-const SEEDED_POST_ID = '1'
+
+async function graphql (page, query, variables) {
+  const res = await page.request.post('/noo/graphql', { data: { query, variables } })
+  const json = await res.json()
+  if (json.errors) throw new Error(JSON.stringify(json.errors))
+  return json.data
+}
+
+/** A discussion in the public group, owned by the signed-in E2E user. */
+async function createDiscussionPost (page, title) {
+  const { group } = await graphql(page, 'query ($slug: String) { group(slug: $slug) { id } }', { slug: PUBLIC_GROUP })
+  const { createPost } = await graphql(page,
+    'mutation ($data: PostInput) { createPost(data: $data) { id } }',
+    { data: { type: 'discussion', title, details: '<p>Body</p>', groupIds: [group.id] } })
+  return createPost.id
+}
 
 // 8x8 solid teal PNG
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGPgPTwfK2IYWhIAtVVbwYhHnKwAAAAASUVORK5CYII='
@@ -177,9 +193,17 @@ test('chat: dropped image shows the drop zone and is attached to the message', a
 test('comment: pasted image and dropped file are attached to the comment', async ({ page }) => {
   const calls = await stubUploads(page)
   const project = test.info().project.name
-  await page.goto(`/groups/${PUBLIC_GROUP}/post/${SEEDED_POST_ID}`)
+  // `/` is a session-loading path, so this waits out checkLogin. Opening a group
+  // post URL first skips that loader; the 60s editor wait then starts while auth
+  // is still in flight and the comment form is not mounted yet.
+  await page.goto('/')
   await waitPastRootSessionLoading(page)
-  const form = page.locator('.CommentForm').first()
+  const postId = await createDiscussionPost(page, `Comment attachments ${project}`)
+  await page.goto(`/post/${postId}`)
+  await waitPastRootSessionLoading(page)
+  const form = page.locator('.CommentForm').last()
+  await expect(form).toBeVisible(uiTimeout)
+  await form.scrollIntoViewIfNeeded()
   const editor = form.locator('.ProseMirror')
   await expect(editor).toBeVisible(uiTimeout)
 

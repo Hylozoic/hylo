@@ -42,15 +42,18 @@ describe('eventCalendar', () => {
       expect(details.description).toBe(`Bring gloves; we have tools.\n\n${EVENT_URL}`)
     })
 
-    it('uses the meeting link as the location for online events', () => {
+    it('keeps an online meeting link out of the physical location', () => {
       const details = eventCalendarDetails({ ...event, location: '', meetingLink: 'https://zoom.us/j/1' }, EVENT_URL)
-      expect(details.location).toBe('https://zoom.us/j/1')
+      expect(details.location).toBe('')
+      expect(details.meetingLink).toBe('https://zoom.us/j/1')
+      expect(details.description).toBe(`Bring gloves; we have tools.\n\nJoin online: https://zoom.us/j/1\n\n${EVENT_URL}`)
     })
 
-    it('puts the meeting link in the description when there is also a physical location', () => {
+    it('keeps the meeting link beside a physical location', () => {
       const details = eventCalendarDetails({ ...event, meetingLink: 'https://zoom.us/j/1' }, EVENT_URL)
       expect(details.location).toBe('Community Garden, 1 Main St')
-      expect(details.description).toBe(`Bring gloves; we have tools.\n\nhttps://zoom.us/j/1\n\n${EVENT_URL}`)
+      expect(details.meetingLink).toBe('https://zoom.us/j/1')
+      expect(details.description).toBe(`Bring gloves; we have tools.\n\nJoin online: https://zoom.us/j/1\n\n${EVENT_URL}`)
     })
 
     it('defaults to one hour when the end time is missing or not after the start', () => {
@@ -67,6 +70,16 @@ describe('eventCalendar', () => {
     expect(url.searchParams.get('dates')).toBe('20261108T180000Z/20261108T203000Z')
     expect(url.searchParams.get('location')).toBe('Community Garden, 1 Main St')
     expect(url.searchParams.get('details')).toBe(`Bring gloves; we have tools.\n\n${EVENT_URL}`)
+  })
+
+  it('puts a meeting link in the Google event details, and in location only when there is no address', () => {
+    const online = new URL(googleCalendarEventUrl({ ...event, location: '', meetingLink: 'https://zoom.us/j/1' }, EVENT_URL))
+    expect(online.searchParams.get('location')).toBe('https://zoom.us/j/1')
+    expect(online.searchParams.get('details')).toContain('Join online: https://zoom.us/j/1')
+
+    const hybrid = new URL(googleCalendarEventUrl({ ...event, meetingLink: 'https://zoom.us/j/1' }, EVENT_URL))
+    expect(hybrid.searchParams.get('location')).toBe('Community Garden, 1 Main St')
+    expect(hybrid.searchParams.get('details')).toContain('Join online: https://zoom.us/j/1')
   })
 
   it('shortens long descriptions in the Google Calendar link but keeps the event link', () => {
@@ -99,6 +112,7 @@ describe('eventCalendar', () => {
       expect(lines).toContain('LOCATION:Community Garden\\, 1 Main St')
       expect(lines).toContain(`DESCRIPTION:Bring gloves\\; we have tools.\\n\\n${EVENT_URL}`)
       expect(lines).toContain(`URL:${EVENT_URL}`)
+      expect(lines.some(line => line.startsWith('CONFERENCE'))).toBe(false)
       expect(ics.endsWith('END:VEVENT\r\nEND:VCALENDAR\r\n')).toBe(true)
       expect(ics.replace(/\r\n/g, '')).not.toMatch(/\n/)
     })
@@ -117,6 +131,21 @@ describe('eventCalendar', () => {
       expect(ics).not.toContain('LOCATION')
       expect(ics).not.toContain('DESCRIPTION')
       expect(ics).not.toContain('URL:')
+      expect(ics).not.toContain('CONFERENCE')
+    })
+
+    it('puts the meeting link in CONFERENCE, not LOCATION', () => {
+      const ics = buildEventIcs({ ...event, meetingLink: 'https://zoom.us/j/1' }, EVENT_URL, now)
+      const lines = ics.replace(/\r\n /g, '').split('\r\n')
+      expect(lines).toContain('LOCATION:Community Garden\\, 1 Main St')
+      expect(lines).toContain('CONFERENCE;VALUE=URI;FEATURE=AUDIO,VIDEO;LABEL=Join online:https://zoom.us/j/1')
+      expect(lines).toContain('X-GOOGLE-CONFERENCE:https://zoom.us/j/1')
+      expect(lines).not.toContain('LOCATION:https://zoom.us/j/1')
+
+      const online = buildEventIcs({ ...event, location: '', meetingLink: 'https://zoom.us/j/1' }, EVENT_URL, now)
+        .replace(/\r\n /g, '')
+      expect(online).not.toContain('LOCATION:')
+      expect(online).toContain('CONFERENCE;VALUE=URI;FEATURE=AUDIO,VIDEO;LABEL=Join online:https://zoom.us/j/1')
     })
   })
 

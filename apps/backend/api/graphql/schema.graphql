@@ -2481,6 +2481,8 @@ type Post {
   flaggedGroups: [ID]
   # Number of people following this post (when someone comments on or reacts to a post they follow it)
   followersTotal: Int
+  # Whether the logged-in user is following this post
+  following: Boolean
   # When the posr creator marked it as "fulfilled" or "complete"
   fulfilledAt: Date
   # Whether the creator lets members who manage content in the post's group edit it (only applies while the post is in a single group)
@@ -3676,7 +3678,7 @@ type Mutation {
   findOrCreateThread(data: MessageThreadInput): MessageThread
   # Flag a post as innapropriate
   flagInappropriateContent(data: InappropriateContentInput): GenericResult
-  # Get notified about new comments on a post
+  # Follow a post so you receive updates when people comment or react
   followPost(postId: ID): Post
   # Mark one of your posts as fulfilled or completed
   fulfillPost(postId: ID): GenericResult
@@ -3807,10 +3809,10 @@ type Mutation {
   unlinkAccount(provider: String): GenericResult
   # Unblock a user
   unblockUser(blockedUserId: ID): GenericResult
-  # Stop getting notified about new comments on a post
-  unfollowPost(postId: ID): Post
   # Mark a post as unfulfilled/uncompleted
   unfulfillPost(postId: ID): GenericResult
+  # Stop following a post. Saves and project roles are left in place
+  unfollowPost(postId: ID): Post
   # Remove a post from your saved posts list
   unsavePost(postId: ID): Post
   # Update settings for all your group memberships at once

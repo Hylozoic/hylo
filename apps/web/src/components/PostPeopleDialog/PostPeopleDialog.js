@@ -8,6 +8,13 @@ import { humanResponse } from '@hylo/presenters/EventInvitationPresenter'
 import { bgImageStyle, cn } from 'util/index'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
 
+/** Same host as the open post dialog, so this list paints above that modal. */
+function getPortalContainer () {
+  const postDialogContent = document.getElementById('post-dialog-content')
+  if (postDialogContent?.parentElement) return postDialogContent.parentElement
+  return document.getElementById('center-column-container') || document.getElementById(CENTER_COLUMN_ID)
+}
+
 function PostPeopleDialog ({ members, onClose, currentGroup, title }) {
   const { t } = useTranslation()
   const [searchString, setSearchString] = React.useState('')
@@ -29,9 +36,9 @@ function PostPeopleDialog ({ members, onClose, currentGroup, title }) {
 
   return (
     <Dialog.Root defaultOpen onOpenChange={onClose}>
-      <Dialog.Portal container={document.getElementById(CENTER_COLUMN_ID)}>
+      <Dialog.Portal container={getPortalContainer()}>
         <Dialog.Overlay
-          className='PostPeopleDialog-Overlay bg-black/50 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[100] h-full backdrop-blur-sm p-2'
+          className='PostPeopleDialog-Overlay bg-black/50 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[110] h-full backdrop-blur-sm p-2'
         >
           <Dialog.Content className='PostPeopleDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[41] max-w-[750px] outline-none relative'>
             <Dialog.Title>{dialogTitle}</Dialog.Title>

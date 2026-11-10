@@ -8,9 +8,9 @@ import {
   updateFollowers
 } from './util'
 import { partitionImageUrls } from '../../../lib/uploader/rehostRemoteMedia'
-import { assertCanEditPost } from './postEditPermissions'
 import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
 import { groupIdsForPost, track } from '../../../lib/analytics/track'
+import { assertCanEditPost } from './postEditPermissions'
 
 export default function updatePost (userId, id, params) {
   if (!id) throw new GraphQLError('updatePost called with no ID')

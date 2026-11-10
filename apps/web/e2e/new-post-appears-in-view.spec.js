@@ -1,6 +1,7 @@
 /**
  * New posts show up straight away, at the top, in the view they belong in (#1695, #593):
  * My Posts, a group stream, a common view and a custom view — without a reload.
+ * In All Activity a new post also goes above the Chat Activity card of an earlier chat.
  *
  * Posts are created in `e2e-private-group` so public-group specs keep their seeded stream.
  * Navigation between views is in-app (history.pushState + popstate) so the Redux store survives.
@@ -15,7 +16,6 @@ test.describe.configure({ timeout: 240000 })
 test.use({ storageState: 'e2e/.auth/session.json' })
 
 const GROUP_SLUG = 'e2e-private-group'
-const SEEDED_MY_POST = 'E2E Public Post'
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 const uiTimeout = { timeout: 60000 }
 
@@ -54,17 +54,46 @@ function uniqueTitle (label) {
   return `E2E new ${label} ${test.info().project.name} ${Date.now()}`
 }
 
+/** Creates a discussion in the group through the API, outside the page's Redux store. */
+async function createDiscussionViaApi (page, title) {
+  return page.evaluate(async ({ slug, title }) => {
+    const gql = async (query, variables) => {
+      const res = await fetch('/noo/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ query, variables })
+      })
+      const json = await res.json()
+      if (json.errors) throw new Error(JSON.stringify(json.errors))
+      return json.data
+    }
+    const { group } = await gql('query ($slug: String) { group(slug: $slug) { id } }', { slug })
+    const { createPost } = await gql(
+      'mutation ($data: PostInput) { createPost(data: $data) { id } }',
+      { data: { type: 'discussion', title, details: '', groupIds: [group.id] } }
+    )
+    return createPost.id
+  }, { slug: GROUP_SLUG, title })
+}
+
 test('a new post is first in My Posts after navigating back to it (#1695)', async ({ page }) => {
+  // Other specs keep adding posts by the E2E user, so a seeded post can fall off My Posts'
+  // first page (10 posts on mobile): compare with a post made just before loading it
+  await page.goto('/')
+  await waitPastRootSessionLoading(page)
+  const earlier = uniqueTitle('my-posts-earlier')
+  await createDiscussionViaApi(page, earlier)
   await page.goto('/my/posts')
   await waitPastRootSessionLoading(page)
-  await expect(page.getByText(SEEDED_MY_POST, { exact: true }).first()).toBeVisible(uiTimeout)
+  await expect(page.getByText(earlier, { exact: true }).first()).toBeVisible(uiTimeout)
 
   const title = uniqueTitle('my-posts')
   await goInApp(page, `/groups/${GROUP_SLUG}/all`)
   await createDiscussion(page, `/groups/${GROUP_SLUG}/all`, title)
 
   await goInApp(page, '/my/posts')
-  expect(await topOf(page, title)).toBeLessThan(await topOf(page, SEEDED_MY_POST))
+  expect(await topOf(page, title)).toBeLessThan(await topOf(page, earlier))
 
   if (test.info().project.name === 'chromium') {
     fs.mkdirSync(screenshotDir, { recursive: true })
@@ -120,4 +149,34 @@ test('a new post is first in a custom view that includes its type (#593)', async
   } finally {
     psql(`DELETE FROM group_views WHERE id = ${viewId}`)
   }
+})
+
+test('a new post goes above the Chat Activity card of an earlier chat in All Activity (#1695)', async ({ page }) => {
+  // One card per group per hour holds the newest chat: a chat from the other project
+  // posted after this test's post would rightly move the card back above it
+  test.skip(test.info().project.name !== 'chromium', 'chats into the shared group hour card')
+  const allPath = `/groups/${GROUP_SLUG}/all`
+  await page.goto(`/groups/${GROUP_SLUG}/chat`)
+  await waitPastRootSessionLoading(page)
+
+  const chatText = `E2E chat before a post ${Date.now()}`
+  const editor = page.locator('.ChatEditorContent .ProseMirror')
+  await expect(editor).toBeVisible(uiTimeout)
+  await editor.click()
+  await page.keyboard.type(chatText)
+  await page.getByTestId('chat-send-button').click()
+  await expect(page.getByTestId('chat-post').filter({ hasText: chatText })).toBeVisible(uiTimeout)
+
+  await goInApp(page, allPath)
+  const card = page.getByTestId('chat-activity-card').filter({ hasText: chatText })
+  await expect(card).toBeVisible(uiTimeout)
+
+  const title = uniqueTitle('after-chat')
+  await createDiscussion(page, allPath, title)
+  const postTop = await topOf(page, title)
+  await expect(card).toBeVisible(uiTimeout)
+  expect(postTop).toBeLessThan((await card.boundingBox()).y)
+
+  fs.mkdirSync(screenshotDir, { recursive: true })
+  await page.screenshot({ path: path.resolve(screenshotDir, 'issue-1695-all-activity-chat-card.png') })
 })
