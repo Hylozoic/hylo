@@ -17,6 +17,7 @@ export default function checkLogin () {
             settings {
               alreadySeenTour
               toursSeen
+              hideRsvpCalendarPrompt
               colorScheme
               dmNotifications
               commentNotifications

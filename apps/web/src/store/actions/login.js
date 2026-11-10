@@ -17,6 +17,7 @@ export default function login (email, password) {
               settings {
                 alreadySeenTour
                 toursSeen
+                hideRsvpCalendarPrompt
                 colorScheme
                 dmNotifications
                 commentNotifications
