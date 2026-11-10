@@ -186,7 +186,7 @@ export default function PostBodyProposal ({
         id={`voters-tt-${id}`}
       />
       {!!quorum && (quorum > 0) && <QuorumBar totalVoters={numberOfPossibleVoters} quorum={quorum} actualVoters={proposalVoterCount} proposalStatus={proposalStatus} />}
-      {!!proposalOutcome && fulfilledAt && <div className={classes.proposalOutcome}>  {t('Outcome')}: {proposalOutcome}</div>}
+      {!!proposalOutcome && votingComplete && <div className={classes.proposalOutcome} data-testid='proposal-outcome'>  {t('Outcome')}: {proposalOutcome}</div>}
     </div>
   )
 }
