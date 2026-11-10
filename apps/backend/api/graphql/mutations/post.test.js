@@ -568,6 +568,43 @@ describe('followPost and unfollowPost', () => {
     expect(digestRecipients()).to.include(reader.get('email'))
   })
 
+  it('creates a follower row for a member who was not following', async () => {
+    const member = await factories.user().save()
+    await member.joinGroup(group)
+
+    await followPost(member.id, post.id)
+    const postUser = await PostUser.find(post.id, member.id)
+    expect(postUser.get('following')).to.equal(true)
+    expect(postUser.get('active')).to.equal(true)
+  })
+
+  it('turns following back on without clearing saved_at', async () => {
+    await unfollowPost(reader.id, post.id)
+    await followPost(reader.id, post.id)
+
+    const postUser = await PostUser.find(post.id, reader.id)
+    expect(postUser.get('following')).to.equal(true)
+    expect(postUser.get('saved_at')).to.exist
+  })
+
+  it('does nothing when unfollowing a post the user never followed', async () => {
+    const member = await factories.user().save()
+    await member.joinGroup(group)
+
+    await unfollowPost(member.id, post.id)
+    expect(await PostUser.find(post.id, member.id)).to.not.exist
+  })
+
+  it('rejects a post that does not exist', async () => {
+    await expect(followPost(reader.id, 999999999)).to.be.rejectedWith('Post not found')
+    await expect(unfollowPost(reader.id, 999999999)).to.be.rejectedWith('Post not found')
+  })
+
+  it('rejects a request without a user', async () => {
+    await expect(followPost(null, post.id)).to.be.rejectedWith('Post not found')
+    await expect(unfollowPost(null, post.id)).to.be.rejectedWith('Post not found')
+  })
+
   it('rejects a post the user cannot see', async () => {
     await expect(unfollowPost(outsider.id, post.id)).to.be.rejectedWith('Post not found')
     await expect(followPost(outsider.id, post.id)).to.be.rejectedWith('Post not found')
@@ -589,6 +626,7 @@ describe('followPost and unfollowPost', () => {
     await unfollowPost(reader.id, project.id)
     expect((await project.members().fetch()).pluck('id')).to.deep.equal([reader.id])
     expect((await project.followers().fetch()).pluck('id')).to.not.include(reader.id)
+    expect((await PostUser.find(project.id, reader.id)).get('project_role_id')).to.exist
 
     await followPost(reader.id, project.id)
     expect((await project.members().fetch()).pluck('id')).to.deep.equal([reader.id])

@@ -121,7 +121,7 @@ posts: viewPosts(
   proposalStatus
   quorum
   savedAt
-  following
+  isFollowing
   startTime
   timezone
   title
@@ -390,7 +390,7 @@ posts(
   proposalStatus
   quorum
   savedAt
-  following
+  isFollowing
   startTime
   timezone
   title

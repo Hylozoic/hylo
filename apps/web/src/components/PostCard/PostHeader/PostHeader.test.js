@@ -101,13 +101,13 @@ describe('PostHeader', () => {
     }
 
     it('offers Follow Post when the viewer is not following', async () => {
-      renderMenu(buildPost({ following: false }))
+      renderMenu(buildPost({ isFollowing: false }))
       await userEvent.click(screen.getByTestId('post-header-more-icon'))
       expect(screen.getByText('Follow Post')).toBeInTheDocument()
     })
 
     it('offers Unfollow Post when the viewer is following', async () => {
-      renderMenu(buildPost({ following: true }))
+      renderMenu(buildPost({ isFollowing: true }))
       await userEvent.click(screen.getByTestId('post-header-more-icon'))
       expect(screen.getByText('Unfollow Post')).toBeInTheDocument()
     })

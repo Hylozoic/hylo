@@ -13,6 +13,7 @@ export function followPost (postId) {
       variables: { postId }
     },
     meta: {
+      optimistic: true,
       postId,
       extractModel: 'Post'
     }
@@ -32,6 +33,7 @@ export function unfollowPost (postId) {
       variables: { postId }
     },
     meta: {
+      optimistic: true,
       postId,
       extractModel: 'Post'
     }

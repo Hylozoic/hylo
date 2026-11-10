@@ -35,14 +35,13 @@ import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import pinPostAction from 'store/actions/pinPost'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import { followPost as followPostAction, unfollowPost as unfollowPostAction } from 'store/actions/followPost'
 import { cn } from 'util/index'
 import {
   unfulfillPost as unfulfillPostAction,
   fulfillPost as fulfillPostAction,
   savePost as savePostAction,
   unsavePost as unsavePostAction,
-  followPost as followPostAction,
-  unfollowPost as unfollowPostAction,
   getGroup,
   updateProposalOutcome as updateProposalOutcomeAction
 } from './PostHeader.store'
@@ -115,7 +114,7 @@ function PostHeader (props) {
     timezone,
     fulfilledAt,
     savedAt,
-    following,
+    isFollowing,
     canEdit: canEditFromServer,
     groups: postGroups = []
   } = post
@@ -374,7 +373,7 @@ function PostHeader (props) {
       copyLinkItem,
       { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
       { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
-      { icon: following ? <BellOff className='w-4 h-4 text-foreground' /> : <Bell className='w-4 h-4 text-foreground' />, label: following ? t('Unfollow Post') : t('Follow Post'), onClick: following ? unfollowPost : followPost },
+      { icon: isFollowing ? <BellOff className='w-4 h-4 text-foreground' /> : <Bell className='w-4 h-4 text-foreground' />, label: isFollowing ? t('Unfollow Post') : t('Follow Post'), onClick: isFollowing ? unfollowPost : followPost },
       { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
       { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
       addToCollectionItem,

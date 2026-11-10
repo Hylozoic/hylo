@@ -442,13 +442,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return (pu && pu.get('saved_at')) || null
   },
 
-  /** Whether this user is subscribed to updates on the post. */
-  async followingForUser (userId) {
-    if (!userId) return false
-    const pu = await this.loadPostInfoForUser(userId)
-    return !!(pu && pu.get('following') && pu.get('active'))
-  },
-
   presentForEmail: function ({ clickthroughParams = '', context, fundingRound, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
