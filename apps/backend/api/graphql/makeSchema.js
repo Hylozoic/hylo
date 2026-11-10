@@ -192,6 +192,9 @@ import {
   createStripeCheckoutSession,
   checkStripeStatus,
   fulfillStripeCheckoutSession,
+  activateHyloProCheckoutSession,
+  createHyloProCheckoutSession,
+  createHyloProPortalSession,
   membershipChangeCommit,
   verifyEmail,
   verifyEmailChange
@@ -918,6 +921,12 @@ export function makeMutations ({ fetchOne }) {
     checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
 
     fulfillStripeCheckoutSession: (root, { sessionId, offeringId }, context) => fulfillStripeCheckoutSession(context.currentUserId, { sessionId, offeringId }),
+
+    createHyloProCheckoutSession: (root, { groupId, interval }, context) => createHyloProCheckoutSession(context.currentUserId, { groupId, interval }),
+
+    createHyloProPortalSession: (root, { groupId }, context) => createHyloProPortalSession(context.currentUserId, { groupId }),
+
+    activateHyloProCheckoutSession: (root, { groupId, sessionId }, context) => activateHyloProCheckoutSession(context.currentUserId, { groupId, sessionId }),
 
     membershipChangeCommit: (root, { groupId, fromOfferingId, toOfferingId, newQuantity }, context) =>
       membershipChangeCommit(context.currentUserId, { groupId, fromOfferingId, toOfferingId, newQuantity }),

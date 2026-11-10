@@ -915,6 +915,8 @@ type Group {
   createdAt: Date
   # Group description text
   description: String
+  # Whether this group currently has Hylo Pro (a paid subscription or a manual grant)
+  hasPro: Boolean
   # gets the event calendar subscription URL
   eventCalendarUrl: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
@@ -963,6 +965,8 @@ type Group {
   paywall: Boolean
   # Total number of posts in this group
   postCount: Int
+  # Hylo Pro billing for the group's Billing settings page. Null for anyone without the Administration responsibility
+  proBilling: HyloProBilling
   # The purpose statement for the group
   purpose: String
   # Spaces & Views: group role ids required to view/post in this Space. Null/empty = no role restriction
@@ -3914,6 +3918,14 @@ type Mutation {
   # Upvote a post, or remove upvote. DEPRECATED, use reactOn instead
   vote(postId: ID, isUpvote: Boolean): Post
 
+  # Hylo Pro mutations (the group pays Hylo; requires the Administration responsibility)
+  # Start a Stripe-hosted Checkout to subscribe the group to Hylo Pro. interval is 'month' or 'year'
+  createHyloProCheckoutSession(groupId: ID!, interval: String!): HyloProSessionResult
+  # Open the Stripe-hosted Customer Portal to cancel, switch between monthly and yearly, or update the card
+  createHyloProPortalSession(groupId: ID!): HyloProSessionResult
+  # Sync the subscription from a completed Checkout (session_id from the success URL), so Pro activates without waiting for the webhook
+  activateHyloProCheckoutSession(groupId: ID!, sessionId: String!): HyloProActivationResult
+
   # Stripe Connect mutations
   # Create a Stripe Connected Account for a group
   createStripeConnectedAccount(
@@ -4064,6 +4076,65 @@ type SignupResult {
 }
 
 # Stripe Connect result types
+# A group's Hylo Pro subscription (source 'stripe') or a grant from Hylo (source 'manual')
+type HyloProSubscription {
+  id: ID
+  # 'stripe' or 'manual'
+  source: String
+  # Stripe subscription status (active, trialing, past_due, canceled, ...); 'active' or 'canceled' for grants
+  status: String
+  # Whether this subscription or grant currently gives the group Pro
+  active: Boolean
+  # 'month' or 'year' (Stripe subscriptions only)
+  interval: String
+  # End of the current billing period: the renewal date, unless it is set to cancel
+  currentPeriodEnd: Date
+  # True when it is set to cancel; Pro stays on until endsAt
+  cancelAtPeriodEnd: Boolean
+  # When Pro access stops if nothing changes (scheduled cancellation or end of a grant); null when it renews
+  endsAt: Date
+  # When an ended subscription or grant stopped
+  endedAt: Date
+}
+
+# What a group's Billing settings page shows
+type HyloProBilling {
+  # Whether the group currently has Hylo Pro (a paid subscription or a manual grant)
+  hasPro: Boolean
+  # Whether the group can start a new subscription: no Pro and no subscription that isn't over yet
+  canUpgrade: Boolean
+  # Whether there is a Stripe customer whose subscription can be managed in the Customer Portal
+  canManage: Boolean
+  # True when the subscription's payment failed or is pending and the card needs updating
+  needsPaymentUpdate: Boolean
+  # The group's Stripe subscription: one that isn't over yet, else the most recent one. Shown even during a manual grant
+  subscription: HyloProSubscription
+  # An active grant from Hylo, if any
+  grant: HyloProSubscription
+  # Plans a group can subscribe to
+  plans: [HyloProPlan]
+}
+
+type HyloProPlan {
+  # 'month' or 'year'
+  interval: String
+  # Price in the smallest currency unit (cents)
+  unitAmount: Int
+  # ISO currency code, lowercase (e.g. 'usd')
+  currency: String
+}
+
+type HyloProActivationResult {
+  success: Boolean
+  # Whether the subscription gives the group Pro now (false while a payment is still processing)
+  active: Boolean
+}
+
+type HyloProSessionResult {
+  # Stripe-hosted page to send the user to
+  url: String
+}
+
 type StripeConnectedAccountResult {
   id: ID
   accountId: String

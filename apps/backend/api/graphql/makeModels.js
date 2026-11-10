@@ -1,4 +1,4 @@
-/* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost */
+/* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost HyloProSubscription */
 import DataLoader from 'dataloader'
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
@@ -24,6 +24,7 @@ import { parseAcceptedPostTypes } from '../models/post/validatePostData'
 import { canEditPost } from '../models/post/postEditPermissions'
 import { listBlockingSpaces } from '../models/space/convertChatSpaceToDiscussion'
 import InvitationService from '../services/InvitationService'
+import HyloProService from '../services/HyloProService'
 import {
   filterAndSortContentAccess,
   filterAndSortPosts,
@@ -1281,6 +1282,36 @@ export default function makeModels (userId, isAdmin, apiClient) {
           return membership ? !!membership.get('active') : null
         },
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
+        hasPro: g => g.hasPro(),
+        proBilling: async g => {
+          // Hylo Pro is for groups; spaces have no billing of their own
+          if (g.get('type') === 'space') return null
+          if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
+            return null
+          }
+          const { subscription, grant, hasPro } = await HyloProSubscription.billingForGroup(g.id)
+          const present = sub => sub && {
+            id: sub.id,
+            source: sub.get('source'),
+            status: sub.get('status'),
+            active: sub.isActive(),
+            interval: sub.get('interval'),
+            currentPeriodEnd: sub.get('current_period_end'),
+            cancelAtPeriodEnd: !!(sub.get('cancel_at_period_end') || sub.get('cancel_at')),
+            endsAt: sub.endsAt(),
+            endedAt: sub.get('ended_at')
+          }
+          const hasOpenSubscription = HyloProSubscription.isOpenStripeSubscription(subscription)
+          return {
+            hasPro,
+            canUpgrade: !hasPro && !hasOpenSubscription,
+            canManage: !!subscription && !!subscription.get('stripe_customer_id'),
+            needsPaymentUpdate: hasOpenSubscription && HyloProSubscription.NEEDS_PAYMENT_STRIPE_STATUSES.includes(subscription.get('status')),
+            subscription: present(subscription),
+            grant: present(grant),
+            plans: HyloProService.plans()
+          }
+        },
         invitePath: async g => {
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)) {
             return null

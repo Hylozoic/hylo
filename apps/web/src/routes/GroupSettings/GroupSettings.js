@@ -21,6 +21,7 @@ import ResponsibilitiesTab from './ResponsibilitiesTab'
 import ExportDataTab from './ExportDataTab'
 import InsightsTab from './InsightsTab/InsightsTab'
 import PaidContentTab from './PaidContentTab'
+import BillingTab from './BillingTab'
 import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
@@ -34,6 +35,7 @@ import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
 import getMe from 'store/selectors/getMe'
+import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
 import {
   FETCH_GROUP_SETTINGS,
   deleteGroup,
@@ -88,6 +90,7 @@ export default function GroupSettings () {
   const currentUser = useSelector(getMe)
   const parentGroups = useSelector(state => getParentGroups(state, rawGroup))
   const fetchPending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
+  const hyloProEnabled = useSelector(getHyloProEnabled)
 
   // Action creators
   const fetchGroupSettingsAction = () => slug && dispatch(fetchGroupSettings(slug))
@@ -155,6 +158,7 @@ export default function GroupSettings () {
     canAdminister && { name: t('Export Data'), path: 'export' },
     canAdminister && { name: t('Appearance & Layout'), path: 'appearance' },
     canAdminister && { name: t('Paid Content'), path: 'paid-content' },
+    canAdminister && !isSpace && hyloProEnabled && { name: t('Billing'), path: 'billing' },
     canAdminister && { name: t('Delete'), path: 'delete' }
   ])
 
@@ -246,6 +250,12 @@ export default function GroupSettings () {
     component: <PaidContentTab group={group} currentUser={currentUser} />
   }
 
+  const billingSettings = {
+    name: t('Billing'),
+    path: 'billing',
+    component: <BillingTab group={group} />
+  }
+
   const deleteSettings = {
     name: t('Delete'),
     path: 'delete',
@@ -270,6 +280,7 @@ export default function GroupSettings () {
         canAdminister ? exportSettings : null,
         canAdminister ? appearanceSettings : null,
         canAdminister ? paidContentSettings : null,
+        canAdminister && !isSpace && hyloProEnabled ? billingSettings : null,
         canAdminister ? deleteSettings : null
       ])}
     />
