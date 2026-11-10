@@ -297,4 +297,58 @@ describe('BillingTab', () => {
       jest.useRealTimers()
     }
   })
+
+  describe("formats dates and prices from the user's Hylo locale setting", () => {
+    // A lapsed subscription shows both a date and the upgrade prices
+    function renderLapsed () {
+      mockBillingApi({
+        billing: {
+          ...billingFor({ subscription: stripeSub({ status: 'canceled', active: false, cancelAtPeriodEnd: true, endsAt: '2027-03-01T12:00:00.000Z', endedAt: '2027-03-01T12:00:00.000Z' }) }),
+          plans: [{ interval: 'month', unitAmount: 1250, currency: 'usd' }]
+        }
+      })
+      renderTab()
+    }
+
+    // Intl output can contain no-break spaces
+    const text = el => el.textContent.replace(/\s/g, ' ')
+
+    afterEach(() => {
+      window.localStorage.removeItem('hylo-i18n-lng')
+      jest.restoreAllMocks()
+    })
+
+    it('puts the month first for en-US', async () => {
+      window.localStorage.setItem('hylo-i18n-lng', 'en-US')
+      renderLapsed()
+
+      expect(text(await screen.findByTestId('billing-plan-detail'))).toBe('Your Hylo Pro subscription ended on March 1, 2027.')
+      expect(text(screen.getByTestId('billing-upgrade-month'))).toContain('$12.50/month')
+    })
+
+    it('puts the day first for en-GB', async () => {
+      window.localStorage.setItem('hylo-i18n-lng', 'en-GB')
+      renderLapsed()
+
+      expect(text(await screen.findByTestId('billing-plan-detail'))).toBe('Your Hylo Pro subscription ended on 1 March 2027.')
+      expect(text(screen.getByTestId('billing-upgrade-month'))).toContain('US$12.50/month')
+    })
+
+    it('uses the German format for de', async () => {
+      window.localStorage.setItem('hylo-i18n-lng', 'de-DE')
+      renderLapsed()
+
+      expect(text(await screen.findByTestId('billing-plan-detail'))).toContain('1. März 2027')
+      expect(text(screen.getByTestId('billing-upgrade-month'))).toContain('12,50 $')
+    })
+
+    it('ignores the browser language', async () => {
+      window.localStorage.setItem('hylo-i18n-lng', 'en-US')
+      jest.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['en-AU'])
+      jest.spyOn(window.navigator, 'language', 'get').mockReturnValue('en-AU')
+      renderLapsed()
+
+      expect(text(await screen.findByTestId('billing-plan-detail'))).toBe('Your Hylo Pro subscription ended on March 1, 2027.')
+    })
+  })
 })
