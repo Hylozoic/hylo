@@ -12,7 +12,7 @@ export function toUserDateTime (date, locale) {
 /**
  * Formats a date using the user's Hylo locale (not the browser locale).
  * @param {string|Date|DateTime|Object} date
- * @param {{ style?: 'short'|'medium'|'long'|'monthYear'|'dayMonthYear'|'time'|'datetime', locale?: string }} options
+ * @param {{ style?: 'short'|'medium'|'long'|'monthYear'|'dayMonthYear'|'time'|'datetime'|'mediumDateTime', locale?: string }} options
  */
 export function formatLocalizedDate (date, { style = 'short', locale } = {}) {
   if (!date) return null
@@ -35,6 +35,8 @@ export function formatLocalizedDate (date, { style = 'short', locale } = {}) {
       return dt.toFormat('t')
     case 'datetime':
       return dt.toLocaleString(DateTime.DATETIME_SHORT)
+    case 'mediumDateTime':
+      return dt.toLocaleString(DateTime.DATETIME_MED)
     default:
       return dt.toLocaleString(DateTime.DATE_SHORT)
   }

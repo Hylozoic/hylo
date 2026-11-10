@@ -207,6 +207,19 @@ export {
   createHyloProPortalSession
 } from './hyloPro'
 export {
+  hyloProMetrics,
+  hyloProSubscriptions,
+  hyloProGroups,
+  hyloProPayments,
+  grantHyloPro,
+  updateHyloProGrant,
+  revokeHyloProGrant,
+  cancelHyloProSubscription,
+  resumeHyloProSubscription,
+  extendHyloProSubscription,
+  refundHyloProPayment
+} from './hyloProAdmin'
+export {
   membershipChangeCommit
 } from './membershipChange'
 export {

@@ -659,7 +659,8 @@ module.exports = {
 
       // Anything else from the platform endpoint (e.g. a refund or dispute on a Pro charge, or
       // platform activity unrelated to Pro) isn't for the Connect handlers, which act on groups'
-      // own sales. Pro refunds and disputes get their own handling in a later change.
+      // own sales. Pro refunds (made from /management, see HyloProAdminService) don't change the
+      // subscription, so there's nothing to sync. Disputes on Pro charges are handled in Stripe.
       if (fromPlatformEndpoint) {
         console.log(`Stripe webhook: skipping platform event ${event.id} (${event.type}), not a Hylo Pro subscription event`)
         await markStripeWebhookProcessed(event.id)
