@@ -257,6 +257,88 @@ ALTER SEQUENCE public.activity_id_seq OWNED BY public.activities.id;
 
 
 --
+-- Name: activity_days; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.activity_days (
+    day date NOT NULL,
+    group_id bigint DEFAULT 0 NOT NULL,
+    user_id bigint NOT NULL,
+    platform text DEFAULT 'unknown'::text NOT NULL
+);
+
+
+--
+-- Name: activity_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.activity_events (
+    id bigint NOT NULL,
+    occurred_at timestamp with time zone NOT NULL,
+    event_type text NOT NULL,
+    user_id bigint NOT NULL,
+    group_id bigint DEFAULT 0 NOT NULL,
+    object_type text,
+    object_id bigint,
+    target_user_id bigint,
+    post_type text,
+    platform text,
+    properties jsonb,
+    source text DEFAULT 'live'::text NOT NULL
+);
+
+
+--
+-- Name: activity_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.activity_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: activity_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.activity_events_id_seq OWNED BY public.activity_events.id;
+
+
+--
+-- Name: metric_snapshots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.metric_snapshots (
+    group_id bigint NOT NULL,
+    metric text NOT NULL,
+    dimension text DEFAULT ''::text NOT NULL,
+    period text NOT NULL,
+    period_start date NOT NULL,
+    value numeric(18,4) NOT NULL,
+    computed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: activity_daily_counts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.activity_daily_counts (
+    day date NOT NULL,
+    group_id bigint DEFAULT 0 NOT NULL,
+    event_type text NOT NULL,
+    post_type text DEFAULT ''::text NOT NULL,
+    platform text DEFAULT ''::text NOT NULL,
+    join_source text DEFAULT ''::text NOT NULL,
+    is_public text DEFAULT ''::text NOT NULL,
+    events integer NOT NULL
+);
+
+
+--
 -- Name: agreements; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3626,6 +3708,13 @@ ALTER TABLE ONLY public.activities ALTER COLUMN id SET DEFAULT nextval('public.a
 
 
 --
+-- Name: activity_events id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activity_events ALTER COLUMN id SET DEFAULT nextval('public.activity_events_id_seq'::regclass);
+
+
+--
 -- Name: agreements id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4191,6 +4280,38 @@ UNION
 
 ALTER TABLE ONLY public.activities
     ADD CONSTRAINT activity_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: activity_days activity_days_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activity_days
+    ADD CONSTRAINT activity_days_pkey PRIMARY KEY (day, group_id, user_id);
+
+
+--
+-- Name: activity_events activity_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activity_events
+    ADD CONSTRAINT activity_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: metric_snapshots metric_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.metric_snapshots
+    ADD CONSTRAINT metric_snapshots_pkey PRIMARY KEY (group_id, metric, period, period_start, dimension);
+
+
+--
+-- Name: activity_daily_counts activity_daily_counts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activity_daily_counts
+    ADD CONSTRAINT activity_daily_counts_pkey PRIMARY KEY (day, group_id, event_type, post_type, platform, join_source, is_public);
 
 
 --
@@ -5095,6 +5216,41 @@ ALTER TABLE ONLY public.zapier_triggers_groups
 
 ALTER TABLE ONLY public.zapier_triggers
     ADD CONSTRAINT zapier_triggers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: activity_days_user_id_day_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX activity_days_user_id_day_index ON public.activity_days USING btree (user_id, day);
+
+
+--
+-- Name: activity_events_dedupe_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX activity_events_dedupe_index ON public.activity_events USING btree (event_type, object_id, user_id, group_id, occurred_at);
+
+
+--
+-- Name: activity_events_group_id_occurred_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX activity_events_group_id_occurred_at_index ON public.activity_events USING btree (group_id, occurred_at);
+
+
+--
+-- Name: activity_events_occurred_at_event_type_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX activity_events_occurred_at_event_type_index ON public.activity_events USING btree (occurred_at, event_type);
+
+
+--
+-- Name: activity_events_user_id_occurred_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX activity_events_user_id_occurred_at_index ON public.activity_events USING btree (user_id, occurred_at);
 
 
 --
@@ -7343,6 +7499,135 @@ ALTER TABLE ONLY public.zapier_triggers_groups
 ALTER TABLE ONLY public.zapier_triggers
     ADD CONSTRAINT zapier_triggers_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
 
+
+--
+-- Analytics tables added after this dump. The test database loads this file
+-- instead of running migrations, so account deletion can clear these rows.
+--
+
+ALTER TABLE public.activity_events ADD COLUMN post_id bigint;
+
+CREATE INDEX activity_events_post_id_index ON public.activity_events USING btree (post_id);
+
+ALTER TABLE public.metric_snapshots ADD COLUMN definition_version integer DEFAULT 1 NOT NULL;
+
+ALTER TABLE public.users ADD COLUMN analytics_anonymous_id text;
+
+CREATE UNIQUE INDEX users_analytics_anonymous_id_index ON public.users USING btree (analytics_anonymous_id) WHERE (analytics_anonymous_id IS NOT NULL);
+
+CREATE TABLE public.anonymous_events (
+    id bigint NOT NULL,
+    anonymous_id text NOT NULL,
+    event_type text NOT NULL,
+    occurred_at timestamp with time zone NOT NULL,
+    platform text,
+    properties jsonb,
+    user_id bigint,
+    linked_at timestamp with time zone
+);
+
+CREATE SEQUENCE public.anonymous_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.anonymous_events_id_seq OWNED BY public.anonymous_events.id;
+
+ALTER TABLE ONLY public.anonymous_events ALTER COLUMN id SET DEFAULT nextval('public.anonymous_events_id_seq'::regclass);
+
+ALTER TABLE ONLY public.anonymous_events
+    ADD CONSTRAINT anonymous_events_pkey PRIMARY KEY (id);
+
+CREATE INDEX anonymous_events_anonymous_id_occurred_at_index ON public.anonymous_events USING btree (anonymous_id, occurred_at);
+
+CREATE TABLE public.user_day_activity (
+    day date NOT NULL,
+    group_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    posts integer DEFAULT 0 NOT NULL,
+    comments integer DEFAULT 0 NOT NULL,
+    reactions integer DEFAULT 0 NOT NULL,
+    rsvps integer DEFAULT 0 NOT NULL,
+    votes integer DEFAULT 0 NOT NULL,
+    project_joins integer DEFAULT 0 NOT NULL,
+    invites_sent integer DEFAULT 0 NOT NULL,
+    connections integer DEFAULT 0 NOT NULL,
+    received_connections integer DEFAULT 0 NOT NULL,
+    connections_beyond_reaction integer DEFAULT 0 NOT NULL,
+    received_beyond_reaction integer DEFAULT 0 NOT NULL,
+    coordinating integer DEFAULT 0 NOT NULL,
+    received_coordinating integer DEFAULT 0 NOT NULL
+);
+
+ALTER TABLE ONLY public.user_day_activity
+    ADD CONSTRAINT user_day_activity_pkey PRIMARY KEY (day, group_id, user_id);
+
+CREATE INDEX user_day_activity_user_id_day_index ON public.user_day_activity USING btree (user_id, day);
+
+CREATE INDEX user_day_activity_group_id_day_index ON public.user_day_activity USING btree (group_id, day);
+
+CREATE TABLE public.user_milestones (
+    user_id bigint NOT NULL,
+    milestone text NOT NULL,
+    group_id bigint DEFAULT 0 NOT NULL,
+    occurred_on date NOT NULL
+);
+
+ALTER TABLE ONLY public.user_milestones
+    ADD CONSTRAINT user_milestones_pkey PRIMARY KEY (user_id, milestone, group_id);
+
+CREATE INDEX user_milestones_milestone_occurred_on_index ON public.user_milestones USING btree (milestone, occurred_on);
+
+CREATE TABLE public.group_activity_weeks (
+    group_id bigint NOT NULL,
+    week_start date NOT NULL,
+    voices_28d integer DEFAULT 0 NOT NULL,
+    connections_28d integer DEFAULT 0 NOT NULL
+);
+
+ALTER TABLE ONLY public.group_activity_weeks
+    ADD CONSTRAINT group_activity_weeks_pkey PRIMARY KEY (group_id, week_start);
+
+CREATE TABLE public.post_outcomes (
+    post_id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    author_id bigint NOT NULL,
+    post_type text,
+    created_at timestamp with time zone NOT NULL,
+    is_first_post boolean DEFAULT false NOT NULL,
+    author_newcomer boolean DEFAULT false NOT NULL,
+    first_response_hours numeric(12,2),
+    first_comment_hours numeric(12,2),
+    responder_count integer DEFAULT 0 NOT NULL,
+    chat_reply_24h boolean DEFAULT false NOT NULL,
+    event_start timestamp with time zone,
+    other_rsvps integer DEFAULT 0 NOT NULL,
+    proposal_status text,
+    voting_end timestamp with time zone,
+    voter_count integer DEFAULT 0 NOT NULL,
+    project_self_joins integer DEFAULT 0 NOT NULL,
+    project_author_adds integer DEFAULT 0 NOT NULL,
+    group_was_live boolean DEFAULT false NOT NULL,
+    refreshed_at timestamp with time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.post_outcomes
+    ADD CONSTRAINT post_outcomes_pkey PRIMARY KEY (post_id, group_id);
+
+CREATE INDEX post_outcomes_created_at_index ON public.post_outcomes USING btree (created_at);
+
+CREATE INDEX post_outcomes_group_id_created_at_index ON public.post_outcomes USING btree (group_id, created_at);
+
+CREATE TABLE public.retention_cache (
+    cache_key text NOT NULL,
+    result jsonb NOT NULL,
+    computed_at timestamp with time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.retention_cache
+    ADD CONSTRAINT retention_cache_pkey PRIMARY KEY (cache_key);
 
 --
 -- PostgreSQL database dump complete

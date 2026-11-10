@@ -10,8 +10,15 @@ import FinishRegistration from './FinishRegistration'
 
 jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn(() => ({ type: 'TRACK_ANALYTICS_EVENT' })))
 
+const ANONYMOUS_ID = 'anon-test-id'
+
+beforeEach(() => {
+  window.localStorage.setItem('hylo_anonymous_id', ANONYMOUS_ID)
+})
+
 afterEach(() => {
   trackAnalyticsEvent.mockClear()
+  window.localStorage.removeItem('hylo_anonymous_id')
 })
 
 function currentUserProvider () {
@@ -117,7 +124,11 @@ it('registers user if a name and valid password provided', async () => {
   await user.type(screen.getByLabelText('passwordConfirmation'), '012345678')
   await user.click(screen.getByText('Jump in to Hylo!'))
 
-  expect(registerCalled).toHaveBeenCalledWith({ name: 'Smiley Person', password: '012345678' })
+  expect(registerCalled).toHaveBeenCalledWith({
+    name: 'Smiley Person',
+    password: '012345678',
+    anonymousId: ANONYMOUS_ID
+  })
 })
 
 it('keeps submit disabled for a whitespace-only name', async () => {
@@ -166,7 +177,11 @@ it('trims the name before registering', async () => {
   await user.click(screen.getByText('Jump in to Hylo!'))
 
   await waitFor(() => {
-    expect(registerCalled).toHaveBeenCalledWith({ name: 'Smiley Person', password: '012345678' })
+    expect(registerCalled).toHaveBeenCalledWith({
+      name: 'Smiley Person',
+      password: '012345678',
+      anonymousId: ANONYMOUS_ID
+    })
   })
 })
 

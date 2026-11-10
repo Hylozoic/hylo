@@ -7,6 +7,8 @@ import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { clearDataLoaderCaches } from '../../lib/graphql-bookshelf-bridge/util/initDataLoaders'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import mixpanel from '../../lib/mixpanel'
+import { readGroupMetrics, readPlatformMetrics } from '../../lib/analytics/readMetrics'
+import { readActivityCounts } from '../../lib/analytics/dailyCounts'
 import { createGroupScope } from '../../lib/scopes'
 import {
   saveDraft,
@@ -120,6 +122,9 @@ import {
   reactivateUser,
   rejoinGroup,
   recordClickthrough,
+  recordEvents,
+  metricPeople,
+  retentionExplore,
   recordStripePurchase,
   createGroupInviteLink,
   updateGroupInviteLink,
@@ -332,9 +337,14 @@ async function buildGraphqlSchema (req) {
     }
   }
 
+  const mergedResolvers = Object.assign(allResolvers, resolvers)
+  mergedResolvers.Group = Object.assign({}, mergedResolvers.Group, {
+    metrics: (group, args, context) => readGroupMetrics(group, args, context)
+  })
+
   const schema = createSchema({
     typeDefs: [schemaText],
-    resolvers: Object.assign(allResolvers, resolvers)
+    resolvers: mergedResolvers
   })
   schema[SCHEMA_LOADERS] = loaders
   return schema
@@ -479,7 +489,9 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
     posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true })),
     publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
-    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId })
+    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId }),
+    metricPeople: () => { throw new GraphQLError('Unauthorized') },
+    retentionExplore: () => { throw new GraphQLError('Unauthorized') }
   }
 }
 
@@ -574,6 +586,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     // you can query by id or email, with id taking preference
     person: (root, { id, email }) => fetchOne('Person', id || email, id ? 'id' : 'email'),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
+    platformMetrics: (root, args, context) => readPlatformMetrics(context.currentUserId, args),
+    metricPeople,
+    retentionExplore,
+    activityCounts: (root, args, context) => readActivityCounts(context.currentUserId, args),
     post: (root, { id }) => fetchOne('Post', id),
     posts: (root, args) => fetchMany('Post', args),
     responsibilities: (root, args) => Responsibility.fetchAll(args),
@@ -639,6 +655,7 @@ export function makePublicMutations ({ fetchOne }) {
     sendEmailVerification,
     sendPasswordReset,
     register: register(fetchOne),
+    recordEvents,
     verifyEmail: verifyEmail(fetchOne),
     createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata })
   }
