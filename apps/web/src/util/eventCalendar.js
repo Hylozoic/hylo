@@ -33,17 +33,17 @@ export function toCalendarDateTime (date) {
 }
 
 /**
- * Title, UTC start/end, location and plain-text description for one event. Location and
- * description follow the backend's invite: the physical location wins, and when there is also a
- * meeting link it goes in the description. The event's Hylo link ends the description.
+ * Title, UTC start/end, physical location, meeting link and plain-text description.
+ * The meeting link is kept separate so .ics can put it in CONFERENCE. The Hylo link ends the description.
  */
 export function eventCalendarDetails (event, eventUrl) {
   const start = toDate(event.startTime)
   const end = toDate(event.endTime) || new Date(start.getTime() + DEFAULT_DURATION_MS)
-  const location = event.location || event.meetingLink || ''
+  const location = event.location || ''
+  const meetingLink = (event.meetingLink || '').trim()
   const description = [
     TextHelpers.presentHTMLToText(event.details || ''),
-    event.location && event.meetingLink,
+    meetingLink && `Join online: ${meetingLink}`,
     eventUrl
   ].filter(Boolean).join('\n\n')
 
@@ -52,20 +52,30 @@ export function eventCalendarDetails (event, eventUrl) {
     start,
     end: end > start ? end : new Date(start.getTime() + DEFAULT_DURATION_MS),
     location,
+    meetingLink,
     description
   }
 }
 
+/** Keeps the join link when a long description is cut down for Google's URL length limit. */
+function googleCalendarDetails (description, eventUrl, meetingLink) {
+  if (description.length <= GOOGLE_DESCRIPTION_MAX_LENGTH) return description
+  const tail = [meetingLink && `Join online: ${meetingLink}`, eventUrl].filter(Boolean).join('\n\n')
+  const room = Math.max(0, GOOGLE_DESCRIPTION_MAX_LENGTH - tail.length - 2)
+  const head = room > 0 ? `${description.slice(0, room).trimEnd()}…` : ''
+  return [head, tail].filter(Boolean).join('\n\n')
+}
+
 export function googleCalendarEventUrl (event, eventUrl) {
-  const { title, start, end, location, description } = eventCalendarDetails(event, eventUrl)
+  const { title, start, end, location, meetingLink, description } = eventCalendarDetails(event, eventUrl)
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: title,
     dates: `${toCalendarDateTime(start)}/${toCalendarDateTime(end)}`,
-    details: description.length > GOOGLE_DESCRIPTION_MAX_LENGTH
-      ? `${description.slice(0, GOOGLE_DESCRIPTION_MAX_LENGTH)}…\n\n${eventUrl || ''}`.trim()
-      : description,
-    location
+    details: googleCalendarDetails(description, eventUrl, meetingLink),
+    // No conference parameter exists on this URL. A join link goes in location only
+    // when the event has no street address, and it is always in details.
+    location: location || meetingLink
   })
   return `${GOOGLE_CALENDAR_EVENT_URL}?${params.toString()}`
 }
@@ -101,7 +111,8 @@ function foldIcsLine (line) {
 }
 
 export function buildEventIcs (event, eventUrl, now = new Date()) {
-  const { title, start, end, location, description } = eventCalendarDetails(event, eventUrl)
+  const { title, start, end, location, meetingLink, description } = eventCalendarDetails(event, eventUrl)
+  const conferenceUri = meetingLink.replace(/[\r\n]/g, '')
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -116,6 +127,8 @@ export function buildEventIcs (event, eventUrl, now = new Date()) {
     `SUMMARY:${escapeIcsText(title)}`,
     description && `DESCRIPTION:${escapeIcsText(description)}`,
     location && `LOCATION:${escapeIcsText(location)}`,
+    conferenceUri && `CONFERENCE;VALUE=URI;FEATURE=AUDIO,VIDEO;LABEL=Join online:${conferenceUri}`,
+    conferenceUri && `X-GOOGLE-CONFERENCE:${escapeIcsText(conferenceUri)}`,
     eventUrl && `URL:${eventUrl}`,
     'END:VEVENT',
     'END:VCALENDAR'

@@ -9,6 +9,7 @@ import fetch from 'node-fetch'
 import randomstring from 'randomstring'
 import wkx from 'wkx'
 import ical from 'ical-generator'
+import { withStandardConference } from './event/mixin'
 import { writeStringToS3 } from '../../lib/uploader/storage'
 import { safeFetch } from '../../lib/safeFetch'
 
@@ -1370,7 +1371,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Write the combined calendar file to S3
     await writeStringToS3(
-      cal.toString(),
+      withStandardConference(cal.toString()),
       group.getEventCalendarPath(), {
         ContentType: 'text/calendar'
       }

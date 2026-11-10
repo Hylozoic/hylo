@@ -12,6 +12,7 @@ import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
+import { withStandardConference } from './event/mixin'
 import Frontend from '../services/Frontend'
 
 // Join table for groupRoles(). The view has no id column; Bookshelf joins it on
@@ -1061,7 +1062,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Write the combined calendar file to S3 (inline require so tests can patch exports.writeStringToS3)
     await require('../../lib/uploader/storage').writeStringToS3(
-      cal.toString(),
+      withStandardConference(cal.toString()),
       user.getRsvpCalendarPath(), {
         ContentType: 'text/calendar'
       })
