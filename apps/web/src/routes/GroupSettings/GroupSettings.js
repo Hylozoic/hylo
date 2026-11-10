@@ -19,6 +19,7 @@ import PrivacySettingsTab from './PrivacySettingsTab'
 import RelatedGroupsTab from './RelatedGroupsTab'
 import ResponsibilitiesTab from './ResponsibilitiesTab'
 import ExportDataTab from './ExportDataTab'
+import InsightsTab from './InsightsTab/InsightsTab'
 import PaidContentTab from './PaidContentTab'
 import BillingTab from './BillingTab'
 import Loading from 'components/Loading'
@@ -34,6 +35,7 @@ import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
 import getMe from 'store/selectors/getMe'
+import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
 import {
   FETCH_GROUP_SETTINGS,
   deleteGroup,
@@ -88,6 +90,7 @@ export default function GroupSettings () {
   const currentUser = useSelector(getMe)
   const parentGroups = useSelector(state => getParentGroups(state, rawGroup))
   const fetchPending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
+  const hyloProEnabled = useSelector(getHyloProEnabled)
 
   // Action creators
   const fetchGroupSettingsAction = () => slug && dispatch(fetchGroupSettings(slug))
@@ -144,6 +147,7 @@ export default function GroupSettings () {
   // labels and visibility follow the user's permissions automatically.
   const phoneMenuItems = compact([
     canAdminister && { name: t('Group Details'), path: 'details' },
+    canAdminister && { name: t('Insights'), path: 'insights' },
     canAdminister && !isSpace && { name: t('Agreements'), path: 'agreements' },
     canAdminister && { name: t('Responsibilities'), path: 'responsibilities' },
     canAdminister && { name: t('Roles & Badges'), path: 'roles' },
@@ -154,7 +158,7 @@ export default function GroupSettings () {
     canAdminister && { name: t('Export Data'), path: 'export' },
     canAdminister && { name: t('Appearance & Layout'), path: 'appearance' },
     canAdminister && { name: t('Paid Content'), path: 'paid-content' },
-    canAdminister && !isSpace && { name: t('Billing'), path: 'billing' },
+    canAdminister && !isSpace && hyloProEnabled && { name: t('Billing'), path: 'billing' },
     canAdminister && { name: t('Delete'), path: 'delete' }
   ])
 
@@ -172,6 +176,12 @@ export default function GroupSettings () {
     name: t('Group Details'),
     path: 'details',
     component: groupDetailsTab
+  }
+
+  const insightsSettings = {
+    name: t('Insights'),
+    path: 'insights',
+    component: <InsightsTab group={group} />
   }
 
   const agreementSettings = {
@@ -258,6 +268,7 @@ export default function GroupSettings () {
       content={compact([
         canAdminister ? overallSettings : null,
         canAdminister ? detailsSettings : null,
+        canAdminister ? insightsSettings : null,
         canAdminister && !isSpace ? agreementSettings : null,
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
@@ -269,7 +280,7 @@ export default function GroupSettings () {
         canAdminister ? exportSettings : null,
         canAdminister ? appearanceSettings : null,
         canAdminister ? paidContentSettings : null,
-        canAdminister && !isSpace ? billingSettings : null,
+        canAdminister && !isSpace && hyloProEnabled ? billingSettings : null,
         canAdminister ? deleteSettings : null
       ])}
     />

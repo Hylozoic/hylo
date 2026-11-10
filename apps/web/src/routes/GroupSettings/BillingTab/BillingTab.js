@@ -6,6 +6,8 @@ import { AlertCircle, CheckCircle2, Sparkles } from 'lucide-react'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { formatLocalizedDate } from 'util/dateFormat'
+import { getDateLocale } from 'util/locale'
 import { activateProCheckoutSession, createProCheckoutSession, createProPortalSession, fetchProBilling } from './BillingTab.store'
 
 // On return from Checkout the page activates the subscription right away; if Stripe is still
@@ -27,7 +29,7 @@ function isServerError (error) {
 }
 
 export default function BillingTab ({ group }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const [searchParams, setSearchParams] = useSearchParams()
   // Read once: the params are removed from the URL when activation finishes (see clearCheckoutParams),
@@ -149,10 +151,11 @@ export default function BillingTab ({ group }) {
 
   if (!group || !loaded) return <Loading />
 
-  const formatDate = value => value ? new Date(value).toLocaleDateString(i18n.language, { dateStyle: 'long' }) : ''
+  // Dates and prices follow the user's Hylo locale setting (en-GB is day first), never the browser's
+  const formatDate = value => formatLocalizedDate(value, { style: 'long' }) || ''
   const formatPrice = plan => {
     const digits = plan.unitAmount % 100 === 0 ? 0 : 2
-    return new Intl.NumberFormat(i18n.language, {
+    return new Intl.NumberFormat(getDateLocale(), {
       style: 'currency',
       currency: (plan.currency || 'usd').toUpperCase(),
       minimumFractionDigits: digits,

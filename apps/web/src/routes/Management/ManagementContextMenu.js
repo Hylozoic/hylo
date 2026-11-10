@@ -25,6 +25,24 @@ export default function ManagementContextMenu () {
             <ul className='m-0 p-3 mb-6'>
               <li>
                 <div>
+                  <h3 className='text-base font-light opacity-50 text-foreground mb-2'>PLATFORM</h3>
+                  <ul className='p-0'>
+                    <li>
+                      <MenuLink
+                        to='/management/platform/health'
+                        className={cn(
+                          'text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100',
+                          { 'border-secondary': location.pathname === '/management/platform/health' }
+                        )}
+                      >
+                        Health
+                      </MenuLink>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+              <li>
+                <div>
                   <h3 className='text-base font-light opacity-50 text-foreground mb-2'>SITE</h3>
                   <ul className='p-0'>
                     <li>

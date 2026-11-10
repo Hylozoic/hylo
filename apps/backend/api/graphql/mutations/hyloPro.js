@@ -5,10 +5,20 @@
 
 import { GraphQLError } from 'graphql'
 import HyloProService from '../../services/HyloProService'
+import { HYLO_PRO, isFeatureEnabled } from '../../../lib/featureFlags'
 
 /* global Group, GroupMembership, Responsibility */
 
+// While the HYLO_PRO flag is off nobody can start or manage Pro billing. Stripe webhooks
+// for existing Pro subscriptions are still processed, so turning it off loses nothing
+function assertHyloProEnabled () {
+  if (!isFeatureEnabled(HYLO_PRO)) {
+    throw new GraphQLError('Hylo Pro is not available yet', { extensions: { code: 'HYLO_PRO_DISABLED' } })
+  }
+}
+
 async function findGroupForBilling (userId, groupId) {
+  assertHyloProEnabled()
   if (!userId) throw new GraphQLError('You must be logged in to manage billing')
 
   const group = await Group.find(groupId)

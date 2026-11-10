@@ -5,6 +5,9 @@ import { Validators } from '@hylo/shared'
 import { decodeHyloJWT } from '../../../lib/HyloJWT'
 import { RATE_LIMITED_ERROR, authenticateWithRateLimit, isRateLimited, recordAttempt } from '../../../lib/rateLimit'
 import sentry from '../../../lib/sentry'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { track } from '../../../lib/analytics/track'
+import { linkAnonymousEvents } from '../../../lib/analytics/clientEvents'
 
 // Sign-up Related
 
@@ -91,7 +94,7 @@ export const verifyEmail = (fetchOne) => async (_, { email: providedEmail, code:
   }
 }
 
-export const register = (fetchOne) => async (_, { name, password }, context) => {
+export const register = (fetchOne) => async (_, { name, password, anonymousId }, context) => {
   try {
     const user = await User.find(context.currentUserId, {}, false)
 
@@ -114,7 +117,14 @@ export const register = (fetchOne) => async (_, { name, password }, context) => 
       await UserSession.login(context.req, user, 'password', { transacting }) // XXX: this does another save of the user, ideally we just do one of those
       await LinkedAccount.create(context.currentUserId, { type: 'password', password }, { transacting })
       await Analytics.trackSignup(user.id, context.req)
+      track({
+        type: EVENT_TYPES.SIGNUP_COMPLETED,
+        userId: user.id,
+        object: { type: 'user', id: user.id },
+        occurredAt: user.get('created_at') || new Date()
+      })
     })
+    await linkAnonymousEvents(bookshelf.knex, user.id, anonymousId)
 
     return { me: fetchOne('Me', user.id) }
   } catch (error) {
@@ -176,6 +186,12 @@ export async function deactivateUser ({ userId, sessionId }) {
   const user = await User.find(userId)
 
   await user.deactivate(sessionId)
+  track({
+    type: EVENT_TYPES.ACCOUNT_DEACTIVATED,
+    userId,
+    object: { type: 'user', id: userId },
+    occurredAt: new Date()
+  })
 
   return { success: true }
 }
@@ -192,12 +208,26 @@ export async function deleteUser ({ userId, sessionId }) {
   const user = await User.find(userId, {}, false)
 
   await user.sanelyDeleteUser({ sessionId })
+  // The deletion removes this person's earlier events. Record the deletion after that.
+  track({
+    type: EVENT_TYPES.ACCOUNT_DELETED,
+    userId,
+    object: { type: 'user', id: userId },
+    occurredAt: new Date()
+  })
 
   return { success: true }
 }
 
 export async function blockUser (userId, blockedUserId) {
-  await BlockedUser.create(userId, blockedUserId)
+  const blocked = await BlockedUser.create(userId, blockedUserId)
+  track({
+    type: EVENT_TYPES.USER_BLOCKED,
+    userId,
+    object: { type: 'blocked_user', id: blocked && blocked.id },
+    targetUserId: blockedUserId,
+    occurredAt: (blocked && blocked.get && blocked.get('created_at')) || new Date()
+  })
 
   return { success: true }
 }
@@ -206,6 +236,13 @@ export async function unblockUser (userId, blockedUserId) {
   const blockedUser = await BlockedUser.find(userId, blockedUserId)
 
   if (!blockedUser) throw new GraphQLError('user is not blocked')
+
+  track({
+    type: EVENT_TYPES.USER_UNBLOCKED,
+    userId,
+    object: { type: 'blocked_user', id: blockedUser.id },
+    targetUserId: blockedUserId
+  })
 
   await blockedUser.destroy()
 

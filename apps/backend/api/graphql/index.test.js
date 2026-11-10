@@ -5,7 +5,8 @@ import jwt from 'jsonwebtoken'
 import { createRequestHandler, makeMutations, makeAuthenticatedQueries } from './index'
 import '../../test/setup'
 import factories from '../../test/setup/factories'
-import { mockify, spyify, unspyify } from '../../test/setup/helpers'
+import { mockify, spyify, unspyify, withFeatureFlag } from '../../test/setup/helpers'
+import { HYLO_PRO } from '../../lib/featureFlags'
 import { some } from 'lodash/fp'
 import { updateFollowers } from '../models/post/util'
 
@@ -195,6 +196,15 @@ describe('graphql request handler', () => {
         { interval: 'month', unitAmount: 1000, currency: 'usd' },
         { interval: 'year', unitAmount: 10000, currency: 'usd' }
       ])
+    })
+
+    it('hides billing details from stewards while the HYLO_PRO flag is off', async () => {
+      req.session.userId = steward.id
+      req.user = steward
+      const { executionResult } = await withFeatureFlag(HYLO_PRO, 'off', () =>
+        handler.inject({ document: query(proGroup.id), serverContext: { req, res } }))
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proBilling: null })
     })
 
     it('hides billing details from other members', async () => {
@@ -1235,6 +1245,52 @@ describe('graphql request handler', () => {
       })
       expect(user.relations.skills.length).to.equal(1)
       expect(user.relations.skills.first().id).to.equal(skill1.id)
+    })
+  })
+
+  describe('updateMe settings', () => {
+    let settingsUser
+
+    beforeEach(async () => {
+      settingsUser = await factories.user({
+        settings: { tours_seen: ['global-chrome'], dm_notifications: 'both' }
+      }).save()
+      req.session.userId = settingsUser.id
+      req.user = settingsUser
+    })
+
+    it('persists hideRsvpCalendarPrompt without clobbering other settings', async () => {
+      const { executionResult } = await handler.inject({
+        document: `mutation {
+          updateMe(changes: { settings: { hideRsvpCalendarPrompt: true } }) {
+            id
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(executionResult.errors).to.be.undefined
+
+      const fresh = await User.find(settingsUser.id)
+      expect(fresh.get('settings')).to.deep.include({
+        hide_rsvp_calendar_prompt: true,
+        tours_seen: ['global-chrome'],
+        dm_notifications: 'both'
+      })
+
+      const { executionResult: readBack } = await handler.inject({
+        document: `{
+          me {
+            settings { hideRsvpCalendarPrompt toursSeen dmNotifications }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(readBack.errors).to.be.undefined
+      expect(readBack.data.me.settings).to.deep.equal({
+        hideRsvpCalendarPrompt: true,
+        toursSeen: ['global-chrome'],
+        dmNotifications: 'both'
+      })
     })
   })
 

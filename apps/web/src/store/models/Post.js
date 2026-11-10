@@ -97,12 +97,15 @@ export default Post
 Post.modelName = 'Post'
 Post.fields = {
   id: attr(),
+  canEdit: attr(), // Whether the current user can edit (creator, or a group admin the creator allowed)
   commentersTotal: attr(),
   createdAt: attr(),
   details: attr(),
   donationsLink: attr(),
   endsAt: attr(),
   fulfilledAt: attr(),
+  following: attr(), // Whether the current user is following this post
+  groupAdminsCanEdit: attr(),
   groupsTotal: attr(),
   isPublic: attr(),
   linkPreviewFeatured: attr(),

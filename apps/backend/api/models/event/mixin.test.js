@@ -469,7 +469,7 @@ describe('Event Mixin', () => {
       expect(calEvent.location).to.equal(newLocation)
     })
 
-    it('uses meeting_link as iCal location when there is no physical location', async () => {
+    it('keeps meeting_link out of LOCATION and marks it as the conference link', async () => {
       const meetingLink = 'https://meet.jit.si/hylo-event'
       await event.save({ location: null, meeting_link: meetingLink }, { patch: true })
 
@@ -480,7 +480,9 @@ describe('Event Mixin', () => {
         url: 'https://example.com/event'
       })
 
-      expect(calEvent.location).to.equal(meetingLink)
+      expect(calEvent.location).to.equal('')
+      expect(calEvent.description).to.include(`Join online: ${meetingLink}`)
+      expect(calEvent.x['X-GOOGLE-CONFERENCE']).to.equal(meetingLink)
 
       await event.save({ location: 'Original Location', meeting_link: null }, { patch: true })
     })
@@ -498,6 +500,7 @@ describe('Event Mixin', () => {
 
       expect(calEvent.location).to.equal('Community Hall')
       expect(calEvent.description).to.include('Join online: https://zoom.us/j/123456789')
+      expect(calEvent.x['X-GOOGLE-CONFERENCE']).to.equal(meetingLink)
 
       await event.save({ location: 'Original Location', meeting_link: null }, { patch: true })
     })
@@ -511,7 +514,8 @@ describe('Event Mixin', () => {
         url: 'https://example.com/event'
       })
 
-      expect(calEvent.location).to.equal(newMeetingLink)
+      expect(calEvent.location).to.equal('')
+      expect(calEvent.x['X-GOOGLE-CONFERENCE']).to.equal(newMeetingLink)
     })
 
     it('returns CANCELLED status when eventInvitation.notGoing() is true', async () => {
@@ -843,6 +847,22 @@ describe('Event Mixin', () => {
       expect(calString).to.include('BEGIN:VCALENDAR')
       expect(calString).to.include('BEGIN:VEVENT')
       expect(calString).to.include(event.iCalUid())
+    })
+
+    it('writes the meeting link as CONFERENCE and X-GOOGLE-CONFERENCE', async () => {
+      await event.save({ meeting_link: 'https://zoom.us/j/123456789' }, { patch: true })
+      const cal = await event.createCalInvite({
+        userId: invitee.id,
+        eventInvitation,
+        eventChanges: null,
+        groupName: group
+      })
+      const calString = cal.toString().replace(/\r\n[ \t]/g, '')
+      expect(calString).to.include('CONFERENCE;VALUE=URI;FEATURE=AUDIO,VIDEO;LABEL=Join online:https://zoom.us/j/123456789')
+      expect(calString).to.include('X-GOOGLE-CONFERENCE:https://zoom.us/j/123456789')
+      expect(calString).to.include('LOCATION:Test Location')
+      expect(calString).to.not.include('LOCATION:https://zoom.us/j/123456789')
+      await event.save({ meeting_link: null }, { patch: true })
     })
 
     it('does not include url when eventChanges.deleted is true', async () => {

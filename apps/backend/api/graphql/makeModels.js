@@ -20,7 +20,9 @@ import {
   reactionFilter
 } from './filters'
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
+import { HYLO_PRO, isFeatureEnabled } from '../../lib/featureFlags'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
+import { canEditPost } from '../models/post/postEditPermissions'
 import { listBlockingSpaces } from '../models/space/convertChatSpaceToDiscussion'
 import InvitationService from '../services/InvitationService'
 import HyloProService from '../services/HyloProService'
@@ -754,6 +756,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'end_time',
         'flagged_groups',
         'fulfilled_at',
+        'group_admins_can_edit',
         'is_public',
         'link_preview_featured',
         'location',
@@ -771,6 +774,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'voting_method'
       ],
       getters: {
+        canEdit: p => canEditPost(userId, p),
         clickthrough: p => p.clickthroughForUser(userId),
         commenters: (p, { first }) => p.getCommenters(first, userId),
         completedAt: p => p.completedAtForUser(userId),
@@ -811,6 +815,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         savedAt: p => p.savedAtForUser(userId),
+        following: p => p.followingForUser(userId),
         tokensAllocated: async p => {
           if (!userId) return null
           const postUser = await PostUser.find(p.get('id'), userId)
@@ -1280,6 +1285,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         hasPro: g => g.hasPro(),
         proBilling: async g => {
+          // Hylo Pro billing is hidden while its feature flag is off
+          if (!isFeatureEnabled(HYLO_PRO)) return null
           // Hylo Pro is for groups; spaces have no billing of their own
           if (g.get('type') === 'space') return null
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
