@@ -4,7 +4,7 @@ import '../../setup'
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import factories from '../../setup/factories'
-import { mockify, unspyify, wait } from '../../setup/helpers'
+import { joinEventProperties, latestJoinEvent, mockify, unspyify, wait } from '../../setup/helpers'
 import { times } from 'lodash'
 import { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 import setup from '../../setup'
@@ -376,6 +376,15 @@ describe('User', function () {
               .then(membership => expect(membership).to.exist)
           )
         })
+    })
+
+    it('records admin_add as the join source when created with a group', async () => {
+      const user = await User.create({
+        email: 'with-group@bar.com',
+        group,
+        name: 'With Group'
+      })
+      expect(joinEventProperties(await latestJoinEvent(user.id, group.id)).source).to.equal('admin_add')
     })
 
     it('allows inactive users without a name (email verification stub)', function () {

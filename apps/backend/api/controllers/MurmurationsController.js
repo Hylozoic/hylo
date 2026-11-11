@@ -15,11 +15,8 @@ module.exports = {
   group: async function (req, res) {
     const groupSlug = req.param('groupSlug')
     const group = await Group.findActive(groupSlug)
-    if (group.hasMurmurationsProfile()) {
-      const groupObject = await group.toMurmurationsObject()
-      return res.ok(groupObject)
-    } else {
-      return res.forbidden()
-    }
+    // The index drops a profile when its URL returns 404, so unpublished groups must 404 too
+    if (!group || !group.hasMurmurationsProfile()) return res.notFound()
+    return res.ok(await group.toMurmurationsObject())
   }
 }

@@ -22,6 +22,33 @@ export const unspyify = (object, methodName) => {
   }
 }
 
+/** Parsed properties of an activity event. */
+export function joinEventProperties (event) {
+  if (!event || event.properties == null) return {}
+  return typeof event.properties === 'string' ? JSON.parse(event.properties) : event.properties
+}
+
+/**
+ * Latest group_joined event for a membership. Tracking writes after the join
+ * returns, so this waits briefly for the row.
+ */
+export async function latestJoinEvent (userId, groupId) {
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const row = await bookshelf.knex('activity_events')
+      .where({
+        event_type: 'group_joined',
+        user_id: userId,
+        group_id: groupId
+      })
+      .orderBy('occurred_at', 'desc')
+      .orderBy('id', 'desc')
+      .first()
+    if (row) return row
+    await new Promise(resolve => setTimeout(resolve, 20))
+  }
+  return null
+}
+
 // Runs fn with FEATURE_FLAG_<name> set to value ('on' or 'off'), then restores it
 export async function withFeatureFlag (name, value, fn) {
   const key = `FEATURE_FLAG_${name}`
