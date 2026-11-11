@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved link previews for public Hylo groups when shared on social media, and within Hylo
 - Clean up the management menu, and use our standard menu system for it
 - Add platform health widget for MAUs, WAUs and DAUs
+- Indicate which posts are in which child groups and spaces in map drawer
 
 ### Fixed
 - UI of adding and deleting of affiliations on user profiles

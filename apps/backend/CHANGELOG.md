@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Converting a child group to a space when it had an old deactivated parent
+- Get chat digest sending again we hope
 
 ## [7.1.11] - 2026-11-09
 
