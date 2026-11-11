@@ -167,17 +167,47 @@ export const isDatabaseRecordMoreRecent = (cookieData, dbData) => {
 }
 
 /**
- * Update cookie from database record
+ * Read analytics/support flags from a cookie consent record.
+ * Settings may already be an object or a JSON string.
+ */
+const normalizeConsentSettings = (settings) => {
+  let parsed = settings
+  if (typeof settings === 'string') {
+    try {
+      parsed = JSON.parse(settings)
+    } catch (error) {
+      parsed = {}
+    }
+  }
+
+  return {
+    analytics: parsed?.analytics === true,
+    support: parsed?.support === true
+  }
+}
+
+/**
+ * Update cookie from the account's saved consent record.
+ * The cookie id must be the consent UUID (`consentId`), not the integer row id,
+ * or the next page load treats the cookie as invalid and shows the banner again.
  */
 export const updateCookieFromDatabase = (dbData, isLinkedToUser = true) => {
-  const cookieData = createCookieConsentData({
-    analytics: dbData.settings?.analytics || false,
-    support: dbData.settings?.support || false
-  }, isLinkedToUser, dbData.userId)
+  const cookieData = createCookieConsentData(
+    normalizeConsentSettings(dbData?.settings),
+    isLinkedToUser,
+    dbData?.userId || null
+  )
 
-  // Use database record's ID and timestamp
-  cookieData.id = dbData.id
-  cookieData.lastUpdated = dbData.updatedAt
+  if (dbData?.consentId) {
+    cookieData.id = dbData.consentId
+  }
+
+  if (dbData?.updatedAt) {
+    const updatedAt = new Date(dbData.updatedAt)
+    if (!isNaN(updatedAt.getTime())) {
+      cookieData.lastUpdated = updatedAt.toISOString()
+    }
+  }
 
   return setCookieConsent(cookieData)
 }
