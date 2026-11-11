@@ -67,52 +67,6 @@ export function updateProposalOutcome (postId, proposalOutcome) {
   }
 }
 
-/** Subscribe the current user to updates on a post. */
-export function followPost (postId) {
-  return {
-    type: FOLLOW_POST,
-    graphql: {
-      query: `mutation ($postId: ID) {
-        followPost (postId: $postId) {
-          id
-          following
-        }
-      }`,
-      variables: {
-        postId
-      }
-    },
-    meta: {
-      optimistic: true,
-      postId,
-      extractModel: 'Post'
-    }
-  }
-}
-
-/** Stop updates on a post. */
-export function unfollowPost (postId) {
-  return {
-    type: UNFOLLOW_POST,
-    graphql: {
-      query: `mutation ($postId: ID) {
-        unfollowPost (postId: $postId) {
-          id
-          following
-        }
-      }`,
-      variables: {
-        postId
-      }
-    },
-    meta: {
-      optimistic: true,
-      postId,
-      extractModel: 'Post'
-    }
-  }
-}
-
 export function savePost (postId) {
   return {
     type: SAVE_POST,
@@ -164,10 +118,10 @@ export const getGroup = ormCreateSelector(
 )
 
 /** Writes follow state onto the post and pinned copies stored on group menus. */
-function applyFollowing ({ Post, Group }, postId, following) {
+function applyFollowing ({ Post, Group }, postId, isFollowing) {
   if (postId == null) return
   if (Post.idExists(postId)) {
-    Post.withId(postId).update({ following })
+    Post.withId(postId).update({ isFollowing })
   }
   const patches = []
   Group.all().toModelArray().forEach(group => {
@@ -177,7 +131,7 @@ function applyFollowing ({ Post, Group }, postId, following) {
       if (!Array.isArray(pinned) || !pinned.some(post => String(post.id) === String(postId))) return
       patches.push({
         viewId: view.id,
-        pinnedPosts: pinned.map(post => String(post.id) === String(postId) ? { ...post, following } : post)
+        pinnedPosts: pinned.map(post => String(post.id) === String(postId) ? { ...post, isFollowing } : post)
       })
     })
   })

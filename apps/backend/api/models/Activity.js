@@ -1,4 +1,5 @@
-import { values, omit, filter, includes, isEmpty, get } from 'lodash'
+import { values, omit, filter, find, includes, isEmpty, get } from 'lodash'
+import { EMAIL_REASONS } from './notification/emailReasons'
 
 const isNewPost = activity => {
   const reasons = activity.get('meta').reasons
@@ -8,13 +9,6 @@ const isNewPost = activity => {
 const isMention = activity => {
   const reasons = activity.get('meta').reasons
   return filter(reasons, reason => reason.match(/^mention/)).length > 0
-}
-
-// TODO: Remove this unused helper after confirming no legacy activity path needs it.
-/* eslint-disable-next-line no-unused-vars */
-const isJustNewPost = activity => {
-  const reasons = activity.get('meta').reasons
-  return reasons.every(reason => reason.match(/^newPost/))
 }
 
 const isAnnouncement = activity => {
@@ -359,8 +353,17 @@ module.exports = bookshelf.Model.extend({
       return []
     }
 
+    // Spaces have no channel settings of their own in the UI; they follow the parent group's
+    const channelSetting = (mem, key) => {
+      const group = mem.related('group')
+      const parentId = group.get('type') === 'space' && group.get('parent_id')
+      const parentMembership = parentId &&
+        find(memberships.models, m => String(m.related('group').id) === String(parentId))
+      return (parentMembership || mem).getSetting(key)
+    }
+
     const membershipsPermitting = key =>
-      filter(relevantMemberships, mem => mem.getSetting(key))
+      filter(relevantMemberships, mem => channelSetting(mem, key))
 
     let emailable = membershipsPermitting('sendEmail')
     const pushable = membershipsPermitting('sendPushNotifications')
@@ -383,7 +386,9 @@ module.exports = bookshelf.Model.extend({
       sendNotification = newPostsSetting === 'all' || (newPostsSetting === 'important' && (isAnnouncement(activity) || isMention(activity)))
     }
 
-    if (!isEmpty(emailable) && sendNotification) {
+    const hasEmail = EMAIL_REASONS.has(Notification.priorityReason(reasons))
+
+    if (!isEmpty(emailable) && sendNotification && hasEmail) {
       // TODO: make sure email shows its from the first group that has sendEmail set to true, or maybe show all groups on it?
       notifications.push(Notification.MEDIUM.Email)
     }

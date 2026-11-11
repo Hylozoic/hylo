@@ -99,7 +99,9 @@ export { registerDevice } from './mobile'
 export {
   completePost,
   createPost,
+  followPost,
   fulfillPost,
+  unfollowPost,
   unfulfillPost,
   setProposalOptions,
   addProposalVote,
@@ -111,10 +113,6 @@ export {
   deletePost,
   pinPost
 } from './post'
-export {
-  followPost,
-  unfollowPost
-} from './followPost'
 export {
   savePost,
   unsavePost

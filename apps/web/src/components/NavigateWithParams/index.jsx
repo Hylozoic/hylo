@@ -1,13 +1,11 @@
 import React from 'react'
-import { Navigate, useParams } from 'react-router-dom'
+import { Navigate, parsePath, useLocation, useParams } from 'react-router-dom'
 
+// Keeps the current query string and hash unless `to` sets its own
 export default function NavigateWithParams ({ to, ...rest }) {
   const params = useParams()
-  let toValue
-  if (typeof to === 'function') {
-    toValue = to(params)
-  } else {
-    toValue = to
-  }
-  return <Navigate to={toValue} {...rest} />
+  const { search, hash } = useLocation()
+  const toValue = typeof to === 'function' ? to(params) : to
+  const target = typeof toValue === 'string' ? parsePath(toValue) : toValue
+  return <Navigate to={{ search, hash, ...target }} {...rest} />
 }
