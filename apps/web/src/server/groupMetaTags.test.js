@@ -39,6 +39,11 @@ describe('resolveGroupMetaRoute', () => {
     expect(resolveGroupMetaRoute('/groups/garden-club/chat/general')).toEqual({ slug: 'garden-club' })
   })
 
+  it('previews a space page as its parent group', () => {
+    expect(resolveGroupMetaRoute('/groups/garden-club/spaces/seeds')).toEqual({ slug: 'garden-club' })
+    expect(resolveGroupMetaRoute('/groups/garden-club/spaces/seeds/chat/general')).toEqual({ slug: 'garden-club' })
+  })
+
   it('reads the access code from join links', () => {
     expect(resolveGroupMetaRoute('/groups/garden-club/join/abc123')).toEqual({ slug: 'garden-club', accessCode: 'abc123' })
   })
@@ -56,13 +61,18 @@ describe('resolveGroupMetaRoute', () => {
 })
 
 describe('presentGroupMeta', () => {
-  it('uses the name, plain-text description and banner of a public group', () => {
+  it('uses the name, purpose and banner of a public group', () => {
     expect(presentGroupMeta(publicGroup)).toEqual({
       title: 'Garden Club',
-      description: 'We grow food together.',
+      description: 'Grow food',
       imageUrl: 'https://cdn.example/banner.jpg',
       largeImage: true
     })
+  })
+
+  it('uses the plain-text description when the group has no purpose', () => {
+    const meta = presentGroupMeta({ ...publicGroup, purpose: null })
+    expect(meta.description).toBe('We grow food together.')
   })
 
   it('leaves the description out for a group that is not public', () => {
@@ -120,7 +130,7 @@ describe('withGroupMetaTags', () => {
 
     expect(result).toContain('<title>Garden Club</title>')
     expect(result).toContain('<meta property="og:type" content="website" />')
-    expect(result).toContain('<meta property="og:description" content="We grow food together." />')
+    expect(result).toContain('<meta property="og:description" content="Grow food" />')
     expect(result).toContain('<meta property="og:image" content="https://cdn.example/banner.jpg" />')
     expect(result).toContain('<meta property="og:url" content="https://hylo.com/groups/garden-club/about" />')
     expect(result).toContain('<meta name="twitter:card" content="summary_large_image" />')
@@ -163,7 +173,7 @@ describe('withGroupMetaTags', () => {
 
   it('escapes group fields', async () => {
     const fetchImpl = jest.fn().mockResolvedValue(graphqlResponse({
-      group: { ...publicGroup, name: 'Say "hi" <script>', description: 'A & B' }
+      group: { ...publicGroup, name: 'Say "hi" <script>', purpose: 'A & B' }
     }))
     const result = await withGroupMetaTags(HTML, request('/groups/garden-club'), { fetchImpl, apiHost: API })
 
