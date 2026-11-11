@@ -268,7 +268,7 @@ export async function leaveGroup (userId, groupId) {
 }
 
 export async function findOrCreateLinkPreviewByUrl ({ url }) {
-  const hyloAttrs = await LinkPreview.attrsForPublicHyloPost(url)
+  const hyloAttrs = await LinkPreview.attrsForHyloUrl(url)
   if (hyloAttrs) {
     let preview = await LinkPreview.find(url)
     if (!preview) {
