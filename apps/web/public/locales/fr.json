@@ -3508,5 +3508,7 @@
   "That type of file can't be attached": "Ce type de fichier ne peut pas être joint",
   "Files must be smaller than 50 MB": "Les fichiers doivent faire moins de 50 Mo",
   "You can attach up to {{max}} files at a time": "Vous pouvez joindre jusqu'à {{max}} fichiers à la fois",
-  "Upload failed. Please try again.": "Échec du téléversement. Veuillez réessayer."
+  "Upload failed. Please try again.": "Échec du téléversement. Veuillez réessayer.",
+  "Give this view a name of at least 2 characters": "Donnez à cette vue un nom d'au moins 2 caractères",
+  "Choose at least one post type": "Choisissez au moins un type de publication"
 }

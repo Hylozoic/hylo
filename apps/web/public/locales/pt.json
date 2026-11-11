@@ -3507,5 +3507,7 @@
   "That type of file can't be attached": "Esse tipo de arquivo não pode ser anexado",
   "Files must be smaller than 50 MB": "Os arquivos devem ter menos de 50 MB",
   "You can attach up to {{max}} files at a time": "Você pode anexar até {{max}} arquivos de uma vez",
-  "Upload failed. Please try again.": "Falha no envio. Tente novamente."
+  "Upload failed. Please try again.": "Falha no envio. Tente novamente.",
+  "Give this view a name of at least 2 characters": "Dê a esta visualização um nome com pelo menos 2 caracteres",
+  "Choose at least one post type": "Escolha pelo menos um tipo de publicação"
 }

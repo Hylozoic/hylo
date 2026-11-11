@@ -3507,5 +3507,7 @@
   "That type of file can't be attached": "इस प्रकार की फ़ाइल संलग्न नहीं की जा सकती",
   "Files must be smaller than 50 MB": "फ़ाइलें 50 MB से छोटी होनी चाहिए",
   "You can attach up to {{max}} files at a time": "आप एक बार में अधिकतम {{max}} फ़ाइलें संलग्न कर सकते हैं",
-  "Upload failed. Please try again.": "अपलोड विफल रहा। कृपया पुनः प्रयास करें।"
+  "Upload failed. Please try again.": "अपलोड विफल रहा। कृपया पुनः प्रयास करें।",
+  "Give this view a name of at least 2 characters": "इस व्यू को कम से कम 2 अक्षरों का नाम दें",
+  "Choose at least one post type": "कम से कम एक पोस्ट प्रकार चुनें"
 }

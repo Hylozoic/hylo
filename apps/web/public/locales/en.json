@@ -3504,5 +3504,7 @@
   "That type of file can't be attached": "That type of file can't be attached",
   "Files must be smaller than 50 MB": "Files must be smaller than 50 MB",
   "You can attach up to {{max}} files at a time": "You can attach up to {{max}} files at a time",
-  "Upload failed. Please try again.": "Upload failed. Please try again."
+  "Upload failed. Please try again.": "Upload failed. Please try again.",
+  "Give this view a name of at least 2 characters": "Give this view a name of at least 2 characters",
+  "Choose at least one post type": "Choose at least one post type"
 }
