@@ -32,7 +32,7 @@ jest.mock('lodash/debounce', () => fn => {
   return fn
 })
 
-function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', groups = [{ id: '1', name: 'Test Group' }], details, postAttrs: extraPostAttrs = {}, meAttrs = {}, extraGroups = [], people = [], eventInvitees = [] } = {}) {
+function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Test Post', groups = [{ id: '1', name: 'Test Group' }], details, postAttrs: extraPostAttrs = {}, meAttrs = {}, extraGroups = [], people = [], eventInvitees = [], extraState = {} } = {}) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1', ...meAttrs })
   ormSession.Group.create({ id: '1', name: 'Test Group', slug: 'test-group' })
@@ -55,7 +55,7 @@ function testProviders ({ withLinkPreview, postType = 'discussion', title = 'Tes
     const person = ormSession.Person.create(invitee)
     ormSession.EventInvitation.create({ response: 'yes', person, event: post })
   })
-  const reduxState = { orm: ormSession.state }
+  const reduxState = { orm: ormSession.state, ...extraState }
 
   return AllTheProviders(reduxState)
 }
@@ -125,6 +125,17 @@ describe('PostEditor', () => {
   })
 
   describe('for a new post', () => {
+    it('posts while another createPost is still pending', async () => {
+      createPost.mockClear()
+      render(
+        <PostEditor {...baseProps} post={{ type: 'discussion', title: 'Hello', groups: [{ id: '1', name: 'Test Group' }] }} />,
+        { wrapper: testProviders({ extraState: { pending: { CREATE_POST: true } } }) }
+      )
+
+      await userEvent.click(await screen.findByTestId('post-editor-submit'))
+      await waitFor(() => expect(createPost).toHaveBeenCalled())
+    })
+
     it('renders title field and description editor', async () => {
       const { container } = renderComponent({ initialPrompt: 'a test prompt' })
       await waitFor(() => {
