@@ -24,7 +24,9 @@ async function expectCreatePostShell (page, urlPattern) {
 async function expectEditPostShell (page, urlPattern) {
   await waitPastRootSessionLoading(page)
   await expect(page).toHaveURL(urlPattern, navTimeout)
-  await expect(page.getByText(/E2E Public Post/i).first()).toBeVisible(uiTimeout)
+  // Check the editor itself: the stream behind the modal may not include the seeded post once
+  // other specs have created newer posts (it is then past the first page, especially on mobile)
+  await expect(page.locator('#create-modal-content').getByTestId('post-editor-title')).toHaveValue(/E2E Public Post/i, uiTimeout)
 }
 
 test.describe('Batch J: create post modal', () => {

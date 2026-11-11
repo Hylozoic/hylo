@@ -168,13 +168,16 @@ export function snapshotChatActivityNotices (Post) {
 }
 
 /**
- * Puts the current UTC-hour notice(s) for this All Activity view at the front.
+ * Adds the current UTC-hour notice(s) to this All Activity view. The server may
+ * not have returned them yet (or has an older copy), so they are slotted in by
+ * their latest chat time: above older posts, below posts created after that chat.
+ * Lists sorted by something other than time get them at the front.
  * @param {object} session
  * @param {object[]} posts
- * @param {{ filter?: string, slug?: string, groupId?: string }} props
+ * @param {{ filter?: string, slug?: string, groupId?: string, sortBy?: string }} props
  * @returns {object[]}
  */
-export function prependCurrentHourNotices (session, posts, { filter, slug, groupId } = {}) {
+export function prependCurrentHourNotices (session, posts, { filter, slug, groupId, sortBy } = {}) {
   if (filter !== 'all+notices' || !slug) return posts
 
   const hourSuffix = `:${chatActivityBucketStart().toISOString().slice(0, 13)}`
@@ -204,7 +207,29 @@ export function prependCurrentHourNotices (session, posts, { filter, slug, group
     }
     return true
   })
-  return toPrepend.concat(rest)
+
+  const sortTime = postSortTime(sortBy)
+  if (!sortTime) return toPrepend.concat(rest)
+
+  // Both lists are newest first: merge each notice in ahead of the first older post
+  const merged = []
+  let n = 0
+  rest.forEach(p => {
+    while (n < toPrepend.length && sortTime(toPrepend[n]) >= sortTime(p)) merged.push(toPrepend[n++])
+    merged.push(p)
+  })
+  return merged.concat(toPrepend.slice(n))
+}
+
+// The time a post is ordered by in a newest-first stream sort, or null for other sorts.
+// A notice is ordered by its newest chat: the server sets both createdAt and updatedAt to
+// it, but local updates (optimistic chats, reconcile after fetch) may only move createdAt.
+function postSortTime (sortBy) {
+  const toTime = value => value ? new Date(value).getTime() : 0
+  const noticeTime = p => Math.max(toTime(p.createdAt), toTime(p.updatedAt))
+  if (sortBy === 'created') return p => p.type === 'chat_activity' ? noticeTime(p) : toTime(p.createdAt)
+  if (!sortBy || sortBy === 'updated') return p => p.type === 'chat_activity' ? noticeTime(p) : toTime(p.updatedAt || p.createdAt)
+  return null
 }
 
 /**

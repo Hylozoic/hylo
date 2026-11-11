@@ -8,6 +8,9 @@ import {
   updateFollowers
 } from './util'
 import { partitionImageUrls } from '../../../lib/uploader/rehostRemoteMedia'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { groupIdsForPost, track } from '../../../lib/analytics/track'
+import { assertCanEditPost } from './postEditPermissions'
 
 export default function updatePost (userId, id, params) {
   if (!id) throw new GraphQLError('updatePost called with no ID')
@@ -17,8 +20,9 @@ export default function updatePost (userId, id, params) {
     : params
   return setupPostAttrs(userId, paramsForUpdate)
     .then(attrs => bookshelf.transaction(transacting =>
-      Post.find(id).then(post => {
+      Post.find(id).then(async post => {
         if (!post) throw new GraphQLError('Post not found')
+        await assertCanEditPost(userId, post)
         const updatableTypes = [
           Post.Type.ACTION,
           Post.Type.CHAT,
@@ -34,6 +38,9 @@ export default function updatePost (userId, id, params) {
         if (!updatableTypes.includes(post.get('type'))) {
           throw new GraphQLError("This post can't be modified")
         }
+
+        // Keep the original author when someone else (a group admin the creator allowed, or a track steward) updates the post
+        delete attrs.user_id
 
         if (!isEqual(post.details(), paramsForUpdate.description) || !isEqual(post.title(), paramsForUpdate.name)) {
           attrs.edited_at = new Date()
@@ -56,12 +63,24 @@ export default function updatePost (userId, id, params) {
       }
       return post
     })
+    .then(async post => {
+      const groupIds = await groupIdsForPost(post.id)
+      track({
+        type: EVENT_TYPES.POST_UPDATED,
+        userId,
+        groupIds,
+        object: { type: 'post', id: post.id },
+        postId: post.id,
+        postType: post.get('type')
+      })
+      return post
+    })
 }
 
 export function afterUpdatingPost (post, opts) {
   const {
     params,
-    params: { requests, group_ids, topicNames, memberIds, eventInviteeIds, proposalOptions },
+    params: { requests, group_ids, topicNames, memberIds, eventInviteeIds, proposalOptions }, // eslint-disable-line camelcase
     userId,
     eventChanges,
     transacting
@@ -81,7 +100,7 @@ export function afterUpdatingPost (post, opts) {
     .then(() => Post.afterRelatedMutation(post.id, { changeContext: 'edit' }))
 }
 
-export function getEventChanges({ post, params }) {
+export function getEventChanges ({ post, params }) {
   return {
     start_time: post.get('start_time').getTime() !== params.startTime.getTime() && params.startTime,
     end_time: post.get('end_time').getTime() !== params.endTime.getTime() && params.endTime,

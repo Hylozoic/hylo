@@ -12,6 +12,7 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
   return `
   id
   announcement
+  canEdit
   clickthrough
   commentersTotal
   commentsTotal
@@ -41,6 +42,7 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
     }
   }
   fulfilledAt
+  groupAdminsCanEdit
   isAnonymousVote
   isPublic
   linkPreviewFeatured
@@ -72,6 +74,7 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
   proposalStatus
   quorum
   savedAt
+  following
   startTime
   timezone
   title

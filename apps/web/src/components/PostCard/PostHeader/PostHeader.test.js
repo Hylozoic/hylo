@@ -1,5 +1,7 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import userEvent from '@testing-library/user-event'
+import orm from 'store/models'
+import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
 import PostHeader, { TopicsLine } from './PostHeader'
 
 jest.mock('luxon', () => ({
@@ -76,9 +78,46 @@ describe('PostHeader', () => {
 
     expect(screen.getByTestId('post-header-more-icon')).toBeInTheDocument()
   })
+
+  describe('follow menu', () => {
+    const renderMenu = (post) => {
+      const ormSession = orm.mutableSession(orm.getEmptyState())
+      ormSession.Me.create({ id: '1', name: 'Ada' })
+      render(
+        <PostHeader {...defaultProps} post={post} />,
+        { wrapper: AllTheProviders({ orm: ormSession.state }) }
+      )
+    }
+
+    it('offers Follow Post when the viewer is not following', async () => {
+      renderMenu(buildPost({ following: false }))
+      await userEvent.click(screen.getByTestId('post-header-more-icon'))
+      expect(screen.getByText('Follow Post')).toBeInTheDocument()
+    })
+
+    it('offers Unfollow Post when the viewer is following', async () => {
+      renderMenu(buildPost({ following: true }))
+      await userEvent.click(screen.getByTestId('post-header-more-icon'))
+      expect(screen.getByText('Unfollow Post')).toBeInTheDocument()
+    })
+  })
 })
 
 describe('PostHeader with announcement', () => {
+  describe('when someone other than the creator views a completed proposal (#1727)', () => {
+    const proposal = overrides => buildPost({ type: 'proposal', fulfilledAt: '2024-07-23T16:30:00Z', ...overrides })
+
+    it('lets them edit the outcome when the server says they can edit', () => {
+      render(<PostHeader {...defaultProps} expanded post={proposal({ canEdit: true })} />)
+      expect(screen.getByPlaceholderText('Summarize the outcome')).toBeInTheDocument()
+    })
+
+    it('does not otherwise', () => {
+      render(<PostHeader {...defaultProps} expanded post={proposal({ canEdit: false })} />)
+      expect(screen.queryByPlaceholderText('Summarize the outcome')).not.toBeInTheDocument()
+    })
+  })
+
   it('renders announcement icon', () => {
     render(
       <PostHeader
