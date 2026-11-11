@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.12] - 2026-11-11
+
+### Changed
+- Improved link previews for public Hylo groups when shared on social media, and within Hylo
+- Clean up the management menu, and use our standard menu system for it
+- Add platform health widget for MAUs, WAUs and DAUs
+
+### Fixed
+- UI of adding and deleting of affiliations on user profiles
+- Don't keep showing cookie consent after logging in as user who already closed it
+- Posts not opening from space map drawer
+- Make sure map zoom buttons appear when drawer is open
+
 ## [7.1.11] - 2026-11-09
 
 ### Added

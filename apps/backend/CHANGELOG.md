@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.12] - 2026-11-11
+
+### Changed
+- Improved link previews for public Hylo groups when shared on social media, and within Hylo
+- Send the welcome email in the recipient's language
+- Clean up the management menu, and use our standard menu system for it
+
+### Fixed
+- Converting a child group to a space when it had an old deactivated parent
+
 ## [7.1.11] - 2026-11-09
 
 ### Added
