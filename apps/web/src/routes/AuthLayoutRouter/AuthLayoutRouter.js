@@ -153,6 +153,7 @@ export default function AuthLayoutRouter (props) {
       { path: 'groups/:joinGroupSlug/join/:accessCode', context: 'groups' },
       { path: 'invite/:accessCode', context: 'groups' },
       { path: 'view/:accessCode', context: 'groups' },
+      { path: 'groups/:groupSlug/spaces/:spaceSlug/:view/*', context: 'groups' },
       { path: 'groups/:groupSlug/spaces/:spaceSlug/*', context: 'groups' },
       { path: 'groups/:groupSlug/:view/*', context: 'groups' },
       { path: 'groups/:groupSlug/*', context: 'groups' },
@@ -1232,6 +1233,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
 
                 {/* Groups context routes */}
+                <Route path={`/groups/:groupSlug/spaces/:spaceSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
+                <Route path={`/groups/:groupSlug/spaces/:spaceSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
