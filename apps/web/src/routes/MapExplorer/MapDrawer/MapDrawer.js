@@ -30,6 +30,7 @@ import {
 import { CONTEXT_MY } from 'store/constants'
 import { DEFAULT_BANNER } from 'store/models/Group'
 import { POST_TYPES } from 'store/models/Post'
+import childGroupLabel from 'util/childGroupLabel'
 import { STREAM_SORT_OPTIONS } from 'util/constants'
 
 import styles from './MapDrawer.module.scss'
@@ -146,12 +147,30 @@ function SpaceMapCard ({ space, parentSlug }) {
 }
 
 /**
+ * Where a drawer post lives when it comes from a child group or space and is
+ * not also posted in the group being viewed. Same label as the stream postcard.
+ * Aggregate maps (my / all / public) have no parent, so every post names its groups.
+ */
+function childPostGroupLabel (post, { context, group }, t) {
+  const groups = post?.groups || []
+  if (groups.length === 0) return null
+  const aggregate = [CONTEXT_MY, 'all', 'public'].includes(context)
+  if (!aggregate) {
+    if (!group) return null
+    const postedHere = groups.some(g => g.slug === group.slug || String(g.id) === String(group.id))
+    if (postedHere) return null
+  }
+  return childGroupLabel(post, t)
+}
+
+/**
  * Radically simplified drawer card, per the design: one author line with a
  * type pill and time, a bold title, then either an event-date chip or a quiet
  * comments / reactions / topic row. The whole card links to the post.
  */
-function MapPostRow ({ post, routeParams }) {
+function MapPostRow ({ post, routeParams, context, group }) {
   const { t } = useTranslation()
+  const groupLabel = childPostGroupLabel(post, { context, group }, t)
   const type = POST_TYPES[post.type] || {}
   const [red, green, blue] = type.primaryColor || [128, 128, 128]
   const typeColor = `rgb(${red} ${green} ${blue})`
@@ -172,7 +191,12 @@ function MapPostRow ({ post, routeParams }) {
     >
       <div className='flex items-center gap-1.5 mb-1.5 min-w-0'>
         <div className='w-[18px] h-[18px] rounded-full bg-cover bg-center shrink-0' style={bgImageStyle(post.creator?.avatarUrl)} />
-        <span className='text-[11px] font-semibold text-foreground truncate flex-1'>{post.creator?.name}</span>
+        <div className='flex flex-col min-w-0 flex-1'>
+          <span className='text-[11px] font-semibold text-foreground truncate'>{post.creator?.name}</span>
+          {groupLabel && (
+            <span className='text-[10px] text-foreground/50 truncate leading-tight'>{groupLabel}</span>
+          )}
+        </div>
         <span
           className='inline-flex items-center px-1.5 py-px rounded text-[8px] font-bold uppercase tracking-wider shrink-0'
           style={{ color: typeColor, background: `rgb(${red} ${green} ${blue} / 0.14)`, border: `1px solid rgb(${red} ${green} ${blue} / 0.4)` }}
@@ -411,7 +435,7 @@ function MapDrawer ({
         <div className='flex flex-col gap-2.5 p-3 pb-10' id='contentList'>
           {pendingPostsDrawer && showPosts && <Loading size={24} />}
           {showPosts && posts.map(p => (
-            <MapPostRow key={'post-' + p.id} post={p} routeParams={routeParams} />
+            <MapPostRow key={'post-' + p.id} post={p} routeParams={routeParams} context={context} group={group} />
           ))}
           {(lens === 'all' || lens === 'spaces') && spaces.map(s => (
             <SpaceMapCard
