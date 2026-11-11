@@ -705,6 +705,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
       return getStaticMenuViews({
         isPublicContext: context === 'public',
         isMyContext: context === 'my' || context === 'all',
+        isManagementContext: context === 'management',
         profileUrl
       }) || []
     }
@@ -728,9 +729,9 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
     : ((spaceGroup || group)?.avatarUrl || DEFAULT_AVATAR)
   const isDefaultAvatar = !avatarUrl || avatarUrl === DEFAULT_AVATAR
   const displayName = isContextMode
-    ? (context === 'public' ? t('The Commons') : t('My Home'))
+    ? (context === 'public' ? t('The Commons') : context === 'management' ? t('Management') : t('My Home'))
     : (spaceGroup?.name || group?.name)
-  const displaySubtitle = isContextMode && context !== 'public' && currentUser?.name
+  const displaySubtitle = isContextMode && context !== 'public' && context !== 'management' && currentUser?.name
     ? `${currentUser.name}${currentUser.email ? ` (${currentUser.email})` : ''}`
     : null
 

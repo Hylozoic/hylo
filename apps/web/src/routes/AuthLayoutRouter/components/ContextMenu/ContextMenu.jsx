@@ -648,6 +648,7 @@ export default function ContextMenu (props) {
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
   const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
+  const isManagementContext = routeParams.context === 'management'
   const isGroupContext = routeParams.context === 'groups'
   const isOneColumnLayout = isGroupContext && resolveIsOneColumnLayout(
     currentUser?.settings?.groupNavStyle,
@@ -691,9 +692,10 @@ export default function ContextMenu (props) {
     return getStaticMenuViews({
       isPublicContext,
       isMyContext: isMyContext || isAllContext,
+      isManagementContext,
       profileUrl
     })
-  }, [isPublicContext, isMyContext, isAllContext, profileUrl])
+  }, [isPublicContext, isMyContext, isAllContext, isManagementContext, profileUrl])
 
   const fetchedGroupViews = useGroupViews(group)
   const viewsPending = useSelector(state => isPendingFor(FETCH_GROUP_VIEWS, state))
@@ -1042,22 +1044,31 @@ export default function ContextMenu (props) {
                     </div>
                   </div>
                   )
-                : (isMyContext || isAllContext)
-                    ? (
-                      <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                        <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser?.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
-                        <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
-                        <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                          <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
-                          {currentUser?.name && (
-                            <p className='text-white/90 text-sm drop-shadow-md mt-1 truncate'>
-                              {currentUser.name}{currentUser.email ? ` (${currentUser.email})` : ''}
-                            </p>
-                          )}
-                        </div>
+                : isManagementContext
+                  ? (
+                    <div className='ManagementHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                      <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
+                      <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                        <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('Management')}</h2>
                       </div>
-                      )
-                    : null}
+                    </div>
+                    )
+                  : (isMyContext || isAllContext)
+                      ? (
+                        <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                          <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser?.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
+                          <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
+                          <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                            <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                            {currentUser?.name && (
+                              <p className='text-white/90 text-sm drop-shadow-md mt-1 truncate'>
+                                {currentUser.name}{currentUser.email ? ` (${currentUser.email})` : ''}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        )
+                      : null}
           </div>
         </div>
 

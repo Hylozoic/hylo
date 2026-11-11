@@ -147,7 +147,7 @@ module.exports = {
     },
 
     managementCommonsRequests: function () {
-      return url('/management/site/commons-requests')
+      return url('/management/commons-requests')
     },
 
     groupSettings: function (group) {
