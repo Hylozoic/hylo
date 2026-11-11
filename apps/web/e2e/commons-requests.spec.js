@@ -67,7 +67,7 @@ test('capture screenshot commons request flow', async ({ page }) => {
   await page.screenshot({ path: path.resolve(screenshotDir, 'issue-1257-steward-pending.png') })
 
   // Admin tracker with the pending request
-  await page.goto('/management/site/commons-requests')
+  await page.goto('/management/commons-requests')
   const row = page.getByTestId('commons-request-row').filter({ hasText: 'E2E Private Group' })
   await expect(row).toBeVisible()
   await expect(row).toContainText('We run open community gardens')
