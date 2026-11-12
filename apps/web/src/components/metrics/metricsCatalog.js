@@ -7,7 +7,6 @@ export const SECTIONS = [
     title: 'Audience',
     question: 'How many people use Hylo, by the standard measures?',
     metrics: [
-      { id: 'active_users', period: 'day', good: 'up', people: true },
       { id: 'stickiness', period: 'day', good: 'up', unit: 'percent' },
       { id: 'contributors', period: 'day', good: 'up', people: true },
       { id: 'contributors', period: 'month', good: 'up', label: 'Monthly active contributors', people: true },
@@ -199,7 +198,7 @@ export const GAPS = [
 /** The stored metrics to request for one period. */
 export function metricsForPeriod (period, { signupMetric = false } = {}) {
   const ids = new Set()
-  if (period === 'day') ids.add('mau').add('wau')
+  if (period === 'day') ids.add('active_users').add('mau').add('wau')
   if (period === 'week') {
     ids.add('connected_members').add('connected_beyond_reaction')
     ids.add('contributor_cohort').add('contributor_retained')

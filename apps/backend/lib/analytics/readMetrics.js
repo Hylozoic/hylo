@@ -1,6 +1,9 @@
 import { GraphQLError } from 'graphql'
+import { audienceActivity } from './audienceActivity'
 import { fillPoints, parseDay } from './periods'
 import { METRICS, metricIds, sourceMetric, storedIdsFor } from './metrics/registry'
+
+const AUDIENCE = new Set(['active_users', 'wau', 'mau'])
 
 export const MIN_COHORT = 5
 const PERIODS = ['day', 'week', 'month', 'year']
@@ -63,6 +66,10 @@ export async function readSeries ({ knex, groupId, metrics, period, from, to }) 
     .where('period_start', '<=', to)
     .select('metric', 'dimension', 'period_start', 'value')
 
+  const audience = period === 'day' && stored.some(id => AUDIENCE.has(id))
+    ? await audienceActivity({ knex, groupId, from, to })
+    : null
+
   const byKey = new Map()
   for (const row of rows) {
     const dimension = row.dimension || ''
@@ -73,8 +80,11 @@ export async function readSeries ({ knex, groupId, metrics, period, from, to }) 
     byKey.get(key).push({ periodStart, value, dimension })
   }
 
-  const filled = (metric, dimension = '') => fillPoints(byKey.get(`${metric}\0${dimension}`) || [], { from, to, period })
-    .map(point => ({ ...point, dimension }))
+  const filled = (metric, dimension = '') => {
+    const live = audience && dimension === '' ? audience[metric] : null
+    const points = live || byKey.get(`${metric}\0${dimension}`) || []
+    return fillPoints(points, { from, to, period }).map(point => ({ ...point, dimension }))
+  }
 
   const series = []
   for (const metric of requested) {
