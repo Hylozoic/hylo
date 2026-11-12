@@ -1,5 +1,6 @@
-/* globals FullTextSearch, describe, it, expect */
+/* globals FullTextSearch, Skill, bookshelf, describe, it, expect, before, after */
 require('../../setup')
+const factories = require('../../setup/factories')
 
 describe('FullTextSearch', () => {
   it('sets up, refreshes, and drops the materialied view', function () {
@@ -8,6 +9,34 @@ describe('FullTextSearch', () => {
       .then(() => FullTextSearch.createView())
       .then(() => FullTextSearch.refreshView())
       .then(() => FullTextSearch.dropView())
+  })
+
+  describe('people index', () => {
+    let haver, learner, skillName
+
+    before(async function () {
+      this.timeout(10000)
+      const stamp = Date.now()
+      skillName = `woodturning${stamp}`
+      haver = await factories.user({ name: 'Skill Haver', email: `haver-${stamp}@skills.test` }).save()
+      learner = await factories.user({ name: 'Skill Learner', email: `learner-${stamp}@skills.test` }).save()
+      const skill = await new Skill({ name: skillName }).save()
+      await bookshelf.knex('skills_users').insert([
+        { skill_id: skill.id, user_id: haver.id, type: Skill.Type.HAS },
+        { skill_id: skill.id, user_id: learner.id, type: Skill.Type.LEARNING }
+      ])
+      await FullTextSearch.dropView()
+      await FullTextSearch.createView()
+    })
+
+    after(() => FullTextSearch.dropView())
+
+    it('indexes the skills a person has, not the ones they are learning', async () => {
+      const rows = await FullTextSearch.search({ term: skillName, type: 'person', subquery: true })
+      const userIds = rows.map(row => String(row.user_id))
+      expect(userIds).to.include(String(haver.id))
+      expect(userIds).not.to.include(String(learner.id))
+    })
   })
 
   describe('.searchInGroups', () => {
