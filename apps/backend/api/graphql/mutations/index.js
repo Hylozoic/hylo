@@ -76,6 +76,7 @@ export {
   rejectGroupRelationshipInvite,
   removeMember,
   updateGroup,
+  updateGroupTheme,
   updatePeerRelationship
 } from './group'
 export {
