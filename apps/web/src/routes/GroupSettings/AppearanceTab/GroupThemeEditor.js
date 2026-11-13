@@ -5,7 +5,7 @@ import { AlertTriangle } from 'lucide-react'
 import useAppearance from 'hooks/useAppearance'
 import getMe from 'store/selectors/getMe'
 import updateGroupTheme from 'store/actions/updateGroupTheme'
-import { getAppearanceFromSettings } from 'util/appearance'
+import { applyAppearanceToDocument, getAppearanceFromSettings } from 'util/appearance'
 import { cn } from 'util/index'
 import {
   GROUP_THEME_BORDER_WIDTHS,
@@ -149,7 +149,23 @@ export default function GroupThemeEditor ({ group }) {
   const contrastAllowsSave = canSaveWithContrastIssues({ issueCount, override })
   const canSave = dirty && valid && contrastAllowsSave && !saving
 
-  useGroupThemePreview({ draft, active: dirty, colorScheme: effectiveColorScheme, viewerThemeName })
+  // The page follows the scheme being edited, so stewards see what they change.
+  // This is a preview only: the viewer's own setting is not touched and comes
+  // back when they switch back or leave the editor.
+  const previewingOtherScheme = scheme !== effectiveColorScheme
+  useEffect(() => {
+    if (!previewingOtherScheme) return
+    applyAppearanceToDocument(viewerThemeName, scheme)
+    return () => applyAppearanceToDocument(viewerThemeName, effectiveColorScheme)
+  }, [previewingOtherScheme, scheme, effectiveColorScheme, viewerThemeName])
+
+  // With no saved theme and no changes there is nothing of the group's to preview
+  useGroupThemePreview({
+    draft,
+    active: dirty || (previewingOtherScheme && !!saved),
+    colorScheme: scheme,
+    viewerThemeName
+  })
 
   const roleColors = getRoleColors(draft, scheme)
   const radius = draft.radius || DEFAULT_RADIUS_OPTION
@@ -247,9 +263,9 @@ export default function GroupThemeEditor ({ group }) {
             </button>
           ))}
         </div>
-        {scheme !== effectiveColorScheme && (
+        {previewingOtherScheme && (
           <p className='text-xs text-foreground/60 mt-2'>
-            {t('The page shows your current color scheme. Use the preview below to check the one you are editing.')}
+            {t('The page is showing this color scheme while you edit it. Your own light or dark setting is not changed.')}
           </p>
         )}
         {issues[otherScheme].length > 0 && (

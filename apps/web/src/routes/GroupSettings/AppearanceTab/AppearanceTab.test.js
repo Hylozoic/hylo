@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import featureFlag from 'config/featureFlags'
 import { UPDATE_GROUP_THEME } from 'store/actions/updateGroupTheme'
-import { themes } from '../../../themes'
+import { themes, defaultTheme } from '../../../themes'
 import { presetToDraft, prepareThemeForSave } from 'util/groupThemeEditor'
 import { PREVIEW_STYLE_ID } from './useGroupThemePreview'
 import AppearanceTab from './AppearanceTab'
@@ -83,6 +83,25 @@ describe('AppearanceTab group theme editor', () => {
 
     await waitFor(() => expect(mockDispatch).toHaveBeenCalled())
     expect(mockDispatch.mock.calls[0][0].graphql.variables.theme.borderWidth).toEqual('thick')
+  })
+
+  it('shows the page in the scheme being edited and restores it afterwards', () => {
+    document.documentElement.classList.add('light')
+    const { unmount } = renderTab(savedTheme)
+    expect(previewStyle()).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dark' }))
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+    expect(previewStyle().textContent).toContain(`--foreground: ${themes[defaultTheme].dark.foreground} !important`)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Light' }))
+    expect(document.documentElement.classList.contains('light')).toBe(true)
+    expect(previewStyle()).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dark' }))
+    unmount()
+    expect(document.documentElement.classList.contains('light')).toBe(true)
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
   })
 
   it('edits a role through the color input', () => {
