@@ -3627,7 +3627,7 @@
   "Give this group its own colors, corner radius and border width. The global navigation keeps each member's own theme.": "Dê a este grupo suas próprias cores, arredondamento de cantos e espessura de bordas. A navegação global mantém o tema de cada membro.",
   "Start from a preset": "Começar a partir de um tema predefinido",
   "Editing colors for": "Editando cores para",
-  "The page shows your current color scheme. Use the preview below to check the one you are editing.": "A página mostra seu esquema de cores atual. Use a pré-visualização abaixo para conferir o que você está editando.",
+  "The page is showing this color scheme while you edit it. Your own light or dark setting is not changed.": "A página mostra este esquema de cores enquanto você o edita. Sua própria configuração de claro ou escuro não muda.",
   "Contrast warnings in {{scheme}}: {{count}}": "Avisos de contraste em {{scheme}}: {{count}}",
   "Background": "Fundo",
   "Page and menu background": "Fundo da página e do menu",
