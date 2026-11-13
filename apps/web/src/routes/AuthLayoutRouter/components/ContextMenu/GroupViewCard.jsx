@@ -67,7 +67,7 @@ export function SpaceCardMembershipPill ({ isMember, memberCount, lightSurfaceLa
       className={cn(
         'absolute top-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 text-xs leading-none rounded-full px-1.5 py-1',
         lightSurfaceLabels
-          ? 'bg-black/10 text-foreground/60'
+          ? 'bg-foreground/10 text-foreground/60'
           : 'bg-black/30 text-white/90 backdrop-blur-sm'
       )}
       aria-label={isMember ? t('{{count}} Members', { count: memberCount }) : t('Join')}
@@ -100,7 +100,7 @@ export function SpaceCardAboutButton ({ onOpenAbout, space, lightSurfaceLabels }
       className={cn(
         'p-1 rounded-md backdrop-blur-sm transition-colors',
         lightSurfaceLabels
-          ? 'text-foreground/50 hover:text-foreground bg-black/10 hover:bg-black/20'
+          ? 'text-foreground/50 hover:text-foreground bg-foreground/10 hover:bg-foreground/20'
           : 'text-white/70 hover:text-white bg-black/25 hover:bg-black/45'
       )}
       aria-label={t('About')}
@@ -556,7 +556,7 @@ function GroupViewCard ({
         ? (
           <>
             <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bgImageUrl)} />
-            <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
+            <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, hsl(var(--darkening) / 0.15) 0%, hsl(var(--darkening) / 0.6) 100%)' }} />
           </>
           )
         : (
@@ -579,12 +579,12 @@ function GroupViewCard ({
             : null}
           badge={chatBadgeCount != null
             ? (
-              <span className='min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+              <span className='min-w-5 h-5 px-1 rounded-full bg-accent text-accent-foreground text-xs font-bold flex items-center justify-center border-2 border-background'>
                 {chatBadgeCount}
               </span>
               )
             : (showUnreadDot || showJoinRequestDot)
-                ? <span className='w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+                ? <span className='w-3 h-3 rounded-full bg-accent border-2 border-background' />
                 : null}
         />
       )}
@@ -659,7 +659,7 @@ export function SpaceViewCard ({
       {bgImageUrl && (
         <>
           <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bgImageUrl)} />
-          <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%)' }} />
+          <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, hsl(var(--darkening) / 0.15) 0%, hsl(var(--darkening) / 0.6) 100%)' }} />
         </>
       )}
       {!isEditing && !isDeleting && (
@@ -682,12 +682,12 @@ export function SpaceViewCard ({
             : null}
           badge={chatBadgeCount != null
             ? (
-              <span className='min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+              <span className='min-w-5 h-5 px-1 rounded-full bg-accent text-accent-foreground text-xs font-bold flex items-center justify-center border-2 border-background'>
                 {chatBadgeCount}
               </span>
               )
             : (showUnreadDot || showJoinRequestDot)
-                ? <span className='w-3 h-3 rounded-full bg-orange-500 border-2 border-background' />
+                ? <span className='w-3 h-3 rounded-full bg-accent border-2 border-background' />
                 : null}
         />
       )}
@@ -706,7 +706,7 @@ export function SpaceViewCard ({
               ? <div className='w-full h-full bg-cover bg-center' style={bgImageStyle(space.avatarUrl)} />
               : space.icon
                 ? <LucideIcon name={space.icon} className='w-7 h-7' />
-                : <div className={cn('w-7 h-7 rounded-full', onLightSurface ? 'bg-black/15' : 'bg-white/20')} />}
+                : <div className={cn('w-7 h-7 rounded-full', onLightSurface ? 'bg-foreground/15' : 'bg-white/20')} />}
           </div>
         </div>
         <div className={cn(CARD_LABEL_TOP_CLASS, 'absolute left-0 right-0 bottom-0 flex flex-col items-center justify-center text-center px-3')}>

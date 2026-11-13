@@ -131,13 +131,13 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
   const bannerUrl = spaceGroup.bannerUrl && spaceGroup.bannerUrl !== DEFAULT_BANNER ? spaceGroup.bannerUrl : null
   const localSpace = localSpaceSlug(group.slug, spaceGroup.slug)
   // White identity over a photo; theme foreground over the pale glyph texture
-  const inkClass = bannerUrl ? 'text-white' : 'text-foreground dark:text-white'
+  const inkClass = bannerUrl ? 'text-white' : 'text-foreground'
   const controlClass = bannerUrl
     ? 'text-white/90 hover:text-white'
-    : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+    : 'text-foreground/60 hover:text-foreground dark:text-foreground/80 dark:hover:text-foreground'
   const pillClass = bannerUrl
     ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
-    : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+    : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-foreground/15 dark:border-foreground/25 dark:text-foreground/90 dark:hover:bg-foreground/25 dark:hover:text-foreground'
 
   return (
     <div className='SpaceBannerHeader relative z-20 h-[172px] overflow-hidden border-b border-foreground/10 shadow-md'>
@@ -145,7 +145,7 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
         ? (
           <>
             <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bannerUrl)} />
-            <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
+            <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, hsl(var(--darkening) / 0.25) 0%, hsl(var(--darkening) / 0.6) 100%)' }} />
           </>
           )
         : <MenuRowBackground view={presentedSpaceView} bannerUrl={null} rows={8} spaced className='rounded-none' />}
@@ -177,7 +177,7 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
                 'backdrop-blur-sm',
                 bannerUrl
                   ? 'bg-white/15 text-white'
-                  : 'bg-black/5 text-foreground/80 dark:bg-white/15 dark:text-white'
+                  : 'bg-foreground/5 text-foreground/80 dark:bg-foreground/15 dark:text-foreground'
               )
           )}
         >
@@ -378,7 +378,7 @@ function StewardAlertCard ({ view, icon, title, count, onClick }) {
       <CardIconField view={view} tint={tint} w={CARD_W} h={CARD_H} />
       <div className={CARD_FADE_CLASS} style={{ background: cardFadeGradient(effectiveColorScheme) }} />
       {count > 0 && (
-        <span className='absolute top-1.5 right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center border-2 border-background'>
+        <span className='absolute top-1.5 right-1.5 z-10 min-w-5 h-5 px-1 rounded-full bg-accent text-accent-foreground text-xs font-bold flex items-center justify-center border-2 border-background'>
           {count}
         </span>
       )}
