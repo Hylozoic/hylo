@@ -91,6 +91,7 @@ export function fetchGroupSettings (slug) {
             showPostNoticesInChat
             layout
             autoAddMembers
+            theme
           }
           type
           parentId
@@ -291,6 +292,7 @@ export function updateGroupSettings (id, changes) {
             showPostNoticesInChat
             layout
             autoAddMembers
+            theme
           }
           agreements {
             items {
