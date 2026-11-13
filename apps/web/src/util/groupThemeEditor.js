@@ -8,7 +8,8 @@ import {
   MIN_CONTRAST_RATIO,
   parseHslTriple,
   resolveGroupThemeTokens,
-  sanitizeGroupTheme
+  sanitizeGroupTheme,
+  validateGroupTheme
 } from './groupTheme'
 
 /**
@@ -283,7 +284,9 @@ export function compactTheme (draft) {
  */
 export function prepareThemeForSave (draft) {
   const theme = compactTheme(draft)
-  const valid = theme === null || isEqual(sanitizeGroupTheme(theme), theme)
+  // The same check the server makes, plus: sanitizing must not change anything
+  const valid = theme === null ||
+    (validateGroupTheme(theme).errors.length === 0 && isEqual(sanitizeGroupTheme(theme), theme))
   return { theme, valid }
 }
 
