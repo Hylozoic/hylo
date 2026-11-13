@@ -3847,14 +3847,14 @@ type Mutation {
     asUserId: ID
   ): Group
   # Replace a Group's theme (settings.theme) whole, or clear it by passing null.
-  # Requires the Administration responsibility. Rejects any token, value or radius
+  # Requires the Administration responsibility, and Hylo Pro unless clearing. Rejects any token, value or radius
   # the shared sanitizer would drop; valid values are stored in canonical form.
   updateGroupTheme(groupId: ID, theme: JSON): Group
   # Suggest a theme for a Group from a website's look. Loads the page in a headless
   # browser and asks an AI model to pick colors, corners, borders and fonts. Saves
   # nothing: returns { roles: { light, dark }, radius, borderWidth, fontHeading,
   # fontBody, summary, sourceUrl, usage } where usage holds the model, token counts
-  # and estimated cost. Requires the Administration responsibility.
+  # and estimated cost. Requires the Administration responsibility and Hylo Pro.
   importGroupThemeFromUrl(groupId: ID, url: String): JSON
   # Update a group responsibility
   updateGroupResponsibility(

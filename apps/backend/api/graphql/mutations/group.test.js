@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-expressions */
+/* global HyloProSubscription */
 import factories from '../../../test/setup/factories'
 import {
   createGroup,
@@ -654,6 +655,15 @@ describe('mutations/group', () => {
       await member.joinGroup(group)
     })
 
+    // Themes are a Hylo Pro feature; most tests run with Pro and the ones about the gate remove it
+    const grantPro = () => HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active' }).save()
+    const removePro = () => bookshelf.knex('hylo_pro_subscriptions').where('group_id', group.id).del()
+
+    beforeEach(async () => {
+      await removePro()
+      await grantPro()
+    })
+
     beforeEach(() => bookshelf.knex('groups').where('id', group.id)
       .update({ settings: JSON.stringify({ allow_group_invites: true, show_welcome_page: false }) }))
 
@@ -741,6 +751,48 @@ describe('mutations/group', () => {
       expect((await savedSettings()).theme).to.deep.equal({ fontBody: 'Inter', fontHeading: 'Playfair Display' })
       await expect(updateGroupTheme(admin.id, group.id, { fontBody: "Inter'; color: red" }))
         .to.be.rejectedWith(/Invalid theme: Invalid fontBody/)
+    })
+
+    describe('without Hylo Pro', () => {
+      const theme = { light: { background: '150 22% 86%' } }
+
+      it('refuses to save a theme', async () => {
+        await removePro()
+        await expect(updateGroupTheme(admin.id, group.id, theme)).to.be.rejectedWith(/part of Hylo Pro/)
+        expect(await savedSettings()).to.not.have.property('theme')
+      })
+
+      it('keeps a theme saved while the group had Pro, and still lets it be cleared', async () => {
+        await updateGroupTheme(admin.id, group.id, theme)
+        await removePro()
+        expect((await savedSettings()).theme).to.deep.equal(theme)
+
+        await expect(updateGroupTheme(admin.id, group.id, { light: { background: '1 2% 3%' } }))
+          .to.be.rejectedWith(/part of Hylo Pro/)
+        expect((await savedSettings()).theme).to.deep.equal(theme)
+
+        await updateGroupTheme(admin.id, group.id, null)
+        expect(await savedSettings()).to.not.have.property('theme')
+      })
+
+      it('refuses to import a theme, before doing any work', async () => {
+        await removePro()
+        let called = false
+        await expect(importGroupThemeFromUrl(admin.id, group.id, 'https://example.org', {
+          isConfigured: () => true,
+          withinLimit: async () => true,
+          importTheme: async () => { called = true }
+        })).to.be.rejectedWith(/part of Hylo Pro/)
+        expect(called).to.equal(false)
+      })
+
+      it('does not accept an expired grant', async () => {
+        await removePro()
+        await HyloProSubscription.forge({
+          group_id: group.id, source: 'manual', status: 'active', expires_at: new Date(Date.now() - 86400000)
+        }).save()
+        await expect(updateGroupTheme(admin.id, group.id, theme)).to.be.rejectedWith(/part of Hylo Pro/)
+      })
     })
 
     describe('importGroupThemeFromUrl', () => {

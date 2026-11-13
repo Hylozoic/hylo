@@ -93,6 +93,7 @@ export function fetchGroupSettings (slug) {
             autoAddMembers
             theme
           }
+          hasPro
           type
           parentId
           slug
@@ -294,6 +295,7 @@ export function updateGroupSettings (id, changes) {
             autoAddMembers
             theme
           }
+          hasPro
           agreements {
             items {
               id
