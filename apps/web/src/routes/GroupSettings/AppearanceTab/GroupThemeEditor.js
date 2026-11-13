@@ -14,8 +14,6 @@ import {
   GROUP_THEME_BORDER_WIDTHS,
   GROUP_THEME_RADII,
   MIN_CONTRAST_RATIO,
-  appThemeCssVars,
-  groupThemeCssVars,
   loadGroupThemeFonts,
   sanitizeGroupTheme
 } from 'util/groupTheme'
@@ -46,7 +44,7 @@ import {
   setRoleColor,
   themesMatch
 } from 'util/groupThemeEditor'
-import { themes, defaultTheme } from '../../../themes'
+import { themes } from '../../../themes'
 import GroupThemeImport from './GroupThemeImport'
 import GroupThemePreview from './GroupThemePreview'
 import useGroupThemePreview from './useGroupThemePreview'
