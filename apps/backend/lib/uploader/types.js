@@ -2,6 +2,8 @@ export const USER_AVATAR = 'userAvatar'
 export const USER_BANNER = 'userBanner'
 export const GROUP_AVATAR = 'groupAvatar'
 export const GROUP_BANNER = 'groupBanner'
+// Images a steward adds to a designed view (id is the group's id)
+export const GROUP_VIEW_IMAGE = 'groupViewImage'
 export const POST = 'post'
 export const POST_COMPLETION = 'postCompletion'
 export const COMMENT = 'comment'

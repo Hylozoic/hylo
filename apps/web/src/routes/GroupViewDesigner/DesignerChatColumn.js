@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, SendHorizontal, Sparkles } from 'lucide-react'
+import { ArrowLeft, ImagePlus, SendHorizontal, Sparkles } from 'lucide-react'
+import { designedViewImageUrls } from '@hylo/shared'
+import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { groupUrl } from '@hylo/navigation'
 import useGroupViews from 'hooks/useGroupViews'
 import designGroupViewTurn from 'store/actions/designGroupViewTurn'
@@ -13,7 +15,9 @@ import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
 import { formatUsd } from 'util/groupThemeEditor'
 import { cn } from 'util/index'
 import {
+  addDesignImage,
   addDesignUsage,
+  imagesFromUrls,
   designerSessionKey,
   resetDesignerSession,
   updateDesignerSession,
@@ -74,7 +78,8 @@ export default function DesignerChatColumn () {
     if (isNew) {
       updateDesignerSession(key, { loaded: true })
     } else if (existingView) {
-      updateDesignerSession(key, { loaded: true, design: existingView.settings?.design || null, name: existingView.name || '' })
+      const design = existingView.settings?.design || null
+      updateDesignerSession(key, { loaded: true, design, name: existingView.name || '', images: imagesFromUrls(designedViewImageUrls(design)) })
     }
   }, [groupId, isNew, existingView, session.loaded, key])
 
@@ -92,7 +97,7 @@ export default function DesignerChatColumn () {
     updateDesignerSession(key, { messages, sending: true, error: null })
     setDraft('')
     try {
-      const response = await dispatch(designGroupViewTurn(groupId, messages, session.design))
+      const response = await dispatch(designGroupViewTurn(groupId, messages, session.design, session.images))
       if (response?.error) throw response.payload || new Error(t('Something went wrong. Please try again.'))
       const result = response?.payload?.data?.designGroupViewTurn
       if (!result?.view) throw new Error(t('Something went wrong. Please try again.'))
@@ -146,6 +151,13 @@ export default function DesignerChatColumn () {
     }
   }
 
+  const [uploading, setUploading] = useState(false)
+  const handleImageUploaded = uploaded => {
+    if (!uploaded?.url) return
+    updateDesignerSession(key, current => ({ images: addDesignImage(current.images, uploaded.url), error: null }))
+  }
+  const handleImageError = err => updateDesignerSession(key, { error: t('The image could not be added: {{message}}', { message: errorMessage(err) }) })
+
   const cost = value => value === null || value === undefined
     ? t('cost unknown')
     : t('about {{cost}}', { cost: formatUsd(value) })
@@ -187,7 +199,7 @@ export default function DesignerChatColumn () {
             <p className='m-0 mb-2'>
               {session.design
                 ? t('Say what you would like to change on this page.')
-                : t('Describe the page you want and AI will build it from posts, events, members, text and buttons. You can keep refining it before you save.')}
+                : t('Describe the page you want and AI will build it from posts, events, members, text, images and buttons. You can keep refining it before you save.')}
             </p>
             {!session.design && (
               <div className='flex flex-col gap-1'>
@@ -248,6 +260,46 @@ export default function DesignerChatColumn () {
             <SendHorizontal size={18} />
           </button>
         </form>
+
+        <div className='flex flex-col gap-1' data-testid='designer-images'>
+          <div className='flex items-center gap-2'>
+            <UploadAttachmentButton
+              type='groupViewImage'
+              id={groupId}
+              attachmentType='image'
+              allowMultiple
+              disable={!canChat}
+              onSuccess={handleImageUploaded}
+              onError={handleImageError}
+              onLoadingChange={setUploading}
+              customRender={({ onClick }) => (
+                <button
+                  type='button'
+                  onClick={onClick}
+                  disabled={!canChat || uploading}
+                  className='inline-flex items-center gap-1 rounded-md border-2 border-foreground/20 hover:border-foreground/50 px-2 py-1 text-xs disabled:opacity-50'
+                >
+                  <ImagePlus className='w-3.5 h-3.5' />{uploading ? t('Adding...') : t('Add image')}
+                </button>
+              )}
+            />
+            <span className='text-xs text-foreground/50'>
+              {session.images.length === 0
+                ? t('For banners and pictures on the page.')
+                : t('Tell the AI where to use each one, such as "use image 1 as the banner".')}
+            </span>
+          </div>
+          {session.images.length > 0 && (
+            <div className='flex flex-wrap gap-2'>
+              {session.images.map((image, index) => (
+                <figure key={image.url} className='m-0 w-16' data-testid='designer-image'>
+                  <img src={image.url} alt={image.name} className='block w-16 h-12 m-0 object-cover rounded-md border-2 border-foreground/20' />
+                  <figcaption className='text-[10px] text-foreground/60 text-center'>{t('Image {{number}}', { number: index + 1 })}</figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className='rounded-md border-2 border-foreground/10 bg-muted/50 px-2 py-1.5 text-xs text-foreground/70' data-testid='designer-usage'>
           <p className='m-0 font-bold text-foreground'>{t('AI usage and cost')}</p>

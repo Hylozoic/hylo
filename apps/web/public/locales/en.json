@@ -3791,7 +3791,6 @@
   "Designed views are part of Hylo Pro": "Designed views are part of Hylo Pro",
   "To design a view or change one, the group needs Hylo Pro.": "To design a view or change one, the group needs Hylo Pro.",
   "Say what you would like to change on this page.": "Say what you would like to change on this page.",
-  "Describe the page you want and AI will build it from posts, events, members, text and buttons. You can keep refining it before you save.": "Describe the page you want and AI will build it from posts, events, members, text and buttons. You can keep refining it before you save.",
   "A welcome page for new members": "A welcome page for new members",
   "What's happening in the group this week": "What's happening in the group this week",
   "How to get involved": "How to get involved",
@@ -3814,5 +3813,12 @@
   "Nothing here yet.": "Nothing here yet.",
   "No upcoming events.": "No upcoming events.",
   "No members to show.": "No members to show.",
-  "Untitled": "Untitled"
+  "Untitled": "Untitled",
+  "Add image": "Add image",
+  "Adding...": "Adding...",
+  "For banners and pictures on the page.": "For banners and pictures on the page.",
+  "Tell the AI where to use each one, such as \"use image 1 as the banner\".": "Tell the AI where to use each one, such as \"use image 1 as the banner\".",
+  "Image {{number}}": "Image {{number}}",
+  "The image could not be added: {{message}}": "The image could not be added: {{message}}",
+  "Describe the page you want and AI will build it from posts, events, members, text, images and buttons. You can keep refining it before you save.": "Describe the page you want and AI will build it from posts, events, members, text, images and buttons. You can keep refining it before you save."
 }

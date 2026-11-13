@@ -72,6 +72,25 @@ describe('DesignedView', () => {
     links.forEach(link => expect(link.getAttribute('href')).toEqual('/groups/garden/designed/3/post/9'))
   })
 
+  it('draws a hero banner and an image', () => {
+    render(
+      <DesignedView
+        groupSlug='garden'
+        design={{
+          blocks: [
+            { type: 'hero', imageUrl: 'https://uploads.example.org/garden.jpg', title: 'Welcome', subtitle: 'Come dig in', height: 'tall', align: 'center' },
+            { type: 'image', url: 'https://uploads.example.org/tools.jpg', alt: 'Garden tools', caption: 'The shed' }
+          ]
+        }}
+      />
+    )
+    expect(screen.getByRole('heading', { level: 1, name: 'Welcome' })).toBeInTheDocument()
+    expect(screen.getByText('Come dig in')).toBeInTheDocument()
+    expect(document.querySelector('[data-block="hero"] img').getAttribute('src')).toEqual('https://uploads.example.org/garden.jpg')
+    expect(screen.getByRole('img', { name: 'Garden tools' }).getAttribute('src')).toEqual('https://uploads.example.org/tools.jpg')
+    expect(screen.getByText('The shed')).toBeInTheDocument()
+  })
+
   it('drops blocks it does not know and never renders stored markup', () => {
     render(
       <DesignedView

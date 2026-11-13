@@ -23,6 +23,8 @@ function emptySession () {
     // The page as building blocks, or null before the first design
     design: null,
     name: '',
+    // Images the steward has added for this page, [{ url, name }]; the AI can only place these
+    images: [],
     // Whether the design differs from what is saved
     dirty: false,
     sending: false,
@@ -76,4 +78,20 @@ export function addDesignUsage (total, usage) {
     costUsd: total.costUsd + (known ? usage.estimatedCostUsd : 0),
     costKnown: total.costKnown && known
   }
+}
+
+/**
+ * The image list with one more image, named by its position ("Image 3") so a
+ * steward can refer to it in the chat. An address already listed is not added twice.
+ */
+export function addDesignImage (images, url) {
+  if (!url || images.some(image => image.url === url)) return images
+  return [...images, { url, name: `Image ${images.length + 1}` }]
+}
+
+/**
+ * The images to offer when a saved design is opened again: the ones it uses.
+ */
+export function imagesFromUrls (urls) {
+  return (urls || []).reduce((images, url) => addDesignImage(images, url), [])
 }

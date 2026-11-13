@@ -113,6 +113,7 @@ describe('designed views', () => {
       expect(received.group.name).to.equal(group.get('name'))
       expect(received.messages).to.deep.equal(messages)
       expect(received.currentView).to.deep.equal(storedDesign)
+      expect(received.images).to.deep.equal([])
       expect(await GroupView.where({ group_id: group.id }).count()).to.equal(before)
     })
 
@@ -123,6 +124,7 @@ describe('designed views', () => {
       await expect(run(member.id, {}, d())).to.be.rejectedWith(/permission/)
       await expect(run(admin.id, { messages: [] }, d())).to.be.rejectedWith(/what the page should be for/)
       await expect(run(admin.id, { currentView: { blocks: [{ type: 'html' }] } }, d())).to.be.rejectedWith(/Invalid design/)
+      await expect(run(admin.id, { images: [{ url: 'http://example.org/a.jpg' }] }, d())).to.be.rejectedWith(/https address/)
       await expect(run(admin.id, {}, d({ isConfigured: () => false }))).to.be.rejectedWith(/not set up/)
       await expect(run(admin.id, {}, d({ withinLimit: async () => false }))).to.be.rejectedWith(/try again later/)
       await removePro()

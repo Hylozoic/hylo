@@ -10,7 +10,7 @@
  *   {
  *     version: 1,
  *     blocks: [
- *       { type: 'heading', text: 'Welcome', level: 1 },
+ *       { type: 'hero', imageUrl: 'https://.../garden.jpg', title: 'Welcome', height: 'medium' },
  *       { type: 'text', text: 'What this group is about.' },
  *       { type: 'columns', columns: [
  *         [{ type: 'posts', title: 'Latest', postTypes: ['discussion'], limit: 4, layout: 'list' }],
@@ -32,6 +32,8 @@ export const DESIGNED_VIEW_MAX_BLOCKS_PER_COLUMN = 8
 export const DESIGNED_VIEW_POST_TYPES = ['discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource']
 export const DESIGNED_VIEW_POST_LAYOUTS = ['list', 'cards']
 export const DESIGNED_VIEW_CALLOUT_TONES = ['accent', 'primary', 'muted']
+export const DESIGNED_VIEW_HERO_HEIGHTS = ['short', 'medium', 'tall']
+export const DESIGNED_VIEW_HERO_ALIGNMENTS = ['left', 'center']
 // Places inside the group a button can lead to; the web app turns each into a URL
 export const DESIGNED_VIEW_DESTINATIONS = ['stream', 'events', 'members', 'about', 'discussions', 'projects', 'resources', 'map']
 
@@ -42,15 +44,24 @@ const text = (max, { required = true } = {}) => ({ kind: 'text', max, required }
 const oneOf = (options, fallback) => ({ kind: 'oneOf', options, fallback })
 const int = (min, max, fallback) => ({ kind: 'int', min, max, fallback })
 const listOf = (options, max) => ({ kind: 'listOf', options, max })
-const httpsUrl = () => ({ kind: 'httpsUrl' })
+const httpsUrl = ({ required = false } = {}) => ({ kind: 'httpsUrl', required })
 
 /**
  * Every block type and its fields. `required` text must be non-empty; fields
  * with a fallback may be left out and take the fallback.
  */
 export const DESIGNED_VIEW_BLOCKS = {
+  // A banner across the page: an image with a title and optional subtitle over it
+  hero: {
+    imageUrl: httpsUrl({ required: true }),
+    title: text(120, { required: false }),
+    subtitle: text(300, { required: false }),
+    height: oneOf(DESIGNED_VIEW_HERO_HEIGHTS, 'medium'),
+    align: oneOf(DESIGNED_VIEW_HERO_ALIGNMENTS, 'left')
+  },
   heading: { text: text(120), level: oneOf([1, 2, 3], 2) },
   text: { text: text(2000) },
+  image: { url: httpsUrl({ required: true }), alt: text(200, { required: false }), caption: text(200, { required: false }) },
   callout: { title: text(120, { required: false }), text: text(600), tone: oneOf(DESIGNED_VIEW_CALLOUT_TONES, 'accent') },
   posts: {
     title: text(120, { required: false }),
@@ -106,7 +117,7 @@ function checkField (rule, raw) {
       return { value: [...new Set(raw)] }
     }
     case 'httpsUrl':
-      if (missing || raw === '') return { value: undefined }
+      if (missing || raw === '') return rule.required ? { error: 'is required' } : { value: undefined }
       return isHttpsUrl(raw) ? { value: raw } : { error: 'must be an https:// address' }
     default:
       return { error: 'is not supported' }
@@ -244,19 +255,66 @@ export function designedViewJsonSchema () {
     required: ['type', ...Object.keys(fields)],
     additionalProperties: false
   }))
+  // Leaf blocks are defined once and referenced, at the top level and inside
+  // columns: listing them twice makes the schema too large for structured output
   const columns = {
     type: 'object',
     properties: {
       type: { type: 'string', enum: ['columns'] },
-      columns: { type: 'array', items: { type: 'array', items: { anyOf: leaf } } }
+      columns: { type: 'array', items: { type: 'array', items: { $ref: '#/$defs/block' } } }
     },
     required: ['type', 'columns'],
     additionalProperties: false
   }
   return {
     type: 'object',
-    properties: { blocks: { type: 'array', items: { anyOf: [...leaf, columns] } } },
+    properties: { blocks: { type: 'array', items: { anyOf: [{ $ref: '#/$defs/block' }, columns] } } },
     required: ['blocks'],
-    additionalProperties: false
+    additionalProperties: false,
+    $defs: { block: { anyOf: leaf } }
   }
+}
+
+// The fields that hold an image address, by block type
+const IMAGE_FIELDS = { hero: 'imageUrl', image: 'url' }
+
+function eachLeafBlock (view, visit) {
+  ;(view?.blocks || []).forEach(block => {
+    if (block?.type === 'columns') (block.columns || []).forEach(column => (column || []).forEach(visit))
+    else visit(block)
+  })
+}
+
+/**
+ * The image addresses a designed view uses, in page order, without repeats.
+ */
+export function designedViewImageUrls (view) {
+  const urls = []
+  eachLeafBlock(view, block => {
+    const field = IMAGE_FIELDS[block?.type]
+    if (field && typeof block[field] === 'string' && !urls.includes(block[field])) urls.push(block[field])
+  })
+  return urls
+}
+
+/**
+ * A copy of a view without the image and hero blocks whose image is not in
+ * `allowedUrls`, and how many were removed. Used on what an AI model returns,
+ * so a page can only show images its steward provided.
+ */
+export function removeUnlistedImages (view, allowedUrls) {
+  const allowed = new Set(allowedUrls || [])
+  let removed = 0
+  const keep = block => {
+    const field = IMAGE_FIELDS[block?.type]
+    if (!field || allowed.has(block[field])) return true
+    removed += 1
+    return false
+  }
+  const blocks = (view?.blocks || [])
+    .map(block => block?.type === 'columns'
+      ? { ...block, columns: (block.columns || []).map(column => (column || []).filter(keep)) }
+      : block)
+    .filter(block => block?.type === 'columns' ? true : keep(block))
+  return { view: { ...view, blocks }, removed }
 }

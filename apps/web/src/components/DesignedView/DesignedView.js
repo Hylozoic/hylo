@@ -42,6 +42,12 @@ const CALLOUT_TONES = {
   muted: 'border-foreground/15 bg-muted/50'
 }
 
+const HERO_HEIGHTS = {
+  short: 'min-h-[160px]',
+  medium: 'min-h-[260px]',
+  tall: 'min-h-[380px]'
+}
+
 const HEADING_CLASSES = {
   1: 'text-3xl font-bold m-0',
   2: 'text-xl font-bold m-0 mt-2',
@@ -187,8 +193,40 @@ function ButtonBlock ({ block, groupSlug }) {
   )
 }
 
+// A banner image with its title over a dark scrim, so the text stays readable on any picture
+function HeroBlock ({ block }) {
+  const centered = block.align === 'center'
+  return (
+    <div
+      data-block='hero'
+      className={cn('relative overflow-hidden rounded-xl bg-darkening flex flex-col justify-end', HERO_HEIGHTS[block.height])}
+    >
+      <img src={block.imageUrl} alt='' className='absolute inset-0 w-full h-full object-cover m-0' />
+      {(block.title || block.subtitle) && (
+        <div className={cn('relative bg-gradient-to-t from-black/75 via-black/45 to-transparent p-6 pt-16', centered && 'text-center')}>
+          {block.title && <h1 className='text-3xl sm:text-4xl font-bold m-0 text-white'>{block.title}</h1>}
+          {block.subtitle && <p className='m-0 mt-1 text-base text-white/90 whitespace-pre-line'>{block.subtitle}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ImageBlock ({ block }) {
+  return (
+    <figure data-block='image' className='m-0'>
+      <img src={block.url} alt={block.alt || ''} loading='lazy' className='block w-full h-auto m-0 rounded-lg border-2 border-foreground/10' />
+      {block.caption && <figcaption className='text-xs text-foreground/60 mt-1'>{block.caption}</figcaption>}
+    </figure>
+  )
+}
+
 function Block ({ block, groupSlug }) {
   switch (block.type) {
+    case 'hero':
+      return <HeroBlock block={block} />
+    case 'image':
+      return <ImageBlock block={block} />
     case 'heading': {
       const Tag = `h${block.level}`
       return <Tag data-block='heading' className={HEADING_CLASSES[block.level]}>{block.text}</Tag>
