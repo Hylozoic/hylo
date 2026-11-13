@@ -1,4 +1,4 @@
-import { designViewTurn, normalizeDesignMessages, MAX_DESIGN_MESSAGES } from './designedViewDesign'
+import { designViewTurn, normalizeDesignImages, normalizeDesignMessages, MAX_DESIGN_MESSAGES } from './designedViewDesign'
 
 const view = {
   blocks: [
@@ -35,6 +35,22 @@ describe('designedViewDesign', () => {
       expect(() => normalizeDesignMessages([{ role: 'user', text: 'a' }, { role: 'assistant', text: 'b' }])).to.throw(/last message/)
       const long = Array.from({ length: MAX_DESIGN_MESSAGES + 1 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', text: 'x' }))
       expect(() => normalizeDesignMessages(long)).to.throw(/too long/)
+    })
+  })
+
+  describe('normalizeDesignImages', () => {
+    it('accepts https images and names unnamed ones by position', () => {
+      expect(normalizeDesignImages([{ url: 'https://a.example.org/1.jpg' }, { url: 'https://a.example.org/2.jpg', name: ' Garden ' }]))
+        .to.deep.equal([{ url: 'https://a.example.org/1.jpg', name: 'Image 1' }, { url: 'https://a.example.org/2.jpg', name: 'Garden' }])
+      expect(normalizeDesignImages(undefined)).to.deep.equal([])
+    })
+
+    it('rejects other addresses and too many images', () => {
+      expect(() => normalizeDesignImages([{ url: 'http://a.example.org/1.jpg' }])).to.throw(/https/)
+      expect(() => normalizeDesignImages([{ url: 'data:image/png;base64,AAAA' }])).to.throw(/https/)
+      expect(() => normalizeDesignImages([{}])).to.throw(/https/)
+      expect(() => normalizeDesignImages(Array.from({ length: 21 }, () => ({ url: 'https://a.example.org/1.jpg' })))).to.throw(/up to 20/)
+      expect(() => normalizeDesignImages('x')).to.throw()
     })
   })
 
@@ -76,6 +92,35 @@ describe('designedViewDesign', () => {
       const client = clientReturning(modelResponse({ reply: 'Done.', view }))
       await designViewTurn({ group: {}, messages: [{ role: 'user', text: 'A welcome page' }] }, { client })
       expect(client.calls[0].messages[0].content).to.contain('There is no design yet')
+    })
+
+    it('offers the steward\'s images to the model and drops any image it was not given', async () => {
+      const garden = 'https://uploads.example.org/garden.jpg'
+      const madeUp = 'https://elsewhere.example.com/stock.jpg'
+      const client = clientReturning(modelResponse({
+        reply: 'Added a banner.',
+        view: {
+          blocks: [
+            { type: 'hero', imageUrl: garden, title: 'Welcome', subtitle: '', height: 'medium', align: 'left' },
+            { type: 'image', url: madeUp, alt: '', caption: '' },
+            { type: 'text', text: 'Hello' }
+          ]
+        }
+      }))
+      const result = await designViewTurn({ ...request, images: [{ url: garden, name: 'Image 1' }] }, { client })
+
+      expect(client.calls[0].messages[2].content).to.contain(`Available images:\n1. Image 1: ${garden}`)
+      expect(result.view.blocks.map(block => block.type)).to.deep.equal(['hero', 'text'])
+      expect(result.reply).to.equal('Added a banner. (I left out an image that had not been added to this design.)')
+    })
+
+    it('keeps images that are already on the page, and says when none are available', async () => {
+      const onPage = 'https://uploads.example.org/already.jpg'
+      const current = { version: 1, blocks: [{ type: 'image', url: onPage }] }
+      const client = clientReturning(modelResponse({ reply: 'Kept it.', view: { blocks: [{ type: 'image', url: onPage, alt: '', caption: '' }] } }))
+      const result = await designViewTurn({ ...request, currentView: current }, { client })
+      expect(result.view.blocks).to.deep.equal([{ type: 'image', url: onPage }])
+      expect(client.calls[0].messages[2].content).to.contain('Available images: none')
     })
 
     it('rejects a page the blocks cannot show, and a refusal', async () => {

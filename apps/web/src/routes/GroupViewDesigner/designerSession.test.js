@@ -1,6 +1,8 @@
 import {
   EMPTY_USAGE_TOTAL,
+  addDesignImage,
   addDesignUsage,
+  imagesFromUrls,
   designerSessionKey,
   getDesignerSession,
   resetDesignerSession,
@@ -34,13 +36,29 @@ describe('designerSession', () => {
   })
 })
 
+describe('design images', () => {
+  it('names images by position and does not list one twice', () => {
+    const one = addDesignImage([], 'https://uploads.example.org/a.jpg')
+    const two = addDesignImage(one, 'https://uploads.example.org/b.jpg')
+    expect(two).toEqual([
+      { url: 'https://uploads.example.org/a.jpg', name: 'Image 1' },
+      { url: 'https://uploads.example.org/b.jpg', name: 'Image 2' }
+    ])
+    expect(addDesignImage(two, 'https://uploads.example.org/a.jpg')).toBe(two)
+    expect(addDesignImage(two, '')).toBe(two)
+    expect(imagesFromUrls(['https://uploads.example.org/a.jpg', 'https://uploads.example.org/a.jpg'])).toEqual(one)
+  })
+})
+
 describe('designGroupViewTurn', () => {
   it('sends the conversation and the current design to the mutation', () => {
     const messages = [{ role: 'user', text: 'A welcome page' }]
     const action = designGroupViewTurn('7', messages, { blocks: [] })
     expect(action.type).toEqual(DESIGN_GROUP_VIEW_TURN)
-    expect(action.graphql.query).toContain('designGroupViewTurn(groupId: $groupId, messages: $messages, currentView: $currentView)')
-    expect(action.graphql.variables).toEqual({ groupId: '7', messages, currentView: { blocks: [] } })
+    expect(action.graphql.query).toContain('designGroupViewTurn(groupId: $groupId, messages: $messages, currentView: $currentView, images: $images)')
+    expect(action.graphql.variables).toEqual({ groupId: '7', messages, currentView: { blocks: [] }, images: [] })
+    const images = [{ url: 'https://uploads.example.org/a.jpg', name: 'Image 1' }]
+    expect(designGroupViewTurn('7', messages, null, images).graphql.variables.images).toEqual(images)
   })
 })
 

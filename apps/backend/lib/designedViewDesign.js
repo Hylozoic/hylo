@@ -6,7 +6,9 @@ import {
   DESIGNED_VIEW_DESTINATIONS,
   DESIGNED_VIEW_MAX_BLOCKS,
   DESIGNED_VIEW_POST_TYPES,
+  designedViewImageUrls,
   designedViewJsonSchema,
+  removeUnlistedImages,
   validateDesignedView
 } from '@hylo/shared'
 import { summarizeUsage } from './groupThemeImport'
@@ -24,6 +26,7 @@ import { summarizeUsage } from './groupThemeImport'
 export const DEFAULT_DESIGN_MODEL = 'claude-opus-5-5'
 export const MAX_DESIGN_MESSAGES = 40
 export const MAX_DESIGN_MESSAGE_LENGTH = 2000
+export const MAX_DESIGN_IMAGES = 20
 
 const DESIGN_TIMEOUT_MS = 120000
 const DESIGN_ENV_KEYS = ['PATH', 'HOME', 'TMPDIR', 'LANG', 'NODE_ENV', 'CLAUDE_API_KEY', 'GROUP_VIEW_DESIGN_MODEL']
@@ -36,21 +39,27 @@ export function isViewDesignConfigured () {
   return !!process.env.CLAUDE_API_KEY
 }
 
+// The view schema refers to its block definitions from the root ('#/$defs/block'),
+// so they are lifted to the root of the response schema it is nested in
+const { $defs: VIEW_SCHEMA_DEFS, ...VIEW_SCHEMA } = designedViewJsonSchema()
 const RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
     reply: { type: 'string', description: 'One to three sentences to the steward about what you did or what you need to know' },
-    view: designedViewJsonSchema()
+    view: VIEW_SCHEMA
   },
   required: ['reply', 'view'],
-  additionalProperties: false
+  additionalProperties: false,
+  $defs: VIEW_SCHEMA_DEFS
 }
 
 const SYSTEM_PROMPT = `You design pages for community groups on Hylo, a community platform. A group steward is chatting with you to design a custom page (a "view") for their group. The page appears in the group's menu and every member can open it.
 
-A page is a list of building blocks, top to bottom. You cannot write HTML, CSS or code, and you cannot add images or anything outside these blocks. Hylo draws each block with the group's own colors and fonts, so you do not choose colors.
+A page is a list of building blocks, top to bottom. You cannot write HTML, CSS or code, or add anything outside these blocks. Hylo draws each block with the group's own colors and fonts, so you do not choose colors.
 
 Blocks:
+- hero: a banner across the page with an image filling it and an optional title and subtitle on top. Best as the first block, in place of a level 1 heading. height is short, medium or tall; align is left or center.
+- image: a picture with optional alt text (what it shows, for people who cannot see it) and an optional caption.
 - heading: a title. level 1 is the page title (use it once, at the top), 2 for sections, 3 for sub-sections.
 - text: a paragraph of plain text. Line breaks are kept. No markdown.
 - callout: a highlighted box with an optional title and a short text. tone is accent (warm highlight), primary (strong) or muted (quiet).
@@ -60,6 +69,8 @@ Blocks:
 - button: a link. destination is a place in the group (${DESIGNED_VIEW_DESTINATIONS.join(', ')}) or "url" with an https address in url.
 - divider: a line between sections.
 - columns: 2 or 3 side-by-side columns, each a list of the blocks above. Columns cannot contain columns. On phones the columns stack.
+
+Images: you can only use the images listed under "Available images" in the steward's message, by their exact address. Never write an image address of your own and never use one from anywhere else. Stewards refer to images by number ("image 2") or by what they show. If the steward asks for an image and none is available, say they can add one with the Add image button, and build the page without it. Do not use the same image twice unless asked.
 
 The posts, events and members blocks show the group's real, current content; you do not write that content. Give them a short title that says what the list is.
 
@@ -90,6 +101,24 @@ export function normalizeDesignMessages (messages) {
   return clean
 }
 
+/**
+ * Checks the images the web app says the steward has added. Returns
+ * [{ url, name }] or throws.
+ */
+export function normalizeDesignImages (images) {
+  if (images === undefined || images === null) return []
+  if (!Array.isArray(images) || images.length > MAX_DESIGN_IMAGES) throw new Error(`A design can use up to ${MAX_DESIGN_IMAGES} images`)
+  return images.map((image, index) => {
+    let parsed = null
+    try {
+      parsed = new URL(image?.url)
+    } catch (e) {}
+    if (!parsed || parsed.protocol !== 'https:' || String(image.url).length > 500) throw new Error('Each image needs an https address')
+    const name = typeof image.name === 'string' && image.name.trim() ? image.name.trim().slice(0, 100) : `Image ${index + 1}`
+    return { url: image.url, name }
+  })
+}
+
 function describeBlocksForPrompt () {
   return Object.keys(DESIGNED_VIEW_BLOCKS).concat('columns').join(', ')
 }
@@ -98,8 +127,11 @@ function describeBlocksForPrompt () {
  * One turn of the design chat. Returns { reply, view, usage }, where view has
  * passed validateDesignedView.
  */
-export async function designViewTurn ({ group = {}, messages, currentView = null }, { client, model = viewDesignModel() } = {}) {
+export async function designViewTurn ({ group = {}, messages, currentView = null, images = [] }, { client, model = viewDesignModel() } = {}) {
   const conversation = normalizeDesignMessages(messages)
+  const available = normalizeDesignImages(images)
+  // Images already on the page stay usable even if the browser did not list them again
+  const allowedImageUrls = [...new Set([...available.map(image => image.url), ...designedViewImageUrls(currentView)])]
   const anthropic = client || new Anthropic({ apiKey: process.env.CLAUDE_API_KEY })
 
   const context = [
@@ -107,7 +139,10 @@ export async function designViewTurn ({ group = {}, messages, currentView = null
     group.description ? `Group description: ${String(group.description).slice(0, 1500)}` : 'The group has no description.',
     currentView
       ? `Current design (block types: ${describeBlocksForPrompt()}):\n${JSON.stringify(currentView)}`
-      : 'There is no design yet. This is the first version.'
+      : 'There is no design yet. This is the first version.',
+    available.length > 0
+      ? `Available images:\n${available.map((image, index) => `${index + 1}. ${image.name}: ${image.url}`).join('\n')}`
+      : 'Available images: none. The steward has not added any.'
   ].join('\n\n')
 
   const last = conversation[conversation.length - 1]
@@ -136,11 +171,14 @@ export async function designViewTurn ({ group = {}, messages, currentView = null
   if (!text) throw new Error('The model returned no design')
 
   const output = JSON.parse(text.text)
-  const { view, errors } = validateDesignedView(output.view)
+  // Drop any image the steward did not provide before checking the page, so one made-up address does not lose the turn
+  const { view: withOwnImages, removed } = removeUnlistedImages(output.view, allowedImageUrls)
+  const { view, errors } = validateDesignedView(withOwnImages)
   if (errors.length > 0) throw new Error(`The model returned a page Hylo cannot show: ${errors.slice(0, 3).join('; ')}`)
 
+  const reply = typeof output.reply === 'string' ? output.reply.slice(0, 1000) : ''
   return {
-    reply: typeof output.reply === 'string' ? output.reply.slice(0, 1000) : '',
+    reply: removed > 0 ? `${reply} (I left out ${removed === 1 ? 'an image' : `${removed} images`} that had not been added to this design.)`.trim() : reply,
     view,
     usage: summarizeUsage(response.model || model, response.usage)
   }

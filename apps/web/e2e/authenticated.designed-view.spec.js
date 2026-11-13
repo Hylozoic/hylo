@@ -18,12 +18,16 @@ const PRO_NOTE = 'e2e designed view spec'
 const VIEW_NAME = 'E2E Start Here'
 const uiTimeout = { timeout: 60000 }
 
+// Stands in for an uploaded image; the spec serves a picture at this address
+const HERO_IMAGE = 'https://uploads.e2e-hylo.test/garden.svg'
+const HERO_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6b4f"/><stop offset="1" stop-color="#e0a030"/></linearGradient></defs><rect width="1600" height="600" fill="url(#g)"/><circle cx="1250" cy="170" r="90" fill="#f6e7b0"/></svg>'
+
 const turn = {
   reply: 'I made a welcome page with the latest posts and the members.',
   view: {
     version: 1,
     blocks: [
-      { type: 'heading', text: 'Welcome to the group', level: 1 },
+      { type: 'hero', imageUrl: HERO_IMAGE, title: 'Welcome to the group', subtitle: 'Start here', height: 'medium', align: 'left' },
       { type: 'text', text: 'This is where new members start.' },
       { type: 'callout', title: 'Say hello', text: 'Introduce yourself in a post.', tone: 'accent' },
       {
@@ -77,6 +81,8 @@ test.describe('designed views', () => {
       })
     })
 
+    await page.route('https://uploads.e2e-hylo.test/**', route => route.fulfill({ status: 200, contentType: 'image/svg+xml', body: HERO_SVG }))
+
     await page.goto(`/groups/${GROUP_SLUG}/design/new`)
     await waitPastRootSessionLoading(page)
 
@@ -87,6 +93,7 @@ test.describe('designed views', () => {
     await expect(page.getByTestId('designer-canvas')).toContainText('Your page will appear here')
     await expect(page.getByTestId('designer-usage')).toContainText('Each message costs about $0.03')
     await expect(chat.getByRole('button', { name: 'Add to menu' })).toBeDisabled()
+    await expect(chat.getByRole('button', { name: 'Add image' })).toBeEnabled()
 
     await chat.getByLabel('Message').fill('A welcome page for new members')
     await chat.getByRole('button', { name: 'Send' }).click()
@@ -96,6 +103,10 @@ test.describe('designed views', () => {
     const canvas = page.getByTestId('designer-canvas')
     await expect(canvas.getByRole('heading', { level: 1, name: 'Welcome to the group' })).toBeVisible()
     await expect(canvas).toContainText('Introduce yourself in a post.')
+    // The banner image has loaded and fills the hero
+    const heroImage = canvas.locator('[data-block="hero"] img')
+    await expect(heroImage).toHaveAttribute('src', HERO_IMAGE)
+    await expect.poll(() => heroImage.evaluate(img => img.complete && img.naturalWidth > 0), uiTimeout).toBe(true)
     await expect(canvas.locator('[data-block="members"] a').first()).toBeVisible(uiTimeout)
     await expect(page.getByTestId('designer-usage')).toContainText('Last message: 4,411 input and 551 output tokens, about $0.029')
     await expect(page.getByTestId('designer-usage')).toContainText('Messages in this design: 1, using 4,962 tokens')
@@ -120,7 +131,7 @@ test.describe('designed views', () => {
     await expect(page).toHaveURL(/\/designed\/\d+$/, uiTimeout)
 
     const stored = JSON.parse(sql(`SELECT settings::text FROM group_views WHERE type = 'designed' AND name = '${VIEW_NAME}'`))
-    expect(stored.design.blocks[0]).toEqual({ type: 'heading', text: 'Welcome to the group', level: 1 })
+    expect(stored.design.blocks[0]).toEqual({ type: 'hero', imageUrl: HERO_IMAGE, title: 'Welcome to the group', subtitle: 'Start here', height: 'medium', align: 'left' })
 
     // It survives a reload, and "Edit design" reopens the designer with the saved page
     await page.reload()
@@ -129,6 +140,8 @@ test.describe('designed views', () => {
     await page.getByTestId('designed-view-edit').click()
     await expect(page.getByTestId('designer-chat-column')).toBeVisible(uiTimeout)
     await expect(page.getByTestId('designer-chat-column').getByLabel('Name in the menu')).toHaveValue(VIEW_NAME)
+    // The images a saved page uses are offered again for further changes
+    await expect(page.getByTestId('designer-image')).toHaveCount(1)
     await expect(page.getByTestId('designer-canvas').getByRole('heading', { level: 1, name: 'Welcome to the group' })).toBeVisible()
   })
 

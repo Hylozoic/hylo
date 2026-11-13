@@ -1,4 +1,6 @@
 import {
+  designedViewImageUrls,
+  removeUnlistedImages,
   DESIGNED_VIEW_BLOCKS,
   DESIGNED_VIEW_MAX_BLOCKS,
   designedViewJsonSchema,
@@ -126,9 +128,12 @@ describe('sanitizeDesignedView', () => {
 describe('designedViewJsonSchema', () => {
   it('describes every block type with all fields required and nothing extra allowed', () => {
     const schema = designedViewJsonSchema()
-    const options = schema.properties.blocks.items.anyOf
-    expect(options.map(option => option.properties.type.enum[0])).toEqual([...Object.keys(DESIGNED_VIEW_BLOCKS), 'columns'])
-    options.forEach(option => {
+    const leaf = schema.$defs.block.anyOf
+    const [leafRef, columns] = schema.properties.blocks.items.anyOf
+    expect(leafRef).toEqual({ $ref: '#/$defs/block' })
+    expect(columns.properties.columns.items.items).toEqual({ $ref: '#/$defs/block' })
+    expect(leaf.map(option => option.properties.type.enum[0])).toEqual(Object.keys(DESIGNED_VIEW_BLOCKS))
+    ;[...leaf, columns].forEach(option => {
       expect(option.additionalProperties).toBe(false)
       expect(option.required).toEqual(Object.keys(option.properties))
     })
@@ -143,5 +148,62 @@ describe('designedViewJsonSchema', () => {
       ]
     }
     expect(validateDesignedView(fromModel).errors).toEqual([])
+  })
+})
+
+describe('image and hero blocks', () => {
+  const garden = 'https://uploads.example.org/garden.jpg'
+  const tools = 'https://uploads.example.org/tools.jpg'
+
+  it('accepts an image and a hero, with defaults', () => {
+    const result = validateDesignedView({
+      blocks: [{ type: 'hero', imageUrl: garden, title: 'Welcome' }, { type: 'image', url: tools, alt: 'Tools', caption: '' }]
+    })
+    expect(result.errors).toEqual([])
+    expect(result.view.blocks).toEqual([
+      { type: 'hero', imageUrl: garden, title: 'Welcome', height: 'medium', align: 'left' },
+      { type: 'image', url: tools, alt: 'Tools' }
+    ])
+  })
+
+  it('needs an https image address', () => {
+    expect(validateDesignedView({ blocks: [{ type: 'hero', title: 'Welcome' }] }).errors).toEqual(['blocks[0].imageUrl is required'])
+    expect(validateDesignedView({ blocks: [{ type: 'image', url: 'http://example.org/a.jpg' }] }).errors[0]).toContain('must be an https:// address')
+    // eslint-disable-next-line no-script-url
+    expect(validateDesignedView({ blocks: [{ type: 'image', url: 'javascript:alert(1)' }] }).errors[0]).toContain('must be an https:// address')
+    expect(validateDesignedView({ blocks: [{ type: 'image', url: 'data:image/png;base64,AAAA' }] }).errors[0]).toContain('must be an https:// address')
+  })
+
+  it('lists the images a view uses', () => {
+    expect(designedViewImageUrls({
+      blocks: [
+        { type: 'hero', imageUrl: garden },
+        { type: 'columns', columns: [[{ type: 'image', url: tools }], [{ type: 'image', url: garden }]] },
+        { type: 'text', text: 'x' }
+      ]
+    })).toEqual([garden, tools])
+    expect(designedViewImageUrls(null)).toEqual([])
+  })
+
+  it('removes image blocks whose image was not provided', () => {
+    const view = {
+      version: 1,
+      blocks: [
+        { type: 'hero', imageUrl: 'https://elsewhere.example.com/made-up.jpg', title: 'Welcome' },
+        { type: 'heading', text: 'Hello', level: 1 },
+        { type: 'columns', columns: [[{ type: 'image', url: tools }], [{ type: 'image', url: 'https://elsewhere.example.com/x.png' }]] }
+      ]
+    }
+    expect(removeUnlistedImages(view, [tools])).toEqual({
+      removed: 2,
+      view: {
+        version: 1,
+        blocks: [
+          { type: 'heading', text: 'Hello', level: 1 },
+          { type: 'columns', columns: [[{ type: 'image', url: tools }], []] }
+        ]
+      }
+    })
+    expect(removeUnlistedImages(view, [tools, 'https://elsewhere.example.com/made-up.jpg', 'https://elsewhere.example.com/x.png']).removed).toEqual(0)
   })
 })
