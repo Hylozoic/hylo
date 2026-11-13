@@ -158,11 +158,12 @@ describe('AppearanceTab group theme editor', () => {
       mockDispatch.mockResolvedValue({ type: IMPORT_GROUP_THEME_FROM_URL, payload: { data: { importGroupThemeFromUrl: imported } } })
       renderTab()
       expect(importButton()).toBeDisabled()
+      expect(screen.getByTestId('group-theme-import-usage')).toHaveTextContent('Each import costs about $0.03')
 
       typeUrl('example.org')
       fireEvent.click(importButton())
 
-      await screen.findByTestId('group-theme-import-usage')
+      await screen.findByText(/This import:/)
       const action = mockDispatch.mock.calls[0][0]
       expect(action.type).toEqual(IMPORT_GROUP_THEME_FROM_URL)
       expect(action.graphql.variables).toEqual({ groupId: '42', url: 'https://example.org/' })
@@ -188,7 +189,7 @@ describe('AppearanceTab group theme editor', () => {
 
       expect(await screen.findByRole('alert')).toHaveTextContent('Could not import a theme: Could not read a theme from that site')
       expect(previewStyle()).toBeNull()
-      expect(screen.queryByTestId('group-theme-import-usage')).toBeNull()
+      expect(screen.queryByText(/This import:/)).toBeNull()
     })
   })
 

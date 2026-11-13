@@ -5,6 +5,11 @@ import { Sparkles } from 'lucide-react'
 import importGroupThemeFromUrl from 'store/actions/importGroupThemeFromUrl'
 import { addImportUsage, formatUsd, normalizeImportUrl } from 'util/groupThemeEditor'
 
+// Measured on real imports with the default model (Claude Opus 5.5 at $4 / $20 per
+// million tokens): 5,600 to 6,900 tokens and $0.028 to $0.031 each. Shown before the
+// first import; afterwards the real numbers from the server replace it.
+const TYPICAL_IMPORT = { tokens: 6000, costUsd: 0.03 }
+
 /**
  * "Start from a website": sends a link to the server, which reads the site's
  * look with a headless browser and an AI model, and hands the suggestion to
@@ -83,32 +88,42 @@ export default function GroupThemeImport ({ groupId, onImport }) {
           {t('Imported from {{site}}. Review it below, then save.', { site: last.sourceUrl })} {last.summary}
         </p>
       )}
-      {usage && (
-        <div className='mt-3 rounded-md bg-muted/50 px-3 py-2 text-xs text-foreground/70' data-testid='group-theme-import-usage'>
-          <p className='m-0 font-bold'>{t('AI usage')}</p>
+      <div className='mt-3 rounded-md border-2 border-foreground/10 bg-muted/50 px-3 py-2 text-xs text-foreground/70' data-testid='group-theme-import-usage'>
+        <p className='m-0 font-bold text-foreground'>{t('AI usage and cost')}</p>
+        {!usage && (
           <p className='m-0'>
-            {t('This import: {{input}} input and {{output}} output tokens', {
-              input: usage.inputTokens.toLocaleString(),
-              output: usage.outputTokens.toLocaleString()
-            })}, {cost(usage.estimatedCostUsd)}
+            {t('Each import costs about {{cost}} (around {{tokens}} tokens with Claude Opus 5.5). The exact tokens and cost appear here after each import.', {
+              cost: formatUsd(TYPICAL_IMPORT.costUsd),
+              tokens: TYPICAL_IMPORT.tokens.toLocaleString()
+            })}
           </p>
-          <p className='m-0'>
-            {t('This visit: {{count}} imports, {{tokens}} tokens', {
-              count: session.count,
-              tokens: session.tokens.toLocaleString()
-            })}, {cost(session.costKnown ? session.costUsd : null)}
-          </p>
-          <p className='m-0 text-foreground/50'>
-            {usage.pricePerMillionTokens
-              ? t('Model {{model}}, priced at {{input}} per million input tokens and {{output}} per million output tokens. Costs are estimates.', {
-                model: usage.model,
-                input: formatUsd(usage.pricePerMillionTokens.input),
-                output: formatUsd(usage.pricePerMillionTokens.output)
-              })
-              : t('Model {{model}}. No price is on file for this model.', { model: usage.model })}
-          </p>
-        </div>
-      )}
+        )}
+        {usage && (
+          <>
+            <p className='m-0'>
+              {t('This import: {{input}} input and {{output}} output tokens', {
+                input: usage.inputTokens.toLocaleString(),
+                output: usage.outputTokens.toLocaleString()
+              })}, {cost(usage.estimatedCostUsd)}
+            </p>
+            <p className='m-0'>
+              {t('This visit: {{count}} imports, {{tokens}} tokens', {
+                count: session.count,
+                tokens: session.tokens.toLocaleString()
+              })}, {cost(session.costKnown ? session.costUsd : null)}
+            </p>
+            <p className='m-0 text-foreground/50'>
+              {usage.pricePerMillionTokens
+                ? t('Model {{model}}, priced at {{input}} per million input tokens and {{output}} per million output tokens. Costs are estimates.', {
+                  model: usage.model,
+                  input: formatUsd(usage.pricePerMillionTokens.input),
+                  output: formatUsd(usage.pricePerMillionTokens.output)
+                })
+                : t('Model {{model}}. No price is on file for this model.', { model: usage.model })}
+            </p>
+          </>
+        )}
+      </div>
     </div>
   )
 }
