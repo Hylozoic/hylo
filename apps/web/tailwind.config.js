@@ -111,6 +111,8 @@ export default {
       },
       borderWidth: {
         1: '1px',
+        // --border-width is set per group by a group theme (util/groupTheme.js); 2px everywhere else
+        2: 'var(--border-width, 2px)',
         3: '3px'
       },
       borderRadius: {

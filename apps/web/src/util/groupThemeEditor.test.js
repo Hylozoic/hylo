@@ -14,6 +14,7 @@ import {
   presetToDraft,
   PRESET_NAMES,
   roleForContrastIssue,
+  setBorderWidth,
   setRadius,
   setRoleColor,
   themesMatch
@@ -229,5 +230,19 @@ describe('contrast', () => {
     expect(canSaveWithContrastIssues({ issueCount: 0, override: false })).toBe(true)
     expect(canSaveWithContrastIssues({ issueCount: 2, override: false })).toBe(false)
     expect(canSaveWithContrastIssues({ issueCount: 2, override: true })).toBe(true)
+  })
+})
+
+describe('border width', () => {
+  it('sets a known width and ignores unknown ones', () => {
+    expect(setBorderWidth({}, 'thick')).toEqual({ borderWidth: 'thick' })
+    expect(setBorderWidth({ borderWidth: 'thin' }, '9px')).toEqual({ borderWidth: 'thin' })
+  })
+
+  it('is saved only when it differs from the default', () => {
+    expect(prepareThemeForSave({ borderWidth: 'regular' })).toEqual({ theme: null, valid: true })
+    expect(prepareThemeForSave({ borderWidth: 'thin' })).toEqual({ theme: { borderWidth: 'thin' }, valid: true })
+    expect(themesMatch({ borderWidth: 'regular' }, null)).toBe(true)
+    expect(themesMatch({ borderWidth: 'thick' }, null)).toBe(false)
   })
 })

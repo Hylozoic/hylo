@@ -78,3 +78,20 @@ describe('validateGroupTheme', () => {
     expect(sanitizeGroupTheme(theme)).toEqual(theme)
   })
 })
+
+describe('group theme border width', () => {
+  it('accepts the known widths', () => {
+    expect(validateGroupTheme({ borderWidth: 'thick' })).toEqual({ theme: { borderWidth: 'thick' }, errors: [] })
+    expect(sanitizeGroupTheme({ borderWidth: 'thin', radius: 'sm' })).toEqual({ borderWidth: 'thin', radius: 'sm' })
+  })
+
+  it('rejects anything else, including CSS lengths and inherited names', () => {
+    expect(validateGroupTheme({ borderWidth: '5px' })).toEqual({
+      theme: null,
+      errors: ['Unknown borderWidth "5px"; use one of thin, regular, thick']
+    })
+    expect(validateGroupTheme({ borderWidth: 'toString' }).errors).toHaveLength(1)
+    expect(sanitizeGroupTheme({ light: { background: '1 2% 3%' }, borderWidth: 'none' }))
+      .toEqual({ light: { background: '1 2% 3%' } })
+  })
+})

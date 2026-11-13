@@ -73,6 +73,18 @@ describe('AppearanceTab group theme editor', () => {
     expect(await screen.findByText('Theme saved')).toBeInTheDocument()
   })
 
+  it('previews and saves a border width, keeping it when a preset is chosen', async () => {
+    renderTab()
+    fireEvent.click(screen.getByTestId('group-theme-border-width-thick'))
+    expect(previewStyle().textContent).toContain('--border-width: 3px !important')
+
+    fireEvent.click(screen.getByTestId('group-theme-preset-snow'))
+    fireEvent.click(saveButton())
+
+    await waitFor(() => expect(mockDispatch).toHaveBeenCalled())
+    expect(mockDispatch.mock.calls[0][0].graphql.variables.theme.borderWidth).toEqual('thick')
+  })
+
   it('edits a role through the color input', () => {
     renderTab()
     fireEvent.change(screen.getByLabelText(/Background/), { target: { value: '#ff0000' } })
