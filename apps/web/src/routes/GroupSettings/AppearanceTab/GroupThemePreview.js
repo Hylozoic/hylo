@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { CaseSensitive, SendHorizontal } from 'lucide-react'
+import Icon from 'components/Icon'
 import { cn } from 'util/index'
 import { appThemeCssVars, groupThemeCssVars } from 'util/groupTheme'
 import { defaultTheme } from '../../../themes'
@@ -36,11 +38,19 @@ function SampleReply ({ name, time, children }) {
   )
 }
 
-function SampleComposer ({ placeholder, action }) {
+// Mirrors the comment box (routes/PostDetail/Comments/CommentForm)
+function SampleComposer ({ placeholder }) {
   return (
-    <div className='flex items-center gap-2'>
-      <span className='flex-1 rounded-md border-2 border-foreground/20 bg-input px-3 py-1 text-sm text-foreground/50'>{placeholder}</span>
-      <span className='rounded-md bg-primary text-primary-foreground px-3 py-1 text-sm font-bold'>{action}</span>
+    <div className='flex items-center bg-input rounded-lg p-2 border-2 border-transparent'>
+      <SampleAvatar name='Maya' className='h-6 w-6' />
+      <span className='flex-1 min-w-0 px-2 text-sm text-foreground/50 truncate'>{placeholder}</span>
+      <div className='flex items-center gap-2'>
+        <CaseSensitive className='w-5 h-5 text-foreground/50' />
+        <Icon name='AddImage' className='text-foreground/50' />
+        <span className='inline-flex h-9 w-9 items-center justify-center rounded-md bg-selected text-foreground'>
+          <SendHorizontal size={18} color='white' />
+        </span>
+      </div>
     </div>
   )
 }
@@ -60,7 +70,6 @@ function PostSample () {
         <p className='text-sm m-0'>{t('We are getting the beds ready for spring. Bring gloves and a friend!')}</p>
       </div>
       <div className='flex flex-wrap items-center gap-2 text-xs'>
-        <span className='rounded-md bg-accent text-accent-foreground px-2 py-0.5'>#garden</span>
         <span className='rounded-md border-2 border-foreground/20 px-2 py-0.5'>👍 4</span>
         <span className='rounded-md border-2 border-selected bg-selected/20 px-2 py-0.5'>🌱 2</span>
       </div>
@@ -68,7 +77,7 @@ function PostSample () {
         <SampleReply name='Sam' time='9:20'>{t('I can bring extra shovels.')}</SampleReply>
         <SampleReply name='Priya' time='9:31'>{t('Count me in!')}</SampleReply>
       </div>
-      <SampleComposer placeholder={t('Write a reply...')} action={t('Reply')} />
+      <SampleComposer placeholder={t('Add a comment...')} />
     </div>
   )
 }
@@ -96,7 +105,7 @@ function ChatSample () {
         {t('Is the meeting still on for today?')} <span className='text-accent font-bold'>@Maya</span>
       </ChatMessage>
       <ChatMessage name='Maya' time='8:06' highlighted>{t('Yes, see you at noon.')}</ChatMessage>
-      <SampleComposer placeholder={t('Write a message...')} action={t('Send')} />
+      <SampleComposer placeholder={t('Write a message...')} />
     </div>
   )
 }
