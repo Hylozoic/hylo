@@ -3532,6 +3532,12 @@ type Mutation {
   setGroupViewHidden(id: ID!, hidden: Boolean!): GroupView
   # Set a View as the home view for its Group or Space
   setHomeView(viewId: ID!, groupId: ID!): GenericResult
+  # One turn of the "Design your own view" chat for a Group. messages is the conversation so far,
+  # [{ role: "user" | "assistant", text }], ending with the steward's new message; currentView is the
+  # design being edited, if any. Saves nothing: returns { reply, view, usage } where view is the whole
+  # page as building blocks (store it as settings.design of a 'designed' GroupView) and usage holds the
+  # AI model, token counts and estimated cost. Requires the Administration responsibility and Hylo Pro.
+  designGroupViewTurn(groupId: ID!, messages: JSON!, currentView: JSON): JSON
   # Create a new Space (a child Group) within a parent Group
   createSpace(
     parentGroupId: ID!,
