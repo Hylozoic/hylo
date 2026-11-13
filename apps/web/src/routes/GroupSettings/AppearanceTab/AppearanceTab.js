@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Columns2, LayoutGrid } from 'lucide-react'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { GROUP_THEMES } from 'config/featureFlags'
+import { hasFeature } from 'store/models/Me'
 import { cn } from 'util/index'
 import SaveButton from '../SaveButton'
+import GroupThemeEditor from './GroupThemeEditor'
 
 export default function AppearanceTab ({ group, updateGroupSettings }) {
   const { t } = useTranslation()
@@ -63,6 +66,8 @@ export default function AppearanceTab ({ group, updateGroupSettings }) {
           </button>
         </div>
       </div>
+
+      {hasFeature(GROUP_THEMES) && <GroupThemeEditor group={group} />}
 
       <SaveButton changed={changed} save={save} />
     </div>
