@@ -55,6 +55,17 @@ Stored at `groups.settings.theme`:
 - `borderWidth` is one of `thin | regular | thick` (1px, 2px, 3px; default `regular`). It sets `--border-width`, which Tailwind's `border-2` family reads. Plain 1px `border` is not affected. Border color is not themed separately; most borders use the text color at low opacity.
 - A group theme resolves over Hylo's **default** theme, not the viewer's personal theme, so contrast can be checked once for everyone.
 
+## Import from a website (AI)
+
+"Start from a website" in the theme editor suggests a theme from a site's look. Nothing is saved until the steward saves.
+
+- Mutation: `importGroupThemeFromUrl(groupId: ID, url: String): JSON` in `apps/backend/api/graphql/mutations/group.js`; the work is in `apps/backend/lib/groupThemeImport.js`.
+- A headless Chromium (Playwright) loads the page and measures the colors, fonts, corners and borders it uses, and takes a screenshot of the first screen. Claude then picks the six color roles for light and dark, a radius, a border width and two Google Fonts. The answer is checked (hex colors, known options, plain font names that Google Fonts actually serves) before it reaches the editor, which derives the rest of the tokens as it does for hand-picked colors.
+- The response includes the model, token counts and an estimated cost, which the editor shows per import and as a running total for the visit. Prices live in `MODEL_PRICING` in `groupThemeImport.js` and need updating when Anthropic's prices change.
+- Setup: `CLAUDE_API_KEY` in the backend's environment (`apps/backend/.env` locally). Optional `GROUP_THEME_IMPORT_MODEL` (default `claude-opus-5-5`). The server needs Playwright's Chromium installed (`yarn playwright install chromium` in `apps/backend`); production hosting for the browser is not set up yet.
+- Limits: Administration responsibility, 20 imports per group per hour, public http(s) addresses only (private and internal addresses are refused for the page and for everything it loads).
+- Not done: the Hylo Pro gate (waits on the `1712-hylo-pro-*` branches, see task 5). The hostname check runs before the browser resolves the name itself, so a DNS answer that changes in between is not caught.
+
 ## Things already learned the hard way
 
 1. **Do not save themes through `updateGroup`.** `convertGraphqlData` snake-cases nested keys (`card-foreground` becomes `card_foreground`), and `Group.update` deep-merges `settings`, so an override could never be removed. Themes need their own mutation that replaces the whole theme.

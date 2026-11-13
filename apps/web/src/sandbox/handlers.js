@@ -288,6 +288,8 @@ function handleMutation (operationName, rootField, variables, seed) {
       return { data: { leaveTrack: leaveTrack(seed, variables) } }
     case 'updateMe':
       return { data: { updateMe: updateMe(seed, variables) } }
+    case 'importGroupThemeFromUrl':
+      throw new Error('Importing a theme from a website is not available in the demo')
     case 'updateGroupTheme':
       return { data: { updateGroupTheme: updateGroupTheme(seed, variables) } }
     case 'createMessage':

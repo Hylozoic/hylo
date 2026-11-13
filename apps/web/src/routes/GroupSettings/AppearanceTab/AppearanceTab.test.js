@@ -2,6 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import featureFlag from 'config/featureFlags'
 import { UPDATE_GROUP_THEME } from 'store/actions/updateGroupTheme'
+import { IMPORT_GROUP_THEME_FROM_URL } from 'store/actions/importGroupThemeFromUrl'
 import { themes, defaultTheme } from '../../../themes'
 import { presetToDraft, prepareThemeForSave } from 'util/groupThemeEditor'
 import { PREVIEW_STYLE_ID } from './useGroupThemePreview'
@@ -128,6 +129,67 @@ describe('AppearanceTab group theme editor', () => {
 
     fireEvent.click(screen.getByTestId('group-theme-preview-sample-event'))
     expect(screen.getByText('Spring potluck')).toBeInTheDocument()
+  })
+
+  describe('importing from a website', () => {
+    const imported = {
+      roles: {
+        light: { background: '#f4f0e8', card: '#ffffff', text: '#2a2723', primary: '#087736', accent: '#087736', selected: '#d7eadb' },
+        dark: { background: '#0f2a22', card: '#163a2f', text: '#f1ebde', primary: '#2e9e5b', accent: '#4cc07a', selected: '#235a45' }
+      },
+      radius: 'xl',
+      borderWidth: 'thin',
+      fontHeading: null,
+      fontBody: null,
+      summary: 'Warm cream and forest green.',
+      sourceUrl: 'https://example.org/',
+      usage: {
+        model: 'claude-opus-5-5',
+        inputTokens: 6685,
+        outputTokens: 233,
+        estimatedCostUsd: 0.0314,
+        pricePerMillionTokens: { input: 4, output: 20 }
+      }
+    }
+    const importButton = () => screen.getByRole('button', { name: 'Import look' })
+    const typeUrl = value => fireEvent.change(screen.getByLabelText('Start from a website'), { target: { value } })
+
+    it('fills the draft from the suggestion without saving, and shows tokens and cost', async () => {
+      mockDispatch.mockResolvedValue({ type: IMPORT_GROUP_THEME_FROM_URL, payload: { data: { importGroupThemeFromUrl: imported } } })
+      renderTab()
+      expect(importButton()).toBeDisabled()
+
+      typeUrl('example.org')
+      fireEvent.click(importButton())
+
+      await screen.findByTestId('group-theme-import-usage')
+      const action = mockDispatch.mock.calls[0][0]
+      expect(action.type).toEqual(IMPORT_GROUP_THEME_FROM_URL)
+      expect(action.graphql.variables).toEqual({ groupId: '42', url: 'https://example.org/' })
+      expect(mockDispatch).toHaveBeenCalledTimes(1)
+
+      expect(screen.getByLabelText(/Background/).value).toEqual('#f4f0e8')
+      expect(previewStyle().textContent).toContain('--border-width: 1px !important')
+      expect(saveButton()).toBeEnabled()
+
+      const usage = screen.getByTestId('group-theme-import-usage').textContent
+      expect(usage).toContain('6,685 input and 233 output tokens')
+      expect(usage).toContain('about $0.031')
+      expect(usage).toContain('This visit: 1 imports, 6,918 tokens')
+      expect(usage).toContain('claude-opus-5-5')
+      expect(screen.getByTestId('group-theme-import-summary').textContent).toContain('Warm cream and forest green.')
+    })
+
+    it('shows the server error and leaves the draft alone', async () => {
+      mockDispatch.mockResolvedValue({ type: IMPORT_GROUP_THEME_FROM_URL, error: true, payload: new Error('Could not read a theme from that site') })
+      renderTab()
+      typeUrl('https://example.org')
+      fireEvent.click(importButton())
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not import a theme: Could not read a theme from that site')
+      expect(previewStyle()).toBeNull()
+      expect(screen.queryByTestId('group-theme-import-usage')).toBeNull()
+    })
   })
 
   it('edits a role through the color input', () => {

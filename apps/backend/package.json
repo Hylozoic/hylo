@@ -135,6 +135,7 @@
     "performance-now": "^2.1.0",
     "pg": "^8.4.1",
     "pg-format": "^1.0.4",
+    "playwright": "1.58.2",
     "pluralize": "^8.0.0",
     "pretty-data": "^0.40.0",
     "promirepl": "^1.0.1",

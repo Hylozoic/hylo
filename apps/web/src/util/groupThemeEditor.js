@@ -360,3 +360,64 @@ export function getContrastIssues (draft) {
 export function roleForContrastIssue ({ surface }) {
   return SURFACE_ROLES[surface] || null
 }
+
+/**
+ * A draft with a website import applied (see the importGroupThemeFromUrl
+ * mutation): both color schemes are replaced by tokens derived from the
+ * suggested roles, and the radius, border width and fonts are set when the
+ * suggestion has them. Fonts the suggestion leaves out are cleared, since the
+ * import describes a whole look.
+ */
+export function applyImportedTheme (draft, imported) {
+  let next = nonColorSettings(draft)
+  COLOR_SCHEMES.forEach(scheme => {
+    THEME_ROLES.forEach(role => {
+      const triple = hexToHslTriple(imported?.roles?.[scheme]?.[role])
+      if (triple) next = setRoleColor(next, scheme, role, triple)
+    })
+  })
+  if (imported?.radius) next = setRadius(next, imported.radius)
+  if (imported?.borderWidth) next = setBorderWidth(next, imported.borderWidth)
+  GROUP_THEME_FONT_KEYS.forEach(key => { next = setFont(next, key, imported?.[key] || '') })
+  return next
+}
+
+/**
+ * The address to import from for what a steward typed, or null when it is not
+ * a usable web address. 'example.org' becomes 'https://example.org/'.
+ */
+export function normalizeImportUrl (input) {
+  const trimmed = (input || '').trim()
+  if (!trimmed) return null
+  const withProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  try {
+    const parsed = new URL(withProtocol)
+    if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname.includes('.')) return null
+    return parsed.href
+  } catch (e) {
+    return null
+  }
+}
+
+/**
+ * Adds one import's usage to a running total { count, tokens, costUsd, costKnown }.
+ */
+export function addImportUsage (total, usage) {
+  const known = usage.estimatedCostUsd !== null && usage.estimatedCostUsd !== undefined
+  return {
+    count: total.count + 1,
+    tokens: total.tokens + (usage.inputTokens || 0) + (usage.outputTokens || 0),
+    costUsd: total.costUsd + (known ? usage.estimatedCostUsd : 0),
+    costKnown: total.costKnown && known
+  }
+}
+
+/**
+ * Dollars for display: $1.25 and $4.00 for a cent or more that needs no extra
+ * digits, and more digits for small amounts ($0.031, $0.0004).
+ */
+export function formatUsd (amount) {
+  if (amount >= 1 || amount === 0) return `$${amount.toFixed(2)}`
+  if (amount >= 0.01) return `$${amount.toFixed(3).replace(/0$/, '')}`
+  return `$${amount.toPrecision(1)}`
+}
