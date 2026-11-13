@@ -5,12 +5,14 @@ import * as LocationHelpers from './LocationHelpers'
 import * as OfferingHelpers from './OfferingHelpers'
 import * as ViewHelpers from './viewHelpers'
 import * as GroupThemeHelpers from './GroupThemeHelpers'
+import * as DesignedViewHelpers from './DesignedViewHelpers'
 
 export * from './constants'
 export * from './OfferingHelpers'
 export * from './viewHelpers'
 export * from './LocaleHelpers'
 export * from './GroupThemeHelpers'
+export * from './DesignedViewHelpers'
 
 export {
   TextHelpers,
@@ -19,5 +21,6 @@ export {
   LocationHelpers,
   OfferingHelpers,
   ViewHelpers,
-  GroupThemeHelpers
+  GroupThemeHelpers,
+  DesignedViewHelpers
 }
