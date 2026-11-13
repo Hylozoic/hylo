@@ -110,6 +110,15 @@ test.describe('designed views', () => {
     await expect(page.getByRole('link', { name: VIEW_NAME }).first()).toBeVisible(uiTimeout)
     await page.screenshot({ path: 'e2e-screenshots/designed-view-2-saved.png' })
 
+    // A post in a live list opens in the dialog over the page, as it does in other views
+    await page.getByTestId('designed-view').locator('[data-block="posts"] a').first().click()
+    await expect(page).toHaveURL(/\/designed\/\d+\/post\/\d+/, uiTimeout)
+    await expect(page.getByRole('dialog')).toBeVisible(uiTimeout)
+    await expect(page.getByTestId('designed-view')).toBeVisible()
+    await page.screenshot({ path: 'e2e-screenshots/designed-view-5-post-dialog.png' })
+    await page.keyboard.press('Escape')
+    await expect(page).toHaveURL(/\/designed\/\d+$/, uiTimeout)
+
     const stored = JSON.parse(sql(`SELECT settings::text FROM group_views WHERE type = 'designed' AND name = '${VIEW_NAME}'`))
     expect(stored.design.blocks[0]).toEqual({ type: 'heading', text: 'Welcome to the group', level: 1 })
 

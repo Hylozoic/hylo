@@ -279,6 +279,9 @@ export function homeRouteHostsPostOverlay (homeRoute) {
   if (/^\/collection\/[^/]+$/.test(path)) return true
   if (/^\/topics\/[^/]+$/.test(path)) return true
   if (/^\/members\/[^/]+$/.test(path)) return true
+  // Designed views list live posts and events, and so does the designer's canvas
+  if (/^\/designed\/[^/]+$/.test(path)) return true
+  if (/^\/design\/[^/]+$/.test(path)) return true
   return POST_OVERLAY_ROUTE_ROOTS.some(root => path === root || path.startsWith(`${root}/`))
 }
 

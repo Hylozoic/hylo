@@ -58,6 +58,20 @@ describe('DesignedView', () => {
     expect(mockBlockData).toHaveBeenCalledWith('garden', expect.objectContaining({ type: 'posts', postTypes: ['request'], limit: 3 }))
   })
 
+  it('links posts and events through the page when it is given a way to open them in place', () => {
+    mockBlockData.mockImplementation(() => ({ items: [{ id: '9', title: 'Need a wheelbarrow', creator: {} }], loading: false, error: null }))
+    render(
+      <DesignedView
+        groupSlug='garden'
+        postUrlFor={postId => `/groups/garden/designed/3/post/${postId}`}
+        design={{ blocks: [{ type: 'posts', limit: 3 }, { type: 'events', limit: 2 }] }}
+      />
+    )
+    const links = screen.getAllByRole('link', { name: /Need a wheelbarrow/ })
+    expect(links).toHaveLength(2)
+    links.forEach(link => expect(link.getAttribute('href')).toEqual('/groups/garden/designed/3/post/9'))
+  })
+
   it('drops blocks it does not know and never renders stored markup', () => {
     render(
       <DesignedView
