@@ -1580,6 +1580,9 @@ type GroupSettings {
   showPostNoticesInChat: Boolean
   # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
   autoAddMembers: Boolean
+  # The group's own design tokens: { light: { <token>: 'H S% L%' }, dark: { ... }, radius }.
+  # Read-only here; clients must sanitize it before use (web: util/groupTheme.js).
+  theme: JSON
 }
 
 # A relationship between two Groups

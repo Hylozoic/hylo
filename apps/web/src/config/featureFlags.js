@@ -1,11 +1,14 @@
 export const PROJECT_CONTRIBUTIONS = 'PROJECT_CONTRIBUTIONS'
 // Members sending invitations: the "Who can add new members?" controls
 export const MEMBER_INVITES = 'MEMBER_INVITES'
+// Group themes: a group's own colors and corner radius, from group.settings.theme (proof of concept)
+export const GROUP_THEMES = 'GROUP_THEMES'
+
 // Hylo Pro billing: the group Billing settings tab
 export const HYLO_PRO = 'HYLO_PRO'
 
 // Flags that default to 'on' in development, test and staging, and to off in production
-const ON_OUTSIDE_PRODUCTION = [MEMBER_INVITES, HYLO_PRO]
+const ON_OUTSIDE_PRODUCTION = [MEMBER_INVITES, GROUP_THEMES, HYLO_PRO]
 const NON_PRODUCTION_ENVIRONMENTS = ['development', 'test', 'staging']
 
 // Staging runs a production build, so it is told apart by the environment name its error reports use

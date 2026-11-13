@@ -114,9 +114,11 @@ export default {
         3: '3px'
       },
       borderRadius: {
-        lg: '0.5rem',
-        md: 'calc(0.5rem - 2px)',
-        sm: 'calc(0.5rem - 4px)'
+        // --radius is set per group by a group theme (util/groupTheme.js); 0.5rem everywhere else
+        xl: 'calc(var(--radius, 0.5rem) + 0.25rem)',
+        lg: 'var(--radius, 0.5rem)',
+        md: 'max(calc(var(--radius, 0.5rem) - 2px), 0px)',
+        sm: 'max(calc(var(--radius, 0.5rem) - 4px), 0px)'
       },
       colors: {
         black: 'hsl(var(--black) / <alpha-value>)',
