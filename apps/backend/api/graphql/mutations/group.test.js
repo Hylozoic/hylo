@@ -4,6 +4,7 @@ import {
   createGroup,
   joinGroup,
   updateGroup,
+  updateGroupTheme,
   removeMember,
   createGroupInviteLink,
   updateGroupInviteLink,
@@ -636,6 +637,109 @@ describe('mutations/group', () => {
           expect(error.message).to.match(/Relationship not found/)
         }
       })
+    })
+  })
+
+  describe('updateGroupTheme', () => {
+    let admin, member, group
+
+    const savedSettings = async () => (await Group.find(group.id)).get('settings')
+
+    before(async () => {
+      admin = await factories.user().save()
+      member = await factories.user().save()
+      group = await factories.group().save()
+      await admin.joinGroup(group, { assignAdministrator: true })
+      await member.joinGroup(group)
+    })
+
+    beforeEach(() => bookshelf.knex('groups').where('id', group.id)
+      .update({ settings: JSON.stringify({ allow_group_invites: true, show_welcome_page: false }) }))
+
+    it('saves a theme without changing token names or other settings', async () => {
+      const theme = {
+        light: { background: '150 22% 86%', 'card-foreground': '160 28% 11%' },
+        dark: { background: '160 18% 12%' },
+        radius: 'xl'
+      }
+      const updated = await updateGroupTheme(admin.id, group.id, theme)
+
+      expect(updated.get('settings').theme).to.deep.equal(theme)
+      const settings = await savedSettings()
+      expect(settings.theme).to.deep.equal(theme)
+      expect(settings.allow_group_invites).to.equal(true)
+      expect(settings.show_welcome_page).to.equal(false)
+    })
+
+    it('replaces the theme whole, so removed overrides are gone', async () => {
+      await updateGroupTheme(admin.id, group.id, {
+        light: { background: '150 22% 86%', accent: '43 74% 49%' },
+        dark: { background: '160 18% 12%' },
+        radius: 'xl'
+      })
+      await updateGroupTheme(admin.id, group.id, { light: { background: '10 20% 30%' } })
+
+      const settings = await savedSettings()
+      expect(settings.theme).to.deep.equal({ light: { background: '10 20% 30%' } })
+      expect(settings.allow_group_invites).to.equal(true)
+    })
+
+    it('clears the theme with null and leaves other settings alone', async () => {
+      await updateGroupTheme(admin.id, group.id, { light: { background: '150 22% 86%' } })
+      const updated = await updateGroupTheme(admin.id, group.id, null)
+
+      expect(updated.get('settings')).to.not.have.property('theme')
+      const settings = await savedSettings()
+      expect(settings).to.not.have.property('theme')
+      expect(settings).to.deep.equal({ allow_group_invites: true, show_welcome_page: false })
+    })
+
+    it('stores valid values in canonical form', async () => {
+      await updateGroupTheme(admin.id, group.id, { light: { background: ' 150  22%  86% ' } })
+      expect((await savedSettings()).theme).to.deep.equal({ light: { background: '150 22% 86%' } })
+    })
+
+    it('rejects a member without the Administration responsibility', async () => {
+      await expect(updateGroupTheme(member.id, group.id, { light: { background: '150 22% 86%' } }))
+        .to.be.rejectedWith(/You don't have the right responsibilities for this group/)
+      await expect(updateGroupTheme(member.id, group.id, null))
+        .to.be.rejectedWith(/You don't have the right responsibilities for this group/)
+      expect(await savedSettings()).to.not.have.property('theme')
+    })
+
+    it('rejects an unknown token', async () => {
+      await expect(updateGroupTheme(admin.id, group.id, { light: { background: '150 22% 86%', 'not-a-token': '1 2% 3%' } }))
+        .to.be.rejectedWith(/Invalid theme: Unknown token "not-a-token" in light/)
+      expect(await savedSettings()).to.not.have.property('theme')
+    })
+
+    it('rejects a value that is not an HSL triple', async () => {
+      for (const value of ['red', '#ff0000', '150 22% 86%; background: url(x)', '400 22% 86%', 12]) {
+        await expect(updateGroupTheme(admin.id, group.id, { dark: { card: value } }))
+          .to.be.rejectedWith(/Invalid theme: Invalid value for dark.card/)
+      }
+      expect(await savedSettings()).to.not.have.property('theme')
+    })
+
+    it('rejects an unknown radius', async () => {
+      await expect(updateGroupTheme(admin.id, group.id, { radius: '9999px' }))
+        .to.be.rejectedWith(/Invalid theme: Unknown radius "9999px"/)
+      await expect(updateGroupTheme(admin.id, group.id, { radius: 'toString' }))
+        .to.be.rejectedWith(/Invalid theme: Unknown radius/)
+    })
+
+    it('rejects unknown top-level keys and non-object themes', async () => {
+      await expect(updateGroupTheme(admin.id, group.id, { light: {}, css: 'body { display: none }' }))
+        .to.be.rejectedWith(/Invalid theme: Unknown theme key "css"/)
+      await expect(updateGroupTheme(admin.id, group.id, 'forest'))
+        .to.be.rejectedWith(/Invalid theme: Theme must be an object/)
+    })
+
+    it('does not overwrite an existing theme when the new one is rejected', async () => {
+      const theme = { light: { background: '150 22% 86%' } }
+      await updateGroupTheme(admin.id, group.id, theme)
+      await expect(updateGroupTheme(admin.id, group.id, { light: { background: 'red' } })).to.be.rejected
+      expect((await savedSettings()).theme).to.deep.equal(theme)
     })
   })
 

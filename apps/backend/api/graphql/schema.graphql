@@ -1581,7 +1581,8 @@ type GroupSettings {
   # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
   autoAddMembers: Boolean
   # The group's own design tokens: { light: { <token>: 'H S% L%' }, dark: { ... }, radius }.
-  # Read-only here; clients must sanitize it before use (web: util/groupTheme.js).
+  # Set it with the updateGroupTheme mutation (validated on save). Clients must still
+  # sanitize it before use (shared rules: @hylo/shared GroupThemeHelpers).
   theme: JSON
 }
 
@@ -3845,6 +3846,10 @@ type Mutation {
     # Update group as a particular User (with permission)
     asUserId: ID
   ): Group
+  # Replace a Group's theme (settings.theme) whole, or clear it by passing null.
+  # Requires the Administration responsibility. Rejects any token, value or radius
+  # the shared sanitizer would drop; valid values are stored in canonical form.
+  updateGroupTheme(groupId: ID, theme: JSON): Group
   # Update a group responsibility
   updateGroupResponsibility(
     responsibilityId: ID,
