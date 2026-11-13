@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
+import { canSeedHyloPro, grantHyloPro, revokeHyloPro } from './helpers/hyloProGrant.js'
 
 /**
  * "Start from a website" in the group theme editor, in a real logged-in
@@ -12,6 +13,7 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
 test.describe.configure({ timeout: 180000 })
 
 const GROUP_SLUG = 'e2e-public-group'
+const PRO_NOTE = 'e2e group theme import spec'
 const uiTimeout = { timeout: 60000 }
 
 const suggestion = {
@@ -38,6 +40,10 @@ const suggestion = {
 
 test.describe('group theme import from a website', () => {
   test.skip(({ isMobile }) => isMobile, 'The editor flow is covered on desktop')
+  test.skip(!canSeedHyloPro, 'needs E2E_DATABASE_URL to give the group Hylo Pro')
+
+  test.beforeAll(() => { if (canSeedHyloPro) grantHyloPro(GROUP_SLUG, PRO_NOTE) })
+  test.afterAll(() => { if (canSeedHyloPro) revokeHyloPro(PRO_NOTE) })
 
   test('fills the draft and shows tokens and cost', async ({ page }) => {
     await page.route('**/noo/graphql', async route => {
@@ -62,7 +68,7 @@ test.describe('group theme import from a website', () => {
 
     await expect(page.getByTestId('group-theme-import-summary')).toContainText('Restrained and encyclopedic.', uiTimeout)
     await expect(meter).toContainText('This import: 5,586 input and 260 output tokens, about $0.028')
-    await expect(meter).toContainText('This visit: 1 imports, 5,846 tokens')
+    await expect(meter).toContainText('Imports this visit: 1, using 5,846 tokens')
     await expect(meter).toContainText('claude-opus-5-5')
 
     // The suggestion is a draft: previewed on the page, not saved

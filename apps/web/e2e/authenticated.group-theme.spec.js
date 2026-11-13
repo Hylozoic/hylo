@@ -1,17 +1,21 @@
 import { test, expect } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
+import { canSeedHyloPro, grantHyloPro, revokeHyloPro } from './helpers/hyloProGrant.js'
 
 /**
  * Group themes against the real backend: an Administrator saves a theme from
  * Group Settings > Appearance, the group renders it after a reload (so it came
  * back through the group queries), the global nav keeps the viewer's theme,
- * leaving the group removes it, and "Reset to default" clears it.
+ * leaving the group removes it, and "Reset to default" clears it. Themes need
+ * Hylo Pro, so the first test checks the editor without it and the second runs
+ * with a grant written for this spec.
  * Requires the E2E seed's Administrator role for the login user on e2e-public-group.
  */
 
 test.describe.configure({ timeout: 180000, mode: 'serial' })
 
 const GROUP_SLUG = 'e2e-public-group'
+const PRO_NOTE = 'e2e group theme spec'
 const uiTimeout = { timeout: 60000 }
 
 const bodyVar = (page, name) => page.evaluate(n => document.body.style.getPropertyValue(n), name)
@@ -24,8 +28,39 @@ async function openAppearance (page) {
 
 test.describe('group theme', () => {
   test.skip(({ isMobile }) => isMobile, 'The editor flow is covered on desktop')
+  test.skip(!canSeedHyloPro, 'needs E2E_DATABASE_URL to give the group Hylo Pro')
+
+  test.afterAll(() => { if (canSeedHyloPro) revokeHyloPro(PRO_NOTE) })
+
+  test('without Hylo Pro, a theme can be tried but not saved', async ({ page }) => {
+    revokeHyloPro(PRO_NOTE)
+    await openAppearance(page)
+    await expect(page.getByTestId('group-theme-pro-notice')).toContainText('Group themes are part of Hylo Pro')
+
+    await page.getByTestId('group-theme-preset-forest').click()
+    await expect(page.locator('style#group-theme-preview')).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'Save theme' })).toBeDisabled()
+    await expect(page.getByLabel('Start from a website')).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Import look' })).toBeDisabled()
+    await page.getByTestId('group-theme-pro-notice').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: 'e2e-screenshots/group-theme-real-0-without-pro.png' })
+
+    // The server refuses too, whatever the page allows
+    const refused = await page.evaluate(async slug => {
+      const post = body => fetch('/noo/graphql', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body)
+      }).then(res => res.json())
+      const { data } = await post({ query: 'query ($slug: String) { group(slug: $slug) { id } }', variables: { slug } })
+      return post({
+        query: 'mutation ($groupId: ID, $theme: JSON) { updateGroupTheme(groupId: $groupId, theme: $theme) { id } }',
+        variables: { groupId: data.group.id, theme: { radius: 'xl' } }
+      })
+    }, GROUP_SLUG)
+    expect(refused.errors?.[0]?.message).toContain('part of Hylo Pro')
+  })
 
   test('saves a theme, renders it for the group only, then resets it', async ({ page }) => {
+    grantHyloPro(GROUP_SLUG, PRO_NOTE)
     await openAppearance(page)
     expect(await bodyVar(page, '--background')).toBe('')
 

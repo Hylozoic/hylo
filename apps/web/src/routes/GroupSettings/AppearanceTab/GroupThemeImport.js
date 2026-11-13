@@ -107,7 +107,7 @@ export default function GroupThemeImport ({ groupId, onImport, disabled = false 
               })}, {cost(usage.estimatedCostUsd)}
             </p>
             <p className='m-0'>
-              {t('This visit: {{count}} imports, {{tokens}} tokens', {
+              {t('Imports this visit: {{count}}, using {{tokens}} tokens', {
                 count: session.count,
                 tokens: session.tokens.toLocaleString()
               })}, {cost(session.costKnown ? session.costUsd : null)}
