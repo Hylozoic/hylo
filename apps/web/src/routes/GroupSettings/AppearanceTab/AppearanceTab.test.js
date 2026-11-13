@@ -176,7 +176,7 @@ describe('AppearanceTab group theme editor', () => {
       const usage = screen.getByTestId('group-theme-import-usage').textContent
       expect(usage).toContain('6,685 input and 233 output tokens')
       expect(usage).toContain('about $0.031')
-      expect(usage).toContain('This visit: 1 imports, 6,918 tokens')
+      expect(usage).toContain('Imports this visit: 1, using 6,918 tokens')
       expect(usage).toContain('claude-opus-5-5')
       expect(screen.getByTestId('group-theme-import-summary').textContent).toContain('Warm cream and forest green.')
     })

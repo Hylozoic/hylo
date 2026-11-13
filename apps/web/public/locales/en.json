@@ -3663,7 +3663,7 @@
   "AI usage and cost": "AI usage and cost",
   "Each import costs about {{cost}} (around {{tokens}} tokens with Claude Opus 5.5). The exact tokens and cost appear here after each import.": "Each import costs about {{cost}} (around {{tokens}} tokens with Claude Opus 5.5). The exact tokens and cost appear here after each import.",
   "This import: {{input}} input and {{output}} output tokens": "This import: {{input}} input and {{output}} output tokens",
-  "This visit: {{count}} imports, {{tokens}} tokens": "This visit: {{count}} imports, {{tokens}} tokens",
+  "Imports this visit: {{count}}, using {{tokens}} tokens": "Imports this visit: {{count}}, using {{tokens}} tokens",
   "Model {{model}}, priced at {{input}} per million input tokens and {{output}} per million output tokens. Costs are estimates.": "Model {{model}}, priced at {{input}} per million input tokens and {{output}} per million output tokens. Costs are estimates.",
   "Model {{model}}. No price is on file for this model.": "Model {{model}}. No price is on file for this model.",
   "cost unknown": "cost unknown",

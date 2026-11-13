@@ -3674,7 +3674,7 @@
   "AI usage and cost": "Uso y costo de IA",
   "Each import costs about {{cost}} (around {{tokens}} tokens with Claude Opus 5.5). The exact tokens and cost appear here after each import.": "Cada importación cuesta aproximadamente {{cost}} (unos {{tokens}} tokens con Claude Opus 5.5). Los tokens y el costo exactos aparecen aquí después de cada importación.",
   "This import: {{input}} input and {{output}} output tokens": "Esta importación: {{input}} tokens de entrada y {{output}} de salida",
-  "This visit: {{count}} imports, {{tokens}} tokens": "Esta visita: {{count}} importaciones, {{tokens}} tokens",
+  "Imports this visit: {{count}}, using {{tokens}} tokens": "Importaciones en esta visita: {{count}}, con {{tokens}} tokens",
   "Model {{model}}, priced at {{input}} per million input tokens and {{output}} per million output tokens. Costs are estimates.": "Modelo {{model}}, con un precio de {{input}} por millón de tokens de entrada y {{output}} por millón de tokens de salida. Los costos son estimaciones.",
   "Model {{model}}. No price is on file for this model.": "Modelo {{model}}. No hay un precio registrado para este modelo.",
   "cost unknown": "costo desconocido",
