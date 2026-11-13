@@ -1,5 +1,6 @@
 import { themes, defaultTheme } from '../themes'
 import {
+  GROUP_THEME_TOKENS,
   appThemeCssVars,
   checkGroupThemeContrast,
   contrastRatio,
@@ -8,6 +9,14 @@ import {
   resolveGroupThemeTokens,
   sanitizeGroupTheme
 } from './groupTheme'
+
+describe('GROUP_THEME_TOKENS', () => {
+  // The shared package keeps its own copy of the token list so the backend can
+  // validate without importing web code. This keeps the two from drifting.
+  it('equals the keys of the default theme', () => {
+    expect(GROUP_THEME_TOKENS).toEqual(Object.keys(themes[defaultTheme].light))
+  })
+})
 
 describe('parseHslTriple', () => {
   it('parses a plain HSL triple', () => {
