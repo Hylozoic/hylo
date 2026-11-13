@@ -63,8 +63,8 @@ Stored at `groups.settings.theme`:
 - A headless Chromium (Playwright) loads the page and measures the colors, fonts, corners and borders it uses, and takes a screenshot of the first screen. Claude then picks the six color roles for light and dark, a radius, a border width and two Google Fonts. The answer is checked (hex colors, known options, plain font names that Google Fonts actually serves) before it reaches the editor, which derives the rest of the tokens as it does for hand-picked colors.
 - The response includes the model, token counts and an estimated cost, which the editor shows per import and as a running total for the visit. Prices live in `MODEL_PRICING` in `groupThemeImport.js` and need updating when Anthropic's prices change.
 - Setup: `CLAUDE_API_KEY` in the backend's environment (`apps/backend/.env` locally). Optional `GROUP_THEME_IMPORT_MODEL` (default `claude-opus-5-5`). The server needs Playwright's Chromium installed (`yarn playwright install chromium` in `apps/backend`); production hosting for the browser is not set up yet.
-- Limits: Administration responsibility, 20 imports per group per hour, public http(s) addresses only (private and internal addresses are refused for the page and for everything it loads).
-- Not done: the Hylo Pro gate (waits on the `1712-hylo-pro-*` branches, see task 5). The hostname check runs before the browser resolves the name itself, so a DNS answer that changes in between is not caught.
+- Limits: Hylo Pro, Administration responsibility, 20 imports per group per hour, public http(s) addresses only (private and internal addresses are refused for the page and for everything it loads).
+- Known gap: the hostname check runs before the browser resolves the name itself, so a DNS answer that changes in between is not caught.
 
 ## Things already learned the hard way
 
@@ -109,8 +109,11 @@ In `apps/web/src/routes/GroupSettings/AppearanceTab/AppearanceTab.js`, below the
 - Sweep the group menu, view headers, post cards and primary buttons for hardcoded colors, and convert them to tokens.
 - Define the missing `tertiary` color.
 
-### 5. Gate behind Hylo Pro
-- When the `1712-hylo-pro-*` branches merge, gate saving a theme on the group's subscription. Decide what happens to a saved theme when a subscription lapses (open question in the spec).
+### 5. Gate behind Hylo Pro (done)
+- Saving or changing a theme (`updateGroupTheme` with a theme) and importing one (`importGroupThemeFromUrl`) need `group.hasPro()`: an active Hylo Pro subscription or grant. The error carries the code `HYLO_PRO_REQUIRED`.
+- When Pro lapses, a saved theme keeps showing, cannot be changed, and can still be cleared (`updateGroupTheme` with null). This is a default pending a product decision.
+- Without Pro, the editor still works as a try-out with live preview; Save and Import are disabled and a notice links to the Billing tab (when the `HYLO_PRO` flag is on).
+- Spaces cannot have Hylo Pro, so they cannot have themes.
 
 ## Out of scope for the MVP
 

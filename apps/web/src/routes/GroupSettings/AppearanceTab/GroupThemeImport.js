@@ -16,7 +16,7 @@ const TYPICAL_IMPORT = { tokens: 6000, costUsd: 0.03 }
  * the editor as an unsaved draft. Shows what each import cost in tokens and
  * dollars, and the running total for this visit to the page.
  */
-export default function GroupThemeImport ({ groupId, onImport }) {
+export default function GroupThemeImport ({ groupId, onImport, disabled = false }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const [url, setUrl] = useState('')
@@ -29,7 +29,7 @@ export default function GroupThemeImport ({ groupId, onImport }) {
 
   const handleSubmit = async event => {
     event.preventDefault()
-    if (!target || loading) return
+    if (!target || loading || disabled) return
     setLoading(true)
     setError(null)
     try {
@@ -70,12 +70,12 @@ export default function GroupThemeImport ({ groupId, onImport }) {
           value={url}
           onChange={event => setUrl(event.target.value)}
           placeholder='https://example.org'
-          disabled={loading}
+          disabled={loading || disabled}
           className='flex-1 min-w-[12rem] rounded-md border-2 border-foreground/20 bg-input text-foreground px-3 py-1 text-sm'
         />
         <button
           type='submit'
-          disabled={!target || loading}
+          disabled={!target || loading || disabled}
           className='rounded-md bg-primary text-primary-foreground px-3 py-1 text-sm font-bold border-2 border-transparent disabled:opacity-50'
         >
           {loading ? t('Reading the site...') : t('Import look')}

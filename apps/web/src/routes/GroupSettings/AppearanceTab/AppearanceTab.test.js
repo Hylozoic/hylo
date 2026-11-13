@@ -25,8 +25,8 @@ jest.mock('hooks/useAppearance', () => () => ({ effectiveColorScheme: 'light' })
 
 const savedTheme = { light: { background: '150 22% 86%' }, radius: 'xl' }
 
-function renderTab (theme = null) {
-  const group = { id: '42', settings: { layout: 'two-column', theme } }
+function renderTab (theme = null, { hasPro = true } = {}) {
+  const group = { id: '42', slug: 'my-group', hasPro, settings: { layout: 'two-column', theme } }
   return render(<AppearanceTab group={group} updateGroupSettings={jest.fn()} />)
 }
 
@@ -190,6 +190,34 @@ describe('AppearanceTab group theme editor', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent('Could not import a theme: Could not read a theme from that site')
       expect(previewStyle()).toBeNull()
       expect(screen.queryByText(/This import:/)).toBeNull()
+    })
+  })
+
+  describe('without Hylo Pro', () => {
+    it('lets a steward try a theme but not save or import one', () => {
+      renderTab(null, { hasPro: false })
+      expect(screen.getByTestId('group-theme-pro-notice')).toHaveTextContent('Group themes are part of Hylo Pro')
+
+      fireEvent.click(screen.getByTestId('group-theme-preset-snow'))
+      expect(previewStyle()).not.toBeNull()
+      expect(saveButton()).toBeDisabled()
+
+      fireEvent.change(screen.getByLabelText('Start from a website'), { target: { value: 'example.org' } })
+      expect(screen.getByRole('button', { name: 'Import look' })).toBeDisabled()
+      expect(mockDispatch).not.toHaveBeenCalled()
+    })
+
+    it('still lets a group reset a theme it saved while it had Pro', async () => {
+      renderTab(savedTheme, { hasPro: false })
+      expect(screen.getByTestId('group-theme-pro-notice')).toHaveTextContent("This group's theme stays as it is")
+      fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }))
+      await waitFor(() => expect(mockDispatch).toHaveBeenCalled())
+      expect(mockDispatch.mock.calls[0][0].graphql.variables).toEqual({ groupId: '42', theme: null })
+    })
+
+    it('shows no notice when the group has Pro', () => {
+      renderTab()
+      expect(screen.queryByTestId('group-theme-pro-notice')).toBeNull()
     })
   })
 

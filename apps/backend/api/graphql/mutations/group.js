@@ -244,6 +244,19 @@ export async function updateGroup (userId, groupId, changes, context) {
  * Formatting differences in valid values (e.g. extra whitespace) are not
  * errors; the canonical form is stored.
  */
+export const HYLO_PRO_REQUIRED_FOR_THEMES = 'Group themes are part of Hylo Pro. This group needs Hylo Pro to change its theme.'
+
+/**
+ * Group themes are a Hylo Pro feature: changing a theme and importing one need
+ * an active subscription or grant. A theme saved while the group had Pro keeps
+ * showing after Pro lapses, and can still be removed.
+ */
+async function requireHyloProForThemes (group) {
+  if (!(await group.hasPro())) {
+    throw new GraphQLError(HYLO_PRO_REQUIRED_FOR_THEMES, { extensions: { code: 'HYLO_PRO_REQUIRED' } })
+  }
+}
+
 export async function updateGroupTheme (userId, groupId, theme, context) {
   const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
 
@@ -251,6 +264,9 @@ export async function updateGroupTheme (userId, groupId, theme, context) {
   if (errors.length > 0) {
     throw new GraphQLError(`Invalid theme: ${errors.join('; ')}`)
   }
+
+  // Clearing a theme (null) is always allowed, so a group whose Pro lapsed can go back to the default look
+  if (cleanTheme) await requireHyloProForThemes(group)
 
   // Update only the theme key in one statement, so a concurrent change to
   // another setting is not overwritten with a stale copy.
@@ -544,11 +560,12 @@ async function withinThemeImportLimit (groupId) {
  * Suggests a theme for a group from a website's look. Saves nothing: returns
  * the suggested color roles, radius, border width and fonts, plus the model's
  * token usage and estimated cost, for the steward to review in the editor.
- * Requires the Administration responsibility.
- * TODO: gate on the group's Hylo Pro subscription once the 1712-hylo-pro work lands.
+ * Requires the Administration responsibility and Hylo Pro.
  */
 export async function importGroupThemeFromUrl (userId, groupId, url, deps = {}) {
   const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+
+  await requireHyloProForThemes(group)
 
   if (!(deps.isConfigured || isThemeImportConfigured)()) {
     throw new GraphQLError('Importing a theme from a website is not set up on this server')

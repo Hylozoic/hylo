@@ -2045,6 +2045,8 @@ describe('updateGroupTheme through GraphQL', () => {
     group = await factories.group({ settings: { allow_group_invites: true } }).save()
     await admin.joinGroup(group, { assignAdministrator: true })
     await member.joinGroup(group)
+    // Themes are a Hylo Pro feature
+    await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active' }).save()
   })
 
   it('saves a theme with hyphenated token names intact, then clears it', async () => {

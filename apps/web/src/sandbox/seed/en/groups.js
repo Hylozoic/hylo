@@ -77,6 +77,8 @@ export function buildGroups () {
       stewardDescriptorPlural: 'Coordinators',
       createdAt_offset: -86400 * 180,
       acceptedPostTypes: ['chat', 'discussion', 'event', 'proposal', 'request', 'offer', 'project', 'resource'],
+      // The demo group has Hylo Pro, so the theme editor can save
+      hasPro: true,
       settings: {
         showSuggestedSkills: true,
         showWelcomePage: false,
