@@ -47,19 +47,25 @@ function MenuRowBackground ({ view, bannerUrl, className, rows = 6, spaced = fal
     return (
       <div aria-hidden='true' className={cn('absolute inset-0 z-0 overflow-hidden rounded pointer-events-none', className)}>
         <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(bannerUrl)} />
-        <div className='absolute inset-0' style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.48) 55%, rgba(0,0,0,0.62) 100%)' }} />
+        <div className='absolute inset-0' style={{ background: 'linear-gradient(90deg, hsl(var(--darkening) / 0.72) 0%, hsl(var(--darkening) / 0.48) 55%, hsl(var(--darkening) / 0.62) 100%)' }} />
       </div>
     )
   }
 
+  // The view's hue tints the theme's own card surface, so a group theme
+  // restyles the selected row while the view keeps its color identity.
+  // Mix amounts are tuned to match the old fixed-lightness tints on the
+  // default theme.
   const h = hueOf(viewCardColor(view))
-  const surface = isDark
-    ? `linear-gradient(135deg, hsl(${h} 34% 26%) 0%, hsl(${h} 36% 19%) 100%)`
-    : `linear-gradient(135deg, hsl(${h} 48% 93%) 0%, hsl(${h} 42% 86%) 100%)`
+  const surfaceFrom = isDark
+    ? `color-mix(in srgb, hsl(${h} 68% 27%) 50%, hsl(var(--card)))`
+    : `color-mix(in srgb, hsl(${h} 48% 60%) 18%, hsl(var(--card)))`
+  const surfaceTo = isDark
+    ? `color-mix(in srgb, hsl(${h} 80% 15%) 60%, hsl(var(--card)))`
+    : `color-mix(in srgb, hsl(${h} 42% 55%) 32%, hsl(var(--card)))`
+  const surface = `linear-gradient(135deg, ${surfaceFrom} 0%, ${surfaceTo} 100%)`
   const glyphColor = isDark ? `hsl(${h} 70% 82%)` : `hsl(${h} 50% 34%)`
-  const scrim = isDark
-    ? `linear-gradient(90deg, hsl(${h} 36% 18% / 0.65) 0%, transparent 60%)`
-    : `linear-gradient(90deg, hsl(${h} 48% 93% / 0.65) 0%, transparent 60%)`
+  const scrim = `linear-gradient(90deg, color-mix(in srgb, ${surfaceFrom} 65%, transparent) 0%, transparent 60%)`
 
   return (
     <div

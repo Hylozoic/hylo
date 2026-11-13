@@ -47,7 +47,7 @@ export default function MenuLink ({ badgeCount = null, to, children, onClick, ex
       {children}
       {badgeCount && badgeCount > 0
         ? (
-          <span className='bg-accent rounded-full w-5 h-5 text-xs text-white font-bold text-xs absolute right-[6px] flex items-center justify-center'>{badgeCount}</span>
+          <span className='bg-accent rounded-full w-5 h-5 text-xs text-accent-foreground font-bold text-xs absolute right-[6px] flex items-center justify-center'>{badgeCount}</span>
           )
         : null}
     </Link>
