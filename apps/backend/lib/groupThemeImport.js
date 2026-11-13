@@ -1,3 +1,5 @@
+import { execFile } from 'child_process'
+import path from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import { GROUP_THEME_BORDER_WIDTHS, GROUP_THEME_RADII, isGroupThemeFontFamily } from '@hylo/shared'
 import { assertPublicUrl, isPrivateAddress, safeFetch, safeLookup } from './safeFetch'
@@ -30,6 +32,13 @@ const CACHE_WRITE_MULTIPLIER = 1.25
 const PAGE_TIMEOUT_MS = 20000
 const SETTLE_TIMEOUT_MS = 5000
 const VIEWPORT = { width: 1280, height: 800 }
+const IMPORT_TIMEOUT_MS = 120000
+// Environment variables the browser may see; no secrets
+const BROWSER_ENV_KEYS = ['PATH', 'HOME', 'TMPDIR', 'LANG', 'PLAYWRIGHT_BROWSERS_PATH']
+// What the import process gets on top of those: the model key and choice, nothing else of the API's
+const IMPORT_ENV_KEYS = [...BROWSER_ENV_KEYS, 'NODE_ENV', 'CLAUDE_API_KEY', 'GROUP_THEME_IMPORT_MODEL']
+
+const pickEnv = keys => Object.fromEntries(keys.filter(key => process.env[key]).map(key => [key, process.env[key]]))
 
 export function themeImportModel () {
   return process.env.GROUP_THEME_IMPORT_MODEL || DEFAULT_IMPORT_MODEL
@@ -180,7 +189,7 @@ export async function captureSite (url) {
   const parsed = assertPublicUrl(url)
   // Loaded lazily so the API starts without a browser installed
   const { chromium } = require('playwright')
-  const browser = await chromium.launch({ headless: true })
+  const browser = await chromium.launch({ headless: true, env: pickEnv(BROWSER_ENV_KEYS) })
   try {
     const context = await browser.newContext({
       viewport: VIEWPORT,
@@ -200,6 +209,7 @@ export async function captureSite (url) {
     const page = await context.newPage()
     page.setDefaultTimeout(PAGE_TIMEOUT_MS)
     const response = await page.goto(parsed.href, { waitUntil: 'domcontentloaded', timeout: PAGE_TIMEOUT_MS })
+      .catch(() => { throw new Error('The page could not be reached. Check the address and try again.') })
     if (!response || response.status() >= 400) {
       throw new Error(`The page could not be loaded${response ? ` (HTTP ${response.status()})` : ''}`)
     }
@@ -355,4 +365,37 @@ export async function importThemeFromUrl (url, deps = {}) {
   }))
 
   return { ...result, sourceUrl: site.url, usage }
+}
+
+/**
+ * importThemeFromUrl in a child process, which is how the API runs it.
+ *
+ * Neither Playwright nor the Anthropic SDK can run inside the API process:
+ * config/bootstrap.js replaces the global Promise with Bluebird, and both
+ * subclass Promise, which Bluebird refuses. The child (see
+ * groupThemeImportProcess.js) gets only the environment variables it needs.
+ */
+export function importThemeInChildProcess (url) {
+  assertPublicUrl(url)
+  return new Promise((resolve, reject) => {
+    execFile(
+      process.execPath,
+      [path.join(__dirname, 'groupThemeImportProcess.js'), url],
+      {
+        env: pickEnv(IMPORT_ENV_KEYS),
+        cwd: path.join(__dirname, '..'),
+        timeout: IMPORT_TIMEOUT_MS,
+        maxBuffer: 4 * 1024 * 1024
+      },
+      (error, stdout) => {
+        let output = null
+        try {
+          output = JSON.parse(stdout)
+        } catch (e) {}
+        if (output?.ok) return resolve(output.result)
+        if (output?.error) return reject(new Error(output.error))
+        reject(new Error(error?.killed ? 'The site took too long to read' : 'The import could not be started'))
+      }
+    )
+  })
 }

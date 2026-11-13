@@ -11,7 +11,7 @@ import {
   publishGroupRelationshipUpdate
 } from '../../../lib/groupSubscriptionPublisher'
 import { publishAsync } from '../../../lib/subscriptionUtils'
-import { importThemeFromUrl, isThemeImportConfigured } from '../../../lib/groupThemeImport'
+import { importThemeInChildProcess, isThemeImportConfigured } from '../../../lib/groupThemeImport'
 import { assertPublicUrl } from '../../../lib/safeFetch'
 import RedisClient from '../../services/RedisClient'
 
@@ -565,7 +565,7 @@ export async function importGroupThemeFromUrl (userId, groupId, url, deps = {}) 
   }
 
   try {
-    return await (deps.importTheme || importThemeFromUrl)(url)
+    return await (deps.importTheme || importThemeInChildProcess)(url)
   } catch (err) {
     sails.log.error(`importGroupThemeFromUrl failed for group ${group.id}: ${err.message}`)
     throw new GraphQLError(`Could not read a theme from that site: ${err.message}`)
