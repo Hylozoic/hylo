@@ -3539,6 +3539,11 @@ type Mutation {
   # page as building blocks (store it as settings.design of a 'designed' GroupView) and usage holds the
   # AI model, token counts and estimated cost. Requires the Administration responsibility and Hylo Pro.
   designGroupViewTurn(groupId: ID!, messages: JSON!, currentView: JSON, images: JSON): JSON
+  # Ideas for views that would help a Group grow, from its purpose, size, post counts and the titles of
+  # recent posts and coming events. Returns { reply, suggestions: [{ name, why, prompt }], usage }; a
+  # suggestion's prompt can be sent to designGroupViewTurn as the first message.
+  # Requires the Administration responsibility and Hylo Pro.
+  suggestGroupViews(groupId: ID!): JSON
   # Create a new Space (a child Group) within a parent Group
   createSpace(
     parentGroupId: ID!,

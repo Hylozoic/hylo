@@ -1,4 +1,5 @@
-import { designViewTurn, normalizeDesignImages, normalizeDesignMessages, MAX_DESIGN_MESSAGES } from './designedViewDesign'
+import { designViewTurn, normalizeDesignImages, normalizeDesignMessages, suggestViewsTurn, MAX_DESIGN_MESSAGES } from './designedViewDesign'
+import { formatGroupDigest } from './groupDigest'
 
 const view = {
   blocks: [
@@ -88,6 +89,14 @@ describe('designedViewDesign', () => {
       expect(last).to.contain("Steward's message:\nAdd upcoming events")
     })
 
+    it('gives the model the group summary when there is one', async () => {
+      const client = clientReturning(modelResponse({ reply: 'Done.', view }))
+      await designViewTurn({ ...request, groupSummary: 'Group name: Riverside Garden\nMembers: 86' }, { client })
+      const last = client.calls[0].messages[2].content
+      expect(last).to.contain('About the group:\nGroup name: Riverside Garden\nMembers: 86')
+      expect(last).to.not.contain('Group description:')
+    })
+
     it('says there is no design yet on the first turn', async () => {
       const client = clientReturning(modelResponse({ reply: 'Done.', view }))
       await designViewTurn({ group: {}, messages: [{ role: 'user', text: 'A welcome page' }] }, { client })
@@ -129,6 +138,58 @@ describe('designedViewDesign', () => {
 
       const refused = clientReturning({ stop_reason: 'refusal', content: [], usage: {} })
       await expect(designViewTurn(request, { client: refused })).to.be.rejectedWith(/declined/)
+    })
+  })
+
+  describe('suggestViewsTurn', () => {
+    const suggestion = { name: 'Start Here', why: 'There is no description.', prompt: 'A welcome page for new members.' }
+
+    it('asks for ideas from the group summary and returns cleaned suggestions with usage', async () => {
+      const client = clientReturning(modelResponse({
+        reply: ' Requests are piling up. ',
+        suggestions: [suggestion, { name: '', why: 'x', prompt: 'dropped: no name' }, { name: 'No prompt', why: 'x', prompt: ' ' }]
+      }))
+      const result = await suggestViewsTurn({ groupSummary: 'Group name: Riverside Garden' }, { client })
+
+      expect(result.reply).to.equal('Requests are piling up.')
+      expect(result.suggestions).to.deep.equal([suggestion])
+      expect(result.usage.outputTokens).to.equal(500)
+      expect(client.calls[0].messages[0].content).to.contain('About the group:\nGroup name: Riverside Garden')
+      expect(client.calls[0].output_config.format.schema.required).to.deep.equal(['reply', 'suggestions'])
+    })
+
+    it('fails clearly without a summary, without usable suggestions, or on a refusal', async () => {
+      await expect(suggestViewsTurn({ groupSummary: '' }, { client: clientReturning({}) })).to.be.rejectedWith(/nothing known/)
+      await expect(suggestViewsTurn({ groupSummary: 'x' }, { client: clientReturning(modelResponse({ reply: 'x', suggestions: [] })) }))
+        .to.be.rejectedWith(/no suggestions/)
+      await expect(suggestViewsTurn({ groupSummary: 'x' }, { client: clientReturning({ stop_reason: 'refusal', content: [], usage: {} }) }))
+        .to.be.rejectedWith(/declined/)
+    })
+  })
+
+  describe('formatGroupDigest', () => {
+    it('writes the summary as plain lines, and says so when a part is empty', () => {
+      const text = formatGroupDigest({
+        name: 'Riverside Garden',
+        purpose: 'Growing food together',
+        description: '',
+        memberCount: 86,
+        postCounts: { event: 41, request: 22 },
+        recentPostCounts: {},
+        recentDays: 90,
+        openCounts: { request: 9 },
+        views: [{ type: 'events', name: 'view-events' }, { type: 'designed', name: 'Start Here' }],
+        upcomingEvents: [],
+        recentPosts: [{ type: 'request', title: 'Spare wheelbarrow?', comments: 4, daysAgo: 2 }]
+      })
+      expect(text).to.contain('Purpose: Growing food together')
+      expect(text).to.contain('Description: (none written)')
+      expect(text).to.contain('Posts in total: 41 event, 22 request')
+      expect(text).to.contain('Posts in the last 90 days: none')
+      expect(text).to.contain('Views already in the menu: events, Start Here (designed)')
+      expect(text).to.contain('Upcoming events:\n- none')
+      expect(text).to.contain('- [request] Spare wheelbarrow? (2 days ago, 4 comments)')
+      expect(formatGroupDigest(null)).to.equal('')
     })
   })
 })

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, ImagePlus, SendHorizontal, Sparkles } from 'lucide-react'
+import { ArrowLeft, ImagePlus, Lightbulb, SendHorizontal, Sparkles } from 'lucide-react'
 import { designedViewImageUrls } from '@hylo/shared'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { groupUrl } from '@hylo/navigation'
@@ -10,6 +10,7 @@ import useGroupViews from 'hooks/useGroupViews'
 import designGroupViewTurn from 'store/actions/designGroupViewTurn'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import { createGroupView, updateGroupView } from 'store/actions/groupViews'
+import suggestGroupViews from 'store/actions/suggestGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
 import { formatUsd } from 'util/groupThemeEditor'
@@ -88,7 +89,7 @@ export default function DesignerChatColumn () {
   }, [session.messages.length, session.sending])
 
   const backUrl = existingView ? groupUrl(groupSlug, `designed/${existingView.id}`) : groupUrl(groupSlug)
-  const canChat = !!groupId && session.loaded && !withoutPro && !session.sending && !session.saving
+  const canChat = !!groupId && session.loaded && !withoutPro && !session.sending && !session.saving && !session.suggesting
 
   const send = async text => {
     const message = text.trim()
@@ -114,6 +115,31 @@ export default function DesignerChatColumn () {
       updateDesignerSession(key, { messages: session.messages, sending: false, error: errorMessage(err) })
       setDraft(message)
     }
+  }
+
+  // Ideas for views that fit this group, from its purpose and what it already holds
+  const suggest = async () => {
+    if (!canChat) return
+    updateDesignerSession(key, { suggesting: true, error: null })
+    try {
+      const response = await dispatch(suggestGroupViews(groupId))
+      if (response?.error) throw response.payload || new Error(t('Something went wrong. Please try again.'))
+      const result = response?.payload?.data?.suggestGroupViews
+      if (!result?.suggestions?.length) throw new Error(t('Something went wrong. Please try again.'))
+      updateDesignerSession(key, current => ({
+        suggestions: { reply: result.reply || '', items: result.suggestions },
+        suggesting: false,
+        lastUsage: result.usage || null,
+        usageTotal: result.usage ? addDesignUsage(current.usageTotal, result.usage) : current.usageTotal
+      }))
+    } catch (err) {
+      updateDesignerSession(key, { suggesting: false, error: errorMessage(err) })
+    }
+  }
+
+  const designSuggestion = suggestion => {
+    if (!session.name.trim()) updateDesignerSession(key, { name: suggestion.name })
+    send(suggestion.prompt)
   }
 
   const handleSubmit = event => {
@@ -201,7 +227,44 @@ export default function DesignerChatColumn () {
                 ? t('Say what you would like to change on this page.')
                 : t('Describe the page you want and AI will build it from posts, events, members, text, images and buttons. You can keep refining it before you save.')}
             </p>
-            {!session.design && (
+            {!session.design && !session.suggestions && (
+              <button
+                type='button'
+                disabled={!canChat}
+                onClick={suggest}
+                className='w-full flex items-center gap-2 rounded-lg border-2 border-accent/50 hover:border-accent bg-accent/10 px-3 py-2 text-left mb-2 disabled:opacity-50'
+                data-testid='designer-suggest-views'
+              >
+                <Lightbulb className='w-5 h-5 shrink-0 text-accent' />
+                <span className='min-w-0'>
+                  <span className='block font-bold text-foreground'>{session.suggesting ? t('Looking at your group...') : t('Suggest views')}</span>
+                  <span className='block text-xs text-foreground/60'>{t("Ideas for pages that would help this group grow, based on its purpose and what's been posted.")}</span>
+                </span>
+              </button>
+            )}
+            {!session.design && session.suggestions && (
+              <div className='flex flex-col gap-2 mb-2' data-testid='designer-suggestions'>
+                {session.suggestions.reply && (
+                  <p className='m-0 rounded-lg px-3 py-2 bg-card text-card-foreground border-2 border-foreground/10'>{session.suggestions.reply}</p>
+                )}
+                {session.suggestions.items.map(suggestion => (
+                  <div key={suggestion.name} className='rounded-lg border-2 border-foreground/20 bg-card text-card-foreground p-3' data-testid='designer-suggestion'>
+                    <p className='m-0 font-bold'>{suggestion.name}</p>
+                    <p className='m-0 text-xs text-foreground/70'>{suggestion.why}</p>
+                    <button
+                      type='button'
+                      disabled={!canChat}
+                      onClick={() => designSuggestion(suggestion)}
+                      className='mt-2 rounded-md bg-primary text-primary-foreground px-2 py-1 text-xs font-bold border-2 border-transparent disabled:opacity-50'
+                    >
+                      {t('Design this')}
+                    </button>
+                  </div>
+                ))}
+                <p className='m-0 text-xs text-foreground/60'>{t('Or describe a different page below.')}</p>
+              </div>
+            )}
+            {!session.design && !session.suggestions && (
               <div className='flex flex-col gap-1'>
                 {STARTERS.map(starter => (
                   <button

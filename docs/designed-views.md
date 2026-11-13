@@ -28,16 +28,34 @@ A designed view is data, never HTML, CSS or code. It is stored in the view's exi
 }
 ```
 
-Blocks: `heading`, `text`, `callout`, `posts`, `events`, `members`, `button`, `divider`, and `columns` (2 or 3 columns of the others; no nesting). The `posts`, `events` and `members` blocks load the group's live content when the page is shown. A `button` leads to a named place in the group or an `https://` address.
+Blocks: `hero`, `heading`, `text`, `image`, `callout`, `posts`, `events`, `members`, `button`, `divider`, and `columns` (2 or 3 columns of the others; no nesting). The `posts`, `events` and `members` blocks load the group's live content when the page is shown. A `button` leads to a named place in the group or an `https://` address. Posts and events in the live lists open in the post dialog over the page, as in other views.
 
 The definition is `packages/shared/src/DesignedViewHelpers.js`: `validateDesignedView` (strict, used on save), `sanitizeDesignedView` (lenient, used when showing a page, so one bad block cannot blank it) and `designedViewJsonSchema` (what the model fills in). To add a block type, add it to `DESIGNED_VIEW_BLOCKS` there, draw it in `apps/web/src/components/DesignedView/DesignedView.js`, and describe it in the system prompt in `apps/backend/lib/designedViewDesign.js`.
+
+## Images
+
+Stewards add images in the designer with "Add image" and tell the AI where to use them ("use image 1 as the banner"). `hero` is a banner image with a title and subtitle over it; `image` is a picture with alt text and a caption.
+
+- Uploads use the `groupViewImage` upload type (`apps/backend/lib/uploader/types.js`), which needs the Administration responsibility like the group banner.
+- **The AI can only place images the steward added.** The browser sends the list with each message, and `removeUnlistedImages` drops any image block whose address is not on the list or already on the page. Saving accepts any `https://` image address.
+
+## What the AI knows about the group
+
+Every design and suggestion turn gets a short summary of the group, built by `apps/backend/lib/groupDigest.js`: its name, purpose, description, location and member count; how many posts of each type it has, in total and in the last 90 days; how many requests and offers are open; the titles of its 25 most recent posts and 8 next events; and the views already in its menu.
+
+**This is sent to the AI provider.** It holds titles and counts only: no post bodies, no comments, nothing about individual members, and no chats.
+
+## Suggest views
+
+Before the first message the designer offers **Suggest views**: `suggestGroupViews(groupId: ID!): JSON` returns three to five ideas `{ name, why, prompt }` tied to what the summary shows (a post type that has gone quiet, requests outnumbering offers, no starting point for newcomers). "Design this" sends the idea's prompt as the first message and fills in the name. A suggestion call costs about $0.03 and counts toward the hourly limit.
 
 ## Where things are
 
 | File | What it does |
 | --- | --- |
 | `packages/shared/src/DesignedViewHelpers.js` | The block format, validation and JSON Schema |
-| `apps/backend/lib/designedViewDesign.js` | One turn of the design chat with Claude, run in a child process |
+| `apps/backend/lib/designedViewDesign.js` | The design turn and the suggestion turn with Claude, run in a child process |
+| `apps/backend/lib/groupDigest.js` | The summary of a group the AI is given |
 | `apps/backend/api/graphql/mutations/group_views.js` | `designGroupViewTurn`; `createGroupView` / `updateGroupView` validate `settings.design` for `designed` views |
 | `apps/web/src/components/DesignedView/` | Draws a designed view; loads each live block's list |
 | `apps/web/src/routes/GroupViewDesigner/` | The designer: chat column, canvas and the session they share |
@@ -47,9 +65,9 @@ The definition is `packages/shared/src/DesignedViewHelpers.js`: `validateDesigne
 
 ## The AI turn
 
-- Mutation: `designGroupViewTurn(groupId: ID!, messages: JSON!, currentView: JSON): JSON`, returning `{ reply, view, usage }`. It saves nothing.
+- Mutation: `designGroupViewTurn(groupId: ID!, messages: JSON!, currentView: JSON, images: JSON): JSON`, returning `{ reply, view, usage }`. It saves nothing.
 - The conversation is not stored. The browser sends the history and the current design with each message. The model always returns the whole page, which is validated before it reaches the browser.
-- A turn costs about $0.03 and takes about 10 seconds with Claude Opus 5.5. Most of the input is the block schema. `GROUP_VIEW_DESIGN_MODEL` on the backend picks another model; `CLAUDE_API_KEY` is required.
+- A turn costs about $0.03 and takes about 10 seconds with Claude Opus 5.5. Much of the input is the block schema, which defines leaf blocks once and refers to them: listed twice (top level and inside columns) it is too large for structured output. `GROUP_VIEW_DESIGN_MODEL` on the backend picks another model; `CLAUDE_API_KEY` is required.
 - The designer shows tokens and estimated cost for the last message and for the whole design.
 
 ## Limits and gating
@@ -63,7 +81,8 @@ The definition is `packages/shared/src/DesignedViewHelpers.js`: `validateDesigne
 
 - **Phones.** The designer is a two-column desktop layout. On a phone the chat column covers the page.
 - **Editing by hand.** A page can only be changed through the chat. There is no way to edit one block's text directly.
-- **Images.** There is no image block, since the model cannot upload one.
+- **Images** can be placed but not cropped or positioned, and an uploaded image cannot be removed from the list.
+- **Creating posts.** Buttons only navigate; a page cannot open the post editor or publish anything.
 - **Conversation history.** Reopening a saved view starts a new conversation from its saved design.
 - **Unsaved drafts** live in the browser tab only and are lost on reload.
 - **The sandbox demo** refuses design turns.

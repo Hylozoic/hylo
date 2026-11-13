@@ -10,6 +10,7 @@ import {
 } from './designerSession'
 import designGroupViewTurn, { DESIGN_GROUP_VIEW_TURN } from 'store/actions/designGroupViewTurn'
 import fetchDesignedViewBlockData from 'store/actions/fetchDesignedViewBlockData'
+import suggestGroupViews, { SUGGEST_GROUP_VIEWS } from 'store/actions/suggestGroupViews'
 
 describe('designerSession', () => {
   const key = designerSessionKey('7', 'new')
@@ -59,6 +60,15 @@ describe('designGroupViewTurn', () => {
     expect(action.graphql.variables).toEqual({ groupId: '7', messages, currentView: { blocks: [] }, images: [] })
     const images = [{ url: 'https://uploads.example.org/a.jpg', name: 'Image 1' }]
     expect(designGroupViewTurn('7', messages, null, images).graphql.variables.images).toEqual(images)
+  })
+})
+
+describe('suggestGroupViews', () => {
+  it('asks for suggestions for a group', () => {
+    const action = suggestGroupViews('7')
+    expect(action.type).toEqual(SUGGEST_GROUP_VIEWS)
+    expect(action.graphql.query).toContain('suggestGroupViews(groupId: $groupId)')
+    expect(action.graphql.variables).toEqual({ groupId: '7' })
   })
 })
 

@@ -1,7 +1,14 @@
 import { GraphQLError } from 'graphql'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
 import { recountPostTypesForView, TextHelpers, validateDesignedView } from '@hylo/shared'
-import { designViewTurnInChildProcess, isViewDesignConfigured, normalizeDesignImages, normalizeDesignMessages } from '../../../lib/designedViewDesign'
+import {
+  designViewTurnInChildProcess,
+  isViewDesignConfigured,
+  normalizeDesignImages,
+  normalizeDesignMessages,
+  suggestViewsTurnInChildProcess
+} from '../../../lib/designedViewDesign'
+import { buildGroupDigest, formatGroupDigest } from '../../../lib/groupDigest'
 import RedisClient from '../../services/RedisClient'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
@@ -544,6 +551,8 @@ export async function designGroupViewTurn ({ userId, groupId, messages, currentV
   try {
     return await (deps.designTurn || designViewTurnInChildProcess)({
       group: { name: group.get('name'), description: group.get('description') || group.get('purpose') || '' },
+      // What the group is for and what it holds, so the page fits it (titles and counts only)
+      groupSummary: formatGroupDigest(await (deps.buildDigest || buildGroupDigest)(group)),
       messages: conversation,
       currentView: current,
       images: availableImages
@@ -551,5 +560,36 @@ export async function designGroupViewTurn ({ userId, groupId, messages, currentV
   } catch (err) {
     sails.log.error(`designGroupViewTurn failed for group ${group.id}: ${err.message}`)
     throw new GraphQLError(`The design could not be made: ${err.message}`)
+  }
+}
+
+/**
+ * Ideas for views that would help a group grow, based on its purpose and what
+ * it already holds (see lib/groupDigest.js for exactly what the AI is shown).
+ * Returns { reply, suggestions: [{ name, why, prompt }], usage }; each prompt
+ * can be sent to designGroupViewTurn as the steward's first message.
+ * Requires the Administration responsibility and Hylo Pro; counts toward the
+ * same hourly limit as design turns.
+ */
+export async function suggestGroupViews ({ userId, groupId }, deps = {}) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!groupId) throw new GraphQLError('No groupId passed into function')
+
+  await requireAdmin(userId, groupId, 'design views')
+  const group = await requireHyloProForDesignedViews(groupId)
+
+  if (!(deps.isConfigured || isViewDesignConfigured)()) {
+    throw new GraphQLError('Designing views with AI is not set up on this server')
+  }
+  if (!(await (deps.withinLimit || withinDesignTurnLimit)(group.id))) {
+    throw new GraphQLError('This group has used a lot of AI design in the last hour. Please try again later.')
+  }
+
+  try {
+    const groupSummary = formatGroupDigest(await (deps.buildDigest || buildGroupDigest)(group))
+    return await (deps.suggestTurn || suggestViewsTurnInChildProcess)({ groupSummary })
+  } catch (err) {
+    sails.log.error(`suggestGroupViews failed for group ${group.id}: ${err.message}`)
+    throw new GraphQLError(`Suggestions could not be made: ${err.message}`)
   }
 }

@@ -157,6 +157,7 @@ import {
   setGroupViewHidden,
   setHomeView,
   designGroupViewTurn,
+  suggestGroupViews,
   subscribe,
   swapProposalVote,
   unblockUser,
@@ -760,6 +761,7 @@ export function makeMutations ({ fetchOne }) {
     setGroupViewHidden: (root, { id, hidden }, context) => setGroupViewHidden(context.currentUserId, id, hidden, context),
 
     setHomeView: (root, { viewId, groupId }, context) => setHomeView(context.currentUserId, viewId, groupId, context),
+    suggestGroupViews: (root, { groupId }, context) => suggestGroupViews({ userId: context.currentUserId, groupId }),
     designGroupViewTurn: (root, { groupId, messages, currentView, images }, context) =>
       designGroupViewTurn({ userId: context.currentUserId, groupId, messages, currentView, images }),
 

@@ -29,6 +29,9 @@ function emptySession () {
     dirty: false,
     sending: false,
     saving: false,
+    // "Suggest views": null until asked for, then { reply, items: [{ name, why, prompt }] }
+    suggestions: null,
+    suggesting: false,
     error: null,
     lastUsage: null,
     usageTotal: EMPTY_USAGE_TOTAL,
