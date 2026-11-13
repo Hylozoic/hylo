@@ -73,6 +73,8 @@ import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
 import GroupPageView from 'routes/GroupPageView'
+import GroupDesignedView from 'routes/GroupDesignedView'
+import GroupViewDesigner, { DesignerChatColumn } from 'routes/GroupViewDesigner'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
@@ -1056,6 +1058,7 @@ export default function AuthLayoutRouter (props) {
                 {!isCardMenuUser && <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 {!isCardMenuUser && <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={null} />
+                <Route path='groups/:groupSlug/design/:viewId/*' element={<DesignerChatColumn />} />
                 {/* Simple groups: ContextMenu only renders for /settings (the settings sidebar).
                     Group home shows just the GlobalNav + ContextMenuGrid — no sidebar context menu. */}
                 {!isOneColumnGroup && <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
@@ -1132,6 +1135,8 @@ export default function AuthLayoutRouter (props) {
                             <Route path='about/*' element={<GroupAboutPage />} />
                             <Route path='welcome/*' element={<GroupWelcomePage />} />
                             <Route path='page/:viewId/*' element={<GroupPageView />} />
+                            <Route path='designed/:viewId/*' element={<GroupDesignedView />} />
+                            <Route path='design/:viewId/*' element={<GroupViewDesigner />} />
                             <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
                             <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
                             <Route path='stream/*' element={<RedirectStreamToAll basePath={`/groups/${currentGroupSlug}`} />} />

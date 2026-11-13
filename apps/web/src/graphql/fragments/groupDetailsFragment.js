@@ -31,6 +31,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     theme
     autoAddMembers
   }
+  hasPro
   slug
   type
   status

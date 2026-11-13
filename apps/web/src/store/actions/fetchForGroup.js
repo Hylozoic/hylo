@@ -45,6 +45,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       theme
       autoAddMembers
     }
+    hasPro
     slug
     type
     status

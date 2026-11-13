@@ -42,6 +42,7 @@ export default function groupQueryFragment () {
       theme
       autoAddMembers
     }
+    hasPro
     slug
     type
     parentId

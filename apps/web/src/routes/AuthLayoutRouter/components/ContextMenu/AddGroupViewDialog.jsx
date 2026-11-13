@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { LayoutTemplate, Plus, Sparkles } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import Checkbox from 'components/ui/checkbox'
@@ -28,6 +29,9 @@ import {
 } from 'store/selectors/getGroupRelationships'
 import { viewAcceptedByPostTypes } from 'store/models/GroupView'
 import { cn } from 'util/index'
+import { groupUrl } from '@hylo/navigation'
+import { DESIGNED_VIEWS } from 'config/featureFlags'
+import { hasFeature } from 'store/models/Me'
 import { sanitizeURL } from 'util/url'
 
 /** Common views that can only appear once. Hidden from Add View when already in the menu. */
@@ -126,6 +130,19 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
   )
 
   const customViewTypes = CUSTOM_VIEW_TYPES
+
+  // "Design your own view" and the views already designed. Not offered while staging views for a
+  // space that does not exist yet (onAdd), since the designer saves straight to a group's menu.
+  const navigate = useNavigate()
+  const canDesign = hasFeature(DESIGNED_VIEWS) && !onAdd && !!group?.slug
+  const designedViews = useMemo(
+    () => canDesign ? (groupViews || []).filter(view => view.type === 'designed') : [],
+    [canDesign, groupViews]
+  )
+  const openDesigner = viewId => {
+    onClose()
+    navigate(groupUrl(group.slug, `design/${viewId}`))
+  }
 
   const resetTypeFields = useCallback(() => {
     setLinkName('')
@@ -415,6 +432,42 @@ export default function AddGroupViewDialog ({ group, groupViews, acceptedPostTyp
           <h2 id='add-group-view-dialog-title' className='text-lg font-semibold mb-4'>{t('Add View')}</h2>
 
           <div className='flex flex-col gap-1 overflow-y-auto flex-1 min-h-0'>
+            {canDesign && (
+              <section className='mb-2'>
+                <button
+                  type='button'
+                  onClick={() => openDesigner('new')}
+                  className='w-full flex items-center gap-3 rounded-lg border-2 border-accent/50 hover:border-accent bg-accent/10 px-3 py-2 text-left'
+                  data-testid='design-your-own-view'
+                >
+                  <Sparkles className='w-5 h-5 shrink-0 text-accent' />
+                  <span className='min-w-0'>
+                    <span className='block font-bold'>{t('Design your own view')}</span>
+                    <span className='block text-xs text-foreground/60'>{t('Describe a page and AI builds it from posts, events, members and text.')}</span>
+                  </span>
+                </button>
+                {designedViews.length > 0 && (
+                  <>
+                    <h3 className='text-xs font-semibold uppercase tracking-wide text-foreground/50 px-2 py-1.5 mt-2'>
+                      {t('Your designed views')}
+                    </h3>
+                    {designedViews.map(view => (
+                      <button
+                        key={view.id}
+                        type='button'
+                        onClick={() => openDesigner(view.id)}
+                        className='w-full flex items-center gap-3 rounded-md border-2 border-transparent hover:border-foreground/20 px-2 py-1.5 text-left'
+                        data-testid='designed-view-row'
+                      >
+                        <LayoutTemplate className='w-4 h-4 shrink-0 text-foreground/70' />
+                        <span className='min-w-0 flex-1 truncate'>{view.name || t('Designed view')}</span>
+                        <span className='text-xs text-foreground/50 shrink-0'>{t('Edit design')}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </section>
+            )}
             {commonViewTypes.length > 0 && (
               <section>
                 <h3 className='text-xs font-semibold uppercase tracking-wide text-foreground/50 px-2 py-1.5'>

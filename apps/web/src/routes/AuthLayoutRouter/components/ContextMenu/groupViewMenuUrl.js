@@ -90,6 +90,8 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, `space-collection/${view.id}`)
     case 'page':
       return groupUrl(groupSlug, `page/${view.id}`)
+    case 'designed':
+      return groupUrl(groupSlug, `designed/${view.id}`)
     case 'track-actions':
       return groupUrl(groupSlug, 'track-actions')
     case 'funding-round-submissions':
