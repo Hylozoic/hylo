@@ -8,6 +8,7 @@ import updateGroupTheme from 'store/actions/updateGroupTheme'
 import { getAppearanceFromSettings } from 'util/appearance'
 import { cn } from 'util/index'
 import {
+  GROUP_THEME_BORDER_WIDTHS,
   GROUP_THEME_RADII,
   MIN_CONTRAST_RATIO,
   appThemeCssVars,
@@ -15,7 +16,9 @@ import {
   sanitizeGroupTheme
 } from 'util/groupTheme'
 import {
+  BORDER_WIDTH_OPTIONS,
   COLOR_SCHEMES,
+  DEFAULT_BORDER_WIDTH_OPTION,
   DEFAULT_RADIUS_OPTION,
   PRESET_NAMES,
   RADIUS_OPTIONS,
@@ -30,6 +33,7 @@ import {
   prepareThemeForSave,
   presetToDraft,
   roleForContrastIssue,
+  setBorderWidth,
   setRadius,
   setRoleColor,
   themesMatch
@@ -52,6 +56,12 @@ const RADIUS_LABELS = {
   md: 'Medium',
   lg: 'Large',
   xl: 'Extra large'
+}
+
+const BORDER_WIDTH_LABELS = {
+  thin: 'Thin',
+  regular: 'Regular',
+  thick: 'Thick'
 }
 
 const PRESET_SWATCHES = ['background', 'card', 'primary', 'accent', 'selected']
@@ -91,7 +101,7 @@ function ThemePreviewPanel ({ draft, scheme }) {
   )
   return (
     <div style={style} className='rounded-lg border-2 border-foreground/10 bg-background text-foreground p-4 flex flex-col gap-3' data-testid='group-theme-preview-panel'>
-      <div className='rounded-lg bg-card text-card-foreground p-3 shadow-sm'>
+      <div className='rounded-lg border-2 border-foreground/20 bg-card text-card-foreground p-3 shadow-sm'>
         <p className='font-bold m-0'>{t('Sample post')}</p>
         <p className='text-sm m-0'>{t('This is how text looks on a card.')}</p>
         <p className='text-xs text-muted-foreground m-0 mt-1'>{t('Secondary text')}</p>
@@ -143,6 +153,7 @@ export default function GroupThemeEditor ({ group }) {
 
   const roleColors = getRoleColors(draft, scheme)
   const radius = draft.radius || DEFAULT_RADIUS_OPTION
+  const borderWidth = draft.borderWidth || DEFAULT_BORDER_WIDTH_OPTION
   const otherScheme = scheme === 'light' ? 'dark' : 'light'
   const schemeLabel = value => value === 'dark' ? t('Dark') : t('Light')
 
@@ -178,7 +189,11 @@ export default function GroupThemeEditor ({ group }) {
 
   const handleRevert = () => edit(draftFromSavedTheme(saved))
 
-  const handlePreset = name => edit({ ...presetToDraft(name), ...(draft.radius ? { radius: draft.radius } : {}) })
+  const handlePreset = name => edit({
+    ...presetToDraft(name),
+    ...(draft.radius ? { radius: draft.radius } : {}),
+    ...(draft.borderWidth ? { borderWidth: draft.borderWidth } : {})
+  })
 
   const issuesByRole = role => issues[scheme].filter(issue => roleForContrastIssue(issue) === role)
   const otherIssues = issues[scheme].filter(issue => !roleForContrastIssue(issue))
@@ -187,7 +202,7 @@ export default function GroupThemeEditor ({ group }) {
     <section className='mb-8 max-w-[720px]' data-testid='group-theme-editor'>
       <h3 className='text-lg font-bold mb-1'>{t('Group theme')}</h3>
       <p className='text-sm text-foreground/70 mb-4'>
-        {t("Give this group its own colors and corner radius. The global navigation keeps each member's own theme.")}
+        {t("Give this group its own colors, corner radius and border width. The global navigation keeps each member's own theme.")}
       </p>
 
       <div className='mb-6'>
@@ -302,6 +317,30 @@ export default function GroupThemeEditor ({ group }) {
                     style={{ borderRadius: GROUP_THEME_RADII[option] }}
                   />
                   {t(RADIUS_LABELS[option])}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className='text-sm font-medium mb-2 block'>{t('Border width')}</label>
+            <div className='flex flex-wrap gap-2' role='group'>
+              {BORDER_WIDTH_OPTIONS.map(option => (
+                <button
+                  key={option}
+                  type='button'
+                  aria-pressed={borderWidth === option}
+                  data-testid={`group-theme-border-width-${option}`}
+                  onClick={() => edit(setBorderWidth(draft, option))}
+                  className={cn(
+                    'flex flex-col items-center gap-1 border-2 border-foreground/20 hover:border-foreground/50 px-2 py-1 text-xs rounded-md',
+                    borderWidth === option && 'border-selected bg-selected/10'
+                  )}
+                >
+                  <span
+                    className='block h-5 w-8 rounded-sm border-solid border-foreground/60 bg-card'
+                    style={{ borderWidth: GROUP_THEME_BORDER_WIDTHS[option] }}
+                  />
+                  {t(BORDER_WIDTH_LABELS[option])}
                 </button>
               ))}
             </div>

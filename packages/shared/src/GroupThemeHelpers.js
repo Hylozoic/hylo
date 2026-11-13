@@ -7,7 +7,8 @@
  *   {
  *     light: { background: '120 15% 92%', 'card-foreground': '160 28% 11%', ... },
  *     dark:  { background: '120 20% 14%', ... },
- *     radius: 'lg'
+ *     radius: 'lg',
+ *     borderWidth: 'regular'
  *   }
  *
  * Only design tokens are stored, never CSS. Values are plain HSL triples.
@@ -67,6 +68,16 @@ export const GROUP_THEME_RADII = {
   xl: '0.875rem'
 }
 
+// Border width choices, applied wherever the app draws its standard 2px border
+// (Tailwind's `border-2` family). `regular` matches the app's current width.
+// Hairline 1px borders are not affected, and there is no "none": inputs, cards
+// and selected states rely on a visible border.
+export const GROUP_THEME_BORDER_WIDTHS = {
+  thin: '1px',
+  regular: '2px',
+  thick: '3px'
+}
+
 const HSL_TRIPLE = /^(\d{1,3}(?:\.\d+)?)\s+(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%$/
 
 const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key)
@@ -107,6 +118,7 @@ export function sanitizeGroupTheme (raw) {
   })
 
   if (hasOwn(GROUP_THEME_RADII, raw.radius)) theme.radius = raw.radius
+  if (hasOwn(GROUP_THEME_BORDER_WIDTHS, raw.borderWidth)) theme.borderWidth = raw.borderWidth
 
   return Object.keys(theme).length > 0 ? theme : null
 }
@@ -135,6 +147,13 @@ export function validateGroupTheme (raw) {
     if (key === 'radius') {
       if (!hasOwn(GROUP_THEME_RADII, raw.radius)) {
         errors.push(`Unknown radius ${JSON.stringify(raw.radius)}; use one of ${Object.keys(GROUP_THEME_RADII).join(', ')}`)
+      }
+      return
+    }
+
+    if (key === 'borderWidth') {
+      if (!hasOwn(GROUP_THEME_BORDER_WIDTHS, raw.borderWidth)) {
+        errors.push(`Unknown borderWidth ${JSON.stringify(raw.borderWidth)}; use one of ${Object.keys(GROUP_THEME_BORDER_WIDTHS).join(', ')}`)
       }
       return
     }

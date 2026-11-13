@@ -92,12 +92,12 @@ describe('groupThemeCssVars', () => {
     expect(groupThemeCssVars({ light: { background: 'nope' } }, 'light')).toBeNull()
   })
 
-  it('returns every token as a CSS variable, plus the radius', () => {
+  it('returns every token as a CSS variable, plus the radius and border width', () => {
     const vars = groupThemeCssVars({ light: { background: '120 15% 92%' }, radius: 'xl' }, 'light')
     expect(vars['--background']).toEqual('120 15% 92%')
     expect(vars['--foreground']).toEqual(themes[defaultTheme].light.foreground)
     expect(vars['--radius']).toEqual('0.875rem')
-    expect(Object.keys(vars)).toHaveLength(Object.keys(themes[defaultTheme].light).length + 1)
+    expect(Object.keys(vars)).toHaveLength(Object.keys(themes[defaultTheme].light).length + 2)
   })
 
   it('uses the default radius when the group did not choose one', () => {
@@ -159,5 +159,17 @@ describe('checkGroupThemeContrast', () => {
   it('does not report pairs the group left alone', () => {
     const problems = checkGroupThemeContrast({ light: { selected: '145 50% 62%' } }, 'light')
     expect(problems).toEqual([])
+  })
+})
+
+describe('border width', () => {
+  it('is set from the group theme, 2px by default', () => {
+    expect(groupThemeCssVars({ borderWidth: 'thick' }, 'light')['--border-width']).toEqual('3px')
+    expect(groupThemeCssVars({ borderWidth: 'thin' }, 'dark')['--border-width']).toEqual('1px')
+    expect(groupThemeCssVars({ radius: 'xl' }, 'light')['--border-width']).toEqual('2px')
+  })
+
+  it("is reset to 2px for the app's own themes", () => {
+    expect(appThemeCssVars('forest', 'light')['--border-width']).toEqual('2px')
   })
 })

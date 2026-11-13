@@ -1,6 +1,7 @@
 import { isEqual } from 'lodash'
 import { themes, defaultTheme } from '../themes'
 import {
+  GROUP_THEME_BORDER_WIDTHS,
   GROUP_THEME_RADII,
   GROUP_THEME_TOKENS,
   checkGroupThemeContrast,
@@ -15,7 +16,7 @@ import {
 /**
  * Pure logic behind the group theme editor (Group Settings > Appearance).
  *
- * A draft is shaped exactly like a stored group theme ({ light, dark, radius }),
+ * A draft is shaped exactly like a stored group theme ({ light, dark, radius, borderWidth }),
  * so it can be previewed with groupThemeCssVars and saved as is. Stewards edit
  * six roles; every other token a role touches is derived from the roles.
  */
@@ -24,6 +25,9 @@ export const COLOR_SCHEMES = ['light', 'dark']
 
 export const RADIUS_OPTIONS = Object.keys(GROUP_THEME_RADII)
 export const DEFAULT_RADIUS_OPTION = 'lg'
+
+export const BORDER_WIDTH_OPTIONS = Object.keys(GROUP_THEME_BORDER_WIDTHS)
+export const DEFAULT_BORDER_WIDTH_OPTION = 'regular'
 
 // The token that holds each role's own color
 export const ROLE_TOKENS = {
@@ -221,13 +225,18 @@ export function setRadius (draft, radius) {
   return { ...(draft || {}), radius }
 }
 
+export function setBorderWidth (draft, borderWidth) {
+  if (!GROUP_THEME_BORDER_WIDTHS[borderWidth]) return draft
+  return { ...(draft || {}), borderWidth }
+}
+
 export const PRESET_NAMES = Object.keys(themes)
 
 /**
  * A draft holding one of the app's own themes: the tokens where it differs from
  * the default theme, with the text on primary, secondary, accent and muted
  * surfaces adjusted wherever it would fail the contrast check.
- * Has no radius; the caller keeps the current one.
+ * Has no radius or border width; the caller keeps the current ones.
  */
 export function presetToDraft (themeName) {
   const preset = themes[themeName]
@@ -275,6 +284,7 @@ export function compactTheme (draft) {
     if (Object.keys(tokens).length > 0) result[scheme] = tokens
   })
   if (theme.radius && theme.radius !== DEFAULT_RADIUS_OPTION) result.radius = theme.radius
+  if (theme.borderWidth && theme.borderWidth !== DEFAULT_BORDER_WIDTH_OPTION) result.borderWidth = theme.borderWidth
   return Object.keys(result).length > 0 ? result : null
 }
 

@@ -728,6 +728,13 @@ describe('mutations/group', () => {
         .to.be.rejectedWith(/Invalid theme: Unknown radius/)
     })
 
+    it('stores a border width and rejects an unknown one', async () => {
+      await updateGroupTheme(admin.id, group.id, { borderWidth: 'thick' })
+      expect((await savedSettings()).theme).to.deep.equal({ borderWidth: 'thick' })
+      await expect(updateGroupTheme(admin.id, group.id, { borderWidth: '5px' }))
+        .to.be.rejectedWith(/Invalid theme: Unknown borderWidth "5px"/)
+    })
+
     it('rejects unknown top-level keys and non-object themes', async () => {
       await expect(updateGroupTheme(admin.id, group.id, { light: {}, css: 'body { display: none }' }))
         .to.be.rejectedWith(/Invalid theme: Unknown theme key "css"/)

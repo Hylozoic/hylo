@@ -1,4 +1,4 @@
-import { GROUP_THEME_RADII, GROUP_THEME_TOKENS, parseHslTriple, sanitizeGroupTheme, validateGroupTheme } from '@hylo/shared'
+import { GROUP_THEME_BORDER_WIDTHS, GROUP_THEME_RADII, GROUP_THEME_TOKENS, parseHslTriple, sanitizeGroupTheme, validateGroupTheme } from '@hylo/shared'
 import { themes, defaultTheme } from '../themes'
 
 /**
@@ -9,7 +9,8 @@ import { themes, defaultTheme } from '../themes'
  *   {
  *     light: { background: '120 15% 92%', accent: '43 74% 49%', ... },
  *     dark:  { background: '120 20% 14%', ... },
- *     radius: 'lg'
+ *     radius: 'lg',
+ *     borderWidth: 'regular'
  *   }
  *
  * Only design tokens are stored, never CSS. Everything read from storage goes
@@ -18,9 +19,10 @@ import { themes, defaultTheme } from '../themes'
  */
 
 // Validation rules are shared with the backend, which validates on save.
-export { GROUP_THEME_TOKENS, GROUP_THEME_RADII, parseHslTriple, sanitizeGroupTheme, validateGroupTheme }
+export { GROUP_THEME_TOKENS, GROUP_THEME_RADII, GROUP_THEME_BORDER_WIDTHS, parseHslTriple, sanitizeGroupTheme, validateGroupTheme }
 
 export const DEFAULT_RADIUS = GROUP_THEME_RADII.lg
+export const DEFAULT_BORDER_WIDTH = GROUP_THEME_BORDER_WIDTHS.regular
 
 // Text-on-surface pairs that must stay readable, as [text token, surface token]
 export const CONTRAST_PAIRS = [
@@ -67,6 +69,7 @@ export function groupThemeCssVars (rawTheme, colorScheme) {
     vars[`--${token}`] = value
   })
   vars['--radius'] = GROUP_THEME_RADII[theme.radius] || DEFAULT_RADIUS
+  vars['--border-width'] = GROUP_THEME_BORDER_WIDTHS[theme.borderWidth] || DEFAULT_BORDER_WIDTH
   return vars
 }
 
@@ -82,6 +85,7 @@ export function appThemeCssVars (themeName, colorScheme) {
     vars[`--${token}`] = value
   })
   vars['--radius'] = DEFAULT_RADIUS
+  vars['--border-width'] = DEFAULT_BORDER_WIDTH
   return vars
 }
 
