@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react'
 import { useSelector } from 'react-redux'
-import { useParams } from 'react-router-dom'
+import { Route, Routes, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { LayoutTemplate } from 'lucide-react'
 import DesignedView from 'components/DesignedView'
 import Loading from 'components/Loading'
+import PostDialog from 'components/PostDialog'
+import { groupUrl } from '@hylo/navigation'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { NEW_VIEW_ID } from './DesignerChatColumn'
@@ -32,6 +34,9 @@ export default function GroupViewDesigner () {
 
   return (
     <div className='w-full' data-testid='designer-canvas'>
+      <Routes>
+        <Route path='post/:postId' element={<PostDialog />} />
+      </Routes>
       {session.design && session.dirty && (
         <p className='m-0 px-4 py-1 text-xs text-foreground/70 bg-accent/10 border-b-2 border-accent/30' role='status'>
           {isNew
@@ -40,7 +45,13 @@ export default function GroupViewDesigner () {
         </p>
       )}
       {session.design
-        ? <DesignedView design={session.design} groupSlug={groupSlug} />
+        ? (
+          <DesignedView
+            design={session.design}
+            groupSlug={groupSlug}
+            postUrlFor={postId => groupUrl(groupSlug, `design/${viewId}/post/${postId}`)}
+          />
+          )
         : (
           <div className='flex flex-col items-center justify-center text-center gap-2 p-10 text-foreground/60'>
             <LayoutTemplate className='w-10 h-10' />

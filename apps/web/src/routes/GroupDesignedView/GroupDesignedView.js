@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Link, useParams } from 'react-router-dom'
+import { Link, Route, Routes, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Pencil } from 'lucide-react'
 import { groupUrl } from '@hylo/navigation'
 import GroupViewPresenter, { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import DesignedView from 'components/DesignedView'
 import Loading from 'components/Loading'
+import PostDialog from 'components/PostDialog'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import useGroupViews from 'hooks/useGroupViews'
@@ -52,6 +53,9 @@ export default function GroupDesignedView () {
 
   return (
     <div className='w-full'>
+      <Routes>
+        <Route path='post/:postId' element={<PostDialog />} />
+      </Routes>
       {canEdit && (
         <div className='flex justify-end px-4 pt-3'>
           <Link
@@ -63,7 +67,11 @@ export default function GroupDesignedView () {
           </Link>
         </div>
       )}
-      <DesignedView design={view.settings?.design} groupSlug={groupSlug} />
+      <DesignedView
+        design={view.settings?.design}
+        groupSlug={groupSlug}
+        postUrlFor={postId => groupUrl(groupSlug, `designed/${view.id}/post/${postId}`)}
+      />
     </div>
   )
 }

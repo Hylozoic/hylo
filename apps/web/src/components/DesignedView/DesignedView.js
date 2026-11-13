@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { createContext, useContext, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, ExternalLink, MessageCircle } from 'lucide-react'
@@ -14,6 +14,15 @@ import useDesignedViewBlockData from './useDesignedViewBlockData'
  * markup and the group's theme tokens; the stored data never carries HTML or
  * styles. The posts, events and members blocks load the group's live content.
  */
+
+// How to link to a post. The page that shows a designed view passes a link that opens the
+// post in a dialog over the page; without one, posts open on their own page.
+const PostLinkContext = createContext(null)
+
+function usePostLink (groupSlug) {
+  const postUrlFor = useContext(PostLinkContext)
+  return postId => postUrlFor ? postUrlFor(postId) : postUrl(postId, { groupSlug })
+}
 
 // Where each button destination leads inside the group
 const DESTINATION_PATHS = {
@@ -61,9 +70,10 @@ function formatWhen (iso, language) {
 
 function PostRow ({ post, groupSlug, card }) {
   const { t } = useTranslation()
+  const postLink = usePostLink(groupSlug)
   return (
     <Link
-      to={postUrl(post.id, { groupSlug })}
+      to={postLink(post.id)}
       className={cn(
         'flex items-center gap-3 text-foreground hover:text-foreground no-underline',
         card
@@ -106,6 +116,7 @@ function PostsBlock ({ block, groupSlug }) {
 function EventsBlock ({ block, groupSlug }) {
   const { t, i18n } = useTranslation()
   const { items, loading, error } = useDesignedViewBlockData(groupSlug, block)
+  const postLink = usePostLink(groupSlug)
   return (
     <section data-block='events'>
       <BlockTitle>{block.title}</BlockTitle>
@@ -114,7 +125,7 @@ function EventsBlock ({ block, groupSlug }) {
         {items.map(event => (
           <Link
             key={event.id}
-            to={postUrl(event.id, { groupSlug })}
+            to={postLink(event.id)}
             className='flex items-start gap-3 rounded-lg border-2 border-foreground/20 hover:border-foreground/50 bg-card text-card-foreground hover:text-card-foreground no-underline p-3'
           >
             <CalendarDays className='w-5 h-5 mt-0.5 shrink-0 text-accent' />
@@ -219,7 +230,7 @@ function Block ({ block, groupSlug }) {
   }
 }
 
-export default function DesignedView ({ design, groupSlug, className }) {
+export default function DesignedView ({ design, groupSlug, className, postUrlFor = null }) {
   const { t } = useTranslation()
   const view = useMemo(() => sanitizeDesignedView(design), [design])
 
@@ -228,10 +239,12 @@ export default function DesignedView ({ design, groupSlug, className }) {
   }
 
   return (
-    <div className={cn('w-full', className)} data-testid='designed-view'>
-      <div className='flex flex-col gap-4 w-full max-w-[960px] mx-auto p-4 text-foreground'>
-        {view.blocks.map((block, index) => <Block key={index} block={block} groupSlug={groupSlug} />)}
+    <PostLinkContext.Provider value={postUrlFor}>
+      <div className={cn('w-full', className)} data-testid='designed-view'>
+        <div className='flex flex-col gap-4 w-full max-w-[960px] mx-auto p-4 text-foreground'>
+          {view.blocks.map((block, index) => <Block key={index} block={block} groupSlug={groupSlug} />)}
+        </div>
       </div>
-    </div>
+    </PostLinkContext.Provider>
   )
 }
