@@ -111,12 +111,16 @@ export default {
       },
       borderWidth: {
         1: '1px',
+        // --border-width is set per group by a group theme (util/groupTheme.js); 2px everywhere else
+        2: 'var(--border-width, 2px)',
         3: '3px'
       },
       borderRadius: {
-        lg: '0.5rem',
-        md: 'calc(0.5rem - 2px)',
-        sm: 'calc(0.5rem - 4px)'
+        // --radius is set per group by a group theme (util/groupTheme.js); 0.5rem everywhere else
+        xl: 'calc(var(--radius, 0.5rem) + 0.25rem)',
+        lg: 'var(--radius, 0.5rem)',
+        md: 'max(calc(var(--radius, 0.5rem) - 2px), 0px)',
+        sm: 'max(calc(var(--radius, 0.5rem) - 4px), 0px)'
       },
       colors: {
         black: 'hsl(var(--black) / <alpha-value>)',
@@ -149,6 +153,13 @@ export default {
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))'
+        },
+        // The third brand color after primary and secondary, for the `tertiary`
+        // button variant. Maps onto accent rather than adding a token, so a
+        // group theme's accent restyles it too.
+        tertiary: {
+          DEFAULT: 'hsl(var(--accent) / <alpha-value>)',
+          foreground: 'hsl(var(--accent-foreground) / <alpha-value>)'
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',

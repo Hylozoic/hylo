@@ -169,6 +169,8 @@ import {
   updateGroup,
   updateGroupResponsibility,
   updateGroupRole,
+  updateGroupTheme,
+  importGroupThemeFromUrl,
   updateGroupTopic,
   updateGroupTopicFollow,
   updateGroupView,
@@ -1014,6 +1016,9 @@ export function makeMutations ({ fetchOne }) {
       updateGroupRole({ userId: context.currentUserId, groupRoleId, color, name, description, emoji, active, groupId }),
 
     updateGroupSettings: (root, { id, changes }, context) => updateGroup(context.currentUserId, id, changes, context),
+
+    updateGroupTheme: (root, { groupId, theme }, context) => updateGroupTheme(context.currentUserId, groupId, theme, context),
+    importGroupThemeFromUrl: (root, { groupId, url }, context) => importGroupThemeFromUrl(context.currentUserId, groupId, url),
 
     updateGroupTopic: (root, { id, data }, context) => updateGroupTopic(context.currentUserId, id, data),
 

@@ -2012,3 +2012,58 @@ describe('invitation checks through GraphQL', () => {
     expect(checked.data.checkInvitation).to.deep.equal({ valid: true, grantAccess: false })
   })
 })
+
+describe('updateGroupTheme through GraphQL', () => {
+  let handler, admin, member, group
+
+  const run = async (userId, document, variables) => {
+    const req = factories.mock.request()
+    req.url = '/noo/graphql'
+    req.method = 'POST'
+    req.headers = { 'Content-Type': 'application/json' }
+    req.session = { userId, destroy: () => {} }
+    const { executionResult } = await handler.inject({ document, variables, serverContext: { req, res: factories.mock.response() } })
+    return executionResult
+  }
+
+  const mutation = `mutation ($groupId: ID, $theme: JSON) {
+    updateGroupTheme(groupId: $groupId, theme: $theme) {
+      id
+      settings { theme allowGroupInvites }
+    }
+  }`
+
+  before(async () => {
+    handler = createRequestHandler()
+    admin = await factories.user().save()
+    member = await factories.user().save()
+    group = await factories.group({ settings: { allow_group_invites: true } }).save()
+    await admin.joinGroup(group, { assignAdministrator: true })
+    await member.joinGroup(group)
+    // Themes are a Hylo Pro feature
+    await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active' }).save()
+  })
+
+  it('saves a theme with hyphenated token names intact, then clears it', async () => {
+    const theme = { light: { 'card-foreground': '160 28% 11%' }, radius: 'sm' }
+    const saved = await run(admin.id, mutation, { groupId: group.id, theme })
+    expect(saved.errors).to.be.undefined
+    expect(saved.data.updateGroupTheme.settings).to.deep.equal({ theme, allowGroupInvites: true })
+
+    const read = await run(member.id, `{ group(id: "${group.id}") { settings { theme } } }`)
+    expect(read.errors).to.be.undefined
+    expect(read.data.group.settings.theme).to.deep.equal(theme)
+
+    const cleared = await run(admin.id, mutation, { groupId: group.id, theme: null })
+    expect(cleared.errors).to.be.undefined
+    expect(cleared.data.updateGroupTheme.settings).to.deep.equal({ theme: null, allowGroupInvites: true })
+  })
+
+  it('returns an error for a non-admin or an invalid theme', async () => {
+    const denied = await run(member.id, mutation, { groupId: group.id, theme: { light: { card: '1 2% 3%' } } })
+    expect(denied.errors[0].message).to.match(/You don't have the right responsibilities/)
+
+    const invalid = await run(admin.id, mutation, { groupId: group.id, theme: { light: { card: 'red' } } })
+    expect(invalid.errors[0].message).to.equal('Invalid theme: Invalid value for light.card: expected an HSL triple like "120 15% 92%"')
+  })
+})

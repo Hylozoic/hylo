@@ -100,6 +100,7 @@ import {
   CREATE_GROUP
 } from 'routes/CreateGroup/CreateGroup.store'
 import { JOIN_SPACE } from 'store/actions/joinSpace'
+import { UPDATE_GROUP_THEME } from 'store/actions/updateGroupTheme'
 import { FETCH_GROUP_WELCOME_DATA } from 'routes/GroupWelcomeModal/GroupWelcomeModal.store'
 
 import {
@@ -1267,6 +1268,16 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         group = Group.withId(meta.id)
         if (group) clearCacheFor(Group, meta.id)
       }
+      break
+    }
+
+    case UPDATE_GROUP_THEME: {
+      // Replace only settings.theme; extracting the payload would replace all of settings
+      group = Group.withId(meta.groupId)
+      if (!group) break
+      const returned = payload?.data?.updateGroupTheme?.settings
+      const theme = returned && 'theme' in returned ? returned.theme : meta.theme
+      group.update({ settings: { ...group.settings, theme: theme || null } })
       break
     }
 

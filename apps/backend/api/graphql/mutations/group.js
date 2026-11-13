@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql'
+import { validateGroupTheme } from '@hylo/shared'
 import GroupService from '../../services/GroupService'
 import InvitationService from '../../services/InvitationService'
 import { joinSpace } from './spaces'
@@ -10,6 +11,9 @@ import {
   publishGroupRelationshipUpdate
 } from '../../../lib/groupSubscriptionPublisher'
 import { publishAsync } from '../../../lib/subscriptionUtils'
+import { importThemeInChildProcess, isThemeImportConfigured } from '../../../lib/groupThemeImport'
+import { assertPublicUrl } from '../../../lib/safeFetch'
+import RedisClient from '../../services/RedisClient'
 
 // Util function
 async function getStewardedGroup (userId, groupId, additionalResponsibility = '', opts = {}) {
@@ -220,6 +224,58 @@ export async function updateGroup (userId, groupId, changes, context) {
   const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
 
   const updatedGroup = await group.update(convertGraphqlData(changes), userId)
+
+  publishAsync(publishGroupUpdate, context, groupId, updatedGroup)
+
+  return updatedGroup
+}
+
+/**
+ * Saves a group's theme (design tokens) to settings.theme, or clears it when
+ * theme is null.
+ *
+ * Deliberately bypasses updateGroup: convertGraphqlData would snake-case token
+ * names ('card-foreground' -> 'card_foreground') and Group.update deep-merges
+ * settings, so a removed override would never go away. Here the theme is
+ * replaced whole and every other settings key is left alone.
+ *
+ * Input that the shared sanitizer would change is rejected with the list of
+ * problems, so a steward is never told a save worked when parts were dropped.
+ * Formatting differences in valid values (e.g. extra whitespace) are not
+ * errors; the canonical form is stored.
+ */
+export const HYLO_PRO_REQUIRED_FOR_THEMES = 'Group themes are part of Hylo Pro. This group needs Hylo Pro to change its theme.'
+
+/**
+ * Group themes are a Hylo Pro feature: changing a theme and importing one need
+ * an active subscription or grant. A theme saved while the group had Pro keeps
+ * showing after Pro lapses, and can still be removed.
+ */
+async function requireHyloProForThemes (group) {
+  if (!(await group.hasPro())) {
+    throw new GraphQLError(HYLO_PRO_REQUIRED_FOR_THEMES, { extensions: { code: 'HYLO_PRO_REQUIRED' } })
+  }
+}
+
+export async function updateGroupTheme (userId, groupId, theme, context) {
+  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+
+  const { theme: cleanTheme, errors } = validateGroupTheme(theme)
+  if (errors.length > 0) {
+    throw new GraphQLError(`Invalid theme: ${errors.join('; ')}`)
+  }
+
+  // Clearing a theme (null) is always allowed, so a group whose Pro lapsed can go back to the default look
+  if (cleanTheme) await requireHyloProForThemes(group)
+
+  // Update only the theme key in one statement, so a concurrent change to
+  // another setting is not overwritten with a stale copy.
+  const settingsSql = cleanTheme
+    ? bookshelf.knex.raw("jsonb_set(COALESCE(settings, '{}'::jsonb), '{theme}', ?::jsonb)", [JSON.stringify(cleanTheme)])
+    : bookshelf.knex.raw("COALESCE(settings, '{}'::jsonb) - 'theme'")
+  await bookshelf.knex('groups').where('id', group.id).update({ settings: settingsSql, updated_at: new Date() })
+
+  const updatedGroup = await group.refresh()
 
   publishAsync(publishGroupUpdate, context, groupId, updatedGroup)
 
@@ -478,4 +534,57 @@ export async function deletePeerRelationship (userId, relationshipId, opts = {})
   })
 
   return { success: true }
+}
+
+// Each import runs a headless browser and a paid model call
+const THEME_IMPORTS_PER_GROUP_PER_HOUR = 20
+
+/**
+ * Counts one theme import for a group and reports whether it is within the
+ * hourly limit. Fails open if Redis is unavailable.
+ */
+async function withinThemeImportLimit (groupId) {
+  try {
+    const redis = RedisClient.create()
+    const key = `ratelimit:importGroupTheme:group:${groupId}`
+    const count = await redis.incr(key)
+    if (count === 1) await redis.expire(key, 60 * 60)
+    return count <= THEME_IMPORTS_PER_GROUP_PER_HOUR
+  } catch (err) {
+    sails.log.error(`withinThemeImportLimit failed: ${err.message}`)
+    return true
+  }
+}
+
+/**
+ * Suggests a theme for a group from a website's look. Saves nothing: returns
+ * the suggested color roles, radius, border width and fonts, plus the model's
+ * token usage and estimated cost, for the steward to review in the editor.
+ * Requires the Administration responsibility and Hylo Pro.
+ */
+export async function importGroupThemeFromUrl (userId, groupId, url, deps = {}) {
+  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+
+  await requireHyloProForThemes(group)
+
+  if (!(deps.isConfigured || isThemeImportConfigured)()) {
+    throw new GraphQLError('Importing a theme from a website is not set up on this server')
+  }
+
+  try {
+    assertPublicUrl(url)
+  } catch (err) {
+    throw new GraphQLError('Enter a full web address, starting with http:// or https://')
+  }
+
+  if (!(await (deps.withinLimit || withinThemeImportLimit)(group.id))) {
+    throw new GraphQLError('This group has imported a lot of themes in the last hour. Please try again later.')
+  }
+
+  try {
+    return await (deps.importTheme || importThemeInChildProcess)(url)
+  } catch (err) {
+    sails.log.error(`importGroupThemeFromUrl failed for group ${group.id}: ${err.message}`)
+    throw new GraphQLError(`Could not read a theme from that site: ${err.message}`)
+  }
 }

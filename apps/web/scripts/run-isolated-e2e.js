@@ -362,6 +362,8 @@ const runE2E = async () => {
     ...process.env,
     /** Playwright must spawn its own Vite so `/noo` proxy target matches the isolated API port */
     E2E_ISOLATED: '1',
+    /** Lets specs seed rows the baseline does not have (see e2e/helpers/hyloProGrant.js) */
+    E2E_DATABASE_URL: e2eDbUrl,
     E2E_WEB_PORT: e2eWebPort,
     E2E_BACKEND_PORT: e2eBackendPort,
     VITE_API_HOST: `http://localhost:${e2eBackendPort}`,

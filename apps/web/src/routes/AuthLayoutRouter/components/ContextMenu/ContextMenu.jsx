@@ -74,7 +74,7 @@ import classes from './ContextMenu.module.scss'
 
 /** Small orange unread dot shown when a typed view has new posts. */
 function UnreadDot ({ className }) {
-  return <span className={cn('w-2 h-2 rounded-full bg-orange-500 shrink-0', className)} />
+  return <span className={cn('w-2 h-2 rounded-full bg-accent shrink-0', className)} />
 }
 
 // Rows have no background of their own — the MenuRowBackground texture is the only
@@ -223,7 +223,7 @@ function SpaceMenuItemWithMore ({
               isSpaceActive
                 ? (spaceBannerUrl
                     ? 'text-white/60 hover:text-white'
-                    : 'text-foreground/50 hover:text-foreground dark:text-white/60 dark:hover:text-white')
+                    : 'text-foreground/50 hover:text-foreground dark:text-foreground/60 dark:hover:text-foreground')
                 // Rides the same banner fade as the label beside it
                 : (spaceBannerUrl ? 'group-hover:text-white/60 hover:text-white' : null)
             )}
@@ -235,7 +235,7 @@ function SpaceMenuItemWithMore ({
         {(spaceChatBadgeCount || spaceUnread || typeof spaceMemberCount === 'number' || !isSpaceMember) && (
           <span className='relative z-10 shrink-0 inline-flex items-center gap-1.5 ml-auto mr-1 pointer-events-none'>
             {spaceChatBadgeCount > 0 && (
-              <span className='min-w-5 h-5 px-1 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center'>
+              <span className='min-w-5 h-5 px-1 rounded-full bg-accent text-accent-foreground text-xs font-bold flex items-center justify-center'>
                 {spaceChatBadgeCount}
               </span>
             )}
@@ -250,7 +250,7 @@ function SpaceMenuItemWithMore ({
                   isSpaceActive
                     ? (spaceBannerUrl
                         ? 'bg-white/15 text-white/90'
-                        : 'bg-foreground/10 text-foreground/70 dark:bg-white/15 dark:text-white/90')
+                        : 'bg-foreground/10 text-foreground/70 dark:bg-foreground/15 dark:text-foreground/90')
                     : cn(
                       'bg-foreground/10 text-foreground/50',
                       spaceBannerUrl && 'group-hover:bg-white/15 group-hover:text-white/90'
@@ -315,16 +315,16 @@ function GroupViewMenuItem ({
     linkedSpaceSlug ? getGroupForSlug(state, linkedSpaceSlug) : null
   )
   const spaceViewsFromStore = useGroupViews(linkedSpaceGroupId ? { id: linkedSpaceGroupId } : null)
-  // Labels over the revealed row background: white on dark surfaces (and photos),
-  // regular foreground on the pale light-mode surface. Hover never changes text color.
+  // Labels over the revealed row background: the theme foreground (the row surface
+  // is tinted from the theme's card, see MenuRowBackground), white on photos.
+  // Hover never changes text color.
   //
-  // Expressed as a dark: variant rather than from effectiveColorScheme on purpose.
-  // That hook resolves through the Redux currentUser, so until it loads the scheme
-  // falls back to 'auto' — the OS. Anyone running Hylo dark with a light OS saw the
-  // label paint near-black and then flip to white when their settings arrived. The
+  // The dark-surface text shadow is a dark: variant rather than keyed off
+  // effectiveColorScheme on purpose. That hook resolves through the Redux
+  // currentUser, so until it loads the scheme falls back to 'auto' — the OS. The
   // class on documentElement is set in the same breath as the CSS variables, so a
   // variant can never disagree with the palette it is sitting on.
-  const activeLabelClass = 'text-foreground dark:text-white dark:hover:text-white dark:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
+  const activeLabelClass = 'text-foreground dark:[text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
   const onPhotoLabelClass = 'text-white hover:text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
   // Hovering an unselected space fades its banner in behind the row, so the label
   // has to go white at the same moment or it is dark text on a photo. No transition
@@ -1085,7 +1085,7 @@ export default function ContextMenu (props) {
                     ? (
                       <>
                         <div className='absolute inset-0 bg-cover bg-center' style={bgImageStyle(activeSpaceBannerUrl)} />
-                        <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.6) 100%)' }} />
+                        <div className='absolute inset-0' style={{ background: 'linear-gradient(180deg, hsl(var(--darkening) / 0.25) 0%, hsl(var(--darkening) / 0.6) 100%)' }} />
                       </>
                       )
                     : presentedActiveSpaceView && (
@@ -1096,8 +1096,8 @@ export default function ContextMenu (props) {
                     className={cn(
                       'relative z-10 self-start m-2 flex items-center justify-center p-1 leading-none rounded-md backdrop-blur-sm transition-colors',
                       activeSpaceBannerUrl
-                        ? 'bg-black/25 text-white/90 hover:bg-black/40 hover:text-white'
-                        : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+                        ? 'bg-darkening/25 text-white/90 hover:bg-darkening/40 hover:text-white'
+                        : 'bg-foreground/10 text-foreground/70 hover:bg-foreground/20 hover:text-foreground dark:text-foreground/80 dark:hover:text-foreground'
                     )}
                   >
                     <GroupNotificationsPopover group={activeSpaceGroup} className='w-5 h-5' />
@@ -1114,7 +1114,7 @@ export default function ContextMenu (props) {
                         'w-6 h-6 drop-shadow-md hover:scale-110 transition-all',
                         activeSpaceBannerUrl
                           ? 'text-white/90 hover:text-white'
-                          : 'text-foreground/60 hover:text-foreground dark:text-white/80 dark:hover:text-white'
+                          : 'text-foreground/60 hover:text-foreground dark:text-foreground/80 dark:hover:text-foreground'
                       )}
                       />
                     </button>
@@ -1131,7 +1131,7 @@ export default function ContextMenu (props) {
                           'backdrop-blur-sm',
                           activeSpaceBannerUrl
                             ? 'bg-white/15 text-white'
-                            : 'bg-black/5 text-foreground/80 dark:bg-white/15 dark:text-white'
+                            : 'bg-foreground/5 text-foreground/80 dark:bg-foreground/15 dark:text-foreground'
                         )
                       )}
                     >
@@ -1145,7 +1145,7 @@ export default function ContextMenu (props) {
                           'truncate font-bold text-xl/6',
                           activeSpaceBannerUrl
                             ? 'text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.65)]'
-                            : 'text-foreground dark:text-white'
+                            : 'text-foreground'
                         )}
                         text={spaceDisplayName}
                       />
@@ -1155,7 +1155,7 @@ export default function ContextMenu (props) {
                             'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors',
                             activeSpaceBannerUrl
                               ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
-                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-foreground/15 dark:border-foreground/25 dark:text-foreground/90 dark:hover:bg-foreground/25 dark:hover:text-foreground'
                           )}
                           to={spaceUrl(groupSlug, localSpaceSlug(groupSlug, activeSpaceGroup.slug), 'members')}
                           onClick={() => dispatch(toggleNavMenu(false))}
@@ -1173,7 +1173,7 @@ export default function ContextMenu (props) {
                             'rounded-full border px-2 py-0.5 hover:scale-100',
                             activeSpaceBannerUrl
                               ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
-                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-foreground/15 dark:border-foreground/25 dark:text-foreground/90 dark:hover:bg-foreground/25 dark:hover:text-foreground'
                           )}
                         />
                         <Link
@@ -1183,7 +1183,7 @@ export default function ContextMenu (props) {
                             'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 no-underline hover:no-underline transition-colors',
                             activeSpaceBannerUrl
                               ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
-                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-white/15 dark:border-white/25 dark:text-white/90 dark:hover:bg-white/25 dark:hover:text-white'
+                              : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-foreground/15 dark:border-foreground/25 dark:text-foreground/90 dark:hover:bg-foreground/25 dark:hover:text-foreground'
                           )}
                         >
                           <Info className='w-3.5 h-3.5' />

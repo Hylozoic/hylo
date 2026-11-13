@@ -29,8 +29,8 @@ const TIMEFRAME_OPTIONS = [
 
 // groups and pills. The prototype hardcodes a dark palette; these carry the same
 // shapes onto the theme tokens so the bar works in both schemes.
-const GROUP_CLASS = 'inline-flex items-center gap-0.5 h-8 sm:h-9 p-[3px] box-border rounded-[9px] bg-background border-2 border-foreground/20 shrink-0'
-const PILL_CLASS = 'inline-flex items-center gap-1 sm:gap-1.5 h-8 sm:h-9 px-2 sm:px-3 box-border rounded-[9px] bg-background border-2 border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-colors hover:border-foreground/40 whitespace-nowrap'
+const GROUP_CLASS = 'inline-flex items-center gap-0.5 h-8 sm:h-9 p-[3px] box-border rounded-lg bg-background border-2 border-foreground/20 shrink-0'
+const PILL_CLASS = 'inline-flex items-center gap-1 sm:gap-1.5 h-8 sm:h-9 px-2 sm:px-3 box-border rounded-lg bg-background border-2 border-foreground/20 text-foreground text-xs font-semibold cursor-pointer transition-colors hover:border-foreground/40 whitespace-nowrap'
 
 /** One segmented-group button. Active reads as the selected green, per the design. */
 function ToolBtn ({ active, onClick, tooltip, children, dataTour }) {
@@ -39,7 +39,7 @@ function ToolBtn ({ active, onClick, tooltip, children, dataTour }) {
       type='button'
       onClick={onClick}
       className={cn(
-        'grid place-items-center h-full aspect-square rounded-[7px] border-0 cursor-pointer transition-colors',
+        'grid place-items-center h-full aspect-square rounded-md border-0 cursor-pointer transition-colors',
         active ? 'bg-selected text-white' : 'bg-transparent text-foreground/70 hover:text-foreground hover:bg-foreground/10'
       )}
       data-tooltip-content={tooltip}

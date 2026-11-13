@@ -1,5 +1,6 @@
 import { parseGraphql } from './parseGraphql'
 import { sid } from './seed/helpers'
+import { validateGroupTheme } from 'util/groupTheme'
 
 /**
  * Handle a GraphQL operation against the in-memory sandbox seed.
@@ -287,6 +288,10 @@ function handleMutation (operationName, rootField, variables, seed) {
       return { data: { leaveTrack: leaveTrack(seed, variables) } }
     case 'updateMe':
       return { data: { updateMe: updateMe(seed, variables) } }
+    case 'importGroupThemeFromUrl':
+      throw new Error('Importing a theme from a website is not available in the demo')
+    case 'updateGroupTheme':
+      return { data: { updateGroupTheme: updateGroupTheme(seed, variables) } }
     case 'createMessage':
       return { data: { createMessage: createMessage(seed, variables) } }
     case 'findOrCreateThread':
@@ -961,6 +966,39 @@ function updateMe (seed, variables) {
     seed.me.settings = { ...seed.me.settings, ...settings }
   }
   return presentMe(seed)
+}
+
+/**
+ * Mirrors the backend updateGroupTheme mutation: validates with the shared
+ * rules (throwing, which the transport turns into a GraphQL error), then
+ * replaces settings.theme whole, or removes it when theme is null.
+ *
+ * The seed holds separate copies of each group (seed.groups.main, the entry in
+ * seed.groups.all, and the group inside each of my memberships), so every
+ * copy is updated for later reads to agree.
+ */
+function updateGroupTheme (seed, { groupId, theme }) {
+  const group = findGroup(seed, { id: groupId })
+  if (!groupId || !group) throw new Error('Group not found')
+
+  const { theme: cleanTheme, errors } = validateGroupTheme(theme)
+  if (errors.length > 0) throw new Error(`Invalid theme: ${errors.join('; ')}`)
+
+  const copies = [
+    ...seed.groups.all,
+    seed.groups.main,
+    seed.groups.simple,
+    seed.groups.staff,
+    ...Object.values(seed.groups.spaces || {}),
+    ...(seed.me.memberships || []).map(membership => membership.group)
+  ]
+  new Set(copies).forEach(copy => {
+    if (!copy || String(copy.id) !== String(group.id)) return
+    const { theme: _previous, ...otherSettings } = copy.settings || {}
+    copy.settings = cleanTheme ? { ...otherSettings, theme: cleanTheme } : otherSettings
+  })
+
+  return presentGroup(seed, group)
 }
 
 function createMessage (seed, variables) {

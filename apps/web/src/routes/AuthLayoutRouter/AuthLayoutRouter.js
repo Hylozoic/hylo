@@ -105,6 +105,9 @@ import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 import { Toaster } from 'components/ui/sonner'
 import useGroupViews from 'hooks/useGroupViews'
+import useGroupTheme from 'hooks/useGroupTheme'
+import { GROUP_THEMES } from 'config/featureFlags'
+import { hasFeature } from 'store/models/Me'
 import useNewAppVersion from 'hooks/useNewAppVersion'
 import useMobileHardwareBack from 'hooks/useMobileHardwareBack'
 import shouldLandOnWelcome from 'util/shouldLandOnWelcome'
@@ -194,6 +197,8 @@ export default function AuthLayoutRouter (props) {
   const dispatch = useDispatch()
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
+  // A group's own theme covers its menu, the main column and dialogs; the global nav keeps the viewer's theme
+  const { globalNavStyle: globalNavThemeStyle } = useGroupTheme(hasFeature(GROUP_THEMES) ? currentGroup : null)
   const currentGroupHasRetainedAccess = isRetainedAccessGroup(currentGroup)
   const groupViews = useGroupViews(currentGroup)
   const onWelcomePath = Boolean(
@@ -992,7 +997,9 @@ export default function AuthLayoutRouter (props) {
       <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': compactLayout && !isSandboxMode(), [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         {/* Top tab nav bar (when tab mode is active) */}
         {isTabNav && !withoutNav && (
-          <TopNav currentUser={currentUser} />
+          <div className='contents' style={globalNavThemeStyle}>
+            <TopNav currentUser={currentUser} />
+          </div>
         )}
 
         {/* Simple groups skip the mobile drawer pattern: their home dashboard already
@@ -1030,12 +1037,14 @@ export default function AuthLayoutRouter (props) {
           >
             {!withoutNav && !isTabNav && (
               <>
-                <GlobalNav
-                  group={currentGroup}
-                  currentUser={currentUser}
-                  routeParams={pathMatchParams}
-                  showMenuBadge={showMenuBadge}
-                />
+                <div className='contents' style={globalNavThemeStyle} data-testid='global-nav-theme-scope'>
+                  <GlobalNav
+                    group={currentGroup}
+                    currentUser={currentUser}
+                    routeParams={pathMatchParams}
+                    showMenuBadge={showMenuBadge}
+                  />
+                </div>
                 {isDrawerOpen && <Drawer className={cn(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
               </>
             )}

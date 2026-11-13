@@ -465,4 +465,48 @@ describe('sandbox GraphQL handlers', () => {
     expect(peopleOnly.data.search.items.length).toBeGreaterThan(0)
     expect(peopleOnly.data.search.items.every(i => i.content.__typename === 'Person')).toBe(true)
   })
+
+  describe('updateGroupTheme', () => {
+    const mutation = 'mutation UpdateGroupTheme ($groupId: ID, $theme: JSON) { updateGroupTheme(groupId: $groupId, theme: $theme) { id settings { theme } } }'
+    const save = (theme, groupId = MAIN_GROUP_ID) => handleGraphql({ query: mutation, variables: { groupId, theme } }, seed)
+    const readGroupSettings = () => handleGraphql({
+      query: 'query FetchForGroup ($slug: String) { group(slug: $slug) { id settings { theme } } }',
+      variables: { slug: MAIN_GROUP_SLUG }
+    }, seed).data.group.settings
+    const membershipSettings = () => handleGraphql({ query: 'query MeQuery { me { id } }' }, seed).data.me.memberships
+      .find(m => String(m.group.id) === String(MAIN_GROUP_ID)).group.settings
+
+    const theme = { light: { background: '150 22% 86%', 'card-foreground': '160 28% 11%' }, radius: 'xl' }
+
+    it('saves the theme in memory so later group reads return it', () => {
+      const otherSettings = { ...readGroupSettings() }
+      const result = save(theme)
+
+      expect(result.data.updateGroupTheme.settings.theme).toEqual(theme)
+      expect(readGroupSettings()).toEqual({ ...otherSettings, theme })
+      expect(membershipSettings().theme).toEqual(theme)
+    })
+
+    it('replaces the theme whole and clears it with null', () => {
+      save(theme)
+      save({ dark: { background: '160 18% 12%' } })
+      expect(readGroupSettings().theme).toEqual({ dark: { background: '160 18% 12%' } })
+
+      save(null)
+      expect(readGroupSettings()).not.toHaveProperty('theme')
+      expect(membershipSettings()).not.toHaveProperty('theme')
+    })
+
+    it('rejects a theme the shared sanitizer would change, leaving the saved one alone', () => {
+      save(theme)
+      expect(() => save({ light: { background: 'red' } })).toThrow(/Invalid theme: Invalid value for light.background/)
+      expect(() => save({ light: { 'not-a-token': '1 2% 3%' } })).toThrow(/Unknown token "not-a-token"/)
+      expect(() => save({ radius: '9999px' })).toThrow(/Unknown radius/)
+      expect(readGroupSettings().theme).toEqual(theme)
+    })
+
+    it('rejects an unknown group', () => {
+      expect(() => save(theme, 'no-such-group')).toThrow('Group not found')
+    })
+  })
 })
