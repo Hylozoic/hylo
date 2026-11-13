@@ -92,12 +92,12 @@ describe('groupThemeCssVars', () => {
     expect(groupThemeCssVars({ light: { background: 'nope' } }, 'light')).toBeNull()
   })
 
-  it('returns every token as a CSS variable, plus the radius and border width', () => {
+  it('returns every token as a CSS variable, plus the radius, border width and fonts', () => {
     const vars = groupThemeCssVars({ light: { background: '120 15% 92%' }, radius: 'xl' }, 'light')
     expect(vars['--background']).toEqual('120 15% 92%')
     expect(vars['--foreground']).toEqual(themes[defaultTheme].light.foreground)
     expect(vars['--radius']).toEqual('0.875rem')
-    expect(Object.keys(vars)).toHaveLength(Object.keys(themes[defaultTheme].light).length + 2)
+    expect(Object.keys(vars)).toHaveLength(Object.keys(themes[defaultTheme].light).length + 4)
   })
 
   it('uses the default radius when the group did not choose one', () => {
@@ -171,5 +171,26 @@ describe('border width', () => {
 
   it("is reset to 2px for the app's own themes", () => {
     expect(appThemeCssVars('forest', 'light')['--border-width']).toEqual('2px')
+  })
+})
+
+describe('fonts', () => {
+  it('sets the body and heading fonts, headings following the body font', () => {
+    const both = groupThemeCssVars({ fontBody: 'Inter', fontHeading: 'Playfair Display' }, 'light')
+    expect(both['--font-body']).toEqual("'Inter'")
+    expect(both['--font-display']).toEqual("'Playfair Display'")
+
+    const bodyOnly = groupThemeCssVars({ fontBody: 'Inter' }, 'light')
+    expect(bodyOnly['--font-display']).toEqual("'Inter'")
+
+    const headingOnly = groupThemeCssVars({ fontHeading: 'Lora' }, 'light')
+    expect(headingOnly['--font-body']).toEqual("'Onest'")
+    expect(headingOnly['--font-display']).toEqual("'Lora'")
+  })
+
+  it("is reset to the app's font for the app's own themes", () => {
+    const vars = appThemeCssVars('forest', 'light')
+    expect(vars['--font-body']).toEqual("'Onest'")
+    expect(vars['--font-display']).toEqual("'Onest'")
   })
 })

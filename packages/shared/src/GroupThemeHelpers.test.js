@@ -95,3 +95,18 @@ describe('group theme border width', () => {
       .toEqual({ light: { background: '1 2% 3%' } })
   })
 })
+
+describe('group theme fonts', () => {
+  it('accepts Google Fonts family names', () => {
+    const raw = { fontBody: 'Source Sans 3', fontHeading: 'Playfair Display' }
+    expect(validateGroupTheme(raw)).toEqual({ theme: raw, errors: [] })
+  })
+
+  it('rejects anything that is not a plain family name', () => {
+    const bad = ["Inter'; color: red", 'Inter, serif', 'url(x)', ' Inter', 'Inter  Tight', '', 42, 'a'.repeat(65)]
+    bad.forEach(value => {
+      expect(validateGroupTheme({ fontBody: value }).errors).toHaveLength(1)
+      expect(sanitizeGroupTheme({ fontHeading: value })).toBeNull()
+    })
+  })
+})

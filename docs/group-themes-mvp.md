@@ -42,13 +42,16 @@ Stored at `groups.settings.theme`:
   "light": { "background": "150 22% 86%", "card-foreground": "160 28% 11%" },
   "dark":  { "background": "160 18% 12%" },
   "radius": "xl",
-  "borderWidth": "thick"
+  "borderWidth": "thick",
+  "fontBody": "Inter",
+  "fontHeading": "Playfair Display"
 }
 ```
 
 - Token names are the keys of `baseTheme.light` in `apps/web/src/themes/index.js`.
 - Values are plain HSL triples (`H S% L%`), nothing else. No CSS ever.
 - `radius` is one of `none | sm | md | lg | xl`.
+- `fontBody` and `fontHeading` are Google Fonts family names (letters, digits and single spaces only). They set `--font-body` (all text) and `--font-display` (h1 to h6, which follow the body font when no heading font is set). The editor lists the full Google Fonts catalogue when `VITE_GOOGLE_FONTS_API_KEY` is set in `apps/web/.env`, and a short built-in list otherwise.
 - `borderWidth` is one of `thin | regular | thick` (1px, 2px, 3px; default `regular`). It sets `--border-width`, which Tailwind's `border-2` family reads. Plain 1px `border` is not affected. Border color is not themed separately; most borders use the text color at low opacity.
 - A group theme resolves over Hylo's **default** theme, not the viewer's personal theme, so contrast can be checked once for everyone.
 

@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux'
 import useAppearance from 'hooks/useAppearance'
 import getMe from 'store/selectors/getMe'
 import { getAppearanceFromSettings } from 'util/appearance'
-import { appThemeCssVars, groupThemeCssVars } from 'util/groupTheme'
+import { appThemeCssVars, groupThemeCssVars, loadGroupThemeFonts } from 'util/groupTheme'
 
 /**
  * Applies a group's theme (group.settings.theme) while that group is on screen.
@@ -33,6 +33,7 @@ export default function useGroupTheme (group) {
 
   useEffect(() => {
     if (!groupVars) return
+    loadGroupThemeFonts(JSON.parse(themeKey))
     const { style } = document.body
     Object.entries(groupVars).forEach(([name, value]) => style.setProperty(name, value))
     return () => {

@@ -14,7 +14,9 @@ import {
   presetToDraft,
   PRESET_NAMES,
   roleForContrastIssue,
+  nonColorSettings,
   setBorderWidth,
+  setFont,
   setRadius,
   setRoleColor,
   themesMatch
@@ -244,5 +246,24 @@ describe('border width', () => {
     expect(prepareThemeForSave({ borderWidth: 'thin' })).toEqual({ theme: { borderWidth: 'thin' }, valid: true })
     expect(themesMatch({ borderWidth: 'regular' }, null)).toBe(true)
     expect(themesMatch({ borderWidth: 'thick' }, null)).toBe(false)
+  })
+})
+
+describe('fonts', () => {
+  it('sets, clears and ignores bad font names', () => {
+    expect(setFont({}, 'fontBody', 'Inter')).toEqual({ fontBody: 'Inter' })
+    expect(setFont({ fontBody: 'Inter', radius: 'sm' }, 'fontBody', '')).toEqual({ radius: 'sm' })
+    expect(setFont({ fontHeading: 'Lora' }, 'fontHeading', 'x; y')).toEqual({ fontHeading: 'Lora' })
+    expect(setFont({}, 'fontOther', 'Inter')).toEqual({})
+  })
+
+  it('are saved and count as a change', () => {
+    expect(prepareThemeForSave({ fontHeading: 'Lora' })).toEqual({ theme: { fontHeading: 'Lora' }, valid: true })
+    expect(themesMatch({ fontBody: 'Inter' }, null)).toBe(false)
+  })
+
+  it('are kept, with radius and border width, when a preset replaces the colors', () => {
+    const draft = { light: { background: '1 2% 3%' }, radius: 'xl', borderWidth: 'thin', fontBody: 'Inter' }
+    expect(nonColorSettings(draft)).toEqual({ radius: 'xl', borderWidth: 'thin', fontBody: 'Inter' })
   })
 })

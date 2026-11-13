@@ -8,7 +8,9 @@
  *     light: { background: '120 15% 92%', 'card-foreground': '160 28% 11%', ... },
  *     dark:  { background: '120 20% 14%', ... },
  *     radius: 'lg',
- *     borderWidth: 'regular'
+ *     borderWidth: 'regular',
+ *     fontBody: 'Inter',
+ *     fontHeading: 'Lora'
  *   }
  *
  * Only design tokens are stored, never CSS. Values are plain HSL triples.
@@ -78,6 +80,18 @@ export const GROUP_THEME_BORDER_WIDTHS = {
   thick: '3px'
 }
 
+// Fonts are Google Fonts family names ('Inter', 'Playfair Display'). `fontBody`
+// applies to all text, `fontHeading` to headings (h1 to h6). Only the name is
+// stored and it is limited to letters, digits and spaces, so it can go into a
+// CSS value and a stylesheet URL without carrying anything else along.
+export const GROUP_THEME_FONT_KEYS = ['fontBody', 'fontHeading']
+const FONT_FAMILY_NAME = /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/
+const MAX_FONT_FAMILY_LENGTH = 64
+
+export function isGroupThemeFontFamily (value) {
+  return typeof value === 'string' && value.length <= MAX_FONT_FAMILY_LENGTH && FONT_FAMILY_NAME.test(value)
+}
+
 const HSL_TRIPLE = /^(\d{1,3}(?:\.\d+)?)\s+(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%$/
 
 const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key)
@@ -119,6 +133,9 @@ export function sanitizeGroupTheme (raw) {
 
   if (hasOwn(GROUP_THEME_RADII, raw.radius)) theme.radius = raw.radius
   if (hasOwn(GROUP_THEME_BORDER_WIDTHS, raw.borderWidth)) theme.borderWidth = raw.borderWidth
+  GROUP_THEME_FONT_KEYS.forEach(key => {
+    if (isGroupThemeFontFamily(raw[key])) theme[key] = raw[key]
+  })
 
   return Object.keys(theme).length > 0 ? theme : null
 }
@@ -154,6 +171,13 @@ export function validateGroupTheme (raw) {
     if (key === 'borderWidth') {
       if (!hasOwn(GROUP_THEME_BORDER_WIDTHS, raw.borderWidth)) {
         errors.push(`Unknown borderWidth ${JSON.stringify(raw.borderWidth)}; use one of ${Object.keys(GROUP_THEME_BORDER_WIDTHS).join(', ')}`)
+      }
+      return
+    }
+
+    if (GROUP_THEME_FONT_KEYS.includes(key)) {
+      if (!isGroupThemeFontFamily(raw[key])) {
+        errors.push(`Invalid ${key}: expected a Google Fonts family name (letters, digits and single spaces, up to ${MAX_FONT_FAMILY_LENGTH} characters)`)
       }
       return
     }

@@ -2,6 +2,8 @@ import { isEqual } from 'lodash'
 import { themes, defaultTheme } from '../themes'
 import {
   GROUP_THEME_BORDER_WIDTHS,
+  GROUP_THEME_FONT_KEYS,
+  isGroupThemeFontFamily,
   GROUP_THEME_RADII,
   GROUP_THEME_TOKENS,
   checkGroupThemeContrast,
@@ -16,7 +18,7 @@ import {
 /**
  * Pure logic behind the group theme editor (Group Settings > Appearance).
  *
- * A draft is shaped exactly like a stored group theme ({ light, dark, radius, borderWidth }),
+ * A draft is shaped exactly like a stored group theme ({ light, dark, radius, borderWidth, fontBody, fontHeading }),
  * so it can be previewed with groupThemeCssVars and saved as is. Stewards edit
  * six roles; every other token a role touches is derived from the roles.
  */
@@ -230,13 +232,40 @@ export function setBorderWidth (draft, borderWidth) {
   return { ...(draft || {}), borderWidth }
 }
 
+/**
+ * Sets the body or heading font ('fontBody' or 'fontHeading') to a Google
+ * Fonts family, or clears it when no family is given.
+ */
+export function setFont (draft, key, family) {
+  if (!GROUP_THEME_FONT_KEYS.includes(key)) return draft
+  const next = { ...(draft || {}) }
+  if (!family) {
+    delete next[key]
+  } else if (isGroupThemeFontFamily(family)) {
+    next[key] = family
+  }
+  return next
+}
+
+/**
+ * The parts of a draft that are not colors (radius, border width, fonts), to
+ * carry over when the colors are replaced by a preset.
+ */
+export function nonColorSettings (draft) {
+  const kept = {}
+  ;['radius', 'borderWidth', ...GROUP_THEME_FONT_KEYS].forEach(key => {
+    if (draft?.[key]) kept[key] = draft[key]
+  })
+  return kept
+}
+
 export const PRESET_NAMES = Object.keys(themes)
 
 /**
  * A draft holding one of the app's own themes: the tokens where it differs from
  * the default theme, with the text on primary, secondary, accent and muted
  * surfaces adjusted wherever it would fail the contrast check.
- * Has no radius or border width; the caller keeps the current ones.
+ * Has colors only; the caller keeps the current radius, border width and fonts.
  */
 export function presetToDraft (themeName) {
   const preset = themes[themeName]
@@ -285,6 +314,9 @@ export function compactTheme (draft) {
   })
   if (theme.radius && theme.radius !== DEFAULT_RADIUS_OPTION) result.radius = theme.radius
   if (theme.borderWidth && theme.borderWidth !== DEFAULT_BORDER_WIDTH_OPTION) result.borderWidth = theme.borderWidth
+  GROUP_THEME_FONT_KEYS.forEach(key => {
+    if (theme[key]) result[key] = theme[key]
+  })
   return Object.keys(result).length > 0 ? result : null
 }
 
