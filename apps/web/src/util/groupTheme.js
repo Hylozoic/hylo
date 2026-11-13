@@ -1,3 +1,4 @@
+import { GROUP_THEME_RADII, GROUP_THEME_TOKENS, parseHslTriple, sanitizeGroupTheme, validateGroupTheme } from '@hylo/shared'
 import { themes, defaultTheme } from '../themes'
 
 /**
@@ -13,22 +14,12 @@ import { themes, defaultTheme } from '../themes'
  *
  * Only design tokens are stored, never CSS. Everything read from storage goes
  * through sanitizeGroupTheme, so a bad or hostile value can never reach the
- * page as a style.
+ * page as a style. The validation rules live in @hylo/shared (GroupThemeHelpers).
  */
 
-const COLOR_SCHEMES = ['light', 'dark']
+// Validation rules are shared with the backend, which validates on save.
+export { GROUP_THEME_TOKENS, GROUP_THEME_RADII, parseHslTriple, sanitizeGroupTheme, validateGroupTheme }
 
-// The tokens a group may override: exactly the color tokens the app's own themes define.
-export const GROUP_THEME_TOKENS = Object.keys(themes[defaultTheme].light)
-
-// Corner radius choices. `lg` matches the app's current fixed radius.
-export const GROUP_THEME_RADII = {
-  none: '0rem',
-  sm: '0.25rem',
-  md: '0.375rem',
-  lg: '0.5rem',
-  xl: '0.875rem'
-}
 export const DEFAULT_RADIUS = GROUP_THEME_RADII.lg
 
 // Text-on-surface pairs that must stay readable, as [text token, surface token]
@@ -46,46 +37,6 @@ export const CONTRAST_PAIRS = [
 
 // WCAG AA for normal-size text
 export const MIN_CONTRAST_RATIO = 4.5
-
-const HSL_TRIPLE = /^(\d{1,3}(?:\.\d+)?)\s+(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%$/
-
-/**
- * Parses a token value like '145 50% 62%' into [h, s, l], or null if it is not
- * a plain HSL triple within range.
- */
-export function parseHslTriple (value) {
-  if (typeof value !== 'string') return null
-  const match = HSL_TRIPLE.exec(value.trim())
-  if (!match) return null
-  const [h, s, l] = match.slice(1).map(Number)
-  if (h > 360 || s > 100 || l > 100) return null
-  return [h, s, l]
-}
-
-/**
- * Returns a clean theme holding only known tokens with valid values, or null
- * when nothing usable is left.
- */
-export function sanitizeGroupTheme (raw) {
-  if (!raw || typeof raw !== 'object') return null
-
-  const theme = {}
-  COLOR_SCHEMES.forEach(scheme => {
-    const source = raw[scheme]
-    if (!source || typeof source !== 'object') return
-    const tokens = {}
-    GROUP_THEME_TOKENS.forEach(token => {
-      if (!Object.prototype.hasOwnProperty.call(source, token)) return
-      const parsed = parseHslTriple(source[token])
-      if (parsed) tokens[token] = `${parsed[0]} ${parsed[1]}% ${parsed[2]}%`
-    })
-    if (Object.keys(tokens).length > 0) theme[scheme] = tokens
-  })
-
-  if (Object.prototype.hasOwnProperty.call(GROUP_THEME_RADII, raw.radius)) theme.radius = raw.radius
-
-  return Object.keys(theme).length > 0 ? theme : null
-}
 
 /**
  * The full set of tokens a themed group shows for a color scheme: the app's
