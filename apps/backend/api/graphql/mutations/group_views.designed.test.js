@@ -1,7 +1,8 @@
 /* eslint-disable no-unused-expressions */
-/* global GroupView, HyloProSubscription, bookshelf */
+/* global Group, GroupView, HyloProSubscription, bookshelf */
 import factories from '../../../test/setup/factories'
-import { createGroupView, updateGroupView, deleteGroupView, designGroupViewTurn } from './group_views'
+import { createGroupView, updateGroupView, deleteGroupView, designGroupViewTurn, suggestGroupViews } from './group_views'
+import { buildGroupDigest } from '../../../lib/groupDigest'
 
 describe('designed views', () => {
   let admin, member, group
@@ -114,6 +115,7 @@ describe('designed views', () => {
       expect(received.messages).to.deep.equal(messages)
       expect(received.currentView).to.deep.equal(storedDesign)
       expect(received.images).to.deep.equal([])
+      expect(received.groupSummary).to.contain(`Group name: ${group.get('name')}`)
       expect(await GroupView.where({ group_id: group.id }).count()).to.equal(before)
     })
 
@@ -135,6 +137,64 @@ describe('designed views', () => {
     it('reports a failed design', async () => {
       await expect(run(admin.id, {}, deps({ designTurn: async () => { throw new Error('The design took too long') } })))
         .to.be.rejectedWith(/The design could not be made: The design took too long/)
+    })
+  })
+
+  describe('buildGroupDigest', () => {
+    it('summarises the group from titles and counts, leaving out chats, bodies and inactive posts', async () => {
+      const other = await factories.group().save()
+      const make = async (attrs, target = group) => {
+        const post = await factories.post({ user_id: admin.id, active: true, ...attrs }).save()
+        await bookshelf.knex('groups_posts').insert({ group_id: target.id, post_id: post.id })
+        return post
+      }
+      const soon = new Date(Date.now() + 3 * 86400000)
+      await make({ type: 'request', name: 'Spare <b>wheelbarrow</b>?', description: 'SECRET BODY', num_comments: 4 })
+      await make({ type: 'offer', name: 'Tomato starts', fulfilled_at: new Date() })
+      await make({ type: 'event', name: 'Compost workday', start_time: soon })
+      await make({ type: 'chat', name: 'just chatting' })
+      await make({ type: 'discussion', name: 'Deleted one', active: false })
+      await make({ type: 'discussion', name: 'In another group' }, other)
+
+      const digest = await buildGroupDigest(await Group.find(group.id))
+      expect(digest.name).to.equal(group.get('name'))
+      expect(digest.postCounts).to.deep.equal({ request: 1, offer: 1, event: 1 })
+      expect(digest.openCounts).to.deep.equal({ request: 1 })
+      expect(digest.upcomingEvents.map(event => event.title)).to.deep.equal(['Compost workday'])
+      const titles = digest.recentPosts.map(post => post.title)
+      expect(titles).to.have.members(['Spare wheelbarrow ?', 'Tomato starts', 'Compost workday'])
+      expect(JSON.stringify(digest)).to.not.contain('SECRET BODY')
+      expect(digest.views.some(view => view.type === 'designed')).to.equal(true)
+    })
+  })
+
+  describe('suggestGroupViews', () => {
+    const result = { reply: 'Requests are piling up.', suggestions: [{ name: 'Lend a Hand', why: 'x', prompt: 'y' }], usage: { inputTokens: 1 } }
+    const deps = overrides => ({
+      isConfigured: () => true,
+      withinLimit: async () => true,
+      buildDigest: async () => ({ name: 'Riverside Garden', memberCount: 86, recentDays: 90 }),
+      suggestTurn: async () => result,
+      ...overrides
+    })
+
+    it('sends the group summary to the model and returns its suggestions', async () => {
+      let received
+      const out = await suggestGroupViews({ userId: admin.id, groupId: group.id }, deps({ suggestTurn: async request => { received = request; return result } }))
+      expect(out).to.deep.equal(result)
+      expect(received.groupSummary).to.contain('Group name: Riverside Garden')
+      expect(received.groupSummary).to.contain('Members: 86')
+    })
+
+    it('refuses members, groups without Pro and a reached limit, before any model call', async () => {
+      let called = false
+      const d = overrides => deps({ suggestTurn: async () => { called = true; return result }, ...overrides })
+      await expect(suggestGroupViews({ userId: member.id, groupId: group.id }, d())).to.be.rejectedWith(/permission/)
+      await expect(suggestGroupViews({ userId: admin.id, groupId: group.id }, d({ isConfigured: () => false }))).to.be.rejectedWith(/not set up/)
+      await expect(suggestGroupViews({ userId: admin.id, groupId: group.id }, d({ withinLimit: async () => false }))).to.be.rejectedWith(/try again later/)
+      await removePro()
+      await expect(suggestGroupViews({ userId: admin.id, groupId: group.id }, d())).to.be.rejectedWith(/part of Hylo Pro/)
+      expect(called).to.equal(false)
     })
   })
 })

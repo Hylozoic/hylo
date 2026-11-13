@@ -3831,5 +3831,10 @@
   "Tell the AI where to use each one, such as \"use image 1 as the banner\".": "Dile a la IA dónde usar cada una, por ejemplo \"usa la imagen 1 como banner\".",
   "Image {{number}}": "Imagen {{number}}",
   "The image could not be added: {{message}}": "No se pudo añadir la imagen: {{message}}",
-  "Describe the page you want and AI will build it from posts, events, members, text, images and buttons. You can keep refining it before you save.": "Describe la página que quieres y la IA la construirá con publicaciones, eventos, miembros, texto, imágenes y botones. Puedes seguir ajustándola antes de guardar."
+  "Describe the page you want and AI will build it from posts, events, members, text, images and buttons. You can keep refining it before you save.": "Describe la página que quieres y la IA la construirá con publicaciones, eventos, miembros, texto, imágenes y botones. Puedes seguir ajustándola antes de guardar.",
+  "Suggest views": "Sugerir vistas",
+  "Looking at your group...": "Revisando tu grupo...",
+  "Ideas for pages that would help this group grow, based on its purpose and what's been posted.": "Ideas de páginas que ayudarían a crecer a este grupo, según su propósito y lo que se ha publicado.",
+  "Design this": "Diseñar esta",
+  "Or describe a different page below.": "O describe otra página abajo."
 }

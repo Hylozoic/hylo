@@ -3823,5 +3823,10 @@
   "Tell the AI where to use each one, such as \"use image 1 as the banner\".": "AI को बताएँ कि हर चित्र कहाँ लगाना है, जैसे \"चित्र 1 को बैनर बनाओ\"।",
   "Image {{number}}": "चित्र {{number}}",
   "The image could not be added: {{message}}": "चित्र जोड़ा नहीं जा सका: {{message}}",
-  "Describe the page you want and AI will build it from posts, events, members, text, images and buttons. You can keep refining it before you save.": "जो पेज आप चाहते हैं उसका वर्णन करें और AI उसे पोस्ट, इवेंट, सदस्यों, टेक्स्ट, चित्रों और बटन से बनाएगा। सहेजने से पहले आप उसे सुधारते रह सकते हैं।"
+  "Describe the page you want and AI will build it from posts, events, members, text, images and buttons. You can keep refining it before you save.": "जो पेज आप चाहते हैं उसका वर्णन करें और AI उसे पोस्ट, इवेंट, सदस्यों, टेक्स्ट, चित्रों और बटन से बनाएगा। सहेजने से पहले आप उसे सुधारते रह सकते हैं।",
+  "Suggest views": "व्यू सुझाएँ",
+  "Looking at your group...": "आपके समूह को देखा जा रहा है...",
+  "Ideas for pages that would help this group grow, based on its purpose and what's been posted.": "ऐसे पेजों के सुझाव जो इस समूह को बढ़ने में मदद करें, इसके उद्देश्य और पोस्ट के आधार पर।",
+  "Design this": "इसे डिज़ाइन करें",
+  "Or describe a different page below.": "या नीचे किसी और पेज का वर्णन करें।"
 }

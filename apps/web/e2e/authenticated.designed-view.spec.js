@@ -49,6 +49,15 @@ const turn = {
   }
 }
 
+const suggestions = {
+  reply: 'Requests are piling up and newcomers have no starting point.',
+  suggestions: [
+    { name: 'Start Here', why: 'The group has no description, so new members have nothing to orient them.', prompt: 'A welcome page for new members' },
+    { name: 'Lend a Hand', why: 'Nine requests are open against three offers.', prompt: 'A page that shows open requests first.' }
+  ],
+  usage: { model: 'claude-opus-5-5', inputTokens: 1507, outputTokens: 1411, estimatedCostUsd: 0.034248, pricePerMillionTokens: { input: 4, output: 20 } }
+}
+
 function sql (query) {
   return execFileSync('psql', [process.env.E2E_DATABASE_URL, '-v', 'ON_ERROR_STOP=1', '-tAc', query], { encoding: 'utf8' }).trim()
 }
@@ -73,6 +82,9 @@ test.describe('designed views', () => {
   test('designs a page in the chat, saves it to the menu, and opens it again to edit', async ({ page }) => {
     await page.route('**/noo/graphql', async route => {
       const body = route.request().postData() || ''
+      if (body.includes('SuggestGroupViews')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { suggestGroupViews: suggestions } }) })
+      }
       if (!body.includes('DesignGroupViewTurn')) return route.continue()
       await route.fulfill({
         status: 200,
@@ -95,8 +107,14 @@ test.describe('designed views', () => {
     await expect(chat.getByRole('button', { name: 'Add to menu' })).toBeDisabled()
     await expect(chat.getByRole('button', { name: 'Add image' })).toBeEnabled()
 
-    await chat.getByLabel('Message').fill('A welcome page for new members')
-    await chat.getByRole('button', { name: 'Send' }).click()
+    // "Suggest views" offers pages that fit the group; picking one starts the design and names it
+    await chat.getByTestId('designer-suggest-views').click()
+    await expect(chat.getByTestId('designer-suggestion')).toHaveCount(2, uiTimeout)
+    await expect(chat.getByTestId('designer-suggestions')).toContainText('Requests are piling up')
+    await expect(page.getByTestId('designer-usage')).toContainText('Last message: 1,507 input and 1,411 output tokens')
+    await page.screenshot({ path: 'e2e-screenshots/designed-view-0-suggestions.png' })
+    await chat.getByTestId('designer-suggestion').first().getByRole('button', { name: 'Design this' }).click()
+    await expect(chat.getByLabel('Name in the menu')).toHaveValue('Start Here')
 
     // The reply lands in the chat and the page is drawn in the main column
     await expect(chat).toContainText(turn.reply, uiTimeout)
@@ -109,7 +127,7 @@ test.describe('designed views', () => {
     await expect.poll(() => heroImage.evaluate(img => img.complete && img.naturalWidth > 0), uiTimeout).toBe(true)
     await expect(canvas.locator('[data-block="members"] a').first()).toBeVisible(uiTimeout)
     await expect(page.getByTestId('designer-usage')).toContainText('Last message: 4,411 input and 551 output tokens, about $0.029')
-    await expect(page.getByTestId('designer-usage')).toContainText('Messages in this design: 1, using 4,962 tokens')
+    await expect(page.getByTestId('designer-usage')).toContainText('Messages in this design: 2, using 7,880 tokens')
     await page.screenshot({ path: 'e2e-screenshots/designed-view-1-designer.png' })
 
     // Saving adds it to the group's menu
