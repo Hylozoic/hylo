@@ -5,6 +5,7 @@ import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import { normalizeLocaleToFull } from '../../../lib/localeHelpers'
 import { senderNameForGroup } from '../../../lib/email/senderNameViaHylo'
 import RedisClient from '../../services/RedisClient'
+import sentry from '../../../lib/sentry'
 import { getLocaleStrings } from '../../../lib/i18n/locales'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
 
@@ -66,21 +67,30 @@ export const sendDigests = async () => {
 
     sails.log.info(`Comment.sendDigests: checking ${posts.length} posts updated since ${lastDigestAt.toISOString()}`)
 
+    // One failing post or recipient must not stop the watermark from advancing,
+    // or the next run would re-send every digest already delivered in this one.
     const numSends = await Promise.all(posts.map(async post => {
       const { comments } = post.relations
       if (comments.length === 0) return 0
 
-      const followers = await post.followers().fetch()
+      try {
+        const followers = await post.followers().fetch()
 
-      return Promise.map(followers.models, async user => {
-        try {
-          return await sendDigestForUser({ post, comments, user })
-        } catch (err) {
-          sails.log.error(`Comment.sendDigests: error sending digest for post ${post.id} to user ${user.id}: ${err.message}`, err.stack)
-          throw err
-        }
-      })
-        .then(sends => compact(sends).length)
+        const sends = await Promise.map(followers.models, async user => {
+          try {
+            return await sendDigestForUser({ post, comments, user })
+          } catch (err) {
+            sails.log.error(`Comment.sendDigests: error sending digest for post ${post.id} to user ${user.id}: ${err.message}`, err.stack)
+            sentry.error(err, null, { postId: post.id, userId: user.id })
+            return null
+          }
+        })
+        return compact(sends).length
+      } catch (err) {
+        sails.log.error(`Comment.sendDigests: error sending digests for post ${post.id}: ${err.message}`, err.stack)
+        sentry.error(err, null, { postId: post.id })
+        return 0
+      }
     }))
 
     await redisClient.set(sendDigests.REDIS_TIMESTAMP_KEY, now.getTime().toString())
@@ -92,6 +102,18 @@ export const sendDigests = async () => {
   }
 }
 
+// Digests use the post's timezone because recipients have no timezone setting,
+// and UTC when the post has none or one that Intl does not recognise.
+function digestTimeZone (timeZone) {
+  if (!timeZone) return 'UTC'
+  try {
+    Intl.DateTimeFormat('en-US', { timeZone })
+    return timeZone
+  } catch (err) {
+    return 'UTC'
+  }
+}
+
 async function sendDigestForUser ({ post, comments, user }) {
   if (user.pivot.get('muted_at')) return
 
@@ -100,6 +122,7 @@ async function sendDigestForUser ({ post, comments, user }) {
   let lastReadAt = user.pivot.get('last_read_at')
   if (lastReadAt) lastReadAt = new Date(lastReadAt)
   const locale = normalizeLocaleToFull(user.get('settings')?.locale || 'en-US')
+  const timeZone = digestTimeZone(post.get('timezone'))
 
   const filtered = comments.filter(c =>
     c.get('created_at') > (lastReadAt || 0) &&
@@ -114,7 +137,7 @@ async function sendDigestForUser ({ post, comments, user }) {
       image: comment.relations?.media?.first?.()?.pick('url', 'thumbnail_url'),
       name: comment.relations.user.get('name'),
       avatar_url: comment.relations.user.get('avatar_url'),
-      timestamp: comment.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+      timestamp: comment.get('created_at').toLocaleString(locale, { hour: 'numeric', minute: 'numeric', timeZone })
     }
     return presented
   }
@@ -174,15 +197,15 @@ async function sendDigestForUser ({ post, comments, user }) {
       locale,
       data: {
         count: commentData.length,
-        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone'), locale }),
+        date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: timeZone, locale }),
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
         post_title: post.summary(),
         post_creator_avatar_url: Frontend.appendQueryString(post.relations.user.get('avatar_url'), clickthroughParams),
         thread_url: Frontend.appendQueryString(Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }), clickthroughParams),
         comments: commentData,
         subject_prefix: some(hasMention, commentData)
-          ? 'You were mentioned in'
-          : 'New comments on'
+          ? getLocaleStrings(locale).commentDigestMentionedIn()
+          : getLocaleStrings(locale).commentDigestNewCommentsOn()
       },
       sender: {
         reply_to: Email.postReplyAddress(post.id, user.id),

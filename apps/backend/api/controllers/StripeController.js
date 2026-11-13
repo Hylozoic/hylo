@@ -981,7 +981,7 @@ module.exports = {
                 }
 
                 // Generate manage subscription URL (Stripe customer portal or Hylo settings)
-                manageSubscriptionUrl = `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`
+                manageSubscriptionUrl = Frontend.Route.myTransactions()
               } catch (subError) {
                 console.error('Error fetching subscription details for email:', subError)
                 // Continue without subscription details
@@ -1857,7 +1857,7 @@ module.exports = {
             amount_paid: amountPaid,
             payment_date: paymentDateFormatted,
             next_renewal_date: nextRenewalDateFormatted,
-            manage_subscription_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+            manage_subscription_url: Frontend.Route.myTransactions(),
             group_avatar_url: group.get('avatar_url')
           }
 
@@ -2109,8 +2109,8 @@ module.exports = {
             group_name: group.get('name'),
             group_url: Frontend.Route.group(group),
             failure_reason: failureReason,
-            manage_subscription_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
-            update_payment_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+            manage_subscription_url: Frontend.Route.myTransactions(),
+            update_payment_url: Frontend.Route.myTransactions(),
             group_avatar_url: group.get('avatar_url')
           }
 
@@ -2145,7 +2145,7 @@ module.exports = {
 
   /**
    * Handle charge.refunded webhook events
-   * Revokes access and cancels any associated subscriptions when payment is refunded
+   * Revokes access and cancels any associated subscriptions when a payment is fully refunded
    *
    * Note: This handles refunds initiated directly through Stripe dashboard.
    * Refunds initiated through our refundContentAccess mutation will also trigger this,
@@ -2170,21 +2170,23 @@ module.exports = {
         return
       }
 
-      // Retrieve the payment intent to get session_id from metadata
+      // Checkout creates the payment intent only when the buyer pays, so the session id
+      // is never on its metadata; look the session up by payment intent instead.
+      // Subscription charges are not tied to a checkout session and are not matched here.
       // Must use the connected account header for Connect webhooks
       const retrieveOptions = connectedAccountId ? { stripeAccount: connectedAccountId } : {}
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {}, retrieveOptions)
-      const sessionId = paymentIntent.metadata?.session_id
+      const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntentId, limit: 1 }, retrieveOptions)
+      const sessionId = sessions?.data?.[0]?.id
 
       if (!sessionId) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`No session_id found in payment intent metadata for ${paymentIntentId}`)
+          console.log(`No checkout session found for payment intent ${paymentIntentId}`)
         }
         return
       }
 
       // Find content access records associated with this session
-      const accessRecords = await ContentAccess.findBySessionId(sessionId)
+      const accessRecords = (await ContentAccess.forStripeSession(sessionId)).models
 
       if (!accessRecords || accessRecords.length === 0) {
         if (process.env.NODE_ENV === 'development') {
@@ -2193,9 +2195,15 @@ module.exports = {
         return
       }
 
+      // refundContentAccess marks its record REFUNDED and emails the member itself
+      const refundedThroughHylo = accessRecords.some(access => access.get('status') === ContentAccess.Status.REFUNDED)
+      const newlyRefunded = []
+      // Stripe also sends charge.refunded for partial refunds. Those leave access in place and are only logged below.
+      const recordsToRefund = charge.refunded ? accessRecords : []
+
       // Revoke/refund all associated access records
       // Skip records that are already refunded (e.g., from our mutation)
-      await Promise.all(accessRecords.map(async (access) => {
+      await Promise.all(recordsToRefund.map(async (access) => {
         const currentStatus = access.get('status')
 
         // Skip if already refunded or revoked (our mutation already handled this)
@@ -2223,10 +2231,19 @@ module.exports = {
           status: ContentAccess.Status.REFUNDED,
           metadata
         }, { patch: true })
+        newlyRefunded.push(access)
       }))
 
       if (process.env.NODE_ENV === 'development') {
         console.log(`Processed ${accessRecords.length} access records for refunded charge ${charge.id}`)
+      }
+
+      // One purchase can create several access records, so send one email per refunded charge.
+      if (newlyRefunded.length > 0 && !refundedThroughHylo) {
+        await ContentAccess.sendRefundProcessedEmail(newlyRefunded[0], {
+          amount: charge.amount_refunded,
+          currency: charge.currency
+        })
       }
 
       // Write an analytics/log record for this refund

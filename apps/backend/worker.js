@@ -35,6 +35,8 @@ const jobDefinitions = {
 
 const queue = kue.createQueue()
 queue.on('error', handleRedisError)
+// Re-index inactive jobs that Redis lost track of; otherwise they never run.
+queue.watchStuckJobs(60000)
 
 function setupQueue (name, handler) {
   queue.process(name, 10, async (job, ctx, done) => {
@@ -78,6 +80,8 @@ setTimeout(() => {
       }
     },
     stop: done => {
+      // kue's shutdown leaves the watchStuckJobs timer running, which keeps the process alive.
+      clearInterval(queue.stuck_job_watch)
       queue.shutdown(5000, done)
     }
   })

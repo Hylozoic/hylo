@@ -2,6 +2,7 @@ import { curry, merge } from 'lodash'
 import { format } from 'util'
 import { normalizeLocaleToFull } from '../../lib/localeHelpers'
 import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
+import sentry from '../../lib/sentry'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 const { isDemoAddress } = require('../../lib/demo/addresses')
@@ -18,6 +19,8 @@ const EMAIL_CHANGE_REQUESTED_TEMPLATE = 'tem_gfCWyJRpp6Q996d6ykVgJKCW'
 const emailSendingDisabled = () =>
   process.env.NODE_ENV === 'test' || process.env.DISABLE_EMAIL_SENDING === '1'
 
+// Resolves false on failure rather than rejecting: callers treat `false` as "not sent".
+// Failures are reported without the recipient address or email data.
 const sendEmail = opts => {
   if (emailSendingDisabled()) {
     if (process.env.NODE_ENV !== 'test') {
@@ -31,16 +34,25 @@ const sendEmail = opts => {
       return resp || true
     })
     .catch(err => {
-      console.error('Error sending email:', err, ' email opts = ', opts)
+      const error = err instanceof Error ? err : new Error(String(err))
+      console.error(`Error sending email ${opts.email_id}: ${error.message}`)
+      sentry.error(error, null, {
+        templateId: opts.email_id,
+        versionName: opts.version_name,
+        locale: opts.locale,
+        statusCode: error.statusCode
+      })
       return false
     })
 }
 
-const defaultOptions = {
-  sender: {
-    address: process.env.EMAIL_SENDER,
-    name: 'The Team at Hylo'
-  },
+const sender = {
+  address: process.env.EMAIL_SENDER,
+  name: 'The Team at Hylo'
+}
+
+const bulkOptions = {
+  sender,
   locale: 'en-US',
   headers: {
     Precedence: 'bulk',
@@ -48,9 +60,19 @@ const defaultOptions = {
   }
 }
 
-const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-US') => {
+// Account emails and receipts must not say `Precedence: bulk`. Built separately
+// because merging over bulkOptions cannot remove that header.
+const transactionalOptions = {
+  sender,
+  locale: 'en-US',
+  headers: {
+    'X-Auto-Response-Suppress': 'All'
+  }
+}
+
+const simpleEmailSender = baseOptions => (address, templateId, data, extraOptions, locale = 'en-US') => {
   if (isDemoAddress(address)) return Promise.resolve(false)
-  const emailOpts = merge({}, defaultOptions, {
+  const emailOpts = merge({}, baseOptions, {
     email_id: templateId,
     recipient: { address },
     email_data: data,
@@ -63,9 +85,12 @@ const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-U
   return sendEmail(emailOpts)
 }
 
-const sendEmailWithOptions = curry((templateId, opts) => {
+const sendSimpleEmail = simpleEmailSender(bulkOptions)
+const sendTransactionalSimpleEmail = simpleEmailSender(transactionalOptions)
+
+const emailWithOptionsSender = baseOptions => curry((templateId, opts) => {
   if (isDemoAddress(opts && opts.email)) return Promise.resolve(false)
-  const emailOpts = merge({}, defaultOptions, {
+  const emailOpts = merge({}, baseOptions, {
     email_id: templateId,
     recipient: { address: opts.email },
     email_data: opts.data,
@@ -82,6 +107,9 @@ const sendEmailWithOptions = curry((templateId, opts) => {
   return sendEmail(emailOpts)
 })
 
+const sendEmailWithOptions = emailWithOptionsSender(bulkOptions)
+const sendTransactionalEmailWithOptions = emailWithOptionsSender(transactionalOptions)
+
 module.exports = {
   sendSimpleEmail,
 
@@ -89,16 +117,16 @@ module.exports = {
     sendSimpleEmail(email, 'tem_jFYJ3bxMyfbbtbwgDGS4JGfK', data, extraOptions),
 
   sendPasswordReset: opts =>
-    sendSimpleEmail(opts.email, 'tem_phRPHm3y6RHvRFww6Vc3VBVB', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
+    sendTransactionalSimpleEmail(opts.email, 'tem_phRPHm3y6RHvRFww6Vc3VBVB', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
 
   sendEmailVerification: opts =>
-    sendSimpleEmail(opts.email, 'tem_h99yGHv9MXTpMrPSDVTjQFyB', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
+    sendTransactionalSimpleEmail(opts.email, 'tem_h99yGHv9MXTpMrPSDVTjQFyB', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
 
   sendEmailChangeRequested: opts =>
-    sendSimpleEmail(opts.email, EMAIL_CHANGE_REQUESTED_TEMPLATE, opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
+    sendTransactionalSimpleEmail(opts.email, EMAIL_CHANGE_REQUESTED_TEMPLATE, opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
 
   sendFinishRegistration: opts =>
-    sendSimpleEmail(opts.email, 'tem_fqGSrDrSK6WpjTBFXSfY79k4', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
+    sendTransactionalSimpleEmail(opts.email, 'tem_fqGSrDrSK6WpjTBFXSfY79k4', opts.templateData, {}, normalizeLocaleToFull(opts.locale)),
 
   sendModerationAction: ({ email, templateData, locale }) =>
     sendSimpleEmail(email, 'tem_BXYk4Hxt74R9jH3pkdGfqbJM', templateData, {}, normalizeLocaleToFull(locale)),
@@ -277,16 +305,16 @@ Profile: ${opts.actorProfileUrl}
   },
 
   // Paid content email templates
-  sendPurchaseConfirmation: sendEmailWithOptions('tem_9gQQRW8XgygjQpGGxQKYGdMS'),
+  sendPurchaseConfirmation: sendTransactionalEmailWithOptions('tem_9gQQRW8XgygjQpGGxQKYGdMS'),
   sendAccessGranted: sendEmailWithOptions('tem_jfBqFPmhPP9jjfgSPB87YpDV'),
   sendSubscriptionRenewalReminder: sendEmailWithOptions('tem_DrD9kmkKTkTCxTM7PhpW4jKf'),
-  sendSubscriptionRenewed: sendEmailWithOptions('tem_gvBCMVVxrCbt8S9cK98kYP9Q'),
+  sendSubscriptionRenewed: sendTransactionalEmailWithOptions('tem_gvBCMVVxrCbt8S9cK98kYP9Q'),
   sendPaymentFailed: sendEmailWithOptions('tem_YCXQrSjjqj8VqJWjhqHw66mF'),
-  sendRefundProcessed: sendEmailWithOptions('tem_qKY6tQFyBcyBXry9wm8yvbxJ'),
+  sendRefundProcessed: sendTransactionalEmailWithOptions('tem_qKY6tQFyBcyBXry9wm8yvbxJ'),
   sendSubscriptionCancelled: sendEmailWithOptions('tem_XfXjrYGdvDrPK4Sjprq7FtbS'),
   sendSubscriptionCancelledAdminNotification: sendEmailWithOptions('tem_9ySxcvxKGKBXFQHJm4vS8cDC'),
   sendAccessExpired: sendEmailWithOptions('tem_HVKwWYTMDbhWvvd3TGxtMkMG'),
-  sendTrackAccessPurchased: sendEmailWithOptions('tem_T63TXtFjmyqhyrw8yfp6YwH8'),
+  sendTrackAccessPurchased: sendTransactionalEmailWithOptions('tem_T63TXtFjmyqhyrw8yfp6YwH8'),
 
   sendMessageDigest: opts =>
     sendEmailWithOptions('tem_y8HpjwxFSxC9jRqwfVpPxY8d', opts),
