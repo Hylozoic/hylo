@@ -11,6 +11,9 @@ import {
   publishGroupRelationshipUpdate
 } from '../../../lib/groupSubscriptionPublisher'
 import { publishAsync } from '../../../lib/subscriptionUtils'
+import { importThemeFromUrl, isThemeImportConfigured } from '../../../lib/groupThemeImport'
+import { assertPublicUrl } from '../../../lib/safeFetch'
+import RedisClient from '../../services/RedisClient'
 
 // Util function
 async function getStewardedGroup (userId, groupId, additionalResponsibility = '', opts = {}) {
@@ -515,4 +518,56 @@ export async function deletePeerRelationship (userId, relationshipId, opts = {})
   })
 
   return { success: true }
+}
+
+// Each import runs a headless browser and a paid model call
+const THEME_IMPORTS_PER_GROUP_PER_HOUR = 20
+
+/**
+ * Counts one theme import for a group and reports whether it is within the
+ * hourly limit. Fails open if Redis is unavailable.
+ */
+async function withinThemeImportLimit (groupId) {
+  try {
+    const redis = RedisClient.create()
+    const key = `ratelimit:importGroupTheme:group:${groupId}`
+    const count = await redis.incr(key)
+    if (count === 1) await redis.expire(key, 60 * 60)
+    return count <= THEME_IMPORTS_PER_GROUP_PER_HOUR
+  } catch (err) {
+    sails.log.error(`withinThemeImportLimit failed: ${err.message}`)
+    return true
+  }
+}
+
+/**
+ * Suggests a theme for a group from a website's look. Saves nothing: returns
+ * the suggested color roles, radius, border width and fonts, plus the model's
+ * token usage and estimated cost, for the steward to review in the editor.
+ * Requires the Administration responsibility.
+ * TODO: gate on the group's Hylo Pro subscription once the 1712-hylo-pro work lands.
+ */
+export async function importGroupThemeFromUrl (userId, groupId, url, deps = {}) {
+  const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+
+  if (!(deps.isConfigured || isThemeImportConfigured)()) {
+    throw new GraphQLError('Importing a theme from a website is not set up on this server')
+  }
+
+  try {
+    assertPublicUrl(url)
+  } catch (err) {
+    throw new GraphQLError('Enter a full web address, starting with http:// or https://')
+  }
+
+  if (!(await (deps.withinLimit || withinThemeImportLimit)(group.id))) {
+    throw new GraphQLError('This group has imported a lot of themes in the last hour. Please try again later.')
+  }
+
+  try {
+    return await (deps.importTheme || importThemeFromUrl)(url)
+  } catch (err) {
+    sails.log.error(`importGroupThemeFromUrl failed for group ${group.id}: ${err.message}`)
+    throw new GraphQLError(`Could not read a theme from that site: ${err.message}`)
+  }
 }

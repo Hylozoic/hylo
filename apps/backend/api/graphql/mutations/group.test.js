@@ -5,6 +5,7 @@ import {
   joinGroup,
   updateGroup,
   updateGroupTheme,
+  importGroupThemeFromUrl,
   removeMember,
   createGroupInviteLink,
   updateGroupInviteLink,
@@ -740,6 +741,49 @@ describe('mutations/group', () => {
       expect((await savedSettings()).theme).to.deep.equal({ fontBody: 'Inter', fontHeading: 'Playfair Display' })
       await expect(updateGroupTheme(admin.id, group.id, { fontBody: "Inter'; color: red" }))
         .to.be.rejectedWith(/Invalid theme: Invalid fontBody/)
+    })
+
+    describe('importGroupThemeFromUrl', () => {
+      const suggestion = { roles: { light: {}, dark: {} }, usage: { inputTokens: 1 } }
+      const deps = overrides => ({
+        isConfigured: () => true,
+        withinLimit: async () => true,
+        importTheme: async () => suggestion,
+        ...overrides
+      })
+
+      it('returns the suggestion for an Administrator and saves nothing', async () => {
+        const result = await importGroupThemeFromUrl(admin.id, group.id, 'https://example.org', deps())
+        expect(result).to.deep.equal(suggestion)
+        expect(await savedSettings()).to.not.have.property('theme')
+      })
+
+      it('rejects members without the Administration responsibility', async () => {
+        let called = false
+        await expect(importGroupThemeFromUrl(member.id, group.id, 'https://example.org', deps({
+          importTheme: async () => { called = true }
+        }))).to.be.rejected
+        expect(called).to.equal(false)
+      })
+
+      it('refuses private addresses and non-web URLs before doing any work', async () => {
+        let called = false
+        const d = deps({ importTheme: async () => { called = true } })
+        for (const url of ['http://127.0.0.1:3001', 'http://169.254.169.254/', 'file:///etc/passwd', 'not a url']) {
+          await expect(importGroupThemeFromUrl(admin.id, group.id, url, d)).to.be.rejectedWith(/full web address/)
+        }
+        expect(called).to.equal(false)
+      })
+
+      it('reports when the server has no API key, the limit is reached, or the import fails', async () => {
+        await expect(importGroupThemeFromUrl(admin.id, group.id, 'https://example.org', deps({ isConfigured: () => false })))
+          .to.be.rejectedWith(/not set up/)
+        await expect(importGroupThemeFromUrl(admin.id, group.id, 'https://example.org', deps({ withinLimit: async () => false })))
+          .to.be.rejectedWith(/try again later/)
+        await expect(importGroupThemeFromUrl(admin.id, group.id, 'https://example.org', deps({
+          importTheme: async () => { throw new Error('The page could not be loaded (HTTP 404)') }
+        }))).to.be.rejectedWith(/Could not read a theme from that site: The page could not be loaded/)
+      })
     })
 
     it('rejects unknown top-level keys and non-object themes', async () => {

@@ -18,6 +18,7 @@ import {
 } from 'util/groupTheme'
 import { fetchGoogleFontFamilies } from 'util/googleFonts'
 import {
+  applyImportedTheme,
   BORDER_WIDTH_OPTIONS,
   COLOR_SCHEMES,
   DEFAULT_BORDER_WIDTH_OPTION,
@@ -43,6 +44,7 @@ import {
   themesMatch
 } from 'util/groupThemeEditor'
 import { themes, defaultTheme } from '../../../themes'
+import GroupThemeImport from './GroupThemeImport'
 import GroupThemePreview from './GroupThemePreview'
 import useGroupThemePreview from './useGroupThemePreview'
 
@@ -213,6 +215,8 @@ export default function GroupThemeEditor ({ group }) {
       <p className='text-sm text-foreground/70 mb-4'>
         {t("Give this group its own colors, corner radius and border width. The global navigation keeps each member's own theme.")}
       </p>
+
+      <GroupThemeImport groupId={group.id} onImport={result => edit(applyImportedTheme(draft, result))} />
 
       <div className='mb-6'>
         <label className='text-sm font-medium mb-2 block'>{t('Start from a preset')}</label>

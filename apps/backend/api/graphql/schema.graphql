@@ -3850,6 +3850,12 @@ type Mutation {
   # Requires the Administration responsibility. Rejects any token, value or radius
   # the shared sanitizer would drop; valid values are stored in canonical form.
   updateGroupTheme(groupId: ID, theme: JSON): Group
+  # Suggest a theme for a Group from a website's look. Loads the page in a headless
+  # browser and asks an AI model to pick colors, corners, borders and fonts. Saves
+  # nothing: returns { roles: { light, dark }, radius, borderWidth, fontHeading,
+  # fontBody, summary, sourceUrl, usage } where usage holds the model, token counts
+  # and estimated cost. Requires the Administration responsibility.
+  importGroupThemeFromUrl(groupId: ID, url: String): JSON
   # Update a group responsibility
   updateGroupResponsibility(
     responsibilityId: ID,

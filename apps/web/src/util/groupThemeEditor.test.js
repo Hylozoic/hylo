@@ -1,6 +1,10 @@
 import { themes, defaultTheme } from '../themes'
 import { contrastRatio, MIN_CONTRAST_RATIO, sanitizeGroupTheme } from './groupTheme'
 import {
+  addImportUsage,
+  applyImportedTheme,
+  formatUsd,
+  normalizeImportUrl,
   canSaveWithContrastIssues,
   compactTheme,
   deriveTokensFromRoles,
@@ -265,5 +269,63 @@ describe('fonts', () => {
   it('are kept, with radius and border width, when a preset replaces the colors', () => {
     const draft = { light: { background: '1 2% 3%' }, radius: 'xl', borderWidth: 'thin', fontBody: 'Inter' }
     expect(nonColorSettings(draft)).toEqual({ radius: 'xl', borderWidth: 'thin', fontBody: 'Inter' })
+  })
+})
+
+describe('website import', () => {
+  const imported = {
+    roles: {
+      light: { background: '#f4f0e8', card: '#ffffff', text: '#2a2723', primary: '#087736', accent: '#087736', selected: '#d7eadb' },
+      dark: { background: '#0f2a22', card: '#163a2f', text: '#f1ebde', primary: '#2e9e5b', accent: '#4cc07a', selected: '#235a45' }
+    },
+    radius: 'xl',
+    borderWidth: 'thin',
+    fontHeading: 'Lora',
+    fontBody: null
+  }
+
+  it('turns the suggested roles into a savable draft for both schemes', () => {
+    const draft = applyImportedTheme({ light: { background: '1 2% 3%' }, fontBody: 'Inter' }, imported)
+    expect(getRoleColors(draft, 'light').background).toEqual(hexToHslTriple('#f4f0e8'))
+    expect(getRoleColors(draft, 'dark').primary).toEqual(hexToHslTriple('#2e9e5b'))
+    expect(draft.radius).toEqual('xl')
+    expect(draft.borderWidth).toEqual('thin')
+    expect(draft.fontHeading).toEqual('Lora')
+    expect(draft.fontBody).toBeUndefined()
+    expect(prepareThemeForSave(draft).valid).toBe(true)
+  })
+
+  it('ignores colors that are not hex and keeps the current radius when none is suggested', () => {
+    const draft = applyImportedTheme({ radius: 'sm' }, { roles: { light: { background: 'red' } } })
+    expect(draft).toEqual({ radius: 'sm' })
+  })
+
+  it('normalizes what a steward typed into a web address', () => {
+    expect(normalizeImportUrl('example.org')).toEqual('https://example.org/')
+    expect(normalizeImportUrl('  http://example.org/about ')).toEqual('http://example.org/about')
+    expect(normalizeImportUrl('')).toBeNull()
+    expect(normalizeImportUrl('not a link')).toBeNull()
+    expect(normalizeImportUrl('localhost')).toBeNull()
+    expect(normalizeImportUrl('ftp://example.org')).toBeNull()
+    expect(normalizeImportUrl('javascript://example.org')).toBeNull()
+  })
+
+  it('adds up usage, and stops claiming a total cost once one is unknown', () => {
+    const start = { count: 0, tokens: 0, costUsd: 0, costKnown: true }
+    const one = addImportUsage(start, { inputTokens: 6000, outputTokens: 200, estimatedCostUsd: 0.028 })
+    expect(one).toEqual({ count: 1, tokens: 6200, costUsd: 0.028, costKnown: true })
+    const two = addImportUsage(one, { inputTokens: 100, outputTokens: 10, estimatedCostUsd: null })
+    expect(two.count).toEqual(2)
+    expect(two.tokens).toEqual(6310)
+    expect(two.costKnown).toBe(false)
+  })
+
+  it('formats dollar amounts of any size', () => {
+    expect(formatUsd(0.0314)).toEqual('$0.031')
+    expect(formatUsd(0.03)).toEqual('$0.03')
+    expect(formatUsd(0.0004)).toEqual('$0.0004')
+    expect(formatUsd(4)).toEqual('$4.00')
+    expect(formatUsd(1.256)).toEqual('$1.26')
+    expect(formatUsd(0)).toEqual('$0.00')
   })
 })
