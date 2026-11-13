@@ -59,7 +59,7 @@ Stored at `groups.settings.theme`:
 
 "Start from a website" in the theme editor suggests a theme from a site's look. Nothing is saved until the steward saves.
 
-- Mutation: `importGroupThemeFromUrl(groupId: ID, url: String): JSON` in `apps/backend/api/graphql/mutations/group.js`; the work is in `apps/backend/lib/groupThemeImport.js`.
+- Mutation: `importGroupThemeFromUrl(groupId: ID, url: String): JSON` in `apps/backend/api/graphql/mutations/group.js`; the work is in `apps/backend/lib/groupThemeImport.js`, run in a child process (`groupThemeImportProcess.js`) because the API's global Bluebird Promise breaks Playwright and the Anthropic SDK.
 - A headless Chromium (Playwright) loads the page and measures the colors, fonts, corners and borders it uses, and takes a screenshot of the first screen. Claude then picks the six color roles for light and dark, a radius, a border width and two Google Fonts. The answer is checked (hex colors, known options, plain font names that Google Fonts actually serves) before it reaches the editor, which derives the rest of the tokens as it does for hand-picked colors.
 - The response includes the model, token counts and an estimated cost, which the editor shows per import and as a running total for the visit. Prices live in `MODEL_PRICING` in `groupThemeImport.js` and need updating when Anthropic's prices change.
 - Setup: `CLAUDE_API_KEY` in the backend's environment (`apps/backend/.env` locally). Optional `GROUP_THEME_IMPORT_MODEL` (default `claude-opus-5-5`). The server needs Playwright's Chromium installed (`yarn playwright install chromium` in `apps/backend`); production hosting for the browser is not set up yet.
