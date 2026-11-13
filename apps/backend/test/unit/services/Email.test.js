@@ -1,5 +1,5 @@
 import path from 'path'
-import { dependencyOf, mockify, unspyify } from '../../setup/helpers'
+import { mockify, unspyify } from '../../setup/helpers'
 
 const nock = require('nock')
 const Module = require('module')
@@ -21,7 +21,12 @@ const loadEmailWithRealClient = key => {
   const cached = require.cache[emailPath]
   delete require.cache[emailPath]
   try {
-    return require(emailPath)
+    const loaded = require(emailPath)
+    // This copy is evicted from the cache below, so callers that need its Sentry
+    // cannot look the dependency up on the module the rest of the suite uses.
+    const loadedModule = require.cache[emailPath]
+    loaded.__sentry = loadedModule && loadedModule.children.find(m => m.id.endsWith(`${path.sep}lib${path.sep}sentry.js`))?.exports
+    return loaded
   } finally {
     Module.prototype.require = stubbedRequire
     // keep the instance the rest of the suite (and sails' global Email) uses
@@ -121,7 +126,6 @@ describe('Email', function () {
 
   describe('delivery failures', () => {
     const recipient = 'failing-recipient@example.com'
-    let sentry
     let previousEnv
 
     beforeEach(() => {
@@ -135,15 +139,9 @@ describe('Email', function () {
       process.env.NODE_ENV = 'development'
       delete process.env.DISABLE_EMAIL_SENDING
       nock.disableNetConnect()
-      sentry = dependencyOf(
-        path.resolve(__dirname, '../../../api/services/Email.js'),
-        path.resolve(__dirname, '../../../lib/sentry.js')
-      )
-      mockify(sentry, 'error', () => {})
     })
 
     afterEach(() => {
-      unspyify(sentry, 'error')
       Object.entries(previousEnv).forEach(([key, value]) => {
         if (value === undefined) delete process.env[key]
         else process.env[key] = value
@@ -155,26 +153,38 @@ describe('Email', function () {
     it('resolves false and reports the template to Sentry without the recipient', async () => {
       nock('https://api.sendwithus.com').post(SENDWITHUS_SEND_PATH).reply(500, { success: false })
       const RealEmail = loadEmailWithRealClient('test_dummy')
+      const realSentry = RealEmail.__sentry
+      mockify(realSentry, 'error', () => {})
 
-      const result = await RealEmail.sendPostNotification({ email: recipient, data: { post: { title: 'hi' } } })
+      try {
+        const result = await RealEmail.sendPostNotification({ email: recipient, data: { post: { title: 'hi' } } })
 
-      expect(result).to.equal(false)
-      expect(sentry.error).to.have.been.called.exactly(1)
-      const [error, , extra] = sentry.error.__spy.calls[0]
-      expect(error).to.be.an.instanceof(Error)
-      expect(extra.templateId).to.equal('tem_cPYpXw7d9pCdm6M8QmtPvPGG')
-      expect(extra.statusCode).to.equal(500)
-      expect(JSON.stringify(extra)).not.to.contain(recipient)
+        expect(result).to.equal(false)
+        expect(realSentry.error).to.have.been.called.exactly(1)
+        const [error, , extra] = realSentry.error.__spy.calls[0]
+        expect(error).to.be.an.instanceof(Error)
+        expect(extra.templateId).to.equal('tem_cPYpXw7d9pCdm6M8QmtPvPGG')
+        expect(extra.statusCode).to.equal(500)
+        expect(JSON.stringify(extra)).not.to.contain(recipient)
+      } finally {
+        unspyify(realSentry, 'error')
+      }
     })
 
     it('resolves the SendWithUs response when the send succeeds', async () => {
       nock('https://api.sendwithus.com').post(SENDWITHUS_SEND_PATH).reply(200, { success: true, status: 'OK' })
       const RealEmail = loadEmailWithRealClient('test_dummy')
+      const realSentry = RealEmail.__sentry
+      mockify(realSentry, 'error', () => {})
 
-      const result = await RealEmail.sendPostNotification({ email: recipient, data: {} })
+      try {
+        const result = await RealEmail.sendPostNotification({ email: recipient, data: {} })
 
-      expect(result).to.deep.equal({ success: true, status: 'OK' })
-      expect(sentry.error).not.to.have.been.called()
+        expect(result).to.deep.equal({ success: true, status: 'OK' })
+        expect(realSentry.error).not.to.have.been.called()
+      } finally {
+        unspyify(realSentry, 'error')
+      }
     })
   })
 
