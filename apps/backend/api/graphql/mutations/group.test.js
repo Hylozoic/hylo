@@ -735,6 +735,13 @@ describe('mutations/group', () => {
         .to.be.rejectedWith(/Invalid theme: Unknown borderWidth "5px"/)
     })
 
+    it('stores fonts and rejects names that are not plain family names', async () => {
+      await updateGroupTheme(admin.id, group.id, { fontBody: 'Inter', fontHeading: 'Playfair Display' })
+      expect((await savedSettings()).theme).to.deep.equal({ fontBody: 'Inter', fontHeading: 'Playfair Display' })
+      await expect(updateGroupTheme(admin.id, group.id, { fontBody: "Inter'; color: red" }))
+        .to.be.rejectedWith(/Invalid theme: Invalid fontBody/)
+    })
+
     it('rejects unknown top-level keys and non-object themes', async () => {
       await expect(updateGroupTheme(admin.id, group.id, { light: {}, css: 'body { display: none }' }))
         .to.be.rejectedWith(/Invalid theme: Unknown theme key "css"/)

@@ -104,6 +104,20 @@ describe('AppearanceTab group theme editor', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(false)
   })
 
+  it('previews and saves heading and body fonts', async () => {
+    renderTab()
+    await screen.findAllByRole('option', { name: 'Lora' })
+    fireEvent.change(screen.getByLabelText('Heading font'), { target: { value: 'Lora' } })
+    fireEvent.change(screen.getByLabelText('Body font'), { target: { value: 'Inter' } })
+    expect(previewStyle().textContent).toContain("--font-display: 'Lora' !important")
+    expect(previewStyle().textContent).toContain("--font-body: 'Inter' !important")
+    expect(document.getElementById('google-font-Lora')).not.toBeNull()
+
+    fireEvent.click(saveButton())
+    await waitFor(() => expect(mockDispatch).toHaveBeenCalled())
+    expect(mockDispatch.mock.calls[0][0].graphql.variables.theme).toEqual({ fontHeading: 'Lora', fontBody: 'Inter' })
+  })
+
   it('edits a role through the color input', () => {
     renderTab()
     fireEvent.change(screen.getByLabelText(/Background/), { target: { value: '#ff0000' } })

@@ -1,4 +1,5 @@
-import { GROUP_THEME_BORDER_WIDTHS, GROUP_THEME_RADII, GROUP_THEME_TOKENS, parseHslTriple, sanitizeGroupTheme, validateGroupTheme } from '@hylo/shared'
+import { loadGoogleFont } from './googleFonts'
+import { GROUP_THEME_BORDER_WIDTHS, GROUP_THEME_FONT_KEYS, isGroupThemeFontFamily, GROUP_THEME_RADII, GROUP_THEME_TOKENS, parseHslTriple, sanitizeGroupTheme, validateGroupTheme } from '@hylo/shared'
 import { themes, defaultTheme } from '../themes'
 
 /**
@@ -19,10 +20,23 @@ import { themes, defaultTheme } from '../themes'
  */
 
 // Validation rules are shared with the backend, which validates on save.
-export { GROUP_THEME_TOKENS, GROUP_THEME_RADII, GROUP_THEME_BORDER_WIDTHS, parseHslTriple, sanitizeGroupTheme, validateGroupTheme }
+export { GROUP_THEME_TOKENS, GROUP_THEME_RADII, GROUP_THEME_BORDER_WIDTHS, GROUP_THEME_FONT_KEYS, isGroupThemeFontFamily, parseHslTriple, sanitizeGroupTheme, validateGroupTheme }
 
 export const DEFAULT_RADIUS = GROUP_THEME_RADII.lg
 export const DEFAULT_BORDER_WIDTH = GROUP_THEME_BORDER_WIDTHS.regular
+// The app's own font; css/global/index.scss falls back to the same family
+export const DEFAULT_FONT_FAMILY = 'Onest'
+
+const fontValue = family => `'${family || DEFAULT_FONT_FAMILY}'`
+
+/**
+ * Starts loading the Google Fonts a theme uses. Safe to call repeatedly.
+ */
+export function loadGroupThemeFonts (rawTheme) {
+  const theme = sanitizeGroupTheme(rawTheme)
+  if (!theme) return
+  GROUP_THEME_FONT_KEYS.forEach(key => { if (theme[key]) loadGoogleFont(theme[key]) })
+}
 
 // Text-on-surface pairs that must stay readable, as [text token, surface token]
 export const CONTRAST_PAIRS = [
@@ -70,6 +84,9 @@ export function groupThemeCssVars (rawTheme, colorScheme) {
   })
   vars['--radius'] = GROUP_THEME_RADII[theme.radius] || DEFAULT_RADIUS
   vars['--border-width'] = GROUP_THEME_BORDER_WIDTHS[theme.borderWidth] || DEFAULT_BORDER_WIDTH
+  vars['--font-body'] = fontValue(theme.fontBody)
+  // Headings follow the body font unless the group chose one for them
+  vars['--font-display'] = fontValue(theme.fontHeading || theme.fontBody)
   return vars
 }
 
@@ -86,6 +103,8 @@ export function appThemeCssVars (themeName, colorScheme) {
   })
   vars['--radius'] = DEFAULT_RADIUS
   vars['--border-width'] = DEFAULT_BORDER_WIDTH
+  vars['--font-body'] = fontValue()
+  vars['--font-display'] = fontValue()
   return vars
 }
 

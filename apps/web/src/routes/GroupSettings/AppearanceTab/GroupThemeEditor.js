@@ -13,8 +13,10 @@ import {
   MIN_CONTRAST_RATIO,
   appThemeCssVars,
   groupThemeCssVars,
+  loadGroupThemeFonts,
   sanitizeGroupTheme
 } from 'util/groupTheme'
+import { fetchGoogleFontFamilies } from 'util/googleFonts'
 import {
   BORDER_WIDTH_OPTIONS,
   COLOR_SCHEMES,
@@ -30,10 +32,12 @@ import {
   getRoleColors,
   hexToHslTriple,
   hslTripleToHex,
+  nonColorSettings,
   prepareThemeForSave,
   presetToDraft,
   roleForContrastIssue,
   setBorderWidth,
+  setFont,
   setRadius,
   setRoleColor,
   themesMatch
@@ -63,6 +67,11 @@ const BORDER_WIDTH_LABELS = {
   regular: 'Regular',
   thick: 'Thick'
 }
+
+const FONT_FIELDS = [
+  { key: 'fontHeading', label: 'Heading font', defaultLabel: 'Same as body font' },
+  { key: 'fontBody', label: 'Body font', defaultLabel: 'Default (Onest)' }
+]
 
 const PRESET_SWATCHES = ['background', 'card', 'primary', 'accent', 'selected']
 
@@ -102,7 +111,7 @@ function ThemePreviewPanel ({ draft, scheme }) {
   return (
     <div style={style} className='rounded-lg border-2 border-foreground/10 bg-background text-foreground p-4 flex flex-col gap-3' data-testid='group-theme-preview-panel'>
       <div className='rounded-lg border-2 border-foreground/20 bg-card text-card-foreground p-3 shadow-sm'>
-        <p className='font-bold m-0'>{t('Sample post')}</p>
+        <h3 className='font-bold text-base m-0'>{t('Sample post')}</h3>
         <p className='text-sm m-0'>{t('This is how text looks on a card.')}</p>
         <p className='text-xs text-muted-foreground m-0 mt-1'>{t('Secondary text')}</p>
       </div>
@@ -140,6 +149,16 @@ export default function GroupThemeEditor ({ group }) {
     setDraft(draftFromSavedTheme(saved))
     setOverride(false)
   }, [savedKey])
+
+  const [fontFamilies, setFontFamilies] = useState([])
+  useEffect(() => {
+    let current = true
+    fetchGoogleFontFamilies().then(families => { if (current) setFontFamilies(families) })
+    return () => { current = false }
+  }, [])
+
+  // Load the draft's fonts so the preview shows them
+  useEffect(() => { loadGroupThemeFonts(draft) }, [draft.fontBody, draft.fontHeading])
 
   const dirty = !themesMatch(draft, saved)
   const compacted = useMemo(() => compactTheme(draft), [draft])
@@ -205,11 +224,7 @@ export default function GroupThemeEditor ({ group }) {
 
   const handleRevert = () => edit(draftFromSavedTheme(saved))
 
-  const handlePreset = name => edit({
-    ...presetToDraft(name),
-    ...(draft.radius ? { radius: draft.radius } : {}),
-    ...(draft.borderWidth ? { borderWidth: draft.borderWidth } : {})
-  })
+  const handlePreset = name => edit({ ...presetToDraft(name), ...nonColorSettings(draft) })
 
   const issuesByRole = role => issues[scheme].filter(issue => roleForContrastIssue(issue) === role)
   const otherIssues = issues[scheme].filter(issue => !roleForContrastIssue(issue))
@@ -360,6 +375,27 @@ export default function GroupThemeEditor ({ group }) {
                 </button>
               ))}
             </div>
+          </div>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+            {FONT_FIELDS.map(({ key, label, defaultLabel }) => {
+              const value = draft[key] || ''
+              const options = value && !fontFamilies.includes(value) ? [value, ...fontFamilies] : fontFamilies
+              return (
+                <div key={key}>
+                  <label htmlFor={`group-theme-${key}`} className='text-sm font-medium mb-2 block'>{t(label)}</label>
+                  <select
+                    id={`group-theme-${key}`}
+                    data-testid={`group-theme-${key}`}
+                    value={value}
+                    onChange={event => edit(setFont(draft, key, event.target.value))}
+                    className='w-full rounded-md border-2 border-foreground/20 bg-input text-foreground px-2 py-1 text-sm'
+                  >
+                    <option value=''>{t(defaultLabel)}</option>
+                    {options.map(family => <option key={family} value={family}>{family}</option>)}
+                  </select>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
