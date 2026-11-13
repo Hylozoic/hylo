@@ -42,7 +42,8 @@ export {
   updateViewSettings,
   addPostToView,
   removePostFromView,
-  reorderViewPost
+  reorderViewPost,
+  designGroupViewTurn
 } from './group_views'
 export {
   createSpace,

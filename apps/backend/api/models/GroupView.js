@@ -44,6 +44,8 @@ module.exports = bookshelf.Model.extend({
     CHAT: 'chat',
     COLLECTION: 'collection',
     CUSTOM: 'custom',
+    // A page of building blocks designed with AI; the blocks are in settings.design
+    DESIGNED: 'designed',
     DISCUSSIONS: 'discussions',
     EVENTS: 'events',
     FUNDING_ROUND_SUBMISSIONS: 'funding-round-submissions',

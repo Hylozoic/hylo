@@ -1,6 +1,8 @@
 import { GraphQLError } from 'graphql'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
-import { recountPostTypesForView, TextHelpers } from '@hylo/shared'
+import { recountPostTypesForView, TextHelpers, validateDesignedView } from '@hylo/shared'
+import { designViewTurnInChildProcess, isViewDesignConfigured, normalizeDesignMessages } from '../../../lib/designedViewDesign'
+import RedisClient from '../../services/RedisClient'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
 
@@ -33,12 +35,42 @@ async function requireAdminOrManageContent (userId, groupId, action) {
   }
 }
 
+export const HYLO_PRO_REQUIRED_FOR_DESIGNED_VIEWS = 'Designed views are part of Hylo Pro. This group needs Hylo Pro to design or change one.'
+
+/**
+ * Designed views are a Hylo Pro feature: designing, creating and changing one
+ * need an active subscription or grant. A view made while the group had Pro
+ * keeps showing after Pro lapses, and can still be renamed, moved or deleted.
+ */
+async function requireHyloProForDesignedViews (groupId) {
+  const group = await Group.find(groupId)
+  if (!group || !(await group.hasPro())) {
+    throw new GraphQLError(HYLO_PRO_REQUIRED_FOR_DESIGNED_VIEWS, { extensions: { code: 'HYLO_PRO_REQUIRED' } })
+  }
+  return group
+}
+
+/**
+ * The settings to store for a designed view: only its design, checked against
+ * the block format so nothing but known blocks is ever saved.
+ */
+function designedViewSettings (settings) {
+  const { view, errors } = validateDesignedView(settings?.design)
+  if (errors.length > 0) throw new GraphQLError(`Invalid design: ${errors.slice(0, 5).join('; ')}`)
+  return { design: view }
+}
+
 export async function createGroupView ({ userId, groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, viewUserId, hidden, context }) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!groupId) throw new GraphQLError('No groupId passed into function')
   if (!type) throw new GraphQLError('No type passed into function')
 
   await requireAdmin(userId, groupId, 'create views')
+
+  if (type === GroupView.Type.DESIGNED) {
+    await requireHyloProForDesignedViews(groupId)
+    settings = designedViewSettings(settings)
+  }
 
   // Only space rows can live off-menu (More Spaces). Views are in the menu or deleted.
   if (hidden && type !== GroupView.Type.SPACE) {
@@ -99,6 +131,11 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
     if (!responsibilities.includes(RESP_MANAGE_CONTENT) || !isSpaceCollectionSpaceIdsUpdate) {
       throw new GraphQLError("You don't have permission to update views for this group")
     }
+  }
+
+  if (view.get('type') === GroupView.Type.DESIGNED && settings !== undefined) {
+    await requireHyloProForDesignedViews(groupId)
+    settings = designedViewSettings(settings)
   }
 
   const changes = {}
@@ -445,4 +482,72 @@ export async function reorderViewPost (userId, viewId, postId, newOrder) {
   })
 
   return { success: true }
+}
+
+// Each turn is a paid model call
+const DESIGN_TURNS_PER_GROUP_PER_HOUR = 60
+
+/**
+ * Counts one design turn for a group and reports whether it is within the
+ * hourly limit. Fails open if Redis is unavailable.
+ */
+async function withinDesignTurnLimit (groupId) {
+  try {
+    const redis = RedisClient.create()
+    const key = `ratelimit:designGroupView:group:${groupId}`
+    const count = await redis.incr(key)
+    if (count === 1) await redis.expire(key, 60 * 60)
+    return count <= DESIGN_TURNS_PER_GROUP_PER_HOUR
+  } catch (err) {
+    sails.log.error(`withinDesignTurnLimit failed: ${err.message}`)
+    return true
+  }
+}
+
+/**
+ * One turn of the "Design your own view" chat. Saves nothing: returns the AI's
+ * reply, the whole page as a designed view, and the token usage and estimated
+ * cost. The steward saves the page with createGroupView or updateGroupView.
+ * Requires the Administration responsibility and Hylo Pro.
+ */
+export async function designGroupViewTurn ({ userId, groupId, messages, currentView }, deps = {}) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!groupId) throw new GraphQLError('No groupId passed into function')
+
+  await requireAdmin(userId, groupId, 'design views')
+  const group = await requireHyloProForDesignedViews(groupId)
+
+  if (!(deps.isConfigured || isViewDesignConfigured)()) {
+    throw new GraphQLError('Designing views with AI is not set up on this server')
+  }
+
+  let conversation
+  try {
+    conversation = normalizeDesignMessages(messages)
+  } catch (err) {
+    throw new GraphQLError(err.message)
+  }
+
+  // The current design comes from the browser, so only pass on what is valid
+  let current = null
+  if (currentView) {
+    const { view, errors } = validateDesignedView(currentView)
+    if (errors.length > 0) throw new GraphQLError(`Invalid design: ${errors.slice(0, 5).join('; ')}`)
+    current = view
+  }
+
+  if (!(await (deps.withinLimit || withinDesignTurnLimit)(group.id))) {
+    throw new GraphQLError('This group has used a lot of AI design in the last hour. Please try again later.')
+  }
+
+  try {
+    return await (deps.designTurn || designViewTurnInChildProcess)({
+      group: { name: group.get('name'), description: group.get('description') || group.get('purpose') || '' },
+      messages: conversation,
+      currentView: current
+    })
+  } catch (err) {
+    sails.log.error(`designGroupViewTurn failed for group ${group.id}: ${err.message}`)
+    throw new GraphQLError(`The design could not be made: ${err.message}`)
+  }
 }
