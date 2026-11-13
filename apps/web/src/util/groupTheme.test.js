@@ -150,6 +150,12 @@ describe('checkGroupThemeContrast', () => {
     expect(problems.map(p => `${p.text}/${p.surface}`)).toContain('foreground/background')
   })
 
+  it('reports a darkening color too light for the white text on banner scrims', () => {
+    const problems = checkGroupThemeContrast({ light: { darkening: '40 30% 80%' } }, 'light')
+    expect(problems.map(p => `${p.text}/${p.surface}`)).toEqual(['white/darkening'])
+    expect(checkGroupThemeContrast({ light: { darkening: '160 30% 8%' } }, 'light')).toEqual([])
+  })
+
   it('does not report pairs the group left alone', () => {
     const problems = checkGroupThemeContrast({ light: { selected: '145 50% 62%' } }, 'light')
     expect(problems).toEqual([])

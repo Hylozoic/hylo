@@ -38,6 +38,8 @@ export const CONTRAST_PAIRS = [
 // WCAG AA for normal-size text
 export const MIN_CONTRAST_RATIO = 4.5
 
+const WHITE = '0 0% 100%'
+
 /**
  * The full set of tokens a themed group shows for a color scheme: the app's
  * default theme with the group's overrides on top.
@@ -132,9 +134,16 @@ export function checkGroupThemeContrast (rawTheme, colorScheme, minRatio = MIN_C
   const overrides = theme[scheme] || {}
   const tokens = resolveGroupThemeTokens(theme, scheme)
 
-  return CONTRAST_PAIRS
+  const pairs = CONTRAST_PAIRS
     .filter(([text, surface]) => text in overrides || surface in overrides)
     .map(([text, surface]) => ({ text, surface, ratio: contrastRatio(tokens[text], tokens[surface]) }))
+
+  // Banner scrims are made from `darkening` and always carry white text
+  if ('darkening' in overrides) {
+    pairs.push({ text: 'white', surface: 'darkening', ratio: contrastRatio(WHITE, tokens.darkening) })
+  }
+
+  return pairs
     .filter(({ ratio }) => ratio !== null && ratio < minRatio)
     .map(pair => ({ ...pair, ratio: Math.round(pair.ratio * 100) / 100, colorScheme: scheme }))
 }
