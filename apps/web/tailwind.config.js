@@ -152,6 +152,13 @@ export default {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))'
         },
+        // The third brand color after primary and secondary, for the `tertiary`
+        // button variant. Maps onto accent rather than adding a token, so a
+        // group theme's accent restyles it too.
+        tertiary: {
+          DEFAULT: 'hsl(var(--accent) / <alpha-value>)',
+          foreground: 'hsl(var(--accent-foreground) / <alpha-value>)'
+        },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))'
