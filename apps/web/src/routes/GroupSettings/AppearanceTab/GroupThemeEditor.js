@@ -43,6 +43,7 @@ import {
   themesMatch
 } from 'util/groupThemeEditor'
 import { themes, defaultTheme } from '../../../themes'
+import GroupThemePreview from './GroupThemePreview'
 import useGroupThemePreview from './useGroupThemePreview'
 
 const ROLE_LABELS = {
@@ -99,29 +100,6 @@ function ContrastWarning ({ issue }) {
         })}
       </span>
     </p>
-  )
-}
-
-function ThemePreviewPanel ({ draft, scheme }) {
-  const { t } = useTranslation()
-  const style = useMemo(
-    () => groupThemeCssVars(draft, scheme) || appThemeCssVars(defaultTheme, scheme),
-    [draft, scheme]
-  )
-  return (
-    <div style={style} className='rounded-lg border-2 border-foreground/10 bg-background text-foreground p-4 flex flex-col gap-3' data-testid='group-theme-preview-panel'>
-      <div className='rounded-lg border-2 border-foreground/20 bg-card text-card-foreground p-3 shadow-sm'>
-        <h3 className='font-bold text-base m-0'>{t('Sample post')}</h3>
-        <p className='text-sm m-0'>{t('This is how text looks on a card.')}</p>
-        <p className='text-xs text-muted-foreground m-0 mt-1'>{t('Secondary text')}</p>
-      </div>
-      <div className='flex flex-wrap items-center gap-2'>
-        <span className='rounded-md bg-primary text-primary-foreground px-3 py-1 text-sm border border-foreground/20'>{t('Primary button')}</span>
-        <span className='rounded-md bg-accent text-accent-foreground px-3 py-1 text-sm'>{t('Accent')}</span>
-        <span className='rounded-md bg-selected text-foreground px-3 py-1 text-sm'>{t('Selected')}</span>
-        <span className='rounded-md bg-midground text-foreground px-3 py-1 text-sm border border-border'>{t('Menu')}</span>
-      </div>
-    </div>
   )
 }
 
@@ -327,7 +305,7 @@ export default function GroupThemeEditor ({ group }) {
         <div className='flex flex-col gap-4'>
           <div>
             <label className='text-sm font-medium mb-2 block'>{t('Preview')}</label>
-            <ThemePreviewPanel draft={draft} scheme={scheme} />
+            <GroupThemePreview draft={draft} scheme={scheme} />
           </div>
           <div>
             <label className='text-sm font-medium mb-2 block'>{t('Corner radius')}</label>

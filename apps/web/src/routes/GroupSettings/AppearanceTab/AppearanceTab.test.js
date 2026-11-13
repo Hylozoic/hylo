@@ -118,6 +118,18 @@ describe('AppearanceTab group theme editor', () => {
     expect(mockDispatch.mock.calls[0][0].graphql.variables.theme).toEqual({ fontHeading: 'Lora', fontBody: 'Inter' })
   })
 
+  it('switches the preview between a post, a chat and an event', () => {
+    renderTab()
+    expect(screen.getByText('Community garden workday')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('group-theme-preview-sample-chat'))
+    expect(screen.getByText('Good morning everyone!')).toBeInTheDocument()
+    expect(screen.queryByText('Community garden workday')).toBeNull()
+
+    fireEvent.click(screen.getByTestId('group-theme-preview-sample-event'))
+    expect(screen.getByText('Spring potluck')).toBeInTheDocument()
+  })
+
   it('edits a role through the color input', () => {
     renderTab()
     fireEvent.change(screen.getByLabelText(/Background/), { target: { value: '#ff0000' } })
