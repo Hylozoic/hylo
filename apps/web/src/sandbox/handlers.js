@@ -287,6 +287,8 @@ function handleMutation (operationName, rootField, variables, seed) {
       return { data: { leaveTrack: leaveTrack(seed, variables) } }
     case 'updateMe':
       return { data: { updateMe: updateMe(seed, variables) } }
+    case 'designGroupViewTurn':
+      throw new Error('Designing views with AI is not available in the demo')
     case 'createMessage':
       return { data: { createMessage: createMessage(seed, variables) } }
     case 'findOrCreateThread':
