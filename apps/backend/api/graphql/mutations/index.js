@@ -50,7 +50,8 @@ export {
   askGroupAssistant,
   groupAssistant,
   markGroupAssistantDraftPosted,
-  updateGroupAssistantSettings
+  updateGroupAssistantSettings,
+  updateGroupAssistantVoice
 } from './group_assistant'
 export {
   createSpace,

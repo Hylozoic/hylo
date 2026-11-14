@@ -162,6 +162,7 @@ import {
   groupAssistant,
   markGroupAssistantDraftPosted,
   updateGroupAssistantSettings,
+  updateGroupAssistantVoice,
   subscribe,
   swapProposalVote,
   unblockUser,
@@ -770,6 +771,7 @@ export function makeMutations ({ fetchOne }) {
     askGroupAssistant: (root, { groupId, text }, context) => askGroupAssistant({ userId: context.currentUserId, groupId, text }),
     updateGroupAssistantSettings: (root, { groupId, settings }, context) =>
       updateGroupAssistantSettings({ userId: context.currentUserId, groupId, settings }),
+    updateGroupAssistantVoice: (root, { groupId, text }, context) => updateGroupAssistantVoice({ userId: context.currentUserId, groupId, text }),
     markGroupAssistantDraftPosted: (root, { messageId, partIndex, postId, commentId }, context) =>
       markGroupAssistantDraftPosted({ userId: context.currentUserId, messageId, partIndex, postId, commentId }),
     designGroupViewTurn: (root, { groupId, messages, currentView, images, documents, postIds }, context) =>

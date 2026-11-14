@@ -6,7 +6,7 @@ import {
   sanitizeGroupAssistantSettings,
   validateGroupAssistantSettings
 } from '@hylo/shared'
-import { assistantTurnInChildProcess, isGroupAssistantConfigured } from '../../../lib/groupAssistant'
+import { assistantTurnInChildProcess, isGroupAssistantConfigured, MAX_ASSISTANT_VOICE_LENGTH } from '../../../lib/groupAssistant'
 import { assistantSpaceChoices, fetchAssistantContent, formatAssistantContent, linkablePostIds } from '../../../lib/groupAssistantContent'
 import RedisClient from '../../services/RedisClient'
 
@@ -20,6 +20,9 @@ import RedisClient from '../../services/RedisClient'
  *   responsibility in the group right now, on every read and write, so someone
  *   who stops being a steward loses the thread at once.
  * - Hylo Pro, per group, and only once a steward has turned the assistant on.
+ * - A steward's "How I write" note is theirs alone. It is kept on their own
+ *   membership of the group, returned only to them, and given to the model
+ *   only for a turn they ask for themselves.
  * - Nothing the model returns changes anything: its answer is stored as a
  *   message. A draft becomes a post only when a steward posts it themselves,
  *   through the ordinary post and comment mutations, under their own name.
@@ -60,6 +63,13 @@ async function withinTurnLimit (groupId) {
     sails.log.error(`groupAssistant withinTurnLimit failed: ${err.message}`)
     return true
   }
+}
+
+/** This steward's own "How I write" note for this group, or ''. */
+async function stewardVoice (userId, groupId) {
+  const row = await bookshelf.knex('group_memberships').where({ user_id: userId, group_id: groupId }).first('settings')
+  const voice = row?.settings?.assistantVoice
+  return typeof voice === 'string' ? voice.slice(0, MAX_ASSISTANT_VOICE_LENGTH) : ''
 }
 
 const presentMessage = row => ({
@@ -173,6 +183,8 @@ async function presentAssistant (group, userId, { withThread = true } = {}) {
     settings,
     spaces,
     stewards: await stewardNames(group),
+    myVoice: await stewardVoice(userId, group.id),
+    myVoiceMaxLength: MAX_ASSISTANT_VOICE_LENGTH,
     messages: withThread && hasPro && settings.enabled ? await forSteward(group, userId, await fetchThread(group.id)) : []
   }
 }
@@ -209,6 +221,22 @@ export async function updateGroupAssistantSettings ({ userId, groupId, settings 
     updated_at: new Date()
   })
   return presentAssistant(await group.refresh(), userId)
+}
+
+/**
+ * Saves the calling steward's own "How I write" note for this group: how they
+ * want drafts worded when the assistant writes for them. Only they ever get it
+ * back. An empty note clears it. Returns { myVoice }.
+ */
+export async function updateGroupAssistantVoice ({ userId, groupId, text }) {
+  const group = await requireSteward(userId, groupId)
+  const voice = typeof text === 'string' ? text.trim() : ''
+  if (voice.length > MAX_ASSISTANT_VOICE_LENGTH) throw new GraphQLError(`Your note can be up to ${MAX_ASSISTANT_VOICE_LENGTH} characters`)
+  // Only this key, in one statement, so other membership settings are not overwritten
+  await bookshelf.knex('group_memberships').where({ user_id: userId, group_id: group.id }).update({
+    settings: bookshelf.knex.raw("jsonb_set(COALESCE(settings, '{}'::jsonb), '{assistantVoice}', ?::jsonb)", [JSON.stringify(voice)])
+  })
+  return { myVoice: voice }
 }
 
 /**
@@ -272,6 +300,7 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
       allowedGroupIds,
       thread: earlier.map(item => ({ authorType: item.authorType, author: item.author?.name || '', text: item.text, parts: item.parts })),
       steward: asker?.name || '',
+      voice: await stewardVoice(userId, group.id),
       message
     })
   } catch (err) {
