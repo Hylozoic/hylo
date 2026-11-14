@@ -111,6 +111,9 @@ function Draft ({ part, onPost }) {
             ? t('Posted in {{space}} by {{name}}', { space: where, name: posted.byName || t('a steward') })
             : t('Draft · posts as you in {{space}}', { space: where })}
         </span>
+        {!posted && part.needsJoin && !error && (
+          <span className='text-xs text-foreground/60' data-testid='assistant-draft-needs-join'>{t('You are not in {{space}} yet', { space: part.needsJoin.name })}</span>
+        )}
         {error && <span className='text-xs text-accent' role='alert'>{error}</span>}
         {posted
           ? <span className='inline-flex items-center gap-1 text-xs font-bold text-selected'><Check className='w-3.5 h-3.5' strokeWidth={2.5} />{t('Posted')}</span>
@@ -122,7 +125,7 @@ function Draft ({ part, onPost }) {
               data-testid='assistant-post-draft'
               className='h-8 px-3 rounded-md bg-selected text-white text-xs font-bold disabled:opacity-50'
             >
-              {posting ? t('Posting...') : t('Post it')}
+              {posting ? t('Posting...') : part.needsJoin ? t('Join {{space}} and post', { space: part.needsJoin.name }) : t('Post it')}
             </button>
             )}
       </div>

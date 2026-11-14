@@ -11,6 +11,7 @@ import { GROUP_ASSISTANT } from 'config/featureFlags'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import createComment from 'store/actions/createComment'
 import createPost from 'store/actions/createPost'
+import joinSpace from 'store/actions/joinSpace'
 import { askGroupAssistant, fetchGroupAssistant, markGroupAssistantDraftPosted } from 'store/actions/groupAssistant'
 import { hasFeature } from 'store/models/Me'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -98,6 +99,11 @@ export default function GroupAssistant () {
     const part = message.parts[partIndex]
     const details = draftAsHtml(text)
     let posted
+    // The button said "Join … and post": a steward can join any space of their group
+    if (part.needsJoin) {
+      const joined = await dispatch(joinSpace(part.needsJoin.spaceId))
+      if (joined?.error) throw joined.payload || new Error(t('Something went wrong. Please try again.'))
+    }
     if (part.replyToPostId) {
       const response = await dispatch(createComment({ post: { id: part.replyToPostId, groups: [{ id: groupId }] }, text: details }))
       if (response?.error) throw response.payload || new Error(t('Something went wrong. Please try again.'))

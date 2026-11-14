@@ -3691,6 +3691,8 @@
   "Draft · posts as you in {{space}}": "मसौदा · {{space}} में आपके नाम से पोस्ट होगा",
   "Posted": "पोस्ट किया गया",
   "Post it": "पोस्ट करें",
+  "You are not in {{space}} yet": "आप अभी {{space}} में नहीं हैं",
+  "Join {{space}} and post": "{{space}} में शामिल हों और पोस्ट करें",
   "{{name}} (you)": "{{name}} (आप)",
   "Assistant": "सहायक",
   "It was posted, but could not be marked as posted here.": "यह पोस्ट हो गया, पर यहाँ पोस्ट किया गया चिह्नित नहीं हो सका।",

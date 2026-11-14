@@ -104,6 +104,45 @@ async function withPostRefs (group, messages) {
   })
 }
 
+/**
+ * Adds needsJoin to each draft that is not posted yet and that this steward
+ * cannot post as it stands, because they are not a member of the space it is
+ * for. A steward can join any space of their group, so the screen offers that
+ * with the post instead of failing. Worked out for whoever is reading.
+ */
+async function withDraftAccess (group, userId, messages) {
+  const open = messages.flatMap(message => (message.parts || []).filter(part => part.type === 'draft' && !part.posted))
+  if (open.length === 0 || !userId) return messages
+  const knex = bookshelf.knex
+  const spaces = await assistantSpaceChoices(group.id)
+  const spaceIds = spaces.map(space => space.id)
+  const memberOf = new Set((await knex('group_memberships')
+    .where({ user_id: userId, active: true }).whereIn('group_id', spaceIds).pluck('group_id')).map(String))
+  const replyPostIds = [...new Set(open.map(part => part.replyToPostId).filter(Boolean))]
+  const postSpaces = replyPostIds.length === 0
+    ? []
+    : await knex('groups_posts').whereIn('post_id', replyPostIds).whereIn('group_id', spaceIds).select('post_id', 'group_id')
+
+  const joinFor = part => {
+    const targets = part.replyToPostId
+      ? postSpaces.filter(row => String(row.post_id) === String(part.replyToPostId)).map(row => String(row.group_id))
+      : [String(part.groupId)]
+    if (targets.length === 0 || targets.some(id => memberOf.has(id))) return null
+    const space = spaces.find(item => item.id === targets[0] && !item.isGroup)
+    return space ? { spaceId: space.id, name: space.name } : null
+  }
+  return messages.map(message => ({
+    ...message,
+    parts: (message.parts || []).map(part => {
+      const needsJoin = part.type === 'draft' && !part.posted ? joinFor(part) : null
+      return needsJoin ? { ...part, needsJoin } : part
+    })
+  }))
+}
+
+/** What a steward is shown of these messages: linked post ids, and which drafts need them to join a space first. */
+const forSteward = async (group, userId, messages) => withDraftAccess(group, userId, await withPostRefs(group, messages))
+
 /** The newest messages of a group's thread, oldest first. */
 async function fetchThread (groupId, limit = THREAD_PAGE) {
   const rows = await threadQuery(groupId).orderBy('group_assistant_messages.id', 'desc').limit(limit)
@@ -121,7 +160,7 @@ async function stewardNames (group) {
 }
 
 /** Everything the assistant screen and its settings card need, for a steward. */
-async function presentAssistant (group, { withThread = true } = {}) {
+async function presentAssistant (group, userId, { withThread = true } = {}) {
   const hasPro = await group.hasPro()
   const settings = storedSettings(group)
   const spaces = await assistantSpaceChoices(group.id)
@@ -134,7 +173,7 @@ async function presentAssistant (group, { withThread = true } = {}) {
     settings,
     spaces,
     stewards: await stewardNames(group),
-    messages: withThread && hasPro && settings.enabled ? await withPostRefs(group, await fetchThread(group.id)) : []
+    messages: withThread && hasPro && settings.enabled ? await forSteward(group, userId, await fetchThread(group.id)) : []
   }
 }
 
@@ -145,7 +184,7 @@ async function presentAssistant (group, { withThread = true } = {}) {
  */
 export async function groupAssistant ({ userId, groupId }) {
   const group = await requireSteward(userId, groupId)
-  return presentAssistant(group)
+  return presentAssistant(group, userId)
 }
 
 /**
@@ -169,7 +208,7 @@ export async function updateGroupAssistantSettings ({ userId, groupId, settings 
     settings: bookshelf.knex.raw("jsonb_set(COALESCE(settings, '{}'::jsonb), '{assistant}', ?::jsonb)", [JSON.stringify({ ...clean, updatedBy: String(userId), updatedAt: new Date().toISOString() })]),
     updated_at: new Date()
   })
-  return presentAssistant(await group.refresh())
+  return presentAssistant(await group.refresh(), userId)
 }
 
 /**
@@ -253,7 +292,7 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
     .returning('id')
 
   const rows = await threadQuery(group.id).whereIn('group_assistant_messages.id', [stewardMessageId, axlRow.id || axlRow]).orderBy('group_assistant_messages.id', 'asc')
-  return { messages: await withPostRefs(group, rows.map(presentMessage)), usage: answer.usage || null }
+  return { messages: await forSteward(group, userId, rows.map(presentMessage)), usage: answer.usage || null }
 }
 
 /**
@@ -292,6 +331,6 @@ export async function markGroupAssistantDraftPosted ({ userId, messageId, partIn
   const poster = await knex('users').where('id', userId).first('name')
   parts[partIndex] = { ...part, posted: { ...posted, by: String(userId), byName: poster?.name || '', at: new Date().toISOString() } }
   await knex('group_assistant_messages').where('id', row.id).update({ parts: JSON.stringify(parts) })
-  const [updated] = await withPostRefs(await Group.find(row.group_id), [presentMessage({ ...row, parts })])
+  const [updated] = await forSteward(await Group.find(row.group_id), userId, [presentMessage({ ...row, parts })])
   return updated
 }
