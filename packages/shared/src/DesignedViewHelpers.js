@@ -40,6 +40,10 @@ export const DESIGNED_VIEW_POST_LAYOUTS = ['list', 'cards']
 export const DESIGNED_VIEW_CALLOUT_TONES = ['accent', 'primary', 'muted']
 export const DESIGNED_VIEW_HERO_HEIGHTS = ['short', 'medium', 'tall']
 export const DESIGNED_VIEW_HERO_ALIGNMENTS = ['left', 'center']
+// The parts of one real post that a page can show, each drawn with Hylo's own post components:
+// header (who posted it, its type and when), images, event (date, place and RSVP), body (title and
+// details), reactions, comments (the thread and the box to add one), or everything in the usual order
+export const DESIGNED_VIEW_POST_PARTS = ['everything', 'header', 'images', 'event', 'body', 'reactions', 'comments']
 // Places inside the group a button can lead to; the web app turns each into a URL
 export const DESIGNED_VIEW_DESTINATIONS = ['stream', 'events', 'members', 'about', 'discussions', 'projects', 'resources', 'map']
 
@@ -51,6 +55,7 @@ const oneOf = (options, fallback) => ({ kind: 'oneOf', options, fallback })
 const int = (min, max, fallback) => ({ kind: 'int', min, max, fallback })
 const listOf = (options, max) => ({ kind: 'listOf', options, max })
 const httpsUrl = ({ required = false } = {}) => ({ kind: 'httpsUrl', required })
+const postId = () => ({ kind: 'postId' })
 
 /**
  * Every block type and its fields. `required` text must be non-empty; fields
@@ -80,6 +85,8 @@ export const DESIGNED_VIEW_BLOCKS = {
   },
   events: { title: text(120, { required: false }), limit: int(1, 12, 4) },
   members: { title: text(120, { required: false }), limit: int(1, 24, 8) },
+  // One part of a real post from the group; several of these with the same postId make up a post's page
+  postPart: { postId: postId(), part: oneOf(DESIGNED_VIEW_POST_PARTS, 'everything') },
   button: { label: text(60), destination: oneOf([...DESIGNED_VIEW_DESTINATIONS, 'url'], 'stream'), url: httpsUrl() },
   divider: {}
 }
@@ -133,6 +140,12 @@ function checkField (rule, raw) {
       const unknown = raw.find(item => !rule.options.includes(item))
       if (unknown !== undefined) return { error: `has unknown item ${JSON.stringify(unknown)}; use ${rule.options.join(', ')}` }
       return { value: [...new Set(raw)] }
+    }
+    case 'postId': {
+      // Ids arrive as strings or numbers; they are stored as strings of digits
+      const id = typeof raw === 'number' && Number.isInteger(raw) ? String(raw) : raw
+      if (typeof id !== 'string' || !/^[1-9][0-9]{0,18}$/.test(id)) return { error: 'must be the id of a post' }
+      return { value: id }
     }
     case 'httpsUrl':
       if (missing || raw === '') return rule.required ? { error: 'is required' } : { value: undefined }
@@ -421,5 +434,41 @@ export function removeUnlistedImages (view, allowedUrls) {
       return block
     })
     .filter(block => isContainer(block) ? true : keep(block))
+  return { view: { ...view, blocks }, removed }
+}
+
+/**
+ * The ids of the posts a designed view shows parts of, in page order, without repeats.
+ */
+export function designedViewPostIds (view) {
+  const ids = []
+  eachLeafBlock(view, block => {
+    if (block?.type === 'postPart' && block.postId !== undefined && !ids.includes(String(block.postId))) ids.push(String(block.postId))
+  })
+  return ids
+}
+
+/**
+ * A copy of a view without the post parts whose post is not in `allowedIds`,
+ * and how many were removed. Used on what an AI model returns, and before
+ * saving, so a page can only show posts from its own group.
+ */
+export function removeUnlistedPosts (view, allowedIds) {
+  const allowed = new Set((allowedIds || []).map(String))
+  let removed = 0
+  const keep = block => {
+    if (block?.type !== 'postPart' || allowed.has(String(block.postId))) return true
+    removed += 1
+    return false
+  }
+  const blocks = (view?.blocks || [])
+    .map(block => {
+      if (block?.type === 'columns') return { ...block, columns: (block.columns || []).map(column => (column || []).filter(keep)) }
+      if (block?.type === 'canvas') {
+        return { ...block, regions: (block.regions || []).map(region => ({ ...region, blocks: (region?.blocks || []).filter(keep) })) }
+      }
+      return block
+    })
+    .filter(block => block?.type === 'columns' || block?.type === 'canvas' ? true : keep(block))
   return { view: { ...view, blocks }, removed }
 }

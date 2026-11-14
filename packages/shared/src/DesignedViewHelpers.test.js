@@ -1,4 +1,6 @@
 import {
+  designedViewPostIds,
+  removeUnlistedPosts,
   designedViewImageUrls,
   removeUnlistedImages,
   DESIGNED_VIEW_BLOCKS,
@@ -279,5 +281,47 @@ describe('posts block search', () => {
     expect(errors).toEqual([])
     expect(view.blocks[0].search).toEqual('compost')
     expect(view.blocks[1]).toEqual({ type: 'posts', postTypes: [], limit: 3, layout: 'list' })
+  })
+})
+
+describe('postPart block', () => {
+  it('accepts a part of a post, storing the id as digits and defaulting to everything', () => {
+    const { view, errors } = validateDesignedView({
+      blocks: [{ type: 'postPart', postId: 482, part: 'event' }, { type: 'postPart', postId: '482' }]
+    })
+    expect(errors).toEqual([])
+    expect(view.blocks).toEqual([
+      { type: 'postPart', postId: '482', part: 'event' },
+      { type: 'postPart', postId: '482', part: 'everything' }
+    ])
+  })
+
+  it('rejects anything that is not a post id or a known part', () => {
+    const errorsFor = block => validateDesignedView({ blocks: [{ type: 'postPart', ...block }] }).errors
+    expect(errorsFor({ postId: 'abc' })).toEqual(['blocks[0].postId must be the id of a post'])
+    expect(errorsFor({ postId: '12; drop table' })).toEqual(['blocks[0].postId must be the id of a post'])
+    expect(errorsFor({ postId: 0 })).toEqual(['blocks[0].postId must be the id of a post'])
+    expect(errorsFor({ postId: 1.5 })).toEqual(['blocks[0].postId must be the id of a post'])
+    expect(errorsFor({})).toEqual(['blocks[0].postId must be the id of a post'])
+    expect(errorsFor({ postId: '7', part: 'script' })[0]).toContain('blocks[0].part must be one of')
+  })
+
+  it('lists the posts a view uses and removes parts of posts that are not allowed', () => {
+    const view = {
+      version: 1,
+      blocks: [
+        { type: 'postPart', postId: '7', part: 'event' },
+        { type: 'columns', columns: [[{ type: 'postPart', postId: '7', part: 'body' }], [{ type: 'postPart', postId: '9', part: 'comments' }]] },
+        { type: 'canvas', regions: [{ title: 'A', col: 0, row: 0, blocks: [{ type: 'postPart', postId: '11', part: 'everything' }, { type: 'divider' }] }] },
+        { type: 'text', text: 'Hello' }
+      ]
+    }
+    expect(designedViewPostIds(view)).toEqual(['7', '9', '11'])
+    const { view: kept, removed } = removeUnlistedPosts(view, ['7'])
+    expect(removed).toEqual(2)
+    expect(designedViewPostIds(kept)).toEqual(['7'])
+    expect(kept.blocks[2].regions[0].blocks).toEqual([{ type: 'divider' }])
+    expect(removeUnlistedPosts(view, [7, 9, 11]).removed).toEqual(0)
+    expect(designedViewPostIds(null)).toEqual([])
   })
 })

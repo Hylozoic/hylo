@@ -7,8 +7,11 @@ import {
   DESIGNED_VIEW_MAX_BLOCKS,
   DESIGNED_VIEW_POST_TYPES,
   designedViewImageUrls,
+  designedViewPostIds,
+  DESIGNED_VIEW_POST_PARTS,
   designedViewJsonSchema,
   removeUnlistedImages,
+  removeUnlistedPosts,
   validateDesignedView
 } from '@hylo/shared'
 import { summarizeUsage } from './groupThemeImport'
@@ -70,10 +73,25 @@ Blocks:
 - posts: a live list of the group's posts, newest first. postTypes filters by type (${DESIGNED_VIEW_POST_TYPES.join(', ')}); an empty list shows every type. search, if set, keeps only posts that mention those words (one or two words work best), which is how you gather posts on a theme; leave it empty otherwise. limit is 1 to 12. layout is list (compact rows) or cards.
 - events: a live list of the group's upcoming events. limit is 1 to 12.
 - members: a live grid of group members. limit is 1 to 24.
+- postPart: one part of a real post from the group, drawn exactly as Hylo draws it and fully working. postId is the post's id, which you are given as #123 in the group information; write it without the #. part is one of ${DESIGNED_VIEW_POST_PARTS.join(', ')}:
+  - header: who posted it, what kind of post it is and when.
+  - images: the pictures attached to the post.
+  - event: for an event, its date, time and place, who is going, and the RSVP buttons members use to respond.
+  - body: the post's title and its full details.
+  - reactions: the reactions on the post and its comment count.
+  - comments: the whole comment thread, with the box for members to add a comment.
+  - everything: all of the above in Hylo's usual order, as one block.
 - button: a link. destination is a place in the group (${DESIGNED_VIEW_DESTINATIONS.join(', ')}) or "url" with an https address in url.
 - divider: a line between sections.
 - columns: 2 or 3 side-by-side columns, each a list of the blocks above. Columns cannot contain columns. On phones the columns stack.
 - canvas: an infinite canvas. A large surface, bigger than the screen, that people drag to pan and zoom in and out of. It holds 2 to 16 regions. Each region is a titled card with an optional one-line note, a tone (plain, accent, primary or muted) and 1 to 6 of the blocks above. You place regions on a grid with col and row, both 0 to 5, counted from the top left; each cell holds one region. A page can have one canvas, and it cannot go inside columns.
+
+Pages built around a post: a steward can pick a post, or name one from the group information, and ask for a page about it, such as an event's own page. Build it from postPart blocks with that post's id, placed wherever suits the page, and add other blocks around them (a hero or heading, a callout, a text block, lists of related posts, members, buttons). Members can RSVP and comment right on the page, and everything stays current because it is the real post. Guidelines:
+- Use each part of a post at most once on a page. Either use "everything" on its own, or pick separate parts and arrange them; do not use both for the same post.
+- For an event, the event part (date, place, RSVP) should be near the top, and comments usually go last. Putting the body beside the event part in two columns works well on wide screens and stacks cleanly on a phone.
+- Do not retype the post's title, date or details as headings or text; the parts show them, and retyped copies go out of date. Write only what the post does not say.
+- You may only use ids you were given: the posts the steward picked, and the #ids in the group information. Never make up an id. If the steward asks for a page about a post you cannot identify, ask which one, or tell them to pick it with the + button.
+- A page can show parts of more than one post (for example two events side by side), but most post pages are about one.
 
 Choosing between a page and a canvas:
 - Use a canvas when the content is many parallel groups that people scan, compare and wander between, with no single reading order: a map of everything happening in the group, a board with one region per theme or working area, a wall of resources by subject, requests and offers laid out by kind. It suits four or more groups. It is also the right choice whenever the steward asks for a canvas, a board, a map, a wall or an overview of everything.
@@ -172,7 +190,7 @@ function describeBlocksForPrompt () {
  * One turn of the design chat. Returns { reply, view, usage }, where view has
  * passed validateDesignedView.
  */
-export async function designViewTurn ({ group = {}, groupSummary = '', messages, currentView = null, images = [], documents = [] }, { client, model = viewDesignModel() } = {}) {
+export async function designViewTurn ({ group = {}, groupSummary = '', messages, currentView = null, images = [], documents = [], pickedPostsSummary = '', allowedPostIds = [] }, { client, model = viewDesignModel() } = {}) {
   const conversation = normalizeDesignMessages(messages)
   const available = normalizeDesignImages(images)
   const attachedDocuments = normalizeDesignDocuments(documents)
@@ -198,6 +216,9 @@ export async function designViewTurn ({ group = {}, groupSummary = '', messages,
       : 'Available images: none. The steward has not added any.',
     attachedDocuments.length > 0
       ? `Attached documents, shown above: ${attachedDocuments.map(document => document.name).join(', ')}`
+      : null,
+    pickedPostsSummary
+      ? `Posts the steward picked for this page (use these ids for postPart blocks):\n${pickedPostsSummary}`
       : null
   ].filter(Boolean).join('\n\n')
 
@@ -237,13 +258,20 @@ export async function designViewTurn ({ group = {}, groupSummary = '', messages,
   const output = JSON.parse(text.text)
   // Drop any image the steward did not provide before checking the page, so one made-up address does not lose the turn
   const { view: withOwnImages, removed } = removeUnlistedImages(output.view, allowedImageUrls)
-  const { view, errors } = validateDesignedView(withOwnImages)
+  // Likewise any part of a post that is not from this group, or that the model was not given.
+  // Posts already on the page were checked when it was saved, so they stay allowed.
+  const { view: withOwnPosts, removed: removedPosts } = removeUnlistedPosts(withOwnImages, [...allowedPostIds, ...designedViewPostIds(currentView)])
+  const { view, errors } = validateDesignedView(withOwnPosts)
   if (errors.length > 0) throw new Error(`The model returned a page Hylo cannot show: ${errors.slice(0, 3).join('; ')}`)
 
+  const notes = [
+    removed > 0 ? `(I left out ${removed === 1 ? 'an image' : `${removed} images`} that had not been added to this design.)` : null,
+    removedPosts > 0 ? '(I left out a post I could not find in this group. Pick it with the + button and I can add it.)' : null
+  ].filter(Boolean)
   const reply = typeof output.reply === 'string' ? output.reply.slice(0, 1000) : ''
   return {
     name: typeof output.name === 'string' ? output.name.trim().replace(/[.!]+$/, '').slice(0, 60) : '',
-    reply: removed > 0 ? `${reply} (I left out ${removed === 1 ? 'an image' : `${removed} images`} that had not been added to this design.)`.trim() : reply,
+    reply: [reply, ...notes].join(' ').trim(),
     view,
     usage: summarizeUsage(response.model || model, response.usage)
   }

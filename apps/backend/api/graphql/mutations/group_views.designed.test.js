@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-expressions */
-/* global Group, GroupView, HyloProSubscription, bookshelf */
+/* global Group, GroupView, HyloProSubscription, Post, bookshelf */
 import factories from '../../../test/setup/factories'
 import { createGroupView, updateGroupView, deleteGroupView, designGroupViewTurn, suggestGroupViews } from './group_views'
-import { buildGroupDigest } from '../../../lib/groupDigest'
+import { buildGroupDigest, describePickedPosts, digestPostIds, postIdsInGroup } from '../../../lib/groupDigest'
 
 describe('designed views', () => {
   let admin, member, group
@@ -65,6 +65,20 @@ describe('designed views', () => {
       expect((await GroupView.where({ id: view.id }).fetch()).get('settings').design.blocks).to.deep.equal([{ type: 'divider' }])
     })
 
+    it('only saves parts of posts that are in the group', async () => {
+      const post = await factories.post({ user_id: admin.id, active: true, type: 'event', name: 'Potluck' }).save()
+      await bookshelf.knex('groups_posts').insert({ group_id: group.id, post_id: post.id })
+      const outside = await factories.post({ user_id: admin.id, active: true, type: 'event', name: 'Elsewhere' }).save()
+
+      const view = await create(admin.id, { design: { blocks: [{ type: 'postPart', postId: post.id, part: 'event' }] } })
+      expect(view.get('settings').design.blocks).to.deep.equal([{ type: 'postPart', postId: String(post.id), part: 'event' }])
+
+      await expect(create(admin.id, { design: { blocks: [{ type: 'postPart', postId: outside.id, part: 'everything' }] } }))
+        .to.be.rejectedWith(new RegExp(`post ${outside.id} is not in this group`))
+      await expect(updateGroupView({ userId: admin.id, id: view.id, settings: { design: { blocks: [{ type: 'postPart', postId: outside.id }] } } }))
+        .to.be.rejectedWith(/is not in this group/)
+    })
+
     it('does not touch other view types', async () => {
       const view = await createGroupView({ userId: admin.id, groupId: group.id, type: 'custom', name: 'Mine', settings: { postTypes: ['offer'] } })
       expect(view.get('settings')).to.deep.equal({ postTypes: ['offer'] })
@@ -116,6 +130,7 @@ describe('designed views', () => {
       expect(received.currentView).to.deep.equal(storedDesign)
       expect(received.images).to.deep.equal([])
       expect(received.documents).to.deep.equal([])
+      expect(received.pickedPostsSummary).to.equal('')
       expect(received.groupSummary).to.contain(`Group name: ${group.get('name')}`)
       expect(await GroupView.where({ group_id: group.id }).count()).to.equal(before)
     })
@@ -152,6 +167,24 @@ describe('designed views', () => {
       await expect(run(admin.id, { documents: [{ url: 'https://hylo-uploads.example.org/notes.docx' }] }, d)).to.be.rejectedWith(/Only PDF/)
     })
 
+    it('tells the model about picked posts in the group and lets it use those and the summary\'s posts', async () => {
+      const post = await factories.post({ user_id: admin.id, active: true, type: 'event', name: 'Seed swap', description: '<p>Bring seeds</p>', location: 'Rail Yard' }).save()
+      await bookshelf.knex('groups_posts').insert({ group_id: group.id, post_id: post.id })
+      const outside = await factories.post({ user_id: admin.id, active: true, type: 'event', name: 'Elsewhere' }).save()
+      let received
+      await run(admin.id, { postIds: [post.id, outside.id] }, deps({
+        buildDigest: async () => ({ name: 'Garden', recentDays: 90, recentPosts: [{ id: '31', type: 'request', title: 'x', comments: 0, daysAgo: 1 }] }),
+        designTurn: async request => { received = request; return turn }
+      }))
+      expect(received.pickedPostsSummary).to.contain(`- #${post.id} [event] Seed swap`)
+      expect(received.pickedPostsSummary).to.contain('Where: Rail Yard')
+      expect(received.pickedPostsSummary).to.contain('Details: Bring seeds')
+      expect(received.pickedPostsSummary).to.not.contain('Elsewhere')
+      expect(received.allowedPostIds).to.have.members(['31', String(post.id)])
+
+      await expect(run(admin.id, { postIds: Array.from({ length: 7 }, (_, i) => i + 1) })).to.be.rejectedWith(/up to 6 posts/)
+    })
+
     it('reports a failed design', async () => {
       await expect(run(admin.id, {}, deps({ designTurn: async () => { throw new Error('The design took too long') } })))
         .to.be.rejectedWith(/The design could not be made: The design took too long/)
@@ -176,13 +209,34 @@ describe('designed views', () => {
 
       const digest = await buildGroupDigest(await Group.find(group.id))
       expect(digest.name).to.equal(group.get('name'))
-      expect(digest.postCounts).to.deep.equal({ request: 1, offer: 1, event: 1 })
+      // Other tests in this file add event posts to the same group, so only the kinds made here are exact
+      expect(digest.postCounts.request).to.equal(1)
+      expect(digest.postCounts.offer).to.equal(1)
+      expect(digest.postCounts.event).to.be.at.least(1)
+      expect(digest.postCounts).to.not.have.property('chat')
+      expect(digest.postCounts).to.not.have.property('discussion')
       expect(digest.openCounts).to.deep.equal({ request: 1 })
-      expect(digest.upcomingEvents.map(event => event.title)).to.deep.equal(['Compost workday'])
+      expect(digest.upcomingEvents.map(event => event.title)).to.include('Compost workday')
       const titles = digest.recentPosts.map(post => post.title)
-      expect(titles).to.have.members(['Spare wheelbarrow ?', 'Tomato starts', 'Compost workday'])
+      expect(titles).to.include.members(['Spare wheelbarrow ?', 'Tomato starts', 'Compost workday'])
+      expect(titles).to.not.include.members(['just chatting'])
+      expect(titles).to.not.include.members(['Deleted one'])
+      expect(titles).to.not.include.members(['In another group'])
       expect(JSON.stringify(digest)).to.not.contain('SECRET BODY')
       expect(digest.views.some(view => view.type === 'designed')).to.equal(true)
+
+      // The summary carries the ids of the posts it names, and only those may be shown on a page
+      const request = await Post.where({ name: 'Spare <b>wheelbarrow</b>?' }).fetch()
+      expect(digestPostIds(digest)).to.include(String(request.id))
+      const elsewhere = await Post.where({ name: 'In another group' }).fetch()
+      const chat = await Post.where({ name: 'just chatting' }).fetch()
+      expect(await postIdsInGroup(group.id, [request.id, elsewhere.id, chat.id, 'abc', '999999999'])).to.deep.equal([String(request.id)])
+
+      const [picked] = await describePickedPosts(group.id, [elsewhere.id, request.id])
+      expect(picked.id).to.equal(String(request.id))
+      expect(picked.title).to.equal('Spare wheelbarrow ?')
+      expect(picked.details).to.equal('SECRET BODY')
+      expect(await describePickedPosts(group.id, [elsewhere.id])).to.deep.equal([])
     })
   })
 

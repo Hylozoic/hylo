@@ -762,8 +762,8 @@ export function makeMutations ({ fetchOne }) {
 
     setHomeView: (root, { viewId, groupId }, context) => setHomeView(context.currentUserId, viewId, groupId, context),
     suggestGroupViews: (root, { groupId }, context) => suggestGroupViews({ userId: context.currentUserId, groupId }),
-    designGroupViewTurn: (root, { groupId, messages, currentView, images, documents }, context) =>
-      designGroupViewTurn({ userId: context.currentUserId, groupId, messages, currentView, images, documents }),
+    designGroupViewTurn: (root, { groupId, messages, currentView, images, documents, postIds }, context) =>
+      designGroupViewTurn({ userId: context.currentUserId, groupId, messages, currentView, images, documents, postIds }),
 
     markViewAsRead: (root, { viewId }, context) => markViewAsRead(context.currentUserId, viewId),
 
