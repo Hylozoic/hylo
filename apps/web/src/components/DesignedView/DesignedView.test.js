@@ -120,6 +120,12 @@ describe('DesignedView', () => {
     expect(screen.getByTestId('designed-canvas-zoom')).toHaveTextContent('80%')
     expect(screen.getByTestId('designed-canvas-surface').style.transform).toContain('scale(0.8)')
 
+    // On a page, the canvas fills the view: no frame around it and no page padding
+    const canvas = document.querySelector('[data-block="canvas"]')
+    expect(canvas.getAttribute('data-fill')).toEqual('true')
+    expect(canvas.className).not.toContain('rounded-xl')
+    expect(canvas.parentElement.className).not.toContain('p-4')
+
     const viewport = screen.getByTestId('designed-canvas-viewport')
     fireEvent.keyDown(viewport, { key: 'ArrowRight' })
     expect(screen.getByTestId('designed-canvas-surface').style.transform).toContain('translate(-80px, 0px)')

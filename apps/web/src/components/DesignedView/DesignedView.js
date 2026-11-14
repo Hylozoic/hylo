@@ -280,7 +280,8 @@ export default function DesignedView ({ design, groupSlug, className, postUrlFor
   const { t } = useTranslation()
   const view = useMemo(() => sanitizeDesignedView(design), [design])
 
-  // A canvas wants all the room it can get; ordinary pages keep a comfortable reading width
+  // A page with a canvas gives the canvas the whole view, edge to edge; ordinary pages keep a
+  // comfortable reading width with padding around them
   const hasCanvas = !!view?.blocks.some(block => block.type === 'canvas')
 
   if (!view) {
@@ -290,9 +291,19 @@ export default function DesignedView ({ design, groupSlug, className, postUrlFor
   return (
     <PostLinkContext.Provider value={postUrlFor}>
       <div className={cn('w-full', className)} data-testid='designed-view'>
-        <div className={cn('flex flex-col gap-4 w-full mx-auto p-4 text-foreground', hasCanvas ? 'max-w-none' : 'max-w-[960px]')}>
-          {view.blocks.map((block, index) => <Block key={index} block={block} groupSlug={groupSlug} />)}
-        </div>
+        {hasCanvas
+          ? (
+            <div className='flex flex-col w-full text-foreground'>
+              {view.blocks.map((block, index) => block.type === 'canvas'
+                ? <DesignedCanvas key={index} block={block} fill renderBlock={(inner, innerIndex) => <Block key={innerIndex} block={inner} groupSlug={groupSlug} />} />
+                : <div key={index} className='px-4 py-2'><Block block={block} groupSlug={groupSlug} /></div>)}
+            </div>
+            )
+          : (
+            <div className='flex flex-col gap-4 w-full max-w-[960px] mx-auto p-4 text-foreground'>
+              {view.blocks.map((block, index) => <Block key={index} block={block} groupSlug={groupSlug} />)}
+            </div>
+            )}
       </div>
     </PostLinkContext.Provider>
   )

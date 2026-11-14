@@ -31,15 +31,37 @@ const clampZoom = zoom => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
 // Things inside the canvas that take a click or a drag of their own
 const INTERACTIVE = 'a, button, input, textarea, select, [role="button"]'
 
-export default function DesignedCanvas ({ block, renderBlock }) {
+const MIN_HEIGHT = 420
+
+export default function DesignedCanvas ({ block, renderBlock, fill = false }) {
   const { t } = useTranslation()
   const viewport = useRef(null)
+  const frame = useRef(null)
+  // When the canvas fills the view, it runs from where it starts down to the bottom of the window
+  const [fillHeight, setFillHeight] = useState(null)
   const surface = useRef(null)
   const drag = useRef(null)
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 })
   const [dragging, setDragging] = useState(false)
 
   const columns = Math.max(...block.regions.map(region => region.col)) + 1
+
+  useEffect(() => {
+    if (!fill) return
+    const measure = () => {
+      const top = frame.current?.getBoundingClientRect().top
+      if (typeof top === 'number') setFillHeight(Math.max(MIN_HEIGHT, Math.floor(window.innerHeight - top)))
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    // The space above can change without the window resizing (a draft notice appearing, fonts loading)
+    const observer = typeof ResizeObserver !== 'undefined' && frame.current?.parentElement ? new ResizeObserver(measure) : null
+    observer?.observe(frame.current.parentElement)
+    return () => {
+      window.removeEventListener('resize', measure)
+      observer?.disconnect()
+    }
+  }, [fill])
 
   // Zoom keeping the point under `origin` (viewport coordinates) where it is
   const zoomAt = useCallback((factor, origin) => {
@@ -54,22 +76,22 @@ export default function DesignedCanvas ({ block, renderBlock }) {
   }, [])
 
   const fit = useCallback(() => {
-    const frame = viewport.current
+    const area = viewport.current
     const content = surface.current
-    if (!frame || !content) return
-    const zoom = clampZoom(Math.min(frame.clientWidth / content.offsetWidth, frame.clientHeight / content.offsetHeight, 1))
+    if (!area || !content) return
+    const zoom = clampZoom(Math.min(area.clientWidth / content.offsetWidth, area.clientHeight / content.offsetHeight, 1))
     setView({
       zoom,
-      x: Math.max(0, (frame.clientWidth - content.offsetWidth * zoom) / 2),
-      y: Math.max(0, (frame.clientHeight - content.offsetHeight * zoom) / 2)
+      x: Math.max(0, (area.clientWidth - content.offsetWidth * zoom) / 2),
+      y: Math.max(0, (area.clientHeight - content.offsetHeight * zoom) / 2)
     })
   }, [])
 
   // The wheel pans; with Ctrl or Cmd (and trackpad pinch, which sends ctrlKey) it zooms.
   // Added by hand because React's wheel listener is passive and cannot stop the page scrolling.
   useEffect(() => {
-    const frame = viewport.current
-    if (!frame) return
+    const area = viewport.current
+    if (!area) return
     const onWheel = event => {
       event.preventDefault()
       if (event.ctrlKey || event.metaKey) {
@@ -78,8 +100,8 @@ export default function DesignedCanvas ({ block, renderBlock }) {
         setView(current => ({ ...current, x: current.x - event.deltaX, y: current.y - event.deltaY }))
       }
     }
-    frame.addEventListener('wheel', onWheel, { passive: false })
-    return () => frame.removeEventListener('wheel', onWheel)
+    area.addEventListener('wheel', onWheel, { passive: false })
+    return () => area.removeEventListener('wheel', onWheel)
   }, [zoomAt])
 
   const onPointerDown = event => {
@@ -115,7 +137,12 @@ export default function DesignedCanvas ({ block, renderBlock }) {
   const dot = 24 * view.zoom
 
   return (
-    <div data-block='canvas' className='relative rounded-xl border-2 border-foreground/15 overflow-hidden bg-background'>
+    <div
+      ref={frame}
+      data-block='canvas'
+      data-fill={fill ? 'true' : undefined}
+      className={cn('relative overflow-hidden bg-background', !fill && 'rounded-xl border-2 border-foreground/15')}
+    >
       <div
         ref={viewport}
         role='region'
@@ -127,8 +154,9 @@ export default function DesignedCanvas ({ block, renderBlock }) {
         onPointerCancel={endDrag}
         onKeyDown={onKeyDown}
         data-testid='designed-canvas-viewport'
-        className={cn('relative h-[70vh] min-h-[420px] overflow-hidden touch-none outline-none focus-visible:ring-2 focus-visible:ring-focus', dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
+        className={cn('relative overflow-hidden touch-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus', !fill && 'h-[70vh] min-h-[420px]', dragging ? 'cursor-grabbing select-none' : 'cursor-grab')}
         style={{
+          height: fill ? (fillHeight || '70vh') : undefined,
           backgroundImage: 'radial-gradient(hsl(var(--foreground) / 0.18) 1px, transparent 1px)',
           backgroundSize: `${dot}px ${dot}px`,
           backgroundPosition: `${view.x}px ${view.y}px`
