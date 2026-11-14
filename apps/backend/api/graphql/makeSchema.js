@@ -159,6 +159,7 @@ import {
   askGroupAssistant,
   groupAssistant,
   markGroupAssistantDraftPosted,
+  saveGroupAssistantVoiceNote,
   updateGroupAssistantSettings,
   updateGroupAssistantVoice,
   subscribe,
@@ -780,6 +781,8 @@ export function makeMutations ({ fetchOne }) {
     updateGroupAssistantSettings: (root, { groupId, settings }, context) =>
       updateGroupAssistantSettings({ userId: context.currentUserId, groupId, settings }),
     updateGroupAssistantVoice: (root, { groupId, text }, context) => updateGroupAssistantVoice({ userId: context.currentUserId, groupId, text }),
+    saveGroupAssistantVoiceNote: (root, { messageId, partIndex, text }, context) =>
+      saveGroupAssistantVoiceNote({ userId: context.currentUserId, messageId, partIndex, text }),
     markGroupAssistantDraftPosted: (root, { messageId, partIndex, postId, commentId }, context) =>
       markGroupAssistantDraftPosted({ userId: context.currentUserId, messageId, partIndex, postId, commentId }),
 

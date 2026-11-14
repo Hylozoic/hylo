@@ -41,7 +41,8 @@ describe('assistant message parts', () => {
       { type: 'bullets', items: ['One', '', 2, 'Two'] },
       { type: 'quotedPost', postId: 11 },
       { type: 'draft', text: ' Thanks for raising this. ', replyToPostId: '12', groupId: '', title: '' },
-      { type: 'draft', text: 'Welcome all', title: 'Welcome', groupId: '5', replyToPostId: '' }
+      { type: 'draft', text: 'Welcome all', title: 'Welcome', groupId: '5', replyToPostId: '' },
+      { type: 'voiceNote', text: ' Short and warm. ', postId: '11', groupId: '5' }
     ], allowed)
     expect(dropped).toBe(0)
     expect(parts).toEqual([
@@ -49,8 +50,19 @@ describe('assistant message parts', () => {
       { type: 'bullets', items: ['One', 'Two'] },
       { type: 'quotedPost', postId: '11' },
       { type: 'draft', text: 'Thanks for raising this.', replyToPostId: '12' },
-      { type: 'draft', text: 'Welcome all', title: 'Welcome', groupId: '5' }
+      { type: 'draft', text: 'Welcome all', title: 'Welcome', groupId: '5' },
+      { type: 'voiceNote', text: 'Short and warm.' }
     ])
+  })
+
+  it('keeps one note offer per message, cut to the length a note can be', () => {
+    const { parts, dropped } = sanitizeAssistantParts([
+      { type: 'voiceNote', text: 'x'.repeat(1500) },
+      { type: 'voiceNote', text: 'A second one' },
+      { type: 'voiceNote', text: '  ' }
+    ], allowed)
+    expect(parts).toEqual([{ type: 'voiceNote', text: 'x'.repeat(1000) }])
+    expect(dropped).toBe(2)
   })
 
   it('drops anything that points outside what the assistant was given', () => {

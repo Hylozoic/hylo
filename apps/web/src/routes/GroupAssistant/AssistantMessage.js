@@ -133,7 +133,69 @@ function Draft ({ part, onPost }) {
   )
 }
 
-export default function AssistantMessage ({ message, currentUserId, postUrl, onPostDraft }) {
+/**
+ * A change Axl offers to the steward's own "How you write" note. Nothing is
+ * saved until they press the button, and they can edit it first. Only the
+ * steward it was offered to is sent it.
+ */
+function VoiceNote ({ part, onSave }) {
+  const { t } = useTranslation()
+  const [text, setText] = useState(part.text)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const saved = part.saved
+
+  const save = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      await onSave(text)
+    } catch (err) {
+      setError(err?.message || t('Something went wrong. Please try again.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className={`${cardClass} overflow-hidden`} data-testid='assistant-voice-note'>
+      <p className='m-0 px-3 pt-2.5 text-xs text-foreground/60'>{t('Your “How you write” note')}</p>
+      {saved
+        ? <p className='m-0 px-3 py-2.5 text-sm text-foreground/85 whitespace-pre-wrap'>{part.text}</p>
+        : (
+          <textarea
+            value={text}
+            onChange={event => setText(event.target.value)}
+            rows={Math.min(10, Math.max(3, Math.ceil(text.length / 70)))}
+            maxLength={1000}
+            aria-label={t('Your “How you write” note')}
+            className='block w-full bg-transparent border-0 outline-none resize-none px-3 py-2.5 text-sm text-foreground'
+          />
+          )}
+      <div className='flex flex-wrap items-center gap-2 px-3 py-2 border-t-2 border-foreground/10 bg-background/40'>
+        <span className='flex-1 min-w-0 text-xs text-foreground/60'>
+          {saved ? t('Axl follows this when it drafts for you. Only you can see it.') : t('This replaces your current note. Only you can see it.')}
+        </span>
+        {error && <span className='text-xs text-accent' role='alert'>{error}</span>}
+        {saved
+          ? <span className='inline-flex items-center gap-1 text-xs font-bold text-selected'><Check className='w-3.5 h-3.5' strokeWidth={2.5} />{t('Saved to your note')}</span>
+          : (
+            <button
+              type='button'
+              onClick={save}
+              disabled={saving || !text.trim()}
+              data-testid='assistant-save-voice-note'
+              className='h-8 px-3 rounded-md bg-selected text-white text-xs font-bold disabled:opacity-50'
+            >
+              {saving ? t('Saving...') : t('Save to my note')}
+            </button>
+            )}
+      </div>
+    </div>
+  )
+}
+
+export default function AssistantMessage ({ message, currentUserId, postUrl, onPostDraft, onSaveVoiceNote }) {
   const { t } = useTranslation()
   const isAxl = message.authorType === 'axl'
   const mine = !isAxl && String(message.author?.id) === String(currentUserId)
@@ -168,6 +230,9 @@ export default function AssistantMessage ({ message, currentUserId, postUrl, onP
                   )
                 case 'draft':
                   return <Draft key={`${index}-${part.posted ? 'posted' : 'draft'}`} part={part} onPost={text => onPostDraft(message, index, text)} />
+                case 'voiceNote':
+                  // An offer made to another steward arrives as an empty placeholder
+                  return part.hidden ? null : <VoiceNote key={`${index}-${part.saved ? 'saved' : 'offer'}`} part={part} onSave={text => onSaveVoiceNote(message, index, text)} />
                 default:
                   return null
               }

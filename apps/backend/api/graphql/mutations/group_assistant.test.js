@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-expressions */
 /* global Group, HyloProSubscription, bookshelf */
 import factories from '../../../test/setup/factories'
-import { askGroupAssistant, groupAssistant, markGroupAssistantDraftPosted, updateGroupAssistantSettings, updateGroupAssistantVoice } from './group_assistant'
+import { askGroupAssistant, groupAssistant, markGroupAssistantDraftPosted, saveGroupAssistantVoiceNote, updateGroupAssistantSettings, updateGroupAssistantVoice } from './group_assistant'
 import { fetchAssistantContent, formatAssistantContent } from '../../../lib/groupAssistantContent'
 import { assistantTurn, formatThreadForModel } from '../../../lib/groupAssistant'
 
@@ -186,6 +186,48 @@ describe('group assistant', () => {
       expect(JSON.stringify(seen.request.thread)).not.to.contain('exclamation')
 
       expect(await updateGroupAssistantVoice({ userId: steward.id, groupId: group.id, text: '' })).to.deep.equal({ myVoice: '' })
+    })
+
+    it('offers a note change only to the steward who asked, and saves it only when they do', async () => {
+      const second = await factories.user({ name: 'Sam Second' }).save()
+      await second.joinGroup(group, { assignAdministrator: true })
+      await turnOn([space.id])
+      const seen = {}
+      const { messages } = await askGroupAssistant({ userId: steward.id, groupId: group.id, text: 'Write shorter from now on' }, deps({
+        text: 'Here is your note with that added. Save it if it looks right.',
+        parts: [
+          { type: 'voiceNote', text: 'Short. No exclamation marks.' },
+          { type: 'bullets', items: ['One thing'] }
+        ]
+      }, seen))
+      const messageId = messages[1].id
+      expect(messages[1].parts[0]).to.deep.equal({ type: 'voiceNote', text: 'Short. No exclamation marks.', forUserId: String(steward.id), forName: 'Maria Steward' })
+      // Nothing is saved by the offer itself
+      expect((await groupAssistant({ userId: steward.id, groupId: group.id })).myVoice).to.equal('')
+
+      // Another steward sees an empty placeholder in its place, and cannot save it
+      const others = await groupAssistant({ userId: second.id, groupId: group.id })
+      expect(others.messages[1].parts).to.deep.equal([{ type: 'voiceNote', hidden: true }, { type: 'bullets', items: ['One thing'] }])
+      await expect(saveGroupAssistantVoiceNote({ userId: second.id, messageId, partIndex: 0 })).to.be.rejectedWith(/another steward/)
+      await expect(saveGroupAssistantVoiceNote({ userId: member.id, messageId, partIndex: 0 })).to.be.rejectedWith(/Only stewards/)
+      await expect(saveGroupAssistantVoiceNote({ userId: steward.id, messageId, partIndex: 1 })).to.be.rejectedWith(/no note/)
+      await expect(saveGroupAssistantVoiceNote({ userId: steward.id, messageId, partIndex: 0, text: 'x'.repeat(1001) })).to.be.rejectedWith(/up to 1000/)
+
+      // Saved as the steward edited it
+      const saved = await saveGroupAssistantVoiceNote({ userId: steward.id, messageId, partIndex: 0, text: ' Short. No exclamation marks. First names. ' })
+      expect(saved.myVoice).to.equal('Short. No exclamation marks. First names.')
+      expect(saved.message.parts[0].text).to.equal('Short. No exclamation marks. First names.')
+      expect(saved.message.parts[0].saved.at).to.be.a('string')
+      expect((await groupAssistant({ userId: steward.id, groupId: group.id })).myVoice).to.equal('Short. No exclamation marks. First names.')
+      expect((await groupAssistant({ userId: second.id, groupId: group.id })).myVoice).to.equal('')
+      await expect(saveGroupAssistantVoiceNote({ userId: steward.id, messageId, partIndex: 0 })).to.be.rejectedWith(/already saved/)
+
+      // On the other steward's next turn the model is told an offer was made, not what the note says
+      await askGroupAssistant({ userId: second.id, groupId: group.id, text: 'Anything open?' }, deps({ text: 'No.', parts: [] }, seen))
+      const history = formatThreadForModel(seen.request.thread)
+      expect(history).to.contain('[offered Maria Steward a change to their "How I write" note, which they saved]')
+      expect(history).not.to.contain('exclamation')
+      await updateGroupAssistantVoice({ userId: steward.id, groupId: group.id, text: '' })
     })
 
     it('says which post ids Axl named are real posts it may read, so only those are linked', async () => {

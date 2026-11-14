@@ -46,6 +46,8 @@ const answer = {
           ]
         },
         { type: 'bullets', items: ['Two posts have no reply yet (#424242)', 'One newcomer has not been welcomed (#515151)'] },
+        { type: 'voiceNote', hidden: true },
+        { type: 'voiceNote', text: 'Short and warm. No exclamation marks. First names.', forUserId: '0', forName: 'E2E Steward' },
         { type: 'draft', text: 'Thank you both for pushing on this.\n\nLet’s keep both views in sight.', title: 'On the regenerative thread', groupId: '1', space: 'E2E Public Group' }
       ],
       postRefs: ['424242'],
@@ -72,8 +74,14 @@ test.describe('group assistant', () => {
 
   test('a steward turns Axl on, finds it in the menu, and gets counsel and a draft', async ({ page }) => {
     let asked = null
+    let savedNote = null
     await page.route('**/noo/graphql', async route => {
       const body = route.request().postData() || ''
+      if (body.includes('SaveGroupAssistantVoiceNote')) {
+        savedNote = JSON.parse(body).variables
+        const message = { ...answer.messages[1], parts: answer.messages[1].parts.map((part, index) => index === savedNote.partIndex ? { ...part, text: savedNote.text, saved: { at: now } } : part) }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { saveGroupAssistantVoiceNote: { message, myVoice: savedNote.text } } }) })
+      }
       if (!body.includes('AskGroupAssistant')) return route.continue()
       asked = JSON.parse(body).variables
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { askGroupAssistant: answer } }) })
@@ -139,6 +147,14 @@ test.describe('group assistant', () => {
     await expect(postLinks).toHaveText('#424242')
     await expect(postLinks).toHaveAttribute('href', `/groups/${GROUP_SLUG}/assistant/post/424242`)
     await expect(page.getByTestId('assistant-bullets')).toContainText('#515151')
+    // A change Axl offers to the steward's own note is saved only by its button; one offered to someone else shows nothing
+    const note = page.getByTestId('assistant-voice-note')
+    await expect(note).toHaveCount(1)
+    await expect(note.getByRole('textbox')).toHaveValue('Short and warm. No exclamation marks. First names.')
+    await note.getByRole('textbox').fill('Short and warm. First names.')
+    await note.getByTestId('assistant-save-voice-note').click()
+    await expect(note).toContainText('Saved to your note', uiTimeout)
+    expect(savedNote).toEqual({ messageId: '900002', partIndex: 3, text: 'Short and warm. First names.' })
     const draft = page.getByTestId('assistant-draft')
     await expect(draft).toContainText('Draft · posts as you in E2E Public Group')
     await expect(draft.getByRole('textbox', { name: 'Draft' })).toHaveValue(/Thank you both/)

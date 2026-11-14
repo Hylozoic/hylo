@@ -30,6 +30,8 @@ export const GROUP_ASSISTANT_FLAGS = ['enabled', 'followUps', 'shareLoad', 'summ
 export const GROUP_ASSISTANT_RUNS_ON = ['hosted']
 export const MAX_ASSISTANT_READABLE_GROUPS = 100
 export const MAX_ASSISTANT_MESSAGE_LENGTH = 4000
+// A steward's own "How I write" note
+export const MAX_ASSISTANT_VOICE_LENGTH = 1000
 
 const ID_PATTERN = /^[1-9][0-9]{0,18}$/
 const asId = value => {
@@ -75,7 +77,7 @@ export function validateGroupAssistantSettings (raw) {
 
 // ---------- Message parts ----------
 
-export const ASSISTANT_PART_TYPES = ['counsel', 'bullets', 'quotedPost', 'draft']
+export const ASSISTANT_PART_TYPES = ['counsel', 'bullets', 'quotedPost', 'draft', 'voiceNote']
 const MAX_PARTS = 6
 const MAX_STEPS = 5
 const MAX_BULLETS = 8
@@ -91,6 +93,8 @@ const clean = (value, max) => typeof value === 'string' ? value.replace(/\s+\n/g
  * - a quoted post must be one of `postIds` (the posts the model was given)
  * - a draft replies to one of `postIds`, or is a new post in one of `groupIds`
  *   (the spaces the assistant may read); a draft aimed anywhere else is dropped
+ * - a voiceNote is the whole new "How I write" note offered to the steward who
+ *   asked; one per message at most, and it changes nothing until they save it
  *
  * Returns { parts, dropped }.
  */
@@ -133,6 +137,11 @@ export function sanitizeAssistantParts (raw, { postIds = [], groupIds = [] } = {
         }
         break
       }
+      case 'voiceNote': {
+        const text = clean(part.text, MAX_ASSISTANT_VOICE_LENGTH)
+        if (text && !parts.some(other => other.type === 'voiceNote')) kept = { type: 'voiceNote', text }
+        break
+      }
     }
     if (kept && parts.length < MAX_PARTS) parts.push(kept)
     else dropped += 1
@@ -162,7 +171,7 @@ export function groupAssistantJsonSchema () {
       },
       items: { type: 'array', description: 'bullets only', items: { type: 'string' } },
       postId: text('quotedPost only: the id of a post you were given, digits only'),
-      text: text('draft only: the words the steward would post, in their voice'),
+      text: text('draft: the words the steward would post, in their voice. voiceNote: the whole new "How I write" note'),
       title: text('draft only, for a new post: its title. Empty for a reply'),
       groupId: text('draft only, for a new post: the id of the space it would be posted in. Empty for a reply'),
       replyToPostId: text('draft only, for a reply: the id of the post it replies to. Empty for a new post')

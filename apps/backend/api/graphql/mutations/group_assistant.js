@@ -2,11 +2,12 @@
 import { GraphQLError } from 'graphql'
 import {
   MAX_ASSISTANT_MESSAGE_LENGTH,
+  MAX_ASSISTANT_VOICE_LENGTH,
   sanitizeAssistantParts,
   sanitizeGroupAssistantSettings,
   validateGroupAssistantSettings
 } from '@hylo/shared'
-import { assistantTurnInChildProcess, isGroupAssistantConfigured, MAX_ASSISTANT_VOICE_LENGTH } from '../../../lib/groupAssistant'
+import { assistantTurnInChildProcess, isGroupAssistantConfigured } from '../../../lib/groupAssistant'
 import { assistantSpaceChoices, fetchAssistantContent, formatAssistantContent, linkablePostIds } from '../../../lib/groupAssistantContent'
 import RedisClient from '../../services/RedisClient'
 
@@ -64,6 +65,11 @@ async function withinTurnLimit (groupId) {
     return true
   }
 }
+
+const saveStewardVoice = (userId, groupId, voice) => bookshelf.knex('group_memberships').where({ user_id: userId, group_id: groupId }).update({
+  // Only this key, in one statement, so other membership settings are not overwritten
+  settings: bookshelf.knex.raw("jsonb_set(COALESCE(settings, '{}'::jsonb), '{assistantVoice}', ?::jsonb)", [JSON.stringify(voice)])
+})
 
 /** This steward's own "How I write" note for this group, or ''. */
 async function stewardVoice (userId, groupId) {
@@ -150,8 +156,20 @@ async function withDraftAccess (group, userId, messages) {
   }))
 }
 
-/** What a steward is shown of these messages: linked post ids, and which drafts need them to join a space first. */
-const forSteward = async (group, userId, messages) => withDraftAccess(group, userId, await withPostRefs(group, messages))
+/**
+ * A change Axl offered to one steward's "How I write" note is theirs alone:
+ * every other steward gets an empty placeholder in its place, which keeps the
+ * positions of the other parts and shows nothing.
+ */
+const withOwnVoiceNotes = (userId, messages) => messages.map(message => ({
+  ...message,
+  parts: (message.parts || []).map(part => part.type === 'voiceNote' && String(part.forUserId) !== String(userId)
+    ? { type: 'voiceNote', hidden: true }
+    : part)
+}))
+
+/** What a steward is shown of these messages: linked post ids, which drafts need them to join a space first, and only their own note offers. */
+const forSteward = async (group, userId, messages) => withOwnVoiceNotes(userId, await withDraftAccess(group, userId, await withPostRefs(group, messages)))
 
 /** The newest messages of a group's thread, oldest first. */
 async function fetchThread (groupId, limit = THREAD_PAGE) {
@@ -232,18 +250,42 @@ export async function updateGroupAssistantVoice ({ userId, groupId, text }) {
   const group = await requireSteward(userId, groupId)
   const voice = typeof text === 'string' ? text.trim() : ''
   if (voice.length > MAX_ASSISTANT_VOICE_LENGTH) throw new GraphQLError(`Your note can be up to ${MAX_ASSISTANT_VOICE_LENGTH} characters`)
-  // Only this key, in one statement, so other membership settings are not overwritten
-  await bookshelf.knex('group_memberships').where({ user_id: userId, group_id: group.id }).update({
-    settings: bookshelf.knex.raw("jsonb_set(COALESCE(settings, '{}'::jsonb), '{assistantVoice}', ?::jsonb)", [JSON.stringify(voice)])
-  })
+  await saveStewardVoice(userId, group.id, voice)
   return { myVoice: voice }
+}
+
+/**
+ * Saves a change to their "How I write" note that Axl offered a steward in the
+ * thread, as offered or as they edited it. Only the steward it was offered to
+ * can save it, and it replaces their whole note. Returns { message, myVoice }.
+ */
+export async function saveGroupAssistantVoiceNote ({ userId, messageId, partIndex, text }) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  const row = messageId ? await fetchMessage(messageId) : null
+  if (!row) throw new GraphQLError('Message not found')
+  const group = await requireSteward(userId, row.group_id)
+
+  const parts = Array.isArray(row.parts) ? row.parts : []
+  const part = parts[partIndex]
+  if (!part || part.type !== 'voiceNote') throw new GraphQLError('That message has no note to save there')
+  if (String(part.forUserId) !== String(userId)) throw new GraphQLError('That note was offered to another steward')
+  if (part.saved) throw new GraphQLError('That note was already saved')
+  const voice = (typeof text === 'string' ? text : part.text).trim()
+  if (!voice) throw new GraphQLError('Write a note first')
+  if (voice.length > MAX_ASSISTANT_VOICE_LENGTH) throw new GraphQLError(`Your note can be up to ${MAX_ASSISTANT_VOICE_LENGTH} characters`)
+
+  await saveStewardVoice(userId, group.id, voice)
+  parts[partIndex] = { ...part, text: voice, saved: { at: new Date().toISOString() } }
+  await bookshelf.knex('group_assistant_messages').where('id', row.id).update({ parts: JSON.stringify(parts) })
+  const [message] = await forSteward(group, userId, [presentMessage({ ...row, parts })])
+  return { message, myVoice: voice }
 }
 
 /**
  * Adds to each part what the screen needs to show it without another request:
  * a snapshot of a quoted post, and where a draft would be posted.
  */
-function describeParts (parts, content) {
+function describeParts (parts, content, asker = {}) {
   return parts.map(part => {
     if (part.type === 'quotedPost') {
       const post = content.posts.find(item => item.id === part.postId)
@@ -256,6 +298,8 @@ function describeParts (parts, content) {
       }
       return { ...part, space: content.spaces.find(space => space.id === part.groupId)?.name || '' }
     }
+    // An offered note is for the steward who asked, and for nobody else
+    if (part.type === 'voiceNote') return { ...part, forUserId: String(asker.id), forName: asker.name || '' }
     return part
   })
 }
@@ -315,7 +359,7 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
       group_id: group.id,
       author_type: 'axl',
       text: String(answer.text || '').slice(0, MAX_ASSISTANT_MESSAGE_LENGTH),
-      parts: JSON.stringify(describeParts(parts, content)),
+      parts: JSON.stringify(describeParts(parts, content, { id: userId, name: asker?.name })),
       posts_read: content.postsRead
     })
     .returning('id')
