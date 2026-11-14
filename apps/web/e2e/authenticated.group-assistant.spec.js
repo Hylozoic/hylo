@@ -23,6 +23,7 @@ function sql (query) {
 
 const resetAssistant = () => {
   sql(`UPDATE groups SET settings = COALESCE(settings, '{}'::jsonb) - 'assistant' WHERE slug = '${GROUP_SLUG}'`)
+  sql(`UPDATE group_memberships SET settings = COALESCE(settings, '{}'::jsonb) - 'assistantVoice' WHERE group_id = (SELECT id FROM groups WHERE slug = '${GROUP_SLUG}')`)
   sql(`DELETE FROM group_assistant_messages WHERE group_id = (SELECT id FROM groups WHERE slug = '${GROUP_SLUG}')`)
 }
 
@@ -93,6 +94,12 @@ test.describe('group assistant', () => {
     await settings.getByTestId('assistant-enabled').click()
     await expect(settings.getByTestId('assistant-space').first()).toHaveAttribute('aria-pressed', 'true', uiTimeout)
     await expect(settings).toContainText('never direct messages')
+    // The steward's own "How I write" note, saved for real on their membership
+    const voice = settings.getByTestId('assistant-voice')
+    await voice.getByRole('textbox', { name: 'How you write' }).fill('Short and warm. No exclamation marks.')
+    await voice.getByTestId('assistant-voice-save').click()
+    await expect(voice.getByTestId('assistant-voice-saved')).toBeVisible(uiTimeout)
+    expect(sql(`SELECT count(*) FROM group_memberships WHERE settings->>'assistantVoice' = 'Short and warm. No exclamation marks.' AND group_id = (SELECT id FROM groups WHERE slug = '${GROUP_SLUG}')`)).toBe('1')
     await page.screenshot({ path: 'e2e-screenshots/group-assistant-1-settings.png' })
     // Saved for real, with the group itself as the one readable space
     const stored = JSON.parse(sql(`SELECT settings->'assistant' FROM groups WHERE slug = '${GROUP_SLUG}'`))

@@ -7,9 +7,64 @@ import { groupUrl } from '@hylo/navigation'
 import Loading from 'components/Loading'
 import { Switch } from 'components/ui/switch'
 import fetchForGroup from 'store/actions/fetchForGroup'
-import { fetchGroupAssistant, updateGroupAssistantSettings } from 'store/actions/groupAssistant'
+import { fetchGroupAssistant, updateGroupAssistantSettings, updateGroupAssistantVoice } from 'store/actions/groupAssistant'
 import { cn } from 'util/index'
 import AxlAvatar from './AxlAvatar'
+
+/**
+ * The steward's own "How I write" note: Axl follows it when it drafts posts
+ * and replies for them. It is saved with its own button, and only they see it.
+ */
+function VoiceNote ({ groupId, saved, maxLength, onSaved }) {
+  const dispatch = useDispatch()
+  const { t } = useTranslation()
+  const [text, setText] = useState(saved)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const changed = text.trim() !== saved
+
+  const save = async () => {
+    setSaving(true)
+    setError(null)
+    const response = await dispatch(updateGroupAssistantVoice(groupId, text))
+    const result = response?.payload?.data?.updateGroupAssistantVoice
+    setSaving(false)
+    if (response?.error || !result) return setError(response?.payload?.message || t('Something went wrong. Please try again.'))
+    setText(result.myVoice)
+    onSaved(result.myVoice)
+  }
+
+  return (
+    <div data-testid='assistant-voice'>
+      <h3 className='m-0 mb-1 text-sm font-bold text-foreground'>{t('How you write')}</h3>
+      <p className='m-0 mb-2 text-xs text-foreground/60'>{t('A note for Axl about your own voice. It follows this when it drafts posts and replies for you. Only you can see it.')}</p>
+      <textarea
+        value={text}
+        onChange={event => setText(event.target.value)}
+        maxLength={maxLength}
+        rows={4}
+        aria-label={t('How you write')}
+        placeholder={t('For example: short and warm, first names, no exclamation marks, British spelling.')}
+        className='block w-full rounded-lg border-2 border-foreground/20 bg-card text-sm text-foreground p-3 outline-none focus:border-focus resize-y'
+      />
+      <div className='flex items-center gap-3 mt-2'>
+        <button
+          type='button'
+          onClick={save}
+          disabled={saving || !changed}
+          data-testid='assistant-voice-save'
+          className='h-8 px-3 rounded-md bg-selected text-white text-xs font-bold disabled:opacity-50'
+        >
+          {saving ? t('Saving...') : t('Save')}
+        </button>
+        {!changed && saved && !error && (
+          <span className='inline-flex items-center gap-1 text-xs font-bold text-selected' data-testid='assistant-voice-saved'><Check className='w-3.5 h-3.5' strokeWidth={2.5} />{t('Saved')}</span>
+        )}
+        {error && <span className='text-xs text-accent' role='alert'>{error}</span>}
+      </div>
+    </div>
+  )
+}
 
 /**
  * Group Settings, Group Assistant: where stewards turn Axl on, choose what it
@@ -153,6 +208,13 @@ export default function GroupAssistantSettingsTab ({ group }) {
                 ))}
               </div>
             </div>
+
+            <VoiceNote
+              groupId={groupId}
+              saved={assistant.myVoice || ''}
+              maxLength={assistant.myVoiceMaxLength || 1000}
+              onSaved={myVoice => setAssistant(current => ({ ...current, myVoice }))}
+            />
 
             <div>
               <h3 className='m-0 mb-1 text-sm font-bold text-foreground'>{t('Where it runs')}</h3>

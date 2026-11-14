@@ -7,9 +7,10 @@ export const FETCH_GROUP_ASSISTANT = 'FETCH_GROUP_ASSISTANT'
 export const ASK_GROUP_ASSISTANT = 'ASK_GROUP_ASSISTANT'
 export const UPDATE_GROUP_ASSISTANT_SETTINGS = 'UPDATE_GROUP_ASSISTANT_SETTINGS'
 export const MARK_GROUP_ASSISTANT_DRAFT_POSTED = 'MARK_GROUP_ASSISTANT_DRAFT_POSTED'
+export const UPDATE_GROUP_ASSISTANT_VOICE = 'UPDATE_GROUP_ASSISTANT_VOICE'
 
 /**
- * payload.data.groupAssistant: { hasPro, configured, settings, spaces, stewards, messages }
+ * payload.data.groupAssistant: { hasPro, configured, settings, spaces, stewards, messages, myVoice, myVoiceMaxLength }
  */
 export function fetchGroupAssistant (groupId) {
   return {
@@ -53,6 +54,24 @@ export function updateGroupAssistantSettings (groupId, settings) {
         updateGroupAssistantSettings(groupId: $groupId, settings: $settings)
       }`,
       variables: { groupId, settings }
+    },
+    meta: { groupId }
+  }
+}
+
+/**
+ * Saves the viewer's own "How I write" note for this group, which Axl follows
+ * when it drafts for them. Only they ever see it.
+ * payload.data.updateGroupAssistantVoice: { myVoice }
+ */
+export function updateGroupAssistantVoice (groupId, text) {
+  return {
+    type: UPDATE_GROUP_ASSISTANT_VOICE,
+    graphql: {
+      query: `mutation UpdateGroupAssistantVoice ($groupId: ID!, $text: String!) {
+        updateGroupAssistantVoice(groupId: $groupId, text: $text)
+      }`,
+      variables: { groupId, text }
     },
     meta: { groupId }
   }

@@ -3659,6 +3659,9 @@ type Mutation {
   # Saves the assistant's settings: { enabled, followUps, shareLoad, summarize, answerMembers, readableGroupIds }.
   # Fields left out keep their value. Returns the same shape as the groupAssistant query.
   updateGroupAssistantSettings(groupId: ID!, settings: JSON!): JSON
+  # Saves the calling steward's own "How I write" note for this group, used to word drafts written for them.
+  # Only they get it back. Returns { myVoice }.
+  updateGroupAssistantVoice(groupId: ID!, text: String!): JSON
   # Records that the steward posted a draft from the thread, as the post or comment they just made.
   # Returns the updated message.
   markGroupAssistantDraftPosted(messageId: ID!, partIndex: Int!, postId: ID, commentId: ID): JSON

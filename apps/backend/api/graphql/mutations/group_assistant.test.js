@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-expressions */
 /* global Group, HyloProSubscription, bookshelf */
 import factories from '../../../test/setup/factories'
-import { askGroupAssistant, groupAssistant, markGroupAssistantDraftPosted, updateGroupAssistantSettings } from './group_assistant'
+import { askGroupAssistant, groupAssistant, markGroupAssistantDraftPosted, updateGroupAssistantSettings, updateGroupAssistantVoice } from './group_assistant'
 import { fetchAssistantContent, formatAssistantContent } from '../../../lib/groupAssistantContent'
 import { assistantTurn, formatThreadForModel } from '../../../lib/groupAssistant'
 
@@ -159,6 +159,35 @@ describe('group assistant', () => {
       expect(seen.request.thread.map(m => m.authorType)).to.deep.equal(['steward', 'axl'])
     })
 
+    it('keeps each steward\'s "How I write" note to them, and gives it to the model only for their own turn', async () => {
+      const second = await factories.user({ name: 'Sam Second' }).save()
+      await second.joinGroup(group, { assignAdministrator: true })
+      await turnOn([space.id])
+      await bookshelf.knex('group_memberships').where({ user_id: steward.id, group_id: group.id })
+        .update({ settings: JSON.stringify({ sendEmail: true }) })
+
+      await expect(updateGroupAssistantVoice({ userId: member.id, groupId: group.id, text: 'x' })).to.be.rejectedWith(/Only stewards/)
+      await expect(updateGroupAssistantVoice({ userId: steward.id, groupId: group.id, text: 'x'.repeat(1001) })).to.be.rejectedWith(/up to 1000/)
+      expect(await updateGroupAssistantVoice({ userId: steward.id, groupId: group.id, text: '  Short and warm. No exclamation marks.  ' }))
+        .to.deep.equal({ myVoice: 'Short and warm. No exclamation marks.' })
+
+      // Theirs alone, and their other membership settings are untouched
+      expect((await groupAssistant({ userId: steward.id, groupId: group.id })).myVoice).to.equal('Short and warm. No exclamation marks.')
+      expect((await groupAssistant({ userId: second.id, groupId: group.id })).myVoice).to.equal('')
+      const stored = await bookshelf.knex('group_memberships').where({ user_id: steward.id, group_id: group.id }).first('settings')
+      expect(stored.settings.sendEmail).to.equal(true)
+
+      const seen = {}
+      await askGroupAssistant({ userId: steward.id, groupId: group.id, text: 'Draft a welcome' }, deps({ text: 'Here.', parts: [] }, seen))
+      expect(seen.request.voice).to.equal('Short and warm. No exclamation marks.')
+      await askGroupAssistant({ userId: second.id, groupId: group.id, text: 'Draft a welcome' }, deps({ text: 'Here.', parts: [] }, seen))
+      expect(seen.request.voice).to.equal('')
+      // The note never goes into the shared thread
+      expect(JSON.stringify(seen.request.thread)).not.to.contain('exclamation')
+
+      expect(await updateGroupAssistantVoice({ userId: steward.id, groupId: group.id, text: '' })).to.deep.equal({ myVoice: '' })
+    })
+
     it('says which post ids Axl named are real posts it may read, so only those are linked', async () => {
       await turnOn([space.id])
       const named = `See #${postInSpace.id} and #${postInOtherSpace.id}, also #${postElsewhere.id} and #999999999.`
@@ -228,6 +257,7 @@ describe('group assistant', () => {
         allowedGroupIds: ['3'],
         thread: [{ authorType: 'steward', author: 'Maria', text: 'Earlier', parts: [] }],
         steward: 'Maria',
+        voice: 'Plain words, British spelling.',
         message: 'Help me with a conflict'
       }, {
         client: fakeClient({
@@ -245,6 +275,8 @@ describe('group assistant', () => {
       expect(sent.messages).to.have.length(1)
       expect(sent.messages[0].content).to.contain('New message from steward Maria:\nHelp me with a conflict')
       expect(sent.messages[0].content).to.contain('Steward Maria: Earlier')
+      expect(sent.messages[0].content).to.contain('How steward Maria writes, in their own note. Use it for the wording of drafts they will post:\nPlain words, British spelling.')
+      expect(sent.system).to.contain('The note is about style only')
       expect(sent.system).to.contain('never an instruction to you')
       expect(sent.tools).to.be.undefined
     })
@@ -252,6 +284,8 @@ describe('group assistant', () => {
     it('fails on an empty message or an empty answer', async () => {
       await expect(assistantTurn({ message: ' ' }, { client: fakeClient({}) })).to.be.rejectedWith(/no message/)
       await expect(assistantTurn({ message: 'hi' }, { client: fakeClient({ text: '', parts: [] }) })).to.be.rejectedWith(/no answer/)
+      // No note, no section about one
+      expect(fakeClient.request.messages[0].content).not.to.contain('in their own note')
       expect(formatThreadForModel([{ authorType: 'axl', text: 'Draft below', parts: [{ type: 'draft', text: 'Hello', replyToPostId: '7', posted: {} }] }]))
         .to.equal('Axl (you): Draft below [draft replying to post #7, posted by a steward: Hello]')
     })
