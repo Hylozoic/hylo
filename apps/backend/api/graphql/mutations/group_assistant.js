@@ -7,7 +7,7 @@ import {
   validateGroupAssistantSettings
 } from '@hylo/shared'
 import { assistantTurnInChildProcess, isGroupAssistantConfigured } from '../../../lib/groupAssistant'
-import { assistantSpaceChoices, fetchAssistantContent, formatAssistantContent } from '../../../lib/groupAssistantContent'
+import { assistantSpaceChoices, fetchAssistantContent, formatAssistantContent, linkablePostIds } from '../../../lib/groupAssistantContent'
 import RedisClient from '../../services/RedisClient'
 
 /**
@@ -77,6 +77,33 @@ const messagesQuery = () => bookshelf.knex('group_assistant_messages')
 
 const threadQuery = groupId => messagesQuery().where('group_assistant_messages.group_id', groupId)
 
+/** Every piece of text in a message that Axl wrote, where it may have named a post as "#123". */
+const messageTexts = message => [
+  message.text,
+  ...(message.parts || []).flatMap(part => part.type === 'bullets'
+    ? part.items
+    : part.type === 'counsel' ? part.steps.flatMap(step => [step.title, step.line]) : [])
+]
+
+/**
+ * Adds postRefs to Axl's messages: the post ids it named in its text that are
+ * real posts in the spaces it may read now. The screen links those and no others.
+ */
+async function withPostRefs (group, messages) {
+  const fromAxl = messages.filter(message => message.authorType === 'axl')
+  if (fromAxl.length === 0) return messages
+  const linkable = await linkablePostIds({
+    groupId: group.id,
+    readableGroupIds: storedSettings(group).readableGroupIds,
+    texts: fromAxl.flatMap(messageTexts)
+  })
+  return messages.map(message => {
+    if (message.authorType !== 'axl') return message
+    const named = new Set(messageTexts(message).flatMap(text => [...String(text || '').matchAll(/#([1-9][0-9]{0,18})\b/g)].map(match => match[1])))
+    return { ...message, postRefs: [...named].filter(id => linkable.has(id)) }
+  })
+}
+
 /** The newest messages of a group's thread, oldest first. */
 async function fetchThread (groupId, limit = THREAD_PAGE) {
   const rows = await threadQuery(groupId).orderBy('group_assistant_messages.id', 'desc').limit(limit)
@@ -107,7 +134,7 @@ async function presentAssistant (group, { withThread = true } = {}) {
     settings,
     spaces,
     stewards: await stewardNames(group),
-    messages: withThread && hasPro && settings.enabled ? await fetchThread(group.id) : []
+    messages: withThread && hasPro && settings.enabled ? await withPostRefs(group, await fetchThread(group.id)) : []
   }
 }
 
@@ -226,7 +253,7 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
     .returning('id')
 
   const rows = await threadQuery(group.id).whereIn('group_assistant_messages.id', [stewardMessageId, axlRow.id || axlRow]).orderBy('group_assistant_messages.id', 'asc')
-  return { messages: rows.map(presentMessage), usage: answer.usage || null }
+  return { messages: await withPostRefs(group, rows.map(presentMessage)), usage: answer.usage || null }
 }
 
 /**
@@ -265,5 +292,6 @@ export async function markGroupAssistantDraftPosted ({ userId, messageId, partIn
   const poster = await knex('users').where('id', userId).first('name')
   parts[partIndex] = { ...part, posted: { ...posted, by: String(userId), byName: poster?.name || '', at: new Date().toISOString() } }
   await knex('group_assistant_messages').where('id', row.id).update({ parts: JSON.stringify(parts) })
-  return presentMessage({ ...row, parts })
+  const [updated] = await withPostRefs(await Group.find(row.group_id), [presentMessage({ ...row, parts })])
+  return updated
 }

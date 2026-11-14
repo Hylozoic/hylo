@@ -149,6 +149,7 @@ describe('group assistant', () => {
       expect(answered.parts[0]).to.include({ postId: String(postInSpace.id), author: 'Ned Member', space: 'Discussion', title: 'Tool library hours' })
       expect(answered.parts[1]).to.include({ replyToPostId: String(postInSpace.id), replyToTitle: 'Tool library hours' })
       expect(result.usage.estimatedCostUsd).to.equal(0.01)
+      expect(answered.postRefs).to.deep.equal([])
 
       const state = await groupAssistant({ userId: steward.id, groupId: group.id })
       expect(state.messages.map(m => m.authorType)).to.deep.equal(['steward', 'axl'])
@@ -156,6 +157,25 @@ describe('group assistant', () => {
       // The next turn is given the thread so far
       await askGroupAssistant({ userId: steward.id, groupId: group.id, text: 'Thanks' }, deps({ text: 'Any time.', parts: [] }, seen))
       expect(seen.request.thread.map(m => m.authorType)).to.deep.equal(['steward', 'axl'])
+    })
+
+    it('says which post ids Axl named are real posts it may read, so only those are linked', async () => {
+      await turnOn([space.id])
+      const named = `See #${postInSpace.id} and #${postInOtherSpace.id}, also #${postElsewhere.id} and #999999999.`
+      const { messages } = await askGroupAssistant({ userId: steward.id, groupId: group.id, text: 'What is open?' }, deps({
+        text: named,
+        parts: [{ type: 'bullets', items: [`Tool hours (#${postInSpace.id}) has a reply`, `DM #${directMessage.id}`] }]
+      }))
+      expect(messages[0].postRefs).to.be.undefined
+      expect(messages[1].postRefs).to.deep.equal([String(postInSpace.id)])
+
+      // Reading the thread again follows the current list of spaces
+      await turnOn([space.id, otherSpace.id])
+      const wider = await groupAssistant({ userId: steward.id, groupId: group.id })
+      expect(wider.messages[1].postRefs.sort()).to.deep.equal([String(postInSpace.id), String(postInOtherSpace.id)].sort())
+      await turnOn([])
+      const none = await groupAssistant({ userId: steward.id, groupId: group.id })
+      expect(none.messages[1].postRefs).to.deep.equal([])
     })
 
     it('keeps the steward message when the answer fails, and refuses empty or huge messages', async () => {

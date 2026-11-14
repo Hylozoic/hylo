@@ -141,6 +141,30 @@ export async function fetchAssistantContent ({ group, readableGroupIds, now = ne
   return { spaces, about, agreements, posts, postsRead: posts.length + commentRows.length }
 }
 
+/**
+ * Which of the post ids Axl wrote as "#123" in these messages are real posts
+ * in the spaces it may read right now, so the screen can link them. An id that
+ * is anything else (made up, another group's, a space since removed) is left
+ * as plain text. Returns a Set of id strings.
+ */
+export async function linkablePostIds ({ groupId, readableGroupIds, texts }) {
+  const mentioned = new Set()
+  for (const text of texts || []) {
+    for (const match of String(text || '').matchAll(/#([1-9][0-9]{0,18})\b/g)) mentioned.add(match[1])
+  }
+  if (mentioned.size === 0) return mentioned
+  const spaceIds = (await readableSpaces(groupId, readableGroupIds)).map(space => space.id)
+  if (spaceIds.length === 0) return new Set()
+  const rows = await bookshelf.knex('posts')
+    .join('groups_posts', 'groups_posts.post_id', 'posts.id')
+    .whereIn('groups_posts.group_id', spaceIds)
+    .whereIn('posts.id', [...mentioned].slice(0, 500))
+    .where('posts.active', true)
+    .whereNot('posts.type', 'thread')
+    .select('posts.id')
+  return new Set(rows.map(row => String(row.id)))
+}
+
 const ago = days => days === 0 ? 'today' : days === 1 ? '1 day ago' : `${days} days ago`
 
 /**
