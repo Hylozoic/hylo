@@ -1,3 +1,5 @@
+import { GROUP_ASSISTANT } from 'config/featureFlags'
+import { hasFeature } from 'store/models/Me'
 import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
 import { ChevronLeft } from 'lucide-react'
@@ -66,6 +68,7 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
     canAdminister && { title: 'Export Data', url: 'settings/export' },
     canAdminister && { title: 'Appearance & Layout', url: 'settings/appearance' },
     canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
+    canAdminister && !isSpace && hasFeature(GROUP_ASSISTANT) && { title: 'Group Assistant', url: 'settings/assistant' },
     canAdminister && !isSpace && hyloProEnabled && { title: 'Billing', url: 'settings/billing' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers, isSpace, hyloProEnabled])
