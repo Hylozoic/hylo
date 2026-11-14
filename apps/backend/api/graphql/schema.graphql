@@ -3566,6 +3566,9 @@ type Mutation {
   # Saves the calling steward's own "How I write" note for this group, used to word drafts written for them.
   # Only they get it back. Returns { myVoice }.
   updateGroupAssistantVoice(groupId: ID!, text: String!): JSON
+  # Saves a change to their "How I write" note that the assistant offered the calling steward in the thread,
+  # as offered or as they edited it (text). Returns { message, myVoice }.
+  saveGroupAssistantVoiceNote(messageId: ID!, partIndex: Int!, text: String): JSON
   # Records that the steward posted a draft from the thread, as the post or comment they just made.
   # Returns the updated message.
   markGroupAssistantDraftPosted(messageId: ID!, partIndex: Int!, postId: ID, commentId: ID): JSON

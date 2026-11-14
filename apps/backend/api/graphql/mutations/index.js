@@ -50,6 +50,7 @@ export {
   askGroupAssistant,
   groupAssistant,
   markGroupAssistantDraftPosted,
+  saveGroupAssistantVoiceNote,
   updateGroupAssistantSettings,
   updateGroupAssistantVoice
 } from './group_assistant'

@@ -12,7 +12,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import createComment from 'store/actions/createComment'
 import createPost from 'store/actions/createPost'
 import joinSpace from 'store/actions/joinSpace'
-import { askGroupAssistant, fetchGroupAssistant, markGroupAssistantDraftPosted } from 'store/actions/groupAssistant'
+import { askGroupAssistant, fetchGroupAssistant, markGroupAssistantDraftPosted, saveGroupAssistantVoiceNote } from 'store/actions/groupAssistant'
 import { hasFeature } from 'store/models/Me'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
@@ -119,6 +119,14 @@ export default function GroupAssistant () {
     setMessages(current => current.map(item => item.id === updated.id ? updated : item))
   }, [dispatch, groupId, t])
 
+  // "Save to my note": the change Axl offered to the steward's own "How you write" note, as they left it
+  const saveVoiceNote = useCallback(async (message, partIndex, text) => {
+    const response = await dispatch(saveGroupAssistantVoiceNote({ messageId: message.id, partIndex, text }))
+    const updated = response?.payload?.data?.saveGroupAssistantVoiceNote?.message
+    if (response?.error || !updated) throw response?.payload || new Error(t('Something went wrong. Please try again.'))
+    setMessages(current => current.map(item => item.id === updated.id ? updated : item))
+  }, [dispatch, t])
+
   if (!hasFeature(GROUP_ASSISTANT)) return null
   if (!group || (!assistant && !loadError)) return <Loading />
 
@@ -193,7 +201,7 @@ export default function GroupAssistant () {
             </div>
           )}
           {messages.map(message => (
-            <AssistantMessage key={message.id} message={message} currentUserId={currentUser?.id} postUrl={postUrl} onPostDraft={postDraft} />
+            <AssistantMessage key={message.id} message={message} currentUserId={currentUser?.id} postUrl={postUrl} onPostDraft={postDraft} onSaveVoiceNote={saveVoiceNote} />
           ))}
           {sending && (
             <div className='flex gap-3 items-center py-2.5' role='status' aria-label={t('Axl is thinking')} data-testid='assistant-typing'>
