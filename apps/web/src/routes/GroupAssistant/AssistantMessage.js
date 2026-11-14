@@ -14,6 +14,21 @@ import AxlAvatar from './AxlAvatar'
  * markup, so they are drawn here from their fields.
  */
 
+/**
+ * Text from Axl with the posts it names as "#123" turned into links that open
+ * the post over the thread. Only ids the server confirmed (message.postRefs)
+ * are linked; any other "#123" stays plain text.
+ */
+function WithPostLinks ({ text, postRefs, postUrl }) {
+  const linkable = new Set(postRefs || [])
+  if (!text || linkable.size === 0) return text || null
+  return String(text).split(/(#[1-9][0-9]{0,18}\b)/).map((piece, index) =>
+    index % 2 === 1 && linkable.has(piece.slice(1))
+      ? <Link key={index} to={postUrl(piece.slice(1))} data-testid='assistant-post-link' className='font-semibold text-selected hover:underline'>{piece}</Link>
+      : piece
+  )
+}
+
 const cardClass = 'rounded-lg border-2 border-foreground/15 bg-card text-card-foreground'
 
 function QuotedPost ({ part, postUrl }) {
@@ -37,7 +52,7 @@ function QuotedPost ({ part, postUrl }) {
   )
 }
 
-function Counsel ({ part }) {
+function Counsel ({ part, postRefs, postUrl }) {
   return (
     <ol className='m-0 p-0 list-none grid gap-2' data-testid='assistant-counsel'>
       {part.steps.map((step, index) => (
@@ -45,7 +60,7 @@ function Counsel ({ part }) {
           <span className='grid place-items-center w-6 h-6 shrink-0 rounded-md bg-accent/20 text-accent text-xs font-extrabold'>{index + 1}</span>
           <span className='min-w-0'>
             <span className='block text-sm font-bold text-foreground'>{step.title}</span>
-            {step.line && <span className='block text-sm text-foreground/70'>{step.line}</span>}
+            {step.line && <span className='block text-sm text-foreground/70'><WithPostLinks text={step.line} postRefs={postRefs} postUrl={postUrl} /></span>}
           </span>
         </li>
       ))}
@@ -133,7 +148,7 @@ export default function AssistantMessage ({ message, currentUserId, postUrl, onP
           {isAxl && <span className='text-[10.5px] font-bold text-foreground/60 bg-foreground/10 px-1.5 py-px rounded'>{t('Assistant')}</span>}
           <span className='text-xs text-foreground/50'>{time}</span>
         </div>
-        {message.text && <p className='m-0 text-sm leading-relaxed text-foreground/85 whitespace-pre-wrap break-words'>{message.text}</p>}
+        {message.text && <p className='m-0 text-sm leading-relaxed text-foreground/85 whitespace-pre-wrap break-words'><WithPostLinks text={message.text} postRefs={message.postRefs} postUrl={postUrl} /></p>}
         {(message.parts || []).length > 0 && (
           <div className='grid gap-2 mt-2.5'>
             {message.parts.map((part, index) => {
@@ -141,11 +156,11 @@ export default function AssistantMessage ({ message, currentUserId, postUrl, onP
                 case 'quotedPost':
                   return <QuotedPost key={index} part={part} postUrl={postUrl} />
                 case 'counsel':
-                  return <Counsel key={index} part={part} />
+                  return <Counsel key={index} part={part} postRefs={message.postRefs} postUrl={postUrl} />
                 case 'bullets':
                   return (
                     <ul key={index} className='m-0 pl-5 list-disc text-sm leading-relaxed text-foreground/80' data-testid='assistant-bullets'>
-                      {part.items.map((item, itemIndex) => <li key={itemIndex}>{item}</li>)}
+                      {part.items.map((item, itemIndex) => <li key={itemIndex}><WithPostLinks text={item} postRefs={message.postRefs} postUrl={postUrl} /></li>)}
                     </ul>
                   )
                 case 'draft':

@@ -44,9 +44,10 @@ const answer = {
             { title: 'Hold the agreement lightly', line: 'Point to your “disagree with curiosity” agreement rather than to either person.' }
           ]
         },
-        { type: 'bullets', items: ['Two posts have no reply yet', 'One newcomer has not been welcomed'] },
+        { type: 'bullets', items: ['Two posts have no reply yet (#424242)', 'One newcomer has not been welcomed (#515151)'] },
         { type: 'draft', text: 'Thank you both for pushing on this.\n\nLet’s keep both views in sight.', title: 'On the regenerative thread', groupId: '1', space: 'E2E Public Group' }
       ],
+      postRefs: ['424242'],
       createdAt: now
     }
   ],
@@ -125,6 +126,12 @@ test.describe('group assistant', () => {
     await expect(page.getByTestId('assistant-message-steward')).toContainText('Help me with a conflict')
     await expect(page.getByTestId('assistant-counsel').locator('li')).toHaveCount(3)
     await expect(page.getByTestId('assistant-bullets').locator('li')).toHaveCount(2)
+    // A post id the server confirmed is a link that opens the post over the thread; any other stays text
+    const postLinks = page.getByTestId('assistant-post-link')
+    await expect(postLinks).toHaveCount(1)
+    await expect(postLinks).toHaveText('#424242')
+    await expect(postLinks).toHaveAttribute('href', `/groups/${GROUP_SLUG}/assistant/post/424242`)
+    await expect(page.getByTestId('assistant-bullets')).toContainText('#515151')
     const draft = page.getByTestId('assistant-draft')
     await expect(draft).toContainText('Draft · posts as you in E2E Public Group')
     await expect(draft.getByRole('textbox', { name: 'Draft' })).toHaveValue(/Thank you both/)
