@@ -1,6 +1,9 @@
 export const PROJECT_CONTRIBUTIONS = 'PROJECT_CONTRIBUTIONS'
 // Members sending invitations: the "Who can add new members?" controls
 export const MEMBER_INVITES = 'MEMBER_INVITES'
+
+export const GROUP_ASSISTANT = 'GROUP_ASSISTANT'
+
 // Hylo Pro billing: the group Billing settings tab
 export const HYLO_PRO = 'HYLO_PRO'
 

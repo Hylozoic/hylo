@@ -208,6 +208,8 @@ Group.fields = {
   peerGroups: many('Group'),
   feedOrder: attr(),
   geoShape: attr(),
+  hasPro: attr(),
+  assistantEnabled: attr(),
   groupToGroupJoinQuestions: many('GroupToGroupJoinQuestion'),
   groupRoles: attr(),
   groupViews: attr(),
