@@ -3833,5 +3833,14 @@
   "Add an image, PDF or post": "Ajouter une image, un PDF ou une publication",
   "Add a post from this group": "Ajouter une publication de ce groupe",
   "Search for a post in this group to build the page around.": "Recherchez une publication de ce groupe autour de laquelle construire la page.",
-  "This post is no longer available.": "Cette publication n'est plus disponible."
+  "This post is no longer available.": "Cette publication n'est plus disponible.",
+  "Bar chart": "Graphique en barres",
+  "Line chart": "Graphique linéaire",
+  "Pie chart": "Graphique circulaire",
+  "Source: {{source}}": "Source : {{source}}",
+  "Show the figures": "Afficher les chiffres",
+  "Item": "Élément",
+  "Value": "Valeur",
+  "Share of total": "Part du total",
+  "Add an image or PDF": "Ajouter une image ou un PDF"
 }

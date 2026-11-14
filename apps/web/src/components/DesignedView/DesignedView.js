@@ -8,6 +8,7 @@ import RoundImage from 'components/RoundImage'
 import { cn } from 'util/index'
 import DesignedCanvas from './DesignedCanvas'
 import DesignedPostPart from './DesignedPostPart'
+import DesignedChart from './DesignedChart'
 import useDesignedViewBlockData from './useDesignedViewBlockData'
 
 /**
@@ -254,6 +255,8 @@ function Block ({ block, groupSlug }) {
       return <ButtonBlock block={block} groupSlug={groupSlug} />
     case 'divider':
       return <hr data-block='divider' className='border-0 border-t-2 border-foreground/10 m-0' />
+    case 'chart':
+      return <DesignedChart block={block} />
     case 'columns':
       return (
         <div

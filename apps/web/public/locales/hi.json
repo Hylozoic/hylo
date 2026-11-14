@@ -3832,5 +3832,14 @@
   "Add an image, PDF or post": "चित्र, PDF या पोस्ट जोड़ें",
   "Add a post from this group": "इस समूह की कोई पोस्ट जोड़ें",
   "Search for a post in this group to build the page around.": "इस समूह की वह पोस्ट खोजें जिसके इर्द-गिर्द पेज बनाना है।",
-  "This post is no longer available.": "यह पोस्ट अब उपलब्ध नहीं है।"
+  "This post is no longer available.": "यह पोस्ट अब उपलब्ध नहीं है।",
+  "Bar chart": "बार चार्ट",
+  "Line chart": "लाइन चार्ट",
+  "Pie chart": "पाई चार्ट",
+  "Source: {{source}}": "स्रोत: {{source}}",
+  "Show the figures": "आँकड़े दिखाएँ",
+  "Item": "मद",
+  "Value": "मान",
+  "Share of total": "कुल में हिस्सा",
+  "Add an image or PDF": "चित्र या PDF जोड़ें"
 }

@@ -32,7 +32,7 @@ A designed view is data, never HTML, CSS or code. It is stored in the view's exi
 }
 ```
 
-Blocks: `hero`, `heading`, `text`, `image`, `callout`, `posts`, `events`, `members`, `button`, `divider`, `canvas`, and `columns` (2 or 3 columns of the others; no nesting). The `posts`, `events` and `members` blocks load the group's live content when the page is shown. A `button` leads to a named place in the group or an `https://` address. Posts and events in the live lists open in the post dialog over the page, as in other views.
+Blocks: `hero`, `heading`, `text`, `image`, `callout`, `posts`, `events`, `members`, `button`, `divider`, `chart`, `canvas`, and `columns` (2 or 3 columns of the others; no nesting). The `posts`, `events` and `members` blocks load the group's live content when the page is shown. A `button` leads to a named place in the group or an `https://` address. Posts and events in the live lists open in the post dialog over the page, as in other views.
 
 The definition is `packages/shared/src/DesignedViewHelpers.js`: `validateDesignedView` (strict, used on save), `sanitizeDesignedView` (lenient, used when showing a page, so one bad block cannot blank it) and `designedViewJsonSchema` (what the model fills in). To add a block type, add it to `DESIGNED_VIEW_BLOCKS` there, draw it in `apps/web/src/components/DesignedView/DesignedView.js`, and describe it in the system prompt in `apps/backend/lib/designedViewDesign.js`.
 
@@ -45,6 +45,22 @@ The definition is `packages/shared/src/DesignedViewHelpers.js`: `validateDesigne
 The `posts` block has an optional `search` field (words the posts mention), which is how the AI groups posts by theme: it picks the words from the group's recent post titles. This uses the same search as the rest of Hylo, so it matches words, not meaning.
 
 Drawn by `apps/web/src/components/DesignedView/DesignedCanvas.js`. The regions sit in an ordinary CSS grid, so each takes the height its content needs, and panning and zooming transform the grid as a whole.
+
+## Charts
+
+`chart` is a bar, line or pie chart of figures the steward supplied, typed in the chat or read from an attached PDF or image. The block is data only: `kind` (`bar`, `line` or `pie`), a `title` (with any unit in brackets, "Harvest by month (lbs)"), an optional `source` shown under the chart, and 2 to 24 `points`, each `{ label, value }` with a label of up to 40 characters and a finite number. A pie has at most 8 slices, none negative. Charts can go anywhere other leaf blocks can: the page, columns and canvas regions.
+
+```json
+{ "type": "chart", "kind": "bar", "title": "Harvest by month (lbs)", "source": "From your message",
+  "points": [{ "label": "June", "value": 120 }, { "label": "July", "value": 310 }] }
+```
+
+- **Hylo draws it.** `apps/web/src/components/DesignedView/DesignedChart.js` renders SVG in React, using D3 only for scales and shapes, in the theme's accent, selected and foreground colours. It measures its width, so it fits a phone or a canvas region; bar charts switch to one row per bar when labels would not fit side by side. The value axis always starts at zero. Each chart has an `aria-label` listing its figures and a "Show the figures" table.
+- **The model writes points as text.** Any list inside the chart block made the response schema too large for structured output ("compiled grammar is too large"), and so did more than four chart fields. The schema therefore gives `points` as a string, one `label | value` per line, and the model is shown the current design the same way. `designedViewFromModel` (in `DesignedViewHelpers.js`) parses it back into points before validation; a value that is not a plain number (`120`, `1,200`, `-3.5`) fails the turn. For the same reason there are no separate axis or unit fields.
+- **Only real figures.** Axl is told to chart only numbers the steward gave or that appear in an attachment, never to invent or estimate any, to copy them exactly, and to say in its reply which figures it used and where they came from.
+- **A snapshot.** A chart does not update and cannot show the group's live activity.
+
+**The schema is at its size limit.** With the chart block, a four-field leaf block is roughly all the room left: a fifth chart field was rejected. A new block type, or a new field on an existing one, will probably need the schema slimmed first (for example sending fewer optional fields to the model, or a smaller anyOf).
 
 ## Attachments Axl can read
 
