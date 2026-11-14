@@ -1,4 +1,5 @@
 import {
+  nameAfterTurn,
   EMPTY_USAGE_TOTAL,
   addDesignImage,
   addDesignUsage,
@@ -34,6 +35,15 @@ describe('designerSession', () => {
     const one = addDesignUsage(EMPTY_USAGE_TOTAL, { inputTokens: 4000, outputTokens: 500, estimatedCostUsd: 0.026 })
     expect(one).toEqual({ count: 1, tokens: 4500, costUsd: 0.026, costKnown: true })
     expect(addDesignUsage(one, { inputTokens: 10, outputTokens: 1, estimatedCostUsd: null }).costKnown).toBe(false)
+  })
+})
+
+describe('nameAfterTurn', () => {
+  it('takes the suggested name only when the steward has none of their own', () => {
+    expect(nameAfterTurn({ name: '', nameEdited: false }, ' Garden at a Glance ')).toEqual('Garden at a Glance')
+    expect(nameAfterTurn({ name: 'Start Here', nameEdited: false }, 'Something else')).toEqual('Start Here')
+    expect(nameAfterTurn({ name: 'Mine', nameEdited: true }, 'Something else')).toEqual('Mine')
+    expect(nameAfterTurn({ name: '', nameEdited: false }, undefined)).toEqual('')
   })
 })
 

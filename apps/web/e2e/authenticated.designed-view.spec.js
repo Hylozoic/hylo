@@ -24,6 +24,7 @@ const HERO_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="6
 
 const turn = {
   reply: 'I made a welcome page with the latest posts and the members.',
+  name: 'Welcome Page',
   view: {
     version: 1,
     blocks: [
@@ -106,8 +107,15 @@ test.describe('designed views', () => {
     await expect(chat.locator('[data-role="assistant"]').first()).toContainText('Hey there! What do you want to build today?')
     await expect(chat.locator('[data-role="assistant"]').first()).toContainText('Axl')
     await expect(chat.getByRole('button', { name: 'Make some suggestions' })).toBeVisible()
-    await expect(page.getByTestId('designer-canvas')).toContainText('Your page will appear here')
-    await expect(page.getByTestId('designer-usage')).toContainText('Each message costs about $0.03')
+    // Before anything is designed, the main column asks what to build, centred in the space
+    const empty = page.getByTestId('designer-empty')
+    await expect(empty).toContainText('What do you want to build?')
+    await expect(empty).toContainText('Describe what you need in the chat')
+    const emptyBox = await empty.locator('h2').boundingBox()
+    const viewportSize = page.viewportSize()
+    expect(Math.abs((emptyBox.y + emptyBox.height / 2) - viewportSize.height / 2)).toBeLessThan(viewportSize.height * 0.15)
+    // The running cost starts at nothing
+    await expect(page.getByTestId('designer-usage')).toHaveText('$0.00')
     await expect(chat.getByRole('button', { name: 'Add to menu' })).toBeDisabled()
     await expect(chat.getByRole('button', { name: 'Add image' })).toBeEnabled()
 
@@ -115,10 +123,11 @@ test.describe('designed views', () => {
     await chat.getByTestId('designer-suggest-views').click()
     await expect(chat.getByTestId('designer-suggestion')).toHaveCount(2, uiTimeout)
     await expect(chat.getByTestId('designer-suggestions')).toContainText('Requests are piling up')
-    await expect(page.getByTestId('designer-usage')).toContainText('Last message: 1,507 input and 1,411 output tokens')
+    await expect(page.getByTestId('designer-usage')).toHaveText('$0.03')
     await page.screenshot({ path: 'e2e-screenshots/designed-view-0-suggestions.png' })
     await chat.getByTestId('designer-suggestion').first().getByRole('button', { name: 'Design this' }).click()
-    await expect(chat.getByLabel('Name in the menu')).toHaveValue('Start Here')
+    // The suggestion's name is kept; the name the AI offers with the design does not replace it
+    await expect(page.getByTestId('designer-view-name')).toHaveText('Start Here')
 
     // The reply lands in the chat and the page is drawn in the main column
     await expect(chat).toContainText(turn.reply, uiTimeout)
@@ -130,12 +139,20 @@ test.describe('designed views', () => {
     await expect(heroImage).toHaveAttribute('src', HERO_IMAGE)
     await expect.poll(() => heroImage.evaluate(img => img.complete && img.naturalWidth > 0), uiTimeout).toBe(true)
     await expect(canvas.locator('[data-block="members"] a').first()).toBeVisible(uiTimeout)
-    await expect(page.getByTestId('designer-usage')).toContainText('Last message: 4,411 input and 551 output tokens, about $0.029')
-    await expect(page.getByTestId('designer-usage')).toContainText('Messages in this design: 2, using 7,880 tokens')
+    // The suggestion call and the design turn add up in the pill; the detail is in its tooltip
+    await expect(page.getByTestId('designer-usage')).toHaveText('$0.06')
+    await expect(page.getByTestId('designer-usage')).toHaveAttribute('title', /Messages in this design: 2, using 7,880 tokens/)
     await page.screenshot({ path: 'e2e-screenshots/designed-view-1-designer.png' })
 
+    await expect(page.getByTestId('designer-view-name')).toHaveText('Start Here')
+
+    // Clicking the name in the main column renames the view
+    await page.getByTestId('designer-view-name').click()
+    await page.getByTestId('designer-view-name-input').fill(VIEW_NAME)
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('designer-view-name')).toHaveText(VIEW_NAME)
+
     // Saving adds it to the group's menu
-    await chat.getByLabel('Name in the menu').fill(VIEW_NAME)
     await chat.getByRole('button', { name: 'Add to menu' }).click()
     await expect(page).toHaveURL(/\/designed\/\d+/, uiTimeout)
     await expect(page.getByTestId('designer-chat-column')).toHaveCount(0)
@@ -161,7 +178,7 @@ test.describe('designed views', () => {
     await expect(page.getByTestId('designed-view').getByRole('heading', { level: 1, name: 'Welcome to the group' })).toBeVisible(uiTimeout)
     await page.getByTestId('designed-view-edit').click()
     await expect(page.getByTestId('designer-chat-column')).toBeVisible(uiTimeout)
-    await expect(page.getByTestId('designer-chat-column').getByLabel('Name in the menu')).toHaveValue(VIEW_NAME)
+    await expect(page.getByTestId('designer-view-name')).toHaveText(VIEW_NAME)
     // The images a saved page uses are offered again for further changes
     await expect(page.getByTestId('designer-image')).toHaveCount(1)
     await expect(page.getByTestId('designer-canvas').getByRole('heading', { level: 1, name: 'Welcome to the group' })).toBeVisible()
@@ -170,6 +187,7 @@ test.describe('designed views', () => {
   test('draws an infinite canvas that can be zoomed and dragged', async ({ page }) => {
     const canvasTurn = {
       reply: 'I made a canvas with a region for each kind of activity.',
+      name: 'Group at a Glance',
       view: {
         version: 1,
         blocks: [
@@ -197,11 +215,16 @@ test.describe('designed views', () => {
     await waitPastRootSessionLoading(page)
     const chat = page.getByTestId('designer-chat-column')
     await expect(chat).toBeVisible(uiTimeout)
-    await chat.getByLabel('Message').fill('Make an infinite canvas of everything in the group')
+    await chat.getByRole('textbox', { name: 'Message' }).fill('Make an infinite canvas of everything in the group')
     await chat.getByRole('button', { name: 'Send' }).click()
 
     const canvas = page.getByTestId('designer-canvas')
     await expect(canvas.getByTestId('designed-canvas-region')).toHaveCount(4, uiTimeout)
+    // With no name of the steward's own, the first design names the view
+    await expect(page.getByTestId('designer-view-name')).toHaveText('Group at a Glance')
+    // The whole name fits in the header
+    expect(await page.getByTestId('designer-view-name').locator('span').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    await expect(chat.getByRole('button', { name: 'Add to menu' })).toBeEnabled()
     await expect(canvas.locator('[data-block="members"] a').first()).toBeVisible(uiTimeout)
     // The search-filtered region only lists posts that mention the word
     const searched = canvas.getByTestId('designed-canvas-region').nth(1)
@@ -255,7 +278,7 @@ test.describe('designed views', () => {
 
     const chat = page.getByTestId('designer-chat-column')
     await expect(chat.getByTestId('designer-pro-notice')).toContainText('Designed views are part of Hylo Pro', uiTimeout)
-    await expect(chat.getByLabel('Message')).toBeDisabled()
+    await expect(chat.getByRole('textbox', { name: 'Message' })).toBeDisabled()
     await page.screenshot({ path: 'e2e-screenshots/designed-view-3-without-pro.png' })
 
     const refused = await page.evaluate(async slug => {
