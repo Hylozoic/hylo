@@ -83,8 +83,9 @@ test.describe('group assistant', () => {
     await expect(page.getByTestId('assistant-unavailable')).toContainText('turned off', uiTimeout)
 
     // Turn it on in Group Settings; the group's own posts are chosen to start with
-    await page.goto(`/groups/${GROUP_SLUG}/settings/assistant`)
+    await page.goto(`/groups/${GROUP_SLUG}/settings`)
     await waitPastRootSessionLoading(page)
+    await page.getByRole('link', { name: 'Group Assistant' }).first().click(uiTimeout)
     const settings = page.getByTestId('assistant-settings')
     await expect(settings).toBeVisible(uiTimeout)
     await expect(settings.getByTestId('assistant-space')).toHaveCount(0)
