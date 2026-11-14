@@ -56,10 +56,10 @@ export default function fetchDesignedViewBlockData (groupSlug, block) {
     }`
     variables = { slug: groupSlug, first, afterTime: new Date().toISOString() }
   } else {
-    query = `query DesignedViewPosts ($slug: String, $first: Int, $types: [String]) {
+    query = `query DesignedViewPosts ($slug: String, $first: Int, $types: [String], $search: String) {
       group(slug: $slug) {
         id
-        posts(first: $first, types: $types, sortBy: "created", order: "desc") {
+        posts(first: $first, types: $types, search: $search, sortBy: "created", order: "desc") {
           items {${postFields}}
         }
       }
@@ -68,7 +68,7 @@ export default function fetchDesignedViewBlockData (groupSlug, block) {
     const types = block.postTypes?.length > 0
       ? block.postTypes
       : ['discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource']
-    variables = { slug: groupSlug, first, types }
+    variables = { slug: groupSlug, first, types, search: block.search || null }
   }
 
   return {

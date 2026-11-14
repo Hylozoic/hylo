@@ -12,7 +12,7 @@ export function clearDesignedViewBlockDataCache () {
 }
 
 function cacheKey (groupSlug, block) {
-  return JSON.stringify([groupSlug, block.type, block.limit, block.postTypes || null])
+  return JSON.stringify([groupSlug, block.type, block.limit, block.postTypes || null, block.search || null])
 }
 
 /**

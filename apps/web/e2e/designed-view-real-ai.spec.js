@@ -30,11 +30,12 @@ test('capture screenshot designed view real ai', async ({ page }) => {
 
     const canvas = page.getByTestId('designer-canvas')
     await expect(canvas.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 120000 })
-    await expect(chat.locator('[data-role="assistant"]')).toHaveCount(1)
+    // Axl's greeting, then the reply to this message
+    await expect(chat.locator('[data-role="assistant"]')).toHaveCount(2)
     await expect(page.getByTestId('designer-usage')).toContainText('Last message:')
     await expect(canvas.locator('[data-block="posts"]').first()).toBeVisible()
     await page.screenshot({ path: 'e2e-screenshots/designed-view-real-ai.png' })
-    console.log('[real ai] reply:', await chat.locator('[data-role="assistant"]').innerText())
+    console.log('[real ai] reply:', await chat.locator('[data-role="assistant"]').last().innerText())
     console.log('[real ai] usage:', (await page.getByTestId('designer-usage').innerText()).replace(/\n/g, ' | '))
   } finally {
     revokeHyloPro(PRO_NOTE)

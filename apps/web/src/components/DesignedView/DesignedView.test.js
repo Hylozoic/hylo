@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import DesignedView from './DesignedView'
 
 const mockBlockData = jest.fn()
@@ -89,6 +89,40 @@ describe('DesignedView', () => {
     expect(document.querySelector('[data-block="hero"] img').getAttribute('src')).toEqual('https://uploads.example.org/garden.jpg')
     expect(screen.getByRole('img', { name: 'Garden tools' }).getAttribute('src')).toEqual('https://uploads.example.org/tools.jpg')
     expect(screen.getByText('The shed')).toBeInTheDocument()
+  })
+
+  it('draws a canvas of regions that can be zoomed and moved', () => {
+    render(
+      <DesignedView
+        groupSlug='garden'
+        design={{
+          blocks: [{
+            type: 'canvas',
+            regions: [
+              { title: 'Compost', note: 'Turning and bins', tone: 'accent', col: 0, row: 0, blocks: [{ type: 'posts', search: 'compost', limit: 3 }] },
+              { title: 'People', col: 2, row: 1, blocks: [{ type: 'members', limit: 4 }] }
+            ]
+          }]
+        }}
+      />
+    )
+    const regions = screen.getAllByTestId('designed-canvas-region')
+    expect(regions).toHaveLength(2)
+    expect(screen.getByRole('heading', { level: 2, name: 'Compost' })).toBeInTheDocument()
+    expect(screen.getByText('Turning and bins')).toBeInTheDocument()
+    expect(regions[1].style.gridColumn).toEqual('3')
+    expect(regions[1].style.gridRow).toEqual('2')
+    expect(screen.getByTestId('designed-canvas-surface').style.gridTemplateColumns).toEqual('repeat(3, 360px)')
+    expect(mockBlockData).toHaveBeenCalledWith('garden', expect.objectContaining({ type: 'posts', search: 'compost' }))
+
+    expect(screen.getByTestId('designed-canvas-zoom')).toHaveTextContent('100%')
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }))
+    expect(screen.getByTestId('designed-canvas-zoom')).toHaveTextContent('80%')
+    expect(screen.getByTestId('designed-canvas-surface').style.transform).toContain('scale(0.8)')
+
+    const viewport = screen.getByTestId('designed-canvas-viewport')
+    fireEvent.keyDown(viewport, { key: 'ArrowRight' })
+    expect(screen.getByTestId('designed-canvas-surface').style.transform).toContain('translate(-80px, 0px)')
   })
 
   it('drops blocks it does not know and never renders stored markup', () => {

@@ -6,6 +6,7 @@ import { sanitizeDesignedView } from '@hylo/shared'
 import { groupUrl, personUrl, postUrl } from '@hylo/navigation'
 import RoundImage from 'components/RoundImage'
 import { cn } from 'util/index'
+import DesignedCanvas from './DesignedCanvas'
 import useDesignedViewBlockData from './useDesignedViewBlockData'
 
 /**
@@ -263,6 +264,13 @@ function Block ({ block, groupSlug }) {
           ))}
         </div>
       )
+    case 'canvas':
+      return (
+        <DesignedCanvas
+          block={block}
+          renderBlock={(inner, index) => <Block key={index} block={inner} groupSlug={groupSlug} />}
+        />
+      )
     default:
       return null
   }
@@ -272,6 +280,9 @@ export default function DesignedView ({ design, groupSlug, className, postUrlFor
   const { t } = useTranslation()
   const view = useMemo(() => sanitizeDesignedView(design), [design])
 
+  // A canvas wants all the room it can get; ordinary pages keep a comfortable reading width
+  const hasCanvas = !!view?.blocks.some(block => block.type === 'canvas')
+
   if (!view) {
     return <p className='text-foreground/60 p-4' data-testid='designed-view-empty'>{t('This page has no content yet')}</p>
   }
@@ -279,7 +290,7 @@ export default function DesignedView ({ design, groupSlug, className, postUrlFor
   return (
     <PostLinkContext.Provider value={postUrlFor}>
       <div className={cn('w-full', className)} data-testid='designed-view'>
-        <div className='flex flex-col gap-4 w-full max-w-[960px] mx-auto p-4 text-foreground'>
+        <div className={cn('flex flex-col gap-4 w-full mx-auto p-4 text-foreground', hasCanvas ? 'max-w-none' : 'max-w-[960px]')}>
           {view.blocks.map((block, index) => <Block key={index} block={block} groupSlug={groupSlug} />)}
         </div>
       </div>

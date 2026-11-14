@@ -132,6 +132,28 @@ describe('designedViewDesign', () => {
       expect(client.calls[0].messages[2].content).to.contain('Available images: none')
     })
 
+    it('accepts a canvas of regions and posts gathered by search words', async () => {
+      const canvasView = {
+        blocks: [
+          { type: 'heading', text: 'Everything at a glance', level: 1 },
+          {
+            type: 'canvas',
+            regions: [
+              { title: 'Compost', note: '', tone: 'accent', col: 0, row: 0, blocks: [{ type: 'posts', title: '', postTypes: [], search: 'compost', limit: 4, layout: 'list' }] },
+              { title: 'Deliveries', note: 'Friday runs', tone: 'plain', col: 1, row: 0, blocks: [{ type: 'posts', title: '', postTypes: ['request'], search: 'delivery', limit: 4, layout: 'list' }] }
+            ]
+          }
+        ]
+      }
+      const client = clientReturning(modelResponse({ reply: 'Made a canvas.', view: canvasView }))
+      const result = await designViewTurn(request, { client })
+      const canvas = result.view.blocks[1]
+      expect(canvas.type).to.equal('canvas')
+      expect(canvas.regions.map(region => region.blocks[0].search)).to.deep.equal(['compost', 'delivery'])
+      expect(canvas.regions[0]).to.not.have.property('note')
+      expect(client.calls[0].system).to.contain('Choosing between a page and a canvas')
+    })
+
     it('rejects a page the blocks cannot show, and a refusal', async () => {
       const bad = clientReturning(modelResponse({ reply: 'x', view: { blocks: [{ type: 'html', html: '<b>hi</b>' }] } }))
       await expect(designViewTurn(request, { client: bad })).to.be.rejectedWith(/cannot show/)
