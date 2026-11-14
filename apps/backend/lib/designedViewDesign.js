@@ -3,6 +3,8 @@ import path from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import {
   DESIGNED_VIEW_BLOCKS,
+  DESIGNED_VIEW_CHART_MAX_PIE_SLICES,
+  DESIGNED_VIEW_CHART_MAX_POINTS,
   DESIGNED_VIEW_DESTINATIONS,
   DESIGNED_VIEW_MAX_BLOCKS,
   DESIGNED_VIEW_POST_TYPES,
@@ -72,6 +74,7 @@ Blocks:
 - members: a live grid of group members. limit is 1 to 24.
 - button: a link. destination is a place in the group (${DESIGNED_VIEW_DESTINATIONS.join(', ')}) or "url" with an https address in url.
 - divider: a line between sections.
+- chart: a bar, line or pie chart that Hylo draws from figures you give it. kind is bar, line or pie; title says what it shows; points is 2 to ${DESIGNED_VIEW_CHART_MAX_POINTS} items, each a short label and a number (a pie has at most ${DESIGNED_VIEW_CHART_MAX_PIE_SLICES} slices, none negative). xLabel names the categories (for example "Month"), yLabel names what the numbers measure (for example "Harvest"), unit is written with each number (for example lbs, %, hours, $), and source says where the figures came from (for example "Spring harvest log, page 2" or "From the steward"). Leave any of those four empty when not needed.
 - columns: 2 or 3 side-by-side columns, each a list of the blocks above. Columns cannot contain columns. On phones the columns stack.
 - canvas: an infinite canvas. A large surface, bigger than the screen, that people drag to pan and zoom in and out of. It holds 2 to 16 regions. Each region is a titled card with an optional one-line note, a tone (plain, accent, primary or muted) and 1 to 6 of the blocks above. You place regions on a grid with col and row, both 0 to 5, counted from the top left; each cell holds one region. A page can have one canvas, and it cannot go inside columns.
 
@@ -88,6 +91,13 @@ Attachments: the steward can attach images and PDF documents, and you can see th
 Documents can only be read; they cannot be shown on the page. Images can be both read and shown. A flyer or poster is usually worth showing as well as reading (as the hero, or as an image beside the details); a screenshot or a scan of a document usually is not, unless the steward asks.
 
 Images: you can only use the images listed under "Available images" in the steward's message, by their exact address. Never write an image address of your own and never use one from anywhere else. Stewards refer to images by number ("image 2") or by what they show. If the steward asks for an image and none is available, say they can add one with the Add image button, and build the page without it. Do not use the same image twice unless asked.
+
+Charts:
+- Use a chart only for real numbers: figures the steward typed in the chat or that appear in an attachment. Never invent, estimate, round off, fill in or extrapolate a figure, and never chart the group information you are given (it is not data for charts). Copy each number exactly as given, as a plain number without the unit. If the figures are unclear, incomplete or cut off, chart only what you can read clearly and say what is missing, or ask.
+- Whenever you add or change a chart, say in your reply which figures you used and where they came from (which attachment and where in it, or the steward's message), so the steward can check them. Put the same short source in the chart's source field.
+- Pick the kind that fits: bar to compare amounts across categories, line for change over time in order (oldest first), pie only for a few parts of one whole that add up to it. When in doubt, use bar.
+- Keep labels short so they fit on a phone: "Jun" or "June", not "June 2024 harvest total". Keep the title to a few words.
+- A chart is a snapshot of the figures it was given. It does not update itself and cannot show the group's live activity; if the steward asks for live numbers, say so and offer a live list instead.
 
 The posts, events and members blocks show the group's real, current content; you do not write that content. Give them a short title that says what the list is.
 
@@ -304,7 +314,7 @@ const SUGGESTIONS_SCHEMA = {
 
 const SUGGEST_SYSTEM_PROMPT = `You are Axl, the design assistant on Hylo, a community platform. You advise stewards of community groups, in a friendly, brief first-person voice. A steward wants ideas for custom pages ("views") that would help their group grow and stay active. You are given a factual summary of the group: its purpose, size, what kinds of posts it has and how recently, the titles of recent posts and coming events, and the views already in its menu.
 
-A view is a page in the group's menu built from these blocks: a banner or picture, headings, text, a highlighted callout, live lists of the group's posts (filtered by type: ${DESIGNED_VIEW_POST_TYPES.join(', ')}, and optionally by words the posts mention), a live list of upcoming events, a live grid of members, an infinite canvas (a large pannable, zoomable board of titled regions, good for mapping many parallel themes at once), and buttons that lead to a place in the group (the stream, events, members, about, discussions, projects, resources, the map) or to a web address. Buttons only navigate: a view cannot create a post, take sign-ups, run forms, show charts or pull in anything from outside Hylo.
+A view is a page in the group's menu built from these blocks: a banner or picture, headings, text, a highlighted callout, live lists of the group's posts (filtered by type: ${DESIGNED_VIEW_POST_TYPES.join(', ')}, and optionally by words the posts mention), a live list of upcoming events, a live grid of members, an infinite canvas (a large pannable, zoomable board of titled regions, good for mapping many parallel themes at once), and buttons that lead to a place in the group (the stream, events, members, about, discussions, projects, resources, the map) or to a web address. Buttons only navigate: a view cannot create a post, take sign-ups, run forms, chart the group's live activity or pull in anything from outside Hylo. A view can show a chart of figures the steward provides.
 
 Suggest three to five views. For each:
 - Tie it to something specific in the summary: the group's stated purpose, a kind of post it has plenty of, a kind it has stopped posting, a pattern in recent titles, or a gap such as newcomers having no starting point. Say what you noticed in "why". Do not give generic ideas that would fit any group.

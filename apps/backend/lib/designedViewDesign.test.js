@@ -194,6 +194,39 @@ describe('designedViewDesign', () => {
       expect(client.calls[0].system).to.contain('Choosing between a page and a canvas')
     })
 
+    it('accepts a chart of the steward\'s figures, and tells the model to use only real numbers', async () => {
+      const chartView = {
+        blocks: [{
+          type: 'chart',
+          kind: 'bar',
+          title: 'Harvest by month',
+          xLabel: 'Month',
+          yLabel: 'Harvest',
+          unit: 'lbs',
+          source: '',
+          points: [{ label: 'June', value: 120 }, { label: 'July', value: 310 }]
+        }]
+      }
+      const client = clientReturning(modelResponse({ reply: 'Charted June and July from your message.', view: chartView }))
+      const result = await designViewTurn(request, { client })
+      expect(result.view.blocks[0]).to.deep.equal({
+        type: 'chart',
+        kind: 'bar',
+        title: 'Harvest by month',
+        xLabel: 'Month',
+        yLabel: 'Harvest',
+        unit: 'lbs',
+        points: [{ label: 'June', value: 120 }, { label: 'July', value: 310 }]
+      })
+      const system = client.calls[0].system
+      expect(system).to.contain('- chart:')
+      expect(system).to.contain('Never invent, estimate')
+      expect(system).to.contain('which figures you used and where they came from')
+
+      const made = clientReturning(modelResponse({ reply: 'x', view: { blocks: [{ ...chartView.blocks[0], points: [{ label: 'June', value: 'about 100' }, { label: 'July', value: 2 }] }] } }))
+      await expect(designViewTurn(request, { client: made })).to.be.rejectedWith(/value must be a number/)
+    })
+
     it('rejects a page the blocks cannot show, and a refusal', async () => {
       const bad = clientReturning(modelResponse({ reply: 'x', view: { blocks: [{ type: 'html', html: '<b>hi</b>' }] } }))
       await expect(designViewTurn(request, { client: bad })).to.be.rejectedWith(/cannot show/)
