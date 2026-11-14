@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import TextareaAutosize from 'react-textarea-autosize'
 import { ArrowLeft, Lightbulb, Plus, SendHorizontal, Sparkles } from 'lucide-react'
 import { designedViewImageUrls } from '@hylo/shared'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
@@ -9,24 +10,20 @@ import { groupUrl } from '@hylo/navigation'
 import useGroupViews from 'hooks/useGroupViews'
 import designGroupViewTurn from 'store/actions/designGroupViewTurn'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { createGroupView, updateGroupView } from 'store/actions/groupViews'
 import suggestGroupViews from 'store/actions/suggestGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
 import { cn } from 'util/index'
+import { NEW_VIEW_ID } from './DesignerSaveButton'
 import {
   addDesignImage,
   addDesignUsage,
   imagesFromUrls,
   nameAfterTurn,
   designerSessionKey,
-  resetDesignerSession,
   updateDesignerSession,
   useDesignerSession
 } from './designerSession'
-
-export const NEW_VIEW_ID = 'new'
-const DESIGNED_VIEW_ICON = 'LayoutTemplate'
 
 // The designer's assistant speaks as Axl
 export const ASSISTANT_NAME = 'Axl'
@@ -55,7 +52,6 @@ function errorMessage (error) {
 export default function DesignerChatColumn () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const { groupSlug, viewId } = useParams()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const hyloProEnabled = useSelector(getHyloProEnabled)
@@ -156,29 +152,6 @@ export default function DesignerChatColumn () {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
       send(draft)
-    }
-  }
-
-  const name = session.name.trim()
-  const canSave = !!session.design && !!name && !session.saving && !session.sending && !withoutPro && (isNew || session.dirty || name !== (existingView?.name || ''))
-
-  const handleSave = async () => {
-    if (!canSave) return
-    updateDesignerSession(key, { saving: true, error: null })
-    try {
-      const settings = { design: session.design }
-      const response = await dispatch(isNew
-        ? createGroupView({ groupId, type: 'designed', name, icon: DESIGNED_VIEW_ICON, settings, addToEnd: true })
-        : updateGroupView({ id: existingView.id, groupId, name, settings }))
-      if (response?.error) throw response.payload || new Error(t('Something went wrong. Please try again.'))
-      const savedId = isNew ? response?.payload?.data?.createGroupView?.id : existingView.id
-      if (!savedId) throw new Error(t('Something went wrong. Please try again.'))
-      // The saved view is the source of truth from here on
-      resetDesignerSession(key)
-      if (isNew) resetDesignerSession(designerSessionKey(groupId, savedId))
-      navigate(groupUrl(groupSlug, `designed/${savedId}`))
-    } catch (err) {
-      updateDesignerSession(key, { saving: false, error: errorMessage(err) })
     }
   }
 
@@ -325,16 +298,18 @@ export default function DesignerChatColumn () {
                 </button>
               )}
             />
-            <textarea
+            <TextareaAutosize
               aria-label={t('Message')}
               value={draft}
               onChange={event => setDraft(event.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={session.design ? t('Ask for a change...') : t('Describe your page...')}
-              rows={2}
+              minRows={1}
+              maxRows={12}
               maxLength={2000}
               disabled={!canChat}
-              className='flex-1 min-w-0 resize-none bg-transparent text-foreground text-sm outline-none border-0 p-0'
+              data-testid='designer-message'
+              className='flex-1 min-w-0 resize-none bg-transparent text-foreground text-sm leading-5 py-2 px-0 outline-none border-0'
             />
             <button
               type='submit'
@@ -346,15 +321,6 @@ export default function DesignerChatColumn () {
             </button>
           </div>
         </form>
-
-        <button
-          type='button'
-          onClick={handleSave}
-          disabled={!canSave}
-          className='rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-bold border-2 border-transparent disabled:opacity-50'
-        >
-          {session.saving ? t('Saving...') : (isNew ? t('Add to menu') : t('Save changes'))}
-        </button>
       </div>
     </div>
   )

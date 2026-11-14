@@ -9,7 +9,8 @@ This is the first slice. Read `docs/group-themes-mvp.md` first; the AI plumbing 
 The assistant is called **Axl**. It greets the steward when the designer opens and offers to look at the group; "Make some suggestions" sits just above the message box until a design is started.
 
 1. In the group menu's edit mode, Add to Menu > Add View opens the Add View dialog. It now leads with **Design your own view**, then **Your designed views**, then the common and custom views.
-2. The designer is at `/groups/:slug/design/new` (or `/design/:viewId` to edit). The **chat column takes the place of the group menu**: a Back button, a small pill with the running AI cost (starting at $0.00, detail on hover), the conversation with Axl, a message box with a "+" for adding images, and "Add to menu". The **main column shows the page**, redrawn after every message; before the first design it asks "What do you want to build?".
+2. The designer is at `/groups/:slug/design/new` (or `/design/:viewId` to edit). The **chat column takes the place of the group menu**: a Back button, a small pill with the running AI cost (starting at $0.00, detail on hover), the conversation with Axl, and a message box with a "+" for adding images that grows with a long message, up to 12 lines. The **main column shows the page**, redrawn after every message; before the first design it asks "What do you want to build?".
+   - **The header** of the main column holds the view's name, a status pill (Draft, Unsaved changes or Published) and, at the right, "Add to menu" ("Save changes" for a saved view).
    - **The name** is in the main column's header. Clicking it renames the view. The AI suggests a name with the first design, and leaves it alone once the steward has a name of their own (typed, or from a suggestion they picked).
 3. Saving creates a `GroupView` of type `designed`. Members open it at `/groups/:slug/designed/:viewId`. Stewards see an "Edit design" link there.
 
@@ -37,7 +38,7 @@ The definition is `packages/shared/src/DesignedViewHelpers.js`: `validateDesigne
 
 ## Canvas
 
-`canvas` is an infinite canvas: a surface larger than the screen that people drag to pan and zoom (buttons, pinch, or Ctrl-scroll; arrow keys when focused). It holds 2 to 16 regions, each a titled card with an optional note, a tone and 1 to 6 blocks, placed on a 6 by 6 grid with `col` and `row`. A page can have one canvas and it cannot go inside columns. Two regions given the same cell are moved apart rather than rejected.
+`canvas` is an infinite canvas: a surface larger than the screen that people drag to pan and zoom (buttons, pinch, or Ctrl-scroll; arrow keys when focused). It holds 2 to 16 regions, each a titled card with an optional note, a tone and 1 to 6 blocks, placed on a 6 by 6 grid with `col` and `row`. A page can have one canvas and it cannot go inside columns. A page with a canvas gives it the whole main column, edge to edge and down to the bottom of the window, and the AI is told such a page is normally the canvas alone. Two regions given the same cell are moved apart rather than rejected.
 
 **The AI decides when to use it.** The system prompt tells it to use a canvas for many parallel groups with no reading order (a map of everything in the group, a board per theme, a wall of resources), or whenever the steward asks for a canvas, board, map or overview, and to use an ordinary page for anything read in order. When unsure it uses the ordinary page.
 
@@ -82,6 +83,10 @@ Before the first message the designer offers **Make some suggestions**: `suggest
 - The conversation is not stored. The browser sends the history and the current design with each message. The model always returns the whole page, which is validated before it reaches the browser.
 - A turn costs about $0.03 and takes about 10 seconds with Claude Opus 5.5. Much of the input is the block schema, which defines leaf blocks once and refers to them: listed twice (top level and inside columns) it is too large for structured output. `GROUP_VIEW_DESIGN_MODEL` on the backend picks another model; `CLAUDE_API_KEY` is required.
 - The designer shows tokens and estimated cost for the last message and for the whole design.
+
+## Phones
+
+The AI's instructions always include designing for a phone as well as a wide screen: columns stack left column first, headings and button labels stay short, two columns are preferred to three, a canvas puts what matters most in its first region, and copy never refers to position on the page. This is in the system prompt in `apps/backend/lib/designedViewDesign.js`. The designer itself is still desktop-only (see below).
 
 ## Limits and gating
 

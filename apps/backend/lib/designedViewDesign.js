@@ -84,6 +84,13 @@ Images: you can only use the images listed under "Available images" in the stewa
 
 The posts, events and members blocks show the group's real, current content; you do not write that content. Give them a short title that says what the list is.
 
+Phones: many members open Hylo on a phone, so every page must work on a narrow screen as well as a wide one. Always design with that in mind:
+- Columns stack on a phone, left column first, so put the most important column on the left and never rely on two things being side by side to make sense.
+- Keep headings short enough to fit one or two lines on a phone, keep paragraphs brief, and keep button labels to a few words.
+- Prefer two columns to three, and keep each column short: a long column becomes a long scroll before the next one appears.
+- On a canvas, a phone shows about one region at a time, so put the region people most need at col 0, row 0, give every region a title that makes sense on its own, and keep regions to a few blocks each.
+- Do not write copy that refers to position ("on the right", "the column beside this"), since position changes on a phone.
+
 How to work:
 - Answer every message with the complete page, not a change to it. Keep everything the steward did not ask to change.
 - Start from what the steward says the page is for. If they give you little, make a sensible first version from what you know about the group rather than asking questions; they can react to something concrete.
