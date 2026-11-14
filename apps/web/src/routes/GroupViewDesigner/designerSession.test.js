@@ -10,6 +10,7 @@ import {
   updateDesignerSession
 } from './designerSession'
 import designGroupViewTurn, { DESIGN_GROUP_VIEW_TURN } from 'store/actions/designGroupViewTurn'
+import { designStatus } from './EditableViewName'
 import fetchDesignedViewBlockData from 'store/actions/fetchDesignedViewBlockData'
 import suggestGroupViews, { SUGGEST_GROUP_VIEWS } from 'store/actions/suggestGroupViews'
 
@@ -35,6 +36,16 @@ describe('designerSession', () => {
     const one = addDesignUsage(EMPTY_USAGE_TOTAL, { inputTokens: 4000, outputTokens: 500, estimatedCostUsd: 0.026 })
     expect(one).toEqual({ count: 1, tokens: 4500, costUsd: 0.026, costKnown: true })
     expect(addDesignUsage(one, { inputTokens: 10, outputTokens: 1, estimatedCostUsd: null }).costKnown).toBe(false)
+  })
+})
+
+describe('designStatus', () => {
+  it('is a draft until saved, then published, with unsaved changes in between', () => {
+    expect(designStatus({ isNew: true, session: { dirty: true } })).toEqual('draft')
+    expect(designStatus({ isNew: true, session: { dirty: false } })).toEqual('draft')
+    expect(designStatus({ isNew: false, session: { dirty: false, nameEdited: false } })).toEqual('published')
+    expect(designStatus({ isNew: false, session: { dirty: true } })).toEqual('unsaved')
+    expect(designStatus({ isNew: false, session: { dirty: false, nameEdited: true } })).toEqual('unsaved')
   })
 })
 

@@ -9,7 +9,7 @@ import PostDialog from 'components/PostDialog'
 import { groupUrl } from '@hylo/navigation'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { NEW_VIEW_ID } from './DesignerChatColumn'
+import DesignerSaveButton, { NEW_VIEW_ID } from './DesignerSaveButton'
 import { designerSessionKey, useDesignerSession } from './designerSession'
 import EditableViewName from './EditableViewName'
 
@@ -31,11 +31,12 @@ export default function GroupViewDesigner () {
   // The header shows the view's name, which the steward can click to change
   useEffect(() => {
     setHeaderDetails({
-      title: <EditableViewName sessionKey={sessionKey} placeholder={placeholder} />,
+      title: <EditableViewName sessionKey={sessionKey} placeholder={placeholder} isNew={isNew} />,
       icon: 'LayoutTemplate',
-      search: false
+      search: false,
+      headerActions: <DesignerSaveButton groupSlug={groupSlug} viewId={viewId} />
     })
-  }, [setHeaderDetails, sessionKey, placeholder])
+  }, [setHeaderDetails, sessionKey, placeholder, isNew, groupSlug, viewId])
 
   if (!group) return <Loading />
 
@@ -44,13 +45,6 @@ export default function GroupViewDesigner () {
       <Routes>
         <Route path='post/:postId' element={<PostDialog />} />
       </Routes>
-      {session.design && session.dirty && (
-        <p className='m-0 px-4 py-1 text-xs text-foreground/70 bg-accent/10 border-b-2 border-accent/30' role='status'>
-          {isNew
-            ? t('This is a draft. Add it to the menu when you are happy with it. Click the name above to change it.')
-            : t('You have changes that are not saved yet.')}
-        </p>
-      )}
       {session.design
         ? (
           <DesignedView

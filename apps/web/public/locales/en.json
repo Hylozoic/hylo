@@ -3798,7 +3798,6 @@
   "Model {{model}}. Costs are estimates.": "Model {{model}}. Costs are estimates.",
   "Name in the menu": "Name in the menu",
   "Add to menu": "Add to menu",
-  "You have changes that are not saved yet.": "You have changes that are not saved yet.",
   "This page could not be found": "This page could not be found",
   "This list could not be loaded.": "This list could not be loaded.",
   "Nothing here yet.": "Nothing here yet.",
@@ -3820,5 +3819,8 @@
   "Describe what you need in the chat": "Describe what you need in the chat",
   "AI cost of this design so far, estimated.": "AI cost of this design so far, estimated.",
   "Rename this view": "Rename this view",
-  "This is a draft. Add it to the menu when you are happy with it. Click the name above to change it.": "This is a draft. Add it to the menu when you are happy with it. Click the name above to change it."
+  "Unsaved changes": "Unsaved changes",
+  "Not in the menu yet. Add it to the menu when you are happy with it.": "Not in the menu yet. Add it to the menu when you are happy with it.",
+  "This view is in the menu. Your latest changes are not saved yet.": "This view is in the menu. Your latest changes are not saved yet.",
+  "This view is in the menu as shown.": "This view is in the menu as shown."
 }

@@ -116,8 +116,24 @@ test.describe('designed views', () => {
     expect(Math.abs((emptyBox.y + emptyBox.height / 2) - viewportSize.height / 2)).toBeLessThan(viewportSize.height * 0.15)
     // The running cost starts at nothing
     await expect(page.getByTestId('designer-usage')).toHaveText('$0.00')
-    await expect(chat.getByRole('button', { name: 'Add to menu' })).toBeDisabled()
+    await expect(page.getByTestId('designer-save')).toBeDisabled()
     await expect(chat.getByRole('button', { name: 'Add image' })).toBeEnabled()
+    // "Add to menu" sits at the right of the main column's header, not in the chat
+    const saveBox = await page.getByTestId('designer-save').boundingBox()
+    const chatBox = await chat.boundingBox()
+    expect(saveBox.x).toBeGreaterThan(chatBox.x + chatBox.width)
+    expect(saveBox.y).toBeLessThan(60)
+
+    // The message box starts one line tall with its text level with the buttons, and grows with a long message
+    const message = chat.getByRole('textbox', { name: 'Message' })
+    const oneLine = await message.boundingBox()
+    const plus = await chat.getByTestId('designer-add-image').boundingBox()
+    expect(Math.abs((oneLine.y + oneLine.height / 2) - (plus.y + plus.height / 2))).toBeLessThanOrEqual(3)
+    await message.fill(Array.from({ length: 30 }, (_, i) => `Line ${i + 1}`).join('\n'))
+    const grown = await message.boundingBox()
+    // 12 lines of 20px plus the box's own padding
+    expect(Math.round((grown.height - 16) / 20)).toBe(12)
+    await message.fill('')
 
     // "Make some suggestions" offers pages that fit the group; picking one starts the design and names it
     await chat.getByTestId('designer-suggest-views').click()
@@ -152,8 +168,11 @@ test.describe('designed views', () => {
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('designer-view-name')).toHaveText(VIEW_NAME)
 
+    // Until it is saved the view is a draft, shown as a pill after its name
+    await expect(page.getByTestId('designer-status')).toHaveText('Draft')
+
     // Saving adds it to the group's menu
-    await chat.getByRole('button', { name: 'Add to menu' }).click()
+    await page.getByTestId('designer-save').click()
     await expect(page).toHaveURL(/\/designed\/\d+/, uiTimeout)
     await expect(page.getByTestId('designer-chat-column')).toHaveCount(0)
     await expect(page.getByTestId('designed-view').getByRole('heading', { level: 1, name: 'Welcome to the group' })).toBeVisible(uiTimeout)
@@ -179,6 +198,8 @@ test.describe('designed views', () => {
     await page.getByTestId('designed-view-edit').click()
     await expect(page.getByTestId('designer-chat-column')).toBeVisible(uiTimeout)
     await expect(page.getByTestId('designer-view-name')).toHaveText(VIEW_NAME)
+    // A saved view that has not been changed is published
+    await expect(page.getByTestId('designer-status')).toHaveText('Published')
     // The images a saved page uses are offered again for further changes
     await expect(page.getByTestId('designer-image')).toHaveCount(1)
     await expect(page.getByTestId('designer-canvas').getByRole('heading', { level: 1, name: 'Welcome to the group' })).toBeVisible()
@@ -223,7 +244,7 @@ test.describe('designed views', () => {
     await expect(page.getByTestId('designer-view-name')).toHaveText('Group at a Glance')
     // The whole name fits in the header
     expect(await page.getByTestId('designer-view-name').locator('span').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
-    await expect(chat.getByRole('button', { name: 'Add to menu' })).toBeEnabled()
+    await expect(page.getByTestId('designer-save')).toBeEnabled()
     await expect(canvas.locator('[data-block="members"] a').first()).toBeVisible(uiTimeout)
     // The search-filtered region only lists posts that mention the word
     const searched = canvas.getByTestId('designed-canvas-region').nth(1)
