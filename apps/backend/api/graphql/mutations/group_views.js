@@ -4,11 +4,13 @@ import { recountPostTypesForView, TextHelpers, validateDesignedView } from '@hyl
 import {
   designViewTurnInChildProcess,
   isViewDesignConfigured,
+  normalizeDesignDocuments,
   normalizeDesignImages,
   normalizeDesignMessages,
   suggestViewsTurnInChildProcess
 } from '../../../lib/designedViewDesign'
 import { buildGroupDigest, formatGroupDigest } from '../../../lib/groupDigest'
+import { isHyloHostedUrl } from '../../../lib/uploader/rehostRemoteMedia'
 import RedisClient from '../../services/RedisClient'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
@@ -517,7 +519,7 @@ async function withinDesignTurnLimit (groupId) {
  * cost. The steward saves the page with createGroupView or updateGroupView.
  * Requires the Administration responsibility and Hylo Pro.
  */
-export async function designGroupViewTurn ({ userId, groupId, messages, currentView, images }, deps = {}) {
+export async function designGroupViewTurn ({ userId, groupId, messages, currentView, images, documents }, deps = {}) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!groupId) throw new GraphQLError('No groupId passed into function')
 
@@ -528,10 +530,15 @@ export async function designGroupViewTurn ({ userId, groupId, messages, currentV
     throw new GraphQLError('Designing views with AI is not set up on this server')
   }
 
-  let conversation, availableImages
+  // The model fetches attachments by address, so it is only pointed at files on Hylo's own storage:
+  // images elsewhere can still be placed on the page but are not shown to it, and documents elsewhere are refused
+  const hosted = deps.isHostedUrl || isHyloHostedUrl
+  let conversation, availableImages, attachedDocuments
   try {
     conversation = normalizeDesignMessages(messages)
-    availableImages = normalizeDesignImages(images)
+    availableImages = normalizeDesignImages(images).map(image => ({ ...image, visible: hosted(image.url) }))
+    attachedDocuments = normalizeDesignDocuments(documents)
+    if (attachedDocuments.some(document => !hosted(document.url))) throw new Error('Documents must be uploaded to Hylo before they can be read')
   } catch (err) {
     throw new GraphQLError(err.message)
   }
@@ -555,7 +562,8 @@ export async function designGroupViewTurn ({ userId, groupId, messages, currentV
       groupSummary: formatGroupDigest(await (deps.buildDigest || buildGroupDigest)(group)),
       messages: conversation,
       currentView: current,
-      images: availableImages
+      images: availableImages,
+      documents: attachedDocuments
     })
   } catch (err) {
     sails.log.error(`designGroupViewTurn failed for group ${group.id}: ${err.message}`)

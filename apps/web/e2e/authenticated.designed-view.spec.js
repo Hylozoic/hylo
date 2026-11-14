@@ -117,7 +117,12 @@ test.describe('designed views', () => {
     // The running cost starts at nothing
     await expect(page.getByTestId('designer-usage')).toHaveText('$0.00')
     await expect(page.getByTestId('designer-save')).toBeDisabled()
-    await expect(chat.getByRole('button', { name: 'Add image' })).toBeEnabled()
+    // The + offers an image or a PDF for Axl to read
+    await chat.getByTestId('designer-add-attachment').click()
+    await expect(page.getByTestId('designer-add-image')).toBeVisible()
+    await expect(page.getByTestId('designer-add-document')).toBeVisible()
+    await expect(page.getByText('Files are sent to the AI to be read.')).toBeVisible()
+    await page.keyboard.press('Escape')
     // "Add to menu" sits at the right of the main column's header, not in the chat
     const saveBox = await page.getByTestId('designer-save').boundingBox()
     const chatBox = await chat.boundingBox()
@@ -127,7 +132,7 @@ test.describe('designed views', () => {
     // The message box starts one line tall with its text level with the buttons, and grows with a long message
     const message = chat.getByRole('textbox', { name: 'Message' })
     const oneLine = await message.boundingBox()
-    const plus = await chat.getByTestId('designer-add-image').boundingBox()
+    const plus = await chat.getByTestId('designer-add-attachment').boundingBox()
     expect(Math.abs((oneLine.y + oneLine.height / 2) - (plus.y + plus.height / 2))).toBeLessThanOrEqual(3)
     await message.fill(Array.from({ length: 30 }, (_, i) => `Line ${i + 1}`).join('\n'))
     const grown = await message.boundingBox()

@@ -4,6 +4,8 @@ export const GROUP_AVATAR = 'groupAvatar'
 export const GROUP_BANNER = 'groupBanner'
 // Images a steward adds to a designed view (id is the group's id)
 export const GROUP_VIEW_IMAGE = 'groupViewImage'
+// Documents (PDFs) a steward attaches for the AI to read while designing a view (id is the group's id)
+export const GROUP_VIEW_FILE = 'groupViewFile'
 export const POST = 'post'
 export const POST_COMPLETION = 'postCompletion'
 export const COMMENT = 'comment'

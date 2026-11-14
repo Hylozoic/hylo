@@ -115,6 +115,7 @@ describe('designed views', () => {
       expect(received.messages).to.deep.equal(messages)
       expect(received.currentView).to.deep.equal(storedDesign)
       expect(received.images).to.deep.equal([])
+      expect(received.documents).to.deep.equal([])
       expect(received.groupSummary).to.contain(`Group name: ${group.get('name')}`)
       expect(await GroupView.where({ group_id: group.id }).count()).to.equal(before)
     })
@@ -132,6 +133,23 @@ describe('designed views', () => {
       await removePro()
       await expect(run(admin.id, {}, d())).to.be.rejectedWith(/part of Hylo Pro/)
       expect(called).to.equal(false)
+    })
+
+    it('only shows the model files on Hylo storage: other images can be placed but not seen, other documents are refused', async () => {
+      let received
+      const d = deps({
+        isHostedUrl: url => url.startsWith('https://hylo-uploads.example.org/'),
+        designTurn: async request => { received = request; return turn }
+      })
+      await run(admin.id, {
+        images: [{ url: 'https://hylo-uploads.example.org/flyer.jpg' }, { url: 'https://elsewhere.example.com/pic.jpg' }],
+        documents: [{ url: 'https://hylo-uploads.example.org/plan.pdf', name: 'plan.pdf' }]
+      }, d)
+      expect(received.images.map(image => image.visible)).to.deep.equal([true, false])
+      expect(received.documents).to.deep.equal([{ url: 'https://hylo-uploads.example.org/plan.pdf', name: 'plan.pdf' }])
+
+      await expect(run(admin.id, { documents: [{ url: 'https://elsewhere.example.com/plan.pdf' }] }, d)).to.be.rejectedWith(/uploaded to Hylo/)
+      await expect(run(admin.id, { documents: [{ url: 'https://hylo-uploads.example.org/notes.docx' }] }, d)).to.be.rejectedWith(/Only PDF/)
     })
 
     it('reports a failed design', async () => {

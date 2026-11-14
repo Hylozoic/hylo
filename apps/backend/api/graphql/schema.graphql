@@ -3535,10 +3535,11 @@ type Mutation {
   # One turn of the "Design your own view" chat for a Group. messages is the conversation so far,
   # [{ role: "user" | "assistant", text }], ending with the steward's new message; currentView is the
   # design being edited, if any; images is what the steward has uploaded for it, [{ url, name }], and is
-  # the only place the page's images can come from. Saves nothing: returns { reply, name, view, usage } where name is a suggested menu name, view is the whole
+  # the only place the page's images can come from; documents is the PDFs they attached, [{ url, name }].
+  # The AI is shown the attached images and documents so it can read them. Saves nothing: returns { reply, name, view, usage } where name is a suggested menu name, view is the whole
   # page as building blocks (store it as settings.design of a 'designed' GroupView) and usage holds the
   # AI model, token counts and estimated cost. Requires the Administration responsibility and Hylo Pro.
-  designGroupViewTurn(groupId: ID!, messages: JSON!, currentView: JSON, images: JSON): JSON
+  designGroupViewTurn(groupId: ID!, messages: JSON!, currentView: JSON, images: JSON, documents: JSON): JSON
   # Ideas for views that would help a Group grow, from its purpose, size, post counts and the titles of
   # recent posts and coming events. Returns { reply, suggestions: [{ name, why, prompt }], usage }; a
   # suggestion's prompt can be sent to designGroupViewTurn as the first message.

@@ -46,6 +46,15 @@ The `posts` block has an optional `search` field (words the posts mention), whic
 
 Drawn by `apps/web/src/components/DesignedView/DesignedCanvas.js`. The regions sit in an ordinary CSS grid, so each takes the height its content needs, and panning and zooming transform the grid as a whole.
 
+## Attachments Axl can read
+
+The "+" in the message box adds an image or a PDF. Axl is shown both, so a steward can attach a flyer, poster or schedule and say "turn this into a page": dates, times, places and wording come from the attachment instead of placeholders.
+
+- Images can be read and placed on the page; PDFs (up to 3, `groupViewFile` upload type) can only be read.
+- Each message shows the model the attached PDFs and the 8 most recently added images, by address, so they must be on Hylo's own storage (`isHyloHostedUrl`). An image elsewhere can still be placed but is not shown to the model; a document elsewhere is refused.
+- **Attached files are sent to the AI provider.** The "+" menu says so.
+- Each image adds roughly a cent to every message it is shown in, and a PDF more with its length.
+
 ## Images
 
 Stewards add images in the designer with "Add image" and tell the AI where to use them ("use image 1 as the banner"). `hero` is a banner image with a title and subtitle over it; `image` is a picture with alt text and a caption.
