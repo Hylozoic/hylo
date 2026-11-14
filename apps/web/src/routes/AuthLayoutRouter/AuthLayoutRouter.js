@@ -75,6 +75,7 @@ import GroupWelcomePage from 'routes/GroupWelcomePage'
 import GroupPageView from 'routes/GroupPageView'
 import GroupDesignedView from 'routes/GroupDesignedView'
 import GroupViewDesigner, { DesignerChatColumn } from 'routes/GroupViewDesigner'
+import GroupAssistant from 'routes/GroupAssistant'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
@@ -1137,6 +1138,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='page/:viewId/*' element={<GroupPageView />} />
                             <Route path='designed/:viewId/*' element={<GroupDesignedView />} />
                             <Route path='design/:viewId/*' element={<GroupViewDesigner />} />
+                            <Route path='assistant/*' element={<GroupAssistant />} />
                             <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
                             <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
                             <Route path='stream/*' element={<RedirectStreamToAll basePath={`/groups/${currentGroupSlug}`} />} />

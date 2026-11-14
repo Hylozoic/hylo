@@ -225,6 +225,7 @@ describe('homeRouteHostsPostOverlay', () => {
     expect(homeRouteHostsPostOverlay('/designed/12')).toBe(true)
     expect(homeRouteHostsPostOverlay('/design/12')).toBe(true)
     expect(homeRouteHostsPostOverlay('/design/new')).toBe(true)
+    expect(homeRouteHostsPostOverlay('/assistant')).toBe(true)
     expect(nestedPostRedirectPath('/groups/assembly/designed/12/post/99')).toBeNull()
   })
 

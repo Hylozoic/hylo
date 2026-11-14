@@ -46,6 +46,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       autoAddMembers
     }
     hasPro
+    assistantEnabled
     slug
     type
     status

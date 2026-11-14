@@ -27,6 +27,9 @@ import GroupNotificationsPopover from 'components/GroupNotificationsPopover/Grou
 import CurrentlyActiveMembers, { MENU_ACTIVE_MAX } from 'components/CurrentlyActiveMembers'
 import InviteMembersDialog from 'components/InviteMembersDialog/InviteMembersDialog'
 import MenuLink from './MenuLink'
+import { AxlAvatar } from 'routes/GroupAssistant'
+import { GROUP_ASSISTANT } from 'config/featureFlags'
+import { hasFeature } from 'store/models/Me'
 import ContextMenuResizer from './ContextMenuResizer'
 import GroupViewIcon from './GroupViewIcon'
 import useRouteParams from 'hooks/useRouteParams'
@@ -877,12 +880,32 @@ export default function ContextMenu (props) {
       )
     : null
 
+  // The Group Assistant: only the server says whether this viewer may see it
+  // (a steward of a Pro group that has turned it on), so members never learn it is in use
+  const assistantSection = !isEditing && isGroupContext && !showingSpaceMenu && hasFeature(GROUP_ASSISTANT) && group?.assistantEnabled && group?.slug
+    ? (
+      <div className='px-1.5 pb-2 border-t border-foreground/10 pt-2' data-testid='menu-group-assistant'>
+        <MenuLink
+          to={groupUrl(group.slug, 'assistant')}
+          className='flex items-center gap-2 text-foreground hover:text-foreground border-2 border-transparent hover:border-foreground/50 hover:bg-card rounded-md p-1 pl-2 pr-2 w-full transition-all opacity-85 hover:opacity-100'
+        >
+          <AxlAvatar size={22} className='ring-0 ring-offset-0' />
+          <span className='min-w-0'>
+            <span className='block text-base font-medium leading-tight'>{t('Group Assistant')}</span>
+            <span className='block text-xs text-foreground/60 leading-tight'>{t('Axl · all caught up')}</span>
+          </span>
+        </MenuLink>
+      </div>
+      )
+    : null
+
   // Sticky: pending flags and join requests must be visible even when the menu
   // is scrolled — the rows pin (stacked, moderation above) at the bottom of the
   // viewport until their natural slot above More Spaces comes into view
-  const stickyAlertsSection = (moderationSection || joinRequestsSection)
+  const stickyAlertsSection = (assistantSection || moderationSection || joinRequestsSection)
     ? (
       <div className='mt-auto sticky bottom-0 z-30 bg-background/95 backdrop-blur-sm'>
+        {assistantSection}
         {moderationSection}
         {joinRequestsSection}
       </div>

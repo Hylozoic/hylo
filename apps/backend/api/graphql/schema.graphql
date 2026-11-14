@@ -933,6 +933,9 @@ type Group {
   description: String
   # Whether this group currently has Hylo Pro (a paid subscription or a manual grant)
   hasPro: Boolean
+  # Whether the viewer should be shown the Group Assistant: true only for someone with the Administration
+  # responsibility, in a group that has Hylo Pro and has turned the assistant on. False for everyone else.
+  assistantEnabled: Boolean
   # gets the event calendar subscription URL
   eventCalendarUrl: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world

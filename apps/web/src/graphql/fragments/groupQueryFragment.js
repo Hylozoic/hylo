@@ -43,6 +43,7 @@ export default function groupQueryFragment () {
       autoAddMembers
     }
     hasPro
+    assistantEnabled
     slug
     type
     parentId

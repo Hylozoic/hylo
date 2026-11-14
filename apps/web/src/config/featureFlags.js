@@ -6,12 +6,13 @@ export const GROUP_THEMES = 'GROUP_THEMES'
 
 // Designed views: group pages built from blocks with an AI design chat ("Design your own view")
 export const DESIGNED_VIEWS = 'DESIGNED_VIEWS'
+export const GROUP_ASSISTANT = 'GROUP_ASSISTANT'
 
 // Hylo Pro billing: the group Billing settings tab
 export const HYLO_PRO = 'HYLO_PRO'
 
 // Flags that default to 'on' in development, test and staging, and to off in production
-const ON_OUTSIDE_PRODUCTION = [MEMBER_INVITES, GROUP_THEMES, DESIGNED_VIEWS, HYLO_PRO]
+const ON_OUTSIDE_PRODUCTION = [MEMBER_INVITES, GROUP_THEMES, DESIGNED_VIEWS, GROUP_ASSISTANT, HYLO_PRO]
 const NON_PRODUCTION_ENVIRONMENTS = ['development', 'test', 'staging']
 
 // Staging runs a production build, so it is told apart by the environment name its error reports use
