@@ -67,10 +67,12 @@ describe('designedViewDesign', () => {
     }
 
     it('sends the conversation, the group and the current design, and returns a validated view with usage', async () => {
-      const client = clientReturning(modelResponse({ reply: 'Added events.', view }))
+      const client = clientReturning(modelResponse({ reply: 'Added events.', name: ' Start Here. ', view }))
       const result = await designViewTurn(request, { client })
 
       expect(result.reply).to.equal('Added events.')
+      expect(result.name).to.equal('Start Here')
+      expect(client.calls[0].output_config.format.schema.required).to.deep.equal(['reply', 'name', 'view'])
       expect(result.view).to.deep.equal({
         version: 1,
         blocks: [{ type: 'heading', text: 'Welcome', level: 1 }, { type: 'events', limit: 3 }]

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, ImagePlus, Lightbulb, SendHorizontal, Sparkles } from 'lucide-react'
+import { ArrowLeft, Lightbulb, Plus, SendHorizontal, Sparkles } from 'lucide-react'
 import { designedViewImageUrls } from '@hylo/shared'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { groupUrl } from '@hylo/navigation'
@@ -13,11 +13,12 @@ import { createGroupView, updateGroupView } from 'store/actions/groupViews'
 import suggestGroupViews from 'store/actions/suggestGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
-import { formatUsd } from 'util/groupThemeEditor'
+import { cn } from 'util/index'
 import {
   addDesignImage,
   addDesignUsage,
   imagesFromUrls,
+  nameAfterTurn,
   designerSessionKey,
   resetDesignerSession,
   updateDesignerSession,
@@ -26,9 +27,6 @@ import {
 
 export const NEW_VIEW_ID = 'new'
 const DESIGNED_VIEW_ICON = 'LayoutTemplate'
-
-// Measured on real turns with the default model (Claude Opus 5.5): about $0.03 each
-const TYPICAL_TURN_COST_USD = 0.03
 
 // The designer's assistant speaks as Axl
 export const ASSISTANT_NAME = 'Axl'
@@ -110,6 +108,8 @@ export default function DesignerChatColumn () {
       updateDesignerSession(key, current => ({
         messages: [...messages, { role: 'assistant', text: result.reply || t('I updated the page.') }],
         design: result.view,
+        // The first design names the page, unless the steward already has
+        name: nameAfterTurn(current, result.name),
         dirty: true,
         sending: false,
         lastUsage: result.usage || null,
@@ -189,10 +189,13 @@ export default function DesignerChatColumn () {
   }
   const handleImageError = err => updateDesignerSession(key, { error: t('The image could not be added: {{message}}', { message: errorMessage(err) }) })
 
-  const cost = value => value === null || value === undefined
-    ? t('cost unknown')
-    : t('about {{cost}}', { cost: formatUsd(value) })
+  // What this design has cost so far; the pill shows the total and its tooltip the detail
   const { lastUsage, usageTotal } = session
+  const usageDetail = [
+    t('AI cost of this design so far, estimated.'),
+    t('Messages in this design: {{count}}, using {{tokens}} tokens', { count: usageTotal.count, tokens: usageTotal.tokens.toLocaleString() }),
+    lastUsage ? t('Model {{model}}. Costs are estimates.', { model: lastUsage.model }) : null
+  ].filter(Boolean).join(' ')
 
   return (
     <div
@@ -210,6 +213,14 @@ export default function DesignerChatColumn () {
           <Sparkles className='w-4 h-4 text-accent shrink-0' />
           <span className='truncate'>{isNew ? t('Design your own view') : t('Edit designed view')}</span>
         </h2>
+        <span
+          className='ml-auto shrink-0 rounded-full border-2 border-foreground/15 bg-muted/50 px-2 py-0.5 text-[11px] tabular-nums text-foreground/70'
+          title={usageDetail}
+          aria-label={usageDetail}
+          data-testid='designer-usage'
+        >
+          {usageTotal.costKnown ? `$${usageTotal.costUsd.toFixed(2)}` : t('cost unknown')}
+        </span>
       </div>
 
       <div className='flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3'>
@@ -279,30 +290,18 @@ export default function DesignerChatColumn () {
             {session.suggesting ? t('Looking at your group...') : t('Make some suggestions')}
           </button>
         )}
-        <form onSubmit={handleSubmit} className='flex items-end gap-2 bg-input rounded-lg p-2 border-2 border-transparent focus-within:border-focus'>
-          <textarea
-            aria-label={t('Message')}
-            value={draft}
-            onChange={event => setDraft(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={session.design ? t('Ask for a change...') : t('Describe your page...')}
-            rows={2}
-            maxLength={2000}
-            disabled={!canChat}
-            className='flex-1 min-w-0 resize-none bg-transparent text-foreground text-sm outline-none border-0 p-0'
-          />
-          <button
-            type='submit'
-            aria-label={t('Send')}
-            disabled={!canChat || !draft.trim()}
-            className='inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-selected text-foreground disabled:opacity-50'
-          >
-            <SendHorizontal size={18} />
-          </button>
-        </form>
-
-        <div className='flex flex-col gap-1' data-testid='designer-images'>
-          <div className='flex items-center gap-2'>
+        <form onSubmit={handleSubmit} className='bg-input rounded-lg p-2 border-2 border-transparent focus-within:border-focus flex flex-col gap-2'>
+          {session.images.length > 0 && (
+            <div className='flex flex-wrap gap-2' data-testid='designer-images'>
+              {session.images.map((image, index) => (
+                <figure key={image.url} className='m-0 w-14' data-testid='designer-image'>
+                  <img src={image.url} alt={image.name} className='block w-14 h-10 m-0 object-cover rounded-md border-2 border-foreground/20' />
+                  <figcaption className='text-[10px] text-foreground/60 text-center'>{t('Image {{number}}', { number: index + 1 })}</figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+          <div className='flex items-end gap-1'>
             <UploadAttachmentButton
               type='groupViewImage'
               id={groupId}
@@ -317,73 +316,45 @@ export default function DesignerChatColumn () {
                   type='button'
                   onClick={onClick}
                   disabled={!canChat || uploading}
-                  className='inline-flex items-center gap-1 rounded-md border-2 border-foreground/20 hover:border-foreground/50 px-2 py-1 text-xs disabled:opacity-50'
+                  aria-label={t('Add image')}
+                  title={t('Add image')}
+                  data-testid='designer-add-image'
+                  className='p-1.5 shrink-0 text-foreground/50 hover:text-foreground transition-colors disabled:opacity-50'
                 >
-                  <ImagePlus className='w-3.5 h-3.5' />{uploading ? t('Adding...') : t('Add image')}
+                  <Plus className={cn('w-6 h-6', uploading && 'animate-pulse')} />
                 </button>
               )}
             />
-            <span className='text-xs text-foreground/50'>
-              {session.images.length === 0
-                ? t('For banners and pictures on the page.')
-                : t('Tell the AI where to use each one, such as "use image 1 as the banner".')}
-            </span>
+            <textarea
+              aria-label={t('Message')}
+              value={draft}
+              onChange={event => setDraft(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={session.design ? t('Ask for a change...') : t('Describe your page...')}
+              rows={2}
+              maxLength={2000}
+              disabled={!canChat}
+              className='flex-1 min-w-0 resize-none bg-transparent text-foreground text-sm outline-none border-0 p-0'
+            />
+            <button
+              type='submit'
+              aria-label={t('Send')}
+              disabled={!canChat || !draft.trim()}
+              className='inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-selected text-foreground disabled:opacity-50'
+            >
+              <SendHorizontal size={18} />
+            </button>
           </div>
-          {session.images.length > 0 && (
-            <div className='flex flex-wrap gap-2'>
-              {session.images.map((image, index) => (
-                <figure key={image.url} className='m-0 w-16' data-testid='designer-image'>
-                  <img src={image.url} alt={image.name} className='block w-16 h-12 m-0 object-cover rounded-md border-2 border-foreground/20' />
-                  <figcaption className='text-[10px] text-foreground/60 text-center'>{t('Image {{number}}', { number: index + 1 })}</figcaption>
-                </figure>
-              ))}
-            </div>
-          )}
-        </div>
+        </form>
 
-        <div className='rounded-md border-2 border-foreground/10 bg-muted/50 px-2 py-1.5 text-xs text-foreground/70' data-testid='designer-usage'>
-          <p className='m-0 font-bold text-foreground'>{t('AI usage and cost')}</p>
-          {!lastUsage && (
-            <p className='m-0'>{t('Each message costs about {{cost}}. The exact tokens and cost appear here as you go.', { cost: formatUsd(TYPICAL_TURN_COST_USD) })}</p>
-          )}
-          {lastUsage && (
-            <>
-              <p className='m-0'>
-                {t('Last message: {{input}} input and {{output}} output tokens', {
-                  input: lastUsage.inputTokens.toLocaleString(),
-                  output: lastUsage.outputTokens.toLocaleString()
-                })}, {cost(lastUsage.estimatedCostUsd)}
-              </p>
-              <p className='m-0'>
-                {t('Messages in this design: {{count}}, using {{tokens}} tokens', {
-                  count: usageTotal.count,
-                  tokens: usageTotal.tokens.toLocaleString()
-                })}, {cost(usageTotal.costKnown ? usageTotal.costUsd : null)}
-              </p>
-              <p className='m-0 text-foreground/50'>{t('Model {{model}}. Costs are estimates.', { model: lastUsage.model })}</p>
-            </>
-          )}
-        </div>
-
-        <div className='flex items-center gap-2'>
-          <input
-            type='text'
-            aria-label={t('Name in the menu')}
-            value={session.name}
-            onChange={event => updateDesignerSession(key, { name: event.target.value })}
-            placeholder={t('Name in the menu')}
-            maxLength={60}
-            className='flex-1 min-w-0 rounded-md border-2 border-foreground/20 bg-input text-foreground px-2 py-1 text-sm'
-          />
-          <button
-            type='button'
-            onClick={handleSave}
-            disabled={!canSave}
-            className='rounded-md bg-primary text-primary-foreground px-3 py-1 text-sm font-bold border-2 border-transparent disabled:opacity-50 shrink-0'
-          >
-            {session.saving ? t('Saving...') : (isNew ? t('Add to menu') : t('Save changes'))}
-          </button>
-        </div>
+        <button
+          type='button'
+          onClick={handleSave}
+          disabled={!canSave}
+          className='rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-bold border-2 border-transparent disabled:opacity-50'
+        >
+          {session.saving ? t('Saving...') : (isNew ? t('Add to menu') : t('Save changes'))}
+        </button>
       </div>
     </div>
   )

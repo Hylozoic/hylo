@@ -9,7 +9,8 @@ This is the first slice. Read `docs/group-themes-mvp.md` first; the AI plumbing 
 The assistant is called **Axl**. It greets the steward when the designer opens and offers to look at the group; "Make some suggestions" sits just above the message box until a design is started.
 
 1. In the group menu's edit mode, Add to Menu > Add View opens the Add View dialog. It now leads with **Design your own view**, then **Your designed views**, then the common and custom views.
-2. The designer is at `/groups/:slug/design/new` (or `/design/:viewId` to edit). The **chat column takes the place of the group menu**: a Back button, the conversation, the token and cost meter, and a name field with "Add to menu". The **main column shows the page**, redrawn after every message.
+2. The designer is at `/groups/:slug/design/new` (or `/design/:viewId` to edit). The **chat column takes the place of the group menu**: a Back button, a small pill with the running AI cost (starting at $0.00, detail on hover), the conversation with Axl, a message box with a "+" for adding images, and "Add to menu". The **main column shows the page**, redrawn after every message; before the first design it asks "What do you want to build?".
+   - **The name** is in the main column's header. Clicking it renames the view. The AI suggests a name with the first design, and leaves it alone once the steward has a name of their own (typed, or from a suggestion they picked).
 3. Saving creates a `GroupView` of type `designed`. Members open it at `/groups/:slug/designed/:viewId`. Stewards see an "Edit design" link there.
 
 ## The format

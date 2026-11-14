@@ -11,6 +11,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { NEW_VIEW_ID } from './DesignerChatColumn'
 import { designerSessionKey, useDesignerSession } from './designerSession'
+import EditableViewName from './EditableViewName'
 
 /**
  * The canvas side of "Design your own view": the main column shows the page as
@@ -21,14 +22,20 @@ export default function GroupViewDesigner () {
   const { t } = useTranslation()
   const { groupSlug, viewId } = useParams()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const session = useDesignerSession(designerSessionKey(group?.id, viewId))
+  const sessionKey = designerSessionKey(group?.id, viewId)
+  const session = useDesignerSession(sessionKey)
   const { setHeaderDetails } = useViewHeader()
   const isNew = viewId === NEW_VIEW_ID
-  const title = session.name.trim() || (isNew ? t('New designed view') : t('Designed view'))
+  const placeholder = isNew ? t('New designed view') : t('Designed view')
 
+  // The header shows the view's name, which the steward can click to change
   useEffect(() => {
-    setHeaderDetails({ title, icon: 'LayoutTemplate', search: false })
-  }, [setHeaderDetails, title])
+    setHeaderDetails({
+      title: <EditableViewName sessionKey={sessionKey} placeholder={placeholder} />,
+      icon: 'LayoutTemplate',
+      search: false
+    })
+  }, [setHeaderDetails, sessionKey, placeholder])
 
   if (!group) return <Loading />
 
@@ -40,7 +47,7 @@ export default function GroupViewDesigner () {
       {session.design && session.dirty && (
         <p className='m-0 px-4 py-1 text-xs text-foreground/70 bg-accent/10 border-b-2 border-accent/30' role='status'>
           {isNew
-            ? t('This is a draft. Name it and add it to the menu when you are happy with it.')
+            ? t('This is a draft. Add it to the menu when you are happy with it. Click the name above to change it.')
             : t('You have changes that are not saved yet.')}
         </p>
       )}
@@ -53,10 +60,10 @@ export default function GroupViewDesigner () {
           />
           )
         : (
-          <div className='flex flex-col items-center justify-center text-center gap-2 p-10 text-foreground/60'>
+          <div className='flex flex-col items-center justify-center text-center gap-2 p-10 text-foreground/60 min-h-[calc(100dvh-140px)]' data-testid='designer-empty'>
             <LayoutTemplate className='w-10 h-10' />
-            <p className='m-0 font-bold text-foreground'>{t('Your page will appear here')}</p>
-            <p className='m-0 text-sm max-w-sm'>{t('Describe what you want in the chat on the left.')}</p>
+            <h2 className='m-0 text-2xl font-bold text-foreground'>{t('What do you want to build?')}</h2>
+            <p className='m-0 text-sm max-w-sm'>{t('Describe what you need in the chat')}</p>
           </div>
           )}
     </div>

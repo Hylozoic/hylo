@@ -23,6 +23,8 @@ function emptySession () {
     // The page as building blocks, or null before the first design
     design: null,
     name: '',
+    // True once the steward has typed a name themselves; the AI's suggested name is then left alone
+    nameEdited: false,
     // Images the steward has added for this page, [{ url, name }]; the AI can only place these
     images: [],
     // Whether the design differs from what is saved
@@ -97,4 +99,13 @@ export function addDesignImage (images, url) {
  */
 export function imagesFromUrls (urls) {
   return (urls || []).reduce((images, url) => addDesignImage(images, url), [])
+}
+
+/**
+ * The name to show after a design turn: the steward's own name if they have
+ * typed one or one is already there, otherwise the name the AI suggested.
+ */
+export function nameAfterTurn (session, suggestedName) {
+  if (session.nameEdited || session.name.trim()) return session.name
+  return typeof suggestedName === 'string' ? suggestedName.trim().slice(0, 60) : session.name
 }

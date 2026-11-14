@@ -25,18 +25,18 @@ test('capture screenshot designed view real ai', async ({ page }) => {
 
     const chat = page.getByTestId('designer-chat-column')
     await expect(chat).toBeVisible({ timeout: 90000 })
-    await chat.getByLabel('Message').fill('Make a welcome page for new members. Show the latest posts and who is in the group side by side, and finish with a button to the events.')
+    await chat.getByRole('textbox', { name: 'Message' }).fill('Make a welcome page for new members. Show the latest posts and who is in the group side by side, and finish with a button to the events.')
     await chat.getByRole('button', { name: 'Send' }).click()
 
     const canvas = page.getByTestId('designer-canvas')
     await expect(canvas.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 120000 })
     // Axl's greeting, then the reply to this message
     await expect(chat.locator('[data-role="assistant"]')).toHaveCount(2)
-    await expect(page.getByTestId('designer-usage')).toContainText('Last message:')
+    await expect(page.getByTestId('designer-usage')).not.toHaveText('$0.00')
     await expect(canvas.locator('[data-block="posts"]').first()).toBeVisible()
     await page.screenshot({ path: 'e2e-screenshots/designed-view-real-ai.png' })
     console.log('[real ai] reply:', await chat.locator('[data-role="assistant"]').last().innerText())
-    console.log('[real ai] usage:', (await page.getByTestId('designer-usage').innerText()).replace(/\n/g, ' | '))
+    console.log('[real ai] cost:', await page.getByTestId('designer-usage').innerText(), '|', await page.getByTestId('designer-usage').getAttribute('title'))
   } finally {
     revokeHyloPro(PRO_NOTE)
   }
