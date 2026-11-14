@@ -3809,7 +3809,6 @@
   "Untitled": "शीर्षकहीन",
   "Add image": "चित्र जोड़ें",
   "Image {{number}}": "चित्र {{number}}",
-  "The image could not be added: {{message}}": "चित्र जोड़ा नहीं जा सका: {{message}}",
   "Looking at your group...": "आपके समूह को देखा जा रहा है...",
   "Design this": "इसे डिज़ाइन करें",
   "Hey there! What do you want to build today? I can take a look at your group and make some suggestions if you like.": "नमस्ते! आज आप क्या बनाना चाहते हैं? अगर आप चाहें तो मैं आपके समूह को देखकर कुछ सुझाव दे सकता हूँ।",
@@ -3825,5 +3824,10 @@
   "Unsaved changes": "बिना सहेजे बदलाव",
   "Not in the menu yet. Add it to the menu when you are happy with it.": "अभी मेनू में नहीं है। जब आप संतुष्ट हों तो इसे मेनू में जोड़ें।",
   "This view is in the menu. Your latest changes are not saved yet.": "यह व्यू मेनू में है। आपके ताज़ा बदलाव अभी सहेजे नहीं गए हैं।",
-  "This view is in the menu as shown.": "यह व्यू जैसा दिख रहा है वैसा ही मेनू में है।"
+  "This view is in the menu as shown.": "यह व्यू जैसा दिख रहा है वैसा ही मेनू में है।",
+  "Add an image or PDF": "चित्र या PDF जोड़ें",
+  "Add PDF": "PDF जोड़ें",
+  "Axl can read what you add, such as a flyer or a schedule, and turn it into a page. Files are sent to the AI to be read.": "Axl आपकी जोड़ी हुई चीज़ें, जैसे फ़्लायर या कार्यक्रम, पढ़कर उनसे पेज बना सकता है। फ़ाइलें पढ़ने के लिए AI को भेजी जाती हैं।",
+  "Only PDF documents can be read. Add pictures as images.": "केवल PDF दस्तावेज़ पढ़े जा सकते हैं। तस्वीरें चित्र के रूप में जोड़ें।",
+  "The file could not be added: {{message}}": "फ़ाइल जोड़ी नहीं जा सकी: {{message}}"
 }

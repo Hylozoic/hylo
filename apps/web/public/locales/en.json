@@ -3806,7 +3806,6 @@
   "Untitled": "Untitled",
   "Add image": "Add image",
   "Image {{number}}": "Image {{number}}",
-  "The image could not be added: {{message}}": "The image could not be added: {{message}}",
   "Looking at your group...": "Looking at your group...",
   "Design this": "Design this",
   "Hey there! What do you want to build today? I can take a look at your group and make some suggestions if you like.": "Hey there! What do you want to build today? I can take a look at your group and make some suggestions if you like.",
@@ -3822,5 +3821,10 @@
   "Unsaved changes": "Unsaved changes",
   "Not in the menu yet. Add it to the menu when you are happy with it.": "Not in the menu yet. Add it to the menu when you are happy with it.",
   "This view is in the menu. Your latest changes are not saved yet.": "This view is in the menu. Your latest changes are not saved yet.",
-  "This view is in the menu as shown.": "This view is in the menu as shown."
+  "This view is in the menu as shown.": "This view is in the menu as shown.",
+  "Add an image or PDF": "Add an image or PDF",
+  "Add PDF": "Add PDF",
+  "Axl can read what you add, such as a flyer or a schedule, and turn it into a page. Files are sent to the AI to be read.": "Axl can read what you add, such as a flyer or a schedule, and turn it into a page. Files are sent to the AI to be read.",
+  "Only PDF documents can be read. Add pictures as images.": "Only PDF documents can be read. Add pictures as images.",
+  "The file could not be added: {{message}}": "The file could not be added: {{message}}"
 }

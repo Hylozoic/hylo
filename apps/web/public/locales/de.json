@@ -3809,7 +3809,6 @@
   "Untitled": "Ohne Titel",
   "Add image": "Bild hinzufügen",
   "Image {{number}}": "Bild {{number}}",
-  "The image could not be added: {{message}}": "Das Bild konnte nicht hinzugefügt werden: {{message}}",
   "Looking at your group...": "Deine Gruppe wird angesehen...",
   "Design this": "Diese gestalten",
   "Hey there! What do you want to build today? I can take a look at your group and make some suggestions if you like.": "Hallo! Was möchtest du heute bauen? Wenn du magst, schaue ich mir deine Gruppe an und mache ein paar Vorschläge.",
@@ -3825,5 +3824,10 @@
   "Unsaved changes": "Ungespeicherte Änderungen",
   "Not in the menu yet. Add it to the menu when you are happy with it.": "Noch nicht im Menü. Füge sie dem Menü hinzu, wenn du zufrieden bist.",
   "This view is in the menu. Your latest changes are not saved yet.": "Diese Ansicht ist im Menü. Deine letzten Änderungen sind noch nicht gespeichert.",
-  "This view is in the menu as shown.": "Diese Ansicht ist so im Menü, wie sie hier gezeigt wird."
+  "This view is in the menu as shown.": "Diese Ansicht ist so im Menü, wie sie hier gezeigt wird.",
+  "Add an image or PDF": "Bild oder PDF hinzufügen",
+  "Add PDF": "PDF hinzufügen",
+  "Axl can read what you add, such as a flyer or a schedule, and turn it into a page. Files are sent to the AI to be read.": "Axl kann lesen, was du hinzufügst, etwa einen Flyer oder einen Zeitplan, und daraus eine Seite machen. Dateien werden zum Lesen an die KI gesendet.",
+  "Only PDF documents can be read. Add pictures as images.": "Nur PDF-Dokumente können gelesen werden. Füge Bilder als Bilder hinzu.",
+  "The file could not be added: {{message}}": "Die Datei konnte nicht hinzugefügt werden: {{message}}"
 }

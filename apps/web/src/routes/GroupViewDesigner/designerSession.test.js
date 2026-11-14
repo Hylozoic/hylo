@@ -1,4 +1,6 @@
 import {
+  addDesignDocument,
+  fileNameFromUrl,
   nameAfterTurn,
   EMPTY_USAGE_TOTAL,
   addDesignImage,
@@ -72,13 +74,30 @@ describe('design images', () => {
   })
 })
 
+describe('design documents', () => {
+  const flyer = 'https://uploads.example.org/evo-uploads/group/7/Spring%20Flyer.pdf'
+
+  it('lists PDFs by file name, once each, up to three', () => {
+    const one = addDesignDocument([], flyer)
+    expect(one).toEqual([{ url: flyer, name: 'Spring Flyer.pdf' }])
+    expect(addDesignDocument(one, flyer)).toBe(one)
+    expect(addDesignDocument(one, 'https://uploads.example.org/notes.docx')).toBe(one)
+    const full = ['a', 'b', 'c'].reduce((list, name) => addDesignDocument(list, `https://uploads.example.org/${name}.pdf`), [])
+    expect(full).toHaveLength(3)
+    expect(addDesignDocument(full, 'https://uploads.example.org/d.pdf')).toBe(full)
+    expect(fileNameFromUrl('not a url')).toEqual('')
+  })
+})
+
 describe('designGroupViewTurn', () => {
   it('sends the conversation and the current design to the mutation', () => {
     const messages = [{ role: 'user', text: 'A welcome page' }]
     const action = designGroupViewTurn('7', messages, { blocks: [] })
     expect(action.type).toEqual(DESIGN_GROUP_VIEW_TURN)
-    expect(action.graphql.query).toContain('designGroupViewTurn(groupId: $groupId, messages: $messages, currentView: $currentView, images: $images)')
-    expect(action.graphql.variables).toEqual({ groupId: '7', messages, currentView: { blocks: [] }, images: [] })
+    expect(action.graphql.query).toContain('designGroupViewTurn(groupId: $groupId, messages: $messages, currentView: $currentView, images: $images, documents: $documents)')
+    expect(action.graphql.variables).toEqual({ groupId: '7', messages, currentView: { blocks: [] }, images: [], documents: [] })
+    const documents = [{ url: 'https://uploads.example.org/flyer.pdf', name: 'flyer.pdf' }]
+    expect(designGroupViewTurn('7', messages, null, [], documents).graphql.variables.documents).toEqual(documents)
     const images = [{ url: 'https://uploads.example.org/a.jpg', name: 'Image 1' }]
     expect(designGroupViewTurn('7', messages, null, images).graphql.variables.images).toEqual(images)
   })

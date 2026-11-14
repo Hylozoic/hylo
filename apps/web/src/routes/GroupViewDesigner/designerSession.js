@@ -27,6 +27,8 @@ function emptySession () {
     nameEdited: false,
     // Images the steward has added for this page, [{ url, name }]; the AI can only place these
     images: [],
+    // PDFs the steward has attached for the AI to read, [{ url, name }]; they are not shown on the page
+    documents: [],
     // Whether the design differs from what is saved
     dirty: false,
     sending: false,
@@ -108,4 +110,29 @@ export function imagesFromUrls (urls) {
 export function nameAfterTurn (session, suggestedName) {
   if (session.nameEdited || session.name.trim()) return session.name
   return typeof suggestedName === 'string' ? suggestedName.trim().slice(0, 60) : session.name
+}
+
+export const MAX_DESIGN_DOCUMENTS = 3
+
+/**
+ * The name to show for an uploaded file: the last part of its address.
+ */
+export function fileNameFromUrl (url) {
+  try {
+    const last = new URL(url).pathname.split('/').filter(Boolean).pop() || ''
+    return decodeURIComponent(last)
+  } catch (e) {
+    return ''
+  }
+}
+
+export const isPdfUrl = url => /\.pdf$/i.test(fileNameFromUrl(url))
+
+/**
+ * The document list with one more PDF. An address already listed is not added
+ * twice, and anything that is not a PDF, or past the limit, is left out.
+ */
+export function addDesignDocument (documents, url) {
+  if (!url || !isPdfUrl(url) || documents.length >= MAX_DESIGN_DOCUMENTS || documents.some(document => document.url === url)) return documents
+  return [...documents, { url, name: fileNameFromUrl(url).slice(0, 100) }]
 }

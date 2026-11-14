@@ -3,7 +3,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
-import { ArrowLeft, Lightbulb, Plus, SendHorizontal, Sparkles } from 'lucide-react'
+import { ArrowLeft, FileText, ImagePlus, Lightbulb, Plus, SendHorizontal, Sparkles } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
 import { designedViewImageUrls } from '@hylo/shared'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { groupUrl } from '@hylo/navigation'
@@ -16,9 +17,12 @@ import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
 import { cn } from 'util/index'
 import { NEW_VIEW_ID } from './DesignerSaveButton'
 import {
+  addDesignDocument,
   addDesignImage,
   addDesignUsage,
   imagesFromUrls,
+  isPdfUrl,
+  MAX_DESIGN_DOCUMENTS,
   nameAfterTurn,
   designerSessionKey,
   updateDesignerSession,
@@ -97,7 +101,7 @@ export default function DesignerChatColumn () {
     updateDesignerSession(key, { messages, sending: true, error: null })
     setDraft('')
     try {
-      const response = await dispatch(designGroupViewTurn(groupId, messages, session.design, session.images))
+      const response = await dispatch(designGroupViewTurn(groupId, messages, session.design, session.images, session.documents))
       if (response?.error) throw response.payload || new Error(t('Something went wrong. Please try again.'))
       const result = response?.payload?.data?.designGroupViewTurn
       if (!result?.view) throw new Error(t('Something went wrong. Please try again.'))
@@ -160,7 +164,16 @@ export default function DesignerChatColumn () {
     if (!uploaded?.url) return
     updateDesignerSession(key, current => ({ images: addDesignImage(current.images, uploaded.url), error: null }))
   }
-  const handleImageError = err => updateDesignerSession(key, { error: t('The image could not be added: {{message}}', { message: errorMessage(err) }) })
+  const handleDocumentUploaded = uploaded => {
+    if (!uploaded?.url) return
+    if (!isPdfUrl(uploaded.url)) {
+      updateDesignerSession(key, { error: t('Only PDF documents can be read. Add pictures as images.') })
+      return
+    }
+    updateDesignerSession(key, current => ({ documents: addDesignDocument(current.documents, uploaded.url), error: null }))
+  }
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false)
+  const handleImageError = err => updateDesignerSession(key, { error: t('The file could not be added: {{message}}', { message: errorMessage(err) }) })
 
   // What this design has cost so far; the pill shows the total and its tooltip the detail
   const { lastUsage, usageTotal } = session
@@ -264,40 +277,87 @@ export default function DesignerChatColumn () {
           </button>
         )}
         <form onSubmit={handleSubmit} className='bg-input rounded-lg p-2 border-2 border-transparent focus-within:border-focus flex flex-col gap-2'>
-          {session.images.length > 0 && (
-            <div className='flex flex-wrap gap-2' data-testid='designer-images'>
+          {(session.images.length > 0 || session.documents.length > 0) && (
+            <div className='flex flex-wrap items-start gap-2' data-testid='designer-images'>
               {session.images.map((image, index) => (
                 <figure key={image.url} className='m-0 w-14' data-testid='designer-image'>
                   <img src={image.url} alt={image.name} className='block w-14 h-10 m-0 object-cover rounded-md border-2 border-foreground/20' />
                   <figcaption className='text-[10px] text-foreground/60 text-center'>{t('Image {{number}}', { number: index + 1 })}</figcaption>
                 </figure>
               ))}
+              {session.documents.map(document => (
+                <span
+                  key={document.url}
+                  title={document.name}
+                  data-testid='designer-document'
+                  className='inline-flex items-center gap-1 max-w-[10rem] rounded-md border-2 border-foreground/20 px-1.5 py-1 text-[11px] text-foreground/80'
+                >
+                  <FileText className='w-3.5 h-3.5 shrink-0' />
+                  <span className='truncate'>{document.name}</span>
+                </span>
+              ))}
             </div>
           )}
           <div className='flex items-end gap-1'>
-            <UploadAttachmentButton
-              type='groupViewImage'
-              id={groupId}
-              attachmentType='image'
-              allowMultiple
-              disable={!canChat}
-              onSuccess={handleImageUploaded}
-              onError={handleImageError}
-              onLoadingChange={setUploading}
-              customRender={({ onClick }) => (
+            <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
+              <PopoverTrigger asChild>
                 <button
                   type='button'
-                  onClick={onClick}
                   disabled={!canChat || uploading}
-                  aria-label={t('Add image')}
-                  title={t('Add image')}
-                  data-testid='designer-add-image'
+                  aria-label={t('Add an image or PDF')}
+                  title={t('Add an image or PDF')}
+                  data-testid='designer-add-attachment'
                   className='p-1.5 shrink-0 text-foreground/50 hover:text-foreground transition-colors disabled:opacity-50'
                 >
                   <Plus className={cn('w-6 h-6', uploading && 'animate-pulse')} />
                 </button>
-              )}
-            />
+              </PopoverTrigger>
+              <PopoverContent side='top' align='start' arrow={false} className='w-60 p-1'>
+                <UploadAttachmentButton
+                  type='groupViewImage'
+                  id={groupId}
+                  attachmentType='image'
+                  allowMultiple
+                  disable={!canChat}
+                  onSuccess={handleImageUploaded}
+                  onError={handleImageError}
+                  onLoadingChange={setUploading}
+                  customRender={({ onClick }) => (
+                    <button
+                      type='button'
+                      onClick={() => { setAttachMenuOpen(false); onClick() }}
+                      data-testid='designer-add-image'
+                      className='flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-foreground/10 text-sm text-foreground text-left'
+                    >
+                      <ImagePlus className='w-4 h-4' />{t('Add image')}
+                    </button>
+                  )}
+                />
+                <UploadAttachmentButton
+                  type='groupViewFile'
+                  id={groupId}
+                  attachmentType='file'
+                  disable={!canChat || session.documents.length >= MAX_DESIGN_DOCUMENTS}
+                  onSuccess={handleDocumentUploaded}
+                  onError={handleImageError}
+                  onLoadingChange={setUploading}
+                  customRender={({ onClick }) => (
+                    <button
+                      type='button'
+                      onClick={() => { setAttachMenuOpen(false); onClick() }}
+                      disabled={session.documents.length >= MAX_DESIGN_DOCUMENTS}
+                      data-testid='designer-add-document'
+                      className='flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-foreground/10 text-sm text-foreground text-left disabled:opacity-50'
+                    >
+                      <FileText className='w-4 h-4' />{t('Add PDF')}
+                    </button>
+                  )}
+                />
+                <p className='m-0 px-2 py-1.5 text-[11px] text-foreground/60'>
+                  {t('Axl can read what you add, such as a flyer or a schedule, and turn it into a page. Files are sent to the AI to be read.')}
+                </p>
+              </PopoverContent>
+            </Popover>
             <TextareaAutosize
               aria-label={t('Message')}
               value={draft}
