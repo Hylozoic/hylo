@@ -19,16 +19,18 @@ const CHAR_WIDTH = 6.6
 
 const INK = 'hsl(var(--foreground) / 0.7)'
 const GRID = 'hsl(var(--foreground) / 0.12)'
-const SERIES = 'hsl(var(--primary))'
+// Accent, selected and foreground stand out from the page in every theme; primary can be
+// close to the background, so it is not used for marks
+const SERIES = 'hsl(var(--accent))'
 const PIE_COLORS = [
-  'hsl(var(--primary))',
   'hsl(var(--accent))',
   'hsl(var(--selected))',
-  'hsl(var(--primary) / 0.5)',
-  'hsl(var(--accent) / 0.5)',
-  'hsl(var(--selected) / 0.5)',
-  'hsl(var(--foreground) / 0.45)',
-  'hsl(var(--foreground) / 0.2)'
+  'hsl(var(--foreground) / 0.7)',
+  'hsl(var(--accent) / 0.55)',
+  'hsl(var(--selected) / 0.55)',
+  'hsl(var(--foreground) / 0.4)',
+  'hsl(var(--accent) / 0.3)',
+  'hsl(var(--selected) / 0.3)'
 ]
 
 const KIND_NAMES = { bar: 'Bar chart', line: 'Line chart', pie: 'Pie chart' }
