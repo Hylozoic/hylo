@@ -42,6 +42,14 @@ export const DESIGNED_VIEW_HERO_HEIGHTS = ['short', 'medium', 'tall']
 export const DESIGNED_VIEW_HERO_ALIGNMENTS = ['left', 'center']
 // Places inside the group a button can lead to; the web app turns each into a URL
 export const DESIGNED_VIEW_DESTINATIONS = ['stream', 'events', 'members', 'about', 'discussions', 'projects', 'resources', 'map']
+// A chart is drawn by Hylo from figures the steward supplied: a single series of { label, value } points
+export const DESIGNED_VIEW_CHART_KINDS = ['bar', 'line', 'pie']
+export const DESIGNED_VIEW_CHART_MIN_POINTS = 2
+export const DESIGNED_VIEW_CHART_MAX_POINTS = 24
+export const DESIGNED_VIEW_CHART_MAX_PIE_SLICES = 8
+export const DESIGNED_VIEW_CHART_LABEL_MAX = 40
+// Larger numbers than this are almost certainly a mistake, and would not fit on an axis
+export const DESIGNED_VIEW_CHART_MAX_VALUE = 1e12
 
 const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key)
 const isPlainObject = value => !!value && typeof value === 'object' && !Array.isArray(value)
@@ -51,6 +59,8 @@ const oneOf = (options, fallback) => ({ kind: 'oneOf', options, fallback })
 const int = (min, max, fallback) => ({ kind: 'int', min, max, fallback })
 const listOf = (options, max) => ({ kind: 'listOf', options, max })
 const httpsUrl = ({ required = false } = {}) => ({ kind: 'httpsUrl', required })
+// A list of { label, value } points: short text labels and finite numbers
+const points = (min, max, labelMax) => ({ kind: 'points', min, max, labelMax })
 
 /**
  * Every block type and its fields. `required` text must be non-empty; fields
@@ -81,7 +91,21 @@ export const DESIGNED_VIEW_BLOCKS = {
   events: { title: text(120, { required: false }), limit: int(1, 12, 4) },
   members: { title: text(120, { required: false }), limit: int(1, 24, 8) },
   button: { label: text(60), destination: oneOf([...DESIGNED_VIEW_DESTINATIONS, 'url'], 'stream'), url: httpsUrl() },
-  divider: {}
+  divider: {},
+  // A bar, line or pie chart of figures the steward gave; a snapshot, not live data
+  chart: {
+    kind: oneOf(DESIGNED_VIEW_CHART_KINDS, 'bar'),
+    title: text(120),
+    // What the categories are (the horizontal axis of a bar or line chart), e.g. "Month"
+    xLabel: text(40, { required: false }),
+    // What the numbers measure, e.g. "Harvest"
+    yLabel: text(40, { required: false }),
+    // Written with each number, e.g. "lbs", "%", "$"
+    unit: text(12, { required: false }),
+    // Where the figures came from, shown under the chart so readers can check them
+    source: text(160, { required: false }),
+    points: points(DESIGNED_VIEW_CHART_MIN_POINTS, DESIGNED_VIEW_CHART_MAX_POINTS, DESIGNED_VIEW_CHART_LABEL_MAX)
+  }
 }
 
 export const DESIGNED_VIEW_BLOCK_TYPES = [...Object.keys(DESIGNED_VIEW_BLOCKS), 'columns', 'canvas']
@@ -137,9 +161,34 @@ function checkField (rule, raw) {
     case 'httpsUrl':
       if (missing || raw === '') return rule.required ? { error: 'is required' } : { value: undefined }
       return isHttpsUrl(raw) ? { value: raw } : { error: 'must be an https:// address' }
+    case 'points': {
+      if (!Array.isArray(raw) || raw.length < rule.min || raw.length > rule.max) return { error: `must be a list of ${rule.min} to ${rule.max} points` }
+      const clean = []
+      for (let i = 0; i < raw.length; i++) {
+        const point = raw[i]
+        if (!isPlainObject(point) || Object.keys(point).some(key => key !== 'label' && key !== 'value')) return { error: `[${i}] must be { label, value }` }
+        const label = checkField(text(rule.labelMax), point.label)
+        if (label.error) return { error: `[${i}].label ${label.error}` }
+        if (!isChartNumber(point.value)) return { error: `[${i}].value must be a number` }
+        clean.push({ label: label.value, value: point.value })
+      }
+      return { value: clean }
+    }
     default:
       return { error: 'is not supported' }
   }
+}
+
+function isChartNumber (value) {
+  return typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= DESIGNED_VIEW_CHART_MAX_VALUE
+}
+
+// A pie shows parts of a whole: a few slices, none negative, adding up to something
+function checkPie (block, path, errors) {
+  if (block.kind !== 'pie' || !Array.isArray(block.points)) return
+  if (block.points.length > DESIGNED_VIEW_CHART_MAX_PIE_SLICES) errors.push(`${path}.points: a pie chart can have at most ${DESIGNED_VIEW_CHART_MAX_PIE_SLICES} slices`)
+  if (block.points.some(point => point.value < 0)) errors.push(`${path}.points: a pie chart cannot have negative values`)
+  else if (!block.points.some(point => point.value > 0)) errors.push(`${path}.points: a pie chart needs a value above zero`)
 }
 
 function checkCanvas (raw, path, errors) {
@@ -232,6 +281,7 @@ function checkBlock (raw, path, errors, { allowColumns }) {
     errors.push(`${path}.url is required when the destination is "url"`)
   }
   if (raw.type === 'button' && block.destination !== 'url') delete block.url
+  if (raw.type === 'chart') checkPie(block, path, errors)
   return block
 }
 
@@ -315,6 +365,10 @@ function fieldSchema (rule) {
     case 'oneOf': return typeof rule.options[0] === 'number' ? { type: 'integer', enum: rule.options } : { type: 'string', enum: rule.options }
     case 'int': return { type: 'integer' }
     case 'listOf': return { type: 'array', items: { type: 'string', enum: rule.options } }
+    case 'points': return {
+      type: 'array',
+      items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'number' } }, required: ['label', 'value'], additionalProperties: false }
+    }
     default: return { type: 'string' }
   }
 }

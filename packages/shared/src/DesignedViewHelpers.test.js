@@ -281,3 +281,103 @@ describe('posts block search', () => {
     expect(view.blocks[1]).toEqual({ type: 'posts', postTypes: [], limit: 3, layout: 'list' })
   })
 })
+
+describe('chart block', () => {
+  const harvest = [
+    { label: 'June', value: 120 },
+    { label: 'July', value: 310 },
+    { label: 'August', value: 455.5 },
+    { label: 'September', value: 0 }
+  ]
+  const chart = (extra = {}) => ({ type: 'chart', kind: 'bar', title: 'Harvest by month', points: harvest, ...extra })
+  const errorsFor = extra => validateDesignedView({ blocks: [chart(extra)] }).errors
+
+  it('accepts a chart of labelled numbers, with defaults and trimmed text', () => {
+    const result = validateDesignedView({
+      blocks: [{ type: 'chart', title: ' Harvest ', yLabel: 'Harvest', unit: 'lbs', source: 'Harvest log, page 2', xLabel: '', points: [{ label: ' June ', value: -4 }, { label: 'July', value: 1e6 }] }]
+    })
+    expect(result.errors).toEqual([])
+    expect(result.view.blocks[0]).toEqual({
+      type: 'chart',
+      kind: 'bar',
+      title: 'Harvest',
+      yLabel: 'Harvest',
+      unit: 'lbs',
+      source: 'Harvest log, page 2',
+      points: [{ label: 'June', value: -4 }, { label: 'July', value: 1e6 }]
+    })
+  })
+
+  it('is allowed at the top level, inside columns and inside canvas regions', () => {
+    const region = col => ({ title: 'Figures', col, row: 0, blocks: [chart({ kind: 'line' })] })
+    expect(validateDesignedView({
+      blocks: [
+        chart(),
+        { type: 'columns', columns: [[chart({ kind: 'pie' })], [{ type: 'divider' }]] },
+        { type: 'canvas', regions: [region(0), region(1)] }
+      ]
+    }).errors).toEqual([])
+  })
+
+  it('needs a title, a known kind and 2 to 24 points', () => {
+    expect(errorsFor({ title: '' })).toEqual(['blocks[0].title is required'])
+    expect(errorsFor({ kind: 'scatter' })[0]).toContain('blocks[0].kind must be one of bar, line, pie')
+    expect(errorsFor({ points: undefined })).toEqual(['blocks[0].points must be a list of 2 to 24 points'])
+    expect(errorsFor({ points: [{ label: 'Only', value: 1 }] })).toEqual(['blocks[0].points must be a list of 2 to 24 points'])
+    const many = Array.from({ length: 25 }, (_, i) => ({ label: `Day ${i + 1}`, value: i }))
+    expect(errorsFor({ points: many })).toEqual(['blocks[0].points must be a list of 2 to 24 points'])
+    expect(errorsFor({ points: many.slice(0, 24) })).toEqual([])
+  })
+
+  it('takes only finite numbers and short labels, and nothing else in a point', () => {
+    const withPoint = point => errorsFor({ points: [{ label: 'June', value: 1 }, point] })
+    expect(withPoint({ label: 'July', value: NaN })).toEqual(['blocks[0].points [1].value must be a number'])
+    expect(withPoint({ label: 'July', value: Infinity })).toEqual(['blocks[0].points [1].value must be a number'])
+    expect(withPoint({ label: 'July', value: '310' })).toEqual(['blocks[0].points [1].value must be a number'])
+    expect(withPoint({ label: 'July', value: null })).toEqual(['blocks[0].points [1].value must be a number'])
+    expect(withPoint({ label: 'July', value: 1e13 })).toEqual(['blocks[0].points [1].value must be a number'])
+    expect(withPoint({ label: '', value: 3 })).toEqual(['blocks[0].points [1].label is required'])
+    expect(withPoint({ label: 'x'.repeat(41), value: 3 })).toEqual(['blocks[0].points [1].label must be at most 40 characters'])
+    expect(withPoint({ label: 'July', value: 3, color: 'red' })).toEqual(['blocks[0].points [1] must be { label, value }'])
+    expect(withPoint('July: 3')).toEqual(['blocks[0].points [1] must be { label, value }'])
+    expect(errorsFor({ svg: '<svg/>' })).toEqual(['blocks[0]: unknown field "svg" for a chart block'])
+  })
+
+  it('keeps a pie to a few slices that add up to something', () => {
+    const slices = n => Array.from({ length: n }, (_, i) => ({ label: `Part ${i + 1}`, value: 1 }))
+    expect(errorsFor({ kind: 'pie', points: slices(8) })).toEqual([])
+    expect(errorsFor({ kind: 'pie', points: slices(9) })).toEqual(['blocks[0].points: a pie chart can have at most 8 slices'])
+    expect(errorsFor({ kind: 'pie', points: [{ label: 'A', value: 3 }, { label: 'B', value: -1 }] })).toEqual(['blocks[0].points: a pie chart cannot have negative values'])
+    expect(errorsFor({ kind: 'pie', points: [{ label: 'A', value: 0 }, { label: 'B', value: 0 }] })).toEqual(['blocks[0].points: a pie chart needs a value above zero'])
+    // The same figures are fine as bars
+    expect(errorsFor({ kind: 'bar', points: slices(9) })).toEqual([])
+  })
+
+  it('drops a bad chart when shown and keeps the rest of the page', () => {
+    expect(sanitizeDesignedView({
+      blocks: [
+        chart({ points: [{ label: 'June', value: 1 }, { label: 'July', value: 'lots' }] }),
+        chart({ title: 'Kept' }),
+        { type: 'columns', columns: [[chart({ kind: 'pie', points: [{ label: 'A', value: -1 }, { label: 'B', value: 2 }] })], [{ type: 'divider' }]] }
+      ]
+    })).toEqual({
+      version: 1,
+      blocks: [
+        { type: 'chart', kind: 'bar', title: 'Kept', points: harvest },
+        { type: 'divider' }
+      ]
+    })
+  })
+
+  it('is in the JSON Schema as a list of label and number pairs, and accepts what a model would send', () => {
+    const option = designedViewJsonSchema().$defs.block.anyOf.find(o => o.properties.type.enum[0] === 'chart')
+    expect(option.properties.points).toEqual({
+      type: 'array',
+      items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'number' } }, required: ['label', 'value'], additionalProperties: false }
+    })
+    expect(option.properties.kind).toEqual({ type: 'string', enum: ['bar', 'line', 'pie'] })
+    expect(validateDesignedView({
+      blocks: [{ type: 'chart', kind: 'line', title: 'Members', xLabel: '', yLabel: '', unit: '', source: '', points: [{ label: '2023', value: 40 }, { label: '2024', value: 52 }] }]
+    }).errors).toEqual([])
+  })
+})
