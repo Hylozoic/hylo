@@ -194,6 +194,37 @@ describe('designedViewDesign', () => {
       expect(client.calls[0].system).to.contain('Choosing between a page and a canvas')
     })
 
+    it('lets the model show parts of posts it was given and drops any other post', async () => {
+      const postView = {
+        blocks: [
+          { type: 'postPart', postId: '482', part: 'event' },
+          { type: 'columns', columns: [[{ type: 'postPart', postId: '482', part: 'body' }], [{ type: 'postPart', postId: '999', part: 'everything' }]] },
+          { type: 'postPart', postId: '482', part: 'comments' }
+        ]
+      }
+      const client = clientReturning(modelResponse({ reply: 'Built the event page.', view: postView }))
+      const result = await designViewTurn({
+        ...request,
+        pickedPostsSummary: '- #482 [event] Seed swap and potluck\n  Where: The Rail Yard Lot',
+        allowedPostIds: ['482', '17']
+      }, { client })
+
+      const text = client.calls[0].messages[2].content[0].text
+      expect(text).to.contain('Posts the steward picked for this page (use these ids for postPart blocks):\n- #482 [event] Seed swap and potluck')
+      expect(client.calls[0].system).to.contain('Pages built around a post')
+      expect(result.view.blocks[0]).to.deep.equal({ type: 'postPart', postId: '482', part: 'event' })
+      expect(result.view.blocks[1].columns).to.deep.equal([[{ type: 'postPart', postId: '482', part: 'body' }], []])
+      expect(result.reply).to.equal('Built the event page. (I left out a post I could not find in this group. Pick it with the + button and I can add it.)')
+    })
+
+    it('keeps parts of a post that is already on the page', async () => {
+      const current = { version: 1, blocks: [{ type: 'postPart', postId: '55', part: 'everything' }] }
+      const client = clientReturning(modelResponse({ reply: 'Kept it.', view: { blocks: [{ type: 'postPart', postId: '55', part: 'everything' }] } }))
+      const result = await designViewTurn({ ...request, currentView: current }, { client })
+      expect(result.view.blocks).to.deep.equal([{ type: 'postPart', postId: '55', part: 'everything' }])
+      expect(result.reply).to.equal('Kept it.')
+    })
+
     it('rejects a page the blocks cannot show, and a refusal', async () => {
       const bad = clientReturning(modelResponse({ reply: 'x', view: { blocks: [{ type: 'html', html: '<b>hi</b>' }] } }))
       await expect(designViewTurn(request, { client: bad })).to.be.rejectedWith(/cannot show/)
@@ -242,7 +273,7 @@ describe('designedViewDesign', () => {
         openCounts: { request: 9 },
         views: [{ type: 'events', name: 'view-events' }, { type: 'designed', name: 'Start Here' }],
         upcomingEvents: [],
-        recentPosts: [{ type: 'request', title: 'Spare wheelbarrow?', comments: 4, daysAgo: 2 }]
+        recentPosts: [{ id: '31', type: 'request', title: 'Spare wheelbarrow?', comments: 4, daysAgo: 2 }]
       })
       expect(text).to.contain('Purpose: Growing food together')
       expect(text).to.contain('Description: (none written)')
@@ -250,7 +281,7 @@ describe('designedViewDesign', () => {
       expect(text).to.contain('Posts in the last 90 days: none')
       expect(text).to.contain('Views already in the menu: events, Start Here (designed)')
       expect(text).to.contain('Upcoming events:\n- none')
-      expect(text).to.contain('- [request] Spare wheelbarrow? (2 days ago, 4 comments)')
+      expect(text).to.contain('- #31 [request] Spare wheelbarrow? (2 days ago, 4 comments)')
       expect(formatGroupDigest(null)).to.equal('')
     })
   })

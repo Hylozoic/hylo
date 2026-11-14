@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
-import { recountPostTypesForView, TextHelpers, validateDesignedView } from '@hylo/shared'
+import { designedViewPostIds, recountPostTypesForView, TextHelpers, validateDesignedView } from '@hylo/shared'
 import {
   designViewTurnInChildProcess,
   isViewDesignConfigured,
@@ -9,7 +9,7 @@ import {
   normalizeDesignMessages,
   suggestViewsTurnInChildProcess
 } from '../../../lib/designedViewDesign'
-import { buildGroupDigest, formatGroupDigest } from '../../../lib/groupDigest'
+import { buildGroupDigest, describePickedPosts, digestPostIds, formatGroupDigest, formatPickedPosts, postIdsInGroup } from '../../../lib/groupDigest'
 import { isHyloHostedUrl } from '../../../lib/uploader/rehostRemoteMedia'
 import RedisClient from '../../services/RedisClient'
 
@@ -63,11 +63,21 @@ async function requireHyloProForDesignedViews (groupId) {
  * The settings to store for a designed view: only its design, checked against
  * the block format so nothing but known blocks is ever saved.
  */
-function designedViewSettings (settings) {
+async function designedViewSettings (settings, groupId) {
   const { view, errors } = validateDesignedView(settings?.design)
   if (errors.length > 0) throw new GraphQLError(`Invalid design: ${errors.slice(0, 5).join('; ')}`)
+  // A page may only show posts from its own group
+  const postIds = designedViewPostIds(view)
+  if (postIds.length > 0) {
+    const inGroup = await postIdsInGroup(groupId, postIds)
+    const missing = postIds.filter(id => !inGroup.includes(id))
+    if (missing.length > 0) throw new GraphQLError(`Invalid design: post ${missing.join(', ')} is not in this group`)
+  }
   return { design: view }
 }
+
+// How many posts a steward can pick for the AI to build a page around
+const MAX_PICKED_POSTS = 6
 
 export async function createGroupView ({ userId, groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, viewUserId, hidden, context }) {
   if (!userId) throw new GraphQLError('No userId passed into function')
@@ -78,7 +88,7 @@ export async function createGroupView ({ userId, groupId, type, name, icon, sett
 
   if (type === GroupView.Type.DESIGNED) {
     await requireHyloProForDesignedViews(groupId)
-    settings = designedViewSettings(settings)
+    settings = await designedViewSettings(settings, groupId)
   }
 
   // Only space rows can live off-menu (More Spaces). Views are in the menu or deleted.
@@ -144,7 +154,7 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
 
   if (view.get('type') === GroupView.Type.DESIGNED && settings !== undefined) {
     await requireHyloProForDesignedViews(groupId)
-    settings = designedViewSettings(settings)
+    settings = await designedViewSettings(settings, groupId)
   }
 
   const changes = {}
@@ -519,7 +529,7 @@ async function withinDesignTurnLimit (groupId) {
  * cost. The steward saves the page with createGroupView or updateGroupView.
  * Requires the Administration responsibility and Hylo Pro.
  */
-export async function designGroupViewTurn ({ userId, groupId, messages, currentView, images, documents }, deps = {}) {
+export async function designGroupViewTurn ({ userId, groupId, messages, currentView, images, documents, postIds }, deps = {}) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!groupId) throw new GraphQLError('No groupId passed into function')
 
@@ -539,6 +549,7 @@ export async function designGroupViewTurn ({ userId, groupId, messages, currentV
     availableImages = normalizeDesignImages(images).map(image => ({ ...image, visible: hosted(image.url) }))
     attachedDocuments = normalizeDesignDocuments(documents)
     if (attachedDocuments.some(document => !hosted(document.url))) throw new Error('Documents must be uploaded to Hylo before they can be read')
+    if (postIds !== undefined && postIds !== null && (!Array.isArray(postIds) || postIds.length > MAX_PICKED_POSTS)) throw new Error(`A design can be built around up to ${MAX_PICKED_POSTS} posts`)
   } catch (err) {
     throw new GraphQLError(err.message)
   }
@@ -555,11 +566,17 @@ export async function designGroupViewTurn ({ userId, groupId, messages, currentV
     throw new GraphQLError('This group has used a lot of AI design in the last hour. Please try again later.')
   }
 
+  const digest = await (deps.buildDigest || buildGroupDigest)(group)
+  const pickedPosts = await (deps.describePosts || describePickedPosts)(group.id, postIds || [])
+
   try {
     return await (deps.designTurn || designViewTurnInChildProcess)({
       group: { name: group.get('name'), description: group.get('description') || group.get('purpose') || '' },
       // What the group is for and what it holds, so the page fits it (titles and counts only)
-      groupSummary: formatGroupDigest(await (deps.buildDigest || buildGroupDigest)(group)),
+      groupSummary: formatGroupDigest(digest),
+      // Posts the steward picked to build the page around, and every post the AI may show parts of
+      pickedPostsSummary: formatPickedPosts(pickedPosts),
+      allowedPostIds: [...new Set([...digestPostIds(digest), ...pickedPosts.map(post => post.id)])],
       messages: conversation,
       currentView: current,
       images: availableImages,
