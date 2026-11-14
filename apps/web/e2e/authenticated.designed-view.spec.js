@@ -191,7 +191,6 @@ test.describe('designed views', () => {
       view: {
         version: 1,
         blocks: [
-          { type: 'heading', text: 'The group at a glance', level: 1 },
           {
             type: 'canvas',
             regions: [
@@ -229,6 +228,12 @@ test.describe('designed views', () => {
     // The search-filtered region only lists posts that mention the word
     const searched = canvas.getByTestId('designed-canvas-region').nth(1)
     await expect(searched.locator('a').first()).toContainText(/public/i, uiTimeout)
+    // The canvas fills the main column edge to edge, down to the bottom of the window
+    const column = await page.locator('#center-column').boundingBox()
+    const filled = await canvas.locator('[data-block="canvas"]').boundingBox()
+    expect(Math.abs(filled.x - column.x)).toBeLessThanOrEqual(1)
+    expect(Math.abs(filled.width - column.width)).toBeLessThanOrEqual(1)
+    expect(Math.abs((filled.y + filled.height) - page.viewportSize().height)).toBeLessThanOrEqual(2)
     await page.screenshot({ path: 'e2e-screenshots/designed-view-6-canvas.png' })
 
     // Zoom out with the control, then drag the surface
