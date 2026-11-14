@@ -14,7 +14,6 @@ import suggestGroupViews from 'store/actions/suggestGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
 import { formatUsd } from 'util/groupThemeEditor'
-import { cn } from 'util/index'
 import {
   addDesignImage,
   addDesignUsage,
@@ -31,11 +30,17 @@ const DESIGNED_VIEW_ICON = 'LayoutTemplate'
 // Measured on real turns with the default model (Claude Opus 5.5): about $0.03 each
 const TYPICAL_TURN_COST_USD = 0.03
 
-const STARTERS = [
-  'A welcome page for new members',
-  "What's happening in the group this week",
-  'How to get involved'
-]
+// The designer's assistant speaks as Axl
+export const ASSISTANT_NAME = 'Axl'
+
+function AxlMessage ({ children }) {
+  return (
+    <div data-role='assistant' className='self-start max-w-[90%]'>
+      <p className='m-0 mb-0.5 text-xs font-bold text-foreground/60'>{ASSISTANT_NAME}</p>
+      <div className='rounded-lg px-3 py-2 text-sm whitespace-pre-line bg-card text-card-foreground border-2 border-foreground/10'>{children}</div>
+    </div>
+  )
+}
 
 function errorMessage (error) {
   if (!error) return ''
@@ -220,88 +225,60 @@ export default function DesignerChatColumn () {
           </div>
         )}
 
-        {session.messages.length === 0 && !withoutPro && (
-          <div className='text-sm text-foreground/70'>
-            <p className='m-0 mb-2'>
-              {session.design
-                ? t('Say what you would like to change on this page.')
-                : t('Describe the page you want and AI will build it from posts, events, members, text, images and buttons. You can keep refining it before you save.')}
-            </p>
-            {!session.design && !session.suggestions && (
-              <button
-                type='button'
-                disabled={!canChat}
-                onClick={suggest}
-                className='w-full flex items-center gap-2 rounded-lg border-2 border-accent/50 hover:border-accent bg-accent/10 px-3 py-2 text-left mb-2 disabled:opacity-50'
-                data-testid='designer-suggest-views'
-              >
-                <Lightbulb className='w-5 h-5 shrink-0 text-accent' />
-                <span className='min-w-0'>
-                  <span className='block font-bold text-foreground'>{session.suggesting ? t('Looking at your group...') : t('Suggest views')}</span>
-                  <span className='block text-xs text-foreground/60'>{t("Ideas for pages that would help this group grow, based on its purpose and what's been posted.")}</span>
-                </span>
-              </button>
-            )}
-            {!session.design && session.suggestions && (
-              <div className='flex flex-col gap-2 mb-2' data-testid='designer-suggestions'>
-                {session.suggestions.reply && (
-                  <p className='m-0 rounded-lg px-3 py-2 bg-card text-card-foreground border-2 border-foreground/10'>{session.suggestions.reply}</p>
-                )}
-                {session.suggestions.items.map(suggestion => (
-                  <div key={suggestion.name} className='rounded-lg border-2 border-foreground/20 bg-card text-card-foreground p-3' data-testid='designer-suggestion'>
-                    <p className='m-0 font-bold'>{suggestion.name}</p>
-                    <p className='m-0 text-xs text-foreground/70'>{suggestion.why}</p>
-                    <button
-                      type='button'
-                      disabled={!canChat}
-                      onClick={() => designSuggestion(suggestion)}
-                      className='mt-2 rounded-md bg-primary text-primary-foreground px-2 py-1 text-xs font-bold border-2 border-transparent disabled:opacity-50'
-                    >
-                      {t('Design this')}
-                    </button>
-                  </div>
-                ))}
-                <p className='m-0 text-xs text-foreground/60'>{t('Or describe a different page below.')}</p>
+        {!withoutPro && (
+          <AxlMessage>
+            {session.design && session.messages.length === 0
+              ? t('Hey there! What would you like to change on this page?')
+              : t('Hey there! What do you want to build today? I can take a look at your group and make some suggestions if you like.')}
+          </AxlMessage>
+        )}
+
+        {session.suggestions && (
+          <div className='flex flex-col gap-2' data-testid='designer-suggestions'>
+            {session.suggestions.reply && <AxlMessage>{session.suggestions.reply}</AxlMessage>}
+            {session.suggestions.items.map(suggestion => (
+              <div key={suggestion.name} className='rounded-lg border-2 border-foreground/20 bg-card text-card-foreground p-3' data-testid='designer-suggestion'>
+                <p className='m-0 font-bold text-sm'>{suggestion.name}</p>
+                <p className='m-0 text-xs text-foreground/70'>{suggestion.why}</p>
+                <button
+                  type='button'
+                  disabled={!canChat}
+                  onClick={() => designSuggestion(suggestion)}
+                  className='mt-2 rounded-md bg-primary text-primary-foreground px-2 py-1 text-xs font-bold border-2 border-transparent disabled:opacity-50'
+                >
+                  {t('Design this')}
+                </button>
               </div>
-            )}
-            {!session.design && !session.suggestions && (
-              <div className='flex flex-col gap-1'>
-                {STARTERS.map(starter => (
-                  <button
-                    key={starter}
-                    type='button'
-                    disabled={!canChat}
-                    onClick={() => send(t(starter))}
-                    className='text-left rounded-md border-2 border-foreground/20 hover:border-foreground/50 px-2 py-1 text-sm disabled:opacity-50'
-                  >
-                    {t(starter)}
-                  </button>
-                ))}
-              </div>
-            )}
+            ))}
           </div>
         )}
 
-        {session.messages.map((message, index) => (
-          <div
-            key={index}
-            data-role={message.role}
-            className={cn(
-              'rounded-lg px-3 py-2 text-sm whitespace-pre-line max-w-[90%]',
-              message.role === 'user' ? 'self-end bg-selected/30' : 'self-start bg-card text-card-foreground border-2 border-foreground/10'
-            )}
-          >
-            {message.text}
-          </div>
-        ))}
+        {session.messages.map((message, index) => message.role === 'user'
+          ? <div key={index} data-role='user' className='self-end rounded-lg px-3 py-2 text-sm whitespace-pre-line max-w-[90%] bg-selected/30'>{message.text}</div>
+          : <AxlMessage key={index}>{message.text}</AxlMessage>)}
         {session.sending && (
           <p className='self-start text-xs text-foreground/60 m-0' role='status'>{t('Designing... this usually takes about 10 seconds.')}</p>
+        )}
+        {session.suggesting && (
+          <p className='self-start text-xs text-foreground/60 m-0' role='status'>{t('Looking at your group...')}</p>
         )}
         {session.error && <p className='text-xs text-destructive m-0' role='alert'>{session.error}</p>}
         <div ref={listEnd} />
       </div>
 
       <div className='p-3 border-t-2 border-foreground/10 flex flex-col gap-2'>
+        {!session.design && !session.suggestions && !withoutPro && (
+          <button
+            type='button'
+            disabled={!canChat}
+            onClick={suggest}
+            className='inline-flex items-center justify-center gap-2 rounded-lg border-2 border-accent/50 hover:border-accent bg-accent/10 px-3 py-1.5 text-sm font-bold text-foreground disabled:opacity-50'
+            data-testid='designer-suggest-views'
+          >
+            <Lightbulb className='w-4 h-4 text-accent' />
+            {session.suggesting ? t('Looking at your group...') : t('Make some suggestions')}
+          </button>
+        )}
         <form onSubmit={handleSubmit} className='flex items-end gap-2 bg-input rounded-lg p-2 border-2 border-transparent focus-within:border-focus'>
           <textarea
             aria-label={t('Message')}

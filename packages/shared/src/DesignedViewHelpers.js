@@ -28,6 +28,12 @@ export const DESIGNED_VIEW_VERSION = 1
 export const DESIGNED_VIEW_MAX_BLOCKS = 30
 export const DESIGNED_VIEW_MAX_COLUMNS = 3
 export const DESIGNED_VIEW_MAX_BLOCKS_PER_COLUMN = 8
+// A canvas is a large surface people pan and zoom around, with regions of blocks laid out on a grid
+export const DESIGNED_VIEW_CANVAS_MIN_REGIONS = 2
+export const DESIGNED_VIEW_CANVAS_MAX_REGIONS = 16
+export const DESIGNED_VIEW_CANVAS_MAX_BLOCKS_PER_REGION = 6
+export const DESIGNED_VIEW_CANVAS_GRID_SIZE = 6
+export const DESIGNED_VIEW_CANVAS_TONES = ['plain', 'accent', 'primary', 'muted']
 
 export const DESIGNED_VIEW_POST_TYPES = ['discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource']
 export const DESIGNED_VIEW_POST_LAYOUTS = ['list', 'cards']
@@ -67,6 +73,8 @@ export const DESIGNED_VIEW_BLOCKS = {
     title: text(120, { required: false }),
     // An empty list means every type
     postTypes: listOf(DESIGNED_VIEW_POST_TYPES, DESIGNED_VIEW_POST_TYPES.length),
+    // Words to search the group's posts for, to gather posts on a theme
+    search: text(60, { required: false }),
     limit: int(1, 12, 5),
     layout: oneOf(DESIGNED_VIEW_POST_LAYOUTS, 'list')
   },
@@ -76,7 +84,17 @@ export const DESIGNED_VIEW_BLOCKS = {
   divider: {}
 }
 
-export const DESIGNED_VIEW_BLOCK_TYPES = [...Object.keys(DESIGNED_VIEW_BLOCKS), 'columns']
+export const DESIGNED_VIEW_BLOCK_TYPES = [...Object.keys(DESIGNED_VIEW_BLOCKS), 'columns', 'canvas']
+
+// The fields of one region of a canvas, besides its blocks
+const CANVAS_REGION_FIELDS = {
+  title: text(80),
+  note: text(300, { required: false }),
+  tone: oneOf(DESIGNED_VIEW_CANVAS_TONES, 'plain'),
+  // Where the region sits on the canvas grid, counted from the top left
+  col: int(0, DESIGNED_VIEW_CANVAS_GRID_SIZE - 1, 0),
+  row: int(0, DESIGNED_VIEW_CANVAS_GRID_SIZE - 1, 0)
+}
 
 function isHttpsUrl (value) {
   if (typeof value !== 'string' || value.length > 500) return false
@@ -124,14 +142,59 @@ function checkField (rule, raw) {
   }
 }
 
+function checkCanvas (raw, path, errors) {
+  Object.keys(raw).forEach(key => {
+    if (key !== 'type' && key !== 'regions') errors.push(`${path}: unknown field "${key}"`)
+  })
+  if (!Array.isArray(raw.regions) || raw.regions.length < DESIGNED_VIEW_CANVAS_MIN_REGIONS || raw.regions.length > DESIGNED_VIEW_CANVAS_MAX_REGIONS) {
+    errors.push(`${path}: a canvas needs ${DESIGNED_VIEW_CANVAS_MIN_REGIONS} to ${DESIGNED_VIEW_CANVAS_MAX_REGIONS} regions`)
+    return null
+  }
+  const taken = new Set()
+  const regions = raw.regions.map((rawRegion, r) => {
+    const regionPath = `${path}.regions[${r}]`
+    if (!isPlainObject(rawRegion)) {
+      errors.push(`${regionPath} must be an object`)
+      return null
+    }
+    const region = {}
+    Object.keys(rawRegion).forEach(key => {
+      if (key !== 'blocks' && !hasOwn(CANVAS_REGION_FIELDS, key)) errors.push(`${regionPath}: unknown field "${key}"`)
+    })
+    Object.entries(CANVAS_REGION_FIELDS).forEach(([name, rule]) => {
+      const { value, error } = checkField(rule, rawRegion[name])
+      if (error) errors.push(`${regionPath}.${name} ${error}`)
+      else if (value !== undefined) region[name] = value
+    })
+    if (!Array.isArray(rawRegion.blocks) || rawRegion.blocks.length === 0 || rawRegion.blocks.length > DESIGNED_VIEW_CANVAS_MAX_BLOCKS_PER_REGION) {
+      errors.push(`${regionPath}.blocks must be a list of 1 to ${DESIGNED_VIEW_CANVAS_MAX_BLOCKS_PER_REGION} blocks`)
+      region.blocks = []
+    } else {
+      region.blocks = rawRegion.blocks.map((block, b) => checkBlock(block, `${regionPath}.blocks[${b}]`, errors, { allowColumns: false }))
+    }
+    // Two regions in one cell would sit on top of each other: move the later one down its column
+    while (taken.has(`${region.col},${region.row}`)) region.row += 1
+    taken.add(`${region.col},${region.row}`)
+    return region
+  })
+  return { type: 'canvas', regions }
+}
+
 function checkBlock (raw, path, errors, { allowColumns }) {
   if (!isPlainObject(raw)) {
     errors.push(`${path} must be an object`)
     return null
   }
+  if (raw.type === 'canvas') {
+    if (!allowColumns) {
+      errors.push(`${path}: a canvas cannot go inside columns or another canvas`)
+      return null
+    }
+    return checkCanvas(raw, path, errors)
+  }
   if (raw.type === 'columns') {
     if (!allowColumns) {
-      errors.push(`${path}: columns cannot go inside columns`)
+      errors.push(`${path}: columns cannot go inside columns or a canvas`)
       return null
     }
     Object.keys(raw).forEach(key => {
@@ -197,6 +260,7 @@ export function validateDesignedView (raw) {
   }
 
   const blocks = raw.blocks.map((block, i) => checkBlock(block, `blocks[${i}]`, errors, { allowColumns: true }))
+  if (raw.blocks.filter(block => block?.type === 'canvas').length > 1) errors.push('A designed view can have one canvas')
   if (errors.length > 0) return { view: null, errors }
   return { view: { version: DESIGNED_VIEW_VERSION, blocks }, errors }
 }
@@ -209,7 +273,22 @@ export function validateDesignedView (raw) {
 export function sanitizeDesignedView (raw) {
   if (!isPlainObject(raw) || !Array.isArray(raw.blocks)) return null
 
+  let hasCanvas = false
   const keep = (block, allowColumns) => {
+    if (isPlainObject(block) && block.type === 'canvas' && allowColumns) {
+      if (hasCanvas || !Array.isArray(block.regions)) return null
+      // Keep the regions that are sound and the sound blocks inside them
+      const regions = block.regions.slice(0, DESIGNED_VIEW_CANVAS_MAX_REGIONS).map(region => {
+        if (!isPlainObject(region) || !Array.isArray(region.blocks)) return null
+        const blocks = region.blocks.slice(0, DESIGNED_VIEW_CANVAS_MAX_BLOCKS_PER_REGION).map(inner => keep(inner, false)).filter(Boolean)
+        return blocks.length > 0 ? { ...region, blocks } : null
+      }).filter(Boolean)
+      const errors = []
+      const clean = regions.length >= DESIGNED_VIEW_CANVAS_MIN_REGIONS ? checkCanvas({ type: 'canvas', regions }, 'block', errors) : null
+      if (!clean || errors.length > 0) return null
+      hasCanvas = true
+      return clean
+    }
     if (isPlainObject(block) && block.type === 'columns' && allowColumns) {
       if (!Array.isArray(block.columns)) return null
       const columns = block.columns
@@ -266,9 +345,29 @@ export function designedViewJsonSchema () {
     required: ['type', 'columns'],
     additionalProperties: false
   }
+  const canvas = {
+    type: 'object',
+    properties: {
+      type: { type: 'string', enum: ['canvas'] },
+      regions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            ...Object.fromEntries(Object.entries(CANVAS_REGION_FIELDS).map(([name, rule]) => [name, fieldSchema(rule)])),
+            blocks: { type: 'array', items: { $ref: '#/$defs/block' } }
+          },
+          required: [...Object.keys(CANVAS_REGION_FIELDS), 'blocks'],
+          additionalProperties: false
+        }
+      }
+    },
+    required: ['type', 'regions'],
+    additionalProperties: false
+  }
   return {
     type: 'object',
-    properties: { blocks: { type: 'array', items: { anyOf: [{ $ref: '#/$defs/block' }, columns] } } },
+    properties: { blocks: { type: 'array', items: { anyOf: [{ $ref: '#/$defs/block' }, columns, canvas] } } },
     required: ['blocks'],
     additionalProperties: false,
     $defs: { block: { anyOf: leaf } }
@@ -281,6 +380,7 @@ const IMAGE_FIELDS = { hero: 'imageUrl', image: 'url' }
 function eachLeafBlock (view, visit) {
   ;(view?.blocks || []).forEach(block => {
     if (block?.type === 'columns') (block.columns || []).forEach(column => (column || []).forEach(visit))
+    else if (block?.type === 'canvas') (block.regions || []).forEach(region => (region?.blocks || []).forEach(visit))
     else visit(block)
   })
 }
@@ -311,10 +411,15 @@ export function removeUnlistedImages (view, allowedUrls) {
     removed += 1
     return false
   }
+  const isContainer = block => block?.type === 'columns' || block?.type === 'canvas'
   const blocks = (view?.blocks || [])
-    .map(block => block?.type === 'columns'
-      ? { ...block, columns: (block.columns || []).map(column => (column || []).filter(keep)) }
-      : block)
-    .filter(block => block?.type === 'columns' ? true : keep(block))
+    .map(block => {
+      if (block?.type === 'columns') return { ...block, columns: (block.columns || []).map(column => (column || []).filter(keep)) }
+      if (block?.type === 'canvas') {
+        return { ...block, regions: (block.regions || []).map(region => ({ ...region, blocks: (region?.blocks || []).filter(keep) })) }
+      }
+      return block
+    })
+    .filter(block => isContainer(block) ? true : keep(block))
   return { view: { ...view, blocks }, removed }
 }

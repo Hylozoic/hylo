@@ -6,6 +6,8 @@ This is the first slice. Read `docs/group-themes-mvp.md` first; the AI plumbing 
 
 ## How it works
 
+The assistant is called **Axl**. It greets the steward when the designer opens and offers to look at the group; "Make some suggestions" sits just above the message box until a design is started.
+
 1. In the group menu's edit mode, Add to Menu > Add View opens the Add View dialog. It now leads with **Design your own view**, then **Your designed views**, then the common and custom views.
 2. The designer is at `/groups/:slug/design/new` (or `/design/:viewId` to edit). The **chat column takes the place of the group menu**: a Back button, the conversation, the token and cost meter, and a name field with "Add to menu". The **main column shows the page**, redrawn after every message.
 3. Saving creates a `GroupView` of type `designed`. Members open it at `/groups/:slug/designed/:viewId`. Stewards see an "Edit design" link there.
@@ -28,9 +30,19 @@ A designed view is data, never HTML, CSS or code. It is stored in the view's exi
 }
 ```
 
-Blocks: `hero`, `heading`, `text`, `image`, `callout`, `posts`, `events`, `members`, `button`, `divider`, and `columns` (2 or 3 columns of the others; no nesting). The `posts`, `events` and `members` blocks load the group's live content when the page is shown. A `button` leads to a named place in the group or an `https://` address. Posts and events in the live lists open in the post dialog over the page, as in other views.
+Blocks: `hero`, `heading`, `text`, `image`, `callout`, `posts`, `events`, `members`, `button`, `divider`, `canvas`, and `columns` (2 or 3 columns of the others; no nesting). The `posts`, `events` and `members` blocks load the group's live content when the page is shown. A `button` leads to a named place in the group or an `https://` address. Posts and events in the live lists open in the post dialog over the page, as in other views.
 
 The definition is `packages/shared/src/DesignedViewHelpers.js`: `validateDesignedView` (strict, used on save), `sanitizeDesignedView` (lenient, used when showing a page, so one bad block cannot blank it) and `designedViewJsonSchema` (what the model fills in). To add a block type, add it to `DESIGNED_VIEW_BLOCKS` there, draw it in `apps/web/src/components/DesignedView/DesignedView.js`, and describe it in the system prompt in `apps/backend/lib/designedViewDesign.js`.
+
+## Canvas
+
+`canvas` is an infinite canvas: a surface larger than the screen that people drag to pan and zoom (buttons, pinch, or Ctrl-scroll; arrow keys when focused). It holds 2 to 16 regions, each a titled card with an optional note, a tone and 1 to 6 blocks, placed on a 6 by 6 grid with `col` and `row`. A page can have one canvas and it cannot go inside columns. Two regions given the same cell are moved apart rather than rejected.
+
+**The AI decides when to use it.** The system prompt tells it to use a canvas for many parallel groups with no reading order (a map of everything in the group, a board per theme, a wall of resources), or whenever the steward asks for a canvas, board, map or overview, and to use an ordinary page for anything read in order. When unsure it uses the ordinary page.
+
+The `posts` block has an optional `search` field (words the posts mention), which is how the AI groups posts by theme: it picks the words from the group's recent post titles. This uses the same search as the rest of Hylo, so it matches words, not meaning.
+
+Drawn by `apps/web/src/components/DesignedView/DesignedCanvas.js`. The regions sit in an ordinary CSS grid, so each takes the height its content needs, and panning and zooming transform the grid as a whole.
 
 ## Images
 
@@ -47,7 +59,7 @@ Every design and suggestion turn gets a short summary of the group, built by `ap
 
 ## Suggest views
 
-Before the first message the designer offers **Suggest views**: `suggestGroupViews(groupId: ID!): JSON` returns three to five ideas `{ name, why, prompt }` tied to what the summary shows (a post type that has gone quiet, requests outnumbering offers, no starting point for newcomers). "Design this" sends the idea's prompt as the first message and fills in the name. A suggestion call costs about $0.03 and counts toward the hourly limit.
+Before the first message the designer offers **Make some suggestions**: `suggestGroupViews(groupId: ID!): JSON` returns three to five ideas `{ name, why, prompt }` tied to what the summary shows (a post type that has gone quiet, requests outnumbering offers, no starting point for newcomers). "Design this" sends the idea's prompt as the first message and fills in the name. A suggestion call costs about $0.03 and counts toward the hourly limit.
 
 ## Where things are
 
@@ -79,7 +91,8 @@ Before the first message the designer offers **Suggest views**: `suggestGroupVie
 
 ## Not done yet
 
-- **Phones.** The designer is a two-column desktop layout. On a phone the chat column covers the page.
+- **Phones.** The designer is a two-column desktop layout. On a phone the chat column covers the page. The canvas works with touch dragging but has no pinch zoom of its own beyond what the browser sends.
+- **Canvas regions are placed by the AI only.** A steward cannot drag a region to a new spot; they ask Axl to move it.
 - **Editing by hand.** A page can only be changed through the chat. There is no way to edit one block's text directly.
 - **Images** can be placed but not cropped or positioned, and an uploaded image cannot be removed from the list.
 - **Creating posts.** Buttons only navigate; a page cannot open the post editor or publish anything.

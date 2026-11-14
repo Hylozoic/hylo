@@ -75,7 +75,8 @@ describe('suggestGroupViews', () => {
 describe('fetchDesignedViewBlockData', () => {
   it('asks for the newest posts of the chosen types', () => {
     const { graphql } = fetchDesignedViewBlockData('garden', { type: 'posts', postTypes: ['offer'], limit: 4 })
-    expect(graphql.variables).toEqual({ slug: 'garden', first: 4, types: ['offer'] })
+    expect(graphql.variables).toEqual({ slug: 'garden', first: 4, types: ['offer'], search: null })
+    expect(fetchDesignedViewBlockData('garden', { type: 'posts', postTypes: [], search: 'compost', limit: 4 }).graphql.variables.search).toEqual('compost')
     expect(graphql.query).toContain('sortBy: "created"')
   })
 

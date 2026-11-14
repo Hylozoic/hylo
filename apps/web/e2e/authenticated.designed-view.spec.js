@@ -102,12 +102,16 @@ test.describe('designed views', () => {
     const chat = page.getByTestId('designer-chat-column')
     await expect(chat).toBeVisible(uiTimeout)
     await expect(chat.getByRole('link', { name: 'Back' })).toBeVisible()
+    // Axl greets the steward and offers to look at the group
+    await expect(chat.locator('[data-role="assistant"]').first()).toContainText('Hey there! What do you want to build today?')
+    await expect(chat.locator('[data-role="assistant"]').first()).toContainText('Axl')
+    await expect(chat.getByRole('button', { name: 'Make some suggestions' })).toBeVisible()
     await expect(page.getByTestId('designer-canvas')).toContainText('Your page will appear here')
     await expect(page.getByTestId('designer-usage')).toContainText('Each message costs about $0.03')
     await expect(chat.getByRole('button', { name: 'Add to menu' })).toBeDisabled()
     await expect(chat.getByRole('button', { name: 'Add image' })).toBeEnabled()
 
-    // "Suggest views" offers pages that fit the group; picking one starts the design and names it
+    // "Make some suggestions" offers pages that fit the group; picking one starts the design and names it
     await chat.getByTestId('designer-suggest-views').click()
     await expect(chat.getByTestId('designer-suggestion')).toHaveCount(2, uiTimeout)
     await expect(chat.getByTestId('designer-suggestions')).toContainText('Requests are piling up')
@@ -161,6 +165,66 @@ test.describe('designed views', () => {
     // The images a saved page uses are offered again for further changes
     await expect(page.getByTestId('designer-image')).toHaveCount(1)
     await expect(page.getByTestId('designer-canvas').getByRole('heading', { level: 1, name: 'Welcome to the group' })).toBeVisible()
+  })
+
+  test('draws an infinite canvas that can be zoomed and dragged', async ({ page }) => {
+    const canvasTurn = {
+      reply: 'I made a canvas with a region for each kind of activity.',
+      view: {
+        version: 1,
+        blocks: [
+          { type: 'heading', text: 'The group at a glance', level: 1 },
+          {
+            type: 'canvas',
+            regions: [
+              { title: 'Latest posts', note: 'Everything new', tone: 'accent', col: 0, row: 0, blocks: [{ type: 'posts', postTypes: [], limit: 4, layout: 'list' }] },
+              { title: 'Public', tone: 'plain', col: 1, row: 0, blocks: [{ type: 'posts', postTypes: [], search: 'public', limit: 4, layout: 'list' }] },
+              { title: 'People', tone: 'muted', col: 2, row: 0, blocks: [{ type: 'members', limit: 6 }] },
+              { title: 'Coming up', tone: 'primary', col: 0, row: 1, blocks: [{ type: 'events', limit: 3 }, { type: 'button', label: 'All events', destination: 'events' }] }
+            ]
+          }
+        ]
+      },
+      usage: turn.usage
+    }
+    await page.route('**/noo/graphql', async route => {
+      const body = route.request().postData() || ''
+      if (!body.includes('DesignGroupViewTurn')) return route.continue()
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { designGroupViewTurn: canvasTurn } }) })
+    })
+
+    await page.goto(`/groups/${GROUP_SLUG}/design/new`)
+    await waitPastRootSessionLoading(page)
+    const chat = page.getByTestId('designer-chat-column')
+    await expect(chat).toBeVisible(uiTimeout)
+    await chat.getByLabel('Message').fill('Make an infinite canvas of everything in the group')
+    await chat.getByRole('button', { name: 'Send' }).click()
+
+    const canvas = page.getByTestId('designer-canvas')
+    await expect(canvas.getByTestId('designed-canvas-region')).toHaveCount(4, uiTimeout)
+    await expect(canvas.locator('[data-block="members"] a').first()).toBeVisible(uiTimeout)
+    // The search-filtered region only lists posts that mention the word
+    const searched = canvas.getByTestId('designed-canvas-region').nth(1)
+    await expect(searched.locator('a').first()).toContainText(/public/i, uiTimeout)
+    await page.screenshot({ path: 'e2e-screenshots/designed-view-6-canvas.png' })
+
+    // Zoom out with the control, then drag the surface
+    const surface = canvas.getByTestId('designed-canvas-surface')
+    await canvas.getByRole('button', { name: 'Zoom out' }).click()
+    await expect(canvas.getByTestId('designed-canvas-zoom')).toHaveText('80%')
+    const before = await surface.boundingBox()
+    const viewport = canvas.getByTestId('designed-canvas-viewport')
+    const box = await viewport.boundingBox()
+    await page.mouse.move(box.x + box.width - 30, box.y + box.height - 60)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width - 230, box.y + box.height - 160, { steps: 5 })
+    await page.mouse.up()
+    const after = await surface.boundingBox()
+    expect(Math.round(before.x - after.x)).toBe(200)
+    expect(Math.round(before.y - after.y)).toBe(100)
+
+    await canvas.getByRole('button', { name: 'Fit everything on screen' }).click()
+    await page.screenshot({ path: 'e2e-screenshots/designed-view-7-canvas-fit.png' })
   })
 
   test('the Add View dialog leads with "Design your own view" and lists designed views', async ({ page }) => {

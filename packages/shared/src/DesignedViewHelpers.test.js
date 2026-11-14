@@ -95,7 +95,7 @@ describe('validateDesignedView', () => {
     expect(validateDesignedView(null).errors).toEqual(['A designed view must be an object'])
 
     const nested = { type: 'columns', columns: [[{ type: 'columns', columns: [[], []] }], []] }
-    expect(validateDesignedView({ blocks: [nested] }).errors).toEqual(['blocks[0].columns[0][0]: columns cannot go inside columns'])
+    expect(validateDesignedView({ blocks: [nested] }).errors).toEqual(['blocks[0].columns[0][0]: columns cannot go inside columns or a canvas'])
     expect(validateDesignedView({ blocks: [{ type: 'columns', columns: [[]] }] }).errors[0]).toContain('2 to 3 columns')
   })
 })
@@ -129,7 +129,9 @@ describe('designedViewJsonSchema', () => {
   it('describes every block type with all fields required and nothing extra allowed', () => {
     const schema = designedViewJsonSchema()
     const leaf = schema.$defs.block.anyOf
-    const [leafRef, columns] = schema.properties.blocks.items.anyOf
+    const [leafRef, columns, canvas] = schema.properties.blocks.items.anyOf
+    expect(canvas.properties.regions.items.properties.blocks.items).toEqual({ $ref: '#/$defs/block' })
+    expect(canvas.properties.regions.items.required).toEqual(['title', 'note', 'tone', 'col', 'row', 'blocks'])
     expect(leafRef).toEqual({ $ref: '#/$defs/block' })
     expect(columns.properties.columns.items.items).toEqual({ $ref: '#/$defs/block' })
     expect(leaf.map(option => option.properties.type.enum[0])).toEqual(Object.keys(DESIGNED_VIEW_BLOCKS))
@@ -205,5 +207,77 @@ describe('image and hero blocks', () => {
       }
     })
     expect(removeUnlistedImages(view, [tools, 'https://elsewhere.example.com/made-up.jpg', 'https://elsewhere.example.com/x.png']).removed).toEqual(0)
+  })
+})
+
+describe('canvas block', () => {
+  const region = (extra = {}) => ({ title: 'Requests', col: 0, row: 0, blocks: [{ type: 'posts', postTypes: ['request'], limit: 4 }], ...extra })
+
+  it('accepts regions of blocks placed on a grid, with defaults', () => {
+    const result = validateDesignedView({
+      blocks: [
+        { type: 'heading', text: 'Everything at a glance', level: 1 },
+        { type: 'canvas', regions: [region(), region({ title: 'Offers', note: 'What people can spare', tone: 'accent', col: 1 })] }
+      ]
+    })
+    expect(result.errors).toEqual([])
+    expect(result.view.blocks[1]).toEqual({
+      type: 'canvas',
+      regions: [
+        { title: 'Requests', tone: 'plain', col: 0, row: 0, blocks: [{ type: 'posts', postTypes: ['request'], limit: 4, layout: 'list' }] },
+        { title: 'Offers', note: 'What people can spare', tone: 'accent', col: 1, row: 0, blocks: [{ type: 'posts', postTypes: ['request'], limit: 4, layout: 'list' }] }
+      ]
+    })
+  })
+
+  it('moves a region out of a cell that is already taken', () => {
+    const { view } = validateDesignedView({ blocks: [{ type: 'canvas', regions: [region(), region({ title: 'Also here' }), region({ title: 'And here' })] }] })
+    expect(view.blocks[0].regions.map(r => [r.col, r.row])).toEqual([[0, 0], [0, 1], [0, 2]])
+  })
+
+  it('rejects a canvas that is too small, nested, repeated or holds bad blocks', () => {
+    const errorsFor = blocks => validateDesignedView({ blocks }).errors
+    expect(errorsFor([{ type: 'canvas', regions: [region()] }])[0]).toContain('needs 2 to 16 regions')
+    expect(errorsFor([{ type: 'columns', columns: [[{ type: 'canvas', regions: [region(), region()] }], []] }])[0]).toContain('cannot go inside columns')
+    expect(errorsFor([{ type: 'canvas', regions: [region(), region({ col: 1 })] }, { type: 'canvas', regions: [region(), region({ col: 1 })] }]))
+      .toEqual(['A designed view can have one canvas'])
+    expect(errorsFor([{ type: 'canvas', regions: [region({ title: '' }), region({ col: 9 })] }])).toEqual([
+      'blocks[0].regions[0].title is required',
+      'blocks[0].regions[1].col must be a whole number from 0 to 5'
+    ])
+    expect(errorsFor([{ type: 'canvas', regions: [region({ blocks: [{ type: 'html' }] }), region({ col: 1, blocks: [] })] }])).toEqual(expect.arrayContaining([
+      expect.stringContaining('blocks[0].regions[0].blocks[0]: unknown block type "html"'),
+      'blocks[0].regions[1].blocks must be a list of 1 to 6 blocks'
+    ]))
+    expect(errorsFor([{ type: 'canvas', regions: [region({ blocks: [{ type: 'columns', columns: [[], []] }] }), region({ col: 1 })] }])[0]).toContain('columns cannot go inside columns or a canvas')
+  })
+
+  it('is kept when shown if at least two regions are sound, and dropped otherwise', () => {
+    const good = sanitizeDesignedView({
+      blocks: [{ type: 'canvas', regions: [region(), region({ col: 1, blocks: [{ type: 'nope' }, { type: 'divider' }] }), { title: 'Broken' }] }]
+    })
+    expect(good.blocks[0].regions.map(r => r.blocks.map(b => b.type))).toEqual([['posts'], ['divider']])
+    expect(sanitizeDesignedView({ blocks: [{ type: 'canvas', regions: [region(), { title: 'Broken' }] }, { type: 'divider' }] }))
+      .toEqual({ version: 1, blocks: [{ type: 'divider' }] })
+  })
+
+  it('counts and filters images inside regions', () => {
+    const pic = 'https://uploads.example.org/a.jpg'
+    const view = { version: 1, blocks: [{ type: 'canvas', regions: [region({ blocks: [{ type: 'image', url: pic }, { type: 'divider' }] }), region({ col: 1 })] }] }
+    expect(designedViewImageUrls(view)).toEqual([pic])
+    const filtered = removeUnlistedImages(view, [])
+    expect(filtered.removed).toEqual(1)
+    expect(filtered.view.blocks[0].regions[0].blocks).toEqual([{ type: 'divider' }])
+  })
+})
+
+describe('posts block search', () => {
+  it('keeps search words and drops an empty search', () => {
+    const { view, errors } = validateDesignedView({
+      blocks: [{ type: 'posts', search: ' compost ', limit: 3 }, { type: 'posts', search: '', limit: 3 }]
+    })
+    expect(errors).toEqual([])
+    expect(view.blocks[0].search).toEqual('compost')
+    expect(view.blocks[1]).toEqual({ type: 'posts', postTypes: [], limit: 3, layout: 'list' })
   })
 })
