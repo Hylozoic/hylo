@@ -99,6 +99,12 @@ type Query {
   # Find an Activity by ID
   activity(id: ID): Activity
 
+  # The Group Assistant (Axl) for a group's stewards: { hasPro, configured, settings, spaces: [{ id, name, isGroup }],
+  # stewards: [{ id, name }], messages: [{ id, authorType, author, text, parts, createdAt }] }.
+  # Only people with the Administration responsibility in the group can read it. No messages come back
+  # unless the group has Hylo Pro and the assistant is turned on.
+  groupAssistant(groupId: ID!): JSON
+
   # Check if a user has access to content
   checkContentAccess(
     userId: ID!,
@@ -3546,6 +3552,17 @@ type Mutation {
   # suggestion's prompt can be sent to designGroupViewTurn as the first message.
   # Requires the Administration responsibility and Hylo Pro.
   suggestGroupViews(groupId: ID!): JSON
+
+  # ---- Group Assistant (Axl), stewards only, Hylo Pro ----
+  # A steward writes in the group's steward thread and the assistant answers from the spaces the stewards
+  # chose. Returns { messages: [the steward's message, the assistant's answer], usage }.
+  askGroupAssistant(groupId: ID!, text: String!): JSON
+  # Saves the assistant's settings: { enabled, followUps, shareLoad, summarize, answerMembers, readableGroupIds }.
+  # Fields left out keep their value. Returns the same shape as the groupAssistant query.
+  updateGroupAssistantSettings(groupId: ID!, settings: JSON!): JSON
+  # Records that the steward posted a draft from the thread, as the post or comment they just made.
+  # Returns the updated message.
+  markGroupAssistantDraftPosted(messageId: ID!, partIndex: Int!, postId: ID, commentId: ID): JSON
   # Create a new Space (a child Group) within a parent Group
   createSpace(
     parentGroupId: ID!,

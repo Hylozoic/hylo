@@ -158,6 +158,10 @@ import {
   setHomeView,
   designGroupViewTurn,
   suggestGroupViews,
+  askGroupAssistant,
+  groupAssistant,
+  markGroupAssistantDraftPosted,
+  updateGroupAssistantSettings,
   subscribe,
   swapProposalVote,
   unblockUser,
@@ -520,6 +524,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
   return {
     activity: (root, { id }) => fetchOne('Activity', id),
     checkContentAccess: (root, args, context) => checkContentAccess(context.currentUserId, args),
+    groupAssistant: (root, { groupId }, context) => groupAssistant({ userId: context.currentUserId, groupId }),
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
     comment: (root, { id }) => fetchOne('Comment', id),
@@ -762,6 +767,11 @@ export function makeMutations ({ fetchOne }) {
 
     setHomeView: (root, { viewId, groupId }, context) => setHomeView(context.currentUserId, viewId, groupId, context),
     suggestGroupViews: (root, { groupId }, context) => suggestGroupViews({ userId: context.currentUserId, groupId }),
+    askGroupAssistant: (root, { groupId, text }, context) => askGroupAssistant({ userId: context.currentUserId, groupId, text }),
+    updateGroupAssistantSettings: (root, { groupId, settings }, context) =>
+      updateGroupAssistantSettings({ userId: context.currentUserId, groupId, settings }),
+    markGroupAssistantDraftPosted: (root, { messageId, partIndex, postId, commentId }, context) =>
+      markGroupAssistantDraftPosted({ userId: context.currentUserId, messageId, partIndex, postId, commentId }),
     designGroupViewTurn: (root, { groupId, messages, currentView, images, documents, postIds }, context) =>
       designGroupViewTurn({ userId: context.currentUserId, groupId, messages, currentView, images, documents, postIds }),
 

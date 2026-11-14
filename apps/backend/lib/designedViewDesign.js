@@ -35,7 +35,7 @@ export const MAX_DESIGN_DOCUMENTS = 3
 export const MAX_IMAGES_SHOWN_TO_MODEL = 8
 
 const DESIGN_TIMEOUT_MS = 120000
-const DESIGN_ENV_KEYS = ['PATH', 'HOME', 'TMPDIR', 'LANG', 'NODE_ENV', 'CLAUDE_API_KEY', 'GROUP_VIEW_DESIGN_MODEL']
+const DESIGN_ENV_KEYS = ['PATH', 'HOME', 'TMPDIR', 'LANG', 'NODE_ENV', 'CLAUDE_API_KEY', 'GROUP_VIEW_DESIGN_MODEL', 'GROUP_ASSISTANT_MODEL']
 
 export function viewDesignModel () {
   return process.env.GROUP_VIEW_DESIGN_MODEL || DEFAULT_DESIGN_MODEL
@@ -282,7 +282,7 @@ export async function designViewTurn ({ group = {}, groupSummary = '', messages,
  * global Bluebird Promise breaks the Anthropic SDK (see groupThemeImport.js).
  * The request goes to the child on stdin.
  */
-function runInChildProcess (request) {
+export function runInChildProcess (request) {
   const env = Object.fromEntries(DESIGN_ENV_KEYS.filter(key => process.env[key]).map(key => [key, process.env[key]]))
   return new Promise((resolve, reject) => {
     const child = execFile(

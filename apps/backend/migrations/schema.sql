@@ -7806,3 +7806,40 @@ ALTER TABLE ONLY public.retention_cache
 
 \unrestrict tUF07NWBIyBoffLToE0SeitR4QkNiJF7GirKbknzPG6fJr35GuUbD46h1N7i2kX
 
+
+--
+-- Name: group_assistant_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_assistant_messages (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    author_type character varying(16) NOT NULL,
+    user_id bigint,
+    text text DEFAULT ''::text NOT NULL,
+    parts jsonb DEFAULT '[]'::jsonb NOT NULL,
+    posts_read integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE SEQUENCE public.group_assistant_messages_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.group_assistant_messages_id_seq OWNED BY public.group_assistant_messages.id;
+
+ALTER TABLE ONLY public.group_assistant_messages ALTER COLUMN id SET DEFAULT nextval('public.group_assistant_messages_id_seq'::regclass);
+
+ALTER TABLE ONLY public.group_assistant_messages
+    ADD CONSTRAINT group_assistant_messages_pkey PRIMARY KEY (id);
+
+CREATE INDEX group_assistant_messages_group_id_created_at_index ON public.group_assistant_messages USING btree (group_id, created_at);
+
+ALTER TABLE ONLY public.group_assistant_messages
+    ADD CONSTRAINT group_assistant_messages_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.group_assistant_messages
+    ADD CONSTRAINT group_assistant_messages_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;

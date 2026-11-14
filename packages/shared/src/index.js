@@ -13,6 +13,7 @@ export * from './viewHelpers'
 export * from './LocaleHelpers'
 export * from './GroupThemeHelpers'
 export * from './DesignedViewHelpers'
+export * from './GroupAssistantHelpers'
 
 export {
   TextHelpers,

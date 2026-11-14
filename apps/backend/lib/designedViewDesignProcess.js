@@ -3,12 +3,14 @@
  * view" (see designViewTurnInChildProcess in designedViewDesign.js for why it is
  * a separate process).
  *
- * Reads the request as JSON on stdin; request.kind is 'design' or 'suggest'.
+ * Reads the request as JSON on stdin; request.kind is 'design', 'suggest' or
+ * 'assistant' (one reply from the Group Assistant, see groupAssistant.js).
  * Prints { ok: true, result } or { ok: false, error } as one line of JSON.
  */
 require('@babel/register')
 
 const { designViewTurn, suggestViewsTurn } = require('./designedViewDesign')
+const { assistantTurn } = require('./groupAssistant')
 
 const finish = output => {
   process.stdout.write(JSON.stringify(output), () => process.exit(output.ok ? 0 : 1))
@@ -21,6 +23,7 @@ process.stdin.on('end', () => {
   Promise.resolve()
     .then(() => {
       const { kind, ...request } = JSON.parse(input)
+      if (kind === 'assistant') return assistantTurn(request)
       return kind === 'suggest' ? suggestViewsTurn(request) : designViewTurn(request)
     })
     .then(result => finish({ ok: true, result }))
