@@ -7,6 +7,7 @@ import { groupUrl, personUrl, postUrl } from '@hylo/navigation'
 import RoundImage from 'components/RoundImage'
 import { cn } from 'util/index'
 import DesignedCanvas from './DesignedCanvas'
+import DesignedPostPart from './DesignedPostPart'
 import useDesignedViewBlockData from './useDesignedViewBlockData'
 
 /**
@@ -247,6 +248,8 @@ function Block ({ block, groupSlug }) {
       return <EventsBlock block={block} groupSlug={groupSlug} />
     case 'members':
       return <MembersBlock block={block} groupSlug={groupSlug} />
+    case 'postPart':
+      return <DesignedPostPart block={block} groupSlug={groupSlug} />
     case 'button':
       return <ButtonBlock block={block} groupSlug={groupSlug} />
     case 'divider':

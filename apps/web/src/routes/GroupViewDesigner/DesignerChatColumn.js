@@ -3,7 +3,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
-import { ArrowLeft, FileText, ImagePlus, Lightbulb, Plus, SendHorizontal, Sparkles } from 'lucide-react'
+import { ArrowLeft, FileText, ImagePlus, Lightbulb, Newspaper, Plus, SendHorizontal, Sparkles } from 'lucide-react'
+import PostSelector from 'components/PostSelector'
 import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
 import { designedViewImageUrls } from '@hylo/shared'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
@@ -17,12 +18,14 @@ import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
 import { cn } from 'util/index'
 import { NEW_VIEW_ID } from './DesignerSaveButton'
 import {
+  addDesignPost,
   addDesignDocument,
   addDesignImage,
   addDesignUsage,
   imagesFromUrls,
   isPdfUrl,
   MAX_DESIGN_DOCUMENTS,
+  MAX_PICKED_POSTS,
   nameAfterTurn,
   designerSessionKey,
   updateDesignerSession,
@@ -101,7 +104,7 @@ export default function DesignerChatColumn () {
     updateDesignerSession(key, { messages, sending: true, error: null })
     setDraft('')
     try {
-      const response = await dispatch(designGroupViewTurn(groupId, messages, session.design, session.images, session.documents))
+      const response = await dispatch(designGroupViewTurn(groupId, messages, session.design, session.images, session.documents, session.posts.map(post => post.id)))
       if (response?.error) throw response.payload || new Error(t('Something went wrong. Please try again.'))
       const result = response?.payload?.data?.designGroupViewTurn
       if (!result?.view) throw new Error(t('Something went wrong. Please try again.'))
@@ -173,6 +176,11 @@ export default function DesignerChatColumn () {
     updateDesignerSession(key, current => ({ documents: addDesignDocument(current.documents, uploaded.url), error: null }))
   }
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
+  const [pickingPost, setPickingPost] = useState(false)
+  const handlePostPicked = post => {
+    updateDesignerSession(key, current => ({ posts: addDesignPost(current.posts, post), error: null }))
+    setPickingPost(false)
+  }
   const handleImageError = err => updateDesignerSession(key, { error: t('The file could not be added: {{message}}', { message: errorMessage(err) }) })
 
   // What this design has cost so far; the pill shows the total and its tooltip the detail
@@ -277,13 +285,31 @@ export default function DesignerChatColumn () {
           </button>
         )}
         <form onSubmit={handleSubmit} className='bg-input rounded-lg p-2 border-2 border-transparent focus-within:border-focus flex flex-col gap-2'>
-          {(session.images.length > 0 || session.documents.length > 0) && (
+          {pickingPost && (
+            <div className='rounded-md border-2 border-foreground/20 p-2' data-testid='designer-post-picker'>
+              <p className='m-0 mb-1 text-xs text-foreground/70'>{t('Search for a post in this group to build the page around.')}</p>
+              <PostSelector group={group} onSelectPost={handlePostPicked} posts={[]} />
+              <button type='button' onClick={() => setPickingPost(false)} className='mt-1 text-xs text-foreground/60 underline'>{t('Cancel')}</button>
+            </div>
+          )}
+          {(session.images.length > 0 || session.documents.length > 0 || session.posts.length > 0) && (
             <div className='flex flex-wrap items-start gap-2' data-testid='designer-images'>
               {session.images.map((image, index) => (
                 <figure key={image.url} className='m-0 w-14' data-testid='designer-image'>
                   <img src={image.url} alt={image.name} className='block w-14 h-10 m-0 object-cover rounded-md border-2 border-foreground/20' />
                   <figcaption className='text-[10px] text-foreground/60 text-center'>{t('Image {{number}}', { number: index + 1 })}</figcaption>
                 </figure>
+              ))}
+              {session.posts.map(post => (
+                <span
+                  key={post.id}
+                  title={post.title}
+                  data-testid='designer-post'
+                  className='inline-flex items-center gap-1 max-w-[12rem] rounded-md border-2 border-foreground/20 px-1.5 py-1 text-[11px] text-foreground/80'
+                >
+                  <Newspaper className='w-3.5 h-3.5 shrink-0' />
+                  <span className='truncate'>{post.title || t('Post')}</span>
+                </span>
               ))}
               {session.documents.map(document => (
                 <span
@@ -304,8 +330,8 @@ export default function DesignerChatColumn () {
                 <button
                   type='button'
                   disabled={!canChat || uploading}
-                  aria-label={t('Add an image or PDF')}
-                  title={t('Add an image or PDF')}
+                  aria-label={t('Add an image, PDF or post')}
+                  title={t('Add an image, PDF or post')}
                   data-testid='designer-add-attachment'
                   className='p-1.5 shrink-0 text-foreground/50 hover:text-foreground transition-colors disabled:opacity-50'
                 >
@@ -353,6 +379,15 @@ export default function DesignerChatColumn () {
                     </button>
                   )}
                 />
+                <button
+                  type='button'
+                  onClick={() => { setAttachMenuOpen(false); setPickingPost(true) }}
+                  disabled={session.posts.length >= MAX_PICKED_POSTS}
+                  data-testid='designer-add-post'
+                  className='flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-foreground/10 text-sm text-foreground text-left disabled:opacity-50'
+                >
+                  <Newspaper className='w-4 h-4' />{t('Add a post from this group')}
+                </button>
                 <p className='m-0 px-2 py-1.5 text-[11px] text-foreground/60'>
                   {t('Axl can read what you add, such as a flyer or a schedule, and turn it into a page. Files are sent to the AI to be read.')}
                 </p>

@@ -121,6 +121,7 @@ test.describe('designed views', () => {
     await chat.getByTestId('designer-add-attachment').click()
     await expect(page.getByTestId('designer-add-image')).toBeVisible()
     await expect(page.getByTestId('designer-add-document')).toBeVisible()
+    await expect(page.getByTestId('designer-add-post')).toBeVisible()
     await expect(page.getByText('Files are sent to the AI to be read.')).toBeVisible()
     await page.keyboard.press('Escape')
     // "Add to menu" sits at the right of the main column's header, not in the chat

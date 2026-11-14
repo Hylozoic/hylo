@@ -29,6 +29,8 @@ function emptySession () {
     images: [],
     // PDFs the steward has attached for the AI to read, [{ url, name }]; they are not shown on the page
     documents: [],
+    // Posts from the group the steward picked to build the page around, [{ id, title, type }]
+    posts: [],
     // Whether the design differs from what is saved
     dirty: false,
     sending: false,
@@ -135,4 +137,14 @@ export const isPdfUrl = url => /\.pdf$/i.test(fileNameFromUrl(url))
 export function addDesignDocument (documents, url) {
   if (!url || !isPdfUrl(url) || documents.length >= MAX_DESIGN_DOCUMENTS || documents.some(document => document.url === url)) return documents
   return [...documents, { url, name: fileNameFromUrl(url).slice(0, 100) }]
+}
+
+export const MAX_PICKED_POSTS = 6
+
+/**
+ * The picked-post list with one more post. A post already listed is not added twice.
+ */
+export function addDesignPost (posts, post) {
+  if (!post?.id || posts.length >= MAX_PICKED_POSTS || posts.some(picked => String(picked.id) === String(post.id))) return posts
+  return [...posts, { id: String(post.id), title: post.title || '', type: post.type || '' }]
 }
