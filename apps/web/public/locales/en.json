@@ -3822,9 +3822,12 @@
   "Not in the menu yet. Add it to the menu when you are happy with it.": "Not in the menu yet. Add it to the menu when you are happy with it.",
   "This view is in the menu. Your latest changes are not saved yet.": "This view is in the menu. Your latest changes are not saved yet.",
   "This view is in the menu as shown.": "This view is in the menu as shown.",
-  "Add an image or PDF": "Add an image or PDF",
   "Add PDF": "Add PDF",
   "Axl can read what you add, such as a flyer or a schedule, and turn it into a page. Files are sent to the AI to be read.": "Axl can read what you add, such as a flyer or a schedule, and turn it into a page. Files are sent to the AI to be read.",
   "Only PDF documents can be read. Add pictures as images.": "Only PDF documents can be read. Add pictures as images.",
-  "The file could not be added: {{message}}": "The file could not be added: {{message}}"
+  "The file could not be added: {{message}}": "The file could not be added: {{message}}",
+  "Add an image, PDF or post": "Add an image, PDF or post",
+  "Add a post from this group": "Add a post from this group",
+  "Search for a post in this group to build the page around.": "Search for a post in this group to build the page around.",
+  "This post is no longer available.": "This post is no longer available."
 }

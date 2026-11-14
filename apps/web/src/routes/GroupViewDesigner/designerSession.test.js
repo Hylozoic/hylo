@@ -1,4 +1,5 @@
 import {
+  addDesignPost,
   addDesignDocument,
   fileNameFromUrl,
   nameAfterTurn,
@@ -89,13 +90,25 @@ describe('design documents', () => {
   })
 })
 
+describe('picked posts', () => {
+  it('lists posts once each, up to six', () => {
+    const one = addDesignPost([], { id: 482, title: 'Seed swap', type: 'event', details: 'not kept' })
+    expect(one).toEqual([{ id: '482', title: 'Seed swap', type: 'event' }])
+    expect(addDesignPost(one, { id: '482' })).toBe(one)
+    expect(addDesignPost(one, null)).toBe(one)
+    const full = [1, 2, 3, 4, 5, 6].reduce((list, id) => addDesignPost(list, { id }), [])
+    expect(addDesignPost(full, { id: 7 })).toBe(full)
+  })
+})
+
 describe('designGroupViewTurn', () => {
   it('sends the conversation and the current design to the mutation', () => {
     const messages = [{ role: 'user', text: 'A welcome page' }]
     const action = designGroupViewTurn('7', messages, { blocks: [] })
     expect(action.type).toEqual(DESIGN_GROUP_VIEW_TURN)
-    expect(action.graphql.query).toContain('designGroupViewTurn(groupId: $groupId, messages: $messages, currentView: $currentView, images: $images, documents: $documents)')
-    expect(action.graphql.variables).toEqual({ groupId: '7', messages, currentView: { blocks: [] }, images: [], documents: [] })
+    expect(action.graphql.query).toContain('designGroupViewTurn(groupId: $groupId, messages: $messages, currentView: $currentView, images: $images, documents: $documents, postIds: $postIds)')
+    expect(action.graphql.variables).toEqual({ groupId: '7', messages, currentView: { blocks: [] }, images: [], documents: [], postIds: [] })
+    expect(designGroupViewTurn('7', messages, null, [], [], ['482']).graphql.variables.postIds).toEqual(['482'])
     const documents = [{ url: 'https://uploads.example.org/flyer.pdf', name: 'flyer.pdf' }]
     expect(designGroupViewTurn('7', messages, null, [], documents).graphql.variables.documents).toEqual(documents)
     const images = [{ url: 'https://uploads.example.org/a.jpg', name: 'Image 1' }]

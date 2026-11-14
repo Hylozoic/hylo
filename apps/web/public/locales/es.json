@@ -3833,9 +3833,12 @@
   "Not in the menu yet. Add it to the menu when you are happy with it.": "Aún no está en el menú. Añádela al menú cuando te guste.",
   "This view is in the menu. Your latest changes are not saved yet.": "Esta vista está en el menú. Tus últimos cambios aún no se han guardado.",
   "This view is in the menu as shown.": "Esta vista está en el menú tal como se muestra.",
-  "Add an image or PDF": "Añadir una imagen o un PDF",
   "Add PDF": "Añadir PDF",
   "Axl can read what you add, such as a flyer or a schedule, and turn it into a page. Files are sent to the AI to be read.": "Axl puede leer lo que añadas, como un folleto o un horario, y convertirlo en una página. Los archivos se envían a la IA para que los lea.",
   "Only PDF documents can be read. Add pictures as images.": "Solo se pueden leer documentos PDF. Añade las fotos como imágenes.",
-  "The file could not be added: {{message}}": "No se pudo añadir el archivo: {{message}}"
+  "The file could not be added: {{message}}": "No se pudo añadir el archivo: {{message}}",
+  "Add an image, PDF or post": "Añadir una imagen, un PDF o una publicación",
+  "Add a post from this group": "Añadir una publicación de este grupo",
+  "Search for a post in this group to build the page around.": "Busca una publicación de este grupo para construir la página en torno a ella.",
+  "This post is no longer available.": "Esta publicación ya no está disponible."
 }
