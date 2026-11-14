@@ -3,6 +3,8 @@ import path from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import {
   DESIGNED_VIEW_BLOCKS,
+  designedViewForModel,
+  designedViewFromModel,
   DESIGNED_VIEW_CHART_MAX_PIE_SLICES,
   DESIGNED_VIEW_CHART_MAX_POINTS,
   DESIGNED_VIEW_DESTINATIONS,
@@ -74,7 +76,7 @@ Blocks:
 - members: a live grid of group members. limit is 1 to 24.
 - button: a link. destination is a place in the group (${DESIGNED_VIEW_DESTINATIONS.join(', ')}) or "url" with an https address in url.
 - divider: a line between sections.
-- chart: a bar, line or pie chart that Hylo draws from figures you give it. kind is bar, line or pie; title says what it shows; points is 2 to ${DESIGNED_VIEW_CHART_MAX_POINTS} items, each a short label and a number (a pie has at most ${DESIGNED_VIEW_CHART_MAX_PIE_SLICES} slices, none negative). xLabel names the categories (for example "Month"), yLabel names what the numbers measure (for example "Harvest"), unit is written with each number (for example lbs, %, hours, $), and source says where the figures came from (for example "Spring harvest log, page 2" or "From the steward"). Leave any of those four empty when not needed.
+- chart: a bar, line or pie chart that Hylo draws from figures you give it. kind is bar, line or pie. title says what it shows, with the unit in brackets when there is one ("Harvest by month (lbs)", "Budget ($)"). source says where the figures came from ("Spring harvest log, page 2", "From your message"). points is text with one point per line, a short label, a "|" and the number: "June | 120". Write each number as a plain number with no unit, words or symbols (1200 or 1,200; -3.5). A chart has 2 to ${DESIGNED_VIEW_CHART_MAX_POINTS} points; a pie has at most ${DESIGNED_VIEW_CHART_MAX_PIE_SLICES}, none negative.
 - columns: 2 or 3 side-by-side columns, each a list of the blocks above. Columns cannot contain columns. On phones the columns stack.
 - canvas: an infinite canvas. A large surface, bigger than the screen, that people drag to pan and zoom in and out of. It holds 2 to 16 regions. Each region is a titled card with an optional one-line note, a tone (plain, accent, primary or muted) and 1 to 6 of the blocks above. You place regions on a grid with col and row, both 0 to 5, counted from the top left; each cell holds one region. A page can have one canvas, and it cannot go inside columns.
 
@@ -201,7 +203,7 @@ export async function designViewTurn ({ group = {}, groupSummary = '', messages,
           group.description ? `Group description: ${String(group.description).slice(0, 1500)}` : 'The group has no description.'
         ].join('\n\n'),
     currentView
-      ? `Current design (block types: ${describeBlocksForPrompt()}):\n${JSON.stringify(currentView)}`
+      ? `Current design (block types: ${describeBlocksForPrompt()}):\n${JSON.stringify(designedViewForModel(currentView))}`
       : 'There is no design yet. This is the first version.',
     available.length > 0
       ? `Available images:\n${available.map((image, index) => `${index + 1}. ${image.name}: ${image.url}${shown.includes(image) ? '' : ' (not shown to you)'}`).join('\n')}`
@@ -245,8 +247,11 @@ export async function designViewTurn ({ group = {}, groupSummary = '', messages,
   if (!text) throw new Error('The model returned no design')
 
   const output = JSON.parse(text.text)
+  // The model writes chart points as text; turn them back into the stored form
+  const { view: fromModel, errors: chartErrors } = designedViewFromModel(output.view)
+  if (chartErrors.length > 0) throw new Error(`The model returned a page Hylo cannot show: ${chartErrors.slice(0, 3).join('; ')}`)
   // Drop any image the steward did not provide before checking the page, so one made-up address does not lose the turn
-  const { view: withOwnImages, removed } = removeUnlistedImages(output.view, allowedImageUrls)
+  const { view: withOwnImages, removed } = removeUnlistedImages(fromModel, allowedImageUrls)
   const { view, errors } = validateDesignedView(withOwnImages)
   if (errors.length > 0) throw new Error(`The model returned a page Hylo cannot show: ${errors.slice(0, 3).join('; ')}`)
 

@@ -92,16 +92,12 @@ export const DESIGNED_VIEW_BLOCKS = {
   members: { title: text(120, { required: false }), limit: int(1, 24, 8) },
   button: { label: text(60), destination: oneOf([...DESIGNED_VIEW_DESTINATIONS, 'url'], 'stream'), url: httpsUrl() },
   divider: {},
-  // A bar, line or pie chart of figures the steward gave; a snapshot, not live data
+  // A bar, line or pie chart of figures the steward gave; a snapshot, not live data.
+  // Kept to a few fields because the model's schema is close to the size structured output
+  // accepts: a unit goes in the title ("Harvest by month (lbs)")
   chart: {
     kind: oneOf(DESIGNED_VIEW_CHART_KINDS, 'bar'),
     title: text(120),
-    // What the categories are (the horizontal axis of a bar or line chart), e.g. "Month"
-    xLabel: text(40, { required: false }),
-    // What the numbers measure, e.g. "Harvest"
-    yLabel: text(40, { required: false }),
-    // Written with each number, e.g. "lbs", "%", "$"
-    unit: text(12, { required: false }),
     // Where the figures came from, shown under the chart so readers can check them
     source: text(160, { required: false }),
     points: points(DESIGNED_VIEW_CHART_MIN_POINTS, DESIGNED_VIEW_CHART_MAX_POINTS, DESIGNED_VIEW_CHART_LABEL_MAX)
@@ -365,10 +361,9 @@ function fieldSchema (rule) {
     case 'oneOf': return typeof rule.options[0] === 'number' ? { type: 'integer', enum: rule.options } : { type: 'string', enum: rule.options }
     case 'int': return { type: 'integer' }
     case 'listOf': return { type: 'array', items: { type: 'string', enum: rule.options } }
-    case 'points': return {
-      type: 'array',
-      items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'number' } }, required: ['label', 'value'], additionalProperties: false }
-    }
+    // A list of objects here makes the schema too large for structured output, so the model
+    // writes points as text, one "label | value" per line (see designedViewFromModel)
+    case 'points': return { type: 'string' }
     default: return { type: 'string' }
   }
 }
@@ -426,6 +421,73 @@ export function designedViewJsonSchema () {
     additionalProperties: false,
     $defs: { block: { anyOf: leaf } }
   }
+}
+
+// A plain number as people write it: 1200, 1,200, -3.5. No units, words or exponents
+const CHART_NUMBER = /^[-+]?(\d{1,3}(,\d{3})+|\d+)(\.\d+)?$/
+
+/**
+ * Reads chart points written as text, one "label | value" per line, which is
+ * how the model writes them. Returns { points } or { error }; the points still
+ * go through validateDesignedView.
+ */
+export function parseChartPoints (text) {
+  if (typeof text !== 'string') return { error: 'must be text, one "label | value" per line' }
+  const points = []
+  const lines = text.split('\n').map(line => line.trim()).filter(Boolean)
+  for (let i = 0; i < lines.length; i++) {
+    const bar = lines[i].lastIndexOf('|')
+    if (bar < 0) return { error: `line ${i + 1} needs a label and a value separated by "|"` }
+    const raw = lines[i].slice(bar + 1).trim()
+    if (!CHART_NUMBER.test(raw)) return { error: `line ${i + 1}: ${JSON.stringify(raw.slice(0, 20))} is not a plain number` }
+    points.push({ label: lines[i].slice(0, bar).trim(), value: Number(raw.replace(/,/g, '')) })
+  }
+  return { points }
+}
+
+/**
+ * Chart points written as text, the way the model reads and writes them.
+ */
+export function formatChartPoints (points) {
+  return (Array.isArray(points) ? points : []).map(point => `${point?.label} | ${point?.value}`).join('\n')
+}
+
+function mapLeafBlocks (view, change) {
+  if (!isPlainObject(view) || !Array.isArray(view.blocks)) return view
+  const each = list => Array.isArray(list) ? list.map(change) : list
+  return {
+    ...view,
+    blocks: view.blocks.map(block => {
+      if (block?.type === 'columns') return { ...block, columns: Array.isArray(block.columns) ? block.columns.map(each) : block.columns }
+      if (block?.type === 'canvas') {
+        const regions = Array.isArray(block.regions) ? block.regions.map(region => isPlainObject(region) ? { ...region, blocks: each(region.blocks) } : region) : block.regions
+        return { ...block, regions }
+      }
+      return change(block)
+    })
+  }
+}
+
+/**
+ * A designed view as the model is shown it: the same, with chart points as text.
+ */
+export function designedViewForModel (view) {
+  return mapLeafBlocks(view, block => block?.type === 'chart' && Array.isArray(block.points) ? { ...block, points: formatChartPoints(block.points) } : block)
+}
+
+/**
+ * Turns what the model returned (chart points as text) back into the stored
+ * format. Returns { view, errors }; check the view with validateDesignedView.
+ */
+export function designedViewFromModel (view) {
+  const errors = []
+  const converted = mapLeafBlocks(view, block => {
+    if (block?.type !== 'chart' || typeof block.points !== 'string') return block
+    const { points, error } = parseChartPoints(block.points)
+    if (error) errors.push(`chart "${String(block.title || '').slice(0, 40)}" points ${error}`)
+    return { ...block, points: points || [] }
+  })
+  return { view: converted, errors }
 }
 
 // The fields that hold an image address, by block type

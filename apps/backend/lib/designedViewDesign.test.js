@@ -195,36 +195,29 @@ describe('designedViewDesign', () => {
     })
 
     it('accepts a chart of the steward\'s figures, and tells the model to use only real numbers', async () => {
+      // The model writes points as text and is shown the current design the same way
       const chartView = {
-        blocks: [{
-          type: 'chart',
-          kind: 'bar',
-          title: 'Harvest by month',
-          xLabel: 'Month',
-          yLabel: 'Harvest',
-          unit: 'lbs',
-          source: '',
-          points: [{ label: 'June', value: 120 }, { label: 'July', value: 310 }]
-        }]
+        blocks: [{ type: 'chart', kind: 'bar', title: 'Harvest by month (lbs)', source: '', points: 'June | 120\nJuly | 1,310' }]
       }
+      const current = { version: 1, blocks: [{ type: 'chart', kind: 'line', title: 'Before', points: [{ label: 'May', value: 80 }, { label: 'June', value: 120 }] }] }
       const client = clientReturning(modelResponse({ reply: 'Charted June and July from your message.', view: chartView }))
-      const result = await designViewTurn(request, { client })
+      const result = await designViewTurn({ ...request, currentView: current }, { client })
       expect(result.view.blocks[0]).to.deep.equal({
         type: 'chart',
         kind: 'bar',
-        title: 'Harvest by month',
-        xLabel: 'Month',
-        yLabel: 'Harvest',
-        unit: 'lbs',
-        points: [{ label: 'June', value: 120 }, { label: 'July', value: 310 }]
+        title: 'Harvest by month (lbs)',
+        points: [{ label: 'June', value: 120 }, { label: 'July', value: 1310 }]
       })
+      expect(client.calls[0].messages[2].content[0].text).to.contain('"points":"May | 80\\nJune | 120"')
       const system = client.calls[0].system
       expect(system).to.contain('- chart:')
       expect(system).to.contain('Never invent, estimate')
       expect(system).to.contain('which figures you used and where they came from')
 
-      const made = clientReturning(modelResponse({ reply: 'x', view: { blocks: [{ ...chartView.blocks[0], points: [{ label: 'June', value: 'about 100' }, { label: 'July', value: 2 }] }] } }))
-      await expect(designViewTurn(request, { client: made })).to.be.rejectedWith(/value must be a number/)
+      const made = clientReturning(modelResponse({ reply: 'x', view: { blocks: [{ ...chartView.blocks[0], points: 'June | about 100\nJuly | 2' }] } }))
+      await expect(designViewTurn(request, { client: made })).to.be.rejectedWith(/cannot show: chart "Harvest by month \(lbs\)" points line 1/)
+      const tooFew = clientReturning(modelResponse({ reply: 'x', view: { blocks: [{ ...chartView.blocks[0], points: 'June | 100' }] } }))
+      await expect(designViewTurn(request, { client: tooFew })).to.be.rejectedWith(/must be a list of 2 to 24 points/)
     })
 
     it('rejects a page the blocks cannot show, and a refusal', async () => {

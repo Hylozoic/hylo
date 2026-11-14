@@ -1,4 +1,7 @@
 import {
+  designedViewForModel,
+  designedViewFromModel,
+  parseChartPoints,
   designedViewImageUrls,
   removeUnlistedImages,
   DESIGNED_VIEW_BLOCKS,
@@ -294,15 +297,17 @@ describe('chart block', () => {
 
   it('accepts a chart of labelled numbers, with defaults and trimmed text', () => {
     const result = validateDesignedView({
-      blocks: [{ type: 'chart', title: ' Harvest ', yLabel: 'Harvest', unit: 'lbs', source: 'Harvest log, page 2', xLabel: '', points: [{ label: ' June ', value: -4 }, { label: 'July', value: 1e6 }] }]
+      blocks: [
+        { type: 'chart', title: ' Harvest (lbs) ', source: 'Harvest log, page 2', points: [{ label: ' June ', value: -4 }, { label: 'July', value: 1e6 }] },
+        { type: 'chart', kind: 'line', title: 'Members', source: '', points: harvest }
+      ]
     })
     expect(result.errors).toEqual([])
+    expect(result.view.blocks[1]).toEqual({ type: 'chart', kind: 'line', title: 'Members', points: harvest })
     expect(result.view.blocks[0]).toEqual({
       type: 'chart',
       kind: 'bar',
-      title: 'Harvest',
-      yLabel: 'Harvest',
-      unit: 'lbs',
+      title: 'Harvest (lbs)',
       source: 'Harvest log, page 2',
       points: [{ label: 'June', value: -4 }, { label: 'July', value: 1e6 }]
     })
@@ -369,15 +374,57 @@ describe('chart block', () => {
     })
   })
 
-  it('is in the JSON Schema as a list of label and number pairs, and accepts what a model would send', () => {
+  it('is in the JSON Schema with its points as text, which is small enough for structured output', () => {
     const option = designedViewJsonSchema().$defs.block.anyOf.find(o => o.properties.type.enum[0] === 'chart')
-    expect(option.properties.points).toEqual({
-      type: 'array',
-      items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'number' } }, required: ['label', 'value'], additionalProperties: false }
+    expect(option.properties).toEqual({
+      type: { type: 'string', enum: ['chart'] },
+      kind: { type: 'string', enum: ['bar', 'line', 'pie'] },
+      title: { type: 'string' },
+      source: { type: 'string' },
+      points: { type: 'string' }
     })
-    expect(option.properties.kind).toEqual({ type: 'string', enum: ['bar', 'line', 'pie'] })
-    expect(validateDesignedView({
-      blocks: [{ type: 'chart', kind: 'line', title: 'Members', xLabel: '', yLabel: '', unit: '', source: '', points: [{ label: '2023', value: 40 }, { label: '2024', value: 52 }] }]
-    }).errors).toEqual([])
+  })
+})
+
+describe('chart points as the model writes them', () => {
+  it('reads one "label | value" per line', () => {
+    expect(parseChartPoints('June | 120\n\n  July|310.5 \nAug, 10:00 | wk | 1,455\nLoss | -2')).toEqual({
+      points: [
+        { label: 'June', value: 120 },
+        { label: 'July', value: 310.5 },
+        { label: 'Aug, 10:00 | wk', value: 1455 },
+        { label: 'Loss', value: -2 }
+      ]
+    })
+  })
+
+  it('refuses anything but a plain number', () => {
+    expect(parseChartPoints('June 120').error).toEqual('line 1 needs a label and a value separated by "|"')
+    ;['about 100', '120 lbs', '1e5', 'NaN', 'Infinity', '', '1,5', '$40', '12.'].forEach(value => {
+      expect(parseChartPoints(`June | 1\nJuly | ${value}`).error).toContain('line 2:')
+    })
+    expect(parseChartPoints(null).error).toContain('must be text')
+  })
+
+  it('round-trips a view between the stored form and the form the model reads and writes', () => {
+    const stored = {
+      version: 1,
+      blocks: [
+        { type: 'chart', kind: 'bar', title: 'Harvest', points: [{ label: 'June', value: 120 }, { label: 'July', value: 310 }] },
+        { type: 'columns', columns: [[{ type: 'chart', kind: 'pie', title: 'Beds', points: [{ label: 'Beans', value: 3 }, { label: 'Kale', value: 1.5 }] }], [{ type: 'divider' }]] },
+        { type: 'canvas', regions: [{ title: 'A', col: 0, row: 0, blocks: [{ type: 'chart', kind: 'line', title: 'Members', points: [{ label: '2023', value: 40 }, { label: '2024', value: 52 }] }] }, { title: 'B', col: 1, row: 0, blocks: [{ type: 'divider' }] }] }
+      ]
+    }
+    const forModel = designedViewForModel(stored)
+    expect(forModel.blocks[0].points).toEqual('June | 120\nJuly | 310')
+    expect(forModel.blocks[1].columns[0][0].points).toEqual('Beans | 3\nKale | 1.5')
+    expect(forModel.blocks[2].regions[0].blocks[0].points).toEqual('2023 | 40\n2024 | 52')
+    expect(designedViewFromModel(forModel)).toEqual({ view: stored, errors: [] })
+    expect(designedViewForModel(null)).toBeNull()
+  })
+
+  it('reports points it cannot read', () => {
+    const { errors } = designedViewFromModel({ blocks: [{ type: 'chart', kind: 'bar', title: 'Harvest', source: '', points: 'June | 120\nJuly | lots' }] })
+    expect(errors).toEqual(['chart "Harvest" points line 2: "lots" is not a plain number'])
   })
 })
