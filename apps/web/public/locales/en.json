@@ -3817,6 +3817,8 @@
   "Draft · posts as you in {{space}}": "Draft · posts as you in {{space}}",
   "Posted": "Posted",
   "Post it": "Post it",
+  "You are not in {{space}} yet": "You are not in {{space}} yet",
+  "Join {{space}} and post": "Join {{space}} and post",
   "{{name}} (you)": "{{name}} (you)",
   "Assistant": "Assistant",
   "It was posted, but could not be marked as posted here.": "It was posted, but could not be marked as posted here.",

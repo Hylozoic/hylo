@@ -3820,6 +3820,8 @@
   "Draft · posts as you in {{space}}": "Entwurf · wird in deinem Namen in {{space}} gepostet",
   "Posted": "Gepostet",
   "Post it": "Posten",
+  "You are not in {{space}} yet": "Du bist noch nicht in {{space}}",
+  "Join {{space}} and post": "{{space}} beitreten und posten",
   "{{name}} (you)": "{{name}} (du)",
   "Assistant": "Assistent",
   "It was posted, but could not be marked as posted here.": "Es wurde gepostet, konnte hier aber nicht als gepostet markiert werden.",

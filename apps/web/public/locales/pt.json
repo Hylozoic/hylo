@@ -3820,6 +3820,8 @@
   "Draft · posts as you in {{space}}": "Rascunho · publicado em seu nome em {{space}}",
   "Posted": "Publicado",
   "Post it": "Publicar",
+  "You are not in {{space}} yet": "Você ainda não está em {{space}}",
+  "Join {{space}} and post": "Entrar em {{space}} e publicar",
   "{{name}} (you)": "{{name}} (você)",
   "Assistant": "Assistente",
   "It was posted, but could not be marked as posted here.": "Foi publicado, mas não foi possível marcar aqui como publicado.",

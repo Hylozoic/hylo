@@ -3821,6 +3821,8 @@
   "Draft · posts as you in {{space}}": "Brouillon · publié en votre nom dans {{space}}",
   "Posted": "Publié",
   "Post it": "Publier",
+  "You are not in {{space}} yet": "Vous n’êtes pas encore dans {{space}}",
+  "Join {{space}} and post": "Rejoindre {{space}} et publier",
   "{{name}} (you)": "{{name}} (vous)",
   "Assistant": "Assistant",
   "It was posted, but could not be marked as posted here.": "C'est publié, mais cela n'a pas pu être marqué comme publié ici.",

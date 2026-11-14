@@ -196,6 +196,11 @@ describe('group assistant', () => {
         parts: [{ type: 'draft', text: 'Thanks, we will add Sundays.', replyToPostId: String(postInSpace.id) }]
       }))
       const messageId = messages[1].id
+      // The steward is not in that space yet, so the draft says to join it first; once they are, it does not
+      expect(messages[1].parts[0].needsJoin).to.deep.equal({ spaceId: String(space.id), name: 'Discussion' })
+      await space.addMembers([steward.id])
+      const joined = await groupAssistant({ userId: steward.id, groupId: group.id })
+      expect(joined.messages[1].parts[0].needsJoin).to.be.undefined
       const wrongPlace = await factories.comment({ post_id: postInGroup.id, user_id: steward.id, text: 'x' }).save()
       const notMine = await factories.comment({ post_id: postInSpace.id, user_id: member.id, text: 'x' }).save()
       const mine = await factories.comment({ post_id: postInSpace.id, user_id: steward.id, text: 'Thanks, we will add Sundays.' }).save()
