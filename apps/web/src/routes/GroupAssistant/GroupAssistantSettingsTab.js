@@ -158,10 +158,10 @@ export default function GroupAssistantSettingsTab ({ group }) {
       <div className={cn('flex flex-col gap-4', !hasPro && 'opacity-60 pointer-events-none')}>
         <label className='flex items-center justify-between gap-4 rounded-lg border-2 border-foreground/20 bg-card p-3'>
           <span className='min-w-0'>
-            <span className='block text-sm font-bold text-foreground'>{t('Assistant is on')}</span>
-            <span className='block text-xs text-foreground/60'>{t('Turning it off hides it from the group menu and stops all reading.')}</span>
+            <span className='block text-sm font-bold text-foreground'>{settings.enabled ? t('Assistant is on') : t('Assistant is off')}</span>
+            <span className='block text-xs text-foreground/60'>{settings.enabled ? t('Turning it off hides it from the group menu and stops all reading.') : t('Turning it on shows it to stewards in the group menu.')}</span>
           </span>
-          <Switch checked={settings.enabled} onCheckedChange={turnOn} disabled={saving || !hasPro} data-testid='assistant-enabled' aria-label={t('Assistant is on')} />
+          <Switch checked={settings.enabled} onCheckedChange={turnOn} disabled={saving || !hasPro} data-testid='assistant-enabled' aria-label={t('Group Assistant')} />
         </label>
 
         {settings.enabled && (
