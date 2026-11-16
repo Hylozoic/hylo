@@ -3832,6 +3832,8 @@
   "Only stewards see this: {{names}}": "इसे केवल प्रबंधक देखते हैं: {{names}}",
   "Axl is a private assistant for this group’s stewards. It only reads the spaces you choose, and your group’s content is never used to train AI models. It drafts and suggests; a steward decides.": "Axl इस समूह के प्रबंधकों के लिए एक निजी सहायक है। यह केवल वही स्थान पढ़ता है जो आप चुनते हैं, और आपके समूह की सामग्री कभी AI मॉडल को प्रशिक्षित करने में इस्तेमाल नहीं होती। यह मसौदा बनाता और सुझाव देता है; फ़ैसला प्रबंधक करता है।",
   "Assistant is on": "सहायक चालू है",
+  "Assistant is off": "सहायक बंद है",
+  "Turning it on shows it to stewards in the group menu.": "इसे चालू करने पर यह समूह मेनू में स्टीवर्ड्स को दिखता है।",
   "Turning it off hides it from the group menu and stops all reading.": "इसे बंद करने पर यह समूह मेनू से हट जाता है और कुछ भी पढ़ना बंद कर देता है।",
   "Spaces it can read": "जिन स्थानों को यह पढ़ सकता है",
   "Axl reads nothing outside this list, and never direct messages.": "Axl इस सूची के बाहर कुछ नहीं पढ़ता, और सीधे संदेश कभी नहीं।",
