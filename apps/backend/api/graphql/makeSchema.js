@@ -159,8 +159,8 @@ import {
   subscribe,
   swapProposalVote,
   unblockUser,
-  unfulfillPost,
   unfollowPost,
+  unfulfillPost,
   unlinkAccount,
   unsavePost,
   updateAllMemberships,
@@ -846,6 +846,8 @@ export function makeMutations ({ fetchOne }) {
 
     flagInappropriateContent: (root, { data }, context) => flagInappropriateContent(context.currentUserId, data),
 
+    followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
+
     fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
@@ -950,8 +952,6 @@ export function makeMutations ({ fetchOne }) {
     saveDraft: (root, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }, context) =>
       saveDraft(context.currentUserId, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }),
 
-    followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
-
     savePost: (root, { postId }, context) => savePost(context.currentUserId, postId),
 
     setProposalOptions: (root, { postId, options }, context) => setProposalOptions({ userId: context.currentUserId, postId, options }),
@@ -962,9 +962,9 @@ export function makeMutations ({ fetchOne }) {
 
     unblockUser: (root, { blockedUserId }, context) => unblockUser(context.currentUserId, blockedUserId),
 
-    unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
-
     unfollowPost: (root, { postId }, context) => unfollowPost(context.currentUserId, postId),
+
+    unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
 
     unlinkAccount: (root, { provider }, context) => unlinkAccount(context.currentUserId, provider),
 
