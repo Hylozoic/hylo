@@ -7,7 +7,8 @@ import {
   reconcileChatActivityNoticesAfterFetch,
   replaceOptimisticChatActivityNotice,
   snapshotChatActivityNotices,
-  upsertOptimisticChatActivityNotice
+  upsertOptimisticChatActivityNotice,
+  withdrawOptimisticChatFromNotice
 } from './chatActivityNotice'
 
 describe('chatActivityBucketKey', () => {
@@ -74,6 +75,58 @@ describe('upsertOptimisticChatActivityNotice', () => {
       groupId: 'missing',
       chat: { id: 'post_1', details: '<p>hi</p>' }
     })).toBe(null)
+  })
+})
+
+describe('withdrawOptimisticChatFromNotice', () => {
+  let session
+
+  beforeEach(() => {
+    session = orm.session(orm.getEmptyState())
+    session.Group.create({ id: '10', slug: 'bar', name: 'Bar' })
+  })
+
+  it('deletes a temporary notice that only held the withdrawn chat', () => {
+    upsertOptimisticChatActivityNotice(session, {
+      groupId: '10',
+      chat: { id: 'post_1', details: '<p>hi</p>', createdAt: '2026-08-14T04:10:00.000Z' }
+    })
+
+    withdrawOptimisticChatFromNotice(session, { localId: 'post_1' })
+
+    expect(session.Post.all().toModelArray().filter(p => p.type === 'chat_activity')).toHaveLength(0)
+  })
+
+  it('removes the chat from a notice with other chats and rolls its time back', () => {
+    upsertOptimisticChatActivityNotice(session, {
+      groupId: '10',
+      chat: { id: '99', details: '<p>sent</p>', createdAt: '2026-08-14T04:10:00.000Z' }
+    })
+    const { id } = upsertOptimisticChatActivityNotice(session, {
+      groupId: '10',
+      chat: { id: 'post_2', details: '<p>failed</p>', createdAt: '2026-08-14T04:40:00.000Z' }
+    })
+
+    withdrawOptimisticChatFromNotice(session, { localId: 'post_2' })
+
+    const notice = session.Post.withId(id)
+    expect(notice.noticePosts.map(p => p.id)).toEqual(['99'])
+    expect(notice.noticeData.recentPostIds).toEqual(['99'])
+    expect(notice.noticeData.postCount).toEqual(1)
+    expect(notice.createdAt).toEqual('2026-08-14T04:10:00.000Z')
+  })
+
+  it('leaves notices without that chat alone', () => {
+    const { id } = upsertOptimisticChatActivityNotice(session, {
+      groupId: '10',
+      chat: { id: 'post_1', details: '<p>hi</p>', createdAt: '2026-08-14T04:10:00.000Z' }
+    })
+
+    withdrawOptimisticChatFromNotice(session, { localId: 'post_7' })
+
+    const notice = session.Post.withId(id)
+    expect(notice.noticeData.postCount).toEqual(1)
+    expect(notice.noticePosts.map(p => p.id)).toEqual(['post_1'])
   })
 })
 
