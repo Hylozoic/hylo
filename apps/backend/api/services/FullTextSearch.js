@@ -61,12 +61,13 @@ const createView = (lang, knex) => {
         u.created_at
       ) as sort_ts,
       ${wv('u.name', 'A')} ||
-      ${wv("coalesce(string_agg(replace(s.name, '-', ' '), ' '), '')", 'C')} ||
+      ${wv(`coalesce(string_agg(replace(s.name, '-', ' '), ' ') filter (where su.type = ${Skill.Type.HAS}), '')`, 'C')} ||
+      ${wv(`coalesce(string_agg(replace(s.name, '-', ' '), ' ') filter (where su.type = ${Skill.Type.LEARNING}), '')`, 'D')} ||
       ${wv("coalesce(u.bio, '')", 'C')} ||
       ${wv("coalesce(u.location, '')", 'C')} ||
       ${wv("coalesce(u.tagline, '')", 'C')} as ${columnName}
     from users u
-    left join skills_users su on u.id = su.user_id and su.type = ${Skill.Type.HAS}
+    left join skills_users su on u.id = su.user_id
     left join skills s on su.skill_id = s.id
     where u.active = true
     group by u.id
