@@ -8,6 +8,7 @@ import StripeAnalytics from './StripeAnalytics/StripeAnalytics'
 import SiteBanners from './SiteBanners/SiteBanners'
 import CommonsRequests from './CommonsRequests/CommonsRequests'
 import PlatformMetrics from './PlatformMetrics/PlatformMetrics'
+import Supporters from './Supporters/Supporters'
 
 /** Admin management screens. The menu lives in ContextMenu via getStaticMenuViews. */
 export default function Management () {
@@ -23,6 +24,7 @@ export default function Management () {
       <Route path='metrics' element={<PlatformMetrics />} />
       <Route path='banners' element={<SiteBanners />} />
       <Route path='commons-requests' element={<CommonsRequests />} />
+      <Route path='supporters' element={<Supporters />} />
       <Route path='staging/email-testers' element={<Navigate to='/management/email-testers' replace />} />
       <Route path='platform/health' element={<Navigate to='/management/metrics' replace />} />
       <Route path='site/banners' element={<Navigate to='/management/banners' replace />} />
