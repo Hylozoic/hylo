@@ -21,6 +21,7 @@ import {
 } from './filters'
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
+import { canEditPost } from '../models/post/postEditPermissions'
 import { listBlockingSpaces } from '../models/space/convertChatSpaceToDiscussion'
 import InvitationService from '../services/InvitationService'
 import {
@@ -753,6 +754,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'end_time',
         'flagged_groups',
         'fulfilled_at',
+        'group_admins_can_edit',
         'is_public',
         'link_preview_featured',
         'location',
@@ -770,6 +772,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'voting_method'
       ],
       getters: {
+        canEdit: p => canEditPost(userId, p),
         clickthrough: p => p.clickthroughForUser(userId),
         commenters: (p, { first }) => p.getCommenters(first, userId),
         completedAt: p => p.completedAtForUser(userId),
@@ -810,6 +813,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         savedAt: p => p.savedAtForUser(userId),
+        following: p => p.followingForUser(userId),
         tokensAllocated: async p => {
           if (!userId) return null
           const postUser = await PostUser.find(p.get('id'), userId)

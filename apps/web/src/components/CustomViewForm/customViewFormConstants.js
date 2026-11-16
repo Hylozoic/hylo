@@ -11,23 +11,23 @@ export const DEFAULT_SELECTED_POST_TYPES = [
 
 /** Pills in the custom stream form. Request and offer are separate pills. */
 export const CUSTOM_STREAM_POST_TYPE_PILLS = [
-  { key: 'discussion', postTypes: ['discussion'], labelKey: 'view-discussions' },
-  { key: 'event', postTypes: ['event'], labelKey: 'view-events' },
-  { key: 'resource', postTypes: ['resource'], labelKey: 'view-resources' },
-  { key: 'project', postTypes: ['project'], labelKey: 'view-projects' },
-  { key: 'proposal', postTypes: ['proposal'], labelKey: 'view-proposals' },
-  { key: 'request', postTypes: ['request'], labelKey: 'view-requests' },
-  { key: 'offer', postTypes: ['offer'], labelKey: 'view-offers' }
+  { key: 'discussion', postTypes: ['discussion'], labelKey: 'view-discussions', defaultLabel: 'Discussions' },
+  { key: 'event', postTypes: ['event'], labelKey: 'view-events', defaultLabel: 'Events' },
+  { key: 'resource', postTypes: ['resource'], labelKey: 'view-resources', defaultLabel: 'Resources' },
+  { key: 'project', postTypes: ['project'], labelKey: 'view-projects', defaultLabel: 'Projects' },
+  { key: 'proposal', postTypes: ['proposal'], labelKey: 'view-proposals', defaultLabel: 'Proposals' },
+  { key: 'request', postTypes: ['request'], labelKey: 'view-requests', defaultLabel: 'Requests' },
+  { key: 'offer', postTypes: ['offer'], labelKey: 'view-offers', defaultLabel: 'Offers' }
 ]
 
 /** Pills for a group or space's accepted post types. Request and offer share one pill. */
 export const ACCEPTED_POST_TYPE_PILLS = [
-  { key: 'discussion', postTypes: ['discussion'], labelKey: 'view-discussions' },
-  { key: 'event', postTypes: ['event'], labelKey: 'view-events' },
-  { key: 'resource', postTypes: ['resource'], labelKey: 'view-resources' },
-  { key: 'project', postTypes: ['project'], labelKey: 'view-projects' },
-  { key: 'proposal', postTypes: ['proposal'], labelKey: 'view-proposals' },
-  { key: 'requests-and-offers', postTypes: ['request', 'offer'], labelKey: 'view-requests-and-offers' }
+  { key: 'discussion', postTypes: ['discussion'], labelKey: 'view-discussions', defaultLabel: 'Discussions' },
+  { key: 'event', postTypes: ['event'], labelKey: 'view-events', defaultLabel: 'Events' },
+  { key: 'resource', postTypes: ['resource'], labelKey: 'view-resources', defaultLabel: 'Resources' },
+  { key: 'project', postTypes: ['project'], labelKey: 'view-projects', defaultLabel: 'Projects' },
+  { key: 'proposal', postTypes: ['proposal'], labelKey: 'view-proposals', defaultLabel: 'Proposals' },
+  { key: 'requests-and-offers', postTypes: ['request', 'offer'], labelKey: 'view-requests-and-offers', defaultLabel: 'Requests & Offers' }
 ]
 
 /** Stored in group_views.settings.defaultViewMode (cards = stream/card view). */

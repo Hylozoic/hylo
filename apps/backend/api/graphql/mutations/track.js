@@ -2,6 +2,8 @@
 import { omit } from 'lodash'
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { track as recordActivity } from '../../../lib/analytics/track'
 
 export async function createTrack (userId, data) {
   return bookshelf.transaction(async transacting => {
@@ -14,6 +16,12 @@ export async function createTrack (userId, data) {
     }
 
     const track = await Track.create(attrs, { transacting })
+    recordActivity({
+      type: EVENT_TYPES.TRACK_CREATED,
+      userId,
+      groupIds: spaceId ? [spaceId] : [],
+      object: { type: 'track', id: track.id }
+    })
 
     if (spaceId) {
       const group = await Group.find(spaceId, { transacting })
@@ -72,11 +80,26 @@ export async function enrollInTrack (userId, trackId) {
   }
 
   await Track.enroll(trackId, userId)
+  recordActivity({
+    type: EVENT_TYPES.TRACK_ENROLLED,
+    userId,
+    groupIds: track.get('group_id') ? [track.get('group_id')] : [],
+    object: { type: 'track', id: track.id }
+  })
   return track
 }
 
 export async function leaveTrack (userId, trackId) {
+  const track = await Track.find(trackId)
   await Track.leave(trackId, userId)
+  if (track) {
+    recordActivity({
+      type: EVENT_TYPES.TRACK_LEFT,
+      userId,
+      groupIds: track.get('group_id') ? [track.get('group_id')] : [],
+      object: { type: 'track', id: track.id }
+    })
+  }
   return Track.find(trackId)
 }
 
@@ -92,7 +115,16 @@ export async function updateTrack (userId, id, data) {
 
   const attrs = convertGraphqlData(omit(data, 'groupId', 'publishedAt', 'name', 'description', 'bannerUrl', 'welcomeMessage'))
   await GroupRole.assertAssignableRoleIds(attrs.completion_role_id)
+  const wasPublished = track.get('published_at')
   await track.save(attrs)
+  if (!wasPublished && track.get('published_at')) {
+    recordActivity({
+      type: EVENT_TYPES.TRACK_PUBLISHED,
+      userId,
+      groupIds: track.get('group_id') ? [track.get('group_id')] : [],
+      object: { type: 'track', id: track.id }
+    })
+  }
   return track
 }
 

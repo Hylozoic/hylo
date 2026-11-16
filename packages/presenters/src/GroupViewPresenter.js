@@ -318,10 +318,24 @@ export const MY_CONTEXT_VIEWS = (profileUrl) => [
   { type: 'logout', name: 'view-my-logout', icon: 'LogOut', id: 'view-my-logout', order: 24 }
 ]
 
-/** Returns static menu views for My Home or Public contexts. */
-export function getStaticMenuViews ({ isPublicContext, isMyContext, profileUrl }) {
+/**
+ * Static menu views for the Management context.
+ * Flat list with a text header as the only section break, same shape as My.
+ */
+export const MANAGEMENT_CONTEXT_VIEWS = [
+  { type: 'link', name: 'view-management-platform-health', link: '/management/metrics', icon: 'Activity', id: 'view-management-platform-health', order: 1 },
+  { type: 'link', name: 'view-management-site-banners', link: '/management/banners', icon: 'Flag', id: 'view-management-site-banners', order: 2 },
+  { type: 'link', name: 'view-management-commons-requests', link: '/management/commons-requests', icon: 'Inbox', id: 'view-management-commons-requests', order: 3 },
+  { type: 'link', name: 'view-management-email-testers', link: '/management/email-testers', icon: 'Mail', id: 'view-management-email-testers', order: 4 },
+  { type: 'text', name: 'view-management-paid-content', id: 'view-management-paid-content', order: 5 },
+  { type: 'link', name: 'view-management-disputes-refunds', link: '/management/paid-content/stripe-analytics', icon: 'Scale', id: 'view-management-disputes-refunds', order: 6 }
+]
+
+/** Returns static menu views for My Home, Public, or Management contexts. */
+export function getStaticMenuViews ({ isPublicContext, isMyContext, isManagementContext, profileUrl }) {
   if (isPublicContext) return PUBLIC_CONTEXT_VIEWS
   if (isMyContext) return MY_CONTEXT_VIEWS(profileUrl)
+  if (isManagementContext) return MANAGEMENT_CONTEXT_VIEWS
   return null
 }
 

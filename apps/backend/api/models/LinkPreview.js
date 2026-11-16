@@ -4,6 +4,7 @@ import { TextHelpers } from '@hylo/shared'
 import { safeFetch } from '../../lib/safeFetch'
 
 const HYLO_POST_PATH = /\/post\/(\d+)(?:\/|$)/
+const HYLO_GROUP_PATH = /^\/groups\/([^/]+)(?:\/|$)/
 const KNOWN_HYLO_HOSTS = [
   'hylo.com',
   'www.hylo.com',
@@ -95,12 +96,56 @@ const LinkPreview = bookshelf.Model.extend({
     return attrs
   },
 
+  /** Returns the group slug from a Hylo group URL (a space URL gives its parent group), or null for post URLs. */
+  parseHyloGroupSlug: url => {
+    if (!LinkPreview.isHyloHost(url) || LinkPreview.parseHyloPostId(url)) return null
+    let pathname
+    try {
+      pathname = new URL(url).pathname
+    } catch {
+      return null
+    }
+    const match = pathname.match(HYLO_GROUP_PATH)
+    if (!match) return null
+    try {
+      return decodeURIComponent(match[1])
+    } catch {
+      return match[1]
+    }
+  },
+
+  /**
+   * Preview fields for a public Hylo group (name, purpose or description, banner or avatar).
+   * Groups that are not public return null, so only what the signed-out group page shows is stored.
+   */
+  attrsForPublicHyloGroup: async url => {
+    const slug = LinkPreview.parseHyloGroupSlug(url)
+    if (!slug) return null
+
+    const group = await Group.where({ slug, active: true, visibility: Group.Visibility.PUBLIC }).fetch()
+    if (!group) return null
+
+    const attrs = {
+      title: group.get('name'),
+      description: TextHelpers.presentHTMLToText(group.get('purpose') || group.get('description') || '', { truncate: MAX_DESCRIPTION_LENGTH })
+    }
+    const imageUrl = group.get('banner_url') || group.get('avatar_url')
+    if (imageUrl) {
+      attrs.image_url = imageUrl
+    }
+    return attrs
+  },
+
+  /** Preview fields for a public Hylo post or group URL, read from the database instead of scraping. */
+  attrsForHyloUrl: async url =>
+    (await LinkPreview.attrsForPublicHyloPost(url)) || LinkPreview.attrsForPublicHyloGroup(url),
+
   populate: async ({ id }) => {
     const preview = await LinkPreview.find(id)
     const doneAttrs = () => ({ updated_at: new Date(), done: true })
 
     try {
-      const hyloAttrs = await LinkPreview.attrsForPublicHyloPost(preview.get('url'))
+      const hyloAttrs = await LinkPreview.attrsForHyloUrl(preview.get('url'))
       if (hyloAttrs) {
         return preview.save({ ...doneAttrs(), ...hyloAttrs })
       }

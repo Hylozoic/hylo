@@ -1,6 +1,7 @@
 import orm from 'store/models'
+import { updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { FULFILL_POST, UNFULFILL_POST, UNFULFILL_POST_PENDING, FULFILL_POST_PENDING, UPDATE_PROPOSAL_OUTCOME, SAVE_POST, UNSAVE_POST, SAVE_POST_PENDING, UNSAVE_POST_PENDING } from 'store/constants'
+import { FULFILL_POST, UNFULFILL_POST, UNFULFILL_POST_PENDING, FULFILL_POST_PENDING, UPDATE_PROPOSAL_OUTCOME, SAVE_POST, UNSAVE_POST, SAVE_POST_PENDING, UNSAVE_POST_PENDING, FOLLOW_POST, UNFOLLOW_POST, FOLLOW_POST_PENDING, UNFOLLOW_POST_PENDING } from 'store/constants'
 
 export const MODULE_NAME = 'PostHeader'
 
@@ -66,6 +67,52 @@ export function updateProposalOutcome (postId, proposalOutcome) {
   }
 }
 
+/** Subscribe the current user to updates on a post. */
+export function followPost (postId) {
+  return {
+    type: FOLLOW_POST,
+    graphql: {
+      query: `mutation ($postId: ID) {
+        followPost (postId: $postId) {
+          id
+          following
+        }
+      }`,
+      variables: {
+        postId
+      }
+    },
+    meta: {
+      optimistic: true,
+      postId,
+      extractModel: 'Post'
+    }
+  }
+}
+
+/** Stop updates on a post. */
+export function unfollowPost (postId) {
+  return {
+    type: UNFOLLOW_POST,
+    graphql: {
+      query: `mutation ($postId: ID) {
+        unfollowPost (postId: $postId) {
+          id
+          following
+        }
+      }`,
+      variables: {
+        postId
+      }
+    },
+    meta: {
+      optimistic: true,
+      postId,
+      extractModel: 'Post'
+    }
+  }
+}
+
 export function savePost (postId) {
   return {
     type: SAVE_POST,
@@ -116,6 +163,27 @@ export const getGroup = ormCreateSelector(
   (session, slug) => slug ? session.Group.safeGet({ slug }) : null
 )
 
+/** Writes follow state onto the post and pinned copies stored on group menus. */
+function applyFollowing ({ Post, Group }, postId, following) {
+  if (postId == null) return
+  if (Post.idExists(postId)) {
+    Post.withId(postId).update({ following })
+  }
+  const patches = []
+  Group.all().toModelArray().forEach(group => {
+    const items = group.groupViews?.items || []
+    items.forEach(view => {
+      const pinned = view.pinnedPosts
+      if (!Array.isArray(pinned) || !pinned.some(post => String(post.id) === String(postId))) return
+      patches.push({
+        viewId: view.id,
+        pinnedPosts: pinned.map(post => String(post.id) === String(postId) ? { ...post, following } : post)
+      })
+    })
+  })
+  patches.forEach(patch => updateGroupViewInAllMenus(Group.all(), patch.viewId, { pinnedPosts: patch.pinnedPosts }))
+}
+
 export function ormSessionReducer ({ Group, Post }, { type, meta }) {
   let post
   switch (type) {
@@ -127,6 +195,16 @@ export function ormSessionReducer ({ Group, Post }, { type, meta }) {
     case UNFULFILL_POST_PENDING:
       post = Post.withId(meta.postId)
       post.update({ fulfilledAt: null })
+      break
+
+    case FOLLOW_POST_PENDING:
+    case FOLLOW_POST:
+      applyFollowing({ Post, Group }, meta.postId, true)
+      break
+
+    case UNFOLLOW_POST_PENDING:
+    case UNFOLLOW_POST:
+      applyFollowing({ Post, Group }, meta.postId, false)
       break
 
     case SAVE_POST_PENDING:

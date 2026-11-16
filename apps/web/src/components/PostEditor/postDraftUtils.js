@@ -21,6 +21,7 @@ export const buildPostDraftPayload = (post = {}) => ({
   topics: serializeTopics(post.topics),
   groups: serializeGroupIds(post.groups),
   isPublic: !!post.isPublic,
+  groupAdminsCanEdit: !!post.groupAdminsCanEdit,
   location: post.location || '',
   locationId: post.locationId || null,
   meetingLink: post.meetingLink || '',

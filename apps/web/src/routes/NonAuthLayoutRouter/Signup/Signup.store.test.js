@@ -1,5 +1,15 @@
 import { register, verifyEmail } from './Signup.store'
 
+const ANONYMOUS_ID = 'anon-test-id'
+
+beforeEach(() => {
+  window.localStorage.setItem('hylo_anonymous_id', ANONYMOUS_ID)
+})
+
+afterEach(() => {
+  window.localStorage.removeItem('hylo_anonymous_id')
+})
+
 describe('register', () => {
   it('should match latest snapshot', () => {
     expect(register('name', 'test@hylo.com', 'testPassword')).toMatchSnapshot()

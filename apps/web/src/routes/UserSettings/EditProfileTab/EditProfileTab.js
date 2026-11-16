@@ -155,15 +155,35 @@ function EditProfileTab ({
     setShowAddAffiliations(!showAddAffiliations)
   }, [showAddAffiliations])
 
+  // Writes the affiliation list onto Me so a later currentUser update does not drop a just-added affiliation.
+  const storeAffiliations = useCallback((items) => {
+    if (!currentUser?.id) return
+    dispatch({
+      type: CREATE_AFFILIATION,
+      payload: {
+        data: {
+          me: { id: currentUser.id, affiliations: { items } }
+        }
+      },
+      meta: {
+        extractModel: [{
+          getRoot: data => data.me,
+          modelName: 'Me'
+        }]
+      }
+    })
+  }, [currentUser?.id, dispatch])
+
   const saveAffiliation = useCallback(({ role, preposition, orgName, url }) => {
     setAffiliationAction(CREATE_AFFILIATION)
     dispatch(createAffiliation({ role, preposition, orgName, url }))
       .then(res => {
-        const affiliation = get(res, 'payload.data.createAffiliation')
+        const affiliation = get('payload.data.createAffiliation', res)
         if (affiliation) {
           setAffiliationSuccess(t('Your affiliation was added'))
           const updatedItems = [...affiliations, affiliation]
           setAffiliations(updatedItems)
+          storeAffiliations(updatedItems)
           setShowAddAffiliations(false)
           setAffiliationError('')
         }
@@ -172,7 +192,7 @@ function EditProfileTab ({
         setAffiliationError(e.message)
         setShowAddAffiliations(true)
       })
-  }, [affiliations, dispatch, t])
+  }, [affiliations, dispatch, storeAffiliations, t])
 
   const deleteAffiliationHandler = useCallback((affiliationId) => {
     setAffiliationAction(DELETE_AFFILIATION)
@@ -183,14 +203,15 @@ function EditProfileTab ({
           return
         }
 
-        const deletedAffiliationId = get(res, 'payload.data.deleteAffiliation')
+        const deletedAffiliationId = get('payload.data.deleteAffiliation', res)
         if (deletedAffiliationId) {
           setAffiliationSuccess(t('Your affiliation was deleted'))
           const updatedItems = affiliations.filter((a) => a.id !== deletedAffiliationId)
           setAffiliations([...updatedItems])
+          storeAffiliations(updatedItems)
         }
       })
-  }, [affiliations, dispatch, t])
+  }, [affiliations, dispatch, storeAffiliations, t])
 
   const canSave = changed && validateName(edits.name)
 

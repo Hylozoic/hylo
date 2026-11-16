@@ -6,8 +6,13 @@ export default {
     return this.get('type') === Post.Type.PROJECT
   },
 
+  // Membership is the project role, not the follow flag. Unfollowing a post
+  // must not drop someone from the member list.
   members: function () {
-    return this.isProject() ? this.followers().query(q => q.whereRaw('project_role_id is not null')) : false
+    if (!this.isProject()) return false
+    return this.belongsToMany(User).through(PostUser)
+      .where({ 'posts_users.active': true, 'users.active': true })
+      .query(q => q.whereNotNull('posts_users.project_role_id'))
   },
 
   addProjectMembers: async function (usersOrIds, opts) {

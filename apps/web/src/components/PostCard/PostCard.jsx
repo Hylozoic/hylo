@@ -99,6 +99,7 @@ export default function PostCard (props) {
 
   // Chat mode handlers
   const isCreator = currentUser?.id === post?.creator?.id
+  const canEdit = isCreator || !!post?.canEdit
   const groupIds = post?.groups?.map(g => g.id) || []
 
   const handleMouseEnter = useCallback(() => setIsHovered(true), [])
@@ -164,13 +165,13 @@ export default function PostCard (props) {
     }
     return filter(item => isFunction(item.onClick), [
       { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: () => viewPostDetails(post), tooltip: t('Reply to Post') },
-      { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator) ? () => navigate(editPostUrl(post.id, routeParams)) : null, tooltip: 'Edit post' },
+      { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: canEdit ? () => navigate(editPostUrl(post.id, routeParams)) : null, tooltip: 'Edit post' },
       { icon: post.savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: post.savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: post.savedAt ? t('Unsave Post') : t('Save Post') },
       { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => setFlaggingVisible(true) : null, tooltip: t('Flag Post') },
       { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: t('Delete Post') },
       { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: t('Remove post from group') }
     ])
-  }, [currentUser, post, isCreator, currentUserResponsibilities, handleSavePost, copyLink, deletePostWithConfirm, removePostWithConfirm, viewPostDetails, navigate, routeParams, t])
+  }, [currentUser, post, isCreator, canEdit, currentUserResponsibilities, handleSavePost, copyLink, deletePostWithConfirm, removePostWithConfirm, viewPostDetails, navigate, routeParams, t])
 
   const myEmojis = useMemo(() =>
     post.postReactions

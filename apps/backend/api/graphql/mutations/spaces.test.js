@@ -626,6 +626,72 @@ describe('space mutations', () => {
       expect(menuEntry.get('order')).to.equal(null)
     })
 
+    it('converts when the other parent is inactive and drops that relationship', async () => {
+      const child = await createChildGroup()
+      const deadParent = await factories.group().save()
+      await deadParent.addChild(child)
+      await GroupView.appendToMenu({
+        group_id: deadParent.id,
+        type: GroupView.Type.GROUP,
+        linked_group_id: child.id,
+        name: child.get('name')
+      })
+      await Group.deactivate(deadParent.id)
+
+      const converted = await convertGroupToSpace(administrator.id, {
+        id: child.id,
+        parentGroupId: parentGroup.id
+      }, {})
+
+      expect(converted.get('type')).to.equal('space')
+      expect(String(converted.get('parent_id'))).to.equal(String(parentGroup.id))
+
+      const stale = await GroupRelationship.forPair(deadParent.id, child.id, false).fetch()
+      expect(stale.get('active')).to.equal(false)
+      const menu = await GroupView.where({
+        group_id: deadParent.id,
+        linked_group_id: child.id
+      }).fetch()
+      expect(menu).to.equal(null)
+    })
+
+    it('converts when a child group is inactive and drops that relationship', async () => {
+      const child = await createChildGroup()
+      const grandchild = await factories.group().save()
+      await child.addChild(grandchild)
+      await Group.deactivate(grandchild.id)
+
+      const converted = await convertGroupToSpace(administrator.id, {
+        id: child.id,
+        parentGroupId: parentGroup.id
+      }, {})
+
+      expect(converted.get('type')).to.equal('space')
+      const stale = await GroupRelationship.forPair(child.id, grandchild.id, false).fetch()
+      expect(stale.get('active')).to.equal(false)
+    })
+
+    it('converts when a peer group is inactive and drops that relationship', async () => {
+      const child = await createChildGroup()
+      const peer = await factories.group().save()
+      await GroupRelationship.forge({
+        parent_group_id: child.id,
+        child_group_id: peer.id,
+        relationship_type: Group.RelationshipType.PEER_TO_PEER,
+        active: true
+      }).save()
+      await Group.deactivate(peer.id)
+
+      const converted = await convertGroupToSpace(administrator.id, {
+        id: child.id,
+        parentGroupId: parentGroup.id
+      }, {})
+
+      expect(converted.get('type')).to.equal('space')
+      const stale = await GroupRelationship.forPair(child.id, peer.id, false).fetch()
+      expect(stale.get('active')).to.equal(false)
+    })
+
     it('rejects when the group has more than one parent', async () => {
       const child = await createChildGroup()
       const otherParent = await factories.group().save()

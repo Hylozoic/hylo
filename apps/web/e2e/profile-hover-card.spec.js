@@ -9,9 +9,10 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  * new-message recipient search (`Person.canMessage`).
  *
  * Seed (`scripts/seed-e2e-baseline.js`): posts in `e2e-public-group` are by the E2E user, who is
- * its Administrator. `e2e.member-a` shares that group, so can message the E2E user. The join host
- * shares no group with the E2E user; the test makes the host's profile public and has them publish
- * a public post, so the E2E user can see the host but not message them.
+ * its Administrator. `e2e.member-a` shares that group, so can message the E2E user. `e2e.stranger`
+ * is only a member of `e2e-nomember-a` (the join host also administers groups the E2E user is in,
+ * so they can be messaged). The test makes the stranger's profile public and has them publish a
+ * public post, so the E2E user can see them but not message them.
  */
 
 test.describe.configure({ timeout: 180000 })
@@ -20,7 +21,7 @@ const uiTimeout = { timeout: 60000 }
 const STREAM_PATH = '/groups/e2e-public-group/stream'
 const PASSWORD = 'e2e-password-123'
 const MEMBER_A_EMAIL = 'e2e.member-a@hylo.test'
-const HOST_EMAIL = 'e2e.join-host@hylo.test'
+const STRANGER_EMAIL = 'e2e.stranger@hylo.test'
 const screenshotDir = path.resolve(import.meta.dirname, 'screenshots')
 
 /** Must match `playwright.config.js` — manual `browser.newContext()` does not inherit `use.baseURL`. */
@@ -137,24 +138,24 @@ test.describe('Profile hover card', () => {
 
   test('hides Message for someone visible but outside the recipient search', async ({ browser, page, isMobile }) => {
     test.skip(isMobile, 'hover is desktop-only')
-    const hostContext = await contextFor(browser, HOST_EMAIL)
+    const strangerContext = await contextFor(browser, STRANGER_EMAIL)
     let postId
     try {
-      const { me } = await graphql(hostContext.request, '{ me { id memberships { group { id slug } } } }')
+      const { me } = await graphql(strangerContext.request, '{ me { id memberships { group { id slug } } } }')
       const group = me.memberships.map(m => m.group).find(g => g.slug === 'e2e-nomember-a')
       expect(group).toBeTruthy()
-      await graphql(hostContext.request, 'mutation { updateMe(changes: { isProfilePublic: true }) { id } }')
-      const created = await graphql(hostContext.request,
+      await graphql(strangerContext.request, 'mutation { updateMe(changes: { isProfilePublic: true }) { id } }')
+      const created = await graphql(strangerContext.request,
         'mutation ($data: PostInput) { createPost(data: $data) { id } }',
-        { data: { type: 'discussion', title: 'E2E Hover Card Host Post', details: '<p>Public post by the join host</p>', groupIds: [group.id], isPublic: true } })
+        { data: { type: 'discussion', title: 'E2E Hover Card Stranger Post', details: '<p>Public post by someone outside the recipient search</p>', groupIds: [group.id], isPublic: true } })
       postId = created.createPost.id
     } finally {
-      await hostContext.close()
+      await strangerContext.close()
     }
 
     const avatar = await firstAvatarIn(page, `/post/${postId}`)
     await avatar.hover()
-    await expectCard(page, { name: 'E2E Join Host', message: false })
+    await expectCard(page, { name: 'E2E Stranger', message: false })
     await saveScreenshot(page, 'issue-1599-desktop-cannot-message.png')
   })
 

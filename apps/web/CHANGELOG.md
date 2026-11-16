@@ -6,6 +6,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.12] - 2026-11-11
+
+### Changed
+- Improved link previews for public Hylo groups when shared on social media, and within Hylo
+- Clean up the management menu, and use our standard menu system for it
+- Add platform health widget for MAUs, WAUs and DAUs
+- Indicate which posts are in which child groups and spaces in map drawer
+
+### Fixed
+- UI of adding and deleting of affiliations on user profiles
+- Don't keep showing cookie consent after logging in as user who already closed it
+- Posts not opening from space map drawer
+- Make sure map zoom buttons appear when drawer is open
+
+## [7.1.11] - 2026-11-09
+
+### Added
+- As a group admin or moderator you can make a post editable by other admins or moderators of the group.
+- Attach images and files by drag and drop or paste onto post, chat, DM or comment editors.
+- When RSVPing to an event, you can now add it to your calendar instantly
+- The ability to follow or unfollow a post from the post three dot menu
+- Platform health metrics, only visible to super admins for now
+
+### Changed
+- Made calendar subscribe button more visible on event pages.
+- Show post notices in chat with the current users timezone, not timezone of of the post's local time
+
+### Fixed
+- Show new posts immediately in every post list they belong in.
+- Clicking on related group goes to that group
+- Don't copy invites when duplicating an event
+- Event invites dialog appears again
+
 ## [7.1.10] - 2026-11-04
 
 ### Added
