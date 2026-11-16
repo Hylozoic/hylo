@@ -32,11 +32,14 @@ describe('FullTextSearch', () => {
 
     after(() => FullTextSearch.dropView())
 
-    it('indexes the skills a person has, not the ones they are learning', async () => {
-      const rows = await FullTextSearch.search({ term: 'woodturning', type: 'person', subquery: true })
-      const userIds = rows.map(r => String(r.user_id))
-      expect(userIds).to.include(String(haver.id))
-      expect(userIds).not.to.include(String(learner.id))
+    it('finds people who have a skill and people learning it, ranking those who have it higher', async () => {
+      const rows = await FullTextSearch.search({ term: 'woodturning', type: 'person' })
+      const rankFor = user => {
+        const row = rows.find(r => String(r.user_id) === String(user.id))
+        expect(row, `no search row for ${user.get('name')}`).to.exist
+        return Number(row.rank)
+      }
+      expect(rankFor(haver)).to.be.above(rankFor(learner))
     })
   })
 
