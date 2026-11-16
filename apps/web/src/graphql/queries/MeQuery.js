@@ -55,6 +55,7 @@ export default gql`
     settings {
       alreadySeenTour
       toursSeen
+      hideRsvpCalendarPrompt
       colorScheme
       dmNotifications
       commentNotifications
@@ -159,6 +160,8 @@ export default gql`
     }
     cookieConsentPreferences {
       id
+      consentId
+      userId
       settings
       version
       updatedAt

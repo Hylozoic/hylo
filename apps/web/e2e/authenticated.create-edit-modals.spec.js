@@ -24,9 +24,9 @@ async function expectCreatePostShell (page, urlPattern) {
 async function expectEditPostShell (page, urlPattern) {
   await waitPastRootSessionLoading(page)
   await expect(page).toHaveURL(urlPattern, navTimeout)
-  // The editor holds the post. Its card in the stream behind can be scrolled out of the
-  // rendered list on a phone once other specs have posted in the group.
-  await expect(page.locator('.PostEditorTitle input')).toHaveValue(/E2E Public Post/i, uiTimeout)
+  // Check the editor itself: the stream behind the modal may not include the seeded post once
+  // other specs have created newer posts (it is then past the first page, especially on mobile)
+  await expect(page.locator('#create-modal-content').getByTestId('post-editor-title')).toHaveValue(/E2E Public Post/i, uiTimeout)
 }
 
 test.describe('Batch J: create post modal', () => {

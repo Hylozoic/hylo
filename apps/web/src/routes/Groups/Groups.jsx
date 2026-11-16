@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
 import { cn } from 'util/index'
+import { groupUrl } from '@hylo/navigation'
 import GroupNetworkMap from 'components/GroupNetworkMap'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useGetJoinRequests } from 'hooks/useGetJoinRequests'
@@ -111,10 +112,7 @@ function Groups () {
               {parentGroups.length === 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{group.name}} is a part of 1 Group', { group })}</h3> : ''}
               {parentGroups.length > 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{group.name}} is a part of {{parentGroups.length}} Groups', { group, parentGroups })}</h3> : ''}
             </div>
-            <GroupsList
-              groups={parentGroups}
-              routeParams={routeParams}
-            />
+            <GroupsList groups={parentGroups} />
           </div>
         )}
 
@@ -124,10 +122,7 @@ function Groups () {
               {childGroups.length === 1 ? <h3 className='text-foreground text-lg font-bold'>{t('1 Group is a part of {{group.name}}', { group })}</h3> : ''}
               {childGroups.length > 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{childGroups.length}} groups are a part of {{group.name}}', { childGroups, group })}</h3> : ''}
             </div>
-            <GroupsList
-              groups={childGroups}
-              routeParams={routeParams}
-            />
+            <GroupsList groups={childGroups} />
           </div>
         )}
 
@@ -137,10 +132,7 @@ function Groups () {
               {peerGroups.length === 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{group.name}} is connected to 1 peer group', { group })}</h3> : ''}
               {peerGroups.length > 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{group.name}} is connected to {{peerGroups.length}} peer groups', { group, peerGroups })}</h3> : ''}
             </div>
-            <GroupsList
-              groups={peerGroups}
-              routeParams={routeParams}
-            />
+            <GroupsList groups={peerGroups} />
           </div>
         )}
       </div>
@@ -148,10 +140,11 @@ function Groups () {
   )
 }
 
-export function GroupsList ({ groups, routeParams }) {
+/** Renders related groups, each linking to that group's own page. */
+export function GroupsList ({ groups }) {
   return (
     <div className='flex flex-col gap-4 w-full'>
-      {groups.map(c => <GroupCard group={c} key={c.id} routeParams={routeParams} />)}
+      {groups.map(c => <GroupCard group={c} key={c.id} to={groupUrl(c.slug)} />)}
     </div>
   )
 }

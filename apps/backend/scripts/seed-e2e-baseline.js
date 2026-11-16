@@ -343,7 +343,10 @@ const E2E_USER_EMAILS = [
   E2E_MEMBER_A_EMAIL,
   E2E_MEMBER_B_EMAIL,
   E2E_INVITEE_EMAIL,
-  'e2e.join-host@hylo.test'
+  'e2e.join-host@hylo.test',
+  // Only a member of e2e-nomember-a. Profile hover card uses them as someone the
+  // main E2E user can see (public profile + public post) but cannot message.
+  'e2e.stranger@hylo.test'
 ].map((email) => email.toLowerCase())
 
 const E2E_INVITE_TOKENS = [
@@ -1072,6 +1075,20 @@ async function main () {
       [outsiderGroupId, hostId, now, membershipSettings, extrPubAId, extrPubBId]
     )
 
+    // Not in any group with e2e.user (the join host is, via the member-invite groups).
+    const strangerRes = await client.query(
+      `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
+       VALUES ($1, $2, $3, $4, true, true, $5::timestamptz, $5::timestamptz, $6::jsonb)
+       RETURNING id`,
+      ['e2e.stranger@hylo.test', 'E2E Stranger', 'E2E', 'Stranger', now, userSettings]
+    )
+    const strangerId = strangerRes.rows[0].id
+    await client.query(
+      `INSERT INTO group_memberships (group_id, user_id, active, created_at, updated_at, settings)
+       VALUES ($1, $2, true, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      [extrPubAId, strangerId, now, membershipSettings]
+    )
+
     for (const [gid, administratorRoleId] of [
       [outsiderGroupId, outsiderRoles.Administrator],
       [extrPubAId, extrPubARoles.Administrator],
@@ -1234,7 +1251,7 @@ async function main () {
        VALUES ($1, $2, 'password')`,
       [trackViewerId, passwordHash]
     )
-    for (const extraId of [hostId, ...extraMemberIds]) {
+    for (const extraId of [hostId, strangerId, ...extraMemberIds]) {
       await client.query(
         `INSERT INTO linked_account (user_id, provider_user_id, provider_key)
          VALUES ($1, $2, 'password')`,

@@ -40,7 +40,21 @@ export function getHost () {
   }
 }
 
+// The group the user is looking at, from a /groups/:slug URL. Lets the server
+// credit group-level activity without an extra request.
+export function currentGroupSlugFromLocation () {
+  if (typeof window === 'undefined') return null
+  const match = window.location.pathname.match(/^\/groups\/([^/]+)/)
+  if (!match) return null
+  try {
+    return decodeURIComponent(match[1])
+  } catch (err) {
+    return null
+  }
+}
+
 export function fetchJSON (path, params, options = {}) {
+  const groupSlug = path === '/noo/graphql' ? currentGroupSlugFromLocation() : null
   const method = options.method ? options.method.toLowerCase() : 'get'
   const fetchURL = (options.host) + path + (method === 'get' && params ? '?' + Object.keys(params).map(k => `${k}=${params[k]}`).join('&') : '')
   const fetchOptions = {
@@ -48,7 +62,8 @@ export function fetchJSON (path, params, options = {}) {
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      Cookie: options.cookie
+      Cookie: options.cookie,
+      ...(groupSlug ? { 'X-Hylo-Group-Slug': groupSlug } : {})
     },
     credentials: 'same-origin',
     body: method === 'post' ? JSON.stringify(params) : null

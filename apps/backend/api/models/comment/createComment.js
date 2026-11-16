@@ -1,5 +1,6 @@
 import { flatten, difference, uniq } from 'lodash'
 import { postRoom, pushToSockets, userRoom } from '../../services/Websockets'
+import { groupIdsForPost, trackComment } from '../../../lib/analytics/track'
 import { refineOne, refineMany } from '../util/relations'
 
 export default async function createComment (commenterId, opts = {}) {
@@ -35,6 +36,7 @@ export default async function createComment (commenterId, opts = {}) {
     await createMedia(comment, opts, trx)
     return comment
   }).then(async (comment) => {
+    recordComment(comment, post, isThread)
     await createOrUpdateConnections(commenterId, existingFollowers)
     await post.addFollowers(newFollowers)
     await notifySockets(comment, post, isThread)
@@ -64,6 +66,16 @@ export const createMedia = (comment, opts, trx) => {
         position: i
       }, trx))
   ]))
+}
+
+/** Writes the comment or message to the activity log without delaying the request. */
+function recordComment (comment, post, isThread) {
+  const write = groupIds => trackComment(comment, post, groupIds)
+  if (isThread) {
+    write([])
+    return
+  }
+  groupIdsForPost(post.id).then(write).catch(() => {})
 }
 
 function notifySockets (comment, post, isThread) {

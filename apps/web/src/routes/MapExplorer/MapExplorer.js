@@ -854,7 +854,7 @@ function MapExplorer (props) {
 
       {/* isolate: the deck.gl overlay lives in a Mapbox control (z-index 2). Without a
           stacking context here that canvas paints over the map menus. */}
-      <div className='flex-1 h-full relative isolate' data-testid='map-container'>
+      <div className={cn('flex-1 h-full relative isolate', classes.mapZoomControls, { [classes.drawerOpen]: !hideDrawer })} data-testid='map-container'>
         {mapTourInvitation}
         <Map
           baseLayerStyle={baseLayerStyle}

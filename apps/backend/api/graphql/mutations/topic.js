@@ -1,4 +1,6 @@
 import { GraphQLError } from 'graphql'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { track } from '../../../lib/analytics/track'
 
 export async function topicMutationPermissionCheck (userId, groupId) {
   const group = await Group.find(groupId)
@@ -24,6 +26,12 @@ export async function createTopic (userId, topicName, groupId, isDefault, isSubs
     user_id: userId,
     is_default: isDefault,
     isSubscribing
+  })
+  track({
+    type: EVENT_TYPES.TOPIC_CREATED,
+    userId,
+    groupIds: [groupId],
+    object: { type: 'tag', id: topic.id }
   })
   return topic
 }

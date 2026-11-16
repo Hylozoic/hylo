@@ -123,6 +123,57 @@ describe('prependCurrentHourNotices', () => {
     expect(next.map(p => p.id)).toEqual([notice.id, '18'])
   })
 
+  it('keeps a post created after the chat above the notice', () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-08-14T04:20:00.000Z'))
+    const session = orm.session(orm.getEmptyState())
+    session.Group.create({ id: '10', slug: 'bar', name: 'Bar' })
+    session.Post.create({ id: '18', type: 'discussion', createdAt: '2026-08-14T03:00:00.000Z', updatedAt: '2026-08-14T03:00:00.000Z' })
+    session.Post.create({ id: '19', type: 'request', createdAt: '2026-08-14T04:15:00.000Z', updatedAt: '2026-08-14T04:15:00.000Z' })
+    const notice = upsertOptimisticChatActivityNotice(session, {
+      groupId: '10',
+      chat: { id: 'post_1', details: '<p>hi</p>', createdAt: '2026-08-14T04:10:00.000Z' }
+    })
+    const posts = [session.Post.withId('19'), session.Post.withId('18')]
+
+    for (const sortBy of [undefined, 'updated', 'created']) {
+      const next = prependCurrentHourNotices(session, posts, { filter: 'all+notices', slug: 'bar', sortBy })
+      expect(next.map(p => p.id)).toEqual(['19', notice.id, '18'])
+    }
+  })
+
+  it('orders by the post update time when sorted by updated', () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-08-14T04:20:00.000Z'))
+    const session = orm.session(orm.getEmptyState())
+    session.Group.create({ id: '10', slug: 'bar', name: 'Bar' })
+    // Created before the chat, commented on after it
+    session.Post.create({ id: '18', type: 'discussion', createdAt: '2026-08-14T03:00:00.000Z', updatedAt: '2026-08-14T04:15:00.000Z' })
+    const notice = upsertOptimisticChatActivityNotice(session, {
+      groupId: '10',
+      chat: { id: 'post_1', details: '<p>hi</p>', createdAt: '2026-08-14T04:10:00.000Z' }
+    })
+    const posts = [session.Post.withId('18')]
+
+    expect(prependCurrentHourNotices(session, posts, { filter: 'all+notices', slug: 'bar', sortBy: 'updated' }).map(p => p.id)).toEqual(['18', notice.id])
+    expect(prependCurrentHourNotices(session, posts, { filter: 'all+notices', slug: 'bar', sortBy: 'created' }).map(p => p.id)).toEqual([notice.id, '18'])
+  })
+
+  it('puts the notice first when the list is not sorted by time', () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-08-14T04:20:00.000Z'))
+    const session = orm.session(orm.getEmptyState())
+    session.Group.create({ id: '10', slug: 'bar', name: 'Bar' })
+    session.Post.create({ id: '19', type: 'request', createdAt: '2026-08-14T04:15:00.000Z' })
+    const notice = upsertOptimisticChatActivityNotice(session, {
+      groupId: '10',
+      chat: { id: 'post_1', details: '<p>hi</p>', createdAt: '2026-08-14T04:10:00.000Z' }
+    })
+
+    const next = prependCurrentHourNotices(session, [session.Post.withId('19')], { filter: 'all+notices', slug: 'bar', sortBy: 'votes' })
+    expect(next.map(p => p.id)).toEqual([notice.id, '19'])
+  })
+
   it('matches a space notice onto the parent All Activity slug', () => {
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-08-14T04:20:00.000Z'))

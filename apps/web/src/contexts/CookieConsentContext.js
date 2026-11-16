@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { useSelector } from 'react-redux'
 import { useCurrentUser } from 'hooks/useCurrentUser'
+import { getAuthSessionStatus } from 'store/selectors/getAuthSession'
+import { AuthSessionStatus } from 'store/reducers/authSession'
 import {
   shouldSkipCookieConsent,
   getCookieConsent,
@@ -28,10 +31,13 @@ export const CookieConsentProvider = ({ children }) => {
 
   // Get current user from Redux store
   const currentUser = useCurrentUser()
-  const isLoggedIn = !!currentUser
+  const authStatus = useSelector(getAuthSessionStatus)
+  const isLoggedIn = !!currentUser || authStatus === AuthSessionStatus.Authenticated
 
   /**
-   * Initialize cookie consent check
+   * Initialize cookie consent check.
+   * A previous accept/reject stored on the account hides the banner after login,
+   * even when this browser has no consent cookie yet.
    */
   const initializeCookieConsent = useCallback(async () => {
     // Skip if in iframe or mobile webView
@@ -45,30 +51,41 @@ export const CookieConsentProvider = ({ children }) => {
       const existingCookie = getCookieConsent()
 
       if (existingCookie && validateCookieConsent(existingCookie)) {
-        // Valid cookie exists
+        // Valid cookie exists. A choice was already made in this browser
         setCookieData(existingCookie)
+        setShowPreferencesPanel(false)
         setIsInitialized(true)
         return
       }
 
       // No valid cookie found
       if (isLoggedIn) {
-        // Check user's database record for cookie consent
         const userPreferences = currentUser?.cookieConsentPreferences
+
+        // Login/session payload has not included consent yet. Keep the banner
+        // as-is until we know whether this account already chose.
+        if (userPreferences === undefined) {
+          setIsInitialized(true)
+          return
+        }
 
         if (userPreferences) {
           const success = updateCookieFromDatabase(userPreferences, true)
           if (success) {
             setCookieData(getCookieConsent())
+            setShowPreferencesPanel(false)
             setIsInitialized(true)
             return
           }
         }
 
-        // No database preferences or failed to update, show preferences panel
+        // Logged in and the account has no saved choice
         setShowPreferencesPanel(true)
+      } else if (authStatus === AuthSessionStatus.Unknown) {
+        // Session check still in flight. Don't flash the banner for someone
+        // who is about to be recognized as logged in.
       } else {
-        // Not logged in, show preferences panel
+        // Confirmed logged out, show preferences panel
         setShowPreferencesPanel(true)
       }
 
@@ -77,7 +94,7 @@ export const CookieConsentProvider = ({ children }) => {
       console.error('Error initializing cookie consent:', error)
       setIsInitialized(true)
     }
-  }, [isLoggedIn, currentUser?.cookieConsentPreferences])
+  }, [isLoggedIn, currentUser?.cookieConsentPreferences, authStatus])
 
   /**
    * Update cookie consent preferences
@@ -162,17 +179,11 @@ export const CookieConsentProvider = ({ children }) => {
     setShowPreferencesPanel(false)
   }, [])
 
-  // Initialize on mount
+  // Initialize on mount and again when login or saved account consent changes.
+  // initializeCookieConsent already depends on those values.
   useEffect(() => {
     initializeCookieConsent()
   }, [initializeCookieConsent])
-
-  // Re-initialize when login status changes
-  useEffect(() => {
-    if (isInitialized) {
-      initializeCookieConsent()
-    }
-  }, [isLoggedIn, isInitialized, initializeCookieConsent])
 
   const value = {
     cookieData,

@@ -128,7 +128,11 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   })
 
   const wasMember = !!(await GroupMembership.forPair(userId, group.id).fetch())
-  const membership = await user.joinGroup(group, { questionAnswers, fromInvitation: hasValidInvitation })
+  const membership = await user.joinGroup(group, {
+    questionAnswers,
+    fromInvitation: hasValidInvitation,
+    analyticsSource: hasValidInvitation ? (accessCode ? 'access_code' : 'invitation') : 'open'
+  })
   if (accessCode && inviteCheck?.grantAccess && inviteIsForThisGroup && !wasMember) {
     const link = await GroupInviteLink.findActiveByCode(accessCode)
     if (link && String(link.get('group_id')) === String(group.id)) {

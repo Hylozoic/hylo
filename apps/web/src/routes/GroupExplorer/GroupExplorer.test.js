@@ -18,6 +18,8 @@ function testProviders () {
 
 afterEach(() => {
   mockGraphqlServer.resetHandlers()
+  // useLocation is mocked for every test (config/jest/beforeTestEnvSetup.js)
+  require('react-router-dom').useLocation.mockReturnValue({ pathname: '', search: '' })
 })
 
 // Disable API mocking after the tests are done.
@@ -56,6 +58,46 @@ test('GroupExplorer integration test', async () => {
   expect(screen.queryByText('All Groups')).not.toBeInTheDocument()
   expect(screen.getByText(/Sort by/)).toBeInTheDocument()
 })
+
+test('sorts by Recently active by default', async () => {
+  const requests = []
+  mockGraphqlServer.resetHandlers(
+    graphql.query('FetchGroups', ({ variables }) => {
+      requests.push(variables)
+      return HttpResponse.json({
+        data: { groups: { hasMore: false, items: variables.search === '' ? firstGroupResults : [], total: 0 } }
+      })
+    })
+  )
+
+  render(<GroupExplorer />, { wrapper: testProviders() })
+
+  expect(await screen.findByText('Test Group Title', {}, { timeout: 10000 })).toBeInTheDocument()
+  expect(screen.getByText('Recently active')).toBeInTheDocument()
+  const searchRequest = requests.find(v => v.search === '')
+  expect(searchRequest.sortBy).toBe('recent')
+}, 30000)
+
+test('starts with the search term from ?search=', async () => {
+  const requests = []
+  mockGraphqlServer.resetHandlers(
+    graphql.query('FetchGroups', ({ variables }) => {
+      requests.push(variables)
+      return HttpResponse.json({
+        data: { groups: { hasMore: false, items: variables.search === 'different group' ? secondGroupResults : [], total: 0 } }
+      })
+    })
+  )
+
+  const { useLocation } = require('react-router-dom')
+  useLocation.mockReturnValue({ pathname: '/public/groups', search: '?search=different%20group' })
+
+  render(<GroupExplorer />, { wrapper: testProviders() })
+
+  expect(await screen.findByText('Search input results', {}, { timeout: 10000 })).toBeInTheDocument()
+  expect(screen.getByRole('textbox')).toHaveValue('different group')
+  expect(requests.some(v => v.search === 'different group')).toBe(true)
+}, 30000)
 
 const firstGroupResults = [
   {

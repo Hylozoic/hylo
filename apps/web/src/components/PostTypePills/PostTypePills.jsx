@@ -44,13 +44,15 @@ export default function PostTypePills ({ postTypes, onPostTypesChange, label, hi
       <div className='flex flex-wrap gap-2'>
         {options.map(option => {
           const isSelected = selectedOptionKeys.includes(option.key)
-          const optionLabel = t(option.labelKey)
+          // defaultLabel keeps a readable label if the loaded locale file lacks the key (never show a raw key)
+          const optionLabel = t(option.labelKey, { defaultValue: option.defaultLabel })
           const { icon: OptionIcon, selectedClassName } = POST_TYPE_OPTION_STYLES[option.key]
 
           return (
             <button
               key={option.key}
               type='button'
+              data-testid={`post-type-pill-${option.key}`}
               aria-pressed={isSelected}
               onClick={() => togglePostTypeOption(option)}
               className={cn(

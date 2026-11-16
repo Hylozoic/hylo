@@ -59,6 +59,7 @@ posts: viewPosts(
     
   id
   announcement
+  canEdit
   clickthrough
   commentersTotal
   commentsTotal
@@ -88,6 +89,7 @@ posts: viewPosts(
     }
   }
   fulfilledAt
+  groupAdminsCanEdit
   isAnonymousVote
   isPublic
   linkPreviewFeatured
@@ -119,6 +121,7 @@ posts: viewPosts(
   proposalStatus
   quorum
   savedAt
+  following
   startTime
   timezone
   title
@@ -325,6 +328,7 @@ posts(
     
   id
   announcement
+  canEdit
   clickthrough
   commentersTotal
   commentsTotal
@@ -354,6 +358,7 @@ posts(
     }
   }
   fulfilledAt
+  groupAdminsCanEdit
   isAnonymousVote
   isPublic
   linkPreviewFeatured
@@ -385,6 +390,7 @@ posts(
   proposalStatus
   quorum
   savedAt
+  following
   startTime
   timezone
   title

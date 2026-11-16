@@ -1,4 +1,6 @@
 import { GraphQLError } from 'graphql'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { track } from '../../../lib/analytics/track'
 
 export async function createJoinRequest (userId, groupId, questionAnswers = []) {
   if (groupId && userId) {
@@ -41,6 +43,12 @@ export async function cancelJoinRequest (userId, joinRequestId) {
   if (joinRequest) {
     if (joinRequest.get('user_id') === userId) {
       await joinRequest.cancel()
+      track({
+        type: EVENT_TYPES.JOIN_REQUEST_CANCELED,
+        userId,
+        groupIds: [joinRequest.get('group_id')],
+        object: { type: 'join_request', id: joinRequest.id }
+      })
       return { success: true }
     } else {
       throw new GraphQLError('You do not have permission to do this')

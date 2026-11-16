@@ -1,6 +1,6 @@
 import { createSelector } from 'reselect'
 import { filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Pin, PinOff, Trash2, Library, LibraryBig } from 'lucide-react'
+import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Bell, BellOff, Pencil, Link2, Flag, Copy, Pin, PinOff, Trash2, Library, LibraryBig } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useState } from 'react'
 import ReactDOM from 'react-dom'
@@ -40,6 +40,8 @@ import {
   fulfillPost as fulfillPostAction,
   savePost as savePostAction,
   unsavePost as unsavePostAction,
+  followPost as followPostAction,
+  unfollowPost as unfollowPostAction,
   getGroup,
   updateProposalOutcome as updateProposalOutcomeAction
 } from './PostHeader.store'
@@ -112,6 +114,8 @@ function PostHeader (props) {
     timezone,
     fulfilledAt,
     savedAt,
+    following,
+    canEdit: canEditFromServer,
     groups: postGroups = []
   } = post
 
@@ -135,7 +139,8 @@ function PostHeader (props) {
     ? spaceUrl(parentGroupSlug, spaceSlug, '/moderation')
     : groupModerationUrl
   const isCreator = currentUser && creator && currentUser.id === creator.id
-  const canEdit = isCreator
+  // Other group admins can edit too when the creator allowed it (#1727); the server decides
+  const canEdit = isCreator || !!canEditFromServer
   const canFlag = !isCreator
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
   const pinnableView = useCurrentPinnableView()
@@ -260,10 +265,18 @@ function PostHeader (props) {
     }
   }, [unsavePostProp, id, dispatch])
 
+  const followPost = useCallback(() => {
+    dispatch(followPostAction(id))
+  }, [id, dispatch])
+
+  const unfollowPost = useCallback(() => {
+    dispatch(unfollowPostAction(id))
+  }, [id, dispatch])
+
   const updateProposalOutcome = useCallback((proposalOutcome) => {
-    if (!isCreator) return
+    if (!canEdit) return
     dispatch(updateProposalOutcomeAction(id, proposalOutcome))
-  }, [isCreator, id, dispatch])
+  }, [canEdit, id, dispatch])
 
   const flagPostFunc = () =>
     canFlag ? () => { setFlaggingVisible(true) } : undefined
@@ -349,6 +362,7 @@ function PostHeader (props) {
       copyLinkItem,
       { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
       { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
+      { icon: following ? <BellOff className='w-4 h-4 text-foreground' /> : <Bell className='w-4 h-4 text-foreground' />, label: following ? t('Unfollow Post') : t('Follow Post'), onClick: following ? unfollowPost : followPost },
       { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
       { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
       addToCollectionItem,

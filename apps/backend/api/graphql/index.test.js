@@ -1094,6 +1094,52 @@ describe('graphql request handler', () => {
     })
   })
 
+  describe('updateMe settings', () => {
+    let settingsUser
+
+    beforeEach(async () => {
+      settingsUser = await factories.user({
+        settings: { tours_seen: ['global-chrome'], dm_notifications: 'both' }
+      }).save()
+      req.session.userId = settingsUser.id
+      req.user = settingsUser
+    })
+
+    it('persists hideRsvpCalendarPrompt without clobbering other settings', async () => {
+      const { executionResult } = await handler.inject({
+        document: `mutation {
+          updateMe(changes: { settings: { hideRsvpCalendarPrompt: true } }) {
+            id
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(executionResult.errors).to.be.undefined
+
+      const fresh = await User.find(settingsUser.id)
+      expect(fresh.get('settings')).to.deep.include({
+        hide_rsvp_calendar_prompt: true,
+        tours_seen: ['global-chrome'],
+        dm_notifications: 'both'
+      })
+
+      const { executionResult: readBack } = await handler.inject({
+        document: `{
+          me {
+            settings { hideRsvpCalendarPrompt toursSeen dmNotifications }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(readBack.errors).to.be.undefined
+      expect(readBack.data.me.settings).to.deep.equal({
+        hideRsvpCalendarPrompt: true,
+        toursSeen: ['global-chrome'],
+        dmNotifications: 'both'
+      })
+    })
+  })
+
   describe('sendEmailVerification', function () {
     it('returns `success: true` if new user', async () => {
       const { executionResult } = await handler.inject({
