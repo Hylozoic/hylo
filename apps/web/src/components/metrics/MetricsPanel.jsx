@@ -420,7 +420,7 @@ function readingGroups (items) {
 }
 
 /** A line with a count scale and a date scale. Missing periods leave a gap. Extra lines share the same dates. */
-function LineChart ({ points, period, compare, lines = [], unit, label, showAll = false }) {
+function LineChart ({ points, period, compare, lines = [], unit, label, showAll = false, headroom = false }) {
   const { t } = useTranslation()
   const [hover, setHover] = useState(null)
   if (!points.length) return null
@@ -439,7 +439,8 @@ function LineChart ({ points, period, compare, lines = [], unit, label, showAll 
       if (point.value !== null && point.value !== undefined) values.push(point.value)
     })
   })
-  const max = unit === 'percent' ? 1 : Math.max(...values, 1)
+  const peak = Math.max(...values, 1)
+  const max = unit === 'percent' ? 1 : headroom ? peak + Math.max(1, Math.round(peak * 0.08)) : peak
   const step = points.length === 1 ? 0 : plotWidth / (points.length - 1)
   const xAt = index => pad.left + index * step
   const yAt = value => pad.top + plotHeight - (value / max) * plotHeight
@@ -962,7 +963,7 @@ function valueOn (points, day) {
 export function ActivePeople ({ t, group = false, daily = [], weekly = [], monthly = [] }) {
   const hasValue = [daily, weekly, monthly].some(series => series.some(point => point.value !== null && point.value !== undefined))
   if (!hasValue) return null
-  const base = [daily, weekly, monthly].reduce((best, series) => series.length > best.length ? series : best, [])
+  const base = daily.length ? daily : (weekly.length ? weekly : monthly)
   const points = base.map(item => ({
     ...item,
     value: valueOn(daily, item.periodStart)
@@ -1004,7 +1005,7 @@ export function ActivePeople ({ t, group = false, daily = [], weekly = [], month
           </div>
         ))}
       </div>
-      <LineChart points={points} period='day' lines={lines} label={t('Daily active people')} showAll />
+      <LineChart points={points} period='day' lines={lines} label={t('Daily active people')} showAll headroom />
     </section>
   )
 }

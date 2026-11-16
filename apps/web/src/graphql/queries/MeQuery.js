@@ -160,6 +160,8 @@ export default gql`
     }
     cookieConsentPreferences {
       id
+      consentId
+      userId
       settings
       version
       updatedAt

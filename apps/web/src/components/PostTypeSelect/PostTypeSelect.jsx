@@ -20,14 +20,25 @@ export default function PostTypeSelect ({ allowedPostTypes, className, includeCh
     }
   }
 
+  // The trigger shows only the type's name; the open list adds each type's
+  // one-line description underneath it
   return (
     <Select value={postType} onValueChange={setPostType}>
       <SelectTrigger className={cn('w-fit py-1 h-8 border-2', className)}>
-        <SelectValue placeholder='Select a post type' />
+        <SelectValue placeholder={t('Select a post type')}>{postType ? t(postType) : undefined}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {postTypes.map((type) => (
-          <SelectItem key={type} value={type}>{t(type)}</SelectItem>
+          <SelectItem key={type} value={type} textValue={t(type)}>
+            <span className='flex flex-col'>
+              <span>{t(type)}</span>
+              {POST_TYPES[type]?.description && (
+                <span className='text-xs text-foreground/60' data-testid={`post-type-description-${type}`}>
+                  {t(POST_TYPES[type].description)}
+                </span>
+              )}
+            </span>
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>

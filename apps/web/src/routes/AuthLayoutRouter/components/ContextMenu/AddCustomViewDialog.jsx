@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 
@@ -8,6 +8,7 @@ import {
   DEFAULT_SELECTED_POST_TYPES,
   CUSTOM_VIEW_DEFAULT_VIEW_MODE
 } from 'components/CustomViewForm/customViewFormConstants'
+import validateCustomViewForm from 'components/CustomViewForm/validateCustomViewForm'
 import { createGroupView } from 'store/actions/groupViews'
 
 /** Modal for configuring a new custom GroupView before creation.
@@ -22,11 +23,19 @@ export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd
   const [searchText, setSearchText] = useState('')
   const [defaultViewMode, setDefaultViewMode] = useState(CUSTOM_VIEW_DEFAULT_VIEW_MODE)
   const [isSaving, setIsSaving] = useState(false)
+  const [showErrors, setShowErrors] = useState(false)
+  const nameInputRef = useRef(null)
 
-  const canSave = name.trim().length >= 2 && postTypes.length > 0
+  const errors = useMemo(() => validateCustomViewForm({ name, postTypes }), [name, postTypes])
 
+  // The button stays enabled: a disabled button gave no hint that the Name field
+  // (often scrolled out of view above the pills) was what blocked saving (#1731).
   const handleSave = useCallback(async () => {
-    if (!canSave) return
+    if (Object.keys(errors).length > 0) {
+      setShowErrors(true)
+      if (errors.name) nameInputRef.current?.focus()
+      return
+    }
 
     const viewData = {
       type: 'custom',
@@ -58,7 +67,7 @@ export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd
     } finally {
       setIsSaving(false)
     }
-  }, [canSave, defaultViewMode, dispatch, group?.id, name, icon, topics, postTypes, searchText, onCreated, onAdd])
+  }, [errors, defaultViewMode, dispatch, group?.id, name, icon, topics, postTypes, searchText, onCreated, onAdd])
 
   return (
     <div data-hylo-nested-dialog className='fixed inset-0 z-[1100] flex items-center justify-center bg-darkening/50 p-4 pointer-events-auto'>
@@ -80,12 +89,14 @@ export default function AddCustomViewDialog ({ group, onCancel, onCreated, onAdd
             onSearchTextChange={setSearchText}
             defaultViewMode={defaultViewMode}
             onDefaultViewModeChange={setDefaultViewMode}
+            errors={showErrors ? errors : {}}
+            nameInputRef={nameInputRef}
           />
         </div>
 
         <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10'>
           <Button variant='primary' onClick={onCancel}>{t('Back')}</Button>
-          <Button variant='secondary' disabled={!canSave || isSaving} onClick={handleSave}>
+          <Button variant='secondary' disabled={isSaving} onClick={handleSave} data-testid='custom-view-add'>
             {isSaving ? t('Creating...') : t('Add View')}
           </Button>
         </div>

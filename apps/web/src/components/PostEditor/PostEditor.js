@@ -76,12 +76,9 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { fetchLocation, ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import {
-  CREATE_POST,
-  CREATE_PROJECT,
   FETCH_POST,
   RESP_ADMINISTRATION,
-  RESP_MANAGE_CONTENT,
-  UPDATE_POST
+  RESP_MANAGE_CONTENT
 } from 'store/constants'
 import createPost from 'store/actions/createPost'
 import updatePost from 'store/actions/updatePost'
@@ -358,8 +355,10 @@ function PostEditorInner ({
     state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
-  const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT, UPDATE_POST], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
+  // This editor's own save. The global CREATE_POST pending flag is also set by a chat
+  // send, which would disable Post here until that request finished.
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   let inputPost = propsPost
   const _editingPost = useSelector(state => getPost(state, editingPostId))
@@ -1317,6 +1316,7 @@ function PostEditorInner ({
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
     isSubmittingRef.current = true
+    setIsSubmitting(true)
     setSaveError(null)
 
     try {
@@ -1453,12 +1453,14 @@ function PostEditorInner ({
         }
       } else {
         isSubmittingRef.current = false
+        setIsSubmitting(false)
         // Keep the user's work: let draft saves resume and show why the save failed.
         isSubmittedRef.current = false
         setSaveError(postSaveErrorMessage(savedPost?.payload, t, i18n?.language))
       }
     } catch (error) {
       isSubmittingRef.current = false
+      setIsSubmitting(false)
       throw error
     }
   }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, editingPost?.creator?.id, fileAttachments, imageAttachments, isEditing, isOtherEditor, onSave, selectedLocation, setIsDirty, showGroupAdminsCanEdit, syncDetailsToCurrentPost, t, i18n?.language, viewId])
@@ -1474,7 +1476,7 @@ function PostEditorInner ({
    * Shows announcement modal or warning if needed
    */
   const doSave = useEventCallback(() => {
-    if (!isValid || loading || postPending) return
+    if (!isValid || loading || isSubmittingRef.current) return
 
     const _save = announcementSelected ? toggleAnnouncementModal : save
     if (currentPost.type === 'proposal' && isEditing) {
@@ -1484,7 +1486,7 @@ function PostEditorInner ({
     } else {
       _save()
     }
-  }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading, postPending])
+  }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading])
 
   // Allow parents (e.g. CreatePostModal) to trigger save/reset flows without duplicating editor logic
   useImperativeHandle(ref, () => ({
@@ -1493,10 +1495,10 @@ function PostEditorInner ({
   }))
 
   const buttonLabel = useCallback(() => {
-    if (postPending) return t('Posting...')
+    if (isSubmitting) return t('Posting...')
     if (isEditing) return t('Save')
     return t('Post')
-  }, [postPending, isEditing])
+  }, [isSubmitting, isEditing])
 
   const toggleAnnouncementModal = useCallback(() => {
     setShowAnnouncementModal(!showAnnouncementModal)
@@ -2189,7 +2191,7 @@ function PostEditorInner ({
         invalidMessage={invalidMessage}
         isEditing={isEditing}
         loading={loading}
-        submitting={postPending}
+        submitting={isSubmitting}
         myAdminGroups={myAdminGroups}
         doSave={doSave}
         save={save}

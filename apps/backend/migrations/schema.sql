@@ -5857,6 +5857,13 @@ CREATE INDEX public_posts_idx ON public.posts USING btree (is_public);
 
 
 --
+-- Name: posts_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX posts_created_at_index ON public.posts USING btree (created_at);
+
+
+--
 -- Name: saved_search_topics_saved_search_id_index; Type: INDEX; Schema: public; Owner: -
 --
 

@@ -155,4 +155,55 @@ describe('LinkPreview', () => {
       expect(attrs).to.equal(null)
     })
   })
+
+  describe('parseHyloGroupSlug', () => {
+    it('reads the group slug, using the parent group for space URLs', () => {
+      expect(LinkPreview.parseHyloGroupSlug('https://hylo.com/groups/garden')).to.equal('garden')
+      expect(LinkPreview.parseHyloGroupSlug('https://www.hylo.com/groups/garden/chat/general')).to.equal('garden')
+      expect(LinkPreview.parseHyloGroupSlug('https://hylo.com/groups/garden/spaces/seeds')).to.equal('garden')
+    })
+
+    it('returns null for non-Hylo URLs, post URLs and other paths', () => {
+      expect(LinkPreview.parseHyloGroupSlug('https://example.com/groups/garden')).to.equal(null)
+      expect(LinkPreview.parseHyloGroupSlug('https://hylo.com/groups/garden/post/42')).to.equal(null)
+      expect(LinkPreview.parseHyloGroupSlug('https://hylo.com/my/posts')).to.equal(null)
+    })
+  })
+
+  describe('attrsForPublicHyloGroup', () => {
+    it('returns the name, purpose and banner of a public group', async () => {
+      const group = await factories.group({
+        name: 'Garden Club',
+        purpose: 'Grow food',
+        description: '<p>We grow <strong>food</strong> together.</p>',
+        banner_url: 'http://cdn.example/banner.jpg',
+        avatar_url: 'http://cdn.example/avatar.png',
+        visibility: Group.Visibility.PUBLIC
+      }).save()
+
+      const attrs = await LinkPreview.attrsForPublicHyloGroup(`https://hylo.com/groups/${group.get('slug')}/spaces/seeds`)
+      expect(attrs).to.deep.equal({
+        title: 'Garden Club',
+        description: 'Grow food',
+        image_url: 'http://cdn.example/banner.jpg'
+      })
+    })
+
+    it('uses the plain-text description when the group has no purpose', async () => {
+      const group = await factories.group({
+        description: '<p>We grow <strong>food</strong> together.</p>',
+        visibility: Group.Visibility.PUBLIC
+      }).save()
+
+      const attrs = await LinkPreview.attrsForPublicHyloGroup(`https://hylo.com/groups/${group.get('slug')}`)
+      expect(attrs.description).to.equal('We grow food together.')
+    })
+
+    it('returns null for a group that is not public', async () => {
+      const group = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+
+      const attrs = await LinkPreview.attrsForPublicHyloGroup(`https://hylo.com/groups/${group.get('slug')}`)
+      expect(attrs).to.equal(null)
+    })
+  })
 })
