@@ -26,3 +26,14 @@ export function isAtReturnToPath (location, returnToPath) {
     return false
   }
 }
+
+/**
+ * A /login or /signup link that brings the person back to `returnToPath` afterwards
+ * (NonAuthLayoutRouter stores the returnToUrl param as the returnToPath).
+ * @param {string} authPath - '/login' or '/signup'
+ * @param {string|null|undefined} returnToPath - path + query to come back to
+ */
+export function authPathWithReturnTo (authPath, returnToPath) {
+  if (!returnToPath || returnToPath === '/') return authPath
+  return `${authPath}?returnToUrl=${encodeURIComponent(returnToPath)}`
+}

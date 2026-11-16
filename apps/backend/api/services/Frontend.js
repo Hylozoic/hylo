@@ -380,8 +380,11 @@ module.exports = {
       return url('/h/invitation?token=%s', encodeURIComponent(token))
     },
 
-    verifyEmail: function (email, token) {
-      return url('/signup/verify-email?email=%s&token=%s', encodeURIComponent(email), token)
+    // returnToUrl: where the web app sends the new member once signup is done. It rides
+    // on the link so it survives the link being opened in another browser or device.
+    verifyEmail: function (email, token, returnToUrl) {
+      const link = url('/signup/verify-email?email=%s&token=%s', encodeURIComponent(email), token)
+      return returnToUrl ? `${link}&returnToUrl=${encodeURIComponent(returnToUrl)}` : link
     },
 
     verifyEmailChange: function (token) {

@@ -1,9 +1,14 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
+import { useLocation } from 'react-router-dom'
+import { authPathWithReturnTo } from 'util/returnToPath'
 
 export default function PublicPageHeader () {
   const { t } = useTranslation()
+  const location = useLocation()
+  // Bring people back to this public page once they have signed in or signed up
+  const returnToPath = location.pathname + location.search
   return (
     <div className='bg-white/10 shadow-md'>
       <Helmet>
@@ -17,8 +22,8 @@ export default function PublicPageHeader () {
             <img className='h-8 hidden dark:block' src='/assets/white-merkaba.svg' alt={t('Hylo logo')} />
           </a>
           <div className='flex items-center gap-4'>
-            <a href='/login' className='text-foreground hover:text-foreground/80 transition-colors'>{t('Sign in')}</a>
-            <a href='/signup' className='bg-accent text-white px-4 py-2 rounded-md hover:bg-selected/90 transition-colors'>{t('Join Hylo')}</a>
+            <a href={authPathWithReturnTo('/login', returnToPath)} className='text-foreground hover:text-foreground/80 transition-colors'>{t('Sign in')}</a>
+            <a href={authPathWithReturnTo('/signup', returnToPath)} className='bg-accent text-white px-4 py-2 rounded-md hover:bg-selected/90 transition-colors'>{t('Join Hylo')}</a>
           </div>
         </div>
       </div>

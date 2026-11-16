@@ -77,6 +77,7 @@ export default defineConfig({
       testIgnore: [
         '**/unauthenticated.routes.spec.js',
         '**/unauthenticated.invitation-links-about.spec.js',
+        '**/unauthenticated.signup-return-path.spec.js',
         '**/authenticated.auth-session.spec.js',
         '**/authenticated.track-paywall.spec.js'
       ],
@@ -90,7 +91,8 @@ export default defineConfig({
       name: 'chromium-unauth',
       testMatch: [
         '**/unauthenticated.routes.spec.js',
-        '**/unauthenticated.invitation-links-about.spec.js'
+        '**/unauthenticated.invitation-links-about.spec.js',
+        '**/unauthenticated.signup-return-path.spec.js'
       ],
       use: { ...devices['Desktop Chrome'], storageState: noSessionStorageState },
       timeout: 120000,
@@ -112,6 +114,7 @@ export default defineConfig({
       testIgnore: [
         '**/unauthenticated.routes.spec.js',
         '**/unauthenticated.invitation-links-about.spec.js',
+        '**/unauthenticated.signup-return-path.spec.js',
         '**/authenticated.auth-session.spec.js',
         '**/authenticated.track-paywall.spec.js'
       ],
@@ -156,7 +159,8 @@ export default defineConfig({
       name: 'mobile-unauth',
       testMatch: [
         '**/unauthenticated.routes.spec.js',
-        '**/unauthenticated.invitation-links-about.spec.js'
+        '**/unauthenticated.invitation-links-about.spec.js',
+        '**/unauthenticated.signup-return-path.spec.js'
       ],
       use: { ...devices['Pixel 5'], storageState: noSessionStorageState },
       timeout: 120000,

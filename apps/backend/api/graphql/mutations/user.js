@@ -25,7 +25,17 @@ const normalizeEmail = (email) => {
  */
 const findUserByEmail = (email) => User.query(q => q.whereRaw('lower(email) = ?', email)).fetch()
 
-export const sendEmailVerification = async (_, { email: providedEmail }, context) => {
+/**
+ * Returns the path if it is a path on this site ('/groups/x?y=z'), otherwise null, so the
+ * verification email never links anywhere else.
+ */
+export const sanitizeReturnToUrl = (returnToUrl) => {
+  if (typeof returnToUrl !== 'string' || returnToUrl.length > 2000) return null
+  if (!returnToUrl.startsWith('/') || returnToUrl.startsWith('//') || returnToUrl.includes('\\')) return null
+  return returnToUrl
+}
+
+export const sendEmailVerification = async (_, { email: providedEmail, returnToUrl }, context) => {
   try {
     const email = normalizeEmail(providedEmail)
     if (!email) return { success: false, error: 'Invalid email address' }
@@ -41,7 +51,7 @@ export const sendEmailVerification = async (_, { email: providedEmail }, context
     }
 
     const { code, token } = await UserVerificationCode.create(email)
-    const verifyUrl = Frontend.Route.verifyEmail(email, token)
+    const verifyUrl = Frontend.Route.verifyEmail(email, token, sanitizeReturnToUrl(returnToUrl))
 
     if (process.env.NODE_ENV === 'development') {
       console.log(`!!! Verification for ${email} -- code: ${code} link: ${verifyUrl}`)
