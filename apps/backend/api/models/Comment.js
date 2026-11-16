@@ -138,12 +138,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
 
     const newCommentActivities = followers
-      .filter(u => u.id !== actorId)
+      .filter(u => String(u.id) !== String(actorId))
       .map(u => u.id)
       .map(createActivity('newComment'))
 
     const mentionActivities = mentionedIds
-      .filter(u => u.id !== actorId)
+      .filter(id => String(id) !== String(actorId))
       .map(createActivity('commentMention'))
 
     return Activity.saveForReasons(

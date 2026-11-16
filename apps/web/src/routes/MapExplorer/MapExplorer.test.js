@@ -69,6 +69,7 @@ describe('MapExplorer', () => {
 
     expect(screen.getByTestId('map-drawer-close')).toBeInTheDocument()
     expect(screen.queryByTestId('drawer-toggle-button')).not.toBeInTheDocument()
+    expect(screen.getByTestId('map-container').className).toContain('drawerOpen')
   })
 
   it('renders the MapDrawer when hideDrawer is false', () => {
@@ -92,5 +93,6 @@ describe('MapExplorer', () => {
     )
 
     expect(screen.queryByTestId('map-drawer')).not.toBeInTheDocument()
+    expect(screen.getByTestId('map-container').className).not.toContain('drawerOpen')
   })
 })

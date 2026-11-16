@@ -15,7 +15,10 @@ import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupCon
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
+import { createSelector as ormCreateSelector } from 'redux-orm'
+import orm from 'store/models'
 import { getHourCycle } from 'components/Calendar/calendar-util'
+import AttachmentDropZone from 'components/AttachmentDropZone'
 import AttachmentManager from 'components/AttachmentManager'
 import Icon from 'components/Icon'
 import LocationInput from 'components/LocationInput'
@@ -73,11 +76,9 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { fetchLocation, ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import {
-  CREATE_POST,
-  CREATE_PROJECT,
   FETCH_POST,
   RESP_ADMINISTRATION,
-  UPDATE_POST
+  RESP_MANAGE_CONTENT
 } from 'store/constants'
 import createPost from 'store/actions/createPost'
 import updatePost from 'store/actions/updatePost'
@@ -105,6 +106,7 @@ import insertTextAtSelection from 'util/insertTextAtSelection'
 import HyloHTML from 'components/HyloHTML'
 import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 import { buildPostDraftPayload, mergeDraftIntoPost } from './postDraftUtils'
+import postSaveErrorMessage from './postSaveErrorMessage'
 
 /** Chat, action, and submission are not limited by a group's acceptedPostTypes. */
 const UNRESTRICTED_POST_TYPES = ['action', 'chat', 'submission']
@@ -131,6 +133,21 @@ function isSpaceGroup (group) {
   return !!group && group.type === GROUP_TYPES.space
 }
 
+/** The group a destination belongs to: a space's parent group, otherwise the group itself. */
+export function rootGroupIdOf (group) {
+  if (!group?.id) return null
+  return String(isSpaceGroup(group) && group.parentId ? group.parentId : group.id)
+}
+
+/** The single group these destinations belong to (several spaces of one group count once), or null. */
+export function singleRootGroupId (groups = []) {
+  const ids = [...new Set((groups || []).map(rootGroupIdOf).filter(Boolean))]
+  return ids.length === 1 ? ids[0] : null
+}
+
+/** Post types whose creator can let other group admins edit them (mirrors the backend). */
+const GROUP_ADMIN_EDITABLE_TYPES = ['discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource']
+
 /** Compares group ids as strings so GraphQL/ORM number vs string ids still match. */
 function sameGroupId (a, b) {
   return a != null && b != null && String(a) === String(b)
@@ -138,6 +155,12 @@ function sameGroupId (a, b) {
 
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
 const MAX_TITLE_LENGTH = 80
+
+const getGroupNameForId = ormCreateSelector(
+  orm,
+  (state, id) => id,
+  ({ Group }, id) => (id ? Group.safeGet({ id })?.name : null) || null
+)
 
 const getMyAdminGroups = createSelector(
   [
@@ -190,7 +213,7 @@ function PostEditorInner ({
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
   const nativeTimePickers = usePrefersNativeDateTimePicker()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const currentUser = useSelector(getMe)
 
@@ -332,8 +355,10 @@ function PostEditorInner ({
     state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }),
     (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
   )
-  const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT, UPDATE_POST], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
+  // This editor's own save. The global CREATE_POST pending flag is also set by a chat
+  // send, which would disable Post here until that request finished.
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   let inputPost = propsPost
   const _editingPost = useSelector(state => getPost(state, editingPostId))
@@ -348,8 +373,12 @@ function PostEditorInner ({
     inputPost = editingPost
     isEditing = !!editingPost || loading
   } else if (fromPostId && fromPost) {
-    inputPost = fromPost
-    inputPost.title = `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`
+    // A duplicate is a new post. Keep the content, drop the original event invites.
+    inputPost = {
+      ...fromPost,
+      title: `Copy of ${fromPost.title.slice(0, MAX_TITLE_LENGTH - 8)}`,
+      eventInvitations: []
+    }
   }
 
   const showImages = !isEmpty(imageAttachments) || uploadImageAttachmentPending
@@ -419,6 +448,8 @@ function PostEditorInner ({
   const submissionCriteriaRef = useRef(null)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
+  // Error returned by the server when saving fails (e.g. the space doesn't accept this post type)
+  const [saveError, setSaveError] = useState(null)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
   // Joined groups and spaces, plus the current parent group. Unjoined spaces are omitted.
@@ -458,6 +489,11 @@ function PostEditorInner ({
       })
     }
   }, [])
+
+  // A save error is about the type/destinations chosen at the time; drop it once they change.
+  useEffect(() => {
+    setSaveError(null)
+  }, [currentPost.type, currentPost.groups])
 
   // Debounced write of editor HTML into React state. Typing stays in TipTap + detailsHtmlRef;
   // this only syncs for draft persistence (avoids re-rendering the whole form per keystroke).
@@ -620,6 +656,21 @@ function PostEditorInner ({
       g && currentPost.groups.some((g2) => g2 && sameGroupId(g.id, g2.id))
     )
   }, [currentPost?.groups, groupOptions])
+
+  // Someone other than the creator editing (a group admin the creator allowed, #1727): they can
+  // change the content, but only the creator decides where it is posted and who else can edit
+  const editingCreatorId = editingPost?.creator?.id
+  const isOtherEditor = !!(editing && editingCreatorId && currentUser?.id &&
+    String(editingCreatorId) !== String(currentUser.id))
+  const isCreatorEditing = !!(editing && editingCreatorId && currentUser?.id &&
+    String(editingCreatorId) === String(currentUser.id))
+  // Offered only while the post is in a single group (and/or its spaces), to its admins
+  const groupAdminsGroupId = singleRootGroupId(currentPost.groups)
+  const groupAdminsGroupName = useSelector(state => getGroupNameForId(state, groupAdminsGroupId))
+  const canManageContentInPostGroup = useSelector(state => !!(groupAdminsGroupId && currentUser &&
+    hasResponsibilityForGroup(state, { person: currentUser, groupId: groupAdminsGroupId, responsibility: [RESP_MANAGE_CONTENT, RESP_ADMINISTRATION] })))
+  const showGroupAdminsCanEdit = (!editing || isCreatorEditing) && canManageContentInPostGroup &&
+    GROUP_ADMIN_EDITABLE_TYPES.includes(currentPost.type)
 
   // Extract groupIds array for scoping topic and mention searches
   // Priority:
@@ -1183,6 +1234,10 @@ function PostEditorInner ({
     setCurrentPost(prev => ({ ...prev, isAnonymousVote: !prev.isAnonymousVote }))
   }, [setCurrentPost])
 
+  const toggleGroupAdminsCanEdit = useCallback(() => {
+    setCurrentPost(prev => ({ ...prev, groupAdminsCanEdit: !prev.groupAdminsCanEdit }))
+  }, [setCurrentPost])
+
   // const toggleStrictProposal = () => {
   //   const { isStrictProposal } = currentPost
   //   setCurrentPost({ ...currentPost, isStrictProposal: !isStrictProposal })
@@ -1261,6 +1316,8 @@ function PostEditorInner ({
   const save = useCallback(async () => {
     if (isSubmittingRef.current) return
     isSubmittingRef.current = true
+    setIsSubmitting(true)
+    setSaveError(null)
 
     try {
       const {
@@ -1271,6 +1328,7 @@ function PostEditorInner ({
         donationsLink,
         endTime,
         eventInvitations,
+        groupAdminsCanEdit,
         groups,
         id,
         isAnonymousVote,
@@ -1300,8 +1358,8 @@ function PostEditorInner ({
       const topicNames = topics?.map((t) => t.name)
       const memberIds = members?.map((m) => m.id) || []
       if (type === 'project') {
-        // Add the current user to the project members
-        memberIds.push(currentUser.id)
+        // Add the creator to the project members (another admin may be editing)
+        memberIds.push(isOtherEditor ? editingPost.creator.id : currentUser.id)
       }
       const eventInviteeIds =
         eventInvitations && eventInvitations.map((m) => m.id)
@@ -1333,6 +1391,8 @@ function PostEditorInner ({
         fileAttachments, // For optimistic display of the new post
         fileUrls,
         fundingRoundId: currentFundingRound?.id,
+        // Only sent while the toggle is offered; otherwise the server keeps the current setting
+        groupAdminsCanEdit: showGroupAdminsCanEdit ? !!groupAdminsCanEdit : undefined,
         groups,
         imageAttachments, // For optimistic display of the new post
         imageUrls,
@@ -1375,8 +1435,14 @@ function PostEditorInner ({
       syncDetailsToCurrentPost.cancel()
       cancelPendingSave()
 
-      const savedPost = await dispatch(saveFunc(postToSave))
-      if (!savedPost.error) {
+      // The GraphQL middleware rejects on server errors; it can also resolve with `error` set.
+      let savedPost
+      try {
+        savedPost = await dispatch(saveFunc(postToSave))
+      } catch (error) {
+        savedPost = { error: true, payload: error }
+      }
+      if (!savedPost?.error) {
         await clearDraft()
         setIsDirty(false)
         if (afterSave) {
@@ -1387,19 +1453,30 @@ function PostEditorInner ({
         }
       } else {
         isSubmittingRef.current = false
+        setIsSubmitting(false)
+        // Keep the user's work: let draft saves resume and show why the save failed.
+        isSubmittedRef.current = false
+        setSaveError(postSaveErrorMessage(savedPost?.payload, t, i18n?.language))
       }
     } catch (error) {
       isSubmittingRef.current = false
+      setIsSubmitting(false)
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty, syncDetailsToCurrentPost, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, editingPost?.creator?.id, fileAttachments, imageAttachments, isEditing, isOtherEditor, onSave, selectedLocation, setIsDirty, showGroupAdminsCanEdit, syncDetailsToCurrentPost, t, i18n?.language, viewId])
+
+  /** Adds an image or file dropped or pasted onto the description as an attachment */
+  const handleDroppedAttachment = useCallback((attachment) => {
+    dispatch(addAttachment('post', currentPost.id, attachment))
+    setIsDirty(true)
+  }, [currentPost.id, dispatch, setIsDirty])
 
   /**
    * Initiates the save process with validation and confirmation checks
    * Shows announcement modal or warning if needed
    */
   const doSave = useEventCallback(() => {
-    if (!isValid || loading || postPending) return
+    if (!isValid || loading || isSubmittingRef.current) return
 
     const _save = announcementSelected ? toggleAnnouncementModal : save
     if (currentPost.type === 'proposal' && isEditing) {
@@ -1409,7 +1486,7 @@ function PostEditorInner ({
     } else {
       _save()
     }
-  }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading, postPending])
+  }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading])
 
   // Allow parents (e.g. CreatePostModal) to trigger save/reset flows without duplicating editor logic
   useImperativeHandle(ref, () => ({
@@ -1418,10 +1495,10 @@ function PostEditorInner ({
   }))
 
   const buttonLabel = useCallback(() => {
-    if (postPending) return t('Posting...')
+    if (isSubmitting) return t('Posting...')
     if (isEditing) return t('Save')
     return t('Post')
-  }, [postPending, isEditing])
+  }, [isSubmitting, isEditing])
 
   const toggleAnnouncementModal = useCallback(() => {
     setShowAnnouncementModal(!showAnnouncementModal)
@@ -1607,7 +1684,7 @@ function PostEditorInner ({
               selected={selectedToOptions}
               onChange={handleAddToOption}
               onDelete={handleToOptionDelete}
-              readOnly={loading}
+              readOnly={loading || isOtherEditor}
               ref={toFieldRef}
               onFocus={() => setToFieldFocused(true)}
               onBlur={() => setToFieldFocused(false)}
@@ -1641,55 +1718,63 @@ function PostEditorInner ({
           )}
         </div>
       )}
-      <div
-        className={cn(
-          'PostEditorContent w-full bg-input rounded p-1',
-          'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
-        )}
-        data-tour='post-body'
+      <AttachmentDropZone
+        type='post'
+        id={currentPost.id}
+        onAttachment={handleDroppedAttachment}
+        disabled={loading}
+        className='w-full'
       >
-        {currentPost.details === null || loading
-          ? <div><Loading /></div>
-          : <HyloEditor
-              placeholder={t('Add a description')}
-              onUpdate={handleDetailsChange}
-              onAltEnter={doSave}
-              onAddTopic={handleAddTopic}
-              onAddLink={handleAddLinkPreview}
-              onFocus={handleDetailsFocus}
-              onInsertEmoji={handleInsertEmoji}
-              contentHTML={editorInitialContent}
-              groupIds={groupIds}
-              showMenu
-              readOnly={loading}
-              ref={editorRef}
-            />}
-        {(currentPost.linkPreview || fetchLinkPreviewPending) && (
-          <LinkPreview
-            loading={fetchLinkPreviewPending}
-            linkPreview={currentPost.linkPreview}
-            featured={currentPost.linkPreviewFeatured}
-            onFeatured={handleFeatureLinkPreview}
-            onClose={handleRemoveLinkPreview}
+        <div
+          className={cn(
+            'PostEditorContent w-full bg-input rounded p-1',
+            'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus'
+          )}
+          data-tour='post-body'
+        >
+          {currentPost.details === null || loading
+            ? <div><Loading /></div>
+            : <HyloEditor
+                placeholder={t('Add a description')}
+                onUpdate={handleDetailsChange}
+                onAltEnter={doSave}
+                onAddTopic={handleAddTopic}
+                onAddLink={handleAddLinkPreview}
+                onFocus={handleDetailsFocus}
+                onInsertEmoji={handleInsertEmoji}
+                contentHTML={editorInitialContent}
+                groupIds={groupIds}
+                showMenu
+                readOnly={loading}
+                ref={editorRef}
+              />}
+          {(currentPost.linkPreview || fetchLinkPreviewPending) && (
+            <LinkPreview
+              loading={fetchLinkPreviewPending}
+              linkPreview={currentPost.linkPreview}
+              featured={currentPost.linkPreviewFeatured}
+              onFeatured={handleFeatureLinkPreview}
+              onClose={handleRemoveLinkPreview}
+            />
+          )}
+          <AttachmentManager
+            type='post'
+            id={currentPost.id}
+            attachmentType='image'
+            showAddButton
+            showLabel
+            showLoading
           />
-        )}
-        <AttachmentManager
-          type='post'
-          id={currentPost.id}
-          attachmentType='image'
-          showAddButton
-          showLabel
-          showLoading
-        />
-        <AttachmentManager
-          type='post'
-          id={currentPost.id}
-          attachmentType='file'
-          showAddButton
-          showLabel
-          showLoading
-        />
-      </div>
+          <AttachmentManager
+            type='post'
+            id={currentPost.id}
+            attachmentType='file'
+            showAddButton
+            showLabel
+            showLoading
+          />
+        </div>
+      </AttachmentDropZone>
       {currentPost.type === 'project' && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50 w-[120px]'>{t('Project Members')}</div>
@@ -2089,17 +2174,24 @@ function PostEditorInner ({
           </div>
         </div>
       )}
+      {saveError && (
+        <div role='alert' data-testid='post-editor-save-error' className='text-white bg-destructive w-full py-1 px-[10px] rounded-[7px]'>
+          {saveError}
+        </div>
+      )}
       <ActionsBar
         id={currentPost.id}
         addAttachment={addAttachment}
         announcementSelected={announcementSelected}
         canMakeAnnouncement={canMakeAnnouncement()}
+        groupAdminsCanEdit={!!currentPost.groupAdminsCanEdit}
+        groupAdminsGroupName={groupAdminsGroupName || ''}
         groupCount={get('groups', currentPost).length}
         groups={currentPost.groups}
         invalidMessage={invalidMessage}
         isEditing={isEditing}
         loading={loading}
-        submitting={postPending}
+        submitting={isSubmitting}
         myAdminGroups={myAdminGroups}
         doSave={doSave}
         save={save}
@@ -2107,11 +2199,13 @@ function PostEditorInner ({
         setIsDirty={setIsDirty}
         setShowLocation={setShowLocation}
         showAnnouncementModal={showAnnouncementModal}
+        showGroupAdminsCanEdit={showGroupAdminsCanEdit}
         showFiles={showFiles}
         showImages={showImages}
         showLocation={showLocation}
         submitButtonLabel={buttonLabel()}
         toggleAnnouncementModal={toggleAnnouncementModal}
+        toggleGroupAdminsCanEdit={toggleGroupAdminsCanEdit}
         type={currentPost.type}
         valid={isValid}
       />

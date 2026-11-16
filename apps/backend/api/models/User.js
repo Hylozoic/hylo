@@ -12,6 +12,7 @@ import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
+import { withStandardConference } from './event/mixin'
 import Frontend from '../services/Frontend'
 
 // Join table for groupRoles(). The view has no id column; Bookshelf joins it on
@@ -353,11 +354,18 @@ module.exports = bookshelf.Model.extend(merge({
     DELETE FROM tag_follows WHERE user_id = ${this.id};
     DELETE FROM user_external_data WHERE user_id = ${this.id};
     DELETE FROM user_post_relevance WHERE user_id = ${this.id};
+    DELETE FROM activity_days WHERE user_id = ${this.id};
+    DELETE FROM activity_events WHERE user_id = ${this.id};
+    DELETE FROM user_day_activity WHERE user_id = ${this.id};
+    DELETE FROM user_milestones WHERE user_id = ${this.id};
+    DELETE FROM anonymous_events WHERE user_id = ${this.id};
+    UPDATE activity_events SET target_user_id = NULL WHERE target_user_id = ${this.id};
     DELETE FROM posts_tags WHERE post_id in (select id from posts WHERE user_id = ${this.id});
     DELETE FROM reactions WHERE user_id = ${this.id};
 
     UPDATE users SET
     active = false,
+    analytics_anonymous_id = NULL,
     settings = NULL,
     name = 'Deleted User',
     avatar_url = NULL,
@@ -389,13 +397,14 @@ module.exports = bookshelf.Model.extend(merge({
     return normalizeLocaleToFull(this.getSetting('locale') || 'en-US')
   },
 
-  joinGroup: async function (group, { assignAdministrator = false, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {
+  joinGroup: async function (group, { assignAdministrator = false, fromInvitation = false, questionAnswers = [], analyticsSource = null, transacting = null } = {}) {
     const groupSettings = group.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
 
     const memberships = await group.addMembers([this.id],
       {
         assignAdministrator,
+        analyticsSource: analyticsSource || (fromInvitation ? 'invitation' : 'open'),
         settings: {
           // Set joinQuestionsAnsweredAt if user answered questions during the join flow
           joinQuestionsAnsweredAt: questionAnswers.length > 0 ? new Date() : null,
@@ -987,6 +996,8 @@ module.exports = bookshelf.Model.extend(merge({
       const initialGroup = memberships?.models[0]?.relations?.group
       Email.sendWelcomeEmail({
         email: user.get('email'),
+        // In the person's language (the template has a version for each locale)
+        locale: user.getLocale(),
         data: {
           member_name: user.get('name'),
           group_name: initialGroup?.get('name'),
@@ -1053,7 +1064,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Write the combined calendar file to S3 (inline require so tests can patch exports.writeStringToS3)
     await require('../../lib/uploader/storage').writeStringToS3(
-      cal.toString(),
+      withStandardConference(cal.toString()),
       user.getRsvpCalendarPath(), {
         ContentType: 'text/calendar'
       })

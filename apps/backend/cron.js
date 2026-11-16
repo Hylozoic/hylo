@@ -9,6 +9,9 @@ const Promise = require('bluebird')
 const { red } = require('chalk')
 const savedSearches = require('./lib/group/digest2/savedSearches')
 const OIDCAdapter = require('./api/services/oidc/KnexAdapter')
+const { computeDueSnapshots } = require('./lib/analytics/snapshots')
+const { computeDailyCounts } = require('./lib/analytics/dailyCounts')
+const { utcDay } = require('./lib/analytics/periods')
 
 const sendAndLogDigests = type =>
   digest2.sendAllDigests(type)
@@ -26,6 +29,18 @@ const daily = now => {
 
   sails.log.debug('Removing old kue jobs')
   tasks.push(Queue.removeOldJobs('complete', 20000))
+
+  sails.log.debug('Computing platform and group metric snapshots')
+  tasks.push(computeDueSnapshots(bookshelf.knex)
+    .then(() => sails.log.debug('Metric snapshots updated'))
+    .catch(err => sails.log.error('Metric snapshots failed; continuing daily tasks', err)))
+
+  const today = utcDay(new Date())
+  const yesterday = utcDay(new Date(Date.parse(`${today}T00:00:00.000Z`) - 24 * 60 * 60 * 1000))
+  sails.log.debug('Computing daily activity counts')
+  tasks.push(computeDailyCounts(bookshelf.knex, yesterday, today)
+    .then(() => sails.log.debug('Daily activity counts updated'))
+    .catch(err => sails.log.error('Daily activity counts failed; continuing daily tasks', err)))
 
   sails.log.debug('Removing old notifications')
   tasks.push(Notification.removeOldNotifications())

@@ -1,5 +1,7 @@
+import RedisClient from '../../../api/services/RedisClient'
+import setup from '../../setup'
 import factories from '../../setup/factories'
-require('../../setup')
+import { mockify, unspyify } from '../../setup/helpers'
 
 const model = factories.mock.model
 
@@ -58,6 +60,58 @@ describe('GroupViewUser', () => {
         relations: { parentGroup: parent }
       })
       expect(GroupViewUser.chatRoomAvatarUrl(space)).to.equal('https://example.com/space.png')
+    })
+  })
+
+  describe('.sendDigests for a space chat', () => {
+    let parent, space, reader, originalEmailNotificationsEnabled
+
+    beforeEach(async () => {
+      await setup.clearDb()
+      originalEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+      mockify(Email, 'sendChatDigest', () => Promise.resolve(true))
+      await (await RedisClient.create()).del('ChatRoom.digests.lastSentAt')
+
+      parent = await factories.group({ name: 'Parent' }).save()
+      space = await factories.group({ name: 'Garden', type: 'space', parent_id: parent.id }).save()
+      reader = await factories.user().save()
+      const author = await factories.user().save()
+
+      const chat = await GroupView.forge({ group_id: space.id, type: GroupView.Type.CHAT, name: 'Chat', order: 0 }).save()
+      const post = await factories.post({ type: Post.Type.CHAT, user_id: author.id }).save()
+      await space.posts().attach(post)
+      await GroupViewUser.forge({ view_id: chat.id, user_id: reader.id, new_post_count: 1 }).save()
+    })
+
+    afterEach(() => {
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
+      unspyify(Email, 'sendChatDigest')
+    })
+
+    it('is skipped when the parent group membership has email off', async () => {
+      await parent.addMembers([reader.id], { settings: { sendEmail: false, postNotifications: 'all' } })
+      await space.addMembers([reader.id], { settings: { sendEmail: true, postNotifications: 'all' } })
+
+      const sent = await GroupViewUser.sendDigests()
+      expect(sent).to.equal(0)
+      expect(Email.sendChatDigest).not.to.have.been.called()
+    })
+
+    it('is sent when the parent group membership has email on', async () => {
+      await parent.addMembers([reader.id], { settings: { sendEmail: true, postNotifications: 'all' } })
+      await space.addMembers([reader.id], { settings: { sendEmail: false, postNotifications: 'all' } })
+
+      const sent = await GroupViewUser.sendDigests()
+      expect(sent).to.equal(1)
+      expect(Email.sendChatDigest).to.have.been.called.exactly(1)
+    })
+
+    it("falls back to the space membership's setting without a parent membership", async () => {
+      await space.addMembers([reader.id], { settings: { sendEmail: true, postNotifications: 'all' } })
+
+      const sent = await GroupViewUser.sendDigests()
+      expect(sent).to.equal(1)
     })
   })
 })

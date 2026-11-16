@@ -13,6 +13,12 @@ describe('sortLocaleDeep', () => {
     expect(keys).toEqual(['A', 'a', 'B', 'b'])
   })
 
+  it('sorts case-insensitively using locale-independent code-unit order', () => {
+    const input = { Banana: 1, apple: 2 }
+    const keys = Object.keys(sortLocaleDeep(input))
+    expect(keys).toEqual(['apple', 'Banana'])
+  })
+
   it('sorts nested objects recursively', () => {
     const input = { z: { b: 1, a: 2 }, a: 3 }
     const result = sortLocaleDeep(input)

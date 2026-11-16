@@ -270,7 +270,6 @@ MessageSection.propTypes = {
   messageThread: object,
   messages: array,
   pending: bool,
-  socket: object,
   currentUser: object,
   updateThreadReadTime: func
 }
