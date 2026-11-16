@@ -14,9 +14,11 @@ const indexes = async knex => {
   await knex.raw(`create index if not exists idx_search_index_group_id on ${tableName} (group_id) where group_id is not null`)
 }
 
-// People search indexes only skills a person has (skills_users.type 0), not ones they want to learn.
+// People search weights skills a person has (skills_users.type 0) at C and skills they want to
+// learn (type 1) at D, so both are searchable but people who have a skill rank above people
+// learning it. Before, both types were indexed together at C and ranked the same.
 // The rest of the view matches 20261002000000_add_groups_to_search_index, including group rows.
-const createView = async (knex, skillsJoin) => {
+const createView = async (knex, skillsColumns) => {
   await knex.raw(`drop materialized view if exists ${tableName}`)
 
   await knex.raw(`create materialized view ${tableName} as (
@@ -52,10 +54,10 @@ const createView = async (knex, skillsJoin) => {
         u.created_at
       ) as sort_ts,
       ${wv('u.name', 'A')} ||
-      ${wv("coalesce(string_agg(replace(s.name, '-', ' '), ' '), '')", 'C')} ||
+      ${skillsColumns} ||
       ${wv("coalesce(u.bio, '')", 'C')} as ${columnName}
     from users u
-    ${skillsJoin}
+    left join skills_users su on u.id = su.user_id
     left join skills s on su.skill_id = s.id
     where u.active = true
     group by u.id
@@ -91,6 +93,8 @@ const createView = async (knex, skillsJoin) => {
   await indexes(knex)
 }
 
-exports.up = knex => createView(knex, 'left join skills_users su on u.id = su.user_id and su.type = 0')
+const skillsAgg = type => `coalesce(string_agg(replace(s.name, '-', ' '), ' ') filter (where su.type = ${type}), '')`
 
-exports.down = knex => createView(knex, 'left join skills_users su on u.id = su.user_id')
+exports.up = knex => createView(knex, `${wv(skillsAgg(0), 'C')} ||\n      ${wv(skillsAgg(1), 'D')}`)
+
+exports.down = knex => createView(knex, wv("coalesce(string_agg(replace(s.name, '-', ' '), ' '), '')", 'C'))
