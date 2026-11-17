@@ -78,6 +78,9 @@ const formatData = curry((group, data) => {
   for (const type of ['discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource', 'chat']) {
     ret[type + 's'] = sortBy(p => -p.id, posts.filter(p => p.type === type))
   }
+  // Project posts became tasks. The digest keeps its "projects" section name, which the
+  // email templates and the merge/personalize steps key on.
+  ret.projects = sortBy(p => -p.id, posts.filter(p => p.type === 'task'))
   ret.chat_rooms = aggregateChatRooms(ret.chats)
   if (data.upcomingPostReminders?.startingSoon) {
     ret.upcoming = data.upcomingPostReminders.startingSoon.map(p => {

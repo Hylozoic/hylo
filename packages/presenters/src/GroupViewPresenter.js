@@ -73,11 +73,11 @@ export const COMMON_VIEWS = {
     iconName: 'Shield',
     lucideIcon: 'ShieldCheck'
   },
-  projects: {
-    name: 'Projects',
+  tasks: {
+    name: 'Tasks',
     iconName: 'Layers',
-    defaultViewMode: 'bigGrid',
-    postTypes: ['project'],
+    defaultViewMode: 'list',
+    postTypes: ['task'],
     defaultSortBy: 'created'
   },
   'requests-and-offers': {
@@ -137,7 +137,7 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   members: 'Users',
   moderation: 'ShieldCheck',
   page: 'FileText',
-  projects: 'Layers',
+  tasks: 'SquareKanban',
   proposals: 'Vote',
   resources: 'PackageOpen',
   'requests-and-offers': 'Heart',

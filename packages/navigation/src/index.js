@@ -249,6 +249,7 @@ const POST_OVERLAY_ROUTE_ROOTS = [
   '/events',
   '/resources',
   '/projects',
+  '/tasks',
   '/proposals',
   '/requests-and-offers',
   '/map',
