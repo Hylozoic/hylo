@@ -22,6 +22,7 @@ import {
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
 import { canEditPost } from '../models/post/postEditPermissions'
+import { placementsForPost } from '../models/task/placement'
 import { listBlockingSpaces } from '../models/space/convertChatSpaceToDiscussion'
 import InvitationService from '../services/InvitationService'
 import {
@@ -772,6 +773,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'quorum',
         'reactions_summary',
         'start_time',
+        'task_category',
         'timezone',
         'type',
         'updated_at',
@@ -779,6 +781,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       getters: {
         canEdit: p => canEditPost(userId, p),
+        taskPlacements: p => p.isTask() ? placementsForPost(p.id) : [],
         clickthrough: p => p.clickthroughForUser(userId),
         commenters: (p, { first }) => p.getCommenters(first, userId),
         completedAt: p => p.completedAtForUser(userId),
@@ -1274,6 +1277,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // jsonb may come back as a JSON string after save; [String] cannot serialize that.
         acceptedPostTypes: g => parseAcceptedPostTypes(g.get('accepted_post_types')),
         eventCalendarUrl: g => g.eventCalendarUrl(),
+        taskStatuses: g => TaskStatus.forGroup(g.id),
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,
         chatConverted: g => Boolean(g && g.getSetting('chat_converted_to_post_id')),
@@ -1882,6 +1886,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'user'
       ],
       fetchMany: args => TagFollow.query()
+    },
+
+    TaskStatus: {
+      model: TaskStatus,
+      attributes: [
+        'id',
+        'name',
+        'category',
+        'order'
+      ],
+      relations: ['group']
     },
 
     Track: {

@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { uniq } from 'lodash'
+import { isInTaskGroup } from '../task/assignees'
 
 /**
  * Who can edit a post (#1727):
@@ -8,6 +9,8 @@ import { uniq } from 'lodash'
  *   (that group and/or any of its spaces): members with Manage Content or Administration in that group
  * - for track actions: anyone with Administration in one of the action's groups
  *   (track stewards edit actions that another steward created)
+ * - for tasks: any member of a group the task is posted to. Tasks are shared work, as on
+ *   other task boards; edits are recorded in the task event log. Deleting stays with the creator.
  */
 
 /** Post types whose co-editing toggle is offered. Chats are quick messages; actions and submissions have their own flows. */
@@ -80,6 +83,7 @@ export async function canEditPost (userId, post) {
   if (!userId || !post) return false
   if (isPostCreator(userId, post)) return true
   if (await canEditAsGroupAdmin(userId, post)) return true
+  if (post.get('type') === Post.Type.TASK && await isInTaskGroup(userId, post)) return true
   return canEditAsTrackSteward(userId, post)
 }
 

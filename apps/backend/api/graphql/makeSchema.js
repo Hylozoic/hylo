@@ -102,6 +102,12 @@ import {
   joinFundingRound,
   joinGroup,
   joinProject,
+  assignTask,
+  createTaskStatus,
+  deleteTaskStatus,
+  moveTask,
+  unassignTask,
+  updateTaskStatus,
   joinSpace,
   leaveFundingRound,
   leaveGroup,
@@ -870,6 +876,14 @@ export function makeMutations ({ fetchOne }) {
     joinGroup: (root, { groupId, questionAnswers, accessCode, invitationToken, acceptAgreements }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, accessCode, invitationToken, acceptAgreements, context),
 
     joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
+
+    // Tasks
+    assignTask: (root, args, context) => assignTask(context.currentUserId, args),
+    createTaskStatus: (root, args, context) => createTaskStatus(context.currentUserId, args),
+    deleteTaskStatus: (root, args, context) => deleteTaskStatus(context.currentUserId, args),
+    moveTask: (root, args, context) => moveTask(context.currentUserId, args),
+    unassignTask: (root, args, context) => unassignTask(context.currentUserId, args),
+    updateTaskStatus: (root, args, context) => updateTaskStatus(context.currentUserId, args),
 
     rejoinGroup: (root, { groupId }, context) => rejoinGroup(context.currentUserId, groupId),
 

@@ -1,0 +1,248 @@
+/* eslint-disable no-unused-expressions */
+import setup from '../../../test/setup'
+import factories from '../../../test/setup/factories'
+import { assignAdministrator } from '../../../test/setup/roleHelpers'
+import { createPost, updatePost } from './post'
+import {
+  assignTask,
+  createTaskStatus,
+  deleteTaskStatus,
+  moveTask,
+  unassignTask,
+  updateTaskStatus
+} from './task'
+import { placementsForPost } from '../../models/task/placement'
+
+describe('tasks', () => {
+  let steward, member, outsider, group, otherGroup
+
+  const newTask = (userId, attrs = {}) =>
+    createPost(userId, { type: 'task', title: `Task ${Math.random()}`, groupIds: [group.id], ...attrs })
+
+  const columns = async groupId => (await TaskStatus.forGroup(groupId))
+  const columnNamed = async (groupId, name) => (await columns(groupId)).find(s => s.get('name') === name)
+  const placementIn = async (postId, groupId) =>
+    (await placementsForPost(postId)).find(p => p.groupId === String(groupId))
+  const eventTypes = async (postId, groupId) =>
+    (await bookshelf.knex('task_events').where({ post_id: postId, group_id: groupId }).orderBy('id')).map(e => e.type)
+
+  /** The titles of a column's tasks, top to bottom. */
+  const columnOrder = async statusId => {
+    const rows = await bookshelf.knex('groups_posts')
+      .join('posts', 'posts.id', 'groups_posts.post_id')
+      .where('task_status_id', statusId)
+      .orderBy('task_position')
+      .select('posts.name')
+    return rows.map(r => r.name)
+  }
+
+  before(async () => {
+    steward = await factories.user().save()
+    member = await factories.user().save()
+    outsider = await factories.user().save()
+    group = await factories.group().save()
+    otherGroup = await factories.group().save()
+    await assignAdministrator(steward, group)
+    await assignAdministrator(steward, otherGroup)
+    await member.joinGroup(group)
+  })
+
+  after(() => setup.clearDb())
+
+  describe('creating a task', () => {
+    it('seeds the default columns and puts the task at the bottom of the first one', async () => {
+      const first = await newTask(steward.id, { title: 'first' })
+      const second = await newTask(steward.id, { title: 'second' })
+
+      const statuses = await columns(group.id)
+      expect(statuses.map(s => s.get('name'))).to.deep.equal(['To do', 'In progress', 'Ready for review', 'Complete'])
+      expect(statuses.map(s => s.get('category'))).to.deep.equal(['todo', 'active', 'active', 'done'])
+
+      const task = await Post.find(first.id)
+      expect(task.get('type')).to.equal('task')
+      expect(task.get('task_category')).to.equal('todo')
+      expect((await placementIn(first.id, group.id)).taskStatusId).to.equal(String(statuses[0].id))
+      expect((await columnOrder(statuses[0].id)).slice(-2)).to.deep.equal(['first', 'second'])
+      expect(await eventTypes(second.id, group.id)).to.deep.equal(['created'])
+    })
+
+    it('starts in the requested column and takes its category', async () => {
+      const review = await columnNamed(group.id, 'Ready for review')
+      const post = await newTask(member.id, { taskStatusId: review.id })
+      const task = await Post.find(post.id)
+      expect(task.get('task_category')).to.equal('active')
+      expect((await placementIn(post.id, group.id)).taskStatusId).to.equal(String(review.id))
+    })
+
+    it('assigns the people passed as members', async () => {
+      const post = await newTask(steward.id, { memberIds: [member.id] })
+      const members = await (await Post.find(post.id)).members().fetch()
+      expect(members.map(m => m.id)).to.deep.equal([member.id])
+      expect(await eventTypes(post.id, group.id)).to.deep.equal(['created', 'assigned'])
+    })
+  })
+
+  describe('moveTask', () => {
+    it('lets any group member move a task, and completes it in a done column', async () => {
+      const post = await newTask(steward.id)
+      const done = await columnNamed(group.id, 'Complete')
+      await moveTask(member.id, { postId: post.id, groupId: group.id, taskStatusId: done.id })
+
+      const task = await Post.find(post.id)
+      expect(task.get('task_category')).to.equal('done')
+      expect(task.get('fulfilled_at')).to.exist
+      expect(await eventTypes(post.id, group.id)).to.deep.equal(['created', 'moved', 'completed'])
+
+      const todo = await columnNamed(group.id, 'To do')
+      await moveTask(member.id, { postId: post.id, groupId: group.id, taskStatusId: todo.id })
+      const reopened = await Post.find(post.id)
+      expect(reopened.get('task_category')).to.equal('todo')
+      expect(reopened.get('fulfilled_at')).to.not.exist
+      expect((await eventTypes(post.id, group.id)).slice(-2)).to.deep.equal(['moved', 'reopened'])
+    })
+
+    it('places the task at the given index within the column', async () => {
+      const doing = await createTaskStatus(steward.id, { groupId: group.id, name: 'Ordering' })
+      const a = await newTask(steward.id, { title: 'a', taskStatusId: doing.id })
+      const b = await newTask(steward.id, { title: 'b', taskStatusId: doing.id })
+      const c = await newTask(steward.id, { title: 'c', taskStatusId: doing.id })
+      expect(await columnOrder(doing.id)).to.deep.equal(['a', 'b', 'c'])
+
+      await moveTask(member.id, { postId: c.id, groupId: group.id, taskStatusId: doing.id, index: 0 })
+      expect(await columnOrder(doing.id)).to.deep.equal(['c', 'a', 'b'])
+
+      await moveTask(member.id, { postId: c.id, groupId: group.id, taskStatusId: doing.id, index: 1 })
+      expect(await columnOrder(doing.id)).to.deep.equal(['a', 'c', 'b'])
+
+      await moveTask(member.id, { postId: a.id, groupId: group.id, taskStatusId: doing.id })
+      expect(await columnOrder(doing.id)).to.deep.equal(['c', 'b', 'a'])
+      expect(b.id).to.exist
+    })
+
+    it('keeps a cross-posted task in step on its other board', async () => {
+      const post = await newTask(steward.id, { groupIds: [group.id, otherGroup.id] })
+      const otherColumns = await columns(otherGroup.id)
+      expect((await placementIn(post.id, otherGroup.id)).taskStatusId).to.equal(String(otherColumns[0].id))
+
+      // Within a category each board keeps its own column
+      const doing = await columnNamed(group.id, 'In progress')
+      const review = await columnNamed(group.id, 'Ready for review')
+      await moveTask(steward.id, { postId: post.id, groupId: group.id, taskStatusId: doing.id })
+      expect((await placementIn(post.id, otherGroup.id)).taskStatusId).to.equal(String(otherColumns[1].id))
+      await moveTask(steward.id, { postId: post.id, groupId: group.id, taskStatusId: review.id })
+      expect((await placementIn(post.id, otherGroup.id)).taskStatusId).to.equal(String(otherColumns[1].id))
+
+      // Done on one board is done on both
+      const done = await columnNamed(group.id, 'Complete')
+      await moveTask(steward.id, { postId: post.id, groupId: group.id, taskStatusId: done.id })
+      const otherDone = otherColumns.find(s => s.get('category') === 'done')
+      expect((await placementIn(post.id, otherGroup.id)).taskStatusId).to.equal(String(otherDone.id))
+      expect(await eventTypes(post.id, otherGroup.id)).to.deep.equal(['created', 'completed'])
+    })
+
+    it('rejects people outside the task\'s groups, and columns from another board', async () => {
+      const post = await newTask(steward.id)
+      const done = await columnNamed(group.id, 'Complete')
+      const otherDone = (await TaskStatus.ensureForGroup(otherGroup.id)).find(s => s.get('category') === 'done')
+
+      await expect(moveTask(outsider.id, { postId: post.id, groupId: group.id, taskStatusId: done.id }))
+        .to.be.rejectedWith(/permission/)
+      await expect(moveTask(steward.id, { postId: post.id, groupId: group.id, taskStatusId: otherDone.id }))
+        .to.be.rejectedWith(/not on this board/)
+    })
+  })
+
+  describe('editing', () => {
+    it('lets a group member who is not the creator edit a task, and logs it', async () => {
+      const post = await newTask(steward.id, { title: 'before' })
+      await updatePost(member.id, { id: post.id, data: { title: 'after', groupIds: [group.id] } })
+      expect((await Post.find(post.id)).get('name')).to.equal('after')
+      const events = await bookshelf.knex('task_events').where({ post_id: post.id, type: 'edited' })
+      expect(events.length).to.equal(1)
+      expect(events[0].meta.fields).to.include('title')
+      expect(String(events[0].actor_id)).to.equal(String(member.id))
+    })
+
+    it('does not let an outsider edit a task', async () => {
+      const post = await newTask(steward.id)
+      await expect(updatePost(outsider.id, { id: post.id, data: { title: 'nope', groupIds: [group.id] } }))
+        .to.be.rejectedWith(/permission/)
+    })
+  })
+
+  describe('assignTask / unassignTask', () => {
+    it('lets a member take a task and step off it', async () => {
+      const post = await newTask(steward.id)
+      await assignTask(member.id, { postId: post.id })
+      let members = await (await Post.find(post.id)).members().fetch()
+      expect(members.map(m => m.id)).to.deep.equal([member.id])
+
+      await unassignTask(member.id, { postId: post.id })
+      members = await (await Post.find(post.id)).members().fetch()
+      expect(members.length).to.equal(0)
+      expect(await eventTypes(post.id, group.id)).to.deep.equal(['created', 'assigned', 'unassigned'])
+    })
+
+    it('only assigns people who belong to one of the task\'s groups', async () => {
+      const post = await newTask(steward.id)
+      await expect(assignTask(steward.id, { postId: post.id, userId: outsider.id }))
+        .to.be.rejectedWith(/Only members of the group/)
+    })
+  })
+
+  describe('columns', () => {
+    let board
+
+    before(async () => {
+      board = await factories.group().save()
+      await assignAdministrator(steward, board)
+      await member.joinGroup(board)
+    })
+
+    const names = async () => (await columns(board.id)).map(s => s.get('name'))
+
+    it('only lets people who manage content change columns', async () => {
+      await expect(createTaskStatus(member.id, { groupId: board.id, name: 'Nope' }))
+        .to.be.rejectedWith(/permission/)
+    })
+
+    it('adds a column before the first done column', async () => {
+      await createTaskStatus(steward.id, { groupId: board.id, name: 'Blocked' })
+      expect(await names()).to.deep.equal(['To do', 'In progress', 'Ready for review', 'Blocked', 'Complete'])
+    })
+
+    it('renames and reorders a column', async () => {
+      const blocked = await columnNamed(board.id, 'Blocked')
+      await updateTaskStatus(steward.id, { id: blocked.id, name: 'Waiting', order: 1 })
+      expect(await names()).to.deep.equal(['To do', 'Waiting', 'In progress', 'Ready for review', 'Complete'])
+      expect((await columns(board.id)).map(s => s.get('order'))).to.deep.equal([0, 1, 2, 3, 4])
+    })
+
+    it('keeps at least one done column', async () => {
+      const done = await columnNamed(board.id, 'Complete')
+      await expect(deleteTaskStatus(steward.id, { id: done.id })).to.be.rejectedWith(/completed tasks/)
+      await expect(updateTaskStatus(steward.id, { id: done.id, category: 'active' })).to.be.rejectedWith(/completed tasks/)
+    })
+
+    it('re-categorising a column updates the tasks in it', async () => {
+      const waiting = await columnNamed(board.id, 'Waiting')
+      const post = await createPost(steward.id, { type: 'task', title: 'shipped', groupIds: [board.id], taskStatusId: waiting.id })
+      await updateTaskStatus(steward.id, { id: waiting.id, category: 'done' })
+      const task = await Post.find(post.id)
+      expect(task.get('task_category')).to.equal('done')
+      expect(task.get('fulfilled_at')).to.exist
+    })
+
+    it('deleting a column moves its tasks to the first column', async () => {
+      const waiting = await columnNamed(board.id, 'Waiting')
+      const todo = await columnNamed(board.id, 'To do')
+      await deleteTaskStatus(steward.id, { id: waiting.id })
+
+      expect(await names()).to.deep.equal(['To do', 'In progress', 'Ready for review', 'Complete'])
+      expect(await columnOrder(todo.id)).to.deep.equal(['shipped'])
+      const task = await Post.where({ name: 'shipped' }).fetch()
+      expect(task.get('task_category')).to.equal('todo')
+      expect(task.get('fulfilled_at')).to.not.exist
+    })
+  })
+})
