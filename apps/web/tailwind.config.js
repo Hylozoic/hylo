@@ -122,6 +122,15 @@ export default {
         md: 'max(calc(var(--radius, 0.5rem) - 2px), 0px)',
         sm: 'max(calc(var(--radius, 0.5rem) - 4px), 0px)'
       },
+      // As text, these three use a readable version of the color when a group
+      // theme supplies one (util/groupTheme.js), and the color itself otherwise.
+      textColor: {
+        selected: 'hsl(var(--selected-text, var(--selected)) / <alpha-value>)',
+        focus: 'hsl(var(--focus-text, var(--focus)) / <alpha-value>)',
+        accent: {
+          DEFAULT: 'hsl(var(--accent-text, var(--accent)))'
+        }
+      },
       colors: {
         black: 'hsl(var(--black) / <alpha-value>)',
         darkening: 'hsl(var(--darkening) / <alpha-value>)',

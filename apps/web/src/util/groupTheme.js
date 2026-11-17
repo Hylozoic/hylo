@@ -56,6 +56,10 @@ export const MIN_CONTRAST_RATIO = 4.5
 
 const WHITE = '0 0% 100%'
 
+// Colors the app uses as text as well as fills. Each gets a `--<token>-text`
+// variable that tailwind.config.js reads for text-<token>.
+export const TEXT_COLOR_TOKENS = ['selected', 'accent', 'focus']
+
 /**
  * The full set of tokens a themed group shows for a color scheme: the app's
  * default theme with the group's overrides on top.
@@ -79,8 +83,17 @@ export function groupThemeCssVars (rawTheme, colorScheme) {
   if (!theme) return null
 
   const vars = {}
-  Object.entries(resolveGroupThemeTokens(theme, colorScheme)).forEach(([token, value]) => {
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light'
+  const tokens = resolveGroupThemeTokens(theme, scheme)
+  Object.entries(tokens).forEach(([token, value]) => {
     vars[`--${token}`] = value
+  })
+  // The colors used as text get a readable version of whatever the group chose.
+  // Only the group's own choices are adjusted, so the default theme looks the
+  // same inside a themed group as outside one.
+  TEXT_COLOR_TOKENS.forEach(token => {
+    const chosen = theme[scheme] && token in theme[scheme]
+    vars[`--${token}-text`] = chosen ? readableTextColor(tokens[token], [tokens.card, tokens.background]) : tokens[token]
   })
   vars['--radius'] = GROUP_THEME_RADII[theme.radius] || DEFAULT_RADIUS
   vars['--border-width'] = GROUP_THEME_BORDER_WIDTHS[theme.borderWidth] || DEFAULT_BORDER_WIDTH
@@ -101,6 +114,8 @@ export function appThemeCssVars (themeName, colorScheme) {
   Object.entries(tokens).forEach(([token, value]) => {
     vars[`--${token}`] = value
   })
+  // Undo a group theme's adjusted text colors (see groupThemeCssVars)
+  TEXT_COLOR_TOKENS.forEach(token => { vars[`--${token}-text`] = tokens[token] })
   vars['--radius'] = DEFAULT_RADIUS
   vars['--border-width'] = DEFAULT_BORDER_WIDTH
   vars['--font-body'] = fontValue()
@@ -142,6 +157,35 @@ export function contrastRatio (a, b) {
   const lumA = relativeLuminance(first)
   const lumB = relativeLuminance(second)
   return (Math.max(lumA, lumB) + 0.05) / (Math.min(lumA, lumB) + 0.05)
+}
+
+/**
+ * A color that reads as text on every given surface: the same hue and
+ * saturation, made darker on light surfaces or lighter on dark ones only as far
+ * as the minimum contrast needs. Returns the color unchanged when it already
+ * reads, or when any value is not a valid HSL triple.
+ *
+ * `selected`, `accent` and `focus` are used both as fills and as text
+ * (text-selected and so on, see tailwind.config.js). A group is free to pick a
+ * pale fill, which would otherwise make that text unreadable.
+ */
+export function readableTextColor (color, surfaces, minRatio = MIN_CONTRAST_RATIO) {
+  const parsed = parseHslTriple(color)
+  const valid = (surfaces || []).filter(surface => parseHslTriple(surface))
+  if (!parsed || valid.length === 0) return color
+
+  const reads = candidate => valid.every(surface => contrastRatio(candidate, surface) >= minRatio)
+  if (reads(color)) return color
+
+  const [h, s, l] = parsed
+  const triple = lightness => `${h} ${s}% ${Math.round(lightness * 10) / 10}%`
+  // Move away from the surfaces: darker when they are light, lighter when dark
+  const lightSurfaces = valid.reduce((sum, surface) => sum + relativeLuminance(parseHslTriple(surface)), 0) / valid.length > 0.18
+  const step = lightSurfaces ? -1 : 1
+  for (let lightness = l + step; lightness >= 0 && lightness <= 100; lightness += step) {
+    if (reads(triple(lightness))) return triple(lightness)
+  }
+  return triple(lightSurfaces ? 0 : 100)
 }
 
 /**

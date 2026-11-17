@@ -6,9 +6,54 @@ import {
   contrastRatio,
   groupThemeCssVars,
   parseHslTriple,
+  readableTextColor,
   resolveGroupThemeTokens,
   sanitizeGroupTheme
 } from './groupTheme'
+
+describe('readableTextColor', () => {
+  const WHITE = '0 0% 100%'
+
+  it('leaves a color that already reads', () => {
+    expect(readableTextColor('260 80% 30%', [WHITE])).toEqual('260 80% 30%')
+  })
+
+  it('darkens a pale color on light surfaces, keeping its hue and saturation', () => {
+    const text = readableTextColor('266.7 78.3% 91%', [WHITE, '262.5 50% 96.9%'])
+    expect(text).toMatch(/^266\.7 78\.3% /)
+    expect(contrastRatio(text, WHITE)).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(text, '262.5 50% 96.9%')).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('lightens a dark color on dark surfaces', () => {
+    const text = readableTextColor('263.8 52.3% 25.5%', ['261.3 58.5% 10.4%', '259.1 78.6% 5.5%'])
+    expect(parseHslTriple(text)[2]).toBeGreaterThan(25.5)
+    expect(contrastRatio(text, '261.3 58.5% 10.4%')).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('returns the color unchanged when it cannot be read as HSL', () => {
+    expect(readableTextColor('red', [WHITE])).toEqual('red')
+  })
+})
+
+describe('text colors of a group theme', () => {
+  it('gives a readable text version of a color the group chose', () => {
+    const vars = groupThemeCssVars({ light: { selected: '266.7 78.3% 91%', card: '0 0% 100%' } }, 'light')
+    expect(vars['--selected']).toEqual('266.7 78.3% 91%')
+    expect(contrastRatio(vars['--selected-text'], '0 0% 100%')).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('leaves colors the group did not choose as the default theme has them', () => {
+    const vars = groupThemeCssVars({ light: { card: '0 0% 100%' } }, 'light')
+    expect(vars['--selected-text']).toEqual(themes[defaultTheme].light.selected)
+    expect(vars['--accent-text']).toEqual(themes[defaultTheme].light.accent)
+  })
+
+  it('is undone where an app theme is restored', () => {
+    const vars = appThemeCssVars('forest', 'light')
+    expect(vars['--selected-text']).toEqual(themes.forest.light.selected)
+  })
+})
 
 describe('GROUP_THEME_TOKENS', () => {
   // The shared package keeps its own copy of the token list so the backend can
@@ -97,7 +142,8 @@ describe('groupThemeCssVars', () => {
     expect(vars['--background']).toEqual('120 15% 92%')
     expect(vars['--foreground']).toEqual(themes[defaultTheme].light.foreground)
     expect(vars['--radius']).toEqual('0.875rem')
-    expect(Object.keys(vars)).toHaveLength(Object.keys(themes[defaultTheme].light).length + 4)
+    // plus radius, border width, two fonts and the three text colors
+    expect(Object.keys(vars)).toHaveLength(Object.keys(themes[defaultTheme].light).length + 7)
   })
 
   it('uses the default radius when the group did not choose one', () => {
