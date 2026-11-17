@@ -290,6 +290,16 @@ describe('tasks', () => {
       expect(task.canEdit).to.equal(true)
       expect(task.taskPlacements).to.have.length(1)
       expect(task.taskPlacements[0]).to.include({ groupId: String(group.id), taskStatusId: String(done.id) })
+      const { executionResult: events } = await createRequestHandler().inject({
+        document: `{ group(id: "${group.id}") { taskEvents { type meta actor { id name } post { id title } } } }`,
+        serverContext: { req, res: factories.mock.response() }
+      })
+      expect(events.errors).to.not.exist
+      const mine = events.data.group.taskEvents.filter(e => e.post.id === String(post.id))
+      expect(mine.map(e => e.type)).to.deep.equal(['created', 'moved', 'completed'])
+      expect(mine[1].meta.toStatusName).to.equal('Complete')
+      expect(mine[1].actor.id).to.equal(String(member.id))
+
       const statuses = task.groups[0].taskStatuses
       expect(statuses.map(s => s.category)).to.include.members(['todo', 'active', 'done'])
       expect(statuses.map(s => s.order)).to.deep.equal(statuses.map((s, i) => i))

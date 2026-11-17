@@ -1024,6 +1024,9 @@ type Group {
   agreements: AgreementQuerySet
   # The columns of this Group's or Space's Tasks board, in board order. Empty until the board is first used
   taskStatuses: [TaskStatus]
+  # Recent activity on this Group's or Space's tasks, oldest first, for the daily summary. Members only.
+  # sinceDaysAgo: how many days back to look (default 1, at most 14)
+  taskEvents(sinceDaysAgo: Int): [TaskEvent]
 
   # Child groups of this group
   childGroups(
@@ -1423,6 +1426,20 @@ type TaskStatus {
   category: String
   # Position of the column on the board, starting at 0
   order: Int
+}
+
+# Something that happened to a task on a group's board: 'created', 'moved', 'completed',
+# 'reopened', 'assigned', 'unassigned' or 'edited'
+type TaskEvent {
+  id: ID
+  type: String
+  createdAt: Date
+  # Details of the event, e.g. { toStatusName, toCategory } for 'moved' or { userId, userName } for 'assigned'
+  meta: JSON
+  # Who did it
+  actor: Person
+  # The task it happened to
+  post: Post
 }
 
 # Where a task sits on one group's Tasks board

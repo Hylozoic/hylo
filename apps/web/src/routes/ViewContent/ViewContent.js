@@ -59,6 +59,7 @@ import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
+import TaskActivityCard from 'components/TaskActivityCard'
 import { reorderViewPost } from 'store/actions/groupViews'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS, RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
@@ -857,6 +858,9 @@ export default function ViewContent (props) {
                     className='mr-1 sm:mr-2 rounded-full bg-midground/90 px-2 py-1 shadow-sm backdrop-blur-sm'
                   />
                 </div>
+              )}
+              {context === 'groups' && view === 'all' && group?.id && !isCalendarViewMode && (
+                <TaskActivityCard groupId={group.id} routeParams={routeParams} />
               )}
               {!isCalendarViewMode && (
                 <CollectionPostsGrid

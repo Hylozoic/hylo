@@ -1,4 +1,4 @@
-import { FETCH_TASK_STATUSES, JOIN_PROJECT, LEAVE_PROJECT, MOVE_TASK } from 'store/constants'
+import { FETCH_TASK_EVENTS, FETCH_TASK_STATUSES, JOIN_PROJECT, LEAVE_PROJECT, MOVE_TASK } from 'store/constants'
 
 const taskStatusFields = `
   id
@@ -31,6 +31,36 @@ export function fetchTaskStatuses (groupId) {
         }
       }`,
       variables: { id: groupId }
+    }
+  }
+}
+
+/** Loads a group's recent task activity for the daily summary card. Resolves with it on `payload.data.group.taskEvents`. */
+export function fetchTaskEvents (groupId, sinceDaysAgo = 1) {
+  return {
+    type: FETCH_TASK_EVENTS,
+    graphql: {
+      query: `query FetchTaskEvents ($id: ID, $sinceDaysAgo: Int) {
+        group (id: $id) {
+          id
+          taskEvents (sinceDaysAgo: $sinceDaysAgo) {
+            id
+            type
+            createdAt
+            meta
+            actor {
+              id
+              name
+              avatarUrl
+            }
+            post {
+              id
+              title
+            }
+          }
+        }
+      }`,
+      variables: { id: groupId, sinceDaysAgo }
     }
   }
 }
