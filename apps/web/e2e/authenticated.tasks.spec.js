@@ -181,3 +181,41 @@ test('kanban board: add tasks, drag one to another column, complete one, and edi
   await page.getByTestId('task-column-delete').click()
   await expect(column(renamed)).toHaveCount(0, uiTimeout)
 })
+
+test('project space: create one with its own columns and land on its board', async ({ page }) => {
+  test.skip(test.info().project.name !== 'chromium', 'desktop-only flow')
+  const name = `Project ${Date.now()}`
+
+  // Open the create-space dialog from the group menu and choose the Project type
+  await page.goto(`/groups/${GROUP_SLUG}/more-spaces?edit=true`)
+  await waitPastRootSessionLoading(page)
+  const addToMenu = page.getByRole('button', { name: 'Add to Menu' }).first()
+  await addToMenu.scrollIntoViewIfNeeded()
+  await expect(addToMenu).toBeVisible(uiTimeout)
+  await addToMenu.click()
+  await page.getByText('Add Space', { exact: true }).click()
+  await expect(page.locator('h2', { hasText: /Create a new space in/ })).toBeVisible(uiTimeout)
+  await page.getByTestId('space-type-project').click()
+
+  // The board's starting columns: the default four, with one replaced
+  const columnsEditor = page.getByTestId('project-columns')
+  await expect(columnsEditor.getByTestId('project-column-row')).toHaveCount(4, uiTimeout)
+  await columnsEditor.getByTestId('project-column-remove').nth(2).click()
+  await columnsEditor.getByTestId('project-column-add').click()
+  await columnsEditor.getByTestId('project-column-name').nth(2).fill('Blocked')
+  await page.getByPlaceholder('Space name').fill(name)
+  await columnsEditor.scrollIntoViewIfNeeded()
+  await screenshot(page, 'project-space-dialog')
+
+  // Publishing lands on the new space's board with those columns
+  const publish = page.getByTestId('space-create-publish')
+  await expect(publish).toBeEnabled(uiTimeout)
+  await publish.click()
+  await expect(page).toHaveURL(/\/spaces\/[^/]+\/tasks/, uiTimeout)
+  const board = page.getByTestId('task-board')
+  await expect(board).toBeVisible(uiTimeout)
+  const names = async () => board.getByTestId('task-column').evaluateAll(els => els.map(el => el.getAttribute('data-column-name')))
+  await expect.poll(names, uiTimeout).toEqual(['To do', 'In progress', 'Blocked', 'Complete'])
+  await expect(board.getByTestId('task-board-members')).toHaveText(/1 member/, uiTimeout)
+  await screenshot(page, 'project-space-board')
+})
