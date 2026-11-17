@@ -85,6 +85,12 @@ exports.hi = {
     ? `${actor.get('name')} ने ${parentGroupName} में ${groupName} में शामिल होने के लिए कहा`
     : `${actor.get('name')} ने ${groupName} में शामिल होने के लिए कहा`,
   textForMemberJoinedGroup: ({ group, actor }) => `${group.get('name')} में नया सदस्य शामिल हुआ: ${actor.get('name')}`,
+  textForTask: ({ post, actor, reason, meta = {} }) => {
+    const name = post.summary()
+    if (reason === 'taskAssigned') return `${actor.get('name')} ने आपको कार्य "${name}" सौंपा`
+    if (reason === 'taskStatusChanged') return `${actor.get('name')} ने "${name}" को ${meta.statusName} में भेजा`
+    return meta.when === 'today' ? `"${name}" आज देय है` : `"${name}" कल देय है`
+  },
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

@@ -25,7 +25,8 @@ module.exports = bookshelf.Model.extend({
     REOPENED: 'reopened',
     ASSIGNED: 'assigned',
     UNASSIGNED: 'unassigned',
-    EDITED: 'edited'
+    EDITED: 'edited',
+    DUE_REMINDER: 'due_reminder'
   },
 
   /** Writes one event for each of the given groups (or a single group-less event). */

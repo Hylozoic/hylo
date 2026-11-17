@@ -85,6 +85,12 @@ exports.en = {
     ? `${actor.get('name')} asked to join ${groupName} in ${parentGroupName}`
     : `${actor.get('name')} asked to join ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `New member has joined ${group.get('name')}: ${actor.get('name')}`,
+  textForTask: ({ post, actor, reason, meta = {} }) => {
+    const name = post.summary()
+    if (reason === 'taskAssigned') return `${actor.get('name')} assigned you to "${name}"`
+    if (reason === 'taskStatusChanged') return `${actor.get('name')} moved "${name}" to ${meta.statusName}`
+    return meta.when === 'today' ? `"${name}" is due today` : `"${name}" is due tomorrow`
+  },
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

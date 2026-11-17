@@ -55,6 +55,9 @@ const TYPE = {
   Unfollow: 'unfollow', // someone leaves your post
   PostFulfilled: 'postFulfilled', // a moderator closed a post
   PostUnfulfilled: 'postUnfulfilled', // a moderator reopened a post
+  TaskAssigned: 'taskAssigned', // someone else put you on a task
+  TaskStatusChanged: 'taskStatusChanged', // a task you are on or created moved to another column
+  TaskDueSoon: 'taskDueSoon', // a task you are on is due tomorrow or today
   Welcome: 'welcome', // a welcome post
   JoinRequest: 'joinRequest', // Someone asks to join a group
   ApprovedJoinRequest: 'approvedJoinRequest', // A request to join a group is approved
@@ -203,6 +206,10 @@ module.exports = bookshelf.Model.extend({
       case 'postFulfilled':
       case 'postUnfulfilled':
         return this.sendPostModeratedFulfillmentPush()
+      case 'taskAssigned':
+      case 'taskStatusChanged':
+      case 'taskDueSoon':
+        return this.sendTaskPush()
       case 'voteReset':
         return this.sendPostPush('voteReset')
       case 'fundingRoundNewSubmission':
@@ -462,6 +469,19 @@ module.exports = bookshelf.Model.extend({
     const group = await groupForNotificationForUser(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.post(post, group))
     const alertText = PushNotification.textForPostModeratedFulfillment(post, this.actor(), reason, locale)
+    return reader.sendPushNotification(alertText, path)
+  },
+
+  sendTaskPush: async function () {
+    const post = this.post()
+    const activity = this.relations.activity
+    const reader = this.reader()
+    const locale = this.locale()
+    const meta = activity.get('meta') || {}
+    const reason = Notification.priorityReason(meta.reasons)
+    const group = await groupForNotificationForUser(post, activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const alertText = PushNotification.textForTask(post, this.actor(), reason, meta, locale)
     return reader.sendPushNotification(alertText, path)
   },
 
