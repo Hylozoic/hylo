@@ -3,6 +3,7 @@ import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import { createPost, updatePost } from './post'
+import { createSpace } from './spaces'
 import {
   assignTask,
   createTaskStatus,
@@ -189,6 +190,64 @@ describe('tasks', () => {
       const post = await newTask(steward.id)
       await expect(assignTask(steward.id, { postId: post.id, userId: outsider.id }))
         .to.be.rejectedWith(/Only members of the group/)
+    })
+  })
+
+  describe('project spaces', () => {
+    const projectSpace = (attrs = {}) => createSpace(steward.id, {
+      parentGroupId: group.id,
+      name: `Project ${Math.random()}`,
+      acceptedPostTypes: ['task'],
+      viewTypes: ['tasks', 'chat', 'members'],
+      accessibility: Group.Accessibility.OPEN,
+      ...attrs
+    })
+
+    it('starts with the columns given when the space is created, and opens on Tasks', async () => {
+      const space = await projectSpace({
+        taskStatuses: [
+          { name: 'Ideas', category: 'todo' },
+          { name: ' Building ' },
+          { name: 'Shipped', category: 'done' }
+        ]
+      })
+      const statuses = await columns(space.id)
+      expect(statuses.map(s => [s.get('name'), s.get('category'), s.get('order')])).to.deep.equal([
+        ['Ideas', 'todo', 0], ['Building', 'active', 1], ['Shipped', 'done', 2]
+      ])
+      expect(space.get('home_route')).to.match(/tasks/)
+    })
+
+    it('refuses starting columns with no done column, and creates no space', async () => {
+      const name = `No done ${Math.random()}`
+      await expect(projectSpace({ name, taskStatuses: [{ name: 'Only', category: 'todo' }] }))
+        .to.be.rejectedWith(/finished tasks/)
+      expect(Number(await Group.where({ name }).count())).to.equal(0)
+    })
+
+    it('falls back to the default columns when none are given', async () => {
+      const space = await projectSpace()
+      const statuses = await TaskStatus.ensureForGroup(space.id)
+      expect(statuses.map(s => s.get('name'))).to.deep.equal(TaskStatus.DEFAULTS.map(d => d.name))
+    })
+
+    it('taking a task in an open project space joins the space', async () => {
+      const space = await projectSpace()
+      const post = await createPost(steward.id, { type: 'task', title: 'open task', groupIds: [space.id] })
+      expect(await GroupMembership.forPair(member.id, space.id).fetch()).to.not.exist
+
+      await assignTask(member.id, { postId: post.id })
+      expect(await GroupMembership.forPair(member.id, space.id).fetch()).to.exist
+      const members = await (await Post.find(post.id)).members().fetch()
+      expect(members.map(m => m.id)).to.deep.equal([member.id])
+    })
+
+    it('does not let someone into a space they could not join themselves', async () => {
+      const closed = await projectSpace({ accessibility: Group.Accessibility.CLOSED })
+      const post = await createPost(steward.id, { type: 'task', title: 'closed task', groupIds: [closed.id] })
+      await expect(assignTask(member.id, { postId: post.id })).to.be.rejectedWith(/permission/)
+      await expect(assignTask(outsider.id, { postId: post.id })).to.be.rejectedWith(/permission/)
+      expect(await GroupMembership.forPair(member.id, closed.id).fetch()).to.not.exist
     })
   })
 

@@ -8,6 +8,7 @@ import {
   listBlockingSpaces
 } from '../../models/space/convertChatSpaceToDiscussion'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
+import { seedTaskStatuses } from '../../models/task/statuses'
 import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
 import { track } from '../../../lib/analytics/track'
 
@@ -64,7 +65,7 @@ async function requireSpaceManager (userId, spaceId, action, { includeInactive =
   return space
 }
 
-export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true, status, autoAddMembers }, context) {
+export async function createSpace (userId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu = true, status, autoAddMembers, taskStatuses }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!parentGroupId) throw new GraphQLError('No parentGroupId passed into function')
   if (!name || !name.trim()) throw new GraphQLError('Name cannot be blank')
@@ -134,6 +135,10 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
     // No setupSystemRoles / assignAdministrator — spaces inherit roles from the parent
     await space.addMembers([userId], { lastReadAt: new Date() }, { transacting: trx })
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
+    // A project space can start with its own board columns rather than the default four
+    if (taskStatuses && taskStatuses.length > 0) {
+      await seedTaskStatuses(space.id, taskStatuses, { transacting: trx })
+    }
 
     // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5).
     // When addToMenu is false (Add Space from More Spaces), create off-menu (order = null).

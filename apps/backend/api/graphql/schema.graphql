@@ -1416,6 +1416,13 @@ type GroupQuerySet {
   items: [Group]
 }
 
+# A column for a new task board
+input TaskStatusInput {
+  name: String!
+  # todo, active or done. Defaults to active.
+  category: String
+}
+
 # A column on a Group's or Space's Tasks board
 type TaskStatus {
   id: ID
@@ -3616,7 +3623,9 @@ type Mutation {
     # draft or published. Drafts are always created off-menu.
     status: GroupStatus,
     # When true, current parent-group members are added in the background (except people who previously left)
-    autoAddMembers: Boolean
+    autoAddMembers: Boolean,
+    # Starting columns for the space's task board, in order. Omit to get the default columns.
+    taskStatuses: [TaskStatusInput]
   ): Group
   # Update a Space's settings
   updateSpace(
