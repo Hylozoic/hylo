@@ -329,11 +329,11 @@ export function fetchViewPosts (groupId, viewId) {
 }
 
 /** Create a child space under a parent group. */
-export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, geoShape, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }) {
+export function createSpace ({ parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, geoShape, visibility, accessibility, requiredRoles, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers, taskStatuses }) {
   return {
     type: CREATE_SPACE,
     graphql: {
-      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $geoShape: String, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $addToMenu: Boolean, $status: GroupStatus, $autoAddMembers: Boolean) {
+      query: `mutation ($parentGroupId: ID!, $name: String!, $slug: String, $description: String, $icon: String, $acceptedPostTypes: [String], $purpose: String, $location: String, $locationId: ID, $geoShape: String, $visibility: Int, $accessibility: Int, $requiredRoles: [Int], $viewTypes: [String], $bannerUrl: String, $avatarUrl: String, $paywall: Boolean, $addToMenu: Boolean, $status: GroupStatus, $autoAddMembers: Boolean, $taskStatuses: [TaskStatusInput]) {
         createSpace(
           parentGroupId: $parentGroupId
           name: $name
@@ -355,6 +355,7 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           addToMenu: $addToMenu
           status: $status
           autoAddMembers: $autoAddMembers
+          taskStatuses: $taskStatuses
         ) {
           id
           name
@@ -396,7 +397,7 @@ export function createSpace ({ parentGroupId, name, slug, description, icon, acc
           }
         }
       }`,
-      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, geoShape, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }
+      variables: { parentGroupId, name, slug, description, icon, acceptedPostTypes, purpose, location, locationId, geoShape, visibility, accessibility, requiredRoles: toIntRoleIds(requiredRoles), viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers, taskStatuses }
     },
     meta: {
       parentGroupId,

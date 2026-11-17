@@ -1,4 +1,4 @@
-import { boardProgress, dueInfo, locateTask, moveTaskOnBoard, toggleDoneTarget } from './boardState'
+import { boardProgress, dueInfo, isProjectSpace, locateTask, moveTaskOnBoard, toggleDoneTarget } from './boardState'
 
 const task = id => ({ id: String(id), title: `Task ${id}` })
 const board = () => [
@@ -75,5 +75,15 @@ describe('dueInfo', () => {
   it('never marks a completed task late, and handles a missing date', () => {
     expect(dueInfo(new Date(2026, 10, 1), { now, done: true }).tone).toBe('normal')
     expect(dueInfo(null)).toBeNull()
+  })
+})
+
+describe('isProjectSpace', () => {
+  it('is a space whose home is its task board', () => {
+    expect(isProjectSpace({ type: 'space', homeRoute: '/tasks' })).toBe(true)
+    expect(isProjectSpace({ type: 'space', homeRoute: 'tasks' })).toBe(true)
+    expect(isProjectSpace({ type: 'space', homeRoute: '/chat' })).toBe(false)
+    expect(isProjectSpace({ type: 'group', homeRoute: '/tasks' })).toBe(false)
+    expect(isProjectSpace(null)).toBe(false)
   })
 })

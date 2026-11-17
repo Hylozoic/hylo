@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   closestCorners,
@@ -11,7 +11,7 @@ import {
   useSensor,
   useSensors
 } from '@dnd-kit/core'
-import { Plus } from 'lucide-react'
+import { Plus, Users } from 'lucide-react'
 import { postUrl } from '@hylo/navigation'
 import Loading from 'components/Loading'
 import {
@@ -235,6 +235,10 @@ export default function TaskBoard ({ group, routeParams, currentUser, canManageC
     active ? 'bg-foreground/20 text-foreground' : 'bg-transparent text-foreground/60 hover:text-foreground'
   )
   const noTasksOfMine = mineOnly && progress.total === 0
+  // In a space the board shows who is on the project, linking to the space's Members view
+  const membersUrl = group?.type === 'space' && group.memberCount > 0 && /\/tasks(\/|$)/.test(location.pathname)
+    ? location.pathname.replace(/\/tasks(\/.*)?$/, '/members')
+    : null
 
   return (
     <div data-testid='task-board' className='flex flex-col flex-1 min-h-0 gap-3'>
@@ -250,6 +254,16 @@ export default function TaskBoard ({ group, routeParams, currentUser, canManageC
             {t('{{done}} of {{total}} done', { done: progress.done, total: progress.total })}
           </span>
         </div>
+        {membersUrl && (
+          <Link
+            to={membersUrl}
+            data-testid='task-board-members'
+            className='flex items-center gap-1 text-xs font-bold text-foreground/60 hover:text-foreground'
+          >
+            <Users className='w-3.5 h-3.5' />
+            {t('{{count}} members', { count: group.memberCount })}
+          </Link>
+        )}
         {currentUser && (
           <div className='ml-auto inline-flex items-center gap-0.5 p-0.5 rounded-lg border border-foreground/20 bg-background'>
             <button type='button' data-testid='task-board-everyone' className={pill(!mineOnly)} onClick={() => setMineOnly(false)}>{t('Everyone')}</button>

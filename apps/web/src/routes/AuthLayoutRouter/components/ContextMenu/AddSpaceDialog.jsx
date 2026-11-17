@@ -7,7 +7,7 @@ import { TRACK_SETUP_TOUR_ID, trackSetupTourSteps } from 'tours/trackSetupTour'
 import { FUNDING_ROUND_SETUP_TOUR_ID, fundingRoundSetupTourSteps } from 'tours/fundingRoundSetupTour'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Activity, BadgeDollarSign, HeartHandshake, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes, Users } from 'lucide-react'
+import { Activity, BadgeDollarSign, HeartHandshake, ImagePlus, Layers, LayoutGrid, MapPin, MessageCircleMore, Plus, Settings, Shapes, SquareKanban, Users } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import { FIELD_LABEL_CLASS, INPUT_CLASS } from 'components/ui/form-field'
@@ -43,6 +43,7 @@ import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
+import ProjectColumnsFields, { defaultProjectColumns, projectColumnsForCreate, projectColumnsValid } from './ProjectColumnsFields'
 import AutoAddMembersSetting from './AutoAddMembersSetting'
 import { accessOptionsForGroup, toMinuteIsoOrNull } from './spaceFormConstants'
 
@@ -60,6 +61,7 @@ const STANDARD_VIEW_TYPES = new Set([
 const SPACE_TYPE_OPTIONS = [
   { value: 'custom', labelKey: 'Custom Space', icon: Layers },
   { value: 'chat', labelKey: 'Chat Space', icon: MessageCircleMore },
+  { value: 'project', labelKey: 'Project', icon: SquareKanban },
   { value: 'track', labelKey: 'Track', icon: Shapes },
   { value: 'funding-round', labelKey: 'Funding Round', icon: BadgeDollarSign }
 ]
@@ -91,6 +93,12 @@ function defaultsForSpaceType (spaceType) {
         postTypes: [],
         standardViewTypes: ['chat'],
         icon: 'MessageCircleMore'
+      }
+    case 'project':
+      return {
+        postTypes: ['task'],
+        standardViewTypes: ['tasks', 'chat', 'members'],
+        icon: 'SquareKanban'
       }
     case 'track':
       return {
@@ -228,6 +236,10 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   const [actionDescriptorPlural, setActionDescriptorPlural] = useState('Actions')
   const [completionRole, setCompletionRole] = useState(null)
   const completionMessageEditorRef = useRef(null)
+
+  // Starting board columns (only used when creating a project space)
+  const [projectColumns, setProjectColumns] = useState(() => defaultProjectColumns(t))
+  const projectColumnsOk = spaceType !== 'project' || projectColumnsValid(projectColumns)
 
   /** Switches space type and resets post types / included views / icon to that type's defaults. */
   const handleSpaceTypeChange = useCallback((value) => {
@@ -415,7 +427,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   }, [])
 
   const handleCreate = useCallback(async (status) => {
-    if (!name.trim() || !group?.id) return
+    if (!name.trim() || !group?.id || !projectColumnsOk) return
     if (!slugValid) {
       setShowSlugError(true)
       return
@@ -457,7 +469,8 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         viewTypes,
         addToMenu: status === 'draft' ? false : addToMenu,
         status,
-        autoAddMembers
+        autoAddMembers,
+        taskStatuses: spaceType === 'project' ? projectColumnsForCreate(projectColumns) : undefined
       }))
 
       const newSpace = result?.payload?.data?.createSpace
@@ -579,7 +592,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
     } finally {
       setIsCreating(false)
     }
-  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, geoShape, postTypes, access, accessOptions, requiredRoles, autoAddMembers, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeSubmissions, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles])
+  }, [dispatch, group?.id, name, slug, slugValid, description, icon, bannerUrl, purpose, locationObject, geoShape, postTypes, access, accessOptions, requiredRoles, autoAddMembers, spaceType, orderedRows, standardViewTypes, homeViewType, welcomeEnabled, welcomeExtras, showWelcomePage, onClose, onCreated, navigate, routerLocation.pathname, addToMenu, isOneColumn, actionDescriptor, actionDescriptorPlural, completionRole, frSubmissionsOpenAt, frSubmissionsCloseAt, frVotingOpensAt, frVotingClosesAt, frVotingMethod, frTotalTokens, frTokenType, frAllowSelfVoting, frAllowLateJoiners, frHideFinalResults, frRequireBudget, frShowRealtimeSubmissions, frShowRealtimeVotes, frSubmissionDescriptor, frSubmissionDescriptorPlural, frSubmitterRoles, frVoterRoles, projectColumns, projectColumnsOk])
 
   /** True when the user has entered anything beyond the form's initial defaults. */
   const hasEnteredData = useCallback(() => {
@@ -649,9 +662,11 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       key: 'postTypes',
       icon: LayoutGrid,
       label: 'Post types',
-      defaultSummary: defaultsForSpaceType(spaceType).postTypes.length > 0
-        ? t('Discussions, events, requests, offers')
-        : t('None'),
+      defaultSummary: spaceType === 'project'
+        ? t('Tasks')
+        : defaultsForSpaceType(spaceType).postTypes.length > 0
+          ? t('Discussions, events, requests, offers')
+          : t('None'),
       render: () => (
         <PostTypePills postTypes={postTypes} onPostTypesChange={setPostTypes} label={t('Accepted post types')} />
       )
@@ -698,7 +713,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
   ], [t, locationObject, geoShape, postTypes, spaceType, showWelcomePage, welcomeEnabled, welcomeExtras?.pageContent, group?.id, autoAddMembers])
 
   const revealedSettings = advancedSettings.filter(setting => openAdvanced.has(setting.key))
-  const hideHomePickerCopy = spaceType === 'chat' || spaceType === 'track' || spaceType === 'funding-round'
+  const hideHomePickerCopy = spaceType === 'chat' || spaceType === 'project' || spaceType === 'track' || spaceType === 'funding-round'
 
   /** Closes the dialog when the dimmed overlay (not the panel) is clicked. */
   const handleBackdropClick = (event) => {
@@ -721,7 +736,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         {trackTourInvitation}
         {roundTourInvitation}
         <div className='flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 p-1 -m-1'>
-          <div className='grid grid-cols-2 sm:grid-cols-4 gap-2' data-tour='space-type'>
+          <div className='grid grid-cols-2 sm:grid-cols-5 gap-2' data-tour='space-type'>
             {SPACE_TYPE_OPTIONS.map(option => {
               const OptionIcon = option.icon
               const isSelected = spaceType === option.value
@@ -730,6 +745,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
                   key={option.value}
                   type='button'
                   data-tour={'space-type-' + option.value}
+                  data-testid={'space-type-' + option.value}
                   onClick={() => handleSpaceTypeChange(option.value)}
                   className={cn(
                     'flex flex-col items-center gap-1 rounded-md border-2 p-2 transition-all',
@@ -903,6 +919,10 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
               )}
           </div>
 
+          {spaceType === 'project' && (
+            <ProjectColumnsFields columns={projectColumns} onChange={setProjectColumns} />
+          )}
+
           {spaceType === 'track' && (
             <TrackSettingsFields
               actionDescriptor={actionDescriptor}
@@ -997,10 +1017,10 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
 
         <div className='flex justify-end gap-2 mt-4 pt-2 border-t border-foreground/10' data-tour='space-publish'>
           <Button variant='primary' onClick={requestClose}>{t('Cancel')}</Button>
-          <Button variant='primary' disabled={!name.trim() || isCreating} onClick={() => handleCreate('draft')}>
+          <Button variant='primary' disabled={!name.trim() || isCreating || !projectColumnsOk} onClick={() => handleCreate('draft')}>
             {isCreating ? t('Creating...') : t('Save as Draft')}
           </Button>
-          <Button variant='secondary' disabled={!name.trim() || isCreating} onClick={() => handleCreate('published')}>
+          <Button variant='secondary' data-testid='space-create-publish' disabled={!name.trim() || isCreating || !projectColumnsOk} onClick={() => handleCreate('published')}>
             {isCreating ? t('Creating...') : t('Create and Publish')}
           </Button>
         </div>
@@ -1013,7 +1033,7 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
         continueEditingLabel={t('Continue Editing')}
         saveDraftLabel={t('Save as Draft')}
         discardLabel={t('Discard Space')}
-        saveDraftDisabled={!name.trim() || isCreating}
+        saveDraftDisabled={!name.trim() || isCreating || !projectColumnsOk}
         onContinueEditing={handleContinueEditing}
         onDiscard={handleDiscardSpace}
         onSaveDraft={handleSaveDraftAndClose}

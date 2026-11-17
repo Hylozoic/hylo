@@ -21,6 +21,14 @@ export function spaceCreateTourSteps (t) {
       }
     },
     {
+      element: '[data-tour="space-type-project"]',
+      popover: {
+        title: t('Project'),
+        description: t('A shared board of tasks. Members take tasks and move them through columns you choose until they are done.'),
+        side: 'bottom'
+      }
+    },
+    {
       element: '[data-tour="space-type-track"]',
       popover: {
         title: t('Track'),
