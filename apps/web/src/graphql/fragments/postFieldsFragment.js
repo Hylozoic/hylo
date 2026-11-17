@@ -79,6 +79,15 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   isAnonymousVote
   isPublic
   fulfilledAt
+  taskCategory
+  taskPlacements {
+    id
+    groupId
+    taskStatusId
+    statusName
+    statusCategory
+    position
+  }
   canEdit
   groupAdminsCanEdit
   startTime

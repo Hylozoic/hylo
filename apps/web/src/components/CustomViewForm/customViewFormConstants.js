@@ -3,7 +3,7 @@ export const DEFAULT_SELECTED_POST_TYPES = [
   'discussion',
   'event',
   'resource',
-  'project',
+  'task',
   'proposal',
   'request',
   'offer'
@@ -14,7 +14,7 @@ export const CUSTOM_STREAM_POST_TYPE_PILLS = [
   { key: 'discussion', postTypes: ['discussion'], labelKey: 'view-discussions', defaultLabel: 'Discussions' },
   { key: 'event', postTypes: ['event'], labelKey: 'view-events', defaultLabel: 'Events' },
   { key: 'resource', postTypes: ['resource'], labelKey: 'view-resources', defaultLabel: 'Resources' },
-  { key: 'project', postTypes: ['project'], labelKey: 'view-projects', defaultLabel: 'Projects' },
+  { key: 'task', postTypes: ['task'], labelKey: 'view-tasks', defaultLabel: 'Tasks' },
   { key: 'proposal', postTypes: ['proposal'], labelKey: 'view-proposals', defaultLabel: 'Proposals' },
   { key: 'request', postTypes: ['request'], labelKey: 'view-requests', defaultLabel: 'Requests' },
   { key: 'offer', postTypes: ['offer'], labelKey: 'view-offers', defaultLabel: 'Offers' }
@@ -25,7 +25,7 @@ export const ACCEPTED_POST_TYPE_PILLS = [
   { key: 'discussion', postTypes: ['discussion'], labelKey: 'view-discussions', defaultLabel: 'Discussions' },
   { key: 'event', postTypes: ['event'], labelKey: 'view-events', defaultLabel: 'Events' },
   { key: 'resource', postTypes: ['resource'], labelKey: 'view-resources', defaultLabel: 'Resources' },
-  { key: 'project', postTypes: ['project'], labelKey: 'view-projects', defaultLabel: 'Projects' },
+  { key: 'task', postTypes: ['task'], labelKey: 'view-tasks', defaultLabel: 'Tasks' },
   { key: 'proposal', postTypes: ['proposal'], labelKey: 'view-proposals', defaultLabel: 'Proposals' },
   { key: 'requests-and-offers', postTypes: ['request', 'offer'], labelKey: 'view-requests-and-offers', defaultLabel: 'Requests & Offers' }
 ]

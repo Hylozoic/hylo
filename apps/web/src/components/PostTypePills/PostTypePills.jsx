@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeftRight, BookOpen, Calendar, Check, FolderKanban, Gift, Heart, MessageSquareText, Vote } from 'lucide-react'
+import { ArrowLeftRight, BookOpen, Calendar, Check, Gift, Heart, MessageSquareText, SquareKanban, Vote } from 'lucide-react'
 
 import { ACCEPTED_POST_TYPE_PILLS } from 'components/CustomViewForm/customViewFormConstants'
 import { cn } from 'util/index'
@@ -14,7 +14,7 @@ const POST_TYPE_OPTION_STYLES = {
   'requests-and-offers': { icon: ArrowLeftRight, selectedClassName: 'border-requests bg-requests/15 text-requests' },
   resource: { icon: BookOpen, selectedClassName: 'border-resources bg-resources/15 text-resources' },
   proposal: { icon: Vote, selectedClassName: 'border-proposals bg-proposals/15 text-proposals' },
-  project: { icon: FolderKanban, selectedClassName: 'border-projects bg-projects/15 text-projects' }
+  task: { icon: SquareKanban, selectedClassName: 'border-projects bg-projects/15 text-projects' }
 }
 
 /** Toggleable pills for selecting which post types apply (custom views, spaces, etc). */

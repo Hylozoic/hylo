@@ -20,6 +20,7 @@ import FundingRoundSubmissionsView from 'routes/FundingRoundSubmissionsView/Fund
 import ManageRoundView from 'routes/ManageRoundView/ManageRoundView'
 import TrackActionsView from 'routes/TrackActionsView/TrackActionsView'
 import ViewContent from 'routes/ViewContent'
+import RedirectProjectsToTasks from 'routes/RedirectProjectsToTasks'
 import SpaceCollection from 'routes/SpaceCollection'
 import ContextMenuGrid from 'routes/AuthLayoutRouter/components/ContextMenu/ContextMenuGrid'
 import { setMembershipLastViewedAt } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
@@ -205,7 +206,8 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='discussions/*' element={<ViewContent context='groups' view='discussions' />} />
         <Route path='events/*' element={<ViewContent context='groups' view='events' />} />
         <Route path='resources/*' element={<ViewContent context='groups' view='resources' />} />
-        <Route path='projects/*' element={<ViewContent context='groups' view='projects' />} />
+        <Route path='tasks/*' element={<ViewContent context='groups' view='tasks' />} />
+        <Route path='projects/*' element={<RedirectProjectsToTasks />} />
         <Route path='proposals/*' element={<ViewContent context='groups' view='proposals' />} />
         <Route path='requests-and-offers/*' element={<ViewContent context='groups' view='requests-and-offers' />} />
         <Route path='custom/:customViewId/*' element={<ViewContent context='groups' view='custom' />} />

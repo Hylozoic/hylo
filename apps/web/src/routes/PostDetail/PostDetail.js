@@ -34,8 +34,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import fetchPost from 'store/actions/fetchPost'
 import { followPost, unfollowPost } from 'store/actions/followPost'
-import joinProject from 'store/actions/joinProject'
-import leaveProject from 'store/actions/leaveProject'
+import { stepOffTask, takeTask } from 'store/actions/taskActions'
 import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
@@ -525,7 +524,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     detail.scrollTop = detail.scrollHeight
   }, [])
 
-  const isProject = useMemo(() => get('type', post) === 'project', [post])
+  // Tasks took over from projects: their members are the people working on the task
+  const isProject = useMemo(() => get('type', post) === 'task', [post])
   const isProjectMember = useMemo(() => isProject && find(({ id }) => id === get('id', currentUser), get('members', post)), [currentUser, post])
   const isEvent = useMemo(() => get('type', post) === 'event', [post])
 
@@ -558,7 +558,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
   if (isProject) {
     people = post?.members
-    postPeopleDialogTitle = t('Project Members')
+    postPeopleDialogTitle = t('Who’s on it')
   } else if (isEvent) {
     people = post?.eventInvitations
     postPeopleDialogTitle = t('Responses')
@@ -689,8 +689,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               <div className={classes.joinProjectButtonContainer}>
                 <JoinProjectSection
                   currentUser={currentUser}
-                  joinProject={() => dispatch(joinProject(postId))}
-                  leaveProject={() => dispatch(leaveProject(postId))}
+                  joinProject={() => dispatch(takeTask(postId))}
+                  leaveProject={() => dispatch(stepOffTask(postId))}
                   leaving={isProjectMember}
                   members={post.members}
                   togglePeopleDialog={handleTogglePeopleDialog}
@@ -698,7 +698,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               </div>
               {post.projectManagementLink && projectManagementTool && (
                 <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
-                  <div>{t('This project is being managed on')} <img className='max-h-4 m-0' src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
+                  <div>{t('This task is being managed on')} <img className='max-h-4 m-0' src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
                   <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
                 </div>
               )}
@@ -710,13 +710,13 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               )}
               {post.donationsLink && donationService && (
                 <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
-                  <div className='flex items-center gap-2'>{t('Support this project on')} <img className='max-h-4 m-0' src={`/assets/payment-services/${donationService}.svg`} /></div>
+                  <div className='flex items-center gap-2'>{t('Support this task on')} <img className='max-h-4 m-0' src={`/assets/payment-services/${donationService}.svg`} /></div>
                   <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
                 </div>
               )}
               {post.donationsLink && !donationService && (
                 <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed'>
-                  <div>{t('Support this project')}</div>
+                  <div>{t('Support this task')}</div>
                   <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
                 </div>
               )}
@@ -792,7 +792,7 @@ PostDetail.propTypes = {
 
 export function JoinProjectSection ({ currentUser, members, leaving, joinProject, leaveProject, togglePeopleDialog }) {
   const { t } = useTranslation()
-  const buttonText = leaving ? t('Leave Project') : t('Join Project')
+  const buttonText = leaving ? t('Step off') : t('I’ll take this')
   const onClick = () => leaving ? leaveProject() : joinProject()
 
   return (
@@ -803,14 +803,15 @@ export function JoinProjectSection ({ currentUser, members, leaving, joinProject
         excludePersonId={get('id', currentUser)}
         onClick={togglePeopleDialog}
         phrases={{
-          emptyMessage: t('No project members'),
-          phraseSingular: t('is a member'),
-          mePhraseSingular: t('are a member'),
-          pluralPhrase: t('are members')
+          emptyMessage: t('Nobody is on this yet'),
+          phraseSingular: t('is on it'),
+          mePhraseSingular: t('are on it'),
+          pluralPhrase: t('are on it')
         }}
       />
       <Button
         key='join-project-button'
+        data-testid='task-take-button'
         onClick={onClick}
         variant='outline'
       >

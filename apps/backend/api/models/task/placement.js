@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql'
+import { notifyTaskStatusChanged } from './notifications'
 
 // Where a task sits on each group's board lives on groups_posts (task_status_id, task_position).
 // Its category (todo / active / done) lives on the post and is shared by every board:
@@ -57,13 +58,23 @@ export async function positionForIndex (statusId, postId, index, transacting) {
 /** The post's board placements: one per group it is posted to. */
 export async function placementsForPost (postId, { transacting } = {}) {
   const rows = await knexFor('groups_posts', transacting)
-    .where({ post_id: postId })
-    .orderBy('id', 'asc')
-    .select('id', 'group_id', 'task_status_id', 'task_position')
+    .leftJoin('task_statuses', 'task_statuses.id', 'groups_posts.task_status_id')
+    .where({ 'groups_posts.post_id': postId })
+    .orderBy('groups_posts.id', 'asc')
+    .select(
+      'groups_posts.id',
+      'groups_posts.group_id',
+      'groups_posts.task_status_id',
+      'groups_posts.task_position',
+      'task_statuses.name as status_name',
+      'task_statuses.category as status_category'
+    )
   return rows.map(row => ({
     id: String(row.id),
     groupId: String(row.group_id),
     taskStatusId: row.task_status_id ? String(row.task_status_id) : null,
+    statusName: row.status_name || null,
+    statusCategory: row.status_category || null,
     position: row.task_position == null ? null : Number(row.task_position)
   }))
 }
@@ -176,6 +187,7 @@ export async function moveTask ({ post, groupId, statusId, index, actorId }) {
           toCategory: status.get('category')
         }
       }, { transacting })
+      await notifyTaskStatusChanged({ post, status, actorId, groupId, transacting })
     }
 
     if (changedCategory) {
