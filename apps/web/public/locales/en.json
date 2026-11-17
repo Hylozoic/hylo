@@ -3585,5 +3585,15 @@
   "Nothing on your plate here": "Nothing on your plate here",
   "Open any task and choose “I’ll take this” to put it on your list.": "Open any task and choose “I’ll take this” to put it on your list.",
   "See everyone’s tasks": "See everyone’s tasks",
-  "Add column": "Add column"
+  "Add column": "Add column",
+  "A shared board of tasks. Members take tasks and move them through columns you choose until they are done.": "A shared board of tasks. Members take tasks and move them through columns you choose until they are done.",
+  "Board columns": "Board columns",
+  "Each column is a status a task can have. You can rename, add and remove columns on the board later.": "Each column is a status a task can have. You can rename, add and remove columns on the board later.",
+  "Column name": "Column name",
+  "Counts as": "Counts as",
+  "Remove column": "Remove column",
+  "Join project": "Join project",
+  "Request to join project": "Request to join project",
+  "To do": "To do",
+  "Ready for review": "Ready for review"
 }

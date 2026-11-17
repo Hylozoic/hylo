@@ -3588,5 +3588,15 @@
   "Nothing on your plate here": "यहाँ आपके पास कोई कार्य नहीं है",
   "Open any task and choose “I’ll take this” to put it on your list.": "किसी भी कार्य को खोलें और उसे अपनी सूची में जोड़ने के लिए “मैं इसे लूँगा” चुनें।",
   "See everyone’s tasks": "सभी के कार्य देखें",
-  "Add column": "कॉलम जोड़ें"
+  "Add column": "कॉलम जोड़ें",
+  "A shared board of tasks. Members take tasks and move them through columns you choose until they are done.": "कार्यों का एक साझा बोर्ड। सदस्य कार्य लेते हैं और उन्हें आपके चुने हुए कॉलमों से होते हुए पूरा होने तक आगे बढ़ाते हैं।",
+  "Board columns": "बोर्ड के कॉलम",
+  "Each column is a status a task can have. You can rename, add and remove columns on the board later.": "हर कॉलम एक स्थिति है जो किसी कार्य की हो सकती है। आप बाद में बोर्ड पर कॉलमों का नाम बदल सकते हैं, उन्हें जोड़ और हटा सकते हैं।",
+  "Column name": "कॉलम का नाम",
+  "Counts as": "इस रूप में गिना जाता है",
+  "Remove column": "कॉलम हटाएँ",
+  "Join project": "प्रोजेक्ट से जुड़ें",
+  "Request to join project": "प्रोजेक्ट से जुड़ने का अनुरोध करें",
+  "To do": "करना है",
+  "Ready for review": "समीक्षा के लिए तैयार"
 }

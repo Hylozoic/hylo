@@ -3589,5 +3589,15 @@
   "Nothing on your plate here": "Rien à votre charge ici",
   "Open any task and choose “I’ll take this” to put it on your list.": "Ouvrez une tâche et choisissez « Je m’en occupe » pour l’ajouter à votre liste.",
   "See everyone’s tasks": "Voir les tâches de tout le monde",
-  "Add column": "Ajouter une colonne"
+  "Add column": "Ajouter une colonne",
+  "A shared board of tasks. Members take tasks and move them through columns you choose until they are done.": "Un tableau de tâches partagé. Les membres prennent des tâches et les font avancer dans les colonnes que vous choisissez jusqu’à ce qu’elles soient terminées.",
+  "Board columns": "Colonnes du tableau",
+  "Each column is a status a task can have. You can rename, add and remove columns on the board later.": "Chaque colonne est un statut qu’une tâche peut avoir. Vous pourrez renommer, ajouter et supprimer des colonnes sur le tableau plus tard.",
+  "Column name": "Nom de la colonne",
+  "Counts as": "Compte comme",
+  "Remove column": "Supprimer la colonne",
+  "Join project": "Rejoindre le projet",
+  "Request to join project": "Demander à rejoindre le projet",
+  "To do": "À faire",
+  "Ready for review": "Prêt pour la relecture"
 }
