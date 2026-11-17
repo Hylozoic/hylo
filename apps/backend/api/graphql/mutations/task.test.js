@@ -12,6 +12,7 @@ import {
   updateTaskStatus
 } from './task'
 import { placementsForPost } from '../../models/task/placement'
+import { createRequestHandler } from '../index'
 
 describe('tasks', () => {
   let steward, member, outsider, group, otherGroup
@@ -187,6 +188,46 @@ describe('tasks', () => {
       const post = await newTask(steward.id)
       await expect(assignTask(steward.id, { postId: post.id, userId: outsider.id }))
         .to.be.rejectedWith(/Only members of the group/)
+    })
+  })
+
+  describe('through GraphQL', () => {
+    it('moves a task and returns its board placement and the group\'s columns', async () => {
+      const post = await newTask(steward.id, { title: 'via graphql' })
+      const done = await columnNamed(group.id, 'Complete')
+      const req = factories.mock.request()
+      req.url = '/noo/graphql'
+      req.method = 'POST'
+      req.headers = { 'Content-Type': 'application/json' }
+      req.session = { userId: member.id, destroy: () => {} }
+      req.user = member
+
+      const { executionResult } = await createRequestHandler().inject({
+        document: `mutation {
+          moveTask(postId: "${post.id}", groupId: "${group.id}", taskStatusId: "${done.id}", index: 0) {
+            id
+            type
+            taskCategory
+            fulfilledAt
+            canEdit
+            taskPlacements { groupId taskStatusId position }
+            groups { id taskStatuses { id name category order } }
+          }
+        }`,
+        serverContext: { req, res: factories.mock.response() }
+      })
+
+      expect(executionResult.errors).to.not.exist
+      const task = executionResult.data.moveTask
+      expect(task.type).to.equal('task')
+      expect(task.taskCategory).to.equal('done')
+      expect(task.fulfilledAt).to.exist
+      expect(task.canEdit).to.equal(true)
+      expect(task.taskPlacements).to.have.length(1)
+      expect(task.taskPlacements[0]).to.include({ groupId: String(group.id), taskStatusId: String(done.id) })
+      const statuses = task.groups[0].taskStatuses
+      expect(statuses.map(s => s.category)).to.include.members(['todo', 'active', 'done'])
+      expect(statuses.map(s => s.order)).to.deep.equal(statuses.map((s, i) => i))
     })
   })
 
