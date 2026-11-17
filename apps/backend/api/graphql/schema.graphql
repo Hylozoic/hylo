@@ -1022,7 +1022,7 @@ type Group {
 
   # The agreements required to participate in this Group
   agreements: AgreementQuerySet
-  # The columns of this Group's or Space's Tasks board, in board order. Empty until the board is first used
+  # The columns of this Group's or Space's Tasks board, in board order. The default columns are created the first time a member asks for them
   taskStatuses: [TaskStatus]
   # Recent activity on this Group's or Space's tasks, oldest first, for the daily summary. Members only.
   # sinceDaysAgo: how many days back to look (default 1, at most 14)
@@ -1426,6 +1426,11 @@ type TaskStatus {
   category: String
   # Position of the column on the board, starting at 0
   order: Int
+  # The tasks in this column that the viewer can see, in board order (top first).
+  # assigneeId limits them to tasks that person is on
+  tasks(first: Int, offset: Int, assigneeId: ID): [Post]
+  # How many tasks are in this column (that the viewer can see)
+  tasksTotal(assigneeId: ID): Int
 }
 
 # Something that happened to a task on a group's board: 'created', 'moved', 'completed',

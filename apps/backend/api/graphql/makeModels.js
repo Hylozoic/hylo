@@ -1277,7 +1277,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // jsonb may come back as a JSON string after save; [String] cannot serialize that.
         acceptedPostTypes: g => parseAcceptedPostTypes(g.get('accepted_post_types')),
         eventCalendarUrl: g => g.eventCalendarUrl(),
-        taskStatuses: g => TaskStatus.forGroup(g.id),
+        // A member opening the board for the first time gets the default columns
+        taskStatuses: async g => (userId && await GroupMembership.hasActiveMembership(userId, g))
+          ? TaskStatus.ensureForGroup(g.id)
+          : TaskStatus.forGroup(g.id),
         taskEvents: async (g, { sinceDaysAgo = 1 }) => {
           if (!userId || !(await GroupMembership.hasActiveMembership(userId, g))) return []
           return TaskEvent.recentForGroup(g.id, sinceDaysAgo)
@@ -1911,7 +1914,18 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'category',
         'order'
       ],
-      relations: ['group']
+      relations: ['group'],
+      getters: {
+        tasks: (status, { first = 100, offset = 0, assigneeId }) =>
+          postFilter(userId, isAdmin)(Post.query(q => {
+            TaskStatus.tasksQuery(q, status.id, { assigneeId })
+            q.limit(Math.max(1, Math.min(first, 500))).offset(Math.max(0, offset))
+          })).fetchAll().then(result => result.models),
+        tasksTotal: (status, { assigneeId }) =>
+          postFilter(userId, isAdmin)(Post.query(q => {
+            TaskStatus.tasksQuery(q, status.id, { assigneeId, ordered: false })
+          })).count().then(Number)
+      }
     },
 
     Track: {
