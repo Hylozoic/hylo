@@ -1,4 +1,16 @@
-import { CONVERT_PROJECT_TO_SPACE, FETCH_TASK_EVENTS, FETCH_TASK_STATUSES, JOIN_PROJECT, LEAVE_PROJECT, MOVE_TASK } from 'store/constants'
+import {
+  CONVERT_PROJECT_TO_SPACE,
+  CREATE_TASK,
+  CREATE_TASK_STATUS,
+  DELETE_TASK_STATUS,
+  FETCH_TASK_BOARD,
+  FETCH_TASK_EVENTS,
+  FETCH_TASK_STATUSES,
+  JOIN_PROJECT,
+  LEAVE_PROJECT,
+  MOVE_TASK,
+  UPDATE_TASK_STATUS
+} from 'store/constants'
 
 const taskStatusFields = `
   id
@@ -116,6 +128,120 @@ export function stepOffTask (postId) {
       variables: { postId }
     },
     meta: { id: postId }
+  }
+}
+
+// The kanban board keeps its own copy of the columns and cards (see components/TaskBoard),
+// so these actions return plain data on `payload.data` rather than writing to the ORM.
+
+const boardCardFields = `
+  id
+  title
+  endTime
+  fulfilledAt
+  commentsTotal
+  taskCategory
+  creator {
+    id
+  }
+  members {
+    items {
+      id
+      name
+      avatarUrl
+    }
+  }
+`
+
+/** How many cards a column loads at once. Longer columns show how many more there are. */
+export const BOARD_COLUMN_PAGE_SIZE = 100
+
+/** Loads a group's board: its columns, each with its tasks in order. assigneeId limits it to one person's tasks. */
+export function fetchTaskBoard (groupId, assigneeId) {
+  return {
+    type: FETCH_TASK_BOARD,
+    graphql: {
+      query: `query FetchTaskBoard ($id: ID, $first: Int, $assigneeId: ID) {
+        group (id: $id) {
+          id
+          taskStatuses {
+            id
+            name
+            category
+            order
+            tasksTotal (assigneeId: $assigneeId)
+            tasks (first: $first, assigneeId: $assigneeId) {
+              ${boardCardFields}
+            }
+          }
+        }
+      }`,
+      variables: { id: groupId, first: BOARD_COLUMN_PAGE_SIZE, assigneeId: assigneeId || null }
+    }
+  }
+}
+
+/** Adds a task with just a title to the bottom of a column. */
+export function createTask ({ groupId, title, taskStatusId }) {
+  return {
+    type: CREATE_TASK,
+    graphql: {
+      query: `mutation CreateTask ($data: PostInput) {
+        createPost (data: $data) {
+          ${boardCardFields}
+        }
+      }`,
+      variables: { data: { type: 'task', title, groupIds: [groupId], taskStatusId } }
+    }
+  }
+}
+
+const columnFields = `
+  id
+  name
+  category
+  order
+`
+
+export function createTaskStatus ({ groupId, name, category }) {
+  return {
+    type: CREATE_TASK_STATUS,
+    graphql: {
+      query: `mutation CreateTaskStatus ($groupId: ID, $name: String, $category: String) {
+        createTaskStatus (groupId: $groupId, name: $name, category: $category) {
+          ${columnFields}
+        }
+      }`,
+      variables: { groupId, name, category }
+    }
+  }
+}
+
+export function updateTaskStatus ({ id, name, category, order }) {
+  return {
+    type: UPDATE_TASK_STATUS,
+    graphql: {
+      query: `mutation UpdateTaskStatus ($id: ID, $name: String, $category: String, $order: Int) {
+        updateTaskStatus (id: $id, name: $name, category: $category, order: $order) {
+          ${columnFields}
+        }
+      }`,
+      variables: { id, name, category, order }
+    }
+  }
+}
+
+export function deleteTaskStatus (id) {
+  return {
+    type: DELETE_TASK_STATUS,
+    graphql: {
+      query: `mutation DeleteTaskStatus ($id: ID) {
+        deleteTaskStatus (id: $id) {
+          success
+        }
+      }`,
+      variables: { id }
+    }
   }
 }
 
