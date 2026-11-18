@@ -3713,6 +3713,8 @@
   "Assistant is on": "El asistente está activado",
   "Assistant is off": "El asistente está desactivado",
   "Turning it on shows it to stewards in the group menu.": "Al activarlo, los stewards lo ven en el menú del grupo.",
+  "Let Axl see who your members are": "Permitir que Axl vea quiénes son tus miembros",
+  "Names, when each person joined, and when they last posted or replied in this group. Nothing else about them. Axl can then answer questions like who is new, who has been here three months, and who has gone quiet.": "Nombres, cuándo se unió cada persona y cuándo publicó o respondió por última vez en este grupo. Nada más sobre ellas. Así Axl puede responder preguntas como quién es nuevo, quién lleva tres meses aquí y quién ha dejado de participar.",
   "Turning it off hides it from the group menu and stops all reading.": "Al desactivarlo desaparece del menú del grupo y deja de leer por completo.",
   "Spaces it can read": "Espacios que puede leer",
   "Axl reads nothing outside this list, and never direct messages.": "Axl no lee nada fuera de esta lista, y nunca los mensajes directos.",

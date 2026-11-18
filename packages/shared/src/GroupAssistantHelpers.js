@@ -20,13 +20,15 @@ export const GROUP_ASSISTANT_DEFAULTS = {
   summarize: true,
   // Members can ask questions answered from the group's posts
   answerMembers: false,
+  // The assistant is given members' names, join dates and the date each last posted or replied
+  readMembers: false,
   // Ids of the group itself and of its child spaces that the assistant may read
   readableGroupIds: [],
   // Where requests run. 'hosted' is the only choice until shared compute exists
   runsOn: 'hosted'
 }
 
-export const GROUP_ASSISTANT_FLAGS = ['enabled', 'followUps', 'shareLoad', 'summarize', 'answerMembers']
+export const GROUP_ASSISTANT_FLAGS = ['enabled', 'followUps', 'shareLoad', 'summarize', 'answerMembers', 'readMembers']
 export const GROUP_ASSISTANT_RUNS_ON = ['hosted']
 export const MAX_ASSISTANT_READABLE_GROUPS = 100
 export const MAX_ASSISTANT_MESSAGE_LENGTH = 4000

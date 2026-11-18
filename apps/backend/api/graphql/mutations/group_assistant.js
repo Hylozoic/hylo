@@ -331,7 +331,7 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
   const stewardMessageId = stewardRow.id || stewardRow
 
   // The only content the model sees: what the stewards chose, selected in the database
-  const content = await (deps.fetchContent || fetchAssistantContent)({ group, readableGroupIds: settings.readableGroupIds })
+  const content = await (deps.fetchContent || fetchAssistantContent)({ group, readableGroupIds: settings.readableGroupIds, includeMembers: settings.readMembers })
   const allowedPostIds = content.posts.map(post => post.id)
   const allowedGroupIds = content.spaces.map(space => space.id)
   const asker = await knex('users').where('id', userId).first('name')

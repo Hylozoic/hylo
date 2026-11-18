@@ -193,6 +193,14 @@ export default function GroupAssistantSettingsTab ({ group }) {
               </div>
             </div>
 
+            <label className='flex items-center justify-between gap-4 rounded-lg border-2 border-foreground/15 bg-card p-3'>
+              <span className='min-w-0'>
+                <span className='block text-sm font-semibold text-foreground'>{t('Let Axl see who your members are')}</span>
+                <span className='block text-xs text-foreground/60'>{t('Names, when each person joined, and when they last posted or replied in this group. Nothing else about them. Axl can then answer questions like who is new, who has been here three months, and who has gone quiet.')}</span>
+              </span>
+              <Switch checked={!!settings.readMembers} onCheckedChange={value => save({ readMembers: value })} disabled={saving} data-testid='assistant-read-members' aria-label={t('Let Axl see who your members are')} />
+            </label>
+
             <div>
               <h3 className='m-0 mb-1 text-sm font-bold text-foreground'>{t('What it can do')}</h3>
               <p className='m-0 mb-2 text-xs text-foreground/60'>{t('These are saved now and take effect as each ability is released.')}</p>

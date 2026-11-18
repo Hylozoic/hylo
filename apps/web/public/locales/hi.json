@@ -3705,6 +3705,8 @@
   "Assistant is on": "सहायक चालू है",
   "Assistant is off": "सहायक बंद है",
   "Turning it on shows it to stewards in the group menu.": "इसे चालू करने पर यह समूह मेनू में स्टीवर्ड्स को दिखता है।",
+  "Let Axl see who your members are": "Axl को देखने दें कि आपके सदस्य कौन हैं",
+  "Names, when each person joined, and when they last posted or replied in this group. Nothing else about them. Axl can then answer questions like who is new, who has been here three months, and who has gone quiet.": "नाम, हर व्यक्ति कब जुड़ा, और उसने इस समूह में आख़िरी बार कब पोस्ट या जवाब दिया। उनके बारे में और कुछ नहीं। इसके बाद Axl ऐसे सवालों के जवाब दे सकता है जैसे कौन नया है, कौन तीन महीने से यहाँ है और कौन चुप हो गया है।",
   "Turning it off hides it from the group menu and stops all reading.": "इसे बंद करने पर यह समूह मेनू से हट जाता है और कुछ भी पढ़ना बंद कर देता है।",
   "Spaces it can read": "जिन स्थानों को यह पढ़ सकता है",
   "Axl reads nothing outside this list, and never direct messages.": "Axl इस सूची के बाहर कुछ नहीं पढ़ता, और सीधे संदेश कभी नहीं।",
