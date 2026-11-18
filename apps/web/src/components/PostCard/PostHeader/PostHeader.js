@@ -510,7 +510,7 @@ function PostHeader (props) {
           <div className='bg-muted text-muted-foreground text-sm flex flex-col gap-2 justify-between m-2 p-2 border border-dashed rounded'>
             <input
               type='text'
-              className='pl-3 h-9 w-full outline-none border-none rounded disabled:text-gray-400 placeholder:text-gray-300'
+              className='pl-3 h-9 w-full outline-none border-none rounded disabled:text-muted-foreground placeholder:text-muted-foreground/60'
               placeholder='Summarize the outcome'
               value={proposalOutcome || ''}
               onChange={e => updateProposalOutcome(e.target.value)}
@@ -559,7 +559,7 @@ export function TopicsLine ({ topics, slug, newLine }) {
     <div className={cn('text-xs flex overflow-hidden truncate whitespace-nowrap w-full pb-0 xs:pb-2;', { 'overflow-visible text-clip ml-2.5 mt-2.5 w-[450px]': newLine })}>
       {topics.slice(0, 3).map(t =>
         <Link
-          className='py:2 px-3 xs:px-2 flex items-center border rounded-md mt-2 ml-2 bg-white text-xs mr-3'
+          className='py:2 px-3 xs:px-2 flex items-center border rounded-md mt-2 ml-2 bg-card text-xs mr-3'
           to={tagSearchUrl(t.name, { groupSlug: slug })}
           key={t.name}
         >

@@ -36,9 +36,8 @@
   display: none;
   left: 0;
   height: 50%;
-  background: -webkit-linear-gradient(rgba(255, 255, 255, 0) 0%, #FFFFFF 100%);
-  background: -o-linear-gradient(rgba(255, 255, 255, 0) 0%, #FFFFFF 100%);
-  background: linear-gradient(rgba(255, 255, 255, 0) 0%, #FFFFFF 100%);
+  // Fades the clipped text into the card surface, whatever the theme
+  background: linear-gradient(hsl(var(--card) / 0) 0%, hsl(var(--card)) 100%);
 }
 
 .constrained .fade {
@@ -82,7 +81,7 @@
   // composes: timestamp from 'css/typography.scss';
   composes: cardPadding;
   @include font-regular;
-  color: $color-rhino-40;
+  color: hsl(var(--foreground) / 0.4);
   font-size: 12px;
   letter-spacing: 0;
   line-height: 16px;

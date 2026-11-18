@@ -211,6 +211,8 @@ export function groupViewPath (view) {
       return `/space-collection/${view.id}`
     case 'page':
       return `/page/${view.id}`
+    case 'designed':
+      return `/designed/${view.id}`
     case 'link':
       return null
     case 'manage-round':
@@ -277,6 +279,11 @@ export function homeRouteHostsPostOverlay (homeRoute) {
   if (/^\/collection\/[^/]+$/.test(path)) return true
   if (/^\/topics\/[^/]+$/.test(path)) return true
   if (/^\/members\/[^/]+$/.test(path)) return true
+  // Designed views list live posts and events, and so does the designer's canvas
+  if (/^\/designed\/[^/]+$/.test(path)) return true
+  if (/^\/design\/[^/]+$/.test(path)) return true
+  // The Group Assistant quotes posts, which open over the thread
+  if (path === '/assistant') return true
   return POST_OVERLAY_ROUTE_ROOTS.some(root => path === root || path.startsWith(`${root}/`))
 }
 

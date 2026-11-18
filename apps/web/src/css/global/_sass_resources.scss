@@ -230,17 +230,17 @@ $color-badge-special-border: #ffd192;
 
 // Fonts
 @mixin font-regular {
-  font-family:  'Onest', 'Circular Book';
+  font-family: var(--font-body, 'Onest'), 'Circular Book';
   font-weight: 300;
 }
 
 @mixin font-medium {
-  font-family:  'Onest', 'Circular Medium';
+  font-family: var(--font-body, 'Onest'), 'Circular Medium';
   font-weight: 700;
 }
 
 @mixin font-bold {
-  font-family: 'Onest', 'Circular Bold';
+  font-family: var(--font-body, 'Onest'), 'Circular Bold';
   font-weight: 700 !important;
 }
 

@@ -156,6 +156,14 @@ import {
   setProposalOptions,
   setGroupViewHidden,
   setHomeView,
+  designGroupViewTurn,
+  suggestGroupViews,
+  askGroupAssistant,
+  groupAssistant,
+  markGroupAssistantDraftPosted,
+  saveGroupAssistantVoiceNote,
+  updateGroupAssistantSettings,
+  updateGroupAssistantVoice,
   subscribe,
   swapProposalVote,
   unblockUser,
@@ -169,6 +177,8 @@ import {
   updateGroup,
   updateGroupResponsibility,
   updateGroupRole,
+  updateGroupTheme,
+  importGroupThemeFromUrl,
   updateGroupTopic,
   updateGroupTopicFollow,
   updateGroupView,
@@ -516,6 +526,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
   return {
     activity: (root, { id }) => fetchOne('Activity', id),
     checkContentAccess: (root, args, context) => checkContentAccess(context.currentUserId, args),
+    groupAssistant: (root, { groupId }, context) => groupAssistant({ userId: context.currentUserId, groupId }),
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
     comment: (root, { id }) => fetchOne('Comment', id),
@@ -757,6 +768,17 @@ export function makeMutations ({ fetchOne }) {
     setGroupViewHidden: (root, { id, hidden }, context) => setGroupViewHidden(context.currentUserId, id, hidden, context),
 
     setHomeView: (root, { viewId, groupId }, context) => setHomeView(context.currentUserId, viewId, groupId, context),
+    suggestGroupViews: (root, { groupId }, context) => suggestGroupViews({ userId: context.currentUserId, groupId }),
+    askGroupAssistant: (root, { groupId, text }, context) => askGroupAssistant({ userId: context.currentUserId, groupId, text }),
+    updateGroupAssistantSettings: (root, { groupId, settings }, context) =>
+      updateGroupAssistantSettings({ userId: context.currentUserId, groupId, settings }),
+    updateGroupAssistantVoice: (root, { groupId, text }, context) => updateGroupAssistantVoice({ userId: context.currentUserId, groupId, text }),
+    saveGroupAssistantVoiceNote: (root, { messageId, partIndex, text }, context) =>
+      saveGroupAssistantVoiceNote({ userId: context.currentUserId, messageId, partIndex, text }),
+    markGroupAssistantDraftPosted: (root, { messageId, partIndex, postId, commentId }, context) =>
+      markGroupAssistantDraftPosted({ userId: context.currentUserId, messageId, partIndex, postId, commentId }),
+    designGroupViewTurn: (root, { groupId, messages, currentView, images, documents, postIds }, context) =>
+      designGroupViewTurn({ userId: context.currentUserId, groupId, messages, currentView, images, documents, postIds }),
 
     markViewAsRead: (root, { viewId }, context) => markViewAsRead(context.currentUserId, viewId),
 
@@ -1014,6 +1036,9 @@ export function makeMutations ({ fetchOne }) {
       updateGroupRole({ userId: context.currentUserId, groupRoleId, color, name, description, emoji, active, groupId }),
 
     updateGroupSettings: (root, { id, changes }, context) => updateGroup(context.currentUserId, id, changes, context),
+
+    updateGroupTheme: (root, { groupId, theme }, context) => updateGroupTheme(context.currentUserId, groupId, theme, context),
+    importGroupThemeFromUrl: (root, { groupId, url }, context) => importGroupThemeFromUrl(context.currentUserId, groupId, url),
 
     updateGroupTopic: (root, { id, data }, context) => updateGroupTopic(context.currentUserId, id, data),
 

@@ -42,8 +42,18 @@ export {
   updateViewSettings,
   addPostToView,
   removePostFromView,
-  reorderViewPost
+  reorderViewPost,
+  designGroupViewTurn,
+  suggestGroupViews
 } from './group_views'
+export {
+  askGroupAssistant,
+  groupAssistant,
+  markGroupAssistantDraftPosted,
+  saveGroupAssistantVoiceNote,
+  updateGroupAssistantSettings,
+  updateGroupAssistantVoice
+} from './group_assistant'
 export {
   createSpace,
   updateSpace,
@@ -76,6 +86,8 @@ export {
   rejectGroupRelationshipInvite,
   removeMember,
   updateGroup,
+  updateGroupTheme,
+  importGroupThemeFromUrl,
   updatePeerRelationship
 } from './group'
 export {

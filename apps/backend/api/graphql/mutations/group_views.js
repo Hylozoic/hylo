@@ -1,6 +1,17 @@
 import { GraphQLError } from 'graphql'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
-import { recountPostTypesForView, TextHelpers } from '@hylo/shared'
+import { designedViewPostIds, recountPostTypesForView, TextHelpers, validateDesignedView } from '@hylo/shared'
+import {
+  designViewTurnInChildProcess,
+  isViewDesignConfigured,
+  normalizeDesignDocuments,
+  normalizeDesignImages,
+  normalizeDesignMessages,
+  suggestViewsTurnInChildProcess
+} from '../../../lib/designedViewDesign'
+import { buildGroupDigest, describePickedPosts, digestPostIds, formatGroupDigest, formatPickedPosts, postIdsInGroup } from '../../../lib/groupDigest'
+import { isHyloHostedUrl } from '../../../lib/uploader/rehostRemoteMedia'
+import RedisClient from '../../services/RedisClient'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
 
@@ -33,12 +44,52 @@ async function requireAdminOrManageContent (userId, groupId, action) {
   }
 }
 
+export const HYLO_PRO_REQUIRED_FOR_DESIGNED_VIEWS = 'Designed views are part of Hylo Pro. This group needs Hylo Pro to design or change one.'
+
+/**
+ * Designed views are a Hylo Pro feature: designing, creating and changing one
+ * need an active subscription or grant. A view made while the group had Pro
+ * keeps showing after Pro lapses, and can still be renamed, moved or deleted.
+ */
+async function requireHyloProForDesignedViews (groupId) {
+  const group = await Group.find(groupId)
+  if (!group || !(await group.hasPro())) {
+    throw new GraphQLError(HYLO_PRO_REQUIRED_FOR_DESIGNED_VIEWS, { extensions: { code: 'HYLO_PRO_REQUIRED' } })
+  }
+  return group
+}
+
+/**
+ * The settings to store for a designed view: only its design, checked against
+ * the block format so nothing but known blocks is ever saved.
+ */
+async function designedViewSettings (settings, groupId) {
+  const { view, errors } = validateDesignedView(settings?.design)
+  if (errors.length > 0) throw new GraphQLError(`Invalid design: ${errors.slice(0, 5).join('; ')}`)
+  // A page may only show posts from its own group
+  const postIds = designedViewPostIds(view)
+  if (postIds.length > 0) {
+    const inGroup = await postIdsInGroup(groupId, postIds)
+    const missing = postIds.filter(id => !inGroup.includes(id))
+    if (missing.length > 0) throw new GraphQLError(`Invalid design: post ${missing.join(', ')} is not in this group`)
+  }
+  return { design: view }
+}
+
+// How many posts a steward can pick for the AI to build a page around
+const MAX_PICKED_POSTS = 6
+
 export async function createGroupView ({ userId, groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, viewUserId, hidden, context }) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!groupId) throw new GraphQLError('No groupId passed into function')
   if (!type) throw new GraphQLError('No type passed into function')
 
   await requireAdmin(userId, groupId, 'create views')
+
+  if (type === GroupView.Type.DESIGNED) {
+    await requireHyloProForDesignedViews(groupId)
+    settings = await designedViewSettings(settings, groupId)
+  }
 
   // Only space rows can live off-menu (More Spaces). Views are in the menu or deleted.
   if (hidden && type !== GroupView.Type.SPACE) {
@@ -99,6 +150,11 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
     if (!responsibilities.includes(RESP_MANAGE_CONTENT) || !isSpaceCollectionSpaceIdsUpdate) {
       throw new GraphQLError("You don't have permission to update views for this group")
     }
+  }
+
+  if (view.get('type') === GroupView.Type.DESIGNED && settings !== undefined) {
+    await requireHyloProForDesignedViews(groupId)
+    settings = await designedViewSettings(settings, groupId)
   }
 
   const changes = {}
@@ -445,4 +501,120 @@ export async function reorderViewPost (userId, viewId, postId, newOrder) {
   })
 
   return { success: true }
+}
+
+// Each turn is a paid model call
+const DESIGN_TURNS_PER_GROUP_PER_HOUR = 60
+
+/**
+ * Counts one design turn for a group and reports whether it is within the
+ * hourly limit. Fails open if Redis is unavailable.
+ */
+async function withinDesignTurnLimit (groupId) {
+  try {
+    const redis = RedisClient.create()
+    const key = `ratelimit:designGroupView:group:${groupId}`
+    const count = await redis.incr(key)
+    if (count === 1) await redis.expire(key, 60 * 60)
+    return count <= DESIGN_TURNS_PER_GROUP_PER_HOUR
+  } catch (err) {
+    sails.log.error(`withinDesignTurnLimit failed: ${err.message}`)
+    return true
+  }
+}
+
+/**
+ * One turn of the "Design your own view" chat. Saves nothing: returns the AI's
+ * reply, the whole page as a designed view, and the token usage and estimated
+ * cost. The steward saves the page with createGroupView or updateGroupView.
+ * Requires the Administration responsibility and Hylo Pro.
+ */
+export async function designGroupViewTurn ({ userId, groupId, messages, currentView, images, documents, postIds }, deps = {}) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!groupId) throw new GraphQLError('No groupId passed into function')
+
+  await requireAdmin(userId, groupId, 'design views')
+  const group = await requireHyloProForDesignedViews(groupId)
+
+  if (!(deps.isConfigured || isViewDesignConfigured)()) {
+    throw new GraphQLError('Designing views with AI is not set up on this server')
+  }
+
+  // The model fetches attachments by address, so it is only pointed at files on Hylo's own storage:
+  // images elsewhere can still be placed on the page but are not shown to it, and documents elsewhere are refused
+  const hosted = deps.isHostedUrl || isHyloHostedUrl
+  let conversation, availableImages, attachedDocuments
+  try {
+    conversation = normalizeDesignMessages(messages)
+    availableImages = normalizeDesignImages(images).map(image => ({ ...image, visible: hosted(image.url) }))
+    attachedDocuments = normalizeDesignDocuments(documents)
+    if (attachedDocuments.some(document => !hosted(document.url))) throw new Error('Documents must be uploaded to Hylo before they can be read')
+    if (postIds !== undefined && postIds !== null && (!Array.isArray(postIds) || postIds.length > MAX_PICKED_POSTS)) throw new Error(`A design can be built around up to ${MAX_PICKED_POSTS} posts`)
+  } catch (err) {
+    throw new GraphQLError(err.message)
+  }
+
+  // The current design comes from the browser, so only pass on what is valid
+  let current = null
+  if (currentView) {
+    const { view, errors } = validateDesignedView(currentView)
+    if (errors.length > 0) throw new GraphQLError(`Invalid design: ${errors.slice(0, 5).join('; ')}`)
+    current = view
+  }
+
+  if (!(await (deps.withinLimit || withinDesignTurnLimit)(group.id))) {
+    throw new GraphQLError('This group has used a lot of AI design in the last hour. Please try again later.')
+  }
+
+  const digest = await (deps.buildDigest || buildGroupDigest)(group)
+  const pickedPosts = await (deps.describePosts || describePickedPosts)(group.id, postIds || [])
+
+  try {
+    return await (deps.designTurn || designViewTurnInChildProcess)({
+      group: { name: group.get('name'), description: group.get('description') || group.get('purpose') || '' },
+      // What the group is for and what it holds, so the page fits it (titles and counts only)
+      groupSummary: formatGroupDigest(digest),
+      // Posts the steward picked to build the page around, and every post the AI may show parts of
+      pickedPostsSummary: formatPickedPosts(pickedPosts),
+      allowedPostIds: [...new Set([...digestPostIds(digest), ...pickedPosts.map(post => post.id)])],
+      messages: conversation,
+      currentView: current,
+      images: availableImages,
+      documents: attachedDocuments
+    })
+  } catch (err) {
+    sails.log.error(`designGroupViewTurn failed for group ${group.id}: ${err.message}`)
+    throw new GraphQLError(`The design could not be made: ${err.message}`)
+  }
+}
+
+/**
+ * Ideas for views that would help a group grow, based on its purpose and what
+ * it already holds (see lib/groupDigest.js for exactly what the AI is shown).
+ * Returns { reply, suggestions: [{ name, why, prompt }], usage }; each prompt
+ * can be sent to designGroupViewTurn as the steward's first message.
+ * Requires the Administration responsibility and Hylo Pro; counts toward the
+ * same hourly limit as design turns.
+ */
+export async function suggestGroupViews ({ userId, groupId }, deps = {}) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!groupId) throw new GraphQLError('No groupId passed into function')
+
+  await requireAdmin(userId, groupId, 'design views')
+  const group = await requireHyloProForDesignedViews(groupId)
+
+  if (!(deps.isConfigured || isViewDesignConfigured)()) {
+    throw new GraphQLError('Designing views with AI is not set up on this server')
+  }
+  if (!(await (deps.withinLimit || withinDesignTurnLimit)(group.id))) {
+    throw new GraphQLError('This group has used a lot of AI design in the last hour. Please try again later.')
+  }
+
+  try {
+    const groupSummary = formatGroupDigest(await (deps.buildDigest || buildGroupDigest)(group))
+    return await (deps.suggestTurn || suggestViewsTurnInChildProcess)({ groupSummary })
+  } catch (err) {
+    sails.log.error(`suggestGroupViews failed for group ${group.id}: ${err.message}`)
+    throw new GraphQLError(`Suggestions could not be made: ${err.message}`)
+  }
 }

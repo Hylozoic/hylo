@@ -99,6 +99,12 @@ type Query {
   # Find an Activity by ID
   activity(id: ID): Activity
 
+  # The Group Assistant (Axl) for a group's stewards: { hasPro, configured, settings, spaces: [{ id, name, isGroup }],
+  # stewards: [{ id, name }], messages: [{ id, authorType, author, text, parts, createdAt }] }.
+  # Only people with the Administration responsibility in the group can read it. No messages come back
+  # unless the group has Hylo Pro and the assistant is turned on.
+  groupAssistant(groupId: ID!): JSON
+
   # Check if a user has access to content
   checkContentAccess(
     userId: ID!,
@@ -927,6 +933,9 @@ type Group {
   description: String
   # Whether this group currently has Hylo Pro (a paid subscription or a manual grant)
   hasPro: Boolean
+  # Whether the viewer should be shown the Group Assistant: true only for someone with the Administration
+  # responsibility, in a group that has Hylo Pro and has turned the assistant on. False for everyone else.
+  assistantEnabled: Boolean
   # gets the event calendar subscription URL
   eventCalendarUrl: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
@@ -1580,6 +1589,10 @@ type GroupSettings {
   showPostNoticesInChat: Boolean
   # Space-only: add current parent-group members (except people who previously left) and anyone who joins the group later
   autoAddMembers: Boolean
+  # The group's own design tokens: { light: { <token>: 'H S% L%' }, dark: { ... }, radius }.
+  # Set it with the updateGroupTheme mutation (validated on save). Clients must still
+  # sanitize it before use (shared rules: @hylo/shared GroupThemeHelpers).
+  theme: JSON
 }
 
 # A relationship between two Groups
@@ -3528,6 +3541,37 @@ type Mutation {
   setGroupViewHidden(id: ID!, hidden: Boolean!): GroupView
   # Set a View as the home view for its Group or Space
   setHomeView(viewId: ID!, groupId: ID!): GenericResult
+  # One turn of the "Design your own view" chat for a Group. messages is the conversation so far,
+  # [{ role: "user" | "assistant", text }], ending with the steward's new message; currentView is the
+  # design being edited, if any; images is what the steward has uploaded for it, [{ url, name }], and is
+  # the only place the page's images can come from; documents is the PDFs they attached, [{ url, name }].
+  # postIds is the posts from this Group the steward picked to build the page around.
+  # The AI is shown the attached images and documents so it can read them. Saves nothing: returns { reply, name, view, usage } where name is a suggested menu name, view is the whole
+  # page as building blocks (store it as settings.design of a 'designed' GroupView) and usage holds the
+  # AI model, token counts and estimated cost. Requires the Administration responsibility and Hylo Pro.
+  designGroupViewTurn(groupId: ID!, messages: JSON!, currentView: JSON, images: JSON, documents: JSON, postIds: [ID]): JSON
+  # Ideas for views that would help a Group grow, from its purpose, size, post counts and the titles of
+  # recent posts and coming events. Returns { reply, suggestions: [{ name, why, prompt }], usage }; a
+  # suggestion's prompt can be sent to designGroupViewTurn as the first message.
+  # Requires the Administration responsibility and Hylo Pro.
+  suggestGroupViews(groupId: ID!): JSON
+
+  # ---- Group Assistant (Axl), stewards only, Hylo Pro ----
+  # A steward writes in the group's steward thread and the assistant answers from the spaces the stewards
+  # chose. Returns { messages: [the steward's message, the assistant's answer], usage }.
+  askGroupAssistant(groupId: ID!, text: String!): JSON
+  # Saves the assistant's settings: { enabled, followUps, shareLoad, summarize, answerMembers, readMembers, readableGroupIds }.
+  # Fields left out keep their value. Returns the same shape as the groupAssistant query.
+  updateGroupAssistantSettings(groupId: ID!, settings: JSON!): JSON
+  # Saves the calling steward's own "How I write" note for this group, used to word drafts written for them.
+  # Only they get it back. Returns { myVoice }.
+  updateGroupAssistantVoice(groupId: ID!, text: String!): JSON
+  # Saves a change to their "How I write" note that the assistant offered the calling steward in the thread,
+  # as offered or as they edited it (text). Returns { message, myVoice }.
+  saveGroupAssistantVoiceNote(messageId: ID!, partIndex: Int!, text: String): JSON
+  # Records that the steward posted a draft from the thread, as the post or comment they just made.
+  # Returns the updated message.
+  markGroupAssistantDraftPosted(messageId: ID!, partIndex: Int!, postId: ID, commentId: ID): JSON
   # Create a new Space (a child Group) within a parent Group
   createSpace(
     parentGroupId: ID!,
@@ -3842,6 +3886,16 @@ type Mutation {
     # Update group as a particular User (with permission)
     asUserId: ID
   ): Group
+  # Replace a Group's theme (settings.theme) whole, or clear it by passing null.
+  # Requires the Administration responsibility, and Hylo Pro unless clearing. Rejects any token, value or radius
+  # the shared sanitizer would drop; valid values are stored in canonical form.
+  updateGroupTheme(groupId: ID, theme: JSON): Group
+  # Suggest a theme for a Group from a website's look. Loads the page in a headless
+  # browser and asks an AI model to pick colors, corners, borders and fonts. Saves
+  # nothing: returns { roles: { light, dark }, radius, borderWidth, fontHeading,
+  # fontBody, summary, sourceUrl, usage } where usage holds the model, token counts
+  # and estimated cost. Requires the Administration responsibility and Hylo Pro.
+  importGroupThemeFromUrl(groupId: ID, url: String): JSON
   # Update a group responsibility
   updateGroupResponsibility(
     responsibilityId: ID,

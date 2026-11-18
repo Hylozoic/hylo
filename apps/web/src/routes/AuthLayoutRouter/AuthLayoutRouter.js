@@ -73,6 +73,9 @@ import MembershipRequestsTab from 'routes/GroupSettings/MembershipRequestsTab'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
 import GroupPageView from 'routes/GroupPageView'
+import GroupDesignedView from 'routes/GroupDesignedView'
+import GroupViewDesigner, { DesignerChatColumn } from 'routes/GroupViewDesigner'
+import GroupAssistant from 'routes/GroupAssistant'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
@@ -105,6 +108,9 @@ import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 import { Toaster } from 'components/ui/sonner'
 import useGroupViews from 'hooks/useGroupViews'
+import useGroupTheme from 'hooks/useGroupTheme'
+import { GROUP_THEMES } from 'config/featureFlags'
+import { hasFeature } from 'store/models/Me'
 import useNewAppVersion from 'hooks/useNewAppVersion'
 import useMobileHardwareBack from 'hooks/useMobileHardwareBack'
 import shouldLandOnWelcome from 'util/shouldLandOnWelcome'
@@ -194,6 +200,8 @@ export default function AuthLayoutRouter (props) {
   const dispatch = useDispatch()
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
+  // A group's own theme covers its menu, the main column and dialogs; the global nav keeps the viewer's theme
+  const { globalNavStyle: globalNavThemeStyle } = useGroupTheme(hasFeature(GROUP_THEMES) ? currentGroup : null)
   const currentGroupHasRetainedAccess = isRetainedAccessGroup(currentGroup)
   const groupViews = useGroupViews(currentGroup)
   const onWelcomePath = Boolean(
@@ -992,7 +1000,9 @@ export default function AuthLayoutRouter (props) {
       <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': compactLayout && !isSandboxMode(), [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         {/* Top tab nav bar (when tab mode is active) */}
         {isTabNav && !withoutNav && (
-          <TopNav currentUser={currentUser} />
+          <div className='contents' style={globalNavThemeStyle}>
+            <TopNav currentUser={currentUser} />
+          </div>
         )}
 
         {/* Simple groups skip the mobile drawer pattern: their home dashboard already
@@ -1030,12 +1040,14 @@ export default function AuthLayoutRouter (props) {
           >
             {!withoutNav && !isTabNav && (
               <>
-                <GlobalNav
-                  group={currentGroup}
-                  currentUser={currentUser}
-                  routeParams={pathMatchParams}
-                  showMenuBadge={showMenuBadge}
-                />
+                <div className='contents' style={globalNavThemeStyle} data-testid='global-nav-theme-scope'>
+                  <GlobalNav
+                    group={currentGroup}
+                    currentUser={currentUser}
+                    routeParams={pathMatchParams}
+                    showMenuBadge={showMenuBadge}
+                  />
+                </div>
                 {isDrawerOpen && <Drawer className={cn(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
               </>
             )}
@@ -1047,6 +1059,7 @@ export default function AuthLayoutRouter (props) {
                 {!isCardMenuUser && <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 {!isCardMenuUser && <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={null} />
+                <Route path='groups/:groupSlug/design/:viewId/*' element={<DesignerChatColumn />} />
                 {/* Simple groups: ContextMenu only renders for /settings (the settings sidebar).
                     Group home shows just the GlobalNav + ContextMenuGrid — no sidebar context menu. */}
                 {!isOneColumnGroup && <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
@@ -1123,6 +1136,9 @@ export default function AuthLayoutRouter (props) {
                             <Route path='about/*' element={<GroupAboutPage />} />
                             <Route path='welcome/*' element={<GroupWelcomePage />} />
                             <Route path='page/:viewId/*' element={<GroupPageView />} />
+                            <Route path='designed/:viewId/*' element={<GroupDesignedView />} />
+                            <Route path='design/:viewId/*' element={<GroupViewDesigner />} />
+                            <Route path='assistant/*' element={<GroupAssistant />} />
                             <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
                             <Route path='all/*' element={<ViewContent context='groups' view='all' />} />
                             <Route path='stream/*' element={<RedirectStreamToAll basePath={`/groups/${currentGroupSlug}`} />} />

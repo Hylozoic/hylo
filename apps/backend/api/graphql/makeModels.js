@@ -2,7 +2,7 @@
 import DataLoader from 'dataloader'
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
-import { TextHelpers } from '@hylo/shared'
+import { sanitizeGroupAssistantSettings, TextHelpers } from '@hylo/shared'
 import { messageThreadSearchFilter } from './messageThreadSearch'
 import searchQuerySet from './searchQuerySet'
 import { getPendingEmail } from './mutations/emailChange'
@@ -1283,6 +1283,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         hasPro: g => g.hasPro(),
+        // Whether to show the viewer the Group Assistant: only a steward of a Pro group that has turned it on.
+        // Everyone else gets false, so nothing tells a member whether the assistant is in use.
+        assistantEnabled: async g => {
+          if (!userId || g.get('type') === 'space') return false
+          if (!sanitizeGroupAssistantSettings((g.get('settings') || {}).assistant).enabled) return false
+          if (!await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) return false
+          return g.hasPro()
+        },
         proBilling: async g => {
           // Hylo Pro is for groups; spaces have no billing of their own
           if (g.get('type') === 'space') return null

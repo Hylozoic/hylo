@@ -39,8 +39,11 @@ export default function groupQueryFragment () {
       showSuggestedSkills
       showWelcomePage
       layout
+      theme
       autoAddMembers
     }
+    hasPro
+    assistantEnabled
     slug
     type
     parentId
