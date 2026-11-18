@@ -99,7 +99,9 @@ export { registerDevice } from './mobile'
 export {
   completePost,
   createPost,
+  followPost,
   fulfillPost,
+  unfollowPost,
   unfulfillPost,
   setProposalOptions,
   addProposalVote,
@@ -111,10 +113,6 @@ export {
   deletePost,
   pinPost
 } from './post'
-export {
-  followPost,
-  unfollowPost
-} from './followPost'
 export {
   savePost,
   unsavePost
@@ -286,7 +284,7 @@ export async function leaveGroup (userId, groupId) {
 }
 
 export async function findOrCreateLinkPreviewByUrl ({ url }) {
-  const hyloAttrs = await LinkPreview.attrsForPublicHyloPost(url)
+  const hyloAttrs = await LinkPreview.attrsForHyloUrl(url)
   if (hyloAttrs) {
     let preview = await LinkPreview.find(url)
     if (!preview) {

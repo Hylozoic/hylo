@@ -14,6 +14,14 @@ export default function login (email, password) {
               emailValidated
               hasRegistered
               name
+              cookieConsentPreferences {
+                id
+                consentId
+                userId
+                settings
+                version
+                updatedAt
+              }
               settings {
                 alreadySeenTour
                 toursSeen

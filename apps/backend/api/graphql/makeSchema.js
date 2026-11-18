@@ -159,8 +159,8 @@ import {
   subscribe,
   swapProposalVote,
   unblockUser,
-  unfulfillPost,
   unfollowPost,
+  unfulfillPost,
   unlinkAccount,
   unsavePost,
   updateAllMemberships,
@@ -225,6 +225,7 @@ import {
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
 import InvitationService from '../services/InvitationService'
+import SupporterService from '../services/SupporterService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
 
@@ -664,7 +665,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     hyloProMetrics: (root, args, context) => hyloProMetrics(context.currentUserId),
     hyloProSubscriptions: (root, args, context) => hyloProSubscriptions(context.currentUserId, args),
     hyloProGroups: (root, { slugOrId }, context) => hyloProGroups(context.currentUserId, { slugOrId }),
-    hyloProPayments: (root, { groupId, after }, context) => hyloProPayments(context.currentUserId, { groupId, after })
+    hyloProPayments: (root, { groupId, after }, context) => hyloProPayments(context.currentUserId, { groupId, after }),
+    supportHylo: (root, args, context) => SupporterService.supportInfo(context.currentUserId),
+    groupSupporterInfo: (root, { groupId }, context) => SupporterService.groupSupportInfo(context.currentUserId, groupId),
+    supporterGrants: (root, args, context) => SupporterService.listGrants(context.currentUserId)
   }
 }
 
@@ -864,6 +868,8 @@ export function makeMutations ({ fetchOne }) {
 
     flagInappropriateContent: (root, { data }, context) => flagInappropriateContent(context.currentUserId, data),
 
+    followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
+
     fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
@@ -983,8 +989,6 @@ export function makeMutations ({ fetchOne }) {
     saveDraft: (root, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }, context) =>
       saveDraft(context.currentUserId, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }),
 
-    followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
-
     savePost: (root, { postId }, context) => savePost(context.currentUserId, postId),
 
     setProposalOptions: (root, { postId, options }, context) => setProposalOptions({ userId: context.currentUserId, postId, options }),
@@ -995,9 +999,9 @@ export function makeMutations ({ fetchOne }) {
 
     unblockUser: (root, { blockedUserId }, context) => unblockUser(context.currentUserId, blockedUserId),
 
-    unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
-
     unfollowPost: (root, { postId }, context) => unfollowPost(context.currentUserId, postId),
+
+    unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
 
     unlinkAccount: (root, { provider }, context) => unlinkAccount(context.currentUserId, provider),
 
@@ -1058,6 +1062,23 @@ export function makeMutations ({ fetchOne }) {
     deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
 
     dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    checkOpenCollectiveContributions: (root, args, context) => SupporterService.claimByEmail(context.currentUserId),
+
+    attributeSupportContribution: (root, { contributionId, groupId }, context) => SupporterService.attributeContribution(context.currentUserId, contributionId, groupId),
+
+    setSupporterBadgeVisibility: (root, { groupId, show }, context) => SupporterService.setBadgeVisibility(context.currentUserId, { groupId, show }),
+
+    createSupportIntent: (root, { groupId }, context) => SupporterService.createIntent(context.currentUserId, groupId),
+
+    confirmSupportIntent: async (root, { orderId }, context) => {
+      const { groupId, ...result } = await SupporterService.confirmIntent(context.currentUserId, orderId)
+      return { ...result, group: groupId ? await Group.find(groupId) : null }
+    },
+
+    grantSupporterStatus: (root, { userId, groupId, note, expiresAt }, context) => SupporterService.grant(context.currentUserId, { userId, groupId, note, expiresAt }),
+
+    revokeSupporterStatus: (root, { id }, context) => SupporterService.revoke(context.currentUserId, id),
 
     requestPublicListing: (root, { groupId, message }, context) => requestPublicListing(context.currentUserId, groupId, message),
 

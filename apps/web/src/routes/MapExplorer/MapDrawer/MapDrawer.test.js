@@ -74,6 +74,46 @@ describe('MapDrawer', () => {
     expect(row.querySelector('div').style.backgroundImage).toContain('oak.jpg')
   })
 
+  it('names the child group or space when the post is not also in the group being viewed', () => {
+    const parent = { id: 9, slug: 'river', name: 'River' }
+    render(
+      <MapDrawer
+        {...defaultMinProps}
+        group={parent}
+        posts={[
+          {
+            id: 1,
+            title: 'Only in the space',
+            type: 'discussion',
+            creator: { id: 3, name: 'Ada' },
+            groups: [{ id: 2, slug: 'oak-park', name: 'Oak Park', type: 'space' }]
+          },
+          {
+            id: 2,
+            title: 'Also in the parent',
+            type: 'discussion',
+            creator: { id: 3, name: 'Ada' },
+            groups: [
+              { id: 9, slug: 'river', name: 'River' },
+              { id: 4, slug: 'staff', name: 'Staff' }
+            ]
+          },
+          {
+            id: 3,
+            title: 'Only in the parent',
+            type: 'discussion',
+            creator: { id: 3, name: 'Ada' },
+            groups: [{ id: 9, slug: 'river', name: 'River' }]
+          }
+        ]}
+      />
+    )
+
+    expect(screen.getByText('in Oak Park')).toBeInTheDocument()
+    expect(screen.queryByText('in Staff')).not.toBeInTheDocument()
+    expect(screen.queryByText('in River')).not.toBeInTheDocument()
+  })
+
   it('updates filters when searching', () => {
     const onUpdateFilters = jest.fn()
     render(<MapDrawer {...defaultMinProps} onUpdateFilters={onUpdateFilters} topics={[{ id: 3, name: 'DOAs' }]} />)

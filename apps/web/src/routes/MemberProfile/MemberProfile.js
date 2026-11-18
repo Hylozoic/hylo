@@ -13,6 +13,7 @@ import { getLocaleFromLocalStorage } from 'util/locale'
 import Affiliation from 'components/Affiliation'
 import Button from 'components/Button'
 import BadgeEmoji from 'components/BadgeEmoji'
+import SupporterBadge from 'components/SupporterBadge/SupporterBadge'
 import ClickCatcher from 'components/ClickCatcher'
 import Dropdown from 'components/Dropdown'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
@@ -295,6 +296,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
           <div className='w-full h-[40vh] mt-4 relative flex flex-col items-center items-end justify-end pb-10 bg-cover'>
             <RoundImage className='relative z-10 shadow-2xl' url={person.avatarUrl} xxlarge />
             <h1 className='text-white text-center text-2xl font-bold max-w-md relative z-10 mb-0'>{person.name}</h1>
+            {person.isSupporter && <SupporterBadge className='relative z-10 mt-1' />}
             {person.location && (
               <div className='flex items-center gap-2 text-sm relative z-10 text-white '>
                 <Icon name='Location' />

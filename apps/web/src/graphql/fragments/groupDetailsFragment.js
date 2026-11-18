@@ -8,6 +8,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   description
   geoShape
   invitePath
+  isSupporter
   location
   memberCount
   openJoinRequestCount

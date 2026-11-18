@@ -441,13 +441,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return (pu && pu.get('saved_at')) || null
   },
 
-  /** Whether this user is subscribed to updates on the post. */
-  async followingForUser (userId) {
-    if (!userId) return false
-    const pu = await this.loadPostInfoForUser(userId)
-    return !!(pu && pu.get('following') && pu.get('active'))
-  },
-
   presentForEmail: function ({ clickthroughParams = '', context, fundingRound, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
@@ -1170,21 +1163,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
   },
 
-  // Background task to increment new_post_count when a post is created
+  // Background task to increment new_post_count when a post is created.
+  // Throws when the post is not committed yet so the queue retries.
 
   incrementNewPostCountForCreatedPost: async ({ postId }) => {
     const post = await Post.find(postId, { withRelated: ['groups', 'tags'] })
-    if (!post) return
+    if (!post) {
+      throw new Error(`Post ${postId} is not visible yet; retrying unread increment`)
+    }
 
     if (process.env.NODE_ENV === 'development') {
       console.log(`📈 Background job: Incrementing new_post_count for created post ${postId}`)
     }
 
-    try {
-      await incrementNewPostCount(post)
-    } catch (error) {
-      console.error('❌ Error incrementing new_post_count in background job:', error)
-    }
+    await incrementNewPostCount(post)
   },
 
   createActivities: (opts) =>

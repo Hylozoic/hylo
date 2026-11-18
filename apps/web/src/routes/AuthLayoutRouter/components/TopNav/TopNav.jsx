@@ -24,6 +24,7 @@ import { spaceEntryUrl } from 'routes/AuthLayoutRouter/components/ContextMenu/gr
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { SettingsMenu } from '../GlobalNav/GlobalNav'
 import { pinGroup } from 'store/actions/pinGroup'
+import SupportHyloModal from 'components/SupportHyloModal/SupportHyloModal'
 
 const NotificationsDropdown = React.lazy(() => import('../GlobalNav/NotificationsDropdown'))
 
@@ -185,6 +186,7 @@ export default function TopNav ({ currentUser }) {
   const tabContainerRef = useRef(null)
   const [visibleGroupCount, setVisibleGroupCount] = useState(sortedNavItems.length)
   const [iconOnly, setIconOnly] = useState(false)
+  const [showSupportHyloModal, setShowSupportHyloModal] = useState(false)
 
   const currentBase = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug })
 
@@ -475,10 +477,11 @@ export default function TopNav ({ currentUser }) {
             <ul className='flex flex-col gap-2 m-0 p-0'>
               <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2 text-sm' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
               <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2 text-sm' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2 text-sm' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
+              <li className='w-full'><button type='button' onClick={() => setShowSupportHyloModal(true)} className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2 text-sm text-left bg-transparent'>{t('Contribute to Hylo')}</button></li>
             </ul>
           </PopoverContent>
         </Popover>
+        <SupportHyloModal open={showSupportHyloModal} onOpenChange={setShowSupportHyloModal} />
       </div>
     </div>
   )

@@ -88,6 +88,10 @@ module.exports.policies = {
     registerStripe: ['sessionAuth']
   },
 
+  OpenCollectiveController: {
+    webhook: true
+  },
+
   StripeController: {
     webhook: true,
     checkoutSuccess: true,
