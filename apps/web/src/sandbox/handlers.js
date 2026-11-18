@@ -1,5 +1,5 @@
 import { parseGraphql } from './parseGraphql'
-import { sid } from './seed/helpers'
+import { buildDefaultTaskStatuses, sid } from './seed/helpers'
 
 /**
  * Handle a GraphQL operation against the in-memory sandbox seed.
@@ -150,6 +150,15 @@ function handleQuery (operationName, rootField, variables, seed, query) {
     case 'Search':
       return { data: { search: presentSearch(seed, variables) } }
 
+    case 'FetchTaskBoard':
+      return { data: { group: presentTaskBoard(seed, variables, { withTasks: true }) } }
+
+    case 'FetchTaskStatuses':
+      return { data: { group: presentTaskBoard(seed, variables) } }
+
+    case 'FetchTaskEvents':
+      return { data: { group: presentTaskEvents(seed, variables) } }
+
     default:
       return defaultQuery(rootField, variables, seed, query)
   }
@@ -281,6 +290,18 @@ function handleMutation (operationName, rootField, variables, seed) {
       return { data: { deleteReaction: true } }
     case 'completePost':
       return { data: { completePost: completePost(seed, variables) } }
+    case 'moveTask':
+      return { data: { moveTask: moveTask(seed, variables) } }
+    case 'assignTask':
+      return { data: { assignTask: assignTask(seed, variables) } }
+    case 'unassignTask':
+      return { data: { unassignTask: unassignTask(seed, variables) } }
+    case 'createTaskStatus':
+      return { data: { createTaskStatus: createTaskStatus(seed, variables) } }
+    case 'updateTaskStatus':
+      return { data: { updateTaskStatus: updateTaskStatus(seed, variables) } }
+    case 'deleteTaskStatus':
+      return { data: { deleteTaskStatus: deleteTaskStatus(seed, variables) } }
     case 'enrollInTrack':
       return { data: { enrollInTrack: enrollInTrack(seed, variables) } }
     case 'leaveTrack':
@@ -872,7 +893,9 @@ function paginate (items = [], first = 20, offset = 0) {
   }
 }
 
-function createPost (seed, variables) {
+function createPost (seed, input) {
+  // The post editor sends the fields as variables; the board's quick-add sends them as `data`
+  const variables = input.data || input
   const groupIds = variables.groupIds || []
   const group = seed.groups.all.find(g => groupIds.includes(g.id)) || seed.groups.main
   const post = {
@@ -892,7 +915,21 @@ function createPost (seed, variables) {
     announcement: variables.announcement || false,
     isPublic: variables.isPublic || false
   }
+  if (post.type === 'task') {
+    const assignees = (variables.memberIds || []).map(id => findPerson(seed, id)).filter(Boolean).map(presentAssignee)
+    post.members = { items: assignees, total: assignees.length, hasMore: false }
+    post.endTime = variables.endTime ? new Date(variables.endTime).toISOString() : null
+    post.fulfilledAt = null
+    post.taskPlacements = []
+  }
   seed.posts.byId[post.id] = post
+  if (post.type === 'task') {
+    // A new task goes to the bottom of the column asked for, or of the board's first column
+    const statuses = taskStatusesFor(seed, group.id)
+    const status = statuses.find(s => String(s.id) === String(variables.taskStatusId)) || statuses[0]
+    placeTask(seed, post, group.id, status)
+    recordTaskEvent(seed, 'created', post, group.id)
+  }
   if (group.id === seed.groups.main.id) {
     if (post.type === 'chat') (seed.posts.hubChat || (seed.posts.hubChat = [])).unshift(post)
     else seed.posts.mainStream.unshift(post)
@@ -1021,5 +1058,254 @@ function markAllActivitiesRead (seed) {
     notification.activity.unread = false
   }
   seed.me.newNotificationCount = 0
+  return { success: true }
+}
+
+// Tasks. A task's place on a board lives on the post (`taskPlacements`, one per group the
+// task is in); a board is read by collecting each column's tasks in position order.
+
+function taskStatusesFor (seed, groupId) {
+  if (!seed.taskStatuses) seed.taskStatuses = {}
+  if (!seed.taskStatuses[groupId]) seed.taskStatuses[groupId] = buildDefaultTaskStatuses(groupId)
+  return seed.taskStatuses[groupId]
+}
+
+/** The column with this id and the board it is on: { status, groupId, statuses }, or null. */
+function findTaskStatus (seed, id) {
+  for (const [groupId, statuses] of Object.entries(seed.taskStatuses || {})) {
+    const status = statuses.find(s => String(s.id) === String(id))
+    if (status) return { status, groupId, statuses }
+  }
+  return null
+}
+
+function findTask (seed, postId) {
+  const post = findPost(seed, postId)
+  if (!post || post.type !== 'task') throw new Error('Task not found')
+  return post
+}
+
+function placementIn (post, groupId) {
+  return (post.taskPlacements || []).find(p => String(p.groupId) === String(groupId)) || null
+}
+
+/** The tasks in a column, top first. */
+function tasksInStatus (seed, groupId, statusId) {
+  return Object.values(seed.posts.byId)
+    .filter(post => post.type === 'task' && String(placementIn(post, groupId)?.taskStatusId) === String(statusId))
+    .sort((a, b) => placementIn(a, groupId).position - placementIn(b, groupId).position)
+}
+
+function isAssignedTo (post, personId) {
+  return (post.members?.items || []).some(person => String(person.id) === String(personId))
+}
+
+function presentAssignee (person) {
+  return { id: person.id, name: person.name, avatarUrl: person.avatarUrl }
+}
+
+function presentTaskStatus (status) {
+  return { id: status.id, name: status.name, category: status.category, order: status.order }
+}
+
+function presentBoardCard (post) {
+  return {
+    id: post.id,
+    title: post.title,
+    endTime: post.endTime || null,
+    fulfilledAt: post.fulfilledAt || null,
+    commentsTotal: post.commentsTotal || 0,
+    taskCategory: post.taskCategory,
+    creator: post.creator ? { id: post.creator.id } : null,
+    members: post.members || { items: [], total: 0, hasMore: false }
+  }
+}
+
+/** A task's status as the moveTask mutation returns it. */
+function presentTaskState (post) {
+  return {
+    id: post.id,
+    fulfilledAt: post.fulfilledAt || null,
+    taskCategory: post.taskCategory,
+    taskPlacements: post.taskPlacements || []
+  }
+}
+
+/** A group's board columns; with `withTasks`, each column also carries its cards. */
+function presentTaskBoard (seed, variables, { withTasks } = {}) {
+  const group = findGroup(seed, variables)
+  if (!group) return null
+  const taskStatuses = taskStatusesFor(seed, group.id).map(status => {
+    if (!withTasks) return presentTaskStatus(status)
+    let tasks = tasksInStatus(seed, group.id, status.id)
+    if (variables.assigneeId) tasks = tasks.filter(post => isAssignedTo(post, variables.assigneeId))
+    return {
+      ...presentTaskStatus(status),
+      tasksTotal: tasks.length,
+      tasks: tasks.slice(0, variables.first || tasks.length).map(presentBoardCard)
+    }
+  })
+  return { id: group.id, taskStatuses }
+}
+
+function presentTaskEvents (seed, variables) {
+  const group = findGroup(seed, variables)
+  if (!group) return null
+  const since = Date.now() - (variables.sinceDaysAgo || 1) * 86400000
+  const taskEvents = (seed.taskEvents || [])
+    .filter(event => String(event.groupId) === String(group.id) && Date.parse(event.createdAt) >= since)
+    .map(({ groupId, ...event }) => event)
+  return { id: group.id, taskEvents }
+}
+
+function recordTaskEvent (seed, type, post, groupId, meta = {}) {
+  if (!seed.taskEvents) seed.taskEvents = []
+  const me = seed.peopleById[seed.ids.me]
+  seed.taskEvents.push({
+    id: sid('task-event', String(Date.now() * 1000 + seed.taskEvents.length)),
+    groupId,
+    type,
+    createdAt: new Date().toISOString(),
+    meta,
+    actor: presentAssignee(me),
+    post: { id: post.id, title: post.title }
+  })
+}
+
+/** A task is done when the column it is in is a 'done' column. */
+function setTaskCategory (post, category) {
+  const wasDone = post.taskCategory === 'done'
+  post.taskCategory = category
+  if (category === 'done') {
+    if (!wasDone || !post.fulfilledAt) post.fulfilledAt = new Date().toISOString()
+  } else {
+    post.fulfilledAt = null
+  }
+}
+
+/**
+ * Puts a task at `index` of a column (counted among the column's other tasks; no index
+ * means the bottom) and renumbers the column so positions stay in order.
+ */
+function placeTask (seed, post, groupId, status, index) {
+  const column = tasksInStatus(seed, groupId, status.id).filter(other => other !== post)
+  const at = index == null ? column.length : Math.max(0, Math.min(index, column.length))
+  let placement = placementIn(post, groupId)
+  if (!placement) {
+    placement = { id: sid('task-placement', String(Date.now() * 1000 + Object.keys(seed.posts.byId).length)), groupId }
+    post.taskPlacements = [...(post.taskPlacements || []), placement]
+  }
+  placement.taskStatusId = status.id
+  placement.statusName = status.name
+  placement.statusCategory = status.category
+  column.splice(at, 0, post)
+  column.forEach((task, i) => { placementIn(task, groupId).position = i + 1 })
+  setTaskCategory(post, status.category)
+}
+
+function moveTask (seed, { postId, groupId, taskStatusId, index }) {
+  const post = findTask(seed, postId)
+  const status = taskStatusesFor(seed, groupId).find(s => String(s.id) === String(taskStatusId))
+  if (!status) throw new Error('Column not found')
+  const before = placementIn(post, groupId)
+  const fromStatusId = before?.taskStatusId
+  const wasDone = post.taskCategory === 'done'
+  placeTask(seed, post, groupId, status, index)
+  post.updatedAt = new Date().toISOString()
+  if (String(fromStatusId) !== String(status.id)) {
+    const isDone = status.category === 'done'
+    if (isDone && !wasDone) recordTaskEvent(seed, 'completed', post, groupId)
+    else if (!isDone && wasDone) recordTaskEvent(seed, 'reopened', post, groupId)
+    recordTaskEvent(seed, 'moved', post, groupId, { toStatusName: status.name, toCategory: status.category })
+  }
+  return presentTaskState(post)
+}
+
+function assignTask (seed, { postId, userId }) {
+  const post = findTask(seed, postId)
+  const person = findPerson(seed, userId || seed.ids.me)
+  if (!person) throw new Error('Person not found')
+  if (!isAssignedTo(post, person.id)) {
+    const items = [...(post.members?.items || []), presentAssignee(person)]
+    post.members = { items, total: items.length, hasMore: false }
+    for (const placement of post.taskPlacements || []) {
+      recordTaskEvent(seed, 'assigned', post, placement.groupId, { userId: person.id, userName: person.name })
+    }
+  }
+  return presentPost(seed, post)
+}
+
+function unassignTask (seed, { postId, userId }) {
+  const post = findTask(seed, postId)
+  const personId = userId || seed.ids.me
+  if (isAssignedTo(post, personId)) {
+    const items = post.members.items.filter(person => String(person.id) !== String(personId))
+    post.members = { items, total: items.length, hasMore: false }
+    for (const placement of post.taskPlacements || []) {
+      recordTaskEvent(seed, 'unassigned', post, placement.groupId, { userId: personId })
+    }
+  }
+  return presentPost(seed, post)
+}
+
+const TASK_CATEGORIES = ['todo', 'active', 'done']
+
+function createTaskStatus (seed, { groupId, name, category }) {
+  const group = findGroup(seed, { id: groupId })
+  if (!groupId || !group) throw new Error('Group not found')
+  if (category && !TASK_CATEGORIES.includes(category)) throw new Error('Not a valid column category')
+  const statuses = taskStatusesFor(seed, group.id)
+  const status = {
+    id: sid('task-status', String(Date.now() * 1000 + statuses.length)),
+    name: String(name || '').trim() || 'New column',
+    category: category || 'active',
+    order: statuses.length
+  }
+  statuses.push(status)
+  return presentTaskStatus(status)
+}
+
+/** A board must keep at least one 'done' column, or nothing on it could be completed. */
+function isOnlyDoneColumn (status, statuses) {
+  return status.category === 'done' && statuses.filter(s => s.category === 'done').length === 1
+}
+
+function updateTaskStatus (seed, { id, name, category, order }) {
+  const found = findTaskStatus(seed, id)
+  if (!found) throw new Error('Column not found')
+  const { status, groupId, statuses } = found
+  if (name != null && String(name).trim()) status.name = String(name).trim()
+  if (category != null && category !== status.category) {
+    if (!TASK_CATEGORIES.includes(category)) throw new Error('Not a valid column category')
+    if (isOnlyDoneColumn(status, statuses)) throw new Error('A board needs at least one done column')
+    status.category = category
+  }
+  if (order != null) {
+    const at = Math.max(0, Math.min(order, statuses.length - 1))
+    statuses.splice(statuses.indexOf(status), 1)
+    statuses.splice(at, 0, status)
+    statuses.forEach((s, i) => { s.order = i })
+  }
+  // Tasks in the column carry its name and category
+  for (const post of tasksInStatus(seed, groupId, status.id)) {
+    const placement = placementIn(post, groupId)
+    placement.statusName = status.name
+    placement.statusCategory = status.category
+    setTaskCategory(post, status.category)
+  }
+  return presentTaskStatus(status)
+}
+
+/** Deletes a column; its tasks move to the bottom of the board's first remaining column. */
+function deleteTaskStatus (seed, { id }) {
+  const found = findTaskStatus(seed, id)
+  if (!found) throw new Error('Column not found')
+  const { status, groupId, statuses } = found
+  if (statuses.length <= 1) throw new Error('A board needs at least one column')
+  if (isOnlyDoneColumn(status, statuses)) throw new Error('A board needs at least one done column')
+  const orphans = tasksInStatus(seed, groupId, status.id)
+  statuses.splice(statuses.indexOf(status), 1)
+  statuses.forEach((s, i) => { s.order = i })
+  for (const post of orphans) placeTask(seed, post, groupId, statuses[0])
   return { success: true }
 }

@@ -38,7 +38,7 @@ describe('sandbox sid()', () => {
       'simple-map',
       'simple-events',
       'simple-requests',
-      'simple-projects',
+      'simple-tasks',
       'simple-members'
     ].map(name => sid('view', name))
 

@@ -8,6 +8,7 @@ import {
   MAIN_ADMINISTRATOR_ROLE_ID,
   SYSTEM_RESPONSIBILITIES
 } from './groups'
+import { buildDefaultTaskStatuses } from '../helpers'
 import { buildTrack, buildTrackActions, TRACK_ID } from './tracks'
 import { buildFundingRound, FUNDING_ROUND_ID } from './fundingRounds'
 import { buildPosts, indexPosts } from './posts'
@@ -108,6 +109,12 @@ export function buildEnSeed () {
       }
     },
     posts: postCollections,
+    // Board columns by group id. Groups not listed get the default columns when their board is first opened.
+    taskStatuses: {
+      [groups.simple.id]: buildDefaultTaskStatuses(groups.simple.id)
+    },
+    // Task activity (created, moved, assigned...) recorded as the visitor uses the board
+    taskEvents: [],
     proposals: proposalData,
     messageThreads,
     notifications,
