@@ -3834,6 +3834,8 @@
   "Assistant is on": "Assistent ist an",
   "Assistant is off": "Assistent ist aus",
   "Turning it on shows it to stewards in the group menu.": "Wenn du ihn einschaltest, sehen ihn die Stewards im Gruppenmenü.",
+  "Let Axl see who your members are": "Axl sehen lassen, wer eure Mitglieder sind",
+  "Names, when each person joined, and when they last posted or replied in this group. Nothing else about them. Axl can then answer questions like who is new, who has been here three months, and who has gone quiet.": "Namen, wann jede Person beigetreten ist und wann sie zuletzt in dieser Gruppe gepostet oder geantwortet hat. Sonst nichts über sie. Axl kann dann Fragen beantworten wie: Wer ist neu, wer ist seit drei Monaten dabei und wer ist still geworden.",
   "Turning it off hides it from the group menu and stops all reading.": "Beim Ausschalten verschwindet er aus dem Gruppenmenü und liest nichts mehr.",
   "Spaces it can read": "Bereiche, die er lesen kann",
   "Axl reads nothing outside this list, and never direct messages.": "Axl liest nichts außerhalb dieser Liste und niemals Direktnachrichten.",

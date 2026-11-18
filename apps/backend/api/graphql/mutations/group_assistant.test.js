@@ -2,7 +2,7 @@
 /* global Group, HyloProSubscription, bookshelf */
 import factories from '../../../test/setup/factories'
 import { askGroupAssistant, groupAssistant, markGroupAssistantDraftPosted, saveGroupAssistantVoiceNote, updateGroupAssistantSettings, updateGroupAssistantVoice } from './group_assistant'
-import { fetchAssistantContent, formatAssistantContent } from '../../../lib/groupAssistantContent'
+import { fetchAssistantContent, fetchAssistantMembers, formatAssistantContent, summarizeAssistantMembers } from '../../../lib/groupAssistantContent'
 import { assistantTurn, formatThreadForModel } from '../../../lib/groupAssistant'
 
 describe('group assistant', () => {
@@ -114,6 +114,58 @@ describe('group assistant', () => {
       expect(sneaky.posts).to.deep.equal([])
       expect(directMessage.id).to.exist
       expect(postElsewhere.id).to.exist
+    })
+
+    it('is given members only when the stewards allow it', async () => {
+      await turnOn([group.id])
+      const seen = {}
+      await askGroupAssistant({ userId: steward.id, groupId: group.id, text: 'Who is new?' }, deps({ text: 'x', parts: [] }, seen))
+      expect(seen.request.contentSummary).to.contain('you are not given the member list')
+      expect(seen.request.contentSummary).not.to.contain('Members in total')
+
+      await updateGroupAssistantSettings({ userId: steward.id, groupId: group.id, settings: { readMembers: true } })
+      await askGroupAssistant({ userId: steward.id, groupId: group.id, text: 'Who is new?' }, deps({ text: 'x', parts: [] }, seen))
+      expect(seen.request.contentSummary).to.contain('Members in total: 2')
+      expect(seen.request.contentSummary).to.contain('Ned Member: joined')
+    })
+
+    it('counts members by how long they have been here and when they last posted or replied', async () => {
+      const now = new Date('2026-06-15T12:00:00Z')
+      const day = n => new Date(now.getTime() - n * 86400000)
+      const members = summarizeAssistantMembers([
+        { name: 'New and silent', joinedAt: day(5), lastActiveAt: null },
+        { name: 'New and posting', joinedAt: day(40), lastActiveAt: day(2) },
+        { name: 'Just three months', joinedAt: day(100), lastActiveAt: day(20) },
+        { name: 'Old and quiet', joinedAt: day(400), lastActiveAt: day(200) },
+        { name: 'Old and silent', joinedAt: day(200), lastActiveAt: null },
+        { name: 'No join date', joinedAt: null, lastActiveAt: day(1) }
+      ], now)
+      expect(members.total).to.equal(6)
+      expect(members.joinDateUnknown).to.equal(1)
+      expect(members.tenure).to.deep.equal({ lastMonth: 1, atLeast3Months: 3, atLeast6Months: 2, atLeast12Months: 1 })
+      expect(members.activity).to.include({ last30Days: 3, last90Days: 3, never: 2 })
+      expect(members.newest.members.map(m => m.name)).to.deep.equal(['New and silent', 'New and posting'])
+      expect(members.reachedThreeMonths.members.map(m => m.name)).to.deep.equal(['Just three months'])
+      expect(members.goneQuiet.members.map(m => m.name)).to.deep.equal(['Old and quiet'])
+      expect(members.neverPosted.members.map(m => m.name)).to.deep.equal(['Old and silent'])
+    })
+
+    it('finds when a member last posted or replied, in the group and its spaces only', async () => {
+      const members = await fetchAssistantMembers({ group: await Group.find(group.id) })
+      expect(members.total).to.equal(2)
+      // Ned posted in the group and its spaces; Maria never has
+      expect(members.activity.never).to.equal(1)
+      expect(members.newest.members.find(m => m.name === 'Ned Member').lastActiveDaysAgo).to.equal(0)
+      expect(members.newest.members.find(m => m.name === 'Maria Steward').lastActiveDaysAgo).to.be.null
+    })
+
+    it('names only part of a long list and says how many it is drawn from', async () => {
+      const now = new Date()
+      const rows = Array.from({ length: 200 }, (_, i) => ({ name: `Member ${i}`, joinedAt: new Date(now.getTime() - (i + 1) * 3600000), lastActiveAt: null }))
+      const members = summarizeAssistantMembers(rows, now)
+      expect(members.newest.of).to.equal(200)
+      expect(members.newest.members).to.have.length(80)
+      expect(formatAssistantContent({ about: {}, agreements: [], spaces: [], posts: [], members })).to.contain('200, of whom the first 80 are named here')
     })
   })
 

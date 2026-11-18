@@ -3656,7 +3656,7 @@ type Mutation {
   # A steward writes in the group's steward thread and the assistant answers from the spaces the stewards
   # chose. Returns { messages: [the steward's message, the assistant's answer], usage }.
   askGroupAssistant(groupId: ID!, text: String!): JSON
-  # Saves the assistant's settings: { enabled, followUps, shareLoad, summarize, answerMembers, readableGroupIds }.
+  # Saves the assistant's settings: { enabled, followUps, shareLoad, summarize, answerMembers, readMembers, readableGroupIds }.
   # Fields left out keep their value. Returns the same shape as the groupAssistant query.
   updateGroupAssistantSettings(groupId: ID!, settings: JSON!): JSON
   # Saves the calling steward's own "How I write" note for this group, used to word drafts written for them.
