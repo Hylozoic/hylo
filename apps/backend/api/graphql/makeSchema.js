@@ -159,8 +159,8 @@ import {
   subscribe,
   swapProposalVote,
   unblockUser,
-  unfulfillPost,
   unfollowPost,
+  unfulfillPost,
   unlinkAccount,
   unsavePost,
   updateAllMemberships,
@@ -213,6 +213,8 @@ import {
   membershipChangeInvoicePreview
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
+import { leaveMessageThread } from './mutations/messageThread'
+import { reportToStaff, resolveStaffReport } from './mutations/moderation_actions'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -582,6 +584,13 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       return fetchOne('MessageThread', id)
     },
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
+    // Reports to Hylo staff about people and conversations, for Management
+    staffReports: async (root, { first = 20, offset = 0, status = 'active' }, context) => {
+      if (!(await Admin.isSuperAdmin(context.currentUserId))) {
+        throw new GraphQLError('Unauthorized: Admin access required')
+      }
+      return fetchMany('ModerationAction', { first, offset, queue: ModerationAction.QUEUE_STAFF, status })
+    },
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
       const notifications = await fetchMany('Notification', { first, offset, order })
       resetCount && await User.resetNewNotificationCount(context.currentUserId)
@@ -849,6 +858,8 @@ export function makeMutations ({ fetchOne }) {
 
     flagInappropriateContent: (root, { data }, context) => flagInappropriateContent(context.currentUserId, data),
 
+    followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
+
     fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
@@ -872,6 +883,12 @@ export function makeMutations ({ fetchOne }) {
     muteMessageThread: (root, { messageThreadId }, context) => muteMessageThread(context.currentUserId, messageThreadId),
 
     unmuteMessageThread: (root, { messageThreadId }, context) => unmuteMessageThread(context.currentUserId, messageThreadId),
+
+    leaveMessageThread: (root, { messageThreadId }, context) => leaveMessageThread(context.currentUserId, messageThreadId),
+
+    reportToStaff: (root, { data }, context) => reportToStaff({ userId: context.currentUserId, data }),
+
+    resolveStaffReport: (root, { id }, context) => resolveStaffReport({ userId: context.currentUserId, id }),
 
     leaveProject: (root, { id }, context) => leaveProject(id, context.currentUserId),
 
@@ -959,8 +976,6 @@ export function makeMutations ({ fetchOne }) {
     saveDraft: (root, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }, context) =>
       saveDraft(context.currentUserId, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }),
 
-    followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
-
     savePost: (root, { postId }, context) => savePost(context.currentUserId, postId),
 
     setProposalOptions: (root, { postId, options }, context) => setProposalOptions({ userId: context.currentUserId, postId, options }),
@@ -971,9 +986,9 @@ export function makeMutations ({ fetchOne }) {
 
     unblockUser: (root, { blockedUserId }, context) => unblockUser(context.currentUserId, blockedUserId),
 
-    unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
-
     unfollowPost: (root, { postId }, context) => unfollowPost(context.currentUserId, postId),
+
+    unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
 
     unlinkAccount: (root, { provider }, context) => unlinkAccount(context.currentUserId, provider),
 

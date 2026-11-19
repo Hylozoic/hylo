@@ -16,6 +16,10 @@ export default function forModerationActions (opts) {
     // which is useful for pagination
     countTotal(qb, 'moderation_actions', opts.totalColumnName)
 
+    // Group queues never include reports sent to Hylo staff
+    qb.where('moderation_actions.queue', opts.queue || ModerationAction.QUEUE_GROUP)
+    if (opts.status) qb.where('moderation_actions.status', opts.status)
+
     if (opts.slug) {
       qb.join('groups', 'moderation_actions.group_id', '=', 'groups.id')
       qb.where(q => {

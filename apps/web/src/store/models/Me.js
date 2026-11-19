@@ -78,6 +78,7 @@ Me.fields = {
   groupInvitesPending: many('Invitation'),
   joinRequests: many('JoinRequest'),
   location: attr(),
+  cookieConsentPreferences: attr(),
   rsvpCalendarUrl: attr(),
   locationObject: fk({
     to: 'Location',

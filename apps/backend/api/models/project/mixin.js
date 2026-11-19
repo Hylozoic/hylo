@@ -1,6 +1,3 @@
-import { uniq } from 'lodash/fp'
-import { isProjectMember } from '../group/queryUtils'
-
 export default {
   isProject () {
     return this.get('type') === Post.Type.PROJECT
@@ -17,7 +14,7 @@ export default {
 
   addProjectMembers: async function (usersOrIds, opts) {
     // need to fetchId for ProjectRole
-    const projectRole =  await this.getOrCreateMemberProjectRole(opts)
+    const projectRole = await this.getOrCreateMemberProjectRole(opts)
     return this.addFollowers(usersOrIds, {
       project_role_id: projectRole.id,
       following: true

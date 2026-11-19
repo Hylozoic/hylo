@@ -547,15 +547,21 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'anonymous',
         'groupId',
         'created_at',
-        'updated_at'
+        'updated_at',
+        'queue',
+        'category',
+        'resolved_at'
       ],
-      relations: ['post', 'reporter', 'agreements', 'platformAgreements', 'group'],
+      relations: ['post', 'reporter', 'agreements', 'platformAgreements', 'group', 'comment', 'reportedUser', 'resolvedBy'],
       getters: {
-        anonymous: ma => ma.get('anonymous') === 'true'
+        anonymous: ma => ma.get('anonymous') === 'true',
+        commentId: ma => ma.get('comment_id'),
+        messageThreadId: ma => ma.get('message_thread_id'),
+        threadParticipants: ma => ma.threadParticipants()
       },
-      fetchMany: ({ first = 20, offset = 0, slug, sortBy }) =>
+      fetchMany: ({ first = 20, offset = 0, slug, sortBy, queue, status }) =>
         searchQuerySet('forModerationActions', {
-          first, offset, currentUserId: userId, slug, sortBy
+          first, offset, currentUserId: userId, slug, sortBy, queue, status
         })
     },
 
@@ -781,6 +787,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         details: p => p.details(userId),
         fundingRound: p => p.fundingRounds().fetchOne(),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
+        isFollowing: async p => {
+          if (!userId) return false
+          const postUser = await PostUser.find(p.id, userId)
+          return !!(postUser && postUser.get('active') && postUser.get('following'))
+        },
         localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],
         myEventResponse: p =>
@@ -814,7 +825,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         savedAt: p => p.savedAtForUser(userId),
-        following: p => p.followingForUser(userId),
         tokensAllocated: async p => {
           if (!userId) return null
           const postUser = await PostUser.find(p.get('id'), userId)

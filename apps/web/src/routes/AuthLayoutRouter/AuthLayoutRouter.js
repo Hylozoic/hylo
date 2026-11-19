@@ -153,6 +153,7 @@ export default function AuthLayoutRouter (props) {
       { path: 'groups/:joinGroupSlug/join/:accessCode', context: 'groups' },
       { path: 'invite/:accessCode', context: 'groups' },
       { path: 'view/:accessCode', context: 'groups' },
+      { path: 'groups/:groupSlug/spaces/:spaceSlug/:view/*', context: 'groups' },
       { path: 'groups/:groupSlug/spaces/:spaceSlug/*', context: 'groups' },
       { path: 'groups/:groupSlug/:view/*', context: 'groups' },
       { path: 'groups/:groupSlug/*', context: 'groups' },
@@ -164,7 +165,9 @@ export default function AuthLayoutRouter (props) {
       { path: 'public', context: 'public' },
       { path: 'welcome/*', context: 'welcome' },
       { path: 'my/*', context: 'my' },
-      { path: 'my', context: 'my' }
+      { path: 'my', context: 'my' },
+      { path: 'management/*', context: 'management' },
+      { path: 'management', context: 'management' }
     ]
     const match = matches.find(match => matchPath(match, location.pathname))
     const matchResult = match ? matchPath(match, location.pathname) : null
@@ -1046,6 +1049,7 @@ export default function AuthLayoutRouter (props) {
                 {!isCardMenuUser && <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 {!isCardMenuUser && <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 {!isCardMenuUser && <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
+                {currentUser?.isAdmin && <Route path='management/*' element={<ContextMenu currentGroup={null} mapView={false} />} />}
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={null} />
                 {/* Simple groups: ContextMenu only renders for /settings (the settings sidebar).
                     Group home shows just the GlobalNav + ContextMenuGrid — no sidebar context menu. */}
@@ -1229,6 +1233,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
 
                 {/* Groups context routes */}
+                <Route path={`/groups/:groupSlug/spaces/:spaceSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
+                <Route path={`/groups/:groupSlug/spaces/:spaceSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
