@@ -1813,7 +1813,10 @@ CREATE TABLE public.hylo_pro_subscriptions (
     note text,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT hylo_pro_subscriptions_source_check CHECK (((source)::text = ANY ((ARRAY['stripe'::character varying, 'manual'::character varying])::text[])))
+    tier character varying(16) DEFAULT 'pro'::character varying NOT NULL,
+    features jsonb,
+    CONSTRAINT hylo_pro_subscriptions_source_check CHECK (((source)::text = ANY ((ARRAY['stripe'::character varying, 'manual'::character varying])::text[]))),
+    CONSTRAINT hylo_pro_subscriptions_tier_check CHECK (((tier)::text = ANY ((ARRAY['pro'::character varying, 'pro_plus'::character varying, 'custom'::character varying])::text[])))
 );
 
 

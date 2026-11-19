@@ -14,6 +14,7 @@
 
 const Stripe = require('stripe')
 const { GraphQLError } = require('graphql')
+const { HYLO_PRO_DEFAULT_TIER, HYLO_PRO_TIERS, isProFeature, proFeatureOverrides, featuresForTier } = require('@hylo/shared')
 const HyloProService = require('./HyloProService')
 
 /* global bookshelf, Group, HyloProSubscription */
@@ -59,6 +60,37 @@ function parseExpiresAt (expiresAt, now = new Date()) {
   if (isNaN(date.getTime())) throw new GraphQLError('expiresAt is not a valid date')
   if (date.getTime() <= now.getTime()) throw new GraphQLError('expiresAt must be in the future')
   return date
+}
+
+// A grant's tier as given to the API: one of HYLO_PRO_TIERS, defaulting to Pro
+function parseTier (tier) {
+  if (tier === null || tier === undefined || tier === '') return HYLO_PRO_DEFAULT_TIER
+  if (!HYLO_PRO_TIERS.includes(tier)) throw new GraphQLError(`tier must be one of: ${HYLO_PRO_TIERS.join(', ')}`)
+  return tier
+}
+
+/**
+ * Feature overrides as given to the API — a list of `{ key, enabled }` — as the `{ [key]: boolean }`
+ * stored on the row, keeping only differences from `tier` (an override that matches the tier is
+ * dropped). Null when nothing differs. Every key must be a registered feature.
+ */
+function parseFeatureOverrides (features, tier) {
+  if (features === null || features === undefined) return null
+  if (!Array.isArray(features)) throw new GraphQLError('features must be a list of { key, enabled }')
+  const chosen = new Set(featuresForTier(tier))
+  for (const override of features) {
+    const key = override?.key
+    if (!isProFeature(key)) throw new GraphQLError(`Unknown Hylo Pro feature: ${key}`)
+    if (typeof override.enabled !== 'boolean') throw new GraphQLError(`enabled must be true or false for feature ${key}`)
+    if (override.enabled) chosen.add(key)
+    else chosen.delete(key)
+  }
+  return proFeatureOverrides(tier, [...chosen])
+}
+
+// The jsonb value to store for overrides: JSON text (Postgres casts it), or null for none
+function featuresColumn (overrides) {
+  return overrides ? JSON.stringify(overrides) : null
 }
 
 function monthKey (date) {
@@ -337,11 +369,15 @@ module.exports = {
    * (change that grant's end date instead), so a group never has two grants to keep track of.
    *
    * @param {string} groupId the group's id; never a slug (see findGroups)
+   * @param {string} [tier] 'pro' (default), 'pro_plus' or 'custom': the bundle of features granted
+   * @param {Array<{ key: string, enabled: boolean }>} [features] single features to add to or remove from the bundle
    */
-  async grant ({ adminId, groupId, expiresAt, note }, now = new Date()) {
+  async grant ({ adminId, groupId, tier, features, expiresAt, note }, now = new Date()) {
     const group = await findGroupById(groupId)
     if (group.get('type') === 'space') throw new GraphQLError('Hylo Pro is only available for groups, not spaces')
     const expires = parseExpiresAt(expiresAt, now)
+    const grantTier = parseTier(tier)
+    const overrides = parseFeatureOverrides(features, grantTier)
 
     const id = await withGrantLock(group.id, async trx => {
       const existing = await trx('hylo_pro_subscriptions')
@@ -354,6 +390,8 @@ module.exports = {
         group_id: group.id,
         source: HyloProSubscription.SOURCE_MANUAL,
         status: 'active',
+        tier: grantTier,
+        features: featuresColumn(overrides),
         expires_at: expires,
         granted_by_id: adminId,
         note: cleanNote(note),
@@ -363,18 +401,22 @@ module.exports = {
       return row.id || row
     })
 
-    console.log(`Hylo Pro: admin ${adminId} granted Pro to group ${group.id} until ${expires ? expires.toISOString() : 'no end date'}`)
+    console.log(`Hylo Pro: admin ${adminId} granted ${grantTier} to group ${group.id} until ${expires ? expires.toISOString() : 'no end date'}${overrides ? ` with overrides ${JSON.stringify(overrides)}` : ''}`)
     return HyloProSubscription.where({ id }).fetch({ withRelated: ['group', 'grantedBy'] })
   },
 
   /**
-   * Changes an active grant's end date (null = no end date) and/or its note. Extending a grant
-   * that has already expired re-activates it. A revoked grant can't be changed; grant again instead.
+   * Changes an active grant's end date (null = no end date), its note, and/or its tier and feature
+   * overrides (`features` replaces the overrides: pass [] to go back to the plain tier; omit it to
+   * leave them alone — when only the tier changes, the overrides are re-read against the new tier).
+   * Extending a grant that has already expired re-activates it. A revoked grant can't be changed;
+   * grant again instead.
    */
-  async updateGrant ({ adminId, id, expiresAt, note }, now = new Date()) {
+  async updateGrant ({ adminId, id, tier, features, expiresAt, note }, now = new Date()) {
     const attrs = { updated_at: now }
     if (expiresAt !== undefined) attrs.expires_at = parseExpiresAt(expiresAt, now)
     if (note !== undefined) attrs.note = cleanNote(note)
+    if (tier !== undefined) attrs.tier = parseTier(tier)
 
     const groupId = (await findRow(id, { source: HyloProSubscription.SOURCE_MANUAL })).get('group_id')
     // Same lock as grant() and revokeGrant(). The row is read again inside it, so the checks below
@@ -382,6 +424,15 @@ module.exports = {
     const row = await withGrantLock(groupId, async trx => {
       const current = await findRow(id, { source: HyloProSubscription.SOURCE_MANUAL, transacting: trx })
       if (current.get('status') !== 'active') throw new GraphQLError('This grant was revoked. Grant Pro again instead.')
+
+      if (features !== undefined || attrs.tier !== undefined) {
+        const nextTier = attrs.tier || current.tier()
+        // Keeping the old overrides on a new tier: the same chosen features, re-expressed against it
+        const chosen = features !== undefined
+          ? features
+          : Object.entries(current.featureOverrides()).map(([key, enabled]) => ({ key, enabled }))
+        attrs.features = featuresColumn(parseFeatureOverrides(chosen, nextTier))
+      }
 
       if (attrs.expires_at !== undefined && !HyloProSubscription.isActive(current, now)) {
         // Re-activating an expired grant: make sure the group doesn't end up with two active grants

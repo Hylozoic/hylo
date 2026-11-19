@@ -1,3 +1,4 @@
+import { featuresForTier, proFeatureOverrides } from '@hylo/shared'
 import { formatLocalizedDate } from 'util/dateFormat'
 
 // Redux GraphQL actions can resolve with an error or reject; treat both as failure
@@ -40,4 +41,19 @@ export function toDateInputValue (date) {
   const d = new Date(date)
   const pad = n => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+// The overrides a tier and the features ticked mean, as the API's [{ key, enabled }] (empty when none)
+export function overridesList (tier, chosen) {
+  return Object.entries(proFeatureOverrides(tier, chosen) || {}).map(([key, enabled]) => ({ key, enabled }))
+}
+
+// The features a grant row gives (its tier's, plus/minus its overrides), as the keys to tick in TierFeatures
+export function chosenForRow (row) {
+  const chosen = new Set(featuresForTier(row.tier || 'pro'))
+  for (const { key, enabled } of row.features || []) {
+    if (enabled) chosen.add(key)
+    else chosen.delete(key)
+  }
+  return [...chosen]
 }

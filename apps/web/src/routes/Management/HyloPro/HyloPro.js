@@ -5,11 +5,13 @@ import { toast } from 'sonner'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
+import { HYLO_PRO_DEFAULT_TIER, featuresForTier } from '@hylo/shared'
 import { cn } from 'util/index'
 import { getDateLocale } from 'util/locale'
 import SubscriptionRow from './SubscriptionRow'
+import TierFeatures from './TierFeatures'
 import { fetchHyloProGroups, fetchHyloProMetrics, fetchHyloProSubscriptions, grantHyloPro } from './HyloPro.store'
-import { endOfDayIso, formatMoney, runGraphql } from './util'
+import { endOfDayIso, formatMoney, overridesList, runGraphql } from './util'
 
 const PAGE_SIZE = 50
 
@@ -245,6 +247,8 @@ function GrantForm ({ onGranted }) {
   const [slugOrId, setSlugOrId] = useState('')
   const [expiresOn, setExpiresOn] = useState('')
   const [note, setNote] = useState('')
+  // The bundle granted: a tier and the features ticked (the tier's by default; see TierFeatures)
+  const [bundle, setBundle] = useState({ tier: HYLO_PRO_DEFAULT_TIER, chosen: featuresForTier(HYLO_PRO_DEFAULT_TIER) })
   const [matches, setMatches] = useState(null) // groups found for the typed value, null = not looked up yet
   const [searching, setSearching] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -273,11 +277,18 @@ function GrantForm ({ onGranted }) {
   const handleGrant = async group => {
     setSaving(true)
     try {
-      const row = await runGraphql(dispatch, grantHyloPro({ groupId: group.id, expiresAt: endOfDayIso(expiresOn), note }), 'grantHyloPro')
+      const row = await runGraphql(dispatch, grantHyloPro({
+        groupId: group.id,
+        tier: bundle.tier,
+        features: overridesList(bundle.tier, bundle.chosen),
+        expiresAt: endOfDayIso(expiresOn),
+        note
+      }), 'grantHyloPro')
       toast.success(t('Hylo Pro granted to {{name}}', { name: row.group?.name }))
       setSlugOrId('')
       setExpiresOn('')
       setNote('')
+      setBundle({ tier: HYLO_PRO_DEFAULT_TIER, chosen: featuresForTier(HYLO_PRO_DEFAULT_TIER) })
       setMatches(null)
       onGranted()
     } catch (e) {
@@ -304,6 +315,9 @@ function GrantForm ({ onGranted }) {
           <span>{t('Note (why it was granted)')}</span>
           <Input value={note} onChange={e => setNote(e.target.value)} maxLength={1000} />
         </label>
+        <div className='sm:col-span-2'>
+          <TierFeatures tier={bundle.tier} chosen={bundle.chosen} onChange={setBundle} disabled={saving} />
+        </div>
         <div className='sm:col-span-2'>
           <Button type='submit' variant='outline' disabled={searching || saving || !slugOrId.trim()}>{searching ? t('Searching...') : t('Find group')}</Button>
         </div>

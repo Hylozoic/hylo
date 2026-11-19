@@ -1293,13 +1293,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         hasPro: g => g.hasPro(),
+        proFeatures: g => g.proFeatures(),
         proBilling: async g => {
           // Hylo Pro is for groups; spaces have no billing of their own
           if (g.get('type') === 'space') return null
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
             return null
           }
-          const { subscription, grant, hasPro } = await HyloProSubscription.billingForGroup(g.id)
+          const { subscription, grant, hasPro, tier, features } = await HyloProSubscription.billingForGroup(g.id)
           const present = sub => sub && {
             id: sub.id,
             source: sub.get('source'),
@@ -1319,6 +1320,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             needsPaymentUpdate: hasOpenSubscription && HyloProSubscription.NEEDS_PAYMENT_STRIPE_STATUSES.includes(subscription.get('status')),
             subscription: present(subscription),
             grant: present(grant),
+            tier,
+            features,
             plans: HyloProService.plans()
           }
         },

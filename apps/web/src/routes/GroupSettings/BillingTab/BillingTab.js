@@ -11,7 +11,7 @@ import { formatLocalizedDate } from 'util/dateFormat'
 import { cn } from 'util/index'
 import { getDateLocale } from 'util/locale'
 import { activateProCheckoutSession, createProCheckoutSession, createProPortalSession, fetchProBilling } from './BillingTab.store'
-import { CONTACT_EMAIL, TIERS } from './tiers'
+import { CONTACT_EMAIL, TIERS, tierCardFor } from './tiers'
 
 // On return from Checkout the page activates the subscription right away; if Stripe is still
 // processing the payment, poll briefly (the webhook also syncs it)
@@ -181,16 +181,25 @@ export default function BillingTab ({ group }) {
   const shownInterval = paidActive && subscription.interval ? subscription.interval : proInterval
   const proPlan = plans.find(plan => plan.interval === shownInterval) || plans[0]
 
+  // The tier the group is on ('pro', 'pro_plus', 'custom'), and the card that sells it
+  const currentTier = hasPro ? (billing.tier || 'pro') : null
+  const currentCard = currentTier ? tierCardFor(currentTier) : null
+  const tierName = {
+    pro: t('Hylo Pro'),
+    pro_plus: t('Hylo Pro Plus'),
+    custom: t('Hylo Custom')
+  }[currentTier] || t('Hylo Pro')
+
   let planName = t('Free')
   let planDetail = null
   if (paidActive) {
-    planName = subscription.interval === 'year' ? t('Hylo Pro (yearly)') : t('Hylo Pro (monthly)')
+    planName = subscription.interval === 'year' ? t('{{plan}} (yearly)', { plan: tierName }) : t('{{plan}} (monthly)', { plan: tierName })
     // A failed renewal keeps Pro for a short grace period; the payment-failed banner explains it
     planDetail = subscription.cancelAtPeriodEnd
       ? t('Cancels on {{date}}. Pro features stay on until then.', { date: formatDate(subscription.endsAt || subscription.currentPeriodEnd) })
       : !billing.needsPaymentUpdate && subscription.currentPeriodEnd && t('Renews on {{date}}', { date: formatDate(subscription.currentPeriodEnd) })
   } else if (grant) {
-    planName = t('Hylo Pro (granted by Hylo)')
+    planName = t('{{plan}} (granted by Hylo)', { plan: tierName })
     planDetail = grant.endsAt
       ? t('Pro access until {{date}}', { date: formatDate(grant.endsAt) })
       : t('No end date')
@@ -213,9 +222,17 @@ export default function BillingTab ({ group }) {
     }
   }
 
-  // Call to action of a tier card. The Pro card shows "Current plan" instead of an Upgrade button
-  // while the group has Pro; Manage subscription stays below the cards
+  // Call to action of a tier card. The card of the group's tier shows "Current plan" instead of
+  // its button while the group has Pro; Manage subscription stays below the cards
   const renderCta = tier => {
+    if (currentCard && tier.id === currentCard.id) {
+      return (
+        <span className='inline-flex items-center justify-center gap-1 rounded-md bg-selected/20 px-3 py-2 text-sm font-medium text-foreground' data-testid='billing-current-plan'>
+          <Sparkles className='w-4 h-4 text-selected' />
+          {t('Current plan')}
+        </span>
+      )
+    }
     switch (tier.ctaKind) {
       case 'support':
         return (
@@ -224,15 +241,7 @@ export default function BillingTab ({ group }) {
           </Button>
         )
       case 'upgrade':
-        if (hasPro) {
-          return (
-            <span className='inline-flex items-center justify-center gap-1 rounded-md bg-selected/20 px-3 py-2 text-sm font-medium text-foreground' data-testid='billing-current-plan'>
-              <Sparkles className='w-4 h-4 text-selected' />
-              {t('Current plan')}
-            </span>
-          )
-        }
-        if (!showUpgrade || !proPlan) return null
+        if (hasPro || !showUpgrade || !proPlan) return null
         return (
           <Button
             className='w-full'
@@ -308,13 +317,14 @@ export default function BillingTab ({ group }) {
       <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3' data-testid='billing-tiers'>
         {TIERS.map(tier => {
           const isPro = tier.id === 'pro'
+          const isCurrent = !!currentCard && tier.id === currentCard.id
           const price = renderPrice(tier)
           return (
             <div
               key={tier.id}
               className={cn(
                 'rounded-xl border-2 p-4 flex flex-col gap-3',
-                isPro && hasPro ? 'border-selected' : 'border-foreground/10'
+                isCurrent ? 'border-selected' : 'border-foreground/10'
               )}
               data-testid={`billing-tier-${tier.id}`}
             >
@@ -344,10 +354,10 @@ export default function BillingTab ({ group }) {
               )}
 
               <ul className='flex flex-col gap-1 text-sm text-foreground/80 flex-1'>
-                {tier.featureKeys.map(key => (
-                  <li key={key} className='flex items-start gap-2'>
+                {tier.features.map(feature => (
+                  <li key={feature.labelKey} className='flex items-start gap-2' data-feature-keys={feature.keys.join(' ') || undefined}>
                     <Check className='w-4 h-4 mt-0.5 shrink-0 text-selected' />
-                    <span>{t(key)}</span>
+                    <span>{t(feature.labelKey)}</span>
                   </li>
                 ))}
               </ul>

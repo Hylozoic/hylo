@@ -935,8 +935,10 @@ type Group {
   createdAt: Date
   # Group description text
   description: String
-  # Whether this group currently has Hylo Pro (a paid subscription or a manual grant)
+  # Whether this group currently has Hylo Pro (a paid subscription or a manual grant), at any tier. Not enough to gate a feature: see proFeatures
   hasPro: Boolean
+  # Which Hylo Pro features this group has now (all false without Pro)
+  proFeatures: HyloProFeatures
   # gets the event calendar subscription URL
   eventCalendarUrl: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
@@ -4041,9 +4043,11 @@ type Mutation {
 
   # Hylo Pro management mutations (Hylo staff only)
   # Grant a group Pro outside of payments. groupId is the group's id (not a slug; see hyloProGroups); expiresAt null = no end date
-  grantHyloPro(groupId: ID!, expiresAt: Date, note: String): HyloProAdminSubscription
+  # tier: 'pro' (default), 'pro_plus' or 'custom'; features: single features to add to or remove from that tier's bundle
+  grantHyloPro(groupId: ID!, tier: String, features: [HyloProFeatureOverrideInput], expiresAt: Date, note: String): HyloProAdminSubscription
   # Change an active grant's end date (null = no end date) and/or note; extending an expired grant re-activates it
-  updateHyloProGrant(id: ID!, expiresAt: Date, note: String): HyloProAdminSubscription
+  # features replaces the grant's overrides ([] = the plain tier); omit it to keep them
+  updateHyloProGrant(id: ID!, tier: String, features: [HyloProFeatureOverrideInput], expiresAt: Date, note: String): HyloProAdminSubscription
   # End a grant now
   revokeHyloProGrant(id: ID!): HyloProAdminSubscription
   # Cancel a Stripe subscription at the end of its paid period, or immediately (nothing is refunded)
@@ -4241,8 +4245,56 @@ type HyloProBilling {
   subscription: HyloProSubscription
   # An active grant from Hylo, if any
   grant: HyloProSubscription
+  # The highest tier the group has now ('pro', 'pro_plus' or 'custom'), or null without Pro
+  tier: String
+  # Which Hylo Pro features the group has now
+  features: HyloProFeatures
   # Plans a group can subscribe to
   plans: [HyloProPlan]
+}
+
+# Which Hylo Pro features a group has: one Boolean per feature registered in packages/shared
+# HyloProFeatures.js, named by its key. A backend test fails when this type and the registry differ,
+# so a new feature is one registry entry plus one field here.
+type HyloProFeatures {
+  anyGroupSize: Boolean
+  postAsGroup: Boolean
+  adminsEditAdminPosts: Boolean
+  advancedMetrics: Boolean
+  largerUploads: Boolean
+  advancedDashboard: Boolean
+  designedViews: Boolean
+  liveAudioVideo: Boolean
+  simpleWhitelabel: Boolean
+  groupThemes: Boolean
+  groupAssistant: Boolean
+  setupWizard: Boolean
+  matchmaking: Boolean
+  largerAudioVideo: Boolean
+  recording: Boolean
+  transcriptions: Boolean
+  broadcast: Boolean
+  higherUploadLimits: Boolean
+  collaborativeDocuments: Boolean
+  aiWorkflows: Boolean
+  higherAiLimits: Boolean
+  lowerPlatformFee: Boolean
+  childGroupsIncluded: Boolean
+  customDomain: Boolean
+  federation: Boolean
+  singleSignOn: Boolean
+}
+
+# One feature added to (enabled: true) or removed from (false) the bundle a grant's tier gives
+type HyloProFeatureOverride {
+  # A key from the feature registry (packages/shared HyloProFeatures.js)
+  key: String
+  enabled: Boolean
+}
+
+input HyloProFeatureOverrideInput {
+  key: String!
+  enabled: Boolean!
 }
 
 type HyloProPlan {
@@ -4269,6 +4321,10 @@ type HyloProAdminSubscription {
   # Whether this row gives the group Pro now
   active: Boolean
   interval: String
+  # The bundle this row gives: 'pro', 'pro_plus' or 'custom'
+  tier: String
+  # Single features added to or removed from that bundle (manual grants); empty when none
+  features: [HyloProFeatureOverride]
   group: HyloProAdminGroup
   # Who made a manual grant
   grantedBy: HyloProAdminUser

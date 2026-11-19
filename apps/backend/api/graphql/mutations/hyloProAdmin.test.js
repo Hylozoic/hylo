@@ -244,6 +244,60 @@ describe('Hylo Pro management', () => {
       expect(result.endsAt).to.be.null
     })
 
+    it('grants the Pro tier with no overrides by default', async () => {
+      const result = await grantHyloPro(staff.id, { groupId: group.id })
+      expect(result.tier).to.equal('pro')
+      expect(result.features).to.deep.equal([])
+      expect(await group.hasProFeature('designedViews')).to.be.true
+      expect(await group.hasProFeature('recording')).to.be.false
+    })
+
+    it('grants another tier with single features added or removed, storing only the differences', async () => {
+      const result = await grantHyloPro(staff.id, {
+        groupId: group.id,
+        tier: 'pro_plus',
+        features: [
+          { key: 'singleSignOn', enabled: true },
+          { key: 'recording', enabled: false },
+          { key: 'designedViews', enabled: true } // already in the tier: not an override
+        ]
+      })
+      expect(result.tier).to.equal('pro_plus')
+      expect(result.features).to.have.deep.members([{ key: 'singleSignOn', enabled: true }, { key: 'recording', enabled: false }])
+      const row = await HyloProSubscription.where({ id: result.id }).fetch()
+      expect(row.get('features')).to.deep.equal({ singleSignOn: true, recording: false })
+      const features = await group.proFeatures()
+      expect(features).to.include({ designedViews: true, transcriptions: true, singleSignOn: true, recording: false, federation: false })
+    })
+
+    it('refuses unknown tiers and feature keys, granting nothing', async () => {
+      await expect(grantHyloPro(staff.id, { groupId: group.id, tier: 'gold' })).to.be.rejectedWith(/tier must be one of: pro, pro_plus, custom/)
+      await expect(grantHyloPro(staff.id, { groupId: group.id, features: [{ key: 'groupTheme', enabled: true }] })).to.be.rejectedWith(/Unknown Hylo Pro feature: groupTheme/)
+      expect(await group.hasPro()).to.be.false
+    })
+
+    it('changes the tier and overrides of a grant', async () => {
+      const grant = await grantRow({ tier: 'pro', features: { recording: true } })
+      expect(await group.hasProFeature('recording')).to.be.true
+
+      // A new tier keeps the chosen features, re-read against it: recording is now in the bundle, so no override is left
+      const upgraded = await updateHyloProGrant(staff.id, { id: grant.id, tier: 'pro_plus' })
+      expect(upgraded.tier).to.equal('pro_plus')
+      expect(upgraded.features).to.deep.equal([])
+      expect(await group.hasProFeature('transcriptions')).to.be.true
+
+      const trimmed = await updateHyloProGrant(staff.id, { id: grant.id, features: [{ key: 'transcriptions', enabled: false }] })
+      expect(trimmed.features).to.deep.equal([{ key: 'transcriptions', enabled: false }])
+      expect(await group.hasProFeature('transcriptions')).to.be.false
+
+      const plain = await updateHyloProGrant(staff.id, { id: grant.id, features: [] })
+      expect(plain.features).to.deep.equal([])
+      expect((await HyloProSubscription.where({ id: grant.id }).fetch()).get('features')).to.be.null
+      expect(await group.hasProFeature('transcriptions')).to.be.true
+
+      await expect(updateHyloProGrant(staff.id, { id: grant.id, features: [{ key: 'nope', enabled: true }] })).to.be.rejectedWith(/Unknown Hylo Pro feature: nope/)
+    })
+
     it('grants by id only, so an all-digit slug can never pick the wrong group', async () => {
       await expect(grantHyloPro(staff.id, { groupId: group.get('slug') })).to.be.rejectedWith(/Group not found/)
       await expect(grantHyloPro(staff.id, { groupId: '1e3' })).to.be.rejectedWith(/Group not found/)

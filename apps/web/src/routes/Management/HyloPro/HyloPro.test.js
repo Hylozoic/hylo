@@ -31,6 +31,8 @@ const row = attrs => ({
   status: 'active',
   active: true,
   interval: 'month',
+  tier: 'pro',
+  features: [],
   group: { id: '10', name: 'Paying Group', slug: 'paying' },
   grantedBy: null,
   note: null,
@@ -50,7 +52,7 @@ const PAYMENT = { id: 'ch_1', amount: 1000, amountRefunded: 0, currency: 'usd', 
 
 const ROWS = [
   row(),
-  row({ id: '2', source: 'manual', status: 'active', interval: null, group: { id: '11', name: 'Partner Group', slug: 'partner' }, grantedBy: { id: '7', name: 'Staff Person' }, note: 'Pilot partner', stripeSubscriptionId: null, stripeCustomerId: null, currentPeriodEnd: null, expiresAt: '2027-02-01T00:00:00.000Z', endsAt: '2027-02-01T00:00:00.000Z' })
+  row({ id: '2', source: 'manual', status: 'active', interval: null, tier: 'pro_plus', features: [{ key: 'singleSignOn', enabled: true }, { key: 'recording', enabled: false }], group: { id: '11', name: 'Partner Group', slug: 'partner' }, grantedBy: { id: '7', name: 'Staff Person' }, note: 'Pilot partner', stripeSubscriptionId: null, stripeCustomerId: null, currentPeriodEnd: null, expiresAt: '2027-02-01T00:00:00.000Z', endsAt: '2027-02-01T00:00:00.000Z' })
 ]
 
 // Responds to the page's GraphQL operations; records variables by operation name
@@ -66,6 +68,7 @@ function mockApi (overrides = {}) {
         case 'HyloProPayments': return HttpResponse.json({ data: { hyloProPayments: { hasMore: false, items: [PAYMENT] } } })
         case 'HyloProGroups': return HttpResponse.json({ data: { hyloProGroups: [{ id: '12', name: 'New Group', slug: 'new-group', type: null }] } })
         case 'GrantHyloPro': return HttpResponse.json({ data: { grantHyloPro: row({ id: '3', source: 'manual', group: { id: '12', name: 'New Group', slug: 'new-group' } }) } })
+        case 'UpdateHyloProGrant': return HttpResponse.json({ data: { updateHyloProGrant: ROWS[1] } })
         case 'ExtendHyloProSubscription': return HttpResponse.json({ data: { extendHyloProSubscription: row({ status: 'trialing' }) } })
         case 'CancelHyloProSubscription': return HttpResponse.json({ data: { cancelHyloProSubscription: row({ cancelAtPeriodEnd: true }) } })
         case 'RefundHyloProPayment': return HttpResponse.json({ data: { refundHyloProPayment: { id: 're_1', amount: 400, currency: 'usd', status: 'succeeded', subscriptionCanceled: !!variables.cancelSubscriptionId, cancelError: null } } })
@@ -170,6 +173,78 @@ describe('HyloPro management page', () => {
     expect(variables).toMatchObject({ groupId: '12', note: 'Pilot' })
     expect(new Date(variables.expiresAt).getTime()).toBe(new Date('2027-03-31T23:59:59').getTime())
     await waitFor(() => expect(requests.HyloProMetrics.length).toBe(2))
+  })
+
+  it('grants the Pro tier with no overrides unless the form is changed', async () => {
+    const requests = mockApi()
+    renderPage()
+    await findRow('Paying Group')
+
+    const form = screen.getByTestId('hylo-pro-grant-form')
+    expect(within(form).getByTestId('hylo-pro-tier')).toHaveValue('pro')
+    expect(within(form).getByTestId('hylo-pro-feature-designedViews')).toBeChecked()
+    expect(within(form).getByTestId('hylo-pro-feature-recording')).not.toBeChecked()
+    fireEvent.change(within(form).getByPlaceholderText('my-group'), { target: { value: 'new-group' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Find group' }))
+    fireEvent.click(await within(form).findByRole('button', { name: 'Grant Pro to New Group' }))
+
+    await waitFor(() => expect(requests.GrantHyloPro).toHaveLength(1))
+    expect(requests.GrantHyloPro[0]).toMatchObject({ groupId: '12', tier: 'pro', features: [] })
+  })
+
+  it('grants another tier with single features added and removed, sending only the differences from the tier', async () => {
+    const requests = mockApi()
+    renderPage()
+    await findRow('Paying Group')
+
+    const form = screen.getByTestId('hylo-pro-grant-form')
+    fireEvent.change(within(form).getByTestId('hylo-pro-tier'), { target: { value: 'pro_plus' } })
+    // Pro Plus includes Pro's features and its own
+    expect(within(form).getByTestId('hylo-pro-feature-designedViews')).toBeChecked()
+    expect(within(form).getByTestId('hylo-pro-feature-recording')).toBeChecked()
+    expect(within(form).getByTestId('hylo-pro-feature-singleSignOn')).not.toBeChecked()
+    fireEvent.click(within(form).getByTestId('hylo-pro-feature-recording'))
+    fireEvent.click(within(form).getByTestId('hylo-pro-feature-singleSignOn'))
+    // Ticking a feature of the tier again is not an override
+    fireEvent.click(within(form).getByTestId('hylo-pro-feature-transcriptions'))
+    fireEvent.click(within(form).getByTestId('hylo-pro-feature-transcriptions'))
+    fireEvent.change(within(form).getByPlaceholderText('my-group'), { target: { value: 'new-group' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Find group' }))
+    fireEvent.click(await within(form).findByRole('button', { name: 'Grant Pro to New Group' }))
+
+    await waitFor(() => expect(requests.GrantHyloPro).toHaveLength(1))
+    expect(requests.GrantHyloPro[0]).toMatchObject({ groupId: '12', tier: 'pro_plus' })
+    expect(requests.GrantHyloPro[0].features).toEqual(expect.arrayContaining([{ key: 'recording', enabled: false }, { key: 'singleSignOn', enabled: true }]))
+    expect(requests.GrantHyloPro[0].features).toHaveLength(2)
+    // The form is back to a plain Pro grant
+    await waitFor(() => expect(within(form).getByTestId('hylo-pro-tier')).toHaveValue('pro'))
+    expect(within(form).getByTestId('hylo-pro-feature-singleSignOn')).not.toBeChecked()
+  })
+
+  it("shows each row's tier and a grant's added and removed features, and changes them", async () => {
+    const requests = mockApi()
+    renderPage()
+    const paying = await findRow('Paying Group')
+    expect(within(paying).getByTestId('hylo-pro-tier-badge')).toHaveTextContent('Pro')
+    expect(within(paying).queryByTestId('hylo-pro-overrides')).not.toBeInTheDocument()
+
+    const grant = await findRow('Partner Group')
+    expect(within(grant).getByTestId('hylo-pro-tier-badge')).toHaveTextContent('Pro Plus')
+    expect(within(grant).getByTestId('hylo-pro-overrides')).toHaveTextContent('Added: Single sign-on · Removed: Recording and storage')
+
+    fireEvent.click(within(grant).getByRole('button', { name: 'Change features' }))
+    const panel = within(grant).getByTestId('hylo-pro-features-panel')
+    expect(within(panel).getByTestId('hylo-pro-tier')).toHaveValue('pro_plus')
+    expect(within(panel).getByTestId('hylo-pro-feature-singleSignOn')).toBeChecked()
+    expect(within(panel).getByTestId('hylo-pro-feature-recording')).not.toBeChecked()
+    // Put recording back and drop to the plain Pro Plus bundle
+    fireEvent.click(within(panel).getByTestId('hylo-pro-feature-recording'))
+    fireEvent.click(within(panel).getByTestId('hylo-pro-feature-singleSignOn'))
+    fireEvent.click(within(panel).getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(requests.UpdateHyloProGrant).toHaveLength(1))
+    expect(requests.UpdateHyloProGrant[0]).toEqual({ id: '2', tier: 'pro_plus', features: [] })
+    expect(toast.success).toHaveBeenCalledWith('Features updated')
   })
 
   it('shows both groups when an all-digit value matches one group by slug and another by id, and grants the one chosen', async () => {

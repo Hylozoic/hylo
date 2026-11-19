@@ -2,7 +2,7 @@ import React from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
-import { act, AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { act, AllTheProviders, fireEvent, render, screen, waitFor, within } from 'util/testing/reactTestingLibraryExtended'
 import BillingTab from './BillingTab'
 
 const group = { id: '1', slug: 'hylo', name: 'Hylo' }
@@ -155,6 +155,19 @@ describe('BillingTab', () => {
     expect(screen.getByTestId('billing-plan-detail')).toHaveTextContent('No end date')
     expect(screen.queryByTestId('billing-manage')).not.toBeInTheDocument()
     expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
+  })
+
+  it('names the tier of a Pro Plus grant and marks the Pro Plus card as the current plan', async () => {
+    mockBillingApi({ billing: { ...billingFor({ grant: manualGrant() }), tier: 'pro_plus' } })
+    renderTab()
+
+    expect(await screen.findByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro Plus (granted by Hylo)')
+    const proPlus = screen.getByTestId('billing-tier-pro-plus')
+    expect(within(proPlus).getByTestId('billing-current-plan')).toBeInTheDocument()
+    expect(within(proPlus).queryByTestId('billing-coming-soon')).not.toBeInTheDocument()
+    const pro = screen.getByTestId('billing-tier-pro')
+    expect(within(pro).queryByTestId('billing-current-plan')).not.toBeInTheDocument()
+    expect(within(pro).queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
   })
 
   it('lets a lapsed subscriber upgrade again and still reach their invoices', async () => {

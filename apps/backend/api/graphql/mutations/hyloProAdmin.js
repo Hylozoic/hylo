@@ -26,6 +26,8 @@ export async function presentAdminSubscription (row) {
     status: row.get('status'),
     active: row.isActive(),
     interval: row.get('interval'),
+    tier: row.tier(),
+    features: Object.entries(row.featureOverrides()).map(([key, enabled]) => ({ key, enabled })),
     group: group && group.id ? { id: group.id, name: group.get('name'), slug: group.get('slug') } : null,
     grantedBy: grantedBy && grantedBy.id ? { id: grantedBy.id, name: grantedBy.get('name') } : null,
     note: row.get('note'),
@@ -64,14 +66,15 @@ export async function hyloProPayments (userId, { groupId, after }) {
   return HyloProAdminService.listPayments({ groupId, after })
 }
 
-export async function grantHyloPro (userId, { groupId, expiresAt, note }) {
+// tier: 'pro' (default), 'pro_plus' or 'custom'; features: [{ key, enabled }] overrides of that tier's bundle
+export async function grantHyloPro (userId, { groupId, tier, features, expiresAt, note }) {
   await requireStaff(userId)
-  return presentAdminSubscription(await HyloProAdminService.grant({ adminId: userId, groupId, expiresAt, note }))
+  return presentAdminSubscription(await HyloProAdminService.grant({ adminId: userId, groupId, tier, features, expiresAt, note }))
 }
 
-export async function updateHyloProGrant (userId, { id, expiresAt, note }) {
+export async function updateHyloProGrant (userId, { id, tier, features, expiresAt, note }) {
   await requireStaff(userId)
-  return presentAdminSubscription(await HyloProAdminService.updateGrant({ adminId: userId, id, expiresAt, note }))
+  return presentAdminSubscription(await HyloProAdminService.updateGrant({ adminId: userId, id, tier, features, expiresAt, note }))
 }
 
 export async function revokeHyloProGrant (userId, { id }) {

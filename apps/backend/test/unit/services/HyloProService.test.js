@@ -117,11 +117,21 @@ describe('HyloProService', () => {
       expect(row.get('source')).to.equal('stripe')
       expect(row.get('status')).to.equal('active')
       expect(row.get('interval')).to.equal('month')
+      expect(row.get('tier')).to.equal('pro')
       expect(row.get('stripe_customer_id')).to.equal('cus_pro_1')
       expect(row.get('stripe_price_id')).to.equal('price_month')
       expect(unix(row.get('current_period_end'))).to.equal(PERIOD_END)
       expect(row.get('cancel_at_period_end')).to.be.false
       expect(await group.hasPro()).to.be.true
+      expect(await group.hasProFeature('designedViews')).to.be.true
+      expect(await group.hasProFeature('recording')).to.be.false
+    })
+
+    it('maps the price lookup key to the tier, treating unknown prices as Pro', () => {
+      expect(HyloProService.tierForPrice({ lookup_key: 'hylo_pro_monthly_usd' })).to.equal('pro')
+      expect(HyloProService.tierForPrice({ lookup_key: 'hylo_pro_yearly_usd' })).to.equal('pro')
+      expect(HyloProService.tierForPrice({ lookup_key: 'something_else' })).to.equal('pro')
+      expect(HyloProService.tierForPrice(null)).to.equal('pro')
     })
 
     it('applies the latest subscription state on later events, updating the same row', async () => {

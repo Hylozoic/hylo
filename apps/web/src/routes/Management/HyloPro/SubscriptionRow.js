@@ -18,7 +18,9 @@ import {
   revokeHyloProGrant,
   updateHyloProGrant
 } from './HyloPro.store'
-import { endOfDayIso, formatDate, formatDateTime, formatMoney, runGraphql, toDateInputValue } from './util'
+import TierFeatures from './TierFeatures'
+import { featureLabel, tierLabel } from './featureLabels'
+import { chosenForRow, endOfDayIso, formatDate, formatDateTime, formatMoney, overridesList, runGraphql, toDateInputValue } from './util'
 
 const ENDED_STRIPE_STATUSES = ['canceled', 'incomplete_expired']
 const EXTENDABLE_STRIPE_STATUSES = ['active', 'trialing']
@@ -65,7 +67,7 @@ function statusLabel (row, t) {
 export default function SubscriptionRow ({ row, onChanged }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const [panel, setPanel] = useState(null) // 'endDate' | 'extend' | 'payments'
+  const [panel, setPanel] = useState(null) // 'endDate' | 'features' | 'extend' | 'payments'
   const [busy, setBusy] = useState(false)
   const locale = getDateLocale()
   const isGrant = row.source === 'manual'
@@ -121,6 +123,9 @@ export default function SubscriptionRow ({ row, onChanged }) {
             <span className='text-xs rounded-full px-2 py-0.5 bg-foreground/10 text-foreground/80'>
               {isGrant ? t('Grant') : t('Subscription')}
             </span>
+            <span className='text-xs rounded-full px-2 py-0.5 bg-selected/20 text-foreground' data-testid='hylo-pro-tier-badge'>
+              {tierLabel(row.tier || 'pro', t)}
+            </span>
             <span className={cn('text-xs rounded-full px-2 py-0.5', row.active ? 'bg-selected/30 text-foreground' : 'bg-foreground/10 text-foreground/60', row.status === 'past_due' && 'bg-yellow-500/20 text-yellow-600')}>
               {statusLabel(row, t)}
             </span>
@@ -128,6 +133,7 @@ export default function SubscriptionRow ({ row, onChanged }) {
           <p className='text-xs text-foreground/60 m-0 mt-1'>
             {isGrant ? <GrantDetails row={row} t={t} locale={locale} /> : <SubscriptionDetails row={row} t={t} locale={locale} />}
           </p>
+          {row.features?.length > 0 && <FeatureOverrides features={row.features} t={t} />}
           {row.note && <p className='text-sm text-foreground/80 m-0 mt-1 whitespace-pre-wrap'>{row.note}</p>}
         </div>
 
@@ -135,6 +141,7 @@ export default function SubscriptionRow ({ row, onChanged }) {
           {isGrant && row.status === 'active' && (
             <>
               <Button size='sm' variant='outline' disabled={busy} onClick={() => togglePanel('endDate')}>{t('Change end date')}</Button>
+              <Button size='sm' variant='outline' disabled={busy} onClick={() => togglePanel('features')}>{t('Change features')}</Button>
               <Button size='sm' variant='destructive' disabled={busy} onClick={handleRevoke}>{t('Revoke')}</Button>
             </>
           )}
@@ -154,9 +161,22 @@ export default function SubscriptionRow ({ row, onChanged }) {
       </div>
 
       {panel === 'endDate' && <EndDatePanel row={row} busy={busy} run={run} />}
+      {panel === 'features' && <FeaturesPanel row={row} busy={busy} run={run} />}
       {panel === 'extend' && <ExtendPanel row={row} busy={busy} run={run} />}
       {panel === 'payments' && <PaymentsPanel row={row} canCancel={stripeOpen} onRefunded={onChanged} />}
     </li>
+  )
+}
+
+// A grant's single features added to or removed from its tier's bundle
+function FeatureOverrides ({ features, t }) {
+  const names = enabled => features.filter(f => f.enabled === enabled).map(f => featureLabel(f.key, t)).join(', ')
+  const added = names(true)
+  const removed = names(false)
+  return (
+    <p className='text-xs text-foreground/60 m-0 mt-1' data-testid='hylo-pro-overrides'>
+      {[added && t('Added: {{features}}', { features: added }), removed && t('Removed: {{features}}', { features: removed })].filter(Boolean).join(' · ')}
+    </p>
   )
 }
 
@@ -207,6 +227,25 @@ function EndDatePanel ({ row, busy, run }) {
       </label>
       <Button type='submit' size='sm' disabled={busy || !value}>{t('Save')}</Button>
       <Button type='button' size='sm' variant='outline' disabled={busy} onClick={() => save(null)}>{t('Remove end date')}</Button>
+    </form>
+  )
+}
+
+function FeaturesPanel ({ row, busy, run }) {
+  const { t } = useTranslation()
+  const [bundle, setBundle] = useState({ tier: row.tier || 'pro', chosen: chosenForRow(row) })
+
+  return (
+    <form
+      className='mt-3 space-y-3 bg-card rounded-md p-3 border border-foreground/10'
+      data-testid='hylo-pro-features-panel'
+      onSubmit={e => {
+        e.preventDefault()
+        run(updateHyloProGrant({ id: row.id, tier: bundle.tier, features: overridesList(bundle.tier, bundle.chosen) }), 'updateHyloProGrant', t('Features updated'))
+      }}
+    >
+      <TierFeatures tier={bundle.tier} chosen={bundle.chosen} onChange={setBundle} disabled={busy} />
+      <Button type='submit' size='sm' disabled={busy}>{t('Save')}</Button>
     </form>
   )
 }

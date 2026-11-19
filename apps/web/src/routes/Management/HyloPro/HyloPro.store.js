@@ -19,6 +19,8 @@ const ROW_FIELDS = `
   status
   active
   interval
+  tier
+  features { key enabled }
   group { id name slug }
   grantedBy { id name }
   note
@@ -116,27 +118,32 @@ export function fetchHyloProPayments (groupId, after) {
   }
 }
 
-export function grantHyloPro ({ groupId, expiresAt, note }) {
+// tier: 'pro' (default), 'pro_plus' or 'custom'; features: [{ key, enabled }] added to / removed from that tier's bundle
+export function grantHyloPro ({ groupId, tier, features, expiresAt, note }) {
   return {
     type: GRANT_HYLO_PRO,
     graphql: {
-      query: `mutation GrantHyloPro ($groupId: ID!, $expiresAt: Date, $note: String) {
-        grantHyloPro(groupId: $groupId, expiresAt: $expiresAt, note: $note) {${ROW_FIELDS}}
+      query: `mutation GrantHyloPro ($groupId: ID!, $tier: String, $features: [HyloProFeatureOverrideInput], $expiresAt: Date, $note: String) {
+        grantHyloPro(groupId: $groupId, tier: $tier, features: $features, expiresAt: $expiresAt, note: $note) {${ROW_FIELDS}}
       }`,
-      variables: { groupId, expiresAt: expiresAt || null, note: note || null }
+      variables: { groupId, tier: tier || null, features: features || null, expiresAt: expiresAt || null, note: note || null }
     }
   }
 }
 
-// expiresAt null = no end date
-export function updateHyloProGrant ({ id, expiresAt }) {
+// Only the fields given change: expiresAt null = no end date; features [] = the plain tier
+export function updateHyloProGrant ({ id, tier, features, expiresAt }) {
+  const variables = { id }
+  if (tier !== undefined) variables.tier = tier
+  if (features !== undefined) variables.features = features || []
+  if (expiresAt !== undefined) variables.expiresAt = expiresAt || null
   return {
     type: UPDATE_HYLO_PRO_GRANT,
     graphql: {
-      query: `mutation UpdateHyloProGrant ($id: ID!, $expiresAt: Date) {
-        updateHyloProGrant(id: $id, expiresAt: $expiresAt) {${ROW_FIELDS}}
+      query: `mutation UpdateHyloProGrant ($id: ID!, $tier: String, $features: [HyloProFeatureOverrideInput], $expiresAt: Date) {
+        updateHyloProGrant(id: $id, tier: $tier, features: $features, expiresAt: $expiresAt) {${ROW_FIELDS}}
       }`,
-      variables: { id, expiresAt: expiresAt || null }
+      variables
     }
   }
 }
