@@ -1,4 +1,4 @@
-import featureFlag, { MEMBER_INVITES, PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
+import featureFlag, { HYLO_PRO, MEMBER_INVITES, PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import { hasFeature } from 'store/models/Me'
 
 describe('featureFlag', () => {
@@ -7,6 +7,8 @@ describe('featureFlag', () => {
     'VITE_SENTRY_ENV',
     'VITE_FEATURE_FLAG_MEMBER_INVITES',
     'FEATURE_FLAG_MEMBER_INVITES',
+    'VITE_FEATURE_FLAG_HYLO_PRO',
+    'FEATURE_FLAG_HYLO_PRO',
     'VITE_FEATURE_FLAG_PROJECT_CONTRIBUTIONS',
     'FEATURE_FLAG_PROJECT_CONTRIBUTIONS'
   ]
@@ -52,6 +54,19 @@ describe('featureFlag', () => {
     expect(hasFeature(MEMBER_INVITES)).toBe(false)
     setEnv({ NODE_ENV: 'test', FEATURE_FLAG_MEMBER_INVITES: 'off' })
     expect(hasFeature(MEMBER_INVITES)).toBe(false)
+  })
+
+  it('turns Hylo Pro on outside production and off in production unless turned on', () => {
+    setEnv({ NODE_ENV: 'test' })
+    expect(hasFeature(HYLO_PRO)).toBe(true)
+    setEnv({ NODE_ENV: 'production', VITE_SENTRY_ENV: 'staging' })
+    expect(hasFeature(HYLO_PRO)).toBe(true)
+    setEnv({ NODE_ENV: 'production' })
+    expect(hasFeature(HYLO_PRO)).toBe(false)
+    setEnv({ NODE_ENV: 'production', VITE_FEATURE_FLAG_HYLO_PRO: 'on' })
+    expect(hasFeature(HYLO_PRO)).toBe(true)
+    setEnv({ NODE_ENV: 'test', VITE_FEATURE_FLAG_HYLO_PRO: 'off' })
+    expect(hasFeature(HYLO_PRO)).toBe(false)
   })
 
   it('leaves other flags off unless they are turned on', () => {
