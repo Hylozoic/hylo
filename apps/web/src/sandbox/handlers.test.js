@@ -5,6 +5,18 @@ import { handleGraphql } from './handlers'
 import { ME_ID } from './seed/en/people'
 import { MAIN_GROUP_ID, MAIN_ADMINISTRATOR_ROLE_ID, MAIN_MODERATOR_ROLE_ID, SIMPLE_GROUP_ID, STAFF_GROUP_ID } from './seed/en/groups'
 import { MAIN_GROUP_SLUG, SIMPLE_GROUP_SLUG } from './seed/constants'
+import {
+  createTask,
+  createTaskStatus,
+  deleteTaskStatus,
+  fetchTaskBoard,
+  fetchTaskEvents,
+  fetchTaskStatuses,
+  moveTask,
+  stepOffTask,
+  takeTask,
+  updateTaskStatus
+} from 'store/actions/taskActions'
 
 describe('sandbox GraphQL handlers', () => {
   let seed
@@ -318,7 +330,7 @@ describe('sandbox GraphQL handlers', () => {
 
   it('centers Local Sharing Network on North Berkeley with a map, events, and nearby asks', () => {
     const views = seed.groupViews[SIMPLE_GROUP_ID].map(view => view.type)
-    expect(views).toEqual(['chat', 'all', 'map', 'events', 'requests-and-offers', 'projects', 'members'])
+    expect(views).toEqual(['chat', 'all', 'map', 'events', 'requests-and-offers', 'tasks', 'members'])
     expect(seed.groups.simple.location).toBe('North Berkeley, California, United States')
     expect(seed.groups.simple.locationObject.center).toEqual({ lat: 37.8801, lng: -122.2693 })
 
@@ -464,5 +476,178 @@ describe('sandbox GraphQL handlers', () => {
     }, seed)
     expect(peopleOnly.data.search.items.length).toBeGreaterThan(0)
     expect(peopleOnly.data.search.items.every(i => i.content.__typename === 'Person')).toBe(true)
+  })
+
+  describe('tasks', () => {
+    // Run one of the app's own task actions against the sandbox
+    const run = action => handleGraphql(action.graphql, seed)
+    const board = (groupId = SIMPLE_GROUP_ID, assigneeId) => run(fetchTaskBoard(groupId, assigneeId)).data.group.taskStatuses
+    const titles = column => column.tasks.map(task => task.title)
+
+    it('seeds no project posts or projects views', () => {
+      expect(Object.values(seed.posts.byId).filter(post => post.type === 'project')).toEqual([])
+      expect(Object.values(seed.groupViews).flat().filter(view => view.type === 'projects')).toEqual([])
+      expect(seed.groups.all.filter(group => (group.acceptedPostTypes || []).includes('project'))).toEqual([])
+      expect(seed.posts.fundingSubmissions.every(post => post.type === 'submission')).toBe(true)
+    })
+
+    it('loads the board with the default columns and the seeded tasks', () => {
+      const columns = board()
+      expect(columns.map(c => [c.name, c.category, c.order])).toEqual([
+        ['To do', 'todo', 0],
+        ['In progress', 'active', 1],
+        ['Ready for review', 'active', 2],
+        ['Complete', 'done', 3]
+      ])
+      expect(titles(columns[0])).toEqual(['Oakland Twilight Markets', 'Side by Side', 'Confirm the gazebo and trestle tables for the market stall'])
+      expect(titles(columns[1])).toEqual(['Front Fence Free Food Share', 'Print flyers for the Twilight Markets'])
+      expect(columns.map(c => c.tasksTotal)).toEqual([3, 2, 2, 1])
+      expect(columns[3].tasks[0].fulfilledAt).toBeTruthy()
+      expect(columns[1].tasks[0].members.items.length).toBe(1)
+
+      const seededTasks = Object.values(seed.posts.byId).filter(post => post.type === 'task')
+      expect(columns.flatMap(c => c.tasks).length).toBe(seededTasks.length)
+    })
+
+    it('gives every seeded task the status of the column it is in', () => {
+      const statuses = run(fetchTaskStatuses(SIMPLE_GROUP_ID)).data.group.taskStatuses
+      for (const post of Object.values(seed.posts.byId).filter(p => p.type === 'task')) {
+        const [placement] = post.taskPlacements
+        const status = statuses.find(s => s.id === placement.taskStatusId)
+        expect(status).toBeTruthy()
+        expect(placement.groupId).toBe(SIMPLE_GROUP_ID)
+        expect(placement.statusName).toBe(status.name)
+        expect(placement.statusCategory).toBe(status.category)
+        expect(post.taskCategory).toBe(status.category)
+      }
+    })
+
+    it('shows only my tasks when asked for one assignee', () => {
+      const mine = board(SIMPLE_GROUP_ID, ME_ID)
+      expect(mine.flatMap(titles)).toEqual(['Print flyers for the Twilight Markets'])
+      expect(mine.map(c => c.tasksTotal)).toEqual([0, 1, 0, 0])
+    })
+
+    it('gives a group without seeded tasks an empty board with the default columns', () => {
+      const columns = board(MAIN_GROUP_ID)
+      expect(columns.map(c => c.name)).toEqual(['To do', 'In progress', 'Ready for review', 'Complete'])
+      expect(columns.flatMap(c => c.tasks)).toEqual([])
+      const ids = [...columns, ...board()].map(c => c.id)
+      expect(new Set(ids).size).toBe(ids.length)
+    })
+
+    it('moves a task to another column and keeps it there', () => {
+      const [todo, , review] = board()
+      const task = todo.tasks[0]
+      const moved = run(moveTask({ postId: task.id, groupId: SIMPLE_GROUP_ID, taskStatusId: review.id, index: 1 })).data.moveTask
+
+      expect(moved.taskCategory).toBe('active')
+      expect(moved.taskPlacements[0]).toMatchObject({ taskStatusId: review.id, statusName: 'Ready for review', statusCategory: 'active' })
+
+      const after = board()
+      expect(titles(after[0])).not.toContain(task.title)
+      expect(titles(after[2])[1]).toBe(task.title)
+      expect(after[2].tasksTotal).toBe(3)
+
+      // The opened post and the stream show the new status too
+      const opened = handleGraphql({ query: 'query FetchPost ($id: ID) { post(id: $id) { id } }', variables: { id: task.id } }, seed).data.post
+      expect(opened.taskPlacements[0].statusName).toBe('Ready for review')
+      const inStream = seed.posts.simpleGroupStream.find(post => post.id === task.id)
+      expect(inStream.taskPlacements[0].statusName).toBe('Ready for review')
+    })
+
+    it('reorders within a column and puts a task with no index at the bottom', () => {
+      const [todo, active] = board()
+      run(moveTask({ postId: todo.tasks[2].id, groupId: SIMPLE_GROUP_ID, taskStatusId: todo.id, index: 0 }))
+      expect(titles(board()[0])).toEqual([todo.tasks[2].title, todo.tasks[0].title, todo.tasks[1].title])
+
+      run(moveTask({ postId: todo.tasks[0].id, groupId: SIMPLE_GROUP_ID, taskStatusId: active.id }))
+      expect(titles(board()[1]).pop()).toBe(todo.tasks[0].title)
+    })
+
+    it('completes a task moved to a done column and reopens it when moved back', () => {
+      const [todo, , , done] = board()
+      const task = todo.tasks[0]
+      const completed = run(moveTask({ postId: task.id, groupId: SIMPLE_GROUP_ID, taskStatusId: done.id, index: 0 })).data.moveTask
+      expect(completed.taskCategory).toBe('done')
+      expect(completed.fulfilledAt).toBeTruthy()
+
+      const events = run(fetchTaskEvents(SIMPLE_GROUP_ID)).data.group.taskEvents
+      expect(events.map(e => e.type)).toEqual(['completed', 'moved'])
+      expect(events[1]).toMatchObject({ meta: { toStatusName: 'Complete', toCategory: 'done' }, actor: { id: ME_ID }, post: { id: task.id } })
+
+      const reopened = run(moveTask({ postId: task.id, groupId: SIMPLE_GROUP_ID, taskStatusId: todo.id })).data.moveTask
+      expect(reopened.taskCategory).toBe('todo')
+      expect(reopened.fulfilledAt).toBeNull()
+    })
+
+    it('refuses to move a post that is not a task', () => {
+      const [todo] = board()
+      const notATask = seed.posts.simpleGroupStream.find(post => post.type !== 'task')
+      expect(() => run(moveTask({ postId: notATask.id, groupId: SIMPLE_GROUP_ID, taskStatusId: todo.id }))).toThrow('Task not found')
+    })
+
+    it('adds a task to the bottom of a column', () => {
+      const [, active] = board()
+      const created = run(createTask({ groupId: SIMPLE_GROUP_ID, title: 'Book the hall', taskStatusId: active.id })).data.createPost
+      expect(created).toMatchObject({ title: 'Book the hall', taskCategory: 'active', members: { items: [] } })
+
+      const after = board()[1]
+      expect(titles(after).pop()).toBe('Book the hall')
+      expect(after.tasksTotal).toBe(3)
+      expect(seed.posts.byId[created.id].taskPlacements[0]).toMatchObject({ groupId: SIMPLE_GROUP_ID, taskStatusId: active.id, statusName: 'In progress' })
+      expect(seed.posts.simpleGroupStream[0].id).toBe(created.id)
+    })
+
+    it('puts a task created without a column in the first column', () => {
+      const created = handleGraphql({
+        query: 'mutation CreatePost { createPost(data: {}) { id } }',
+        variables: { title: 'From the post editor', type: 'task', groupIds: [SIMPLE_GROUP_ID], memberIds: [ME_ID] }
+      }, seed).data.createPost
+      expect(created.taskPlacements[0].statusName).toBe('To do')
+      expect(created.members.items.map(person => person.id)).toEqual([ME_ID])
+      expect(titles(board()[0]).pop()).toBe('From the post editor')
+    })
+
+    it('takes a task and steps off it', () => {
+      const task = board()[0].tasks[0]
+      run(takeTask(task.id))
+      expect(titles(board(SIMPLE_GROUP_ID, ME_ID)[0])).toEqual([task.title])
+      run(stepOffTask(task.id))
+      expect(board(SIMPLE_GROUP_ID, ME_ID)[0].tasks).toEqual([])
+    })
+
+    it('adds, renames, recategorises and reorders columns', () => {
+      const added = run(createTaskStatus({ groupId: SIMPLE_GROUP_ID, name: 'Blocked' })).data.createTaskStatus
+      expect(added).toMatchObject({ name: 'Blocked', category: 'active', order: 4 })
+
+      const [todo] = board()
+      run(updateTaskStatus({ id: todo.id, name: 'Backlog', category: 'active' }))
+      const renamed = seed.posts.byId[todo.tasks[0].id]
+      expect(renamed.taskPlacements[0]).toMatchObject({ statusName: 'Backlog', statusCategory: 'active' })
+      expect(renamed.taskCategory).toBe('active')
+
+      run(updateTaskStatus({ id: added.id, order: 0 }))
+      expect(board().map(c => [c.name, c.order])).toEqual([
+        ['Blocked', 0], ['Backlog', 1], ['In progress', 2], ['Ready for review', 3], ['Complete', 4]
+      ])
+    })
+
+    it('moves a deleted column\'s tasks to the first column', () => {
+      const [todo, active] = board()
+      expect(run(deleteTaskStatus(active.id)).data.deleteTaskStatus).toEqual({ success: true })
+
+      const after = board()
+      expect(after.map(c => c.name)).toEqual(['To do', 'Ready for review', 'Complete'])
+      expect(after.map(c => c.order)).toEqual([0, 1, 2])
+      expect(titles(after[0])).toEqual([...titles(todo), ...titles(active)])
+    })
+
+    it('keeps the board\'s only done column', () => {
+      const done = board()[3]
+      expect(() => run(deleteTaskStatus(done.id))).toThrow()
+      expect(() => run(updateTaskStatus({ id: done.id, category: 'active' }))).toThrow()
+      expect(board().length).toBe(4)
+    })
   })
 })

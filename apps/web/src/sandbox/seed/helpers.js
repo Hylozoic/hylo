@@ -16,6 +16,9 @@ const KIND = {
   person: 10,
   role: 11,
   responsibility: 22,
+  'task-status': 23,
+  'task-placement': 24,
+  'task-event': 25,
   location: 12,
   track: 13,
   'track-action': 14,
@@ -71,7 +74,7 @@ const TOKEN = {
   'simple-chat': 11,
   'simple-all': 20,
   'simple-requests': 21,
-  'simple-projects': 22,
+  'simple-tasks': 22,
   'simple-members': 23,
   'simple-map': 24,
   'simple-events': 25,
@@ -122,6 +125,28 @@ export function sid (kind, ...rest) {
     suffix = suffix * 1000 + (tokenToInt(part) % 1000)
   }
   return String(kindN * 1000000 + suffix)
+}
+
+/** The columns every new Tasks board starts with (same as the API's TaskStatus.DEFAULTS). */
+export const DEFAULT_TASK_STATUSES = [
+  { name: 'To do', category: 'todo' },
+  { name: 'In progress', category: 'active' },
+  { name: 'Ready for review', category: 'active' },
+  { name: 'Complete', category: 'done' }
+]
+
+/**
+ * The default board columns for a group, with stable ids so seeded tasks and the
+ * handlers (which create a group's columns the first time its board is opened) agree.
+ */
+export function buildDefaultTaskStatuses (groupId) {
+  const groupToken = String(Number(groupId) % 1000)
+  return DEFAULT_TASK_STATUSES.map((status, order) => ({
+    id: sid('task-status', groupToken, String(order + 1)),
+    name: status.name,
+    category: status.category,
+    order
+  }))
 }
 
 /**

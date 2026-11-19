@@ -76,7 +76,7 @@ export function buildGroups () {
       stewardDescriptor: 'Coordinator',
       stewardDescriptorPlural: 'Coordinators',
       createdAt_offset: -86400 * 180,
-      acceptedPostTypes: ['chat', 'discussion', 'event', 'proposal', 'request', 'offer', 'project', 'resource'],
+      acceptedPostTypes: ['chat', 'discussion', 'event', 'proposal', 'request', 'offer', 'task', 'resource'],
       settings: {
         showSuggestedSkills: true,
         showWelcomePage: false,
@@ -112,7 +112,7 @@ export function buildGroups () {
       stewardDescriptor: 'Organizer',
       stewardDescriptorPlural: 'Organizers',
       createdAt_offset: -86400 * 200,
-      acceptedPostTypes: ['chat', 'discussion', 'request', 'offer', 'project', 'resource', 'event'],
+      acceptedPostTypes: ['chat', 'discussion', 'request', 'offer', 'task', 'resource', 'event'],
       settings: {
         showSuggestedSkills: false,
         showWelcomePage: false,
@@ -148,7 +148,7 @@ export function buildGroups () {
       stewardDescriptor: 'Worker-owner',
       stewardDescriptorPlural: 'Worker-owners',
       createdAt_offset: -86400 * 400,
-      acceptedPostTypes: ['chat', 'discussion', 'request', 'offer', 'project', 'resource', 'event'],
+      acceptedPostTypes: ['chat', 'discussion', 'request', 'offer', 'task', 'resource', 'event'],
       settings: {
         showSuggestedSkills: false,
         showWelcomePage: false,
@@ -211,7 +211,7 @@ export function buildGroups () {
         accessibility: 1,
         homeRoute: '/funding-round-submissions',
         createdAt_offset: -86400 * 45,
-        acceptedPostTypes: ['project']
+        acceptedPostTypes: ['submission']
       }
     },
     groupRoles: [
@@ -476,7 +476,7 @@ export function buildGroupViews (groups, track, fundingRound) {
       viewItem(sid('view', 'simple-map'), 'map', 'Map', 2),
       viewItem(sid('view', 'simple-events'), 'events', 'Events', 3, { icon: 'Calendar' }),
       viewItem(sid('view', 'simple-requests'), 'requests-and-offers', 'Requests & Offers', 4),
-      viewItem(sid('view', 'simple-projects'), 'projects', 'Projects', 5, { icon: 'Layers' }),
+      viewItem(sid('view', 'simple-tasks'), 'tasks', 'Tasks', 5),
       viewItem(sid('view', 'simple-members'), 'members', 'Members', 6, { icon: 'Users' })
     ],
     [groups.staff.id]: [

@@ -1,5 +1,5 @@
 import { PLACEHOLDER_COPY, PLACEHOLDER_NAME } from '../constants'
-import { bayLocation, htmlCopy, sid } from '../helpers'
+import { bayLocation, buildDefaultTaskStatuses, htmlCopy, sid } from '../helpers'
 import {
   CHAT_SPACE_ID,
   FUNDING_SPACE_ID,
@@ -237,7 +237,10 @@ export function buildPosts (peopleById, meId) {
       chatPost('simple', '008', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -1600, 'Mandarins received! Left a bag of limes on the share table in return.')
     ],
     simpleGroupStream: [
-      projectPost('simple-101', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400 * 40, {
+      taskPost('simple-101', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400 * 40, {
+        status: 1,
+        position: 1,
+        assignees: [peopleById[sid('person', 'starter', '001')]],
         title: 'Front Fence Free Food Share',
         details: '<p>Front Fence Free Food Share is about sharing our home grown produce with each other. It inspires our generosity, connects our community, and increases our access to fresh, local, organic fruit and veg!</p><p>FFFFS will soon be giving away 100 fruit trees as part of Fenceline Fruit. The trees are to be planted along people&#39;s front fenceline, and once the fruit is ready to pick, passers by can share in the bounty.</p><p>If you already have fruit growing along your fenceline, you can be part of the movement too. A pot of herbs will do the job!</p><p>Happy Food Sharing!!</p>',
         commentCount: 1,
@@ -249,7 +252,9 @@ export function buildPosts (peopleById, meId) {
           lng: -122.2244
         }
       }),
-      projectPost('simple-102', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400 * 36, {
+      taskPost('simple-102', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400 * 36, {
+        status: 0,
+        position: 1,
         title: 'Oakland Twilight Markets',
         details: '<p>Let&#39;s get Twilight Markets happening around Lake Merritt — so much of the community is behind it! If you have skills, resources, support, or enthusiasm to put in, connect up here and we will make it happen together.</p>',
         commentCount: 8,
@@ -261,7 +266,10 @@ export function buildPosts (peopleById, meId) {
           lng: -122.2583
         }
       }),
-      projectPost('simple-103', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400 * 34, {
+      taskPost('simple-103', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400 * 34, {
+        status: 0,
+        position: 2,
+        assignees: [peopleById[sid('person', 'starter', '003')]],
         title: 'Side by Side',
         details: '<p>Would you like to live in a more connected and supportive neighbourhood? It Takes a Town&#39;s Side by Side project supports us to build closer connections with our neighbours, and helps develop a stronger sense of community.</p><p>Through regular social gatherings, neighbours are encouraged to know each other. Friendships form, people help each other, kids find nearby playmates, and important matters that affect the area can be discussed and shared.</p><p>Side by Side will be delivered in Richmond, El Cerrito, Fruitvale and Downtown Oakland over the coming months — we&#39;d love to hear from anyone living in these areas that would like to get involved.</p>',
         commentCount: 2,
@@ -273,7 +281,10 @@ export function buildPosts (peopleById, meId) {
           lng: -122.3108
         }
       }),
-      projectPost('simple-104', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400 * 33, {
+      taskPost('simple-104', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400 * 33, {
+        status: 2,
+        position: 1,
+        assignees: [peopleById[sid('person', 'starter', '003')]],
         title: 'Oakland Life',
         details: '<p>Would you like to see the Oakland community more connected, informed and part of a shared local culture? Oakland Life is a working group that came out of the It Takes a Town Reset Workshop with the aim of doing just this. We have recently set up the Oakland Life events calendar and are working on a welcome pack and welcome events for new and old community members.</p><p>Comment below or send a message if you want to get involved.</p>',
         commentCount: 0,
@@ -283,6 +294,36 @@ export function buildPosts (peopleById, meId) {
           lat: 37.8044,
           lng: -122.2712
         }
+      }),
+      taskPost('simple-131', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400 * 6, {
+        title: 'Print flyers for the Twilight Markets',
+        details: '<p>We need 200 A5 flyers for cafes and noticeboards around Lake Merritt. The artwork is done — it just needs printing and a couple of people to hand them out.</p>',
+        status: 1,
+        position: 2,
+        assignees: [me],
+        dueOffset: 86400 * 2
+      }),
+      taskPost('simple-132', peopleById[sid('person', 'starter', '002')], SIMPLE_GROUP_ID, -86400 * 5, {
+        title: 'Confirm the gazebo and trestle tables for the market stall',
+        details: '<p>Finn has a spare gazebo. We still need to confirm three trestle tables and someone with a van for the day.</p>',
+        status: 0,
+        position: 3,
+        dueOffset: 86400 * 5
+      }),
+      taskPost('simple-133', peopleById[sid('person', 'starter', '003')], SIMPLE_GROUP_ID, -86400 * 9, {
+        title: 'Draft the Oakland Life welcome pack',
+        details: '<p>A short welcome pack for new neighbours: who we are, the events calendar, and how to join in. First draft is ready for comments.</p>',
+        status: 2,
+        position: 2,
+        assignees: [peopleById[sid('person', 'starter', '003')], peopleById[sid('person', 'starter', '002')]]
+      }),
+      taskPost('simple-134', peopleById[sid('person', 'starter', '001')], SIMPLE_GROUP_ID, -86400 * 12, {
+        title: 'Order 100 fruit trees for Fenceline Fruit',
+        details: '<p>Order placed with the nursery — a mix of citrus, fig and plum. Delivery is booked for the first planting day.</p>',
+        status: 3,
+        position: 1,
+        assignees: [peopleById[sid('person', 'starter', '001')]],
+        completedOffset: -86400 * 2
       }),
       resourcePost('simple-105', peopleById[sid('person', 'starter', '002')], SIMPLE_GROUP_ID, -86400 * 45, {
         title: 'Studio Space Hire',
@@ -689,10 +730,36 @@ function offerPost (num, creator, groupId, createdAtOffset, extras = {}) {
   })
 }
 
-function projectPost (num, creator, groupId, createdAtOffset, extras = {}) {
-  return basePost(num, creator, groupId, createdAtOffset, 'project', {
-    ...withoutPlace(extras),
-    fields: locationFields(num, extras)
+/**
+ * A task on its group's Tasks board. `status` is the index of the board column it sits in
+ * (the default columns: 0 To do, 1 In progress, 2 Ready for review, 3 Complete) and
+ * `position` its place in that column, top first. `assignees` are the people on the task.
+ */
+function taskPost (num, creator, groupId, createdAtOffset, extras = {}) {
+  const { status = 0, position = 1, assignees = [], dueOffset, completedOffset, ...rest } = extras
+  const column = buildDefaultTaskStatuses(groupId)[status]
+  const done = column.category === 'done'
+  return basePost(num, creator, groupId, createdAtOffset, 'task', {
+    ...withoutPlace(rest),
+    fields: {
+      taskCategory: column.category,
+      taskPlacements: [{
+        id: sid('task-placement', num),
+        groupId,
+        taskStatusId: column.id,
+        statusName: column.name,
+        statusCategory: column.category,
+        position
+      }],
+      members: {
+        items: assignees.map(person => ({ id: person.id, name: person.name, avatarUrl: person.avatarUrl })),
+        total: assignees.length,
+        hasMore: false
+      },
+      ...(dueOffset != null ? { endTime_offset: dueOffset } : {}),
+      ...(done ? { fulfilledAt_offset: completedOffset != null ? completedOffset : createdAtOffset + 86400 } : {}),
+      ...locationFields(num, rest)
+    }
   })
 }
 
@@ -711,7 +778,7 @@ function chatPost (prefix, num, creator, groupId, createdAtOffset, text) {
 }
 
 function fundingSubmission (num, creator, groupId, createdAtOffset, tokensAllocated, extras = {}) {
-  return basePost(`fr-${num}`, creator, groupId, createdAtOffset, 'project', {
+  return basePost(`fr-${num}`, creator, groupId, createdAtOffset, 'submission', {
     title: extras.title,
     details: extras.details,
     commentCount: extras.commentCount || 0,
