@@ -18,8 +18,7 @@ export const TIERS = [
     priceKind: 'any',
     ctaKind: 'support',
     features: [
-      { labelKey: 'Supporter badge', keys: [] },
-      { labelKey: 'Basic metrics', keys: [] }
+      { labelKey: 'Supporter badge', keys: [] }
     ]
   },
   {
