@@ -49,7 +49,7 @@ describe('convertProjectToSpace', () => {
 
     before(async () => {
       project = await newPost({ type: 'project', name: 'Plant the Orchard!', description: '<p>About the orchard</p>' })
-      await project.addProjectMembers([member.id, outsider.id])
+      await project.addPostMembers([member.id, outsider.id])
       await factories.comment({ post_id: project.id, user_id: member.id }).save()
       request = await newPost({ type: 'request', name: 'Bring shovels', parent_post_id: project.id })
       doneRequest = await newPost({ type: 'request', name: 'Order saplings', parent_post_id: project.id, fulfilled_at: new Date() })

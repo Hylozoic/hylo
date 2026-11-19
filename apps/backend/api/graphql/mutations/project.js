@@ -95,7 +95,7 @@ export async function addPeopleToProjectRole (userId, peopleIds, projectRoleId) 
 
 export async function joinProject (projectId, userId) {
   const project = await Post.find(projectId)
-  return project.addProjectMembers([userId])
+  return project.addPostMembers([userId])
     .then(() => {
       recordProjectJoin(project, userId)
       return { success: true }
@@ -123,7 +123,7 @@ function recordProjectJoin (project, userId) {
 
 export async function leaveProject (projectId, userId) {
   const project = await Post.find(projectId)
-  return project.removeProjectMembers([userId])
+  return project.removePostMembers([userId])
     .then(() => ({ success: true }))
 }
 

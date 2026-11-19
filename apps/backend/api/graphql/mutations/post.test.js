@@ -621,7 +621,7 @@ describe('followPost and unfollowPost', () => {
   it('keeps a project member in the project when they unfollow it', async () => {
     const project = await factories.post({ type: Post.Type.PROJECT, user_id: author.id }).save()
     await project.groups().attach(group)
-    await project.addProjectMembers([reader.id])
+    await project.addPostMembers([reader.id])
 
     await unfollowPost(reader.id, project.id)
     expect((await project.members().fetch()).pluck('id')).to.deep.equal([reader.id])

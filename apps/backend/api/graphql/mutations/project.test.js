@@ -95,7 +95,7 @@ describe('leaveProject', () => {
     await user.save()
     project = factories.post({type: Post.Type.PROJECT})
     await project.save()
-    await project.addProjectMembers([user.id])
+    await project.addPostMembers([user.id])
   })
 
   it('removes a user from a project', async () => {
