@@ -84,6 +84,18 @@ export function uploadedFileToAttachment ({ url, filename, mimetype }) {
   }
 }
 
+/**
+ * Merges the /noo/upload response onto the local attachment.
+ * An uploaded mp4 is a file. The server used to label it `video`, which is a
+ * legacy embed type the post UI does not render, so the file never appeared.
+ */
+export function attachmentFromUpload (attachment = {}, payload = {}) {
+  const attachmentType = payload.attachmentType === 'video'
+    ? (attachment.attachmentType || 'file')
+    : (payload.attachmentType || attachment.attachmentType)
+  return { ...attachment, ...payload, attachmentType }
+}
+
 export function transformFile (file) {
   if (!file) return file
   const filename = typeof file.filename === 'string'
