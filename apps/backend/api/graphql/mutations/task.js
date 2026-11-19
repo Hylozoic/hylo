@@ -1,6 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { canEditPost, canManageContentInGroup } from '../../models/post/postEditPermissions'
-import { assignTask as assign, unassignTask as unassign } from '../../models/task/assignees'
+import { assignTask as assign, isInTaskGroup, unassignTask as unassign } from '../../models/task/assignees'
+import { joinSpace } from './spaces'
 import { moveTask as move } from '../../models/task/placement'
 import {
   createTaskStatus as createStatus,
@@ -58,7 +59,27 @@ export async function moveTask (userId, { postId, groupId, taskStatusId, index }
   return Post.find(post.id)
 }
 
+/**
+ * Someone taking a task in a project space they have not joined yet joins the space as part
+ * of taking it. Only spaces they could join on their own (joinSpace applies the space's
+ * access rules); anything else is left to the permission check that follows.
+ */
+async function joinTaskSpaces (userId, postId) {
+  const post = postId && await Post.find(postId)
+  if (!post || post.get('type') !== Post.Type.TASK || await isInTaskGroup(userId, post)) return
+  await post.load('groups')
+  for (const group of post.relations.groups.models) {
+    if (group.get('type') !== 'space' || !group.get('active')) continue
+    try {
+      await joinSpace(userId, group.id)
+    } catch (e) {
+      // Not a space this person can join by themselves
+    }
+  }
+}
+
 export async function assignTask (userId, { postId, userId: assigneeId }) {
+  if (userId && (!assigneeId || String(assigneeId) === String(userId))) await joinTaskSpaces(userId, postId)
   const post = await findTask(userId, postId)
   await bookshelf.knex.transaction(transacting =>
     assign({ post, userIds: [assigneeId || userId], actorId: userId, transacting }))

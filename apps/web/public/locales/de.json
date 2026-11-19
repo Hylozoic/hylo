@@ -3588,5 +3588,15 @@
   "Nothing on your plate here": "Hier liegt nichts bei dir",
   "Open any task and choose “I’ll take this” to put it on your list.": "Öffne eine Aufgabe und wähle „Ich übernehme das“, um sie auf deine Liste zu setzen.",
   "See everyone’s tasks": "Aufgaben von allen anzeigen",
-  "Add column": "Spalte hinzufügen"
+  "Add column": "Spalte hinzufügen",
+  "A shared board of tasks. Members take tasks and move them through columns you choose until they are done.": "Ein gemeinsames Board mit Aufgaben. Mitglieder übernehmen Aufgaben und schieben sie durch die von dir gewählten Spalten, bis sie erledigt sind.",
+  "Board columns": "Board-Spalten",
+  "Each column is a status a task can have. You can rename, add and remove columns on the board later.": "Jede Spalte ist ein Status, den eine Aufgabe haben kann. Du kannst Spalten später auf dem Board umbenennen, hinzufügen und entfernen.",
+  "Column name": "Spaltenname",
+  "Counts as": "Zählt als",
+  "Remove column": "Spalte entfernen",
+  "Join project": "Projekt beitreten",
+  "Request to join project": "Beitritt zum Projekt anfragen",
+  "To do": "Zu erledigen",
+  "Ready for review": "Bereit zur Prüfung"
 }

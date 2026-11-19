@@ -43,6 +43,27 @@ async function syncColumnTasks (status, transacting) {
   }
 }
 
+/**
+ * Gives a new board its starting columns, in the order given ({ name, category } each).
+ * Used when a project space is created with its own columns instead of the default four.
+ */
+export async function seedTaskStatuses (groupId, columns, { transacting } = {}) {
+  const rows = (columns || []).map(column => {
+    const category = column.category || TaskStatus.Category.ACTIVE
+    assertCategory(category)
+    return { name: cleanName(column.name), category }
+  })
+  if (rows.length === 0) return TaskStatus.ensureForGroup(groupId, { transacting })
+  if (rows.length > 20) throw new GraphQLError('A board can start with at most 20 columns')
+  if (!rows.some(row => row.category === TaskStatus.Category.DONE)) {
+    throw new GraphQLError('A board needs a column for finished tasks')
+  }
+  for (let i = 0; i < rows.length; i++) {
+    await TaskStatus.forge({ group_id: groupId, order: i, ...rows[i] }).save(null, { transacting })
+  }
+  return TaskStatus.forGroup(groupId, { transacting })
+}
+
 /** Adds a column. By default it is an "in progress" column placed just before the first done column. */
 export function createTaskStatus ({ groupId, name, category = TaskStatus.Category.ACTIVE }) {
   assertCategory(category)

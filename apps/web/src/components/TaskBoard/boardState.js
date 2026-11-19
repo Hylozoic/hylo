@@ -78,3 +78,8 @@ export function dueInfo (endTime, { done = false, now = new Date(), locale } = {
   if (days <= 3) return { label, tone: 'soon', days }
   return { label, tone: 'normal', days }
 }
+
+/** A project space is a space that opens on its task board. */
+export function isProjectSpace (group) {
+  return group?.type === 'space' && /(^|\/)tasks$/.test(group.homeRoute || '')
+}

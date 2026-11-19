@@ -3596,5 +3596,15 @@
   "Nothing on your plate here": "No tienes nada pendiente aquí",
   "Open any task and choose “I’ll take this” to put it on your list.": "Abre cualquier tarea y elige “Yo me encargo” para añadirla a tu lista.",
   "See everyone’s tasks": "Ver las tareas de todos",
-  "Add column": "Agregar columna"
+  "Add column": "Agregar columna",
+  "A shared board of tasks. Members take tasks and move them through columns you choose until they are done.": "Un tablero compartido de tareas. Los miembros toman tareas y las mueven por las columnas que elijas hasta terminarlas.",
+  "Board columns": "Columnas del tablero",
+  "Each column is a status a task can have. You can rename, add and remove columns on the board later.": "Cada columna es un estado que puede tener una tarea. Más adelante puedes renombrar, añadir y quitar columnas en el tablero.",
+  "Column name": "Nombre de la columna",
+  "Counts as": "Cuenta como",
+  "Remove column": "Quitar columna",
+  "Join project": "Unirse al proyecto",
+  "Request to join project": "Solicitar unirse al proyecto",
+  "To do": "Por hacer",
+  "Ready for review": "Lista para revisión"
 }
