@@ -16,6 +16,7 @@ const POST_TYPE_OPTIONS = [
   { id: 'discussion', label: 'Discussions' },
   { id: 'event', label: 'Events' },
   { id: 'offer', label: 'Offers' },
+  { id: 'project', label: 'Projects' },
   { id: 'proposal', label: 'Proposals' },
   { id: 'request', label: 'Requests' },
   { id: 'resource', label: 'Resources' },

@@ -22,7 +22,7 @@ export const PROPOSAL_STATUS_VOTING = 'voting'
 export const PROPOSAL_STATUS_CASUAL = 'casual'
 export const PROPOSAL_STATUS_COMPLETED = 'completed'
 
-export const POST_TYPES_SHOW_LOCATION_BY_DEFAULT = ['request', 'offer', 'resource', 'task', 'event']
+export const POST_TYPES_SHOW_LOCATION_BY_DEFAULT = ['request', 'offer', 'resource', 'project', 'task', 'event']
 
 export const POST_COMPLETION_ACTIONS = [
   'button',

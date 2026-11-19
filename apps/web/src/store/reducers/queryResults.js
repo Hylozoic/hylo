@@ -383,7 +383,7 @@ const MATCH_PREPEND = 'prepend'
 const MATCH_REFETCH = 'refetch'
 
 // Mirrors the backend's filterAndSortPosts streamTypes
-const STREAM_POST_TYPES = ['discussion', 'request', 'offer', 'task', 'proposal', 'event', 'resource']
+const STREAM_POST_TYPES = ['discussion', 'request', 'offer', 'project', 'task', 'proposal', 'event', 'resource']
 const NOTICE_POST_TYPES = ['chat_activity']
 // Sorts where a just-created post is first
 const NEWEST_FIRST_SORTS = [undefined, 'created', 'updated', 'id']

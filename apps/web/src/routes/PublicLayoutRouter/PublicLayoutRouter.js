@@ -8,7 +8,6 @@ import GroupExplorer from 'routes/GroupExplorer'
 import MapExplorer from 'routes/MapExplorer'
 import PostDetail from 'routes/PostDetail'
 import ViewContent from 'routes/ViewContent'
-import RedirectProjectsToTasks from 'routes/RedirectProjectsToTasks'
 import AllTopics from 'routes/AllTopics'
 import PublicPageHeader from './PublicPageHeader'
 
@@ -39,7 +38,7 @@ export default function PublicLayoutRouter (props) {
           <Route path='all/*' element={<PublicCenterColumn><ViewContent context='public' view='all' /></PublicCenterColumn>} />
           <Route path='stream/*' element={<RedirectPublicStreamToAll />} />
           <Route path='tasks/*' element={<PublicCenterColumn><ViewContent context='public' view='tasks' /></PublicCenterColumn>} />
-          <Route path='projects/*' element={<RedirectProjectsToTasks />} />
+          <Route path='projects/*' element={<PublicCenterColumn><ViewContent context='public' view='projects' /></PublicCenterColumn>} />
           <Route path='proposals/*' element={<PublicCenterColumn><ViewContent context='public' view='proposals' /></PublicCenterColumn>} />
           <Route path='events/*' element={<PublicCenterColumn><ViewContent context='public' view='events' /></PublicCenterColumn>} />
           <Route path='topics/:topicName' element={<PublicCenterColumn><ViewContent context='public' /></PublicCenterColumn>} />

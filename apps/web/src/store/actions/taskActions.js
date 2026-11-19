@@ -1,4 +1,4 @@
-import { FETCH_TASK_EVENTS, FETCH_TASK_STATUSES, JOIN_PROJECT, LEAVE_PROJECT, MOVE_TASK } from 'store/constants'
+import { CONVERT_PROJECT_TO_SPACE, FETCH_TASK_EVENTS, FETCH_TASK_STATUSES, JOIN_PROJECT, LEAVE_PROJECT, MOVE_TASK } from 'store/constants'
 
 const taskStatusFields = `
   id
@@ -116,5 +116,35 @@ export function stepOffTask (postId) {
       variables: { postId }
     },
     meta: { id: postId }
+  }
+}
+
+/**
+ * Turns a legacy project post into a project space under `groupId`. Only the post's creator
+ * can do this, and only where they may create spaces. Resolves with the new space on
+ * `payload.data.convertProjectToSpace`.
+ */
+export function convertProjectToSpace ({ postId, groupId }) {
+  return {
+    type: CONVERT_PROJECT_TO_SPACE,
+    graphql: {
+      query: `mutation ConvertProjectToSpace ($postId: ID!, $groupId: ID) {
+        convertProjectToSpace (postId: $postId, groupId: $groupId) {
+          id
+          name
+          slug
+          homeRoute
+          menuViewCount
+        }
+      }`,
+      variables: { postId, groupId }
+    },
+    meta: {
+      postId,
+      groupId,
+      extractModel: [
+        { getRoot: data => data?.convertProjectToSpace, modelName: 'Group' }
+      ]
+    }
   }
 }

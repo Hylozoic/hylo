@@ -75,9 +75,3 @@ test('create a task, move it with the status chip, and take it', async ({ page }
   await expect(summary).toContainText(title)
   await screenshot(page, 'tasks-daily-summary')
 })
-
-test('old /projects view URLs redirect to /tasks', async ({ page }) => {
-  await page.goto(`/groups/${GROUP_SLUG}/projects`)
-  await waitPastRootSessionLoading(page)
-  await expect(page).toHaveURL(new RegExp(`/groups/${GROUP_SLUG}/tasks`), uiTimeout)
-})
