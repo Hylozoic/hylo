@@ -59,6 +59,7 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
+import { authPathWithReturnTo } from 'util/returnToPath'
 import { groupUrl, localSpaceSlug, personUrl, removeGroupFromUrl, spaceHomeRoutePath, spaceUrl } from '@hylo/navigation'
 import joinSpace from 'store/actions/joinSpace'
 import isWebView, { sendMessageToWebView } from 'util/webView'
@@ -539,7 +540,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
             : !currentUser
                 ? (
                   <div className={g.signupButton}>
-                    <Link to={'/login?returnToUrl=' + location.pathname} target={inIframe() ? '_blank' : ''} className={g.requestButton}>
+                    <Link to={authPathWithReturnTo('/login', location.pathname + location.search)} target={inIframe() ? '_blank' : ''} className={g.requestButton}>
                       {t('Signup or Login to connect with')}{' '}
                       <span className={g.requestGroup}>{group.name}</span>
                     </Link>

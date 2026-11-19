@@ -1,4 +1,4 @@
-import { register, verifyEmail } from './Signup.store'
+import { register, sendEmailVerification, verifyEmail } from './Signup.store'
 
 const ANONYMOUS_ID = 'anon-test-id'
 
@@ -21,6 +21,18 @@ describe('register', () => {
 
   it('does not track Registered from the action, so a failed registration is not counted', () => {
     expect(register('name', 'testPassword').meta.analytics).toBeUndefined()
+  })
+})
+
+describe('sendEmailVerification', () => {
+  it('sends the return path so the emailed link can carry it', () => {
+    const action = sendEmailVerification('test@hylo.com', '/post/91?action=unfollow')
+    expect(action.graphql.query).toMatch(/returnToUrl: \$returnToUrl/)
+    expect(action.graphql.variables).toEqual({ email: 'test@hylo.com', returnToUrl: '/post/91?action=unfollow' })
+  })
+
+  it('sends no return path when there is none', () => {
+    expect(sendEmailVerification('test@hylo.com').graphql.variables).toEqual({ email: 'test@hylo.com', returnToUrl: null })
   })
 })
 

@@ -8,20 +8,22 @@ export const SEND_EMAIL_VERIFICATION = `${MODULE_NAME}/SEND_EMAIL_VERIFICATION`
 export const VERIFY_EMAIL = `${MODULE_NAME}/VERIFY_EMAIL`
 export const CHECK_REGISTRATION_STATUS = `${MODULE_NAME}/CHECK_REGISTRATION_STATUS`
 
-export function sendEmailVerification (email) {
+// returnToUrl rides on the emailed link, so the return path survives opening it in another browser
+export function sendEmailVerification (email, returnToUrl) {
   return {
     type: SEND_EMAIL_VERIFICATION,
     graphql: {
       query: `
-        mutation SendEmailVerification ($email: String!) {
-          sendEmailVerification(email: $email) {
+        mutation SendEmailVerification ($email: String!, $returnToUrl: String) {
+          sendEmailVerification(email: $email, returnToUrl: $returnToUrl) {
             success
             error
           }
         }
       `,
       variables: {
-        email
+        email,
+        returnToUrl: returnToUrl || null
       }
     },
     meta: {
