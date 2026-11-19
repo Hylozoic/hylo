@@ -12,7 +12,8 @@
 //   link keep working. When there is anything to read (comments, or posts that are not
 //   tasks) the space also gets a Stream view and the original post is added to it.
 // - Up to MENU_LIMIT open projects per group go on the group's menu, most recently updated
-//   first. The rest, and completed projects, go to More Spaces.
+//   first, under a "Projects" heading at the end of the menu. The rest, and completed
+//   projects, go to More Spaces.
 //
 // Project posts with no usable group, and inactive ones, become plain tasks.
 //
@@ -24,6 +25,7 @@ const crypto = require('crypto')
 const GAP = 1024
 const MENU_LIMIT = 5
 const SOURCE_KEY = 'converted_from_project_post_id'
+const HEADING_KEY = 'converted_projects_heading'
 
 const VISIBILITY_PROTECTED = 1
 const ACCESSIBILITY_OPEN = 2
@@ -101,7 +103,7 @@ function pickMenuProjects (projects) {
   return onMenu
 }
 
-async function createProjectSpace (knex, project, parent, addToMenu, now) {
+async function createProjectSpace (knex, project, parent, addToMenu, headedParents, now) {
   const name = ((project.name || '').trim() || 'Project').slice(0, 255)
   const slug = await uniqueSlug(knex, `${parent.slug}-${slugify(name)}`)
   const accessCode = await uniqueAccessCode(knex)
@@ -190,6 +192,21 @@ async function createProjectSpace (knex, project, parent, addToMenu, now) {
   if (addToMenu) {
     const row = await knex('group_views').where({ group_id: parent.id }).max('order as max_order').first()
     order = row && row.max_order != null ? Number(row.max_order) + 1 : 0
+    // The first one in each group goes under a heading, so the projects do not read as
+    // part of whatever section the menu happened to end with
+    if (!headedParents.has(parent.id)) {
+      headedParents.add(parent.id)
+      await knex('group_views').insert({
+        group_id: parent.id,
+        type: 'text',
+        name: 'Projects',
+        order,
+        settings: JSON.stringify({ [HEADING_KEY]: true }),
+        created_at: now,
+        updated_at: now
+      })
+      order += 1
+    }
   }
   await knex('group_views').insert({
     group_id: parent.id, type: 'space', linked_group_id: spaceId, name, order, created_at: now, updated_at: now
@@ -248,8 +265,9 @@ exports.up = async function (knex) {
 
   const convertible = projects.filter(p => p.parent_id && parents[p.parent_id])
   const onMenu = pickMenuProjects(convertible)
+  const headedParents = new Set()
   for (const project of convertible) {
-    await createProjectSpace(knex, project, parents[project.parent_id], onMenu.has(project.id), now)
+    await createProjectSpace(knex, project, parents[project.parent_id], onMenu.has(project.id), headedParents, now)
   }
 
   // Recount the menu and More Spaces totals of every group that gained spaces
@@ -373,6 +391,7 @@ exports.down = async function (knex) {
       where id = any(?)
     `, [ids])
   }
+  await knex('group_views').whereRaw(`settings ->> '${HEADING_KEY}' is not null`).del()
   for (let i = 0; i < parentIds.length; i += 1000) {
     await knex.raw(`
       update groups g

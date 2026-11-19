@@ -106,6 +106,13 @@ describe('converting project posts to project spaces', () => {
     expect(parent.more_spaces_count).to.equal(1)
   })
 
+  it('puts the menu entries under one Projects heading', async () => {
+    const open = await spaceFor(project.id)
+    const headings = await knex('group_views').where({ group_id: group.id, type: 'text', name: 'Projects' })
+    expect(headings).to.have.length(1)
+    expect(headings[0].order).to.equal((await menuEntry(group.id, open.id)).order - 1)
+  })
+
   it('makes a project with no group a plain task', async () => {
     expect(await spaceFor(groupless.id)).to.not.exist
     expect(await postType(groupless.id)).to.equal('task')
@@ -121,6 +128,7 @@ describe('converting project posts to project spaces', () => {
     expect(await postType(request.id)).to.equal('request')
     expect((await knex('groups').where({ id: space.id }).first()).active).to.be.false
     expect(await menuEntry(group.id, space.id)).to.not.exist
+    expect(await knex('group_views').where({ group_id: group.id, type: 'text', name: 'Projects' })).to.have.length(0)
     expect(await knex('groups_posts').where({ group_id: space.id })).to.have.length(0)
   })
 })
