@@ -271,7 +271,7 @@ describe('BillingTab', () => {
     expect(screen.getByTestId('billing-tier-supporter-price')).toHaveTextContent('Any amount')
     expect(screen.getByTestId('billing-tier-supporter')).toHaveTextContent('Supporter badge')
     expect(screen.getByTestId('billing-tier-pro')).toHaveTextContent('For nonprofits and networks')
-    expect(screen.getByTestId('billing-tier-pro')).toHaveTextContent('Any group size')
+    expect(screen.getByTestId('billing-tier-pro')).toHaveTextContent('Set post author as group (group-bot)')
     expect(screen.getByTestId('billing-tier-pro-plus')).toHaveTextContent('Pro Plus')
     expect(screen.getByTestId('billing-tier-pro-plus-price')).toHaveTextContent('Coming soon')
     expect(screen.getByTestId('billing-tier-pro-plus')).toHaveTextContent('Collaborative documents')

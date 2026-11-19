@@ -29,7 +29,6 @@ export const TIERS = [
     priceKind: 'plans',
     ctaKind: 'upgrade',
     features: [
-      { labelKey: 'Any group size', keys: ['anyGroupSize'] },
       { labelKey: 'Set post author as group (group-bot)', keys: ['postAsGroup'] },
       { labelKey: 'Any admin can edit posts of other admins', keys: ['adminsEditAdminPosts'] },
       { labelKey: 'Advanced metrics', keys: ['advancedMetrics'] },

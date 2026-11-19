@@ -4287,7 +4287,6 @@ type HyloProBilling {
 # HyloProFeatures.js, named by its key. A backend test fails when this type and the registry differ,
 # so a new feature is one registry entry plus one field here.
 type HyloProFeatures {
-  anyGroupSize: Boolean
   postAsGroup: Boolean
   adminsEditAdminPosts: Boolean
   advancedMetrics: Boolean

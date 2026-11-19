@@ -23,7 +23,6 @@ export const HYLO_PRO_DEFAULT_TIER = 'pro'
 
 export const HYLO_PRO_FEATURES = [
   // Pro
-  { key: 'anyGroupSize', tier: 'pro' },
   { key: 'postAsGroup', tier: 'pro' },
   { key: 'adminsEditAdminPosts', tier: 'pro' },
   { key: 'advancedMetrics', tier: 'pro' },

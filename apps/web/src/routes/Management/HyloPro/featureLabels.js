@@ -4,7 +4,6 @@
  * three features the Pro card lists on one line get their own short labels.
  */
 const LABEL_KEYS = {
-  anyGroupSize: 'Any group size',
   postAsGroup: 'Set post author as group (group-bot)',
   adminsEditAdminPosts: 'Any admin can edit posts of other admins',
   advancedMetrics: 'Advanced metrics',

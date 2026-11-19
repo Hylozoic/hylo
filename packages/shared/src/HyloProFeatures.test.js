@@ -92,7 +92,7 @@ describe('HyloProFeatures', () => {
     })
 
     it('round-trips through resolveProFeatures', () => {
-      const chosen = ['anyGroupSize', 'singleSignOn']
+      const chosen = ['postAsGroup', 'singleSignOn']
       const overrides = proFeatureOverrides('pro', chosen)
       const features = resolveProFeatures([{ tier: 'pro', features: overrides }])
       expect(HYLO_PRO_FEATURE_KEYS.filter(key => features[key])).toEqual(chosen)
