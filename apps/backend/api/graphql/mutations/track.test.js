@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { spyify, unspyify } from '../../../test/setup/helpers'
+import { joinEventProperties, latestJoinEvent, spyify, unspyify } from '../../../test/setup/helpers'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import {
   createTrack,
@@ -157,6 +157,7 @@ describe('track mutations', () => {
       const membership = await GroupMembership.forPair(member.id, space).fetch()
       expect(!!membership).to.equal(true)
       expect(membership.get('active')).to.equal(true)
+      expect(joinEventProperties(await latestJoinEvent(member.id, space.id)).source).to.equal('track')
     })
 
     it('rejects enrollment when the track is not published', async () => {
