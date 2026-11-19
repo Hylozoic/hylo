@@ -213,6 +213,7 @@ import peopleTyping from './mutations/peopleTyping'
 import { leaveMessageThread } from './mutations/messageThread'
 import { reportToStaff, resolveStaffReport } from './mutations/moderation_actions'
 import InvitationService from '../services/InvitationService'
+import SupporterService from '../services/SupporterService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
 
@@ -655,7 +656,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       const banners = await SiteBanner.all()
       return banners.toModelArray ? banners.toModelArray() : banners
     },
-    publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status)
+    publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status),
+    supportHylo: (root, args, context) => SupporterService.supportInfo(context.currentUserId),
+    groupSupporterInfo: (root, { groupId }, context) => SupporterService.groupSupportInfo(context.currentUserId, groupId),
+    supporterGrants: (root, args, context) => SupporterService.listGrants(context.currentUserId)
   }
 }
 
@@ -1040,6 +1044,23 @@ export function makeMutations ({ fetchOne }) {
     deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
 
     dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    checkOpenCollectiveContributions: (root, args, context) => SupporterService.claimByEmail(context.currentUserId),
+
+    attributeSupportContribution: (root, { contributionId, groupId }, context) => SupporterService.attributeContribution(context.currentUserId, contributionId, groupId),
+
+    setSupporterBadgeVisibility: (root, { groupId, show }, context) => SupporterService.setBadgeVisibility(context.currentUserId, { groupId, show }),
+
+    createSupportIntent: (root, { groupId }, context) => SupporterService.createIntent(context.currentUserId, groupId),
+
+    confirmSupportIntent: async (root, { orderId }, context) => {
+      const { groupId, ...result } = await SupporterService.confirmIntent(context.currentUserId, orderId)
+      return { ...result, group: groupId ? await Group.find(groupId) : null }
+    },
+
+    grantSupporterStatus: (root, { userId, groupId, note, expiresAt }, context) => SupporterService.grant(context.currentUserId, { userId, groupId, note, expiresAt }),
+
+    revokeSupporterStatus: (root, { id }, context) => SupporterService.revoke(context.currentUserId, id),
 
     requestPublicListing: (root, { groupId, message }, context) => requestPublicListing(context.currentUserId, groupId, message),
 

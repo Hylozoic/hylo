@@ -75,6 +75,7 @@ import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store
 import GroupMembershipNotificationSettings from 'routes/UserSettings/NotificationSettingsTab/GroupMembershipNotificationSettings'
 import FundingRoundAboutInfo from 'components/FundingRoundAboutInfo/FundingRoundAboutInfo'
 import SpaceSettingsModal from 'routes/AuthLayoutRouter/components/ContextMenu/SpaceSettingsModal'
+import SupporterBadge from 'components/SupporterBadge/SupporterBadge'
 
 import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
@@ -362,6 +363,11 @@ function GroupDetail ({ forCurrentGroup = false }) {
           <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
           <div>
             <div className='text-white font-bold text-2xl text-center'>{group.name}</div>
+            {group.isSupporter && (
+              <div className='flex justify-center mt-1'>
+                <SupporterBadge group />
+              </div>
+            )}
             {isSpace && isAboutCurrentGroup && responsibilityTitles.includes(RESP_ADMINISTRATION) && (
               <div className='flex justify-center mt-2'>
                 <Button
