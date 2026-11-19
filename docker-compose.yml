@@ -1,0 +1,146 @@
+# One compose file, two ways to work:
+#   docker compose up              API, worker, and web in Docker
+#   docker compose up -d db redis  Postgres and Redis only, Node on the host
+#
+# The Node containers share db's network namespace, so localhost:5432,
+# localhost:6379, and localhost:3001 mean the same thing in every container
+# and in a .env file used on the host. Compose does not inject DATABASE_URL:
+# a variable set here would override apps/backend/.env.test (dotenv never
+# replaces a variable that is already set) and backend tests would wipe the
+# dev database.
+
+name: hylo
+
+x-node: &node
+  build:
+    context: ./docker
+    dockerfile: dev.Dockerfile
+  init: true
+  network_mode: service:db
+  volumes: &node-volumes
+    - .:/app
+    - hylo-node-modules:/app/node_modules
+    - hylo-backend-node-modules:/app/apps/backend/node_modules
+    - hylo-web-node-modules:/app/apps/web/node_modules
+    - hylo-desktop-node-modules:/app/apps/desktop/node_modules
+    - hylo-mobile-leap-node-modules:/app/apps/mobile-leap/node_modules
+    - hylo-contexts-node-modules:/app/packages/contexts/node_modules
+    - hylo-graphql-node-modules:/app/packages/graphql/node_modules
+    - hylo-hooks-node-modules:/app/packages/hooks/node_modules
+    - hylo-navigation-node-modules:/app/packages/navigation/node_modules
+    - hylo-presenters-node-modules:/app/packages/presenters/node_modules
+    - hylo-shared-node-modules:/app/packages/shared/node_modules
+    - hylo-urql-node-modules:/app/packages/urql/node_modules
+  environment: &node-env
+    HYLO_IN_DOCKER: "1"
+    # Keeps the container's Yarn state off the bind-mounted .yarn/install-state.gz.
+    YARN_INSTALL_STATE_PATH: /tmp/hylo-yarn-install-state.gz
+    HOME: /tmp
+    # Node 17+ tries ::1 for localhost first. Postgres and Redis listen on IPv4.
+    NODE_OPTIONS: --dns-result-order=ipv4first
+    # Set to 1 on the host if file watching misses edits (mostly macOS).
+    CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-}
+
+services:
+  db:
+    # Official postgis/postgis publishes amd64 only. imresamu/postgis is the
+    # same image, also built for Apple Silicon (linux/arm64).
+    image: imresamu/postgis:17-3.5
+    container_name: hylo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - hylo-postgres:/var/lib/postgresql/data
+    # App ports are published here because the other services share this
+    # network namespace and cannot publish their own. `yarn docker:services`
+    # sets the host side to 0 so those binds do not take 3000/3001 from a
+    # Node process running on the machine. Inside the containers the ports
+    # stay 3000 and 3001.
+    ports:
+      - "${HYLO_WEB_PORT:-3000}:3000"
+      - "${HYLO_API_PORT:-3001}:3001"
+      - "${HYLO_INSPECT_PORT:-3002}:3002"
+      - "${HYLO_DB_PORT:-5432}:5432"
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    network_mode: service:db
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  setup:
+    <<: *node
+    environment:
+      <<: *node-env
+      HYLO_SEED: ${HYLO_SEED:-small}
+      HYLO_SEED_CONFIRM: "yes"
+    command: ["node", "scripts/dev-setup.js"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  backend:
+    <<: *node
+    environment:
+      <<: *node-env
+      PORT: "3001"
+    working_dir: /app/apps/backend
+    command: ["./node_modules/.bin/nodemon", "--inspect=0.0.0.0:3002", "--ext", "js,json,graphql", "app.js", "--delay=0.5"]
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    tty: true
+
+  worker:
+    <<: *node
+    environment:
+      <<: *node-env
+      DELAY_START: "5"
+    working_dir: /app/apps/backend
+    command: ["./node_modules/.bin/nodemon", "worker.js", "--delay=0.5"]
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    tty: true
+
+  web:
+    <<: *node
+    command: ["yarn", "workspace", "web", "dev"]
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    tty: true
+
+volumes:
+  hylo-postgres:
+  hylo-node-modules:
+  hylo-backend-node-modules:
+  hylo-web-node-modules:
+  hylo-desktop-node-modules:
+  hylo-mobile-leap-node-modules:
+  hylo-contexts-node-modules:
+  hylo-graphql-node-modules:
+  hylo-hooks-node-modules:
+  hylo-navigation-node-modules:
+  hylo-presenters-node-modules:
+  hylo-shared-node-modules:
+  hylo-urql-node-modules:

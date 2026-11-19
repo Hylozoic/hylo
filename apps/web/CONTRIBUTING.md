@@ -62,7 +62,7 @@ Hylo is stewarded by a team of engineers, designers, artists, and product manage
 ### Platform setup
 The platform is currently sustained by several repos; hylo-evo, hylo-node, hylo-shared and hyloeReactNative. Evo covers the React-based web-app. Node is the node.js backend, relying on a redis cache and a postgres db. HyloReactNative is the mobile app (the repo is private right now, we just haven't had priority to open source it yet). Hylo-shared has a bunch of helper functions and other code shared between all the other repos. We are considering making the jump to a mono-repo, and would love help from those experienced with such a transition.
 
-You will need to get at least EVO and NODE up and running in your local setup to contribute code. There are docker images several parts of the back-end as well, documented in the NODE repo. [The .devcontainer README](https://github.com/Hylozoic/hylo-node/blob/dev/.devcontainer/README.md) details some setup aspects, although its been some time since any of us have tried the direct vs code integration. Docker desktop now automatically runs images that were running on shutdown, so that has streamlined the process of using the docker images.
+You will need the web app and the backend running locally to contribute code. The [root README](../../README.md) covers that: `docker compose up` starts Postgres, Redis, the API, and the web app, and there is a lighter mode that runs only Postgres and Redis in Docker.
 
 ### Steps to get involved:
 - Join the [Building Hylo](https://www.hylo.com/groups/building-hylo/join/RcDe6vcG7u) group, our open source community for people co-creating Hylo!

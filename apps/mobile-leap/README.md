@@ -23,6 +23,18 @@ yarn mobile-leap:android
 
 `yarn mobile:dev` / `yarn mobile:ios` / `yarn mobile:android` are aliases for the same commands.
 
+## Running against the Docker stack
+
+`docker compose up` from the repo root serves the API on port 3001 and the web app on port 3000. The mobile app has to run on the host (the simulator and emulator cannot live in that container). From the repo root, `node scripts/dev-setup.js --mobile` copies `.env.example` to `.env` when you don't already have one.
+
+- **iOS Simulator:** `localhost` in `.env.example` is correct. `yarn mobile-leap:dev`, then `yarn mobile-leap:ios`.
+- **Android emulator:** `yarn mobile-leap:android:reverse` forwards the emulator's ports 3000 and 3001 to the host, so `localhost` keeps working. Then `yarn mobile-leap:android`.
+- **Physical device:** set `API_HOST` to `http://<machine>.local:3001` and `HYLO_WEB_BASE_URL` to `http://<machine>.local:3000`. The web dev server allows `.local` hosts and proxies `/noo` and `/socket.io`. Set the backend `DOMAIN` to `<machine>.local:3000` so links in emails match the phone, and add `http://<machine>.local:3000` to `CORS_ALLOWED_ORIGINS` if a WebView calls the API on port 3001 directly. A host-only session cookie is issued for whichever host the browser used, so keep the WebView and the page on the same host.
+
+Most of the product UI is the web app inside a WebView, so a running web container covers a lot of mobile work before you build the native shell.
+
+Xcode and Android Studio are only required to compile the native app. `apps/mobile-leap/eas.json` already has a `development` profile (`developmentClient: true`). A shared EAS development build would let people who only change JavaScript install that client and run `yarn mobile-leap:dev`, without installing the native toolchains. Publishing that build needs the team's Apple and Google credentials, so it is not part of the local Docker setup.
+
 ## CI
 
 Bitrise runs `apps/mobile-leap/scripts/bitrise-make-env.sh`, `configure.sh`, then `bitrise-build.sh <ios|android>` (prebuild + signing patches + pods).
