@@ -414,7 +414,8 @@ CREATE TABLE public.collections_posts (
     "order" integer DEFAULT 0,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    view_id bigint NOT NULL
+    view_id bigint NOT NULL,
+    module_id bigint
 );
 
 
@@ -3350,6 +3351,42 @@ CREATE SEQUENCE public.token_action_seq
 
 
 --
+-- Name: track_modules; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.track_modules (
+    id integer NOT NULL,
+    view_id bigint NOT NULL,
+    title character varying(255),
+    description text,
+    "order" integer DEFAULT 0,
+    settings jsonb DEFAULT '{}'::jsonb,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: track_modules_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.track_modules_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: track_modules_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.track_modules_id_seq OWNED BY public.track_modules.id;
+
+
+--
 -- Name: tracks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3367,7 +3404,9 @@ CREATE TABLE public.tracks (
     completion_role_id bigint,
     action_descriptor character varying(255),
     access_controlled boolean DEFAULT false,
-    group_id bigint
+    group_id bigint,
+    module_descriptor character varying(255) DEFAULT 'Module'::character varying,
+    module_descriptor_plural character varying(255) DEFAULT 'Modules'::character varying
 );
 
 
@@ -4175,6 +4214,13 @@ ALTER TABLE ONLY public.tag_follows ALTER COLUMN id SET DEFAULT nextval('public.
 --
 
 ALTER TABLE ONLY public.tags ALTER COLUMN id SET DEFAULT nextval('public.tags_id_seq'::regclass);
+
+
+--
+-- Name: track_modules id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.track_modules ALTER COLUMN id SET DEFAULT nextval('public.track_modules_id_seq'::regclass);
 
 
 --
@@ -5083,6 +5129,14 @@ ALTER TABLE ONLY public.tags
 
 
 --
+-- Name: track_modules track_modules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.track_modules
+    ADD CONSTRAINT track_modules_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: tracks tracks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5619,10 +5673,24 @@ CREATE INDEX idx_groups_parent_id_type ON public.groups USING btree (parent_id, 
 
 
 --
+-- Name: idx_collections_posts_module_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_collections_posts_module_id ON public.collections_posts USING btree (module_id);
+
+
+--
 -- Name: idx_collections_posts_view_id_order; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_collections_posts_view_id_order ON public.collections_posts USING btree (view_id, "order");
+
+
+--
+-- Name: idx_track_modules_view_id_order; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_track_modules_view_id_order ON public.track_modules USING btree (view_id, "order");
 
 
 --
@@ -6127,6 +6195,14 @@ ALTER TABLE ONLY public.blocked_users
 
 ALTER TABLE ONLY public.blocked_users
     ADD CONSTRAINT blocked_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: collections_posts collections_posts_module_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.collections_posts
+    ADD CONSTRAINT collections_posts_module_id_foreign FOREIGN KEY (module_id) REFERENCES public.track_modules(id) ON DELETE SET NULL;
 
 
 --
@@ -7455,6 +7531,14 @@ ALTER TABLE ONLY public.tag_follows
 
 ALTER TABLE ONLY public.tag_follows
     ADD CONSTRAINT tag_follows_last_read_post_id_foreign FOREIGN KEY (last_read_post_id) REFERENCES public.posts(id);
+
+
+--
+-- Name: track_modules track_modules_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.track_modules
+    ADD CONSTRAINT track_modules_view_id_foreign FOREIGN KEY (view_id) REFERENCES public.group_views(id) ON DELETE CASCADE;
 
 
 --

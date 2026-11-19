@@ -1,4 +1,4 @@
-/* global bookshelf, Group, GroupMembership, GroupRole, GroupView, CollectionPost, Post, User, UserScope, Activity, Responsibility, RichText, Track */
+/* global bookshelf, Group, GroupMembership, GroupRole, GroupView, CollectionPost, Post, User, UserScope, Activity, Responsibility, RichText, Track, TrackModule */
 /* eslint-disable camelcase  */
 import { GraphQLError } from 'graphql'
 import HasSettings from './mixins/HasSettings' // TODO: does it have settings?
@@ -156,10 +156,32 @@ module.exports = bookshelf.Model.extend(Object.assign({
         await Group.setupSpaceViews(copySpace.id, sourceSpace.get('accepted_post_types') || [], ['track-actions', 'members', 'welcome'], { transacting: trx })
       }
 
+      // Copy the modules, keeping their numbers in the shared order sequence
+      const sourceView = sourceSpace ? await sourceSpace.trackActionsView().fetch({ transacting: trx }) : null
+      const copyView = copySpace ? await copySpace.trackActionsView().fetch({ transacting: trx }) : null
+      const copyModuleIds = {}
+      const sourceRows = {}
+      if (sourceView && copyView) {
+        const sourceModules = await sourceView.trackModules().fetch({ transacting: trx })
+        for (const sourceModule of sourceModules.models) {
+          const copyModule = await TrackModule.create({
+            view_id: copyView.id,
+            title: sourceModule.get('title'),
+            description: sourceModule.get('description'),
+            order: sourceModule.get('order'),
+            settings: sourceModule.get('settings') || {}
+          }, { transacting: trx })
+          copyModuleIds[sourceModule.id] = copyModule.id
+        }
+        const rows = await sourceView.collectionPosts().fetch({ transacting: trx })
+        rows.models.forEach(row => { sourceRows[row.get('post_id')] = row })
+      }
+
       // Duplicate actions from the track-actions collections_posts list
       const trackActions = await this.actionPosts({ transacting: trx })
       let order = 0
       for (const action of trackActions) {
+        const sourceRow = sourceRows[action.id]
         const newAction = await action.clone()
         delete newAction.attributes.id
         delete newAction.id
@@ -172,7 +194,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
         }, { transacting: trx })
         if (copySpace) {
           await newAction.groups().attach([copySpace.id], { transacting: trx })
-          await Track.addPost(newAction, newTrack, { transacting: trx, order })
+          await Track.addPost(newAction, newTrack, {
+            transacting: trx,
+            order: sourceRow ? sourceRow.get('order') : order,
+            moduleId: sourceRow ? copyModuleIds[sourceRow.get('module_id')] : null
+          })
           order += 1
         }
       }
@@ -182,7 +208,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   }
 
 }, HasSettings), {
-  addPost: async function (postOrId, trackOrId, { transacting, order, userId } = {}) {
+  addPost: async function (postOrId, trackOrId, { transacting, order, userId, moduleId } = {}) {
     const post = typeof postOrId === 'object' ? postOrId : await Post.find(postOrId, { transacting })
     const postId = post ? post.get('id') : postOrId
     const track = await (typeof trackOrId === 'object' ? trackOrId : Track.find(trackOrId))
@@ -204,15 +230,24 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     await track.save({ num_actions: track.get('num_actions') + 1 }, { transacting })
 
+    // A module from another track is ignored, so the action lands at the top level
+    const trackModule = moduleId ? await TrackModule.find(moduleId, { transacting }) : null
+    const validModule = trackModule && String(trackModule.get('view_id')) === String(actionsView.id) ? trackModule : null
+
     let nextOrder = order
-    if (nextOrder == null) {
-      let maxOrderQuery = bookshelf.knex('collections_posts')
-        .where({ view_id: actionsView.id })
-        .select(bookshelf.knex.raw('coalesce(max("order"), -1) as max_order'))
+    if (nextOrder == null && validModule) {
+      // Goes right after the module's last action (or after the module itself when
+      // it is empty); everything later in the track moves up by one.
+      const row = await bookshelf.knex('collections_posts')
+        .modify(q => { if (transacting) q.transacting(transacting) })
+        .where({ view_id: actionsView.id, module_id: validModule.id })
+        .select(bookshelf.knex.raw('max("order") as max_order'))
         .first()
-      if (transacting) maxOrderQuery = maxOrderQuery.transacting(transacting)
-      const row = await maxOrderQuery
-      nextOrder = Number(row.max_order) + 1
+      nextOrder = (row.max_order == null ? validModule.get('order') : Number(row.max_order)) + 1
+      await TrackModule.makeRoomAt(actionsView.id, nextOrder, { transacting })
+    }
+    if (nextOrder == null) {
+      nextOrder = await TrackModule.nextOrderForView(actionsView.id, { transacting })
     }
 
     const resolvedUserId = userId || (post && post.get('user_id'))
@@ -220,7 +255,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       view_id: actionsView.id,
       post_id: postId,
       order: nextOrder,
-      user_id: resolvedUserId
+      user_id: resolvedUserId,
+      module_id: validModule ? validModule.id : null
     }, { transacting })
   },
 

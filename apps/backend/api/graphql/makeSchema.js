@@ -53,6 +53,8 @@ import {
   createSavedSearch,
   createSpace,
   createTrack,
+  createTrackModule,
+  deleteTrackModule,
   createZapierTrigger,
   login,
   createTopic,
@@ -175,6 +177,8 @@ import {
   updateGroupViewUser,
   updateTopicFollow,
   updateTrack,
+  updateTrackModule,
+  updateTrackOutline,
   updateMe,
   updateMembership,
   updatePeerRelationship,
@@ -1020,6 +1024,14 @@ export function makeMutations ({ fetchOne }) {
     updateStripeAccount: (root, { accountId }, context) => updateStripeAccount(context.currentUserId, accountId),
 
     updateTrack: (root, { trackId, data }, context) => updateTrack(context.currentUserId, trackId, data),
+
+    createTrackModule: (root, { viewId, data }, context) => createTrackModule(context.currentUserId, viewId, data),
+
+    updateTrackModule: (root, { id, data }, context) => updateTrackModule(context.currentUserId, id, data),
+
+    deleteTrackModule: (root, { id }, context) => deleteTrackModule(context.currentUserId, id),
+
+    updateTrackOutline: (root, { viewId, items }, context) => updateTrackOutline(context.currentUserId, viewId, items),
 
     verifyEmailChange: (root, args, context) => verifyEmailChange(fetchOne)(context.currentUserId, args, { ip: context.req?.ip }),
 
